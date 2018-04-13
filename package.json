@@ -1,0 +1,33 @@
+{
+    "name": "svelte-language-server",
+    "version": "0.0.1",
+    "description": "A language server for Svelte",
+    "main": "dist/src/index.js",
+    "typings": "dist/src/index",
+    "scripts": {
+        "test": "mocha --require ts-node/register test/**/*.ts",
+        "build": "tsc"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/UnwrittenFun/svelte-language-server.git"
+    },
+    "keywords": ["svelte", "vscode", "atom", "editor"],
+    "author": "James Birtles <jameshbirtles@gmail.com>",
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/UnwrittenFun/svelte-language-server/issues"
+    },
+    "homepage": "https://github.com/UnwrittenFun/svelte-language-server#readme",
+    "devDependencies": {
+        "@types/mocha": "^5.0.0",
+        "@types/node": "^8.10.7",
+        "mocha": "^5.1.0",
+        "ts-node": "^5.0.1",
+        "typescript": "^2.8.1"
+    },
+    "dependencies": {
+        "vscode-languageserver": "^4.1.1",
+        "vscode-languageserver-types": "^3.7.1"
+    }
+}
