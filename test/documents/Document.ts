@@ -13,6 +13,10 @@ class TextDocument extends Document {
     setText(text: string) {
         this.content = text;
     }
+
+    getFilePath(): string | null {
+        throw new Error('Method not implemented.');
+    }
 }
 
 describe('Document', () => {

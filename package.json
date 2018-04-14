@@ -12,7 +12,12 @@
         "type": "git",
         "url": "git+https://github.com/UnwrittenFun/svelte-language-server.git"
     },
-    "keywords": ["svelte", "vscode", "atom", "editor"],
+    "keywords": [
+        "svelte",
+        "vscode",
+        "atom",
+        "editor"
+    ],
     "author": "James Birtles <jameshbirtles@gmail.com>",
     "license": "MIT",
     "bugs": {
@@ -28,6 +33,7 @@
     },
     "dependencies": {
         "vscode-languageserver": "^4.1.1",
-        "vscode-languageserver-types": "^3.7.1"
+        "vscode-languageserver-types": "^3.7.1",
+        "vscode-uri": "^1.0.3"
     }
 }

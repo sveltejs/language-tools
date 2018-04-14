@@ -1,5 +1,6 @@
 import { DocumentFragment, FragmentResolver } from './DocumentFragment';
 import { Document } from './Document';
+import { urlToPath } from '../utils';
 
 /**
  * Represents a text document that contains a svelte component.
@@ -14,7 +15,7 @@ export class SvelteDocument extends Document {
      */
     public version = 0;
 
-    constructor(public content: string) {
+    constructor(public url: string, public content: string) {
         super();
     }
 
@@ -31,6 +32,13 @@ export class SvelteDocument extends Document {
     setText(text: string) {
         this.content = text;
         this.version++;
+    }
+
+    /**
+     * Returns the file path if the url scheme is file
+     */
+    getFilePath(): string | null {
+        return urlToPath(this.url);
     }
 }
 

@@ -14,6 +14,10 @@ class TextDocument extends Document {
     setText(text: string) {
         this.content = text;
     }
+
+    getFilePath(): string | null {
+        return '/hello.html';
+    }
 }
 
 describe('Document Fragment', () => {
@@ -106,5 +110,15 @@ describe('Document Fragment', () => {
             line: 0,
             character: 2,
         });
+    });
+
+    it('returns the parent file path', () => {
+        const parent = new TextDocument('Hello, world!');
+        const fragment = new DocumentFragment(parent, {
+            start: 7,
+            end: 12,
+        });
+
+        assert.strictEqual(fragment.getFilePath(), parent.getFilePath());
     });
 });

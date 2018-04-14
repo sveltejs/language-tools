@@ -73,7 +73,17 @@ export class DocumentFragment extends Document {
         this.parent.update(text, this.fragment.start, this.fragment.end);
     }
 
+    /**
+     * Returns the length of the fragment as calculated from the start and end positon
+     */
     getTextLength(): number {
         return this.fragment.end - this.fragment.start;
+    }
+
+    /**
+     * Return the parent file path
+     */
+    getFilePath(): string | null {
+        return this.parent.getFilePath();
     }
 }

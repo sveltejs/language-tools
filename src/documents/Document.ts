@@ -17,6 +17,11 @@ export abstract class Document {
     abstract setText(text: string): void;
 
     /**
+     * Returns the path where this file can be found or null if not on disk
+     */
+    abstract getFilePath(): string | null;
+
+    /**
      * Get the length of the document's content
      */
     getTextLength(): number {
