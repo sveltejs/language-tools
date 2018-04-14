@@ -13,7 +13,7 @@ describe('Document Manager', () => {
         text: 'Hello, world!',
     };
 
-    const creatTextDocument = (textDocument: TextDocumentItem) =>
+    const createTextDocument = (textDocument: TextDocumentItem) =>
         new TextDocument(textDocument.uri, textDocument.text);
 
     it('opens documents', () => {
@@ -27,7 +27,7 @@ describe('Document Manager', () => {
     });
 
     it('updates the whole document', () => {
-        const document = creatTextDocument(textDocument);
+        const document = createTextDocument(textDocument);
         const update = sinon.spy(document, 'update');
         const createDocument = sinon.stub().returns(document);
         const manager = new DocumentManager(createDocument);
@@ -40,7 +40,7 @@ describe('Document Manager', () => {
     });
 
     it('updates the parts of the document', () => {
-        const document = creatTextDocument(textDocument);
+        const document = createTextDocument(textDocument);
         const update = sinon.spy(document, 'update');
         const createDocument = sinon.stub().returns(document);
         const manager = new DocumentManager(createDocument);
@@ -65,8 +65,34 @@ describe('Document Manager', () => {
     });
 
     it("fails to update if document isn't open", () => {
-        const manager = new DocumentManager(creatTextDocument);
+        const manager = new DocumentManager(createTextDocument);
 
         assert.throws(() => manager.updateDocument(textDocument, []));
+    });
+
+    it('emits a document change event on open and update', () => {
+        const manager = new DocumentManager(createTextDocument);
+        const cb = sinon.spy();
+
+        manager.on('documentChange', cb);
+
+        manager.openDocument(textDocument);
+        sinon.assert.calledOnce(cb);
+
+        manager.updateDocument(textDocument, []);
+        sinon.assert.calledTwice(cb);
+    });
+
+    it('executes getDiagnostics on plugins', async () => {
+        const manager = new DocumentManager(createTextDocument);
+        const plugin = {
+            getDiagnostics: sinon.stub().returns([]),
+        };
+        manager.register(plugin);
+        manager.openDocument(textDocument);
+
+        await manager.getDiagnostics(textDocument);
+
+        sinon.assert.calledOnce(plugin.getDiagnostics);
     });
 });

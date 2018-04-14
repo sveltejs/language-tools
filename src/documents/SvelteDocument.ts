@@ -40,6 +40,10 @@ export class SvelteDocument extends Document {
     getFilePath(): string | null {
         return urlToPath(this.url);
     }
+
+    getURL() {
+        return this.url;
+    }
 }
 
 class SvelteFragment implements FragmentResolver {

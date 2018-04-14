@@ -10,6 +10,10 @@ export class TextDocument extends Document {
         return this.content;
     }
 
+    getURL() {
+        return this.url;
+    }
+
     setText(text: string) {
         this.content = text;
     }

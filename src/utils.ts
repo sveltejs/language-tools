@@ -11,3 +11,7 @@ export function urlToPath(stringUrl: string): string | null {
     }
     return url.fsPath.replace(/\\/g, '/');
 }
+
+export function flatten<T>(arr: T[][]): T[] {
+    return arr.reduce((all, item) => [...all, ...item], []);
+}

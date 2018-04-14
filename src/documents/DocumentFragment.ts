@@ -86,4 +86,8 @@ export class DocumentFragment extends Document {
     getFilePath(): string | null {
         return this.parent.getFilePath();
     }
+
+    getURL() {
+        return this.parent.getURL();
+    }
 }

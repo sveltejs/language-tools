@@ -22,6 +22,11 @@ export abstract class Document {
     abstract getFilePath(): string | null;
 
     /**
+     * Returns the url of the document
+     */
+    abstract getURL(): string;
+
+    /**
      * Get the length of the document's content
      */
     getTextLength(): number {

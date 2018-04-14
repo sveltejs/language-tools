@@ -2,17 +2,36 @@ import {
     TextDocumentItem,
     VersionedTextDocumentIdentifier,
     TextDocumentContentChangeEvent,
+    TextDocumentIdentifier,
+    Diagnostic,
 } from 'vscode-languageserver-types';
 import { Document } from './Document';
+import { PluginHost, ExecuteMode } from '../plugins/PluginHost';
+import { flatten } from '../utils';
 
-export class DocumentManager {
+export interface DocumentManager {
+    on(evt: 'documentChange', listener: (document: Document) => void): this;
+}
+
+export class DocumentManager extends PluginHost {
     public documents: Map<string, Document> = new Map();
 
-    constructor(private createDocument: (textDocument: TextDocumentItem) => Document) {}
+    constructor(private createDocument: (textDocument: TextDocumentItem) => Document) {
+        super();
+    }
 
     openDocument(textDocument: TextDocumentItem) {
         const document = this.createDocument(textDocument);
         this.documents.set(textDocument.uri, document);
+        this.notify('documentChange', document);
+    }
+
+    closeDocument(textDocument: TextDocumentIdentifier) {
+        if (!this.documents.has(textDocument.uri)) {
+            throw new Error('Cannot call methods on an unopened document');
+        }
+
+        this.documents.delete(textDocument.uri);
     }
 
     updateDocument(
@@ -36,5 +55,18 @@ export class DocumentManager {
 
             document.update(change.text, start, end);
         }
+
+        this.notify('documentChange', document);
+    }
+
+    async getDiagnostics(textDocument: TextDocumentIdentifier): Promise<Diagnostic[]> {
+        const document = this.documents.get(textDocument.uri);
+        if (!document) {
+            throw new Error('Cannot call methods on an unopened document');
+        }
+
+        return flatten(
+            await this.execute<Diagnostic[]>('getDiagnostics', [document], ExecuteMode.Collect),
+        );
     }
 }
