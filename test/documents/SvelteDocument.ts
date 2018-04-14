@@ -82,7 +82,7 @@ describe('Svelte Document', () => {
         assert.strictEqual(document.getFilePath(), '/hello.html');
     });
 
-    it('returns the null for non file urls', () => {
+    it('returns null for non file urls', () => {
         const document = new SvelteDocument('ftp:///hello.html', 'hello');
 
         assert.strictEqual(document.getFilePath(), null);
