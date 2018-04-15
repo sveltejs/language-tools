@@ -9,12 +9,6 @@ export class SvelteDocument extends Document {
     public script = new DocumentFragment(this, new SvelteFragment(this, 'script'));
     public style = new DocumentFragment(this, new SvelteFragment(this, 'style'));
 
-    /**
-     * Current version of the document.
-     * Increments every time the content is updated.
-     */
-    public version = 0;
-
     constructor(public url: string, public content: string) {
         super();
     }

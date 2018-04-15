@@ -1,6 +1,7 @@
 import { EventEmitter } from 'events';
 
 export enum ExecuteMode {
+    None,
     FirstNonNull,
     Collect,
 }
@@ -14,16 +15,26 @@ export class PluginHost {
     }
 
     notify(name: string, ...args: any[]) {
+        this.emitter.emit(name + '|pre', ...args);
         this.emitter.emit(name, ...args);
+        this.emitter.emit(name + '|post', ...args);
     }
 
     register(plugin: any) {
         this.plugins.push(plugin);
+        if (typeof plugin.onRegister === 'function') {
+            plugin.onRegister(this);
+        }
     }
 
     execute<T>(name: string, args: any[], mode: ExecuteMode.FirstNonNull): Promise<T | null>;
     execute<T>(name: string, args: any[], mode: ExecuteMode.Collect): Promise<T[]>;
-    async execute<T>(name: string, args: any[], mode: ExecuteMode): Promise<(T | null) | T[]> {
+    execute<T>(name: string, args: any[], mode: ExecuteMode.None): Promise<void>;
+    async execute<T>(
+        name: string,
+        args: any[],
+        mode: ExecuteMode,
+    ): Promise<(T | null) | T[] | void> {
         const plugins = this.plugins.filter(plugin => typeof plugin[name] === 'function');
 
         switch (mode) {
@@ -34,11 +45,12 @@ export class PluginHost {
                         return res;
                     }
                 }
-                break;
+                return null;
             case ExecuteMode.Collect:
                 return Promise.all(plugins.map(plugin => plugin[name](...args)));
+            case ExecuteMode.None:
+                await Promise.all(plugins.map(plugin => plugin[name](...args)));
+                return;
         }
-
-        return null;
     }
 }

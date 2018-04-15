@@ -6,7 +6,7 @@ import {
 } from 'vscode-languageserver-types';
 import { PluginHost, ExecuteMode } from '../PluginHost';
 import { flatten } from '../../utils';
-import { Document, Diagnostic } from '../../api';
+import { Document, Diagnostic, Hover, Position } from '../../api';
 
 export interface DocumentManager {
     on(evt: 'documentChange', listener: (document: Document) => void): this;
@@ -19,17 +19,22 @@ export class DocumentManager extends PluginHost {
         super();
     }
 
-    openDocument(textDocument: TextDocumentItem) {
+    openDocument(textDocument: TextDocumentItem): Document {
         const document = this.createDocument(textDocument);
         this.documents.set(textDocument.uri, document);
+        this.notify('documentOpen', document);
         this.notify('documentChange', document);
+
+        return document;
     }
 
     closeDocument(textDocument: TextDocumentIdentifier) {
-        if (!this.documents.has(textDocument.uri)) {
+        const document = this.documents.get(textDocument.uri);
+        if (!document) {
             throw new Error('Cannot call methods on an unopened document');
         }
 
+        this.notify('documentClose', document);
         this.documents.delete(textDocument.uri);
     }
 
@@ -67,5 +72,14 @@ export class DocumentManager extends PluginHost {
         return flatten(
             await this.execute<Diagnostic[]>('getDiagnostics', [document], ExecuteMode.Collect),
         );
+    }
+
+    async doHover(textDocument: TextDocumentIdentifier, position: Position): Promise<Hover | null> {
+        const document = this.documents.get(textDocument.uri);
+        if (!document) {
+            throw new Error('Cannot call methods on an unopened document');
+        }
+
+        return this.execute<Hover>('doHover', [document, position], ExecuteMode.FirstNonNull);
     }
 }

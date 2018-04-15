@@ -1,10 +1,11 @@
 import { clamp } from '../utils';
 import { Position } from './interfaces';
+import { TextDocument } from 'vscode-languageserver-types';
 
 /**
  * Represents a textual document.
  */
-export abstract class Document {
+export abstract class Document implements TextDocument {
     /**
      * Get the text content of the document
      */
@@ -25,6 +26,11 @@ export abstract class Document {
      * Returns the url of the document
      */
     abstract getURL(): string;
+
+    /**
+     * Current version of the document.
+     */
+    public version = 0;
 
     /**
      * Get the length of the document's content
@@ -118,4 +124,17 @@ export abstract class Document {
 
         return lineOffsets;
     }
+
+    /**
+     * Implements TextDocument
+     */
+    get uri(): string {
+        return this.getURL();
+    }
+
+    get lineCount(): number {
+        return this.getText().split(/\r?\n/).length;
+    }
+
+    languageId = '';
 }
