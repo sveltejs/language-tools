@@ -35,7 +35,7 @@
     },
     "dependencies": {
         "sinon": "^4.5.0",
-        "svelte": "^1.61.0",
+        "svelte": "^1.63.1",
         "vscode-html-languageservice": "^2.1.2",
         "vscode-languageserver": "^4.1.1",
         "vscode-languageserver-types": "^3.7.1",

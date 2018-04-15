@@ -34,6 +34,7 @@ declare module 'svelte' {
         end?: { line: number; column: number };
         pos?: number;
         message: string;
+        code: string;
         filename?: string;
         frame?: string;
         toString: () => string;

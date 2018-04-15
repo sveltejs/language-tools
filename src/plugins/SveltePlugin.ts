@@ -15,6 +15,7 @@ export class SveltePlugin implements DiagnosticsProvider {
                     message: err.message,
                     severity: DiagnosticSeverity.Error,
                     source: 'svelte',
+                    code: err.code,
                 },
             ];
         }
@@ -27,6 +28,7 @@ export class SveltePlugin implements DiagnosticsProvider {
                 message: warning.message,
                 severity: DiagnosticSeverity.Warning,
                 source: 'svelte',
+                code: warning.code,
             };
         });
     }

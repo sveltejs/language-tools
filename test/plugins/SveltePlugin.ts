@@ -15,7 +15,7 @@ describe('Svelte Plugin', () => {
             Range.create(1, 0, 1, 21),
             'A11y: <img> element should have an alt attribute',
             DiagnosticSeverity.Warning,
-            undefined,
+            'a11y-missing-attribute',
             'svelte',
         );
 
@@ -30,7 +30,7 @@ describe('Svelte Plugin', () => {
             Range.create(0, 5, 0, 18),
             "'whatever' is not a valid binding",
             DiagnosticSeverity.Error,
-            undefined,
+            'invalid-binding',
             'svelte',
         );
 
