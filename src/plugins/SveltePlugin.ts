@@ -12,8 +12,9 @@ export class SveltePlugin implements DiagnosticsProvider {
             return [
                 {
                     range: Range.create(start.line - 1, start.column, end.line - 1, end.column),
-                    message: '[svelte] ' + err.message,
+                    message: err.message,
                     severity: DiagnosticSeverity.Error,
+                    source: 'svelte',
                 },
             ];
         }
@@ -23,8 +24,9 @@ export class SveltePlugin implements DiagnosticsProvider {
             const end = warning.end || start;
             return {
                 range: Range.create(start.line - 1, start.column, end.line - 1, end.column),
-                message: '[svelte] ' + warning.message,
+                message: warning.message,
                 severity: DiagnosticSeverity.Warning,
+                source: 'svelte',
             };
         });
     }

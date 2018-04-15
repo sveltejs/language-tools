@@ -13,8 +13,10 @@ describe('Svelte Plugin', () => {
         const diagnostics = plugin.getDiagnostics(document);
         const diagnostic = Diagnostic.create(
             Range.create(1, 0, 1, 21),
-            '[svelte] A11y: <img> element should have an alt attribute',
+            'A11y: <img> element should have an alt attribute',
             DiagnosticSeverity.Warning,
+            undefined,
+            'svelte',
         );
 
         assert.deepStrictEqual(diagnostics, [diagnostic]);
@@ -26,8 +28,10 @@ describe('Svelte Plugin', () => {
         const diagnostics = plugin.getDiagnostics(document);
         const diagnostic = Diagnostic.create(
             Range.create(0, 5, 0, 18),
-            "[svelte] 'whatever' is not a valid binding",
+            "'whatever' is not a valid binding",
             DiagnosticSeverity.Error,
+            undefined,
+            'svelte',
         );
 
         assert.deepStrictEqual(diagnostics, [diagnostic]);
