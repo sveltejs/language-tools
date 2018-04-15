@@ -5,7 +5,7 @@
     "main": "dist/src/index.js",
     "typings": "dist/src/index",
     "scripts": {
-        "test": "mocha --require ts-node/register test/**/*.ts",
+        "test": "mocha --require ts-node/register \"test/**/*.ts\"",
         "build": "tsc"
     },
     "repository": {
