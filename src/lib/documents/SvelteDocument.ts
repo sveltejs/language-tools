@@ -1,6 +1,6 @@
 import { DocumentFragment, FragmentResolver } from './DocumentFragment';
-import { Document } from './Document';
-import { urlToPath } from '../utils';
+import { urlToPath } from '../../utils';
+import { Document } from '../../api';
 
 /**
  * Represents a text document that contains a svelte component.

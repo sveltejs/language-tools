@@ -1,6 +1,5 @@
 import * as assert from 'assert';
-import { Document } from '../../src/documents/Document';
-import { TextDocument } from '../../src/documents/TextDocument';
+import { TextDocument } from '../../src/lib/documents/TextDocument';
 
 describe('Document', () => {
     it('gets the text length', () => {

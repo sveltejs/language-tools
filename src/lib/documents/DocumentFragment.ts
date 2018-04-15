@@ -1,5 +1,4 @@
-import { Position } from 'vscode-languageserver-types';
-import { Document } from './Document';
+import { Position, Document } from '../../api';
 
 export interface FragmentResolver {
     start: number;

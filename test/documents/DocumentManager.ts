@@ -1,9 +1,8 @@
 import * as sinon from 'sinon';
 import * as assert from 'assert';
-import { DocumentManager } from '../../src/documents/DocumentManager';
-import { TextDocumentItem, Range } from 'vscode-languageserver-types/lib/umd/main';
-import { Document } from '../../src/documents/Document';
-import { TextDocument } from '../../src/documents/TextDocument';
+import { TextDocumentItem, Range } from 'vscode-languageserver-types';
+import { TextDocument } from '../../src/lib/documents/TextDocument';
+import { DocumentManager } from '../../src/lib/documents/DocumentManager';
 
 describe('Document Manager', () => {
     const textDocument: TextDocumentItem = {

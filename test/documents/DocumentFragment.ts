@@ -1,7 +1,6 @@
 import * as assert from 'assert';
-import { Document } from '../../src/documents/Document';
-import { DocumentFragment } from '../../src/documents/DocumentFragment';
-import { TextDocument } from '../../src/documents/TextDocument';
+import { TextDocument } from '../../src/lib/documents/TextDocument';
+import { DocumentFragment } from '../../src/lib/documents/DocumentFragment';
 
 describe('Document Fragment', () => {
     it('gets the correct text', () => {

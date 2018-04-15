@@ -3,11 +3,10 @@ import {
     VersionedTextDocumentIdentifier,
     TextDocumentContentChangeEvent,
     TextDocumentIdentifier,
-    Diagnostic,
 } from 'vscode-languageserver-types';
-import { Document } from './Document';
-import { PluginHost, ExecuteMode } from '../plugins/PluginHost';
-import { flatten } from '../utils';
+import { PluginHost, ExecuteMode } from '../PluginHost';
+import { flatten } from '../../utils';
+import { Document, Diagnostic } from '../../api';
 
 export interface DocumentManager {
     on(evt: 'documentChange', listener: (document: Document) => void): this;

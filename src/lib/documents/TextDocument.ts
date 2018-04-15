@@ -1,5 +1,5 @@
-import { Document } from './Document';
-import { urlToPath } from '../utils';
+import { urlToPath } from '../../utils';
+import { Document } from '../../api';
 
 export class TextDocument extends Document {
     constructor(public url: string, public content: string) {
