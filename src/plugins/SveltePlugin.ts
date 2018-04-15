@@ -5,7 +5,8 @@ export class SveltePlugin implements DiagnosticsProvider {
     getDiagnostics(document: Document): Diagnostic[] {
         let res;
         try {
-            res = svelte.compile(document.getText(), {});
+            // TODO: pull svelte config from somewhere, e.g. svelte.config.js
+            res = svelte.compile(document.getText(), { dev: true });
         } catch (err) {
             const start = err.loc || { line: 1, column: 0 };
             const end = err.end || start;
