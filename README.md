@@ -23,5 +23,6 @@ Currently Supported:
     *   Hover info
     *   Autocompletions
 *   CSS (via [vscode-css-languageservice](https://github.com/Microsoft/vscode-css-languageservice))
+    *   Diagnostic messages for syntax and lint errors
     *   Hover info
     *   Autocompletions

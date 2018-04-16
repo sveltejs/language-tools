@@ -8,9 +8,11 @@ import {
     CompletionItem,
     CompletionsProvider,
     Fragment,
+    DiagnosticsProvider,
+    Diagnostic,
 } from '../api';
 
-export class CSSPlugin implements HoverProvider, CompletionsProvider {
+export class CSSPlugin implements HoverProvider, CompletionsProvider, DiagnosticsProvider {
     public static matchFragment(fragment: Fragment) {
         return fragment.details.attributes.tag == 'style';
     }
@@ -23,6 +25,17 @@ export class CSSPlugin implements HoverProvider, CompletionsProvider {
             this.stylesheets.set(document, this.lang.parseStylesheet(document)),
         );
         host.on('documentClose', document => this.stylesheets.delete(document));
+    }
+
+    getDiagnostics(document: Document): Diagnostic[] {
+        const stylesheet = this.stylesheets.get(document);
+        if (!stylesheet) {
+            return [];
+        }
+
+        return this.lang
+            .doValidation(document, stylesheet)
+            .map(diagnostic => ({ ...diagnostic, source: 'css' }));
     }
 
     doHover(document: Document, position: Position): Hover | null {
