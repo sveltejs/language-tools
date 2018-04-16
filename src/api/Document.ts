@@ -1,5 +1,5 @@
 import { clamp } from '../utils';
-import { Position, Fragment } from './interfaces';
+import { Position, Fragment, FragmentPredicate } from './interfaces';
 import { TextDocument } from 'vscode-languageserver-types';
 
 /**
@@ -39,7 +39,7 @@ export abstract class Document implements TextDocument {
         return document;
     }
 
-    findFragment(predicate: (fragment: Fragment) => boolean): Fragment | undefined {
+    findFragment(predicate: FragmentPredicate): Fragment | undefined {
         return this.fragments.find(predicate);
     }
 

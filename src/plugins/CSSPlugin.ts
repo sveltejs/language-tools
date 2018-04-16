@@ -5,64 +5,46 @@ import {
     HoverProvider,
     Position,
     Hover,
-    Fragment,
     CompletionItem,
-    mapHoverToParent,
-    mapCompletionItemToParent,
+    CompletionsProvider,
+    Fragment,
 } from '../api';
 
-export class CSSPlugin implements HoverProvider {
+export class CSSPlugin implements HoverProvider, CompletionsProvider {
+    public static matchFragment(fragment: Fragment) {
+        return fragment.details.attributes.tag == 'style';
+    }
+
     private lang = getCSSLanguageService(); // Support css, less, and scss
-    private stylesheets = new WeakMap<Document, { stylesheet: Stylesheet; fragment: Fragment }>();
+    private stylesheets = new WeakMap<Document, Stylesheet>();
 
     onRegister(host: Host) {
-        host.on('documentChange|pre', document => {
-            const fragment = document.findFragment(
-                fragment => fragment.details.attributes.tag == 'style',
-            );
-            if (!fragment) {
-                this.stylesheets.delete(document);
-                return;
-            }
-
-            const stylesheet = this.lang.parseStylesheet(fragment);
-            this.stylesheets.set(document, { stylesheet, fragment });
-        });
+        host.on('documentChange', document =>
+            this.stylesheets.set(document, this.lang.parseStylesheet(document)),
+        );
+        host.on('documentClose', document => this.stylesheets.delete(document));
     }
 
     doHover(document: Document, position: Position): Hover | null {
-        const css = this.stylesheets.get(document);
-        if (!css || !css.fragment.isInFragment(position)) {
+        const stylesheet = this.stylesheets.get(document);
+        if (!stylesheet) {
             return null;
         }
 
-        const hover = this.lang.doHover(
-            css.fragment,
-            css.fragment.positionInFragment(position),
-            css.stylesheet,
-        );
-        if (!hover) {
-            return null;
-        }
-
-        return mapHoverToParent(css.fragment, hover);
+        return this.lang.doHover(document, position, stylesheet);
     }
 
     getCompletions(document: Document, position: Position): CompletionItem[] {
-        const css = this.stylesheets.get(document);
-        if (!css || !css.fragment.isInFragment(position)) {
+        const stylesheet = this.stylesheets.get(document);
+        if (!stylesheet) {
             return [];
         }
 
-        const completion = this.lang.doComplete(
-            css.fragment,
-            css.fragment.positionInFragment(position),
-            css.stylesheet,
-        );
+        const completion = this.lang.doComplete(document, position, stylesheet);
         if (!completion) {
             return [];
         }
 
-        return completion.items.map(item => mapCompletionItemToParent(css.fragment, item));
+        return completion.items;
     }
 }

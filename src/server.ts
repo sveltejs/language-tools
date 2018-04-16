@@ -9,6 +9,7 @@ import { SvelteDocument } from './lib/documents/SvelteDocument';
 import { SveltePlugin } from './plugins/SveltePlugin';
 import { HTMLPlugin } from './plugins/HTMLPlugin';
 import { CSSPlugin } from './plugins/CSSPlugin';
+import { wrapFragmentPlugin } from './api/wrapFragmentPlugin';
 
 const connection = createConnection(new IPCMessageReader(process), new IPCMessageWriter(process));
 
@@ -18,7 +19,7 @@ const manager = new DocumentManager(
 
 manager.register(new SveltePlugin());
 manager.register(new HTMLPlugin());
-manager.register(new CSSPlugin());
+manager.register(wrapFragmentPlugin(new CSSPlugin(), CSSPlugin.matchFragment));
 
 connection.onInitialize(evt => {
     return {

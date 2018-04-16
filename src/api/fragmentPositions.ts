@@ -6,6 +6,7 @@ import {
     Command,
     Range,
     Hover,
+    Diagnostic,
 } from './interfaces';
 
 export function mapRangeToParent(fragment: Fragment, range: Range): Range {
@@ -36,4 +37,8 @@ export function mapHoverToParent(fragment: Fragment, hover: Hover): Hover {
     }
 
     return { ...hover, range: mapRangeToParent(fragment, hover.range) };
+}
+
+export function mapDiagnosticToParent(fragment: Fragment, diagnostic: Diagnostic): Diagnostic {
+    return { ...diagnostic, range: mapRangeToParent(fragment, diagnostic.range) };
 }

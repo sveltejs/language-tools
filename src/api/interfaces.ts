@@ -13,6 +13,7 @@ import {
     Command,
 } from 'vscode-languageserver-types';
 import { Document } from './Document';
+import { HoverRequest } from 'vscode-languageserver/lib/main';
 
 export {
     Diagnostic,
@@ -35,12 +36,30 @@ export interface DiagnosticsProvider {
     getDiagnostics(document: Document): Resolvable<Diagnostic[]>;
 }
 
+export namespace DiagnosticsProvider {
+    export function is(obj: any): obj is DiagnosticsProvider {
+        return typeof obj.getDiagnostics === 'function';
+    }
+}
+
 export interface HoverProvider {
     doHover(document: Document, position: Position): Resolvable<Hover | null>;
 }
 
+export namespace HoverProvider {
+    export function is(obj: any): obj is HoverProvider {
+        return typeof obj.doHover === 'function';
+    }
+}
+
 export interface CompletionsProvider {
     getCompletions(document: Document, position: Position): Resolvable<CompletionItem[]>;
+}
+
+export namespace CompletionsProvider {
+    export function is(obj: any): obj is CompletionsProvider {
+        return typeof obj.getCompletions === 'function';
+    }
 }
 
 export interface Fragment extends Document {
@@ -82,3 +101,5 @@ export interface FragmentDetails {
     end: number;
     attributes: Record<string, string>;
 }
+
+export type FragmentPredicate = (fragment: Fragment) => boolean;
