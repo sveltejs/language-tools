@@ -77,6 +77,7 @@ declare module 'svelte' {
         customElement?: CustomElementOptions | true;
         css?: boolean;
         store?: boolean;
+        parser: 'v2';
 
         onerror?: (error: CompileError) => void;
         onwarn?: (warning: Warning) => void;

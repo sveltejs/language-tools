@@ -6,7 +6,7 @@ export class SveltePlugin implements DiagnosticsProvider {
         let res;
         try {
             // TODO: pull svelte config from somewhere, e.g. svelte.config.js
-            res = svelte.compile(document.getText(), { dev: true });
+            res = svelte.compile(document.getText(), { dev: true, parser: 'v2' });
         } catch (err) {
             const start = err.loc || { line: 1, column: 0 };
             const end = err.end || start;
