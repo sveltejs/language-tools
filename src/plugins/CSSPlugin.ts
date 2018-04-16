@@ -1,6 +1,15 @@
 import { getCSSLanguageService, Stylesheet } from 'vscode-css-languageservice';
-import { Host, Document, HoverProvider, Position, Hover, Fragment, CompletionItem } from '../api';
-import { mapCompletionItemToParent } from '../api/fragmentPositions';
+import {
+    Host,
+    Document,
+    HoverProvider,
+    Position,
+    Hover,
+    Fragment,
+    CompletionItem,
+    mapHoverToParent,
+    mapCompletionItemToParent,
+} from '../api';
 
 export class CSSPlugin implements HoverProvider {
     private lang = getCSSLanguageService(); // Support css, less, and scss
@@ -27,11 +36,16 @@ export class CSSPlugin implements HoverProvider {
             return null;
         }
 
-        return this.lang.doHover(
+        const hover = this.lang.doHover(
             css.fragment,
             css.fragment.positionInFragment(position),
             css.stylesheet,
         );
+        if (!hover) {
+            return null;
+        }
+
+        return mapHoverToParent(css.fragment, hover);
     }
 
     getCompletions(document: Document, position: Position): CompletionItem[] {
