@@ -4,10 +4,11 @@ import {
     IPCMessageWriter,
     TextDocumentSyncKind,
 } from 'vscode-languageserver';
-import { SveltePlugin } from './plugins/SveltePlugin';
 import { DocumentManager } from './lib/documents/DocumentManager';
 import { SvelteDocument } from './lib/documents/SvelteDocument';
+import { SveltePlugin } from './plugins/SveltePlugin';
 import { HTMLPlugin } from './plugins/HTMLPlugin';
+import { CSSPlugin } from './plugins/CSSPlugin';
 
 const connection = createConnection(new IPCMessageReader(process), new IPCMessageWriter(process));
 
@@ -17,6 +18,7 @@ const manager = new DocumentManager(
 
 manager.register(new SveltePlugin());
 manager.register(new HTMLPlugin());
+manager.register(new CSSPlugin());
 
 connection.onInitialize(evt => {
     return {
