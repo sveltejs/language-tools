@@ -3,6 +3,7 @@ import {
     VersionedTextDocumentIdentifier,
     TextDocumentContentChangeEvent,
     TextDocumentIdentifier,
+    CompletionItem,
 } from 'vscode-languageserver-types';
 import { PluginHost, ExecuteMode } from '../PluginHost';
 import { flatten } from '../../utils';
@@ -81,5 +82,23 @@ export class DocumentManager extends PluginHost {
         }
 
         return this.execute<Hover>('doHover', [document, position], ExecuteMode.FirstNonNull);
+    }
+
+    async getCompletions(
+        textDocument: TextDocumentIdentifier,
+        position: Position,
+    ): Promise<CompletionItem[]> {
+        const document = this.documents.get(textDocument.uri);
+        if (!document) {
+            throw new Error('Cannot call methods on an unopened document');
+        }
+
+        return flatten(
+            await this.execute<CompletionItem[]>(
+                'getCompletions',
+                [document, position],
+                ExecuteMode.Collect,
+            ),
+        );
     }
 }

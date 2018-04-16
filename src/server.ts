@@ -28,6 +28,9 @@ connection.onInitialize(evt => {
                 change: TextDocumentSyncKind.Incremental,
             },
             hoverProvider: manager.supports('doHover'),
+            completionProvider: {
+                triggerCharacters: ['<'],
+            },
         },
     };
 });
@@ -38,6 +41,7 @@ connection.onDidChangeTextDocument(evt =>
     manager.updateDocument(evt.textDocument, evt.contentChanges),
 );
 connection.onHover(evt => manager.doHover(evt.textDocument, evt.position));
+connection.onCompletion(evt => manager.getCompletions(evt.textDocument, evt.position));
 
 manager.on('documentChange', async document => {
     const diagnostics = await manager.getDiagnostics({ uri: document.getURL() });

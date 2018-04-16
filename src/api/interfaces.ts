@@ -6,10 +6,28 @@ import {
     Hover,
     MarkupContent,
     MarkedString,
+    CompletionItem,
+    CompletionItemKind,
+    TextEdit,
+    InsertTextFormat,
+    Command,
 } from 'vscode-languageserver-types';
 import { Document } from './Document';
 
-export { Diagnostic, DiagnosticSeverity, Position, Range, Hover, MarkupContent, MarkedString };
+export {
+    Diagnostic,
+    DiagnosticSeverity,
+    Position,
+    Range,
+    Hover,
+    MarkupContent,
+    MarkedString,
+    CompletionItem,
+    CompletionItemKind,
+    TextEdit,
+    InsertTextFormat,
+    Command,
+};
 
 export type Resolvable<T> = T | Promise<T>;
 
@@ -19,6 +37,10 @@ export interface DiagnosticsProvider {
 
 export interface HoverProvider {
     doHover(document: Document, position: Position): Resolvable<Hover | null>;
+}
+
+export interface CompletionsProvider {
+    getCompletions(document: Document, position: Position): Resolvable<CompletionItem[]>;
 }
 
 export interface Fragment extends Document {

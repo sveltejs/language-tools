@@ -21,5 +21,7 @@ Currently Supported:
     *   Diagnostic messages for warnings and errors
 *   HTML (via [vscode-html-languageservice](https://github.com/Microsoft/vscode-html-languageservice))
     *   Hover info
+    *   Autocompletions
 *   CSS (via [vscode-css-languageservice](https://github.com/Microsoft/vscode-css-languageservice))
     *   Hover info
+    *   Autocompletions

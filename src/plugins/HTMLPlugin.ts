@@ -1,7 +1,15 @@
 import { getLanguageService, HTMLDocument } from 'vscode-html-languageservice';
-import { Host, Document, HoverProvider, Position, Hover } from '../api';
+import {
+    Host,
+    Document,
+    HoverProvider,
+    Position,
+    Hover,
+    CompletionsProvider,
+    CompletionItem,
+} from '../api';
 
-export class HTMLPlugin implements HoverProvider {
+export class HTMLPlugin implements HoverProvider, CompletionsProvider {
     private lang = getLanguageService();
     private documents = new WeakMap<Document, HTMLDocument>();
 
@@ -19,5 +27,14 @@ export class HTMLPlugin implements HoverProvider {
         }
 
         return this.lang.doHover(document, position, html);
+    }
+
+    getCompletions(document: Document, position: Position): CompletionItem[] {
+        const html = this.documents.get(document);
+        if (!html) {
+            return [];
+        }
+
+        return this.lang.doComplete(document, position, html).items;
     }
 }
