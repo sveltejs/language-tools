@@ -25,7 +25,7 @@ connection.onInitialize(evt => {
                 openClose: true,
                 change: TextDocumentSyncKind.Incremental,
             },
-            hoverProvider: true,
+            hoverProvider: manager.supports('doHover'),
         },
     };
 });

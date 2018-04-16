@@ -1,17 +1,11 @@
-import { Position, Document } from '../../api';
-
-export interface FragmentResolver {
-    start: number;
-    end: number;
-    attributes?: Record<string, string>;
-}
+import { Position, Document, FragmentDetails } from '../../api';
 
 export class DocumentFragment extends Document {
     /**
      * @param parent The fragment's parent document
      * @param offsets The start and end offset in the parent document
      */
-    constructor(private parent: Document, public fragment: FragmentResolver) {
+    constructor(private parent: Document, public details: FragmentDetails) {
         super();
     }
 
@@ -20,7 +14,7 @@ export class DocumentFragment extends Document {
      * @param offset Offset in fragment
      */
     offsetInParent(offset: number): number {
-        return this.fragment.start + offset;
+        return this.details.start + offset;
     }
 
     /**
@@ -37,7 +31,7 @@ export class DocumentFragment extends Document {
      * @param offset Offset in parent
      */
     offsetInFragment(offset: number): number {
-        return offset - this.fragment.start;
+        return offset - this.details.start;
     }
 
     /**
@@ -55,28 +49,28 @@ export class DocumentFragment extends Document {
      */
     isInFragment(pos: Position): boolean {
         const offset = this.parent.offsetAt(pos);
-        return offset >= this.fragment.start && offset <= this.fragment.end;
+        return offset >= this.details.start && offset <= this.details.end;
     }
 
     /**
      * Get the fragment text from the parent
      */
     getText(): string {
-        return this.parent.getText().slice(this.fragment.start, this.fragment.end);
+        return this.parent.getText().slice(this.details.start, this.details.end);
     }
 
     /**
      * Update the fragment text in the parent
      */
     setText(text: string): void {
-        this.parent.update(text, this.fragment.start, this.fragment.end);
+        this.parent.update(text, this.details.start, this.details.end);
     }
 
     /**
      * Returns the length of the fragment as calculated from the start and end positon
      */
     getTextLength(): number {
-        return this.fragment.end - this.fragment.start;
+        return this.details.end - this.details.start;
     }
 
     /**

@@ -1,16 +1,23 @@
-import { DocumentFragment, FragmentResolver } from './DocumentFragment';
+import { DocumentFragment } from './DocumentFragment';
 import { urlToPath } from '../../utils';
-import { Document } from '../../api';
+import { Document, Fragment, FragmentDetails } from '../../api';
 
 /**
  * Represents a text document that contains a svelte component.
  */
 export class SvelteDocument extends Document {
-    public script = new DocumentFragment(this, new SvelteFragment(this, 'script'));
-    public style = new DocumentFragment(this, new SvelteFragment(this, 'style'));
+    public script: Fragment;
+    public style: Fragment;
 
     constructor(public url: string, public content: string) {
         super();
+
+        this.script = this.addFragment(
+            new DocumentFragment(this, new SvelteFragment(this, 'script')),
+        );
+        this.style = this.addFragment(
+            new DocumentFragment(this, new SvelteFragment(this, 'style')),
+        );
     }
 
     /**
@@ -40,7 +47,7 @@ export class SvelteDocument extends Document {
     }
 }
 
-class SvelteFragment implements FragmentResolver {
+class SvelteFragment implements FragmentDetails {
     private info!: {
         attributes: Record<string, string>;
         start: number;
@@ -64,7 +71,7 @@ class SvelteFragment implements FragmentResolver {
 
     get attributes(): Record<string, string> {
         this.update();
-        return this.info.attributes;
+        return { ...this.info.attributes, tag: this.tag };
     }
 
     /**

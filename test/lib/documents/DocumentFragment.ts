@@ -8,6 +8,7 @@ describe('Document Fragment', () => {
         const fragment = new DocumentFragment(parent, {
             start: 7,
             end: 12,
+            attributes: {},
         });
 
         assert.strictEqual(fragment.getText(), 'world');
@@ -18,6 +19,7 @@ describe('Document Fragment', () => {
         const fragment = new DocumentFragment(parent, {
             start: 7,
             end: 12,
+            attributes: {},
         });
 
         assert.strictEqual(fragment.getTextLength(), 5);
@@ -28,6 +30,7 @@ describe('Document Fragment', () => {
         const fragment = new DocumentFragment(parent, {
             start: 7,
             end: 12,
+            attributes: {},
         });
 
         fragment.setText('svelte');
@@ -40,6 +43,7 @@ describe('Document Fragment', () => {
         const fragment = new DocumentFragment(parent, {
             start: 8,
             end: 13,
+            attributes: {},
         });
 
         assert.strictEqual(fragment.isInFragment({ line: 0, character: 0 }), false);
@@ -53,6 +57,7 @@ describe('Document Fragment', () => {
         const fragment = new DocumentFragment(parent, {
             start: 7,
             end: 12,
+            attributes: {},
         });
 
         assert.strictEqual(fragment.offsetInParent(2), 9);
@@ -63,6 +68,7 @@ describe('Document Fragment', () => {
         const fragment = new DocumentFragment(parent, {
             start: 7,
             end: 12,
+            attributes: {},
         });
 
         assert.strictEqual(fragment.offsetInFragment(9), 2);
@@ -73,6 +79,7 @@ describe('Document Fragment', () => {
         const fragment = new DocumentFragment(parent, {
             start: 8,
             end: 13,
+            attributes: {},
         });
 
         assert.deepStrictEqual(fragment.positionInParent({ line: 0, character: 2 }), {
@@ -86,6 +93,7 @@ describe('Document Fragment', () => {
         const fragment = new DocumentFragment(parent, {
             start: 8,
             end: 13,
+            attributes: {},
         });
 
         assert.deepStrictEqual(fragment.positionInFragment({ line: 1, character: 2 }), {
@@ -99,6 +107,7 @@ describe('Document Fragment', () => {
         const fragment = new DocumentFragment(parent, {
             start: 7,
             end: 12,
+            attributes: {},
         });
 
         assert.strictEqual(fragment.getFilePath(), parent.getFilePath());

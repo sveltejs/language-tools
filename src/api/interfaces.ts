@@ -20,3 +20,43 @@ export interface DiagnosticsProvider {
 export interface HoverProvider {
     doHover(document: Document, position: Position): Resolvable<Hover | null>;
 }
+
+export interface Fragment extends Document {
+    details: FragmentDetails;
+
+    /**
+     * Get the fragment offset relative to the parent
+     * @param offset Offset in fragment
+     */
+    offsetInParent(offset: number): number;
+
+    /**
+     * Get the fragment position relative to the parent
+     * @param pos Position in fragment
+     */
+    positionInParent(pos: Position): Position;
+
+    /**
+     * Get the offset relative to the start of the fragment
+     * @param offset Offset in parent
+     */
+    offsetInFragment(offset: number): number;
+
+    /**
+     * Get the position relative to the start of the fragment
+     * @param pos Position in parent
+     */
+    positionInFragment(pos: Position): Position;
+
+    /**
+     * Returns true if the given parent position is inside of this fragment
+     * @param pos Position in parent
+     */
+    isInFragment(pos: Position): boolean;
+}
+
+export interface FragmentDetails {
+    start: number;
+    end: number;
+    attributes: Record<string, string>;
+}

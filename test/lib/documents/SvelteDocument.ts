@@ -35,35 +35,44 @@ describe('Svelte Document', () => {
     );
 
     it('extracts the styles', () => {
-        assert.strictEqual(component.style.fragment.start, 82);
-        assert.strictEqual(component.style.fragment.end, 155);
-        assert.deepStrictEqual(component.style.fragment.attributes, { type: 'text/css' });
+        assert.strictEqual(component.style.details.start, 82);
+        assert.strictEqual(component.style.details.end, 155);
+        assert.deepStrictEqual(component.style.details.attributes, {
+            tag: 'style',
+            type: 'text/css',
+        });
     });
 
     it('extracts the script', () => {
-        assert.strictEqual(component.script.fragment.start, 203);
-        assert.strictEqual(component.script.fragment.end, 400);
-        assert.deepStrictEqual(component.script.fragment.attributes, { type: 'text/javascript' });
+        assert.strictEqual(component.script.details.start, 203);
+        assert.strictEqual(component.script.details.end, 400);
+        assert.deepStrictEqual(component.script.details.attributes, {
+            tag: 'script',
+            type: 'text/javascript',
+        });
     });
 
     it('defaults fragment to the end of the component if not found', () => {
         const document = new SvelteDocument('file:///hello.html', '<h1>Hello, world</h1>');
-        assert.strictEqual(document.script.fragment.start, 21);
-        assert.strictEqual(document.script.fragment.end, 21);
-        assert.deepStrictEqual(document.script.fragment.attributes, {});
-        assert.strictEqual(document.style.fragment.start, 21);
-        assert.strictEqual(document.style.fragment.end, 21);
-        assert.deepStrictEqual(document.style.fragment.attributes, {});
+        assert.strictEqual(document.script.details.start, 21);
+        assert.strictEqual(document.script.details.end, 21);
+        assert.deepStrictEqual(document.script.details.attributes, { tag: 'script' });
+        assert.strictEqual(document.style.details.start, 21);
+        assert.strictEqual(document.style.details.end, 21);
+        assert.deepStrictEqual(document.style.details.attributes, { tag: 'style' });
     });
 
     it('supports boolean attributes', () => {
         const document = new SvelteDocument('file:///hello.html', '<style test></style>');
-        assert.deepStrictEqual(document.style.fragment.attributes, { test: 'test' });
+        assert.deepStrictEqual(document.style.details.attributes, { tag: 'style', test: 'test' });
     });
 
     it('supports unquoted attributes', () => {
         const document = new SvelteDocument('file:///hello.html', '<style type=text/css></style>');
-        assert.deepStrictEqual(document.style.fragment.attributes, { type: 'text/css' });
+        assert.deepStrictEqual(document.style.details.attributes, {
+            tag: 'style',
+            type: 'text/css',
+        });
     });
 
     it('increments the version on edits', () => {

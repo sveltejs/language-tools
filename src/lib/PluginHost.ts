@@ -53,4 +53,8 @@ export class PluginHost {
                 return;
         }
     }
+
+    supports(name: string): boolean {
+        return this.plugins.find(plugin => typeof plugin[name] === 'function') != null;
+    }
 }

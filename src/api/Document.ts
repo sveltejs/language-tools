@@ -1,5 +1,5 @@
 import { clamp } from '../utils';
-import { Position } from './interfaces';
+import { Position, Fragment } from './interfaces';
 import { TextDocument } from 'vscode-languageserver-types';
 
 /**
@@ -31,6 +31,17 @@ export abstract class Document implements TextDocument {
      * Current version of the document.
      */
     public version = 0;
+
+    private fragments: Fragment[] = [];
+
+    addFragment(document: Fragment): Fragment {
+        this.fragments.push(document);
+        return document;
+    }
+
+    findFragment(predicate: (fragment: Fragment) => boolean): Fragment | undefined {
+        return this.fragments.find(predicate);
+    }
 
     /**
      * Get the length of the document's content

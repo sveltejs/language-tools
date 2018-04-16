@@ -19,5 +19,7 @@ Currently Supported:
 
 *   Svelte
     *   Diagnostic messages for warnings and errors
-*   HTML
+*   HTML (via [vscode-html-languageservice](https://github.com/Microsoft/vscode-html-languageservice))
     *   Hover information for built-in elements
+*   CSS (via [vscode-css-languageservice](https://github.com/Microsoft/vscode-css-languageservice))
+    *   Hover information for tags
