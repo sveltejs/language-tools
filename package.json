@@ -30,12 +30,12 @@
         "@types/node": "^8.10.7",
         "@types/sinon": "^4.3.1",
         "mocha": "^5.1.0",
-        "ts-node": "^5.0.1",
-        "typescript": "^2.8.1"
+        "ts-node": "^5.0.1"
     },
     "dependencies": {
         "sinon": "^4.5.0",
         "svelte": "^1.63.1",
+        "typescript": "^2.8.1",
         "vscode-css-languageservice": "^3.0.8",
         "vscode-html-languageservice": "^2.1.2",
         "vscode-languageserver": "^4.1.1",

@@ -10,6 +10,7 @@ import { SveltePlugin } from './plugins/SveltePlugin';
 import { HTMLPlugin } from './plugins/HTMLPlugin';
 import { CSSPlugin } from './plugins/CSSPlugin';
 import { wrapFragmentPlugin } from './api/wrapFragmentPlugin';
+import { TypeScriptPlugin } from './plugins/TypeScriptPlugin';
 
 const connection = createConnection(new IPCMessageReader(process), new IPCMessageWriter(process));
 
@@ -20,6 +21,7 @@ const manager = new DocumentManager(
 manager.register(new SveltePlugin());
 manager.register(new HTMLPlugin());
 manager.register(wrapFragmentPlugin(new CSSPlugin(), CSSPlugin.matchFragment));
+manager.register(wrapFragmentPlugin(new TypeScriptPlugin(), TypeScriptPlugin.matchFragment));
 
 connection.onInitialize(evt => {
     return {

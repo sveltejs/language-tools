@@ -13,7 +13,6 @@ import {
     Command,
 } from 'vscode-languageserver-types';
 import { Document } from './Document';
-import { HoverRequest } from 'vscode-languageserver/lib/main';
 
 export {
     Diagnostic,

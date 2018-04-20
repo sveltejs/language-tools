@@ -83,4 +83,12 @@ export class DocumentFragment extends Document {
     getURL() {
         return this.parent.getURL();
     }
+
+    get version(): number {
+        return this.parent.version;
+    }
+
+    set version(version: number) {
+        // ignore
+    }
 }
