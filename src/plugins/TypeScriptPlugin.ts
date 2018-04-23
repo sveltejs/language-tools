@@ -11,7 +11,7 @@ import {
     Hover,
     MarkedString,
 } from '../api';
-import { join } from 'path';
+import { join, resolve, basename } from 'path';
 
 const FILE_NAME = 'vscode://javascript/1';
 
@@ -51,19 +51,46 @@ export class TypeScriptPlugin implements DiagnosticsProvider, HoverProvider {
     }
 }
 
+function generateComponentTypings(fileName: string) {
+    const compName = basename(fileName, '.html.d.ts');
+    // TODO: flesh out
+    return `
+        export interface ${compName}Data {
+            // TODO
+        }
+
+        export default class ${compName} {
+            constructor(opts: { target: Element, data: ${compName}Data });
+        }
+    `;
+}
+
 function getLanguageService() {
     let compilerOptions: ts.CompilerOptions = {
         allowNonTsExtensions: true,
-        lib: ['lib.es6.d.ts'],
         target: ts.ScriptTarget.Latest,
-        moduleResolution: ts.ModuleResolutionKind.Classic,
+        module: ts.ModuleKind.ES2015,
+        moduleResolution: ts.ModuleResolutionKind.NodeJs,
+        strict: true,
     };
     let currentDocument: Document;
-    const host: ts.LanguageServiceHost = {
+    const host: ts.LanguageServiceHost & ts.ModuleResolutionHost = {
         getCompilationSettings: () => compilerOptions,
-        getScriptFileNames: () => {
+        getScriptFileNames() {
             const filePath = currentDocument.getFilePath()!;
-            return [filePath];
+            const fileInfo = ts.preProcessFile(currentDocument.getText(), true, true);
+            const scripts = [
+                filePath,
+                filePath + '.d.ts',
+                ...fileInfo.importedFiles
+                    .map(file => {
+                        return ts.resolveModuleName(file.fileName, filePath, compilerOptions, this)
+                            .resolvedModule;
+                    })
+                    .filter(mod => !!mod)
+                    .map(mod => mod!.resolvedFileName),
+            ];
+            return scripts;
         },
         getScriptVersion: (fileName: string) => {
             if (fileName === currentDocument.getFilePath()) {
@@ -75,6 +102,8 @@ function getLanguageService() {
             let text = '';
             if (fileName === currentDocument.getFilePath()) {
                 text = currentDocument.getText();
+            } else if (fileName.endsWith('.html.d.ts') && !ts.sys.fileExists(fileName)) {
+                text = generateComponentTypings(fileName);
             } else {
                 text = ts.sys.readFile(fileName) || '';
             }
@@ -83,6 +112,16 @@ function getLanguageService() {
         },
         getCurrentDirectory: () => '',
         getDefaultLibFileName: options => ts.getDefaultLibFilePath(options),
+        fileExists(fileName: string) {
+            return (
+                ts.sys.fileExists(fileName) ||
+                (fileName.endsWith('.html.d.ts') &&
+                    ts.sys.fileExists(fileName.slice(0, fileName.length - '.d.ts'.length)))
+            );
+        },
+        readFile(fileName: string) {
+            return ts.sys.readFile(fileName);
+        },
     };
     const lang = ts.createLanguageService(host);
 
