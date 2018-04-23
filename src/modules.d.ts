@@ -59,7 +59,7 @@ declare module 'svelte' {
         format?: ModuleFormat;
         name?: string;
         filename?: string;
-        generate?: string;
+        generate?: 'dom' | 'ssr' | false;
         globals?: ((id: string) => string) | object;
         amd?: {
             id?: string;
@@ -77,7 +77,6 @@ declare module 'svelte' {
         customElement?: CustomElementOptions | true;
         css?: boolean;
         store?: boolean;
-        parser: 'v2';
 
         onerror?: (error: CompileError) => void;
         onwarn?: (warning: Warning) => void;
