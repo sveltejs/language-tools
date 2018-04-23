@@ -8,7 +8,7 @@ export class SveltePlugin implements DiagnosticsProvider {
             // TODO: pull svelte config from somewhere, e.g. svelte.config.js
             res = svelte.compile(document.getText(), { dev: true });
         } catch (err) {
-            const start = err.loc || { line: 1, column: 0 };
+            const start = err.start || { line: 1, column: 0 };
             const end = err.end || start;
             return [
                 {
@@ -22,7 +22,7 @@ export class SveltePlugin implements DiagnosticsProvider {
         }
 
         return (res.stats.warnings as svelte.Warning[]).map(warning => {
-            const start = warning.loc || { line: 1, column: 0 };
+            const start = warning.start || { line: 1, column: 0 };
             const end = warning.end || start;
             return {
                 range: Range.create(start.line - 1, start.column, end.line - 1, end.column),

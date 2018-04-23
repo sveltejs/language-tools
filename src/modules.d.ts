@@ -30,8 +30,8 @@ declare module 'svelte' {
     export function preprocess(source: string, config: PreprocessOptions): Promise<Processed>;
 
     export interface Warning {
-        loc?: { line: number; column: number; pos?: number };
-        end?: { line: number; column: number };
+        start?: { line: number; column: number; character: number };
+        end?: { line: number; column: number; character: number };
         pos?: number;
         message: string;
         code: string;
