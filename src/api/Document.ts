@@ -28,6 +28,11 @@ export abstract class Document implements TextDocument {
     abstract getURL(): string;
 
     /**
+     * Returns an object containing any metadata associated with this file
+     */
+    abstract getAttributes(): Record<string, any>;
+
+    /**
      * Current version of the document.
      */
     public version = 0;

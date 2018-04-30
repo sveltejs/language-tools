@@ -7,12 +7,15 @@ import {
     CompletionItem,
     DiagnosticsProvider,
     Diagnostic,
+    FormattingProvider,
+    TextEdit,
 } from './interfaces';
 import { Document } from './Document';
 import {
     mapHoverToParent,
     mapCompletionItemToParent,
     mapDiagnosticToParent,
+    mapTextEditToParent,
 } from './fragmentPositions';
 import { Host } from './Host';
 
@@ -94,6 +97,21 @@ export function wrapFragmentPlugin<P>(plugin: P, fragmentPredicate: FragmentPred
 
             const items = await getCompletions(fragment, fragment.positionInFragment(position));
             return items.map(item => mapCompletionItemToParent(fragment, item));
+        };
+    }
+
+    if (FormattingProvider.is(plugin)) {
+        const formatDocument: FormattingProvider['formatDocument'] = plugin.formatDocument.bind(
+            plugin,
+        );
+        plugin.formatDocument = async function(document: Document): Promise<TextEdit[]> {
+            const fragment = getFragment(document);
+            if (!fragment) {
+                return [];
+            }
+
+            const items = await formatDocument(fragment);
+            return items.map(item => mapTextEditToParent(fragment, item));
         };
     }
 

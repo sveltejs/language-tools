@@ -61,6 +61,16 @@ export namespace CompletionsProvider {
     }
 }
 
+export interface FormattingProvider {
+    formatDocument(document: Document): Resolvable<TextEdit[]>;
+}
+
+export namespace FormattingProvider {
+    export function is(obj: any): obj is FormattingProvider {
+        return typeof obj.formatDocument === 'function';
+    }
+}
+
 export interface Fragment extends Document {
     details: FragmentDetails;
 

@@ -1,4 +1,8 @@
-import * as ts from 'typescript';
+import ts from 'typescript';
+import { join, resolve, basename } from 'path';
+import * as prettier from 'prettier';
+import detectIndent from 'detect-indent';
+import indentString from 'indent-string';
 import {
     DiagnosticsProvider,
     Document,
@@ -10,12 +14,13 @@ import {
     Position,
     Hover,
     MarkedString,
+    FormattingProvider,
+    TextEdit,
 } from '../api';
-import { join, resolve, basename } from 'path';
 
 const FILE_NAME = 'vscode://javascript/1';
 
-export class TypeScriptPlugin implements DiagnosticsProvider, HoverProvider {
+export class TypeScriptPlugin implements DiagnosticsProvider, HoverProvider, FormattingProvider {
     public static matchFragment(fragment: Fragment) {
         return fragment.details.attributes.tag == 'script';
     }
@@ -48,6 +53,27 @@ export class TypeScriptPlugin implements DiagnosticsProvider, HoverProvider {
             range: convertRange(document, info.textSpan),
             contents: { language: 'ts', value: contents },
         };
+    }
+
+    async formatDocument(document: Document): Promise<TextEdit[]> {
+        if (document.getTextLength() === 0) {
+            return [];
+        }
+
+        const config = await prettier.resolveConfig(document.getFilePath()!);
+        const formattedCode = prettier.format(document.getText(), {
+            ...config,
+            parser: 'typescript', // TODO: select babylon if js only
+        });
+
+        let indent = detectIndent(document.getText());
+        return [
+            TextEdit.replace(
+                Range.create(document.positionAt(0), document.positionAt(document.getTextLength())),
+                '\n' +
+                    indentString(formattedCode, indent.amount, indent.type == 'tab' ? '\t' : ' '),
+            ),
+        ];
     }
 }
 

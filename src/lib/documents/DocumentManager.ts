@@ -4,6 +4,7 @@ import {
     TextDocumentContentChangeEvent,
     TextDocumentIdentifier,
     CompletionItem,
+    TextEdit,
 } from 'vscode-languageserver-types';
 import { PluginHost, ExecuteMode } from '../PluginHost';
 import { flatten } from '../../utils';
@@ -99,6 +100,17 @@ export class DocumentManager extends PluginHost {
                 [document, position],
                 ExecuteMode.Collect,
             ),
+        );
+    }
+
+    async formatDocument(textDocument: TextDocumentIdentifier): Promise<TextEdit[]> {
+        const document = this.documents.get(textDocument.uri);
+        if (!document) {
+            throw new Error('Cannot call methods on an unopened document');
+        }
+
+        return flatten(
+            await this.execute<TextEdit[]>('formatDocument', [document], ExecuteMode.Collect),
         );
     }
 }

@@ -34,6 +34,7 @@ connection.onInitialize(evt => {
             completionProvider: {
                 triggerCharacters: ['<'],
             },
+            documentFormattingProvider: true,
         },
     };
 });
@@ -45,6 +46,7 @@ connection.onDidChangeTextDocument(evt =>
 );
 connection.onHover(evt => manager.doHover(evt.textDocument, evt.position));
 connection.onCompletion(evt => manager.getCompletions(evt.textDocument, evt.position));
+connection.onDocumentFormatting(evt => manager.formatDocument(evt.textDocument));
 
 manager.on('documentChange', async document => {
     const diagnostics = await manager.getDiagnostics({ uri: document.getURL() });

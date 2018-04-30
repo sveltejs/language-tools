@@ -91,4 +91,8 @@ export class DocumentFragment extends Document {
     set version(version: number) {
         // ignore
     }
+
+    getAttributes() {
+        return this.details.attributes;
+    }
 }

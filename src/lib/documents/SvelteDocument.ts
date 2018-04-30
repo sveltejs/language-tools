@@ -45,9 +45,13 @@ export class SvelteDocument extends Document {
     getURL() {
         return this.url;
     }
+
+    getAttributes() {
+        return {};
+    }
 }
 
-class SvelteFragment implements FragmentDetails {
+export class SvelteFragment implements FragmentDetails {
     private info!: {
         attributes: Record<string, string>;
         start: number;

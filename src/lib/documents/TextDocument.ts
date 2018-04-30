@@ -21,4 +21,8 @@ export class TextDocument extends Document {
     getFilePath(): string | null {
         return urlToPath(this.url);
     }
+
+    getAttributes() {
+        return {};
+    }
 }
