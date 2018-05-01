@@ -58,7 +58,8 @@ export class SveltePlugin implements DiagnosticsProvider {
             ];
         }
 
-        return await fixDiagnostics(preprocessor, diagnostics);
+        await fixDiagnostics(document, preprocessor, diagnostics);
+        return diagnostics;
     }
 
     private async loadConfig(path: string): Promise<SvelteConfig> {
@@ -122,21 +123,27 @@ function makePreprocessor(document: SvelteDocument, preprocessors: svelte.Prepro
 }
 
 async function fixDiagnostics(
+    document: Document,
     preprocessor: Preprocessor,
     diagnostics: Diagnostic[],
-): Promise<Diagnostic[]> {
+): Promise<void> {
     for (const fragment of preprocessor.fragments) {
-        const fragmentDiagnostics = diagnostics.filter(diag =>
-            fragment.transpiled.isInFragment(diag.range.start),
-        );
-        console.log('translating', fragmentDiagnostics);
+        const newDiagnostics: Diagnostic[] = [];
+        const fragmentDiagnostics: Diagnostic[] = [];
+        for (let diag of diagnostics) {
+            if (fragment.transpiled.isInFragment(diag.range.start)) {
+                fragmentDiagnostics.push(diag);
+            } else {
+                newDiagnostics.push(diag);
+            }
+        }
+        diagnostics = newDiagnostics;
         if (fragmentDiagnostics.length === 0) {
             continue;
         }
 
         await SourceMapConsumer.with(fragment.map, null, consumer => {
             for (const diag of fragmentDiagnostics) {
-                console.log('before', diag.range);
                 diag.range = {
                     start: mapFragmentPositionBySourceMap(
                         fragment.source,
@@ -151,19 +158,37 @@ async function fixDiagnostics(
                         diag.range.end,
                     ),
                 };
-                console.log('after', diag.range);
             }
         });
     }
-    return diagnostics;
-    // return diagnostics.map(diagnostic => {
-    //     const fragment = document.getFragmentAt(diagnostic.range.start);
-    //     if (!fragment) {
-    //         return diagnostic;
-    //     }
 
-    //     return { ...diagnostic };
-    // });
+    const sortedFragments = preprocessor.fragments.sort(
+        (a, b) => a.transpiled.offsetInParent(0) - b.transpiled.offsetInParent(0),
+    );
+    if (diagnostics.length > 0) {
+        for (const diag of diagnostics) {
+            for (const fragment of sortedFragments) {
+                const start = preprocessor.transpiledDocument.offsetAt(diag.range.start);
+                if (fragment.transpiled.details.container.end > start) {
+                    continue;
+                }
+
+                const sourceLength =
+                    fragment.source.details.container.end - fragment.source.details.container.start;
+                const transpiledLength =
+                    fragment.transpiled.details.container.end -
+                    fragment.transpiled.details.container.start;
+                const diff = sourceLength - transpiledLength;
+                const end = preprocessor.transpiledDocument.offsetAt(diag.range.end);
+                console.log('before', start, end);
+                diag.range = {
+                    start: document.positionAt(start + diff),
+                    end: document.positionAt(end + diff),
+                };
+                console.log('after', start + diff, end + diff);
+            }
+        }
+    }
 }
 
 function mapFragmentPositionBySourceMap(

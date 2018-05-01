@@ -108,6 +108,10 @@ export interface Fragment extends Document {
 export interface FragmentDetails {
     start: number;
     end: number;
+    container: {
+        start: number;
+        end: number;
+    };
     attributes: Record<string, string>;
 }
 

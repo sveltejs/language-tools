@@ -52,11 +52,7 @@ export class SvelteDocument extends Document {
 }
 
 export class SvelteFragment implements FragmentDetails {
-    private info!: {
-        attributes: Record<string, string>;
-        start: number;
-        end: number;
-    };
+    private info!: FragmentDetails;
     private version = -1;
 
     constructor(public document: SvelteDocument, public tag: 'style' | 'script') {
@@ -71,6 +67,11 @@ export class SvelteFragment implements FragmentDetails {
     get end(): number {
         this.update();
         return this.info.end;
+    }
+
+    get container(): FragmentDetails['container'] {
+        this.update();
+        return this.info.container;
     }
 
     get attributes(): Record<string, string> {
@@ -98,6 +99,10 @@ export class SvelteFragment implements FragmentDetails {
             attributes: {},
             start: length,
             end: length,
+            container: {
+                start: length,
+                end: length,
+            },
         };
     }
 }
@@ -131,5 +136,11 @@ function extractTag(source: string, tag: 'script' | 'style') {
     const start = match.index + match[1].length;
     const end = start + content.length;
 
-    return { content, attributes, start, end };
+    return {
+        content,
+        attributes,
+        start,
+        end,
+        container: { start: match.index, end: match.index + match[0].length },
+    };
 }
