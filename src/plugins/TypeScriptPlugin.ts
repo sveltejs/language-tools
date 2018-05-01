@@ -18,8 +18,6 @@ import {
     TextEdit,
 } from '../api';
 
-const FILE_NAME = 'vscode://javascript/1';
-
 export class TypeScriptPlugin implements DiagnosticsProvider, HoverProvider, FormattingProvider {
     public static matchFragment(fragment: Fragment) {
         return fragment.details.attributes.tag == 'script';
@@ -95,10 +93,11 @@ function getLanguageService() {
     let compilerOptions: ts.CompilerOptions = {
         allowNonTsExtensions: true,
         target: ts.ScriptTarget.Latest,
-        module: ts.ModuleKind.ES2015,
+        module: ts.ModuleKind.ESNext,
         moduleResolution: ts.ModuleResolutionKind.NodeJs,
         strict: true,
     };
+
     let currentDocument: Document;
     const host: ts.LanguageServiceHost & ts.ModuleResolutionHost = {
         getCompilationSettings: () => compilerOptions,
@@ -136,6 +135,20 @@ function getLanguageService() {
 
             return ts.ScriptSnapshot.fromString(text);
         },
+        getScriptKind(fileName: string) {
+            if (fileName === currentDocument.getFilePath()) {
+                const type = currentDocument.getAttributes().type;
+                switch (type) {
+                    case 'text/typescript':
+                        return ts.ScriptKind.TS;
+                    case 'text/javascript':
+                    default:
+                        return ts.ScriptKind.JS;
+                }
+            }
+
+            return getScriptKindFromFileName(fileName);
+        },
         getCurrentDirectory: () => '',
         getDefaultLibFileName: options => ts.getDefaultLibFilePath(options),
         fileExists(fileName: string) {
@@ -157,6 +170,24 @@ function getLanguageService() {
             return lang;
         },
     };
+}
+
+function getScriptKindFromFileName(fileName: string): ts.ScriptKind {
+    const ext = fileName.substr(fileName.lastIndexOf('.'));
+    switch (ext.toLowerCase()) {
+        case ts.Extension.Js:
+            return ts.ScriptKind.JS;
+        case ts.Extension.Jsx:
+            return ts.ScriptKind.JSX;
+        case ts.Extension.Ts:
+            return ts.ScriptKind.TS;
+        case ts.Extension.Tsx:
+            return ts.ScriptKind.TSX;
+        case ts.Extension.Json:
+            return ts.ScriptKind.JSON;
+        default:
+            return ts.ScriptKind.Unknown;
+    }
 }
 
 function convertRange(document: Document, range: { start?: number; length?: number }) {
