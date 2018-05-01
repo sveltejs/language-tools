@@ -108,7 +108,7 @@ export interface Fragment extends Document {
 export interface FragmentDetails {
     start: number;
     end: number;
-    container: {
+    container?: {
         start: number;
         end: number;
     };

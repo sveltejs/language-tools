@@ -168,15 +168,16 @@ async function fixDiagnostics(
         for (const diag of diagnostics) {
             for (const fragment of sortedFragments) {
                 const start = preprocessor.transpiledDocument.offsetAt(diag.range.start);
-                if (fragment.transpiled.details.container.end > start) {
+                if (fragment.transpiled.details.container!.end > start) {
                     continue;
                 }
 
                 const sourceLength =
-                    fragment.source.details.container.end - fragment.source.details.container.start;
+                    fragment.source.details.container!.end -
+                    fragment.source.details.container!.start;
                 const transpiledLength =
-                    fragment.transpiled.details.container.end -
-                    fragment.transpiled.details.container.start;
+                    fragment.transpiled.details.container!.end -
+                    fragment.transpiled.details.container!.start;
                 const diff = sourceLength - transpiledLength;
                 const end = preprocessor.transpiledDocument.offsetAt(diag.range.end);
                 diag.range = {

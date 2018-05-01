@@ -12,7 +12,7 @@ import { CSSPlugin } from './plugins/CSSPlugin';
 import { wrapFragmentPlugin } from './api/wrapFragmentPlugin';
 import { TypeScriptPlugin } from './plugins/TypeScriptPlugin';
 
-function startServer() {
+export function startServer() {
     const connection = createConnection(
         new IPCMessageReader(process),
         new IPCMessageWriter(process),
