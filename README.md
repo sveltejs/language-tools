@@ -22,7 +22,18 @@ Currently Supported:
 *   HTML (via [vscode-html-languageservice](https://github.com/Microsoft/vscode-html-languageservice))
     *   Hover info
     *   Autocompletions
-*   CSS (via [vscode-css-languageservice](https://github.com/Microsoft/vscode-css-languageservice))
+*   CSS / SCSS / LESS (via [vscode-css-languageservice](https://github.com/Microsoft/vscode-css-languageservice))
     *   Diagnostic messages for syntax and lint errors
     *   Hover info
     *   Autocompletions
+    *   Formatting (via [prettier](https://github.com/prettier/prettier))
+*   TypeScript / JavaScript (via TypeScript)
+    *   Diagnostics messages for syntax and semantic errors
+    *   Hover info
+    *   Formatting (via [prettier](https://github.com/prettier/prettier))
+
+## How can I use it?
+
+Install a plugin for your editor:
+
+*   [VS Code](https://github.com/UnwrittenFun/svelte-vscode)
