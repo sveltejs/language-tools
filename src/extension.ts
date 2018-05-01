@@ -10,7 +10,7 @@ import {
 
 export function activate(context: ExtensionContext) {
     let serverModule = context.asAbsolutePath(
-        path.join('..', 'svelte-language-server', 'dist', 'src', 'server.js'),
+        path.join('./', 'node_modules', 'svelte-language-server', 'bin', 'server.js'),
     );
 
     let debugOptions = { execArgv: ['--nolazy', '--inspect=6009'] };
