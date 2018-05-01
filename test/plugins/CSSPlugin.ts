@@ -39,7 +39,7 @@ describe('CSS Plugin', () => {
         const completions = plugin.getCompletions(document, Position.create(0, 0));
         assert.ok(Array.isArray(completions), 'Expected completions to be an array');
         assert.ok(completions.length > 0, 'Expected completions to have length');
-        console.log(completions[0]);
+
         assert.deepStrictEqual(completions[0], <CompletionItem>{
             label: '@charset',
             kind: CompletionItemKind.Keyword,

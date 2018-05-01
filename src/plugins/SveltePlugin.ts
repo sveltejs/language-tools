@@ -65,7 +65,6 @@ export class SveltePlugin implements DiagnosticsProvider {
     private async loadConfig(path: string): Promise<SvelteConfig> {
         try {
             const { config } = await cosmic('svelte').load(path);
-            console.log('using config', config);
             return { ...DEFAULT_OPTIONS, ...config };
         } catch (err) {
             return { ...DEFAULT_OPTIONS, preprocess: {} };
@@ -180,12 +179,10 @@ async function fixDiagnostics(
                     fragment.transpiled.details.container.start;
                 const diff = sourceLength - transpiledLength;
                 const end = preprocessor.transpiledDocument.offsetAt(diag.range.end);
-                console.log('before', start, end);
                 diag.range = {
                     start: document.positionAt(start + diff),
                     end: document.positionAt(end + diff),
                 };
-                console.log('after', start + diff, end + diff);
             }
         }
     }
