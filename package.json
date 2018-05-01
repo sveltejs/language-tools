@@ -14,7 +14,10 @@
         "type": "git",
         "url": "https://github.com/UnwrittenFun/svelte-vscode.git"
     },
-    "keywords": ["svelte", "vscode"],
+    "keywords": [
+        "svelte",
+        "vscode"
+    ],
     "author": "James Birtles <jameshbirtles@gmail.com>",
     "license": "MIT",
     "bugs": {
@@ -22,17 +25,22 @@
     },
     "homepage": "https://github.com/UnwrittenFun/svelte-vscode#readme",
     "displayName": "Svelte",
-    "publisher": "James Birtles",
+    "publisher": "JamesBirtles",
     "icon": "icons/logo.png",
     "galleryBanner": {
         "color": "#333333",
         "theme": "dark"
     },
-    "categories": ["Languages", "Formatters"],
+    "categories": [
+        "Languages",
+        "Formatters"
+    ],
     "engines": {
         "vscode": "^1.22.0"
     },
-    "activationEvents": ["onLanguage:svelte"],
+    "activationEvents": [
+        "onLanguage:svelte"
+    ],
     "contributes": {
         "configuration": {
             "type": "object",
@@ -48,8 +56,13 @@
         "languages": [
             {
                 "id": "svelte",
-                "aliases": ["Svelte", "svelte"],
-                "extensions": [".html"],
+                "aliases": [
+                    "Svelte",
+                    "svelte"
+                ],
+                "extensions": [
+                    ".html"
+                ],
                 "configuration": "./language-configuration.json"
             }
         ],
