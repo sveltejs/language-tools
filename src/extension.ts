@@ -1,12 +1,21 @@
 import * as path from 'path';
 
-import { workspace, ExtensionContext } from 'vscode';
+import { workspace, ExtensionContext, TextDocument, Position } from 'vscode';
 import {
     LanguageClient,
     LanguageClientOptions,
     ServerOptions,
     TransportKind,
+    TextDocumentPositionParams,
+    RequestType,
 } from 'vscode-languageclient';
+import { activateTagClosing } from './html/autoClose';
+
+namespace TagCloseRequest {
+    export const type: RequestType<TextDocumentPositionParams, string, any, any> = new RequestType(
+        'html/tag',
+    );
+}
 
 export function activate(context: ExtensionContext) {
     let serverModule = context.asAbsolutePath(
@@ -35,6 +44,18 @@ export function activate(context: ExtensionContext) {
         },
     };
 
-    let disposable = new LanguageClient('svelte', 'Svelte', serverOptions, clientOptions).start();
-    context.subscriptions.push(disposable);
+    let client = new LanguageClient('svelte', 'Svelte', serverOptions, clientOptions);
+    context.subscriptions.push(client.start());
+
+    client.onReady().then(() => {
+        let tagRequestor = (document: TextDocument, position: Position) => {
+            let param = client.code2ProtocolConverter.asTextDocumentPositionParams(
+                document,
+                position,
+            );
+            return client.sendRequest(TagCloseRequest.type, param);
+        };
+        let disposable = activateTagClosing(tagRequestor, { svelte: true }, 'html.autoClosingTags');
+        context.subscriptions.push(disposable);
+    });
 }
