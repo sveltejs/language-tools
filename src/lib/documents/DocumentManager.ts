@@ -113,4 +113,20 @@ export class DocumentManager extends PluginHost {
             await this.execute<TextEdit[]>('formatDocument', [document], ExecuteMode.Collect),
         );
     }
+
+    async doTagComplete(
+        textDocument: TextDocumentIdentifier,
+        position: Position,
+    ): Promise<string | null> {
+        const document = this.documents.get(textDocument.uri);
+        if (!document) {
+            throw new Error('Cannot call methods on an unopened document');
+        }
+
+        return this.execute<string | null>(
+            'doTagComplete',
+            [document, position],
+            ExecuteMode.FirstNonNull,
+        );
+    }
 }

@@ -3,6 +3,8 @@ import {
     IPCMessageReader,
     IPCMessageWriter,
     TextDocumentSyncKind,
+    RequestType,
+    TextDocumentPositionParams,
 } from 'vscode-languageserver';
 import { DocumentManager } from './lib/documents/DocumentManager';
 import { SvelteDocument } from './lib/documents/SvelteDocument';
@@ -11,6 +13,15 @@ import { HTMLPlugin } from './plugins/HTMLPlugin';
 import { CSSPlugin } from './plugins/CSSPlugin';
 import { wrapFragmentPlugin } from './api/wrapFragmentPlugin';
 import { TypeScriptPlugin } from './plugins/TypeScriptPlugin';
+
+namespace TagCloseRequest {
+    export const type: RequestType<
+        TextDocumentPositionParams,
+        string | null,
+        any,
+        any
+    > = new RequestType('html/tag');
+}
 
 export function startServer() {
     const connection = createConnection(
@@ -51,6 +62,9 @@ export function startServer() {
     connection.onHover(evt => manager.doHover(evt.textDocument, evt.position));
     connection.onCompletion(evt => manager.getCompletions(evt.textDocument, evt.position));
     connection.onDocumentFormatting(evt => manager.formatDocument(evt.textDocument));
+    connection.onRequest(TagCloseRequest.type, evt =>
+        manager.doTagComplete(evt.textDocument, evt.position),
+    );
 
     manager.on('documentChange', async document => {
         const diagnostics = await manager.getDiagnostics({ uri: document.getURL() });

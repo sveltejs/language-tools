@@ -73,6 +73,16 @@ export namespace FormattingProvider {
     }
 }
 
+export interface TagCompleteProvider {
+    doTagComplete(document: Document, positon: Position): Resolvable<string | null>;
+}
+
+export namespace TagCompleteProvider {
+    export function is(obj: any): obj is TagCompleteProvider {
+        return typeof obj.doTagComplete === 'function';
+    }
+}
+
 export interface Fragment extends Document {
     details: FragmentDetails;
 

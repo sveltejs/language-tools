@@ -47,4 +47,13 @@ export class HTMLPlugin implements HoverProvider, CompletionsProvider {
         const results = this.lang.doComplete(document, position, html);
         return [...results.items, ...emmetResults.items];
     }
+
+    doTagComplete(document: Document, position: Position): string | null {
+        const html = this.documents.get(document);
+        if (!html) {
+            return null;
+        }
+
+        return this.lang.doTagComplete(document, position, html);
+    }
 }
