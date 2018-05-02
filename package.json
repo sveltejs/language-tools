@@ -51,6 +51,7 @@
         "svelte": "^2.3.0",
         "typescript": "^2.8.1",
         "vscode-css-languageservice": "^3.0.8",
+        "vscode-emmet-helper": "^1.2.7",
         "vscode-html-languageservice": "^2.1.2",
         "vscode-languageserver": "^4.1.1",
         "vscode-languageserver-types": "^3.7.1",

@@ -1,4 +1,5 @@
 import { getLanguageService, HTMLDocument } from 'vscode-html-languageservice';
+import { getEmmetCompletionParticipants } from 'vscode-emmet-helper';
 import {
     Host,
     Document,
@@ -7,6 +8,7 @@ import {
     Hover,
     CompletionsProvider,
     CompletionItem,
+    CompletionList,
 } from '../api';
 
 export class HTMLPlugin implements HoverProvider, CompletionsProvider {
@@ -35,6 +37,14 @@ export class HTMLPlugin implements HoverProvider, CompletionsProvider {
             return [];
         }
 
-        return this.lang.doComplete(document, position, html).items;
+        const emmetResults: CompletionList = {
+            isIncomplete: true,
+            items: [],
+        };
+        this.lang.setCompletionParticipants([
+            getEmmetCompletionParticipants(document, position, 'html', {}, emmetResults),
+        ]);
+        const results = this.lang.doComplete(document, position, html);
+        return [...results.items, ...emmetResults.items];
     }
 }

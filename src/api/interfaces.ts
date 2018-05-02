@@ -11,6 +11,7 @@ import {
     TextEdit,
     InsertTextFormat,
     Command,
+    CompletionList,
 } from 'vscode-languageserver-types';
 import { Document } from './Document';
 
@@ -27,6 +28,7 @@ export {
     TextEdit,
     InsertTextFormat,
     Command,
+    CompletionList,
 };
 
 export type Resolvable<T> = T | Promise<T>;

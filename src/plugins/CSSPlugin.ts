@@ -22,7 +22,9 @@ import {
     TextEdit,
     Range,
     FormattingProvider,
+    CompletionList,
 } from '../api';
+import { getEmmetCompletionParticipants } from 'vscode-emmet-helper';
 
 export class CSSPlugin
     implements HoverProvider, CompletionsProvider, DiagnosticsProvider, FormattingProvider {
@@ -72,16 +74,19 @@ export class CSSPlugin
             return [];
         }
 
-        const completion = getLanguageService(document.getAttributes().type).doComplete(
-            document,
-            position,
-            stylesheet,
-        );
-        if (!completion) {
-            return [];
-        }
-
-        return completion.items;
+        const type = document.getAttributes().type;
+        const lang = getLanguageService(type);
+        lang.setCompletionParticipants;
+        const completion = lang.doComplete(document, position, stylesheet);
+        const emmetResults: CompletionList = {
+            isIncomplete: true,
+            items: [],
+        };
+        lang.setCompletionParticipants([
+            getEmmetCompletionParticipants(document, position, getLanguage(type), {}, emmetResults),
+        ]);
+        const results = lang.doComplete(document, position, stylesheet);
+        return [...(results ? results.items : []), ...emmetResults.items];
     }
 
     async formatDocument(document: Document): Promise<TextEdit[]> {
