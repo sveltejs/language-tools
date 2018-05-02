@@ -10,11 +10,13 @@ Provides syntax highlighting and rich intellisense for Svelte components in VS C
 *   HTML
     *   Hover info
     *   Autocompletions
+    *   [Emmet](https://emmet.io/)
 *   CSS / SCSS / LESS
     *   Diagnostic messages for syntax and lint errors
     *   Hover info
     *   Autocompletions
     *   Formatting (via [prettier](https://github.com/prettier/prettier))
+    *   [Emmet](https://emmet.io/)
 *   TypeScript / JavaScript
     *   Diagnostics messages for syntax and semantic errors
     *   Hover info
