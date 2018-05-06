@@ -1,6 +1,6 @@
 # Svelte for VS Code
 
-Provides syntax highlighting and rich intellisense for Svelte components in VS Code, utilising the svelte language server.
+Provides syntax highlighting and rich intellisense for Svelte components in VS Code, utilising the [svelte language server](https://github.com/UnwrittenFun/svelte-language-server).
 
 ## Features
 
