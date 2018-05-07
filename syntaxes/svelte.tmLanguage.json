@@ -500,7 +500,7 @@
                 },
                 {
                     "begin": "\\(",
-                    "end": "\\)",
+                    "end": "\\)\\s*",
                     "patterns": [
                         {
                             "include": "source.ts"
