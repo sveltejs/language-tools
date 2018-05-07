@@ -469,23 +469,24 @@
                     "name": "variable"
                 },
                 {
-                    "begin": "\\[\\s*",
-                    "end": "]\\s*",
                     "patterns": [
                         {
-                            "match": "[_$[:alpha:]][_$[:alnum:]]*\\s*",
-                            "name": "variable"
+                            "begin": "\\[\\s*",
+                            "end": "]\\s*",
+                            "patterns": [
+                                {
+                                    "include": "source.js"
+                                }
+                            ]
                         },
                         {
-                            "match": "(,)\\s*([_$[:alpha:]][_$[:alnum:]]*)\\s*",
-                            "captures": {
-                                "1": {
-                                    "name": "punctuation.separator"
-                                },
-                                "2": {
-                                    "name": "variable"
+                            "begin": "\\{\\s*",
+                            "end": "}\\s*",
+                            "patterns": [
+                                {
+                                    "include": "source.js"
                                 }
-                            }
+                            ]
                         }
                     ]
                 },
