@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.3.2
+
+*   Allow space after key in each block ([#12](https://github.com/UnwrittenFun/svelte-vscode/issues/12))
+
+## 0.3.1
+
+*   Register .svelte extension ([#8](https://github.com/UnwrittenFun/svelte-vscode/pull/8))
+*   Fix highlighting error when using object destructuring in each blocks ([#11](https://github.com/UnwrittenFun/svelte-vscode/issues/11))
+*   Use correct comments in typescript and scss blocks
+
 ## 0.3.0
 
 *   Add html tag autoclosing ([#4](https://github.com/UnwrittenFun/svelte-vscode/pull/4))
