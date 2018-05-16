@@ -64,7 +64,9 @@ export class SveltePlugin implements DiagnosticsProvider {
 
     private async loadConfig(path: string): Promise<SvelteConfig> {
         try {
-            const { config } = await cosmic('svelte').load(path);
+            const { config } = await cosmic('svelte', {
+                packageProp: false   
+            }).load(path);
             return { ...DEFAULT_OPTIONS, ...config };
         } catch (err) {
             return { ...DEFAULT_OPTIONS, preprocess: {} };
