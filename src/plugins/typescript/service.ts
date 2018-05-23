@@ -8,40 +8,22 @@ export function createLanguageService() {
     const workspacePath = ''; // TODO
     const documents = new Map<string, DocumentSnapshot>();
 
-    let compilerOptions: ts.CompilerOptions = {
+    let defaultCompilerOptions: ts.CompilerOptions = {
         allowNonTsExtensions: true,
         target: ts.ScriptTarget.Latest,
         module: ts.ModuleKind.ESNext,
         moduleResolution: ts.ModuleResolutionKind.NodeJs,
         allowJs: true,
     };
-
-    // Grab tsconfig file
-    const configFilename =
-        ts.findConfigFile(workspacePath, ts.sys.fileExists, 'tsconfig.json') ||
-        ts.findConfigFile(workspacePath, ts.sys.fileExists, 'jsconfig.json');
-    const configJson = configFilename && ts.readConfigFile(configFilename, ts.sys.readFile).config;
-    let files: string[] = [];
-    if (configJson) {
-        const parsedConfig = ts.parseJsonConfigFileContent(
-            configJson,
-            ts.sys,
-            workspacePath,
-            compilerOptions,
-            configFilename,
-            undefined,
-            [
-                { extension: 'html', isMixedContent: true },
-                { extension: 'svelte', isMixedContent: true },
-            ],
-        );
-        files = parsedConfig.fileNames;
-        compilerOptions = { ...compilerOptions, ...parsedConfig.options };
-    }
+    let current: { files: string[]; compilerOptions: ts.CompilerOptions } = {
+        compilerOptions: defaultCompilerOptions,
+        files: [],
+    };
 
     const host: ts.LanguageServiceHost = {
-        getCompilationSettings: () => compilerOptions,
-        getScriptFileNames: () => Array.from(new Set([...files, ...Array.from(documents.keys())])),
+        getCompilationSettings: () => current.compilerOptions,
+        getScriptFileNames: () =>
+            Array.from(new Set([...current.files, ...Array.from(documents.keys())])),
         getScriptVersion(fileName: string) {
             const doc = documents.get(fileName);
             return doc ? String(doc.version) : '0';
@@ -62,7 +44,7 @@ export function createLanguageService() {
                 const resolved = ts.resolveModuleName(
                     name,
                     containingFile,
-                    compilerOptions,
+                    current.compilerOptions,
                     ts.sys,
                 );
 
@@ -86,7 +68,11 @@ export function createLanguageService() {
 
     function updateDocument(document: Document): ts.LanguageService {
         const preSnapshot = documents.get(document.getFilePath()!);
-        const newSnapshot = DocumentSnapshot.fromDocument(document);
+        const newSnapshot = DocumentSnapshot.fromDocument(
+            document,
+            defaultCompilerOptions,
+            preSnapshot,
+        );
         if (preSnapshot && preSnapshot.scriptKind !== newSnapshot.scriptKind) {
             // Restart language service as it doesn't handle script kind changes.
             languageService.dispose();
@@ -94,6 +80,7 @@ export function createLanguageService() {
         }
 
         documents.set(document.getFilePath()!, newSnapshot);
+        current = newSnapshot;
         return languageService;
     }
 }
