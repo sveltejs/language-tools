@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.0
+
+*   Update to [svelte-language-server](https://github.com/UnwrittenFun/svelte-language-server/tree/v0.4.0) 0.4.0
+    *   Includes fix to prevent attempting to load svelte config from package.json
+    *   Switching language type (.e.g from `type=text/javascript` to `type=text/typescript`) no longer crashes the server
+
 ## 0.3.2
 
 *   Allow space after key in each block ([#12](https://github.com/UnwrittenFun/svelte-vscode/issues/12))
