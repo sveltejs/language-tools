@@ -8,6 +8,7 @@ import {
     CompletionItemKind,
     InsertTextFormat,
     TextEdit,
+    Host,
 } from '../../src/api';
 import { TextDocument } from '../../src/lib/documents/TextDocument';
 import { CSSPlugin } from '../../src/plugins/CSSPlugin';
@@ -17,7 +18,7 @@ describe('CSS Plugin', () => {
     it('provides hover info', async () => {
         const plugin = new CSSPlugin();
         const document = new TextDocument('file:///hello.css', 'h1 {}');
-        const host = new EventEmitter();
+        const host = new EventEmitter() as any;
         plugin.onRegister(host);
         host.emit('documentChange', document);
 
@@ -32,7 +33,7 @@ describe('CSS Plugin', () => {
     it('provides completions', async () => {
         const plugin = new CSSPlugin();
         const document = new TextDocument('file:///hello.css', '');
-        const host = new EventEmitter();
+        const host = new EventEmitter() as any;
         plugin.onRegister(host);
         host.emit('documentChange', document);
 

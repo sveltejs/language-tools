@@ -16,7 +16,7 @@ describe('HTML Plugin', () => {
     it('provides hover info', async () => {
         const plugin = new HTMLPlugin();
         const document = new TextDocument('file:///hello.html', '<h1>Hello, world!</h1>');
-        const host = new EventEmitter();
+        const host = new EventEmitter() as any;
         plugin.onRegister(host);
         host.emit('documentChange|pre', document);
 
@@ -34,7 +34,7 @@ describe('HTML Plugin', () => {
     it('provides completions', async () => {
         const plugin = new HTMLPlugin();
         const document = new TextDocument('file:///hello.html', '<');
-        const host = new EventEmitter();
+        const host = new EventEmitter() as any;
         plugin.onRegister(host);
         host.emit('documentChange|pre', document);
 
