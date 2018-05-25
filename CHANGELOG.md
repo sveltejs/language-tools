@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.2
+
+*   Add command to restart language server (useful if it errors or is using stale data)
+    *   Access it using `Cmd-Shift-P` or `Ctrl-Shift-P` and typing "restart language server"
+
 ## 0.4.1
 
 *   Update to [svelte-language-server](https://github.com/UnwrittenFun/svelte-language-server/tree/v0.4.2) 0.4.2
