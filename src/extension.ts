@@ -1,6 +1,6 @@
 import * as path from 'path';
 
-import { workspace, ExtensionContext, TextDocument, Position } from 'vscode';
+import { workspace, ExtensionContext, TextDocument, Position, commands, window } from 'vscode';
 import {
     LanguageClient,
     LanguageClientOptions,
@@ -44,18 +44,29 @@ export function activate(context: ExtensionContext) {
         },
     };
 
-    let client = new LanguageClient('svelte', 'Svelte', serverOptions, clientOptions);
-    context.subscriptions.push(client.start());
+    let ls = createLanguageServer(serverOptions, clientOptions);
+    context.subscriptions.push(ls.start());
 
-    client.onReady().then(() => {
+    ls.onReady().then(() => {
         let tagRequestor = (document: TextDocument, position: Position) => {
-            let param = client.code2ProtocolConverter.asTextDocumentPositionParams(
-                document,
-                position,
-            );
-            return client.sendRequest(TagCloseRequest.type, param);
+            let param = ls.code2ProtocolConverter.asTextDocumentPositionParams(document, position);
+            return ls.sendRequest(TagCloseRequest.type, param);
         };
         let disposable = activateTagClosing(tagRequestor, { svelte: true }, 'html.autoClosingTags');
         context.subscriptions.push(disposable);
     });
+
+    context.subscriptions.push(
+        commands.registerCommand('svelte.restartLanguageServer', async () => {
+            await ls.stop();
+            ls = createLanguageServer(serverOptions, clientOptions);
+            context.subscriptions.push(ls.start());
+            await ls.onReady();
+            window.showInformationMessage('Svelte language server restarted.');
+        }),
+    );
+}
+
+function createLanguageServer(serverOptions: ServerOptions, clientOptions: LanguageClientOptions) {
+    return new LanguageClient('svelte', 'Svelte', serverOptions, clientOptions);
 }
