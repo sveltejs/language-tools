@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.1
+
+*   Update to [svelte-language-server](https://github.com/UnwrittenFun/svelte-language-server/tree/v0.4.2) 0.4.2
+    *   Has better support for typescript in workspaces
+*   Now actually bundles the lib.d.ts files from typescript.. 🤦
+
 ## 0.4.0
 
 *   Update to [svelte-language-server](https://github.com/UnwrittenFun/svelte-language-server/tree/v0.4.0) 0.4.0

@@ -1,6 +1,6 @@
 {
     "name": "svelte-vscode",
-    "version": "0.4.0",
+    "version": "0.4.1",
     "description": "Svelte language support for VS Code",
     "main": "dist/extension.js",
     "scripts": {
@@ -87,7 +87,7 @@
         "typescript": "^2.8.1"
     },
     "dependencies": {
-        "svelte-language-server": "0.4.0",
+        "svelte-language-server": "0.4.2",
         "vscode": "^1.1.14",
         "vscode-languageclient": "^4.1.3"
     }
