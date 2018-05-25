@@ -12,6 +12,7 @@ import {
     InsertTextFormat,
     Command,
     CompletionList,
+    TextDocumentItem,
 } from 'vscode-languageserver-types';
 import { Document } from './Document';
 
@@ -29,6 +30,7 @@ export {
     InsertTextFormat,
     Command,
     CompletionList,
+    TextDocumentItem,
 };
 
 export type Resolvable<T> = T | Promise<T>;

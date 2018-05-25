@@ -2,6 +2,7 @@ import ts from 'typescript';
 import * as prettier from 'prettier';
 import detectIndent from 'detect-indent';
 import indentString from 'indent-string';
+import URL from 'vscode-uri';
 import {
     DiagnosticsProvider,
     Document,
@@ -14,19 +15,36 @@ import {
     Hover,
     FormattingProvider,
     TextEdit,
+    OnRegister,
+    Host,
 } from '../api';
 import { convertRange, getScriptKindFromTypeAttribute } from './typescript/utils';
-import { createLanguageService } from './typescript/service';
+import { getLanguageServiceForDocument, CreateDocument } from './typescript/service';
 
-export class TypeScriptPlugin implements DiagnosticsProvider, HoverProvider, FormattingProvider {
+export class TypeScriptPlugin
+    implements DiagnosticsProvider, HoverProvider, FormattingProvider, OnRegister {
     public static matchFragment(fragment: Fragment) {
         return fragment.details.attributes.tag == 'script';
     }
 
-    private lang = createLanguageService();
+    private createDocument!: CreateDocument;
+
+    onRegister(host: Host) {
+        this.createDocument = (fileName, content) => {
+            const uri = URL.file(fileName).toString();
+            const document = host.openDocument({
+                languageId: '',
+                text: content,
+                uri,
+                version: 1,
+            });
+            host.lockDocument(uri);
+            return document;
+        };
+    }
 
     getDiagnostics(document: Document): Diagnostic[] {
-        const lang = this.lang.updateDocument(document);
+        const lang = getLanguageServiceForDocument(document, this.createDocument);
         const syntaxDiagnostics = lang.getSyntacticDiagnostics(document.getFilePath()!);
         const semanticDiagnostics = lang.getSemanticDiagnostics(document.getFilePath()!);
         return [...syntaxDiagnostics, ...semanticDiagnostics].map(diagnostic => ({
@@ -41,7 +59,7 @@ export class TypeScriptPlugin implements DiagnosticsProvider, HoverProvider, For
     }
 
     doHover(document: Document, position: Position): Hover | null {
-        const lang = this.lang.updateDocument(document);
+        const lang = getLanguageServiceForDocument(document, this.createDocument);
         const info = lang.getQuickInfoAtPosition(
             document.getFilePath()!,
             document.offsetAt(position),

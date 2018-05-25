@@ -1,4 +1,5 @@
 import { Document } from './Document';
+import { TextDocumentItem } from './interfaces';
 
 export interface Host {
     on(evt: 'documentOpen|pre', listener: (document: Document) => void): this;
@@ -14,4 +15,17 @@ export interface Host {
     on(evt: 'documentChange|post', listener: (document: Document) => void): this;
 
     on(name: string, listener: (...args: any[]) => void): void;
+
+    openDocument(textDocument: TextDocumentItem): Document;
+    lockDocument(uri: string): void;
+}
+
+export interface OnRegister {
+    onRegister(host: Host): void;
+}
+
+export namespace OnRegister {
+    export function is(plugin: any): plugin is OnRegister {
+        return typeof plugin.onRegister === 'function';
+    }
 }

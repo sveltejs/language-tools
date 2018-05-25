@@ -4,8 +4,41 @@ import { isSvelte } from './utils';
 import { dirname, resolve, extname } from 'path';
 import { Document } from '../../api';
 
-export function createLanguageService() {
-    const workspacePath = ''; // TODO
+export interface LanguageServiceContainer {
+    getService(): ts.LanguageService;
+    updateDocument(document: Document): ts.LanguageService;
+}
+
+const services = new Map<string, LanguageServiceContainer>();
+
+export type CreateDocument = (fileName: string, content: string) => Document;
+
+export function getLanguageServiceForDocument(
+    document: Document,
+    createDocument: CreateDocument,
+): ts.LanguageService {
+    const searchDir = dirname(document.getFilePath()!);
+    const tsconfigPath =
+        ts.findConfigFile(searchDir, ts.sys.fileExists, 'tsconfig.json') ||
+        ts.findConfigFile(searchDir, ts.sys.fileExists, 'jsconfig.json') ||
+        '';
+
+    let service: LanguageServiceContainer;
+    if (services.has(tsconfigPath)) {
+        service = services.get(tsconfigPath)!;
+    } else {
+        service = createLanguageService(tsconfigPath, createDocument);
+        services.set(tsconfigPath, service);
+    }
+
+    return service.updateDocument(document);
+}
+
+export function createLanguageService(
+    tsconfigPath: string,
+    createDocument: CreateDocument,
+): LanguageServiceContainer {
+    const workspacePath = tsconfigPath ? dirname(tsconfigPath) : '';
     const documents = new Map<string, DocumentSnapshot>();
 
     let compilerOptions: ts.CompilerOptions = {
@@ -16,11 +49,7 @@ export function createLanguageService() {
         allowJs: true,
     };
 
-    // Grab tsconfig file
-    const configFilename =
-        ts.findConfigFile(workspacePath, ts.sys.fileExists, 'tsconfig.json') ||
-        ts.findConfigFile(workspacePath, ts.sys.fileExists, 'jsconfig.json');
-    const configJson = configFilename && ts.readConfigFile(configFilename, ts.sys.readFile).config;
+    const configJson = tsconfigPath && ts.readConfigFile(tsconfigPath, ts.sys.readFile).config;
     let files: string[] = [];
     if (configJson) {
         const parsedConfig = ts.parseJsonConfigFileContent(
@@ -28,7 +57,7 @@ export function createLanguageService() {
             ts.sys,
             workspacePath,
             compilerOptions,
-            configFilename,
+            tsconfigPath,
             undefined,
             [
                 { extension: 'html', isMixedContent: true },
@@ -43,11 +72,11 @@ export function createLanguageService() {
         getCompilationSettings: () => compilerOptions,
         getScriptFileNames: () => Array.from(new Set([...files, ...Array.from(documents.keys())])),
         getScriptVersion(fileName: string) {
-            const doc = documents.get(fileName);
+            const doc = getSvelteSnapshot(fileName);
             return doc ? String(doc.version) : '0';
         },
         getScriptSnapshot(fileName: string): ts.IScriptSnapshot | undefined {
-            const doc = documents.get(fileName);
+            const doc = getSvelteSnapshot(fileName);
             if (doc) {
                 return doc;
             }
@@ -76,6 +105,10 @@ export function createLanguageService() {
                 return resolved.resolvedModule!;
             });
         },
+
+        readFile(path: string, encoding?: string): string | undefined {
+            return ts.sys.readFile(path, encoding);
+        },
     };
     let languageService = ts.createLanguageService(host);
 
@@ -95,5 +128,20 @@ export function createLanguageService() {
 
         documents.set(document.getFilePath()!, newSnapshot);
         return languageService;
+    }
+
+    function getSvelteSnapshot(fileName: string): DocumentSnapshot | undefined {
+        const doc = documents.get(fileName);
+        if (doc) {
+            return doc;
+        }
+
+        if (isSvelte(fileName)) {
+            const doc = DocumentSnapshot.fromDocument(
+                createDocument(fileName, ts.sys.readFile(fileName) || ''),
+            );
+            documents.set(fileName, doc);
+            return doc;
+        }
     }
 }

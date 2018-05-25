@@ -16,18 +16,30 @@ export interface DocumentManager {
 
 export class DocumentManager extends PluginHost {
     public documents: Map<string, Document> = new Map();
+    public locked = new Set<string>();
 
     constructor(private createDocument: (textDocument: TextDocumentItem) => Document) {
         super();
     }
 
     openDocument(textDocument: TextDocumentItem): Document {
-        const document = this.createDocument(textDocument);
-        this.documents.set(textDocument.uri, document);
-        this.notify('documentOpen', document);
+        let document: Document;
+        if (this.documents.has(textDocument.uri)) {
+            document = this.documents.get(textDocument.uri)!;
+            document.setText(textDocument.text);
+        } else {
+            document = this.createDocument(textDocument);
+            this.documents.set(textDocument.uri, document);
+            this.notify('documentOpen', document);
+        }
+
         this.notify('documentChange', document);
 
         return document;
+    }
+
+    lockDocument(uri: string): void {
+        this.locked.add(uri);
     }
 
     closeDocument(textDocument: TextDocumentIdentifier) {
@@ -37,7 +49,11 @@ export class DocumentManager extends PluginHost {
         }
 
         this.notify('documentClose', document);
-        this.documents.delete(textDocument.uri);
+
+        // Some plugin may prevent a document from actually being closed.
+        if (!this.locked.has(textDocument.uri)) {
+            this.documents.delete(textDocument.uri);
+        }
     }
 
     updateDocument(

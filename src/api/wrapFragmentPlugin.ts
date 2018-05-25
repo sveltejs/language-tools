@@ -9,6 +9,7 @@ import {
     Diagnostic,
     FormattingProvider,
     TextEdit,
+    TextDocumentItem,
 } from './interfaces';
 import { Document } from './Document';
 import {
@@ -17,14 +18,14 @@ import {
     mapDiagnosticToParent,
     mapTextEditToParent,
 } from './fragmentPositions';
-import { Host } from './Host';
+import { Host, OnRegister } from './Host';
 
 export function wrapFragmentPlugin<P>(plugin: P, fragmentPredicate: FragmentPredicate): P {
     function getFragment(document: Document) {
         return document.findFragment(fragmentPredicate);
     }
 
-    if (hasOnRegister(plugin)) {
+    if (OnRegister.is(plugin)) {
         const onRegister: OnRegister['onRegister'] = plugin.onRegister.bind(plugin);
         plugin.onRegister = function(host) {
             onRegister(<Host>{
@@ -43,6 +44,9 @@ export function wrapFragmentPlugin<P>(plugin: P, fragmentPredicate: FragmentPred
                         listener(fragment, ...args);
                     });
                 },
+
+                openDocument: (document: TextDocumentItem) => host.openDocument(document),
+                lockDocument: (uri: string) => host.lockDocument(uri),
             });
         };
     }
@@ -116,12 +120,4 @@ export function wrapFragmentPlugin<P>(plugin: P, fragmentPredicate: FragmentPred
     }
 
     return plugin;
-}
-
-interface OnRegister {
-    onRegister(host: Host): void;
-}
-
-function hasOnRegister(plugin: any): plugin is OnRegister {
-    return typeof plugin.onRegister === 'function';
 }
