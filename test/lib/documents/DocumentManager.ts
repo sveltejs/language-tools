@@ -85,6 +85,8 @@ describe('Document Manager', () => {
     it('executes getDiagnostics on plugins', async () => {
         const manager = new DocumentManager(createTextDocument);
         const plugin = {
+            pluginId: 'test',
+            defaultConfig: { enable: true },
             getDiagnostics: sinon.stub().returns([]),
         };
         manager.register(plugin);
@@ -99,6 +101,8 @@ describe('Document Manager', () => {
     it('executes doHover on plugins', async () => {
         const manager = new DocumentManager(createTextDocument);
         const plugin = {
+            pluginId: 'test',
+            defaultConfig: { enable: true },
             doHover: sinon.stub().returns(null),
         };
         manager.register(plugin);
@@ -114,6 +118,8 @@ describe('Document Manager', () => {
     it('executes getCompletions on plugins', async () => {
         const manager = new DocumentManager(createTextDocument);
         const plugin = {
+            pluginId: 'test',
+            defaultConfig: { enable: true },
             getCompletions: sinon.stub().returns([]),
         };
         manager.register(plugin);
