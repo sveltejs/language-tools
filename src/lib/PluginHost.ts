@@ -1,5 +1,6 @@
 import { EventEmitter } from 'events';
 import { Plugin } from '../api';
+import { get } from 'lodash';
 
 export enum ExecuteMode {
     None,
@@ -11,7 +12,7 @@ export class PluginHost {
     private emitter = new EventEmitter();
     private plugins: Plugin[] = [];
     private config: Config = {
-        disabledPlugins: [],
+        plugin: {},
     };
 
     on(name: string, listener: (...args: any[]) => void) {
@@ -26,6 +27,7 @@ export class PluginHost {
 
     register(plugin: Plugin) {
         this.plugins.push(plugin);
+        this.config.plugin[plugin.pluginId] = plugin.defaultConfig;
         if (typeof (plugin as any).onRegister === 'function') {
             (plugin as any).onRegister(this);
         }
@@ -66,11 +68,15 @@ export class PluginHost {
         this.config = config;
     }
 
+    getConfig<T>(key: string): T {
+        return get(this.config.plugin, key) as any;
+    }
+
     private get enabledPlugins(): any[] {
-        return this.plugins.filter(p => !this.config.disabledPlugins.includes(p.pluginId));
+        return this.plugins.filter(p => this.getConfig(`${p.pluginId}.enable`));
     }
 }
 
 export interface Config {
-    disabledPlugins: string[];
+    plugin: Record<string, any>;
 }

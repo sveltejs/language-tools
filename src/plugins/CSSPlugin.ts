@@ -33,10 +33,19 @@ export class CSSPlugin
     }
 
     public pluginId = 'css';
+    public defaultConfig = {
+        enable: true,
+        diagnostics: { enable: true },
+        hover: { enable: true },
+        completions: { enable: true },
+        format: { enable: true },
+    };
 
+    private host!: Host;
     private stylesheets = new WeakMap<Document, Stylesheet>();
 
     onRegister(host: Host) {
+        this.host = host;
         host.on('documentChange', document =>
             this.stylesheets.set(
                 document,
@@ -47,6 +56,10 @@ export class CSSPlugin
     }
 
     getDiagnostics(document: Document): Diagnostic[] {
+        if (!this.host.getConfig<boolean>('css.diagnostics.enable')) {
+            return [];
+        }
+
         const stylesheet = this.stylesheets.get(document);
         if (!stylesheet) {
             return [];
@@ -58,6 +71,10 @@ export class CSSPlugin
     }
 
     doHover(document: Document, position: Position): Hover | null {
+        if (!this.host.getConfig<boolean>('css.hover.enable')) {
+            return null;
+        }
+
         const stylesheet = this.stylesheets.get(document);
         if (!stylesheet) {
             return null;
@@ -71,6 +88,10 @@ export class CSSPlugin
     }
 
     getCompletions(document: Document, position: Position): CompletionItem[] {
+        if (!this.host.getConfig<boolean>('css.completions.enable')) {
+            return [];
+        }
+
         const stylesheet = this.stylesheets.get(document);
         if (!stylesheet) {
             return [];
@@ -92,6 +113,10 @@ export class CSSPlugin
     }
 
     async formatDocument(document: Document): Promise<TextEdit[]> {
+        if (!this.host.getConfig<boolean>('css.format.enable')) {
+            return [];
+        }
+
         if (document.getTextLength() === 0) {
             return [];
         }

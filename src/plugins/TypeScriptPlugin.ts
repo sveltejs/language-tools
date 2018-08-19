@@ -28,10 +28,18 @@ export class TypeScriptPlugin
     }
 
     public pluginId = 'typescript';
+    public defaultConfig = {
+        enable: true,
+        diagnostics: { enable: true },
+        hover: { enable: true },
+        format: { enable: true },
+    };
 
+    private host!: Host;
     private createDocument!: CreateDocument;
 
     onRegister(host: Host) {
+        this.host = host;
         this.createDocument = (fileName, content) => {
             const uri = URL.file(fileName).toString();
             const document = host.openDocument({
@@ -46,6 +54,10 @@ export class TypeScriptPlugin
     }
 
     getDiagnostics(document: Document): Diagnostic[] {
+        if (!this.host.getConfig<boolean>('typescript.diagnostics.enable')) {
+            return [];
+        }
+
         const lang = getLanguageServiceForDocument(document, this.createDocument);
         const syntaxDiagnostics = lang.getSyntacticDiagnostics(document.getFilePath()!);
         const semanticDiagnostics = lang.getSemanticDiagnostics(document.getFilePath()!);
@@ -61,6 +73,10 @@ export class TypeScriptPlugin
     }
 
     doHover(document: Document, position: Position): Hover | null {
+        if (!this.host.getConfig<boolean>('typescript.hover.enable')) {
+            return null;
+        }
+
         const lang = getLanguageServiceForDocument(document, this.createDocument);
         const info = lang.getQuickInfoAtPosition(
             document.getFilePath()!,
@@ -77,6 +93,10 @@ export class TypeScriptPlugin
     }
 
     async formatDocument(document: Document): Promise<TextEdit[]> {
+        if (!this.host.getConfig<boolean>('typescript.format.enable')) {
+            return [];
+        }
+
         if (document.getTextLength() === 0) {
             return [];
         }

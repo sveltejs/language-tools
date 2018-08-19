@@ -8,6 +8,7 @@ import {
     DiagnosticSeverity,
     Fragment,
     Position,
+    Host,
 } from '../api';
 import { SvelteDocument } from '../lib/documents/SvelteDocument';
 import { RawSourceMap, RawIndexMap, SourceMapConsumer } from 'source-map';
@@ -22,8 +23,22 @@ const DEFAULT_OPTIONS: svelte.CompileOptions = {
 
 export class SveltePlugin implements DiagnosticsProvider {
     public pluginId = 'svelte';
+    public defaultConfig = {
+        enable: true,
+        diagnostics: { enable: true },
+    };
+
+    private host!: Host;
+
+    onRegister(host: Host) {
+        this.host = host;
+    }
 
     async getDiagnostics(document: Document): Promise<Diagnostic[]> {
+        if (!this.host.getConfig<boolean>('svelte.diagnostics.enable')) {
+            return [];
+        }
+
         let source = document.getText();
 
         const config = await this.loadConfig(document.getFilePath()!);
@@ -67,7 +82,7 @@ export class SveltePlugin implements DiagnosticsProvider {
     private async loadConfig(path: string): Promise<SvelteConfig> {
         try {
             const { config } = await cosmic('svelte', {
-                packageProp: false   
+                packageProp: false,
             }).load(path);
             return { ...DEFAULT_OPTIONS, ...config };
         } catch (err) {

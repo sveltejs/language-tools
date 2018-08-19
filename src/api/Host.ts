@@ -18,6 +18,7 @@ export interface Host {
 
     openDocument(textDocument: TextDocumentItem): Document;
     lockDocument(uri: string): void;
+    getConfig<T>(key: string): T;
 }
 
 export interface OnRegister {

@@ -13,11 +13,19 @@ import {
 
 export class HTMLPlugin implements HoverProvider, CompletionsProvider {
     public pluginId = 'html';
+    public defaultConfig = {
+        enable: true,
+        hover: { enable: true },
+        completions: { enable: true },
+        tagComplete: { enable: true },
+    };
 
+    private host!: Host;
     private lang = getLanguageService();
     private documents = new WeakMap<Document, HTMLDocument>();
 
     onRegister(host: Host) {
+        this.host = host;
         host.on('documentChange|pre', document => {
             const html = this.lang.parseHTMLDocument(document);
             this.documents.set(document, html);
@@ -25,6 +33,10 @@ export class HTMLPlugin implements HoverProvider, CompletionsProvider {
     }
 
     doHover(document: Document, position: Position): Hover | null {
+        if (!this.host.getConfig<boolean>('html.hover.enable')) {
+            return null;
+        }
+
         const html = this.documents.get(document);
         if (!html) {
             return null;
@@ -34,6 +46,10 @@ export class HTMLPlugin implements HoverProvider, CompletionsProvider {
     }
 
     getCompletions(document: Document, position: Position): CompletionItem[] {
+        if (!this.host.getConfig<boolean>('html.completions.enable')) {
+            return [];
+        }
+
         const html = this.documents.get(document);
         if (!html) {
             return [];
@@ -51,6 +67,10 @@ export class HTMLPlugin implements HoverProvider, CompletionsProvider {
     }
 
     doTagComplete(document: Document, position: Position): string | null {
+        if (!this.host.getConfig<boolean>('html.tagComplete.enable')) {
+            return null;
+        }
+
         const html = this.documents.get(document);
         if (!html) {
             return null;

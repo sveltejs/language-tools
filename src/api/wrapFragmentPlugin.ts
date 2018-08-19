@@ -21,7 +21,10 @@ import {
 } from './fragmentPositions';
 import { Host, OnRegister } from './Host';
 
-export function wrapFragmentPlugin<P extends Plugin>(plugin: P, fragmentPredicate: FragmentPredicate): P {
+export function wrapFragmentPlugin<P extends Plugin>(
+    plugin: P,
+    fragmentPredicate: FragmentPredicate,
+): P {
     function getFragment(document: Document) {
         return document.findFragment(fragmentPredicate);
     }
@@ -48,6 +51,7 @@ export function wrapFragmentPlugin<P extends Plugin>(plugin: P, fragmentPredicat
 
                 openDocument: (document: TextDocumentItem) => host.openDocument(document),
                 lockDocument: (uri: string) => host.lockDocument(uri),
+                getConfig: (key: string) => host.getConfig(key),
             });
         };
     }
