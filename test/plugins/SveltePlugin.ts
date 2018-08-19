@@ -10,6 +10,12 @@ describe('Svelte Plugin', () => {
             'file:///hello.html',
             '<h1>Hello, world!</h1>\n<img src="hello.png">',
         );
+        const host = {
+            getConfig() {
+                return true;
+            },
+        };
+        plugin.onRegister(host as any);
         const diagnostics = await plugin.getDiagnostics(document);
         const diagnostic = Diagnostic.create(
             Range.create(1, 0, 1, 21),
@@ -25,6 +31,12 @@ describe('Svelte Plugin', () => {
     it('provides diagnostic errors', async () => {
         const plugin = new SveltePlugin();
         const document = new SvelteDocument('file:///hello.html', '<div bind:whatever></div>');
+        const host = {
+            getConfig() {
+                return true;
+            },
+        };
+        plugin.onRegister(host as any);
         const diagnostics = await plugin.getDiagnostics(document);
         const diagnostic = Diagnostic.create(
             Range.create(0, 5, 0, 18),

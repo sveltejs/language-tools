@@ -16,8 +16,12 @@ describe('HTML Plugin', () => {
     it('provides hover info', async () => {
         const plugin = new HTMLPlugin();
         const document = new TextDocument('file:///hello.html', '<h1>Hello, world!</h1>');
-        const host = new EventEmitter() as any;
-        plugin.onRegister(host);
+        const host = Object.assign(new EventEmitter(), {
+            getConfig() {
+                return true;
+            },
+        });
+        plugin.onRegister(host as any);
         host.emit('documentChange|pre', document);
 
         assert.deepStrictEqual(plugin.doHover(document, Position.create(0, 2)), <Hover>{
@@ -34,8 +38,12 @@ describe('HTML Plugin', () => {
     it('provides completions', async () => {
         const plugin = new HTMLPlugin();
         const document = new TextDocument('file:///hello.html', '<');
-        const host = new EventEmitter() as any;
-        plugin.onRegister(host);
+        const host = Object.assign(new EventEmitter(), {
+            getConfig() {
+                return true;
+            },
+        });
+        plugin.onRegister(host as any);
         host.emit('documentChange|pre', document);
 
         const completions = plugin.getCompletions(document, Position.create(0, 1));

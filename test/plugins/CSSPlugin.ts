@@ -18,8 +18,12 @@ describe('CSS Plugin', () => {
     it('provides hover info', async () => {
         const plugin = new CSSPlugin();
         const document = new TextDocument('file:///hello.css', 'h1 {}');
-        const host = new EventEmitter() as any;
-        plugin.onRegister(host);
+        const host = Object.assign(new EventEmitter(), {
+            getConfig() {
+                return true;
+            },
+        });
+        plugin.onRegister(host as any);
         host.emit('documentChange', document);
 
         assert.deepStrictEqual(plugin.doHover(document, Position.create(0, 1)), <Hover>{
@@ -33,8 +37,12 @@ describe('CSS Plugin', () => {
     it('provides completions', async () => {
         const plugin = new CSSPlugin();
         const document = new TextDocument('file:///hello.css', '');
-        const host = new EventEmitter() as any;
-        plugin.onRegister(host);
+        const host = Object.assign(new EventEmitter(), {
+            getConfig() {
+                return true;
+            },
+        });
+        plugin.onRegister(host as any);
         host.emit('documentChange', document);
 
         const completions = plugin.getCompletions(document, Position.create(0, 0));
@@ -44,7 +52,8 @@ describe('CSS Plugin', () => {
         assert.deepStrictEqual(completions[0], <CompletionItem>{
             label: '@charset',
             kind: CompletionItemKind.Keyword,
-            documentation: 'Defines character set of the document.',
+            documentation:
+                'Defines character set of the document.\n(Firefox 1.5, Safari 4, Chrome 2, IE 5.5, Opera 9)',
             textEdit: TextEdit.insert(Position.create(0, 0), '@charset'),
             sortText: 'd',
         });
