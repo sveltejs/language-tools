@@ -130,3 +130,7 @@ export interface FragmentDetails {
 }
 
 export type FragmentPredicate = (fragment: Fragment) => boolean;
+
+export interface Plugin {
+    pluginId: string;
+}

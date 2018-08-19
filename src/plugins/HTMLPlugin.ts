@@ -12,6 +12,8 @@ import {
 } from '../api';
 
 export class HTMLPlugin implements HoverProvider, CompletionsProvider {
+    public pluginId = 'html';
+
     private lang = getLanguageService();
     private documents = new WeakMap<Document, HTMLDocument>();
 

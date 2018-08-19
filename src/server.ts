@@ -54,6 +54,10 @@ export function startServer() {
         };
     });
 
+    connection.onDidChangeConfiguration(({ settings }) => {
+        manager.updateConfig(settings.svelte);
+    });
+
     connection.onDidOpenTextDocument(evt => manager.openDocument(evt.textDocument));
     connection.onDidCloseTextDocument(evt => manager.closeDocument(evt.textDocument));
     connection.onDidChangeTextDocument(evt =>

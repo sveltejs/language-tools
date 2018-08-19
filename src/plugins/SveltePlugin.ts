@@ -21,6 +21,8 @@ const DEFAULT_OPTIONS: svelte.CompileOptions = {
 };
 
 export class SveltePlugin implements DiagnosticsProvider {
+    public pluginId = 'svelte';
+
     async getDiagnostics(document: Document): Promise<Diagnostic[]> {
         let source = document.getText();
 

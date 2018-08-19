@@ -32,6 +32,8 @@ export class CSSPlugin
         return fragment.details.attributes.tag == 'style';
     }
 
+    public pluginId = 'css';
+
     private stylesheets = new WeakMap<Document, Stylesheet>();
 
     onRegister(host: Host) {

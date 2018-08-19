@@ -1,4 +1,5 @@
 import { EventEmitter } from 'events';
+import { Plugin } from '../api';
 
 export enum ExecuteMode {
     None,
@@ -8,7 +9,10 @@ export enum ExecuteMode {
 
 export class PluginHost {
     private emitter = new EventEmitter();
-    private plugins: any[] = [];
+    private plugins: Plugin[] = [];
+    private config: Config = {
+        disabledPlugins: [],
+    };
 
     on(name: string, listener: (...args: any[]) => void) {
         this.emitter.on(name, listener);
@@ -20,10 +24,10 @@ export class PluginHost {
         this.emitter.emit(name + '|post', ...args);
     }
 
-    register(plugin: any) {
+    register(plugin: Plugin) {
         this.plugins.push(plugin);
-        if (typeof plugin.onRegister === 'function') {
-            plugin.onRegister(this);
+        if (typeof (plugin as any).onRegister === 'function') {
+            (plugin as any).onRegister(this);
         }
     }
 
@@ -35,7 +39,7 @@ export class PluginHost {
         args: any[],
         mode: ExecuteMode,
     ): Promise<(T | null) | T[] | void> {
-        const plugins = this.plugins.filter(plugin => typeof plugin[name] === 'function');
+        const plugins = this.enabledPlugins.filter(plugin => typeof plugin[name] === 'function');
 
         switch (mode) {
             case ExecuteMode.FirstNonNull:
@@ -55,6 +59,18 @@ export class PluginHost {
     }
 
     supports(name: string): boolean {
-        return this.plugins.find(plugin => typeof plugin[name] === 'function') != null;
+        return this.enabledPlugins.find(plugin => typeof plugin[name] === 'function') != null;
     }
+
+    updateConfig(config: Config) {
+        this.config = config;
+    }
+
+    private get enabledPlugins(): any[] {
+        return this.plugins.filter(p => !this.config.disabledPlugins.includes(p.pluginId));
+    }
+}
+
+export interface Config {
+    disabledPlugins: string[];
 }

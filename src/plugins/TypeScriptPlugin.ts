@@ -27,6 +27,8 @@ export class TypeScriptPlugin
         return fragment.details.attributes.tag == 'script';
     }
 
+    public pluginId = 'typescript';
+
     private createDocument!: CreateDocument;
 
     onRegister(host: Host) {
