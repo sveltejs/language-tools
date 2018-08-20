@@ -1,4 +1,8 @@
-import { getLanguageService, HTMLDocument } from 'vscode-html-languageservice';
+import {
+    getLanguageService,
+    HTMLDocument,
+    HTMLFormatConfiguration,
+} from 'vscode-html-languageservice';
 import { getEmmetCompletionParticipants } from 'vscode-emmet-helper';
 import {
     Host,
@@ -9,9 +13,12 @@ import {
     CompletionsProvider,
     CompletionItem,
     CompletionList,
+    FormattingProvider,
+    TextEdit,
+    Range,
 } from '../api';
 
-export class HTMLPlugin implements HoverProvider, CompletionsProvider {
+export class HTMLPlugin implements HoverProvider, CompletionsProvider, FormattingProvider {
     public pluginId = 'html';
     public defaultConfig = {
         enable: true,
@@ -77,5 +84,32 @@ export class HTMLPlugin implements HoverProvider, CompletionsProvider {
         }
 
         return this.lang.doTagComplete(document, position, html);
+    }
+
+    formatDocument(document: Document): TextEdit[] {
+        if (!this.host.getConfig<boolean>('html.format.enable')) {
+            return [];
+        }
+
+        const html = this.documents.get(document);
+        if (!html) {
+            return [];
+        }
+
+        const style = html.roots.find(node => node.tag === 'style');
+        const script = html.roots.find(node => node.tag === 'script');
+
+        let rangeEnd = document.getTextLength();
+        if (style && style.end < rangeEnd) {
+            rangeEnd = style.end;
+        }
+        if (script && script.end < rangeEnd) {
+            rangeEnd = script.end;
+        }
+
+        const range = Range.create(document.positionAt(0), document.positionAt(rangeEnd));
+
+        const settings = this.host.getConfig<HTMLFormatConfiguration>('html.format.settings');
+        return this.lang.format(document, range, settings);
     }
 }
