@@ -18,7 +18,7 @@ import {
     OnRegister,
     Host,
 } from '../api';
-import { convertRange, getScriptKindFromTypeAttribute } from './typescript/utils';
+import { convertRange, getScriptKindFromAttributes } from './typescript/utils';
 import { getLanguageServiceForDocument, CreateDocument } from './typescript/service';
 
 export class TypeScriptPlugin
@@ -65,7 +65,7 @@ export class TypeScriptPlugin
             range: convertRange(document, diagnostic),
             severity: DiagnosticSeverity.Error,
             source:
-                getScriptKindFromTypeAttribute(document.getAttributes().type) === ts.ScriptKind.TS
+                getScriptKindFromAttributes(document.getAttributes()) === ts.ScriptKind.TS
                     ? 'ts'
                     : 'js',
             message: ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n'),
@@ -104,7 +104,7 @@ export class TypeScriptPlugin
         const config = await prettier.resolveConfig(document.getFilePath()!);
         const formattedCode = prettier.format(document.getText(), {
             ...config,
-            parser: getParserFromTypeAttribute(document.getAttributes().type),
+            parser: getParserFromAttributes(document.getAttributes()),
         });
 
         let indent = detectIndent(document.getText());
@@ -118,10 +118,14 @@ export class TypeScriptPlugin
     }
 }
 
-function getParserFromTypeAttribute(type: string): prettier.BuiltInParserName {
+function getParserFromAttributes(attrs: Record<string, string>): prettier.BuiltInParserName {
+    const type = attrs.lang || attrs.type;
+
     switch (type) {
+        case 'typescript':
         case 'text/typescript':
             return 'typescript';
+        case 'javascript':
         case 'text/javascript':
         default:
             return 'babylon';

@@ -1,6 +1,6 @@
 import ts from 'typescript';
 import { Document } from '../../api';
-import { getScriptKindFromTypeAttribute } from './utils';
+import { getScriptKindFromAttributes } from './utils';
 
 export interface DocumentSnapshot extends ts.IScriptSnapshot {
     version: number;
@@ -13,7 +13,7 @@ export namespace DocumentSnapshot {
         const length = document.getTextLength();
         return {
             version: document.version,
-            scriptKind: getScriptKindFromTypeAttribute(document.getAttributes().type),
+            scriptKind: getScriptKindFromAttributes(document.getAttributes()),
             getText: (start, end) => text.substring(start, end),
             getLength: () => length,
             getChangeRange: () => undefined,

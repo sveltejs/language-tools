@@ -49,7 +49,7 @@ export class CSSPlugin
         host.on('documentChange', document =>
             this.stylesheets.set(
                 document,
-                getLanguageService(document.getAttributes().type).parseStylesheet(document),
+                getLanguageService(extractLanguage(document)).parseStylesheet(document),
             ),
         );
         host.on('documentClose', document => this.stylesheets.delete(document));
@@ -65,7 +65,7 @@ export class CSSPlugin
             return [];
         }
 
-        return getLanguageService(document.getAttributes().type)
+        return getLanguageService(extractLanguage(document))
             .doValidation(document, stylesheet)
             .map(diagnostic => ({ ...diagnostic, source: 'css' }));
     }
@@ -80,7 +80,7 @@ export class CSSPlugin
             return null;
         }
 
-        return getLanguageService(document.getAttributes().type).doHover(
+        return getLanguageService(extractLanguage(document)).doHover(
             document,
             position,
             stylesheet,
@@ -97,7 +97,7 @@ export class CSSPlugin
             return [];
         }
 
-        const type = document.getAttributes().type;
+        const type = extractLanguage(document);
         const lang = getLanguageService(type);
         lang.setCompletionParticipants;
         const completion = lang.doComplete(document, position, stylesheet);
@@ -124,7 +124,7 @@ export class CSSPlugin
         const config = await prettier.resolveConfig(document.getFilePath()!);
         const formattedCode = prettier.format(document.getText(), {
             ...config,
-            parser: getLanguage(document.getAttributes().type),
+            parser: getLanguage(extractLanguage(document)),
         });
 
         let indent = detectIndent(document.getText());
@@ -144,12 +144,20 @@ const langs = {
     less: getLESSLanguageService(),
 };
 
+function extractLanguage(document: Document): string {
+    const attrs = document.getAttributes();
+    return attrs.lang || attrs.type;
+}
+
 function getLanguage(kind?: string) {
     switch (kind) {
+        case 'scss':
         case 'text/scss':
             return 'scss';
+        case 'less':
         case 'text/less':
             return 'less';
+        case 'css':
         case 'text/css':
         default:
             return 'css';

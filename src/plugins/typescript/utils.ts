@@ -19,10 +19,14 @@ export function getScriptKindFromFileName(fileName: string): ts.ScriptKind {
     }
 }
 
-export function getScriptKindFromTypeAttribute(type: string): ts.ScriptKind {
+export function getScriptKindFromAttributes(attrs: Record<string, string>): ts.ScriptKind {
+    const type = attrs.lang || attrs.type;
+
     switch (type) {
+        case 'typescript':
         case 'text/typescript':
             return ts.ScriptKind.TS;
+        case 'javascript':
         case 'text/javascript':
         default:
             return ts.ScriptKind.JS;
