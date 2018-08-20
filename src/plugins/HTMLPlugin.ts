@@ -16,6 +16,7 @@ import {
     FormattingProvider,
     TextEdit,
     Range,
+    SymbolInformation,
 } from '../api';
 
 export class HTMLPlugin implements HoverProvider, CompletionsProvider, FormattingProvider {
@@ -25,6 +26,8 @@ export class HTMLPlugin implements HoverProvider, CompletionsProvider, Formattin
         hover: { enable: true },
         completions: { enable: true },
         tagComplete: { enable: true },
+        format: { enable: true },
+        documentSymbols: { enable: true },
     };
 
     private host!: Host;
@@ -111,5 +114,18 @@ export class HTMLPlugin implements HoverProvider, CompletionsProvider, Formattin
 
         const settings = this.host.getConfig<HTMLFormatConfiguration>('html.format.settings');
         return this.lang.format(document, range, settings);
+    }
+
+    getDocumentSymbols(document: Document): SymbolInformation[] {
+        // if (!this.host.getConfig<boolean>('html.documentSymbols.enable')) {
+        //     return [];
+        // }
+
+        const html = this.documents.get(document);
+        if (!html) {
+            return [];
+        }
+
+        return this.lang.findDocumentSymbols(document, html);
     }
 }

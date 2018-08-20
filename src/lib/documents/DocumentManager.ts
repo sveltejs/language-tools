@@ -17,6 +17,7 @@ import {
     Range,
     Color,
     ColorPresentation,
+    SymbolInformation,
 } from '../../api';
 
 export interface DocumentManager {
@@ -184,6 +185,21 @@ export class DocumentManager extends PluginHost {
             await this.execute<ColorPresentation[]>(
                 'getColorPresentations',
                 [document, range, color],
+                ExecuteMode.Collect,
+            ),
+        );
+    }
+
+    async getDocumentSymbols(textDocument: TextDocumentIdentifier): Promise<SymbolInformation[]> {
+        const document = this.documents.get(textDocument.uri);
+        if (!document) {
+            throw new Error('Cannot call methods on an unopened document');
+        }
+
+        return flatten(
+            await this.execute<SymbolInformation[]>(
+                'getDocumentSymbols',
+                [document],
                 ExecuteMode.Collect,
             ),
         );

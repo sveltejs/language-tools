@@ -16,6 +16,8 @@ import {
     ColorInformation,
     ColorPresentation,
     Color,
+    SymbolInformation,
+    Location,
 } from 'vscode-languageserver-types';
 import { Document } from './Document';
 
@@ -37,6 +39,8 @@ export {
     ColorInformation,
     ColorPresentation,
     Color,
+    SymbolInformation,
+    Location,
 };
 
 export type Resolvable<T> = T | Promise<T>;
@@ -112,6 +116,16 @@ export interface ColorPresentationsProvider {
 export namespace ColorPresentationsProvider {
     export function is(obj: any): obj is ColorPresentationsProvider {
         return typeof obj.getColorPresentations === 'function';
+    }
+}
+
+export interface DocumentSymbolsProvider {
+    getDocumentSymbols(document: Document): Resolvable<SymbolInformation[]>;
+}
+
+export namespace DocumentSymbolsProvider {
+    export function is(obj: any): obj is DocumentSymbolsProvider {
+        return typeof obj.getDocumentSymbols === 'function';
     }
 }
 

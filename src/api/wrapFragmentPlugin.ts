@@ -15,6 +15,8 @@ import {
     ColorInformation,
     ColorPresentationsProvider,
     ColorPresentation,
+    DocumentSymbolsProvider,
+    SymbolInformation,
 } from './interfaces';
 import { Document } from './Document';
 import {
@@ -25,6 +27,7 @@ import {
     mapColorInformationToParent,
     mapRangeToFragment,
     mapColorPresentationToParent,
+    mapSymbolInformationToParent,
 } from './fragmentPositions';
 import { Host, OnRegister } from './Host';
 
@@ -166,6 +169,23 @@ export function wrapFragmentPlugin<P extends Plugin>(
                 color,
             );
             return items.map(item => mapColorPresentationToParent(fragment, item));
+        };
+    }
+
+    if (DocumentSymbolsProvider.is(plugin)) {
+        const getDocumentSymbols: DocumentSymbolsProvider['getDocumentSymbols'] = plugin.getDocumentSymbols.bind(
+            plugin,
+        );
+        plugin.getDocumentSymbols = async function(
+            document: Document,
+        ): Promise<SymbolInformation[]> {
+            const fragment = getFragment(document);
+            if (!fragment) {
+                return [];
+            }
+
+            const items = await getDocumentSymbols(fragment);
+            return items.map(item => mapSymbolInformationToParent(fragment, item));
         };
     }
 

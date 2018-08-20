@@ -7,6 +7,8 @@ import {
     Diagnostic,
     ColorInformation,
     ColorPresentation,
+    SymbolInformation,
+    Location,
 } from './interfaces';
 
 export function mapRangeToParent(fragment: Fragment, range: Range): Range {
@@ -25,6 +27,10 @@ export function mapRangeToFragment(fragment: Fragment, range: Range): Range {
 
 export function mapTextEditToParent(fragment: Fragment, edit: TextEdit): TextEdit {
     return { ...edit, range: mapRangeToParent(fragment, edit.range) };
+}
+
+export function mapLocationToParent(fragment: Fragment, loc: Location): Location {
+    return { ...loc, range: mapRangeToParent(fragment, loc.range) };
 }
 
 export function mapCompletionItemToParent(
@@ -76,4 +82,11 @@ export function mapColorPresentationToParent(
     }
 
     return item;
+}
+
+export function mapSymbolInformationToParent(
+    fragment: Fragment,
+    info: SymbolInformation,
+): SymbolInformation {
+    return { ...info, location: mapLocationToParent(fragment, info.location) };
 }

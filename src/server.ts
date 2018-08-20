@@ -52,6 +52,7 @@ export function startServer() {
                 },
                 documentFormattingProvider: true,
                 colorProvider: true,
+                documentSymbolProvider: true,
             },
         };
     });
@@ -76,6 +77,7 @@ export function startServer() {
     connection.onColorPresentation(evt =>
         manager.getColorPresentations(evt.textDocument, evt.range, evt.color),
     );
+    connection.onDocumentSymbol(evt => manager.getDocumentSymbols(evt.textDocument));
 
     manager.on('documentChange', async document => {
         const diagnostics = await manager.getDiagnostics({ uri: document.getURL() });
