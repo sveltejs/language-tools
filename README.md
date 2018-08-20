@@ -37,6 +37,7 @@ Currently Supported:
     -   Diagnostics messages for syntax and semantic errors
     -   Hover info
     -   Formatting (via [prettier](https://github.com/prettier/prettier))
+    -   Symbols in Outline panel
 
 ## How can I use it?
 
