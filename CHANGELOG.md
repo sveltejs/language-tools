@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.6.0
+
+-   Update to [svelte-language-server](https://github.com/UnwrittenFun/svelte-language-server/tree/v0.6.0) 0.6.0
+    -   Add symbols in the outline panel for css, html, and typescript
+    -   Add html formatting
+    -   Add color information and color picker to css
+-   Add support for lang attribute on style and script tags
+
 ## 0.5.0
 
 -   Update to [svelte-language-server](https://github.com/UnwrittenFun/svelte-language-server/tree/v0.5.0) 0.5.0

@@ -40,7 +40,7 @@ export function activate(context: ExtensionContext) {
     let clientOptions: LanguageClientOptions = {
         documentSelector: [{ scheme: 'file', language: 'svelte' }],
         synchronize: {
-            configurationSection: 'svelte',
+            configurationSection: ['svelte', 'html'],
         },
     };
 

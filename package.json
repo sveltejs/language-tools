@@ -76,6 +76,12 @@
                     "title": "TypeScript: Format",
                     "description": "Enable formatting for TypeScript"
                 },
+                "svelte.plugin.typescript.documentSymbols.enable": {
+                    "type": "boolean",
+                    "default": true,
+                    "title": "TypeScript: Symbols in Outline",
+                    "description": "Enable document symbols for TypeScript"
+                },
                 "svelte.plugin.css.enable": {
                     "type": "boolean",
                     "default": true,
@@ -106,6 +112,24 @@
                     "title": "CSS: Auto Complete",
                     "description": "Enable auto completions for CSS"
                 },
+                "svelte.plugin.css.documentColors.enable": {
+                    "type": "boolean",
+                    "default": true,
+                    "title": "CSS: Document Colors",
+                    "description": "Enable document colors for CSS"
+                },
+                "svelte.plugin.css.colorPresentations.enable": {
+                    "type": "boolean",
+                    "default": true,
+                    "title": "CSS: Color Picker",
+                    "description": "Enable color picker for CSS"
+                },
+                "svelte.plugin.css.documentSymbols.enable": {
+                    "type": "boolean",
+                    "default": true,
+                    "title": "CSS: Symbols in Outline",
+                    "description": "Enable document symbols for CSS"
+                },
                 "svelte.plugin.html.enable": {
                     "type": "boolean",
                     "default": true,
@@ -129,6 +153,18 @@
                     "default": true,
                     "title": "HTML: Tag Auto Closing",
                     "description": "Enable HTML tag auto closing"
+                },
+                "svelte.plugin.html.format.enable": {
+                    "type": "boolean",
+                    "default": true,
+                    "title": "HTML: Format",
+                    "description": "Enable formatting for HTML"
+                },
+                "svelte.plugin.html.documentSymbols.enable": {
+                    "type": "boolean",
+                    "default": true,
+                    "title": "HTML: Symbols in Outline",
+                    "description": "Enable document symbols for HTML"
                 },
                 "svelte.plugin.svelte.enable": {
                     "type": "boolean",
@@ -184,7 +220,7 @@
         "typescript": "^3.0.1"
     },
     "dependencies": {
-        "svelte-language-server": "0.5.0",
+        "svelte-language-server": "0.6.0",
         "vscode": "^1.1.21",
         "vscode-languageclient": "^5.0.1"
     }
