@@ -1,4 +1,4 @@
-import ts from 'typescript';
+import ts, { NavigationTree } from 'typescript';
 import * as prettier from 'prettier';
 import detectIndent from 'detect-indent';
 import indentString from 'indent-string';
@@ -17,12 +17,24 @@ import {
     TextEdit,
     OnRegister,
     Host,
+    DocumentSymbolsProvider,
+    SymbolInformation,
+    SymbolKind,
 } from '../api';
-import { convertRange, getScriptKindFromAttributes } from './typescript/utils';
+import {
+    convertRange,
+    getScriptKindFromAttributes,
+    symbolKindFromString,
+} from './typescript/utils';
 import { getLanguageServiceForDocument, CreateDocument } from './typescript/service';
 
 export class TypeScriptPlugin
-    implements DiagnosticsProvider, HoverProvider, FormattingProvider, OnRegister {
+    implements
+        DiagnosticsProvider,
+        HoverProvider,
+        FormattingProvider,
+        OnRegister,
+        DocumentSymbolsProvider {
     public static matchFragment(fragment: Fragment) {
         return fragment.details.attributes.tag == 'script';
     }
@@ -115,6 +127,48 @@ export class TypeScriptPlugin
                     indentString(formattedCode, indent.amount, indent.type == 'tab' ? '\t' : ' '),
             ),
         ];
+    }
+
+    getDocumentSymbols(document: Document): SymbolInformation[] {
+        if (!this.host.getConfig<boolean>('typescript.documentSymbols.enable')) {
+            return [];
+        }
+
+        const lang = getLanguageServiceForDocument(document, this.createDocument);
+        const navTree = lang.getNavigationTree(document.getFilePath()!);
+
+        const symbols: SymbolInformation[] = [];
+        collectSymbols(navTree, undefined, symbol => symbols.push(symbol));
+
+        return symbols.slice(1);
+
+        function collectSymbols(
+            tree: NavigationTree,
+            container: string | undefined,
+            cb: (symbol: SymbolInformation) => void,
+        ) {
+            const start = tree.spans[0];
+            const end = tree.spans[tree.spans.length - 1];
+            if (start && end) {
+                cb(
+                    SymbolInformation.create(
+                        tree.text,
+                        symbolKindFromString(tree.kind),
+                        Range.create(
+                            document.positionAt(start.start),
+                            document.positionAt(end.start + end.length),
+                        ),
+                        document.getURL(),
+                        container,
+                    ),
+                );
+            }
+            if (tree.childItems) {
+                for (const child of tree.childItems) {
+                    collectSymbols(child, tree.text, cb);
+                }
+            }
+        }
     }
 }
 

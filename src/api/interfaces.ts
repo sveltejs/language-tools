@@ -18,6 +18,7 @@ import {
     Color,
     SymbolInformation,
     Location,
+    SymbolKind,
 } from 'vscode-languageserver-types';
 import { Document } from './Document';
 
@@ -41,6 +42,7 @@ export {
     Color,
     SymbolInformation,
     Location,
+    SymbolKind,
 };
 
 export type Resolvable<T> = T | Promise<T>;
