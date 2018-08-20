@@ -50,6 +50,7 @@ export function startServer() {
                     triggerCharacters: ['<'],
                 },
                 documentFormattingProvider: true,
+                colorProvider: true,
             },
         };
     });
@@ -69,6 +70,7 @@ export function startServer() {
     connection.onRequest(TagCloseRequest.type, evt =>
         manager.doTagComplete(evt.textDocument, evt.position),
     );
+    connection.onDocumentColor(evt => manager.getDocumentColors(evt.textDocument));
 
     manager.on('documentChange', async document => {
         const diagnostics = await manager.getDiagnostics({ uri: document.getURL() });

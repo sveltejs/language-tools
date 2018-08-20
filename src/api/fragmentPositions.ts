@@ -2,11 +2,10 @@ import {
     Fragment,
     CompletionItem,
     TextEdit,
-    MarkupContent,
-    Command,
     Range,
     Hover,
     Diagnostic,
+    ColorInformation,
 } from './interfaces';
 
 export function mapRangeToParent(fragment: Fragment, range: Range): Range {
@@ -41,4 +40,11 @@ export function mapHoverToParent(fragment: Fragment, hover: Hover): Hover {
 
 export function mapDiagnosticToParent(fragment: Fragment, diagnostic: Diagnostic): Diagnostic {
     return { ...diagnostic, range: mapRangeToParent(fragment, diagnostic.range) };
+}
+
+export function mapColorInformationToParent(
+    fragment: Fragment,
+    info: ColorInformation,
+): ColorInformation {
+    return { ...info, range: mapRangeToParent(fragment, info.range) };
 }

@@ -13,6 +13,7 @@ import {
     Command,
     CompletionList,
     TextDocumentItem,
+    ColorInformation,
 } from 'vscode-languageserver-types';
 import { Document } from './Document';
 
@@ -31,6 +32,7 @@ export {
     Command,
     CompletionList,
     TextDocumentItem,
+    ColorInformation,
 };
 
 export type Resolvable<T> = T | Promise<T>;
@@ -82,6 +84,16 @@ export interface TagCompleteProvider {
 export namespace TagCompleteProvider {
     export function is(obj: any): obj is TagCompleteProvider {
         return typeof obj.doTagComplete === 'function';
+    }
+}
+
+export interface DocumentColorsProvider {
+    getDocumentColors(document: Document): Resolvable<ColorInformation[]>;
+}
+
+export namespace DocumentColorsProvider {
+    export function is(obj: any): obj is DocumentColorsProvider {
+        return typeof obj.getDocumentColors === 'function';
     }
 }
 

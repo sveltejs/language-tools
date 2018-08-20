@@ -23,11 +23,18 @@ import {
     Range,
     FormattingProvider,
     CompletionList,
+    DocumentColorsProvider,
+    ColorInformation,
 } from '../api';
 import { getEmmetCompletionParticipants } from 'vscode-emmet-helper';
 
 export class CSSPlugin
-    implements HoverProvider, CompletionsProvider, DiagnosticsProvider, FormattingProvider {
+    implements
+        HoverProvider,
+        CompletionsProvider,
+        DiagnosticsProvider,
+        FormattingProvider,
+        DocumentColorsProvider {
     public static matchFragment(fragment: Fragment) {
         return fragment.details.attributes.tag == 'style';
     }
@@ -39,6 +46,7 @@ export class CSSPlugin
         hover: { enable: true },
         completions: { enable: true },
         format: { enable: true },
+        documentColors: { enable: true },
     };
 
     private host!: Host;
@@ -135,6 +143,22 @@ export class CSSPlugin
                     indentString(formattedCode, indent.amount, indent.type == 'tab' ? '\t' : ' '),
             ),
         ];
+    }
+
+    getDocumentColors(document: Document): ColorInformation[] {
+        if (!this.host.getConfig<boolean>('css.documentColors.enable')) {
+            return [];
+        }
+
+        const stylesheet = this.stylesheets.get(document);
+        if (!stylesheet) {
+            return [];
+        }
+
+        return getLanguageService(extractLanguage(document)).findDocumentColors(
+            document,
+            stylesheet,
+        );
     }
 }
 

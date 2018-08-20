@@ -11,6 +11,8 @@ import {
     TextEdit,
     TextDocumentItem,
     Plugin,
+    DocumentColorsProvider,
+    ColorInformation,
 } from './interfaces';
 import { Document } from './Document';
 import {
@@ -18,6 +20,7 @@ import {
     mapCompletionItemToParent,
     mapDiagnosticToParent,
     mapTextEditToParent,
+    mapColorInformationToParent,
 } from './fragmentPositions';
 import { Host, OnRegister } from './Host';
 
@@ -121,6 +124,21 @@ export function wrapFragmentPlugin<P extends Plugin>(
 
             const items = await formatDocument(fragment);
             return items.map(item => mapTextEditToParent(fragment, item));
+        };
+    }
+
+    if (DocumentColorsProvider.is(plugin)) {
+        const getDocumentColors: DocumentColorsProvider['getDocumentColors'] = plugin.getDocumentColors.bind(
+            plugin,
+        );
+        plugin.getDocumentColors = async function(document: Document): Promise<ColorInformation[]> {
+            const fragment = getFragment(document);
+            if (!fragment) {
+                return [];
+            }
+
+            const items = await getDocumentColors(fragment);
+            return items.map(item => mapColorInformationToParent(fragment, item));
         };
     }
 
