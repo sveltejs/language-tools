@@ -196,10 +196,19 @@ export class CSSPlugin
             return [];
         }
 
-        return getLanguageService(extractLanguage(document)).findDocumentSymbols(
-            document,
-            stylesheet,
-        );
+        return getLanguageService(extractLanguage(document))
+            .findDocumentSymbols(document, stylesheet)
+            .map(symbol => {
+                if (!symbol.containerName) {
+                    return {
+                        ...symbol,
+                        // TODO: this could contain other things, e.g. style.myclass
+                        containerName: 'style',
+                    };
+                }
+
+                return symbol;
+            });
     }
 }
 

@@ -140,7 +140,14 @@ export class TypeScriptPlugin
         const symbols: SymbolInformation[] = [];
         collectSymbols(navTree, undefined, symbol => symbols.push(symbol));
 
-        return symbols.slice(1);
+        const topContainerName = symbols[0].name;
+        return symbols.slice(1).map(symbol => {
+            if (symbol.containerName === topContainerName) {
+                return { ...symbol, containerName: 'script' };
+            }
+
+            return symbol;
+        });
 
         function collectSymbols(
             tree: NavigationTree,
