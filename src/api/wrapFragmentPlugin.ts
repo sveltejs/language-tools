@@ -13,6 +13,8 @@ import {
     Plugin,
     DocumentColorsProvider,
     ColorInformation,
+    ColorPresentationsProvider,
+    ColorPresentation,
 } from './interfaces';
 import { Document } from './Document';
 import {
@@ -21,6 +23,8 @@ import {
     mapDiagnosticToParent,
     mapTextEditToParent,
     mapColorInformationToParent,
+    mapRangeToFragment,
+    mapColorPresentationToParent,
 } from './fragmentPositions';
 import { Host, OnRegister } from './Host';
 
@@ -139,6 +143,29 @@ export function wrapFragmentPlugin<P extends Plugin>(
 
             const items = await getDocumentColors(fragment);
             return items.map(item => mapColorInformationToParent(fragment, item));
+        };
+    }
+
+    if (ColorPresentationsProvider.is(plugin)) {
+        const getColorPresentations: ColorPresentationsProvider['getColorPresentations'] = plugin.getColorPresentations.bind(
+            plugin,
+        );
+        plugin.getColorPresentations = async function(
+            document,
+            range,
+            color,
+        ): Promise<ColorPresentation[]> {
+            const fragment = getFragment(document);
+            if (!fragment) {
+                return [];
+            }
+
+            const items = await getColorPresentations(
+                fragment,
+                mapRangeToFragment(fragment, range),
+                color,
+            );
+            return items.map(item => mapColorPresentationToParent(fragment, item));
         };
     }
 

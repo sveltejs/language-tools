@@ -25,6 +25,9 @@ import {
     CompletionList,
     DocumentColorsProvider,
     ColorInformation,
+    ColorPresentationsProvider,
+    Color,
+    ColorPresentation,
 } from '../api';
 import { getEmmetCompletionParticipants } from 'vscode-emmet-helper';
 
@@ -34,7 +37,8 @@ export class CSSPlugin
         CompletionsProvider,
         DiagnosticsProvider,
         FormattingProvider,
-        DocumentColorsProvider {
+        DocumentColorsProvider,
+        ColorPresentationsProvider {
     public static matchFragment(fragment: Fragment) {
         return fragment.details.attributes.tag == 'style';
     }
@@ -47,6 +51,7 @@ export class CSSPlugin
         completions: { enable: true },
         format: { enable: true },
         documentColors: { enable: true },
+        colorPresentations: { enable: true },
     };
 
     private host!: Host;
@@ -158,6 +163,24 @@ export class CSSPlugin
         return getLanguageService(extractLanguage(document)).findDocumentColors(
             document,
             stylesheet,
+        );
+    }
+
+    getColorPresentations(document: Document, range: Range, color: Color): ColorPresentation[] {
+        if (!this.host.getConfig<boolean>('css.colorPresentations.enable')) {
+            return [];
+        }
+
+        const stylesheet = this.stylesheets.get(document);
+        if (!stylesheet) {
+            return [];
+        }
+
+        return getLanguageService(extractLanguage(document)).getColorPresentations(
+            document,
+            stylesheet,
+            color,
+            range,
         );
     }
 }

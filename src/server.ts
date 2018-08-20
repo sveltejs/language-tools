@@ -71,6 +71,9 @@ export function startServer() {
         manager.doTagComplete(evt.textDocument, evt.position),
     );
     connection.onDocumentColor(evt => manager.getDocumentColors(evt.textDocument));
+    connection.onColorPresentation(evt =>
+        manager.getColorPresentations(evt.textDocument, evt.range, evt.color),
+    );
 
     manager.on('documentChange', async document => {
         const diagnostics = await manager.getDiagnostics({ uri: document.getURL() });

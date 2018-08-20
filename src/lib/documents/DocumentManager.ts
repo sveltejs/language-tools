@@ -8,7 +8,16 @@ import {
 } from 'vscode-languageserver-types';
 import { PluginHost, ExecuteMode } from '../PluginHost';
 import { flatten } from '../../utils';
-import { Document, Diagnostic, Hover, Position, ColorInformation } from '../../api';
+import {
+    Document,
+    Diagnostic,
+    Hover,
+    Position,
+    ColorInformation,
+    Range,
+    Color,
+    ColorPresentation,
+} from '../../api';
 
 export interface DocumentManager {
     on(evt: 'documentChange', listener: (document: Document) => void): this;
@@ -156,6 +165,25 @@ export class DocumentManager extends PluginHost {
             await this.execute<ColorInformation[]>(
                 'getDocumentColors',
                 [document],
+                ExecuteMode.Collect,
+            ),
+        );
+    }
+
+    async getColorPresentations(
+        textDocument: TextDocumentIdentifier,
+        range: Range,
+        color: Color,
+    ): Promise<ColorPresentation[]> {
+        const document = this.documents.get(textDocument.uri);
+        if (!document) {
+            throw new Error('Cannot call methods on an unopened document');
+        }
+
+        return flatten(
+            await this.execute<ColorPresentation[]>(
+                'getColorPresentations',
+                [document, range, color],
                 ExecuteMode.Collect,
             ),
         );

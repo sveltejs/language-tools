@@ -14,6 +14,8 @@ import {
     CompletionList,
     TextDocumentItem,
     ColorInformation,
+    ColorPresentation,
+    Color,
 } from 'vscode-languageserver-types';
 import { Document } from './Document';
 
@@ -33,6 +35,8 @@ export {
     CompletionList,
     TextDocumentItem,
     ColorInformation,
+    ColorPresentation,
+    Color,
 };
 
 export type Resolvable<T> = T | Promise<T>;
@@ -94,6 +98,20 @@ export interface DocumentColorsProvider {
 export namespace DocumentColorsProvider {
     export function is(obj: any): obj is DocumentColorsProvider {
         return typeof obj.getDocumentColors === 'function';
+    }
+}
+
+export interface ColorPresentationsProvider {
+    getColorPresentations(
+        document: Document,
+        range: Range,
+        color: Color,
+    ): Resolvable<ColorPresentation[]>;
+}
+
+export namespace ColorPresentationsProvider {
+    export function is(obj: any): obj is ColorPresentationsProvider {
+        return typeof obj.getColorPresentations === 'function';
     }
 }
 
