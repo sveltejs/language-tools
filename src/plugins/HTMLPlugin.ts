@@ -117,9 +117,9 @@ export class HTMLPlugin implements HoverProvider, CompletionsProvider, Formattin
     }
 
     getDocumentSymbols(document: Document): SymbolInformation[] {
-        // if (!this.host.getConfig<boolean>('html.documentSymbols.enable')) {
-        //     return [];
-        // }
+        if (!this.host.getConfig<boolean>('html.documentSymbols.enable')) {
+            return [];
+        }
 
         const html = this.documents.get(document);
         if (!html) {

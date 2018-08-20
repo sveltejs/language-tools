@@ -24,6 +24,7 @@ Currently Supported:
     -   Autocompletions
     -   [Emmet](https://emmet.io/)
     -   Formatting
+    -   Symbols in Outline panel
 -   CSS / SCSS / LESS (via [vscode-css-languageservice](https://github.com/Microsoft/vscode-css-languageservice))
     -   Diagnostic messages for syntax and lint errors
     -   Hover info
@@ -31,6 +32,7 @@ Currently Supported:
     -   Formatting (via [prettier](https://github.com/prettier/prettier))
     -   [Emmet](https://emmet.io/)
     -   Color highlighting and color picker
+    -   Symbols in Outline panel
 -   TypeScript / JavaScript (via TypeScript)
     -   Diagnostics messages for syntax and semantic errors
     -   Hover info

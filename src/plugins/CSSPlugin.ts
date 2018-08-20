@@ -28,6 +28,8 @@ import {
     ColorPresentationsProvider,
     Color,
     ColorPresentation,
+    DocumentSymbolsProvider,
+    SymbolInformation,
 } from '../api';
 import { getEmmetCompletionParticipants } from 'vscode-emmet-helper';
 
@@ -38,7 +40,8 @@ export class CSSPlugin
         DiagnosticsProvider,
         FormattingProvider,
         DocumentColorsProvider,
-        ColorPresentationsProvider {
+        ColorPresentationsProvider,
+        DocumentSymbolsProvider {
     public static matchFragment(fragment: Fragment) {
         return fragment.details.attributes.tag == 'style';
     }
@@ -52,6 +55,7 @@ export class CSSPlugin
         format: { enable: true },
         documentColors: { enable: true },
         colorPresentations: { enable: true },
+        documentSymbols: { enable: true },
     };
 
     private host!: Host;
@@ -179,6 +183,22 @@ export class CSSPlugin
             stylesheet,
             color,
             range,
+        );
+    }
+
+    getDocumentSymbols(document: Document): SymbolInformation[] {
+        if (!this.host.getConfig<boolean>('css.documentColors.enable')) {
+            return [];
+        }
+
+        const stylesheet = this.stylesheets.get(document);
+        if (!stylesheet) {
+            return [];
+        }
+
+        return getLanguageService(extractLanguage(document)).findDocumentSymbols(
+            document,
+            stylesheet,
         );
     }
 }
