@@ -112,8 +112,6 @@ export class CSSPlugin
 
         const type = extractLanguage(document);
         const lang = getLanguageService(type);
-        lang.setCompletionParticipants;
-        const completion = lang.doComplete(document, position, stylesheet);
         const emmetResults: CompletionList = {
             isIncomplete: true,
             items: [],
