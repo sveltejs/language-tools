@@ -112,7 +112,7 @@ export class HTMLPlugin implements HoverProvider, CompletionsProvider, Formattin
 
         const range = Range.create(document.positionAt(0), document.positionAt(rangeEnd));
 
-        const settings = this.host.getConfig<HTMLFormatConfiguration>('html.format.settings');
+        const settings = this.host.getConfig<HTMLFormatConfiguration>('html.format.settings') || {};
         return this.lang.format(document, range, settings);
     }
 
