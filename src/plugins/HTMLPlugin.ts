@@ -103,11 +103,11 @@ export class HTMLPlugin implements HoverProvider, CompletionsProvider, Formattin
         const script = html.roots.find(node => node.tag === 'script');
 
         let rangeEnd = document.getTextLength();
-        if (style && style.end < rangeEnd) {
-            rangeEnd = style.end;
+        if (style && style.start < rangeEnd) {
+            rangeEnd = style.start + 1;
         }
-        if (script && script.end < rangeEnd) {
-            rangeEnd = script.end;
+        if (script && script.start < rangeEnd) {
+            rangeEnd = script.start + 1;
         }
 
         const range = Range.create(document.positionAt(0), document.positionAt(rangeEnd));
