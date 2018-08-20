@@ -5,7 +5,7 @@
     "uuid": "7582b62f-51d9-4a84-8c8d-fc189530faf6",
     "patterns": [
         {
-            "begin": "(<)(style)\\b(?=[^>]*type=('text/sass'|\"text/sass\"))(?![^/>]*/>\\s*$)",
+            "begin": "(<)(style)\\b(?=[^>]*(?:type=('text/sass'|\"text/sass\")|lang=(sass|'sass'|\"sass\")))(?![^/>]*/>\\s*$)",
             "beginCaptures": {
                 "1": {
                     "name": "punctuation.definition.tag.begin.html"
@@ -48,7 +48,7 @@
             ]
         },
         {
-            "begin": "(<)(style)\\b(?=[^>]*type=('text/scss'|\"text/scss\"))(?![^/>]*/>\\s*$)",
+            "begin": "(<)(style)\\b(?=[^>]*(?:type=('text/scss'|\"text/scss\")|lang=(scss|'scss'|\"scss\")))(?![^/>]*/>\\s*$)",
             "beginCaptures": {
                 "1": {
                     "name": "punctuation.definition.tag.begin.html"
@@ -91,7 +91,7 @@
             ]
         },
         {
-            "begin": "(<)(style)\\b(?=[^>]*type=('text/less'|\"text/less\"))(?![^/>]*/>\\s*$)",
+            "begin": "(<)(style)\\b(?=[^>]*(?:type=('text/less'|\"text/less\")|lang=(less|'less'|\"less\")))(?![^/>]*/>\\s*$)",
             "beginCaptures": {
                 "1": {
                     "name": "punctuation.definition.tag.begin.html"
@@ -134,7 +134,7 @@
             ]
         },
         {
-            "begin": "(<)(style)\\b(?=[^>]*type=('text/stylus'|\"text/stylus\"))(?![^/>]*/>\\s*$)",
+            "begin": "(<)(style)\\b(?=[^>]*(?:type=('text/stylus'|\"text/stylus\")|lang=(stylus|'stylus'|\"stylus\")))(?![^/>]*/>\\s*$)",
             "beginCaptures": {
                 "1": {
                     "name": "punctuation.definition.tag.begin.html"
@@ -177,8 +177,7 @@
             ]
         },
         {
-            "begin":
-                "(<)(style)\\b(?=[^>]*type=('text/postcss'|\"text/postcss\"))(?![^/>]*/>\\s*$)",
+            "begin": "(<)(style)\\b(?=[^>]*(?:type=('text/postcss'|\"text/postcss\")|lang=(postcss|'postcss'|\"postcss\")))(?![^/>]*/>\\s*$)",
             "beginCaptures": {
                 "1": {
                     "name": "punctuation.definition.tag.begin.html"
@@ -221,7 +220,7 @@
             ]
         },
         {
-            "begin": "(<)(style)\\b(?=[^>]*(?:type=('text/css'|\"text/css\"))?)(?![^/>]*/>\\s*$)",
+            "begin": "(<)(style)\\b(?=[^>]*(?:(?:type=('text/css'|\"text/css\")|lang=(css|'css'|\"css\")))?)(?![^/>]*/>\\s*$)",
             "beginCaptures": {
                 "1": {
                     "name": "punctuation.definition.tag.begin.html"
@@ -264,8 +263,7 @@
             ]
         },
         {
-            "begin":
-                "(<)(script)\\b(?=[^>]*type=('text/typescript'|\"text/typescript\"))(?![^/>]*/>\\s*$)",
+            "begin": "(<)(script)\\b(?=[^>]*(?:type=('text/typescript'|\"text/typescript\")|lang=(typescript|'typescript'|\"typescript\")))(?![^/>]*/>\\s*$)",
             "beginCaptures": {
                 "1": {
                     "name": "punctuation.definition.tag.begin.html"
@@ -308,7 +306,7 @@
             ]
         },
         {
-            "begin": "(<)(script)\\b(?=[^>]*type=('text/coffee'|\"text/coffee\"))(?![^/>]*/>\\s*$)",
+            "begin": "(<)(script)\\b(?=[^>]*(?:type=('text/coffee'|\"text/coffee\")|lang=(coffee|'coffee'|\"coffee\")))(?![^/>]*/>\\s*$)",
             "beginCaptures": {
                 "1": {
                     "name": "punctuation.definition.tag.begin.html"
@@ -351,8 +349,7 @@
             ]
         },
         {
-            "begin":
-                "(<)(script)\\b(?=[^>]*(?:type=('text/javascript'|\"text/javascript\"))?)(?![^/>]*/>\\s*$)",
+            "begin": "(<)(script)\\b(?=[^>]*(?:(?:type=('text/javascript'|\"text/javascript\")|lang=(javascript|'javascript'|\"javascript\")))?)(?![^/>]*/>\\s*$)",
             "beginCaptures": {
                 "1": {
                     "name": "punctuation.definition.tag.begin.html"
