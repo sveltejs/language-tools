@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.6.1
+
+-   Update to [svelte-language-server](https://github.com/UnwrittenFun/svelte-language-server/tree/v0.6.1) 0.6.1
+    -   Includes some minor bug fixes
+
 ## 0.6.0
 
 -   Update to [svelte-language-server](https://github.com/UnwrittenFun/svelte-language-server/tree/v0.6.0) 0.6.0
