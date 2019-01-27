@@ -1,4 +1,4 @@
-declare module 'svelte' {
+declare module 'svelte/compiler' {
     export type SourceMap = any;
 
     export interface CodeMap {

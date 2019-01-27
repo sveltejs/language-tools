@@ -1,4 +1,3 @@
-import * as svelte from 'svelte';
 import cosmic from 'cosmiconfig';
 import {
     DiagnosticsProvider,
@@ -12,12 +11,14 @@ import {
 } from '../api';
 import { SvelteDocument } from '../lib/documents/SvelteDocument';
 import { RawSourceMap, RawIndexMap, SourceMapConsumer } from 'source-map';
+import { PreprocessOptions, CompileOptions, Warning } from 'svelte/compiler';
+import { loadSvelte } from './svelte/loadSvelte';
 
-interface SvelteConfig extends svelte.CompileOptions {
-    preprocess?: svelte.PreprocessOptions;
+interface SvelteConfig extends CompileOptions {
+    preprocess?: PreprocessOptions;
 }
 
-const DEFAULT_OPTIONS: svelte.CompileOptions = {
+const DEFAULT_OPTIONS: CompileOptions = {
     dev: true,
 };
 
@@ -42,6 +43,8 @@ export class SveltePlugin implements DiagnosticsProvider {
         let source = document.getText();
 
         const config = await this.loadConfig(document.getFilePath()!);
+        const svelte = loadSvelte(document.getFilePath()!) as any;
+
         const preprocessor = makePreprocessor(document as SvelteDocument, config.preprocess);
         source = (await svelte.preprocess(source, preprocessor)).toString();
         preprocessor.transpiledDocument.setText(source);
@@ -50,7 +53,7 @@ export class SveltePlugin implements DiagnosticsProvider {
         try {
             const res = svelte.compile(source, config);
 
-            diagnostics = (res.stats.warnings as svelte.Warning[]).map(warning => {
+            diagnostics = (res.stats.warnings as Warning[]).map(warning => {
                 const start = warning.start || { line: 1, column: 0 };
                 const end = warning.end || start;
                 return {
@@ -91,7 +94,7 @@ export class SveltePlugin implements DiagnosticsProvider {
     }
 }
 
-interface Preprocessor extends svelte.PreprocessOptions {
+interface Preprocessor extends PreprocessOptions {
     fragments: {
         source: Fragment;
         transpiled: Fragment;
@@ -101,7 +104,7 @@ interface Preprocessor extends svelte.PreprocessOptions {
     transpiledDocument: SvelteDocument;
 }
 
-function makePreprocessor(document: SvelteDocument, preprocessors: svelte.PreprocessOptions = {}) {
+function makePreprocessor(document: SvelteDocument, preprocessors: PreprocessOptions = {}) {
     const preprocessor: Preprocessor = {
         fragments: [],
         transpiledDocument: new SvelteDocument(document.getURL(), document.getText()),
