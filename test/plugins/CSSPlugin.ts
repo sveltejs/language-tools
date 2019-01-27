@@ -27,7 +27,10 @@ describe('CSS Plugin', () => {
         host.emit('documentChange', document);
 
         assert.deepStrictEqual(plugin.doHover(document, Position.create(0, 1)), <Hover>{
-            contents: [{ language: 'html', value: '<h1>' }],
+            contents: [
+                { language: 'html', value: '<h1>' },
+                { language: 'text', value: 'Specificity: 0, 0, 1' },
+            ],
             range: Range.create(0, 0, 0, 2),
         });
 

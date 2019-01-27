@@ -53,11 +53,11 @@
         "source-map": "^0.7.3",
         "svelte": "2.16.0",
         "typescript": "^3.2.4",
-        "vscode-css-languageservice": "^3.0.9",
-        "vscode-emmet-helper": "^1.2.11",
-        "vscode-html-languageservice": "^2.1.5",
-        "vscode-languageserver": "^5.0.3",
-        "vscode-languageserver-types": "^3.10.1",
-        "vscode-uri": "^1.0.6"
+        "vscode-css-languageservice": "3.0.12",
+        "vscode-emmet-helper": "1.2.15",
+        "vscode-html-languageservice": "2.1.10",
+        "vscode-languageserver": "5.2.1",
+        "vscode-languageserver-types": "3.14.0",
+        "vscode-uri": "1.0.6"
     }
 }
