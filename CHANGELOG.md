@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.0
+
+-   Support for Svelte v3
+-   Update to [svelte-language-server](https://github.com/UnwrittenFun/svelte-language-server/tree/v0.7.0) 0.7.0
+    -   Svelte is now loaded from your project when possible
+    -   Updates to various packages
+
 ## 0.6.1
 
 -   Update to [svelte-language-server](https://github.com/UnwrittenFun/svelte-language-server/tree/v0.6.1) 0.6.1
