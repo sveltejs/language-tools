@@ -51,9 +51,10 @@ export class SveltePlugin implements DiagnosticsProvider {
 
         let diagnostics: Diagnostic[];
         try {
+            delete config.preprocess;
             const res = svelte.compile(source, config);
 
-            diagnostics = (res.stats.warnings as Warning[]).map(warning => {
+            diagnostics = ((res.stats.warnings || res.warnings || []) as Warning[]).map(warning => {
                 const start = warning.start || { line: 1, column: 0 };
                 const end = warning.end || start;
                 return {
