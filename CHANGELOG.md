@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.7.1
+
+-   Update to [svelte-language-server](https://github.com/UnwrittenFun/svelte-language-server/tree/v0.7.1) 0.7.1
+    -   Fix for breaking changes in svelte v3
+
 ## 0.7.0
 
 -   Support for Svelte v3
