@@ -114,6 +114,7 @@ export class DocumentManager extends PluginHost {
     async getCompletions(
         textDocument: TextDocumentIdentifier,
         position: Position,
+        triggerCharacter?: string,
     ): Promise<CompletionItem[]> {
         const document = this.documents.get(textDocument.uri);
         if (!document) {
@@ -123,7 +124,7 @@ export class DocumentManager extends PluginHost {
         return flatten(
             await this.execute<CompletionItem[]>(
                 'getCompletions',
-                [document, position],
+                [document, position, triggerCharacter],
                 ExecuteMode.Collect,
             ),
         );

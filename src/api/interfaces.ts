@@ -68,7 +68,11 @@ export namespace HoverProvider {
 }
 
 export interface CompletionsProvider {
-    getCompletions(document: Document, position: Position): Resolvable<CompletionItem[]>;
+    getCompletions(
+        document: Document,
+        position: Position,
+        triggerCharacter?: string,
+    ): Resolvable<CompletionItem[]>;
 }
 
 export namespace CompletionsProvider {

@@ -48,7 +48,7 @@ export function startServer() {
                 },
                 hoverProvider: manager.supports('doHover'),
                 completionProvider: {
-                    triggerCharacters: ['<'],
+                    triggerCharacters: ['.', '"', "'", '`', '/', '@', '<'],
                 },
                 documentFormattingProvider: true,
                 colorProvider: true,
@@ -68,7 +68,13 @@ export function startServer() {
         manager.updateDocument(evt.textDocument, evt.contentChanges),
     );
     connection.onHover(evt => manager.doHover(evt.textDocument, evt.position));
-    connection.onCompletion(evt => manager.getCompletions(evt.textDocument, evt.position));
+    connection.onCompletion(evt =>
+        manager.getCompletions(
+            evt.textDocument,
+            evt.position,
+            evt.context && evt.context.triggerCharacter,
+        ),
+    );
     connection.onDocumentFormatting(evt => manager.formatDocument(evt.textDocument));
     connection.onRequest(TagCloseRequest.type, evt =>
         manager.doTagComplete(evt.textDocument, evt.position),

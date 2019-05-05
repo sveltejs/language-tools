@@ -1,5 +1,5 @@
 import ts from 'typescript';
-import { Document, Range, SymbolKind } from '../../api';
+import { Document, Range, SymbolKind, CompletionItemKind } from '../../api';
 
 export function getScriptKindFromFileName(fileName: string): ts.ScriptKind {
     const ext = fileName.substr(fileName.lastIndexOf('.'));
@@ -94,4 +94,83 @@ export function symbolKindFromString(kind: string): SymbolKind {
         default:
             return SymbolKind.Variable;
     }
+}
+
+export function scriptElementKindToCompletionItemKind(
+    kind: ts.ScriptElementKind,
+): CompletionItemKind {
+    switch (kind) {
+        case ts.ScriptElementKind.primitiveType:
+        case ts.ScriptElementKind.keyword:
+            return CompletionItemKind.Keyword;
+        case ts.ScriptElementKind.constElement:
+            return CompletionItemKind.Constant;
+        case ts.ScriptElementKind.letElement:
+        case ts.ScriptElementKind.variableElement:
+        case ts.ScriptElementKind.localVariableElement:
+        case ts.ScriptElementKind.alias:
+            return CompletionItemKind.Variable;
+        case ts.ScriptElementKind.memberVariableElement:
+        case ts.ScriptElementKind.memberGetAccessorElement:
+        case ts.ScriptElementKind.memberSetAccessorElement:
+            return CompletionItemKind.Field;
+        case ts.ScriptElementKind.functionElement:
+            return CompletionItemKind.Function;
+        case ts.ScriptElementKind.memberFunctionElement:
+        case ts.ScriptElementKind.constructSignatureElement:
+        case ts.ScriptElementKind.callSignatureElement:
+        case ts.ScriptElementKind.indexSignatureElement:
+            return CompletionItemKind.Method;
+        case ts.ScriptElementKind.enumElement:
+            return CompletionItemKind.Enum;
+        case ts.ScriptElementKind.moduleElement:
+        case ts.ScriptElementKind.externalModuleName:
+            return CompletionItemKind.Module;
+        case ts.ScriptElementKind.classElement:
+        case ts.ScriptElementKind.typeElement:
+            return CompletionItemKind.Class;
+        case ts.ScriptElementKind.interfaceElement:
+            return CompletionItemKind.Interface;
+        case ts.ScriptElementKind.warning:
+        case ts.ScriptElementKind.scriptElement:
+            return CompletionItemKind.File;
+        case ts.ScriptElementKind.directory:
+            return CompletionItemKind.Folder;
+        case ts.ScriptElementKind.string:
+            return CompletionItemKind.Constant;
+    }
+    return CompletionItemKind.Property;
+}
+
+export function getCommitCharactersForScriptElement(
+    kind: ts.ScriptElementKind,
+): string[] | undefined {
+    const commitCharacters: string[] = [];
+    switch (kind) {
+        case ts.ScriptElementKind.memberGetAccessorElement:
+        case ts.ScriptElementKind.memberSetAccessorElement:
+        case ts.ScriptElementKind.constructSignatureElement:
+        case ts.ScriptElementKind.callSignatureElement:
+        case ts.ScriptElementKind.indexSignatureElement:
+        case ts.ScriptElementKind.enumElement:
+        case ts.ScriptElementKind.interfaceElement:
+            commitCharacters.push('.');
+            break;
+
+        case ts.ScriptElementKind.moduleElement:
+        case ts.ScriptElementKind.alias:
+        case ts.ScriptElementKind.constElement:
+        case ts.ScriptElementKind.letElement:
+        case ts.ScriptElementKind.variableElement:
+        case ts.ScriptElementKind.localVariableElement:
+        case ts.ScriptElementKind.memberVariableElement:
+        case ts.ScriptElementKind.classElement:
+        case ts.ScriptElementKind.functionElement:
+        case ts.ScriptElementKind.memberFunctionElement:
+            commitCharacters.push('.', ',');
+            commitCharacters.push('(');
+            break;
+    }
+
+    return commitCharacters.length === 0 ? undefined : commitCharacters;
 }

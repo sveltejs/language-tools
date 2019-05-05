@@ -19,12 +19,15 @@ import {
     Host,
     DocumentSymbolsProvider,
     SymbolInformation,
-    SymbolKind,
+    CompletionsProvider,
+    CompletionItem,
 } from '../api';
 import {
     convertRange,
     getScriptKindFromAttributes,
     symbolKindFromString,
+    scriptElementKindToCompletionItemKind,
+    getCommitCharactersForScriptElement,
 } from './typescript/utils';
 import { getLanguageServiceForDocument, CreateDocument } from './typescript/service';
 
@@ -34,7 +37,8 @@ export class TypeScriptPlugin
         HoverProvider,
         FormattingProvider,
         OnRegister,
-        DocumentSymbolsProvider {
+        DocumentSymbolsProvider,
+        CompletionsProvider {
     public static matchFragment(fragment: Fragment) {
         return fragment.details.attributes.tag == 'script';
     }
@@ -58,7 +62,7 @@ export class TypeScriptPlugin
                 languageId: '',
                 text: content,
                 uri,
-                version: 1,
+                version: 0,
             });
             host.lockDocument(uri);
             return document;
@@ -176,6 +180,41 @@ export class TypeScriptPlugin
                 }
             }
         }
+    }
+
+    getCompletions(
+        document: Document,
+        position: Position,
+        triggerCharacter?: string,
+    ): CompletionItem[] {
+        if (!this.host.getConfig<boolean>('typescript.completions.enable')) {
+            return [];
+        }
+
+        const lang = getLanguageServiceForDocument(document, this.createDocument);
+        const completions = lang.getCompletionsAtPosition(
+            document.getFilePath()!,
+            document.offsetAt(position),
+            {
+                includeCompletionsForModuleExports: true,
+                triggerCharacter: triggerCharacter as any,
+            },
+        );
+        console.log(completions);
+
+        if (!completions) {
+            return [];
+        }
+
+        return completions!.entries.map(comp => {
+            return <CompletionItem>{
+                label: comp.name,
+                kind: scriptElementKindToCompletionItemKind(comp.kind),
+                sortText: comp.sortText,
+                commitCharacters: getCommitCharactersForScriptElement(comp.kind),
+                preselect: comp.isRecommended,
+            };
+        });
     }
 }
 

@@ -126,9 +126,9 @@ describe('Document Manager', () => {
         const document = manager.openDocument(textDocument);
 
         const pos = Position.create(0, 0);
-        await manager.getCompletions(textDocument, pos);
+        await manager.getCompletions(textDocument, pos, '.');
 
         sinon.assert.calledOnce(plugin.getCompletions);
-        sinon.assert.calledWithExactly(plugin.getCompletions, document, pos);
+        sinon.assert.calledWithExactly(plugin.getCompletions, document, pos, '.');
     });
 });
