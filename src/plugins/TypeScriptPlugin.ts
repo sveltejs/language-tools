@@ -18,6 +18,13 @@ import {
     DefinitionsProvider,
     DefinitionLink,
     LocationLink,
+    CodeActionsProvider,
+    CodeAction,
+    Resolvable,
+    CodeActionContext,
+    TextEdit,
+    TextDocumentEdit,
+    VersionedTextDocumentIdentifier,
 } from '../api';
 import {
     convertRange,
@@ -25,6 +32,7 @@ import {
     symbolKindFromString,
     scriptElementKindToCompletionItemKind,
     getCommitCharactersForScriptElement,
+    mapSeverity,
 } from './typescript/utils';
 import { getLanguageServiceForDocument, CreateDocument } from './typescript/service';
 import { pathToUrl } from '../utils';
@@ -37,7 +45,8 @@ export class TypeScriptPlugin
         OnRegister,
         DocumentSymbolsProvider,
         CompletionsProvider,
-        DefinitionsProvider {
+        DefinitionsProvider,
+        CodeActionsProvider {
     public static matchFragment(fragment: Fragment) {
         return fragment.details.attributes.tag == 'script';
     }
@@ -84,9 +93,10 @@ export class TypeScriptPlugin
 
         return diagnostics.map(diagnostic => ({
             range: convertRange(document, diagnostic),
-            severity: DiagnosticSeverity.Error,
+            severity: mapSeverity(diagnostic.category),
             source: isTypescript ? 'ts' : 'js',
             message: ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n'),
+            code: diagnostic.code,
         }));
     }
 
@@ -194,6 +204,10 @@ export class TypeScriptPlugin
     }
 
     getDefinitions(document: Document, position: Position): DefinitionLink[] {
+        if (!this.host.getConfig<boolean>('typescript.definitions.enable')) {
+            return [];
+        }
+
         const lang = getLanguageServiceForDocument(document, this.createDocument);
 
         const defs = lang.getDefinitionAndBoundSpan(
@@ -226,5 +240,63 @@ export class TypeScriptPlugin
                 );
             })
             .filter(res => !!res) as DefinitionLink[];
+    }
+
+    getCodeActions(
+        document: Document,
+        range: Range,
+        context: CodeActionContext,
+    ): Resolvable<CodeAction[]> {
+        if (!this.host.getConfig<boolean>('typescript.codeActions.enable')) {
+            return [];
+        }
+
+        const lang = getLanguageServiceForDocument(document, this.createDocument);
+
+        const start = document.offsetAt(range.start);
+        const end = document.offsetAt(range.end);
+        const errorCodes: number[] = context.diagnostics.map(diag => Number(diag.code));
+        const codeFixes = lang.getCodeFixesAtPosition(
+            document.getFilePath()!,
+            start,
+            end,
+            errorCodes,
+            {},
+            {},
+        );
+
+        const docs = new Map<string, Document>([[document.getFilePath()!, document]]);
+        return codeFixes.map(fix => {
+            return CodeAction.create(
+                fix.description,
+                {
+                    documentChanges: fix.changes.map(change => {
+                        let doc = docs.get(change.fileName);
+                        console.log('found', change.fileName, !!doc);
+                        if (!doc) {
+                            doc = new TextDocument(
+                                pathToUrl(change.fileName),
+                                ts.sys.readFile(change.fileName) || '',
+                            );
+                            docs.set(change.fileName, doc);
+                        }
+
+                        return TextDocumentEdit.create(
+                            VersionedTextDocumentIdentifier.create(
+                                pathToUrl(change.fileName),
+                                null,
+                            ),
+                            change.textChanges.map(edit => {
+                                return TextEdit.replace(
+                                    convertRange(doc!, edit.span),
+                                    edit.newText,
+                                );
+                            }),
+                        );
+                    }),
+                },
+                fix.fixName,
+            );
+        });
     }
 }

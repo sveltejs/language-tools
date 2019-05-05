@@ -10,6 +10,8 @@ import {
     SymbolInformation,
     Location,
     LocationLink,
+    CodeAction,
+    TextDocumentEdit,
 } from './interfaces';
 
 export function mapRangeToParent(fragment: Fragment, range: Range): Range {
@@ -57,6 +59,10 @@ export function mapDiagnosticToParent(fragment: Fragment, diagnostic: Diagnostic
     return { ...diagnostic, range: mapRangeToParent(fragment, diagnostic.range) };
 }
 
+export function mapDiagnosticToFragment(fragment: Fragment, diagnostic: Diagnostic): Diagnostic {
+    return { ...diagnostic, range: mapRangeToFragment(fragment, diagnostic.range) };
+}
+
 export function mapColorInformationToParent(
     fragment: Fragment,
     info: ColorInformation,
@@ -95,8 +101,35 @@ export function mapSymbolInformationToParent(
 export function mapLocationLinkToParent(fragment: Fragment, def: LocationLink): LocationLink {
     return LocationLink.create(
         def.targetUri,
-        def.targetRange,
-        def.targetSelectionRange,
+        fragment.getURL() === def.targetUri
+            ? mapRangeToParent(fragment, def.targetRange)
+            : def.targetRange,
+        fragment.getURL() === def.targetUri
+            ? mapRangeToParent(fragment, def.targetSelectionRange)
+            : def.targetSelectionRange,
         def.originSelectionRange ? mapRangeToParent(fragment, def.originSelectionRange) : undefined,
+    );
+}
+
+export function mapTextDocumentEditToParent(fragment: Fragment, edit: TextDocumentEdit) {
+    if (edit.textDocument.uri !== fragment.getURL()) {
+        return edit;
+    }
+
+    return TextDocumentEdit.create(
+        edit.textDocument,
+        edit.edits.map(textEdit => mapTextEditToParent(fragment, textEdit)),
+    );
+}
+
+export function mapCodeActionToParent(fragment: Fragment, codeAction: CodeAction) {
+    return CodeAction.create(
+        codeAction.title,
+        {
+            documentChanges: codeAction.edit!.documentChanges!.map(edit =>
+                mapTextDocumentEditToParent(fragment, edit as TextDocumentEdit),
+            ),
+        },
+        codeAction.kind,
     );
 }

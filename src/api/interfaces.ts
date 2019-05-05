@@ -21,6 +21,12 @@ import {
     SymbolKind,
     DefinitionLink,
     LocationLink,
+    CodeAction,
+    CodeActionContext,
+    TextDocumentEdit,
+    TextDocumentIdentifier,
+    VersionedTextDocumentIdentifier,
+    TextDocumentContentChangeEvent,
 } from 'vscode-languageserver-types';
 import { Document } from './Document';
 
@@ -47,6 +53,12 @@ export {
     SymbolKind,
     DefinitionLink,
     LocationLink,
+    CodeAction,
+    CodeActionContext,
+    TextDocumentEdit,
+    TextDocumentIdentifier,
+    VersionedTextDocumentIdentifier,
+    TextDocumentContentChangeEvent,
 };
 
 export type Resolvable<T> = T | Promise<T>;
@@ -146,6 +158,20 @@ export interface DefinitionsProvider {
 export namespace DefinitionsProvider {
     export function is(obj: any): obj is DefinitionsProvider {
         return typeof obj.getDefinitions === 'function';
+    }
+}
+
+export interface CodeActionsProvider {
+    getCodeActions(
+        document: Document,
+        range: Range,
+        context: CodeActionContext,
+    ): Resolvable<CodeAction[]>;
+}
+
+export namespace CodeActionsProvider {
+    export function is(obj: any): obj is CodeActionsProvider {
+        return typeof obj.getCodeActions === 'function';
     }
 }
 

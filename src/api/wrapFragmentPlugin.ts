@@ -18,6 +18,7 @@ import {
     DocumentSymbolsProvider,
     SymbolInformation,
     DefinitionsProvider,
+    CodeActionsProvider,
 } from './interfaces';
 import { Document } from './Document';
 import {
@@ -30,6 +31,8 @@ import {
     mapColorPresentationToParent,
     mapSymbolInformationToParent,
     mapLocationLinkToParent,
+    mapDiagnosticToFragment,
+    mapCodeActionToParent,
 } from './fragmentPositions';
 import { Host, OnRegister } from './Host';
 
@@ -208,6 +211,30 @@ export function wrapFragmentPlugin<P extends Plugin>(
 
             const items = await getDefinitions(fragment, fragment.positionInFragment(position));
             return items.map(item => mapLocationLinkToParent(fragment, item));
+        };
+    }
+
+    if (CodeActionsProvider.is(plugin)) {
+        const getCodeActions: CodeActionsProvider['getCodeActions'] = plugin.getCodeActions.bind(
+            plugin,
+        );
+        plugin.getCodeActions = async function(document, range, context) {
+            const fragment = getFragment(document);
+            if (
+                !fragment ||
+                !fragment.isInFragment(range.start) ||
+                !fragment.isInFragment(range.end)
+            ) {
+                return [];
+            }
+
+            const items = await getCodeActions(fragment, mapRangeToFragment(fragment, range), {
+                ...context,
+                diagnostics: context.diagnostics.map(diag =>
+                    mapDiagnosticToFragment(fragment, diag),
+                ),
+            });
+            return items.map(item => mapCodeActionToParent(fragment, item));
         };
     }
 

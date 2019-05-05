@@ -1,5 +1,5 @@
 import ts from 'typescript';
-import { Document, Range, SymbolKind, CompletionItemKind } from '../../api';
+import { Document, Range, SymbolKind, CompletionItemKind, DiagnosticSeverity } from '../../api';
 
 export function getScriptKindFromFileName(fileName: string): ts.ScriptKind {
     const ext = fileName.substr(fileName.lastIndexOf('.'));
@@ -173,4 +173,19 @@ export function getCommitCharactersForScriptElement(
     }
 
     return commitCharacters.length === 0 ? undefined : commitCharacters;
+}
+
+export function mapSeverity(category: ts.DiagnosticCategory): DiagnosticSeverity {
+    switch (category) {
+        case ts.DiagnosticCategory.Error:
+            return DiagnosticSeverity.Error;
+        case ts.DiagnosticCategory.Warning:
+            return DiagnosticSeverity.Warning;
+        case ts.DiagnosticCategory.Suggestion:
+            return DiagnosticSeverity.Hint;
+        case ts.DiagnosticCategory.Message:
+            return DiagnosticSeverity.Information;
+    }
+
+    return DiagnosticSeverity.Error;
 }

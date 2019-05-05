@@ -1,12 +1,3 @@
-import {
-    TextDocumentItem,
-    VersionedTextDocumentIdentifier,
-    TextDocumentContentChangeEvent,
-    TextDocumentIdentifier,
-    CompletionItem,
-    TextEdit,
-    DefinitionLink,
-} from 'vscode-languageserver-types';
 import { PluginHost, ExecuteMode } from '../PluginHost';
 import { flatten } from '../../utils';
 import {
@@ -19,6 +10,15 @@ import {
     Color,
     ColorPresentation,
     SymbolInformation,
+    TextDocumentItem,
+    TextDocumentIdentifier,
+    VersionedTextDocumentIdentifier,
+    TextDocumentContentChangeEvent,
+    CompletionItem,
+    TextEdit,
+    DefinitionLink,
+    CodeActionContext,
+    CodeAction,
 } from '../../api';
 
 export interface DocumentManager {
@@ -220,6 +220,25 @@ export class DocumentManager extends PluginHost {
             await this.execute<DefinitionLink[]>(
                 'getDefinitions',
                 [document, position],
+                ExecuteMode.Collect,
+            ),
+        );
+    }
+
+    async getCodeActions(
+        textDocument: TextDocumentIdentifier,
+        range: Range,
+        context: CodeActionContext,
+    ): Promise<CodeAction[]> {
+        const document = this.documents.get(textDocument.uri);
+        if (!document) {
+            throw new Error('Cannot call methods on an unopened document');
+        }
+
+        return flatten(
+            await this.execute<CodeAction[]>(
+                'getCodeActions',
+                [document, range, context],
                 ExecuteMode.Collect,
             ),
         );
