@@ -7,11 +7,11 @@ Provides syntax highlighting and rich intellisense for Svelte components in VS C
 -   Svelte
     -   Diagnostic messages for warnings and errors
     -   Support for svelte preprocessors that provide source maps
+    -   Svelte specific formatting (via [prettier-plugin-svelte](https://github.com/UnwrittenFun/prettier-plugin-svelte))
 -   HTML
     -   Hover info
     -   Autocompletions
     -   [Emmet](https://emmet.io/)
-    -   Formatting
     -   Symbols in Outline panel
 -   CSS / SCSS / LESS
     -   Diagnostic messages for syntax and lint errors
@@ -22,12 +22,13 @@ Provides syntax highlighting and rich intellisense for Svelte components in VS C
     -   Color highlighting and color picker
     -   Symbols in Outline panel
 -   TypeScript / JavaScript
-    -   Diagnostics messages for syntax and semantic errors
+    -   Diagnostics messages for syntax errors, semantic errors, and suggestions
     -   Hover info
     -   Formatting (via [prettier](https://github.com/prettier/prettier))
     -   Symbols in Outline panel
-
-More features coming soon.
+    -   Autocompletions
+    -   Go to definition
+    -   Code Actions
 
 ### Settings
 

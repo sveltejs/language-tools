@@ -82,6 +82,18 @@
                     "title": "TypeScript: Completions",
                     "description": "Enable completions for TypeScript"
                 },
+                "svelte.plugin.typescript.definitions.enable": {
+                    "type": "boolean",
+                    "default": true,
+                    "title": "TypeScript: Go to Definition",
+                    "description": "Enable go to definition for TypeScript"
+                },
+                "svelte.plugin.typescript.codeActions.enable": {
+                    "type": "boolean",
+                    "default": true,
+                    "title": "TypeScript: Code Actions",
+                    "description": "Enable code actions for TypeScript"
+                },
                 "svelte.plugin.css.enable": {
                     "type": "boolean",
                     "default": true,
