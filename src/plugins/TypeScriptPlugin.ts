@@ -4,7 +4,6 @@ import {
     Document,
     Diagnostic,
     Range,
-    DiagnosticSeverity,
     Fragment,
     HoverProvider,
     Position,
@@ -25,6 +24,7 @@ import {
     TextEdit,
     TextDocumentEdit,
     VersionedTextDocumentIdentifier,
+    CompletionList,
 } from '../api';
 import {
     convertRange,
@@ -176,9 +176,9 @@ export class TypeScriptPlugin
         document: Document,
         position: Position,
         triggerCharacter?: string,
-    ): CompletionItem[] {
+    ): CompletionList | null {
         if (!this.host.getConfig<boolean>('typescript.completions.enable')) {
-            return [];
+            return null;
         }
 
         const lang = getLanguageServiceForDocument(document, this.createDocument);
@@ -192,18 +192,20 @@ export class TypeScriptPlugin
         );
 
         if (!completions) {
-            return [];
+            return null;
         }
 
-        return completions!.entries.map(comp => {
-            return <CompletionItem>{
-                label: comp.name,
-                kind: scriptElementKindToCompletionItemKind(comp.kind),
-                sortText: comp.sortText,
-                commitCharacters: getCommitCharactersForScriptElement(comp.kind),
-                preselect: comp.isRecommended,
-            };
-        });
+        return CompletionList.create(
+            completions!.entries.map(comp => {
+                return <CompletionItem>{
+                    label: comp.name,
+                    kind: scriptElementKindToCompletionItemKind(comp.kind),
+                    sortText: comp.sortText,
+                    commitCharacters: getCommitCharactersForScriptElement(comp.kind),
+                    preselect: comp.isRecommended,
+                };
+            }),
+        );
     }
 
     getDefinitions(document: Document, position: Position): DefinitionLink[] {

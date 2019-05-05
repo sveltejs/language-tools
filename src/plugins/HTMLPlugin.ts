@@ -47,14 +47,15 @@ export class HTMLPlugin implements HoverProvider, CompletionsProvider {
         return this.lang.doHover(document, position, html);
     }
 
-    getCompletions(document: Document, position: Position): CompletionItem[] {
+    getCompletions(document: Document, position: Position): CompletionList | null {
+        console.log('triggered');
         if (!this.host.getConfig<boolean>('html.completions.enable')) {
-            return [];
+            return null;
         }
 
         const html = this.documents.get(document);
         if (!html) {
-            return [];
+            return null;
         }
 
         const emmetResults: CompletionList = {
@@ -65,7 +66,7 @@ export class HTMLPlugin implements HoverProvider, CompletionsProvider {
             getEmmetCompletionParticipants(document, position, 'html', {}, emmetResults),
         ]);
         const results = this.lang.doComplete(document, position, html);
-        return [...results.items, ...emmetResults.items];
+        return CompletionList.create([...results.items, ...emmetResults.items], true);
     }
 
     doTagComplete(document: Document, position: Position): string | null {

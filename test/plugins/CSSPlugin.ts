@@ -46,10 +46,13 @@ describe('CSS Plugin', () => {
         host.emit('documentChange', document);
 
         const completions = plugin.getCompletions(document, Position.create(0, 0));
-        assert.ok(Array.isArray(completions), 'Expected completions to be an array');
-        assert.ok(completions.length > 0, 'Expected completions to have length');
+        assert.ok(
+            Array.isArray(completions && completions.items),
+            'Expected completions to be an array',
+        );
+        assert.ok(completions!.items.length > 0, 'Expected completions to have length');
 
-        assert.deepStrictEqual(completions[0], <CompletionItem>{
+        assert.deepStrictEqual(completions!.items[0], <CompletionItem>{
             label: '@charset',
             kind: CompletionItemKind.Keyword,
             documentation:

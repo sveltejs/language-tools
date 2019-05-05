@@ -97,14 +97,14 @@ export class CSSPlugin
         );
     }
 
-    getCompletions(document: Document, position: Position): CompletionItem[] {
+    getCompletions(document: Document, position: Position): CompletionList | null {
         if (!this.host.getConfig<boolean>('css.completions.enable')) {
-            return [];
+            return null;
         }
 
         const stylesheet = this.stylesheets.get(document);
         if (!stylesheet) {
-            return [];
+            return null;
         }
 
         const type = extractLanguage(document);
@@ -117,7 +117,10 @@ export class CSSPlugin
             getEmmetCompletionParticipants(document, position, getLanguage(type), {}, emmetResults),
         ]);
         const results = lang.doComplete(document, position, stylesheet);
-        return [...(results ? results.items : []), ...emmetResults.items];
+        return CompletionList.create(
+            [...(results ? results.items : []), ...emmetResults.items],
+            true,
+        );
     }
 
     getDocumentColors(document: Document): ColorInformation[] {

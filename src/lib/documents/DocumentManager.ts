@@ -19,6 +19,7 @@ import {
     DefinitionLink,
     CodeActionContext,
     CodeAction,
+    CompletionList,
 } from '../../api';
 
 export interface DocumentManager {
@@ -116,17 +117,23 @@ export class DocumentManager extends PluginHost {
         textDocument: TextDocumentIdentifier,
         position: Position,
         triggerCharacter?: string,
-    ): Promise<CompletionItem[]> {
+    ): Promise<CompletionList> {
         const document = this.documents.get(textDocument.uri);
         if (!document) {
             throw new Error('Cannot call methods on an unopened document');
         }
 
-        return flatten(
-            await this.execute<CompletionItem[]>(
-                'getCompletions',
-                [document, position, triggerCharacter],
-                ExecuteMode.Collect,
+        const completions = (await this.execute<CompletionList>(
+            'getCompletions',
+            [document, position, triggerCharacter],
+            ExecuteMode.Collect,
+        )).filter(completion => completion != null);
+
+        return CompletionList.create(
+            flatten(completions.map(completion => completion.items)),
+            completions.reduce(
+                (incomplete, completion) => incomplete || completion.isIncomplete,
+                false as boolean,
             ),
         );
     }

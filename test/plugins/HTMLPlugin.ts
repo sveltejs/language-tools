@@ -47,9 +47,9 @@ describe('HTML Plugin', () => {
         host.emit('documentChange|pre', document);
 
         const completions = plugin.getCompletions(document, Position.create(0, 1));
-        assert.ok(Array.isArray(completions));
-        assert.ok(completions.length > 0);
-        assert.deepStrictEqual(completions[0], <CompletionItem>{
+        assert.ok(Array.isArray(completions && completions.items));
+        assert.ok(completions!.items.length > 0);
+        assert.deepStrictEqual(completions!.items[0], <CompletionItem>{
             label: '!DOCTYPE',
             kind: CompletionItemKind.Property,
             documentation: 'A preamble for an HTML document.',

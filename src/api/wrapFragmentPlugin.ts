@@ -19,6 +19,7 @@ import {
     SymbolInformation,
     DefinitionsProvider,
     CodeActionsProvider,
+    CompletionList,
 } from './interfaces';
 import { Document } from './Document';
 import {
@@ -110,22 +111,25 @@ export function wrapFragmentPlugin<P extends Plugin>(
         const getCompletions: CompletionsProvider['getCompletions'] = plugin.getCompletions.bind(
             plugin,
         );
-        plugin.getCompletions = async function(
-            document: Document,
-            position: Position,
-            triggerCharacter?: string,
-        ): Promise<CompletionItem[]> {
+        plugin.getCompletions = async function(document, position, triggerCharacter?) {
             const fragment = getFragment(document);
             if (!fragment || !fragment.isInFragment(position)) {
-                return [];
+                return null;
             }
 
-            const items = await getCompletions(
+            const completions = await getCompletions(
                 fragment,
                 fragment.positionInFragment(position),
                 triggerCharacter,
             );
-            return items.map(item => mapCompletionItemToParent(fragment, item));
+            if (!completions) {
+                return null;
+            }
+
+            return CompletionList.create(
+                completions.items.map(item => mapCompletionItemToParent(fragment, item)),
+                !!completions.isIncomplete,
+            );
         };
     }
 

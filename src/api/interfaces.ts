@@ -88,7 +88,7 @@ export interface CompletionsProvider {
         document: Document,
         position: Position,
         triggerCharacter?: string,
-    ): Resolvable<CompletionItem[]>;
+    ): Resolvable<CompletionList | null>;
 }
 
 export namespace CompletionsProvider {
