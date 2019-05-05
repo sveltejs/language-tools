@@ -9,6 +9,7 @@ import {
     ColorPresentation,
     SymbolInformation,
     Location,
+    LocationLink,
 } from './interfaces';
 
 export function mapRangeToParent(fragment: Fragment, range: Range): Range {
@@ -89,4 +90,13 @@ export function mapSymbolInformationToParent(
     info: SymbolInformation,
 ): SymbolInformation {
     return { ...info, location: mapLocationToParent(fragment, info.location) };
+}
+
+export function mapLocationLinkToParent(fragment: Fragment, def: LocationLink): LocationLink {
+    return LocationLink.create(
+        def.targetUri,
+        def.targetRange,
+        def.targetSelectionRange,
+        def.originSelectionRange ? mapRangeToParent(fragment, def.originSelectionRange) : undefined,
+    );
 }

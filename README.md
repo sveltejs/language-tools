@@ -39,6 +39,7 @@ Currently Supported:
     -   Formatting (via [prettier](https://github.com/prettier/prettier))
     -   Symbols in Outline panel
     -   Autocompletions
+    -   Go to definition
 
 ## How can I use it?
 

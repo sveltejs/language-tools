@@ -19,6 +19,8 @@ import {
     SymbolInformation,
     Location,
     SymbolKind,
+    DefinitionLink,
+    LocationLink,
 } from 'vscode-languageserver-types';
 import { Document } from './Document';
 
@@ -43,6 +45,8 @@ export {
     SymbolInformation,
     Location,
     SymbolKind,
+    DefinitionLink,
+    LocationLink,
 };
 
 export type Resolvable<T> = T | Promise<T>;
@@ -132,6 +136,16 @@ export interface DocumentSymbolsProvider {
 export namespace DocumentSymbolsProvider {
     export function is(obj: any): obj is DocumentSymbolsProvider {
         return typeof obj.getDocumentSymbols === 'function';
+    }
+}
+
+export interface DefinitionsProvider {
+    getDefinitions(document: Document, position: Position): Resolvable<DefinitionLink[]>;
+}
+
+export namespace DefinitionsProvider {
+    export function is(obj: any): obj is DefinitionsProvider {
+        return typeof obj.getDefinitions === 'function';
     }
 }
 

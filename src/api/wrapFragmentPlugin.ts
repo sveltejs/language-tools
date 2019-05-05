@@ -17,6 +17,7 @@ import {
     ColorPresentation,
     DocumentSymbolsProvider,
     SymbolInformation,
+    DefinitionsProvider,
 } from './interfaces';
 import { Document } from './Document';
 import {
@@ -28,6 +29,7 @@ import {
     mapRangeToFragment,
     mapColorPresentationToParent,
     mapSymbolInformationToParent,
+    mapLocationLinkToParent,
 } from './fragmentPositions';
 import { Host, OnRegister } from './Host';
 
@@ -108,13 +110,18 @@ export function wrapFragmentPlugin<P extends Plugin>(
         plugin.getCompletions = async function(
             document: Document,
             position: Position,
+            triggerCharacter?: string,
         ): Promise<CompletionItem[]> {
             const fragment = getFragment(document);
             if (!fragment || !fragment.isInFragment(position)) {
                 return [];
             }
 
-            const items = await getCompletions(fragment, fragment.positionInFragment(position));
+            const items = await getCompletions(
+                fragment,
+                fragment.positionInFragment(position),
+                triggerCharacter,
+            );
             return items.map(item => mapCompletionItemToParent(fragment, item));
         };
     }
@@ -186,6 +193,21 @@ export function wrapFragmentPlugin<P extends Plugin>(
 
             const items = await getDocumentSymbols(fragment);
             return items.map(item => mapSymbolInformationToParent(fragment, item));
+        };
+    }
+
+    if (DefinitionsProvider.is(plugin)) {
+        const getDefinitions: DefinitionsProvider['getDefinitions'] = plugin.getDefinitions.bind(
+            plugin,
+        );
+        plugin.getDefinitions = async function(document, position) {
+            const fragment = getFragment(document);
+            if (!fragment || !fragment.isInFragment(position)) {
+                return [];
+            }
+
+            const items = await getDefinitions(fragment, fragment.positionInFragment(position));
+            return items.map(item => mapLocationLinkToParent(fragment, item));
         };
     }
 

@@ -1,5 +1,4 @@
 import ts, { NavigationTree } from 'typescript';
-import URL from 'vscode-uri';
 import {
     DiagnosticsProvider,
     Document,
@@ -16,6 +15,9 @@ import {
     SymbolInformation,
     CompletionsProvider,
     CompletionItem,
+    DefinitionsProvider,
+    DefinitionLink,
+    LocationLink,
 } from '../api';
 import {
     convertRange,
@@ -25,6 +27,8 @@ import {
     getCommitCharactersForScriptElement,
 } from './typescript/utils';
 import { getLanguageServiceForDocument, CreateDocument } from './typescript/service';
+import { pathToUrl } from '../utils';
+import { TextDocument } from '../lib/documents/TextDocument';
 
 export class TypeScriptPlugin
     implements
@@ -32,7 +36,8 @@ export class TypeScriptPlugin
         HoverProvider,
         OnRegister,
         DocumentSymbolsProvider,
-        CompletionsProvider {
+        CompletionsProvider,
+        DefinitionsProvider {
     public static matchFragment(fragment: Fragment) {
         return fragment.details.attributes.tag == 'script';
     }
@@ -50,7 +55,7 @@ export class TypeScriptPlugin
     onRegister(host: Host) {
         this.host = host;
         this.createDocument = (fileName, content) => {
-            const uri = URL.file(fileName).toString();
+            const uri = pathToUrl(fileName);
             const document = host.openDocument({
                 languageId: '',
                 text: content,
@@ -172,7 +177,6 @@ export class TypeScriptPlugin
                 triggerCharacter: triggerCharacter as any,
             },
         );
-        console.log(completions);
 
         if (!completions) {
             return [];
@@ -187,5 +191,40 @@ export class TypeScriptPlugin
                 preselect: comp.isRecommended,
             };
         });
+    }
+
+    getDefinitions(document: Document, position: Position): DefinitionLink[] {
+        const lang = getLanguageServiceForDocument(document, this.createDocument);
+
+        const defs = lang.getDefinitionAndBoundSpan(
+            document.getFilePath()!,
+            document.offsetAt(position),
+        );
+
+        if (!defs || !defs.definitions) {
+            return [];
+        }
+
+        const docs = new Map<string, Document>([[document.getFilePath()!, document]]);
+
+        return defs.definitions
+            .map(def => {
+                let defDoc = docs.get(def.fileName);
+                if (!defDoc) {
+                    defDoc = new TextDocument(
+                        pathToUrl(def.fileName),
+                        ts.sys.readFile(def.fileName) || '',
+                    );
+                    docs.set(def.fileName, defDoc);
+                }
+
+                return LocationLink.create(
+                    pathToUrl(def.fileName),
+                    convertRange(defDoc, def.textSpan),
+                    convertRange(defDoc, def.textSpan),
+                    convertRange(document, defs.textSpan),
+                );
+            })
+            .filter(res => !!res) as DefinitionLink[];
     }
 }

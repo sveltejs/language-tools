@@ -81,7 +81,7 @@ export function createLanguageService(
                 return doc;
             }
 
-            return ts.ScriptSnapshot.fromString(ts.sys.readFile(fileName) || '');
+            return ts.ScriptSnapshot.fromString(this.readFile!(fileName) || '');
         },
         getCurrentDirectory: () => workspacePath,
         getDefaultLibFileName: ts.getDefaultLibFilePath,

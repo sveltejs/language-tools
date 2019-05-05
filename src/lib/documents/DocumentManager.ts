@@ -5,6 +5,7 @@ import {
     TextDocumentIdentifier,
     CompletionItem,
     TextEdit,
+    DefinitionLink,
 } from 'vscode-languageserver-types';
 import { PluginHost, ExecuteMode } from '../PluginHost';
 import { flatten } from '../../utils';
@@ -201,6 +202,24 @@ export class DocumentManager extends PluginHost {
             await this.execute<SymbolInformation[]>(
                 'getDocumentSymbols',
                 [document],
+                ExecuteMode.Collect,
+            ),
+        );
+    }
+
+    async getDefinitions(
+        textDocument: TextDocumentIdentifier,
+        position: Position,
+    ): Promise<DefinitionLink[]> {
+        const document = this.documents.get(textDocument.uri);
+        if (!document) {
+            throw new Error('Cannot call methods on an unopened document');
+        }
+
+        return flatten(
+            await this.execute<DefinitionLink[]>(
+                'getDefinitions',
+                [document, position],
                 ExecuteMode.Collect,
             ),
         );
