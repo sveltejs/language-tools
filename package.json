@@ -70,17 +70,17 @@
                     "title": "TypeScript: Hover Info",
                     "description": "Enable hover info for TypeScript"
                 },
-                "svelte.plugin.typescript.format.enable": {
-                    "type": "boolean",
-                    "default": true,
-                    "title": "TypeScript: Format",
-                    "description": "Enable formatting for TypeScript"
-                },
                 "svelte.plugin.typescript.documentSymbols.enable": {
                     "type": "boolean",
                     "default": true,
                     "title": "TypeScript: Symbols in Outline",
                     "description": "Enable document symbols for TypeScript"
+                },
+                "svelte.plugin.typescript.completions.enable": {
+                    "type": "boolean",
+                    "default": true,
+                    "title": "TypeScript: Completions",
+                    "description": "Enable completions for TypeScript"
                 },
                 "svelte.plugin.css.enable": {
                     "type": "boolean",
@@ -99,12 +99,6 @@
                     "default": true,
                     "title": "CSS: Hover Info",
                     "description": "Enable hover info for CSS"
-                },
-                "svelte.plugin.css.format.enable": {
-                    "type": "boolean",
-                    "default": true,
-                    "title": "CSS: Format",
-                    "description": "Enable formatting for CSS"
                 },
                 "svelte.plugin.css.completions.enable": {
                     "type": "boolean",
@@ -154,12 +148,6 @@
                     "title": "HTML: Tag Auto Closing",
                     "description": "Enable HTML tag auto closing"
                 },
-                "svelte.plugin.html.format.enable": {
-                    "type": "boolean",
-                    "default": true,
-                    "title": "HTML: Format",
-                    "description": "Enable formatting for HTML"
-                },
                 "svelte.plugin.html.documentSymbols.enable": {
                     "type": "boolean",
                     "default": true,
@@ -177,6 +165,12 @@
                     "default": true,
                     "title": "Svelte: Diagnostics",
                     "description": "Enable diagnostic messages for Svelte"
+                },
+                "svelte.plugin.svelte.format.enable": {
+                    "type": "boolean",
+                    "default": true,
+                    "title": "Svelte: Format",
+                    "description": "Enable formatting for Svelte (includes css & js)"
                 }
             }
         },
@@ -220,7 +214,7 @@
         "typescript": "^3.0.1"
     },
     "dependencies": {
-        "svelte-language-server": "0.7.1",
+        "svelte-language-server": "0.8.0",
         "vscode": "^1.1.21",
         "vscode-languageclient": "^5.0.1"
     }

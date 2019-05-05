@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.0
+
+-   Update to [svelte-language-server](https://github.com/UnwrittenFun/svelte-language-server/tree/v0.8.0) 0.8.0
+    -   No longer applies semantic validation to JavaScript blocks (only syntactic).
+    -   Add autocompletions to js/ts
+    -   Formatting is now provided by [prettier-plugin-svelte](https://github.com/UnwrittenFun/prettier-plugin-svelte)
+        which gives much improved support for svelte specific syntax and fixes a number of issues with the previous setup
+
 ## 0.7.1
 
 -   Update to [svelte-language-server](https://github.com/UnwrittenFun/svelte-language-server/tree/v0.7.1) 0.7.1
