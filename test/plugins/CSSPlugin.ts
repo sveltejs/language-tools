@@ -6,13 +6,10 @@ import {
     Hover,
     CompletionItem,
     CompletionItemKind,
-    InsertTextFormat,
     TextEdit,
-    Host,
 } from '../../src/api';
 import { TextDocument } from '../../src/lib/documents/TextDocument';
 import { CSSPlugin } from '../../src/plugins/CSSPlugin';
-import { DocumentFragment } from '../../src/lib/documents/DocumentFragment';
 
 describe('CSS Plugin', () => {
     it('provides hover info', async () => {
@@ -29,7 +26,7 @@ describe('CSS Plugin', () => {
         assert.deepStrictEqual(plugin.doHover(document, Position.create(0, 1)), <Hover>{
             contents: [
                 { language: 'html', value: '<h1>' },
-                { language: 'text', value: 'Specificity: 0, 0, 1' },
+                '[Selector Specificity](https://developer.mozilla.org/en-US/docs/Web/CSS/Specificity): (0, 0, 1)',
             ],
             range: Range.create(0, 0, 0, 2),
         });
@@ -56,7 +53,7 @@ describe('CSS Plugin', () => {
             label: '@charset',
             kind: CompletionItemKind.Keyword,
             documentation:
-                'Defines character set of the document.\n(Firefox 1.5, Safari 4, Chrome 2, IE 5.5, Opera 9)',
+                'Defines character set of the document.\n(Firefox 1, Safari 4, Chrome 2, IE 5, Opera 9)',
             textEdit: TextEdit.insert(Position.create(0, 0), '@charset'),
             sortText: 'd',
         });

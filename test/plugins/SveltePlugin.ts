@@ -39,10 +39,10 @@ describe('Svelte Plugin', () => {
         plugin.onRegister(host as any);
         const diagnostics = await plugin.getDiagnostics(document);
         const diagnostic = Diagnostic.create(
-            Range.create(0, 5, 0, 18),
-            "'whatever' is not a valid binding",
+            Range.create(0, 10, 0, 18),
+            'whatever is not declared',
             DiagnosticSeverity.Error,
-            'invalid-binding',
+            'binding-undeclared',
             'svelte',
         );
 

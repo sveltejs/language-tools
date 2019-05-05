@@ -50,10 +50,10 @@ describe('HTML Plugin', () => {
         assert.ok(Array.isArray(completions));
         assert.ok(completions.length > 0);
         assert.deepStrictEqual(completions[0], <CompletionItem>{
-            label: 'html',
+            label: '!DOCTYPE',
             kind: CompletionItemKind.Property,
-            documentation: 'The html element represents the root of an HTML document.',
-            textEdit: TextEdit.insert(Position.create(0, 1), 'html'),
+            documentation: 'A preamble for an HTML document.',
+            textEdit: TextEdit.insert(Position.create(0, 1), '!DOCTYPE html>'),
             insertTextFormat: InsertTextFormat.PlainText,
         });
     });
