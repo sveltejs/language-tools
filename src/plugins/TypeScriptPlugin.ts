@@ -75,15 +75,19 @@ export class TypeScriptPlugin
         }
 
         const lang = getLanguageServiceForDocument(document, this.createDocument);
-        const syntaxDiagnostics = lang.getSyntacticDiagnostics(document.getFilePath()!);
-        const semanticDiagnostics = lang.getSemanticDiagnostics(document.getFilePath()!);
-        return [...syntaxDiagnostics, ...semanticDiagnostics].map(diagnostic => ({
+        const isTypescript =
+            getScriptKindFromAttributes(document.getAttributes()) === ts.ScriptKind.TS;
+
+        let diagnostics: ts.Diagnostic[] = lang.getSyntacticDiagnostics(document.getFilePath()!);
+
+        if (isTypescript) {
+            diagnostics.push(...lang.getSemanticDiagnostics(document.getFilePath()!));
+        }
+
+        return diagnostics.map(diagnostic => ({
             range: convertRange(document, diagnostic),
             severity: DiagnosticSeverity.Error,
-            source:
-                getScriptKindFromAttributes(document.getAttributes()) === ts.ScriptKind.TS
-                    ? 'ts'
-                    : 'js',
+            source: isTypescript ? 'ts' : 'js',
             message: ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n'),
         }));
     }
