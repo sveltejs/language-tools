@@ -19,11 +19,11 @@ Currently Supported:
 
 -   Svelte
     -   Diagnostic messages for warnings and errors
+    -   Svelte specific formatting (via [prettier-plugin-svelte](https://github.com/UnwrittenFun/prettier-plugin-svelte))
 -   HTML (via [vscode-html-languageservice](https://github.com/Microsoft/vscode-html-languageservice))
     -   Hover info
     -   Autocompletions
     -   [Emmet](https://emmet.io/)
-    -   Formatting
     -   Symbols in Outline panel
 -   CSS / SCSS / LESS (via [vscode-css-languageservice](https://github.com/Microsoft/vscode-css-languageservice))
     -   Diagnostic messages for syntax and lint errors
@@ -38,9 +38,11 @@ Currently Supported:
     -   Hover info
     -   Formatting (via [prettier](https://github.com/prettier/prettier))
     -   Symbols in Outline panel
+    -   Autocompletions
 
 ## How can I use it?
 
 Install a plugin for your editor:
 
 -   [VS Code](https://github.com/UnwrittenFun/svelte-vscode)
+-   [Atom](https://github.com/UnwrittenFun/svelte-atom)
