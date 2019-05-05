@@ -211,11 +211,11 @@
     },
     "devDependencies": {
         "@types/node": "^9.6.5",
-        "typescript": "^3.0.1"
+        "typescript": "^3.0.1",
+        "vscode": "^1.1.26"
     },
     "dependencies": {
         "svelte-language-server": "0.8.0",
-        "vscode": "^1.1.21",
         "vscode-languageclient": "^5.0.1"
     }
 }
