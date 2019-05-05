@@ -415,6 +415,13 @@ path-to-regexp@^1.7.0:
   dependencies:
     isarray "0.0.1"
 
+prettier-plugin-svelte@0.4.2:
+  version "0.4.2"
+  resolved "https://registry.npmjs.org/prettier-plugin-svelte/-/prettier-plugin-svelte-0.4.2.tgz#29f7ea4c8c2068674d950428ab7926fb8234190c"
+  integrity sha512-BjMxmU5aZJSW5hDEG3BhZ4GUzx28cgOkfwO/SOCxkCq/4qbAR2AoCtB+t7j2mg0TPJG0oA7glCDri8QpcTSuQA==
+  dependencies:
+    tslib "^1.9.3"
+
 prettier@1.17.0:
   version "1.17.0"
   resolved "https://registry.npmjs.org/prettier/-/prettier-1.17.0.tgz#53b303676eed22cc14a9f0cec09b477b3026c008"
@@ -515,6 +522,11 @@ ts-node@^7.0.1:
     mkdirp "^0.5.1"
     source-map-support "^0.5.6"
     yn "^2.0.0"
+
+tslib@^1.9.3:
+  version "1.9.3"
+  resolved "https://registry.npmjs.org/tslib/-/tslib-1.9.3.tgz#d7e4dd79245d85428c4d7e4822a79917954ca286"
+  integrity sha512-4krF8scpejhaOgqzBEcGM7yDIEfi0/8+8zDRZhNZZ2kjmHJ4hv3zCbQWxoJGz1iw5U0Jl0nma13xzHXcncMavQ==
 
 type-detect@4.0.8, type-detect@^4.0.5:
   version "4.0.8"

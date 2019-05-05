@@ -5,9 +5,6 @@ import {
     getLESSLanguageService,
     LanguageService,
 } from 'vscode-css-languageservice';
-import * as prettier from 'prettier';
-import detectIndent from 'detect-indent';
-import indentString from 'indent-string';
 import {
     Host,
     Document,
@@ -19,9 +16,7 @@ import {
     Fragment,
     DiagnosticsProvider,
     Diagnostic,
-    TextEdit,
     Range,
-    FormattingProvider,
     CompletionList,
     DocumentColorsProvider,
     ColorInformation,
@@ -38,7 +33,6 @@ export class CSSPlugin
         HoverProvider,
         CompletionsProvider,
         DiagnosticsProvider,
-        FormattingProvider,
         DocumentColorsProvider,
         ColorPresentationsProvider,
         DocumentSymbolsProvider {
@@ -52,7 +46,6 @@ export class CSSPlugin
         diagnostics: { enable: true },
         hover: { enable: true },
         completions: { enable: true },
-        format: { enable: true },
         documentColors: { enable: true },
         colorPresentations: { enable: true },
         documentSymbols: { enable: true },
@@ -125,31 +118,6 @@ export class CSSPlugin
         ]);
         const results = lang.doComplete(document, position, stylesheet);
         return [...(results ? results.items : []), ...emmetResults.items];
-    }
-
-    async formatDocument(document: Document): Promise<TextEdit[]> {
-        if (!this.host.getConfig<boolean>('css.format.enable')) {
-            return [];
-        }
-
-        if (document.getTextLength() === 0) {
-            return [];
-        }
-
-        const config = await prettier.resolveConfig(document.getFilePath()!);
-        const formattedCode = prettier.format(document.getText(), {
-            ...config,
-            parser: getLanguage(extractLanguage(document)),
-        });
-
-        let indent = detectIndent(document.getText());
-        return [
-            TextEdit.replace(
-                Range.create(document.positionAt(0), document.positionAt(document.getTextLength())),
-                '\n' +
-                    indentString(formattedCode, indent.amount, indent.type == 'tab' ? '\t' : ' '),
-            ),
-        ];
     }
 
     getDocumentColors(document: Document): ColorInformation[] {

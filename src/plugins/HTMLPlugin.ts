@@ -1,8 +1,4 @@
-import {
-    getLanguageService,
-    HTMLDocument,
-    HTMLFormatConfiguration,
-} from 'vscode-html-languageservice';
+import { getLanguageService, HTMLDocument } from 'vscode-html-languageservice';
 import { getEmmetCompletionParticipants } from 'vscode-emmet-helper';
 import {
     Host,
@@ -13,20 +9,16 @@ import {
     CompletionsProvider,
     CompletionItem,
     CompletionList,
-    FormattingProvider,
-    TextEdit,
-    Range,
     SymbolInformation,
 } from '../api';
 
-export class HTMLPlugin implements HoverProvider, CompletionsProvider, FormattingProvider {
+export class HTMLPlugin implements HoverProvider, CompletionsProvider {
     public pluginId = 'html';
     public defaultConfig = {
         enable: true,
         hover: { enable: true },
         completions: { enable: true },
         tagComplete: { enable: true },
-        format: { enable: true },
         documentSymbols: { enable: true },
     };
 
@@ -87,33 +79,6 @@ export class HTMLPlugin implements HoverProvider, CompletionsProvider, Formattin
         }
 
         return this.lang.doTagComplete(document, position, html);
-    }
-
-    formatDocument(document: Document): TextEdit[] {
-        if (!this.host.getConfig<boolean>('html.format.enable')) {
-            return [];
-        }
-
-        const html = this.documents.get(document);
-        if (!html) {
-            return [];
-        }
-
-        const style = html.roots.find(node => node.tag === 'style');
-        const script = html.roots.find(node => node.tag === 'script');
-
-        let rangeEnd = document.getTextLength();
-        if (style && style.start < rangeEnd) {
-            rangeEnd = style.start + 1;
-        }
-        if (script && script.start < rangeEnd) {
-            rangeEnd = script.start + 1;
-        }
-
-        const range = Range.create(document.positionAt(0), document.positionAt(rangeEnd));
-
-        const settings = this.host.getConfig<HTMLFormatConfiguration>('html.format.settings') || {};
-        return this.lang.format(document, range, settings);
     }
 
     getDocumentSymbols(document: Document): SymbolInformation[] {

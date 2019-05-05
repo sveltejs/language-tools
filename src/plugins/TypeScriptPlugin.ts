@@ -1,7 +1,4 @@
 import ts, { NavigationTree } from 'typescript';
-import * as prettier from 'prettier';
-import detectIndent from 'detect-indent';
-import indentString from 'indent-string';
 import URL from 'vscode-uri';
 import {
     DiagnosticsProvider,
@@ -13,8 +10,6 @@ import {
     HoverProvider,
     Position,
     Hover,
-    FormattingProvider,
-    TextEdit,
     OnRegister,
     Host,
     DocumentSymbolsProvider,
@@ -35,7 +30,6 @@ export class TypeScriptPlugin
     implements
         DiagnosticsProvider,
         HoverProvider,
-        FormattingProvider,
         OnRegister,
         DocumentSymbolsProvider,
         CompletionsProvider {
@@ -48,7 +42,6 @@ export class TypeScriptPlugin
         enable: true,
         diagnostics: { enable: true },
         hover: { enable: true },
-        format: { enable: true },
     };
 
     private host!: Host;
@@ -110,31 +103,6 @@ export class TypeScriptPlugin
             range: convertRange(document, info.textSpan),
             contents: { language: 'ts', value: contents },
         };
-    }
-
-    async formatDocument(document: Document): Promise<TextEdit[]> {
-        if (!this.host.getConfig<boolean>('typescript.format.enable')) {
-            return [];
-        }
-
-        if (document.getTextLength() === 0) {
-            return [];
-        }
-
-        const config = await prettier.resolveConfig(document.getFilePath()!);
-        const formattedCode = prettier.format(document.getText(), {
-            ...config,
-            parser: getParserFromAttributes(document.getAttributes()),
-        });
-
-        let indent = detectIndent(document.getText());
-        return [
-            TextEdit.replace(
-                Range.create(document.positionAt(0), document.positionAt(document.getTextLength())),
-                '\n' +
-                    indentString(formattedCode, indent.amount, indent.type == 'tab' ? '\t' : ' '),
-            ),
-        ];
     }
 
     getDocumentSymbols(document: Document): SymbolInformation[] {
@@ -219,19 +187,5 @@ export class TypeScriptPlugin
                 preselect: comp.isRecommended,
             };
         });
-    }
-}
-
-function getParserFromAttributes(attrs: Record<string, string>): prettier.BuiltInParserName {
-    const type = attrs.lang || attrs.type;
-
-    switch (type) {
-        case 'typescript':
-        case 'text/typescript':
-            return 'typescript';
-        case 'javascript':
-        case 'text/javascript':
-        default:
-            return 'babylon';
     }
 }
