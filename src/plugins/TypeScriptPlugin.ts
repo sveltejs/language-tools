@@ -275,7 +275,6 @@ export class TypeScriptPlugin
                 {
                     documentChanges: fix.changes.map(change => {
                         let doc = docs.get(change.fileName);
-                        console.log('found', change.fileName, !!doc);
                         if (!doc) {
                             doc = new TextDocument(
                                 pathToUrl(change.fileName),
