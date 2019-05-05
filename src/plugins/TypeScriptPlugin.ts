@@ -85,7 +85,10 @@ export class TypeScriptPlugin
         const isTypescript =
             getScriptKindFromAttributes(document.getAttributes()) === ts.ScriptKind.TS;
 
-        let diagnostics: ts.Diagnostic[] = lang.getSyntacticDiagnostics(document.getFilePath()!);
+        let diagnostics: ts.Diagnostic[] = [
+            ...lang.getSyntacticDiagnostics(document.getFilePath()!),
+            ...lang.getSuggestionDiagnostics(document.getFilePath()!),
+        ];
 
         if (isTypescript) {
             diagnostics.push(...lang.getSemanticDiagnostics(document.getFilePath()!));

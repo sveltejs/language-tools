@@ -34,12 +34,13 @@ Currently Supported:
     -   Color highlighting and color picker
     -   Symbols in Outline panel
 -   TypeScript / JavaScript (via TypeScript)
-    -   Diagnostics messages for syntax and semantic errors
+    -   Diagnostics messages for syntax errors, semantic errors, and suggestions
     -   Hover info
     -   Formatting (via [prettier](https://github.com/prettier/prettier))
     -   Symbols in Outline panel
     -   Autocompletions
     -   Go to definition
+    -   Code Actions
 
 ## How can I use it?
 
