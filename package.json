@@ -194,7 +194,6 @@
                     "svelte"
                 ],
                 "extensions": [
-                    ".html",
                     ".svelte"
                 ],
                 "configuration": "./language-configuration.json"
@@ -227,7 +226,7 @@
         "vscode": "^1.1.26"
     },
     "dependencies": {
-        "svelte-language-server": "0.8.0",
+        "svelte-language-server": "0.10.0",
         "vscode-languageclient": "^5.0.1"
     }
 }

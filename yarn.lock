@@ -197,11 +197,6 @@ delayed-stream@~1.0.0:
   resolved "https://registry.npmjs.org/delayed-stream/-/delayed-stream-1.0.0.tgz#df3ae199acadfb7d440aaae0b29e2272b24ec619"
   integrity sha1-3zrhmayt+31ECqrgsp4icrJOxhk=
 
-detect-indent@^5.0.0:
-  version "5.0.0"
-  resolved "https://registry.npmjs.org/detect-indent/-/detect-indent-5.0.0.tgz#3871cc0a6a002e8c3e5b3cf7f336264675f06b9d"
-  integrity sha1-OHHMCmoALow+Wzz38zYmRnXwa50=
-
 diff@3.3.1:
   version "3.3.1"
   resolved "https://registry.npmjs.org/diff/-/diff-3.3.1.tgz#aa8567a6eed03c531fc89d3f711cd0e5259dec75"
@@ -381,11 +376,6 @@ https-proxy-agent@^2.2.1:
   dependencies:
     agent-base "^4.1.0"
     debug "^3.1.0"
-
-indent-string@^3.2.0:
-  version "3.2.0"
-  resolved "https://registry.npmjs.org/indent-string/-/indent-string-3.2.0.tgz#4a5fd6d27cc332f37e5419a504dbb837105c9289"
-  integrity sha1-Sl/W0nzDMvN+VBmlBNu4NxBckok=
 
 inflight@^1.0.4:
   version "1.0.6"
@@ -598,10 +588,10 @@ performance-now@^2.1.0:
   resolved "https://registry.npmjs.org/performance-now/-/performance-now-2.1.0.tgz#6309f4e0e5fa913ec1c69307ae364b4b377c9e7b"
   integrity sha1-Ywn04OX6kT7BxpMHrjZLSzd8nns=
 
-prettier-plugin-svelte@0.4.2:
-  version "0.4.2"
-  resolved "https://registry.npmjs.org/prettier-plugin-svelte/-/prettier-plugin-svelte-0.4.2.tgz#29f7ea4c8c2068674d950428ab7926fb8234190c"
-  integrity sha512-BjMxmU5aZJSW5hDEG3BhZ4GUzx28cgOkfwO/SOCxkCq/4qbAR2AoCtB+t7j2mg0TPJG0oA7glCDri8QpcTSuQA==
+prettier-plugin-svelte@0.5.0:
+  version "0.5.0"
+  resolved "https://registry.npmjs.org/prettier-plugin-svelte/-/prettier-plugin-svelte-0.5.0.tgz#2a94d4a465afdb2b1cff1451fefb9f5bd8b7b6d8"
+  integrity sha512-ndr+QhpnXYj9Od554I2rWohWPpI5IPlOOyjPD51aEZuZ+swsgFI8a5YlopnClyUH80Aah7PP4ultQOTRyLuQQw==
   dependencies:
     tslib "^1.9.3"
 
@@ -756,17 +746,15 @@ supports-color@^5.1.0:
   dependencies:
     has-flag "^3.0.0"
 
-svelte-language-server@0.8.0:
-  version "0.8.0"
-  resolved "https://registry.npmjs.org/svelte-language-server/-/svelte-language-server-0.8.0.tgz#949b534fa33bf71194d69182c5a5a5b0d4baa54d"
-  integrity sha512-kgzxLrGeDkUM/ucQGX8XOhC9c1/SEzOll1AgwGVJ67uzEK2BcpovhwFyiicQ6r40toDmuKhSM3tAv5tdHgCUlA==
+svelte-language-server@0.10.0:
+  version "0.10.0"
+  resolved "https://registry.npmjs.org/svelte-language-server/-/svelte-language-server-0.10.0.tgz#928b84c6f7840caa7b9c50c3e553387a6d280252"
+  integrity sha512-u0yMzE28moxxKAU7Zx3M+7NTvmKXTYyr3aiYq2keL1Dc4FQD/cBNgVAHf/YTRljJa0UDcVsgSf1h4pi16pWqMw==
   dependencies:
     cosmiconfig "^4.0.0"
-    detect-indent "^5.0.0"
-    indent-string "^3.2.0"
     lodash "^4.17.10"
     prettier "1.17.0"
-    prettier-plugin-svelte "0.4.2"
+    prettier-plugin-svelte "0.5.0"
     sinon "^4.5.0"
     source-map "^0.7.3"
     svelte "3.2.0"

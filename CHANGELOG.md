@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.9.0
+
+-   Update to [svelte-language-server](https://github.com/UnwrittenFun/svelte-language-server/tree/v0.10.0) 0.10.0
+    -   Adds suggestion diagnostics for typescript/javascript
+    -   Add code actions to typescript/javascript
+    -   Add go to definition support for typescript/javascript
+    -   Fix emmet completions showing up inconsistently
+    -   Update to [prettier-plugin-svelte](https://github.com/UnwrittenFun/prettier-plugin-svelte/releases/tag/v0.5.0) 0.5.0
+        -   Adds better whitespace support
+        -   Adds support for all utf8 characters in styles and scripts
+        -   Support event modifiers
+        -   Support let and class bindings
+-   .html files are no longer associated to this plugin by default
+
 ## 0.8.0
 
 -   Update to [svelte-language-server](https://github.com/UnwrittenFun/svelte-language-server/tree/v0.8.0) 0.8.0
