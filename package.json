@@ -36,7 +36,7 @@
         "Formatters"
     ],
     "engines": {
-        "vscode": "^1.26.0"
+        "vscode": "^1.30"
     },
     "activationEvents": [
         "onLanguage:svelte",
@@ -223,7 +223,7 @@
     "devDependencies": {
         "@types/node": "^9.6.5",
         "typescript": "^3.0.1",
-        "vscode": "^1.1.26"
+        "vscode": "^1.1.30"
     },
     "dependencies": {
         "svelte-language-server": "0.10.0",
