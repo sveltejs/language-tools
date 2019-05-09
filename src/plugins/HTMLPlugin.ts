@@ -48,7 +48,6 @@ export class HTMLPlugin implements HoverProvider, CompletionsProvider {
     }
 
     getCompletions(document: Document, position: Position): CompletionList | null {
-        console.log('triggered');
         if (!this.host.getConfig<boolean>('html.completions.enable')) {
             return null;
         }

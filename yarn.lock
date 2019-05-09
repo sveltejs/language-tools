@@ -48,16 +48,6 @@
   resolved "https://registry.npmjs.org/@types/cosmiconfig/-/cosmiconfig-4.0.1.tgz#0e435beb6a24cc8b381fc44ede9f1d390bb804df"
   integrity sha512-XNjEOdB3PTFOM8cS5JkIdz8t5T+FjyipRc2lDIahusWT4RZvOSpuV/YEo3gg9VdHpX2ZGbbbZRW3W33As6s5uw==
 
-"@types/detect-indent@^5.0.0":
-  version "5.0.0"
-  resolved "https://registry.npmjs.org/@types/detect-indent/-/detect-indent-5.0.0.tgz#8b1bbd7891268d5ed20d23ecd23ae333d33934cd"
-  integrity sha512-eOFBOFCqusnH0i1s9XoURksqTZbsv5vbMMgOBKgSt67TsOw6ViaHO0Ii5DMhRoiU5TJ51uf9NsOpnxXsN96ywg==
-
-"@types/indent-string@^3.0.0":
-  version "3.2.0"
-  resolved "https://registry.npmjs.org/@types/indent-string/-/indent-string-3.2.0.tgz#ce0016b6527a582e98122d593000772a965db665"
-  integrity sha512-9iJXKl51MSjBOO8AWJyDtegBy4PkcgwIQCNYmHA63qtYlaISD6sEcB4jZ8APOdBacZJ8fZwxZpN7iwYlyE6eGw==
-
 "@types/lodash@^4.14.116":
   version "4.14.123"
   resolved "https://registry.npmjs.org/@types/lodash/-/lodash-4.14.123.tgz#39be5d211478c8dd3bdae98ee75bb7efe4abfe4d"
@@ -176,11 +166,6 @@ debug@3.1.0:
   dependencies:
     ms "2.0.0"
 
-detect-indent@^5.0.0:
-  version "5.0.0"
-  resolved "https://registry.npmjs.org/detect-indent/-/detect-indent-5.0.0.tgz#3871cc0a6a002e8c3e5b3cf7f336264675f06b9d"
-  integrity sha1-OHHMCmoALow+Wzz38zYmRnXwa50=
-
 diff@3.5.0, diff@^3.1.0:
   version "3.5.0"
   resolved "https://registry.npmjs.org/diff/-/diff-3.5.0.tgz#800c0dd1e0a8bfbc95835c202ad220fe317e5a12"
@@ -234,11 +219,6 @@ he@1.1.1:
   version "1.1.1"
   resolved "https://registry.npmjs.org/he/-/he-1.1.1.tgz#93410fd21b009735151f8868c2f271f3427e23fd"
   integrity sha1-k0EP0hsAlzUVH4howvJx80J+I/0=
-
-indent-string@^3.2.0:
-  version "3.2.0"
-  resolved "https://registry.npmjs.org/indent-string/-/indent-string-3.2.0.tgz#4a5fd6d27cc332f37e5419a504dbb837105c9289"
-  integrity sha1-Sl/W0nzDMvN+VBmlBNu4NxBckok=
 
 inflight@^1.0.4:
   version "1.0.6"
@@ -415,10 +395,10 @@ path-to-regexp@^1.7.0:
   dependencies:
     isarray "0.0.1"
 
-prettier-plugin-svelte@0.4.2:
-  version "0.4.2"
-  resolved "https://registry.npmjs.org/prettier-plugin-svelte/-/prettier-plugin-svelte-0.4.2.tgz#29f7ea4c8c2068674d950428ab7926fb8234190c"
-  integrity sha512-BjMxmU5aZJSW5hDEG3BhZ4GUzx28cgOkfwO/SOCxkCq/4qbAR2AoCtB+t7j2mg0TPJG0oA7glCDri8QpcTSuQA==
+prettier-plugin-svelte@0.5.0:
+  version "0.5.0"
+  resolved "https://registry.npmjs.org/prettier-plugin-svelte/-/prettier-plugin-svelte-0.5.0.tgz#2a94d4a465afdb2b1cff1451fefb9f5bd8b7b6d8"
+  integrity sha512-ndr+QhpnXYj9Od554I2rWohWPpI5IPlOOyjPD51aEZuZ+swsgFI8a5YlopnClyUH80Aah7PP4ultQOTRyLuQQw==
   dependencies:
     tslib "^1.9.3"
 
