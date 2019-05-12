@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.9.1
+
+-   Update to [svelte-language-server](https://github.com/UnwrittenFun/svelte-language-server/releases/v0.10.1) 0.10.1
+    -   Update to [prettier-plugin-svelte](https://github.com/UnwrittenFun/prettier-plugin-svelte/releases/tag/v0.5.1) 0.5.1
+        -   Better attribute wrapping
+-   No longer opens output panel on error
+
 ## 0.9.0
 
 -   Update to [svelte-language-server](https://github.com/UnwrittenFun/svelte-language-server/tree/v0.10.0) 0.10.0
