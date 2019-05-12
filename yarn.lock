@@ -588,10 +588,10 @@ performance-now@^2.1.0:
   resolved "https://registry.npmjs.org/performance-now/-/performance-now-2.1.0.tgz#6309f4e0e5fa913ec1c69307ae364b4b377c9e7b"
   integrity sha1-Ywn04OX6kT7BxpMHrjZLSzd8nns=
 
-prettier-plugin-svelte@0.5.0:
-  version "0.5.0"
-  resolved "https://registry.npmjs.org/prettier-plugin-svelte/-/prettier-plugin-svelte-0.5.0.tgz#2a94d4a465afdb2b1cff1451fefb9f5bd8b7b6d8"
-  integrity sha512-ndr+QhpnXYj9Od554I2rWohWPpI5IPlOOyjPD51aEZuZ+swsgFI8a5YlopnClyUH80Aah7PP4ultQOTRyLuQQw==
+prettier-plugin-svelte@0.5.1:
+  version "0.5.1"
+  resolved "https://registry.npmjs.org/prettier-plugin-svelte/-/prettier-plugin-svelte-0.5.1.tgz#f5e25ee40f01eee7d1207c4a1d6c8e68bc0c455f"
+  integrity sha512-jVfONo45FrDJ1jy2R0mqAtXGlgi2fLNW2Zo+BGWFV7q/gUbXkJovz8ISK+QCPRXkk55uM8LTXq9ovrX+Ix2J1w==
   dependencies:
     tslib "^1.9.3"
 
@@ -746,15 +746,15 @@ supports-color@^5.1.0:
   dependencies:
     has-flag "^3.0.0"
 
-svelte-language-server@0.10.0:
-  version "0.10.0"
-  resolved "https://registry.npmjs.org/svelte-language-server/-/svelte-language-server-0.10.0.tgz#928b84c6f7840caa7b9c50c3e553387a6d280252"
-  integrity sha512-u0yMzE28moxxKAU7Zx3M+7NTvmKXTYyr3aiYq2keL1Dc4FQD/cBNgVAHf/YTRljJa0UDcVsgSf1h4pi16pWqMw==
+svelte-language-server@0.10.1:
+  version "0.10.1"
+  resolved "https://registry.npmjs.org/svelte-language-server/-/svelte-language-server-0.10.1.tgz#f01925149b60cadf67ac47d6d02dd50336889b25"
+  integrity sha512-/2ENxWimsFSCXP/nFlOYPj63eiz+aJMZT+gaSNe35lbSFwpC6ZYlkdyTLGWV/tfmPR1QVs/apTfbaupyIpRm8Q==
   dependencies:
     cosmiconfig "^4.0.0"
     lodash "^4.17.10"
     prettier "1.17.0"
-    prettier-plugin-svelte "0.5.0"
+    prettier-plugin-svelte "0.5.1"
     sinon "^4.5.0"
     source-map "^0.7.3"
     svelte "3.2.0"

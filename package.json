@@ -5,7 +5,7 @@
     "main": "dist/extension.js",
     "scripts": {
         "vscode:prepublish": "tsc -p ./",
-        "compile": "tsc -p ./",
+        "build": "tsc -p ./",
         "watch": "tsc -w -p ./",
         "update-vscode": "node ./node_modules/vscode/bin/install",
         "postinstall": "node ./node_modules/vscode/bin/install"
@@ -226,7 +226,7 @@
         "vscode": "^1.1.30"
     },
     "dependencies": {
-        "svelte-language-server": "0.10.0",
+        "svelte-language-server": "0.10.1",
         "vscode-languageclient": "^5.0.1"
     }
 }
