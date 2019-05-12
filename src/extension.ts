@@ -8,6 +8,7 @@ import {
     TransportKind,
     TextDocumentPositionParams,
     RequestType,
+    RevealOutputChannelOn,
 } from 'vscode-languageclient';
 import { activateTagClosing } from './html/autoClose';
 
@@ -39,6 +40,7 @@ export function activate(context: ExtensionContext) {
 
     let clientOptions: LanguageClientOptions = {
         documentSelector: [{ scheme: 'file', language: 'svelte' }],
+        revealOutputChannelOn: RevealOutputChannelOn.Never,
         synchronize: {
             configurationSection: ['svelte', 'html'],
         },
