@@ -75,9 +75,15 @@ export class CSSPlugin
             return [];
         }
 
-        return getLanguageService(extractLanguage(document))
+        const kind = extractLanguage(document);
+
+        if (shouldExcludeValidation(kind)) {
+            return [];
+        }
+
+        return getLanguageService(kind)
             .doValidation(document, stylesheet)
-            .map(diagnostic => ({ ...diagnostic, source: 'css' }));
+            .map(diagnostic => ({ ...diagnostic, source: getLanguage(kind) }));
     }
 
     doHover(document: Document, position: Position): Hover | null {
@@ -206,6 +212,16 @@ function getLanguage(kind?: string) {
         case 'text/css':
         default:
             return 'css';
+    }
+}
+
+function shouldExcludeValidation(kind?: string) {
+    switch (kind) {
+        case 'postcss':
+        case 'text/postcss':
+            return true;
+        default:
+            return false;
     }
 }
 
