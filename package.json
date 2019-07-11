@@ -43,18 +43,20 @@
     },
     "dependencies": {
         "cosmiconfig": "^4.0.0",
+        "estree-walker": "^0.6.1",
         "lodash": "^4.17.10",
-        "prettier": "1.17.0",
-        "prettier-plugin-svelte": "0.5.1",
+        "magic-string": "^0.25.3",
+        "prettier": "1.18.2",
+        "prettier-plugin-svelte": "0.7.0",
         "sinon": "^4.5.0",
         "source-map": "^0.7.3",
-        "svelte": "3.2.0",
-        "typescript": "3.4.5",
-        "vscode-css-languageservice": "3.0.13",
+        "svelte": "3.6.7",
+        "typescript": "3.5.3",
+        "vscode-css-languageservice": "4.0.2",
         "vscode-emmet-helper": "1.2.15",
-        "vscode-html-languageservice": "2.1.12",
+        "vscode-html-languageservice": "3.0.2",
         "vscode-languageserver": "5.2.1",
         "vscode-languageserver-types": "3.14.0",
-        "vscode-uri": "1.0.6"
+        "vscode-uri": "2.0.3"
     }
 }

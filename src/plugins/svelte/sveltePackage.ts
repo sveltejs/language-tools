@@ -1,4 +1,5 @@
 import { dirname, resolve } from 'path';
+import * as svelte from 'svelte/compiler';
 
 export function getSveltePackageInfo(fromPath: string) {
     const packageJSONPath = require.resolve('svelte/package.json', {
@@ -18,7 +19,7 @@ export function getSveltePackageInfo(fromPath: string) {
     };
 }
 
-export function importSvelte(fromPath: string) {
+export function importSvelte(fromPath: string): typeof svelte {
     const pkg = getSveltePackageInfo(fromPath);
 
     let main = pkg.path;

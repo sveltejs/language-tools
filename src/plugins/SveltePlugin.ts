@@ -14,11 +14,12 @@ import {
 } from '../api';
 import { SvelteDocument } from '../lib/documents/SvelteDocument';
 import { RawSourceMap, RawIndexMap, SourceMapConsumer } from 'source-map';
-import { PreprocessOptions, CompileOptions, Warning } from 'svelte/compiler';
+import { CompileOptions, Warning } from 'svelte/types/compiler/interfaces';
 import { importSvelte, getSveltePackageInfo } from './svelte/sveltePackage';
+import { PreprocessorGroup } from 'svelte/types/compiler/preprocess';
 
 interface SvelteConfig extends CompileOptions {
-    preprocess?: PreprocessOptions;
+    preprocess?: PreprocessorGroup;
 }
 
 const DEFAULT_OPTIONS: CompileOptions = {
@@ -47,10 +48,12 @@ export class SveltePlugin implements DiagnosticsProvider, FormattingProvider {
         let source = document.getText();
 
         const config = await this.loadConfig(document.getFilePath()!);
-        const svelte = importSvelte(document.getFilePath()!) as any;
+        const svelte = importSvelte(document.getFilePath()!);
 
         const preprocessor = makePreprocessor(document as SvelteDocument, config.preprocess);
-        source = (await svelte.preprocess(source, preprocessor, {filename: document.getFilePath()})).toString();
+        source = (await svelte.preprocess(source, preprocessor, {
+            filename: document.getFilePath()!,
+        })).toString();
         preprocessor.transpiledDocument.setText(source);
 
         let diagnostics: Diagnostic[];
@@ -58,17 +61,19 @@ export class SveltePlugin implements DiagnosticsProvider, FormattingProvider {
             delete config.preprocess;
             const res = svelte.compile(source, config);
 
-            diagnostics = ((res.stats.warnings || res.warnings || []) as Warning[]).map(warning => {
-                const start = warning.start || { line: 1, column: 0 };
-                const end = warning.end || start;
-                return {
-                    range: Range.create(start.line - 1, start.column, end.line - 1, end.column),
-                    message: warning.message,
-                    severity: DiagnosticSeverity.Warning,
-                    source: 'svelte',
-                    code: warning.code,
-                };
-            });
+            diagnostics = (((res.stats as any).warnings || res.warnings || []) as Warning[]).map(
+                warning => {
+                    const start = warning.start || { line: 1, column: 0 };
+                    const end = warning.end || start;
+                    return {
+                        range: Range.create(start.line - 1, start.column, end.line - 1, end.column),
+                        message: warning.message,
+                        severity: DiagnosticSeverity.Warning,
+                        source: 'svelte',
+                        code: warning.code,
+                    };
+                },
+            );
         } catch (err) {
             const start = err.start || { line: 1, column: 0 };
             const end = err.end || start;
@@ -120,7 +125,7 @@ export class SveltePlugin implements DiagnosticsProvider, FormattingProvider {
     }
 }
 
-interface Preprocessor extends PreprocessOptions {
+interface Preprocessor extends PreprocessorGroup {
     fragments: {
         source: Fragment;
         transpiled: Fragment;
@@ -130,14 +135,14 @@ interface Preprocessor extends PreprocessOptions {
     transpiledDocument: SvelteDocument;
 }
 
-function makePreprocessor(document: SvelteDocument, preprocessors: PreprocessOptions = {}) {
+function makePreprocessor(document: SvelteDocument, preprocessors: PreprocessorGroup = {}) {
     const preprocessor: Preprocessor = {
         fragments: [],
         transpiledDocument: new SvelteDocument(document.getURL(), document.getText()),
     };
 
     if (preprocessors.script) {
-        preprocessor.script = async args => {
+        preprocessor.script = (async (args: any) => {
             const res = await preprocessors.script!(args);
             if (res && res.map) {
                 preprocessor.fragments.push({
@@ -148,11 +153,11 @@ function makePreprocessor(document: SvelteDocument, preprocessors: PreprocessOpt
                 });
             }
             return res;
-        };
+        }) as any;
     }
 
     if (preprocessors.style) {
-        preprocessor.style = async args => {
+        preprocessor.style = (async (args: any) => {
             const res = await preprocessors.style!(args);
             if (res && res.map) {
                 preprocessor.fragments.push({
@@ -163,7 +168,7 @@ function makePreprocessor(document: SvelteDocument, preprocessors: PreprocessOpt
                 });
             }
             return res;
-        };
+        }) as any;
     }
 
     return preprocessor;
