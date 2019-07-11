@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.9.2
+
+-   Update to [svelte-language-server](https://github.com/UnwrittenFun/svelte-language-server/releases/v0.10.2) 0.10.2
+    -   Update to [prettier-plugin-svelte](https://github.com/UnwrittenFun/prettier-plugin-svelte/releases/tag/v0.7.0) 0.7.0
+        -   Added strict html mode with option `svelte-strict-mode`
+        -   Added support for await block shorthand
+        -   Now handles multiple script and style tags
+        -   HTML entities (e.g. &amp;) will be kept as is in svelte > 3.4.3
+        -   New option `svelteBracketNewLine` to add a new line before closing `>` when wrapping attributes
+        -   Added support for all known svelte:\* elements
+        -   Added support for local modifier on transitions
+        -   Fixed if inside of each else blocks erroneously being converted to and else if block
+        -   Added sort order option to change order of script/style/markup available as `svelte-sort-order`
+        -   Fix some whitespace issues with inline tags
+
 ## 0.9.1
 
 -   Update to [svelte-language-server](https://github.com/UnwrittenFun/svelte-language-server/releases/v0.10.1) 0.10.1
