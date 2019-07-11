@@ -263,7 +263,7 @@
             ]
         },
         {
-            "begin": "(<)(script)\\b(?=[^>]*(?:type=('text/typescript'|\"text/typescript\")|lang=(typescript|'typescript'|\"typescript\")))(?![^/>]*/>\\s*$)",
+            "begin": "(<)(script)\\b(?=[^>]*(?:type=('text/typescript'|\"text/typescript\")|lang=(typescript|'typescript'|\"typescript\"|ts|'ts'|\"ts\")))(?![^/>]*/>\\s*$)",
             "beginCaptures": {
                 "1": {
                     "name": "punctuation.definition.tag.begin.html"
