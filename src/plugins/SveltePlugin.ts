@@ -50,7 +50,7 @@ export class SveltePlugin implements DiagnosticsProvider, FormattingProvider {
         const svelte = importSvelte(document.getFilePath()!) as any;
 
         const preprocessor = makePreprocessor(document as SvelteDocument, config.preprocess);
-        source = (await svelte.preprocess(source, preprocessor)).toString();
+        source = (await svelte.preprocess(source, preprocessor, {filename: document.getFilePath()})).toString();
         preprocessor.transpiledDocument.setText(source);
 
         let diagnostics: Diagnostic[];
