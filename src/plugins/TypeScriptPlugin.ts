@@ -56,6 +56,9 @@ export class TypeScriptPlugin
         enable: true,
         diagnostics: { enable: true },
         hover: { enable: true },
+        completions: { enable: true },
+        definitions: { enable: true },
+        documentSymbols: { enable: true },
     };
 
     private host!: Host;
