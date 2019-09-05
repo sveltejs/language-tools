@@ -13,6 +13,7 @@ import { HTMLPlugin } from './plugins/HTMLPlugin';
 import { CSSPlugin } from './plugins/CSSPlugin';
 import { wrapFragmentPlugin } from './api/wrapFragmentPlugin';
 import { TypeScriptPlugin } from './plugins/TypeScriptPlugin';
+import _ from 'lodash';
 
 namespace TagCloseRequest {
     export const type: RequestType<
@@ -114,13 +115,16 @@ export function startServer() {
         manager.getCodeActions(evt.textDocument, evt.range, evt.context),
     );
 
-    manager.on('documentChange', async document => {
-        const diagnostics = await manager.getDiagnostics({ uri: document.getURL() });
-        connection.sendDiagnostics({
-            uri: document.getURL(),
-            diagnostics,
-        });
-    });
+    manager.on(
+        'documentChange',
+        _.debounce(async document => {
+            const diagnostics = await manager.getDiagnostics({ uri: document.getURL() });
+            connection.sendDiagnostics({
+                uri: document.getURL(),
+                diagnostics,
+            });
+        }, 500),
+    );
 
     connection.listen();
 }
