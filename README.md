@@ -30,6 +30,36 @@ Provides syntax highlighting and rich intellisense for Svelte components in VS C
     -   Go to definition
     -   Code Actions
 
+### Using with preprocessors
+
+If a svelte file contains some language other than `html`, `css` or `javascript`, `svelte-vscode` needs to know how to [preprocess](https://svelte.dev/docs#svelte_preprocess) it. This can be achieved by creating a `svelte.config.js` file at the root of your project which exports a svelte options object (similar to `svelte-loader` and `rollup-plugin-svelte`).
+
+```js
+// svelte.config.js
+const preprocess = require('my-example-svelte-preprocessor');
+
+module.exports = {
+    preprocess: [preprocess()],
+    // ...other svelte options
+};
+```
+
+It's also necessary to add a `type="text/language-name"` or `lang="language-name"` to your `style` and `script` tags, which defines how that code should be interpreted by the extension.
+
+```html
+<div>
+    <h1>Hello, world!</h1>
+</div>
+
+<style type="text/scss">
+    div {
+        h1 {
+            color: red;
+        }
+    }
+</style>
+```
+
 ### Settings
 
 ##### `svelte.language-server.runtime`
