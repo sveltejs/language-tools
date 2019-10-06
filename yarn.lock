@@ -763,10 +763,10 @@ supports-color@^5.1.0:
   dependencies:
     has-flag "^3.0.0"
 
-svelte-language-server@0.10.2:
-  version "0.10.2"
-  resolved "https://registry.npmjs.org/svelte-language-server/-/svelte-language-server-0.10.2.tgz#b49655bf3d80d5faa99575f9fb8a2acdbbafade7"
-  integrity sha512-DIQf7zDUtZ8E7Y1dA2QiYBmiDL1ACCCLTKxsoyzVa++M9hp18CMnKJxTtBVMXB7sAx9VeEr7Te7Kv0EgZbDXrA==
+svelte-language-server@^0.10.3:
+  version "0.10.3"
+  resolved "https://registry.npmjs.org/svelte-language-server/-/svelte-language-server-0.10.3.tgz#945b0d93306219dc01a3e1afe95bf34fc36e3942"
+  integrity sha512-kXwwX+t/snSmORKkp/Gx5XBVFfhFQXLCQCBthk7pb/SNXQX7tGptiKgvfyF0kFrMO7OVP3eaUVfSPDQlFwJSYA==
   dependencies:
     cosmiconfig "^4.0.0"
     estree-walker "^0.6.1"

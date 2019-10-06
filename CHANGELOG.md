@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.9.3
+
+-   Update to [svelte-language-server](https://github.com/UnwrittenFun/svelte-language-server/releases/v0.10.3) 0.10.3
+    -   Don't trigger autocompletion in css when typing {
+    -   Debounce diagnostics requests to improve diagnostic performance
+-   Document settings and preprocessor configuration
+
 ## 0.9.2
 
 -   Update to [svelte-language-server](https://github.com/UnwrittenFun/svelte-language-server/releases/v0.10.2) 0.10.2
