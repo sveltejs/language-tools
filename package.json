@@ -218,6 +218,11 @@
                 "command": "svelte.restartLanguageServer",
                 "title": "Svelte: Restart Language Server"
             }
+        ],
+        "breakpoints": [
+            {
+                "language": "svelte"
+            }
         ]
     },
     "devDependencies": {
