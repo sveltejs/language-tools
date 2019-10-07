@@ -35,6 +35,7 @@ Provides syntax highlighting and rich intellisense for Svelte components in VS C
 #### Language specific setup
 
 -   [SCSS](docs/preprocessors/scss.md)
+-   [TypeScript](docs/preprocessors/typescript.md)
 
 #### Generic setup
 

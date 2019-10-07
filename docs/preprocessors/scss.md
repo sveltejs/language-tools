@@ -29,7 +29,7 @@ To gain syntax highlighing for your SCSS code, add a `type` or `lang` attribute 
 The highlighter can now understand the syntax, but svelte still can't.
 For that you will need to add a `svelte.config.js` file at the root of your project to tell svelte how to convert your SCSS into CSS that it understands.
 
-You likely already have this configuration somewhere if are/are planning to use SCSS with svelte, e.g. webpack config, rollup config, etc.
+You likely already have this configuration somewhere if you are/are planning to use SCSS with svelte, e.g. webpack config, rollup config, etc.
 
 _Tip: To avoid duplication of config, you can import the `svelte.config.js` file in your bundle configuration_
 
