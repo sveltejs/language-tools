@@ -4,7 +4,7 @@ To tell us to treat your script tags as typescript, add a `type` or `lang` attri
 
 ```html
 <!-- Add type="text/typescript" -->
-<script type="text/scss">
+<script type="text/typescript">
     export let name: string;
 </script>
 
