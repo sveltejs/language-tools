@@ -1,16 +1,16 @@
-import { getLanguageService, HTMLDocument } from 'vscode-html-languageservice';
 import { getEmmetCompletionParticipants } from 'vscode-emmet-helper';
+import { getLanguageService, HTMLDocument } from 'vscode-html-languageservice';
 import {
-    Host,
+    CompletionList,
+    CompletionsProvider,
     Document,
+    Host,
+    Hover,
     HoverProvider,
     Position,
-    Hover,
-    CompletionsProvider,
-    CompletionItem,
-    CompletionList,
     SymbolInformation,
 } from '../api';
+import { svelteHtmlDataProvider } from './html/dataProvider';
 
 export class HTMLPlugin implements HoverProvider, CompletionsProvider {
     public pluginId = 'html';
@@ -23,7 +23,7 @@ export class HTMLPlugin implements HoverProvider, CompletionsProvider {
     };
 
     private host!: Host;
-    private lang = getLanguageService();
+    private lang = getLanguageService({ customDataProviders: [svelteHtmlDataProvider] });
     private documents = new WeakMap<Document, HTMLDocument>();
 
     onRegister(host: Host) {
