@@ -36,6 +36,8 @@ export class CSSPlugin
         DocumentColorsProvider,
         ColorPresentationsProvider,
         DocumentSymbolsProvider {
+    private readonly triggerCharacters = ['/'];
+            
     public static matchFragment(fragment: Fragment) {
         return fragment.details.attributes.tag == 'style';
     }
@@ -103,7 +105,11 @@ export class CSSPlugin
         );
     }
 
-    getCompletions(document: Document, position: Position): CompletionList | null {
+    getCompletions(document: Document, position: Position, triggerCharacter: string): CompletionList | null {
+        if (triggerCharacter != undefined && !this.triggerCharacters.includes(triggerCharacter)) {
+            return null;
+        }
+        
         if (!this.host.getConfig<boolean>('css.completions.enable')) {
             return null;
         }
