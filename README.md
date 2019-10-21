@@ -48,3 +48,4 @@ Install a plugin for your editor:
 
 -   [VS Code](https://github.com/UnwrittenFun/svelte-vscode)
 -   [Atom](https://github.com/UnwrittenFun/svelte-atom)
+-   [(Neo)vim](https://github.com/coc-extensions/coc-svelte)
