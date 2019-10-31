@@ -25,7 +25,7 @@ namespace TagCloseRequest {
 }
 
 export function startServer() {
-    const connection = createConnection(
+    const connection = process.argv.includes('--stdio') ? createConnection(process.stdin, process.stdout) : createConnection(
         new IPCMessageReader(process),
         new IPCMessageWriter(process),
     );
