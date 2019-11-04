@@ -81,7 +81,9 @@ export function htmlx2jsx(htmlx: string) {
         let thenEnd: number;
 
         if (!awaitBlock.pending.skip) {
-            ///
+            thenEnd = htmlx.lastIndexOf("}", awaitBlock.then.start)+1;
+            thenStart = htmlx.indexOf("{", awaitBlock.pending.end);
+            str.prependLeft(thenStart, "</>;")
         } else {
             thenEnd = htmlx.lastIndexOf("}", awaitBlock.then.start)+1;
             thenStart = htmlx.indexOf("then", awaitBlock.expression.end);            
