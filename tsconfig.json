@@ -1,0 +1,28 @@
+{
+    "compilerOptions": {
+      "rootDir": "src",
+      
+      "target":"es2017",
+      "lib": ["es2017"],
+      
+      "noEmitOnError": true,
+      "noErrorTruncation": true,
+
+      //let rollup handle these
+      "module": "esnext",
+      "moduleResolution": "node",
+      "resolveJsonModule": true,
+      "allowSyntheticDefaultImports": true,
+
+      "noImplicitThis": true,
+      "noUnusedLocals": true,
+      "noUnusedParameters": true,
+    },
+    "paths": {
+      "@/*": [
+        "src/*"
+      ]
+    },
+    "include": [],
+    "exclude": [ "node_modules"]
+  }
