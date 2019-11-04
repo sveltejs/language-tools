@@ -68,8 +68,30 @@ export function htmlx2jsx(htmlx: string) {
         } else {
             str.overwrite(endEach, eachBlock.end, "</>)}");
         }
+    }
+   // {#await somePromise then value} ->
+   // {() => {let _$$p = (somePromise);
+    const handleAwait = (awaitBlock: Node) => {
+        str.overwrite(awaitBlock.start, awaitBlock.expression.start, "{() => {let _$$p = (")
+        str.appendRight(awaitBlock.expression.end, ");" )
 
+        // then value } | {:then value} ->
+        // _$$p.then((value) => {<>
+        let thenStart: number;
+        let thenEnd: number;
 
+        if (!awaitBlock.pending.skip) {
+            ///
+        } else {
+            thenEnd = htmlx.lastIndexOf("}", awaitBlock.then.start)+1;
+            thenStart = htmlx.indexOf("then", awaitBlock.expression.end);            
+        }
+        str.overwrite(thenStart, thenEnd, "_$$p.then(("+awaitBlock.value+") => {<>")
+
+        // {/await} ->
+        // <>})}
+        let awaitEndStart = htmlx.lastIndexOf("{", awaitBlock.end);
+        str.overwrite(awaitEndStart, awaitBlock.end, "</>})}}");
     }
 
 
@@ -81,6 +103,7 @@ export function htmlx2jsx(htmlx: string) {
         enter: (node:Node, parent, prop, index) => {
             if (node.type == "IfBlock") handleIf(node);
             if (node.type == "EachBlock") handleEach(node);
+            if (node.type == "AwaitBlock") handleAwait(node);
         }
     })
 
