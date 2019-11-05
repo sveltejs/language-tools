@@ -4,6 +4,7 @@
       
       "target":"es2017",
       "lib": ["es2017"],
+      "sourceMap": true,
       
       "noEmitOnError": true,
       "noErrorTruncation": true,

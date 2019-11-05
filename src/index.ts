@@ -2,6 +2,7 @@
 import { parseHtmlx } from './parser'
 import MagicString from 'magic-string'
 import { walk, Node } from 'estree-walker';
+import { strictEqual } from 'assert';
 
 export function htmlx2jsx(htmlx: string) {
     let ast = parseHtmlx(htmlx);
@@ -73,7 +74,8 @@ export function htmlx2jsx(htmlx: string) {
    // {() => {let _$$p = (somePromise);
     const handleAwait = (awaitBlock: Node) => {
         str.overwrite(awaitBlock.start, awaitBlock.expression.start, "{() => {let _$$p = (")
-        str.appendRight(awaitBlock.expression.end, ");" )
+        str.prependLeft(awaitBlock.expression.end, ");" )
+       
 
         // then value } | {:then value} ->
         // _$$p.then((value) => {<>
@@ -81,14 +83,40 @@ export function htmlx2jsx(htmlx: string) {
         let thenEnd: number;
 
         if (!awaitBlock.pending.skip) {
-            thenEnd = htmlx.lastIndexOf("}", awaitBlock.then.start)+1;
-            thenStart = htmlx.indexOf("{", awaitBlock.pending.end);
-            str.prependLeft(thenStart, "</>;")
+            //thenBlock seems to include the {:then} tag
+            thenStart = awaitBlock.then.start;
+            thenEnd = htmlx.indexOf("}", thenStart)+1;
+            str.prependLeft(thenStart, "</>; ")
+            // add the start tag too
+            let awaitEnd = htmlx.indexOf("}", awaitBlock.expression.end);
+            str.remove(awaitEnd,awaitEnd+1);
+            str.appendRight(awaitEnd, " <>" )
         } else {
             thenEnd = htmlx.lastIndexOf("}", awaitBlock.then.start)+1;
             thenStart = htmlx.indexOf("then", awaitBlock.expression.end);            
         }
+       // console.log("overwriting",thenStart, thenEnd);
         str.overwrite(thenStart, thenEnd, "_$$p.then(("+awaitBlock.value+") => {<>")
+
+
+        //{:catch error} ->
+        //</>}).catch((error) => {<>
+        if (!awaitBlock.catch.skip) {
+            //catch block includes the {:catch}
+
+            let catchStart = awaitBlock.catch.start;
+            let catchSymbolEnd = htmlx.indexOf(":catch", catchStart) + ":catch".length;
+
+            let errorStart = awaitBlock.error ? htmlx.indexOf(awaitBlock.error, catchSymbolEnd) : catchSymbolEnd;
+            let errorEnd = awaitBlock.error ? errorStart + awaitBlock.error.length : errorStart;
+
+            let catchEnd = htmlx.indexOf("}", awaitBlock.catch.start)+1;
+
+            str.overwrite(catchStart, errorStart, "</>}).catch((" );
+            str.overwrite(errorEnd, catchEnd,") => {<>");
+        }
+
+
 
         // {/await} ->
         // <>})}

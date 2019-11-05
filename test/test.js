@@ -1,5 +1,8 @@
 const glob = require('tiny-glob/sync.js');
 
+require('source-map-support').install();
+
+
 require('./helpers');
 
 //console.clear();

@@ -7,6 +7,7 @@
     "@types/parse5": "^5.0.2",
     "@types/unist": "^2.0.3",
     "@types/vfile": "^3.0.2",
+    "magic-string": "^0.25.4",
     "mocha": "^6.2.2",
     "parse5": "^5.1.0",
     "rollup": "^1.12.0",
@@ -14,11 +15,11 @@
     "rollup-plugin-json": "^4.0.0",
     "rollup-plugin-node-resolve": "^5.2.0",
     "rollup-plugin-typescript": "^1.0.1",
+    "source-map-support": "^0.5.16",
     "svelte": "^3.0.0",
     "tiny-glob": "^0.2.6",
     "tslib": "^1.10.0",
-    "typescript": "^3.6.4",
-    "magic-string": "^0.25.4"
+    "typescript": "^3.6.4"
   },
   "dependencies": {},
   "scripts": {
