@@ -11,6 +11,16 @@ export function htmlx2jsx(htmlx: string) {
     str.prepend("<>");
     str.append("</>");
 
+    const handleRaw = (rawBlock: Node) => {
+        let tokenStart = htmlx.indexOf("@html", rawBlock.start);
+        str.remove(tokenStart, "@html".length+1);
+    }
+
+    const handleDebug = (debugBlock: Node) => {
+        let tokenStart = htmlx.indexOf("@debug", debugBlock.start);
+        str.remove(tokenStart, "@debug".length+1);
+    }
+
 
     const handleIf = (ifBlock: Node) => {
         // {#if expr} ->
@@ -134,6 +144,8 @@ export function htmlx2jsx(htmlx: string) {
             if (node.type == "IfBlock") handleIf(node);
             if (node.type == "EachBlock") handleEach(node);
             if (node.type == "AwaitBlock") handleAwait(node);
+            if (node.type == "RawMustacheTag") handleRaw(node);
+            if (node.type == "DebugTag") handleDebug(node)
         }
     })
 
