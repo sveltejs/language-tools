@@ -2,7 +2,7 @@ let converter = require('../../index.js')
 let fs = require('fs')
 let assert = require('assert')
 
-describe('htmlx2jsx', () => {
+describe('svelte2jsx', () => {
 	fs.readdirSync(`${__dirname}/samples`).forEach(dir => {
 		if (dir[0] === '.') return;
 
@@ -19,7 +19,7 @@ describe('htmlx2jsx', () => {
             const input = fs.readFileSync(`${__dirname}/samples/${dir}/input.svelte`, 'utf-8').replace(/\s+$/, '').replace(/\r\n/, /\n/);
             const expectedOutput = fs.readFileSync(`${__dirname}/samples/${dir}/expected.jsx`, 'utf-8').replace(/\s+$/, '').replace(/\r\n/, /\n/);
 
-            const { map, code} = converter.htmlx2jsx(input);
+            const { map, code} = converter.svelte2jsx(input);
             assert.equal(code, expectedOutput);
 		});
 	});
