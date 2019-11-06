@@ -17,15 +17,30 @@ function removeStyleTags(str: MagicString, ast: Node) {
     }
 }
 
-function moveInstanceScriptToTop(str: MagicString, ast: Node) {
+function processScriptTag(str: MagicString, ast: Node) {
+    let script: Node = null;
+    
+    //find the script
     for(var v of ast.children) {
         let n = v as Node;
         if (n.type == "Script"  && n.attributes && !n.attributes.find(a => a.name == "context" && a.value == "module")) {
-            if (n.start != 0 ) {
-                str.move(n.start, n.end, 0);
-            }
+            script = n;
         }
     }
+
+    //move it to the top (the variables need to be declared before the jsx template)
+    if (script.start != 0 ) {
+        str.move(script.start, script.end, 0);
+    }
+
+    let htmlx = str.original;
+    //I couldn't get magicstring to let me put the script before the <> we prepend during conversion of the template to jsx, so we just close it instead
+    
+    let scriptTagEnd = htmlx.lastIndexOf(">", script.content.start) +1;
+    str.overwrite(script.start, scriptTagEnd, "</>;function render() {");
+
+    let scriptEndTagStart = htmlx.lastIndexOf("<", script.end);
+    str.overwrite(scriptEndTagStart, script.end, ";\n<>");
 }
 
 
@@ -36,11 +51,11 @@ export function svelte2jsx(svelte: string) {
 
     //TODO move script tag to top
       //ensure script at top
-      moveInstanceScriptToTop(str, htmlxAst);
-    convertHtmlxToJsx(str, htmlxAst)
-    removeStyleTags(str, htmlxAst)
-
-  
+      convertHtmlxToJsx(str, htmlxAst)
+      removeStyleTags(str, htmlxAst)
+      processScriptTag(str, htmlxAst);
+      
+      str.append("\n\nexport default class {\n    $$prop_def = render()\n}");
 
     
     

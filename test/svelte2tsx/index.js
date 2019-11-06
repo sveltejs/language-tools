@@ -16,8 +16,8 @@ describe('svelte2jsx', () => {
 		}
 
 		(solo ? it.only : it)(dir, () => {
-            const input = fs.readFileSync(`${__dirname}/samples/${dir}/input.svelte`, 'utf-8').replace(/\s+$/, '').replace(/\r\n/, /\n/);
-            const expectedOutput = fs.readFileSync(`${__dirname}/samples/${dir}/expected.jsx`, 'utf-8').replace(/\s+$/, '').replace(/\r\n/, /\n/);
+            const input = fs.readFileSync(`${__dirname}/samples/${dir}/input.svelte`, 'utf-8').replace(/\s+$/, '').replace(/\r\n/g, "\n");
+            const expectedOutput = fs.readFileSync(`${__dirname}/samples/${dir}/expected.jsx`, 'utf-8').replace(/\s+$/, '').replace(/\r\n/g, "\n");
 
             const { map, code} = converter.svelte2jsx(input);
             assert.equal(code, expectedOutput);

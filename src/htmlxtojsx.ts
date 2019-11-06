@@ -5,7 +5,7 @@ import { parseHtmlx } from './parser';
 
 export function convertHtmlxToJsx(str: MagicString, ast: Node) {
     let htmlx = str.original;
-    str.prependLeft(0, "<>");
+    str.prepend("<>");
     str.append("</>");
     const handleRaw = (rawBlock: Node) => {
         let tokenStart = htmlx.indexOf("@html", rawBlock.start);
