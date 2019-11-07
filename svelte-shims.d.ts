@@ -4,4 +4,4 @@ declare module '*.svelte' {
     }
 }
 
-declare function svelteIf(expression: boolean): string
+declare function __sveltets_ensureFunction(expression: (e: Event) => unknown ):void;

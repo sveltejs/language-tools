@@ -15,6 +15,34 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node) {
         let tokenStart = htmlx.indexOf("@debug", debugBlock.start);
         str.remove(tokenStart, "@debug".length + 1);
     };
+
+    const handleElementEventHandler = (attr: Node) => {
+        let jsxEventName = `on${attr.name[0].toUpperCase() + attr.name.substr(1)}`
+
+        if (attr.expression) {
+            let endAttr = htmlx.indexOf("=", attr.start)
+            str.overwrite(attr.start, endAttr, jsxEventName)
+        } else {
+            str.overwrite(attr.start, attr.end, `${jsxEventName}={null}`)
+        }
+    }
+
+    const handleComponentEventHandler = (attr: Node) => {
+        let jsxEventName = `on${attr.name[0].toUpperCase() + attr.name.substr(1)}`
+
+        if (attr.expression) {
+            //for handler assignment, we changeIt to call to our __sveltets_ensureFunction
+            let endAttr = htmlx.indexOf("=", attr.start)+1
+            str.remove(attr.start, endAttr)
+            str.prependRight(attr.expression.start, "...__sveltets_ensureFunction((")
+            str.appendLeft(attr.expression.end, "))");         
+        } else {
+            //for passthrough handlers, we just remove
+            str.remove(attr.start, attr.end)
+        }
+    }
+
+
     const handleIf = (ifBlock: Node) => {
         // {#if expr} ->
         // {() => { if (expr) { <>
@@ -120,6 +148,22 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node) {
                 handleRaw(node);
             if (node.type == "DebugTag")
                 handleDebug(node);
+            if (node.type == "Element") {
+                for(let attr of node.attributes) {
+                    if (attr.type == "EventHandler") {
+                        handleElementEventHandler(attr);
+                    }
+                }
+            }
+
+            if (node.type == "InlineComponent") {
+                for(let attr of node.attributes) {
+                    if (attr.type == "EventHandler") {
+                        handleComponentEventHandler(attr);
+                    }
+                }
+            }
+                
         }
     });
 }
