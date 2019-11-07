@@ -1,9 +1,9 @@
 <></>;function render() {
-    let world = "name"
+ let world = "name"
 ;
 <><h1>hello {world}</h1>
 </>
-return{name}}
+return { world }}
 
 export default class {
     $$prop_def = render()

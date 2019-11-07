@@ -1,5 +1,5 @@
 <></>;function render() {
-    let name = "world"
+ let name = "world"
 ;
 <></>
 return { name }}
