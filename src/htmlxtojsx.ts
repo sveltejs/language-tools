@@ -27,9 +27,24 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node) {
         }
     }
 
-    const handleComponentEventHandler = (attr: Node) => {
-        let jsxEventName = `on${attr.name[0].toUpperCase() + attr.name.substr(1)}`
+    const handleBinding = (attr: Node, el: Node) => {
+        //bind group on input
+        if (attr.name == "group" && el.name == "input") {
+            str.remove(attr.start, attr.start+"bind:group=".length);
+            str.prependRight(attr.expression.start,"...__sveltets_ensureString(")
+            str.appendLeft(attr.expression.end,")")
+            return;
+        }
 
+
+
+        str.remove(attr.start,attr.start+"bind:".length);
+        if (attr.expression.start == attr.start + "bind:".length) {
+            str.appendLeft(attr.end, `={${attr.name}}`);
+        }
+    }
+
+    const handleComponentEventHandler = (attr: Node) => {
         if (attr.expression) {
             //for handler assignment, we changeIt to call to our __sveltets_ensureFunction
             let endAttr = htmlx.indexOf("=", attr.start)+1
@@ -153,6 +168,9 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node) {
                     if (attr.type == "EventHandler") {
                         handleElementEventHandler(attr);
                     }
+                    if (attr.type == "Binding") {
+                        handleBinding(attr, node);
+                    }
                 }
             }
 
@@ -160,6 +178,9 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node) {
                 for(let attr of node.attributes) {
                     if (attr.type == "EventHandler") {
                         handleComponentEventHandler(attr);
+                    }
+                    if (attr.type == "Binding") {
+                        handleBinding(attr, node);
                     }
                 }
             }

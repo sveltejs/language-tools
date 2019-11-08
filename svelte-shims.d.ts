@@ -4,4 +4,5 @@ declare module '*.svelte' {
     }
 }
 
-declare function __sveltets_ensureFunction(expression: (e: Event) => unknown ):void;
+declare function __sveltets_ensureFunction(expression: (e: Event) => unknown ):any[];
+declare function __sveltets_ensureString(expression: String ):any[];
