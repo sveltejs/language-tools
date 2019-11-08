@@ -3,7 +3,7 @@ import { parseHtmlx } from './parser';
 import { convertHtmlxToJsx } from './htmlxtojsx';
 import { Node } from 'svelte/compiler'
 export { htmlx2jsx } from './htmlxtojsx'
-import { createSourceFile, ScriptTarget, ScriptKind, SourceFile, SyntaxKind, VariableStatement, Identifier, FunctionDeclaration, BindingName, ExportDeclaration } from 'typescript'
+import { createSourceFile, ScriptTarget, ScriptKind, SourceFile, SyntaxKind, VariableStatement, Identifier, FunctionDeclaration, BindingName, ExportDeclaration, ScriptSnapshot, LabeledStatement, ExpressionStatement, BinaryExpression } from 'typescript'
 
 
 
@@ -12,7 +12,7 @@ import { createSourceFile, ScriptTarget, ScriptKind, SourceFile, SyntaxKind, Var
 
 
 function removeStyleTags(str: MagicString, ast: Node) {
-    for(var v of ast.children) {
+    for (var v of ast.children) {
         let n = v as Node;
         if (n.type == "Style") {
             str.remove(n.start, n.end);
@@ -20,35 +20,65 @@ function removeStyleTags(str: MagicString, ast: Node) {
     }
 }
 
+function declareImplictReactiveVariables(declaredNames: string[], str: MagicString, tsAst: SourceFile, astOffset: number) {
+    for (let le of tsAst.statements) {
+        if (le.kind != SyntaxKind.LabeledStatement) continue;
+        let ls = le as LabeledStatement;
+        if (ls.label.text != "$") continue;
+        if (!ls.statement || ls.statement.kind != SyntaxKind.ExpressionStatement) continue;
+        let es = ls.statement as ExpressionStatement;
+        if (!es.expression || es.expression.kind != SyntaxKind.BinaryExpression) continue;
+        let be = es.expression as BinaryExpression;
+        if (be.operatorToken.kind != SyntaxKind.EqualsToken
+            || be.left.kind != SyntaxKind.Identifier) continue;
+        
+        let ident = be.left as Identifier;
+        //are we already declared?
+        if (declaredNames.find(n => ident.text == n)) continue;
+        //add a declaration
+        str.prependRight(ls.pos+astOffset+1, `;let ${ident.text}; `)
+    }
+}
+
 function replaceExports(str: MagicString, tsAst: SourceFile, astOffset: number) {
     //track a as b exports
-    let exportedNames = new Map<string,string>();
+    let exportedNames = new Map<string, string>();
+    let declaredNames: string[] = [];
 
-    const addExport = (name:BindingName, target:BindingName = null)  => {
+    const addDeclaredName = (name: BindingName) => {
+        if (name.kind == SyntaxKind.Identifier) {
+            declaredNames.push(name.text);
+        }
+    }
+
+    const addExport = (name: BindingName, target: BindingName = null) => {
         if (name.kind != SyntaxKind.Identifier) {
-            throw Error("export source kind not supported "+name)
+            throw Error("export source kind not supported " + name)
         }
         if (target && target.kind != SyntaxKind.Identifier) {
-            throw Error("export target kind not supported "+target)
+            throw Error("export target kind not supported " + target)
         }
         exportedNames.set(name.text, target ? (target as Identifier).text : null);
     }
 
     const removeExport = (start: number, end: number) => {
-        str.remove(start+astOffset,end+astOffset);
+        str.remove(start + astOffset + 1, end + astOffset);
     }
 
     let statements = tsAst.statements;
 
-    for(let s of statements) {
+    for (let s of statements) {
         if (s.kind == SyntaxKind.VariableStatement) {
             let vs = s as VariableStatement;
-            let exportModifier = vs.modifiers.find(x => x.kind == SyntaxKind.ExportKeyword)
-            if (exportModifier) {
-                for(let v of vs.declarationList.declarations) {
+            let exportModifier = vs.modifiers 
+                                    ? vs.modifiers.find(x => x.kind == SyntaxKind.ExportKeyword)
+                                    : null;
+            for (let v of vs.declarationList.declarations) {
+                if (exportModifier) {
                     addExport(v.name);
                     removeExport(exportModifier.pos, exportModifier.end);
                 }
+                addDeclaredName(v.name);
             }
         }
 
@@ -59,11 +89,12 @@ function replaceExports(str: MagicString, tsAst: SourceFile, astOffset: number) 
                 addExport(fd.name)
                 removeExport(exportModifier.pos, exportModifier.end);
             }
+            addDeclaredName(fd.name);
         }
 
         if (s.kind == SyntaxKind.ExportDeclaration) {
             let ed = s as ExportDeclaration;
-            for ( let ne of ed.exportClause.elements) {
+            for (let ne of ed.exportClause.elements) {
                 if (ne.propertyName) {
                     addExport(ne.propertyName, ne.name)
                 } else {
@@ -75,48 +106,48 @@ function replaceExports(str: MagicString, tsAst: SourceFile, astOffset: number) 
         }
     }
 
-    return exportedNames;
+    return { exportedNames, declaredNames }
 }
 
 
 function processScriptTag(str: MagicString, ast: Node) {
     let script: Node = null;
-    
+
     //find the script
-    for(var v of ast.children) {
+    for (var v of ast.children) {
         let n = v as Node;
-        if (n.type == "Script"  && n.attributes && !n.attributes.find(a => a.name == "context" && a.value == "module")) {
+        if (n.type == "Script" && n.attributes && !n.attributes.find(a => a.name == "context" && a.value == "module")) {
             script = n;
         }
     }
 
     let htmlx = str.original;
-    
+
     if (!script) {
-        str.prependRight(0,"</>;function render() {\n<>");
+        str.prependRight(0, "</>;function render() {\n<>");
         str.append(";\nreturn {  }}");
         return;
     }
 
     //move it to the top (the variables need to be declared before the jsx template)
-    if (script.start != 0 ) {
+    if (script.start != 0) {
         str.move(script.start, script.end, 0);
     }
 
     //I couldn't get magicstring to let me put the script before the <> we prepend during conversion of the template to jsx, so we just close it instead
-    let scriptTagEnd = htmlx.lastIndexOf(">", script.content.start) +1;
+    let scriptTagEnd = htmlx.lastIndexOf(">", script.content.start) + 1;
     str.overwrite(script.start, scriptTagEnd, "</>;function render() {\n");
 
     let scriptEndTagStart = htmlx.lastIndexOf("<", script.end);
     str.overwrite(scriptEndTagStart, script.end, ";\n<>");
 
     let tsAst = createSourceFile("component.ts.svelte", htmlx.substring(script.content.start, script.content.end), ScriptTarget.Latest, true, ScriptKind.TS);
-
-    let exportedNames = replaceExports(str, tsAst, script.content.start);
+    let { exportedNames, declaredNames } = replaceExports(str, tsAst, script.content.start);
+   
+    declareImplictReactiveVariables(declaredNames, str, tsAst, script.content.start);
 
     let returnElements = [...exportedNames.entries()].map(([key, value]) => value ? `${value}: ${key}` : key);
-
-    let returnString = "\nreturn { "+returnElements.join(",")+" }}"
+    let returnString = "\nreturn { " + returnElements.join(",") + " }}"
     str.append(returnString)
 }
 
@@ -132,14 +163,14 @@ export function svelte2jsx(svelte: string) {
     let htmlxAst = parseHtmlx(svelte);
 
     //TODO move script tag to top
-      //ensure script at top
-      convertHtmlxToJsx(str, htmlxAst)
-      removeStyleTags(str, htmlxAst)
-      processScriptTag(str, htmlxAst);
-      addComponentExport(str);
+    //ensure script at top
+    convertHtmlxToJsx(str, htmlxAst)
+    removeStyleTags(str, htmlxAst)
+    processScriptTag(str, htmlxAst);
+    addComponentExport(str);
 
     return {
         code: str.toString(),
-        map: str.generateMap({hires: true})
+        map: str.generateMap({ hires: true })
     }
 }
