@@ -1,1 +1,1 @@
-<><input type="radio" {...__sveltets_ensureString(tortilla)} value="Plain"/></>
+<><input type="radio" {...__sveltets_ensureType(String, tortilla)} value="Plain"/></>

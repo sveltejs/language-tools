@@ -27,15 +27,49 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node) {
         }
     }
 
+    const handleClassDirective = (attr: Node) => {
+        let needCurly = (attr.expression.start == attr.start + "class:".length);
+        str.overwrite(attr.start, attr.expression.start, `{...__sveltets_ensureType(Boolean, `)
+        str.appendLeft(attr.expression.end, `)${ needCurly ? "}" : "" }`)
+    }
+
+    const handleActionDirective = (attr: Node) => {
+        str.overwrite(attr.start, attr.start + "use:".length, "{...__sveltets_ensureAction(")
+
+        if (!attr.expression) {
+            str.appendLeft(attr.end, ")}");
+            return;
+        }
+
+        str.overwrite(attr.start + `use:${attr.name}`.length, attr.expression.start, ",")
+        str.appendLeft(attr.expression.end, ")");
+    }
+
+
     const handleBinding = (attr: Node, el: Node) => {
         //bind group on input
         if (attr.name == "group" && el.name == "input") {
             str.remove(attr.start, attr.start+"bind:group=".length);
-            str.prependRight(attr.expression.start,"...__sveltets_ensureString(")
+            str.prependRight(attr.expression.start,"...__sveltets_ensureType(String, ")
             str.appendLeft(attr.expression.end,")")
             return;
         }
 
+        //bind this on element
+        if (attr.name == "this" && el.type == "Element") {
+            str.remove(attr.start, attr.start + "bind:this=".length)
+            str.prependRight(attr.expression.start, "...__sveltets_ensureType(HTMLElement, ");
+            str.appendLeft(attr.expression.end, ")");
+            return;
+        }
+
+         //bind this on component
+         if (attr.name == "this" && el.type == "InlineComponent") {
+            str.remove(attr.start, attr.start + "bind:this=".length)
+            str.prependRight(attr.expression.start, `...__sveltets_ensureType(${el.name}, `);
+            str.appendLeft(attr.expression.end, ")");
+            return;
+        }
 
 
         str.remove(attr.start,attr.start+"bind:".length);
@@ -44,6 +78,7 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node) {
         }
     }
 
+    
     const handleComponentEventHandler = (attr: Node) => {
         if (attr.expression) {
             //for handler assignment, we changeIt to call to our __sveltets_ensureFunction
@@ -163,28 +198,28 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node) {
                 handleRaw(node);
             if (node.type == "DebugTag")
                 handleDebug(node);
-            if (node.type == "Element") {
+            if (node.type == "Element" || node.type == "InlineComponent") {
                 for(let attr of node.attributes) {
                     if (attr.type == "EventHandler") {
-                        handleElementEventHandler(attr);
+                        if (node.type == "Element") {
+                            handleElementEventHandler(attr);
+                        } else {
+                            handleComponentEventHandler(attr);
+                        }
                     }
                     if (attr.type == "Binding") {
                         handleBinding(attr, node);
                     }
-                }
-            }
 
-            if (node.type == "InlineComponent") {
-                for(let attr of node.attributes) {
-                    if (attr.type == "EventHandler") {
-                        handleComponentEventHandler(attr);
+                    if (attr.type == "Class") {
+                        handleClassDirective(attr);
                     }
-                    if (attr.type == "Binding") {
-                        handleBinding(attr, node);
+
+                    if (attr.type == "Action") {
+                        handleActionDirective(attr);
                     }
                 }
             }
-                
         }
     });
 }
