@@ -125,7 +125,7 @@ function processScriptTag(str: MagicString, ast: Node) {
 
     if (!script) {
         str.prependRight(0, "</>;function render() {\n<>");
-        str.append(";\nreturn {  }}");
+        str.append(";\nreturn { props: {}, slots: {} }}");
         return;
     }
 
@@ -147,13 +147,13 @@ function processScriptTag(str: MagicString, ast: Node) {
     declareImplictReactiveVariables(declaredNames, str, tsAst, script.content.start);
 
     let returnElements = [...exportedNames.entries()].map(([key, value]) => value ? `${value}: ${key}` : key);
-    let returnString = "\nreturn { " + returnElements.join(",") + " }}"
+    let returnString = "\nreturn { props: {" + returnElements.join(" , ") + "}, slots: {} }}"
     str.append(returnString)
 }
 
 
 function addComponentExport(str: MagicString) {
-    str.append("\n\nexport default class {\n    $$prop_def = render()\n}");
+    str.append("\n\nexport default class {\n    $$prop_def = render().props\n    $$slot_def = render().slots\n}");
 }
 
 

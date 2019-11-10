@@ -4,7 +4,7 @@
 ;
 <><h1>hello {world}</h1>
 </>
-return { props:{ world }, slots:{} }}
+return { props: {world}, slots: {} }}
 
 export default class {
     $$prop_def = render().props
