@@ -99,6 +99,53 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node) {
         }
     }
 
+    const handleSlot  = (slotEl:Node, componentName: string) => {
+        //collect "let" definitions
+        let hasMoved = false;
+        for(let attr of slotEl.attributes) {
+            if (attr.type != "Let") continue;
+
+            if (slotEl.children.length == 0) {
+                //no children anyway, just wipe out the attribute
+                str.remove(attr.start, attr.end);
+                continue;
+            }
+            var afterTag = afterTag || htmlx.lastIndexOf(">", slotEl.children[0].start)+1;
+          
+            str.move(attr.start, attr.end, afterTag);
+           
+            
+            //remove let:
+            if (hasMoved) {
+                str.overwrite(attr.start, attr.start + "let:".length, ", ");
+            } else {
+                str.remove(attr.start, attr.start + "let:".length);
+            }
+            hasMoved = true;
+            if (attr.expression) {
+                //overwrite the = as a : 
+                let equalSign = htmlx.lastIndexOf("=", attr.expression.start);
+                let curly = htmlx.lastIndexOf("{", attr.expression.start);
+                str.overwrite(equalSign, curly+1, ":");
+                str.remove(attr.expression.end, attr.end);
+            }
+        }
+        if (!hasMoved) return;
+        str.appendLeft(afterTag, "{() => { let {");
+        str.appendRight(afterTag, "} = __sveltets_instanceOf("+componentName+").$$slot_def.default;<>")
+        
+        let closeTagStart = htmlx.lastIndexOf("<", slotEl.end)
+        str.appendLeft(closeTagStart, "</>}}")
+    }
+
+
+    const handleComponent = (el: Node) => {
+        //we only need to do something if there is a let or slot
+        handleSlot(el, el.name);
+    }
+
+
+
     
     const handleComponentEventHandler = (attr: Node) => {
         if (attr.expression) {
@@ -219,6 +266,11 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node) {
                 handleRaw(node);
             if (node.type == "DebugTag")
                 handleDebug(node);
+
+            if (node.type == "InlineComponent") {
+                handleComponent(node);
+            }
+
             if (node.type == "Element" || node.type == "InlineComponent") {
                 for(let attr of node.attributes) {
                     if (attr.type == "EventHandler") {
