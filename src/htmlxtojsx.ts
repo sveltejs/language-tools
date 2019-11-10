@@ -99,7 +99,7 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node) {
         }
     }
 
-    const handleSlot  = (slotEl:Node, componentName: string) => {
+    const handleSlot  = (slotEl:Node, componentName: string, slotName: string) => {
         //collect "let" definitions
         let hasMoved = false;
         for(let attr of slotEl.attributes) {
@@ -113,7 +113,6 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node) {
             var afterTag = afterTag || htmlx.lastIndexOf(">", slotEl.children[0].start)+1;
           
             str.move(attr.start, attr.end, afterTag);
-           
             
             //remove let:
             if (hasMoved) {
@@ -132,7 +131,7 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node) {
         }
         if (!hasMoved) return;
         str.appendLeft(afterTag, "{() => { let {");
-        str.appendRight(afterTag, "} = __sveltets_instanceOf("+componentName+").$$slot_def.default;<>")
+        str.appendRight(afterTag, "} = __sveltets_instanceOf("+componentName+").$$slot_def."+slotName+";<>")
         
         let closeTagStart = htmlx.lastIndexOf("<", slotEl.end)
         str.appendLeft(closeTagStart, "</>}}")
@@ -141,7 +140,19 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node) {
 
     const handleComponent = (el: Node) => {
         //we only need to do something if there is a let or slot
-        handleSlot(el, el.name);
+        handleSlot(el, el.name, "default");
+
+        if (!el.children) return;
+        for( let child of el.children) {
+            if (!child.attributes) continue;
+            let slot = child.attributes.find(a => a.name == "slot");
+            if (slot) {
+                str.remove(slot.start, slot.end);
+                if (slot.value && slot.value.length) {
+                    handleSlot(child, el.name, slot.value[0].raw)
+                }
+            }
+        }
     }
 
 
