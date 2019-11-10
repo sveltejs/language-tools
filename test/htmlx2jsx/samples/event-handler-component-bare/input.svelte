@@ -1,1 +1,1 @@
-<Component on:click>Hello</Component>
+<Component on:click />

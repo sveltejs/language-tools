@@ -3,8 +3,9 @@
  let name = "world"
 ;
 <></>
-return { name }}
+return { props: {name}, slots: {} }}
 
 export default class {
-    $$prop_def = render()
+    $$prop_def = render().props;
+    $$slot_def = render().slots;
 }

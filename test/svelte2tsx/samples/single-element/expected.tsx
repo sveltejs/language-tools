@@ -1,7 +1,8 @@
 <></>;function render() {
 <><h1>hello</h1></>;
-return {  }}
+return { props: {}, slots: {} }}
 
 export default class {
-    $$prop_def = render()
+    $$prop_def = render().props
+    $$slot_def = render().slots
 }

@@ -1,1 +1,1 @@
-<><Component >Hello</Component></>
+<><Component  /></>

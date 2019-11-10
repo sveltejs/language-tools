@@ -45,6 +45,27 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node) {
         str.appendLeft(attr.expression.end, ")");
     }
 
+    const handleTransitionDirective = (attr: Node) => {
+        str.overwrite(attr.start, htmlx.indexOf(":", attr.start)+1, "{...__sveltets_ensureTransition(")
+
+        if (!attr.expression) {
+            str.appendLeft(attr.end, ")}");
+            return;
+        }
+        str.overwrite(htmlx.indexOf(":", attr.start) + 1 + `${attr.name}`.length, attr.expression.start, ", ")
+        str.appendLeft(attr.expression.end, ")");
+    }
+
+    const handleAnimateDirective = (attr: Node) => {
+        str.overwrite(attr.start, htmlx.indexOf(":", attr.start)+1, "{...__sveltets_ensureAnimation(")
+
+        if (!attr.expression) {
+            str.appendLeft(attr.end, ")}");
+            return;
+        }
+        str.overwrite(htmlx.indexOf(":", attr.start) + 1 + `${attr.name}`.length, attr.expression.start, ", ")
+        str.appendLeft(attr.expression.end, ")");
+    }
 
     const handleBinding = (attr: Node, el: Node) => {
         //bind group on input
@@ -217,6 +238,14 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node) {
 
                     if (attr.type == "Action") {
                         handleActionDirective(attr);
+                    }
+
+                    if (attr.type == "Transition") {
+                        handleTransitionDirective(attr);
+                    }
+
+                    if (attr.type == "Animation") {
+                        handleAnimateDirective(attr);
                     }
                 }
             }

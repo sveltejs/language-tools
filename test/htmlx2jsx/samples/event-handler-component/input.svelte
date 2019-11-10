@@ -1,1 +1,1 @@
-<Component on:event={() => click()}>Hello</Component>
+<Component on:event={() => click()}/>
