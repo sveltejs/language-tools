@@ -24,11 +24,11 @@ function extractSlotDefs(str: MagicString, ast: Node): SlotInfo {
                 if (!attr.value.length) continue;
                 //let val = attr.value[0];
                 //if (val.type == "Text") {
-                 //   attributes.set(attr.name, val.raw);
+                //   attributes.set(attr.name, val.raw);
                 //} else if (val.expression) {
                 //    attributes.set(attr.name, htmlx.substring(val.expression.start, val.expression.end))
-               // }
-               attributes.set(attr.name, AttributeValueAsJsExpression(htmlx, attr));
+                // }
+                attributes.set(attr.name, AttributeValueAsJsExpression(htmlx, attr));
             }
             slots.set(slotName, attributes)
         }
@@ -111,10 +111,12 @@ function replaceExports(str: MagicString, tsAst: SourceFile, astOffset: number) 
 
         if (s.kind == SyntaxKind.FunctionDeclaration) {
             let fd = s as FunctionDeclaration;
-            let exportModifier = fd.modifiers.find(x => x.kind == SyntaxKind.ExportKeyword)
-            if (exportModifier) {
-                addExport(fd.name)
-                removeExport(exportModifier.pos, exportModifier.end);
+            if (fd.modifiers) {
+                let exportModifier = fd.modifiers.find(x => x.kind == SyntaxKind.ExportKeyword)
+                if (exportModifier) {
+                    addExport(fd.name)
+                    removeExport(exportModifier.pos, exportModifier.end);
+                }
             }
             addDeclaredName(fd.name);
         }
@@ -158,7 +160,7 @@ function processScriptTag(str: MagicString, ast: Node, slots: SlotInfo) {
 
     if (!script) {
         str.prependRight(0, "</>;function render() {\n<>");
-        str.append(";\nreturn { props: {}, slots: "+slotsAsString+" }}");
+        str.append(";\nreturn { props: {}, slots: " + slotsAsString + " }}");
         return;
     }
 
@@ -180,7 +182,7 @@ function processScriptTag(str: MagicString, ast: Node, slots: SlotInfo) {
     declareImplictReactiveVariables(declaredNames, str, tsAst, script.content.start);
 
     let returnElements = [...exportedNames.entries()].map(([key, value]) => value ? `${value}: ${key}` : key);
-    let returnString = "\nreturn { props: {" + returnElements.join(" , ") + "}, slots: "+slotsAsString+" }}"
+    let returnString = "\nreturn { props: {" + returnElements.join(" , ") + "}, slots: " + slotsAsString + " }}"
     str.append(returnString)
 }
 

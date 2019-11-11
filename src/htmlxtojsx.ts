@@ -354,6 +354,12 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node) {
         let awaitEndStart = htmlx.lastIndexOf("{", awaitBlock.end);
         str.overwrite(awaitEndStart, awaitBlock.end, "</>})}}");
     };
+
+    const handleComment = (node: Node) => {
+        str.remove(node.start, node.end);
+    }
+
+
     walk(ast, {
         enter: (node: Node, parent: Node, prop, index) => {
             if (node.type == "IfBlock")
@@ -373,6 +379,10 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node) {
 
             if (node.type == "Element") {
                 handleElement(node);
+            }
+
+            if (node.type == "Comment") {
+                handleComment(node);
             }
 
             if (node.type == "Element" || node.type == "InlineComponent" || node.type == "Slot") {
