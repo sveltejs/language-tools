@@ -2,6 +2,38 @@ import MagicString from 'magic-string';
 import { walk, Node } from 'estree-walker';
 import { parseHtmlx } from './parser';
 
+export function AttributeValueAsJsExpression(htmlx: string, attr: Node): string {
+    if (attr.value.length == 0) return "''"; //wut?
+       
+    //handle single value
+   if (attr.value.length == 1) {
+        let attrVal = attr.value[0];
+        
+        if (attrVal.type == "AttributeShorthand") {
+            return attrVal.expression.name;
+        }
+
+        if (attrVal.type == "Text") {
+            return '"'+attrVal.raw+'"';
+        }
+
+        if (attrVal.type == "MustacheTag") {
+            return htmlx.substring(attrVal.expression.start, attrVal.expression.end)
+        }
+        throw Error("Unknown attribute value type:" + attrVal.type);
+   }
+
+   // we have multiple attribute values, so we build a string out of them. 
+   // technically the user can do something funky like attr="text "{value} or even attr=text{value}
+   // so instead of trying to maintain a nice sourcemap with prepends etc, we just overwrite the whole thing
+   let valueParts = attr.value.map(n => {
+       if (n.type == "Text") return '${"'+n.raw+'"}';
+       if (n.type == "MustacheTag") return "$"+htmlx.substring(n.start, n.end);
+   })
+   let valuesAsStringTemplate = "`"+valueParts.join("")+"`";
+   return valuesAsStringTemplate;
+}
+
 
 export function convertHtmlxToJsx(str: MagicString, ast: Node) {
     let htmlx = str.original;
@@ -157,7 +189,52 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node) {
 
 
 
-    
+    const handleAttribute = (attr: Node) => {
+       if (attr.value.length == 0) return; //wut?
+       
+        //handle single value
+       if (attr.value.length == 1) {
+            let attrVal = attr.value[0];
+            
+            if (attrVal.type == "AttributeShorthand") {
+                str.appendRight(attr.start, `${attrVal.expression.name}=`);
+                return;
+            }
+
+            let equals = htmlx.lastIndexOf("=", attrVal.start);
+            if (attrVal.type == "Text") {
+                if (attrVal.end == attr.end) {
+                    //we are not quoted. Add some
+                    str.prependRight(equals+1,'"');
+                    str.appendLeft(attr.end, '"');
+                }
+                return;
+            }
+
+            if (attrVal.type == "MustacheTag") {
+                //if the end doesn't line up, we are wrapped in quotes
+                if (attrVal.end != attr.end) {
+                    str.remove(attrVal.start - 1,attrVal.start);
+                    str.remove(attr.end-1, attr.end);
+                }
+                return;
+            }
+            return;
+       }
+
+       // we have multiple attribute values, so we build a string out of them. 
+       // technically the user can do something funky like attr="text "{value} or even attr=text{value}
+       // so instead of trying to maintain a nice sourcemap with prepends etc, we just overwrite the whole thing
+       let valueParts = attr.value.map(n => {
+           if (n.type == "Text") return '${"'+n.raw+'"}';
+           if (n.type == "MustacheTag") return "$"+htmlx.substring(n.start, n.end);
+       })
+       let valuesAsStringTemplate = "{`"+valueParts.join("")+"`}";
+       let equals = htmlx.lastIndexOf("=", attr.value[0].start)+1;
+       str.overwrite(equals, attr.end, valuesAsStringTemplate);
+    }
+
+
     const handleComponentEventHandler = (attr: Node) => {
         if (attr.expression) {
             //for handler assignment, we changeIt to call to our __sveltets_ensureFunction
@@ -266,7 +343,7 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node) {
         str.overwrite(awaitEndStart, awaitBlock.end, "</>})}}");
     };
     walk(ast, {
-        enter: (node: Node, parent, prop, index) => {
+        enter: (node: Node, parent: Node, prop, index) => {
             if (node.type == "IfBlock")
                 handleIf(node);
             if (node.type == "EachBlock")
@@ -282,7 +359,9 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node) {
                 handleComponent(node);
             }
 
-            if (node.type == "Element" || node.type == "InlineComponent") {
+      
+
+            if (node.type == "Element" || node.type == "InlineComponent" || node.type == "Slot") {
                 for(let attr of node.attributes) {
                     if (attr.type == "EventHandler") {
                         if (node.type == "Element") {
@@ -309,6 +388,10 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node) {
 
                     if (attr.type == "Animation") {
                         handleAnimateDirective(attr);
+                    }
+
+                    if (attr.type == "Attribute") {
+                        handleAttribute(attr);
                     }
                 }
             }

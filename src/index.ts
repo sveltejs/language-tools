@@ -1,6 +1,6 @@
 import MagicString from 'magic-string'
 import { parseHtmlx } from './parser';
-import { convertHtmlxToJsx } from './htmlxtojsx';
+import { convertHtmlxToJsx, AttributeValueAsJsExpression } from './htmlxtojsx';
 import { Node } from 'svelte/compiler'
 export { htmlx2jsx } from './htmlxtojsx'
 import { createSourceFile, ScriptTarget, ScriptKind, SourceFile, SyntaxKind, VariableStatement, Identifier, FunctionDeclaration, BindingName, ExportDeclaration, ScriptSnapshot, LabeledStatement, ExpressionStatement, BinaryExpression } from 'typescript'
@@ -22,12 +22,13 @@ function extractSlotDefs(str: MagicString, ast: Node): SlotInfo {
             for (let attr of node.attributes) {
                 if (attr.name == "name") continue;
                 if (!attr.value.length) continue;
-                let val = attr.value[0];
-                if (val.type == "Text") {
-                    attributes.set(attr.name, val.raw);
-                } else if (val.expression) {
-                    attributes.set(attr.name, htmlx.substring(val.expression.start, val.expression.end))
-                }
+                //let val = attr.value[0];
+                //if (val.type == "Text") {
+                 //   attributes.set(attr.name, val.raw);
+                //} else if (val.expression) {
+                //    attributes.set(attr.name, htmlx.substring(val.expression.start, val.expression.end))
+               // }
+               attributes.set(attr.name, AttributeValueAsJsExpression(htmlx, attr));
             }
             slots.set(slotName, attributes)
         }
@@ -148,9 +149,9 @@ function processScriptTag(str: MagicString, ast: Node, slots: SlotInfo) {
     }
 
     let slotsAsString = "{" + [...slots.entries()].map(([name, attrs]) => {
-        let attrsAsString = [...attrs.entries()].map(([exportName, expr]) => `${exportName}:${expr}`).join(",");
+        let attrsAsString = [...attrs.entries()].map(([exportName, expr]) => `${exportName}:${expr}`).join(", ");
         return `${name}: {${attrsAsString}}`
-    }).join(",") + "}"
+    }).join(", ") + "}"
 
 
     let htmlx = str.original;
