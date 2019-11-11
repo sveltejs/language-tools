@@ -245,6 +245,18 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node) {
         } else {
             //for passthrough handlers, we just remove
             str.remove(attr.start, attr.end)
+        
+        }
+    }
+
+
+    const handleElement = (attr: Node) => {
+        //we just have to self close void tags since jsx always wants the />
+        let voidTags = "area,base,br,col,embed,hr,img,input,link,meta,param,source,track,wbr".split(',');
+        if (voidTags.find(x => x == attr.name)) {
+            if (htmlx[attr.end-2] != '/') {
+                str.appendLeft(attr.end-1, "/");
+            }
         }
     }
 
@@ -359,7 +371,9 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node) {
                 handleComponent(node);
             }
 
-      
+            if (node.type == "Element") {
+                handleElement(node);
+            }
 
             if (node.type == "Element" || node.type == "InlineComponent" || node.type == "Slot") {
                 for(let attr of node.attributes) {
