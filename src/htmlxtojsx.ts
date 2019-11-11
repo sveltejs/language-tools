@@ -68,6 +68,9 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node) {
         let needCurly = (attr.expression.start == attr.start + "class:".length);
         str.overwrite(attr.start, attr.expression.start, `{...__sveltets_ensureType(Boolean, `)
         str.appendLeft(attr.expression.end, `)${ needCurly ? "}" : "" }`)
+        if (htmlx[attr.end - 1] == '"') {
+            str.remove(attr.end-1,attr.end);
+        }
     }
 
     const handleActionDirective = (attr: Node) => {
@@ -80,6 +83,9 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node) {
 
         str.overwrite(attr.start + `use:${attr.name}`.length, attr.expression.start, ",")
         str.appendLeft(attr.expression.end, ")");
+        if (htmlx[attr.end - 1] == '"') {
+            str.remove(attr.end-1,attr.end);
+        }
     }
 
     const handleTransitionDirective = (attr: Node) => {
@@ -91,6 +97,9 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node) {
         }
         str.overwrite(htmlx.indexOf(":", attr.start) + 1 + `${attr.name}`.length, attr.expression.start, ", ")
         str.appendLeft(attr.expression.end, ")");
+        if (htmlx[attr.end - 1] == '"') {
+            str.remove(attr.end-1,attr.end);
+        }
     }
 
     const handleAnimateDirective = (attr: Node) => {
@@ -102,30 +111,33 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node) {
         }
         str.overwrite(htmlx.indexOf(":", attr.start) + 1 + `${attr.name}`.length, attr.expression.start, ", ")
         str.appendLeft(attr.expression.end, ")");
+        if (htmlx[attr.end - 1] == '"') {
+            str.remove(attr.end-1,attr.end);
+        }
     }
 
     const handleBinding = (attr: Node, el: Node) => {
         //bind group on input
         if (attr.name == "group" && el.name == "input") {
-            str.remove(attr.start, attr.start+"bind:group=".length);
-            str.prependRight(attr.expression.start,"...__sveltets_ensureType(String, ")
-            str.appendLeft(attr.expression.end,")")
+            str.remove(attr.start, attr.expression.start);
+            str.prependRight(attr.expression.start,"{...__sveltets_ensureType(String, ")
+            str.overwrite(attr.expression.end, attr.end, ")}")
             return;
         }
 
         //bind this on element
         if (attr.name == "this" && el.type == "Element") {
-            str.remove(attr.start, attr.start + "bind:this=".length)
-            str.prependRight(attr.expression.start, "...__sveltets_ensureType(HTMLElement, ");
-            str.appendLeft(attr.expression.end, ")");
+            str.remove(attr.start, attr.expression.start)
+            str.prependRight(attr.expression.start, "{...__sveltets_ensureType(HTMLElement, ");
+            str.overwrite(attr.expression.end, attr.end, ")}");
             return;
         }
 
          //bind this on component
          if (attr.name == "this" && el.type == "InlineComponent") {
-            str.remove(attr.start, attr.start + "bind:this=".length)
-            str.prependRight(attr.expression.start, `...__sveltets_ensureType(${el.name}, `);
-            str.appendLeft(attr.expression.end, ")");
+            str.remove(attr.start, attr.expression.start)
+            str.prependRight(attr.expression.start, `{...__sveltets_ensureType(${el.name}, `);
+            str.overwrite(attr.expression.end, attr.end, ")}");
             return;
         }
 
@@ -133,7 +145,16 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node) {
         str.remove(attr.start,attr.start+"bind:".length);
         if (attr.expression.start == attr.start + "bind:".length) {
             str.appendLeft(attr.end, `={${attr.name}}`);
+            return
         }
+        
+        //remove possible quotes
+        if (htmlx[attr.end-1] == '"') {
+            let firstQuote = htmlx.indexOf('"', attr.start);
+            str.remove(firstQuote, firstQuote + 1);
+            str.remove(attr.end-1, attr.end);
+        }
+
     }
 
     const handleSlot  = (slotEl:Node, componentName: string, slotName: string) => {
@@ -243,14 +264,12 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node) {
     const handleComponentEventHandler = (attr: Node) => {
         if (attr.expression) {
             //for handler assignment, we changeIt to call to our __sveltets_ensureFunction
-            let endAttr = htmlx.indexOf("=", attr.start)+1
-            str.remove(attr.start, endAttr)
-            str.prependRight(attr.expression.start, "...__sveltets_ensureFunction((")
-            str.appendLeft(attr.expression.end, "))");         
+            str.remove(attr.start, attr.expression.start);
+            str.prependRight(attr.expression.start, "{...__sveltets_ensureFunction((")
+            str.overwrite(attr.expression.end, attr.end, "))}");         
         } else {
             //for passthrough handlers, we just remove
             str.remove(attr.start, attr.end)
-        
         }
     }
 
