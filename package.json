@@ -27,6 +27,8 @@
     "dev": "rollup -c -w",
     "test": "mocha --opts mocha.opts",
     "test:unit": "mocha --require sucrase/register --recursive src/**/__test__.ts",
-    "pretest": "npm run build"
+    "pretest": "npm run build",
+    "precompile": "npm run build",
+    "compile": "node ./index.js ./test/svelte2tsx/samples/circle-drawer-example/input.svelte.tsx"
   }
 }

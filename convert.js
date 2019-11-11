@@ -33715,7 +33715,7 @@ function processScriptTag(str, ast, slots) {
 function addComponentExport(str) {
     str.append("\n\nexport default class {\n    $$prop_def = render().props\n    $$slot_def = render().slots\n}");
 }
-function svelte2jsx(svelte) {
+function svelte2tsx(svelte) {
     let str = new MagicString(svelte);
     let htmlxAst = parseHtmlx(svelte);
     //TODO move script tag to top
@@ -33733,5 +33733,5 @@ function svelte2jsx(svelte) {
 
 let source = process.argv[2];
 let content = fs.readFileSync(source);
-process.stdout.write(svelte2jsx(content.toString()).code);
+process.stdout.write(svelte2tsx(content.toString()).code);
 //# sourceMappingURL=convert.js.map
