@@ -54,6 +54,11 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node) {
         if (attr.expression) {
             let endAttr = htmlx.indexOf("=", attr.start)
             str.overwrite(attr.start, endAttr, jsxEventName)
+            if (htmlx[attr.end-1] == '"') {
+                let firstQuote = htmlx.indexOf('"', endAttr);
+                str.remove(firstQuote, firstQuote + 1);
+                str.remove(attr.end-1, attr.end);
+            }
         } else {
             str.overwrite(attr.start, attr.end, `${jsxEventName}={null}`)
         }

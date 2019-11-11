@@ -1,0 +1,22 @@
+{
+    "compilerOptions": {
+      "module": "ES6",
+      "noImplicitAny": false,
+      "noImplicitThis": true,
+      "noImplicitReturns": true,
+      "sourceMap": true,
+      "noEmit": true,
+      "allowJs": true,
+      "jsxFactory": "h",
+      "jsx": "preserve"
+    },
+    "files": [
+      "../svelte-shims.d.ts",
+      "../svelte-jsx.d.ts",
+     
+      "expected.tsx"
+    ],
+    "exclude": [
+      "node_modules"
+    ]
+  }
