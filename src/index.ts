@@ -4,10 +4,36 @@ import { convertHtmlxToJsx } from './htmlxtojsx';
 import { Node } from 'svelte/compiler'
 export { htmlx2jsx } from './htmlxtojsx'
 import { createSourceFile, ScriptTarget, ScriptKind, SourceFile, SyntaxKind, VariableStatement, Identifier, FunctionDeclaration, BindingName, ExportDeclaration, ScriptSnapshot, LabeledStatement, ExpressionStatement, BinaryExpression } from 'typescript'
+import { walk } from 'estree-walker';
 
+type SlotInfo = Map<string, Map<string, string>>;
 
-
-
+function extractSlotDefs(str: MagicString, ast: Node): SlotInfo {
+    //we have to walk the ast to find Elements with "slot="
+    let htmlx = str.original;
+    let slots = new Map<string, Map<string, string>>();
+    walk(ast, {
+        enter: (node) => {
+            if (node.type != "Slot") return;
+            let nameAttr = node.attributes.find(a => a.name == "name");
+            let slotName = nameAttr ? nameAttr.value[0].raw : "default";
+            //collect attributes
+            let attributes = new Map<string, string>();
+            for (let attr of node.attributes) {
+                if (attr.name == "name") continue;
+                if (!attr.value.length) continue;
+                let val = attr.value[0];
+                if (val.type == "Text") {
+                    attributes.set(attr.name, val.raw);
+                } else if (val.expression) {
+                    attributes.set(attr.name, htmlx.substring(val.expression.start, val.expression.end))
+                }
+            }
+            slots.set(slotName, attributes)
+        }
+    });
+    return slots;
+}
 
 
 
@@ -31,12 +57,12 @@ function declareImplictReactiveVariables(declaredNames: string[], str: MagicStri
         let be = es.expression as BinaryExpression;
         if (be.operatorToken.kind != SyntaxKind.EqualsToken
             || be.left.kind != SyntaxKind.Identifier) continue;
-        
+
         let ident = be.left as Identifier;
         //are we already declared?
         if (declaredNames.find(n => ident.text == n)) continue;
         //add a declaration
-        str.prependRight(ls.pos+astOffset+1, `;let ${ident.text}; `)
+        str.prependRight(ls.pos + astOffset + 1, `;let ${ident.text}; `)
     }
 }
 
@@ -70,9 +96,9 @@ function replaceExports(str: MagicString, tsAst: SourceFile, astOffset: number) 
     for (let s of statements) {
         if (s.kind == SyntaxKind.VariableStatement) {
             let vs = s as VariableStatement;
-            let exportModifier = vs.modifiers 
-                                    ? vs.modifiers.find(x => x.kind == SyntaxKind.ExportKeyword)
-                                    : null;
+            let exportModifier = vs.modifiers
+                ? vs.modifiers.find(x => x.kind == SyntaxKind.ExportKeyword)
+                : null;
             for (let v of vs.declarationList.declarations) {
                 if (exportModifier) {
                     addExport(v.name);
@@ -110,7 +136,7 @@ function replaceExports(str: MagicString, tsAst: SourceFile, astOffset: number) 
 }
 
 
-function processScriptTag(str: MagicString, ast: Node) {
+function processScriptTag(str: MagicString, ast: Node, slots: SlotInfo) {
     let script: Node = null;
 
     //find the script
@@ -121,11 +147,17 @@ function processScriptTag(str: MagicString, ast: Node) {
         }
     }
 
+    let slotsAsString = "{" + [...slots.entries()].map(([name, attrs]) => {
+        let attrsAsString = [...attrs.entries()].map(([exportName, expr]) => `${exportName}:${expr}`).join(",");
+        return `${name}: {${attrsAsString}}`
+    }).join(",") + "}"
+
+
     let htmlx = str.original;
 
     if (!script) {
         str.prependRight(0, "</>;function render() {\n<>");
-        str.append(";\nreturn { props: {}, slots: {} }}");
+        str.append(";\nreturn { props: {}, slots: "+slotsAsString+" }}");
         return;
     }
 
@@ -143,11 +175,11 @@ function processScriptTag(str: MagicString, ast: Node) {
 
     let tsAst = createSourceFile("component.ts.svelte", htmlx.substring(script.content.start, script.content.end), ScriptTarget.Latest, true, ScriptKind.TS);
     let { exportedNames, declaredNames } = replaceExports(str, tsAst, script.content.start);
-   
+
     declareImplictReactiveVariables(declaredNames, str, tsAst, script.content.start);
 
     let returnElements = [...exportedNames.entries()].map(([key, value]) => value ? `${value}: ${key}` : key);
-    let returnString = "\nreturn { props: {" + returnElements.join(" , ") + "}, slots: {} }}"
+    let returnString = "\nreturn { props: {" + returnElements.join(" , ") + "}, slots: "+slotsAsString+" }}"
     str.append(returnString)
 }
 
@@ -165,8 +197,11 @@ export function svelte2jsx(svelte: string) {
     //TODO move script tag to top
     //ensure script at top
     convertHtmlxToJsx(str, htmlxAst)
+
+    let slotDefs = extractSlotDefs(str, htmlxAst)
+
     removeStyleTags(str, htmlxAst)
-    processScriptTag(str, htmlxAst);
+    processScriptTag(str, htmlxAst, slotDefs);
     addComponentExport(str);
 
     return {
