@@ -1,1 +1,1 @@
-<><h1 onClick={click}>Hello</h1></>
+<><h1 onclick={click}>Hello</h1></>

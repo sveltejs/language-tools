@@ -64,15 +64,15 @@
 
 
 <div class="controls">
-	<button onClick={() => travel(-1)} disabled={i === 0}>undo</button>
-	<button onClick={() => travel(+1)} disabled={i === undoStack.length -1}>redo</button>
+	<button onclick={() => travel(-1)} disabled={i === 0}>undo</button>
+	<button onclick={() => travel(+1)} disabled={i === undoStack.length -1}>redo</button>
 </div>
 
-<svg onClick={handleClick} >
+<svg onclick={handleClick} >
 	{(circles).map((circle) => <>
 		<circle cx={circle.cx} cy={circle.cy} r={circle.r}
-			onClick={event => select(circle, event)}
-			onContextmenu={() => {
+			onclick={event => select(circle, event)}
+			oncontextmenu={() => {
 				adjusting = !adjusting;
 				if (adjusting) selected = circle;
 			}}
@@ -84,7 +84,7 @@
 {() => {if (adjusting){<>
 	<div class="adjuster">
 		<p>adjust diameter of circle at {selected.cx}, {selected.cy}</p>
-		<input type="range" value={selected.r} onInput={adjust}/>
+		<input type="range" value={selected.r} oninput={adjust}/>
 	</div>
 </>}}}</>
 return { props: {}, slots: {} }}

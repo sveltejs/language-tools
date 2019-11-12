@@ -64,18 +64,19 @@
 
 
 <div class="controls">
-	<button onClick="{() => travel(-1)}" disabled={i === 0}>undo</button>
-	<button onClick="{() => travel(+1)}" disabled={i === undoStack.length -1}>redo</button>
+	<button onClick={() => travel(-1)} disabled={i === 0}>undo</button>
+	<button onClick={() => travel(+1)} disabled={i === undoStack.length -1}>redo</button>
 </div>
 
 <svg onClick={handleClick} >
 	{(circles).map((circle) => <>
 		<circle cx={circle.cx} cy={circle.cy} r={circle.r}
-			onClick="{event => select(circle, event)}"
-			onContextmenu="{() => {
+			
+			onClick={event => select(circle, event)}
+			oncontextmenu={() => {
 				adjusting = !adjusting;
 				if (adjusting) selected = circle;
-			}}"
+			}}
 			fill={circle === selected ? '#ccc': 'white'}
 		/>
 	</>)}

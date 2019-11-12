@@ -1,6 +1,7 @@
 import MagicString from 'magic-string';
 import { walk, Node } from 'estree-walker';
 import { parseHtmlx } from './parser';
+import KnownEvents from './knownevents';
 
 export function AttributeValueAsJsExpression(htmlx: string, attr: Node): string {
     if (attr.value.length == 0) return "''"; //wut?
@@ -49,18 +50,24 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node) {
     };
 
     const handleElementEventHandler = (attr: Node) => {
-        let jsxEventName = `on${attr.name[0].toUpperCase() + attr.name.substr(1)}`
+        let jsxEventName = `on${attr.name.toLowerCase()}`
 
-        if (attr.expression) {
-            let endAttr = htmlx.indexOf("=", attr.start)
-            str.overwrite(attr.start, endAttr, jsxEventName)
-            if (htmlx[attr.end-1] == '"') {
-                let firstQuote = htmlx.indexOf('"', endAttr);
-                str.remove(firstQuote, firstQuote + 1);
-                str.remove(attr.end-1, attr.end);
+        if (KnownEvents.indexOf(jsxEventName) >= 0) {
+            if (attr.expression) {
+                let endAttr = htmlx.indexOf("=", attr.start)
+                str.overwrite(attr.start, endAttr, jsxEventName)
+                if (htmlx[attr.end-1] == '"') {
+                    let firstQuote = htmlx.indexOf('"', endAttr);
+                    str.remove(firstQuote, firstQuote + 1);
+                    str.remove(attr.end-1, attr.end);
+                }
+            } else {
+                str.overwrite(attr.start, attr.end, `${jsxEventName}={null}`)
             }
         } else {
-            str.overwrite(attr.start, attr.end, `${jsxEventName}={null}`)
+            //if we don't know the name of the event handler, default to same
+            // behaviour as component event handlers
+            handleComponentEventHandler(attr);
         }
     }
 

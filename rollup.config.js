@@ -21,7 +21,7 @@ export default [{
 		clearScreen: false
 	},
 	external: [...builtins, 'typescript', 'svelte']
-}, /* {
+},  {
 	input: 'src/convert.ts',
 	output: {
 		sourcemap: true,
@@ -38,4 +38,4 @@ export default [{
 		clearScreen: false
 	},
 	external: [...builtins, 'typescript', 'svelte']
-} */];
+} ];
