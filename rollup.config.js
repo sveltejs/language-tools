@@ -20,7 +20,7 @@ export default [{
 	watch: {
 		clearScreen: false
 	},
-	external: [...builtins, 'typescript', 'svelte']
+	external: [...builtins, 'typescript', 'svelte', 'source-map']
 },  {
 	input: 'src/convert.ts',
 	output: {
@@ -37,5 +37,5 @@ export default [{
 	watch: {
 		clearScreen: false
 	},
-	external: [...builtins, 'typescript', 'svelte']
+	external: [...builtins, 'typescript', 'svelte', 'source-map']
 } ];

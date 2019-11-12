@@ -7,14 +7,20 @@ radius of the selected circle.
 -->
 
 <script>
+	type circle = {
+		cx: number,
+		cy: number,
+		r: number
+	}
+
 	let i = 0;
-	let undoStack = [[]];
-	let circles = [];
-	let selected;
+	let undoStack:circle[][] = [[]];
+	let circles:circle[] = [];
+	let selected: circle;
 	let adjusting = false;
 	let adjusted = false;
 
-	function handleClick(event) {
+	function handleClick(event: MouseEvent) {
 		if (adjusting) {
 			adjusting = false;
 
@@ -36,13 +42,13 @@ radius of the selected circle.
 		push();
 	}
 
-	function adjust(event) {
-		selected.r = +event.target.value;
+	function adjust(event: InputEvent) {
+		selected.r = +(event.target as HTMLInputElement).value;
 		circles = circles;
 		adjusted = true;
 	}
 
-	function select(circle, event) {
+	function select(circle: circle, event: MouseEvent) {
 		if (!adjusting) {
 			event.stopPropagation();
 			selected = circle;
@@ -55,12 +61,12 @@ radius of the selected circle.
 		undoStack = newUndoStack;
 	}
 
-	function travel(d) {
+	function travel(d: number) {
 		circles = clone(undoStack[i += d]);
 		adjusting = false;
 	}
 
-	function clone(circles) {
+	function clone(circles: circle[]) {
 		return circles.map(({ cx, cy, r }) => ({ cx, cy, r }));
 	}
 </script>
@@ -100,8 +106,8 @@ radius of the selected circle.
 </style>
 
 <div class="controls">
-	<button on:click="{() => travel(-1)}" disabled="{i === 0}">undo</button>
-	<button on:click="{() => travel(+1)}" disabled="{i === undoStack.length -1}">redo</button>
+	<button title="test" on:click="{() => travel(-1)}" disabled="{i === 0}">undo</button>
+	<button {thing} on:click="{() => travel(+1)}" disabled="{i === undoStack.length -1}">redo</button>
 </div>
 
 <svg on:click={handleClick} >
