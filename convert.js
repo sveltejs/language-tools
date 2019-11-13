@@ -33762,6 +33762,15 @@ function extractSlotDefs(str, ast) {
     });
     return slots;
 }
+function processImports(str, tsAst, astOffset, target) {
+    for (var st of tsAst.statements) {
+        if (st.kind == typescript.SyntaxKind.ImportDeclaration) {
+            console.log("Moving", st.pos, st.end, astOffset, target);
+            str.move(st.pos + astOffset, st.end + astOffset, target);
+            str.overwrite(st.end + astOffset - 1, st.end + astOffset, '"\n');
+        }
+    }
+}
 function removeStyleTags(str, ast) {
     for (var v of ast.children) {
         let n = v;
@@ -33880,17 +33889,20 @@ function processScriptTag(str, ast, slots) {
     if (script.start != 0) {
         str.move(script.start, script.end, 0);
     }
+    let tsAst = typescript.createSourceFile("component.ts.svelte", htmlx.substring(script.content.start, script.content.end), typescript.ScriptTarget.Latest, true, typescript.ScriptKind.TS);
     //I couldn't get magicstring to let me put the script before the <> we prepend during conversion of the template to jsx, so we just close it instead
     let scriptTagEnd = htmlx.lastIndexOf(">", script.content.start) + 1;
-    str.overwrite(script.start, scriptTagEnd, "</>;function render() {\n");
+    //str.remove(script.start, script.start+1);
+    str.overwrite(script.start, script.start + 1, "</>;");
+    str.overwrite(script.start + 1, scriptTagEnd, "function render() {\n");
     let scriptEndTagStart = htmlx.lastIndexOf("<", script.end);
     str.overwrite(scriptEndTagStart, script.end, ";\n<>");
-    let tsAst = typescript.createSourceFile("component.ts.svelte", htmlx.substring(script.content.start, script.content.end), typescript.ScriptTarget.Latest, true, typescript.ScriptKind.TS);
     let { exportedNames, declaredNames } = replaceExports(str, tsAst, script.content.start);
     declareImplictReactiveVariables(declaredNames, str, tsAst, script.content.start);
     let returnElements = [...exportedNames.entries()].map(([key, value]) => value ? `${value}: ${key}` : key);
     let returnString = "\nreturn { props: {" + returnElements.join(" , ") + "}, slots: " + slotsAsString + " }}";
     str.append(returnString);
+    processImports(str, tsAst, script.content.start, script.start + 1);
 }
 function addComponentExport(str) {
     str.append("\n\nexport default class {\n    $$prop_def = render().props\n    $$slot_def = render().slots\n}");
