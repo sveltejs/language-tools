@@ -1,12 +1,11 @@
 <></>;
-    import { a as b } from "./test.svelte"
-
-
-    import * as c from "b.ts"
-function render() {
+    export function preload() {}
+    let b = 5;
+;<></>;function render() {
  let world = "name"
 ;
-<><h1>hello {world}</h1>
+<>
+<h1>hello {world}</h1>
 </>
 return { props: {world}, slots: {} }}
 

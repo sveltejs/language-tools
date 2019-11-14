@@ -97,7 +97,7 @@ function replaceExports(str: MagicString, tsAst: SourceFile, astOffset: number) 
     }
 
     const removeExport = (start: number, end: number) => {
-        str.remove(start + astOffset + 1, end + astOffset);
+        str.remove(start + astOffset, end + astOffset);
     }
 
     let statements = tsAst.statements;
@@ -146,8 +146,34 @@ function replaceExports(str: MagicString, tsAst: SourceFile, astOffset: number) 
     return { exportedNames, declaredNames }
 }
 
+function findModuleScriptTag(str: MagicString, ast: Node ): Node {
+    let script: Node = null;
+    let htmlx = str.original;
+    //find the script
+    for (var v of ast.children) {
+        let n = v as Node;
+        if (n.type == "Script" && n.attributes && n.attributes.find(a => a.name == "context" && a.value == "module")) {
+            script = n;
+            break;
+        }
+    }
+    return script;
+}
 
-function processScriptTag(str: MagicString, ast: Node, slots: SlotInfo) {
+
+function processModuleScriptTag(str: MagicString, script: Node) {
+    let htmlx = str.original;
+
+    let scriptStartTagEnd = htmlx.indexOf(">", script.start)+1;
+    let scriptEndTagStart = htmlx.lastIndexOf("<", script.end-1);
+  
+    str.overwrite(script.start, scriptStartTagEnd, "</>;");
+    str.overwrite(scriptEndTagStart, script.end, ";<>");
+}
+
+
+
+function processScriptTag(str: MagicString, ast: Node, slots: SlotInfo, target: number) {
     let script: Node = null;
 
     //find the script
@@ -167,14 +193,14 @@ function processScriptTag(str: MagicString, ast: Node, slots: SlotInfo) {
     let htmlx = str.original;
 
     if (!script) {
-        str.prependRight(0, "</>;function render() {\n<>");
+        str.prependRight(target, "</>;function render() {\n<>");
         str.append(";\nreturn { props: {}, slots: " + slotsAsString + " }}");
         return;
     }
 
     //move it to the top (the variables need to be declared before the jsx template)
-    if (script.start != 0) {
-        str.move(script.start, script.end, 0);
+    if (script.start != target) {
+        str.move(script.start, script.end, target);
     }
 
 
@@ -187,7 +213,7 @@ function processScriptTag(str: MagicString, ast: Node, slots: SlotInfo) {
     str.overwrite(script.start, script.start+ 1, "</>;");
     str.overwrite(script.start+1, scriptTagEnd, "function render() {\n");
 
-    let scriptEndTagStart = htmlx.lastIndexOf("<", script.end);
+    let scriptEndTagStart = htmlx.lastIndexOf("<", script.end-1);
     str.overwrite(scriptEndTagStart, script.end, ";\n<>");
 
 
@@ -220,11 +246,23 @@ export function svelte2tsx(svelte: string) {
 
     let slotDefs = extractSlotDefs(str, htmlxAst)
 
-    removeStyleTags(str, htmlxAst)
-    
-    processScriptTag(str, htmlxAst, slotDefs);
-    addComponentExport(str);
+    removeStyleTags(str, htmlxAst);
 
+   
+    let moduleScript = findModuleScriptTag(str, htmlxAst);
+      //move it to the top
+    if (moduleScript && moduleScript.start != 0) {
+        str.move(moduleScript.start, moduleScript.end, 0);
+    }
+    let moveScriptTarget = (moduleScript && moduleScript.start == 0) ? moduleScript.end : 0;
+    processScriptTag(str, htmlxAst, slotDefs, moveScriptTarget);
+
+    if (moduleScript) {
+        processModuleScriptTag(str, moduleScript);
+    }
+    
+    addComponentExport(str);
+    
     return {
         code: str.toString(),
         map: str.generateMap({ hires: true })

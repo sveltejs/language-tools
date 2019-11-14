@@ -1,5 +1,4 @@
 <></>;function render() {
-
  let name = "world"
 ;
 <></>

@@ -33765,7 +33765,6 @@ function extractSlotDefs(str, ast) {
 function processImports(str, tsAst, astOffset, target) {
     for (var st of tsAst.statements) {
         if (st.kind == typescript.SyntaxKind.ImportDeclaration) {
-            console.log("Moving", st.pos, st.end, astOffset, target);
             str.move(st.pos + astOffset, st.end + astOffset, target);
             str.overwrite(st.end + astOffset - 1, st.end + astOffset, '"\n');
         }
@@ -33822,7 +33821,7 @@ function replaceExports(str, tsAst, astOffset) {
         exportedNames.set(name.text, target ? target.text : null);
     };
     const removeExport = (start, end) => {
-        str.remove(start + astOffset + 1, end + astOffset);
+        str.remove(start + astOffset, end + astOffset);
     };
     let statements = tsAst.statements;
     for (let s of statements) {
@@ -33866,7 +33865,27 @@ function replaceExports(str, tsAst, astOffset) {
     }
     return { exportedNames, declaredNames };
 }
-function processScriptTag(str, ast, slots) {
+function findModuleScriptTag(str, ast) {
+    let script = null;
+    let htmlx = str.original;
+    //find the script
+    for (var v of ast.children) {
+        let n = v;
+        if (n.type == "Script" && n.attributes && n.attributes.find(a => a.name == "context" && a.value == "module")) {
+            script = n;
+            break;
+        }
+    }
+    return script;
+}
+function processModuleScriptTag(str, script) {
+    let htmlx = str.original;
+    let scriptStartTagEnd = htmlx.indexOf(">", script.start) + 1;
+    let scriptEndTagStart = htmlx.lastIndexOf("<", script.end - 1);
+    str.overwrite(script.start, scriptStartTagEnd, "</>;");
+    str.overwrite(scriptEndTagStart, script.end, ";<>");
+}
+function processScriptTag(str, ast, slots, target) {
     let script = null;
     //find the script
     for (var v of ast.children) {
@@ -33881,13 +33900,13 @@ function processScriptTag(str, ast, slots) {
     }).join(", ") + "}";
     let htmlx = str.original;
     if (!script) {
-        str.prependRight(0, "</>;function render() {\n<>");
+        str.prependRight(target, "</>;function render() {\n<>");
         str.append(";\nreturn { props: {}, slots: " + slotsAsString + " }}");
         return;
     }
     //move it to the top (the variables need to be declared before the jsx template)
-    if (script.start != 0) {
-        str.move(script.start, script.end, 0);
+    if (script.start != target) {
+        str.move(script.start, script.end, target);
     }
     let tsAst = typescript.createSourceFile("component.ts.svelte", htmlx.substring(script.content.start, script.content.end), typescript.ScriptTarget.Latest, true, typescript.ScriptKind.TS);
     //I couldn't get magicstring to let me put the script before the <> we prepend during conversion of the template to jsx, so we just close it instead
@@ -33895,7 +33914,7 @@ function processScriptTag(str, ast, slots) {
     //str.remove(script.start, script.start+1);
     str.overwrite(script.start, script.start + 1, "</>;");
     str.overwrite(script.start + 1, scriptTagEnd, "function render() {\n");
-    let scriptEndTagStart = htmlx.lastIndexOf("<", script.end);
+    let scriptEndTagStart = htmlx.lastIndexOf("<", script.end - 1);
     str.overwrite(scriptEndTagStart, script.end, ";\n<>");
     let { exportedNames, declaredNames } = replaceExports(str, tsAst, script.content.start);
     declareImplictReactiveVariables(declaredNames, str, tsAst, script.content.start);
@@ -33915,7 +33934,16 @@ function svelte2tsx(svelte) {
     convertHtmlxToJsx(str, htmlxAst);
     let slotDefs = extractSlotDefs(str, htmlxAst);
     removeStyleTags(str, htmlxAst);
-    processScriptTag(str, htmlxAst, slotDefs);
+    let moduleScript = findModuleScriptTag(str, htmlxAst);
+    //move it to the top
+    if (moduleScript && moduleScript.start != 0) {
+        str.move(moduleScript.start, moduleScript.end, 0);
+    }
+    let moveScriptTarget = (moduleScript && moduleScript.start == 0) ? moduleScript.end : 0;
+    processScriptTag(str, htmlxAst, slotDefs, moveScriptTarget);
+    if (moduleScript) {
+        processModuleScriptTag(str, moduleScript);
+    }
     addComponentExport(str);
     return {
         code: str.toString(),
