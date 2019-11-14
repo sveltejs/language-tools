@@ -17,7 +17,7 @@ async function reportDiagnostics(diagnostics: ts.Diagnostic[]) {
 
     let consumers = new Map<ts.SourceFile, SourceMapConsumer>();
 
-    async function reportDiagnostic(diagnostic: ts.Diagnostic) {
+    function reportDiagnostic(diagnostic: ts.Diagnostic) {
         let output = "";
     
         if (diagnostic.file) {
@@ -29,7 +29,7 @@ async function reportDiagnostics(diagnostics: ts.Diagnostic[]) {
             if (sourceMap) {
                 let decoder = consumers.get(diagnostic.file);
                 if (!decoder) {
-                    decoder = await new SourceMapConsumer(sourceMap);
+                    decoder = new SourceMapConsumer(sourceMap);
                     consumers.set(diagnostic.file, decoder);
                 }
                 let res = decoder.originalPositionFor({ line: line, column: character })

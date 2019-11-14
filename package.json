@@ -15,14 +15,19 @@
     "rollup-plugin-json": "^4.0.0",
     "rollup-plugin-node-resolve": "^5.2.0",
     "rollup-plugin-typescript": "^1.0.1",
-    "source-map": "^0.7.3",
     "source-map-support": "^0.5.16",
     "svelte": "^3.0.0",
     "tiny-glob": "^0.2.6",
     "tslib": "^1.10.0",
     "typescript": "^3.6.4"
   },
-  "dependencies": {},
+  "dependencies": {
+    "source-map": "~0.6.1"
+  },
+  "peerDependencies": {
+    "svelte": "^3.12.1",
+    "typescript": "^3.6.4"
+  },
   "scripts": {
     "build": "rollup -c",
     "dev": "rollup -c -w",
