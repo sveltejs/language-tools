@@ -5,60 +5,15 @@ export { htmlx2jsx } from './htmlxtojsx'
 import * as ts from "typescript";
 import * as path from "path";
 import { compile, parseConfigFile } from './compiler';
-import { SourceMapConsumer  } from 'source-map'
+import { Warning } from 'svelte/types/compiler/interfaces';
 
-function getRelativeFileName(fileName: string): string {
-    return path.relative(__dirname, fileName);
+
+
+function reportDiagnostic(d: Warning) {        
+    let output = `${d.code.toUpperCase()} (${d.filename}:${d.start.line}:${d.start.column}) ${ d.message }\n`;
+    process.stdout.write(output);
 }
-
-
-
-async function reportDiagnostics(diagnostics: ts.Diagnostic[]) {
-
-    let consumers = new Map<ts.SourceFile, SourceMapConsumer>();
-
-    function reportDiagnostic(diagnostic: ts.Diagnostic) {
-        let output = "";
     
-        if (diagnostic.file) {
-            let { line, character } = ts.getLineAndCharacterOfPosition(diagnostic.file, diagnostic.start);
-    
-            let sourceMap = (diagnostic.file as any).__svelte_map;
-            let relativeFileName = getRelativeFileName(diagnostic.file.fileName);
-           
-            if (sourceMap) {
-                let decoder = consumers.get(diagnostic.file);
-                if (!decoder) {
-                    decoder = new SourceMapConsumer(sourceMap);
-                    consumers.set(diagnostic.file, decoder);
-                }
-                let res = decoder.originalPositionFor({ line: line, column: character })
-                line = res.line;
-                character = res.column;
-                relativeFileName = relativeFileName.substring(0, relativeFileName.lastIndexOf(".tsx"))
-            }
-    
-           
-            output += `${ relativeFileName }(${ line + 1 },${ character + 1 }): `;
-        }
-    
-        const categoryFormatMap = {
-            [ts.DiagnosticCategory.Warning]: "Warning",
-            [ts.DiagnosticCategory.Error]: "Error",
-            [ts.DiagnosticCategory.Message]: "Info",
-        };
-        let category = categoryFormatMap[diagnostic.category]
-        output += `${ category } TS${ diagnostic.code }: ${ ts.flattenDiagnosticMessageText(diagnostic.messageText, ts.sys.newLine) }${ ts.sys.newLine }`;
-    
-       process.stdout.write(output);
-    }
-    
-
-
-    for (const diagnostic of diagnostics) {
-        reportDiagnostic(diagnostic);
-    }
-}
 
 
 //cli?
@@ -72,5 +27,5 @@ if (require.main === module) {
     let conf = parseConfigFile(path.resolve(__dirname, "./test2/tsconfig.json"));
 
     let diags = compile(conf.options, conf.fileNames);
-    reportDiagnostics(diags).catch(e => console.error(e));
+    diags.forEach(reportDiagnostic)
 }
