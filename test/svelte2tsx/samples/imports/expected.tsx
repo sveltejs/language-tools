@@ -4,7 +4,8 @@
 
     import * as c from "b.ts"
 function render() {
- let world = "name"
+
+     let world = "name"
 ;
 <><h1>hello {world}</h1>
 </>

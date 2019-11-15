@@ -1,6 +1,6 @@
 import MagicString from 'magic-string'
 import { parseHtmlx } from './parser';
-import { convertHtmlxToJsx, AttributeValueAsJsExpression } from './htmlxtojsx';
+import { convertHtmlxToJsx, AttributeValueAsJsExpression, htmlx2jsx } from './htmlxtojsx';
 import { Node } from 'svelte/compiler'
 import { createSourceFile, ScriptTarget, ScriptKind, SourceFile, SyntaxKind, VariableStatement, Identifier, FunctionDeclaration, BindingName, ExportDeclaration, ScriptSnapshot, LabeledStatement, ExpressionStatement, BinaryExpression } from 'typescript'
 import { walk } from 'estree-walker';
@@ -97,7 +97,10 @@ function replaceExports(str: MagicString, tsAst: SourceFile, astOffset: number) 
     }
 
     const removeExport = (start: number, end: number) => {
-        str.remove(start + astOffset, end + astOffset);
+        let exportStart = str.original.indexOf("export", start+astOffset);
+        let exportEnd = exportStart + "export".length;
+        console.log("export is ",start+astOffset, end+astOffset, exportStart, exportEnd);
+        str.remove(exportStart, exportEnd);
     }
 
     let statements = tsAst.statements;
@@ -108,10 +111,12 @@ function replaceExports(str: MagicString, tsAst: SourceFile, astOffset: number) 
             let exportModifier = vs.modifiers
                 ? vs.modifiers.find(x => x.kind == SyntaxKind.ExportKeyword)
                 : null;
+            if (exportModifier) {
+                removeExport(exportModifier.pos, exportModifier.end);
+            }
             for (let v of vs.declarationList.declarations) {
                 if (exportModifier) {
                     addExport(v.name);
-                    removeExport(exportModifier.pos, exportModifier.end);
                 }
                 addDeclaredName(v.name);
             }

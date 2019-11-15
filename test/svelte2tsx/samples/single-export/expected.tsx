@@ -1,5 +1,6 @@
 <></>;function render() {
- let name = "world"
+
+     let name = "world"
 ;
 <></>
 return { props: {name}, slots: {} }}

@@ -2,7 +2,8 @@
     export function preload() {}
     let b = 5;
 ;<></>;function render() {
- let world = "name"
+
+     let world = "name"
 ;
 <>
 <h1>hello {world}</h1>

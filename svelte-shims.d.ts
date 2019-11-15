@@ -1,6 +1,7 @@
 declare module '*.svelte' {
     export default class {
-        props: any;
+		$$prop_def: any;
+		$$slot_def: any;
     }
 }
 

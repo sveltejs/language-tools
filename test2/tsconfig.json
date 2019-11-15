@@ -14,7 +14,7 @@
       "../svelte-shims.d.ts",
       "../svelte-jsx.d.ts",
      
-      "input.svelte.tsx"
+      "test.svelte.tsx"
     ],
     "exclude": [
       "node_modules"

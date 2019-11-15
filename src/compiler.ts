@@ -2,13 +2,17 @@ import { svelte2tsx } from './svelte2tsx';
 import * as ts from 'typescript';
 import getCodeFrame from './from_svelte/code_frame'
 import * as path from 'path';
+import * as fs from 'fs'
 
-function createCompilerHost(configOptions): ts.CompilerHost {
+function createCompilerHost(configOptions: ts.CompilerOptions): ts.CompilerHost {
+
+    let original = ts.createCompilerHost(configOptions);
 
     function getSourceFile(fileName: string, languageVersion: ts.ScriptTarget, onError?: (message: string) => void) {
         let sourceText;
-        if (fileName.endsWith(".svelte.tsx")) {
-            let originalName = fileName.substring(0, fileName.length - ".tsx".length);
+        if (!fileName.endsWith(".d.ts")) console.log("processing "+fileName);
+        if (fileName.endsWith(".svelte.tsx") || fileName.endsWith(".svelte")) {
+            let originalName = fileName.endsWith(".svelte") ? fileName : fileName.substring(0, fileName.length - ".tsx".length);
             sourceText = ts.sys.readFile(originalName);
             if (!sourceText) {
                  if (onError) { 
@@ -22,8 +26,9 @@ function createCompilerHost(configOptions): ts.CompilerHost {
             let srcFile = ts.createSourceFile(fileName, output.code, languageVersion);
             (srcFile as any).__svelte_map = output.map;
             (srcFile as any).__svelte_source = sourceText;
+           
+            fs.writeFileSync(fileName, output.code);
             return srcFile;
-            //fs.writeFileSync(fileName, sourceText);
         }
         else {
             sourceText = ts.sys.readFile(fileName);
@@ -33,13 +38,44 @@ function createCompilerHost(configOptions): ts.CompilerHost {
         }
     }
 
-    let original = ts.createCompilerHost(configOptions);
-    return { ...original, getSourceFile }
+    function resolveModuleNames(moduleNames: string[] , containingFile: string ): ts.ResolvedModule[] {
+        return moduleNames.map(moduleName => {
+            let lookupResult = ts.resolveModuleName(moduleName,containingFile, configOptions, original);
+            if (lookupResult.resolvedModule) return lookupResult.resolvedModule;
+            console.log("couldn't resolve", moduleName);
+            //try with .tsx extension
+            if (moduleName.indexOf(".svelte") >= 0) {
+                console.log("looking at ",(lookupResult as any).failedLookupLocations);
+                for(let loc of (lookupResult as any).failedLookupLocations) {
+                    console.log("previously tried", loc);
+                    if (!loc.endsWith(".tsx")) continue;
+                    let originalFile = loc.substring(0, loc.lastIndexOf(".tsx"));
+                    console.log("trying ",originalFile)
+                   
+                    if (original.fileExists(originalFile)) {
+                        console.log("found!")
+                        return {
+                            extension: ts.Extension.Tsx,
+                            resolvedFileName: loc,
+                            isExternalLibraryImport: originalFile.indexOf("node_modules") >=0,
+                            packageId: null
+                        } as ts.ResolvedModuleFull
+                    }
+                }
+            }
+            return undefined;
+        })
+    }
+   
+
+    
+    return { ...original, getSourceFile, resolveModuleNames }
 }
 
 import { SourceMapConsumer } from 'source-map'
 import { Warning } from 'svelte/types/compiler/interfaces';
 import { SourceMap } from 'magic-string';
+import { hostname } from 'os';
 
 function getRelativeFileName(fileName: string): string {
     return path.relative(__dirname, fileName);
@@ -76,12 +112,17 @@ function transformDiagnostics(diagnostics: ts.Diagnostic[]): Warning[] {
                 sourceText = (diagnostic.file as any).__svelte_source;
 
                 for (let pos of [start, end]) {
-                    let res = decoder.originalPositionFor({ line: pos.line, column: pos.character })
+                    if (pos.line == 0) {
+                        console.log("invalid pos", start, end, diagnostic.start);
+                    }
+                    let res = decoder.originalPositionFor({ line: pos.line+1, column: pos.character })
                     pos.line = res.line;
                     pos.character = res.column;
                 }
 
-                relativeFileName = relativeFileName.substring(0, relativeFileName.lastIndexOf(".tsx"))
+                if (relativeFileName.endsWith(".svelte.tsx")) {
+                    relativeFileName = relativeFileName.substring(0, relativeFileName.lastIndexOf(".tsx"))
+                }
             }
 
             let warning: Warning = {

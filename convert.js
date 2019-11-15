@@ -35702,7 +35702,10 @@ function replaceExports(str, tsAst, astOffset) {
         exportedNames.set(name.text, target ? target.text : null);
     };
     const removeExport = (start, end) => {
-        str.remove(start + astOffset, end + astOffset);
+        let exportStart = str.original.indexOf("export", start + astOffset);
+        let exportEnd = exportStart + "export".length;
+        console.log("export is ", start + astOffset, end + astOffset, exportStart, exportEnd);
+        str.remove(exportStart, exportEnd);
     };
     let statements = tsAst.statements;
     for (let s of statements) {
@@ -35711,10 +35714,12 @@ function replaceExports(str, tsAst, astOffset) {
             let exportModifier = vs.modifiers
                 ? vs.modifiers.find(x => x.kind == typescript.SyntaxKind.ExportKeyword)
                 : null;
+            if (exportModifier) {
+                removeExport(exportModifier.pos, exportModifier.end);
+            }
             for (let v of vs.declarationList.declarations) {
                 if (exportModifier) {
                     addExport(v.name);
-                    removeExport(exportModifier.pos, exportModifier.end);
                 }
                 addDeclaredName(v.name);
             }
