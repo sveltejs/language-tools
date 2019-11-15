@@ -7,6 +7,7 @@
     "@types/parse5": "^5.0.2",
     "@types/unist": "^2.0.3",
     "@types/vfile": "^3.0.2",
+    "chalk": "^3.0.0",
     "magic-string": "^0.25.4",
     "mocha": "^6.2.2",
     "parse5": "^5.1.0",
@@ -16,7 +17,7 @@
     "rollup-plugin-node-resolve": "^5.2.0",
     "rollup-plugin-typescript": "^1.0.1",
     "source-map-support": "^0.5.16",
-    "svelte": "^3.0.0",
+    "svelte": "^3.14.1",
     "tiny-glob": "^0.2.6",
     "tslib": "^1.10.0",
     "typescript": "^3.6.4"
@@ -25,7 +26,7 @@
     "source-map": "~0.6.1"
   },
   "peerDependencies": {
-    "svelte": "^3.12.1",
+    "svelte": "^3.14.1",
     "typescript": "^3.6.4"
   },
   "scripts": {
@@ -35,6 +36,6 @@
     "test:unit": "mocha --require sucrase/register --recursive src/**/__test__.ts",
     "pretest": "npm run build",
     "precompile": "npm run build",
-    "compile": "node ./index.js ./test2/input.svelte.tsx"
+    "compile": "node ./index.js ./test2/input2.svelte.tsx"
   }
 }

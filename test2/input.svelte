@@ -1,11 +1,3 @@
-<!--
-https://eugenkiss.github.io/7guis/tasks#circle
-
-Click on the canvas to draw a circle. Click on a circle
-to select it. Right-click on the canvas to adjust the
-radius of the selected circle.
--->
-
 <script>
 	type circle = {
 		cx: number,
@@ -106,8 +98,8 @@ radius of the selected circle.
 </style>
 
 <div class="controls">
-	<button title="test" on:click="{() => travel(-1)}" disabled="{i === 0}">undo</button>
-	<button {thing} on:click="{() => travel(+1)}" disabled="{i === undoStack.length -1}">redo</button>
+	<button title="test" on:click="{travel(-1)}">undo</button>
+	<button title={3} on:click="{() => travel(+1)}" disabled="{i === undoStack.length -1}">redo</button>
 </div>
 
 <svg on:click={handleClick} >

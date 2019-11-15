@@ -11251,7 +11251,7 @@ var compiler = createCommonjsModule(function (module, exports) {
 	    //     super [ Expression ]
 	    //     super . IdentifierName
 	    // SuperCall:
-	    //     super Arguments
+	    //     super ( Arguments )
 	    if (this.type !== types.dot && this.type !== types.bracketL && this.type !== types.parenL)
 	      { this.unexpected(); }
 	    return this.finishNode(node, "Super")
@@ -11546,7 +11546,7 @@ var compiler = createCommonjsModule(function (module, exports) {
 	  while (!this.eat(types.braceR)) {
 	    if (!first) {
 	      this.expect(types.comma);
-	      if (this.afterTrailingComma(types.braceR)) { break }
+	      if (this.options.ecmaVersion >= 5 && this.afterTrailingComma(types.braceR)) { break }
 	    } else { first = false; }
 
 	    var prop = this.parseProperty(isPattern, refDestructuringErrors);
@@ -13999,18 +13999,64 @@ var compiler = createCommonjsModule(function (module, exports) {
 	  return this.finishToken(type, word)
 	};
 
+	// Acorn is a tiny, fast JavaScript parser written in JavaScript.
+
+	var version = "7.1.0";
+
+	Parser.acorn = {
+	  Parser: Parser,
+	  version: version,
+	  defaultOptions: defaultOptions,
+	  Position: Position,
+	  SourceLocation: SourceLocation,
+	  getLineInfo: getLineInfo,
+	  Node: Node,
+	  TokenType: TokenType,
+	  tokTypes: types,
+	  keywordTypes: keywords$1,
+	  TokContext: TokContext,
+	  tokContexts: types$1,
+	  isIdentifierChar: isIdentifierChar,
+	  isIdentifierStart: isIdentifierStart,
+	  Token: Token,
+	  isNewLine: isNewLine,
+	  lineBreak: lineBreak,
+	  lineBreakG: lineBreakG,
+	  nonASCIIwhitespace: nonASCIIwhitespace
+	};
+
+	// The main exported interface (under `self.acorn` when in the
+	// browser) is a `parse` function that takes a code string and
+	// returns an abstract syntax tree as specified by [Mozilla parser
+	// API][api].
+	//
+	// [api]: https://developer.mozilla.org/en-US/docs/SpiderMonkey/Parser_API
+
+	function parse(input, options) {
+	  return Parser.parse(input, options)
+	}
+
+	// This function tries to parse a single expression at a given
+	// offset in a string. Useful for parsing mixed-language formats
+	// that embed JavaScript expressions.
+
+	function parseExpressionAt(input, pos, options) {
+	  return Parser.parseExpressionAt(input, pos, options)
+	}
+
 	const Parser$1 = Parser;
-	const parse = (source) => Parser$1.parse(source, {
+	const parse$1 = (source) => Parser$1.parse(source, {
 	    sourceType: 'module',
-	    // @ts-ignore TODO pending release of fixed types
 	    ecmaVersion: 11,
-	    preserveParens: true
+	    locations: true
 	});
 	const parse_expression_at = (source, index) => Parser$1.parseExpressionAt(source, index, {
-	    // @ts-ignore TODO pending release of fixed types
 	    ecmaVersion: 11,
-	    preserveParens: true
+	    locations: true
 	});
+
+	const whitespace = /[ \t\r\n]/;
+	const dimensions = /^(?:offset|client)(?:Width|Height)$/;
 
 	const literals = new Map([['true', true], ['false', false], ['null', null]]);
 	function read_expression(parser) {
@@ -14039,7 +14085,26 @@ var compiler = createCommonjsModule(function (module, exports) {
 	    parser.index = start;
 	    try {
 	        const node = parse_expression_at(parser.template, parser.index);
-	        parser.index = node.end;
+	        let num_parens = 0;
+	        for (let i = parser.index; i < node.start; i += 1) {
+	            if (parser.template[i] === '(')
+	                num_parens += 1;
+	        }
+	        let index = node.end;
+	        while (num_parens > 0) {
+	            const char = parser.template[index];
+	            if (char === ')') {
+	                num_parens -= 1;
+	            }
+	            else if (!whitespace.test(char)) {
+	                parser.error({
+	                    code: 'unexpected-token',
+	                    message: 'Expected )'
+	                }, index);
+	            }
+	            index += 1;
+	        }
+	        parser.index = index;
 	        return node;
 	    }
 	    catch (err) {
@@ -14086,13 +14151,15 @@ var compiler = createCommonjsModule(function (module, exports) {
 	    parser.index = script_end + script_closing_tag.length;
 	    let ast;
 	    try {
-	        ast = parse(source);
+	        ast = parse$1(source);
 	    }
 	    catch (err) {
 	        parser.acorn_error(err);
 	    }
+	    // TODO is this necessary?
 	    ast.start = script_start;
 	    return {
+	        type: 'Script',
 	        start,
 	        end: parser.index,
 	        context: get_context(parser, attributes, start),
@@ -18695,55 +18762,93 @@ var compiler = createCommonjsModule(function (module, exports) {
 	var parser$1 = create(parser);
 
 	function walk(ast, { enter, leave }) {
-		visit(ast, null, enter, leave);
+		return visit(ast, null, enter, leave);
 	}
 
-	let shouldSkip = false;
-	const context = { skip: () => shouldSkip = true };
+	let should_skip = false;
+	let replacement = null;
+	const context = {
+		skip: () => should_skip = true,
+		replace: (node) => replacement = node
+	};
 
 	const childKeys = {};
 
-	const toString$1 = Object.prototype.toString;
-
-	function isArray$1(thing) {
-		return toString$1.call(thing) === '[object Array]';
+	function replace(parent, prop, index, node) {
+		if (parent) {
+			if (index !== null) {
+				parent[prop][index] = node;
+			} else {
+				parent[prop] = node;
+			}
+		}
 	}
 
-	function visit(node, parent, enter, leave, prop, index) {
-		if (!node) return;
+	function visit(
+		node,
+		parent,
+		enter,
+		leave,
+		prop,
+		index
+	) {
+		if (node) {
+			if (enter) {
+				const _should_skip = should_skip;
+				const _replacement = replacement;
+				should_skip = false;
+				replacement = null;
 
-		if (enter) {
-			const _shouldSkip = shouldSkip;
-			shouldSkip = false;
-			enter.call(context, node, parent, prop, index);
-			const skipped = shouldSkip;
-			shouldSkip = _shouldSkip;
+				enter.call(context, node, parent, prop, index);
 
-			if (skipped) return;
-		}
+				if (replacement) {
+					node = replacement;
+					replace(parent, prop, index, node);
+				}
 
-		const keys = node.type && childKeys[node.type] || (
-			childKeys[node.type] = Object.keys(node).filter(key => typeof node[key] === 'object')
-		);
+				const skipped = should_skip;
 
-		for (let i = 0; i < keys.length; i += 1) {
-			const key = keys[i];
-			const value = node[key];
+				should_skip = _should_skip;
+				replacement = _replacement;
 
-			if (isArray$1(value)) {
-				for (let j = 0; j < value.length; j += 1) {
-					value[j] && value[j].type && visit(value[j], node, enter, leave, key, j);
+				if (skipped) return node;
+			}
+
+			const keys = node.type && childKeys[node.type] || (
+				childKeys[node.type] = Object.keys(node).filter(key => typeof (node )[key] === 'object')
+			);
+
+			for (let i = 0; i < keys.length; i += 1) {
+				const key = keys[i];
+				const value = (node )[key];
+
+				if (Array.isArray(value)) {
+					for (let j = 0; j < value.length; j += 1) {
+						value[j] && value[j].type && visit(value[j], node, enter, leave, key, j);
+					}
+				}
+
+				else if (value && value.type) {
+					visit(value, node, enter, leave, key, null);
 				}
 			}
 
-			else if (value && value.type) {
-				visit(value, node, enter, leave, key, null);
+			if (leave) {
+				const _replacement = replacement;
+				replacement = null;
+
+				leave.call(context, node, parent, prop, index);
+
+				if (replacement) {
+					node = replacement;
+					replace(parent, prop, index, node);
+				}
+
+				replacement = _replacement;
 			}
 		}
 
-		if (leave) {
-			leave(node, parent, prop, index);
-		}
+		return node;
 	}
 
 	function read_style(parser, start, attributes) {
@@ -18785,6 +18890,12 @@ var compiler = createCommonjsModule(function (module, exports) {
 	                    }
 	                }
 	            }
+	            if (node.type === 'Declaration' && node.value.type === 'Value' && node.value.children.length === 0) {
+	                parser.error({
+	                    code: `invalid-declaration`,
+	                    message: `Declaration cannot be empty`
+	                }, node.start);
+	            }
 	            if (node.loc) {
 	                node.start = node.loc.start.offset;
 	                node.end = node.loc.end.offset;
@@ -18795,6 +18906,7 @@ var compiler = createCommonjsModule(function (module, exports) {
 	    parser.eat('</style>', true);
 	    const end = parser.index;
 	    return {
+	        type: 'Style',
 	        start,
 	        end,
 	        attributes,
@@ -18802,8 +18914,8 @@ var compiler = createCommonjsModule(function (module, exports) {
 	        content: {
 	            start: content_start,
 	            end: content_end,
-	            styles,
-	        },
+	            styles
+	        }
 	    };
 	}
 	function is_ref_selector(a, b) {
@@ -21000,6 +21112,7 @@ var compiler = createCommonjsModule(function (module, exports) {
 	    'encodeURIComponent',
 	    'Error',
 	    'EvalError',
+	    'Event',
 	    'history',
 	    'Infinity',
 	    'InternalError',
@@ -21008,6 +21121,7 @@ var compiler = createCommonjsModule(function (module, exports) {
 	    'isNaN',
 	    'JSON',
 	    'localStorage',
+	    'location',
 	    'Map',
 	    'Math',
 	    'NaN',
@@ -21094,16 +21208,6 @@ var compiler = createCommonjsModule(function (module, exports) {
 	        i += code <= 0xffff ? 1 : 2;
 	    }
 	    return true;
-	}
-	function quote_name_if_necessary(name) {
-	    if (!is_valid(name))
-	        return `"${name}"`;
-	    return name;
-	}
-	function quote_prop_if_necessary(name) {
-	    if (!is_valid(name))
-	        return `["${name}"]`;
-	    return `.${name}`;
 	}
 	function sanitize(name) {
 	    return name
@@ -21350,10 +21454,8 @@ var compiler = createCommonjsModule(function (module, exports) {
 	        },
 	    ],
 	]);
-	// eslint-disable-next-line no-useless-escape
-	const SELF = /^svelte:self(?=[\s\/>])/;
-	// eslint-disable-next-line no-useless-escape
-	const COMPONENT = /^svelte:component(?=[\s\/>])/;
+	const SELF = /^svelte:self(?=[\s/>])/;
+	const COMPONENT = /^svelte:component(?=[\s/>])/;
 	function parent_is_head(stack) {
 	    let i = stack.length;
 	    while (i--) {
@@ -21387,7 +21489,7 @@ var compiler = createCommonjsModule(function (module, exports) {
 	            if ((name === 'svelte:window' || name === 'svelte:body') &&
 	                parser.current().children.length) {
 	                parser.error({
-	                    code: `invalid-${name.slice(7)}-content`,
+	                    code: `invalid-${slug}-content`,
 	                    message: `<${name}> cannot have children`
 	                }, parser.current().children[0].start);
 	            }
@@ -21890,9 +21992,6 @@ var compiler = createCommonjsModule(function (module, exports) {
 	    return context;
 	}
 
-	const whitespace = /[ \t\r\n]/;
-	const dimensions = /^(?:offset|client)(?:Width|Height)$/;
-
 	function trim_start(str) {
 	    let i = 0;
 	    while (whitespace.test(str[i]))
@@ -22039,52 +22138,43 @@ var compiler = createCommonjsModule(function (module, exports) {
 	            parser.stack.push(block.else);
 	        }
 	    }
-	    else if (parser.eat(':then')) {
-	        // TODO DRY out this and the next section
-	        const pending_block = parser.current();
-	        if (pending_block.type === 'PendingBlock') {
-	            pending_block.end = start;
-	            parser.stack.pop();
-	            const await_block = parser.current();
-	            if (!parser.eat('}')) {
-	                parser.require_whitespace();
-	                await_block.value = parser.read_identifier();
-	                parser.allow_whitespace();
-	                parser.eat('}', true);
+	    else if (parser.match(':then') || parser.match(':catch')) {
+	        const block = parser.current();
+	        const is_then = parser.eat(':then') || !parser.eat(':catch');
+	        if (is_then) {
+	            if (block.type !== 'PendingBlock') {
+	                parser.error({
+	                    code: `invalid-then-placement`,
+	                    message: 'Cannot have an {:then} block outside an {#await ...} block'
+	                });
 	            }
-	            const then_block = {
-	                start,
-	                end: null,
-	                type: 'ThenBlock',
-	                children: [],
-	                skip: false
-	            };
-	            await_block.then = then_block;
-	            parser.stack.push(then_block);
 	        }
-	    }
-	    else if (parser.eat(':catch')) {
-	        const then_block = parser.current();
-	        if (then_block.type === 'ThenBlock') {
-	            then_block.end = start;
-	            parser.stack.pop();
-	            const await_block = parser.current();
-	            if (!parser.eat('}')) {
-	                parser.require_whitespace();
-	                await_block.error = parser.read_identifier();
-	                parser.allow_whitespace();
-	                parser.eat('}', true);
+	        else {
+	            if (block.type !== 'ThenBlock' && block.type !== 'PendingBlock') {
+	                parser.error({
+	                    code: `invalid-catch-placement`,
+	                    message: 'Cannot have an {:catch} block outside an {#await ...} block'
+	                });
 	            }
-	            const catch_block = {
-	                start,
-	                end: null,
-	                type: 'CatchBlock',
-	                children: [],
-	                skip: false
-	            };
-	            await_block.catch = catch_block;
-	            parser.stack.push(catch_block);
 	        }
+	        block.end = start;
+	        parser.stack.pop();
+	        const await_block = parser.current();
+	        if (!parser.eat('}')) {
+	            parser.require_whitespace();
+	            await_block[is_then ? 'value' : 'error'] = parser.read_identifier();
+	            parser.allow_whitespace();
+	            parser.eat('}', true);
+	        }
+	        const new_block = {
+	            start,
+	            end: null,
+	            type: is_then ? 'ThenBlock' : 'CatchBlock',
+	            children: [],
+	            skip: false
+	        };
+	        await_block[is_then ? 'then' : 'catch'] = new_block;
+	        parser.stack.push(new_block);
 	    }
 	    else if (parser.eat('#')) {
 	        // {#if foo}, {#each foo} or {#await foo}
@@ -22510,9 +22600,9 @@ var compiler = createCommonjsModule(function (module, exports) {
 	        this.allow_whitespace();
 	    }
 	}
-	function parse$1(template, options = {}) {
+	function parse$2(template, options = {}) {
 	    const parser = new Parser$2(template, options);
-	    // TODO we way want to allow multiple <style> tags —
+	    // TODO we may want to allow multiple <style> tags —
 	    // one scoped, one global. for now, only allow one
 	    if (parser.css.length > 1) {
 	        parser.error({
@@ -22542,151 +22632,1920 @@ var compiler = createCommonjsModule(function (module, exports) {
 	    };
 	}
 
-	const start = /\n(\t+)/;
-	function deindent(strings, ...values) {
-	    const indentation = start.exec(strings[0])[1];
-	    const pattern = new RegExp(`^${indentation}`, 'gm');
-	    let result = strings[0].replace(start, '').replace(pattern, '');
-	    let current_indentation = get_current_indentation(result);
-	    for (let i = 1; i < strings.length; i += 1) {
-	        let expression = values[i - 1];
-	        const string = strings[i].replace(pattern, '');
-	        if (Array.isArray(expression)) {
-	            expression = expression.length ? expression.join('\n') : null;
-	        }
-	        // discard empty codebuilders
-	        if (expression && expression.is_empty && expression.is_empty()) {
-	            expression = null;
-	        }
-	        if (expression || expression === '') {
-	            const value = String(expression).replace(/\n/g, `\n${current_indentation}`);
-	            result += value + string;
-	        }
-	        else {
-	            let c = result.length;
-	            while (/\s/.test(result[c - 1]))
-	                c -= 1;
-	            result = result.slice(0, c) + string;
-	        }
-	        current_indentation = get_current_indentation(result);
+	function isReference(node, parent) {
+	    if (node.type === 'MemberExpression') {
+	        return !node.computed && isReference(node.object, node);
 	    }
-	    return result.trim().replace(/\t+$/gm, '').replace(/{\n\n/gm, '{\n');
-	}
-	function get_current_indentation(str) {
-	    let a = str.length;
-	    while (a > 0 && str[a - 1] !== '\n')
-	        a -= 1;
-	    let b = a;
-	    while (b < str.length && /\s/.test(str[b]))
-	        b += 1;
-	    return str.slice(a, b);
-	}
-
-	function stringify(data, options = {}) {
-	    return JSON.stringify(escape(data, options));
-	}
-	function escape(data, { only_escape_at_symbol = false } = {}) {
-	    return data.replace(only_escape_at_symbol ? /@+/g : /(@+|#+)/g, (match) => {
-	        return match + match[0];
-	    });
-	}
-	const escaped = {
-	    '&': '&amp;',
-	    '<': '&lt;',
-	    '>': '&gt;',
-	};
-	function escape_html(html) {
-	    return String(html).replace(/[&<>]/g, match => escaped[match]);
-	}
-	function escape_template(str) {
-	    return str.replace(/(\${|`|\\)/g, '\\$1');
-	}
-
-	const whitespace$1 = /^\s+$/;
-	class CodeBuilder {
-	    constructor(str = '') {
-	        this.root = { type: 'root', children: [], parent: null };
-	        this.current = this.last = this.root;
-	        this.add_line(str);
-	    }
-	    add_conditional(condition, body) {
-	        if (this.last.type === 'condition' && this.last.condition === condition) {
-	            if (body && !whitespace$1.test(body))
-	                this.last.children.push({ type: 'line', line: body });
-	        }
-	        else {
-	            const next = this.last = { type: 'condition', condition, parent: this.current, children: [] };
-	            this.current.children.push(next);
-	            if (body && !whitespace$1.test(body))
-	                next.children.push({ type: 'line', line: body });
-	        }
-	    }
-	    add_line(line) {
-	        if (line && !whitespace$1.test(line))
-	            this.current.children.push(this.last = { type: 'line', line });
-	    }
-	    add_block(block) {
-	        if (block && !whitespace$1.test(block))
-	            this.current.children.push(this.last = { type: 'line', line: block, block: true });
-	    }
-	    is_empty() { return !find_line(this.root); }
-	    push_condition(condition) {
-	        if (this.last.type === 'condition' && this.last.condition === condition) {
-	            this.current = this.last;
-	        }
-	        else {
-	            const next = this.last = { type: 'condition', condition, parent: this.current, children: [] };
-	            this.current.children.push(next);
-	            this.current = next;
-	        }
-	    }
-	    pop_condition() {
-	        if (!this.current.parent)
-	            throw new Error(`Popping a condition that maybe wasn't pushed.`);
-	        this.current = this.current.parent;
-	    }
-	    toString() {
-	        return chunk_to_string(this.root);
-	    }
-	}
-	function find_line(chunk) {
-	    for (const c of chunk.children) {
-	        if (c.type === 'line' || find_line(c))
+	    if (node.type === 'Identifier') {
+	        if (!parent)
 	            return true;
+	        switch (parent.type) {
+	            // disregard `bar` in `foo.bar`
+	            case 'MemberExpression': return parent.computed || node === parent.object;
+	            // disregard the `foo` in `class {foo(){}}` but keep it in `class {[foo](){}}`
+	            case 'MethodDefinition': return parent.computed;
+	            // disregard the `bar` in `{ bar: foo }`, but keep it in `{ [bar]: foo }`
+	            case 'Property': return parent.computed || node === parent.value;
+	            // disregard the `bar` in `export { foo as bar }` or
+	            // the foo in `import { foo as bar }`
+	            case 'ExportSpecifier':
+	            case 'ImportSpecifier': return node === parent.local;
+	            // disregard the `foo` in `foo: while (...) { ... break foo; ... continue foo;}`
+	            case 'LabeledStatement':
+	            case 'BreakStatement':
+	            case 'ContinueStatement': return false;
+	            default: return true;
+	        }
 	    }
 	    return false;
 	}
-	function chunk_to_string(chunk, level = 0, last_block, first) {
-	    if (chunk.type === 'line') {
-	        return `${last_block || (!first && chunk.block) ? '\n' : ''}${chunk.line.replace(/^/gm, repeat('\t', level))}`;
+
+	function analyze(expression) {
+		const map = new WeakMap();
+
+		let scope = new Scope$1(null, false);
+
+		walk(expression, {
+			enter(node, parent) {
+				if (node.type === 'ImportDeclaration') {
+					node.specifiers.forEach((specifier) => {
+						scope.declarations.set(specifier.local.name, specifier);
+					});
+				} else if (/(Function(Declaration|Expression)|ArrowFunctionExpression)/.test(node.type)) {
+					if (node.type === 'FunctionDeclaration') {
+						scope.declarations.set(node.id.name, node);
+						map.set(node, scope = new Scope$1(scope, false));
+					} else {
+						map.set(node, scope = new Scope$1(scope, false));
+						if (node.type === 'FunctionExpression' && node.id) scope.declarations.set(node.id.name, node);
+					}
+
+					node.params.forEach((param) => {
+						extract_names(param).forEach(name => {
+							scope.declarations.set(name, node);
+						});
+					});
+				} else if (/For(?:In|Of)?Statement/.test(node.type)) {
+					map.set(node, scope = new Scope$1(scope, true));
+				} else if (node.type === 'BlockStatement') {
+					map.set(node, scope = new Scope$1(scope, true));
+				} else if (/(Class|Variable)Declaration/.test(node.type)) {
+					scope.add_declaration(node);
+				} else if (node.type === 'CatchClause') {
+					map.set(node, scope = new Scope$1(scope, true));
+
+					if (node.param) {
+						extract_names(node.param).forEach(name => {
+							scope.declarations.set(name, node.param);
+						});
+					}
+				}
+			},
+
+			leave(node) {
+				if (map.has(node)) {
+					scope = scope.parent;
+				}
+			}
+		});
+
+		const globals = new Map();
+
+		walk(expression, {
+			enter(node, parent) {
+				if (map.has(node)) scope = map.get(node);
+
+				if (node.type === 'Identifier' && isReference(node, parent)) {
+					const owner = scope.find_owner(node.name);
+					if (!owner) globals.set(node.name, node);
+
+					add_reference(scope, node.name);
+				}
+			},
+			leave(node) {
+				if (map.has(node)) {
+					scope = scope.parent;
+				}
+			}
+		});
+
+		return { map, scope, globals };
+	}
+
+	function add_reference(scope, name) {
+		scope.references.add(name);
+		if (scope.parent) add_reference(scope.parent, name);
+	}
+
+	class Scope$1 {
+		
+		
+		__init() {this.declarations = new Map();}
+		__init2() {this.initialised_declarations = new Set();}
+		__init3() {this.references = new Set();}
+
+		constructor(parent, block) {Scope$1.prototype.__init.call(this);Scope$1.prototype.__init2.call(this);Scope$1.prototype.__init3.call(this);
+			this.parent = parent;
+			this.block = block;
+		}
+
+
+		add_declaration(node) {
+			if (node.type === 'VariableDeclaration') {
+				if (node.kind === 'var' && this.block && this.parent) {
+					this.parent.add_declaration(node);
+				} else if (node.type === 'VariableDeclaration') {
+					node.declarations.forEach((declarator) => {
+						extract_names(declarator.id).forEach(name => {
+							this.declarations.set(name, node);
+							if (declarator.init) this.initialised_declarations.add(name);
+						});
+					});
+				}
+			} else {
+				this.declarations.set(node.id.name, node);
+			}
+		}
+
+		find_owner(name) {
+			if (this.declarations.has(name)) return this;
+			return this.parent && this.parent.find_owner(name);
+		}
+
+		has(name) {
+			return (
+				this.declarations.has(name) || (this.parent && this.parent.has(name))
+			);
+		}
+	}
+
+	function extract_names(param) {
+		return extract_identifiers(param).map(node => node.name);
+	}
+
+	function extract_identifiers(param) {
+		const nodes = [];
+		extractors[param.type] && extractors[param.type](nodes, param);
+		return nodes;
+	}
+
+	const extractors = {
+		Identifier(nodes, param) {
+			nodes.push(param);
+		},
+
+		MemberExpression(nodes, param) {
+			let object = param;
+			while (object.type === 'MemberExpression') object = object.object;
+			nodes.push(object);
+		},
+
+		ObjectPattern(nodes, param) {
+			param.properties.forEach((prop) => {
+				if (prop.type === 'RestElement') {
+					nodes.push(prop.argument);
+				} else {
+					extractors[prop.value.type](nodes, prop.value);
+				}
+			});
+		},
+
+		ArrayPattern(nodes, param) {
+			param.elements.forEach((element) => {
+				if (element) extractors[element.type](nodes, element);
+			});
+		},
+
+		RestElement(nodes, param) {
+			extractors[param.argument.type](nodes, param.argument);
+		},
+
+		AssignmentPattern(nodes, param) {
+			extractors[param.left.type](nodes, param.left);
+		}
+	};
+
+	var chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
+	function encode(decoded) {
+	    var sourceFileIndex = 0; // second field
+	    var sourceCodeLine = 0; // third field
+	    var sourceCodeColumn = 0; // fourth field
+	    var nameIndex = 0; // fifth field
+	    var mappings = '';
+	    for (var i = 0; i < decoded.length; i++) {
+	        var line = decoded[i];
+	        if (i > 0)
+	            mappings += ';';
+	        if (line.length === 0)
+	            continue;
+	        var generatedCodeColumn = 0; // first field
+	        var lineMappings = [];
+	        for (var _i = 0, line_1 = line; _i < line_1.length; _i++) {
+	            var segment = line_1[_i];
+	            var segmentMappings = encodeInteger(segment[0] - generatedCodeColumn);
+	            generatedCodeColumn = segment[0];
+	            if (segment.length > 1) {
+	                segmentMappings +=
+	                    encodeInteger(segment[1] - sourceFileIndex) +
+	                        encodeInteger(segment[2] - sourceCodeLine) +
+	                        encodeInteger(segment[3] - sourceCodeColumn);
+	                sourceFileIndex = segment[1];
+	                sourceCodeLine = segment[2];
+	                sourceCodeColumn = segment[3];
+	            }
+	            if (segment.length === 5) {
+	                segmentMappings += encodeInteger(segment[4] - nameIndex);
+	                nameIndex = segment[4];
+	            }
+	            lineMappings.push(segmentMappings);
+	        }
+	        mappings += lineMappings.join(',');
 	    }
-	    else if (chunk.type === 'condition') {
-	        let t = false;
-	        const lines = chunk.children.map((c, i) => {
-	            const str = chunk_to_string(c, level + 1, t, i === 0);
-	            t = c.type !== 'line' || c.block;
-	            return str;
-	        }).filter(l => !!l);
-	        if (!lines.length)
-	            return '';
-	        return `${last_block || (!first) ? '\n' : ''}${repeat('\t', level)}if (${chunk.condition}) {\n${lines.join('\n')}\n${repeat('\t', level)}}`;
-	    }
-	    else if (chunk.type === 'root') {
-	        let t = false;
-	        const lines = chunk.children.map((c, i) => {
-	            const str = chunk_to_string(c, 0, t, i === 0);
-	            t = c.type !== 'line' || c.block;
-	            return str;
-	        }).filter(l => !!l);
-	        if (!lines.length)
-	            return '';
-	        return lines.join('\n');
-	    }
+	    return mappings;
+	}
+	function encodeInteger(num) {
+	    var result = '';
+	    num = num < 0 ? (-num << 1) | 1 : num << 1;
+	    do {
+	        var clamped = num & 31;
+	        num >>>= 5;
+	        if (num > 0) {
+	            clamped |= 32;
+	        }
+	        result += chars[clamped];
+	    } while (num > 0);
+	    return result;
+	}
+
+	function handle(node, state) {
+		const handler = handlers[node.type];
+
+		if (!handler) {
+			throw new Error(`Not implemented ${node.type}`);
+		}
+
+		const result = handler(node, state);
+
+		if (node.leadingComments) {
+			result.unshift(c(node.leadingComments.map(comment => comment.type === 'Block'
+				? `/*${comment.value}*/${(comment ).has_trailing_newline ? `\n${state.indent}` : ` `}`
+				: `//${comment.value}${(comment ).has_trailing_newline ? `\n${state.indent}` : ` `}`).join(``)));
+		}
+
+		if (node.trailingComments) {
+			state.comments.push(node.trailingComments[0]); // there is only ever one
+		}
+
+		return result;
+	}
+
+	function c(content, node) {
+		return {
+			content,
+			loc: node && node.loc,
+			has_newline: /\n/.test(content)
+		};
+	}
+
+	const OPERATOR_PRECEDENCE = {
+		'||': 3,
+		'&&': 4,
+		'|': 5,
+		'^': 6,
+		'&': 7,
+		'==': 8,
+		'!=': 8,
+		'===': 8,
+		'!==': 8,
+		'<': 9,
+		'>': 9,
+		'<=': 9,
+		'>=': 9,
+		in: 9,
+		instanceof: 9,
+		'<<': 10,
+		'>>': 10,
+		'>>>': 10,
+		'+': 11,
+		'-': 11,
+		'*': 12,
+		'%': 12,
+		'/': 12,
+		'**': 13,
+	};
+
+	// Enables parenthesis regardless of precedence
+	const NEEDS_PARENTHESES = 17;
+
+	const EXPRESSIONS_PRECEDENCE = {
+		ArrayExpression: 20,
+		TaggedTemplateExpression: 20,
+		ThisExpression: 20,
+		Identifier: 20,
+		Literal: 18,
+		TemplateLiteral: 20,
+		Super: 20,
+		SequenceExpression: 20,
+		MemberExpression: 19,
+		CallExpression: 19,
+		NewExpression: 19,
+		ArrowFunctionExpression: NEEDS_PARENTHESES,
+		ClassExpression: NEEDS_PARENTHESES,
+		FunctionExpression: NEEDS_PARENTHESES,
+		ObjectExpression: NEEDS_PARENTHESES, // TODO this results in e.g. `o = o || {}` => `o = o || ({})`
+		UpdateExpression: 16,
+		UnaryExpression: 15,
+		BinaryExpression: 14,
+		LogicalExpression: 13,
+		ConditionalExpression: 4,
+		AssignmentExpression: 3,
+		AwaitExpression: 2,
+		YieldExpression: 2,
+		RestElement: 1
+	};
+
+	function needs_parens(node, parent, is_right) {
+		const precedence = EXPRESSIONS_PRECEDENCE[node.type];
+
+		if (precedence === NEEDS_PARENTHESES) {
+			return true;
+		}
+
+		const parent_precedence = EXPRESSIONS_PRECEDENCE[parent.type];
+
+		if (precedence !== parent_precedence) {
+			// Different node types
+			return (
+				(!is_right &&
+					precedence === 15 &&
+					parent_precedence === 14 &&
+					parent.operator === '**') ||
+				precedence < parent_precedence
+			);
+		}
+
+		if (precedence !== 13 && precedence !== 14) {
+			// Not a `LogicalExpression` or `BinaryExpression`
+			return false;
+		}
+
+		if ((node ).operator === '**' && parent.operator === '**') {
+			// Exponentiation operator has right-to-left associativity
+			return !is_right;
+		}
+
+		if (is_right) {
+			// Parenthesis are used if both operators have the same precedence
+			return (
+				OPERATOR_PRECEDENCE[(node ).operator] <=
+				OPERATOR_PRECEDENCE[parent.operator]
+			);
+		}
+
+		return (
+			OPERATOR_PRECEDENCE[(node ).operator] <
+			OPERATOR_PRECEDENCE[parent.operator]
+		);
+	}
+
+	function has_call_expression(node) {
+		while (node) {
+			if (node.type[0] === 'CallExpression') {
+				return true;
+			} else if (node.type === 'MemberExpression') {
+				node = node.object;
+			} else {
+				return false;
+			}
+		}
+	}
+
+	const has_newline = (chunks) => {
+		for (let i = 0; i < chunks.length; i += 1) {
+			if (chunks[i].has_newline) return true;
+		}
+		return false;
+	};
+
+	const get_length = (chunks) => {
+		let total = 0;
+		for (let i = 0; i < chunks.length; i += 1) {
+			total += chunks[i].content.length;
+		}
+		return total;
+	};
+
+	const sum = (a, b) => a + b;
+
+	const join = (nodes, separator) => {
+		if (nodes.length === 0) return [];
+		const joined = [...nodes[0]];
+		for (let i = 1; i < nodes.length; i += 1) {
+			joined.push(separator, ...nodes[i] );
+		}
+		return joined;
+	};
+
+	const scoped = (fn) => {
+		return (node, state) => {
+			return fn(node, {
+				...state,
+				scope: state.scope_map.get(node)
+			});
+		};
+	};
+
+	const deconflict = (name, names) => {
+		const original = name;
+		let i = 1;
+
+		while (names.has(name)) {
+			name = `${original}$${i++}`;
+		}
+
+		return name;
+	};
+
+	const handle_body = (nodes, state) => {
+		const chunks = [];
+
+		const body = nodes.map(statement => {
+			const chunks = handle(statement, {
+				...state,
+				indent: state.indent
+			});
+
+			while (state.comments.length) {
+				const comment = state.comments.shift();
+				chunks.push(c(comment.type === 'Block'
+				? ` /*${comment.value}*/`
+				: ` //${comment.value}`));
+			}
+
+			return chunks;
+		});
+
+		let needed_padding = false;
+
+		for (let i = 0; i < body.length; i += 1) {
+			const needs_padding = has_newline(body[i]);
+
+			if (i > 0) {
+				chunks.push(
+					c(needs_padding || needed_padding ? `\n\n${state.indent}` : `\n${state.indent}`)
+				);
+			}
+
+			chunks.push(
+				...body[i]
+			);
+
+			needed_padding = needs_padding;
+		}
+
+		return chunks;
+	};
+
+	const handle_var_declaration = (node, state) => {
+		const chunks = [c(`${node.kind} `)];
+
+		const declarators = node.declarations.map(d => handle(d, {
+			...state,
+			indent: state.indent + (node.declarations.length === 1 ? '' : '\t')
+		}));
+
+		const multiple_lines = (
+			declarators.some(has_newline) ||
+			(declarators.map(get_length).reduce(sum, 0) + (state.indent.length + declarators.length - 1) * 2) > 80
+		);
+
+		const separator = c(multiple_lines ? `,\n${state.indent}\t` : ', ');
+
+		if (multiple_lines) {
+			chunks.push(...join(declarators, separator));
+		} else {
+			chunks.push(
+				...join(declarators, separator)
+			);
+		}
+
+		return chunks;
+	};
+
+	const handlers = {
+		Program(node, state) {
+			return handle_body(node.body, state);
+		},
+
+		BlockStatement: scoped((node, state) => {
+			return [
+				c(`{\n${state.indent}\t`),
+				...handle_body(node.body, { ...state, indent: state.indent + '\t' }),
+				c(`\n${state.indent}}`)
+			];
+		}),
+
+		EmptyStatement(node, state) {
+			return [];
+		},
+
+		ExpressionStatement(node, state) {
+			const precedence = EXPRESSIONS_PRECEDENCE[node.expression.type];
+			if (
+				precedence === NEEDS_PARENTHESES ||
+				(precedence === 3 && (node.expression ).left.type === 'ObjectPattern')
+			) {
+				// Should always have parentheses or is an AssignmentExpression to an ObjectPattern
+				return [
+					c('('),
+					...handle(node.expression, state),
+					c(');')
+				];
+			}
+
+			return [
+				...handle(node.expression, state),
+				c(';')
+			];
+		},
+
+		IfStatement(node, state) {
+			const chunks = [
+				c('if ('),
+				...handle(node.test, state),
+				c(') '),
+				...handle(node.consequent, state)
+			];
+
+			if (node.alternate) {
+				chunks.push(
+					c(' else '),
+					...handle(node.alternate, state)
+				);
+			}
+
+			return chunks;
+		},
+
+		LabeledStatement(node, state) {
+			return [
+				...handle(node.label, state),
+				c(': '),
+				...handle(node.body, state)
+			];
+		},
+
+		BreakStatement(node, state) {
+			return node.label
+				? [c('break '), ...handle(node.label, state), c(';')]
+				: [c('break;')];
+		},
+
+		ContinueStatement(node, state) {
+			return node.label
+				? [c('continue '), ...handle(node.label, state), c(';')]
+				: [c('continue;')];
+		},
+
+		WithStatement(node, state) {
+			return [
+				c('with ('),
+				...handle(node.object, state),
+				c(') '),
+				...handle(node.body, state)
+			];
+		},
+
+		SwitchStatement(node, state) {
+			const chunks = [
+				c('switch ('),
+				...handle(node.discriminant, state),
+				c(') {')
+			];
+
+			node.cases.forEach(block => {
+				if (block.test) {
+					chunks.push(
+						c(`\n${state.indent}\tcase `),
+						...handle(block.test, { ...state, indent: `${state.indent}\t` }),
+						c(':')
+					);
+				} else {
+					chunks.push(c(`\n${state.indent}\tdefault:`));
+				}
+
+				block.consequent.forEach(statement => {
+					chunks.push(
+						c(`\n${state.indent}\t\t`),
+						...handle(statement, { ...state, indent: `${state.indent}\t\t` })
+					);
+				});
+			});
+
+			chunks.push(c(`\n${state.indent}}`));
+
+			return chunks;
+		},
+
+		ReturnStatement(node, state) {
+			if (node.argument) {
+				return [
+					c('return '),
+					...handle(node.argument, state),
+					c(';')
+				];
+			} else {
+				return [c('return;')];
+			}
+		},
+
+		ThrowStatement(node, state) {
+			return [
+				c('throw '),
+				...handle(node.argument, state),
+				c(';')
+			];
+		},
+
+		TryStatement(node, state) {
+			const chunks = [
+				c('try '),
+				...handle(node.block, state)
+			];
+
+			if (node.handler) {
+				if (node.handler.param) {
+					chunks.push(
+						c(' catch('),
+						...handle(node.handler.param, state),
+						c(') ')
+					);
+				} else {
+					chunks.push(c(' catch '));
+				}
+
+				chunks.push(...handle(node.handler.body, state));
+			}
+
+			if (node.finalizer) {
+				chunks.push(c(' finally '), ...handle(node.finalizer, state));
+			}
+
+			return chunks;
+		},
+
+		WhileStatement(node, state) {
+			return [
+				c('while ('),
+				...handle(node.test, state),
+				c(') '),
+				...handle(node.body, state)
+			];
+		},
+
+		DoWhileStatement(node, state) {
+			return [
+				c('do '),
+				...handle(node.body, state),
+				c(' while ('),
+				...handle(node.test, state),
+				c(');')
+			];
+		},
+
+		ForStatement: scoped((node, state) => {
+			const chunks = [c('for (')];
+
+			if (node.init) {
+				if ((node.init ).type === 'VariableDeclaration') {
+					chunks.push(...handle_var_declaration(node.init , state));
+				} else {
+					chunks.push(...handle(node.init, state));
+				}
+			}
+
+			chunks.push(c('; '));
+			if (node.test) chunks.push(...handle(node.test, state));
+			chunks.push(c('; '));
+			if (node.update) chunks.push(...handle(node.update, state));
+
+			chunks.push(
+				c(') '),
+				...handle(node.body, state)
+			);
+
+			return chunks;
+		}),
+
+		ForInStatement: scoped((node, state) => {
+			const chunks = [
+				c(`for ${(node ).await ? 'await ' : ''}(`)
+			];
+
+			if ((node.left ).type === 'VariableDeclaration') {
+				chunks.push(...handle_var_declaration(node.left , state));
+			} else {
+				chunks.push(...handle(node.left, state));
+			}
+
+			chunks.push(
+				c(node.type === 'ForInStatement' ? ` in ` : ` of `),
+				...handle(node.right, state),
+				c(') '),
+				...handle(node.body, state)
+			);
+
+			return chunks;
+		}),
+
+		DebuggerStatement(node, state) {
+			return [c('debugger', node), c(';')];
+		},
+
+		FunctionDeclaration: scoped((node, state) => {
+			const chunks = [];
+
+			if (node.async) chunks.push(c('async '));
+			chunks.push(c(node.generator ? 'function* ' : 'function '));
+			if (node.id) chunks.push(...handle(node.id, state));
+			chunks.push(c('('));
+
+			const params = node.params.map(p => handle(p, {
+				...state,
+				indent: state.indent + '\t'
+			}));
+
+			const multiple_lines = (
+				params.some(has_newline) ||
+				(params.map(get_length).reduce(sum, 0) + (state.indent.length + params.length - 1) * 2) > 80
+			);
+
+			const separator = c(multiple_lines ? `,\n${state.indent}` : ', ');
+
+			if (multiple_lines) {
+				chunks.push(
+					c(`\n${state.indent}\t`),
+					...join(params, separator),
+					c(`\n${state.indent}`)
+				);
+			} else {
+				chunks.push(
+					...join(params, separator)
+				);
+			}
+
+			chunks.push(
+				c(') '),
+				...handle(node.body, state)
+			);
+
+			return chunks;
+		}),
+
+		VariableDeclaration(node, state) {
+			return handle_var_declaration(node, state).concat(c(';'));
+		},
+
+		VariableDeclarator(node, state) {
+			if (node.init) {
+				return [
+					...handle(node.id, state),
+					c(' = '),
+					...handle(node.init, state)
+				];
+			} else {
+				return handle(node.id, state);
+			}
+		},
+
+		ClassDeclaration(node, state) {
+			const chunks = [c('class ')];
+
+			if (node.id) chunks.push(...handle(node.id, state), c(' '));
+
+			if (node.superClass) {
+				chunks.push(
+					c('extends '),
+					...handle(node.superClass, state),
+					c(' ')
+				);
+			}
+
+			chunks.push(...handle(node.body, state));
+
+			return chunks;
+		},
+
+		ImportDeclaration(node, state) {
+			const chunks = [c('import ')];
+
+			const { length } = node.specifiers;
+			const source = handle(node.source, state);
+
+			if (length > 0) {
+				let i = 0;
+
+				while (i < length) {
+					if (i > 0) {
+						chunks.push(c(', '));
+					}
+
+					const specifier = node.specifiers[i];
+
+					if (specifier.type === 'ImportDefaultSpecifier') {
+						chunks.push(c(specifier.local.name, specifier));
+						i += 1;
+					} else if (specifier.type === 'ImportNamespaceSpecifier') {
+						chunks.push(c('* as ' + specifier.local.name, specifier));
+						i += 1;
+					} else {
+						break;
+					}
+				}
+
+				if (i < length) {
+					// we have named specifiers
+					const specifiers = node.specifiers.slice(i).map((specifier) => {
+						const name = handle(specifier.imported, state)[0];
+						const as = handle(specifier.local, state)[0];
+
+						if (name.content === as.content) {
+							return [as];
+						}
+
+						return [name, c(' as '), as];
+					});
+
+					const width = get_length(chunks) + specifiers.map(get_length).reduce(sum, 0) + (2 * specifiers.length) + 6 + get_length(source);
+
+					if (width > 80) {
+						chunks.push(
+							c(`{\n\t`),
+							...join(specifiers, c(',\n\t')),
+							c('\n}')
+						);
+					} else {
+						chunks.push(
+							c(`{ `),
+							...join(specifiers, c(', ')),
+							c(' }')
+						);
+					}
+				}
+
+				chunks.push(c(' from '));
+			}
+
+			chunks.push(
+				...source,
+				c(';')
+			);
+
+			return chunks;
+		},
+
+		ImportExpression(node, state) {
+			return [c('import('), ...handle(node.source, state), c(')')];
+		},
+
+		ExportDefaultDeclaration(node, state) {
+			const chunks = [
+				c(`export default `),
+				...handle(node.declaration, state)
+			];
+
+			if (node.declaration.type !== 'FunctionDeclaration') {
+				chunks.push(c(';'));
+			}
+
+			return chunks;
+		},
+
+		ExportNamedDeclaration(node, state) {
+			const chunks = [c('export ')];
+
+			if (node.declaration) {
+				chunks.push(...handle(node.declaration, state));
+			} else {
+				const specifiers = node.specifiers.map(specifier => {
+					const name = handle(specifier.local, state)[0];
+					const as = handle(specifier.exported, state)[0];
+
+					if (name.content === as.content) {
+						return [name];
+					}
+
+					return [name, c(' as '), as];
+				});
+
+				const width = 7 + specifiers.map(get_length).reduce(sum, 0) + 2 * specifiers.length;
+
+				if (width > 80) {
+					chunks.push(
+						c('{\n\t'),
+						...join(specifiers, c(',\n\t')),
+						c('\n}')
+					);
+				} else {
+					chunks.push(
+						c('{ '),
+						...join(specifiers, c(', ')),
+						c(' }')
+					);
+				}
+
+				if (node.source) {
+					chunks.push(
+						c(' from '),
+						...handle(node.source, state)
+					);
+				}
+			}
+
+			chunks.push(c(';'));
+
+			return chunks;
+		},
+
+		ExportAllDeclaration(node, state) {
+			return [
+				c(`export * from `),
+				...handle(node.source, state),
+				c(`;`)
+			];
+		},
+
+		MethodDefinition(node, state) {
+			const chunks = [];
+
+			if (node.static) {
+				chunks.push(c('static '));
+			}
+
+			if (node.kind === 'get' || node.kind === 'set') {
+				// Getter or setter
+				chunks.push(c(node.kind + ' '));
+			}
+
+			if (node.value.async) {
+				chunks.push(c('async '));
+			}
+
+			if (node.value.generator) {
+				chunks.push(c('*'));
+			}
+
+			if (node.computed) {
+				chunks.push(
+					c('['),
+					...handle(node.key, state),
+					c(']')
+				);
+			} else {
+				chunks.push(...handle(node.key, state));
+			}
+
+			chunks.push(c('('));
+
+			const { params } = node.value;
+			for (let i = 0; i < params.length; i += 1) {
+				chunks.push(...handle(params[i], state));
+				if (i < params.length - 1) chunks.push(c(', '));
+			}
+
+			chunks.push(
+				c(') '),
+				...handle(node.value.body, state)
+			);
+
+			return chunks;
+		},
+
+		ArrowFunctionExpression: scoped((node, state) => {
+			const chunks = [];
+
+			if (node.async) chunks.push(c('async '));
+
+			if (node.params.length === 1 && node.params[0].type === 'Identifier') {
+				chunks.push(...handle(node.params[0], state));
+			} else {
+				const params = node.params.map(param => handle(param, {
+					...state,
+					indent: state.indent + '\t'
+				}));
+
+				chunks.push(
+					c('('),
+					...join(params, c(', ')),
+					c(')')
+				);
+			}
+
+			chunks.push(c(' => '));
+
+			if (node.body.type === 'ObjectExpression') {
+				chunks.push(
+					c('('),
+					...handle(node.body, state),
+					c(')')
+				);
+			} else {
+				chunks.push(...handle(node.body, state));
+			}
+
+			return chunks;
+		}),
+
+		ThisExpression(node, state) {
+			return [c('this', node)];
+		},
+
+		Super(node, state) {
+			return [c('super', node)];
+		},
+
+		RestElement(node, state) {
+			return [c('...'), ...handle(node.argument, state)];
+		},
+
+		YieldExpression(node, state) {
+			if (node.argument) {
+				return [c(node.delegate ? `yield* ` : `yield `), ...handle(node.argument, state)];
+			}
+
+			return [c(node.delegate ? `yield*` : `yield`)];
+		},
+
+		AwaitExpression(node, state) {
+			if (node.argument) {
+				return [c('await '), ...handle(node.argument, state)];
+			}
+
+			return [c('await')];
+		},
+
+		TemplateLiteral(node, state) {
+			const chunks = [c('`')];
+
+			const { quasis, expressions } = node;
+
+			for (let i = 0; i < expressions.length; i++) {
+				chunks.push(
+					c(quasis[i].value.raw),
+					c('${'),
+					...handle(expressions[i], state),
+					c('}')
+				);
+			}
+
+			chunks.push(
+				c(quasis[quasis.length - 1].value.raw),
+				c('`')
+			);
+
+			return chunks;
+		},
+
+		TaggedTemplateExpression(node, state) {
+			return handle(node.tag, state).concat(handle(node.quasi, state));
+		},
+
+		ArrayExpression(node, state) {
+			const chunks = [c('[')];
+
+			const elements = [];
+			let sparse_commas = [];
+
+			for (let i = 0; i < node.elements.length; i += 1) {
+				// can't use map/forEach because of sparse arrays
+				const element = node.elements[i];
+				if (element) {
+					elements.push([...sparse_commas, ...handle(element, {
+						...state,
+						indent: state.indent + '\t'
+					})]);
+					sparse_commas = [];
+				} else {
+					sparse_commas.push(c(','));
+				}
+			}
+
+			const multiple_lines = (
+				elements.some(has_newline) ||
+				(elements.map(get_length).reduce(sum, 0) + (state.indent.length + elements.length - 1) * 2) > 80
+			);
+
+			if (multiple_lines) {
+				chunks.push(
+					c(`\n${state.indent}\t`),
+					...join(elements, c(`,\n${state.indent}\t`)),
+					c(`\n${state.indent}`),
+					...sparse_commas
+				);
+			} else {
+				chunks.push(...join(elements, c(', ')), ...sparse_commas);
+			}
+
+			chunks.push(c(']'));
+
+			return chunks;
+		},
+
+		ObjectExpression(node, state) {
+			if (node.properties.length === 0) {
+				return [c('{}')];
+			}
+
+			let has_inline_comment = false;
+
+			const chunks = [];
+			const separator = c(', ');
+
+			node.properties.forEach((p, i) => {
+				chunks.push(...handle(p, {
+					...state,
+					indent: state.indent + '\t'
+				}));
+
+				if (state.comments.length) {
+					// TODO generalise this, so it works with ArrayExpressions and other things.
+					// At present, stuff will just get appended to the closest statement/declaration
+					chunks.push(c(', '));
+
+					while (state.comments.length) {
+						const comment = state.comments.shift();
+
+						chunks.push(c(comment.type === 'Block'
+							? `/*${comment.value}*/\n${state.indent}\t`
+							: `//${comment.value}\n${state.indent}\t`));
+
+						if (comment.type === 'Line') {
+							has_inline_comment = true;
+						}
+					}
+				} else {
+					if (i < node.properties.length - 1) {
+						chunks.push(separator);
+					}
+				}
+			});
+
+			const multiple_lines = (
+				has_inline_comment ||
+				has_newline(chunks) ||
+				get_length(chunks) > 40
+			);
+
+			if (multiple_lines) {
+				separator.content = `,\n${state.indent}\t`;
+			}
+
+			return [
+				c(multiple_lines ? `{\n${state.indent}\t` : `{ `),
+				...chunks,
+				c(multiple_lines ? `\n${state.indent}}` : ` }`)
+			];
+		},
+
+		Property(node, state) {
+			const value = handle(node.value, state);
+
+			if (node.key === node.value) {
+				return value;
+			}
+
+			// special case
+			if (
+				!node.computed &&
+				node.value.type === 'AssignmentPattern' &&
+				node.value.left.type === 'Identifier' &&
+				node.value.left.name === (node.key ).name
+			) {
+				return value;
+			}
+
+			const key = handle(node.key, state);
+
+			if (key.length === 1 && value.length === 1 && node.key.type === 'Identifier' && key[0].content === value[0].content) {
+				return value;
+			}
+
+			if (node.method || (node.value.type === 'FunctionExpression' && !node.value.id)) {
+				state = {
+					...state,
+					scope: state.scope_map.get(node.value)
+				};
+
+				const chunks = node.kind !== 'init'
+					? [c(`${node.kind} `)]
+					: [];
+
+				chunks.push(
+					...(node.computed ? [c('['), ...key, c(']')] : key),
+					c('('),
+					...join((node.value ).params.map(param => handle(param, state)), c(', ')),
+					c(') '),
+					...handle((node.value ).body, state)
+				);
+
+				return chunks;
+			}
+
+			if (node.computed) {
+				return [
+					c('['),
+					...key,
+					c(']: '),
+					...value
+				];
+			}
+
+			return [
+				...key,
+				c(': '),
+				...value
+			];
+		},
+
+		ObjectPattern(node, state) {
+			const chunks = [c('{ ')];
+
+			for (let i = 0; i < node.properties.length; i += 1) {
+				chunks.push(...handle(node.properties[i], state));
+				if (i < node.properties.length - 1) chunks.push(c(', '));
+			}
+
+			chunks.push(c(' }'));
+
+			return chunks;
+		},
+
+		SequenceExpression(node, state) {
+			const expressions = node.expressions.map(e => handle(e, state));
+
+			return [
+				c('('),
+				...join(expressions, c(', ')),
+				c(')')
+			];
+		},
+
+		UnaryExpression(node, state) {
+			const chunks = [c(node.operator)];
+
+			if (node.operator.length > 1) {
+				chunks.push(c(' '));
+			}
+
+			if (
+				EXPRESSIONS_PRECEDENCE[node.argument.type] <
+				EXPRESSIONS_PRECEDENCE.UnaryExpression
+			) {
+				chunks.push(
+					c('('),
+					...handle(node.argument, state),
+					c(')')
+				);
+			} else {
+				chunks.push(...handle(node.argument, state));
+			}
+
+			return chunks;
+		},
+
+		UpdateExpression(node, state) {
+			return node.prefix
+				? [c(node.operator), ...handle(node.argument, state)]
+				: [...handle(node.argument, state), c(node.operator)];
+		},
+
+		AssignmentExpression(node, state) {
+			return [
+				...handle(node.left, state),
+				c(` ${node.operator || '='} `),
+				...handle(node.right, state)
+			];
+		},
+
+		BinaryExpression(node, state) {
+			const chunks = [];
+
+			// TODO
+			// const is_in = node.operator === 'in';
+			// if (is_in) {
+			// 	// Avoids confusion in `for` loops initializers
+			// 	chunks.push(c('('));
+			// }
+
+			if (needs_parens(node.left, node, false)) {
+				chunks.push(
+					c('('),
+					...handle(node.left, state),
+					c(')')
+				);
+			} else {
+				chunks.push(...handle(node.left, state));
+			}
+
+			chunks.push(c(` ${node.operator} `));
+
+			if (needs_parens(node.right, node, true)) {
+				chunks.push(
+					c('('),
+					...handle(node.right, state),
+					c(')')
+				);
+			} else {
+				chunks.push(...handle(node.right, state));
+			}
+
+			return chunks;
+		},
+
+		ConditionalExpression(node, state) {
+			const chunks = [];
+
+			if (
+				EXPRESSIONS_PRECEDENCE[node.test.type] >
+				EXPRESSIONS_PRECEDENCE.ConditionalExpression
+			) {
+				chunks.push(...handle(node.test, state));
+			} else {
+				chunks.push(
+					c('('),
+					...handle(node.test, state),
+					c(')')
+				);
+			}
+
+			const child_state = { ...state, indent: state.indent + '\t' };
+
+			const consequent = handle(node.consequent, child_state);
+			const alternate = handle(node.alternate, child_state);
+
+			const multiple_lines = (
+				has_newline(consequent) || has_newline(alternate) ||
+				get_length(chunks) + get_length(consequent) + get_length(alternate) > 50
+			);
+
+			if (multiple_lines) {
+				chunks.push(
+					c(`\n${state.indent}? `),
+					...consequent,
+					c(`\n${state.indent}: `),
+					...alternate
+				);
+			} else {
+				chunks.push(
+					c(` ? `),
+					...consequent,
+					c(` : `),
+					...alternate
+				);
+			}
+
+			return chunks;
+		},
+
+		NewExpression(node, state) {
+			const chunks = [c('new ')];
+
+			if (
+				EXPRESSIONS_PRECEDENCE[node.callee.type] <
+				EXPRESSIONS_PRECEDENCE.CallExpression || has_call_expression(node.callee)
+			) {
+				chunks.push(
+					c('('),
+					...handle(node.callee, state),
+					c(')')
+				);
+			} else {
+				chunks.push(...handle(node.callee, state));
+			}
+
+			// TODO this is copied from CallExpression — DRY it out
+			const args = node.arguments.map(arg => handle(arg, {
+				...state,
+				indent: state.indent + '\t'
+			}));
+
+			const separator = args.some(has_newline) // TODO or length exceeds 80
+				? c(',\n' + state.indent)
+				: c(', ');
+
+			chunks.push(
+				c('('),
+				...join(args, separator) ,
+				c(')')
+			);
+
+			return chunks;
+		},
+
+		CallExpression(node, state) {
+			const chunks = [];
+
+			if (
+				EXPRESSIONS_PRECEDENCE[node.callee.type] <
+				EXPRESSIONS_PRECEDENCE.CallExpression
+			) {
+				chunks.push(
+					c('('),
+					...handle(node.callee, state),
+					c(')')
+				);
+			} else {
+				chunks.push(...handle(node.callee, state));
+			}
+
+			const args = node.arguments.map(arg => handle(arg, state));
+
+			const multiple_lines = args.slice(0, -1).some(has_newline); // TODO or length exceeds 80
+
+			if (multiple_lines) {
+				// need to handle args again. TODO find alternative approach?
+				const args = node.arguments.map(arg => handle(arg, {
+					...state,
+					indent: `${state.indent}\t`
+				}));
+
+				chunks.push(
+					c(`(\n${state.indent}\t`),
+					...join(args, c(`,\n${state.indent}\t`)),
+					c(`\n${state.indent})`)
+				);
+			} else {
+				chunks.push(
+					c('('),
+					...join(args, c(', ')),
+					c(')')
+				);
+			}
+
+			return chunks;
+		},
+
+		MemberExpression(node, state) {
+			const chunks = [];
+
+			if (EXPRESSIONS_PRECEDENCE[node.object.type] < EXPRESSIONS_PRECEDENCE.MemberExpression) {
+				chunks.push(
+					c('('),
+					...handle(node.object, state),
+					c(')')
+				);
+			} else {
+				chunks.push(...handle(node.object, state));
+			}
+
+			if (node.computed) {
+				chunks.push(
+					c('['),
+					...handle(node.property, state),
+					c(']')
+				);
+			} else {
+				chunks.push(
+					c('.'),
+					...handle(node.property, state)
+				);
+			}
+
+			return chunks;
+		},
+
+		MetaProperty(node, state) {
+			return [...handle(node.meta, state), c('.'), ...handle(node.property, state)];
+		},
+
+		Identifier(node, state) {
+			let name = node.name;
+
+			if (name[0] === '@') {
+				name = state.getName(name.slice(1));
+			} else if (node.name[0] === '#') {
+				const owner = state.scope.find_owner(node.name);
+
+				if (!owner) {
+					throw new Error(`Could not find owner for node`);
+				}
+
+				if (!state.deconflicted.has(owner)) {
+					state.deconflicted.set(owner, new Map());
+				}
+
+				const deconflict_map = state.deconflicted.get(owner);
+
+				if (!deconflict_map.has(node.name)) {
+					deconflict_map.set(node.name, deconflict(node.name.slice(1), owner.references));
+				}
+
+				name = deconflict_map.get(node.name);
+			}
+
+			return [c(name, node)];
+		},
+
+		Literal(node, state) {
+			if (typeof node.value === 'string') {
+				return [
+					// TODO do we need to handle weird unicode characters somehow?
+					// str.replace(/\\u(\d{4})/g, (m, n) => String.fromCharCode(+n))
+					c(JSON.stringify(node.value), node)
+				];
+			}
+
+			const { regex } = node ; // TODO is this right?
+			if (regex) {
+				return [c(`/${regex.pattern}/${regex.flags}`, node)];
+			}
+
+			return [c(String(node.value), node)];
+		}
+	};
+
+	handlers.ForOfStatement = handlers.ForInStatement;
+	handlers.FunctionExpression = handlers.FunctionDeclaration;
+	handlers.ClassExpression = handlers.ClassDeclaration;
+	handlers.ClassBody = handlers.BlockStatement;
+	handlers.SpreadElement = handlers.RestElement;
+	handlers.ArrayPattern = handlers.ArrayExpression;
+	handlers.LogicalExpression = handlers.BinaryExpression;
+	handlers.AssignmentPattern = handlers.AssignmentExpression;
+
+	function print(node, opts = {}) {
+		if (Array.isArray(node)) {
+			return print({
+				type: 'Program',
+				body: node
+			} , opts);
+		}
+
+		const {
+			getName = (x) => x
+		} = opts;
+
+		let { map: scope_map, scope } = analyze(node);
+		const deconflicted = new WeakMap();
+
+		const chunks = handle(node, {
+			indent: '',
+			getName,
+			scope,
+			scope_map,
+			deconflicted,
+			comments: []
+		});
+
+		
+
+		let code = '';
+		let mappings = [];
+		let current_line = [];
+		let current_column = 0;
+
+		for (let i = 0; i < chunks.length; i += 1) {
+			const chunk = chunks[i];
+
+			code += chunk.content;
+
+			if (chunk.loc) {
+				current_line.push([
+					current_column,
+					0, // source index is always zero
+					chunk.loc.start.line - 1,
+					chunk.loc.start.column,
+				]);
+			}
+
+			for (let i = 0; i < chunk.content.length; i += 1) {
+				if (chunk.content[i] === '\n') {
+					mappings.push(current_line);
+					current_line = [];
+					current_column = 0;
+				} else {
+					current_column += 1;
+				}
+			}
+
+			if (chunk.loc) {
+				current_line.push([
+					current_column,
+					0, // source index is always zero
+					chunk.loc.end.line - 1,
+					chunk.loc.end.column,
+				]);
+			}
+		}
+
+		mappings.push(current_line);
+
+		return {
+			code,
+			map: {
+				version: 3,
+				names: [],
+				sources: [opts.sourceMapSource || null],
+				sourcesContent: [opts.sourceMapContent || null],
+				mappings: encode(mappings)
+			}
+		};
+	}
+
+	// generate an ID that is, to all intents and purposes, unique
+	const id = (Math.round(Math.random() * 1e20)).toString(36);
+	const re = new RegExp(`_${id}_(?:(\\d+)|(AT)|(HASH))_(\\w+)?`, 'g');
+
+	const sigils = {
+		'@': 'AT',
+		'#': 'HASH'
+	};
+
+	const join$1 = (strings) => {
+		let str = strings[0];
+		for (let i = 1; i < strings.length; i += 1) {
+			str += `_${id}_${i - 1}_${strings[i]}`;
+		}
+		return str.replace(/([@#])(\w+)/g, (_m, sigil, name) => `_${id}_${sigils[sigil]}_${name}`);
+	};
+
+	const flatten_body = (array, target) => {
+		for (let i = 0; i < array.length; i += 1) {
+			const statement = array[i];
+			if (Array.isArray(statement)) {
+				flatten_body(statement, target);
+				continue;
+			}
+
+			if (statement.type === 'ExpressionStatement') {
+				if (statement.expression === EMPTY) continue;
+
+				if (Array.isArray(statement.expression)) {
+					// TODO this is hacktacular
+					let node = statement.expression[0];
+					while (Array.isArray(node)) node = node[0];
+					if (node) node.leadingComments = statement.leadingComments;
+
+					flatten_body(statement.expression, target);
+					continue;
+				}
+
+				if (/(Expression|Literal)$/.test(statement.expression.type)) {
+					target.push(statement);
+					continue;
+				}
+
+				if (statement.leadingComments) statement.expression.leadingComments = statement.leadingComments;
+				if (statement.trailingComments) statement.expression.trailingComments = statement.trailingComments;
+
+				target.push(statement.expression);
+				continue;
+			}
+
+			target.push(statement);
+		}
+
+		return target;
+	};
+
+	const flatten_properties = (array, target) => {
+		for (let i = 0; i < array.length; i += 1) {
+			const property = array[i];
+
+			if (property.value === EMPTY) continue;
+
+			if (property.key === property.value && Array.isArray(property.key)) {
+				flatten_properties(property.key, target);
+				continue;
+			}
+
+			target.push(property);
+		}
+
+		return target;
+	};
+
+	const flatten = (nodes, target) => {
+		for (let i = 0; i < nodes.length; i += 1) {
+			const node = nodes[i];
+
+			if (node === EMPTY) continue;
+
+			if (Array.isArray(node)) {
+				flatten(node, target);
+				continue;
+			}
+
+			target.push(node);
+		}
+
+		return target;
+	};
+
+	const EMPTY = { type: 'Empty' };
+
+	const acorn_opts = (comments, raw) => {
+		return {
+			ecmaVersion: 11,
+			sourceType: 'module',
+			allowAwaitOutsideFunction: true,
+			allowImportExportEverywhere: true,
+			allowReturnOutsideFunction: true,
+			onComment: (block, value, start, end) => {
+				if (block && /\n/.test(value)) {
+					let a = start;
+					while (a > 0 && raw[a - 1] !== '\n') a -= 1;
+
+					let b = a;
+					while (/[ \t]/.test(raw[b])) b += 1;
+
+					const indentation = raw.slice(a, b);
+					value = value.replace(new RegExp(`^${indentation}`, 'gm'), '');
+				}
+
+				comments.push({ type: block ? 'Block' : 'Line', value, start, end });
+			}
+		} ;
+	};
+
+	const inject = (raw, node, values, comments) => {
+		walk(node, {
+			enter(node) {
+				let comment;
+
+				while (comments[0] && comments[0].start < (node ).start) {
+					comment = comments.shift();
+
+					const next = comments[0] || node;
+					(comment ).has_trailing_newline = (
+						comment.type === 'Line' ||
+						/\n/.test(raw.slice(comment.end, (next ).start))
+					);
+
+					(node.leadingComments || (node.leadingComments = [])).push(comment);
+				}
+			},
+
+			leave(node, parent, key, index) {
+				if (node.type === 'Identifier') {
+					re.lastIndex = 0;
+					const match = re.exec(node.name);
+
+					if (match) {
+						if (match[1]) {
+							if (+match[1] in values) {
+								let value = values[+match[1]];
+
+								if (typeof value === 'string') {
+									value = { type: 'Identifier', name: value, leadingComments: node.leadingComments, trailingComments: node.trailingComments };
+								} else if (typeof value === 'number') {
+									value = { type: 'Literal', value, leadingComments: node.leadingComments, trailingComments: node.trailingComments };
+								}
+
+								this.replace(value || EMPTY);
+							}
+						} else {
+							node.name = `${match[2] ? `@` : `#`}${match[4]}`;
+						}
+					}
+				}
+
+				if (node.leadingComments) {
+					node.leadingComments = node.leadingComments.map(c => ({
+						...c,
+						value: c.value.replace(re, (m, i) => +i in values ? values[+i] : m)
+					}));
+				}
+
+				if (node.trailingComments) {
+					node.trailingComments = node.trailingComments.map(c => ({
+						...c,
+						value: c.value.replace(re, (m, i) => +i in values ? values[+i] : m)
+					}));
+				}
+
+				if (node.type === 'Literal') {
+					if (typeof node.value === 'string') {
+						re.lastIndex = 0;
+						node.value = node.value.replace(re, (m, i) => +i in values ? values[+i] : m);
+					}
+				}
+
+				if (node.type === 'TemplateElement') {
+					re.lastIndex = 0;
+					node.value.raw = (node.value.raw ).replace(re, (m, i) => +i in values ? values[+i] : m);
+				}
+
+				if (node.type === 'Program' || node.type === 'BlockStatement') {
+					node.body = flatten_body(node.body, []);
+				}
+
+				if (node.type === 'ObjectExpression' || node.type === 'ObjectPattern') {
+					node.properties = flatten_properties(node.properties, []);
+				}
+
+				if (node.type === 'ArrayExpression' || node.type === 'ArrayPattern') {
+					node.elements = flatten(node.elements, []);
+				}
+
+				if (node.type === 'FunctionExpression' || node.type === 'FunctionDeclaration' || node.type === 'ArrowFunctionExpression') {
+					node.params = flatten(node.params, []);
+				}
+
+				if (node.type === 'CallExpression' || node.type === 'NewExpression') {
+					node.arguments = flatten(node.arguments, []);
+				}
+
+				if (node.type === 'ImportDeclaration' || node.type === 'ExportNamedDeclaration') {
+					node.specifiers = flatten(node.specifiers, []);
+				}
+
+				if (node.type === 'ForStatement') {
+					node.init = node.init === EMPTY ? null : node.init;
+					node.test = node.test === EMPTY ? null : node.test;
+					node.update = node.update === EMPTY ? null : node.update;
+				}
+
+				if (comments[0]) {
+					const slice = raw.slice((node ).end, comments[0].start);
+
+					if (/^[,) \t]*$/.test(slice)) {
+						node.trailingComments = [comments.shift()];
+					}
+				}
+			}
+		});
+	};
+
+	function b(strings, ...values) {
+		const str = join$1(strings);
+		const comments = [];
+
+		try {
+			const ast = parse(str,  acorn_opts(comments, str));
+
+			inject(str, ast, values, comments);
+
+			return ast.body;
+		} catch (err) {
+			handle_error(str, err);
+		}
+	}
+
+	function x(strings, ...values) {
+		const str = join$1(strings);
+		const comments = [];
+
+		try {
+			const expression = parseExpressionAt(str, 0, acorn_opts(comments, str)) ;
+
+			inject(str, expression, values, comments);
+
+			return expression;
+		} catch (err) {
+			handle_error(str, err);
+		}
+	}
+
+	function p(strings, ...values) {
+		const str = `{${join$1(strings)}}`;
+		const comments = [];
+
+		try {
+			const expression = parseExpressionAt(str, 0,  acorn_opts(comments, str)) ;
+
+			inject(str, expression, values, comments);
+
+			return expression.properties[0];
+		} catch (err) {
+			handle_error(str, err);
+		}
+	}
+
+	function handle_error(str, err) {
+		// TODO location/code frame
+
+		re.lastIndex = 0;
+
+		str = str.replace(re, (m, i, at, hash, name) => {
+			if (at) return `@${name}`;
+			if (hash) return `#${name}`;
+
+			return '${...}';
+		});
+
+		console.log(`failed to parse:\n${str}`);
+		throw err;
+	}
+
+	function is_head(node) {
+	    return node && node.type === 'MemberExpression' && node.object.name === '@_document' && node.property.name === 'head';
 	}
 
 	class Block$1 {
 	    constructor(options) {
 	        this.event_listeners = [];
+	        this.variables = new Map();
 	        this.has_update_method = false;
 	        this.parent = options.parent;
 	        this.renderer = options.renderer;
@@ -22699,27 +24558,26 @@ var compiler = createCommonjsModule(function (module, exports) {
 	        this.first = null;
 	        this.dependencies = new Set();
 	        this.bindings = options.bindings;
-	        this.builders = {
-	            init: new CodeBuilder(),
-	            create: new CodeBuilder(),
-	            claim: new CodeBuilder(),
-	            hydrate: new CodeBuilder(),
-	            mount: new CodeBuilder(),
-	            measure: new CodeBuilder(),
-	            fix: new CodeBuilder(),
-	            animate: new CodeBuilder(),
-	            intro: new CodeBuilder(),
-	            update: new CodeBuilder(),
-	            outro: new CodeBuilder(),
-	            destroy: new CodeBuilder(),
+	        this.chunks = {
+	            init: [],
+	            create: [],
+	            claim: [],
+	            hydrate: [],
+	            mount: [],
+	            measure: [],
+	            fix: [],
+	            animate: [],
+	            intro: [],
+	            update: [],
+	            outro: [],
+	            destroy: [],
 	        };
 	        this.has_animation = false;
 	        this.has_intro_method = false; // a block could have an intro method but not intro transitions, e.g. if a sibling block has intros
 	        this.has_outro_method = false;
 	        this.outros = 0;
 	        this.get_unique_name = this.renderer.component.get_unique_name_maker();
-	        this.variables = new Map();
-	        this.aliases = new Map().set('ctx', this.get_unique_name('ctx'));
+	        this.aliases = new Map();
 	        if (this.key)
 	            this.aliases.set('key', this.get_unique_name('key'));
 	    }
@@ -22731,12 +24589,10 @@ var compiler = createCommonjsModule(function (module, exports) {
 	            const wrapper = this.wrappers[i];
 	            if (!wrapper.var)
 	                continue;
-	            if (wrapper.parent && wrapper.parent.can_use_innerhtml)
-	                continue;
-	            if (seen.has(wrapper.var)) {
-	                dupes.add(wrapper.var);
+	            if (seen.has(wrapper.var.name)) {
+	                dupes.add(wrapper.var.name);
 	            }
-	            seen.add(wrapper.var);
+	            seen.add(wrapper.var.name);
 	        }
 	        const counts = new Map();
 	        i = this.wrappers.length;
@@ -22744,14 +24600,13 @@ var compiler = createCommonjsModule(function (module, exports) {
 	            const wrapper = this.wrappers[i];
 	            if (!wrapper.var)
 	                continue;
-	            if (dupes.has(wrapper.var)) {
-	                const i = counts.get(wrapper.var) || 0;
-	                counts.set(wrapper.var, i + 1);
-	                wrapper.var = this.get_unique_name(wrapper.var + i);
+	            let suffix = '';
+	            if (dupes.has(wrapper.var.name)) {
+	                const i = counts.get(wrapper.var.name) || 0;
+	                counts.set(wrapper.var.name, i + 1);
+	                suffix = i;
 	            }
-	            else {
-	                wrapper.var = this.get_unique_name(wrapper.var);
-	            }
+	            wrapper.var.name = this.get_unique_name(wrapper.var.name + suffix).name;
 	        }
 	    }
 	    add_dependencies(dependencies) {
@@ -22760,21 +24615,21 @@ var compiler = createCommonjsModule(function (module, exports) {
 	        });
 	        this.has_update_method = true;
 	    }
-	    add_element(name, render_statement, claim_statement, parent_node, no_detach) {
-	        this.add_variable(name);
-	        this.builders.create.add_line(`${name} = ${render_statement};`);
+	    add_element(id, render_statement, claim_statement, parent_node, no_detach) {
+	        this.add_variable(id);
+	        this.chunks.create.push(b `${id} = ${render_statement};`);
 	        if (this.renderer.options.hydratable) {
-	            this.builders.claim.add_line(`${name} = ${claim_statement || render_statement};`);
+	            this.chunks.claim.push(b `${id} = ${claim_statement || render_statement};`);
 	        }
 	        if (parent_node) {
-	            this.builders.mount.add_line(`@append(${parent_node}, ${name});`);
-	            if (parent_node === '@_document.head' && !no_detach)
-	                this.builders.destroy.add_line(`@detach(${name});`);
+	            this.chunks.mount.push(b `@append(${parent_node}, ${id});`);
+	            if (is_head(parent_node) && !no_detach)
+	                this.chunks.destroy.push(b `@detach(${id});`);
 	        }
 	        else {
-	            this.builders.mount.add_line(`@insert(#target, ${name}, anchor);`);
+	            this.chunks.mount.push(b `@insert(#target, ${id}, anchor);`);
 	            if (!no_detach)
-	                this.builders.destroy.add_conditional('detaching', `@detach(${name});`);
+	                this.chunks.destroy.push(b `if (detaching) @detach(${id});`);
 	        }
 	    }
 	    add_intro(local) {
@@ -22791,14 +24646,11 @@ var compiler = createCommonjsModule(function (module, exports) {
 	    add_animation() {
 	        this.has_animation = true;
 	    }
-	    add_variable(name, init) {
-	        if (name[0] === '#') {
-	            name = this.alias(name.slice(1));
+	    add_variable(id, init) {
+	        if (this.variables.has(id.name)) {
+	            throw new Error(`Variable '${id.name}' already initialised with a different value`);
 	        }
-	        if (this.variables.has(name) && this.variables.get(name) !== init) {
-	            throw new Error(`Variable '${name}' already initialised with a different value`);
-	        }
-	        this.variables.set(name, init);
+	        this.variables.set(id.name, { id, init });
 	    }
 	    alias(name) {
 	        if (!this.aliases.has(name)) {
@@ -22809,189 +24661,212 @@ var compiler = createCommonjsModule(function (module, exports) {
 	    child(options) {
 	        return new Block$1(Object.assign({}, this, { key: null }, options, { parent: this }));
 	    }
-	    get_contents(local_key) {
+	    get_contents(key) {
 	        const { dev } = this.renderer.options;
 	        if (this.has_outros) {
-	            this.add_variable('#current');
-	            if (!this.builders.intro.is_empty()) {
-	                this.builders.intro.add_line(`#current = true;`);
-	                this.builders.mount.add_line(`#current = true;`);
+	            this.add_variable({ type: 'Identifier', name: '#current' });
+	            if (this.chunks.intro.length > 0) {
+	                this.chunks.intro.push(b `#current = true;`);
+	                this.chunks.mount.push(b `#current = true;`);
 	            }
-	            if (!this.builders.outro.is_empty()) {
-	                this.builders.outro.add_line(`#current = false;`);
+	            if (this.chunks.outro.length > 0) {
+	                this.chunks.outro.push(b `#current = false;`);
 	            }
 	        }
 	        if (this.autofocus) {
-	            this.builders.mount.add_line(`${this.autofocus}.focus();`);
+	            this.chunks.mount.push(b `${this.autofocus}.focus();`);
 	        }
 	        this.render_listeners();
-	        const properties = new CodeBuilder();
-	        const method_name = (short, long) => dev ? `${short}: function ${this.get_unique_name(long)}` : short;
-	        if (local_key) {
-	            properties.add_block(`key: ${local_key},`);
-	        }
+	        const properties = {};
+	        const noop = x `@noop`;
+	        properties.key = key;
 	        if (this.first) {
-	            properties.add_block(`first: null,`);
-	            this.builders.hydrate.add_line(`this.first = ${this.first};`);
+	            properties.first = x `null`;
+	            this.chunks.hydrate.push(b `this.first = ${this.first};`);
 	        }
-	        if (this.builders.create.is_empty() && this.builders.hydrate.is_empty()) {
-	            properties.add_line(`c: @noop,`);
+	        if (this.chunks.create.length === 0 && this.chunks.hydrate.length === 0) {
+	            properties.create = noop;
 	        }
 	        else {
-	            const hydrate = !this.builders.hydrate.is_empty() && (this.renderer.options.hydratable
-	                ? `this.h()`
-	                : this.builders.hydrate);
-	            properties.add_block(deindent `
-				${method_name('c', 'create')}() {
-					${this.builders.create}
-					${hydrate}
-				},
-			`);
+	            const hydrate = this.chunks.hydrate.length > 0 && (this.renderer.options.hydratable
+	                ? b `this.h();`
+	                : this.chunks.hydrate);
+	            properties.create = x `function #create() {
+				${this.chunks.create}
+				${hydrate}
+			}`;
 	        }
-	        if (this.renderer.options.hydratable || !this.builders.claim.is_empty()) {
-	            if (this.builders.claim.is_empty() && this.builders.hydrate.is_empty()) {
-	                properties.add_line(`l: @noop,`);
+	        if (this.renderer.options.hydratable || this.chunks.claim.length > 0) {
+	            if (this.chunks.claim.length === 0 && this.chunks.hydrate.length === 0) {
+	                properties.claim = noop;
 	            }
 	            else {
-	                properties.add_block(deindent `
-					${method_name('l', 'claim')}(nodes) {
-						${this.builders.claim}
-						${this.renderer.options.hydratable && !this.builders.hydrate.is_empty() && `this.h();`}
-					},
-				`);
+	                properties.claim = x `function #claim(#nodes) {
+					${this.chunks.claim}
+					${this.renderer.options.hydratable && this.chunks.hydrate.length > 0 && b `this.h();`}
+				}`;
 	            }
 	        }
-	        if (this.renderer.options.hydratable && !this.builders.hydrate.is_empty()) {
-	            properties.add_block(deindent `
-				${method_name('h', 'hydrate')}() {
-					${this.builders.hydrate}
-				},
-			`);
+	        if (this.renderer.options.hydratable && this.chunks.hydrate.length > 0) {
+	            properties.hydrate = x `function #hydrate() {
+				${this.chunks.hydrate}
+			}`;
 	        }
-	        if (this.builders.mount.is_empty()) {
-	            properties.add_line(`m: @noop,`);
+	        if (this.chunks.mount.length === 0) {
+	            properties.mount = noop;
 	        }
 	        else {
-	            properties.add_block(deindent `
-				${method_name('m', 'mount')}(#target, anchor) {
-					${this.builders.mount}
-				},
-			`);
+	            properties.mount = x `function #mount(#target, anchor) {
+				${this.chunks.mount}
+			}`;
 	        }
 	        if (this.has_update_method || this.maintain_context) {
-	            if (this.builders.update.is_empty() && !this.maintain_context) {
-	                properties.add_line(`p: @noop,`);
+	            if (this.chunks.update.length === 0 && !this.maintain_context) {
+	                properties.update = noop;
 	            }
 	            else {
-	                properties.add_block(deindent `
-					${method_name('p', 'update')}(changed, ${this.maintain_context ? 'new_ctx' : 'ctx'}) {
-						${this.maintain_context && `ctx = new_ctx;`}
-						${this.builders.update}
-					},
-				`);
+	                const ctx = this.maintain_context ? x `#new_ctx` : x `#ctx`;
+	                properties.update = x `function #update(#changed, ${ctx}) {
+					${this.maintain_context && b `#ctx = ${ctx};`}
+					${this.chunks.update}
+				}`;
 	            }
 	        }
 	        if (this.has_animation) {
-	            properties.add_block(deindent `
-				${method_name('r', 'measure')}() {
-					${this.builders.measure}
-				},
-
-				${method_name('f', 'fix')}() {
-					${this.builders.fix}
-				},
-
-				${method_name('a', 'animate')}() {
-					${this.builders.animate}
-				},
-			`);
+	            properties.measure = x `function #measure() {
+				${this.chunks.measure}
+			}`;
+	            properties.fix = x `function #fix() {
+				${this.chunks.fix}
+			}`;
+	            properties.animate = x `function #animate() {
+				${this.chunks.animate}
+			}`;
 	        }
 	        if (this.has_intro_method || this.has_outro_method) {
-	            if (this.builders.intro.is_empty()) {
-	                properties.add_line(`i: @noop,`);
+	            if (this.chunks.intro.length === 0) {
+	                properties.intro = noop;
 	            }
 	            else {
-	                properties.add_block(deindent `
-					${method_name('i', 'intro')}(#local) {
-						${this.has_outros && `if (#current) return;`}
-						${this.builders.intro}
-					},
-				`);
+	                properties.intro = x `function #intro(#local) {
+					${this.has_outros && b `if (#current) return;`}
+					${this.chunks.intro}
+				}`;
 	            }
-	            if (this.builders.outro.is_empty()) {
-	                properties.add_line(`o: @noop,`);
+	            if (this.chunks.outro.length === 0) {
+	                properties.outro = noop;
 	            }
 	            else {
-	                properties.add_block(deindent `
-					${method_name('o', 'outro')}(#local) {
-						${this.builders.outro}
-					},
-				`);
+	                properties.outro = x `function #outro(#local) {
+					${this.chunks.outro}
+				}`;
 	            }
 	        }
-	        if (this.builders.destroy.is_empty()) {
-	            properties.add_line(`d: @noop`);
+	        if (this.chunks.destroy.length === 0) {
+	            properties.destroy = noop;
 	        }
 	        else {
-	            properties.add_block(deindent `
-				${method_name('d', 'destroy')}(detaching) {
-					${this.builders.destroy}
-				}
-			`);
+	            properties.destroy = x `function #destroy(detaching) {
+				${this.chunks.destroy}
+			}`;
 	        }
-	        /* eslint-disable @typescript-eslint/indent,indent */
-	        return deindent `
-			${this.variables.size > 0 &&
-            `var ${Array.from(this.variables.keys())
-                .map(key => {
-                const init = this.variables.get(key);
-                return init !== undefined ? `${key} = ${init}` : key;
-            })
-                .join(', ')};`}
+	        if (!this.renderer.component.compile_options.dev) {
+	            // allow shorthand names
+	            for (const name in properties) {
+	                const property = properties[name];
+	                if (property)
+	                    property.id = null;
+	            }
+	        }
+	        const return_value = x `{
+			key: ${properties.key},
+			first: ${properties.first},
+			c: ${properties.create},
+			l: ${properties.claim},
+			h: ${properties.hydrate},
+			m: ${properties.mount},
+			p: ${properties.update},
+			r: ${properties.measure},
+			f: ${properties.fix},
+			a: ${properties.animate},
+			i: ${properties.intro},
+			o: ${properties.outro},
+			d: ${properties.destroy}
+		}`;
+	        const block = dev && this.get_unique_name('block');
+	        const body = b `
+			${Array.from(this.variables.values()).map(({ id, init }) => {
+            return init
+                ? b `let ${id} = ${init}`
+                : b `let ${id}`;
+        })}
 
-			${!this.builders.init.is_empty() && this.builders.init}
+			${this.chunks.init}
 
 			${dev
-            ? deindent `
-					const block = {
-						${properties}
-					};
-					@dispatch_dev("SvelteRegisterBlock", { block, id: ${this.name || 'create_fragment'}.name, type: "${this.type}", source: ${stringify(this.comment || '', { only_escape_at_symbol: true })}, ctx });
-					return block;`
-            : deindent `
-					return {
-						${properties}
-					};`}
-		`.replace(/([^{])(#+)(\w*)/g, (_match, pre, sigil, name) => {
-	            return pre + (sigil === '#' ? this.alias(name) : sigil.slice(1) + name);
-	        });
-	        /* eslint-enable @typescript-eslint/indent,indent */
+            ? b `
+					const ${block} = ${return_value};
+					@dispatch_dev("SvelteRegisterBlock", {
+						block: ${block},
+						id: ${this.name || 'create_fragment'}.name,
+						type: "${this.type}",
+						source: "${this.comment ? this.comment.replace(/"/g, '\\"') : ''}",
+						ctx: #ctx
+					});
+					return ${block};`
+            : b `
+					return ${return_value};`}
+		`;
+	        return body;
+	    }
+	    has_content() {
+	        return this.renderer.options.dev ||
+	            this.first ||
+	            this.event_listeners.length > 0 ||
+	            this.chunks.intro.length > 0 ||
+	            this.chunks.outro.length > 0 ||
+	            this.chunks.create.length > 0 ||
+	            this.chunks.hydrate.length > 0 ||
+	            this.chunks.claim.length > 0 ||
+	            this.chunks.mount.length > 0 ||
+	            this.chunks.update.length > 0 ||
+	            this.chunks.destroy.length > 0 ||
+	            this.has_animation;
+	    }
+	    render() {
+	        const key = this.key && this.get_unique_name('key');
+	        const args = [x `#ctx`];
+	        if (key)
+	            args.unshift(key);
+	        const fn = b `function ${this.name}(${args}) {
+			${this.get_contents(key)}
+		}`;
+	        return this.comment
+	            ? b `
+				// ${this.comment}
+				${fn}`
+	            : fn;
 	    }
 	    render_listeners(chunk = '') {
 	        if (this.event_listeners.length > 0) {
-	            this.add_variable(`#dispose${chunk}`);
+	            const dispose = {
+	                type: 'Identifier',
+	                name: `#dispose${chunk}`
+	            };
+	            this.add_variable(dispose);
 	            if (this.event_listeners.length === 1) {
-	                this.builders.hydrate.add_line(`#dispose${chunk} = ${this.event_listeners[0]};`);
-	                this.builders.destroy.add_line(`#dispose${chunk}();`);
+	                this.chunks.hydrate.push(b `${dispose} = ${this.event_listeners[0]};`);
+	                this.chunks.destroy.push(b `${dispose}();`);
 	            }
 	            else {
-	                this.builders.hydrate.add_block(deindent `
-					#dispose${chunk} = [
-						${this.event_listeners.join(',\n')}
+	                this.chunks.hydrate.push(b `
+					${dispose} = [
+						${this.event_listeners}
 					];
 				`);
-	                this.builders.destroy.add_line(`@run_all(#dispose${chunk});`);
+	                this.chunks.destroy.push(b `@run_all(${dispose});`);
 	            }
 	        }
-	    }
-	    toString() {
-	        const local_key = this.key && this.get_unique_name('key');
-	        return deindent `
-			${this.comment && `// ${escape(this.comment, { only_escape_at_symbol: true })}`}
-			function ${this.name}(${this.key ? `${local_key}, ` : ''}ctx) {
-				${this.get_contents(local_key)}
-			}
-		`;
 	    }
 	}
 
@@ -23009,6 +24884,7 @@ var compiler = createCommonjsModule(function (module, exports) {
 	            }
 	        });
 	        this.can_use_innerhtml = !renderer.options.hydratable;
+	        this.is_static_content = !renderer.options.hydratable;
 	        block.wrappers.push(this);
 	    }
 	    cannot_use_innerhtml() {
@@ -23016,22 +24892,27 @@ var compiler = createCommonjsModule(function (module, exports) {
 	        if (this.parent)
 	            this.parent.cannot_use_innerhtml();
 	    }
+	    not_static_content() {
+	        this.is_static_content = false;
+	        if (this.parent)
+	            this.parent.not_static_content();
+	    }
 	    get_or_create_anchor(block, parent_node, parent_nodes) {
 	        // TODO use this in EachBlock and IfBlock — tricky because
 	        // children need to be created first
 	        const needs_anchor = this.next ? !this.next.is_dom_node() : !parent_node || !this.parent.is_dom_node();
 	        const anchor = needs_anchor
-	            ? block.get_unique_name(`${this.var}_anchor`)
-	            : (this.next && this.next.var) || 'null';
+	            ? block.get_unique_name(`${this.var.name}_anchor`)
+	            : (this.next && this.next.var) || { type: 'Identifier', name: 'null' };
 	        if (needs_anchor) {
-	            block.add_element(anchor, `@empty()`, parent_nodes && `@empty()`, parent_node);
+	            block.add_element(anchor, x `@empty()`, parent_nodes && x `@empty()`, parent_node);
 	        }
 	        return anchor;
 	    }
 	    get_update_mount_node(anchor) {
-	        return (this.parent && this.parent.is_dom_node())
+	        return ((this.parent && this.parent.is_dom_node())
 	            ? this.parent.var
-	            : `${anchor}.parentNode`;
+	            : x `${anchor}.parentNode`);
 	    }
 	    is_dom_node() {
 	        return (this.node.type === 'Element' ||
@@ -23067,8 +24948,14 @@ var compiler = createCommonjsModule(function (module, exports) {
 	            d += 1;
 	    }
 	    const start = locate(c);
-	    const loc = `(${start.line + 1}:${start.column})`;
+	    const loc = `(${start.line}:${start.column})`;
 	    return `${loc} ${source.slice(c, d)}`.replace(/\s/g, ' ');
+	}
+
+	function changed(dependencies) {
+	    return dependencies
+	        .map(d => x `#changed.${d}`)
+	        .reduce((lhs, rhs) => x `${lhs} || ${rhs}`);
 	}
 
 	class AwaitBlockBranch extends Wrapper {
@@ -23087,8 +24974,9 @@ var compiler = createCommonjsModule(function (module, exports) {
 	class AwaitBlockWrapper extends Wrapper {
 	    constructor(renderer, block, parent, node, strip_whitespace, next_sibling) {
 	        super(renderer, block, parent, node);
-	        this.var = 'await_block';
+	        this.var = { type: 'Identifier', name: 'await_block' };
 	        this.cannot_use_innerhtml();
+	        this.not_static_content();
 	        block.add_dependencies(this.node.expression.dependencies);
 	        let is_dynamic = false;
 	        let has_intros = false;
@@ -23124,106 +25012,160 @@ var compiler = createCommonjsModule(function (module, exports) {
 	    render(block, parent_node, parent_nodes) {
 	        const anchor = this.get_or_create_anchor(block, parent_node, parent_nodes);
 	        const update_mount_node = this.get_update_mount_node(anchor);
-	        const snippet = this.node.expression.render(block);
+	        const snippet = this.node.expression.manipulate(block);
 	        const info = block.get_unique_name(`info`);
 	        const promise = block.get_unique_name(`promise`);
 	        block.add_variable(promise);
 	        block.maintain_context = true;
-	        const info_props = [
-	            'ctx',
-	            'current: null',
-	            'token: null',
-	            this.pending.block.name && `pending: ${this.pending.block.name}`,
-	            this.then.block.name && `then: ${this.then.block.name}`,
-	            this.catch.block.name && `catch: ${this.catch.block.name}`,
-	            this.then.block.name && `value: '${this.node.value}'`,
-	            this.catch.block.name && `error: '${this.node.error}'`,
-	            this.pending.block.has_outro_method && `blocks: [,,,]`
-	        ].filter(Boolean);
-	        block.builders.init.add_block(deindent `
-			let ${info} = {
-				${info_props.join(',\n')}
-			};
+	        const info_props = x `{
+			ctx: #ctx,
+			current: null,
+			token: null,
+			pending: ${this.pending.block.name},
+			then: ${this.then.block.name},
+			catch: ${this.catch.block.name},
+			value: ${this.then.block.name && x `"${this.node.value}"`},
+			error: ${this.catch.block.name && x `"${this.node.error}"`},
+			blocks: ${this.pending.block.has_outro_method && x `[,,,]`}
+		}`;
+	        block.chunks.init.push(b `
+			let ${info} = ${info_props};
 		`);
-	        block.builders.init.add_block(deindent `
+	        block.chunks.init.push(b `
 			@handle_promise(${promise} = ${snippet}, ${info});
 		`);
-	        block.builders.create.add_block(deindent `
+	        block.chunks.create.push(b `
 			${info}.block.c();
 		`);
 	        if (parent_nodes && this.renderer.options.hydratable) {
-	            block.builders.claim.add_block(deindent `
+	            block.chunks.claim.push(b `
 				${info}.block.l(${parent_nodes});
 			`);
 	        }
 	        const initial_mount_node = parent_node || '#target';
 	        const anchor_node = parent_node ? 'null' : 'anchor';
 	        const has_transitions = this.pending.block.has_intro_method || this.pending.block.has_outro_method;
-	        block.builders.mount.add_block(deindent `
+	        block.chunks.mount.push(b `
 			${info}.block.m(${initial_mount_node}, ${info}.anchor = ${anchor_node});
 			${info}.mount = () => ${update_mount_node};
 			${info}.anchor = ${anchor};
 		`);
 	        if (has_transitions) {
-	            block.builders.intro.add_line(`@transition_in(${info}.block);`);
+	            block.chunks.intro.push(b `@transition_in(${info}.block);`);
 	        }
-	        const conditions = [];
 	        const dependencies = this.node.expression.dynamic_dependencies();
 	        if (dependencies.length > 0) {
-	            conditions.push(`(${dependencies.map(dep => `'${dep}' in changed`).join(' || ')})`);
-	            conditions.push(`${promise} !== (${promise} = ${snippet})`, `@handle_promise(${promise}, ${info})`);
-	            block.builders.update.add_line(`${info}.ctx = ctx;`);
+	            const condition = x `
+				${changed(dependencies)} &&
+				${promise} !== (${promise} = ${snippet}) &&
+				@handle_promise(${promise}, ${info})`;
+	            block.chunks.update.push(b `${info}.ctx = #ctx;`);
 	            if (this.pending.block.has_update_method) {
-	                block.builders.update.add_block(deindent `
-					if (${conditions.join(' && ')}) {
+	                block.chunks.update.push(b `
+					if (${condition}) {
 						// nothing
 					} else {
-						${info}.block.p(changed, @assign(@assign({}, ctx), ${info}.resolved));
+						${info}.block.p(#changed, @assign(@assign({}, #ctx), ${info}.resolved));
 					}
 				`);
 	            }
 	            else {
-	                block.builders.update.add_block(deindent `
-					${conditions.join(' && ')}
+	                block.chunks.update.push(b `
+					${condition}
 				`);
 	            }
 	        }
 	        else {
 	            if (this.pending.block.has_update_method) {
-	                block.builders.update.add_block(deindent `
-					${info}.block.p(changed, @assign(@assign({}, ctx), ${info}.resolved));
+	                block.chunks.update.push(b `
+					${info}.block.p(#changed, @assign(@assign({}, #ctx), ${info}.resolved));
 				`);
 	            }
 	        }
 	        if (this.pending.block.has_outro_method) {
-	            block.builders.outro.add_block(deindent `
+	            block.chunks.outro.push(b `
 				for (let #i = 0; #i < 3; #i += 1) {
 					const block = ${info}.blocks[#i];
 					@transition_out(block);
 				}
 			`);
 	        }
-	        block.builders.destroy.add_block(deindent `
-			${info}.block.d(${parent_node ? '' : 'detaching'});
+	        block.chunks.destroy.push(b `
+			${info}.block.d(${parent_node ? null : 'detaching'});
 			${info}.token = null;
 			${info} = null;
 		`);
 	        [this.pending, this.then, this.catch].forEach(branch => {
-	            branch.fragment.render(branch.block, null, 'nodes');
+	            branch.fragment.render(branch.block, null, x `#nodes`);
 	        });
+	    }
+	}
+
+	const TRUE = x `true`;
+	const FALSE = x `false`;
+	class EventHandlerWrapper {
+	    constructor(node, parent) {
+	        this.node = node;
+	        this.parent = parent;
+	        if (!node.expression) {
+	            this.parent.renderer.component.add_var({
+	                name: node.handler_name.name,
+	                internal: true,
+	                referenced: true,
+	            });
+	            this.parent.renderer.component.partly_hoisted.push(b `
+        function ${node.handler_name.name}(event) {
+          @bubble($$self, event);
+        }
+      `);
+	        }
+	    }
+	    get_snippet(block) {
+	        const snippet = this.node.expression ? this.node.expression.manipulate(block) : x `#ctx.${this.node.handler_name}`;
+	        if (this.node.reassigned) {
+	            block.maintain_context = true;
+	            return x `function () { ${snippet}.apply(this, arguments); }`;
+	        }
+	        return snippet;
+	    }
+	    render(block, target) {
+	        let snippet = this.get_snippet(block);
+	        if (this.node.modifiers.has('preventDefault'))
+	            snippet = x `@prevent_default(${snippet})`;
+	        if (this.node.modifiers.has('stopPropagation'))
+	            snippet = x `@stop_propagation(${snippet})`;
+	        if (this.node.modifiers.has('self'))
+	            snippet = x `@self(${snippet})`;
+	        const args = [];
+	        const opts = ['passive', 'once', 'capture'].filter(mod => this.node.modifiers.has(mod));
+	        if (opts.length) {
+	            args.push((opts.length === 1 && opts[0] === 'capture')
+	                ? TRUE
+	                : x `{ ${opts.map(opt => p `${opt}: true`)} }`);
+	        }
+	        else if (block.renderer.options.dev) {
+	            args.push(FALSE);
+	        }
+	        if (block.renderer.options.dev) {
+	            args.push(this.node.modifiers.has('stopPropagation') ? TRUE : FALSE);
+	            args.push(this.node.modifiers.has('preventDefault') ? TRUE : FALSE);
+	        }
+	        block.event_listeners.push(x `@listen(${target}, "${this.node.name}", ${snippet}, ${args})`);
 	    }
 	}
 
 	class BodyWrapper extends Wrapper {
 	    render(block, _parent_node, _parent_nodes) {
-	        this.node.handlers.forEach(handler => {
-	            const snippet = handler.render(block);
-	            block.builders.init.add_block(deindent `
-				@_document.body.addEventListener("${handler.name}", ${snippet});
-			`);
-	            block.builders.destroy.add_block(deindent `
-				@_document.body.removeEventListener("${handler.name}", ${snippet});
-			`);
+	        this.node.handlers
+	            .map(handler => new EventHandlerWrapper(handler, this))
+	            .forEach(handler => {
+	            const snippet = handler.get_snippet(block);
+	            block.chunks.init.push(b `
+					@_document.body.addEventListener("${handler.node.name}", ${snippet});
+				`);
+	            block.chunks.destroy.push(b `
+					@_document.body.removeEventListener("${handler.node.name}", ${snippet});
+				`);
 	        });
 	    }
 	}
@@ -23244,58 +25186,53 @@ var compiler = createCommonjsModule(function (module, exports) {
 	        const { component } = renderer;
 	        if (!renderer.options.dev)
 	            return;
-	        const { code, var_lookup } = component;
+	        const { var_lookup } = component;
+	        const start = component.locate(this.node.start + 1);
+	        const end = { line: start.line, column: start.column + 6 };
+	        const loc = { start, end };
+	        const debug = {
+	            type: 'DebuggerStatement',
+	            loc
+	        };
 	        if (this.node.expressions.length === 0) {
 	            // Debug all
-	            code.overwrite(this.node.start + 1, this.node.start + 7, 'debugger', {
-	                storeName: true
-	            });
-	            const statement = `[✂${this.node.start + 1}-${this.node.start + 7}✂];`;
-	            block.builders.create.add_line(statement);
-	            block.builders.update.add_line(statement);
+	            block.chunks.create.push(debug);
+	            block.chunks.update.push(debug);
 	        }
 	        else {
-	            const { code } = component;
-	            code.overwrite(this.node.start + 1, this.node.start + 7, 'log', {
-	                storeName: true
-	            });
-	            const log = `[✂${this.node.start + 1}-${this.node.start + 7}✂]`;
+	            const log = {
+	                type: 'Identifier',
+	                name: 'log',
+	                loc
+	            };
 	            const dependencies = new Set();
 	            this.node.expressions.forEach(expression => {
 	                add_to_set(dependencies, expression.dependencies);
 	            });
-	            const condition = Array.from(dependencies).map(d => `changed.${d}`).join(' || ');
-	            const ctx_identifiers = this.node.expressions
+	            const contextual_identifiers = this.node.expressions
 	                .filter(e => {
-	                const looked_up_var = var_lookup.get(e.node.name);
-	                return !(looked_up_var && looked_up_var.hoistable);
+	                const variable = var_lookup.get(e.node.name);
+	                return !(variable && variable.hoistable);
 	            })
-	                .map(e => e.node.name)
-	                .join(', ');
-	            const logged_identifiers = this.node.expressions.map(e => e.node.name).join(', ');
-	            block.builders.update.add_block(deindent `
-				if (${condition}) {
-					const { ${ctx_identifiers} } = ctx;
-					@_console.${log}({ ${logged_identifiers} });
-					debugger;
-				}
-			`);
-	            block.builders.create.add_block(deindent `
-				{
-					const { ${ctx_identifiers} } = ctx;
-					@_console.${log}({ ${logged_identifiers} });
-					debugger;
-				}
-			`);
+	                .map(e => p `${e.node.name}`);
+	            const logged_identifiers = this.node.expressions.map(e => p `${e.node.name}`);
+	            const debug_statements = b `
+				const { ${contextual_identifiers} } = #ctx;
+				@_console.${log}({ ${logged_identifiers} });
+				debugger;`;
+	            if (dependencies.size) {
+	                const condition = changed(Array.from(dependencies));
+	                block.chunks.update.push(b `
+					if (${condition}) {
+						${debug_statements}
+					}
+				`);
+	            }
+	            block.chunks.create.push(b `{
+				${debug_statements}
+			}`);
 	        }
 	    }
-	}
-
-	function new_tail() {
-	    return '%%tail_head%%';
-	}
-	function attach_head(head, tail) {
-	    return tail.replace('%%tail_head%%', head);
 	}
 
 	class ElseBlockWrapper extends Wrapper {
@@ -23314,8 +25251,9 @@ var compiler = createCommonjsModule(function (module, exports) {
 	class EachBlockWrapper extends Wrapper {
 	    constructor(renderer, block, parent, node, strip_whitespace, next_sibling) {
 	        super(renderer, block, parent, node);
-	        this.var = 'each';
+	        this.var = { type: 'Identifier', name: 'each' };
 	        this.cannot_use_innerhtml();
+	        this.not_static_content();
 	        const { dependencies } = node.expression;
 	        block.add_dependencies(dependencies);
 	        this.block = block.child({
@@ -23328,7 +25266,9 @@ var compiler = createCommonjsModule(function (module, exports) {
 	        });
 	        // TODO this seems messy
 	        this.block.has_animation = this.node.has_animation;
-	        this.index_name = this.node.index || renderer.component.get_unique_name(`${this.node.context}_index`);
+	        this.index_name = this.node.index
+	            ? { type: 'Identifier', name: this.node.index }
+	            : renderer.component.get_unique_name(`${this.node.context}_index`);
 	        const fixed_length = node.expression.node.type === 'ArrayExpression' &&
 	            node.expression.node.elements.every(element => element.type !== 'SpreadElement')
 	            ? node.expression.node.elements.length
@@ -23338,19 +25278,24 @@ var compiler = createCommonjsModule(function (module, exports) {
 	        let c = this.node.start + 2;
 	        while (renderer.component.source[c] !== 'e')
 	            c += 1;
-	        renderer.component.code.overwrite(c, c + 4, 'length');
-	        const each_block_value = renderer.component.get_unique_name(`${this.var}_value`);
-	        const iterations = block.get_unique_name(`${this.var}_blocks`);
+	        const start = renderer.component.locate(c);
+	        const end = { line: start.line, column: start.column + 4 };
+	        const length = {
+	            type: 'Identifier',
+	            name: 'length',
+	            loc: { start, end }
+	        };
+	        const each_block_value = renderer.component.get_unique_name(`${this.var.name}_value`);
+	        const iterations = block.get_unique_name(`${this.var.name}_blocks`);
 	        this.vars = {
 	            create_each_block: this.block.name,
 	            each_block_value,
-	            get_each_context: renderer.component.get_unique_name(`get_${this.var}_context`),
+	            get_each_context: renderer.component.get_unique_name(`get_${this.var.name}_context`),
 	            iterations,
-	            length: `[✂${c}-${c + 4}✂]`,
 	            // optimisation for array literal
 	            fixed_length,
-	            data_length: fixed_length === null ? `${each_block_value}.[✂${c}-${c + 4}✂]` : fixed_length,
-	            view_length: fixed_length === null ? `${iterations}.[✂${c}-${c + 4}✂]` : fixed_length
+	            data_length: fixed_length === null ? x `${each_block_value}.${length}` : fixed_length,
+	            view_length: fixed_length === null ? x `${iterations}.length` : fixed_length
 	        };
 	        const store = node.expression.node.type === 'Identifier' &&
 	            node.expression.node.name[0] === '$'
@@ -23360,9 +25305,10 @@ var compiler = createCommonjsModule(function (module, exports) {
 	            this.block.bindings.set(prop.key.name, {
 	                object: this.vars.each_block_value,
 	                property: this.index_name,
-	                snippet: attach_head(`${this.vars.each_block_value}[${this.index_name}]`, prop.tail),
+	                modifier: prop.modifier,
+	                snippet: prop.modifier(x `${this.vars.each_block_value}[${this.index_name}]`),
 	                store,
-	                tail: attach_head(`[${this.index_name}]`, prop.tail)
+	                tail: prop.modifier(x `[${this.index_name}]`)
 	            });
 	        });
 	        if (this.node.index) {
@@ -23390,25 +25336,25 @@ var compiler = createCommonjsModule(function (module, exports) {
 	        const needs_anchor = this.next
 	            ? !this.next.is_dom_node() :
 	            !parent_node || !this.parent.is_dom_node();
-	        this.context_props = this.node.contexts.map(prop => `child_ctx.${prop.key.name} = ${attach_head('list[i]', prop.tail)};`);
+	        this.context_props = this.node.contexts.map(prop => b `child_ctx.${prop.key.name} = ${prop.modifier(x `list[i]`)};`);
 	        if (this.node.has_binding)
-	            this.context_props.push(`child_ctx.${this.vars.each_block_value} = list;`);
+	            this.context_props.push(b `child_ctx.${this.vars.each_block_value} = list;`);
 	        if (this.node.has_binding || this.node.index)
-	            this.context_props.push(`child_ctx.${this.index_name} = i;`);
-	        const snippet = this.node.expression.render(block);
-	        block.builders.init.add_line(`let ${this.vars.each_block_value} = ${snippet};`);
-	        renderer.blocks.push(deindent `
-			function ${this.vars.get_each_context}(ctx, list, i) {
-				const child_ctx = @_Object.create(ctx);
+	            this.context_props.push(b `child_ctx.${this.index_name} = i;`);
+	        const snippet = this.node.expression.manipulate(block);
+	        block.chunks.init.push(b `let ${this.vars.each_block_value} = ${snippet};`);
+	        renderer.blocks.push(b `
+			function ${this.vars.get_each_context}(#ctx, list, i) {
+				const child_ctx = @_Object.create(#ctx);
 				${this.context_props}
 				return child_ctx;
 			}
 		`);
-	        const initial_anchor_node = parent_node ? 'null' : 'anchor';
-	        const initial_mount_node = parent_node || '#target';
+	        const initial_anchor_node = { type: 'Identifier', name: parent_node ? 'null' : 'anchor' };
+	        const initial_mount_node = parent_node || { type: 'Identifier', name: '#target' };
 	        const update_anchor_node = needs_anchor
-	            ? block.get_unique_name(`${this.var}_anchor`)
-	            : (this.next && this.next.var) || 'null';
+	            ? block.get_unique_name(`${this.var.name}_anchor`)
+	            : (this.next && this.next.var) || { type: 'Identifier', name: 'null' };
 	        const update_mount_node = this.get_update_mount_node(update_anchor_node);
 	        const args = {
 	            block,
@@ -23427,36 +25373,36 @@ var compiler = createCommonjsModule(function (module, exports) {
 	            this.render_unkeyed(args);
 	        }
 	        if (this.block.has_intro_method || this.block.has_outro_method) {
-	            block.builders.intro.add_block(deindent `
+	            block.chunks.intro.push(b `
 				for (let #i = 0; #i < ${this.vars.data_length}; #i += 1) {
 					@transition_in(${this.vars.iterations}[#i]);
 				}
 			`);
 	        }
 	        if (needs_anchor) {
-	            block.add_element(update_anchor_node, `@empty()`, parent_nodes && `@empty()`, parent_node);
+	            block.add_element(update_anchor_node, x `@empty()`, parent_nodes && x `@empty()`, parent_node);
 	        }
 	        if (this.else) {
-	            const each_block_else = component.get_unique_name(`${this.var}_else`);
-	            block.builders.init.add_line(`let ${each_block_else} = null;`);
+	            const each_block_else = component.get_unique_name(`${this.var.name}_else`);
+	            block.chunks.init.push(b `let ${each_block_else} = null;`);
 	            // TODO neaten this up... will end up with an empty line in the block
-	            block.builders.init.add_block(deindent `
+	            block.chunks.init.push(b `
 				if (!${this.vars.data_length}) {
-					${each_block_else} = ${this.else.block.name}(ctx);
+					${each_block_else} = ${this.else.block.name}(#ctx);
 					${each_block_else}.c();
 				}
 			`);
-	            block.builders.mount.add_block(deindent `
+	            block.chunks.mount.push(b `
 				if (${each_block_else}) {
 					${each_block_else}.m(${initial_mount_node}, ${initial_anchor_node});
 				}
 			`);
 	            if (this.else.block.has_update_method) {
-	                block.builders.update.add_block(deindent `
+	                block.chunks.update.push(b `
 					if (!${this.vars.data_length} && ${each_block_else}) {
-						${each_block_else}.p(changed, ctx);
+						${each_block_else}.p(#changed, #ctx);
 					} else if (!${this.vars.data_length}) {
-						${each_block_else} = ${this.else.block.name}(ctx);
+						${each_block_else} = ${this.else.block.name}(#ctx);
 						${each_block_else}.c();
 						${each_block_else}.m(${update_mount_node}, ${update_anchor_node});
 					} else if (${each_block_else}) {
@@ -23466,65 +25412,63 @@ var compiler = createCommonjsModule(function (module, exports) {
 				`);
 	            }
 	            else {
-	                block.builders.update.add_block(deindent `
+	                block.chunks.update.push(b `
 					if (${this.vars.data_length}) {
 						if (${each_block_else}) {
 							${each_block_else}.d(1);
 							${each_block_else} = null;
 						}
 					} else if (!${each_block_else}) {
-						${each_block_else} = ${this.else.block.name}(ctx);
+						${each_block_else} = ${this.else.block.name}(#ctx);
 						${each_block_else}.c();
 						${each_block_else}.m(${update_mount_node}, ${update_anchor_node});
 					}
 				`);
 	            }
-	            block.builders.destroy.add_block(deindent `
+	            block.chunks.destroy.push(b `
 				if (${each_block_else}) ${each_block_else}.d(${parent_node ? '' : 'detaching'});
 			`);
 	        }
-	        this.fragment.render(this.block, null, 'nodes');
+	        this.fragment.render(this.block, null, x `#nodes`);
 	        if (this.else) {
-	            this.else.fragment.render(this.else.block, null, 'nodes');
+	            this.else.fragment.render(this.else.block, null, x `#nodes`);
 	        }
 	    }
 	    render_keyed({ block, parent_node, parent_nodes, snippet, initial_anchor_node, initial_mount_node, update_anchor_node, update_mount_node }) {
-	        const { create_each_block, length, iterations, view_length } = this.vars;
+	        const { create_each_block, iterations, data_length, view_length } = this.vars;
 	        const get_key = block.get_unique_name('get_key');
-	        const lookup = block.get_unique_name(`${this.var}_lookup`);
-	        block.add_variable(iterations, '[]');
-	        block.add_variable(lookup, `new @_Map()`);
+	        const lookup = block.get_unique_name(`${this.var.name}_lookup`);
+	        block.add_variable(iterations, x `[]`);
+	        block.add_variable(lookup, x `new @_Map()`);
 	        if (this.fragment.nodes[0].is_dom_node()) {
 	            this.block.first = this.fragment.nodes[0].var;
 	        }
 	        else {
 	            this.block.first = this.block.get_unique_name('first');
-	            this.block.add_element(this.block.first, `@empty()`, parent_nodes && `@empty()`, null);
+	            this.block.add_element(this.block.first, x `@empty()`, parent_nodes && x `@empty()`, null);
 	        }
-	        block.builders.init.add_block(deindent `
-			const ${get_key} = ctx => ${
-        // @ts-ignore todo: probably error
-        this.node.key.render()};
+	        block.chunks.init.push(b `
+			const ${get_key} = #ctx => ${this.node.key.manipulate(block)};
 
-			for (let #i = 0; #i < ${this.vars.each_block_value}.${length}; #i += 1) {
-				let child_ctx = ${this.vars.get_each_context}(ctx, ${this.vars.each_block_value}, #i);
+			for (let #i = 0; #i < ${data_length}; #i += 1) {
+				let child_ctx = ${this.vars.get_each_context}(#ctx, ${this.vars.each_block_value}, #i);
 				let key = ${get_key}(child_ctx);
 				${lookup}.set(key, ${iterations}[#i] = ${create_each_block}(key, child_ctx));
 			}
 		`);
-	        block.builders.create.add_block(deindent `
+	        block.chunks.create.push(b `
 			for (let #i = 0; #i < ${view_length}; #i += 1) {
 				${iterations}[#i].c();
 			}
 		`);
 	        if (parent_nodes && this.renderer.options.hydratable) {
-	            block.builders.claim.add_block(deindent `
+	            block.chunks.claim.push(b `
 				for (let #i = 0; #i < ${view_length}; #i += 1) {
 					${iterations}[#i].l(${parent_nodes});
 				}
 			`);
 	        }
-	        block.builders.mount.add_block(deindent `
+	        block.chunks.mount.push(b `
 			for (let #i = 0; #i < ${view_length}; #i += 1) {
 				${iterations}[#i].m(${initial_mount_node}, ${initial_anchor_node});
 			}
@@ -23537,50 +25481,50 @@ var compiler = createCommonjsModule(function (module, exports) {
 	            : this.block.has_outros
 	                ? `@outro_and_destroy_block`
 	                : `@destroy_block`;
-	        block.builders.update.add_block(deindent `
+	        block.chunks.update.push(b `
 			const ${this.vars.each_block_value} = ${snippet};
 
-			${this.block.has_outros && `@group_outros();`}
-			${this.node.has_animation && `for (let #i = 0; #i < ${view_length}; #i += 1) ${iterations}[#i].r();`}
-			${iterations} = @update_keyed_each(${iterations}, changed, ${get_key}, ${dynamic ? '1' : '0'}, ctx, ${this.vars.each_block_value}, ${lookup}, ${update_mount_node}, ${destroy}, ${create_each_block}, ${update_anchor_node}, ${this.vars.get_each_context});
-			${this.node.has_animation && `for (let #i = 0; #i < ${view_length}; #i += 1) ${iterations}[#i].a();`}
-			${this.block.has_outros && `@check_outros();`}
+			${this.block.has_outros && b `@group_outros();`}
+			${this.node.has_animation && b `for (let #i = 0; #i < ${view_length}; #i += 1) ${iterations}[#i].r();`}
+			${iterations} = @update_keyed_each(${iterations}, #changed, ${get_key}, ${dynamic ? 1 : 0}, #ctx, ${this.vars.each_block_value}, ${lookup}, ${update_mount_node}, ${destroy}, ${create_each_block}, ${update_anchor_node}, ${this.vars.get_each_context});
+			${this.node.has_animation && b `for (let #i = 0; #i < ${view_length}; #i += 1) ${iterations}[#i].a();`}
+			${this.block.has_outros && b `@check_outros();`}
 		`);
 	        if (this.block.has_outros) {
-	            block.builders.outro.add_block(deindent `
+	            block.chunks.outro.push(b `
 				for (let #i = 0; #i < ${view_length}; #i += 1) {
 					@transition_out(${iterations}[#i]);
 				}
 			`);
 	        }
-	        block.builders.destroy.add_block(deindent `
+	        block.chunks.destroy.push(b `
 			for (let #i = 0; #i < ${view_length}; #i += 1) {
-				${iterations}[#i].d(${parent_node ? '' : 'detaching'});
+				${iterations}[#i].d(${parent_node ? null : 'detaching'});
 			}
 		`);
 	    }
 	    render_unkeyed({ block, parent_nodes, snippet, initial_anchor_node, initial_mount_node, update_anchor_node, update_mount_node }) {
-	        const { create_each_block, length, iterations, fixed_length, data_length, view_length } = this.vars;
-	        block.builders.init.add_block(deindent `
+	        const { create_each_block, iterations, fixed_length, data_length, view_length } = this.vars;
+	        block.chunks.init.push(b `
 			let ${iterations} = [];
 
 			for (let #i = 0; #i < ${data_length}; #i += 1) {
-				${iterations}[#i] = ${create_each_block}(${this.vars.get_each_context}(ctx, ${this.vars.each_block_value}, #i));
+				${iterations}[#i] = ${create_each_block}(${this.vars.get_each_context}(#ctx, ${this.vars.each_block_value}, #i));
 			}
 		`);
-	        block.builders.create.add_block(deindent `
+	        block.chunks.create.push(b `
 			for (let #i = 0; #i < ${view_length}; #i += 1) {
 				${iterations}[#i].c();
 			}
 		`);
 	        if (parent_nodes && this.renderer.options.hydratable) {
-	            block.builders.claim.add_block(deindent `
+	            block.chunks.claim.push(b `
 				for (let #i = 0; #i < ${view_length}; #i += 1) {
 					${iterations}[#i].l(${parent_nodes});
 				}
 			`);
 	        }
-	        block.builders.mount.add_block(deindent `
+	        block.chunks.mount.push(b `
 			for (let #i = 0; #i < ${view_length}; #i += 1) {
 				${iterations}[#i].m(${initial_mount_node}, ${initial_anchor_node});
 			}
@@ -23590,25 +25534,22 @@ var compiler = createCommonjsModule(function (module, exports) {
 	        dependencies.forEach((dependency) => {
 	            all_dependencies.add(dependency);
 	        });
-	        const condition = Array.from(all_dependencies)
-	            .map(dependency => `changed.${dependency}`)
-	            .join(' || ');
-	        const has_transitions = !!(this.block.has_intro_method || this.block.has_outro_method);
-	        if (condition !== '') {
+	        if (all_dependencies.size) {
+	            const has_transitions = !!(this.block.has_intro_method || this.block.has_outro_method);
 	            const for_loop_body = this.block.has_update_method
-	                ? deindent `
+	                ? b `
 					if (${iterations}[#i]) {
-						${iterations}[#i].p(changed, child_ctx);
-						${has_transitions && `@transition_in(${this.vars.iterations}[#i], 1);`}
+						${iterations}[#i].p(#changed, child_ctx);
+						${has_transitions && b `@transition_in(${this.vars.iterations}[#i], 1);`}
 					} else {
 						${iterations}[#i] = ${create_each_block}(child_ctx);
 						${iterations}[#i].c();
-						${has_transitions && `@transition_in(${this.vars.iterations}[#i], 1);`}
+						${has_transitions && b `@transition_in(${this.vars.iterations}[#i], 1);`}
 						${iterations}[#i].m(${update_mount_node}, ${update_anchor_node});
 					}
 				`
 	                : has_transitions
-	                    ? deindent `
+	                    ? b `
 						if (${iterations}[#i]) {
 							@transition_in(${this.vars.iterations}[#i], 1);
 						} else {
@@ -23618,69 +25559,89 @@ var compiler = createCommonjsModule(function (module, exports) {
 							${iterations}[#i].m(${update_mount_node}, ${update_anchor_node});
 						}
 					`
-	                    : deindent `
+	                    : b `
 						if (!${iterations}[#i]) {
 							${iterations}[#i] = ${create_each_block}(child_ctx);
 							${iterations}[#i].c();
 							${iterations}[#i].m(${update_mount_node}, ${update_anchor_node});
 						}
 					`;
-	            const start = this.block.has_update_method ? '0' : `#old_length`;
+	            const start = this.block.has_update_method ? 0 : `#old_length`;
 	            let remove_old_blocks;
 	            if (this.block.has_outros) {
 	                const out = block.get_unique_name('out');
-	                block.builders.init.add_block(deindent `
+	                block.chunks.init.push(b `
 					const ${out} = i => @transition_out(${iterations}[i], 1, 1, () => {
 						${iterations}[i] = null;
 					});
 				`);
-	                remove_old_blocks = deindent `
+	                remove_old_blocks = b `
 					@group_outros();
-					for (#i = ${this.vars.each_block_value}.${length}; #i < ${view_length}; #i += 1) {
+					for (#i = ${data_length}; #i < ${view_length}; #i += 1) {
 						${out}(#i);
 					}
 					@check_outros();
 				`;
 	            }
 	            else {
-	                remove_old_blocks = deindent `
-					for (${this.block.has_update_method ? `` : `#i = ${this.vars.each_block_value}.${length}`}; #i < ${this.block.has_update_method ? view_length : '#old_length'}; #i += 1) {
+	                remove_old_blocks = b `
+					for (${this.block.has_update_method ? null : x `#i = ${data_length}`}; #i < ${this.block.has_update_method ? view_length : '#old_length'}; #i += 1) {
 						${iterations}[#i].d(1);
 					}
-					${!fixed_length && `${view_length} = ${this.vars.each_block_value}.${length};`}
+					${!fixed_length && b `${view_length} = ${data_length};`}
 				`;
 	            }
 	            // We declare `i` as block scoped here, as the `remove_old_blocks` code
 	            // may rely on continuing where this iteration stopped.
-	            const update = deindent `
-				${!this.block.has_update_method && `const #old_length = ${this.vars.each_block_value}.length;`}
+	            const update = b `
+				${!this.block.has_update_method && b `const #old_length = ${this.vars.each_block_value}.length;`}
 				${this.vars.each_block_value} = ${snippet};
 
 				let #i;
-				for (#i = ${start}; #i < ${this.vars.each_block_value}.${length}; #i += 1) {
-					const child_ctx = ${this.vars.get_each_context}(ctx, ${this.vars.each_block_value}, #i);
+				for (#i = ${start}; #i < ${data_length}; #i += 1) {
+					const child_ctx = ${this.vars.get_each_context}(#ctx, ${this.vars.each_block_value}, #i);
 
 					${for_loop_body}
 				}
 
 				${remove_old_blocks}
 			`;
-	            block.builders.update.add_block(deindent `
-				if (${condition}) {
+	            block.chunks.update.push(b `
+				if (${changed(Array.from(all_dependencies))}) {
 					${update}
 				}
 			`);
 	        }
 	        if (this.block.has_outros) {
-	            block.builders.outro.add_block(deindent `
+	            block.chunks.outro.push(b `
 				${iterations} = ${iterations}.filter(@_Boolean);
 				for (let #i = 0; #i < ${view_length}; #i += 1) {
 					@transition_out(${iterations}[#i]);
 				}
 			`);
 	        }
-	        block.builders.destroy.add_block(`@destroy_each(${iterations}, detaching);`);
+	        block.chunks.destroy.push(b `@destroy_each(${iterations}, detaching);`);
 	    }
+	}
+
+	function string_literal(data) {
+	    return {
+	        type: 'Literal',
+	        value: data
+	    };
+	}
+	const escaped = {
+	    '"': '&quot;',
+	    "'": '&#39;',
+	    '&': '&amp;',
+	    '<': '&lt;',
+	    '>': '&gt;',
+	};
+	function escape_html(html) {
+	    return String(html).replace(/["'&<>]/g, match => escaped[match]);
+	}
+	function escape_template(str) {
+	    return str.replace(/(\${|`|\\)/g, '\\$1');
 	}
 
 	const svg_attributes = 'accent-height accumulate additive alignment-baseline allowReorder alphabetic amplitude arabic-form ascent attributeName attributeType autoReverse azimuth baseFrequency baseline-shift baseProfile bbox begin bias by calcMode cap-height class clip clipPathUnits clip-path clip-rule color color-interpolation color-interpolation-filters color-profile color-rendering contentScriptType contentStyleType cursor cx cy d decelerate descent diffuseConstant direction display divisor dominant-baseline dur dx dy edgeMode elevation enable-background end exponent externalResourcesRequired fill fill-opacity fill-rule filter filterRes filterUnits flood-color flood-opacity font-family font-size font-size-adjust font-stretch font-style font-variant font-weight format from fr fx fy g1 g2 glyph-name glyph-orientation-horizontal glyph-orientation-vertical glyphRef gradientTransform gradientUnits hanging height href horiz-adv-x horiz-origin-x id ideographic image-rendering in in2 intercept k k1 k2 k3 k4 kernelMatrix kernelUnitLength kerning keyPoints keySplines keyTimes lang lengthAdjust letter-spacing lighting-color limitingConeAngle local marker-end marker-mid marker-start markerHeight markerUnits markerWidth mask maskContentUnits maskUnits mathematical max media method min mode name numOctaves offset onabort onactivate onbegin onclick onend onerror onfocusin onfocusout onload onmousedown onmousemove onmouseout onmouseover onmouseup onrepeat onresize onscroll onunload opacity operator order orient orientation origin overflow overline-position overline-thickness panose-1 paint-order pathLength patternContentUnits patternTransform patternUnits pointer-events points pointsAtX pointsAtY pointsAtZ preserveAlpha preserveAspectRatio primitiveUnits r radius refX refY rendering-intent repeatCount repeatDur requiredExtensions requiredFeatures restart result rotate rx ry scale seed shape-rendering slope spacing specularConstant specularExponent speed spreadMethod startOffset stdDeviation stemh stemv stitchTiles stop-color stop-opacity strikethrough-position strikethrough-thickness string stroke stroke-dasharray stroke-dashoffset stroke-linecap stroke-linejoin stroke-miterlimit stroke-opacity stroke-width style surfaceScale systemLanguage tabindex tableValues target targetX targetY text-anchor text-decoration text-rendering textLength to transform type u1 u2 underline-position underline-thickness unicode unicode-bidi unicode-range units-per-em v-alphabetic v-hanging v-ideographic v-mathematical values version vert-adv-y vert-origin-x vert-origin-y viewBox viewTarget visibility width widths word-spacing writing-mode x x-height x1 x2 xChannelSelector xlink:actuate xlink:arcrole xlink:href xlink:role xlink:show xlink:title xlink:type xml:base xml:lang xml:space y y1 y2 yChannelSelector z zoomAndPan'.split(' ');
@@ -23721,6 +25682,7 @@ var compiler = createCommonjsModule(function (module, exports) {
 	        this.parent = parent;
 	        if (node.dependencies.size > 0) {
 	            parent.cannot_use_innerhtml();
+	            parent.not_static_content();
 	            block.add_dependencies(node.dependencies);
 	            // special case — <option value={foo}> — see below
 	            if (this.parent.node.name === 'option' && node.name === 'value') {
@@ -23741,9 +25703,7 @@ var compiler = createCommonjsModule(function (module, exports) {
 	    render(block) {
 	        const element = this.parent;
 	        const name = fix_attribute_casing(this.node.name);
-	        let metadata = element.node.namespace ? null : attribute_lookup[name];
-	        if (metadata && metadata.applies_to && !~metadata.applies_to.indexOf(element.node.name))
-	            metadata = null;
+	        const metadata = this.get_metadata();
 	        const is_indirectly_bound_value = name === 'value' &&
 	            (element.node.name === 'option' || // TODO check it's actually bound
 	                (element.node.name === 'input' &&
@@ -23761,114 +25721,133 @@ var compiler = createCommonjsModule(function (module, exports) {
 	                : '@attr';
 	        const is_legacy_input_type = element.renderer.component.compile_options.legacy && name === 'type' && this.parent.node.name === 'input';
 	        const dependencies = this.node.get_dependencies();
-	        if (dependencies.length > 0) {
-	            let value;
-	            // TODO some of this code is repeated in Tag.ts — would be good to
-	            // DRY it out if that's possible without introducing crazy indirection
-	            if (this.node.chunks.length === 1) {
-	                // single {tag} — may be a non-string
-	                value = this.node.chunks[0].render(block);
-	            }
-	            else {
-	                // '{foo} {bar}' — treat as string concatenation
-	                const prefix = this.node.chunks[0].type === 'Text' ? '' : `"" + `;
-	                const text = this.node.name === 'class'
-	                    ? this.get_class_name_text()
-	                    : this.render_chunks().join(' + ');
-	                value = `${prefix}${text}`;
-	            }
-	            const is_select_value_attribute = name === 'value' && element.node.name === 'select';
-	            const should_cache = (this.node.should_cache() || is_select_value_attribute);
-	            const last = should_cache && block.get_unique_name(`${element.var}_${name.replace(/[^a-zA-Z_$]/g, '_')}_value`);
-	            if (should_cache)
-	                block.add_variable(last);
-	            let updater;
-	            const init = should_cache ? `${last} = ${value}` : value;
-	            if (is_legacy_input_type) {
-	                block.builders.hydrate.add_line(`@set_input_type(${element.var}, ${init});`);
-	                updater = `@set_input_type(${element.var}, ${should_cache ? last : value});`;
-	            }
-	            else if (is_select_value_attribute) {
-	                // annoying special case
-	                const is_multiple_select = element.node.get_static_attribute_value('multiple');
-	                const i = block.get_unique_name('i');
-	                const option = block.get_unique_name('option');
-	                const if_statement = is_multiple_select
-	                    ? deindent `
-						${option}.selected = ~${last}.indexOf(${option}.__value);`
-	                    : deindent `
-						if (${option}.__value === ${last}) {
-							${option}.selected = true;
-							break;
-						}`;
-	                updater = deindent `
-					for (var ${i} = 0; ${i} < ${element.var}.options.length; ${i} += 1) {
-						var ${option} = ${element.var}.options[${i}];
+	        const value = this.get_value(block);
+	        const is_src = this.node.name === 'src'; // TODO retire this exception in favour of https://github.com/sveltejs/svelte/issues/3750
+	        const is_select_value_attribute = name === 'value' && element.node.name === 'select';
+	        const should_cache = is_src || this.node.should_cache() || is_select_value_attribute; // TODO is this necessary?
+	        const last = should_cache && block.get_unique_name(`${element.var.name}_${name.replace(/[^a-zA-Z_$]/g, '_')}_value`);
+	        if (should_cache)
+	            block.add_variable(last);
+	        let updater;
+	        const init = should_cache ? x `${last} = ${value}` : value;
+	        if (is_legacy_input_type) {
+	            block.chunks.hydrate.push(b `@set_input_type(${element.var}, ${init});`);
+	            updater = b `@set_input_type(${element.var}, ${should_cache ? last : value});`;
+	        }
+	        else if (is_select_value_attribute) {
+	            // annoying special case
+	            const is_multiple_select = element.node.get_static_attribute_value('multiple');
+	            const i = block.get_unique_name('i');
+	            const option = block.get_unique_name('option');
+	            const if_statement = is_multiple_select
+	                ? b `
+					${option}.selected = ~${last}.indexOf(${option}.__value);`
+	                : b `
+					if (${option}.__value === ${last}) {
+						${option}.selected = true;
+						${{ type: 'BreakStatement' }};
+					}`; // TODO the BreakStatement is gross, but it's unsyntactic otherwise...
+	            updater = b `
+				for (var ${i} = 0; ${i} < ${element.var}.options.length; ${i} += 1) {
+					var ${option} = ${element.var}.options[${i}];
 
-						${if_statement}
-					}
-				`;
-	                block.builders.mount.add_block(deindent `
-					${last} = ${value};
-					${updater}
-				`);
-	            }
-	            else if (property_name) {
-	                block.builders.hydrate.add_line(`${element.var}.${property_name} = ${init};`);
-	                updater = block.renderer.options.dev
-	                    ? `@prop_dev(${element.var}, "${property_name}", ${should_cache ? last : value});`
-	                    : `${element.var}.${property_name} = ${should_cache ? last : value};`;
-	            }
-	            else {
-	                block.builders.hydrate.add_line(`${method}(${element.var}, "${name}", ${init});`);
-	                updater = `${method}(${element.var}, "${name}", ${should_cache ? last : value});`;
-	            }
-	            const changed_check = ((block.has_outros ? `!#current || ` : '') +
-	                dependencies.map(dependency => `changed.${dependency}`).join(' || '));
-	            const update_cached_value = `${last} !== (${last} = ${value})`;
-	            const condition = should_cache
-	                ? (dependencies.length ? `(${changed_check}) && ${update_cached_value}` : update_cached_value)
-	                : changed_check;
-	            block.builders.update.add_conditional(condition, updater);
+					${if_statement}
+				}
+			`;
+	            block.chunks.mount.push(b `
+				${last} = ${value};
+				${updater}
+			`);
+	        }
+	        else if (is_src) {
+	            block.chunks.hydrate.push(b `if (${element.var}.src !== ${init}) ${method}(${element.var}, "${name}", ${last});`);
+	            updater = b `${method}(${element.var}, "${name}", ${should_cache ? last : value});`;
+	        }
+	        else if (property_name) {
+	            block.chunks.hydrate.push(b `${element.var}.${property_name} = ${init};`);
+	            updater = block.renderer.options.dev
+	                ? b `@prop_dev(${element.var}, "${property_name}", ${should_cache ? last : value});`
+	                : b `${element.var}.${property_name} = ${should_cache ? last : value};`;
 	        }
 	        else {
-	            const value = this.node.get_value(block);
-	            const statement = (is_legacy_input_type
-	                ? `@set_input_type(${element.var}, ${value});`
-	                : property_name
-	                    ? `${element.var}.${property_name} = ${value};`
-	                    : `${method}(${element.var}, "${name}", ${value === true ? '""' : value});`);
-	            block.builders.hydrate.add_line(statement);
-	            // special case – autofocus. has to be handled in a bit of a weird way
-	            if (this.node.is_true && name === 'autofocus') {
-	                block.autofocus = element.var;
+	            block.chunks.hydrate.push(b `${method}(${element.var}, "${name}", ${init});`);
+	            updater = b `${method}(${element.var}, "${name}", ${should_cache ? last : value});`;
+	        }
+	        if (dependencies.length > 0) {
+	            let condition = changed(dependencies);
+	            if (should_cache) {
+	                condition = is_src
+	                    ? x `${condition} && (${element.var}.src !== (${last} = ${value}))`
+	                    : x `${condition} && (${last} !== (${last} = ${value}))`;
 	            }
+	            if (block.has_outros) {
+	                condition = x `!#current || ${condition}`;
+	            }
+	            block.chunks.update.push(b `
+				if (${condition}) {
+					${updater}
+				}`);
+	        }
+	        // special case – autofocus. has to be handled in a bit of a weird way
+	        if (this.node.is_true && name === 'autofocus') {
+	            block.autofocus = element.var;
 	        }
 	        if (is_indirectly_bound_value) {
-	            const update_value = `${element.var}.value = ${element.var}.__value;`;
-	            block.builders.hydrate.add_line(update_value);
+	            const update_value = b `${element.var}.value = ${element.var}.__value;`;
+	            block.chunks.hydrate.push(update_value);
 	            if (this.node.get_dependencies().length > 0)
-	                block.builders.update.add_line(update_value);
+	                block.chunks.update.push(update_value);
 	        }
+	    }
+	    get_metadata() {
+	        if (this.parent.node.namespace)
+	            return null;
+	        const metadata = attribute_lookup[fix_attribute_casing(this.node.name)];
+	        if (metadata && metadata.applies_to && !metadata.applies_to.includes(this.parent.node.name))
+	            return null;
+	        return metadata;
+	    }
+	    get_value(block) {
+	        if (this.node.is_true) {
+	            const metadata = this.get_metadata();
+	            if (metadata && boolean_attribute.has(metadata.property_name.toLowerCase())) {
+	                return x `true`;
+	            }
+	            return x `""`;
+	        }
+	        if (this.node.chunks.length === 0)
+	            return x `""`;
+	        // TODO some of this code is repeated in Tag.ts — would be good to
+	        // DRY it out if that's possible without introducing crazy indirection
+	        if (this.node.chunks.length === 1) {
+	            return this.node.chunks[0].type === 'Text'
+	                ? string_literal(this.node.chunks[0].data)
+	                : this.node.chunks[0].manipulate(block);
+	        }
+	        let value = this.node.name === 'class'
+	            ? this.get_class_name_text()
+	            : this.render_chunks().reduce((lhs, rhs) => x `${lhs} + ${rhs}`);
+	        // '{foo} {bar}' — treat as string concatenation
+	        if (this.node.chunks[0].type !== 'Text') {
+	            value = x `"" + ${value}`;
+	        }
+	        return value;
 	    }
 	    get_class_name_text() {
 	        const scoped_css = this.node.chunks.some((chunk) => chunk.synthetic);
 	        const rendered = this.render_chunks();
 	        if (scoped_css && rendered.length === 2) {
 	            // we have a situation like class={possiblyUndefined}
-	            rendered[0] = `@null_to_empty(${rendered[0]})`;
+	            rendered[0] = x `@null_to_empty(${rendered[0]})`;
 	        }
-	        return rendered.join(' + ');
+	        return rendered.reduce((lhs, rhs) => x `${lhs} + ${rhs}`);
 	    }
 	    render_chunks() {
 	        return this.node.chunks.map((chunk) => {
 	            if (chunk.type === 'Text') {
-	                return stringify(chunk.data);
+	                return string_literal(chunk.data);
 	            }
-	            const rendered = chunk.render();
-	            return chunk.get_precedence() <= 13
-	                ? `(${rendered})`
-	                : rendered;
+	            return chunk.manipulate();
 	        });
 	    }
 	    stringify() {
@@ -23880,7 +25859,7 @@ var compiler = createCommonjsModule(function (module, exports) {
 	        return `="${value.map(chunk => {
             return chunk.type === 'Text'
                 ? chunk.data.replace(/"/g, '\\"')
-                : `\${${chunk.render()}}`;
+                : `\${${chunk.manipulate()}}`;
         }).join('')}"`;
 	    }
 	}
@@ -23941,6 +25920,34 @@ var compiler = createCommonjsModule(function (module, exports) {
 	    if (!metadata.property_name)
 	        metadata.property_name = name;
 	});
+	// source: https://html.spec.whatwg.org/multipage/indices.html
+	const boolean_attribute = new Set([
+	    'allowfullscreen',
+	    'allowpaymentrequest',
+	    'async',
+	    'autofocus',
+	    'autoplay',
+	    'checked',
+	    'controls',
+	    'default',
+	    'defer',
+	    'disabled',
+	    'formnovalidate',
+	    'hidden',
+	    'ismap',
+	    'itemscope',
+	    'loop',
+	    'multiple',
+	    'muted',
+	    'nomodule',
+	    'novalidate',
+	    'open',
+	    'playsinline',
+	    'readonly',
+	    'required',
+	    'reversed',
+	    'selected'
+	]);
 
 	class StyleAttributeWrapper extends AttributeWrapper {
 	    render(block) {
@@ -23951,31 +25958,37 @@ var compiler = createCommonjsModule(function (module, exports) {
 	            let value;
 	            if (is_dynamic(prop.value)) {
 	                const prop_dependencies = new Set();
-	                value =
-	                    ((prop.value.length === 1 || prop.value[0].type === 'Text') ? '' : `"" + `) +
-	                        prop.value
-	                            .map((chunk) => {
-	                            if (chunk.type === 'Text') {
-	                                return stringify(chunk.data);
-	                            }
-	                            else {
-	                                const snippet = chunk.render();
-	                                add_to_set(prop_dependencies, chunk.dynamic_dependencies());
-	                                return chunk.get_precedence() <= 13 ? `(${snippet})` : snippet;
-	                            }
-	                        })
-	                            .join(' + ');
+	                value = prop.value
+	                    .map(chunk => {
+	                    if (chunk.type === 'Text') {
+	                        return string_literal(chunk.data);
+	                    }
+	                    else {
+	                        add_to_set(prop_dependencies, chunk.dynamic_dependencies());
+	                        return chunk.manipulate(block);
+	                    }
+	                })
+	                    .reduce((lhs, rhs) => x `${lhs} + ${rhs}`);
+	                // TODO is this necessary? style.setProperty always treats value as string, no?
+	                // if (prop.value.length === 1 || prop.value[0].type !== 'Text') {
+	                // 	value = x`"" + ${value}`;
+	                // }
 	                if (prop_dependencies.size) {
-	                    const dependencies = Array.from(prop_dependencies);
-	                    const condition = ((block.has_outros ? `!#current || ` : '') +
-	                        dependencies.map(dependency => `changed.${dependency}`).join(' || '));
-	                    block.builders.update.add_conditional(condition, `@set_style(${this.parent.var}, "${prop.key}", ${value}${prop.important ? ', 1' : ''});`);
+	                    let condition = changed(Array.from(prop_dependencies));
+	                    if (block.has_outros) {
+	                        condition = x `!#current || ${condition}`;
+	                    }
+	                    const update = b `
+						if (${condition}) {
+							@set_style(${this.parent.var}, "${prop.key}", ${value}, ${prop.important ? 1 : null});
+						}`;
+	                    block.chunks.update.push(update);
 	                }
 	            }
 	            else {
-	                value = stringify(prop.value[0].data);
+	                value = string_literal(prop.value[0].data);
 	            }
-	            block.builders.hydrate.add_line(`@set_style(${this.parent.var}, "${prop.key}", ${value}${prop.important ? ', 1' : ''});`);
+	            block.chunks.hydrate.push(b `@set_style(${this.parent.var}, "${prop.key}", ${value}, ${prop.important ? 1 : null});`);
 	        });
 	    }
 	}
@@ -24090,25 +26103,15 @@ var compiler = createCommonjsModule(function (module, exports) {
 	    return value.length > 1 || value[0].type !== 'Text';
 	}
 
-	function unwrap_parens(node) {
-	    while (node.type === 'ParenthesizedExpression')
-	        node = node.expression;
-	    return node;
-	}
-
 	function get_object(node) {
-	    node = unwrap_parens(node);
 	    while (node.type === 'MemberExpression')
 	        node = node.object;
 	    return node;
 	}
 
 	function flatten_reference(node) {
-	    if (node.type === 'Expression')
-	        throw new Error('bad');
 	    const nodes = [];
 	    const parts = [];
-	    const prop_end = node.end;
 	    while (node.type === 'MemberExpression') {
 	        nodes.unshift(node.property);
 	        if (!node.computed) {
@@ -24116,7 +26119,6 @@ var compiler = createCommonjsModule(function (module, exports) {
 	        }
 	        node = node.object;
 	    }
-	    const prop_start = node.end;
 	    const name = node.type === 'Identifier'
 	        ? node.name
 	        : node.type === 'ThisExpression' ? 'this' : null;
@@ -24124,15 +26126,9 @@ var compiler = createCommonjsModule(function (module, exports) {
 	    if (!node.computed) {
 	        parts.unshift(name);
 	    }
-	    return { name, nodes, parts, keypath: `${name}[✂${prop_start}-${prop_end}✂]` };
+	    return { name, nodes, parts };
 	}
 
-	function get_tail(node) {
-	    const end = node.end;
-	    while (node.type === 'MemberExpression')
-	        node = node.object;
-	    return { start: node.end, end };
-	}
 	class BindingWrapper {
 	    constructor(block, node, parent) {
 	        this.node = node;
@@ -24154,12 +26150,9 @@ var compiler = createCommonjsModule(function (module, exports) {
 	            each_block.has_binding = true;
 	        }
 	        this.object = get_object(this.node.expression.node).name;
-	        // TODO unfortunate code is necessary because we need to use `ctx`
-	        // inside the fragment, but not inside the <script>
-	        const contextless_snippet = this.parent.renderer.component.source.slice(this.node.expression.node.start, this.node.expression.node.end);
 	        // view to model
-	        this.handler = get_event_handler(this, parent.renderer, block, this.object, contextless_snippet);
-	        this.snippet = this.node.expression.render(block);
+	        this.handler = get_event_handler(this, parent.renderer, block, this.object, this.node.raw_expression);
+	        this.snippet = this.node.expression.manipulate(block);
 	        this.is_readonly = this.node.is_readonly;
 	        this.needs_lock = this.node.name === 'currentTime' || (parent.node.name === 'input' && parent.node.get_static_attribute_value('type') === 'number'); // TODO others?
 	    }
@@ -24182,18 +26175,15 @@ var compiler = createCommonjsModule(function (module, exports) {
 	        if (this.is_readonly)
 	            return;
 	        const { parent } = this;
-	        const update_conditions = this.needs_lock ? [`!${lock}`] : [];
+	        const update_conditions = this.needs_lock ? [x `!${lock}`] : [];
 	        const dependency_array = [...this.node.expression.dependencies];
-	        if (dependency_array.length === 1) {
-	            update_conditions.push(`changed.${dependency_array[0]}`);
-	        }
-	        else if (dependency_array.length > 1) {
-	            update_conditions.push(`(${dependency_array.map(prop => `changed.${prop}`).join(' || ')})`);
+	        if (dependency_array.length > 0) {
+	            update_conditions.push(changed(dependency_array));
 	        }
 	        if (parent.node.name === 'input') {
 	            const type = parent.node.get_static_attribute_value('type');
 	            if (type === null || type === "" || type === "text" || type === "email" || type === "password") {
-	                update_conditions.push(`(${parent.var}.${this.node.name} !== ${this.snippet})`);
+	                update_conditions.push(x `(${parent.var}.${this.node.name} !== ${this.snippet})`);
 	            }
 	        }
 	        // model to view
@@ -24203,28 +26193,28 @@ var compiler = createCommonjsModule(function (module, exports) {
 	            case 'group':
 	                {
 	                    const binding_group = get_binding_group(parent.renderer, this.node.expression.node);
-	                    block.builders.hydrate.add_line(`ctx.$$binding_groups[${binding_group}].push(${parent.var});`);
-	                    block.builders.destroy.add_line(`ctx.$$binding_groups[${binding_group}].splice(ctx.$$binding_groups[${binding_group}].indexOf(${parent.var}), 1);`);
+	                    block.chunks.hydrate.push(b `#ctx.$$binding_groups[${binding_group}].push(${parent.var});`);
+	                    block.chunks.destroy.push(b `#ctx.$$binding_groups[${binding_group}].splice(#ctx.$$binding_groups[${binding_group}].indexOf(${parent.var}), 1);`);
 	                    break;
 	                }
 	            case 'textContent':
-	                update_conditions.push(`${this.snippet} !== ${parent.var}.textContent`);
+	                update_conditions.push(x `${this.snippet} !== ${parent.var}.textContent`);
 	                break;
 	            case 'innerHTML':
-	                update_conditions.push(`${this.snippet} !== ${parent.var}.innerHTML`);
+	                update_conditions.push(x `${this.snippet} !== ${parent.var}.innerHTML`);
 	                break;
 	            case 'currentTime':
 	            case 'playbackRate':
 	            case 'volume':
-	                update_conditions.push(`!@_isNaN(${this.snippet})`);
+	                update_conditions.push(x `!@_isNaN(${this.snippet})`);
 	                break;
 	            case 'paused':
 	                {
 	                    // this is necessary to prevent audio restarting by itself
-	                    const last = block.get_unique_name(`${parent.var}_is_paused`);
-	                    block.add_variable(last, 'true');
-	                    update_conditions.push(`${last} !== (${last} = ${this.snippet})`);
-	                    update_dom = `${parent.var}[${last} ? "pause" : "play"]();`;
+	                    const last = block.get_unique_name(`${parent.var.name}_is_paused`);
+	                    block.add_variable(last, x `true`);
+	                    update_conditions.push(x `${last} !== (${last} = ${this.snippet})`);
+	                    update_dom = b `${parent.var}[${last} ? "pause" : "play"]();`;
 	                    break;
 	                }
 	            case 'value':
@@ -24233,13 +26223,26 @@ var compiler = createCommonjsModule(function (module, exports) {
 	                }
 	        }
 	        if (update_dom) {
-	            block.builders.update.add_line(update_conditions.length ? `if (${update_conditions.join(' && ')}) ${update_dom}` : update_dom);
+	            if (update_conditions.length > 0) {
+	                const condition = update_conditions.reduce((lhs, rhs) => x `${lhs} && ${rhs}`);
+	                block.chunks.update.push(b `
+					if (${condition}) {
+						${update_dom}
+					}
+				`);
+	            }
+	            else {
+	                block.chunks.update.push(update_dom);
+	            }
 	        }
 	        if (this.node.name === 'innerHTML' || this.node.name === 'textContent') {
-	            block.builders.mount.add_block(`if (${this.snippet} !== void 0) ${update_dom}`);
+	            block.chunks.mount.push(b `
+				if (${this.snippet} !== void 0) {
+					${update_dom}
+				}`);
 	        }
 	        else if (!/(currentTime|paused)/.test(this.node.name)) {
-	            block.builders.mount.add_block(update_dom);
+	            block.chunks.mount.push(update_dom);
 	        }
 	    }
 	}
@@ -24253,20 +26256,20 @@ var compiler = createCommonjsModule(function (module, exports) {
 	    }
 	    if (node.name === 'select') {
 	        return node.get_static_attribute_value('multiple') === true ?
-	            `@select_options(${element.var}, ${binding.snippet})` :
-	            `@select_option(${element.var}, ${binding.snippet})`;
+	            b `@select_options(${element.var}, ${binding.snippet})` :
+	            b `@select_option(${element.var}, ${binding.snippet})`;
 	    }
 	    if (binding.node.name === 'group') {
 	        const type = node.get_static_attribute_value('type');
 	        const condition = type === 'checkbox'
-	            ? `~${binding.snippet}.indexOf(${element.var}.__value)`
-	            : `${element.var}.__value === ${binding.snippet}`;
-	        return `${element.var}.checked = ${condition};`;
+	            ? x `~${binding.snippet}.indexOf(${element.var}.__value)`
+	            : x `${element.var}.__value === ${binding.snippet}`;
+	        return b `${element.var}.checked = ${condition};`;
 	    }
 	    if (binding.node.name === 'value') {
-	        return `@set_input_value(${element.var}, ${binding.snippet});`;
+	        return b `@set_input_value(${element.var}, ${binding.snippet});`;
 	    }
-	    return `${element.var}.${binding.node.name} = ${binding.snippet};`;
+	    return b `${element.var}.${binding.node.name} = ${binding.snippet};`;
 	}
 	function get_binding_group(renderer, value) {
 	    const { parts } = flatten_reference(value); // TODO handle cases involving computed member expressions
@@ -24280,115 +26283,73 @@ var compiler = createCommonjsModule(function (module, exports) {
 	    }
 	    return index;
 	}
-	function mutate_store(store, value, tail) {
-	    return tail
-	        ? `${store}.update($$value => ($$value${tail} = ${value}, $$value));`
-	        : `${store}.set(${value});`;
-	}
-	function get_event_handler(binding, renderer, block, name, snippet) {
+	function get_event_handler(binding, renderer, block, name, lhs) {
 	    const value = get_value_from_dom(renderer, binding.parent, binding);
-	    let store = binding.object[0] === '$' ? binding.object.slice(1) : null;
-	    let tail = '';
-	    if (binding.node.expression.node.type === 'MemberExpression') {
-	        const { start, end } = get_tail(binding.node.expression.node);
-	        tail = renderer.component.source.slice(start, end);
-	    }
-	    if (binding.node.is_contextual) {
-	        const binding = block.bindings.get(name);
-	        const { object, property, snippet } = binding;
-	        if (binding.store) {
-	            store = binding.store;
-	            tail = `${binding.tail}${tail}`;
+	    const contextual_dependencies = new Set(binding.node.expression.contextual_dependencies);
+	    const context = block.bindings.get(name);
+	    let set_store;
+	    if (context) {
+	        const { object, property, modifier, store } = context;
+	        if (lhs.type === 'Identifier') {
+	            lhs = modifier(x `${object}[${property}]`);
+	            contextual_dependencies.add(object.name);
+	            contextual_dependencies.add(property.name);
 	        }
-	        return {
-	            uses_context: true,
-	            mutation: store
-	                ? mutate_store(store, value, tail)
-	                : `${snippet}${tail} = ${value};`,
-	            contextual_dependencies: new Set([object, property])
-	        };
+	        if (store) {
+	            set_store = b `${store}.set(${`$${store}`});`;
+	        }
 	    }
-	    const mutation = store
-	        ? mutate_store(store, value, tail)
-	        : `${snippet} = ${value};`;
-	    if (binding.node.expression.node.type === 'MemberExpression') {
-	        return {
-	            uses_context: binding.node.expression.uses_context,
-	            mutation,
-	            contextual_dependencies: binding.node.expression.contextual_dependencies,
-	            snippet
-	        };
+	    else {
+	        const object = get_object(lhs);
+	        if (object.name[0] === '$') {
+	            const store = object.name.slice(1);
+	            set_store = b `${store}.set(${object.name});`;
+	        }
 	    }
+	    const mutation = b `
+		${lhs} = ${value};
+		${set_store}
+	`;
 	    return {
-	        uses_context: false,
+	        uses_context: binding.node.is_contextual || binding.node.expression.uses_context,
 	        mutation,
-	        contextual_dependencies: new Set()
+	        contextual_dependencies
 	    };
 	}
 	function get_value_from_dom(renderer, element, binding) {
 	    const { node } = element;
 	    const { name } = binding.node;
 	    if (name === 'this') {
-	        return `$$node`;
+	        return x `$$node`;
 	    }
 	    // <select bind:value='selected>
 	    if (node.name === 'select') {
 	        return node.get_static_attribute_value('multiple') === true ?
-	            `@select_multiple_value(this)` :
-	            `@select_value(this)`;
+	            x `@select_multiple_value(this)` :
+	            x `@select_value(this)`;
 	    }
 	    const type = node.get_static_attribute_value('type');
 	    // <input type='checkbox' bind:group='foo'>
 	    if (name === 'group') {
 	        const binding_group = get_binding_group(renderer, binding.node.expression.node);
 	        if (type === 'checkbox') {
-	            return `@get_binding_group_value($$binding_groups[${binding_group}])`;
+	            return x `@get_binding_group_value($$binding_groups[${binding_group}])`;
 	        }
-	        return `this.__value`;
+	        return x `this.__value`;
 	    }
 	    // <input type='range|number' bind:value>
 	    if (type === 'range' || type === 'number') {
-	        return `@to_number(this.${name})`;
+	        return x `@to_number(this.${name})`;
 	    }
 	    if ((name === 'buffered' || name === 'seekable' || name === 'played')) {
-	        return `@time_ranges_to_array(this.${name})`;
+	        return x `@time_ranges_to_array(this.${name})`;
 	    }
 	    // everything else
-	    return `this.${name}`;
+	    return x `this.${name}`;
 	}
 
 	function add_event_handlers(block, target, handlers) {
-	    handlers.forEach(handler => {
-	        let snippet = handler.render(block);
-	        if (handler.modifiers.has('preventDefault'))
-	            snippet = `@prevent_default(${snippet})`;
-	        if (handler.modifiers.has('stopPropagation'))
-	            snippet = `@stop_propagation(${snippet})`;
-	        if (handler.modifiers.has('self'))
-	            snippet = `@self(${snippet})`;
-	        let opts_string = '';
-	        if (block.renderer.options.dev) {
-	            if (handler.modifiers.has('stopPropagation')) {
-	                opts_string = ', true';
-	            }
-	            if (handler.modifiers.has('preventDefault')) {
-	                opts_string = ', true' + opts_string;
-	            }
-	            else if (opts_string) {
-	                opts_string = ', false' + opts_string;
-	            }
-	        }
-	        const opts = ['passive', 'once', 'capture'].filter(mod => handler.modifiers.has(mod));
-	        if (opts.length) {
-	            opts_string = (opts.length === 1 && opts[0] === 'capture')
-	                ? ', true'
-	                : `, { ${opts.map(opt => `${opt}: true`).join(', ')} }`;
-	        }
-	        else if (opts_string) {
-	            opts_string = ', false' + opts_string;
-	        }
-	        block.event_listeners.push(`@listen(${target}, "${handler.name}", ${snippet}${opts_string})`);
-	    });
+	    handlers.forEach(handler => handler.render(block, target));
 	}
 
 	function add_actions(component, block, target, actions) {
@@ -24397,71 +26358,99 @@ var compiler = createCommonjsModule(function (module, exports) {
 	        let snippet;
 	        let dependencies;
 	        if (expression) {
-	            snippet = expression.render(block);
+	            snippet = expression.manipulate(block);
 	            dependencies = expression.dynamic_dependencies();
 	        }
-	        const name = block.get_unique_name(`${action.name.replace(/[^a-zA-Z0-9_$]/g, '_')}_action`);
-	        block.add_variable(name);
+	        const id = block.get_unique_name(`${action.name.replace(/[^a-zA-Z0-9_$]/g, '_')}_action`);
+	        block.add_variable(id);
 	        const fn = component.qualify(action.name);
-	        block.builders.mount.add_line(`${name} = ${fn}.call(null, ${target}${snippet ? `, ${snippet}` : ''}) || {};`);
+	        block.chunks.mount.push(b `${id} = ${fn}.call(null, ${target}, ${snippet}) || {};`);
 	        if (dependencies && dependencies.length > 0) {
-	            let conditional = `typeof ${name}.update === 'function' && `;
-	            const deps = dependencies.map(dependency => `changed.${dependency}`).join(' || ');
-	            conditional += dependencies.length > 1 ? `(${deps})` : deps;
-	            block.builders.update.add_conditional(conditional, `${name}.update.call(null, ${snippet});`);
+	            let condition = x `@is_function(${id}.update)`;
+	            // TODO can this case be handled more elegantly?
+	            if (dependencies.length > 0) {
+	                let changed = x `#changed.${dependencies[0]}`;
+	                for (let i = 1; i < dependencies.length; i += 1) {
+	                    changed = x `${changed} || #changed.${dependencies[i]}`;
+	                }
+	                condition = x `${condition} && ${changed}`;
+	            }
+	            block.chunks.update.push(b `if (${condition}) ${id}.update.call(null, ${snippet});`);
 	        }
-	        block.builders.destroy.add_line(`if (${name} && typeof ${name}.destroy === 'function') ${name}.destroy();`);
+	        block.chunks.destroy.push(b `if (${id} && @is_function(${id}.destroy)) ${id}.destroy();`);
 	    });
 	}
 
 	function get_context_merger(lets) {
 	    if (lets.length === 0)
 	        return null;
-	    const input = lets.map(l => l.value ? `${l.name}: ${l.value}` : l.name).join(', ');
+	    const input = {
+	        type: 'ObjectPattern',
+	        properties: lets.map(l => ({
+	            type: 'Property',
+	            kind: 'init',
+	            key: l.name,
+	            value: l.value || l.name
+	        }))
+	    };
 	    const names = new Set();
 	    lets.forEach(l => {
 	        l.names.forEach(name => {
 	            names.add(name);
 	        });
 	    });
-	    const output = Array.from(names).join(', ');
-	    return `({ ${input} }) => ({ ${output} })`;
+	    const output = {
+	        type: 'ObjectExpression',
+	        properties: Array.from(names).map(name => {
+	            const id = { type: 'Identifier', name };
+	            return {
+	                type: 'Property',
+	                kind: 'init',
+	                key: id,
+	                value: id
+	            };
+	        })
+	    };
+	    return x `(${input}) => (${output})`;
 	}
 
 	function bind_this(component, block, binding, variable) {
-	    const fn = component.get_unique_name(`${variable}_binding`);
+	    const fn = component.get_unique_name(`${variable.name}_binding`);
 	    component.add_var({
-	        name: fn,
+	        name: fn.name,
 	        internal: true,
 	        referenced: true
 	    });
 	    let lhs;
 	    let object;
 	    let body;
-	    if (binding.is_contextual && binding.expression.node.type === 'Identifier') {
+	    if (binding.is_contextual && binding.raw_expression.type === 'Identifier') {
 	        // bind:x={y} — we can't just do `y = x`, we need to
 	        // to `array[index] = x;
-	        const { name } = binding.expression.node;
+	        const { name } = binding.raw_expression;
 	        const { snippet } = block.bindings.get(name);
 	        lhs = snippet;
-	        body = `${lhs} = $$value`; // TODO we need to invalidate... something
+	        body = b `${lhs} = $$value`; // TODO we need to invalidate... something
 	    }
 	    else {
-	        object = flatten_reference(binding.expression.node).name;
-	        lhs = component.source.slice(binding.expression.node.start, binding.expression.node.end).trim();
-	        body = binding.expression.node.type === 'Identifier'
-	            ? deindent `
-				${component.invalidate(object, `${lhs} = $$value`)};
+	        object = flatten_reference(binding.raw_expression).name;
+	        lhs = binding.raw_expression;
+	        body = binding.raw_expression.type === 'Identifier'
+	            ? b `
+				${component.invalidate(object, x `${lhs} = $$value`)};
 			`
-	            : deindent `
+	            : b `
 				${lhs} = $$value;
 				${component.invalidate(object)};
 			`;
 	    }
-	    const contextual_dependencies = Array.from(binding.expression.contextual_dependencies);
+	    const contextual_dependencies = Array.from(binding.expression.contextual_dependencies).map(name => ({
+	        type: 'Identifier',
+	        name
+	    }));
 	    if (contextual_dependencies.length) {
-	        component.partly_hoisted.push(deindent `
-			function ${fn}(${['$$value', ...contextual_dependencies].join(', ')}) {
+	        component.partly_hoisted.push(b `
+			function ${fn}($$value, ${contextual_dependencies}) {
 				if (${lhs} === $$value) return;
 				@binding_callbacks[$$value ? 'unshift' : 'push'](() => {
 					${body}
@@ -24469,38 +26458,40 @@ var compiler = createCommonjsModule(function (module, exports) {
 			}
 		`);
 	        const args = [];
-	        for (const arg of contextual_dependencies) {
-	            args.push(arg);
-	            block.add_variable(arg, `ctx.${arg}`);
+	        for (const id of contextual_dependencies) {
+	            args.push(id);
+	            block.add_variable(id, x `#ctx.${id}`);
 	        }
-	        const assign = block.get_unique_name(`assign_${variable}`);
-	        const unassign = block.get_unique_name(`unassign_${variable}`);
-	        block.builders.init.add_block(deindent `
-			const ${assign} = () => ctx.${fn}(${[variable].concat(args).join(', ')});
-			const ${unassign} = () => ctx.${fn}(${['null'].concat(args).join(', ')});
+	        const assign = block.get_unique_name(`assign_${variable.name}`);
+	        const unassign = block.get_unique_name(`unassign_${variable.name}`);
+	        block.chunks.init.push(b `
+			const ${assign} = () => #ctx.${fn}(${variable}, ${args});
+			const ${unassign} = () => #ctx.${fn}(null, ${args});
 		`);
-	        const condition = Array.from(contextual_dependencies).map(name => `${name} !== ctx.${name}`).join(' || ');
+	        const condition = Array.from(contextual_dependencies)
+	            .map(name => x `${name} !== #ctx.${name}`)
+	            .reduce((lhs, rhs) => x `${lhs} || ${rhs}`);
 	        // we push unassign and unshift assign so that references are
 	        // nulled out before they're created, to avoid glitches
 	        // with shifting indices
-	        block.builders.update.add_line(deindent `
+	        block.chunks.update.push(b `
 			if (${condition}) {
 				${unassign}();
-				${args.map(a => `${a} = ctx.${a}`).join(', ')};
+				${args.map(a => b `${a} = #ctx.${a}`)};
 				${assign}();
 			}`);
-	        block.builders.destroy.add_line(`${unassign}();`);
-	        return `${assign}();`;
+	        block.chunks.destroy.push(b `${unassign}();`);
+	        return b `${assign}();`;
 	    }
-	    component.partly_hoisted.push(deindent `
+	    component.partly_hoisted.push(b `
 		function ${fn}($$value) {
 			@binding_callbacks[$$value ? 'unshift' : 'push'](() => {
 				${body}
 			});
 		}
 	`);
-	    block.builders.destroy.add_line(`ctx.${fn}(null);`);
-	    return `ctx.${fn}(${variable});`;
+	    block.chunks.destroy.push(b `#ctx.${fn}(null);`);
+	    return b `#ctx.${fn}(${variable});`;
 	}
 
 	const events = [
@@ -24572,7 +26563,11 @@ var compiler = createCommonjsModule(function (module, exports) {
 	class ElementWrapper extends Wrapper {
 	    constructor(renderer, block, parent, node, strip_whitespace, next_sibling) {
 	        super(renderer, block, parent, node);
-	        this.var = node.name.replace(/[^a-zA-Z0-9_$]/g, '_');
+	        this.var = {
+	            type: 'Identifier',
+	            name: node.name.replace(/[^a-zA-Z0-9_$]/g, '_')
+	        };
+	        this.void = is_void(node.name);
 	        this.class_dependencies = [];
 	        this.attributes = this.node.attributes.map(attribute => {
 	            if (attribute.name === 'slot') {
@@ -24596,9 +26591,9 @@ var compiler = createCommonjsModule(function (module, exports) {
 	                            type: 'slot'
 	                        });
 	                        const lets = this.node.lets;
-	                        const seen = new Set(lets.map(l => l.name));
+	                        const seen = new Set(lets.map(l => l.name.name));
 	                        owner.node.lets.forEach(l => {
-	                            if (!seen.has(l.name))
+	                            if (!seen.has(l.name.name))
 	                                lets.push(l);
 	                        });
 	                        const fn = get_context_merger(lets);
@@ -24622,6 +26617,7 @@ var compiler = createCommonjsModule(function (module, exports) {
 	        // the rare case where an element can have multiple bindings,
 	        // e.g. <audio bind:paused bind:currentTime>
 	        this.bindings = this.node.bindings.map(binding => new BindingWrapper(block, binding, this));
+	        this.event_handlers = this.node.handlers.map(event_handler => new EventHandlerWrapper(event_handler, this));
 	        if (node.intro || node.outro) {
 	            if (node.intro)
 	                block.add_intro(node.intro.is_local);
@@ -24643,22 +26639,16 @@ var compiler = createCommonjsModule(function (module, exports) {
 	            }
 	        });
 	        if (this.parent) {
-	            if (node.actions.length > 0)
-	                this.parent.cannot_use_innerhtml();
-	            if (node.animation)
-	                this.parent.cannot_use_innerhtml();
-	            if (node.bindings.length > 0)
-	                this.parent.cannot_use_innerhtml();
-	            if (node.classes.length > 0)
-	                this.parent.cannot_use_innerhtml();
-	            if (node.intro || node.outro)
-	                this.parent.cannot_use_innerhtml();
-	            if (node.handlers.length > 0)
-	                this.parent.cannot_use_innerhtml();
-	            if (this.node.name === 'option')
-	                this.parent.cannot_use_innerhtml();
-	            if (renderer.options.dev) {
+	            if (node.actions.length > 0 ||
+	                node.animation ||
+	                node.bindings.length > 0 ||
+	                node.classes.length > 0 ||
+	                node.intro || node.outro ||
+	                node.handlers.length > 0 ||
+	                this.node.name === 'option' ||
+	                renderer.options.dev) {
 	                this.parent.cannot_use_innerhtml(); // need to use add_location
+	                this.parent.not_static_content();
 	            }
 	        }
 	        this.fragment = new FragmentWrapper(renderer, block, node.children, this, strip_whitespace, next_sibling);
@@ -24678,50 +26668,67 @@ var compiler = createCommonjsModule(function (module, exports) {
 	            block = this.slot_block;
 	        }
 	        const node = this.var;
-	        const nodes = parent_nodes && block.get_unique_name(`${this.var}_nodes`); // if we're in unclaimable territory, i.e. <head>, parent_nodes is null
+	        const nodes = parent_nodes && block.get_unique_name(`${this.var.name}_nodes`); // if we're in unclaimable territory, i.e. <head>, parent_nodes is null
+	        const children = x `@children(${this.node.name === 'template' ? x `${node}.content` : node})`;
 	        block.add_variable(node);
 	        const render_statement = this.get_render_statement();
-	        block.builders.create.add_line(`${node} = ${render_statement};`);
+	        block.chunks.create.push(b `${node} = ${render_statement};`);
 	        if (renderer.options.hydratable) {
 	            if (parent_nodes) {
-	                block.builders.claim.add_block(deindent `
+	                block.chunks.claim.push(b `
 					${node} = ${this.get_claim_statement(parent_nodes)};
-					var ${nodes} = @children(${this.node.name === 'template' ? `${node}.content` : node});
 				`);
+	                if (!this.void && this.node.children.length > 0) {
+	                    block.chunks.claim.push(b `
+						var ${nodes} = ${children};
+					`);
+	                }
 	            }
 	            else {
-	                block.builders.claim.add_line(`${node} = ${render_statement};`);
+	                block.chunks.claim.push(b `${node} = ${render_statement};`);
 	            }
 	        }
 	        if (parent_node) {
-	            block.builders.mount.add_line(`@append(${parent_node}, ${node});`);
-	            if (parent_node === '@_document.head') {
-	                block.builders.destroy.add_line(`@detach(${node});`);
+	            block.chunks.mount.push(b `@append(${parent_node}, ${node});`);
+	            if (is_head(parent_node)) {
+	                block.chunks.destroy.push(b `@detach(${node});`);
 	            }
 	        }
 	        else {
-	            block.builders.mount.add_line(`@insert(#target, ${node}, anchor);`);
+	            block.chunks.mount.push(b `@insert(#target, ${node}, anchor);`);
 	            // TODO we eventually need to consider what happens to elements
 	            // that belong to the same outgroup as an outroing element...
-	            block.builders.destroy.add_conditional('detaching', `@detach(${node});`);
+	            block.chunks.destroy.push(b `if (detaching) @detach(${node});`);
 	        }
 	        // insert static children with textContent or innerHTML
-	        if (!this.node.namespace && this.can_use_innerhtml && this.fragment.nodes.length > 0) {
+	        const can_use_textcontent = this.can_use_textcontent();
+	        if (!this.node.namespace && (this.can_use_innerhtml || can_use_textcontent) && this.fragment.nodes.length > 0) {
 	            if (this.fragment.nodes.length === 1 && this.fragment.nodes[0].node.type === 'Text') {
-	                block.builders.create.add_line(
+	                block.chunks.create.push(
 	                // @ts-ignore todo: should it be this.fragment.nodes[0].node.data instead?
-	                `${node}.textContent = ${stringify(this.fragment.nodes[0].data)};`);
+	                b `${node}.textContent = ${string_literal(this.fragment.nodes[0].data)};`);
 	            }
 	            else {
-	                const inner_html = escape(this.fragment.nodes
-	                    .map(to_html)
-	                    .join(''));
-	                block.builders.create.add_line(`${node}.innerHTML = \`${inner_html}\`;`);
+	                const state = {
+	                    quasi: {
+	                        type: 'TemplateElement',
+	                        value: { raw: '' }
+	                    }
+	                };
+	                const literal = {
+	                    type: 'TemplateLiteral',
+	                    expressions: [],
+	                    quasis: []
+	                };
+	                const can_use_raw_text = !this.can_use_innerhtml && can_use_textcontent;
+	                to_html(this.fragment.nodes, block, literal, state, can_use_raw_text);
+	                literal.quasis.push(state.quasi);
+	                block.chunks.create.push(b `${node}.${this.can_use_innerhtml ? 'innerHTML' : 'textContent'} = ${literal};`);
 	            }
 	        }
 	        else {
 	            this.fragment.nodes.forEach((child) => {
-	                child.render(block, this.node.name === 'template' ? `${node}.content` : node, nodes);
+	                child.render(block, this.node.name === 'template' ? x `${node}.content` : node, nodes);
 	            });
 	        }
 	        const event_handler_or_binding_uses_context = (this.bindings.some(binding => binding.handler.uses_context) ||
@@ -24730,68 +26737,48 @@ var compiler = createCommonjsModule(function (module, exports) {
 	        if (event_handler_or_binding_uses_context) {
 	            block.maintain_context = true;
 	        }
+	        this.add_attributes(block);
 	        this.add_bindings(block);
 	        this.add_event_handlers(block);
-	        this.add_attributes(block);
 	        this.add_transitions(block);
 	        this.add_animation(block);
 	        this.add_actions(block);
 	        this.add_classes(block);
-	        if (nodes && this.renderer.options.hydratable) {
-	            block.builders.claim.add_line(`${nodes}.forEach(@detach);`);
-	        }
-	        function to_html(wrapper) {
-	            if (wrapper.node.type === 'Text') {
-	                if (wrapper.use_space())
-	                    return ' ';
-	                const parent = wrapper.node.parent;
-	                const raw = parent && (parent.name === 'script' ||
-	                    parent.name === 'style');
-	                return (raw ? wrapper.node.data : escape_html(wrapper.node.data))
-	                    .replace(/\\/g, '\\\\')
-	                    .replace(/`/g, '\\`')
-	                    .replace(/\$/g, '\\$');
-	            }
-	            if (wrapper.node.name === 'noscript')
-	                return '';
-	            let open = `<${wrapper.node.name}`;
-	            wrapper.attributes.forEach((attr) => {
-	                open += ` ${fix_attribute_casing(attr.node.name)}${attr.stringify()}`;
-	            });
-	            if (is_void(wrapper.node.name))
-	                return open + '>';
-	            return `${open}>${wrapper.fragment.nodes.map(to_html).join('')}</${wrapper.node.name}>`;
+	        this.add_manual_style_scoping(block);
+	        if (nodes && this.renderer.options.hydratable && !this.void) {
+	            block.chunks.claim.push(b `${this.node.children.length > 0 ? nodes : children}.forEach(@detach);`);
 	        }
 	        if (renderer.options.dev) {
 	            const loc = renderer.locate(this.node.start);
-	            block.builders.hydrate.add_line(`@add_location(${this.var}, ${renderer.file_var}, ${loc.line}, ${loc.column}, ${this.node.start});`);
+	            block.chunks.hydrate.push(b `@add_location(${this.var}, ${renderer.file_var}, ${loc.line - 1}, ${loc.column}, ${this.node.start});`);
 	        }
+	    }
+	    can_use_textcontent() {
+	        return this.is_static_content && this.fragment.nodes.every(node => node.node.type === 'Text' || node.node.type === 'MustacheTag');
 	    }
 	    get_render_statement() {
 	        const { name, namespace } = this.node;
 	        if (namespace === 'http://www.w3.org/2000/svg') {
-	            return `@svg_element("${name}")`;
+	            return x `@svg_element("${name}")`;
 	        }
 	        if (namespace) {
-	            return `@_document.createElementNS("${namespace}", "${name}")`;
+	            return x `@_document.createElementNS("${namespace}", "${name}")`;
 	        }
 	        const is = this.attributes.find(attr => attr.node.name === 'is');
 	        if (is) {
-	            return `@element_is("${name}", ${is.render_chunks().join(' + ')});`;
+	            return x `@element_is("${name}", ${is.render_chunks().reduce((lhs, rhs) => x `${lhs} + ${rhs}`)});`;
 	        }
-	        return `@element("${name}")`;
+	        return x `@element("${name}")`;
 	    }
 	    get_claim_statement(nodes) {
 	        const attributes = this.node.attributes
 	            .filter((attr) => attr.type === 'Attribute')
-	            .map((attr) => `${quote_name_if_necessary(attr.name)}: true`)
-	            .join(', ');
+	            .map((attr) => p `${attr.name}: true`);
 	        const name = this.node.namespace
 	            ? this.node.name
 	            : this.node.name.toUpperCase();
-	        return `@claim_element(${nodes}, "${name}", ${attributes
-            ? `{ ${attributes} }`
-            : `{}`}, ${this.node.namespace === namespaces.svg ? true : false})`;
+	        const svg = this.node.namespace === namespaces.svg ? 1 : null;
+	        return x `@claim_element(${nodes}, "${name}", { ${attributes} }, ${svg})`;
 	    }
 	    add_bindings(block) {
 	        const { renderer } = this;
@@ -24799,10 +26786,10 @@ var compiler = createCommonjsModule(function (module, exports) {
 	            return;
 	        renderer.component.has_reactive_assignments = true;
 	        const lock = this.bindings.some(binding => binding.needs_lock) ?
-	            block.get_unique_name(`${this.var}_updating`) :
+	            block.get_unique_name(`${this.var.name}_updating`) :
 	            null;
 	        if (lock)
-	            block.add_variable(lock, 'false');
+	            block.add_variable(lock, x `false`);
 	        const groups = events
 	            .map(event => ({
 	            events: event.event_names,
@@ -24812,9 +26799,9 @@ var compiler = createCommonjsModule(function (module, exports) {
 	        }))
 	            .filter(group => group.bindings.length);
 	        groups.forEach(group => {
-	            const handler = renderer.component.get_unique_name(`${this.var}_${group.events.join('_')}_handler`);
+	            const handler = renderer.component.get_unique_name(`${this.var.name}_${group.events.join('_')}_handler`);
 	            renderer.component.add_var({
-	                name: handler,
+	                name: handler.name,
 	                internal: true,
 	                referenced: true
 	            });
@@ -24834,7 +26821,7 @@ var compiler = createCommonjsModule(function (module, exports) {
 	            // own hands
 	            let animation_frame;
 	            if (group.events[0] === 'timeupdate') {
-	                animation_frame = block.get_unique_name(`${this.var}_animationframe`);
+	                animation_frame = block.get_unique_name(`${this.var.name}_animationframe`);
 	                block.add_variable(animation_frame);
 	            }
 	            const has_local_function = contextual_dependencies.size > 0 || needs_lock || animation_frame;
@@ -24843,51 +26830,66 @@ var compiler = createCommonjsModule(function (module, exports) {
 	            if (has_local_function) {
 	                // need to create a block-local function that calls an instance-level function
 	                if (animation_frame) {
-	                    block.builders.init.add_block(deindent `
+	                    block.chunks.init.push(b `
 						function ${handler}() {
 							@_cancelAnimationFrame(${animation_frame});
 							if (!${this.var}.paused) {
 								${animation_frame} = @raf(${handler});
-								${needs_lock && `${lock} = true;`}
+								${needs_lock && b `${lock} = true;`}
 							}
-							ctx.${handler}.call(${this.var}${contextual_dependencies.size > 0 ? ', ctx' : ''});
+							#ctx.${handler}.call(${this.var}, ${contextual_dependencies.size > 0 ? '#ctx' : null});
 						}
 					`);
 	                }
 	                else {
-	                    block.builders.init.add_block(deindent `
+	                    block.chunks.init.push(b `
 						function ${handler}() {
-							${needs_lock && `${lock} = true;`}
-							ctx.${handler}.call(${this.var}${contextual_dependencies.size > 0 ? ', ctx' : ''});
+							${needs_lock && b `${lock} = true;`}
+							#ctx.${handler}.call(${this.var}, ${contextual_dependencies.size > 0 ? '#ctx' : null});
 						}
 					`);
 	                }
 	                callee = handler;
 	            }
 	            else {
-	                callee = `ctx.${handler}`;
+	                callee = x `#ctx.${handler}`;
 	            }
-	            this.renderer.component.partly_hoisted.push(deindent `
-				function ${handler}(${contextual_dependencies.size > 0 ? `{ ${Array.from(contextual_dependencies).join(', ')} }` : ``}) {
+	            const arg = contextual_dependencies.size > 0 && {
+	                type: 'ObjectPattern',
+	                properties: Array.from(contextual_dependencies).map(name => {
+	                    const id = { type: 'Identifier', name };
+	                    return {
+	                        type: 'Property',
+	                        kind: 'init',
+	                        key: id,
+	                        value: id
+	                    };
+	                })
+	            };
+	            this.renderer.component.partly_hoisted.push(b `
+				function ${handler}(${arg}) {
 					${group.bindings.map(b => b.handler.mutation)}
-					${Array.from(dependencies).filter(dep => dep[0] !== '$').map(dep => `${this.renderer.component.invalidate(dep)};`)}
+					${Array.from(dependencies)
+                .filter(dep => dep[0] !== '$')
+                .filter(dep => !contextual_dependencies.has(dep))
+                .map(dep => b `${this.renderer.component.invalidate(dep)};`)}
 				}
 			`);
 	            group.events.forEach(name => {
 	                if (name === 'resize') {
 	                    // special case
-	                    const resize_listener = block.get_unique_name(`${this.var}_resize_listener`);
+	                    const resize_listener = block.get_unique_name(`${this.var.name}_resize_listener`);
 	                    block.add_variable(resize_listener);
-	                    block.builders.mount.add_line(`${resize_listener} = @add_resize_listener(${this.var}, ${callee}.bind(${this.var}));`);
-	                    block.builders.destroy.add_line(`${resize_listener}.cancel();`);
+	                    block.chunks.mount.push(b `${resize_listener} = @add_resize_listener(${this.var}, ${callee}.bind(${this.var}));`);
+	                    block.chunks.destroy.push(b `${resize_listener}.cancel();`);
 	                }
 	                else {
-	                    block.event_listeners.push(`@listen(${this.var}, "${name}", ${callee})`);
+	                    block.event_listeners.push(x `@listen(${this.var}, "${name}", ${callee})`);
 	                }
 	            });
 	            const some_initial_state_is_undefined = group.bindings
-	                .map(binding => `${binding.snippet} === void 0`)
-	                .join(' || ');
+	                .map(binding => x `${binding.snippet} === void 0`)
+	                .reduce((lhs, rhs) => x `${lhs} || ${rhs}`);
 	            const should_initialise = (this.node.name === 'select' ||
 	                group.bindings.find(binding => {
 	                    return (binding.node.name === 'indeterminate' ||
@@ -24896,20 +26898,20 @@ var compiler = createCommonjsModule(function (module, exports) {
 	                        binding.is_readonly_media_attribute());
 	                }));
 	            if (should_initialise) {
-	                const callback = has_local_function ? handler : `() => ${callee}.call(${this.var})`;
-	                block.builders.hydrate.add_line(`if (${some_initial_state_is_undefined}) @add_render_callback(${callback});`);
+	                const callback = has_local_function ? handler : x `() => ${callee}.call(${this.var})`;
+	                block.chunks.hydrate.push(b `if (${some_initial_state_is_undefined}) @add_render_callback(${callback});`);
 	            }
 	            if (group.events[0] === 'resize') {
-	                block.builders.hydrate.add_line(`@add_render_callback(() => ${callee}.call(${this.var}));`);
+	                block.chunks.hydrate.push(b `@add_render_callback(() => ${callee}.call(${this.var}));`);
 	            }
 	        });
 	        if (lock) {
-	            block.builders.update.add_line(`${lock} = false;`);
+	            block.chunks.update.push(b `${lock} = false;`);
 	        }
 	        const this_binding = this.bindings.find(b => b.node.name === 'this');
 	        if (this_binding) {
 	            const binding_callback = bind_this(renderer.component, block, this_binding.node, this.var);
-	            block.builders.mount.add_line(binding_callback);
+	            block.chunks.mount.push(binding_callback);
 	        }
 	    }
 	    add_attributes(block) {
@@ -24920,8 +26922,7 @@ var compiler = createCommonjsModule(function (module, exports) {
 	                this.class_dependencies.push(...dependencies);
 	            }
 	        });
-	        // @ts-ignore todo:
-	        if (this.node.attributes.find(attr => attr.type === 'Spread')) {
+	        if (this.node.attributes.some(attr => attr.is_spread)) {
 	            this.add_spread_attributes(block);
 	            return;
 	        }
@@ -24930,47 +26931,46 @@ var compiler = createCommonjsModule(function (module, exports) {
 	        });
 	    }
 	    add_spread_attributes(block) {
-	        const levels = block.get_unique_name(`${this.var}_levels`);
-	        const data = block.get_unique_name(`${this.var}_data`);
+	        const levels = block.get_unique_name(`${this.var.name}_levels`);
+	        const data = block.get_unique_name(`${this.var.name}_data`);
 	        const initial_props = [];
 	        const updates = [];
-	        this.node.attributes
-	            .filter(attr => attr.type === 'Attribute' || attr.type === 'Spread')
+	        this.attributes
 	            .forEach(attr => {
-	            const condition = attr.dependencies.size > 0
-	                ? `(${[...attr.dependencies].map(d => `changed.${d}`).join(' || ')})`
+	            const condition = attr.node.dependencies.size > 0
+	                ? changed(Array.from(attr.node.dependencies))
 	                : null;
-	            if (attr.is_spread) {
-	                const snippet = attr.expression.render(block);
+	            if (attr.node.is_spread) {
+	                const snippet = attr.node.expression.manipulate(block);
 	                initial_props.push(snippet);
-	                updates.push(condition ? `${condition} && ${snippet}` : snippet);
+	                updates.push(condition ? x `${condition} && ${snippet}` : snippet);
 	            }
 	            else {
-	                const snippet = `{ ${quote_name_if_necessary(attr.name)}: ${attr.get_value(block)} }`;
+	                const metadata = attr.get_metadata();
+	                const snippet = x `{ ${(metadata && metadata.property_name) ||
+                    fix_attribute_casing(attr.node.name)}: ${attr.get_value(block)} }`;
 	                initial_props.push(snippet);
-	                updates.push(condition ? `${condition} && ${snippet}` : snippet);
+	                updates.push(condition ? x `${condition} && ${snippet}` : snippet);
 	            }
 	        });
-	        block.builders.init.add_block(deindent `
-			var ${levels} = [
-				${initial_props.join(',\n')}
-			];
+	        block.chunks.init.push(b `
+			let ${levels} = [${initial_props}];
 
-			var ${data} = {};
-			for (var #i = 0; #i < ${levels}.length; #i += 1) {
+			let ${data} = {};
+			for (let #i = 0; #i < ${levels}.length; #i += 1) {
 				${data} = @assign(${data}, ${levels}[#i]);
 			}
 		`);
-	        const fn = this.node.namespace === namespaces.svg ? `set_svg_attributes` : `set_attributes`;
-	        block.builders.hydrate.add_line(`@${fn}(${this.var}, ${data});`);
-	        block.builders.update.add_block(deindent `
-			@${fn}(${this.var}, @get_spread_update(${levels}, [
-				${updates.join(',\n')}
+	        const fn = this.node.namespace === namespaces.svg ? x `@set_svg_attributes` : x `@set_attributes`;
+	        block.chunks.hydrate.push(b `${fn}(${this.var}, ${data});`);
+	        block.chunks.update.push(b `
+			${fn}(${this.var}, @get_spread_update(${levels}, [
+				${updates}
 			]));
 		`);
 	    }
 	    add_event_handlers(block) {
-	        add_event_handlers(block, this.var, this.node.handlers);
+	        add_event_handlers(block, this.var, this.event_handlers);
 	    }
 	    add_transitions(block) {
 	        const { intro, outro } = this.node;
@@ -24979,62 +26979,62 @@ var compiler = createCommonjsModule(function (module, exports) {
 	        const { component } = this.renderer;
 	        if (intro === outro) {
 	            // bidirectional transition
-	            const name = block.get_unique_name(`${this.var}_transition`);
+	            const name = block.get_unique_name(`${this.var.name}_transition`);
 	            const snippet = intro.expression
-	                ? intro.expression.render(block)
-	                : '{}';
+	                ? intro.expression.manipulate(block)
+	                : x `{}`;
 	            block.add_variable(name);
 	            const fn = component.qualify(intro.name);
-	            const intro_block = deindent `
+	            const intro_block = b `
 				@add_render_callback(() => {
 					if (!${name}) ${name} = @create_bidirectional_transition(${this.var}, ${fn}, ${snippet}, true);
 					${name}.run(1);
 				});
 			`;
-	            const outro_block = deindent `
+	            const outro_block = b `
 				if (!${name}) ${name} = @create_bidirectional_transition(${this.var}, ${fn}, ${snippet}, false);
 				${name}.run(0);
 			`;
 	            if (intro.is_local) {
-	                block.builders.intro.add_block(deindent `
+	                block.chunks.intro.push(b `
 					if (#local) {
 						${intro_block}
 					}
 				`);
-	                block.builders.outro.add_block(deindent `
+	                block.chunks.outro.push(b `
 					if (#local) {
 						${outro_block}
 					}
 				`);
 	            }
 	            else {
-	                block.builders.intro.add_block(intro_block);
-	                block.builders.outro.add_block(outro_block);
+	                block.chunks.intro.push(intro_block);
+	                block.chunks.outro.push(outro_block);
 	            }
-	            block.builders.destroy.add_conditional('detaching', `if (${name}) ${name}.end();`);
+	            block.chunks.destroy.push(b `if (detaching && ${name}) ${name}.end();`);
 	        }
 	        else {
-	            const intro_name = intro && block.get_unique_name(`${this.var}_intro`);
-	            const outro_name = outro && block.get_unique_name(`${this.var}_outro`);
+	            const intro_name = intro && block.get_unique_name(`${this.var.name}_intro`);
+	            const outro_name = outro && block.get_unique_name(`${this.var.name}_outro`);
 	            if (intro) {
 	                block.add_variable(intro_name);
 	                const snippet = intro.expression
-	                    ? intro.expression.render(block)
-	                    : '{}';
+	                    ? intro.expression.manipulate(block)
+	                    : x `{}`;
 	                const fn = component.qualify(intro.name);
 	                let intro_block;
 	                if (outro) {
-	                    intro_block = deindent `
+	                    intro_block = b `
 						@add_render_callback(() => {
 							if (${outro_name}) ${outro_name}.end(1);
 							if (!${intro_name}) ${intro_name} = @create_in_transition(${this.var}, ${fn}, ${snippet});
 							${intro_name}.start();
 						});
 					`;
-	                    block.builders.outro.add_line(`if (${intro_name}) ${intro_name}.invalidate();`);
+	                    block.chunks.outro.push(b `if (${intro_name}) ${intro_name}.invalidate();`);
 	                }
 	                else {
-	                    intro_block = deindent `
+	                    intro_block = b `
 						if (!${intro_name}) {
 							@add_render_callback(() => {
 								${intro_name} = @create_in_transition(${this.var}, ${fn}, ${snippet});
@@ -25044,39 +27044,39 @@ var compiler = createCommonjsModule(function (module, exports) {
 					`;
 	                }
 	                if (intro.is_local) {
-	                    intro_block = deindent `
+	                    intro_block = b `
 						if (#local) {
 							${intro_block}
 						}
 					`;
 	                }
-	                block.builders.intro.add_block(intro_block);
+	                block.chunks.intro.push(intro_block);
 	            }
 	            if (outro) {
 	                block.add_variable(outro_name);
 	                const snippet = outro.expression
-	                    ? outro.expression.render(block)
-	                    : '{}';
+	                    ? outro.expression.manipulate(block)
+	                    : x `{}`;
 	                const fn = component.qualify(outro.name);
 	                if (!intro) {
-	                    block.builders.intro.add_block(deindent `
+	                    block.chunks.intro.push(b `
 						if (${outro_name}) ${outro_name}.end(1);
 					`);
 	                }
 	                // TODO hide elements that have outro'd (unless they belong to a still-outroing
 	                // group) prior to their removal from the DOM
-	                let outro_block = deindent `
+	                let outro_block = b `
 					${outro_name} = @create_out_transition(${this.var}, ${fn}, ${snippet});
 				`;
 	                if (outro.is_local) {
-	                    outro_block = deindent `
+	                    outro_block = b `
 						if (#local) {
 							${outro_block}
 						}
 					`;
 	                }
-	                block.builders.outro.add_block(outro_block);
-	                block.builders.destroy.add_conditional('detaching', `if (${outro_name}) ${outro_name}.end();`);
+	                block.chunks.outro.push(outro_block);
+	                block.chunks.destroy.push(b `if (detaching && ${outro_name}) ${outro_name}.end();`);
 	            }
 	        }
 	    }
@@ -25088,18 +27088,18 @@ var compiler = createCommonjsModule(function (module, exports) {
 	        const rect = block.get_unique_name('rect');
 	        const stop_animation = block.get_unique_name('stop_animation');
 	        block.add_variable(rect);
-	        block.add_variable(stop_animation, '@noop');
-	        block.builders.measure.add_block(deindent `
+	        block.add_variable(stop_animation, x `@noop`);
+	        block.chunks.measure.push(b `
 			${rect} = ${this.var}.getBoundingClientRect();
 		`);
-	        block.builders.fix.add_block(deindent `
+	        block.chunks.fix.push(b `
 			@fix_position(${this.var});
 			${stop_animation}();
-			${outro && `@add_transform(${this.var}, ${rect});`}
+			${outro && b `@add_transform(${this.var}, ${rect});`}
 		`);
-	        const params = this.node.animation.expression ? this.node.animation.expression.render(block) : '{}';
+	        const params = this.node.animation.expression ? this.node.animation.expression.manipulate(block) : x `{}`;
 	        const name = component.qualify(this.node.animation.name);
-	        block.builders.animate.add_block(deindent `
+	        block.chunks.animate.push(b `
 			${stop_animation}();
 			${stop_animation} = @create_animation(${this.var}, ${rect}, ${name}, ${params});
 		`);
@@ -25108,28 +27108,92 @@ var compiler = createCommonjsModule(function (module, exports) {
 	        add_actions(this.renderer.component, block, this.var, this.node.actions);
 	    }
 	    add_classes(block) {
+	        const has_spread = this.node.attributes.some(attr => attr.is_spread);
 	        this.node.classes.forEach(class_directive => {
 	            const { expression, name } = class_directive;
 	            let snippet;
 	            let dependencies;
 	            if (expression) {
-	                snippet = expression.render(block);
+	                snippet = expression.manipulate(block);
 	                dependencies = expression.dependencies;
 	            }
 	            else {
-	                snippet = `${quote_prop_if_necessary(name)}`;
+	                snippet = name;
 	                dependencies = new Set([name]);
 	            }
-	            const updater = `@toggle_class(${this.var}, "${name}", ${snippet});`;
-	            block.builders.hydrate.add_line(updater);
-	            if ((dependencies && dependencies.size > 0) || this.class_dependencies.length) {
+	            const updater = b `@toggle_class(${this.var}, "${name}", ${snippet});`;
+	            block.chunks.hydrate.push(updater);
+	            if (has_spread) {
+	                block.chunks.update.push(updater);
+	            }
+	            else if ((dependencies && dependencies.size > 0) || this.class_dependencies.length) {
 	                const all_dependencies = this.class_dependencies.concat(...dependencies);
-	                const deps = all_dependencies.map(dependency => `changed${quote_prop_if_necessary(dependency)}`).join(' || ');
-	                const condition = all_dependencies.length > 1 ? `(${deps})` : deps;
-	                block.builders.update.add_conditional(condition, updater);
+	                const condition = changed(all_dependencies);
+	                block.chunks.update.push(b `
+					if (${condition}) {
+						${updater}
+					}`);
 	            }
 	        });
 	    }
+	    add_manual_style_scoping(block) {
+	        if (this.node.needs_manual_style_scoping) {
+	            const updater = b `@toggle_class(${this.var}, "${this.node.component.stylesheet.id}", true);`;
+	            block.chunks.hydrate.push(updater);
+	            block.chunks.update.push(updater);
+	        }
+	    }
+	}
+	function to_html(wrappers, block, literal, state, can_use_raw_text) {
+	    wrappers.forEach(wrapper => {
+	        if (wrapper.node.type === 'Text') {
+	            if (wrapper.use_space())
+	                state.quasi.value.raw += ' ';
+	            const parent = wrapper.node.parent;
+	            const raw = parent && (parent.name === 'script' ||
+	                parent.name === 'style' ||
+	                can_use_raw_text);
+	            state.quasi.value.raw += (raw ? wrapper.node.data : escape_html(wrapper.node.data))
+	                .replace(/\\/g, '\\\\')
+	                .replace(/`/g, '\\`')
+	                .replace(/\$/g, '\\$');
+	        }
+	        else if (wrapper.node.type === 'MustacheTag' || wrapper.node.type === 'RawMustacheTag') {
+	            literal.quasis.push(state.quasi);
+	            literal.expressions.push(wrapper.node.expression.manipulate(block));
+	            state.quasi = {
+	                type: 'TemplateElement',
+	                value: { raw: '' }
+	            };
+	        }
+	        else if (wrapper.node.name === 'noscript') ;
+	        else {
+	            // element
+	            state.quasi.value.raw += `<${wrapper.node.name}`;
+	            wrapper.attributes.forEach((attr) => {
+	                state.quasi.value.raw += ` ${fix_attribute_casing(attr.node.name)}="`;
+	                attr.node.chunks.forEach(chunk => {
+	                    if (chunk.type === 'Text') {
+	                        state.quasi.value.raw += escape_html(chunk.data);
+	                    }
+	                    else {
+	                        literal.quasis.push(state.quasi);
+	                        literal.expressions.push(chunk.manipulate(block));
+	                        state.quasi = {
+	                            type: 'TemplateElement',
+	                            value: { raw: '' }
+	                        };
+	                    }
+	                });
+	                state.quasi.value.raw += `"`;
+	            });
+	            state.quasi.value.raw += '>';
+	            if (!wrapper.void) {
+	                to_html(wrapper.fragment.nodes, block, literal, state);
+	                state.quasi.value.raw += `</${wrapper.node.name}>`;
+	            }
+	        }
+	    });
 	}
 
 	class HeadWrapper extends Wrapper {
@@ -25139,7 +27203,7 @@ var compiler = createCommonjsModule(function (module, exports) {
 	        this.fragment = new FragmentWrapper(renderer, block, node.children, this, strip_whitespace, next_sibling);
 	    }
 	    render(block, _parent_node, _parent_nodes) {
-	        this.fragment.render(block, '@_document.head', 'nodes');
+	        this.fragment.render(block, x `@_document.head`, x `#nodes`);
 	    }
 	}
 
@@ -25166,10 +27230,10 @@ var compiler = createCommonjsModule(function (module, exports) {
 	            });
 	            if (should_cache) {
 	                this.condition = block.get_unique_name(`show_if`);
-	                this.snippet = expression.render(block);
+	                this.snippet = expression.manipulate(block);
 	            }
 	            else {
-	                this.condition = expression.render(block);
+	                this.condition = expression.manipulate(block);
 	            }
 	        }
 	        this.block = block.child({
@@ -25185,8 +27249,9 @@ var compiler = createCommonjsModule(function (module, exports) {
 	    constructor(renderer, block, parent, node, strip_whitespace, next_sibling) {
 	        super(renderer, block, parent, node);
 	        this.needs_update = false;
-	        this.var = 'if_block';
+	        this.var = { type: 'Identifier', name: 'if_block' };
 	        this.cannot_use_innerhtml();
+	        this.not_static_content();
 	        this.branches = [];
 	        const blocks = [];
 	        let is_dynamic = false;
@@ -25239,16 +27304,16 @@ var compiler = createCommonjsModule(function (module, exports) {
 	        const name = this.var;
 	        const needs_anchor = this.next ? !this.next.is_dom_node() : !parent_node || !this.parent.is_dom_node();
 	        const anchor = needs_anchor
-	            ? block.get_unique_name(`${name}_anchor`)
+	            ? block.get_unique_name(`${this.var.name}_anchor`)
 	            : (this.next && this.next.var) || 'null';
 	        const has_else = !(this.branches[this.branches.length - 1].condition);
-	        const if_name = has_else ? '' : `if (${name}) `;
+	        const if_exists_condition = has_else ? null : name;
 	        const dynamic = this.branches[0].block.has_update_method; // can use [0] as proxy for all, since they necessarily have the same value
 	        const has_intros = this.branches[0].block.has_intro_method;
 	        const has_outros = this.branches[0].block.has_outro_method;
 	        const has_transitions = has_intros || has_outros;
-	        const vars = { name, anchor, if_name, has_else, has_transitions };
-	        const detaching = (parent_node && parent_node !== '@_document.head') ? '' : 'detaching';
+	        const vars = { name, anchor, if_exists_condition, has_else, has_transitions };
+	        const detaching = parent_node && !is_head(parent_node) ? null : 'detaching';
 	        if (this.node.else) {
 	            this.branches.forEach(branch => {
 	                if (branch.snippet)
@@ -25256,7 +27321,7 @@ var compiler = createCommonjsModule(function (module, exports) {
 	            });
 	            if (has_outros) {
 	                this.render_compound_with_outros(block, parent_node, parent_nodes, dynamic, vars, detaching);
-	                block.builders.outro.add_line(`@transition_out(${name});`);
+	                block.chunks.outro.push(b `@transition_out(${name});`);
 	            }
 	            else {
 	                this.render_compound(block, parent_node, parent_nodes, dynamic, vars, detaching);
@@ -25265,90 +27330,118 @@ var compiler = createCommonjsModule(function (module, exports) {
 	        else {
 	            this.render_simple(block, parent_node, parent_nodes, dynamic, vars, detaching);
 	            if (has_outros) {
-	                block.builders.outro.add_line(`@transition_out(${name});`);
+	                block.chunks.outro.push(b `@transition_out(${name});`);
 	            }
 	        }
-	        block.builders.create.add_line(`${if_name}${name}.c();`);
+	        if (if_exists_condition) {
+	            block.chunks.create.push(b `if (${if_exists_condition}) ${name}.c();`);
+	        }
+	        else {
+	            block.chunks.create.push(b `${name}.c();`);
+	        }
 	        if (parent_nodes && this.renderer.options.hydratable) {
-	            block.builders.claim.add_line(`${if_name}${name}.l(${parent_nodes});`);
+	            if (if_exists_condition) {
+	                block.chunks.claim.push(b `if (${if_exists_condition}) ${name}.l(${parent_nodes});`);
+	            }
+	            else {
+	                block.chunks.claim.push(b `${name}.l(${parent_nodes});`);
+	            }
 	        }
 	        if (has_intros || has_outros) {
-	            block.builders.intro.add_line(`@transition_in(${name});`);
+	            block.chunks.intro.push(b `@transition_in(${name});`);
 	        }
 	        if (needs_anchor) {
-	            block.add_element(anchor, `@empty()`, parent_nodes && `@empty()`, parent_node);
+	            block.add_element(anchor, x `@empty()`, parent_nodes && x `@empty()`, parent_node);
 	        }
 	        this.branches.forEach(branch => {
-	            branch.fragment.render(branch.block, null, 'nodes');
+	            branch.fragment.render(branch.block, null, x `#nodes`);
 	        });
 	    }
-	    render_compound(block, parent_node, _parent_nodes, dynamic, { name, anchor, has_else, if_name, has_transitions }, detaching) {
+	    render_compound(block, parent_node, _parent_nodes, dynamic, { name, anchor, has_else, if_exists_condition, has_transitions }, detaching) {
 	        const select_block_type = this.renderer.component.get_unique_name(`select_block_type`);
 	        const current_block_type = block.get_unique_name(`current_block_type`);
-	        const current_block_type_and = has_else ? '' : `${current_block_type} && `;
+	        const get_block = has_else
+	            ? x `${current_block_type}(#ctx)`
+	            : x `${current_block_type} && ${current_block_type}(#ctx)`;
 	        /* eslint-disable @typescript-eslint/indent,indent */
 	        if (this.needs_update) {
-	            block.builders.init.add_block(deindent `
-				function ${select_block_type}(changed, ctx) {
+	            block.chunks.init.push(b `
+				function ${select_block_type}(#changed, #ctx) {
 					${this.branches.map(({ dependencies, condition, snippet, block }) => condition
-                ? deindent `
+                ? b `
 					${snippet && (dependencies.length > 0
-                    ? `if ((${condition} == null) || ${dependencies.map(n => `changed.${n}`).join(' || ')}) ${condition} = !!(${snippet})`
-                    : `if (${condition} == null) ${condition} = !!(${snippet})`)}
+                    ? b `if (${condition} == null || ${changed(dependencies)}) ${condition} = !!${snippet}`
+                    : b `if (${condition} == null) ${condition} = !!${snippet}`)}
 					if (${condition}) return ${block.name};`
-                : `return ${block.name};`)}
+                : b `return ${block.name};`)}
 				}
 			`);
 	        }
 	        else {
-	            block.builders.init.add_block(deindent `
-				function ${select_block_type}(changed, ctx) {
+	            block.chunks.init.push(b `
+				function ${select_block_type}(#changed, #ctx) {
 					${this.branches.map(({ condition, snippet, block }) => condition
-                ? `if (${snippet || condition}) return ${block.name};`
-                : `return ${block.name};`)}
+                ? b `if (${snippet || condition}) return ${block.name};`
+                : b `return ${block.name};`)}
 				}
 			`);
 	        }
 	        /* eslint-enable @typescript-eslint/indent,indent */
-	        block.builders.init.add_block(deindent `
-			var ${current_block_type} = ${select_block_type}(null, ctx);
-			var ${name} = ${current_block_type_and}${current_block_type}(ctx);
+	        block.chunks.init.push(b `
+			let ${current_block_type} = ${select_block_type}(null, #ctx);
+			let ${name} = ${get_block};
 		`);
 	        const initial_mount_node = parent_node || '#target';
 	        const anchor_node = parent_node ? 'null' : 'anchor';
-	        block.builders.mount.add_line(`${if_name}${name}.m(${initial_mount_node}, ${anchor_node});`);
+	        if (if_exists_condition) {
+	            block.chunks.mount.push(b `if (${if_exists_condition}) ${name}.m(${initial_mount_node}, ${anchor_node});`);
+	        }
+	        else {
+	            block.chunks.mount.push(b `${name}.m(${initial_mount_node}, ${anchor_node});`);
+	        }
 	        if (this.needs_update) {
 	            const update_mount_node = this.get_update_mount_node(anchor);
-	            const change_block = deindent `
-				${if_name}${name}.d(1);
-				${name} = ${current_block_type_and}${current_block_type}(ctx);
+	            const change_block = b `
+				${if_exists_condition ? b `if (${if_exists_condition}) ${name}.d(1)` : b `${name}.d(1)`};
+				${name} = ${get_block};
 				if (${name}) {
 					${name}.c();
-					${has_transitions && `@transition_in(${name}, 1);`}
+					${has_transitions && b `@transition_in(${name}, 1);`}
 					${name}.m(${update_mount_node}, ${anchor});
 				}
 			`;
 	            if (dynamic) {
-	                block.builders.update.add_block(deindent `
-					if (${current_block_type} === (${current_block_type} = ${select_block_type}(changed, ctx)) && ${name}) {
-						${name}.p(changed, ctx);
+	                block.chunks.update.push(b `
+					if (${current_block_type} === (${current_block_type} = ${select_block_type}(#changed, #ctx)) && ${name}) {
+						${name}.p(#changed, #ctx);
 					} else {
 						${change_block}
 					}
 				`);
 	            }
 	            else {
-	                block.builders.update.add_block(deindent `
-					if (${current_block_type} !== (${current_block_type} = ${select_block_type}(changed, ctx))) {
+	                block.chunks.update.push(b `
+					if (${current_block_type} !== (${current_block_type} = ${select_block_type}(#changed, #ctx))) {
 						${change_block}
 					}
 				`);
 	            }
 	        }
 	        else if (dynamic) {
-	            block.builders.update.add_line(`${name}.p(changed, ctx);`);
+	            block.chunks.update.push(b `${name}.p(#changed, #ctx);`);
 	        }
-	        block.builders.destroy.add_line(`${if_name}${name}.d(${detaching});`);
+	        if (if_exists_condition) {
+	            block.chunks.destroy.push(b `
+				if (${if_exists_condition}) {
+					${name}.d(${detaching});
+				}
+			`);
+	        }
+	        else {
+	            block.chunks.destroy.push(b `
+				${name}.d(${detaching});
+			`);
+	        }
 	    }
 	    // if any of the siblings have outros, we need to keep references to the blocks
 	    // (TODO does this only apply to bidi transitions?)
@@ -25359,80 +27452,82 @@ var compiler = createCommonjsModule(function (module, exports) {
 	        const if_block_creators = block.get_unique_name(`if_block_creators`);
 	        const if_blocks = block.get_unique_name(`if_blocks`);
 	        const if_current_block_type_index = has_else
-	            ? ''
-	            : `if (~${current_block_type_index}) `;
+	            ? nodes => nodes
+	            : nodes => b `if (~${current_block_type_index}) { ${nodes} }`;
 	        block.add_variable(current_block_type_index);
 	        block.add_variable(name);
 	        /* eslint-disable @typescript-eslint/indent,indent */
-	        block.builders.init.add_block(deindent `
-			var ${if_block_creators} = [
-				${this.branches.map(branch => branch.block.name).join(',\n')}
+	        block.chunks.init.push(b `
+			const ${if_block_creators} = [
+				${this.branches.map(branch => branch.block.name)}
 			];
 
-			var ${if_blocks} = [];
+			const ${if_blocks} = [];
 
 			${this.needs_update
-            ? deindent `
-					function ${select_block_type}(changed, ctx) {
+            ? b `
+					function ${select_block_type}(#changed, #ctx) {
 						${this.branches.map(({ dependencies, condition, snippet }, i) => condition
-                ? deindent `
-						${snippet && `if ((${condition} == null) || ${dependencies.map(n => `changed.${n}`).join(' || ')}) ${condition} = !!(${snippet})`}
-						if (${condition}) return ${String(i)};`
-                : `return ${i};`)}
-						${!has_else && `return -1;`}
+                ? b `
+						${snippet && (dependencies.length > 0
+                    ? b `if (${condition} == null || ${changed(dependencies)}) ${condition} = !!${snippet}`
+                    : b `if (${condition} == null) ${condition} = !!${snippet}`)}
+						if (${condition}) return ${i};`
+                : b `return ${i};`)}
+						${!has_else && b `return -1;`}
 					}
 				`
-            : deindent `
-					function ${select_block_type}(changed, ctx) {
+            : b `
+					function ${select_block_type}(#changed, #ctx) {
 						${this.branches.map(({ condition, snippet }, i) => condition
-                ? `if (${snippet || condition}) return ${String(i)};`
-                : `return ${i};`)}
-						${!has_else && `return -1;`}
+                ? b `if (${snippet || condition}) return ${i};`
+                : b `return ${i};`)}
+						${!has_else && b `return -1;`}
 					}
 				`}
 		`);
 	        /* eslint-enable @typescript-eslint/indent,indent */
 	        if (has_else) {
-	            block.builders.init.add_block(deindent `
-				${current_block_type_index} = ${select_block_type}(null, ctx);
-				${name} = ${if_blocks}[${current_block_type_index}] = ${if_block_creators}[${current_block_type_index}](ctx);
+	            block.chunks.init.push(b `
+				${current_block_type_index} = ${select_block_type}(null, #ctx);
+				${name} = ${if_blocks}[${current_block_type_index}] = ${if_block_creators}[${current_block_type_index}](#ctx);
 			`);
 	        }
 	        else {
-	            block.builders.init.add_block(deindent `
-				if (~(${current_block_type_index} = ${select_block_type}(null, ctx))) {
-					${name} = ${if_blocks}[${current_block_type_index}] = ${if_block_creators}[${current_block_type_index}](ctx);
+	            block.chunks.init.push(b `
+				if (~(${current_block_type_index} = ${select_block_type}(null, #ctx))) {
+					${name} = ${if_blocks}[${current_block_type_index}] = ${if_block_creators}[${current_block_type_index}](#ctx);
 				}
 			`);
 	        }
 	        const initial_mount_node = parent_node || '#target';
 	        const anchor_node = parent_node ? 'null' : 'anchor';
-	        block.builders.mount.add_line(`${if_current_block_type_index}${if_blocks}[${current_block_type_index}].m(${initial_mount_node}, ${anchor_node});`);
+	        block.chunks.mount.push(if_current_block_type_index(b `${if_blocks}[${current_block_type_index}].m(${initial_mount_node}, ${anchor_node});`));
 	        if (this.needs_update) {
 	            const update_mount_node = this.get_update_mount_node(anchor);
-	            const destroy_old_block = deindent `
+	            const destroy_old_block = b `
 				@group_outros();
 				@transition_out(${if_blocks}[${previous_block_index}], 1, 1, () => {
 					${if_blocks}[${previous_block_index}] = null;
 				});
 				@check_outros();
 			`;
-	            const create_new_block = deindent `
+	            const create_new_block = b `
 				${name} = ${if_blocks}[${current_block_type_index}];
 				if (!${name}) {
-					${name} = ${if_blocks}[${current_block_type_index}] = ${if_block_creators}[${current_block_type_index}](ctx);
+					${name} = ${if_blocks}[${current_block_type_index}] = ${if_block_creators}[${current_block_type_index}](#ctx);
 					${name}.c();
 				}
-				${has_transitions && `@transition_in(${name}, 1);`}
+				${has_transitions && b `@transition_in(${name}, 1);`}
 				${name}.m(${update_mount_node}, ${anchor});
 			`;
 	            const change_block = has_else
-	                ? deindent `
+	                ? b `
 					${destroy_old_block}
 
 					${create_new_block}
 				`
-	                : deindent `
+	                : b `
 					if (${name}) {
 						${destroy_old_block}
 					}
@@ -25444,20 +27539,20 @@ var compiler = createCommonjsModule(function (module, exports) {
 					}
 				`;
 	            if (dynamic) {
-	                block.builders.update.add_block(deindent `
-					var ${previous_block_index} = ${current_block_type_index};
-					${current_block_type_index} = ${select_block_type}(changed, ctx);
+	                block.chunks.update.push(b `
+					let ${previous_block_index} = ${current_block_type_index};
+					${current_block_type_index} = ${select_block_type}(#changed, #ctx);
 					if (${current_block_type_index} === ${previous_block_index}) {
-						${if_current_block_type_index}${if_blocks}[${current_block_type_index}].p(changed, ctx);
+						${if_current_block_type_index(b `${if_blocks}[${current_block_type_index}].p(#changed, #ctx);`)}
 					} else {
 						${change_block}
 					}
 				`);
 	            }
 	            else {
-	                block.builders.update.add_block(deindent `
-					var ${previous_block_index} = ${current_block_type_index};
-					${current_block_type_index} = ${select_block_type}(changed, ctx);
+	                block.chunks.update.push(b `
+					let ${previous_block_index} = ${current_block_type_index};
+					${current_block_type_index} = ${select_block_type}(#changed, #ctx);
 					if (${current_block_type_index} !== ${previous_block_index}) {
 						${change_block}
 					}
@@ -25465,51 +27560,51 @@ var compiler = createCommonjsModule(function (module, exports) {
 	            }
 	        }
 	        else if (dynamic) {
-	            block.builders.update.add_line(`${name}.p(changed, ctx);`);
+	            block.chunks.update.push(b `${name}.p(#changed, #ctx);`);
 	        }
-	        block.builders.destroy.add_line(deindent `
-			${if_current_block_type_index}${if_blocks}[${current_block_type_index}].d(${detaching});
-		`);
+	        block.chunks.destroy.push(if_current_block_type_index(b `${if_blocks}[${current_block_type_index}].d(${detaching});`));
 	    }
-	    render_simple(block, parent_node, _parent_nodes, dynamic, { name, anchor, if_name, has_transitions }, detaching) {
+	    render_simple(block, parent_node, _parent_nodes, dynamic, { name, anchor, if_exists_condition, has_transitions }, detaching) {
 	        const branch = this.branches[0];
 	        if (branch.snippet)
 	            block.add_variable(branch.condition, branch.snippet);
-	        block.builders.init.add_block(deindent `
-			var ${name} = (${branch.condition}) && ${branch.block.name}(ctx);
+	        block.chunks.init.push(b `
+			let ${name} = ${branch.condition} && ${branch.block.name}(#ctx);
 		`);
 	        const initial_mount_node = parent_node || '#target';
 	        const anchor_node = parent_node ? 'null' : 'anchor';
-	        block.builders.mount.add_line(`if (${name}) ${name}.m(${initial_mount_node}, ${anchor_node});`);
+	        block.chunks.mount.push(b `if (${name}) ${name}.m(${initial_mount_node}, ${anchor_node});`);
 	        if (branch.dependencies.length > 0) {
 	            const update_mount_node = this.get_update_mount_node(anchor);
 	            const enter = dynamic
-	                ? deindent `
+	                ? b `
 					if (${name}) {
-						${name}.p(changed, ctx);
-						${has_transitions && `@transition_in(${name}, 1);`}
+						${name}.p(#changed, #ctx);
+						${has_transitions && b `@transition_in(${name}, 1);`}
 					} else {
-						${name} = ${branch.block.name}(ctx);
+						${name} = ${branch.block.name}(#ctx);
 						${name}.c();
-						${has_transitions && `@transition_in(${name}, 1);`}
+						${has_transitions && b `@transition_in(${name}, 1);`}
 						${name}.m(${update_mount_node}, ${anchor});
 					}
 				`
-	                : deindent `
+	                : b `
 					if (!${name}) {
-						${name} = ${branch.block.name}(ctx);
+						${name} = ${branch.block.name}(#ctx);
 						${name}.c();
-						${has_transitions && `@transition_in(${name}, 1);`}
+						${has_transitions && b `@transition_in(${name}, 1);`}
 						${name}.m(${update_mount_node}, ${anchor});
-					} ${has_transitions && `else @transition_in(${name}, 1);`}
+					} else {
+						${has_transitions && b `@transition_in(${name}, 1);`}
+					}
 				`;
 	            if (branch.snippet) {
-	                block.builders.update.add_block(`if (${branch.dependencies.map(n => `changed.${n}`).join(' || ')}) ${branch.condition} = ${branch.snippet}`);
+	                block.chunks.update.push(b `if (${changed(branch.dependencies)}) ${branch.condition} = ${branch.snippet}`);
 	            }
 	            // no `p()` here — we don't want to update outroing nodes,
 	            // as that will typically result in glitching
 	            if (branch.block.has_outro_method) {
-	                block.builders.update.add_block(deindent `
+	                block.chunks.update.push(b `
 					if (${branch.condition}) {
 						${enter}
 					} else if (${name}) {
@@ -25522,7 +27617,7 @@ var compiler = createCommonjsModule(function (module, exports) {
 				`);
 	            }
 	            else {
-	                block.builders.update.add_block(deindent `
+	                block.chunks.update.push(b `
 					if (${branch.condition}) {
 						${enter}
 					} else if (${name}) {
@@ -25533,21 +27628,21 @@ var compiler = createCommonjsModule(function (module, exports) {
 	            }
 	        }
 	        else if (dynamic) {
-	            block.builders.update.add_block(`if (${branch.condition}) ${name}.p(changed, ctx);`);
+	            block.chunks.update.push(b `
+				if (${branch.condition}) ${name}.p(#changed, #ctx);
+			`);
 	        }
-	        block.builders.destroy.add_line(`${if_name}${name}.d(${detaching});`);
+	        if (if_exists_condition) {
+	            block.chunks.destroy.push(b `
+				if (${if_exists_condition}) ${name}.d(${detaching});
+			`);
+	        }
+	        else {
+	            block.chunks.destroy.push(b `
+				${name}.d(${detaching});
+			`);
+	        }
 	    }
-	}
-
-	function stringify_props(props) {
-	    if (!props.length)
-	        return '{}';
-	    const joined = props.join(', ');
-	    if (joined.length > 40) {
-	        // make larger data objects readable
-	        return `{\n\t${props.join(',\n\t')}\n}`;
-	    }
-	    return `{ ${joined} }`;
 	}
 
 	function is_dynamic$1(variable) {
@@ -25565,6 +27660,7 @@ var compiler = createCommonjsModule(function (module, exports) {
 	        super(renderer, block, parent, node);
 	        this.slots = new Map();
 	        this.cannot_use_innerhtml();
+	        this.not_static_content();
 	        if (this.node.expression) {
 	            block.add_dependencies(this.node.expression.dependencies);
 	        }
@@ -25586,9 +27682,12 @@ var compiler = createCommonjsModule(function (module, exports) {
 	                block.add_dependencies(handler.expression.dependencies);
 	            }
 	        });
-	        this.var = (this.node.name === 'svelte:self' ? renderer.component.name :
-	            this.node.name === 'svelte:component' ? 'switch_instance' :
-	                sanitize(this.node.name)).toLowerCase();
+	        this.var = {
+	            type: 'Identifier',
+	            name: (this.node.name === 'svelte:self' ? renderer.component.name.name :
+	                this.node.name === 'svelte:component' ? 'switch_instance' :
+	                    sanitize(this.node.name)).toLowerCase()
+	        };
 	        if (this.node.children.length) {
 	            const default_slot = block.child({
 	                comment: create_debugging_comment(node, renderer.component),
@@ -25618,32 +27717,43 @@ var compiler = createCommonjsModule(function (module, exports) {
 	        const { renderer } = this;
 	        const { component } = renderer;
 	        const name = this.var;
-	        const component_opts = [];
+	        const component_opts = x `{}`;
 	        const statements = [];
 	        const updates = [];
 	        let props;
-	        const name_changes = block.get_unique_name(`${name}_changes`);
+	        const name_changes = block.get_unique_name(`${name.name}_changes`);
 	        const uses_spread = !!this.node.attributes.find(a => a.is_spread);
-	        const slot_props = Array.from(this.slots).map(([name, slot]) => `${quote_name_if_necessary(name)}: [${slot.block.name}${slot.fn ? `, ${slot.fn}` : ''}]`);
-	        const initial_props = slot_props.length > 0
-	            ? [`$$slots: ${stringify_props(slot_props)}`, `$$scope: { ctx }`]
+	        const initial_props = this.slots.size > 0
+	            ? [
+	                p `$$slots: {
+					${Array.from(this.slots).map(([name, slot]) => {
+                    return p `${name}: [${slot.block.name}, ${slot.fn || null}]`;
+                })}
+				}`,
+	                p `$$scope: {
+					ctx: #ctx
+				}`
+	            ]
 	            : [];
 	        const attribute_object = uses_spread
-	            ? stringify_props(initial_props)
-	            : stringify_props(this.node.attributes.map(attr => `${quote_name_if_necessary(attr.name)}: ${attr.get_value(block)}`).concat(initial_props));
+	            ? x `{ ${initial_props} }`
+	            : x `{
+				${this.node.attributes.map(attr => p `${attr.name}: ${attr.get_value(block)}`)},
+				${initial_props}
+			}`;
 	        if (this.node.attributes.length || this.node.bindings.length || initial_props.length) {
 	            if (!uses_spread && this.node.bindings.length === 0) {
-	                component_opts.push(`props: ${attribute_object}`);
+	                component_opts.properties.push(p `props: ${attribute_object}`);
 	            }
 	            else {
-	                props = block.get_unique_name(`${name}_props`);
-	                component_opts.push(`props: ${props}`);
+	                props = block.get_unique_name(`${name.name}_props`);
+	                component_opts.properties.push(p `props: ${props}`);
 	            }
 	        }
 	        if (this.fragment) {
 	            const default_slot = this.slots.get('default');
 	            this.fragment.nodes.forEach((child) => {
-	                child.render(default_slot.block, null, 'nodes');
+	                child.render(default_slot.block, null, x `#nodes`);
 	            });
 	        }
 	        if (component.compile_options.dev) {
@@ -25651,7 +27761,7 @@ var compiler = createCommonjsModule(function (module, exports) {
 	            // will complain that options.target is missing. This would
 	            // work better if components had separate public and private
 	            // APIs
-	            component_opts.push(`$$inline: true`);
+	            component_opts.properties.push(p `$$inline: true`);
 	        }
 	        const fragment_dependencies = new Set(this.fragment ? ['$$scope'] : []);
 	        this.slots.forEach(slot => {
@@ -25665,11 +27775,11 @@ var compiler = createCommonjsModule(function (module, exports) {
 	        const non_let_dependencies = Array.from(fragment_dependencies).filter(name => !this.node.scope.is_let(name));
 	        const dynamic_attributes = this.node.attributes.filter(a => a.get_dependencies().length > 0);
 	        if (!uses_spread && (dynamic_attributes.length > 0 || this.node.bindings.length > 0 || non_let_dependencies.length > 0)) {
-	            updates.push(`var ${name_changes} = {};`);
+	            updates.push(b `const ${name_changes} = {};`);
 	        }
 	        if (this.node.attributes.length) {
 	            if (uses_spread) {
-	                const levels = block.get_unique_name(`${this.var}_spread_levels`);
+	                const levels = block.get_unique_name(`${this.var.name}_spread_levels`);
 	                const initial_props = [];
 	                const changes = [];
 	                const all_dependencies = new Set();
@@ -25679,152 +27789,172 @@ var compiler = createCommonjsModule(function (module, exports) {
 	                this.node.attributes.forEach((attr, i) => {
 	                    const { name, dependencies } = attr;
 	                    const condition = dependencies.size > 0 && (dependencies.size !== all_dependencies.size)
-	                        ? `(${Array.from(dependencies).map(d => `changed.${d}`).join(' || ')})`
+	                        ? changed(Array.from(dependencies))
 	                        : null;
 	                    if (attr.is_spread) {
-	                        const value = attr.expression.render(block);
+	                        const value = attr.expression.manipulate(block);
 	                        initial_props.push(value);
 	                        let value_object = value;
 	                        if (attr.expression.node.type !== 'ObjectExpression') {
-	                            value_object = `@get_spread_object(${value})`;
+	                            value_object = x `@get_spread_object(${value})`;
 	                        }
-	                        changes.push(condition ? `${condition} && ${value_object}` : value_object);
+	                        changes.push(condition ? x `${condition} && ${value_object}` : value_object);
 	                    }
 	                    else {
-	                        const obj = `{ ${quote_name_if_necessary(name)}: ${attr.get_value(block)} }`;
+	                        const obj = x `{ ${name}: ${attr.get_value(block)} }`;
 	                        initial_props.push(obj);
-	                        changes.push(condition ? `${condition} && ${obj}` : `${levels}[${i}]`);
+	                        changes.push(condition ? x `${condition} && ${obj}` : x `${levels}[${i}]`);
 	                    }
 	                });
-	                block.builders.init.add_block(deindent `
-					var ${levels} = [
-						${initial_props.join(',\n')}
+	                block.chunks.init.push(b `
+					const ${levels} = [
+						${initial_props}
 					];
 				`);
-	                statements.push(deindent `
-					for (var #i = 0; #i < ${levels}.length; #i += 1) {
+	                statements.push(b `
+					for (let #i = 0; #i < ${levels}.length; #i += 1) {
 						${props} = @assign(${props}, ${levels}[#i]);
 					}
 				`);
-	                const conditions = Array.from(all_dependencies).map(dep => `changed.${dep}`).join(' || ');
-	                updates.push(deindent `
-					var ${name_changes} = ${conditions ? `(${conditions}) ? @get_spread_update(${levels}, [
-						${changes.join(',\n')}
-					]) : {}` : '{}'};
-				`);
+	                if (all_dependencies.size) {
+	                    const condition = changed(Array.from(all_dependencies));
+	                    updates.push(b `
+						const ${name_changes} = ${condition} ? @get_spread_update(${levels}, [
+							${changes}
+						]) : {}
+					`);
+	                }
+	                else {
+	                    updates.push(b `
+						const ${name_changes} = {};
+					`);
+	                }
 	            }
 	            else {
 	                dynamic_attributes.forEach((attribute) => {
 	                    const dependencies = attribute.get_dependencies();
 	                    if (dependencies.length > 0) {
-	                        const condition = dependencies.map(dependency => `changed.${dependency}`).join(' || ');
-	                        updates.push(deindent `
-							if (${condition}) ${name_changes}${quote_prop_if_necessary(attribute.name)} = ${attribute.get_value(block)};
+	                        const condition = changed(dependencies);
+	                        updates.push(b `
+							if (${condition}) ${name_changes}.${attribute.name} = ${attribute.get_value(block)};
 						`);
 	                    }
 	                });
 	            }
 	        }
 	        if (non_let_dependencies.length > 0) {
-	            updates.push(`if (${non_let_dependencies.map(n => `changed.${n}`).join(' || ')}) ${name_changes}.$$scope = { changed, ctx };`);
+	            updates.push(b `
+				if (${changed(non_let_dependencies)}) {
+					${name_changes}.$$scope = { changed: #changed, ctx: #ctx };
+				}`);
 	        }
 	        const munged_bindings = this.node.bindings.map(binding => {
 	            component.has_reactive_assignments = true;
 	            if (binding.name === 'this') {
 	                return bind_this(component, block, binding, this.var);
 	            }
-	            const name = component.get_unique_name(`${this.var}_${binding.name}_binding`);
+	            const id = component.get_unique_name(`${this.var.name}_${binding.name}_binding`);
 	            component.add_var({
-	                name,
+	                name: id.name,
 	                internal: true,
 	                referenced: true
 	            });
 	            const updating = block.get_unique_name(`updating_${binding.name}`);
 	            block.add_variable(updating);
-	            const snippet = binding.expression.render(block);
-	            statements.push(deindent `
+	            const snippet = binding.expression.manipulate(block);
+	            statements.push(b `
 				if (${snippet} !== void 0) {
-					${props}${quote_prop_if_necessary(binding.name)} = ${snippet};
+					${props}.${binding.name} = ${snippet};
 				}`);
-	            updates.push(deindent `
-				if (!${updating} && ${[...binding.expression.dependencies].map((dependency) => `changed.${dependency}`).join(' || ')}) {
-					${name_changes}${quote_prop_if_necessary(binding.name)} = ${snippet};
+	            updates.push(b `
+				if (!${updating} && ${changed(Array.from(binding.expression.dependencies))}) {
+					${updating} = true;
+					${name_changes}.${binding.name} = ${snippet};
+					@add_flush_callback(() => ${updating} = false);
 				}
 			`);
 	            const contextual_dependencies = Array.from(binding.expression.contextual_dependencies);
 	            const dependencies = Array.from(binding.expression.dependencies);
-	            let lhs = component.source.slice(binding.expression.node.start, binding.expression.node.end).trim();
+	            let lhs = binding.raw_expression;
 	            if (binding.is_contextual && binding.expression.node.type === 'Identifier') {
 	                // bind:x={y} — we can't just do `y = x`, we need to
 	                // to `array[index] = x;
 	                const { name } = binding.expression.node;
 	                const { object, property, snippet } = block.bindings.get(name);
 	                lhs = snippet;
-	                contextual_dependencies.push(object, property);
+	                contextual_dependencies.push(object.name, property.name);
 	            }
 	            const value = block.get_unique_name('value');
 	            const args = [value];
 	            if (contextual_dependencies.length > 0) {
-	                args.push(`{ ${contextual_dependencies.join(', ')} }`);
-	                block.builders.init.add_block(deindent `
-					function ${name}(${value}) {
-						ctx.${name}.call(null, ${value}, ctx);
-						${updating} = true;
-						@add_flush_callback(() => ${updating} = false);
+	                args.push({
+	                    type: 'ObjectPattern',
+	                    properties: contextual_dependencies.map(name => {
+	                        const id = { type: 'Identifier', name };
+	                        return {
+	                            type: 'Property',
+	                            kind: 'init',
+	                            key: id,
+	                            value: id
+	                        };
+	                    })
+	                });
+	                block.chunks.init.push(b `
+					function ${id}(${value}) {
+						#ctx.${id}.call(null, ${value}, #ctx);
 					}
 				`);
 	                block.maintain_context = true; // TODO put this somewhere more logical
 	            }
 	            else {
-	                block.builders.init.add_block(deindent `
-					function ${name}(${value}) {
-						ctx.${name}.call(null, ${value});
-						${updating} = true;
-						@add_flush_callback(() => ${updating} = false);
+	                block.chunks.init.push(b `
+					function ${id}(${value}) {
+						#ctx.${id}.call(null, ${value});
 					}
 				`);
 	            }
-	            const body = deindent `
-				function ${name}(${args.join(', ')}) {
+	            const body = b `
+				function ${id}(${args}) {
 					${lhs} = ${value};
 					${component.invalidate(dependencies[0])};
 				}
 			`;
 	            component.partly_hoisted.push(body);
-	            return `@binding_callbacks.push(() => @bind(${this.var}, '${binding.name}', ${name}));`;
+	            return b `@binding_callbacks.push(() => @bind(${this.var}, '${binding.name}', ${id}));`;
 	        });
 	        const munged_handlers = this.node.handlers.map(handler => {
-	            let snippet = handler.render(block);
+	            const event_handler = new EventHandlerWrapper(handler, this);
+	            let snippet = event_handler.get_snippet(block);
 	            if (handler.modifiers.has('once'))
-	                snippet = `@once(${snippet})`;
-	            return `${name}.$on("${handler.name}", ${snippet});`;
+	                snippet = x `@once(${snippet})`;
+	            return b `${name}.$on("${handler.name}", ${snippet});`;
 	        });
 	        if (this.node.name === 'svelte:component') {
 	            const switch_value = block.get_unique_name('switch_value');
 	            const switch_props = block.get_unique_name('switch_props');
-	            const snippet = this.node.expression.render(block);
-	            block.builders.init.add_block(deindent `
+	            const snippet = this.node.expression.manipulate(block);
+	            block.chunks.init.push(b `
 				var ${switch_value} = ${snippet};
 
-				function ${switch_props}(ctx) {
-					${(this.node.attributes.length || this.node.bindings.length) && deindent `
-					${props && `let ${props} = ${attribute_object};`}`}
+				function ${switch_props}(#ctx) {
+					${(this.node.attributes.length > 0 || this.node.bindings.length > 0) && b `
+					${props && b `let ${props} = ${attribute_object};`}`}
 					${statements}
-					return ${stringify_props(component_opts)};
+					return ${component_opts};
 				}
 
 				if (${switch_value}) {
-					var ${name} = new ${switch_value}(${switch_props}(ctx));
+					var ${name} = new ${switch_value}(${switch_props}(#ctx));
 
 					${munged_bindings}
 					${munged_handlers}
 				}
 			`);
-	            block.builders.create.add_line(`if (${name}) ${name}.$$.fragment.c();`);
+	            block.chunks.create.push(b `if (${name}) @create_component(${name}.$$.fragment);`);
 	            if (parent_nodes && this.renderer.options.hydratable) {
-	                block.builders.claim.add_line(`if (${name}) ${name}.$$.fragment.l(${parent_nodes});`);
+	                block.chunks.claim.push(b `if (${name}) @claim_component(${name}.$$.fragment, ${parent_nodes});`);
 	            }
-	            block.builders.mount.add_block(deindent `
+	            block.chunks.mount.push(b `
 				if (${name}) {
 					@mount_component(${name}, ${parent_node || '#target'}, ${parent_node ? 'null' : 'anchor'});
 				}
@@ -25832,11 +27962,11 @@ var compiler = createCommonjsModule(function (module, exports) {
 	            const anchor = this.get_or_create_anchor(block, parent_node, parent_nodes);
 	            const update_mount_node = this.get_update_mount_node(anchor);
 	            if (updates.length) {
-	                block.builders.update.add_block(deindent `
+	                block.chunks.update.push(b `
 					${updates}
 				`);
 	            }
-	            block.builders.update.add_block(deindent `
+	            block.chunks.update.push(b `
 				if (${switch_value} !== (${switch_value} = ${snippet})) {
 					if (${name}) {
 						@group_outros();
@@ -25848,63 +27978,58 @@ var compiler = createCommonjsModule(function (module, exports) {
 					}
 
 					if (${switch_value}) {
-						${name} = new ${switch_value}(${switch_props}(ctx));
+						${name} = new ${switch_value}(${switch_props}(#ctx));
 
 						${munged_bindings}
 						${munged_handlers}
 
-						${name}.$$.fragment.c();
+						@create_component(${name}.$$.fragment);
 						@transition_in(${name}.$$.fragment, 1);
 						@mount_component(${name}, ${update_mount_node}, ${anchor});
 					} else {
 						${name} = null;
 					}
+				} else if (${switch_value}) {
+					${updates.length && b `${name}.$set(${name_changes});`}
 				}
 			`);
-	            block.builders.intro.add_block(deindent `
+	            block.chunks.intro.push(b `
 				if (${name}) @transition_in(${name}.$$.fragment, #local);
 			`);
-	            if (updates.length) {
-	                block.builders.update.add_block(deindent `
-					else if (${switch_value}) {
-						${name}.$set(${name_changes});
-					}
-				`);
-	            }
-	            block.builders.outro.add_line(`if (${name}) @transition_out(${name}.$$.fragment, #local);`);
-	            block.builders.destroy.add_line(`if (${name}) @destroy_component(${name}${parent_node ? '' : ', detaching'});`);
+	            block.chunks.outro.push(b `if (${name}) @transition_out(${name}.$$.fragment, #local);`);
+	            block.chunks.destroy.push(b `if (${name}) @destroy_component(${name}, ${parent_node ? null : 'detaching'});`);
 	        }
 	        else {
 	            const expression = this.node.name === 'svelte:self'
-	                ? '__svelte:self__' // TODO conflict-proof this
+	                ? component.name
 	                : component.qualify(this.node.name);
-	            block.builders.init.add_block(deindent `
-				${(this.node.attributes.length || this.node.bindings.length) && deindent `
-				${props && `let ${props} = ${attribute_object};`}`}
+	            block.chunks.init.push(b `
+				${(this.node.attributes.length > 0 || this.node.bindings.length > 0) && b `
+				${props && b `let ${props} = ${attribute_object};`}`}
 				${statements}
-				var ${name} = new ${expression}(${stringify_props(component_opts)});
+				const ${name} = new ${expression}(${component_opts});
 
 				${munged_bindings}
 				${munged_handlers}
 			`);
-	            block.builders.create.add_line(`${name}.$$.fragment.c();`);
+	            block.chunks.create.push(b `@create_component(${name}.$$.fragment);`);
 	            if (parent_nodes && this.renderer.options.hydratable) {
-	                block.builders.claim.add_line(`${name}.$$.fragment.l(${parent_nodes});`);
+	                block.chunks.claim.push(b `@claim_component(${name}.$$.fragment, ${parent_nodes});`);
 	            }
-	            block.builders.mount.add_line(`@mount_component(${name}, ${parent_node || '#target'}, ${parent_node ? 'null' : 'anchor'});`);
-	            block.builders.intro.add_block(deindent `
+	            block.chunks.mount.push(b `@mount_component(${name}, ${parent_node || '#target'}, ${parent_node ? 'null' : 'anchor'});`);
+	            block.chunks.intro.push(b `
 				@transition_in(${name}.$$.fragment, #local);
 			`);
 	            if (updates.length) {
-	                block.builders.update.add_block(deindent `
+	                block.chunks.update.push(b `
 					${updates}
 					${name}.$set(${name_changes});
 				`);
 	            }
-	            block.builders.destroy.add_block(deindent `
-				@destroy_component(${name}${parent_node ? '' : ', detaching'});
+	            block.chunks.destroy.push(b `
+				@destroy_component(${name}, ${parent_node ? null : 'detaching'});
 			`);
-	            block.builders.outro.add_line(`@transition_out(${name}.$$.fragment, #local);`);
+	            block.chunks.outro.push(b `@transition_out(${name}.$$.fragment, #local);`);
 	        }
 	    }
 	}
@@ -25913,23 +28038,32 @@ var compiler = createCommonjsModule(function (module, exports) {
 	    constructor(renderer, block, parent, node) {
 	        super(renderer, block, parent, node);
 	        this.cannot_use_innerhtml();
+	        if (!this.is_dependencies_static()) {
+	            this.not_static_content();
+	        }
 	        block.add_dependencies(node.expression.dependencies);
+	    }
+	    is_dependencies_static() {
+	        return this.node.expression.contextual_dependencies.size === 0 && this.node.expression.dynamic_dependencies().length === 0;
 	    }
 	    rename_this_method(block, update) {
 	        const dependencies = this.node.expression.dynamic_dependencies();
-	        const snippet = this.node.expression.render(block);
-	        const value = this.node.should_cache && block.get_unique_name(`${this.var}_value`);
+	        let snippet = this.node.expression.manipulate(block);
+	        const value = this.node.should_cache && block.get_unique_name(`${this.var.name}_value`);
 	        const content = this.node.should_cache ? value : snippet;
+	        snippet = x `${snippet} + ""`;
 	        if (this.node.should_cache)
-	            block.add_variable(value, `${snippet} + ""`);
+	            block.add_variable(value, snippet); // TODO may need to coerce snippet to string
 	        if (dependencies.length > 0) {
-	            const changed_check = ((block.has_outros ? `!#current || ` : '') +
-	                dependencies.map((dependency) => `changed.${dependency}`).join(' || '));
-	            const update_cached_value = `${value} !== (${value} = ${snippet} + "")`;
-	            const condition = this.node.should_cache
-	                ? `(${changed_check}) && ${update_cached_value}`
-	                : changed_check;
-	            block.builders.update.add_conditional(condition, update(content));
+	            let condition = changed(dependencies);
+	            if (block.has_outros) {
+	                condition = x `!#current || ${condition}`;
+	            }
+	            const update_cached_value = x `${value} !== (${value} = ${snippet})`;
+	            if (this.node.should_cache) {
+	                condition = x `${condition} && ${update_cached_value}`;
+	            }
+	            block.chunks.update.push(b `if (${condition}) ${update(content)}`);
 	        }
 	        return { init: content };
 	    }
@@ -25938,93 +28072,81 @@ var compiler = createCommonjsModule(function (module, exports) {
 	class MustacheTagWrapper extends Tag {
 	    constructor(renderer, block, parent, node) {
 	        super(renderer, block, parent, node);
-	        this.var = 't';
-	        this.cannot_use_innerhtml();
+	        this.var = { type: 'Identifier', name: 't' };
 	    }
 	    render(block, parent_node, parent_nodes) {
-	        const { init } = this.rename_this_method(block, value => `@set_data(${this.var}, ${value});`);
-	        block.add_element(this.var, `@text(${init})`, parent_nodes && `@claim_text(${parent_nodes}, ${init})`, parent_node);
+	        const { init } = this.rename_this_method(block, value => x `@set_data(${this.var}, ${value});`);
+	        block.add_element(this.var, x `@text(${init})`, parent_nodes && x `@claim_text(${parent_nodes}, ${init})`, parent_node);
 	    }
 	}
 
 	class RawMustacheTagWrapper extends Tag {
 	    constructor(renderer, block, parent, node) {
 	        super(renderer, block, parent, node);
-	        this.var = 'raw';
+	        this.var = { type: 'Identifier', name: 'raw' };
 	        this.cannot_use_innerhtml();
+	        this.not_static_content();
 	    }
 	    render(block, parent_node, _parent_nodes) {
-	        const in_head = parent_node === '@_document.head';
+	        const in_head = is_head(parent_node);
 	        const can_use_innerhtml = !in_head && parent_node && !this.prev && !this.next;
 	        if (can_use_innerhtml) {
-	            const insert = content => `${parent_node}.innerHTML = ${content};`;
+	            const insert = content => b `${parent_node}.innerHTML = ${content};`[0];
 	            const { init } = this.rename_this_method(block, content => insert(content));
-	            block.builders.mount.add_line(insert(init));
+	            block.chunks.mount.push(insert(init));
 	        }
 	        else {
 	            const needs_anchor = in_head || (this.next && !this.next.is_dom_node());
 	            const html_tag = block.get_unique_name('html_tag');
 	            const html_anchor = needs_anchor && block.get_unique_name('html_anchor');
 	            block.add_variable(html_tag);
-	            const { init } = this.rename_this_method(block, content => `${html_tag}.p(${content});`);
+	            const { init } = this.rename_this_method(block, content => x `${html_tag}.p(${content});`);
 	            const update_anchor = in_head ? 'null' : needs_anchor ? html_anchor : this.next ? this.next.var : 'null';
-	            block.builders.hydrate.add_line(`${html_tag} = new @HtmlTag(${init}, ${update_anchor});`);
-	            block.builders.mount.add_line(`${html_tag}.m(${parent_node || '#target'}${parent_node ? '' : ', anchor'});`);
+	            block.chunks.hydrate.push(b `${html_tag} = new @HtmlTag(${init}, ${update_anchor});`);
+	            block.chunks.mount.push(b `${html_tag}.m(${parent_node || '#target'}, ${parent_node ? null : 'anchor'});`);
 	            if (needs_anchor) {
-	                block.add_element(html_anchor, '@empty()', '@empty()', parent_node);
+	                block.add_element(html_anchor, x `@empty()`, x `@empty()`, parent_node);
 	            }
 	            if (!parent_node || in_head) {
-	                block.builders.destroy.add_conditional('detaching', `${html_tag}.d();`);
+	                block.chunks.destroy.push(b `if (detaching) ${html_tag}.d();`);
 	            }
 	        }
 	    }
 	}
 
-	function snip(expression) {
-	    return `[✂${expression.node.start}-${expression.node.end}✂]`;
+	function get_slot_data(values) {
+	    return {
+	        type: 'ObjectExpression',
+	        properties: Array.from(values.values())
+	            .filter(attribute => attribute.name !== 'name')
+	            .map(attribute => {
+	            const value = get_value(attribute);
+	            return p `${attribute.name}: ${value}`;
+	        })
+	    };
 	}
-
-	function stringify_class_attribute(attribute) {
-	    // handle special case — `class={possiblyUndefined}` with scoped CSS
-	    if (attribute.chunks.length === 2 && attribute.chunks[1].synthetic) {
-	        return '${@escape(@null_to_empty(' + snip(attribute.chunks[0]) + '))}' + attribute.chunks[1].data;
+	// TODO fairly sure this is duplicated at least once
+	function get_value(attribute) {
+	    if (attribute.is_true)
+	        return x `true`;
+	    if (attribute.chunks.length === 0)
+	        return x `""`;
+	    let value = attribute.chunks
+	        .map(chunk => chunk.type === 'Text' ? string_literal(chunk.data) : chunk.node)
+	        .reduce((lhs, rhs) => x `${lhs} + ${rhs}`);
+	    if (attribute.chunks.length > 1 && attribute.chunks[0].type !== 'Text') {
+	        value = x `"" + ${value}`;
 	    }
-	    return stringify_attribute(attribute, true);
-	}
-	function stringify_attribute(attribute, is_ssr) {
-	    return attribute.chunks
-	        .map((chunk) => {
-	        if (chunk.type === 'Text') {
-	            return escape_template(escape(chunk.data).replace(/"/g, '&quot;'));
-	        }
-	        return is_ssr
-	            ? '${@escape(' + snip(chunk) + ')}'
-	            : '${' + snip(chunk) + '}';
-	    })
-	        .join('');
-	}
-
-	function get_slot_data(values, is_ssr) {
-	    return Array.from(values.values())
-	        .filter(attribute => attribute.name !== 'name')
-	        .map(attribute => {
-	        const value = attribute.is_true
-	            ? 'true'
-	            : attribute.chunks.length === 0
-	                ? '""'
-	                : attribute.chunks.length === 1 && attribute.chunks[0].type !== 'Text'
-	                    ? snip(attribute.chunks[0])
-	                    : '`' + stringify_attribute(attribute, is_ssr) + '`';
-	        return `${attribute.name}: ${value}`;
-	    });
+	    return value;
 	}
 
 	class SlotWrapper extends Wrapper {
 	    constructor(renderer, block, parent, node, strip_whitespace, next_sibling) {
 	        super(renderer, block, parent, node);
-	        this.var = 'slot';
+	        this.var = { type: 'Identifier', name: 'slot' };
 	        this.dependencies = new Set(['$$scope']);
 	        this.cannot_use_innerhtml();
+	        this.not_static_content();
 	        this.fragment = new FragmentWrapper(renderer, block, node.children, parent, strip_whitespace, next_sibling);
 	        this.node.values.forEach(attribute => {
 	            add_to_set(this.dependencies, attribute.dependencies);
@@ -26042,8 +28164,8 @@ var compiler = createCommonjsModule(function (module, exports) {
 	        if (this.node.values.size > 0) {
 	            get_slot_changes = renderer.component.get_unique_name(`get_${sanitize(slot_name)}_slot_changes`);
 	            get_slot_context = renderer.component.get_unique_name(`get_${sanitize(slot_name)}_slot_context`);
-	            const context_props = get_slot_data(this.node.values, false);
-	            const changes_props = [];
+	            const context = get_slot_data(this.node.values);
+	            const changes = x `{}`;
 	            const dependencies = new Set();
 	            this.node.values.forEach(attribute => {
 	                attribute.chunks.forEach(chunk => {
@@ -26064,13 +28186,19 @@ var compiler = createCommonjsModule(function (module, exports) {
 	                    return is_dynamic$1(variable);
 	                });
 	                if (dynamic_dependencies.length > 0) {
-	                    changes_props.push(`${attribute.name}: ${dynamic_dependencies.join(' || ')}`);
+	                    const expression = dynamic_dependencies
+	                        .map(name => ({ type: 'Identifier', name }))
+	                        .reduce((lhs, rhs) => x `${lhs} || ${rhs}`);
+	                    changes.properties.push(p `${attribute.name}: ${expression}`);
 	                }
 	            });
-	            const arg = dependencies.size > 0 ? `{ ${Array.from(dependencies).join(', ')} }` : '';
-	            renderer.blocks.push(deindent `
-				const ${get_slot_changes} = (${arg}) => (${stringify_props(changes_props)});
-				const ${get_slot_context} = (${arg}) => (${stringify_props(context_props)});
+	            const arg = dependencies.size > 0 && {
+	                type: 'ObjectPattern',
+	                properties: Array.from(dependencies).map(name => p `${name}`)
+	            };
+	            renderer.blocks.push(b `
+				const ${get_slot_changes} = (${arg}) => (${changes});
+				const ${get_slot_context} = (${arg}) => (${context});
 			`);
 	        }
 	        else {
@@ -26079,40 +28207,52 @@ var compiler = createCommonjsModule(function (module, exports) {
 	        }
 	        const slot = block.get_unique_name(`${sanitize(slot_name)}_slot`);
 	        const slot_definition = block.get_unique_name(`${sanitize(slot_name)}_slot_template`);
-	        block.builders.init.add_block(deindent `
-			const ${slot_definition} = ctx.$$slots${quote_prop_if_necessary(slot_name)};
-			const ${slot} = @create_slot(${slot_definition}, ctx, ${get_slot_context});
+	        block.chunks.init.push(b `
+			const ${slot_definition} = #ctx.$$slots.${slot_name};
+			const ${slot} = @create_slot(${slot_definition}, #ctx, ${get_slot_context});
 		`);
-	        const mount_before = block.builders.mount.toString();
-	        block.builders.create.push_condition(`!${slot}`);
-	        block.builders.claim.push_condition(`!${slot}`);
-	        block.builders.hydrate.push_condition(`!${slot}`);
-	        block.builders.mount.push_condition(`!${slot}`);
-	        block.builders.update.push_condition(`!${slot}`);
-	        block.builders.destroy.push_condition(`!${slot}`);
+	        // TODO this is a dreadful hack! Should probably make this nicer
+	        const { create, claim, hydrate, mount, update, destroy } = block.chunks;
+	        block.chunks.create = [];
+	        block.chunks.claim = [];
+	        block.chunks.hydrate = [];
+	        block.chunks.mount = [];
+	        block.chunks.update = [];
+	        block.chunks.destroy = [];
 	        const listeners = block.event_listeners;
 	        block.event_listeners = [];
 	        this.fragment.render(block, parent_node, parent_nodes);
-	        block.render_listeners(`_${slot}`);
+	        block.render_listeners(`_${slot.name}`);
 	        block.event_listeners = listeners;
-	        block.builders.create.pop_condition();
-	        block.builders.claim.pop_condition();
-	        block.builders.hydrate.pop_condition();
-	        block.builders.mount.pop_condition();
-	        block.builders.update.pop_condition();
-	        block.builders.destroy.pop_condition();
-	        block.builders.create.add_line(`if (${slot}) ${slot}.c();`);
-	        block.builders.claim.add_line(`if (${slot}) ${slot}.l(${parent_nodes});`);
-	        const mount_leadin = block.builders.mount.toString() !== mount_before
-	            ? `else`
-	            : `if (${slot})`;
-	        block.builders.mount.add_block(deindent `
-			${mount_leadin} {
+	        if (block.chunks.create.length)
+	            create.push(b `if (!${slot}) { ${block.chunks.create} }`);
+	        if (block.chunks.claim.length)
+	            claim.push(b `if (!${slot}) { ${block.chunks.claim} }`);
+	        if (block.chunks.hydrate.length)
+	            hydrate.push(b `if (!${slot}) { ${block.chunks.hydrate} }`);
+	        if (block.chunks.mount.length)
+	            mount.push(b `if (!${slot}) { ${block.chunks.mount} }`);
+	        if (block.chunks.update.length)
+	            update.push(b `if (!${slot}) { ${block.chunks.update} }`);
+	        if (block.chunks.destroy.length)
+	            destroy.push(b `if (!${slot}) { ${block.chunks.destroy} }`);
+	        block.chunks.create = create;
+	        block.chunks.claim = claim;
+	        block.chunks.hydrate = hydrate;
+	        block.chunks.mount = mount;
+	        block.chunks.update = update;
+	        block.chunks.destroy = destroy;
+	        block.chunks.create.push(b `if (${slot}) ${slot}.c();`);
+	        if (renderer.options.hydratable) {
+	            block.chunks.claim.push(b `if (${slot}) ${slot}.l(${parent_nodes});`);
+	        }
+	        block.chunks.mount.push(b `
+			if (${slot}) {
 				${slot}.m(${parent_node || '#target'}, ${parent_node ? 'null' : 'anchor'});
 			}
 		`);
-	        block.builders.intro.add_line(`@transition_in(${slot}, #local);`);
-	        block.builders.outro.add_line(`@transition_out(${slot}, #local);`);
+	        block.chunks.intro.push(b `@transition_in(${slot}, #local);`);
+	        block.chunks.outro.push(b `@transition_out(${slot}, #local);`);
 	        const dynamic_dependencies = Array.from(this.dependencies).filter(name => {
 	            if (name === '$$scope')
 	                return true;
@@ -26121,18 +28261,15 @@ var compiler = createCommonjsModule(function (module, exports) {
 	            const variable = renderer.component.var_lookup.get(name);
 	            return is_dynamic$1(variable);
 	        });
-	        let update_conditions = dynamic_dependencies.map(name => `changed.${name}`).join(' || ');
-	        if (dynamic_dependencies.length > 1)
-	            update_conditions = `(${update_conditions})`;
-	        block.builders.update.add_block(deindent `
-			if (${slot} && ${slot}.p && ${update_conditions}) {
+	        block.chunks.update.push(b `
+			if (${slot} && ${slot}.p && ${changed(dynamic_dependencies)}) {
 				${slot}.p(
-					@get_slot_changes(${slot_definition}, ctx, changed, ${get_slot_changes}),
-					@get_slot_context(${slot_definition}, ctx, ${get_slot_context})
+					@get_slot_changes(${slot_definition}, #ctx, #changed, ${get_slot_changes}),
+					@get_slot_context(${slot_definition}, #ctx, ${get_slot_context})
 				);
 			}
 		`);
-	        block.builders.destroy.add_line(`if (${slot}) ${slot}.d(detaching);`);
+	        block.chunks.destroy.push(b `if (${slot}) ${slot}.d(detaching);`);
 	    }
 	}
 
@@ -26148,7 +28285,7 @@ var compiler = createCommonjsModule(function (module, exports) {
 	    'video',
 	]);
 	// TODO this should probably be in Fragment
-	function should_skip(node) {
+	function should_skip$1(node) {
 	    if (/\S/.test(node.data))
 	        return false;
 	    const parent_element = node.find_nearest(/(?:Element|InlineComponent|Head)/);
@@ -26163,9 +28300,9 @@ var compiler = createCommonjsModule(function (module, exports) {
 	class TextWrapper extends Wrapper {
 	    constructor(renderer, block, parent, node, data) {
 	        super(renderer, block, parent, node);
-	        this.skip = should_skip(this.node);
+	        this.skip = should_skip$1(this.node);
 	        this.data = data;
-	        this.var = this.skip ? null : 't';
+	        this.var = (this.skip ? null : x `t`);
 	    }
 	    use_space() {
 	        if (this.renderer.component.component_options.preserveWhitespace)
@@ -26185,7 +28322,7 @@ var compiler = createCommonjsModule(function (module, exports) {
 	        if (this.skip)
 	            return;
 	        const use_space = this.use_space();
-	        block.add_element(this.var, use_space ? `@space()` : `@text(${stringify(this.data)})`, parent_nodes && (use_space ? `@claim_space(${parent_nodes})` : `@claim_text(${parent_nodes}, ${stringify(this.data)})`), parent_node);
+	        block.add_element(this.var, use_space ? x `@space()` : x `@text("${this.data}")`, parent_nodes && (use_space ? x `@claim_space(${parent_nodes})` : x `@claim_text(${parent_nodes}, "${this.data}")`), parent_node);
 	    }
 	}
 
@@ -26204,53 +28341,51 @@ var compiler = createCommonjsModule(function (module, exports) {
 	                // single {tag} — may be a non-string
 	                // @ts-ignore todo: check this
 	                const { expression } = this.node.children[0];
-	                value = expression.render(block);
+	                value = expression.manipulate(block);
 	                add_to_set(all_dependencies, expression.dependencies);
 	            }
 	            else {
 	                // '{foo} {bar}' — treat as string concatenation
-	                value =
-	                    (this.node.children[0].type === 'Text' ? '' : `"" + `) +
-	                        this.node.children
-	                            .map((chunk) => {
-	                            if (chunk.type === 'Text') {
-	                                return stringify(chunk.data);
-	                            }
-	                            else {
-	                                // @ts-ignore todo: check this
-	                                const snippet = chunk.expression.render(block);
-	                                // @ts-ignore todo: check this
-	                                chunk.expression.dependencies.forEach(d => {
-	                                    all_dependencies.add(d);
-	                                });
-	                                // @ts-ignore todo: check this
-	                                return chunk.expression.get_precedence() <= 13 ? `(${snippet})` : snippet;
-	                            }
-	                        })
-	                            .join(' + ');
+	                value = this.node.children
+	                    .map(chunk => {
+	                    if (chunk.type === 'Text')
+	                        return string_literal(chunk.data);
+	                    chunk.expression.dependencies.forEach(d => {
+	                        all_dependencies.add(d);
+	                    });
+	                    return chunk.expression.manipulate(block);
+	                })
+	                    .reduce((lhs, rhs) => x `${lhs} + ${rhs}`);
+	                if (this.node.children[0].type !== 'Text') {
+	                    value = x `"" + ${value}`;
+	                }
 	            }
 	            const last = this.node.should_cache && block.get_unique_name(`title_value`);
 	            if (this.node.should_cache)
 	                block.add_variable(last);
-	            const init = this.node.should_cache ? `${last} = ${value}` : value;
-	            block.builders.init.add_line(`@_document.title = ${init};`);
-	            const updater = `@_document.title = ${this.node.should_cache ? last : value};`;
+	            const init = this.node.should_cache ? x `${last} = ${value}` : value;
+	            block.chunks.init.push(b `@_document.title = ${init};`);
+	            const updater = b `@_document.title = ${this.node.should_cache ? last : value};`;
 	            if (all_dependencies.size) {
 	                const dependencies = Array.from(all_dependencies);
-	                const changed_check = ((block.has_outros ? `!#current || ` : '') +
-	                    dependencies.map(dependency => `changed.${dependency}`).join(' || '));
-	                const update_cached_value = `${last} !== (${last} = ${value})`;
-	                const condition = this.node.should_cache ?
-	                    (dependencies.length ? `(${changed_check}) && ${update_cached_value}` : update_cached_value) :
-	                    changed_check;
-	                block.builders.update.add_conditional(condition, updater);
+	                let condition = changed(dependencies);
+	                if (block.has_outros) {
+	                    condition = x `!#current || ${condition}`;
+	                }
+	                if (this.node.should_cache) {
+	                    condition = x `${condition} && (${last} !== (${last} = ${value}))`;
+	                }
+	                block.chunks.update.push(b `
+					if (${condition}) {
+						${updater}
+					}`);
 	            }
 	        }
 	        else {
 	            const value = this.node.children.length > 0
-	                ? stringify(this.node.children[0].data)
-	                : '""';
-	            block.builders.hydrate.add_line(`@_document.title = ${value};`);
+	                ? string_literal(this.node.children[0].data)
+	                : x `""`;
+	            block.chunks.hydrate.push(b `@_document.title = ${value};`);
 	        }
 	    }
 	}
@@ -26277,6 +28412,7 @@ var compiler = createCommonjsModule(function (module, exports) {
 	class WindowWrapper extends Wrapper {
 	    constructor(renderer, block, parent, node) {
 	        super(renderer, block, parent, node);
+	        this.handlers = this.node.handlers.map(handler => new EventHandlerWrapper(handler, this));
 	    }
 	    render(block, _parent_node, _parent_nodes) {
 	        const { renderer } = this;
@@ -26284,7 +28420,7 @@ var compiler = createCommonjsModule(function (module, exports) {
 	        const events = {};
 	        const bindings = {};
 	        add_actions(component, block, '@_window', this.node.actions);
-	        add_event_handlers(block, '@_window', this.node.handlers);
+	        add_event_handlers(block, '@_window', this.handlers);
 	        this.node.bindings.forEach(binding => {
 	            // in dev mode, throw if read-only values are written to
 	            if (readonly.has(binding.name)) {
@@ -26307,87 +28443,89 @@ var compiler = createCommonjsModule(function (module, exports) {
 	        const clear_scrolling = block.get_unique_name(`clear_scrolling`);
 	        const scrolling_timeout = block.get_unique_name(`scrolling_timeout`);
 	        Object.keys(events).forEach(event => {
-	            const handler_name = block.get_unique_name(`onwindow${event}`);
+	            const id = block.get_unique_name(`onwindow${event}`);
 	            const props = events[event];
 	            if (event === 'scroll') {
 	                // TODO other bidirectional bindings...
-	                block.add_variable(scrolling, 'false');
-	                block.add_variable(clear_scrolling, `() => { ${scrolling} = false }`);
+	                block.add_variable(scrolling, x `false`);
+	                block.add_variable(clear_scrolling, x `() => { ${scrolling} = false }`);
 	                block.add_variable(scrolling_timeout);
-	                const condition = [
-	                    bindings.scrollX && `"${bindings.scrollX}" in this._state`,
-	                    bindings.scrollY && `"${bindings.scrollY}" in this._state`
-	                ].filter(Boolean).join(' || ');
-	                const x = bindings.scrollX && `this._state.${bindings.scrollX}`;
-	                const y = bindings.scrollY && `this._state.${bindings.scrollY}`;
-	                renderer.meta_bindings.add_block(deindent `
+	                const condition = bindings.scrollX && bindings.scrollY
+	                    ? x `"${bindings.scrollX}" in this._state || "${bindings.scrollY}" in this._state`
+	                    : x `"${bindings.scrollX || bindings.scrollY}" in this._state`;
+	                const scrollX = bindings.scrollX && x `this._state.${bindings.scrollX}`;
+	                const scrollY = bindings.scrollY && x `this._state.${bindings.scrollY}`;
+	                renderer.meta_bindings.push(b `
 					if (${condition}) {
-						@_scrollTo(${x || '@_window.pageXOffset'}, ${y || '@_window.pageYOffset'});
+						@_scrollTo(${scrollX || '@_window.pageXOffset'}, ${scrollY || '@_window.pageYOffset'});
 					}
-					${x && `${x} = @_window.pageXOffset;`}
-					${y && `${y} = @_window.pageYOffset;`}
+					${scrollX && `${scrollX} = @_window.pageXOffset;`}
+					${scrollY && `${scrollY} = @_window.pageYOffset;`}
 				`);
-	                block.event_listeners.push(deindent `
+	                block.event_listeners.push(x `
 					@listen(@_window, "${event}", () => {
 						${scrolling} = true;
 						@_clearTimeout(${scrolling_timeout});
 						${scrolling_timeout} = @_setTimeout(${clear_scrolling}, 100);
-						ctx.${handler_name}();
+						#ctx.${id}();
 					})
 				`);
 	            }
 	            else {
 	                props.forEach(prop => {
-	                    renderer.meta_bindings.add_line(`this._state.${prop.name} = @_window.${prop.value};`);
+	                    renderer.meta_bindings.push(b `this._state.${prop.name} = @_window.${prop.value};`);
 	                });
-	                block.event_listeners.push(deindent `
-					@listen(@_window, "${event}", ctx.${handler_name})
+	                block.event_listeners.push(x `
+					@listen(@_window, "${event}", #ctx.${id})
 				`);
 	            }
 	            component.add_var({
-	                name: handler_name,
+	                name: id.name,
 	                internal: true,
 	                referenced: true
 	            });
-	            component.partly_hoisted.push(deindent `
-				function ${handler_name}() {
-					${props.map(prop => `${prop.name} = @_window.${prop.value}; $$invalidate('${prop.name}', ${prop.name});`)}
+	            component.partly_hoisted.push(b `
+				function ${id}() {
+					${props.map(prop => component.invalidate(prop.name, x `${prop.name} = @_window.${prop.value}`))}
 				}
 			`);
-	            block.builders.init.add_block(deindent `
-				@add_render_callback(ctx.${handler_name});
+	            block.chunks.init.push(b `
+				@add_render_callback(#ctx.${id});
 			`);
 	            component.has_reactive_assignments = true;
 	        });
 	        // special case... might need to abstract this out if we add more special cases
 	        if (bindings.scrollX || bindings.scrollY) {
-	            block.builders.update.add_block(deindent `
-				if (${[bindings.scrollX, bindings.scrollY].filter(Boolean).map(b => `changed.${b}`).join(' || ')} && !${scrolling}) {
+	            const condition = changed([bindings.scrollX, bindings.scrollY].filter(Boolean));
+	            const scrollX = bindings.scrollX ? x `#ctx.${bindings.scrollX}` : x `@_window.pageXOffset`;
+	            const scrollY = bindings.scrollY ? x `#ctx.${bindings.scrollY}` : x `@_window.pageYOffset`;
+	            block.chunks.update.push(b `
+				if (${condition} && !${scrolling}) {
 					${scrolling} = true;
 					@_clearTimeout(${scrolling_timeout});
-					@_scrollTo(${bindings.scrollX ? `ctx.${bindings.scrollX}` : `@_window.pageXOffset`}, ${bindings.scrollY ? `ctx.${bindings.scrollY}` : `@_window.pageYOffset`});
+					@_scrollTo(${scrollX}, ${scrollY});
 					${scrolling_timeout} = @_setTimeout(${clear_scrolling}, 100);
 				}
 			`);
 	        }
 	        // another special case. (I'm starting to think these are all special cases.)
 	        if (bindings.online) {
-	            const handler_name = block.get_unique_name(`onlinestatuschanged`);
+	            const id = block.get_unique_name(`onlinestatuschanged`);
 	            const name = bindings.online;
 	            component.add_var({
-	                name: handler_name,
+	                name: id.name,
 	                internal: true,
 	                referenced: true
 	            });
-	            component.partly_hoisted.push(deindent `
-				function ${handler_name}() {
-					${name} = @_navigator.onLine; $$invalidate('${name}', ${name});
+	            component.partly_hoisted.push(b `
+				function ${id}() {
+					${component.invalidate(name, x `${name} = @_navigator.onLine`)}
 				}
 			`);
-	            block.builders.init.add_block(deindent `
-				@add_render_callback(ctx.${handler_name});
+	            block.chunks.init.push(b `
+				@add_render_callback(#ctx.${id});
 			`);
-	            block.event_listeners.push(`@listen(@_window, "online", ctx.${handler_name})`, `@listen(@_window, "offline", ctx.${handler_name})`);
+	            block.event_listeners.push(x `@listen(@_window, "online", #ctx.${id})`, x `@listen(@_window, "offline", #ctx.${id})`);
 	            component.has_reactive_assignments = true;
 	        }
 	    }
@@ -26503,7 +28641,7 @@ var compiler = createCommonjsModule(function (module, exports) {
 	    constructor(component, options) {
 	        this.blocks = [];
 	        this.readonly = new Set();
-	        this.meta_bindings = new CodeBuilder(); // initial values for e.g. window.innerWidth, if there's a <svelte:window> meta tag
+	        this.meta_bindings = []; // initial values for e.g. window.innerWidth, if there's a <svelte:window> meta tag
 	        this.binding_groups = [];
 	        this.component = component;
 	        this.options = options;
@@ -26520,177 +28658,20 @@ var compiler = createCommonjsModule(function (module, exports) {
 	        });
 	        this.block.has_update_method = true;
 	        this.fragment = new FragmentWrapper(this, this.block, component.fragment.children, null, true, null);
+	        // TODO messy
 	        this.blocks.forEach(block => {
-	            if (typeof block !== 'string') {
+	            if (block instanceof Block$1) {
 	                block.assign_variable_names();
 	            }
 	        });
 	        this.block.assign_variable_names();
-	        this.fragment.render(this.block, null, 'nodes');
+	        this.fragment.render(this.block, null, x `#nodes`);
 	    }
-	}
-
-	function isReference(node, parent) {
-	    if (node.type === 'MemberExpression') {
-	        return !node.computed && isReference(node.object, node);
-	    }
-	    if (node.type === 'Identifier') {
-	        if (!parent)
-	            return true;
-	        switch (parent.type) {
-	            // disregard `bar` in `foo.bar`
-	            case 'MemberExpression': return parent.computed || node === parent.object;
-	            // disregard the `foo` in `class {foo(){}}` but keep it in `class {[foo](){}}`
-	            case 'MethodDefinition': return parent.computed;
-	            // disregard the `bar` in `{ bar: foo }`, but keep it in `{ [bar]: foo }`
-	            case 'Property': return parent.computed || node === parent.value;
-	            // disregard the `bar` in `export { foo as bar }`
-	            case 'ExportSpecifier': return node === parent.local;
-	            // disregard the `foo` in `foo: while (...) { ... break foo; ... continue foo;}`
-	            case 'LabeledStatement':
-	            case 'BreakStatement':
-	            case 'ContinueStatement': return false;
-	            default: return true;
-	        }
-	    }
-	    return false;
 	}
 
 	function create_scopes(expression) {
-	    const map = new WeakMap();
-	    const globals = new Map();
-	    let scope = new Scope$1(null, false);
-	    walk(expression, {
-	        enter(node, parent) {
-	            if (node.type === 'ImportDeclaration') {
-	                node.specifiers.forEach(specifier => {
-	                    scope.declarations.set(specifier.local.name, specifier);
-	                });
-	            }
-	            else if (/Function/.test(node.type)) {
-	                if (node.type === 'FunctionDeclaration') {
-	                    scope.declarations.set(node.id.name, node);
-	                    scope = new Scope$1(scope, false);
-	                    map.set(node, scope);
-	                }
-	                else {
-	                    scope = new Scope$1(scope, false);
-	                    map.set(node, scope);
-	                    if (node.id)
-	                        scope.declarations.set(node.id.name, node);
-	                }
-	                node.params.forEach((param) => {
-	                    extract_names(param).forEach(name => {
-	                        scope.declarations.set(name, node);
-	                    });
-	                });
-	            }
-	            else if (/For(?:In|Of)?Statement/.test(node.type)) {
-	                scope = new Scope$1(scope, true);
-	                map.set(node, scope);
-	            }
-	            else if (node.type === 'BlockStatement') {
-	                scope = new Scope$1(scope, true);
-	                map.set(node, scope);
-	            }
-	            else if (/(Class|Variable)Declaration/.test(node.type)) {
-	                scope.add_declaration(node);
-	            }
-	            else if (node.type === 'CatchClause') {
-	                scope = new Scope$1(scope, true);
-	                map.set(node, scope);
-	                extract_names(node.param).forEach(name => {
-	                    scope.declarations.set(name, node.param);
-	                });
-	            }
-	            else if (node.type === 'Identifier' && isReference(node, parent)) {
-	                if (!scope.has(node.name) && !globals.has(node.name)) {
-	                    globals.set(node.name, node);
-	                }
-	            }
-	        },
-	        leave(node) {
-	            if (map.has(node)) {
-	                scope = scope.parent;
-	            }
-	        }
-	    });
-	    scope.declarations.forEach((_node, name) => {
-	        globals.delete(name);
-	    });
-	    return { map, scope, globals };
+	    return analyze(expression);
 	}
-	class Scope$1 {
-	    constructor(parent, block) {
-	        this.declarations = new Map();
-	        this.initialised_declarations = new Set();
-	        this.parent = parent;
-	        this.block = block;
-	    }
-	    add_declaration(node) {
-	        if (node.kind === 'var' && this.block && this.parent) {
-	            this.parent.add_declaration(node);
-	        }
-	        else if (node.type === 'VariableDeclaration') {
-	            node.declarations.forEach((declarator) => {
-	                extract_names(declarator.id).forEach(name => {
-	                    this.declarations.set(name, node);
-	                    if (declarator.init)
-	                        this.initialised_declarations.add(name);
-	                });
-	            });
-	        }
-	        else {
-	            this.declarations.set(node.id.name, node);
-	        }
-	    }
-	    find_owner(name) {
-	        if (this.declarations.has(name))
-	            return this;
-	        return this.parent && this.parent.find_owner(name);
-	    }
-	    has(name) {
-	        return (this.declarations.has(name) || (this.parent && this.parent.has(name)));
-	    }
-	}
-	function extract_names(param) {
-	    return extract_identifiers(param).map(node => node.name);
-	}
-	function extract_identifiers(param) {
-	    const nodes = [];
-	    extractors[param.type] && extractors[param.type](nodes, param);
-	    return nodes;
-	}
-	const extractors = {
-	    Identifier(nodes, param) {
-	        nodes.push(param);
-	    },
-	    MemberExpression(nodes, param) {
-	        nodes.push(get_object(param));
-	    },
-	    ObjectPattern(nodes, param) {
-	        param.properties.forEach((prop) => {
-	            if (prop.type === 'RestElement') {
-	                nodes.push(prop.argument);
-	            }
-	            else {
-	                extractors[prop.value.type](nodes, prop.value);
-	            }
-	        });
-	    },
-	    ArrayPattern(nodes, param) {
-	        param.elements.forEach((element) => {
-	            if (element)
-	                extractors[element.type](nodes, element);
-	        });
-	    },
-	    RestElement(nodes, param) {
-	        extractors[param.argument.type](nodes, param.argument);
-	    },
-	    AssignmentPattern(nodes, param) {
-	        extractors[param.left.type](nodes, param.left);
-	    }
-	};
 
 	function nodes_match(a, b) {
 	    if (!!a !== !!b)
@@ -26723,7 +28704,7 @@ var compiler = createCommonjsModule(function (module, exports) {
 	    return a === b;
 	}
 
-	function invalidate(component, scope, code, node, names) {
+	function invalidate(component, scope, node, names) {
 	    const [head, ...tail] = Array.from(names).filter(name => {
 	        const owner = scope.find_owner(name);
 	        if (owner && owner !== component.instance_scope)
@@ -26739,59 +28720,61 @@ var compiler = createCommonjsModule(function (module, exports) {
 	    });
 	    if (head) {
 	        component.has_reactive_assignments = true;
-	        if (node.operator === '=' && nodes_match(node.left, node.right) && tail.length === 0) {
-	            code.overwrite(node.start, node.end, component.invalidate(head));
+	        if (node.type === 'AssignmentExpression' && node.operator === '=' && nodes_match(node.left, node.right) && tail.length === 0) {
+	            return component.invalidate(head);
 	        }
 	        else {
-	            let suffix = ')';
-	            if (head[0] === '$') {
-	                code.prependRight(node.start, `${component.helper('set_store_value')}(${head.slice(1)}, `);
-	            }
-	            else {
-	                let prefix = `$$invalidate`;
-	                const variable = component.var_lookup.get(head);
-	                if (variable.subscribable && variable.reassigned) {
-	                    prefix = `$$subscribe_${head}($$invalidate`;
-	                    suffix += `)`;
-	                }
-	                code.prependRight(node.start, `${prefix}('${head}', `);
-	            }
+	            const is_store_value = head[0] === '$';
+	            const variable = component.var_lookup.get(head);
 	            const extra_args = tail.map(name => component.invalidate(name));
 	            const pass_value = (extra_args.length > 0 ||
 	                (node.type === 'AssignmentExpression' && node.left.type !== 'Identifier') ||
 	                (node.type === 'UpdateExpression' && !node.prefix));
 	            if (pass_value) {
-	                extra_args.unshift(head);
+	                extra_args.unshift({
+	                    type: 'Identifier',
+	                    name: head
+	                });
 	            }
-	            suffix = `${extra_args.map(arg => `, ${arg}`).join('')}${suffix}`;
-	            code.appendLeft(node.end, suffix);
+	            const callee = is_store_value ? `@set_store_value` : `$$invalidate`;
+	            let invalidate = x `${callee}(${is_store_value ? head.slice(1) : x `"${head}"`}, ${node}, ${extra_args})`;
+	            if (variable.subscribable && variable.reassigned) {
+	                const subscribe = `$$subscribe_${head}`;
+	                invalidate = x `${subscribe}(${invalidate})}`;
+	            }
+	            return invalidate;
 	        }
 	    }
+	    return node;
 	}
 
 	function dom(component, options) {
-	    const { name, code } = component;
+	    const { name } = component;
 	    const renderer = new Renderer(component, options);
 	    const { block } = renderer;
 	    block.has_outro_method = true;
 	    // prevent fragment being created twice (#1063)
 	    if (options.customElement)
-	        block.builders.create.add_line(`this.c = @noop;`);
-	    const builder = new CodeBuilder();
-	    if (component.compile_options.dev) {
-	        builder.add_line(`const ${renderer.file_var} = ${component.file && stringify(component.file, { only_escape_at_symbol: true })};`);
+	        block.chunks.create.push(b `this.c = @noop;`);
+	    const body = [];
+	    if (renderer.file_var) {
+	        const file = component.file ? x `"${component.file}"` : x `undefined`;
+	        body.push(b `const ${renderer.file_var} = ${file};`);
 	    }
 	    const css = component.stylesheet.render(options.filename, !options.customElement);
-	    const styles = component.stylesheet.has_styles && stringify(options.dev ?
-	        `${css.code}\n/*# sourceMappingURL=${css.map.toUrl()} */` :
-	        css.code, { only_escape_at_symbol: true });
+	    const styles = component.stylesheet.has_styles && options.dev
+	        ? `${css.code}\n/*# sourceMappingURL=${css.map.toUrl()} */`
+	        : css.code;
 	    const add_css = component.get_unique_name('add_css');
-	    if (styles && component.compile_options.css !== false && !options.customElement) {
-	        builder.add_block(deindent `
+	    const should_add_css = (!options.customElement &&
+	        !!styles &&
+	        options.css !== false);
+	    if (should_add_css) {
+	        body.push(b `
 			function ${add_css}() {
 				var style = @element("style");
-				style.id = '${component.stylesheet.id}-style';
-				style.textContent = ${styles};
+				style.id = "${component.stylesheet.id}-style";
+				style.textContent = "${styles}";
 				@append(@_document.head, style);
 			}
 		`);
@@ -26799,110 +28782,124 @@ var compiler = createCommonjsModule(function (module, exports) {
 	    // fix order
 	    // TODO the deconflicted names of blocks are reversed... should set them here
 	    const blocks = renderer.blocks.slice().reverse();
-	    blocks.forEach(block => {
-	        builder.add_block(block.toString());
-	    });
+	    body.push(...blocks.map(block => {
+	        // TODO this is a horrible mess — renderer.blocks
+	        // contains a mixture of Blocks and Nodes
+	        if (block.render)
+	            return block.render();
+	        return block;
+	    }));
 	    if (options.dev && !options.hydratable) {
-	        block.builders.claim.add_line('throw new @_Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");');
+	        block.chunks.claim.push(b `throw new @_Error("options.hydrate only works if the component was compiled with the \`hydratable: true\` option");`);
 	    }
-	    // TODO injecting CSS this way is kinda dirty. Maybe it should be an
-	    // explicit opt-in, or something?
-	    const should_add_css = (!options.customElement &&
-	        component.stylesheet.has_styles &&
-	        options.css !== false);
 	    const uses_props = component.var_lookup.has('$$props');
 	    const $$props = uses_props ? `$$new_props` : `$$props`;
 	    const props = component.vars.filter(variable => !variable.module && variable.export_name);
 	    const writable_props = props.filter(variable => variable.writable);
 	    /* eslint-disable @typescript-eslint/indent,indent */
 	    const set = (uses_props || writable_props.length > 0 || component.slots.size > 0)
-	        ? deindent `
+	        ? x `
 			${$$props} => {
-				${uses_props && component.invalidate('$$props', `$$props = @assign(@assign({}, $$props), $$new_props)`)}
-				${writable_props.map(prop => `if ('${prop.export_name}' in ${$$props}) ${component.invalidate(prop.name, `${prop.name} = ${$$props}.${prop.export_name}`)};`)}
+				${uses_props && component.invalidate('$$props', x `$$props = @assign(@assign({}, $$props), $$new_props)`)}
+				${writable_props.map(prop => b `if ('${prop.export_name}' in ${$$props}) ${component.invalidate(prop.name, x `${prop.name} = ${$$props}.${prop.export_name}`)};`)}
 				${component.slots.size > 0 &&
-            `if ('$$scope' in ${$$props}) ${component.invalidate('$$scope', `$$scope = ${$$props}.$$scope`)};`}
+            b `if ('$$scope' in ${$$props}) ${component.invalidate('$$scope', x `$$scope = ${$$props}.$$scope`)};`}
 			}
 		`
 	        : null;
 	    /* eslint-enable @typescript-eslint/indent,indent */
-	    const body = [];
-	    const not_equal = component.component_options.immutable ? `@not_equal` : `@safe_not_equal`;
+	    const accessors = [];
+	    const not_equal = component.component_options.immutable ? x `@not_equal` : x `@safe_not_equal`;
 	    let dev_props_check;
 	    let inject_state;
 	    let capture_state;
-	    props.forEach(x => {
-	        const variable = component.var_lookup.get(x.name);
+	    props.forEach(prop => {
+	        const variable = component.var_lookup.get(prop.name);
 	        if (!variable.writable || component.component_options.accessors) {
-	            body.push(deindent `
-				get ${x.export_name}() {
-					return ${x.hoistable ? x.name : 'this.$$.ctx.' + x.name};
-				}
-			`);
+	            accessors.push({
+	                type: 'MethodDefinition',
+	                kind: 'get',
+	                key: { type: 'Identifier', name: prop.export_name },
+	                value: x `function() {
+					return ${prop.hoistable ? prop.name : x `this.$$.ctx.${prop.name}`}
+				}`
+	            });
 	        }
 	        else if (component.compile_options.dev) {
-	            body.push(deindent `
-				get ${x.export_name}() {
+	            accessors.push({
+	                type: 'MethodDefinition',
+	                kind: 'get',
+	                key: { type: 'Identifier', name: prop.export_name },
+	                value: x `function() {
 					throw new @_Error("<${component.tag}>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-				}
-			`);
+				}`
+	            });
 	        }
 	        if (component.component_options.accessors) {
-	            if (variable.writable && !renderer.readonly.has(x.name)) {
-	                body.push(deindent `
-					set ${x.export_name}(${x.name}) {
-						this.$set({ ${x.name === x.export_name ? x.name : `${x.export_name}: ${x.name}`} });
+	            if (variable.writable && !renderer.readonly.has(prop.name)) {
+	                accessors.push({
+	                    type: 'MethodDefinition',
+	                    kind: 'set',
+	                    key: { type: 'Identifier', name: prop.export_name },
+	                    value: x `function(${prop.name}) {
+						this.$set({ ${prop.export_name}: ${prop.name} });
 						@flush();
-					}
-				`);
+					}`
+	                });
 	            }
 	            else if (component.compile_options.dev) {
-	                body.push(deindent `
-					set ${x.export_name}(value) {
-						throw new @_Error("<${component.tag}>: Cannot set read-only property '${x.export_name}'");
-					}
-				`);
+	                accessors.push({
+	                    type: 'MethodDefinition',
+	                    kind: 'set',
+	                    key: { type: 'Identifier', name: prop.export_name },
+	                    value: x `function(value) {
+						throw new @_Error("<${component.tag}>: Cannot set read-only property '${prop.export_name}'");
+					}`
+	                });
 	            }
 	        }
 	        else if (component.compile_options.dev) {
-	            body.push(deindent `
-				set ${x.export_name}(value) {
+	            accessors.push({
+	                type: 'MethodDefinition',
+	                kind: 'set',
+	                key: { type: 'Identifier', name: prop.export_name },
+	                value: x `function(value) {
 					throw new @_Error("<${component.tag}>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-				}
-			`);
+				}`
+	            });
 	        }
 	    });
 	    if (component.compile_options.dev) {
 	        // checking that expected ones were passed
 	        const expected = props.filter(prop => !prop.initialised);
 	        if (expected.length) {
-	            dev_props_check = deindent `
-				const { ctx } = this.$$;
-				const props = ${options.customElement ? `this.attributes` : `options.props || {}`};
-				${expected.map(prop => deindent `
-				if (ctx.${prop.name} === undefined && !('${prop.export_name}' in props)) {
+	            dev_props_check = b `
+				const { ctx: #ctx } = this.$$;
+				const props = ${options.customElement ? x `this.attributes` : x `options.props || {}`};
+				${expected.map(prop => b `
+				if (#ctx.${prop.name} === undefined && !('${prop.export_name}' in props)) {
 					@_console.warn("<${component.tag}> was created without expected prop '${prop.export_name}'");
 				}`)}
 			`;
 	        }
-	        capture_state = (uses_props || writable_props.length > 0) ? deindent `
+	        capture_state = (uses_props || writable_props.length > 0) ? x `
 			() => {
-				return { ${component.vars.filter(prop => prop.writable).map(prop => prop.name).join(", ")} };
+				return { ${component.vars.filter(prop => prop.writable).map(prop => p `${prop.name}`)} };
 			}
-		` : deindent `
+		` : x `
 			() => {
 				return {};
 			}
 		`;
 	        const writable_vars = component.vars.filter(variable => !variable.module && variable.writable);
-	        inject_state = (uses_props || writable_vars.length > 0) ? deindent `
+	        inject_state = (uses_props || writable_vars.length > 0) ? x `
 			${$$props} => {
-				${uses_props && component.invalidate('$$props', `$$props = @assign(@assign({}, $$props), $$new_props)`)}
-				${writable_vars.map(prop => deindent `
-					if ('${prop.name}' in $$props) ${component.invalidate(prop.name, `${prop.name} = ${$$props}.${prop.name}`)};
+				${uses_props && component.invalidate('$$props', x `$$props = @assign(@assign({}, $$props), $$new_props)`)}
+				${writable_vars.map(prop => b `
+					if ('${prop.name}' in $$props) ${component.invalidate(prop.name, x `${prop.name} = ${$$props}.${prop.name}`)};
 				`)}
 			}
-		` : deindent `
+		` : x `
 			${$$props} => {}
 		`;
 	    }
@@ -26927,43 +28924,43 @@ var compiler = createCommonjsModule(function (module, exports) {
 	                    // may be more, in which case we need to tack the extra ones
 	                    // onto the initial function call
 	                    const names = new Set(extract_names(assignee));
-	                    invalidate(component, scope, code, node, names);
+	                    this.replace(invalidate(component, scope, node, names));
 	                }
 	            }
 	        });
-	        component.rewrite_props(({ name, reassigned }) => {
+	        component.rewrite_props(({ name, reassigned, export_name }) => {
 	            const value = `$${name}`;
-	            const callback = `$value => { ${value} = $$value; $$invalidate('${value}', ${value}) }`;
-	            if (reassigned) {
-	                return `$$subscribe_${name}()`;
-	            }
-	            const component_subscribe = component.helper('component_subscribe');
-	            let insert = `${component_subscribe}($$self, ${name}, $${callback})`;
+	            const insert = (reassigned || export_name)
+	                ? b `${`$$subscribe_${name}`}()`
+	                : b `@component_subscribe($$self, ${name}, #value => $$invalidate('${value}', ${value} = #value))`;
 	            if (component.compile_options.dev) {
-	                const validate_store = component.helper('validate_store');
-	                insert = `${validate_store}(${name}, '${name}'); ${insert}`;
+	                return b `@validate_store(${name}, '${name}'); ${insert}`;
 	            }
 	            return insert;
 	        });
 	    }
-	    const args = ['$$self'];
+	    const args = [x `$$self`];
 	    if (props.length > 0 || component.has_reactive_assignments || component.slots.size > 0) {
-	        args.push('$$props', '$$invalidate');
+	        args.push(x `$$props`, x `$$invalidate`);
 	    }
-	    builder.add_block(deindent `
-		function create_fragment(ctx) {
-			${block.get_contents()}
-		}
+	    const has_create_fragment = block.has_content();
+	    if (has_create_fragment) {
+	        body.push(b `
+			function create_fragment(#ctx) {
+				${block.get_contents()}
+			}
+		`);
+	    }
+	    body.push(b `
+		${component.extract_javascript(component.ast.module)}
 
-		${component.module_javascript}
-
-		${component.fully_hoisted.length > 0 && component.fully_hoisted.join('\n\n')}
+		${component.fully_hoisted}
 	`);
 	    const filtered_declarations = component.vars
 	        .filter(v => ((v.referenced || v.export_name) && !v.hoistable))
-	        .map(v => v.name);
+	        .map(v => p `${v.name}`);
 	    if (uses_props)
-	        filtered_declarations.push(`$$props: $$props = ${component.helper('exclude_internal_props')}($$props)`);
+	        filtered_declarations.push(p `$$props: $$props = @exclude_internal_props($$props)`);
 	    const filtered_props = props.filter(prop => {
 	        const variable = component.var_lookup.get(prop.name);
 	        if (variable.hoistable)
@@ -26974,12 +28971,13 @@ var compiler = createCommonjsModule(function (module, exports) {
 	    });
 	    const reactive_stores = component.vars.filter(variable => variable.name[0] === '$' && variable.name[1] !== '$');
 	    if (component.slots.size > 0) {
-	        filtered_declarations.push('$$slots', '$$scope');
+	        filtered_declarations.push(p `$$slots`, p `$$scope`);
 	    }
 	    if (renderer.binding_groups.length > 0) {
-	        filtered_declarations.push(`$$binding_groups`);
+	        filtered_declarations.push(p `$$binding_groups`);
 	    }
-	    const has_definition = (component.javascript ||
+	    const instance_javascript = component.extract_javascript(component.ast.instance);
+	    const has_definition = ((instance_javascript && instance_javascript.length > 0) ||
 	        filtered_props.length > 0 ||
 	        uses_props ||
 	        component.partly_hoisted.length > 0 ||
@@ -26987,7 +28985,7 @@ var compiler = createCommonjsModule(function (module, exports) {
 	        component.reactive_declarations.length > 0);
 	    const definition = has_definition
 	        ? component.alias('instance')
-	        : 'null';
+	        : { type: 'Literal', value: null };
 	    const all_reactive_dependencies = new Set();
 	    component.reactive_declarations.forEach(d => {
 	        add_to_set(all_reactive_dependencies, d.dependencies);
@@ -26997,37 +28995,37 @@ var compiler = createCommonjsModule(function (module, exports) {
 	        const variable = component.var_lookup.get(store.name.slice(1));
 	        return !variable || variable.hoistable;
 	    })
-	        .map(({ name }) => deindent `
-			${component.compile_options.dev && `@validate_store(${name.slice(1)}, '${name.slice(1)}');`}
-			@component_subscribe($$self, ${name.slice(1)}, $$value => { ${name} = $$value; $$invalidate('${name}', ${name}); });
+	        .map(({ name }) => b `
+			${component.compile_options.dev && b `@validate_store(${name.slice(1)}, '${name.slice(1)}');`}
+			@component_subscribe($$self, ${name.slice(1)}, $$value => $$invalidate('${name}', ${name} = $$value));
 		`);
 	    const resubscribable_reactive_store_unsubscribers = reactive_stores
 	        .filter(store => {
 	        const variable = component.var_lookup.get(store.name.slice(1));
-	        return variable && variable.reassigned;
+	        return variable && (variable.reassigned || variable.export_name);
 	    })
-	        .map(({ name }) => `$$self.$$.on_destroy.push(() => $$unsubscribe_${name.slice(1)}());`);
+	        .map(({ name }) => b `$$self.$$.on_destroy.push(() => ${`$$unsubscribe_${name.slice(1)}`}());`);
 	    if (has_definition) {
 	        const reactive_declarations = [];
 	        const fixed_reactive_declarations = []; // not really 'reactive' but whatever
-	        component.reactive_declarations
-	            .forEach(d => {
+	        component.reactive_declarations.forEach(d => {
 	            const dependencies = Array.from(d.dependencies);
 	            const uses_props = !!dependencies.find(n => n === '$$props');
-	            const condition = !uses_props && dependencies
-	                .filter(n => {
+	            const writable = dependencies.filter(n => {
 	                const variable = component.var_lookup.get(n);
 	                return variable && (variable.writable || variable.mutated);
-	            })
-	                .map(n => `$$dirty.${n}`).join(' || ');
-	            let snippet = `[✂${d.node.body.start}-${d.node.end}✂]`;
+	            });
+	            const condition = !uses_props && writable.length > 0 && (writable
+	                .map(n => x `#changed.${n}`)
+	                .reduce((lhs, rhs) => x `${lhs} || ${rhs}`));
+	            let statement = d.node; // TODO remove label (use d.node.body) if it's not referenced
 	            if (condition)
-	                snippet = `if (${condition}) { ${snippet} }`;
+	                statement = b `if (${condition}) { ${statement} }`[0];
 	            if (condition || uses_props) {
-	                reactive_declarations.push(snippet);
+	                reactive_declarations.push(statement);
 	            }
 	            else {
-	                fixed_reactive_declarations.push(snippet);
+	                fixed_reactive_declarations.push(statement);
 	            }
 	        });
 	        const injected = Array.from(component.injected_reactive_declaration_vars).filter(name => {
@@ -27038,68 +29036,87 @@ var compiler = createCommonjsModule(function (module, exports) {
 	            const $name = variable.name;
 	            const name = $name.slice(1);
 	            const store = component.var_lookup.get(name);
-	            if (store && store.reassigned) {
-	                return `${$name}, $$unsubscribe_${name} = @noop, $$subscribe_${name} = () => ($$unsubscribe_${name}(), $$unsubscribe_${name} = @subscribe(${name}, $$value => { ${$name} = $$value; $$invalidate('${$name}', ${$name}); }), ${name})`;
+	            if (store && (store.reassigned || store.export_name)) {
+	                const unsubscribe = `$$unsubscribe_${name}`;
+	                const subscribe = `$$subscribe_${name}`;
+	                return b `let ${$name}, ${unsubscribe} = @noop, ${subscribe} = () => (${unsubscribe}(), ${unsubscribe} = @subscribe(${name}, $$value => $$invalidate('${$name}', ${$name} = $$value)), ${name})`;
 	            }
-	            return $name;
+	            return b `let ${$name};`;
 	        });
 	        let unknown_props_check;
 	        if (component.compile_options.dev && !component.var_lookup.has('$$props') && writable_props.length) {
-	            unknown_props_check = deindent `
-				const writable_props = [${writable_props.map(prop => `'${prop.export_name}'`).join(', ')}];
+	            unknown_props_check = b `
+				const writable_props = [${writable_props.map(prop => x `'${prop.export_name}'`)}];
 				@_Object.keys($$props).forEach(key => {
-					if (!writable_props.includes(key) && !key.startsWith('$$')) @_console.warn(\`<${component.tag}> was created with unknown prop '\${key}'\`);
+					if (!~writable_props.indexOf(key) && key.slice(0, 2) !== '$$') @_console.warn(\`<${component.tag}> was created with unknown prop '\${key}'\`);
 				});
 			`;
 	        }
-	        builder.add_block(deindent `
-			function ${definition}(${args.join(', ')}) {
-				${reactive_store_declarations.length > 0 && `let ${reactive_store_declarations.join(', ')};`}
+	        const return_value = {
+	            type: 'ObjectExpression',
+	            properties: filtered_declarations
+	        };
+	        const reactive_dependencies = {
+	            type: 'ObjectPattern',
+	            properties: Array.from(all_reactive_dependencies).map(name => {
+	                return {
+	                    type: 'Property',
+	                    kind: 'init',
+	                    key: { type: 'Identifier', name },
+	                    value: { type: 'Literal', value: 1 }
+	                };
+	            })
+	        };
+	        body.push(b `
+			function ${definition}(${args}) {
+				${reactive_store_declarations}
 
 				${reactive_store_subscriptions}
 
 				${resubscribable_reactive_store_unsubscribers}
 
-				${component.javascript}
+				${instance_javascript}
 
 				${unknown_props_check}
 
-				${component.slots.size && `let { $$slots = {}, $$scope } = $$props;`}
+				${component.slots.size ? b `let { $$slots = {}, $$scope } = $$props;` : null}
 
-				${renderer.binding_groups.length > 0 && `const $$binding_groups = [${renderer.binding_groups.map(_ => `[]`).join(', ')}];`}
+				${renderer.binding_groups.length > 0 && b `const $$binding_groups = [${renderer.binding_groups.map(_ => x `[]`)}];`}
 
-				${component.partly_hoisted.length > 0 && component.partly_hoisted.join('\n\n')}
+				${component.partly_hoisted}
 
-				${set && `$$self.$set = ${set};`}
+				${set && b `$$self.$set = ${set};`}
 
-				${capture_state && `$$self.$capture_state = ${capture_state};`}
+				${capture_state && x `$$self.$capture_state = ${capture_state};`}
 
-				${inject_state && `$$self.$inject_state = ${inject_state};`}
+				${inject_state && x `$$self.$inject_state = ${inject_state};`}
 
-				${injected.length && `let ${injected.join(', ')};`}
+				${injected.map(name => b `let ${name};`)}
 
-				${reactive_declarations.length > 0 && deindent `
-				$$self.$$.update = ($$dirty = { ${Array.from(all_reactive_dependencies).map(n => `${n}: 1`).join(', ')} }) => {
+				${reactive_declarations.length > 0 && b `
+				$$self.$$.update = (#changed = ${reactive_dependencies}) => {
 					${reactive_declarations}
 				};
 				`}
 
 				${fixed_reactive_declarations}
 
-				return ${stringify_props(filtered_declarations)};
+				return ${return_value};
 			}
 		`);
 	    }
-	    const prop_names = `[${props.map(v => JSON.stringify(v.export_name)).join(', ')}]`;
+	    const prop_names = x `{
+		${props.map(v => p `${v.export_name}: ${v.export_name === v.name ? 0 : x `"${v.name}"`}}`)}
+	}`;
 	    if (options.customElement) {
-	        builder.add_block(deindent `
+	        const declaration = b `
 			class ${name} extends @SvelteElement {
 				constructor(options) {
 					super();
 
-					${css.code && `this.shadowRoot.innerHTML = \`<style>${escape(css.code, { only_escape_at_symbol: true }).replace(/\\/g, '\\\\')}${options.dev ? `\n/*# sourceMappingURL=${css.map.toUrl()} */` : ''}</style>\`;`}
+					${css.code && b `this.shadowRoot.innerHTML = \`<style>${css.code.replace(/\\/g, '\\\\')}${options.dev ? `\n/*# sourceMappingURL=${css.map.toUrl()} */` : ''}</style>\`;`}
 
-					@init(this, { target: this.shadowRoot }, ${definition}, create_fragment, ${not_equal}, ${prop_names});
+					@init(this, { target: this.shadowRoot }, ${definition}, ${has_create_fragment ? 'create_fragment' : 'null'}, ${not_equal}, ${prop_names});
 
 					${dev_props_check}
 
@@ -27108,61 +29125,90 @@ var compiler = createCommonjsModule(function (module, exports) {
 							@insert(options.target, this, options.anchor);
 						}
 
-						${(props.length > 0 || uses_props) && deindent `
+						${(props.length > 0 || uses_props) && b `
 						if (options.props) {
 							this.$set(options.props);
 							@flush();
 						}`}
 					}
 				}
-
-				${props.length > 0 && deindent `
-				static get observedAttributes() {
-					return ${JSON.stringify(props.map(x => x.export_name))};
-				}`}
-
-				${body.length > 0 && body.join('\n\n')}
 			}
-		`);
+		`[0];
+	        if (props.length > 0) {
+	            declaration.body.body.push({
+	                type: 'MethodDefinition',
+	                kind: 'get',
+	                static: true,
+	                computed: false,
+	                key: { type: 'Identifier', name: 'observedAttributes' },
+	                value: x `function() {
+					return [${props.map(prop => x `"${prop.export_name}"`)}];
+				}`
+	            });
+	        }
+	        declaration.body.body.push(...accessors);
+	        body.push(declaration);
 	        if (component.tag != null) {
-	            builder.add_block(deindent `
+	            body.push(b `
 				@_customElements.define("${component.tag}", ${name});
 			`);
 	        }
 	    }
 	    else {
-	        const superclass = options.dev ? 'SvelteComponentDev' : 'SvelteComponent';
-	        builder.add_block(deindent `
-			class ${name} extends @${superclass} {
+	        const superclass = {
+	            type: 'Identifier',
+	            name: options.dev ? '@SvelteComponentDev' : '@SvelteComponent'
+	        };
+	        const declaration = b `
+			class ${name} extends ${superclass} {
 				constructor(options) {
 					super(${options.dev && `options`});
-					${should_add_css && `if (!@_document.getElementById("${component.stylesheet.id}-style")) ${add_css}();`}
-					@init(this, options, ${definition}, create_fragment, ${not_equal}, ${prop_names});
-					${options.dev && `@dispatch_dev("SvelteRegisterComponent", { component: this, tagName: "${name}", options, id: create_fragment.name });`}
+					${should_add_css && b `if (!@_document.getElementById("${component.stylesheet.id}-style")) ${add_css}();`}
+					@init(this, options, ${definition}, ${has_create_fragment ? 'create_fragment' : 'null'}, ${not_equal}, ${prop_names});
+					${options.dev && b `@dispatch_dev("SvelteRegisterComponent", { component: this, tagName: "${name.name}", options, id: create_fragment.name });`}
 
 					${dev_props_check}
 				}
-
-				${body.length > 0 && body.join('\n\n')}
 			}
-		`);
+		`[0];
+	        declaration.body.body.push(...accessors);
+	        body.push(declaration);
 	    }
-	    return builder.toString();
+	    return flatten$1(body, []);
+	}
+	function flatten$1(nodes, target) {
+	    for (let i = 0; i < nodes.length; i += 1) {
+	        const node = nodes[i];
+	        if (Array.isArray(node)) {
+	            flatten$1(node, target);
+	        }
+	        else {
+	            target.push(node);
+	        }
+	    }
+	    return target;
 	}
 
 	function AwaitBlock (node, renderer, options) {
-	    renderer.append('${(function(__value) { if(@is_promise(__value)) return `');
+	    renderer.push();
 	    renderer.render(node.pending.children, options);
-	    renderer.append('`; return function(' + (node.value || '') + ') { return `');
+	    const pending = renderer.pop();
+	    renderer.push();
 	    renderer.render(node.then.children, options);
-	    const snippet = snip(node.expression);
-	    renderer.append(`\`;}(__value);}(${snippet})) }`);
+	    const then = renderer.pop();
+	    renderer.add_expression(x `
+		(function(__value) {
+			if (@is_promise(__value)) return ${pending};
+			return (function(${node.value}) { return ${then}; }(__value));
+		}(${node.expression.node}))
+	`);
 	}
 
-	function Comment$1 (node, renderer, options) {
-	    if (options.preserveComments) {
-	        renderer.append(`<!--${node.data}-->`);
-	    }
+	function Comment$1 (_node, _renderer, _options) {
+	    // TODO preserve comments
+	    // if (options.preserveComments) {
+	    // 	renderer.append(`<!--${node.data}-->`);
+	    // }
 	}
 
 	function DebugTag (node, renderer, options) {
@@ -27170,170 +29216,184 @@ var compiler = createCommonjsModule(function (module, exports) {
 	        return;
 	    const filename = options.filename || null;
 	    const { line, column } = options.locate(node.start + 1);
-	    const obj = node.expressions.length === 0
-	        ? `{}`
-	        : `{ ${node.expressions
-            .map(e => e.node.name)
-            .join(', ')} }`;
-	    const str = '${@debug(' + `${filename && stringify(filename)}, ${line}, ${column}, ${obj})}`;
-	    renderer.append(str);
+	    const obj = x `{
+		${node.expressions.map(e => p `${e.node.name}`)}
+	}`;
+	    renderer.add_expression(x `@debug(${filename ? x `"${filename}"` : x `null`}, ${line - 1}, ${column}, ${obj})`);
 	}
 
 	function EachBlock (node, renderer, options) {
-	    const snippet = snip(node.expression);
-	    const { start, end } = node.context_node;
-	    const ctx = node.index
-	        ? `([✂${start}-${end}✂], ${node.index})`
-	        : `([✂${start}-${end}✂])`;
-	    const open = `\${${node.else ? `${snippet}.length ? ` : ''}@each(${snippet}, ${ctx} => \``;
-	    renderer.append(open);
+	    const args = [node.context_node];
+	    if (node.index)
+	        args.push({ type: 'Identifier', name: node.index });
+	    renderer.push();
 	    renderer.render(node.children, options);
-	    const close = `\`)`;
-	    renderer.append(close);
+	    const result = renderer.pop();
+	    const consequent = x `@each(${node.expression.node}, (${args}) => ${result})`;
 	    if (node.else) {
-	        renderer.append(` : \``);
+	        renderer.push();
 	        renderer.render(node.else.children, options);
-	        renderer.append(`\``);
+	        const alternate = renderer.pop();
+	        renderer.add_expression(x `${node.expression.node}.length ? ${consequent} : ${alternate}`);
 	    }
-	    renderer.append('}');
+	    else {
+	        renderer.add_expression(consequent);
+	    }
+	}
+
+	function get_class_attribute_value(attribute) {
+	    // handle special case — `class={possiblyUndefined}` with scoped CSS
+	    if (attribute.chunks.length === 2 && attribute.chunks[1].synthetic) {
+	        const value = attribute.chunks[0].node;
+	        return x `@escape(@null_to_empty(${value})) + "${attribute.chunks[1].data}"`;
+	    }
+	    return get_attribute_value(attribute);
+	}
+	function get_attribute_value(attribute) {
+	    if (attribute.chunks.length === 0)
+	        return x `""`;
+	    return attribute.chunks
+	        .map((chunk) => {
+	        return chunk.type === 'Text'
+	            ? string_literal(chunk.data.replace(/"/g, '&quot;'))
+	            : x `@escape(${chunk.node})`;
+	    })
+	        .reduce((lhs, rhs) => x `${lhs} + ${rhs}`);
 	}
 
 	function get_slot_scope(lets) {
 	    if (lets.length === 0)
-	        return '';
-	    return `{ ${lets.map(l => l.value ? `${l.name}: ${l.value}` : l.name).join(', ')} }`;
+	        return null;
+	    return {
+	        type: 'ObjectPattern',
+	        properties: lets.map(l => {
+	            return {
+	                type: 'Property',
+	                kind: 'init',
+	                method: false,
+	                shorthand: false,
+	                computed: false,
+	                key: l.name,
+	                value: l.value || l.name
+	            };
+	        })
+	    };
 	}
 
-	// source: https://gist.github.com/ArjanSchouten/0b8574a6ad7f5065a5e7
+	// source: https://html.spec.whatwg.org/multipage/indices.html
 	const boolean_attributes = new Set([
+	    'allowfullscreen',
+	    'allowpaymentrequest',
 	    'async',
-	    'autocomplete',
 	    'autofocus',
 	    'autoplay',
-	    'border',
-	    'challenge',
 	    'checked',
-	    'compact',
-	    'contenteditable',
 	    'controls',
 	    'default',
 	    'defer',
 	    'disabled',
 	    'formnovalidate',
-	    'frameborder',
 	    'hidden',
-	    'indeterminate',
 	    'ismap',
 	    'loop',
 	    'multiple',
 	    'muted',
-	    'nohref',
-	    'noresize',
-	    'noshade',
+	    'nomodule',
 	    'novalidate',
-	    'nowrap',
 	    'open',
+	    'playsinline',
 	    'readonly',
 	    'required',
 	    'reversed',
-	    'scoped',
-	    'scrolling',
-	    'seamless',
-	    'selected',
-	    'sortable',
-	    'spellcheck',
-	    'translate'
+	    'selected'
 	]);
+
 	function Element (node, renderer, options) {
-	    let opening_tag = `<${node.name}`;
 	    // awkward special case
 	    let node_contents;
-	    let value;
 	    const contenteditable = (node.name !== 'textarea' &&
 	        node.name !== 'input' &&
 	        node.attributes.some((attribute) => attribute.name === 'contenteditable'));
 	    const slot = node.get_static_attribute_value('slot');
-	    const component = node.find_nearest(/InlineComponent/);
-	    if (slot && component) {
-	        const slot = node.attributes.find((attribute) => attribute.name === 'slot');
-	        const slot_name = slot.chunks[0].data;
-	        const target = renderer.targets[renderer.targets.length - 1];
-	        target.slot_stack.push(slot_name);
-	        target.slots[slot_name] = '';
-	        const lets = node.lets;
-	        const seen = new Set(lets.map(l => l.name));
-	        component.lets.forEach(l => {
-	            if (!seen.has(l.name))
-	                lets.push(l);
-	        });
-	        options.slot_scopes.set(slot_name, get_slot_scope(node.lets));
+	    const nearest_inline_component = node.find_nearest(/InlineComponent/);
+	    if (slot && nearest_inline_component) {
+	        renderer.push();
 	    }
-	    const class_expression = node.classes.map((class_directive) => {
+	    renderer.add_string(`<${node.name}`);
+	    const class_expression_list = node.classes.map(class_directive => {
 	        const { expression, name } = class_directive;
-	        const snippet = expression ? snip(expression) : `ctx${quote_prop_if_necessary(name)}`;
-	        return `${snippet} ? "${name}" : ""`;
-	    }).join(', ');
-	    let add_class_attribute = class_expression ? true : false;
-	    if (node.attributes.find(attr => attr.is_spread)) {
+	        const snippet = expression ? expression.node : x `#ctx.${name}`;
+	        return x `${snippet} ? "${name}" : ""`;
+	    });
+	    if (node.needs_manual_style_scoping) {
+	        class_expression_list.push(x `"${node.component.stylesheet.id}"`);
+	    }
+	    const class_expression = class_expression_list.length > 0 &&
+	        class_expression_list.reduce((lhs, rhs) => x `${lhs} + ' ' + ${rhs}`);
+	    if (node.attributes.some(attr => attr.is_spread)) {
 	        // TODO dry this out
 	        const args = [];
 	        node.attributes.forEach(attribute => {
 	            if (attribute.is_spread) {
-	                args.push(snip(attribute.expression));
+	                args.push(attribute.expression.node);
 	            }
 	            else {
-	                if (attribute.name === 'value' && node.name === 'textarea') {
-	                    node_contents = stringify_attribute(attribute, true);
+	                const name = attribute.name.toLowerCase();
+	                if (name === 'value' && node.name.toLowerCase() === 'textarea') {
+	                    node_contents = get_attribute_value(attribute);
 	                }
 	                else if (attribute.is_true) {
-	                    args.push(`{ ${quote_name_if_necessary(attribute.name)}: true }`);
+	                    args.push(x `{ ${attribute.name}: true }`);
 	                }
-	                else if (boolean_attributes.has(attribute.name) &&
+	                else if (boolean_attributes.has(name) &&
 	                    attribute.chunks.length === 1 &&
 	                    attribute.chunks[0].type !== 'Text') {
 	                    // a boolean attribute with one non-Text chunk
-	                    args.push(`{ ${quote_name_if_necessary(attribute.name)}: ${snip(attribute.chunks[0])} }`);
-	                }
-	                else if (attribute.name === 'class' && class_expression) {
-	                    // Add class expression
-	                    args.push(`{ ${quote_name_if_necessary(attribute.name)}: [\`${stringify_class_attribute(attribute)}\`, \`\${${class_expression}}\`].join(' ').trim() }`);
+	                    args.push(x `{ ${attribute.name}: ${attribute.chunks[0].node} || null }`);
 	                }
 	                else {
-	                    args.push(`{ ${quote_name_if_necessary(attribute.name)}: \`${attribute.name === 'class' ? stringify_class_attribute(attribute) : stringify_attribute(attribute, true)}\` }`);
+	                    args.push(x `{ ${attribute.name}: ${get_attribute_value(attribute)} }`);
 	                }
 	            }
 	        });
-	        opening_tag += "${@spread([" + args.join(', ') + "])}";
+	        renderer.add_expression(x `@spread([${args}], ${class_expression});`);
 	    }
 	    else {
-	        node.attributes.forEach((attribute) => {
-	            if (attribute.type !== 'Attribute')
-	                return;
-	            if (attribute.name === 'value' && node.name === 'textarea') {
-	                node_contents = stringify_attribute(attribute, true);
+	        let add_class_attribute = !!class_expression;
+	        node.attributes.forEach(attribute => {
+	            const name = attribute.name.toLowerCase();
+	            if (name === 'value' && node.name.toLowerCase() === 'textarea') {
+	                node_contents = get_attribute_value(attribute);
 	            }
 	            else if (attribute.is_true) {
-	                opening_tag += ` ${attribute.name}`;
+	                renderer.add_string(` ${attribute.name}`);
 	            }
-	            else if (boolean_attributes.has(attribute.name) &&
+	            else if (boolean_attributes.has(name) &&
 	                attribute.chunks.length === 1 &&
 	                attribute.chunks[0].type !== 'Text') {
 	                // a boolean attribute with one non-Text chunk
-	                opening_tag += '${' + snip(attribute.chunks[0]) + ' ? " ' + attribute.name + '" : "" }';
+	                renderer.add_string(` `);
+	                renderer.add_expression(x `${attribute.chunks[0].node} ? "${attribute.name}" : ""`);
 	            }
-	            else if (attribute.name === 'class' && class_expression) {
+	            else if (name === 'class' && class_expression) {
 	                add_class_attribute = false;
-	                opening_tag += ` class="\${[\`${stringify_class_attribute(attribute)}\`, ${class_expression}].join(' ').trim() }"`;
+	                renderer.add_string(` ${attribute.name}="`);
+	                renderer.add_expression(x `[${get_class_attribute_value(attribute)}, ${class_expression}].join(' ').trim()`);
+	                renderer.add_string(`"`);
 	            }
 	            else if (attribute.chunks.length === 1 && attribute.chunks[0].type !== 'Text') {
-	                const { name } = attribute;
-	                const snippet = snip(attribute.chunks[0]);
-	                opening_tag += '${@add_attribute("' + name + '", ' + snippet + ', ' + (boolean_attributes.has(name) ? 1 : 0) + ')}';
+	                const snippet = attribute.chunks[0].node;
+	                renderer.add_expression(x `@add_attribute("${attribute.name}", ${snippet}, ${boolean_attributes.has(name) ? 1 : 0})`);
 	            }
 	            else {
-	                opening_tag += ` ${attribute.name}="${attribute.name === 'class' ? stringify_class_attribute(attribute) : stringify_attribute(attribute, true)}"`;
+	                renderer.add_string(` ${attribute.name}="`);
+	                renderer.add_expression((name === 'class' ? get_class_attribute_value : get_attribute_value)(attribute));
+	                renderer.add_string(`"`);
 	            }
 	        });
+	        if (add_class_attribute) {
+	            renderer.add_expression(x `@add_classes([${class_expression}].join(' ').trim())`);
+	        }
 	    }
 	    node.bindings.forEach(binding => {
 	        const { name, expression } = binding;
@@ -27342,81 +29402,93 @@ var compiler = createCommonjsModule(function (module, exports) {
 	        }
 	        if (name === 'group') ;
 	        else if (contenteditable && (name === 'textContent' || name === 'innerHTML')) {
-	            node_contents = snip(expression);
-	            value = name === 'textContent' ? '@escape($$value)' : '$$value';
+	            node_contents = expression.node;
+	            // TODO where was this used?
+	            // value = name === 'textContent' ? x`@escape($$value)` : x`$$value`;
 	        }
 	        else if (binding.name === 'value' && node.name === 'textarea') {
-	            const snippet = snip(expression);
-	            node_contents = '${(' + snippet + ') || ""}';
+	            const snippet = expression.node;
+	            node_contents = x `${snippet} || ""`;
 	        }
 	        else {
-	            const snippet = snip(expression);
-	            opening_tag += '${@add_attribute("' + name + '", ' + snippet + ', 1)}';
+	            const snippet = expression.node;
+	            renderer.add_expression(x `@add_attribute("${name}", ${snippet}, 1)`);
 	        }
 	    });
-	    if (add_class_attribute) {
-	        opening_tag += `\${@add_classes([${class_expression}].join(' ').trim())}`;
-	    }
-	    opening_tag += '>';
-	    renderer.append(opening_tag);
+	    renderer.add_string('>');
 	    if (node_contents !== undefined) {
 	        if (contenteditable) {
-	            renderer.append('${($$value => $$value === void 0 ? `');
+	            renderer.push();
 	            renderer.render(node.children, options);
-	            renderer.append('` : ' + value + ')(' + node_contents + ')}');
+	            const result = renderer.pop();
+	            renderer.add_expression(x `($$value => $$value === void 0 ? ${result} : $$value)(${node_contents})`);
 	        }
 	        else {
-	            renderer.append(node_contents);
+	            renderer.add_expression(node_contents);
 	        }
+	        if (!is_void(node.name)) {
+	            renderer.add_string(`</${node.name}>`);
+	        }
+	    }
+	    else if (slot && nearest_inline_component) {
+	        renderer.render(node.children, options);
+	        if (!is_void(node.name)) {
+	            renderer.add_string(`</${node.name}>`);
+	        }
+	        const lets = node.lets;
+	        const seen = new Set(lets.map(l => l.name.name));
+	        nearest_inline_component.lets.forEach(l => {
+	            if (!seen.has(l.name.name))
+	                lets.push(l);
+	        });
+	        options.slot_scopes.set(slot, {
+	            input: get_slot_scope(node.lets),
+	            output: renderer.pop()
+	        });
 	    }
 	    else {
 	        renderer.render(node.children, options);
-	    }
-	    if (!is_void(node.name)) {
-	        renderer.append(`</${node.name}>`);
+	        if (!is_void(node.name)) {
+	            renderer.add_string(`</${node.name}>`);
+	        }
 	    }
 	}
 
 	function Head (node, renderer, options) {
-	    renderer.append('${($$result.head += `');
+	    renderer.push();
 	    renderer.render(node.children, options);
-	    renderer.append('`, "")}');
+	    const result = renderer.pop();
+	    renderer.add_expression(x `($$result.head += ${result}, "")`);
 	}
 
 	function HtmlTag (node, renderer, _options) {
-	    renderer.append('${' + snip(node.expression) + '}');
+	    renderer.add_expression(node.expression.node);
 	}
 
 	function IfBlock (node, renderer, options) {
-	    const snippet = snip(node.expression);
-	    renderer.append('${ ' + snippet + ' ? `');
+	    const condition = node.expression.node;
+	    renderer.push();
 	    renderer.render(node.children, options);
-	    renderer.append('` : `');
-	    if (node.else) {
+	    const consequent = renderer.pop();
+	    renderer.push();
+	    if (node.else)
 	        renderer.render(node.else.children, options);
-	    }
-	    renderer.append('` }');
+	    const alternate = renderer.pop();
+	    renderer.add_expression(x `${condition} ? ${consequent} : ${alternate}`);
 	}
 
-	function stringify_attribute$1(chunk) {
-	    if (chunk.type === 'Text') {
-	        return escape_template(escape(chunk.data));
-	    }
-	    return '${@escape(' + snip(chunk) + ')}';
-	}
-	function get_attribute_value(attribute) {
+	function get_prop_value(attribute) {
 	    if (attribute.is_true)
-	        return `true`;
+	        return x `true`;
 	    if (attribute.chunks.length === 0)
-	        return `''`;
-	    if (attribute.chunks.length === 1) {
-	        const chunk = attribute.chunks[0];
-	        if (chunk.type === 'Text') {
-	            return stringify(chunk.data);
-	        }
-	        return snip(chunk);
-	    }
-	    return '`' + attribute.chunks.map(stringify_attribute$1).join('') + '`';
+	        return x `''`;
+	    return attribute.chunks
+	        .map(chunk => {
+	        if (chunk.type === 'Text')
+	            return string_literal(chunk.data);
+	        return chunk.node;
+	    })
+	        .reduce((lhs, rhs) => x `${lhs} + ${rhs}`);
 	}
 	function InlineComponent (node, renderer, options) {
 	    const binding_props = [];
@@ -27424,74 +29496,78 @@ var compiler = createCommonjsModule(function (module, exports) {
 	    node.bindings.forEach(binding => {
 	        renderer.has_bindings = true;
 	        // TODO this probably won't work for contextual bindings
-	        const snippet = snip(binding.expression);
-	        binding_props.push(`${binding.name}: ${snippet}`);
-	        binding_fns.push(`${binding.name}: $$value => { ${snippet} = $$value; $$settled = false }`);
+	        const snippet = binding.expression.node;
+	        binding_props.push(p `${binding.name}: ${snippet}`);
+	        binding_fns.push(p `${binding.name}: $$value => { ${snippet} = $$value; $$settled = false }`);
 	    });
 	    const uses_spread = node.attributes.find(attr => attr.is_spread);
 	    let props;
 	    if (uses_spread) {
-	        props = `@_Object.assign(${node.attributes
+	        props = x `@_Object.assign(${node.attributes
             .map(attribute => {
             if (attribute.is_spread) {
-                return snip(attribute.expression);
+                return attribute.expression.node;
             }
             else {
-                return `{ ${quote_name_if_necessary(attribute.name)}: ${get_attribute_value(attribute)} }`;
+                return x `{ ${attribute.name}: ${get_prop_value(attribute)} }`;
             }
         })
-            .concat(binding_props.map(p => `{ ${p} }`))
-            .join(', ')})`;
+            .concat(binding_props.map(p => x `{ ${p} }`))})`;
 	    }
 	    else {
-	        props = stringify_props(node.attributes
-	            .map(attribute => `${quote_name_if_necessary(attribute.name)}: ${get_attribute_value(attribute)}`)
-	            .concat(binding_props));
+	        props = x `{
+			${node.attributes.map(attribute => p `${attribute.name}: ${get_prop_value(attribute)}`)},
+			${binding_props}
+		}`;
 	    }
-	    const bindings = stringify_props(binding_fns);
+	    const bindings = x `{
+		${binding_fns}
+	}`;
 	    const expression = (node.name === 'svelte:self'
-	        ? '__svelte:self__' // TODO conflict-proof this
+	        ? renderer.name
 	        : node.name === 'svelte:component'
-	            ? `((${snip(node.expression)}) || @missing_component)`
-	            : node.name);
+	            ? x `(${node.expression.node}) || @missing_component`
+	            : node.name.split('.').reduce(((lhs, rhs) => x `${lhs}.${rhs}`)));
 	    const slot_fns = [];
 	    if (node.children.length) {
-	        const target = {
-	            slots: { default: '' },
-	            slot_stack: ['default']
-	        };
-	        renderer.targets.push(target);
 	        const slot_scopes = new Map();
-	        slot_scopes.set('default', get_slot_scope(node.lets));
+	        renderer.push();
 	        renderer.render(node.children, Object.assign({}, options, {
 	            slot_scopes
 	        }));
-	        Object.keys(target.slots).forEach(name => {
-	            const slot_scope = slot_scopes.get(name);
-	            slot_fns.push(`${quote_name_if_necessary(name)}: (${slot_scope}) => \`${target.slots[name]}\``);
+	        slot_scopes.set('default', {
+	            input: get_slot_scope(node.lets),
+	            output: renderer.pop()
 	        });
-	        renderer.targets.pop();
+	        slot_scopes.forEach(({ input, output }, name) => {
+	            slot_fns.push(p `${name}: (${input}) => ${output}`);
+	        });
 	    }
-	    const slots = stringify_props(slot_fns);
-	    renderer.append(`\${@validate_component(${expression}, '${node.name}').$$render($$result, ${props}, ${bindings}, ${slots})}`);
+	    const slots = x `{
+		${slot_fns}
+	}`;
+	    renderer.add_expression(x `@validate_component(${expression}, "${node.name}").$$render($$result, ${props}, ${bindings}, ${slots})`);
 	}
 
 	function Slot (node, renderer, options) {
-	    const prop = quote_prop_if_necessary(node.slot_name);
-	    const slot_data = get_slot_data(node.values, true);
-	    const arg = slot_data.length > 0 ? `{ ${slot_data.join(', ')} }` : '{}';
-	    renderer.append(`\${$$slots${prop} ? $$slots${prop}(${arg}) : \``);
+	    const slot_data = get_slot_data(node.values);
+	    renderer.push();
 	    renderer.render(node.children, options);
-	    renderer.append(`\`}`);
+	    const result = renderer.pop();
+	    renderer.add_expression(x `
+		$$slots.${node.slot_name}
+			? $$slots.${node.slot_name}(${slot_data})
+			: ${result}
+	`);
 	}
 
 	function Tag$1 (node, renderer, _options) {
-	    const snippet = snip(node.expression);
-	    renderer.append(node.parent &&
+	    const snippet = node.expression.node;
+	    renderer.add_expression(node.parent &&
 	        node.parent.type === 'Element' &&
 	        node.parent.name === 'style'
-	        ? '${' + snippet + '}'
-	        : '${@escape(' + snippet + ')}');
+	        ? snippet
+	        : x `@escape(${snippet})`);
 	}
 
 	function Text (node, renderer, _options) {
@@ -27502,17 +29578,17 @@ var compiler = createCommonjsModule(function (module, exports) {
 	        // unless this Text node is inside a <script> or <style> element, escape &,<,>
 	        text = escape_html(text);
 	    }
-	    renderer.append(escape(escape_template(text)));
+	    renderer.add_string(text);
 	}
 
 	function Title (node, renderer, options) {
-	    renderer.append(`<title>`);
+	    renderer.add_string(`<title>`);
 	    renderer.render(node.children, options);
-	    renderer.append(`</title>`);
+	    renderer.add_string(`</title>`);
 	}
 
 	function noop$1() { }
-	const handlers = {
+	const handlers$1 = {
 	    AwaitBlock,
 	    Body: noop$1,
 	    Comment: Comment$1,
@@ -27531,24 +29607,51 @@ var compiler = createCommonjsModule(function (module, exports) {
 	    Window: noop$1
 	};
 	class Renderer$1 {
-	    constructor() {
+	    constructor({ name }) {
 	        this.has_bindings = false;
-	        this.code = '';
+	        this.stack = [];
 	        this.targets = [];
+	        this.name = name;
+	        this.push();
 	    }
-	    append(code) {
-	        if (this.targets.length) {
-	            const target = this.targets[this.targets.length - 1];
-	            const slot_name = target.slot_stack[target.slot_stack.length - 1];
-	            target.slots[slot_name] += code;
+	    add_string(str) {
+	        this.current.value += escape_template(str);
+	    }
+	    add_expression(node) {
+	        this.literal.quasis.push({
+	            type: 'TemplateElement',
+	            value: { raw: this.current.value, cooked: null },
+	            tail: false
+	        });
+	        this.literal.expressions.push(node);
+	        this.current.value = '';
+	    }
+	    push() {
+	        const current = this.current = { value: '' };
+	        const literal = this.literal = {
+	            type: 'TemplateLiteral',
+	            expressions: [],
+	            quasis: []
+	        };
+	        this.stack.push({ current, literal });
+	    }
+	    pop() {
+	        this.literal.quasis.push({
+	            type: 'TemplateElement',
+	            value: { raw: this.current.value, cooked: null },
+	            tail: true
+	        });
+	        const popped = this.stack.pop();
+	        const last = this.stack[this.stack.length - 1];
+	        if (last) {
+	            this.literal = last.literal;
+	            this.current = last.current;
 	        }
-	        else {
-	            this.code += code;
-	        }
+	        return popped.literal;
 	    }
 	    render(nodes, options) {
 	        nodes.forEach(node => {
-	            const handler = handlers[node.type];
+	            const handler = handlers$1[node.type];
 	            if (!handler) {
 	                throw new Error(`No handler for '${node.type}' nodes`);
 	            }
@@ -27558,12 +29661,16 @@ var compiler = createCommonjsModule(function (module, exports) {
 	}
 
 	function ssr(component, options) {
-	    const renderer = new Renderer$1();
+	    const renderer = new Renderer$1({
+	        name: component.name
+	    });
 	    const { name } = component;
 	    // create $$render function
 	    renderer.render(trim(component.fragment.children), Object.assign({
 	        locate: component.locate
 	    }, options));
+	    // TODO put this inside the Renderer class
+	    const literal = renderer.pop();
 	    // TODO concatenate CSS maps
 	    const css = options.customElement ?
 	        { code: null, map: null } :
@@ -27574,34 +29681,33 @@ var compiler = createCommonjsModule(function (module, exports) {
 	        const store_name = name.slice(1);
 	        const store = component.var_lookup.get(store_name);
 	        if (store && store.hoistable)
-	            return;
-	        const assignment = `${name} = @get_store_value(${store_name});`;
+	            return null;
+	        const assignment = b `${name} = @get_store_value(${store_name});`;
 	        return component.compile_options.dev
-	            ? `@validate_store(${store_name}, '${store_name}'); ${assignment}`
+	            ? b `@validate_store(${store_name}, '${store_name}'); ${assignment}`
 	            : assignment;
+	    })
+	        .filter(Boolean);
+	    component.rewrite_props(({ name }) => {
+	        const value = `$${name}`;
+	        let insert = b `${value} = @get_store_value(${name})`;
+	        if (component.compile_options.dev) {
+	            insert = b `@validate_store(${name}, '${name}'); ${insert}`;
+	        }
+	        return insert;
 	    });
-	    // TODO remove this, just use component.vars everywhere
-	    const props = component.vars.filter(variable => !variable.module && variable.export_name);
-	    if (component.javascript) {
-	        component.rewrite_props(({ name }) => {
-	            const value = `$${name}`;
-	            const get_store_value = component.helper('get_store_value');
-	            let insert = `${value} = ${get_store_value}(${name})`;
-	            if (component.compile_options.dev) {
-	                const validate_store = component.helper('validate_store');
-	                insert = `${validate_store}(${name}, '${name}'); ${insert}`;
-	            }
-	            return insert;
-	        });
-	    }
+	    const instance_javascript = component.extract_javascript(component.ast.instance);
 	    // TODO only do this for props with a default value
-	    const parent_bindings = component.javascript
-	        ? props.map(prop => {
-	            return `if ($$props.${prop.export_name} === void 0 && $$bindings.${prop.export_name} && ${prop.name} !== void 0) $$bindings.${prop.export_name}(${prop.name});`;
+	    const parent_bindings = instance_javascript
+	        ? component.vars
+	            .filter(variable => !variable.module && variable.export_name)
+	            .map(prop => {
+	            return b `if ($$props.${prop.export_name} === void 0 && $$bindings.${prop.export_name} && ${prop.name} !== void 0) $$bindings.${prop.export_name}(${prop.name});`;
 	        })
 	        : [];
 	    const reactive_declarations = component.reactive_declarations.map(d => {
-	        let snippet = `[✂${d.node.body.start}-${d.node.end}✂]`;
+	        const body = d.node.body;
+	        let statement = b `${body}`;
 	        if (d.declaration) {
 	            const declared = extract_names(d.declaration);
 	            const injected = declared.filter(name => {
@@ -27612,17 +29718,23 @@ var compiler = createCommonjsModule(function (module, exports) {
 	                // in some cases we need to do `let foo; [expression]`, in
 	                // others we can do `let [expression]`
 	                const separate = (self_dependencies.length > 0 ||
-	                    declared.length > injected.length ||
-	                    d.node.body.expression.type === 'ParenthesizedExpression');
-	                snippet = separate
-	                    ? `let ${injected.join(', ')}; ${snippet}`
-	                    : `let ${snippet}`;
+	                    declared.length > injected.length);
+	                const { left, right } = body.expression;
+	                statement = separate
+	                    ? b `
+						${injected.map(name => b `let ${name};`)}
+						${statement}`
+	                    : b `
+						let ${left} = ${right}`;
 	            }
 	        }
-	        return snippet;
+	        else { // TODO do not add label if it's not referenced
+	            statement = b `$: { ${statement} }`;
+	        }
+	        return statement;
 	    });
 	    const main = renderer.has_bindings
-	        ? deindent `
+	        ? b `
 			let $$settled;
 			let $$rendered;
 
@@ -27633,49 +29745,46 @@ var compiler = createCommonjsModule(function (module, exports) {
 
 				${reactive_declarations}
 
-				$$rendered = \`${renderer.code}\`;
+				$$rendered = ${literal};
 			} while (!$$settled);
 
 			return $$rendered;
 		`
-	        : deindent `
+	        : b `
 			${reactive_store_values}
 
 			${reactive_declarations}
 
-			return \`${renderer.code}\`;`;
+			return ${literal};`;
 	    const blocks = [
-	        reactive_stores.length > 0 && `let ${reactive_stores
-            .map(({ name }) => {
-            const store_name = name.slice(1);
-            const store = component.var_lookup.get(store_name);
-            if (store && store.hoistable) {
-                const get_store_value = component.helper('get_store_value');
-                return `${name} = ${get_store_value}(${store_name})`;
-            }
-            return name;
-        })
-            .join(', ')};`,
-	        component.javascript,
-	        parent_bindings.join('\n'),
-	        css.code && `$$result.css.add(#css);`,
+	        ...reactive_stores.map(({ name }) => {
+	            const store_name = name.slice(1);
+	            const store = component.var_lookup.get(store_name);
+	            if (store && store.hoistable) {
+	                return b `let ${name} = @get_store_value(${store_name});`;
+	            }
+	            return b `let ${name};`;
+	        }),
+	        instance_javascript,
+	        ...parent_bindings,
+	        css.code && b `$$result.css.add(#css);`,
 	        main
 	    ].filter(Boolean);
-	    return (deindent `
-		${css.code && deindent `
+	    return b `
+		${css.code ? b `
 		const #css = {
-			code: ${css.code ? stringify(css.code) : `''`},
-			map: ${css.map ? stringify(css.map.toString()) : 'null'}
-		};`}
+			code: "${css.code}",
+			map: ${css.map ? string_literal(css.map.toString()) : 'null'}
+		};` : null}
 
-		${component.module_javascript}
+		${component.extract_javascript(component.ast.module)}
 
-		${component.fully_hoisted.length > 0 && component.fully_hoisted.join('\n\n')}
+		${component.fully_hoisted}
 
 		const ${name} = @create_ssr_component(($$result, $$props, $$bindings, $$slots) => {
-			${blocks.join('\n\n')}
+			${blocks}
 		});
-	`).trim();
+	`;
 	}
 	function trim(nodes) {
 	    let start = 0;
@@ -27699,56 +29808,155 @@ var compiler = createCommonjsModule(function (module, exports) {
 	    return nodes.slice(start, end);
 	}
 
-	var chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
-	function encode(decoded) {
-	    var sourceFileIndex = 0; // second field
-	    var sourceCodeLine = 0; // third field
-	    var sourceCodeColumn = 0; // fourth field
-	    var nameIndex = 0; // fifth field
-	    var mappings = '';
-	    for (var i = 0; i < decoded.length; i++) {
-	        var line = decoded[i];
-	        if (i > 0)
-	            mappings += ';';
-	        if (line.length === 0)
-	            continue;
-	        var generatedCodeColumn = 0; // first field
-	        var lineMappings = [];
-	        for (var _i = 0, line_1 = line; _i < line_1.length; _i++) {
-	            var segment = line_1[_i];
-	            var segmentMappings = encodeInteger(segment[0] - generatedCodeColumn);
-	            generatedCodeColumn = segment[0];
-	            if (segment.length > 1) {
-	                segmentMappings +=
-	                    encodeInteger(segment[1] - sourceFileIndex) +
-	                        encodeInteger(segment[2] - sourceCodeLine) +
-	                        encodeInteger(segment[3] - sourceCodeColumn);
-	                sourceFileIndex = segment[1];
-	                sourceCodeLine = segment[2];
-	                sourceCodeColumn = segment[3];
-	            }
-	            if (segment.length === 5) {
-	                segmentMappings += encodeInteger(segment[4] - nameIndex);
-	                nameIndex = segment[4];
-	            }
-	            lineMappings.push(segmentMappings);
-	        }
-	        mappings += lineMappings.join(',');
+	const wrappers$1 = { esm, cjs };
+	function create_module(program, format, name, banner, sveltePath = 'svelte', helpers, globals, imports, module_exports) {
+	    const internal_path = `${sveltePath}/internal`;
+	    helpers.sort((a, b) => (a.name < b.name) ? -1 : 1);
+	    globals.sort((a, b) => (a.name < b.name) ? -1 : 1);
+	    if (format === 'esm') {
+	        return esm(program, name, banner, sveltePath, internal_path, helpers, globals, imports, module_exports);
 	    }
-	    return mappings;
+	    if (format === 'cjs')
+	        return cjs(program, name, banner, sveltePath, internal_path, helpers, globals, imports, module_exports);
+	    throw new Error(`options.format is invalid (must be ${list$1(Object.keys(wrappers$1))})`);
 	}
-	function encodeInteger(num) {
-	    var result = '';
-	    num = num < 0 ? (-num << 1) | 1 : num << 1;
-	    do {
-	        var clamped = num & 31;
-	        num >>>= 5;
-	        if (num > 0) {
-	            clamped |= 32;
-	        }
-	        result += chars[clamped];
-	    } while (num > 0);
-	    return result;
+	function edit_source(source, sveltePath) {
+	    return source === 'svelte' || source.startsWith('svelte/')
+	        ? source.replace('svelte', sveltePath)
+	        : source;
+	}
+	function esm(program, name, banner, sveltePath, internal_path, helpers, globals, imports, module_exports) {
+	    const import_declaration = {
+	        type: 'ImportDeclaration',
+	        specifiers: helpers.map(h => ({
+	            type: 'ImportSpecifier',
+	            local: h.alias,
+	            imported: { type: 'Identifier', name: h.name }
+	        })),
+	        source: { type: 'Literal', value: internal_path }
+	    };
+	    const internal_globals = globals.length > 0 && {
+	        type: 'VariableDeclaration',
+	        kind: 'const',
+	        declarations: [{
+	                type: 'VariableDeclarator',
+	                id: {
+	                    type: 'ObjectPattern',
+	                    properties: globals.map(g => ({
+	                        type: 'Property',
+	                        method: false,
+	                        shorthand: false,
+	                        computed: false,
+	                        key: { type: 'Identifier', name: g.name },
+	                        value: g.alias,
+	                        kind: 'init'
+	                    }))
+	                },
+	                init: helpers.find(({ name }) => name === 'globals').alias
+	            }]
+	    };
+	    // edit user imports
+	    imports.forEach(node => {
+	        node.source.value = edit_source(node.source.value, sveltePath);
+	    });
+	    const exports = module_exports.length > 0 && {
+	        type: 'ExportNamedDeclaration',
+	        specifiers: module_exports.map(x => ({
+	            type: 'Specifier',
+	            local: { type: 'Identifier', name: x.name },
+	            exported: { type: 'Identifier', name: x.as }
+	        }))
+	    };
+	    program.body = b `
+		/* ${banner} */
+
+		${import_declaration}
+		${internal_globals}
+		${imports}
+
+		${program.body}
+
+		export default ${name};
+		${exports}
+	`;
+	}
+	function cjs(program, name, banner, sveltePath, internal_path, helpers, globals, imports, module_exports) {
+	    const internal_requires = {
+	        type: 'VariableDeclaration',
+	        kind: 'const',
+	        declarations: [{
+	                type: 'VariableDeclarator',
+	                id: {
+	                    type: 'ObjectPattern',
+	                    properties: helpers.map(h => ({
+	                        type: 'Property',
+	                        method: false,
+	                        shorthand: false,
+	                        computed: false,
+	                        key: { type: 'Identifier', name: h.name },
+	                        value: h.alias,
+	                        kind: 'init'
+	                    }))
+	                },
+	                init: x `require("${internal_path}")`
+	            }]
+	    };
+	    const internal_globals = globals.length > 0 && {
+	        type: 'VariableDeclaration',
+	        kind: 'const',
+	        declarations: [{
+	                type: 'VariableDeclarator',
+	                id: {
+	                    type: 'ObjectPattern',
+	                    properties: globals.map(g => ({
+	                        type: 'Property',
+	                        method: false,
+	                        shorthand: false,
+	                        computed: false,
+	                        key: { type: 'Identifier', name: g.name },
+	                        value: g.alias,
+	                        kind: 'init'
+	                    }))
+	                },
+	                init: helpers.find(({ name }) => name === 'globals').alias
+	            }]
+	    };
+	    const user_requires = imports.map(node => ({
+	        type: 'VariableDeclaration',
+	        kind: 'const',
+	        declarations: [{
+	                type: 'VariableDeclarator',
+	                id: node.specifiers[0].type === 'ImportNamespaceSpecifier'
+	                    ? { type: 'Identifier', name: node.specifiers[0].local.name }
+	                    : {
+	                        type: 'ObjectPattern',
+	                        properties: node.specifiers.map(s => ({
+	                            type: 'Property',
+	                            method: false,
+	                            shorthand: false,
+	                            computed: false,
+	                            key: s.type === 'ImportSpecifier' ? s.imported : { type: 'Identifier', name: 'default' },
+	                            value: s.local,
+	                            kind: 'init'
+	                        }))
+	                    },
+	                init: x `require("${edit_source(node.source.value, sveltePath)}")`
+	            }]
+	    }));
+	    const exports = module_exports.map(x => b `exports.${{ type: 'Identifier', name: x.as }} = ${{ type: 'Identifier', name: x.name }};`);
+	    program.body = b `
+		/* ${banner} */
+
+		"use strict";
+		${internal_requires}
+		${internal_globals}
+		${user_requires}
+
+		${program.body}
+
+		exports.default = ${name};
+		${exports}
+	`;
 	}
 
 	var Chunk = function Chunk(start, end, content) {
@@ -27977,10 +30185,10 @@ var compiler = createCommonjsModule(function (module, exports) {
 		return fromParts.concat(toParts).join('/');
 	}
 
-	var toString$2 = Object.prototype.toString;
+	var toString$1 = Object.prototype.toString;
 
 	function isObject(thing) {
-		return toString$2.call(thing) === '[object Object]';
+		return toString$1.call(thing) === '[object Object]';
 	}
 
 	function getLocator$1(source) {
@@ -28754,366 +30962,6 @@ var compiler = createCommonjsModule(function (module, exports) {
 		return this;
 	};
 
-	var hasOwnProp = Object.prototype.hasOwnProperty;
-
-	var Bundle = function Bundle(options) {
-		if ( options === void 0 ) options = {};
-
-		this.intro = options.intro || '';
-		this.separator = options.separator !== undefined ? options.separator : '\n';
-		this.sources = [];
-		this.uniqueSources = [];
-		this.uniqueSourceIndexByFilename = {};
-	};
-
-	Bundle.prototype.addSource = function addSource (source) {
-		if (source instanceof MagicString) {
-			return this.addSource({
-				content: source,
-				filename: source.filename,
-				separator: this.separator
-			});
-		}
-
-		if (!isObject(source) || !source.content) {
-			throw new Error('bundle.addSource() takes an object with a `content` property, which should be an instance of MagicString, and an optional `filename`');
-		}
-
-		['filename', 'indentExclusionRanges', 'separator'].forEach(function (option) {
-			if (!hasOwnProp.call(source, option)) { source[option] = source.content[option]; }
-		});
-
-		if (source.separator === undefined) {
-			// TODO there's a bunch of this sort of thing, needs cleaning up
-			source.separator = this.separator;
-		}
-
-		if (source.filename) {
-			if (!hasOwnProp.call(this.uniqueSourceIndexByFilename, source.filename)) {
-				this.uniqueSourceIndexByFilename[source.filename] = this.uniqueSources.length;
-				this.uniqueSources.push({ filename: source.filename, content: source.content.original });
-			} else {
-				var uniqueSource = this.uniqueSources[this.uniqueSourceIndexByFilename[source.filename]];
-				if (source.content.original !== uniqueSource.content) {
-					throw new Error(("Illegal source: same filename (" + (source.filename) + "), different contents"));
-				}
-			}
-		}
-
-		this.sources.push(source);
-		return this;
-	};
-
-	Bundle.prototype.append = function append (str, options) {
-		this.addSource({
-			content: new MagicString(str),
-			separator: (options && options.separator) || ''
-		});
-
-		return this;
-	};
-
-	Bundle.prototype.clone = function clone () {
-		var bundle = new Bundle({
-			intro: this.intro,
-			separator: this.separator
-		});
-
-		this.sources.forEach(function (source) {
-			bundle.addSource({
-				filename: source.filename,
-				content: source.content.clone(),
-				separator: source.separator
-			});
-		});
-
-		return bundle;
-	};
-
-	Bundle.prototype.generateDecodedMap = function generateDecodedMap (options) {
-			var this$1 = this;
-			if ( options === void 0 ) options = {};
-
-		var names = [];
-		this.sources.forEach(function (source) {
-			Object.keys(source.content.storedNames).forEach(function (name) {
-				if (!~names.indexOf(name)) { names.push(name); }
-			});
-		});
-
-		var mappings = new Mappings(options.hires);
-
-		if (this.intro) {
-			mappings.advance(this.intro);
-		}
-
-		this.sources.forEach(function (source, i) {
-			if (i > 0) {
-				mappings.advance(this$1.separator);
-			}
-
-			var sourceIndex = source.filename ? this$1.uniqueSourceIndexByFilename[source.filename] : -1;
-			var magicString = source.content;
-			var locate = getLocator$1(magicString.original);
-
-			if (magicString.intro) {
-				mappings.advance(magicString.intro);
-			}
-
-			magicString.firstChunk.eachNext(function (chunk) {
-				var loc = locate(chunk.start);
-
-				if (chunk.intro.length) { mappings.advance(chunk.intro); }
-
-				if (source.filename) {
-					if (chunk.edited) {
-						mappings.addEdit(
-							sourceIndex,
-							chunk.content,
-							loc,
-							chunk.storeName ? names.indexOf(chunk.original) : -1
-						);
-					} else {
-						mappings.addUneditedChunk(
-							sourceIndex,
-							chunk,
-							magicString.original,
-							loc,
-							magicString.sourcemapLocations
-						);
-					}
-				} else {
-					mappings.advance(chunk.content);
-				}
-
-				if (chunk.outro.length) { mappings.advance(chunk.outro); }
-			});
-
-			if (magicString.outro) {
-				mappings.advance(magicString.outro);
-			}
-		});
-
-		return {
-			file: options.file ? options.file.split(/[/\\]/).pop() : null,
-			sources: this.uniqueSources.map(function (source) {
-				return options.file ? getRelativePath(options.file, source.filename) : source.filename;
-			}),
-			sourcesContent: this.uniqueSources.map(function (source) {
-				return options.includeContent ? source.content : null;
-			}),
-			names: names,
-			mappings: mappings.raw
-		};
-	};
-
-	Bundle.prototype.generateMap = function generateMap (options) {
-		return new SourceMap(this.generateDecodedMap(options));
-	};
-
-	Bundle.prototype.getIndentString = function getIndentString () {
-		var indentStringCounts = {};
-
-		this.sources.forEach(function (source) {
-			var indentStr = source.content.indentStr;
-
-			if (indentStr === null) { return; }
-
-			if (!indentStringCounts[indentStr]) { indentStringCounts[indentStr] = 0; }
-			indentStringCounts[indentStr] += 1;
-		});
-
-		return (
-			Object.keys(indentStringCounts).sort(function (a, b) {
-				return indentStringCounts[a] - indentStringCounts[b];
-			})[0] || '\t'
-		);
-	};
-
-	Bundle.prototype.indent = function indent (indentStr) {
-			var this$1 = this;
-
-		if (!arguments.length) {
-			indentStr = this.getIndentString();
-		}
-
-		if (indentStr === '') { return this; } // noop
-
-		var trailingNewline = !this.intro || this.intro.slice(-1) === '\n';
-
-		this.sources.forEach(function (source, i) {
-			var separator = source.separator !== undefined ? source.separator : this$1.separator;
-			var indentStart = trailingNewline || (i > 0 && /\r?\n$/.test(separator));
-
-			source.content.indent(indentStr, {
-				exclude: source.indentExclusionRanges,
-				indentStart: indentStart //: trailingNewline || /\r?\n$/.test( separator )  //true///\r?\n/.test( separator )
-			});
-
-			trailingNewline = source.content.lastChar() === '\n';
-		});
-
-		if (this.intro) {
-			this.intro =
-				indentStr +
-				this.intro.replace(/^[^\n]/gm, function (match, index) {
-					return index > 0 ? indentStr + match : match;
-				});
-		}
-
-		return this;
-	};
-
-	Bundle.prototype.prepend = function prepend (str) {
-		this.intro = str + this.intro;
-		return this;
-	};
-
-	Bundle.prototype.toString = function toString () {
-			var this$1 = this;
-
-		var body = this.sources
-			.map(function (source, i) {
-				var separator = source.separator !== undefined ? source.separator : this$1.separator;
-				var str = (i > 0 ? separator : '') + source.content.toString();
-
-				return str;
-			})
-			.join('');
-
-		return this.intro + body;
-	};
-
-	Bundle.prototype.isEmpty = function isEmpty () {
-		if (this.intro.length && this.intro.trim())
-			{ return false; }
-		if (this.sources.some(function (source) { return !source.content.isEmpty(); }))
-			{ return false; }
-		return true;
-	};
-
-	Bundle.prototype.length = function length () {
-		return this.sources.reduce(function (length, source) { return length + source.content.length(); }, this.intro.length);
-	};
-
-	Bundle.prototype.trimLines = function trimLines () {
-		return this.trim('[\\r\\n]');
-	};
-
-	Bundle.prototype.trim = function trim (charType) {
-		return this.trimStart(charType).trimEnd(charType);
-	};
-
-	Bundle.prototype.trimStart = function trimStart (charType) {
-		var rx = new RegExp('^' + (charType || '\\s') + '+');
-		this.intro = this.intro.replace(rx, '');
-
-		if (!this.intro) {
-			var source;
-			var i = 0;
-
-			do {
-				source = this.sources[i++];
-				if (!source) {
-					break;
-				}
-			} while (!source.content.trimStartAborted(charType));
-		}
-
-		return this;
-	};
-
-	Bundle.prototype.trimEnd = function trimEnd (charType) {
-		var rx = new RegExp((charType || '\\s') + '+$');
-
-		var source;
-		var i = this.sources.length - 1;
-
-		do {
-			source = this.sources[i--];
-			if (!source) {
-				this.intro = this.intro.replace(rx, '');
-				break;
-			}
-		} while (!source.content.trimEndAborted(charType));
-
-		return this;
-	};
-
-	const wrappers$1 = { esm, cjs };
-	function create_module(code, format, name, banner, sveltePath = 'svelte', helpers, globals, imports, module_exports, source) {
-	    const internal_path = `${sveltePath}/internal`;
-	    if (format === 'esm') {
-	        return esm(code, name, banner, sveltePath, internal_path, helpers, globals, imports, module_exports, source);
-	    }
-	    if (format === 'cjs')
-	        return cjs(code, name, banner, sveltePath, internal_path, helpers, globals, imports, module_exports);
-	    throw new Error(`options.format is invalid (must be ${list$1(Object.keys(wrappers$1))})`);
-	}
-	function edit_source(source, sveltePath) {
-	    return source === 'svelte' || source.startsWith('svelte/')
-	        ? source.replace('svelte', sveltePath)
-	        : source;
-	}
-	function esm(code, name, banner, sveltePath, internal_path, helpers, globals, imports, module_exports, source) {
-	    const internal_imports = helpers.length > 0 && (`import ${stringify_props(helpers.map(h => h.name === h.alias ? h.name : `${h.name} as ${h.alias}`).sort())} from ${JSON.stringify(internal_path)};`);
-	    const internal_globals = globals.length > 0 && (`const ${stringify_props(globals.map(g => `${g.name}: ${g.alias}`).sort())} = ${helpers.find(({ name }) => name === 'globals').alias};`);
-	    const user_imports = imports.length > 0 && (imports
-	        .map((declaration) => {
-	        const import_source = edit_source(declaration.source.value, sveltePath);
-	        return (source.slice(declaration.start, declaration.source.start) +
-	            JSON.stringify(import_source) +
-	            source.slice(declaration.source.end, declaration.end));
-	    })
-	        .join('\n'));
-	    return deindent `
-		${banner}
-		${internal_imports}
-		${internal_globals}
-		${user_imports}
-
-		${code}
-
-		export default ${name};
-		${module_exports.length > 0 && `export { ${module_exports.map(e => e.name === e.as ? e.name : `${e.name} as ${e.as}`).join(', ')} };`}`;
-	}
-	function cjs(code, name, banner, sveltePath, internal_path, helpers, globals, imports, module_exports) {
-	    const declarations = helpers.map(h => `${h.alias === h.name ? h.name : `${h.name}: ${h.alias}`}`).sort();
-	    const internal_imports = helpers.length > 0 && (`const ${stringify_props(declarations)} = require(${JSON.stringify(internal_path)});\n`);
-	    const internal_globals = globals.length > 0 && (`const ${stringify_props(globals.map(g => `${g.name}: ${g.alias}`).sort())} = ${helpers.find(({ name }) => name === 'globals').alias};`);
-	    const requires = imports.map(node => {
-	        let lhs;
-	        if (node.specifiers[0].type === 'ImportNamespaceSpecifier') {
-	            lhs = node.specifiers[0].local.name;
-	        }
-	        else {
-	            const properties = node.specifiers.map(s => {
-	                if (s.type === 'ImportDefaultSpecifier') {
-	                    return `default: ${s.local.name}`;
-	                }
-	                return s.local.name === s.imported.name
-	                    ? s.local.name
-	                    : `${s.imported.name}: ${s.local.name}`;
-	            });
-	            lhs = `{ ${properties.join(', ')} }`;
-	        }
-	        const source = edit_source(node.source.value, sveltePath);
-	        return `const ${lhs} = require("${source}");`;
-	    });
-	    const exports = [`exports.default = ${name};`].concat(module_exports.map(x => `exports.${x.as} = ${x.name};`));
-	    return deindent `
-		${banner}
-		"use strict";
-
-		${internal_imports}
-		${internal_globals}
-		${requires}
-
-		${code}
-
-		${exports}`;
-	}
-
 	const UNKNOWN = {};
 	function gather_possible_values(node, set) {
 	    if (node.type === 'Literal') {
@@ -29128,6 +30976,12 @@ var compiler = createCommonjsModule(function (module, exports) {
 	    }
 	}
 
+	var BlockAppliesToNode;
+	(function (BlockAppliesToNode) {
+	    BlockAppliesToNode[BlockAppliesToNode["NotPossible"] = 0] = "NotPossible";
+	    BlockAppliesToNode[BlockAppliesToNode["Possible"] = 1] = "Possible";
+	    BlockAppliesToNode[BlockAppliesToNode["UnknownSelectorType"] = 2] = "UnknownSelectorType";
+	})(BlockAppliesToNode || (BlockAppliesToNode = {}));
 	class Selector$1 {
 	    constructor(node, stylesheet) {
 	        this.node = node;
@@ -29145,9 +30999,9 @@ var compiler = createCommonjsModule(function (module, exports) {
 	    }
 	    apply(node, stack) {
 	        const to_encapsulate = [];
-	        apply_selector(this.stylesheet, this.local_blocks.slice(), node, stack.slice(), to_encapsulate);
+	        apply_selector(this.local_blocks.slice(), node, stack.slice(), to_encapsulate);
 	        if (to_encapsulate.length > 0) {
-	            to_encapsulate.filter((_, i) => i === 0 || i === to_encapsulate.length - 1).forEach(({ node, block }) => {
+	            to_encapsulate.forEach(({ node, block }) => {
 	                this.stylesheet.nodes_with_css_class.add(node);
 	                block.should_encapsulate = true;
 	            });
@@ -29230,51 +31084,33 @@ var compiler = createCommonjsModule(function (module, exports) {
 	        }
 	    }
 	}
-	function apply_selector(stylesheet, blocks, node, stack, to_encapsulate) {
+	function apply_selector(blocks, node, stack, to_encapsulate) {
 	    const block = blocks.pop();
 	    if (!block)
 	        return false;
 	    if (!node) {
 	        return blocks.every(block => block.global);
 	    }
-	    let i = block.selectors.length;
-	    while (i--) {
-	        const selector = block.selectors[i];
-	        if (selector.type === 'PseudoClassSelector' && selector.name === 'global') {
-	            // TODO shouldn't see this here... maybe we should enforce that :global(...)
-	            // cannot be sandwiched between non-global selectors?
+	    switch (block_might_apply_to_node(block, node)) {
+	        case BlockAppliesToNode.NotPossible:
 	            return false;
-	        }
-	        if (selector.type === 'PseudoClassSelector' || selector.type === 'PseudoElementSelector') {
-	            continue;
-	        }
-	        if (selector.type === 'ClassSelector') {
-	            if (!attribute_matches(node, 'class', selector.name, '~=', false) && !class_matches(node, selector.name))
-	                return false;
-	        }
-	        else if (selector.type === 'IdSelector') {
-	            if (!attribute_matches(node, 'id', selector.name, '=', false))
-	                return false;
-	        }
-	        else if (selector.type === 'AttributeSelector') {
-	            if (!attribute_matches(node, selector.name.name, selector.value && unquote(selector.value), selector.matcher, selector.flags))
-	                return false;
-	        }
-	        else if (selector.type === 'TypeSelector') {
-	            // remove toLowerCase() in v2, when uppercase elements will be forbidden
-	            if (node.name.toLowerCase() !== selector.name.toLowerCase() && selector.name !== '*')
-	                return false;
-	        }
-	        else {
+	        case BlockAppliesToNode.UnknownSelectorType:
 	            // bail. TODO figure out what these could be
 	            to_encapsulate.push({ node, block });
 	            return true;
-	        }
 	    }
 	    if (block.combinator) {
 	        if (block.combinator.type === 'WhiteSpace') {
-	            while (stack.length) {
-	                if (apply_selector(stylesheet, blocks.slice(), stack.pop(), stack, to_encapsulate)) {
+	            for (const ancestor_block of blocks) {
+	                if (ancestor_block.global) {
+	                    continue;
+	                }
+	                for (const stack_node of stack) {
+	                    if (block_might_apply_to_node(ancestor_block, stack_node) !== BlockAppliesToNode.NotPossible) {
+	                        to_encapsulate.push({ node: stack_node, block: ancestor_block });
+	                    }
+	                }
+	                if (to_encapsulate.length) {
 	                    to_encapsulate.push({ node, block });
 	                    return true;
 	                }
@@ -29286,7 +31122,7 @@ var compiler = createCommonjsModule(function (module, exports) {
 	            return false;
 	        }
 	        else if (block.combinator.name === '>') {
-	            if (apply_selector(stylesheet, blocks, stack.pop(), stack, to_encapsulate)) {
+	            if (apply_selector(blocks, stack.pop(), stack, to_encapsulate)) {
 	                to_encapsulate.push({ node, block });
 	                return true;
 	            }
@@ -29299,14 +31135,56 @@ var compiler = createCommonjsModule(function (module, exports) {
 	    to_encapsulate.push({ node, block });
 	    return true;
 	}
-	const operators = {
-	    '=': (value, flags) => new RegExp(`^${value}$`, flags),
-	    '~=': (value, flags) => new RegExp(`\\b${value}\\b`, flags),
-	    '|=': (value, flags) => new RegExp(`^${value}(-.+)?$`, flags),
-	    '^=': (value, flags) => new RegExp(`^${value}`, flags),
-	    '$=': (value, flags) => new RegExp(`${value}$`, flags),
-	    '*=': (value, flags) => new RegExp(value, flags)
-	};
+	function block_might_apply_to_node(block, node) {
+	    let i = block.selectors.length;
+	    while (i--) {
+	        const selector = block.selectors[i];
+	        const name = typeof selector.name === 'string' && selector.name.replace(/\\(.)/g, '$1');
+	        if (selector.type === 'PseudoClassSelector' || selector.type === 'PseudoElementSelector') {
+	            continue;
+	        }
+	        if (selector.type === 'PseudoClassSelector' && name === 'global') {
+	            // TODO shouldn't see this here... maybe we should enforce that :global(...)
+	            // cannot be sandwiched between non-global selectors?
+	            return BlockAppliesToNode.NotPossible;
+	        }
+	        if (selector.type === 'ClassSelector') {
+	            if (!attribute_matches(node, 'class', name, '~=', false) && !node.classes.some(c => c.name === name))
+	                return BlockAppliesToNode.NotPossible;
+	        }
+	        else if (selector.type === 'IdSelector') {
+	            if (!attribute_matches(node, 'id', name, '=', false))
+	                return BlockAppliesToNode.NotPossible;
+	        }
+	        else if (selector.type === 'AttributeSelector') {
+	            if (!attribute_matches(node, selector.name.name, selector.value && unquote(selector.value), selector.matcher, selector.flags))
+	                return BlockAppliesToNode.NotPossible;
+	        }
+	        else if (selector.type === 'TypeSelector') {
+	            if (node.name.toLowerCase() !== name.toLowerCase() && name !== '*')
+	                return BlockAppliesToNode.NotPossible;
+	        }
+	        else {
+	            return BlockAppliesToNode.UnknownSelectorType;
+	        }
+	    }
+	    return BlockAppliesToNode.Possible;
+	}
+	function test_attribute(operator, expected_value, case_insensitive, value) {
+	    if (case_insensitive) {
+	        expected_value = expected_value.toLowerCase();
+	        value = value.toLowerCase();
+	    }
+	    switch (operator) {
+	        case '=': return value === expected_value;
+	        case '~=': return ` ${value} `.includes(` ${expected_value} `);
+	        case '|=': return `${value}-`.startsWith(`${expected_value}-`);
+	        case '^=': return value.startsWith(expected_value);
+	        case '$=': return value.endsWith(expected_value);
+	        case '*=': return value.includes(expected_value);
+	        default: throw new Error(`this shouldn't happen`);
+	    }
+	}
 	function attribute_matches(node, name, expected_value, operator, case_insensitive) {
 	    const spread = node.attributes.find(attr => attr.type === 'Spread');
 	    if (spread)
@@ -29318,30 +31196,89 @@ var compiler = createCommonjsModule(function (module, exports) {
 	        return false;
 	    if (attr.is_true)
 	        return operator === null;
-	    if (attr.chunks.length > 1)
-	        return true;
 	    if (!expected_value)
 	        return true;
-	    const pattern = operators[operator](expected_value, case_insensitive ? 'i' : '');
-	    const value = attr.chunks[0];
-	    if (!value)
-	        return false;
-	    if (value.type === 'Text')
-	        return pattern.test(value.data);
+	    if (attr.chunks.length === 1) {
+	        const value = attr.chunks[0];
+	        if (!value)
+	            return false;
+	        if (value.type === 'Text')
+	            return test_attribute(operator, expected_value, case_insensitive, value.data);
+	    }
 	    const possible_values = new Set();
-	    gather_possible_values(value.node, possible_values);
+	    let prev_values = [];
+	    for (const chunk of attr.chunks) {
+	        const current_possible_values = new Set();
+	        if (chunk.type === 'Text') {
+	            current_possible_values.add(chunk.data);
+	        }
+	        else {
+	            gather_possible_values(chunk.node, current_possible_values);
+	        }
+	        // impossible to find out all combinations
+	        if (current_possible_values.has(UNKNOWN))
+	            return true;
+	        if (prev_values.length > 0) {
+	            const start_with_space = [];
+	            const remaining = [];
+	            current_possible_values.forEach((current_possible_value) => {
+	                if (/^\s/.test(current_possible_value)) {
+	                    start_with_space.push(current_possible_value);
+	                }
+	                else {
+	                    remaining.push(current_possible_value);
+	                }
+	            });
+	            if (remaining.length > 0) {
+	                if (start_with_space.length > 0) {
+	                    prev_values.forEach(prev_value => possible_values.add(prev_value));
+	                }
+	                const combined = [];
+	                prev_values.forEach((prev_value) => {
+	                    remaining.forEach((value) => {
+	                        combined.push(prev_value + value);
+	                    });
+	                });
+	                prev_values = combined;
+	                start_with_space.forEach((value) => {
+	                    if (/\s$/.test(value)) {
+	                        possible_values.add(value);
+	                    }
+	                    else {
+	                        prev_values.push(value);
+	                    }
+	                });
+	                continue;
+	            }
+	            else {
+	                prev_values.forEach(prev_value => possible_values.add(prev_value));
+	                prev_values = [];
+	            }
+	        }
+	        current_possible_values.forEach((current_possible_value) => {
+	            if (/\s$/.test(current_possible_value)) {
+	                possible_values.add(current_possible_value);
+	            }
+	            else {
+	                prev_values.push(current_possible_value);
+	            }
+	        });
+	        if (prev_values.length < current_possible_values.size) {
+	            prev_values.push(' ');
+	        }
+	        if (prev_values.length > 20) {
+	            // might grow exponentially, bail out
+	            return true;
+	        }
+	    }
+	    prev_values.forEach(prev_value => possible_values.add(prev_value));
 	    if (possible_values.has(UNKNOWN))
 	        return true;
-	    for (const x of Array.from(possible_values)) { // TypeScript for-of is slightly unlike JS
-	        if (pattern.test(x))
+	    for (const value of possible_values) {
+	        if (test_attribute(operator, expected_value, case_insensitive, value))
 	            return true;
 	    }
 	    return false;
-	}
-	function class_matches(node, name) {
-	    return node.classes.some((class_directive) => {
-	        return new RegExp(`\\b${name}\\b`).test(class_directive.name);
-	    });
 	}
 	function unquote(value) {
 	    if (value.type === 'Identifier')
@@ -29846,51 +31783,6 @@ var compiler = createCommonjsModule(function (module, exports) {
 	    }
 	}
 
-	const binary_operators = {
-	    '**': 15,
-	    '*': 14,
-	    '/': 14,
-	    '%': 14,
-	    '+': 13,
-	    '-': 13,
-	    '<<': 12,
-	    '>>': 12,
-	    '>>>': 12,
-	    '<': 11,
-	    '<=': 11,
-	    '>': 11,
-	    '>=': 11,
-	    in: 11,
-	    instanceof: 11,
-	    '==': 10,
-	    '!=': 10,
-	    '===': 10,
-	    '!==': 10,
-	    '&': 9,
-	    '^': 8,
-	    '|': 7
-	};
-	const logical_operators = {
-	    '&&': 6,
-	    '||': 5
-	};
-	const precedence = {
-	    Literal: () => 21,
-	    Identifier: () => 21,
-	    ParenthesizedExpression: () => 20,
-	    MemberExpression: () => 19,
-	    NewExpression: () => 19,
-	    CallExpression: () => 19,
-	    UpdateExpression: () => 17,
-	    UnaryExpression: () => 16,
-	    BinaryExpression: (node) => binary_operators[node.operator],
-	    LogicalExpression: (node) => logical_operators[node.operator],
-	    ConditionalExpression: () => 4,
-	    AssignmentExpression: () => 3,
-	    YieldExpression: () => 2,
-	    SpreadElement: () => 1,
-	    SequenceExpression: () => 0
-	};
 	class Expression {
 	    // todo: owner type
 	    constructor(component, owner, template_scope, info, lazy) {
@@ -29908,8 +31800,6 @@ var compiler = createCommonjsModule(function (module, exports) {
 	        this.node = info;
 	        this.template_scope = template_scope;
 	        this.owner = owner;
-	        // @ts-ignore
-	        this.is_synthetic = owner.is_synthetic;
 	        const { dependencies, contextual_dependencies } = this;
 	        let { map, scope } = create_scopes(info);
 	        this.scope = scope;
@@ -29931,8 +31821,6 @@ var compiler = createCommonjsModule(function (module, exports) {
 	                if (isReference(node, parent)) {
 	                    const { name, nodes } = flatten_reference(node);
 	                    if (scope.has(name))
-	                        return;
-	                    if (globals.has(name) && !component.var_lookup.has(name))
 	                        return;
 	                    if (name[0] === '$' && template_scope.names.has(name.slice(1))) {
 	                        component.error(node, {
@@ -30017,35 +31905,29 @@ var compiler = createCommonjsModule(function (module, exports) {
 	            return is_dynamic$1(variable);
 	        });
 	    }
-	    get_precedence() {
-	        return this.node.type in precedence ? precedence[this.node.type](this.node) : 0;
-	    }
 	    // TODO move this into a render-dom wrapper?
-	    render(block) {
-	        if (this.rendered)
-	            return this.rendered;
-	        const { component, declarations, scope_map: map, template_scope, owner, is_synthetic } = this;
+	    manipulate(block) {
+	        // TODO ideally we wouldn't end up calling this method
+	        // multiple times
+	        if (this.manipulated)
+	            return this.manipulated;
+	        const { component, declarations, scope_map: map, template_scope, owner } = this;
 	        let scope = this.scope;
-	        const { code } = component;
 	        let function_expression;
 	        let dependencies;
 	        let contextual_dependencies;
-	        // rewrite code as appropriate
-	        walk(this.node, {
-	            enter(node, parent, key) {
-	                // don't manipulate shorthand props twice
-	                if (key === 'value' && parent.shorthand)
-	                    return;
-	                code.addSourcemapLocation(node.start);
-	                code.addSourcemapLocation(node.end);
+	        const node = walk(this.node, {
+	            enter(node, parent) {
+	                if (node.type === 'Property' && node.shorthand) {
+	                    node.value = JSON.parse(JSON.stringify(node.value));
+	                    node.shorthand = false;
+	                }
 	                if (map.has(node)) {
 	                    scope = map.get(node);
 	                }
 	                if (isReference(node, parent)) {
-	                    const { name, nodes } = flatten_reference(node);
+	                    const { name } = flatten_reference(node);
 	                    if (scope.has(name))
-	                        return;
-	                    if (globals.has(name) && !component.var_lookup.has(name))
 	                        return;
 	                    if (function_expression) {
 	                        if (template_scope.names.has(name)) {
@@ -30059,16 +31941,8 @@ var compiler = createCommonjsModule(function (module, exports) {
 	                            component.add_reference(name); // TODO is this redundant/misplaced?
 	                        }
 	                    }
-	                    else if (!is_synthetic && is_contextual(component, template_scope, name)) {
-	                        code.prependRight(node.start, key === 'key' && parent.shorthand
-	                            ? `${name}: ctx.`
-	                            : 'ctx.');
-	                    }
-	                    if (node.type === 'MemberExpression') {
-	                        nodes.forEach(node => {
-	                            code.addSourcemapLocation(node.start);
-	                            code.addSourcemapLocation(node.end);
-	                        });
+	                    else if (is_contextual(component, template_scope, name)) {
+	                        this.replace(x `#ctx.${node}`);
 	                    }
 	                    this.skip();
 	                }
@@ -30085,25 +31959,14 @@ var compiler = createCommonjsModule(function (module, exports) {
 	                if (map.has(node))
 	                    scope = scope.parent;
 	                if (node === function_expression) {
-	                    const name = component.get_unique_name(sanitize(get_function_name(node, owner)));
-	                    const args = contextual_dependencies.size > 0
-	                        ? [`{ ${Array.from(contextual_dependencies).join(', ')} }`]
-	                        : [];
-	                    let original_params;
-	                    if (node.params.length > 0) {
-	                        original_params = code.slice(node.params[0].start, node.params[node.params.length - 1].end);
-	                        args.push(original_params);
-	                    }
-	                    const body = code.slice(node.body.start, node.body.end).trim();
-	                    const fn = node.type === 'FunctionExpression'
-	                        ? `${node.async ? 'async ' : ''}function${node.generator ? '*' : ''} ${name}(${args.join(', ')}) ${body}`
-	                        : `const ${name} = ${node.async ? 'async ' : ''}(${args.join(', ')}) => ${body};`;
+	                    const id = component.get_unique_name(sanitize(get_function_name(node, owner)));
+	                    const declaration = b `const ${id} = ${node}`;
 	                    if (dependencies.size === 0 && contextual_dependencies.size === 0) {
 	                        // we can hoist this out of the component completely
-	                        component.fully_hoisted.push(fn);
-	                        code.overwrite(node.start, node.end, name);
+	                        component.fully_hoisted.push(declaration);
+	                        this.replace(id);
 	                        component.add_var({
-	                            name,
+	                            name: id.name,
 	                            internal: true,
 	                            hoistable: true,
 	                            referenced: true
@@ -30111,35 +31974,48 @@ var compiler = createCommonjsModule(function (module, exports) {
 	                    }
 	                    else if (contextual_dependencies.size === 0) {
 	                        // function can be hoisted inside the component init
-	                        component.partly_hoisted.push(fn);
-	                        code.overwrite(node.start, node.end, `ctx.${name}`);
+	                        component.partly_hoisted.push(declaration);
+	                        this.replace(x `#ctx.${id}`);
 	                        component.add_var({
-	                            name,
+	                            name: id.name,
 	                            internal: true,
 	                            referenced: true
 	                        });
 	                    }
 	                    else {
 	                        // we need a combo block/init recipe
-	                        component.partly_hoisted.push(fn);
-	                        code.overwrite(node.start, node.end, name);
+	                        node.params.unshift({
+	                            type: 'ObjectPattern',
+	                            properties: Array.from(contextual_dependencies).map(name => p `${name}`)
+	                        });
+	                        component.partly_hoisted.push(declaration);
+	                        this.replace(id);
 	                        component.add_var({
-	                            name,
+	                            name: id.name,
 	                            internal: true,
 	                            referenced: true
 	                        });
-	                        declarations.push(deindent `
-							function ${name}(${original_params ? '...args' : ''}) {
-								return ctx.${name}(ctx${original_params ? ', ...args' : ''});
-							}
-						`);
-	                    }
-	                    if (parent && parent.method) {
-	                        code.prependRight(node.start, ': ');
+	                        if (node.params.length > 0) {
+	                            declarations.push(b `
+								function ${id}(...args) {
+									return #ctx.${id}(#ctx, ...args);
+								}
+							`);
+	                        }
+	                        else {
+	                            declarations.push(b `
+								function ${id}() {
+									return #ctx.${id}(#ctx);
+								}
+							`);
+	                        }
 	                    }
 	                    function_expression = null;
 	                    dependencies = null;
 	                    contextual_dependencies = null;
+	                    if (parent && parent.type === 'Property') {
+	                        parent.method = false;
+	                    }
 	                }
 	                if (node.type === 'AssignmentExpression' || node.type === 'UpdateExpression') {
 	                    const assignee = node.type === 'AssignmentExpression' ? node.left : node.argument;
@@ -30158,17 +32034,17 @@ var compiler = createCommonjsModule(function (module, exports) {
 	                            traced.add(name);
 	                        }
 	                    });
-	                    invalidate(component, scope, code, node, traced);
+	                    this.replace(invalidate(component, scope, node, traced));
 	                }
 	            }
 	        });
 	        if (declarations.length > 0) {
 	            block.maintain_context = true;
 	            declarations.forEach(declaration => {
-	                block.builders.init.add_block(declaration);
+	                block.chunks.init.push(declaration);
 	            });
 	        }
-	        return this.rendered = `[✂${this.node.start}-${this.node.end}✂]`;
+	        return (this.manipulated = node);
 	    }
 	}
 	function get_function_name(_node, parent) {
@@ -30214,7 +32090,7 @@ var compiler = createCommonjsModule(function (module, exports) {
 	        this.name = info.name;
 	        this.modifiers = new Set(info.modifiers);
 	        if (info.expression) {
-	            this.expression = new Expression(component, this, template_scope, info.expression, true);
+	            this.expression = new Expression(component, this, template_scope, info.expression);
 	            this.uses_context = this.expression.uses_context;
 	            if (/FunctionExpression/.test(info.expression.type) && info.expression.params.length === 0) {
 	                // TODO make this detection more accurate — if `event.preventDefault` isn't called, and
@@ -30223,37 +32099,22 @@ var compiler = createCommonjsModule(function (module, exports) {
 	            }
 	            else if (info.expression.type === 'Identifier') {
 	                let node = component.node_for_declaration.get(info.expression.name);
-	                if (node && node.type === 'VariableDeclaration') {
-	                    // for `const handleClick = () => {...}`, we want the [arrow] function expression node
-	                    const declarator = node.declarations.find(d => d.id.name === info.expression.name);
-	                    node = declarator && declarator.init;
-	                }
-	                if (node && /Function/.test(node.type) && node.params.length === 0) {
-	                    this.can_make_passive = true;
+	                if (node) {
+	                    if (node.type === 'VariableDeclaration') {
+	                        // for `const handleClick = () => {...}`, we want the [arrow] function expression node
+	                        const declarator = node.declarations.find(d => d.id.name === info.expression.name);
+	                        node = declarator && declarator.init;
+	                    }
+	                    if (node && (node.type === 'FunctionExpression' || node.type === 'FunctionDeclaration' || node.type === 'ArrowFunctionExpression') && node.params.length === 0) {
+	                        this.can_make_passive = true;
+	                    }
+	                    this.reassigned = component.var_lookup.get(info.expression.name).reassigned;
 	                }
 	            }
 	        }
 	        else {
-	            const name = component.get_unique_name(`${sanitize(this.name)}_handler`);
-	            component.add_var({
-	                name,
-	                internal: true,
-	                referenced: true
-	            });
-	            component.partly_hoisted.push(deindent `
-				function ${name}(event) {
-					@bubble($$self, event);
-				}
-			`);
-	            this.handler_name = name;
+	            this.handler_name = component.get_unique_name(`${sanitize(this.name)}_handler`);
 	        }
-	    }
-	    // TODO move this? it is specific to render-dom
-	    render(block) {
-	        if (this.expression)
-	            return this.expression.render(block);
-	        // this.component.add_reference(this.handler_name);
-	        return `ctx.${this.handler_name}`;
 	    }
 	}
 
@@ -30287,34 +32148,39 @@ var compiler = createCommonjsModule(function (module, exports) {
 	    }
 	}
 
-	function unpack_destructuring(contexts, node, tail) {
+	function unpack_destructuring(contexts, node, modifier) {
 	    if (!node)
 	        return;
-	    if (node.type === 'Identifier' || node.type === 'RestIdentifier') {
+	    if (node.type === 'Identifier' || node.type === 'RestIdentifier') { // TODO is this right? not RestElement?
 	        contexts.push({
 	            key: node,
-	            tail
+	            modifier
 	        });
 	    }
 	    else if (node.type === 'ArrayPattern') {
 	        node.elements.forEach((element, i) => {
 	            if (element && element.type === 'RestIdentifier') {
-	                unpack_destructuring(contexts, element, `${tail}.slice(${i})`);
+	                unpack_destructuring(contexts, element, node => x `${modifier(node)}.slice(${i})`);
 	            }
 	            else {
-	                unpack_destructuring(contexts, element, `${tail}[${i}]`);
+	                unpack_destructuring(contexts, element, node => x `${modifier(node)}[${i}]`);
 	            }
 	        });
 	    }
 	    else if (node.type === 'ObjectPattern') {
 	        const used_properties = [];
-	        node.properties.forEach((property) => {
-	            if (property.kind === 'rest') {
-	                unpack_destructuring(contexts, property.value, `@object_without_properties(${tail}, ${JSON.stringify(used_properties)})`);
+	        node.properties.forEach((property, i) => {
+	            if (property.kind === 'rest') { // TODO is this right?
+	                const replacement = {
+	                    type: 'RestElement',
+	                    argument: property.key
+	                };
+	                node.properties[i] = replacement;
+	                unpack_destructuring(contexts, property.value, node => x `@object_without_properties(${modifier(node)}, [${used_properties}])`);
 	            }
 	            else {
-	                used_properties.push(property.key.name);
-	                unpack_destructuring(contexts, property.value, `${tail}.${property.key.name}`);
+	                used_properties.push(x `"${property.key.name}"`);
+	                unpack_destructuring(contexts, property.value, node => x `${modifier(node)}.${property.key.name}`);
 	            }
 	        });
 	    }
@@ -30329,7 +32195,7 @@ var compiler = createCommonjsModule(function (module, exports) {
 	        this.index = info.index;
 	        this.scope = scope.child();
 	        this.contexts = [];
-	        unpack_destructuring(this.contexts, info.context, new_tail());
+	        unpack_destructuring(this.contexts, info.context, node => node);
 	        this.contexts.forEach(context => {
 	            this.scope.add(context.key.name, this.expression.dependencies, this);
 	        });
@@ -30367,7 +32233,6 @@ var compiler = createCommonjsModule(function (module, exports) {
 	            this.name = null;
 	            this.is_spread = true;
 	            this.is_true = false;
-	            this.is_synthetic = false;
 	            this.expression = new Expression(component, this, scope, info.expression);
 	            this.dependencies = this.expression.dependencies;
 	            this.chunks = null;
@@ -30377,7 +32242,6 @@ var compiler = createCommonjsModule(function (module, exports) {
 	            this.name = info.name;
 	            this.is_true = info.value === true;
 	            this.is_static = true;
-	            this.is_synthetic = info.synthetic;
 	            this.dependencies = new Set();
 	            this.chunks = this.is_true
 	                ? []
@@ -30404,27 +32268,21 @@ var compiler = createCommonjsModule(function (module, exports) {
 	    }
 	    get_value(block) {
 	        if (this.is_true)
-	            return true;
+	            return x `true`;
 	        if (this.chunks.length === 0)
-	            return `""`;
+	            return x `""`;
 	        if (this.chunks.length === 1) {
 	            return this.chunks[0].type === 'Text'
-	                ? stringify(this.chunks[0].data)
-	                // @ts-ignore todo: probably error
-	                : this.chunks[0].render(block);
+	                ? string_literal(this.chunks[0].data)
+	                : this.chunks[0].manipulate(block);
 	        }
-	        return (this.chunks[0].type === 'Text' ? '' : `"" + `) +
-	            this.chunks
-	                .map(chunk => {
-	                if (chunk.type === 'Text') {
-	                    return stringify(chunk.data);
-	                }
-	                else {
-	                    // @ts-ignore todo: probably error
-	                    return chunk.get_precedence() <= 13 ? `(${chunk.render()})` : chunk.render();
-	                }
-	            })
-	                .join(' + ');
+	        let expression = this.chunks
+	            .map(chunk => chunk.type === 'Text' ? string_literal(chunk.data) : chunk.manipulate(block))
+	            .reduce((lhs, rhs) => x `${lhs} + ${rhs}`);
+	        if (this.chunks[0].type !== 'Text') {
+	            expression = x `"" + ${expression}`;
+	        }
+	        return expression;
 	    }
 	    get_static_value() {
 	        if (this.is_spread || this.dependencies.size > 0)
@@ -30464,8 +32322,7 @@ var compiler = createCommonjsModule(function (module, exports) {
 	        }
 	        this.name = info.name;
 	        this.expression = new Expression(component, this, scope, info.expression);
-	        let obj;
-	        let prop;
+	        this.raw_expression = JSON.parse(JSON.stringify(info.expression));
 	        const { name } = get_object(this.expression.node);
 	        this.is_contextual = scope.names.has(name);
 	        // make sure we track this as a mutable ref
@@ -30490,18 +32347,6 @@ var compiler = createCommonjsModule(function (module, exports) {
 	                });
 	            variable[this.expression.node.type === 'MemberExpression' ? 'mutated' : 'reassigned'] = true;
 	        }
-	        if (this.expression.node.type === 'MemberExpression') {
-	            prop = `[✂${this.expression.node.property.start}-${this.expression.node.property.end}✂]`;
-	            if (!this.expression.node.computed)
-	                prop = `'${prop}'`;
-	            obj = `[✂${this.expression.node.object.start}-${this.expression.node.object.end}✂]`;
-	        }
-	        else {
-	            obj = 'ctx';
-	            prop = `'${name}'`;
-	        }
-	        this.obj = obj;
-	        this.prop = prop;
 	        const type = parent.get_static_attribute_value('type');
 	        this.is_readonly = (dimensions.test(this.name) ||
 	            (parent.is_media_node && parent.is_media_node() && read_only_media_attributes.has(this.name)) ||
@@ -30605,11 +32450,12 @@ var compiler = createCommonjsModule(function (module, exports) {
 	    constructor(component, parent, scope, info) {
 	        super(component, parent, scope, info);
 	        this.names = [];
-	        this.name = info.name;
-	        this.value = info.expression && `[✂${info.expression.start}-${info.expression.end}✂]`;
+	        this.name = { type: 'Identifier', name: info.name };
+	        const { names } = this;
 	        if (info.expression) {
+	            this.value = info.expression;
 	            walk(info.expression, {
-	                enter: node => {
+	                enter(node) {
 	                    if (!applicable.has(node.type)) {
 	                        component.error(node, {
 	                            code: 'invalid-let',
@@ -30617,13 +32463,20 @@ var compiler = createCommonjsModule(function (module, exports) {
 	                        });
 	                    }
 	                    if (node.type === 'Identifier') {
-	                        this.names.push(node.name);
+	                        names.push(node.name);
+	                    }
+	                    // slightly unfortunate hack
+	                    if (node.type === 'ArrayExpression') {
+	                        node.type = 'ArrayPattern';
+	                    }
+	                    if (node.type === 'ObjectExpression') {
+	                        node.type = 'ObjectPattern';
 	                    }
 	                }
 	            });
 	        }
 	        else {
-	            this.names.push(this.name);
+	            names.push(this.name.name);
 	        }
 	    }
 	}
@@ -30734,6 +32587,9 @@ var compiler = createCommonjsModule(function (module, exports) {
 	                });
 	            }
 	        }
+	        // Binding relies on Attribute, defer its evaluation
+	        const order = ['Binding']; // everything else is -1
+	        info.attributes.sort((a, b) => order.indexOf(a.type) - order.indexOf(b.type));
 	        info.attributes.forEach(node => {
 	            switch (node.type) {
 	                case 'Action':
@@ -30777,7 +32633,7 @@ var compiler = createCommonjsModule(function (module, exports) {
 	        if (this.lets.length > 0) {
 	            this.scope = scope.child();
 	            this.lets.forEach(l => {
-	                const dependencies = new Set([l.name]);
+	                const dependencies = new Set([l.name.name]);
 	                l.names.forEach(name => {
 	                    this.scope.add(name, dependencies, this);
 	                });
@@ -31229,6 +33085,10 @@ var compiler = createCommonjsModule(function (module, exports) {
 	        return this.name === 'audio' || this.name === 'video';
 	    }
 	    add_css_class() {
+	        if (this.attributes.some(attr => attr.is_spread)) {
+	            this.needs_manual_style_scoping = true;
+	            return;
+	        }
 	        const { id } = this.component.stylesheet;
 	        const class_attribute = this.attributes.find(a => a.name === 'class');
 	        if (class_attribute && !class_attribute.is_true) {
@@ -31352,7 +33212,7 @@ var compiler = createCommonjsModule(function (module, exports) {
 	        if (this.lets.length > 0) {
 	            this.scope = scope.child();
 	            this.lets.forEach(l => {
-	                const dependencies = new Set([l.name]);
+	                const dependencies = new Set([l.name.name]);
 	                l.names.forEach(name => {
 	                    this.scope.add(name, dependencies, this);
 	                });
@@ -31620,51 +33480,33 @@ var compiler = createCommonjsModule(function (module, exports) {
 	}
 
 	// This file is automatically generated
-	var internal_exports = new Set(["HtmlTag", "SvelteComponent", "SvelteComponentDev", "SvelteElement", "add_attribute", "add_classes", "add_flush_callback", "add_location", "add_render_callback", "add_resize_listener", "add_transform", "afterUpdate", "append", "append_dev", "assign", "attr", "attr_dev", "beforeUpdate", "bind", "binding_callbacks", "blank_object", "bubble", "check_outros", "children", "claim_element", "claim_space", "claim_text", "clear_loops", "component_subscribe", "createEventDispatcher", "create_animation", "create_bidirectional_transition", "create_in_transition", "create_out_transition", "create_slot", "create_ssr_component", "current_component", "custom_event", "dataset_dev", "debug", "destroy_block", "destroy_component", "destroy_each", "detach", "detach_after_dev", "detach_before_dev", "detach_between_dev", "detach_dev", "dirty_components", "dispatch_dev", "each", "element", "element_is", "empty", "escape", "escaped", "exclude_internal_props", "fix_and_destroy_block", "fix_and_outro_and_destroy_block", "fix_position", "flush", "getContext", "get_binding_group_value", "get_current_component", "get_slot_changes", "get_slot_context", "get_spread_object", "get_spread_update", "get_store_value", "globals", "group_outros", "handle_promise", "identity", "init", "insert", "insert_dev", "intros", "invalid_attribute_name_character", "is_client", "is_function", "is_promise", "listen", "listen_dev", "loop", "measure", "missing_component", "mount_component", "noop", "not_equal", "now", "null_to_empty", "object_without_properties", "onDestroy", "onMount", "once", "outro_and_destroy_block", "prevent_default", "prop_dev", "raf", "run", "run_all", "safe_not_equal", "schedule_update", "select_multiple_value", "select_option", "select_options", "select_value", "self", "setContext", "set_attributes", "set_current_component", "set_custom_element_data", "set_data", "set_data_dev", "set_input_type", "set_input_value", "set_now", "set_raf", "set_store_value", "set_style", "set_svg_attributes", "space", "spread", "stop_propagation", "subscribe", "svg_element", "text", "tick", "time_ranges_to_array", "to_number", "toggle_class", "transition_in", "transition_out", "update_keyed_each", "validate_component", "validate_store", "xlink_attr"]);
+	var internal_exports = new Set(["HtmlTag", "SvelteComponent", "SvelteComponentDev", "SvelteElement", "add_attribute", "add_classes", "add_flush_callback", "add_location", "add_render_callback", "add_resize_listener", "add_transform", "afterUpdate", "append", "append_dev", "assign", "attr", "attr_dev", "beforeUpdate", "bind", "binding_callbacks", "blank_object", "bubble", "check_outros", "children", "claim_component", "claim_element", "claim_space", "claim_text", "clear_loops", "component_subscribe", "createEventDispatcher", "create_animation", "create_bidirectional_transition", "create_component", "create_in_transition", "create_out_transition", "create_slot", "create_ssr_component", "current_component", "custom_event", "dataset_dev", "debug", "destroy_block", "destroy_component", "destroy_each", "detach", "detach_after_dev", "detach_before_dev", "detach_between_dev", "detach_dev", "dirty_components", "dispatch_dev", "each", "element", "element_is", "empty", "escape", "escaped", "exclude_internal_props", "fix_and_destroy_block", "fix_and_outro_and_destroy_block", "fix_position", "flush", "getContext", "get_binding_group_value", "get_current_component", "get_slot_changes", "get_slot_context", "get_spread_object", "get_spread_update", "get_store_value", "globals", "group_outros", "handle_promise", "has_prop", "identity", "init", "insert", "insert_dev", "intros", "invalid_attribute_name_character", "is_client", "is_function", "is_promise", "listen", "listen_dev", "loop", "loop_guard", "measure", "missing_component", "mount_component", "noop", "not_equal", "now", "null_to_empty", "object_without_properties", "onDestroy", "onMount", "once", "outro_and_destroy_block", "prevent_default", "prop_dev", "raf", "run", "run_all", "safe_not_equal", "schedule_update", "select_multiple_value", "select_option", "select_options", "select_value", "self", "setContext", "set_attributes", "set_current_component", "set_custom_element_data", "set_data", "set_data_dev", "set_input_type", "set_input_value", "set_now", "set_raf", "set_store_value", "set_style", "set_svg_attributes", "space", "spread", "stop_propagation", "subscribe", "svg_element", "text", "tick", "time_ranges_to_array", "to_number", "toggle_class", "transition_in", "transition_out", "update_keyed_each", "validate_component", "validate_store", "xlink_attr"]);
 
-	function remove_indentation(code, node) {
-	    const indent = code.getIndentString();
-	    const pattern = new RegExp(`^${indent}`, 'gm');
-	    const excluded = [];
-	    walk(node, {
-	        enter(node) {
-	            if (node.type === 'TemplateElement') {
-	                excluded.push(node);
-	            }
-	        }
-	    });
-	    const str = code.original.slice(node.start, node.end);
-	    let match;
-	    while (match = pattern.exec(str)) {
-	        const index = node.start + match.index;
-	        while (excluded[0] && excluded[0].end < index)
-	            excluded.shift();
-	        if (excluded[0] && excluded[0].start < index)
-	            continue;
-	        code.remove(index, index + indent.length);
+	function is_used_as_reference(node, parent) {
+	    if (!isReference(node, parent)) {
+	        return false;
 	    }
-	}
-	function add_indentation(code, node, levels = 1) {
-	    const base_indent = code.getIndentString();
-	    const indent = repeat(base_indent, levels);
-	    const pattern = /\n/gm;
-	    const excluded = [];
-	    walk(node, {
-	        enter(node) {
-	            if (node.type === 'TemplateElement') {
-	                excluded.push(node);
-	            }
-	        }
-	    });
-	    const str = code.original.slice(node.start, node.end);
-	    let match;
-	    while (match = pattern.exec(str)) {
-	        const index = node.start + match.index;
-	        while (excluded[0] && excluded[0].end < index)
-	            excluded.shift();
-	        if (excluded[0] && excluded[0].start < index)
-	            continue;
-	        code.appendLeft(index + 1, indent);
+	    if (!parent) {
+	        return true;
+	    }
+	    /* eslint-disable no-fallthrough */
+	    switch (parent.type) {
+	        // disregard the `foo` in `const foo = bar`
+	        case 'VariableDeclarator':
+	            return node !== parent.id;
+	        // disregard the `foo`, `bar` in `function foo(bar){}`
+	        case 'FunctionDeclaration':
+	        // disregard the `foo` in `import { foo } from 'foo'`
+	        case 'ImportSpecifier':
+	        // disregard the `foo` in `import foo from 'foo'`
+	        case 'ImportDefaultSpecifier':
+	        // disregard the `foo` in `import * as foo from 'foo'`
+	        case 'ImportNamespaceSpecifier':
+	        // disregard the `foo` in `export { foo }`
+	        case 'ExportSpecifier':
+	            return false;
+	        default:
+	            return true;
 	    }
 	}
 
@@ -31708,34 +33550,6 @@ var compiler = createCommonjsModule(function (module, exports) {
 	childKeys.EachBlock = childKeys.IfBlock = ['children', 'else'];
 	childKeys.Attribute = ['value'];
 	childKeys.ExportNamedDeclaration = ['declaration', 'specifiers'];
-	function remove_node(code, start, end, body, node) {
-	    const i = body.indexOf(node);
-	    if (i === -1)
-	        throw new Error('node not in list');
-	    let a;
-	    let b;
-	    if (body.length === 1) {
-	        // remove everything, leave {}
-	        a = start;
-	        b = end;
-	    }
-	    else if (i === 0) {
-	        // remove everything before second node, including comments
-	        a = start;
-	        while (/\s/.test(code.original[a]))
-	            a += 1;
-	        b = body[i].end;
-	        while (/[\s,]/.test(code.original[b]))
-	            b += 1;
-	    }
-	    else {
-	        // remove the end of the previous node to the end of this one
-	        a = body[i - 1].end;
-	        b = node.end;
-	    }
-	    code.remove(a, b);
-	    return;
-	}
 	class Component {
 	    constructor(ast, source, name, compile_options, stats, warnings) {
 	        this.ignore_stack = [];
@@ -31758,12 +33572,20 @@ var compiler = createCommonjsModule(function (module, exports) {
 	        this.globally_used_names = new Set();
 	        this.slots = new Map();
 	        this.slot_outlets = new Set();
-	        this.name = name;
+	        this.name = { type: 'Identifier', name };
 	        this.stats = stats;
 	        this.warnings = warnings;
 	        this.ast = ast;
 	        this.source = source;
 	        this.compile_options = compile_options;
+	        // the instance JS gets mutated, so we park
+	        // a copy here for later. TODO this feels gross
+	        this.original_ast = {
+	            html: ast.html,
+	            css: ast.css,
+	            instance: ast.instance && JSON.parse(JSON.stringify(ast.instance)),
+	            module: ast.module
+	        };
 	        this.file =
 	            compile_options.filename &&
 	                (typeof process !== 'undefined'
@@ -31771,8 +33593,7 @@ var compiler = createCommonjsModule(function (module, exports) {
 	                        .replace(process.cwd(), '')
 	                        .replace(/^[/\\]/, '')
 	                    : compile_options.filename);
-	        this.locate = getLocator(this.source);
-	        this.code = new MagicString(source);
+	        this.locate = getLocator(this.source, { offsetLine: 1 });
 	        // styles
 	        this.stylesheet = new Stylesheet(source, ast, compile_options.filename, compile_options.dev);
 	        this.stylesheet.validate(this);
@@ -31792,12 +33613,13 @@ var compiler = createCommonjsModule(function (module, exports) {
 	            this.tag = this.component_options.tag || compile_options.tag;
 	        }
 	        else {
-	            this.tag = this.name;
+	            this.tag = this.name.name;
 	        }
-	        this.walk_module_js();
+	        this.walk_module_js_pre_template();
 	        this.walk_instance_js_pre_template();
 	        this.fragment = new Fragment(this, ast.html);
 	        this.name = this.get_unique_name(name);
+	        this.walk_module_js_post_template();
 	        this.walk_instance_js_post_template();
 	        if (!compile_options.customElement)
 	            this.stylesheet.reify();
@@ -31837,24 +33659,11 @@ var compiler = createCommonjsModule(function (module, exports) {
 	            this.used_names.add(name);
 	        }
 	    }
-	    add_sourcemap_locations(node) {
-	        walk(node, {
-	            enter: (node) => {
-	                this.code.addSourcemapLocation(node.start);
-	                this.code.addSourcemapLocation(node.end);
-	            },
-	        });
-	    }
 	    alias(name) {
 	        if (!this.aliases.has(name)) {
 	            this.aliases.set(name, this.get_unique_name(name));
 	        }
 	        return this.aliases.get(name);
-	    }
-	    helper(name) {
-	        const alias = this.alias(name);
-	        this.helpers.set(name, alias);
-	        return alias;
 	    }
 	    global(name) {
 	        const alias = this.alias(name);
@@ -31867,88 +33676,76 @@ var compiler = createCommonjsModule(function (module, exports) {
 	        if (result) {
 	            const { compile_options, name } = this;
 	            const { format = 'esm' } = compile_options;
-	            const banner = `/* ${this.file ? `${this.file} ` : ``}generated by Svelte v${'3.12.1'} */`;
-	            result = result
-	                .replace(/__svelte:self__/g, this.name)
-	                .replace(compile_options.generate === 'ssr'
-	                ? /(@+|#+)(\w*(?:-\w*)?)/g
-	                : /(@+)(\w*(?:-\w*)?)/g, (_match, sigil, name) => {
-	                if (sigil === '@') {
-	                    if (name[0] === '_') {
-	                        return this.global(name.slice(1));
+	            const banner = `${this.file ? `${this.file} ` : ``}generated by Svelte v${'3.14.1'}`;
+	            const program = { type: 'Program', body: result };
+	            walk(program, {
+	                enter: (node, parent, key) => {
+	                    if (node.type === 'Identifier') {
+	                        if (node.name[0] === '@') {
+	                            if (node.name[1] === '_') {
+	                                const alias = this.global(node.name.slice(2));
+	                                node.name = alias.name;
+	                            }
+	                            else {
+	                                let name = node.name.slice(1);
+	                                if (compile_options.dev) {
+	                                    if (internal_exports.has(`${name}_dev`)) {
+	                                        name += '_dev';
+	                                    }
+	                                    else if (internal_exports.has(`${name}Dev`)) {
+	                                        name += 'Dev';
+	                                    }
+	                                }
+	                                const alias = this.alias(name);
+	                                this.helpers.set(name, alias);
+	                                node.name = alias.name;
+	                            }
+	                        }
+	                        else if (node.name[0] !== '#' && !is_valid(node.name)) {
+	                            // this hack allows x`foo.${bar}` where bar could be invalid
+	                            const literal = { type: 'Literal', value: node.name };
+	                            if (parent.type === 'Property' && key === 'key') {
+	                                parent.key = literal;
+	                            }
+	                            else if (parent.type === 'MemberExpression' && key === 'property') {
+	                                parent.property = literal;
+	                                parent.computed = true;
+	                            }
+	                        }
 	                    }
-	                    if (!internal_exports.has(name)) {
-	                        throw new Error(`compiler error: this shouldn't happen! generated code is trying to use inexistent internal '${name}'`);
-	                    }
-	                    if (compile_options.dev) {
-	                        if (internal_exports.has(`${name}_dev`))
-	                            name = `${name}_dev`;
-	                        else if (internal_exports.has(`${name}Dev`))
-	                            name = `${name}Dev`;
-	                    }
-	                    return this.helper(name);
 	                }
-	                return sigil.slice(1) + name;
 	            });
-	            const referenced_globals = Array.from(this.globals, ([name, alias]) => name !== alias && { name, alias }).filter(Boolean);
+	            const referenced_globals = Array.from(this.globals, ([name, alias]) => name !== alias.name && { name, alias }).filter(Boolean);
 	            if (referenced_globals.length) {
-	                this.helper('globals');
+	                this.helpers.set('globals', this.alias('globals'));
 	            }
 	            const imported_helpers = Array.from(this.helpers, ([name, alias]) => ({
 	                name,
 	                alias,
 	            }));
-	            const module = create_module(result, format, name, banner, compile_options.sveltePath, imported_helpers, referenced_globals, this.imports, this.vars
+	            create_module(program, format, name, banner, compile_options.sveltePath, imported_helpers, referenced_globals, this.imports, this.vars
 	                .filter(variable => variable.module && variable.export_name)
 	                .map(variable => ({
 	                name: variable.name,
 	                as: variable.export_name,
-	            })), this.source);
-	            const parts = module.split('✂]');
-	            const final_chunk = parts.pop();
-	            const compiled = new Bundle({ separator: '' });
-	            function add_string(str) {
-	                compiled.addSource({
-	                    content: new MagicString(str),
-	                });
-	            }
-	            const { filename } = compile_options;
-	            // special case — the source file doesn't actually get used anywhere. we need
-	            // to add an empty file to populate map.sources and map.sourcesContent
-	            if (!parts.length) {
-	                compiled.addSource({
-	                    filename,
-	                    content: new MagicString(this.source).remove(0, this.source.length),
-	                });
-	            }
-	            const pattern = /\[✂(\d+)-(\d+)$/;
-	            parts.forEach((str) => {
-	                const chunk = str.replace(pattern, '');
-	                if (chunk)
-	                    add_string(chunk);
-	                const match = pattern.exec(str);
-	                const snippet = this.code.snip(+match[1], +match[2]);
-	                compiled.addSource({
-	                    filename,
-	                    content: snippet,
-	                });
-	            });
-	            add_string(final_chunk);
+	            })));
 	            css = compile_options.customElement
 	                ? { code: null, map: null }
 	                : this.stylesheet.render(compile_options.cssOutputFilename, true);
-	            js = {
-	                code: compiled.toString(),
-	                map: compiled.generateMap({
-	                    includeContent: true,
-	                    file: compile_options.outputFilename,
-	                }),
-	            };
+	            js = print(program, {
+	                sourceMapSource: compile_options.filename
+	            });
+	            js.map.sources = [
+	                compile_options.filename ? get_relative_path(compile_options.outputFilename || '', compile_options.filename) : null
+	            ];
+	            js.map.sourcesContent = [
+	                this.source
+	            ];
 	        }
 	        return {
 	            js,
 	            css,
-	            ast: this.ast,
+	            ast: this.original_ast,
 	            warnings: this.warnings,
 	            vars: this.vars
 	                .filter(v => !v.global && !v.internal)
@@ -31961,6 +33758,7 @@ var compiler = createCommonjsModule(function (module, exports) {
 	                reassigned: v.reassigned || false,
 	                referenced: v.referenced || false,
 	                writable: v.writable || false,
+	                referenced_from_script: v.referenced_from_script || false,
 	            })),
 	            stats: this.stats.render(),
 	        };
@@ -31975,7 +33773,7 @@ var compiler = createCommonjsModule(function (module, exports) {
 	            this.globally_used_names.has(alias); alias = `${name}_${i++}`)
 	            ;
 	        this.used_names.add(alias);
-	        return alias;
+	        return { type: 'Identifier', name: alias };
 	    }
 	    get_unique_name_maker() {
 	        const local_used_names = new Set();
@@ -31993,7 +33791,10 @@ var compiler = createCommonjsModule(function (module, exports) {
 	                ;
 	            local_used_names.add(alias);
 	            this.globally_used_names.add(alias);
-	            return alias;
+	            return {
+	                type: 'Identifier',
+	                name: alias
+	            };
 	        };
 	    }
 	    error(pos, e) {
@@ -32010,11 +33811,8 @@ var compiler = createCommonjsModule(function (module, exports) {
 	        if (this.ignores && this.ignores.has(warning.code)) {
 	            return;
 	        }
-	        if (!this.locator) {
-	            this.locator = getLocator(this.source, { offsetLine: 1 });
-	        }
-	        const start = this.locator(pos.start);
-	        const end = this.locator(pos.end);
+	        const start = this.locate(pos.start);
+	        const end = this.locate(pos.end);
 	        const frame = get_code_frame(this.source, start.line - 1, start.column);
 	        this.warnings.push({
 	            code: warning.code,
@@ -32024,65 +33822,71 @@ var compiler = createCommonjsModule(function (module, exports) {
 	            end,
 	            pos: pos.start,
 	            filename: this.compile_options.filename,
-	            toString: () => `${warning.message} (${start.line + 1}:${start.column})\n${frame}`,
+	            toString: () => `${warning.message} (${start.line}:${start.column})\n${frame}`,
 	        });
 	    }
-	    extract_imports(content) {
-	        const { code } = this;
-	        content.body.forEach(node => {
-	            if (node.type === 'ImportDeclaration') {
-	                // imports need to be hoisted out of the IIFE
-	                remove_node(code, content.start, content.end, content.body, node);
-	                this.imports.push(node);
-	            }
-	        });
+	    extract_imports(node) {
+	        this.imports.push(node);
 	    }
-	    extract_exports(content) {
-	        const { code } = this;
-	        content.body.forEach(node => {
-	            if (node.type === 'ExportDefaultDeclaration') {
+	    extract_exports(node) {
+	        if (node.type === 'ExportDefaultDeclaration') {
+	            this.error(node, {
+	                code: `default-export`,
+	                message: `A component cannot have a default export`,
+	            });
+	        }
+	        if (node.type === 'ExportNamedDeclaration') {
+	            if (node.source) {
 	                this.error(node, {
-	                    code: `default-export`,
-	                    message: `A component cannot have a default export`,
+	                    code: `not-implemented`,
+	                    message: `A component currently cannot have an export ... from`,
 	                });
 	            }
-	            if (node.type === 'ExportNamedDeclaration') {
-	                if (node.source) {
-	                    this.error(node, {
-	                        code: `not-implemented`,
-	                        message: `A component currently cannot have an export ... from`,
-	                    });
-	                }
-	                if (node.declaration) {
-	                    if (node.declaration.type === 'VariableDeclaration') {
-	                        node.declaration.declarations.forEach(declarator => {
-	                            extract_names(declarator.id).forEach(name => {
-	                                const variable = this.var_lookup.get(name);
-	                                variable.export_name = name;
-	                            });
+	            if (node.declaration) {
+	                if (node.declaration.type === 'VariableDeclaration') {
+	                    node.declaration.declarations.forEach(declarator => {
+	                        extract_names(declarator.id).forEach(name => {
+	                            const variable = this.var_lookup.get(name);
+	                            variable.export_name = name;
+	                            if (variable.writable && !(variable.referenced || variable.referenced_from_script)) {
+	                                this.warn(declarator, {
+	                                    code: `unused-export-let`,
+	                                    message: `${this.name.name} has unused export property '${name}'. If it is for external reference only, please consider using \`export const '${name}'\``
+	                                });
+	                            }
 	                        });
-	                    }
-	                    else {
-	                        const { name } = node.declaration.id;
-	                        const variable = this.var_lookup.get(name);
-	                        variable.export_name = name;
-	                    }
-	                    code.remove(node.start, node.declaration.start);
+	                    });
 	                }
 	                else {
-	                    remove_node(code, content.start, content.end, content.body, node);
-	                    node.specifiers.forEach(specifier => {
-	                        const variable = this.var_lookup.get(specifier.local.name);
-	                        if (variable) {
-	                            variable.export_name = specifier.exported.name;
-	                        }
-	                    });
+	                    const { name } = node.declaration.id;
+	                    const variable = this.var_lookup.get(name);
+	                    variable.export_name = name;
 	                }
+	                return node.declaration;
 	            }
-	        });
+	            else {
+	                node.specifiers.forEach(specifier => {
+	                    const variable = this.var_lookup.get(specifier.local.name);
+	                    if (variable) {
+	                        variable.export_name = specifier.exported.name;
+	                        if (variable.writable && !(variable.referenced || variable.referenced_from_script)) {
+	                            this.warn(specifier, {
+	                                code: `unused-export-let`,
+	                                message: `${this.name.name} has unused export property '${specifier.exported.name}'. If it is for external reference only, please consider using \`export const '${specifier.exported.name}'\``
+	                            });
+	                        }
+	                    }
+	                });
+	                return null;
+	            }
+	        }
 	    }
 	    extract_javascript(script) {
-	        const nodes_to_include = script.content.body.filter(node => {
+	        if (!script)
+	            return null;
+	        return script.content.body.filter(node => {
+	            if (!node)
+	                return false;
 	            if (this.hoistable_nodes.has(node))
 	                return false;
 	            if (this.reactive_declaration_nodes.has(node))
@@ -32093,31 +33897,8 @@ var compiler = createCommonjsModule(function (module, exports) {
 	                return false;
 	            return true;
 	        });
-	        if (nodes_to_include.length === 0)
-	            return null;
-	        let a = script.content.start;
-	        while (/\s/.test(this.source[a]))
-	            a += 1;
-	        let b = a;
-	        let result = '';
-	        script.content.body.forEach(node => {
-	            if (this.hoistable_nodes.has(node) ||
-	                this.reactive_declaration_nodes.has(node)) {
-	                if (a !== b)
-	                    result += `[✂${a}-${b}✂]`;
-	                a = node.end;
-	            }
-	            b = node.end;
-	        });
-	        // while (/\s/.test(this.source[a - 1])) a -= 1;
-	        b = script.content.end;
-	        while (/\s/.test(this.source[b - 1]))
-	            b -= 1;
-	        if (a < b)
-	            result += `[✂${a}-${b}✂]`;
-	        return result || null;
 	    }
-	    walk_module_js() {
+	    walk_module_js_pre_template() {
 	        const component = this;
 	        const script = this.ast.module;
 	        if (!script)
@@ -32132,7 +33913,6 @@ var compiler = createCommonjsModule(function (module, exports) {
 	                }
 	            },
 	        });
-	        this.add_sourcemap_locations(script.content);
 	        const { scope, globals } = create_scopes(script.content);
 	        this.module_scope = scope;
 	        scope.declarations.forEach((node, name) => {
@@ -32142,11 +33922,12 @@ var compiler = createCommonjsModule(function (module, exports) {
 	                    message: `The $ prefix is reserved, and cannot be used for variable and import names`,
 	                });
 	            }
+	            const writable = node.type === 'VariableDeclaration' && (node.kind === 'var' || node.kind === 'let');
 	            this.add_var({
 	                name,
 	                module: true,
 	                hoistable: true,
-	                writable: node.kind === 'var' || node.kind === 'let',
+	                writable
 	            });
 	        });
 	        globals.forEach((node, name) => {
@@ -32160,26 +33941,22 @@ var compiler = createCommonjsModule(function (module, exports) {
 	                this.add_var({
 	                    name,
 	                    global: true,
+	                    hoistable: true
 	                });
 	            }
 	        });
-	        this.extract_imports(script.content);
-	        this.extract_exports(script.content);
-	        remove_indentation(this.code, script.content);
-	        this.module_javascript = this.extract_javascript(script);
 	    }
 	    walk_instance_js_pre_template() {
 	        const script = this.ast.instance;
 	        if (!script)
 	            return;
-	        this.add_sourcemap_locations(script.content);
 	        // inject vars for reactive declarations
 	        script.content.body.forEach(node => {
 	            if (node.type !== 'LabeledStatement')
 	                return;
 	            if (node.body.type !== 'ExpressionStatement')
 	                return;
-	            const expression = unwrap_parens(node.body.expression);
+	            const { expression } = node.body;
 	            if (expression.type !== 'AssignmentExpression')
 	                return;
 	            extract_names(expression.left).forEach(name => {
@@ -32198,11 +33975,12 @@ var compiler = createCommonjsModule(function (module, exports) {
 	                    message: `The $ prefix is reserved, and cannot be used for variable and import names`,
 	                });
 	            }
+	            const writable = node.type === 'VariableDeclaration' && (node.kind === 'var' || node.kind === 'let');
 	            this.add_var({
 	                name,
 	                initialised: instance_scope.initialised_declarations.has(name),
 	                hoistable: /^Import/.test(node.type),
-	                writable: node.kind === 'var' || node.kind === 'let',
+	                writable
 	            });
 	            this.node_for_declaration.set(name, node);
 	        });
@@ -32239,51 +34017,148 @@ var compiler = createCommonjsModule(function (module, exports) {
 	                });
 	                this.add_reference(name.slice(1));
 	                const variable = this.var_lookup.get(name.slice(1));
-	                if (variable)
+	                if (variable) {
 	                    variable.subscribable = true;
+	                    variable.referenced_from_script = true;
+	                }
 	            }
 	            else {
 	                this.add_var({
 	                    name,
 	                    global: true,
+	                    hoistable: true
 	                });
 	            }
 	        });
-	        this.extract_imports(script.content);
-	        this.extract_exports(script.content);
-	        this.track_mutations();
+	        this.track_references_and_mutations();
+	    }
+	    walk_module_js_post_template() {
+	        const script = this.ast.module;
+	        if (!script)
+	            return;
+	        const { body } = script.content;
+	        let i = body.length;
+	        while (--i >= 0) {
+	            const node = body[i];
+	            if (node.type === 'ImportDeclaration') {
+	                this.extract_imports(node);
+	                body.splice(i, 1);
+	            }
+	            if (/^Export/.test(node.type)) {
+	                const replacement = this.extract_exports(node);
+	                if (replacement) {
+	                    body[i] = replacement;
+	                }
+	                else {
+	                    body.splice(i, 1);
+	                }
+	            }
+	        }
 	    }
 	    walk_instance_js_post_template() {
 	        const script = this.ast.instance;
 	        if (!script)
 	            return;
+	        this.post_template_walk();
 	        this.hoist_instance_declarations();
 	        this.extract_reactive_declarations();
-	        this.extract_reactive_store_references();
-	        this.javascript = this.extract_javascript(script);
 	    }
-	    // TODO merge this with other walks that are independent
-	    track_mutations() {
+	    post_template_walk() {
+	        const script = this.ast.instance;
+	        if (!script)
+	            return;
 	        const component = this;
+	        const { content } = script;
 	        const { instance_scope, instance_scope_map: map } = this;
 	        let scope = instance_scope;
-	        walk(this.ast.instance.content, {
-	            enter(node) {
+	        const to_remove = [];
+	        const remove = (parent, prop, index) => {
+	            to_remove.unshift([parent, prop, index]);
+	        };
+	        const to_insert = new Map();
+	        walk(content, {
+	            enter(node, parent, prop, index) {
 	                if (map.has(node)) {
 	                    scope = map.get(node);
 	                }
-	                let names;
-	                let deep = false;
-	                if (node.type === 'AssignmentExpression') {
-	                    deep = node.left.type === 'MemberExpression';
-	                    names = deep
-	                        ? [get_object(node.left).name]
-	                        : extract_names(node.left);
+	                if (node.type === 'ImportDeclaration') {
+	                    component.extract_imports(node);
+	                    // TODO: to use actual remove
+	                    remove(parent, prop, index);
+	                    return this.skip();
 	                }
-	                else if (node.type === 'UpdateExpression') {
-	                    names = [get_object(node.argument).name];
+	                if (/^Export/.test(node.type)) {
+	                    const replacement = component.extract_exports(node);
+	                    if (replacement) {
+	                        this.replace(replacement);
+	                    }
+	                    else {
+	                        // TODO: to use actual remove
+	                        remove(parent, prop, index);
+	                    }
+	                    return this.skip();
 	                }
-	                if (names) {
+	                component.warn_on_undefined_store_value_references(node, parent, scope);
+	                if (component.compile_options.dev && component.compile_options.loopGuardTimeout > 0) {
+	                    const to_insert_for_loop_protect = component.loop_protect(node, prop, index, component.compile_options.loopGuardTimeout);
+	                    if (to_insert_for_loop_protect) {
+	                        if (!Array.isArray(parent[prop])) {
+	                            parent[prop] = {
+	                                type: 'BlockStatement',
+	                                body: [to_insert_for_loop_protect.node, node],
+	                            };
+	                        }
+	                        else {
+	                            // can't insert directly, will screw up the index in the for-loop of estree-walker
+	                            if (!to_insert.has(parent)) {
+	                                to_insert.set(parent, []);
+	                            }
+	                            to_insert.get(parent).push(to_insert_for_loop_protect);
+	                        }
+	                    }
+	                }
+	            },
+	            leave(node) {
+	                if (map.has(node)) {
+	                    scope = scope.parent;
+	                }
+	                if (to_insert.has(node)) {
+	                    const nodes_to_insert = to_insert.get(node);
+	                    for (const { index, prop, node: node_to_insert } of nodes_to_insert.reverse()) {
+	                        node[prop].splice(index, 0, node_to_insert);
+	                    }
+	                    to_insert.delete(node);
+	                }
+	            },
+	        });
+	        for (const [parent, prop, index] of to_remove) {
+	            if (parent) {
+	                if (index !== null) {
+	                    parent[prop].splice(index, 1);
+	                }
+	                else {
+	                    delete parent[prop];
+	                }
+	            }
+	        }
+	    }
+	    track_references_and_mutations() {
+	        const script = this.ast.instance;
+	        if (!script)
+	            return;
+	        const component = this;
+	        const { content } = script;
+	        const { instance_scope, instance_scope_map: map } = this;
+	        let scope = instance_scope;
+	        walk(content, {
+	            enter(node, parent) {
+	                if (map.has(node)) {
+	                    scope = map.get(node);
+	                }
+	                if (node.type === 'AssignmentExpression' || node.type === 'UpdateExpression') {
+	                    const assignee = node.type === 'AssignmentExpression' ? node.left : node.argument;
+	                    const names = extract_names(assignee);
+	                    const deep = assignee.type === 'MemberExpression';
 	                    names.forEach(name => {
 	                        if (scope.find_owner(name) === instance_scope) {
 	                            const variable = component.var_lookup.get(name);
@@ -32291,37 +34166,11 @@ var compiler = createCommonjsModule(function (module, exports) {
 	                        }
 	                    });
 	                }
-	            },
-	            leave(node) {
-	                if (map.has(node)) {
-	                    scope = scope.parent;
-	                }
-	            },
-	        });
-	    }
-	    extract_reactive_store_references() {
-	        // TODO this pattern happens a lot... can we abstract it
-	        // (or better still, do fewer AST walks)?
-	        const component = this;
-	        let { instance_scope: scope, instance_scope_map: map } = this;
-	        walk(this.ast.instance.content, {
-	            enter(node, parent) {
-	                if (map.has(node)) {
-	                    scope = map.get(node);
-	                }
-	                if (node.type === 'LabeledStatement' &&
-	                    node.label.name === '$' &&
-	                    parent.type !== 'Program') {
-	                    component.warn(node, {
-	                        code: 'non-top-level-reactive-declaration',
-	                        message: '$: has no effect outside of the top-level',
-	                    });
-	                }
-	                if (isReference(node, parent)) {
+	                if (is_used_as_reference(node, parent)) {
 	                    const object = get_object(node);
-	                    const { name } = object;
-	                    if (name[0] === '$' && !scope.has(name)) {
-	                        component.warn_if_undefined(name, object, null);
+	                    if (scope.find_owner(object.name) === instance_scope) {
+	                        const variable = component.var_lookup.get(object.name);
+	                        variable.referenced_from_script = true;
 	                    }
 	                }
 	            },
@@ -32332,13 +34181,53 @@ var compiler = createCommonjsModule(function (module, exports) {
 	            },
 	        });
 	    }
+	    warn_on_undefined_store_value_references(node, parent, scope) {
+	        if (node.type === 'LabeledStatement' &&
+	            node.label.name === '$' &&
+	            parent.type !== 'Program') {
+	            this.warn(node, {
+	                code: 'non-top-level-reactive-declaration',
+	                message: '$: has no effect outside of the top-level',
+	            });
+	        }
+	        if (isReference(node, parent)) {
+	            const object = get_object(node);
+	            const { name } = object;
+	            if (name[0] === '$' && !scope.has(name)) {
+	                this.warn_if_undefined(name, object, null);
+	            }
+	        }
+	    }
+	    loop_protect(node, prop, index, timeout) {
+	        if (node.type === 'WhileStatement' ||
+	            node.type === 'ForStatement' ||
+	            node.type === 'DoWhileStatement') {
+	            const guard = this.get_unique_name('guard');
+	            this.add_var({
+	                name: guard.name,
+	                internal: true,
+	            });
+	            const before = b `const ${guard} = @loop_guard(${timeout})`;
+	            const inside = b `${guard}();`;
+	            // wrap expression statement with BlockStatement
+	            if (node.body.type !== 'BlockStatement') {
+	                node.body = {
+	                    type: 'BlockStatement',
+	                    body: [node.body],
+	                };
+	            }
+	            node.body.body.push(inside[0]);
+	            return { index, prop, node: before[0] };
+	        }
+	        return null;
+	    }
 	    invalidate(name, value) {
 	        const variable = this.var_lookup.get(name);
-	        if (variable && (variable.subscribable && variable.reassigned)) {
-	            return `$$subscribe_${name}($$invalidate('${name}', ${value || name}))`;
+	        if (variable && (variable.subscribable && (variable.reassigned || variable.export_name))) {
+	            return x `${`$$subscribe_${name}`}($$invalidate('${name}', ${value || name}))`;
 	        }
 	        if (name[0] === '$' && name[1] !== '$') {
-	            return `${name.slice(1)}.set(${name})`;
+	            return x `${name.slice(1)}.set(${value || name})`;
 	        }
 	        if (variable &&
 	            !variable.referenced &&
@@ -32348,7 +34237,7 @@ var compiler = createCommonjsModule(function (module, exports) {
 	            return value || name;
 	        }
 	        if (value) {
-	            return `$$invalidate('${name}', ${value})`;
+	            return x `$$invalidate('${name}', ${value})`;
 	        }
 	        // if this is a reactive declaration, invalidate dependencies recursively
 	        const deps = new Set([name]);
@@ -32361,19 +34250,18 @@ var compiler = createCommonjsModule(function (module, exports) {
 	            });
 	        });
 	        return Array.from(deps)
-	            .map(n => `$$invalidate('${n}', ${n})`)
-	            .join(', ');
+	            .map(n => x `$$invalidate('${n}', ${n})`)
+	            .reduce((lhs, rhs) => x `${lhs}, ${rhs}}`);
 	    }
 	    rewrite_props(get_insert) {
+	        if (!this.ast.instance)
+	            return;
 	        const component = this;
-	        const { code, instance_scope, instance_scope_map: map } = this;
+	        const { instance_scope, instance_scope_map: map } = this;
 	        let scope = instance_scope;
-	        const coalesced_declarations = [];
-	        let current_group;
 	        walk(this.ast.instance.content, {
-	            enter(node, parent) {
+	            enter(node, parent, key, index) {
 	                if (/Function/.test(node.type)) {
-	                    current_group = null;
 	                    return this.skip();
 	                }
 	                if (map.has(node)) {
@@ -32381,13 +34269,13 @@ var compiler = createCommonjsModule(function (module, exports) {
 	                }
 	                if (node.type === 'VariableDeclaration') {
 	                    if (node.kind === 'var' || scope === instance_scope) {
-	                        node.declarations.forEach((declarator, i) => {
-	                            const next = node.declarations[i + 1];
+	                        node.declarations.forEach(declarator => {
 	                            if (declarator.id.type !== 'Identifier') {
 	                                const inserts = [];
 	                                extract_names(declarator.id).forEach(name => {
 	                                    const variable = component.var_lookup.get(name);
 	                                    if (variable.export_name) {
+	                                        // TODO is this still true post-#3539?
 	                                        component.error(declarator, {
 	                                            code: 'destructured-prop',
 	                                            message: `Cannot declare props in destructured declaration`,
@@ -32397,103 +34285,54 @@ var compiler = createCommonjsModule(function (module, exports) {
 	                                        inserts.push(get_insert(variable));
 	                                    }
 	                                });
-	                                if (inserts.length > 0) {
-	                                    if (next) {
-	                                        code.overwrite(declarator.end, next.start, `; ${inserts.join('; ')}; ${node.kind} `);
-	                                    }
-	                                    else {
-	                                        code.appendLeft(declarator.end, `; ${inserts.join('; ')}`);
-	                                    }
+	                                if (inserts.length) {
+	                                    parent[key].splice(index + 1, 0, ...inserts);
 	                                }
 	                                return;
 	                            }
 	                            const { name } = declarator.id;
 	                            const variable = component.var_lookup.get(name);
-	                            if (variable.export_name) {
-	                                if (current_group && current_group.kind !== node.kind) {
-	                                    current_group = null;
-	                                }
+	                            if (variable.export_name && variable.writable) {
 	                                const insert = variable.subscribable
 	                                    ? get_insert(variable)
 	                                    : null;
-	                                if (!current_group || (current_group.insert && insert)) {
-	                                    current_group = {
-	                                        kind: node.kind,
-	                                        declarators: [declarator],
-	                                        insert,
-	                                    };
-	                                    coalesced_declarations.push(current_group);
-	                                }
-	                                else if (insert) {
-	                                    current_group.insert = insert;
-	                                    current_group.declarators.push(declarator);
-	                                }
-	                                else {
-	                                    current_group.declarators.push(declarator);
-	                                }
-	                                if (variable.writable &&
-	                                    variable.name !== variable.export_name) {
-	                                    code.prependRight(declarator.id.start, `${variable.export_name}: `);
-	                                }
-	                                if (next) {
-	                                    const next_variable = component.var_lookup.get(next.id.name);
-	                                    const new_declaration = !next_variable.export_name ||
-	                                        (current_group.insert && next_variable.subscribable);
-	                                    if (new_declaration) {
-	                                        code.overwrite(declarator.end, next.start, ` ${node.kind} `);
-	                                    }
-	                                }
+	                                parent[key].splice(index + 1, 0, insert);
+	                                declarator.id = {
+	                                    type: 'ObjectPattern',
+	                                    properties: [{
+	                                            type: 'Property',
+	                                            method: false,
+	                                            shorthand: false,
+	                                            computed: false,
+	                                            kind: 'init',
+	                                            key: { type: 'Identifier', name: variable.export_name },
+	                                            value: declarator.init
+	                                                ? {
+	                                                    type: 'AssignmentPattern',
+	                                                    left: declarator.id,
+	                                                    right: declarator.init
+	                                                }
+	                                                : declarator.id
+	                                        }]
+	                                };
+	                                declarator.init = x `$$props`;
 	                            }
-	                            else {
-	                                current_group = null;
-	                                if (variable.subscribable) {
-	                                    const insert = get_insert(variable);
-	                                    if (next) {
-	                                        code.overwrite(declarator.end, next.start, `; ${insert}; ${node.kind} `);
-	                                    }
-	                                    else {
-	                                        code.appendLeft(declarator.end, `; ${insert}`);
-	                                    }
-	                                }
+	                            else if (variable.subscribable) {
+	                                const insert = get_insert(variable);
+	                                parent[key].splice(index + 1, 0, ...insert);
 	                            }
 	                        });
 	                    }
 	                }
-	                else {
-	                    if (node.type !== 'ExportNamedDeclaration') {
-	                        if (!parent || parent.type === 'Program')
-	                            current_group = null;
-	                    }
-	                }
 	            },
-	            leave(node) {
+	            leave(node, parent, _key, index) {
 	                if (map.has(node)) {
 	                    scope = scope.parent;
 	                }
+	                if (node.type === 'ExportNamedDeclaration' && node.declaration) {
+	                    parent.body[index] = node.declaration;
+	                }
 	            },
-	        });
-	        coalesced_declarations.forEach(group => {
-	            const writable = group.kind === 'var' || group.kind === 'let';
-	            let c = 0;
-	            let combining = false;
-	            group.declarators.forEach(declarator => {
-	                const { id } = declarator;
-	                if (combining) {
-	                    code.overwrite(c, id.start, ', ');
-	                }
-	                else {
-	                    if (writable)
-	                        code.appendLeft(id.start, '{ ');
-	                    combining = true;
-	                }
-	                c = declarator.end;
-	            });
-	            if (combining) {
-	                const insert = group.insert ? `; ${group.insert}` : '';
-	                const suffix = `${writable ? ` } = $$props` : ``}${insert}` +
-	                    (code.original[c] === ';' ? `` : `;`);
-	                code.appendLeft(c, suffix);
-	            }
 	        });
 	    }
 	    hoist_instance_declarations() {
@@ -32503,21 +34342,24 @@ var compiler = createCommonjsModule(function (module, exports) {
 	        // hoistable functions. TODO others?
 	        const { hoistable_nodes, var_lookup, injected_reactive_declaration_vars, } = this;
 	        const top_level_function_declarations = new Map();
-	        this.ast.instance.content.body.forEach(node => {
+	        const { body } = this.ast.instance.content;
+	        for (let i = 0; i < body.length; i += 1) {
+	            const node = body[i];
 	            if (node.type === 'VariableDeclaration') {
 	                const all_hoistable = node.declarations.every(d => {
 	                    if (!d.init)
 	                        return false;
 	                    if (d.init.type !== 'Literal')
 	                        return false;
-	                    const v = this.var_lookup.get(d.id.name);
+	                    const { name } = d.id;
+	                    const v = this.var_lookup.get(name);
 	                    if (v.reassigned)
 	                        return false;
 	                    if (v.export_name)
 	                        return false;
-	                    if (this.var_lookup.get(d.id.name).reassigned)
+	                    if (this.var_lookup.get(name).reassigned)
 	                        return false;
-	                    if (this.vars.find(variable => variable.name === d.id.name && variable.module))
+	                    if (this.vars.find(variable => variable.name === name && variable.module))
 	                        return false;
 	                    return true;
 	                });
@@ -32527,7 +34369,8 @@ var compiler = createCommonjsModule(function (module, exports) {
 	                        variable.hoistable = true;
 	                    });
 	                    hoistable_nodes.add(node);
-	                    this.fully_hoisted.push(`[✂${node.start}-${node.end}✂]`);
+	                    body.splice(i--, 1);
+	                    this.fully_hoisted.push(node);
 	                }
 	            }
 	            if (node.type === 'ExportNamedDeclaration' &&
@@ -32538,7 +34381,7 @@ var compiler = createCommonjsModule(function (module, exports) {
 	            if (node.type === 'FunctionDeclaration') {
 	                top_level_function_declarations.set(node.id.name, node);
 	            }
-	        });
+	        }
 	        const checked = new Set();
 	        const walking = new Set();
 	        const is_hoistable = fn_declaration => {
@@ -32610,8 +34453,9 @@ var compiler = createCommonjsModule(function (module, exports) {
 	                const variable = this.var_lookup.get(name);
 	                variable.hoistable = true;
 	                hoistable_nodes.add(node);
-	                remove_indentation(this.code, node);
-	                this.fully_hoisted.push(`[✂${node.start}-${node.end}✂]`);
+	                const i = body.indexOf(node);
+	                body.splice(i, 1);
+	                this.fully_hoisted.push(node);
 	            }
 	        }
 	    }
@@ -32632,10 +34476,14 @@ var compiler = createCommonjsModule(function (module, exports) {
 	                            scope = map.get(node);
 	                        }
 	                        if (node.type === 'AssignmentExpression') {
-	                            extract_identifiers(get_object(node.left)).forEach(node => {
+	                            const left = get_object(node.left);
+	                            extract_identifiers(left).forEach(node => {
 	                                assignee_nodes.add(node);
 	                                assignees.add(node.name);
 	                            });
+	                            if (node.operator !== '=') {
+	                                dependencies.add(left.name);
+	                            }
 	                        }
 	                        else if (node.type === 'UpdateExpression') {
 	                            const identifier = get_object(node.argument);
@@ -32664,8 +34512,7 @@ var compiler = createCommonjsModule(function (module, exports) {
 	                        }
 	                    },
 	                });
-	                add_indentation(this.code, node.body, 2);
-	                const expression = node.body.expression && unwrap_parens(node.body.expression);
+	                const { expression } = node.body;
 	                const declaration = expression && expression.left;
 	                unsorted_reactive_declarations.push({
 	                    assignees,
@@ -32728,14 +34575,17 @@ var compiler = createCommonjsModule(function (module, exports) {
 	    }
 	    qualify(name) {
 	        if (name === `$$props`)
-	            return `ctx.$$props`;
-	        const variable = this.var_lookup.get(name);
-	        if (!variable)
-	            return name;
-	        this.add_reference(name); // TODO we can probably remove most other occurrences of this
-	        if (variable.hoistable)
-	            return name;
-	        return `ctx.${name}`;
+	            return x `#ctx.$$props`;
+	        let [head, ...tail] = name.split('.');
+	        const variable = this.var_lookup.get(head);
+	        if (variable) {
+	            this.add_reference(name); // TODO we can probably remove most other occurrences of this
+	            if (!variable.hoistable) {
+	                tail.unshift(head);
+	                head = '#ctx';
+	            }
+	        }
+	        return [head, ...tail].reduce((lhs, rhs) => x `${lhs}.${rhs}`);
 	    }
 	    warn_if_undefined(name, node, template_scope) {
 	        if (name[0] === '$') {
@@ -32815,6 +34665,12 @@ var compiler = createCommonjsModule(function (module, exports) {
 	                                message: `tag name must be two or more words joined by the '-' character`,
 	                            });
 	                        }
+	                        if (tag && !component.compile_options.customElement) {
+	                            component.warn(attribute, {
+	                                code: 'missing-custom-element-compile-options',
+	                                message: `The 'tag' option is used when generating a custom element. Did you forget the 'customElement: true' compile option?`
+	                            });
+	                        }
 	                        component_options.tag = tag;
 	                        break;
 	                    }
@@ -32870,12 +34726,26 @@ var compiler = createCommonjsModule(function (module, exports) {
 	    }
 	    return component_options;
 	}
+	function get_relative_path(from, to) {
+	    const from_parts = from.split(/[/\\]/);
+	    const to_parts = to.split(/[/\\]/);
+	    from_parts.pop(); // get dirname
+	    while (from_parts[0] === to_parts[0]) {
+	        from_parts.shift();
+	        to_parts.shift();
+	    }
+	    if (from_parts.length) {
+	        let i = from_parts.length;
+	        while (i--)
+	            from_parts[i] = '..';
+	    }
+	    return from_parts.concat(to_parts).join('/');
+	}
 
 	function get_name_from_filename(filename) {
 	    if (!filename)
 	        return null;
-	    // eslint-disable-next-line no-useless-escape
-	    const parts = filename.split(/[\/\\]/);
+	    const parts = filename.split(/[/\\]/).map(encodeURI);
 	    if (parts.length > 1) {
 	        const index_match = parts[parts.length - 1].match(/^index(\.\w+)/);
 	        if (index_match) {
@@ -32884,6 +34754,7 @@ var compiler = createCommonjsModule(function (module, exports) {
 	        }
 	    }
 	    const base = parts.pop()
+	        .replace(/%/g, 'u')
 	        .replace(/\.[^.]+$/, "")
 	        .replace(/[^a-zA-Z_$0-9]+/g, '_')
 	        .replace(/^_/, '')
@@ -32911,11 +34782,12 @@ var compiler = createCommonjsModule(function (module, exports) {
 	    'customElement',
 	    'tag',
 	    'css',
+	    'loopGuardTimeout',
 	    'preserveComments',
 	    'preserveWhitespace'
 	];
 	function validate_options(options, warnings) {
-	    const { name, filename } = options;
+	    const { name, filename, loopGuardTimeout, dev } = options;
 	    Object.keys(options).forEach(key => {
 	        if (valid_options.indexOf(key) === -1) {
 	            const match = fuzzymatch(key, valid_options);
@@ -32937,6 +34809,15 @@ var compiler = createCommonjsModule(function (module, exports) {
 	            toString: () => message,
 	        });
 	    }
+	    if (loopGuardTimeout && !dev) {
+	        const message = 'options.loopGuardTimeout is for options.dev = true only';
+	        warnings.push({
+	            code: `options-loop-guard-timeout`,
+	            message,
+	            filename,
+	            toString: () => message,
+	        });
+	    }
 	}
 	function compile(source, options = {}) {
 	    options = assign({ generate: 'dom', dev: false }, options);
@@ -32944,7 +34825,7 @@ var compiler = createCommonjsModule(function (module, exports) {
 	    const warnings = [];
 	    validate_options(options, warnings);
 	    stats.start('parse');
-	    const ast = parse$1(source, options);
+	    const ast = parse$2(source, options);
 	    stats.stop('parse');
 	    stats.start('create component');
 	    const component = new Component(ast, source, options.name || get_name_from_filename(options.filename) || 'Component', options, stats, warnings);
@@ -33046,11 +34927,11 @@ var compiler = createCommonjsModule(function (module, exports) {
 	    };
 	}
 
-	const VERSION = '3.12.1';
+	const VERSION = '3.14.1';
 
 	exports.VERSION = VERSION;
 	exports.compile = compile;
-	exports.parse = parse$1;
+	exports.parse = parse$2;
 	exports.preprocess = preprocess;
 	exports.walk = walk;
 

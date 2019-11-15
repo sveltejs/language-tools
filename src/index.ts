@@ -2,15 +2,22 @@ export { svelte2tsx } from './svelte2tsx'
 export { htmlx2jsx } from './htmlxtojsx'
 
 //* try tp get errors
-import * as ts from "typescript";
 import * as path from "path";
 import { compile, parseConfigFile } from './compiler';
 import { Warning } from 'svelte/types/compiler/interfaces';
+import chalk from 'chalk'
 
 
 
-function reportDiagnostic(d: Warning) {        
-    let output = `${d.code.toUpperCase()} (${d.filename}:${d.start.line}:${d.start.column}) ${ d.message }\n`;
+function reportDiagnostic(d: Warning) {      
+    let c = d.code.toLowerCase();
+    let codeOutput = "info"
+    if (c == "error") codeOutput = chalk`{red error}`
+    if (c == "warning") codeOutput = chalk`{yellow error}`
+    
+    let output = chalk`{cyan ${d.filename}}{yellow :${d.start.line+1}:${d.start.column+1}} - ${codeOutput} ${d.message}\n\n`
+    
+    output += `${d.frame}\n\n`
     process.stdout.write(output);
 }
     
@@ -18,11 +25,9 @@ function reportDiagnostic(d: Warning) {
 
 //cli?
 if (require.main === module) {
-    console.log("Compiling test")
     let sources = process.argv.slice(2);
     sources.unshift("svelte-jsx.d.ts");
     sources.unshift("svelte-shims.d.ts");
-    console.log(ts.sys.resolvePath("node_modules/typescript/lib"));
 
     let conf = parseConfigFile(path.resolve(__dirname, "./test2/tsconfig.json"));
 
