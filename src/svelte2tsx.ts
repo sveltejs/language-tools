@@ -99,7 +99,6 @@ function replaceExports(str: MagicString, tsAst: SourceFile, astOffset: number) 
     const removeExport = (start: number, end: number) => {
         let exportStart = str.original.indexOf("export", start+astOffset);
         let exportEnd = exportStart + "export".length;
-        console.log("export is ",start+astOffset, end+astOffset, exportStart, exportEnd);
         str.remove(exportStart, exportEnd);
     }
 
@@ -236,7 +235,7 @@ function processScriptTag(str: MagicString, ast: Node, slots: SlotInfo, target: 
 
 
 function addComponentExport(str: MagicString) {
-    str.append("\n\nexport default class {\n    $$prop_def = render().props\n    $$slot_def = render().slots\n}");
+    str.append("\n\nexport default class {\n    $$prop_def = __sveltets_partial(render().props)\n    $$slot_def = render().slots\n}");
 }
 
 

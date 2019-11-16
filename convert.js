@@ -35704,7 +35704,6 @@ function replaceExports(str, tsAst, astOffset) {
     const removeExport = (start, end) => {
         let exportStart = str.original.indexOf("export", start + astOffset);
         let exportEnd = exportStart + "export".length;
-        console.log("export is ", start + astOffset, end + astOffset, exportStart, exportEnd);
         str.remove(exportStart, exportEnd);
     };
     let statements = tsAst.statements;
@@ -35810,7 +35809,7 @@ function processScriptTag(str, ast, slots, target) {
     processImports(str, tsAst, script.content.start, script.start + 1);
 }
 function addComponentExport(str) {
-    str.append("\n\nexport default class {\n    $$prop_def = render().props\n    $$slot_def = render().slots\n}");
+    str.append("\n\nexport default class {\n    $$prop_def = __sveltets_partial(render().props)\n    $$slot_def = render().slots\n}");
 }
 function svelte2tsx(svelte) {
     let str = new MagicString(svelte);

@@ -38,3 +38,5 @@ declare function __sveltets_ensureFunction(expression: (e: Event) => unknown ):a
 
 declare function __sveltets_ensureType<T>(type: AConstructorTypeOf<T>, el: T): any[];
 declare function __sveltets_instanceOf<T>(type: AConstructorTypeOf<T>): T;
+
+declare function __sveltets_partial<T>(obj: T): Partial<T>;
