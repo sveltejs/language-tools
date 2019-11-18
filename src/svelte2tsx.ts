@@ -156,7 +156,7 @@ function findModuleScriptTag(str: MagicString, ast: Node ): Node {
     //find the script
     for (var v of ast.children) {
         let n = v as Node;
-        if (n.type == "Script" && n.attributes && n.attributes.find(a => a.name == "context" && a.value == "module")) {
+        if (n.type == "Script" && n.attributes && n.attributes.find(a => a.name == "context" && a.value.length == 1 && a.value[0].raw == "module")) {
             script = n;
             break;
         }
@@ -183,7 +183,7 @@ function processScriptTag(str: MagicString, ast: Node, slots: SlotInfo, target: 
     //find the script
     for (var v of ast.children) {
         let n = v as Node;
-        if (n.type == "Script" && n.attributes && !n.attributes.find(a => a.name == "context" && a.value == "module")) {
+        if (n.type == "Script" && n.attributes && !n.attributes.find(a => a.name == "context" && a.value.length == 1 && a.value[0].raw == "module")) {
             script = n;
         }
     }

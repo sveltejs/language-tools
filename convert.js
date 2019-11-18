@@ -34959,7 +34959,12 @@ function findVerbatimElements(htmlx) {
                     return {
                         type: "Attribute",
                         name: a.name,
-                        value: a.value,
+                        value: [{
+                                type: "Text",
+                                start: htmlx.indexOf("=", el.sourceCodeLocation.attrs[a.name].startOffset) + 1,
+                                end: el.sourceCodeLocation.attrs[a.name].endOffset,
+                                raw: a.value,
+                            }],
                         start: el.sourceCodeLocation.attrs[a.name].startOffset,
                         end: el.sourceCodeLocation.attrs[a.name].endOffset
                     };
@@ -34968,7 +34973,8 @@ function findVerbatimElements(htmlx) {
                     type: "Text",
                     start: content.sourceCodeLocation.startOffset,
                     end: content.sourceCodeLocation.endOffset,
-                    value: content.value
+                    value: content.value,
+                    raw: content.value
                 }
             });
         }
@@ -35235,6 +35241,7 @@ function AttributeValueAsJsExpression(htmlx, attr) {
     return valuesAsStringTemplate;
 }
 function convertHtmlxToJsx(str, ast) {
+    let uses$$props = false;
     let htmlx = str.original;
     str.prepend("<>");
     str.append("</>");
@@ -35579,38 +35586,35 @@ function convertHtmlxToJsx(str, ast) {
             if (node.type == "Comment") {
                 handleComment(node);
             }
-            if (node.type == "Element" || node.type == "InlineComponent" || node.type == "Slot") {
-                for (let attr of node.attributes) {
-                    if (attr.type == "EventHandler") {
-                        if (node.type == "Element") {
-                            handleElementEventHandler(attr);
-                        }
-                        else {
-                            handleComponentEventHandler(attr);
-                        }
-                    }
-                    if (attr.type == "Binding") {
-                        handleBinding(attr, node);
-                    }
-                    if (attr.type == "Class") {
-                        handleClassDirective(attr);
-                    }
-                    if (attr.type == "Action") {
-                        handleActionDirective(attr);
-                    }
-                    if (attr.type == "Transition") {
-                        handleTransitionDirective(attr);
-                    }
-                    if (attr.type == "Animation") {
-                        handleAnimateDirective(attr);
-                    }
-                    if (attr.type == "Attribute") {
-                        handleAttribute(attr);
-                    }
+            if (node.type == "Binding") {
+                handleBinding(node, parent);
+            }
+            if (node.type == "Class") {
+                handleClassDirective(node);
+            }
+            if (node.type == "Action") {
+                handleActionDirective(node);
+            }
+            if (node.type == "Transition") {
+                handleTransitionDirective(node);
+            }
+            if (node.type == "Animation") {
+                handleAnimateDirective(node);
+            }
+            if (node.type == "Attribute") {
+                handleAttribute(node);
+            }
+            if (node.type == "EventHandler") {
+                if (parent.type == "Element") {
+                    handleElementEventHandler(node);
+                }
+                else {
+                    handleComponentEventHandler(node);
                 }
             }
         }
     });
+    return { uses$$props };
 }
 
 function extractSlotDefs(str, ast) {
@@ -35756,7 +35760,7 @@ function findModuleScriptTag(str, ast) {
     //find the script
     for (var v of ast.children) {
         let n = v;
-        if (n.type == "Script" && n.attributes && n.attributes.find(a => a.name == "context" && a.value == "module")) {
+        if (n.type == "Script" && n.attributes && n.attributes.find(a => a.name == "context" && a.value.length == 1 && a.value[0].raw == "module")) {
             script = n;
             break;
         }
@@ -35775,7 +35779,7 @@ function processScriptTag(str, ast, slots, target) {
     //find the script
     for (var v of ast.children) {
         let n = v;
-        if (n.type == "Script" && n.attributes && !n.attributes.find(a => a.name == "context" && a.value == "module")) {
+        if (n.type == "Script" && n.attributes && !n.attributes.find(a => a.name == "context" && a.value.length == 1 && a.value[0].raw == "module")) {
             script = n;
         }
     }

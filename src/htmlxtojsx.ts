@@ -36,7 +36,13 @@ export function AttributeValueAsJsExpression(htmlx: string, attr: Node): string 
 }
 
 
+type HtmlxToJsxResult = {
+    uses$$props: boolean;
+}
+
+
 export function convertHtmlxToJsx(str: MagicString, ast: Node) {
+    let uses$$props = false;
     let htmlx = str.original;
     str.prepend("<>");
     str.append("</>");
@@ -224,7 +230,6 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node) {
 
     const handleAttribute = (attr: Node) => {
        if (attr.value.length == 0) return; //wut?
-       
         //handle single value
        if (attr.value.length == 1) {
             let attrVal = attr.value[0];
@@ -416,42 +421,41 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node) {
                 handleComment(node);
             }
 
-            if (node.type == "Element" || node.type == "InlineComponent" || node.type == "Slot") {
-                for(let attr of node.attributes) {
-                    if (attr.type == "EventHandler") {
-                        if (node.type == "Element") {
-                            handleElementEventHandler(attr);
-                        } else {
-                            handleComponentEventHandler(attr);
-                        }
-                    }
-                    if (attr.type == "Binding") {
-                        handleBinding(attr, node);
-                    }
+            if (node.type == "Binding") {
+                handleBinding(node, parent);
+            }
 
-                    if (attr.type == "Class") {
-                        handleClassDirective(attr);
-                    }
+            if (node.type == "Class") {
+                handleClassDirective(node);
+            }
 
-                    if (attr.type == "Action") {
-                        handleActionDirective(attr);
-                    }
+            if (node.type == "Action") {
+                handleActionDirective(node);
+            }
 
-                    if (attr.type == "Transition") {
-                        handleTransitionDirective(attr);
-                    }
+            if (node.type == "Transition") {
+                handleTransitionDirective(node);
+            }
 
-                    if (attr.type == "Animation") {
-                        handleAnimateDirective(attr);
-                    }
+            if (node.type == "Animation") {
+                handleAnimateDirective(node);
+            }
 
-                    if (attr.type == "Attribute") {
-                        handleAttribute(attr);
-                    }
+            if (node.type == "Attribute") {
+                handleAttribute(node);
+            }
+
+            if (node.type == "EventHandler") {
+                if (parent.type == "Element") {
+                    handleElementEventHandler(node);
+                } else {
+                    handleComponentEventHandler(node);
                 }
             }
         }
     });
+
+    return { uses$$props }
 }
 
 export function htmlx2jsx(htmlx: string) {

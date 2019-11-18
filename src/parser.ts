@@ -21,7 +21,12 @@ export function findVerbatimElements(htmlx: string) {
                 attributes: !el.attrs ? [] : el.attrs.map(a => {return {
                     type: "Attribute",
                     name: a.name,
-                    value: a.value,
+                    value: [{
+                        type: "Text",
+                        start: htmlx.indexOf("=", el.sourceCodeLocation.attrs[a.name].startOffset) +1,
+                        end: el.sourceCodeLocation.attrs[a.name].endOffset,
+                        raw: a.value,
+                    }],
                     start: el.sourceCodeLocation.attrs[a.name].startOffset,
                     end: el.sourceCodeLocation.attrs[a.name].endOffset
                 }}),
@@ -29,7 +34,8 @@ export function findVerbatimElements(htmlx: string) {
                     type: "Text",
                     start: content.sourceCodeLocation.startOffset,
                     end: content.sourceCodeLocation.endOffset,
-                    value: content.value
+                    value: content.value,
+                    raw: content.value
                 }
             });
         }
