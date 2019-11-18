@@ -1,39 +1,46 @@
 import MagicString from 'magic-string'
 import { parseHtmlx } from './parser';
-import { convertHtmlxToJsx, AttributeValueAsJsExpression, htmlx2jsx } from './htmlxtojsx';
+import { convertHtmlxToJsx } from './htmlxtojsx';
 import { Node } from 'svelte/compiler'
 import { createSourceFile, ScriptTarget, ScriptKind, SourceFile, SyntaxKind, VariableStatement, Identifier, FunctionDeclaration, BindingName, ExportDeclaration, ScriptSnapshot, LabeledStatement, ExpressionStatement, BinaryExpression } from 'typescript'
-import { walk } from 'estree-walker';
+
 
 type SlotInfo = Map<string, Map<string, string>>;
 
-function extractSlotDefs(str: MagicString, ast: Node): SlotInfo {
-    //we have to walk the ast to find Elements with "slot="
-    let htmlx = str.original;
-    let slots = new Map<string, Map<string, string>>();
-    walk(ast, {
-        enter: (node) => {
-            if (node.type != "Slot") return;
-            let nameAttr = node.attributes.find(a => a.name == "name");
-            let slotName = nameAttr ? nameAttr.value[0].raw : "default";
-            //collect attributes
-            let attributes = new Map<string, string>();
-            for (let attr of node.attributes) {
-                if (attr.name == "name") continue;
-                if (!attr.value.length) continue;
-                //let val = attr.value[0];
-                //if (val.type == "Text") {
-                //   attributes.set(attr.name, val.raw);
-                //} else if (val.expression) {
-                //    attributes.set(attr.name, htmlx.substring(val.expression.start, val.expression.end))
-                // }
-                attributes.set(attr.name, AttributeValueAsJsExpression(htmlx, attr));
-            }
-            slots.set(slotName, attributes)
+export function AttributeValueAsJsExpression(htmlx: string, attr: Node): string {
+    if (attr.value.length == 0) return "''"; //wut?
+
+    //handle single value
+    if (attr.value.length == 1) {
+        let attrVal = attr.value[0];
+
+        if (attrVal.type == "AttributeShorthand") {
+            return attrVal.expression.name;
         }
-    });
-    return slots;
+
+        if (attrVal.type == "Text") {
+            return '"' + attrVal.raw + '"';
+        }
+
+        if (attrVal.type == "MustacheTag") {
+            return htmlx.substring(attrVal.expression.start, attrVal.expression.end)
+        }
+        throw Error("Unknown attribute value type:" + attrVal.type);
+    }
+
+    // we have multiple attribute values, so we build a string out of them. 
+    // technically the user can do something funky like attr="text "{value} or even attr=text{value}
+    // so instead of trying to maintain a nice sourcemap with prepends etc, we just overwrite the whole thing
+    let valueParts = attr.value.map(n => {
+        if (n.type == "Text") return '${"' + n.raw + '"}';
+        if (n.type == "MustacheTag") return "$" + htmlx.substring(n.start, n.end);
+    })
+    let valuesAsStringTemplate = "`" + valueParts.join("") + "`";
+    return valuesAsStringTemplate;
 }
+
+
+
 
 
 function processImports(str: MagicString, tsAst: SourceFile, astOffset: number, target: number) {
@@ -234,9 +241,11 @@ function processScriptTag(str: MagicString, ast: Node, slots: SlotInfo, target: 
 }
 
 
-function addComponentExport(str: MagicString) {
-    str.append("\n\nexport default class {\n    $$prop_def = __sveltets_partial(render().props)\n    $$slot_def = render().slots\n}");
+function addComponentExport(str: MagicString, uses$$props: boolean) {
+    str.append(`\n\nexport default class {\n    $$prop_def = __sveltets_partial${ uses$$props ? "_with_any" : "" }(render().props)\n    $$slot_def = render().slots\n}`);
 }
+
+
 
 
 export function svelte2tsx(svelte: string) {
@@ -244,14 +253,40 @@ export function svelte2tsx(svelte: string) {
     let str = new MagicString(svelte);
     let htmlxAst = parseHtmlx(svelte);
 
-    //TODO move script tag to top
-    //ensure script at top
-    convertHtmlxToJsx(str, htmlxAst)
+    let uses$$props = false;
+    const handleIdentifier = (node: Node) => {
+        if (node.name == "$$props") {
+            uses$$props = true; 
+            return;
+        }
+    }
+    
+    let slots = new Map<string, Map<string, string>>();
+    const handleSlot =  (node) => {
+        let nameAttr = node.attributes.find(a => a.name == "name");
+        let slotName = nameAttr ? nameAttr.value[0].raw : "default";
+        //collect attributes
+        let attributes = new Map<string, string>();
+        for (let attr of node.attributes) {
+            if (attr.name == "name") continue;
+            if (!attr.value.length) continue;
+            attributes.set(attr.name, AttributeValueAsJsExpression(svelte, attr));
+        }
+        slots.set(slotName, attributes)
+    }    
 
-    let slotDefs = extractSlotDefs(str, htmlxAst)
+
+    const onHtmlxWalk = (node:Node, parent:Node) => {
+        if (node.type == "Identifier") {
+            handleIdentifier(node);
+        } else if (node.type == "Slot") {
+            handleSlot(node);
+        }
+    }
+
+    convertHtmlxToJsx(str, htmlxAst, onHtmlxWalk)
 
     removeStyleTags(str, htmlxAst);
-
    
     let moduleScript = findModuleScriptTag(str, htmlxAst);
       //move it to the top
@@ -259,13 +294,13 @@ export function svelte2tsx(svelte: string) {
         str.move(moduleScript.start, moduleScript.end, 0);
     }
     let moveScriptTarget = (moduleScript && moduleScript.start == 0) ? moduleScript.end : 0;
-    processScriptTag(str, htmlxAst, slotDefs, moveScriptTarget);
+    processScriptTag(str, htmlxAst, slots, moveScriptTarget);
 
     if (moduleScript) {
         processModuleScriptTag(str, moduleScript);
     }
     
-    addComponentExport(str);
+    addComponentExport(str, uses$$props);
     
     return {
         code: str.toString(),

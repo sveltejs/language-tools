@@ -3,37 +3,6 @@ import { walk, Node } from 'estree-walker';
 import { parseHtmlx } from './parser';
 import KnownEvents from './knownevents';
 
-export function AttributeValueAsJsExpression(htmlx: string, attr: Node): string {
-    if (attr.value.length == 0) return "''"; //wut?
-
-    //handle single value
-    if (attr.value.length == 1) {
-        let attrVal = attr.value[0];
-
-        if (attrVal.type == "AttributeShorthand") {
-            return attrVal.expression.name;
-        }
-
-        if (attrVal.type == "Text") {
-            return '"' + attrVal.raw + '"';
-        }
-
-        if (attrVal.type == "MustacheTag") {
-            return htmlx.substring(attrVal.expression.start, attrVal.expression.end)
-        }
-        throw Error("Unknown attribute value type:" + attrVal.type);
-    }
-
-    // we have multiple attribute values, so we build a string out of them. 
-    // technically the user can do something funky like attr="text "{value} or even attr=text{value}
-    // so instead of trying to maintain a nice sourcemap with prepends etc, we just overwrite the whole thing
-    let valueParts = attr.value.map(n => {
-        if (n.type == "Text") return '${"' + n.raw + '"}';
-        if (n.type == "MustacheTag") return "$" + htmlx.substring(n.start, n.end);
-    })
-    let valuesAsStringTemplate = "`" + valueParts.join("") + "`";
-    return valuesAsStringTemplate;
-}
 
 
 type HtmlxToJsxResult = {
@@ -41,7 +10,7 @@ type HtmlxToJsxResult = {
 }
 
 
-export function convertHtmlxToJsx(str: MagicString, ast: Node) {
+export function convertHtmlxToJsx(str: MagicString, ast: Node, onWalk: (node: Node, parent: Node) => void = null) {
     let uses$$props = false;
     let htmlx = str.original;
     str.prepend("<>");
@@ -386,14 +355,7 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node) {
     }
 
 
-    const handleIdentifier = (node: Node) => {
-        if (node.name == "$$props") {
-            uses$$props = true; 
-            return;
-        }
-
-        
-    }
+  
 
     walk(ast, {
         enter: (node: Node, parent: Node, prop, index) => {
@@ -413,11 +375,12 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node) {
                 case "Animation": handleAnimateDirective(node); break;
                 case "Attribute": handleAttribute(node); break;
                 case "EventHandler": handleEventHandler(node, parent); break;
-                case "Identifier": handleIdentifier(node); break;
             }
+            if (onWalk) onWalk(node, parent);
         }
     });
 
+    
     return { uses$$props }
 }
 
