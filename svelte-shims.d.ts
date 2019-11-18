@@ -30,6 +30,8 @@ type SvelteAnimation<U extends any[]> = (node: HTMLElement, move: { from: DOMRec
 
 type SvelteAllProps = {	[index: string]: any }
 
+type SvelteStore<T> =  { subscribe: (value:T) => any }
+
 declare function __sveltets_ensureAnimation<U extends any[]>(animation: SvelteAnimation<U>, ...args: U): any[];
 
 declare function __sveltets_ensureAction<U extends any[]>(action: SvelteAction<U>, ...args: U): any[];
@@ -44,3 +46,5 @@ declare function __sveltets_instanceOf<T>(type: AConstructorTypeOf<T>): T;
 declare function __sveltets_partial<T>(obj: T): Partial<T>;
 
 declare function __sveltets_partial_with_any<T>(obj: T): Partial<T> & SvelteAllProps
+
+declare function __sveltets_store_get<T>(store: SvelteStore<T>): T
