@@ -4,10 +4,7 @@ import { convertHtmlxToJsx } from './htmlxtojsx';
 import { Node } from 'svelte/compiler'
 import { createSourceFile, ScriptTarget, ScriptKind, SourceFile, SyntaxKind, VariableStatement, Identifier, FunctionDeclaration, BindingName, ExportDeclaration, ScriptSnapshot, LabeledStatement, ExpressionStatement, BinaryExpression } from 'typescript'
 
-
-type SlotInfo = Map<string, Map<string, string>>;
-
-export function AttributeValueAsJsExpression(htmlx: string, attr: Node): string {
+function AttributeValueAsJsExpression(htmlx: string, attr: Node): string {
     if (attr.value.length == 0) return "''"; //wut?
 
     //handle single value
@@ -53,14 +50,6 @@ function processImports(str: MagicString, tsAst: SourceFile, astOffset: number, 
 }
 
 
-function removeStyleTags(str: MagicString, ast: Node) {
-    for (var v of ast.children) {
-        let n = v as Node;
-        if (n.type == "Style") {
-            str.remove(n.start, n.end);
-        }
-    }
-}
 
 function declareImplictReactiveVariables(declaredNames: string[], str: MagicString, tsAst: SourceFile, astOffset: number) {
     for (let le of tsAst.statements) {
@@ -157,21 +146,6 @@ function replaceExports(str: MagicString, tsAst: SourceFile, astOffset: number) 
     return { exportedNames, declaredNames }
 }
 
-function findModuleScriptTag(str: MagicString, ast: Node ): Node {
-    let script: Node = null;
-    let htmlx = str.original;
-    //find the script
-    for (var v of ast.children) {
-        let n = v as Node;
-        if (n.type == "Script" && n.attributes && n.attributes.find(a => a.name == "context" && a.value.length == 1 && a.value[0].raw == "module")) {
-            script = n;
-            break;
-        }
-    }
-    return script;
-}
-
-
 function processModuleScriptTag(str: MagicString, script: Node) {
     let htmlx = str.original;
 
@@ -183,61 +157,24 @@ function processModuleScriptTag(str: MagicString, script: Node) {
 }
 
 
+type InstanceScriptProcessResult = {
+    exportedNames: Map<string, string>;
+    uses$$props: boolean;
+}
 
-function processScriptTag(str: MagicString, ast: Node, slots: SlotInfo, target: number) {
-    let script: Node = null;
-
-    //find the script
-    for (var v of ast.children) {
-        let n = v as Node;
-        if (n.type == "Script" && n.attributes && !n.attributes.find(a => a.name == "context" && a.value.length == 1 && a.value[0].raw == "module")) {
-            script = n;
-        }
-    }
-
-    let slotsAsString = "{" + [...slots.entries()].map(([name, attrs]) => {
-        let attrsAsString = [...attrs.entries()].map(([exportName, expr]) => `${exportName}:${expr}`).join(", ");
-        return `${name}: {${attrsAsString}}`
-    }).join(", ") + "}"
-
-
+function processInstanceScriptContent(str: MagicString, script: Node): InstanceScriptProcessResult {
     let htmlx = str.original;
-
-    if (!script) {
-        str.prependRight(target, "</>;function render() {\n<>");
-        str.append(";\nreturn { props: {}, slots: " + slotsAsString + " }}");
-        return;
-    }
-
-    //move it to the top (the variables need to be declared before the jsx template)
-    if (script.start != target) {
-        str.move(script.start, script.end, target);
-    }
-
-
-
     let tsAst = createSourceFile("component.ts.svelte", htmlx.substring(script.content.start, script.content.end), ScriptTarget.Latest, true, ScriptKind.TS);
 
-    //I couldn't get magicstring to let me put the script before the <> we prepend during conversion of the template to jsx, so we just close it instead
-    let scriptTagEnd = htmlx.lastIndexOf(">", script.content.start) + 1;
-    //str.remove(script.start, script.start+1);
-    str.overwrite(script.start, script.start+ 1, "</>;");
-    str.overwrite(script.start+1, scriptTagEnd, "function render() {\n");
-
-    let scriptEndTagStart = htmlx.lastIndexOf("<", script.end-1);
-    str.overwrite(scriptEndTagStart, script.end, ";\n<>");
-
-
     let { exportedNames, declaredNames } = replaceExports(str, tsAst, script.content.start);
-
     declareImplictReactiveVariables(declaredNames, str, tsAst, script.content.start);
-
-    let returnElements = [...exportedNames.entries()].map(([key, value]) => value ? `${value}: ${key}` : key);
-    let returnString = "\nreturn { props: {" + returnElements.join(" , ") + "}, slots: " + slotsAsString + " }}"
-    str.append(returnString)
-    
     processImports(str, tsAst, script.content.start, script.start+1);
+    
 
+    return { 
+        exportedNames,
+        uses$$props: false
+    }
 }
 
 
@@ -246,12 +183,16 @@ function addComponentExport(str: MagicString, uses$$props: boolean) {
 }
 
 
+type TemplateProcessResult = {
+    uses$$props: boolean,
+    slots: Map<string, Map<string, string>>;
+    scriptTag: Node,
+    moduleScriptTag: Node
+}
 
 
-export function svelte2tsx(svelte: string) {
-
-    let str = new MagicString(svelte);
-    let htmlxAst = parseHtmlx(svelte);
+function processSvelteTemplate(str: MagicString): TemplateProcessResult {
+    let htmlxAst = parseHtmlx(str.original);
 
     let uses$$props = false;
     const handleIdentifier = (node: Node) => {
@@ -260,9 +201,19 @@ export function svelte2tsx(svelte: string) {
             return;
         }
     }
+
+    let scriptTag: Node = null;
+    let moduleScriptTag: Node = null;
+    const handleScriptTag = (node: Node) => {
+        if (node.attributes && node.attributes.find(a => a.name == "context" && a.value.length == 1 && a.value[0].raw == "module")) {
+            moduleScriptTag = node;
+        } else {
+            scriptTag = node;
+        }
+    }
     
     let slots = new Map<string, Map<string, string>>();
-    const handleSlot =  (node) => {
+    const handleSlot = (node: Node) => {
         let nameAttr = node.attributes.find(a => a.name == "name");
         let slotName = nameAttr ? nameAttr.value[0].raw : "default";
         //collect attributes
@@ -270,36 +221,105 @@ export function svelte2tsx(svelte: string) {
         for (let attr of node.attributes) {
             if (attr.name == "name") continue;
             if (!attr.value.length) continue;
-            attributes.set(attr.name, AttributeValueAsJsExpression(svelte, attr));
+            attributes.set(attr.name, AttributeValueAsJsExpression(str.original, attr));
         }
         slots.set(slotName, attributes)
     }    
 
+    const handleStyleTag = (node: Node) => {
+        str.remove(node.start, node.end);
+    }
 
-    const onHtmlxWalk = (node:Node, parent:Node) => {
-        if (node.type == "Identifier") {
-            handleIdentifier(node);
-        } else if (node.type == "Slot") {
-            handleSlot(node);
+    const onHtmlxWalk = (node:Node) => {
+        switch(node.type) {
+           case "Identifier": handleIdentifier(node); break;
+           case "Slot": handleSlot(node); break;
+           case "Style": handleStyleTag(node); break;
+           case "Script": handleScriptTag(node); break;
         }
     }
 
-    convertHtmlxToJsx(str, htmlxAst, onHtmlxWalk)
+    convertHtmlxToJsx(str, htmlxAst, onHtmlxWalk);
 
-    removeStyleTags(str, htmlxAst);
-   
-    let moduleScript = findModuleScriptTag(str, htmlxAst);
-      //move it to the top
-    if (moduleScript && moduleScript.start != 0) {
-        str.move(moduleScript.start, moduleScript.end, 0);
+    return {
+        moduleScriptTag,
+        scriptTag,
+        slots,
+        uses$$props
     }
-    let moveScriptTarget = (moduleScript && moduleScript.start == 0) ? moduleScript.end : 0;
-    processScriptTag(str, htmlxAst, slots, moveScriptTarget);
+}
 
-    if (moduleScript) {
-        processModuleScriptTag(str, moduleScript);
+
+function createRenderFunction(str: MagicString, scriptTag: Node, scriptDestination: number, slots: Map<string, Map<string,string>>, exportedNames: Map<string,string>) {
+    let htmlx = str.original;
+
+    if (scriptTag) {
+        //I couldn't get magicstring to let me put the script before the <> we prepend during conversion of the template to jsx, so we just close it instead
+        let scriptTagEnd = htmlx.lastIndexOf(">", scriptTag.content.start) + 1;
+        str.overwrite(scriptTag.start, scriptTag.start+ 1, "</>;");
+        str.overwrite(scriptTag.start+1, scriptTagEnd, "function render() {\n");
+
+        let scriptEndTagStart = htmlx.lastIndexOf("<", scriptTag.end-1);
+        str.overwrite(scriptEndTagStart, scriptTag.end, ";\n<>");
+    } else {
+        str.prependRight(scriptDestination, "</>;function render() {\n<>");
+    }
+
+    let returnElements = [...exportedNames.entries()].map(([key, value]) => value ? `${value}: ${key}` : key);
+    let slotsAsDef = "{" + [...slots.entries()].map(([name, attrs]) => {
+        let attrsAsString = [...attrs.entries()].map(([exportName, expr]) => `${exportName}:${expr}`).join(", ");
+        return `${name}: {${attrsAsString}}`
+    }).join(", ") + "}"
+
+
+    let returnString = "\nreturn { props: {" + returnElements.join(" , ") + "}, slots: " + slotsAsDef + " }}"
+    str.append(returnString)
+}
+
+
+export function svelte2tsx(svelte: string) {
+
+    let str = new MagicString(svelte);
+    // process the htmlx as a svelte template
+    let { moduleScriptTag, scriptTag, slots, uses$$props } = processSvelteTemplate(str);
+    
+    /* Rearrange the script tags so that module is first, and instance second followed finally by the templatet
+     * This is a bit convoluted due to some trouble I had with magic string. A simple str.move(start,end,0) for each script wasn't enough
+     * since if the module script was already at 0, it wouldn't move (which is fine) but would mean the order would be swapped when the script tag tried to moved to 0
+     * instead in this case it has to move to moduleScriptTag.end. We track the location for the script move in the MoveInstanceScriptTarget var
+     */
+    let instanceScriptTarget = 0;
+
+    if (moduleScriptTag) {
+        if (moduleScriptTag.start != 0) {
+            //move our module tag to the top
+            str.move(moduleScriptTag.start, moduleScriptTag.end, 0);
+        } else {
+            //since our module script was already at position 0, we need to move our script tag to the end of it.
+            instanceScriptTarget = moduleScriptTag.end;
+        }
+    }
+
+    //move the instance script and process the content
+    let exportedNames = new Map<string, string>();
+    if (scriptTag) {
+        //ensure it is betweent he module script and the rest of the template (the variables need to be declared before the jsx template)
+        if (scriptTag.start != instanceScriptTarget) {
+            str.move(scriptTag.start, scriptTag.end, instanceScriptTarget);
+        }
+        let res = processInstanceScriptContent(str, scriptTag);
+        exportedNames = res.exportedNames;
+        uses$$props = uses$$props || res.uses$$props;
     }
     
+    //wrap the script tag and template content in a function returning the slot and exports
+    createRenderFunction(str, scriptTag, instanceScriptTarget, slots, exportedNames);
+    
+    // we need to process the module script after the instance script has moved otherwise we get warnings about moving edited items
+    if (moduleScriptTag) {
+        processModuleScriptTag(str, moduleScriptTag);
+    }
+
     addComponentExport(str, uses$$props);
     
     return {

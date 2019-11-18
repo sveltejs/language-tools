@@ -1,5 +1,5 @@
 <></>;function render() { let $$props: SvelteAllProps;
-<><h1>{$$props['name']}</h1></>;
+<><h1>{$$props['name']}</h1></>
 return { props: {}, slots: {} }}
 
 export default class {
