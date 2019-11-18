@@ -5,34 +5,34 @@ import KnownEvents from './knownevents';
 
 export function AttributeValueAsJsExpression(htmlx: string, attr: Node): string {
     if (attr.value.length == 0) return "''"; //wut?
-       
+
     //handle single value
-   if (attr.value.length == 1) {
+    if (attr.value.length == 1) {
         let attrVal = attr.value[0];
-        
+
         if (attrVal.type == "AttributeShorthand") {
             return attrVal.expression.name;
         }
 
         if (attrVal.type == "Text") {
-            return '"'+attrVal.raw+'"';
+            return '"' + attrVal.raw + '"';
         }
 
         if (attrVal.type == "MustacheTag") {
             return htmlx.substring(attrVal.expression.start, attrVal.expression.end)
         }
         throw Error("Unknown attribute value type:" + attrVal.type);
-   }
+    }
 
-   // we have multiple attribute values, so we build a string out of them. 
-   // technically the user can do something funky like attr="text "{value} or even attr=text{value}
-   // so instead of trying to maintain a nice sourcemap with prepends etc, we just overwrite the whole thing
-   let valueParts = attr.value.map(n => {
-       if (n.type == "Text") return '${"'+n.raw+'"}';
-       if (n.type == "MustacheTag") return "$"+htmlx.substring(n.start, n.end);
-   })
-   let valuesAsStringTemplate = "`"+valueParts.join("")+"`";
-   return valuesAsStringTemplate;
+    // we have multiple attribute values, so we build a string out of them. 
+    // technically the user can do something funky like attr="text "{value} or even attr=text{value}
+    // so instead of trying to maintain a nice sourcemap with prepends etc, we just overwrite the whole thing
+    let valueParts = attr.value.map(n => {
+        if (n.type == "Text") return '${"' + n.raw + '"}';
+        if (n.type == "MustacheTag") return "$" + htmlx.substring(n.start, n.end);
+    })
+    let valuesAsStringTemplate = "`" + valueParts.join("") + "`";
+    return valuesAsStringTemplate;
 }
 
 
@@ -55,34 +55,41 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node) {
         str.remove(tokenStart, "@debug".length + 1);
     };
 
-    const handleElementEventHandler = (attr: Node) => {
+    const handleEventHandler = (attr: Node, parent: Node) => {
         let jsxEventName = `on${attr.name.toLowerCase()}`
 
-        if (KnownEvents.indexOf(jsxEventName) >= 0) {
+        if (parent.type == "Element" && KnownEvents.indexOf(jsxEventName) >= 0) {
             if (attr.expression) {
                 let endAttr = htmlx.indexOf("=", attr.start)
                 str.overwrite(attr.start, endAttr, jsxEventName)
-                if (htmlx[attr.end-1] == '"') {
+                if (htmlx[attr.end - 1] == '"') {
                     let firstQuote = htmlx.indexOf('"', endAttr);
                     str.remove(firstQuote, firstQuote + 1);
-                    str.remove(attr.end-1, attr.end);
+                    str.remove(attr.end - 1, attr.end);
                 }
             } else {
                 str.overwrite(attr.start, attr.end, `${jsxEventName}={null}`)
             }
         } else {
-            //if we don't know the name of the event handler, default to same
-            // behaviour as component event handlers
-            handleComponentEventHandler(attr);
+            //We don't know the type of the event handler
+            if (attr.expression) {
+                //for handler assignment, we changeIt to call to our __sveltets_ensureFunction
+                str.remove(attr.start, attr.expression.start);
+                str.prependRight(attr.expression.start, "{...__sveltets_ensureFunction((")
+                str.overwrite(attr.expression.end, attr.end, "))}");
+            } else {
+                //for passthrough handlers, we just remove
+                str.remove(attr.start, attr.end)
+            }
         }
     }
 
     const handleClassDirective = (attr: Node) => {
         let needCurly = (attr.expression.start == attr.start + "class:".length);
         str.overwrite(attr.start, attr.expression.start, `{...__sveltets_ensureType(Boolean, `)
-        str.appendLeft(attr.expression.end, `)${ needCurly ? "}" : "" }`)
+        str.appendLeft(attr.expression.end, `)${needCurly ? "}" : ""}`)
         if (htmlx[attr.end - 1] == '"') {
-            str.remove(attr.end-1,attr.end);
+            str.remove(attr.end - 1, attr.end);
         }
     }
 
@@ -97,12 +104,12 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node) {
         str.overwrite(attr.start + `use:${attr.name}`.length, attr.expression.start, ",")
         str.appendLeft(attr.expression.end, ")");
         if (htmlx[attr.end - 1] == '"') {
-            str.remove(attr.end-1,attr.end);
+            str.remove(attr.end - 1, attr.end);
         }
     }
 
     const handleTransitionDirective = (attr: Node) => {
-        str.overwrite(attr.start, htmlx.indexOf(":", attr.start)+1, "{...__sveltets_ensureTransition(")
+        str.overwrite(attr.start, htmlx.indexOf(":", attr.start) + 1, "{...__sveltets_ensureTransition(")
 
         if (!attr.expression) {
             str.appendLeft(attr.end, ")}");
@@ -111,12 +118,12 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node) {
         str.overwrite(htmlx.indexOf(":", attr.start) + 1 + `${attr.name}`.length, attr.expression.start, ", ")
         str.appendLeft(attr.expression.end, ")");
         if (htmlx[attr.end - 1] == '"') {
-            str.remove(attr.end-1,attr.end);
+            str.remove(attr.end - 1, attr.end);
         }
     }
 
     const handleAnimateDirective = (attr: Node) => {
-        str.overwrite(attr.start, htmlx.indexOf(":", attr.start)+1, "{...__sveltets_ensureAnimation(")
+        str.overwrite(attr.start, htmlx.indexOf(":", attr.start) + 1, "{...__sveltets_ensureAnimation(")
 
         if (!attr.expression) {
             str.appendLeft(attr.end, ")}");
@@ -125,7 +132,7 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node) {
         str.overwrite(htmlx.indexOf(":", attr.start) + 1 + `${attr.name}`.length, attr.expression.start, ", ")
         str.appendLeft(attr.expression.end, ")");
         if (htmlx[attr.end - 1] == '"') {
-            str.remove(attr.end-1,attr.end);
+            str.remove(attr.end - 1, attr.end);
         }
     }
 
@@ -133,7 +140,7 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node) {
         //bind group on input
         if (attr.name == "group" && el.name == "input") {
             str.remove(attr.start, attr.expression.start);
-            str.prependRight(attr.expression.start,"{...__sveltets_ensureType(String, ")
+            str.prependRight(attr.expression.start, "{...__sveltets_ensureType(String, ")
             str.overwrite(attr.expression.end, attr.end, ")}")
             return;
         }
@@ -146,8 +153,8 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node) {
             return;
         }
 
-         //bind this on component
-         if (attr.name == "this" && el.type == "InlineComponent") {
+        //bind this on component
+        if (attr.name == "this" && el.type == "InlineComponent") {
             str.remove(attr.start, attr.expression.start)
             str.prependRight(attr.expression.start, `{...__sveltets_ensureType(${el.name}, `);
             str.overwrite(attr.expression.end, attr.end, ")}");
@@ -155,25 +162,25 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node) {
         }
 
 
-        str.remove(attr.start,attr.start+"bind:".length);
+        str.remove(attr.start, attr.start + "bind:".length);
         if (attr.expression.start == attr.start + "bind:".length) {
             str.appendLeft(attr.end, `={${attr.name}}`);
             return
         }
-        
+
         //remove possible quotes
-        if (htmlx[attr.end-1] == '"') {
+        if (htmlx[attr.end - 1] == '"') {
             let firstQuote = htmlx.indexOf('"', attr.start);
             str.remove(firstQuote, firstQuote + 1);
-            str.remove(attr.end-1, attr.end);
+            str.remove(attr.end - 1, attr.end);
         }
 
     }
 
-    const handleSlot  = (slotEl:Node, componentName: string, slotName: string) => {
+    const handleSlot = (slotEl: Node, componentName: string, slotName: string) => {
         //collect "let" definitions
         let hasMoved = false;
-        for(let attr of slotEl.attributes) {
+        for (let attr of slotEl.attributes) {
             if (attr.type != "Let") continue;
 
             if (slotEl.children.length == 0) {
@@ -181,10 +188,10 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node) {
                 str.remove(attr.start, attr.end);
                 continue;
             }
-            var afterTag = afterTag || htmlx.lastIndexOf(">", slotEl.children[0].start)+1;
-          
+            var afterTag = afterTag || htmlx.lastIndexOf(">", slotEl.children[0].start) + 1;
+
             str.move(attr.start, attr.end, afterTag);
-            
+
             //remove let:
             if (hasMoved) {
                 str.overwrite(attr.start, attr.start + "let:".length, ", ");
@@ -196,14 +203,14 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node) {
                 //overwrite the = as a : 
                 let equalSign = htmlx.lastIndexOf("=", attr.expression.start);
                 let curly = htmlx.lastIndexOf("{", attr.expression.start);
-                str.overwrite(equalSign, curly+1, ":");
+                str.overwrite(equalSign, curly + 1, ":");
                 str.remove(attr.expression.end, attr.end);
             }
         }
         if (!hasMoved) return;
         str.appendLeft(afterTag, "{() => { let {");
-        str.appendRight(afterTag, "} = __sveltets_instanceOf("+componentName+").$$slot_def."+slotName+";<>")
-        
+        str.appendRight(afterTag, "} = __sveltets_instanceOf(" + componentName + ").$$slot_def." + slotName + ";<>")
+
         let closeTagStart = htmlx.lastIndexOf("<", slotEl.end)
         str.appendLeft(closeTagStart, "</>}}")
     }
@@ -214,7 +221,7 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node) {
         handleSlot(el, el.name, "default");
 
         if (!el.children) return;
-        for( let child of el.children) {
+        for (let child of el.children) {
             if (!child.attributes) continue;
             let slot = child.attributes.find(a => a.name == "slot");
             if (slot) {
@@ -226,14 +233,12 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node) {
         }
     }
 
-
-
     const handleAttribute = (attr: Node) => {
-       if (attr.value.length == 0) return; //wut?
+        if (attr.value.length == 0) return; //wut?
         //handle single value
-       if (attr.value.length == 1) {
+        if (attr.value.length == 1) {
             let attrVal = attr.value[0];
-            
+
             if (attrVal.type == "AttributeShorthand") {
                 str.appendRight(attr.start, `${attrVal.expression.name}=`);
                 return;
@@ -243,7 +248,7 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node) {
             if (attrVal.type == "Text") {
                 if (attrVal.end == attr.end) {
                     //we are not quoted. Add some
-                    str.prependRight(equals+1,'"');
+                    str.prependRight(equals + 1, '"');
                     str.appendLeft(attr.end, '"');
                 }
                 return;
@@ -252,50 +257,35 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node) {
             if (attrVal.type == "MustacheTag") {
                 //if the end doesn't line up, we are wrapped in quotes
                 if (attrVal.end != attr.end) {
-                    str.remove(attrVal.start - 1,attrVal.start);
-                    str.remove(attr.end-1, attr.end);
+                    str.remove(attrVal.start - 1, attrVal.start);
+                    str.remove(attr.end - 1, attr.end);
                 }
                 return;
             }
             return;
-       }
-
-       // we have multiple attribute values, so we build a string out of them. 
-       // technically the user can do something funky like attr="text "{value} or even attr=text{value}
-       // so instead of trying to maintain a nice sourcemap with prepends etc, we just overwrite the whole thing
-       let valueParts = attr.value.map(n => {
-           if (n.type == "Text") return '${"'+n.raw+'"}';
-           if (n.type == "MustacheTag") return "$"+htmlx.substring(n.start, n.end);
-       })
-       let valuesAsStringTemplate = "{`"+valueParts.join("")+"`}";
-       let equals = htmlx.lastIndexOf("=", attr.value[0].start)+1;
-       str.overwrite(equals, attr.end, valuesAsStringTemplate);
-    }
-
-
-    const handleComponentEventHandler = (attr: Node) => {
-        if (attr.expression) {
-            //for handler assignment, we changeIt to call to our __sveltets_ensureFunction
-            str.remove(attr.start, attr.expression.start);
-            str.prependRight(attr.expression.start, "{...__sveltets_ensureFunction((")
-            str.overwrite(attr.expression.end, attr.end, "))}");         
-        } else {
-            //for passthrough handlers, we just remove
-            str.remove(attr.start, attr.end)
         }
-    }
 
+        // we have multiple attribute values, so we build a string out of them. 
+        // technically the user can do something funky like attr="text "{value} or even attr=text{value}
+        // so instead of trying to maintain a nice sourcemap with prepends etc, we just overwrite the whole thing
+        let valueParts = attr.value.map(n => {
+            if (n.type == "Text") return '${"' + n.raw + '"}';
+            if (n.type == "MustacheTag") return "$" + htmlx.substring(n.start, n.end);
+        })
+        let valuesAsStringTemplate = "{`" + valueParts.join("") + "`}";
+        let equals = htmlx.lastIndexOf("=", attr.value[0].start) + 1;
+        str.overwrite(equals, attr.end, valuesAsStringTemplate);
+    }
 
     const handleElement = (attr: Node) => {
         //we just have to self close void tags since jsx always wants the />
         let voidTags = "area,base,br,col,embed,hr,img,input,link,meta,param,source,track,wbr".split(',');
         if (voidTags.find(x => x == attr.name)) {
-            if (htmlx[attr.end-2] != '/') {
-                str.appendLeft(attr.end-1, "/");
+            if (htmlx[attr.end - 2] != '/') {
+                str.appendLeft(attr.end - 1, "/");
             }
         }
     }
-
 
     const handleIf = (ifBlock: Node) => {
         // {#if expr} ->
@@ -396,61 +386,34 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node) {
     }
 
 
+    const handleIdentifier = (node: Node) => {
+        if (node.name == "$$props") {
+            uses$$props = true; 
+            return;
+        }
+
+        
+    }
+
     walk(ast, {
         enter: (node: Node, parent: Node, prop, index) => {
-            if (node.type == "IfBlock")
-                handleIf(node);
-            if (node.type == "EachBlock")
-                handleEach(node);
-            if (node.type == "AwaitBlock")
-                handleAwait(node);
-            if (node.type == "RawMustacheTag")
-                handleRaw(node);
-            if (node.type == "DebugTag")
-                handleDebug(node);
-
-            if (node.type == "InlineComponent") {
-                handleComponent(node);
-            }
-
-            if (node.type == "Element") {
-                handleElement(node);
-            }
-
-            if (node.type == "Comment") {
-                handleComment(node);
-            }
-
-            if (node.type == "Binding") {
-                handleBinding(node, parent);
-            }
-
-            if (node.type == "Class") {
-                handleClassDirective(node);
-            }
-
-            if (node.type == "Action") {
-                handleActionDirective(node);
-            }
-
-            if (node.type == "Transition") {
-                handleTransitionDirective(node);
-            }
-
-            if (node.type == "Animation") {
-                handleAnimateDirective(node);
-            }
-
-            if (node.type == "Attribute") {
-                handleAttribute(node);
-            }
-
-            if (node.type == "EventHandler") {
-                if (parent.type == "Element") {
-                    handleElementEventHandler(node);
-                } else {
-                    handleComponentEventHandler(node);
-                }
+            switch (node.type) {
+                case "IfBlock": handleIf(node); break;
+                case "EachBlock": handleEach(node); break;
+                case "AwaitBlock": handleAwait(node); break;
+                case "RawMustacheTag": handleRaw(node); break;
+                case "DebugTag": handleDebug(node); break;
+                case "InlineComponent": handleComponent(node); break;
+                case "Element": handleElement(node); break;
+                case "Comment": handleComment(node); break;
+                case "Binding": handleBinding(node, parent); break;
+                case "Class": handleClassDirective(node); break;
+                case "Action": handleActionDirective(node); break;
+                case "Transition": handleTransitionDirective(node); break;
+                case "Animation": handleAnimateDirective(node); break;
+                case "Attribute": handleAttribute(node); break;
+                case "EventHandler": handleEventHandler(node, parent); break;
+                case "Identifier": handleIdentifier(node); break;
             }
         }
     });
@@ -466,6 +429,6 @@ export function htmlx2jsx(htmlx: string) {
 
     return {
         map: str.generateMap({ hires: true }),
-        code:  str.toString(),
+        code: str.toString(),
     }
 }
