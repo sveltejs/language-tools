@@ -50,11 +50,28 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
     let htmlxAst = parseHtmlx(str.original);
 
     let uses$$props = false;
-    const handleIdentifier = (node: Node) => {
+    const handleIdentifier = (node: Node, parent: Node) => {
         if (node.name == "$$props") {
             uses$$props = true; 
             return;
         }
+
+        //handle store
+        if (node.name[0] != "$") return;
+    
+        //handle assign to
+        if (parent.type == "AssignmentExpression" && parent.left == node && parent.operator == "=") {
+            let dollar = str.original.indexOf("$", node.start);
+            str.remove(dollar, dollar+1);
+            str.overwrite(node.end, str.original.indexOf("=", node.end)+1, ".set(");
+            str.appendLeft(parent.end, ")");
+            return;
+        }
+
+        //rewrite get
+        let dollar = str.original.indexOf("$", node.start);
+        str.overwrite(dollar, dollar+1, "__sveltets_store_get(");
+        str.appendLeft(node.end, ")")
     }
 
     let scriptTag: Node = null;
@@ -85,9 +102,9 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
         str.remove(node.start, node.end);
     }
 
-    const onHtmlxWalk = (node:Node) => {
+    const onHtmlxWalk = (node:Node, parent:Node) => {
         switch(node.type) {
-           case "Identifier": handleIdentifier(node); break;
+           case "Identifier": handleIdentifier(node, parent); break;
            case "Slot": handleSlot(node); break;
            case "Style": handleStyleTag(node); break;
            case "Script": handleScriptTag(node); break;
@@ -103,30 +120,6 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
         uses$$props
     }
 }
-
-
-
-function declareImplictReactiveVariables(declaredNames: string[], str: MagicString, tsAst: ts.SourceFile, astOffset: number) {
-    for (let le of tsAst.statements) {
-        if (le.kind != ts.SyntaxKind.LabeledStatement) continue;
-        let ls = le as ts.LabeledStatement;
-        if (ls.label.text != "$") continue;
-        if (!ls.statement || ls.statement.kind != ts.SyntaxKind.ExpressionStatement) continue;
-        let es = ls.statement as ts.ExpressionStatement;
-        if (!es.expression || es.expression.kind != ts.SyntaxKind.BinaryExpression) continue;
-        let be = es.expression as ts.BinaryExpression;
-        if (be.operatorToken.kind != ts.SyntaxKind.EqualsToken
-            || be.left.kind != ts.SyntaxKind.Identifier) continue;
-
-        let ident = be.left as ts.Identifier;
-        //are we already declared?
-        if (declaredNames.find(n => ident.text == n)) continue;
-        //add a declaration
-        str.prependRight(ls.pos + astOffset + 1, `;let ${ident.text}; `)
-    }
-}
-
-
 
 type InstanceScriptProcessResult = {
     exportedNames: Map<string, string>;
@@ -174,15 +167,28 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
         //convert store references
         if (!ident.text.startsWith('$')) return;
 
+        //don't convert labels 
+        if (ts.isLabeledStatement(parent)) return;
+
         //we are a store variable
 
-        //we are on the left
-     //   if (parent && ts.isBinaryExpression(parent) && parent.operatorToken.kind == ts.SyntaxKind.EqualsToken && parent.left == ident) {
+        //we are on the left, become a "set"
+        if (parent && ts.isBinaryExpression(parent) && parent.operatorToken.kind == ts.SyntaxKind.EqualsToken && parent.left == ident) {
+            //remove $
+            let dollar = str.original.indexOf("$", ident.pos + astOffset);
+            str.remove(dollar, dollar + 1);
+            // replace = with .set(
+            str.overwrite(ident.end+astOffset, parent.operatorToken.end + astOffset, ".set(");
+            // append )
+            str.appendLeft(parent.end+astOffset, ")");
+            return;
+        }
 
-      //  }
-
-
-
+        // we must be on the right or not part of assignment
+       
+        let dollar = str.original.indexOf("$", ident.pos + astOffset);
+        str.overwrite(dollar, dollar+1, "__sveltets_store_get(");
+        str.appendLeft(ident.end+astOffset, ")");
     }
 
     const processChild = (s: ts.Node, parent: ts.Node) => {

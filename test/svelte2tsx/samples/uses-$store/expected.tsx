@@ -1,6 +1,5 @@
 <></>;function render() {
-    b.set(__sveltets_store_get(b).concat(5))
-;
+b.set(__sveltets_store_get(b).concat(5));
 <>
 <h1>{__sveltets_store_get(b)}</h1></>
 return { props: {}, slots: {} }}
