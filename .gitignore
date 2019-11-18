@@ -2,3 +2,5 @@
 node_modules
 /index.js
 /index.js.map
+convert.js
+convert.js.map
