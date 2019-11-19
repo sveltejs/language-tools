@@ -186,6 +186,12 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node, onWalk: (node: No
 
 
     const handleComponent = (el: Node) => {
+        //we need to remove : if it is a svelte component
+        if (el.name.startsWith("svelte:")) {
+            let colon = htmlx.indexOf(":", el.start);
+            str.remove(colon, colon+1);
+        }
+
         //we only need to do something if there is a let or slot
         handleSlot(el, el.name, "default");
 
@@ -354,7 +360,10 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node, onWalk: (node: No
         str.remove(node.start, node.end);
     }
 
-
+    const handleSvelteTag = (node: Node) => {
+        let colon = htmlx.indexOf(":", node.start);
+        str.remove(colon, colon + 1);
+    }
   
 
     walk(ast, {
@@ -375,6 +384,10 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node, onWalk: (node: No
                 case "Animation": handleAnimateDirective(node); break;
                 case "Attribute": handleAttribute(node); break;
                 case "EventHandler": handleEventHandler(node, parent); break;
+                case "Options": handleSvelteTag(node); break;
+                case "Window": handleSvelteTag(node); break;
+                case "Head": handleSvelteTag(node); break;
+                case "Body": handleSvelteTag(node); break;
             }
             if (onWalk) onWalk(node, parent);
         }
