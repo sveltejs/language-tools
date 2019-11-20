@@ -29,7 +29,10 @@ describe('svelte2tsx', () => {
 
 			let diags = converter.compile(configFileOptions.options, configFileOptions.fileNames.concat(inputFiles))
 			let expectedFile = `${__dirname}/samples/${dir}/expected.txt`
-			let checkDiags = diags.map(d => `${d.filename}:${d.start.line}:${d.start.column} ${d.message}`).join("\n");
+
+			let makeRelative = f => path.relative(`${__dirname}/samples/${dir}`, f);
+
+			let checkDiags = diags.map(d => `${makeRelative(d.filename)}:${d.start.line}:${d.start.column} ${d.message}`).join("\n").replace(/\r\n/g,"\n");
 
 			if (!fs.existsSync(expectedFile)) {
 				fs.writeFileSync(expectedFile, checkDiags)

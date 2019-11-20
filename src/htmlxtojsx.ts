@@ -25,19 +25,19 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node, onWalk: (node: No
     };
 
     const handleEventHandler = (attr: Node, parent: Node) => {
-        let jsxEventName = `on${attr.name.toLowerCase()}`
+        let jsxEventName = `${attr.name.toLowerCase()}`
 
-        if (parent.type == "Element" && KnownEvents.indexOf(jsxEventName) >= 0) {
+        if (parent.type == "Element" && KnownEvents.indexOf('on'+jsxEventName) >= 0) {
             if (attr.expression) {
                 let endAttr = htmlx.indexOf("=", attr.start)
-                str.overwrite(attr.start, endAttr, jsxEventName)
+                str.overwrite(attr.start+'on:'.length-1, endAttr, jsxEventName)
                 if (htmlx[attr.end - 1] == '"') {
                     let firstQuote = htmlx.indexOf('"', endAttr);
                     str.remove(firstQuote, firstQuote + 1);
                     str.remove(attr.end - 1, attr.end);
                 }
             } else {
-                str.overwrite(attr.start, attr.end, `${jsxEventName}={null}`)
+                str.overwrite(attr.start+'on:'.length-1, attr.end, `${jsxEventName}={null}`)
             }
         } else {
             //We don't know the type of the event handler

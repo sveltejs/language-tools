@@ -1,0 +1,3 @@
+input.svelte:1:2 TS2322 Type '{ count: any; }' is not assignable to type 'HTMLProps<HTMLButtonElement>'.
+  Property 'count' does not exist on type 'HTMLProps<HTMLButtonElement>'.
+input.svelte:1:10 TS2304 Cannot find name 'count'.

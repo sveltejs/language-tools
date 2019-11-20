@@ -1,0 +1,3 @@
+input.svelte:9:9 TS2322 Type '(b: number) => void' is not assignable to type 'EventHandler<MouseEvent>'.
+  Types of parameters 'b' and 'event' are incompatible.
+    Type 'MouseEvent' is not assignable to type 'number'.

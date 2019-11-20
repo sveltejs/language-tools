@@ -2,7 +2,7 @@ import { svelte2tsx } from './svelte2tsx';
 import * as ts from 'typescript';
 import getCodeFrame from './from_svelte/code_frame'
 import * as path from 'path';
-
+import * as fs from 'fs';
 
 function createCompilerHost(configOptions: ts.CompilerOptions): ts.CompilerHost {
 
@@ -26,7 +26,7 @@ function createCompilerHost(configOptions: ts.CompilerOptions): ts.CompilerHost 
             (srcFile as any).__svelte_map = output.map;
             (srcFile as any).__svelte_source = sourceText;
            
-          //  fs.writeFileSync(fileName, output.code);
+            fs.writeFileSync(fileName, output.code);
             return srcFile;
         }
         else {
@@ -88,8 +88,14 @@ function transformDiagnostics(diagnostics: ts.Diagnostic[]): Warning[] {
     function transformDiagnostic(diagnostic: ts.Diagnostic): Warning {
 
         if (diagnostic.file) {
+            
             let start = ts.getLineAndCharacterOfPosition(diagnostic.file, diagnostic.start);
+            //these are 0 based, but we want 1 based to match sourcemap and editor etc
+            start.character = start.character + 1;
+            start.line = start.line + 1;
             let end = ts.getLineAndCharacterOfPosition(diagnostic.file, diagnostic.start + diagnostic.length);
+            end.character = end.character + 1;
+            end.line = end.line + 1;
 
             let sourceMap = (diagnostic.file as any).__svelte_map as SourceMap;
             let relativeFileName = getRelativeFileName(diagnostic.file.fileName);
@@ -108,7 +114,8 @@ function transformDiagnostics(diagnostics: ts.Diagnostic[]): Warning[] {
                     if (pos.line == 0) {
                         console.log("invalid pos", start, end, diagnostic.start);
                     }
-                    let res = decoder.originalPositionFor({ line: pos.line+1, column: pos.character })
+                    let res = decoder.originalPositionFor({ line: pos.line, column: pos.character })
+                    
                     pos.line = res.line;
                     pos.character = res.column;
                 }
