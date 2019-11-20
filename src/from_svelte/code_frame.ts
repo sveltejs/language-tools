@@ -21,14 +21,14 @@ export default function get_code_frame(
 	return lines
 		.slice(frame_start, frame_end)
 		.map((str, i) => {
-			const isErrorLine = frame_start + i === line;
+			const isErrorLine = frame_start + i === line - 1;
 
 			let line_num = String(i + frame_start + 1);
 			while (line_num.length < digits) line_num = ` ${line_num}`;
 
 			if (isErrorLine) {
 				const indicator =
-					repeat(' ', digits + 2 + tabs_to_spaces(str.slice(0, column)).length) +  repeat('~', length || 1);
+					repeat(' ', digits + 2 + tabs_to_spaces(str.slice(0, column-1)).length) +  repeat('~', length || 1);
 				return `${line_num}: ${tabs_to_spaces(str)}\n${indicator}`;
 			}
 

@@ -15,7 +15,7 @@ function reportDiagnostic(d: Warning) {
     if (c == "error") codeOutput = chalk`{red error}`
     if (c == "warning") codeOutput = chalk`{yellow error}`
     
-    let output = chalk`{cyan ${d.filename}}{yellow :${d.start.line+1}:${d.start.column+1}} - ${codeOutput} ${d.message}\n\n`
+    let output = chalk`{cyan ${d.filename}}{yellow :${d.start.line}:${d.start.column}} - ${codeOutput} ${d.message}\n\n`
     
     output += `${d.frame}\n\n`
     process.stdout.write(output);

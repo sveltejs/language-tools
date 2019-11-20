@@ -6,7 +6,7 @@ function render() {
 ;
 <>
 
-<Add number1={1}  />
+<Add number1={1} number2={"3"} />
 
 </>
 return { props: {}, slots: {} }}
