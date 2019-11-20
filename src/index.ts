@@ -6,7 +6,7 @@ import * as path from "path";
 import { compile, parseConfigFile } from './compiler';
 import { Warning } from 'svelte/types/compiler/interfaces';
 import chalk from 'chalk'
-
+export { compile, parseConfigFile };
 
 
 function reportDiagnostic(d: Warning) {      

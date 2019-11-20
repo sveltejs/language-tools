@@ -1,16 +1,14 @@
 let converter = require('../../index.js')
 let fs = require('fs')
 let assert = require('assert')
+let path = require('path')
 
 describe('svelte2tsx', () => {
 
 	let configFileOptions = {}
 	before(() => {
-		configFileOptions = parseConfigFile(path.resolve(__dirname, "./tsconfig.json"));
-
-	
+		configFileOptions = converter.parseConfigFile(path.resolve(__dirname, "./tsconfig.json"));
 	})
-
 
 	fs.readdirSync(`${__dirname}/samples`).forEach(dir => {
 		if (dir[0] === '.') return;
@@ -27,15 +25,19 @@ describe('svelte2tsx', () => {
 		(solo ? it.only : it)(dir, () => {
 			let inputFiles = fs.readdirSync(`${__dirname}/samples/${dir}`)
 								.filter(f => f.endsWith(".svelte") || f.endsWith(".ts") || f.endsWith(".js"))
-								.map(f => `./samples/${dir}`)
+								.map(f => `${__dirname}/samples/${dir}/${f}`)
 
-            const expectedOutputJson = fs.readFileSync(`${__dirname}/samples/${dir}/expected.json`, 'utf-8').replace(/\/\/\.*?$/g, "");
-			let expectedOutput = JSON.parse(expectedOutputJson);
+			let diags = converter.compile(configFileOptions.options, configFileOptions.fileNames.concat(inputFiles))
+			let expectedFile = `${__dirname}/samples/${dir}/expected.txt`
+			let checkDiags = diags.map(d => `${d.filename}:${d.start.line}:${d.start.column} ${d.message}`).join("\n");
 
-			let diags = compile(configFileOptions.options, conf.fileNames.concat(inputFiles));
+			if (!fs.existsSync(expectedFile)) {
+				fs.writeFileSync(expectedFile, checkDiags)
+			}
 
-       		diags.
-            assert.equal(code, expectedOutput);
+			const expectedOutput = fs.readFileSync(expectedFile, 'utf-8').replace(/\r\n/g, "\n");
+			
+       		assert.equal(checkDiags, expectedOutput)
 		});
 	});
 });

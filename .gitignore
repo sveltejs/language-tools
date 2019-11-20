@@ -4,3 +4,4 @@ node_modules
 /index.js.map
 convert.js
 convert.js.map
+test/typecheck/samples/**/input.svelte.tsx
