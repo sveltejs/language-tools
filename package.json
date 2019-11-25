@@ -1,5 +1,5 @@
 {
-  "name": "svelte-app",
+  "name": "ts-svelte",
   "version": "1.0.0",
   "devDependencies": {
     "@types/mocha": "^5.2.7",
@@ -25,6 +25,7 @@
   "dependencies": {
     "source-map": "~0.6.1"
   },
+  "main": "index.js",
   "peerDependencies": {
     "svelte": "^3.14.1",
     "typescript": "^3.6.4"
