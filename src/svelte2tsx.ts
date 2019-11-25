@@ -237,8 +237,10 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
         //move imports to top of script so they appear outside our render function
         if (ts.isImportDeclaration(s)) {
             str.move(s.pos+astOffset, s.end+astOffset, script.start+1);
-            str.overwrite(s.end+astOffset-1, s.end+astOffset, '"\n')
-
+            //add in a \n 
+            const originalEndChar = str.original[s.end+astOffset-1];
+            str.overwrite(s.end+astOffset-1, s.end+astOffset, originalEndChar+"\n");
+       
             //track the top level declaration
             if (s.importClause) {
                 if (s.importClause.name && ts.isIdentifier(s.importClause.name)) {

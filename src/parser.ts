@@ -1,7 +1,16 @@
-import parse5, { DefaultTreeDocumentFragment, DefaultTreeElement, DefaultTreeTextNode } from 'parse5'
+import parse5, { DefaultTreeDocumentFragment, DefaultTreeElement, DefaultTreeTextNode, DefaultTreeNode } from 'parse5'
 import compiler from 'svelte/compiler'
 import { Node } from 'svelte/types/compiler/interfaces';
 
+
+
+function walkAst(doc: DefaultTreeElement, action: (c: DefaultTreeElement) => void) {
+    action(doc);
+    if (!doc.childNodes) return;
+    for (let i = 0; i < doc.childNodes.length; i++) {
+        walkAst(doc.childNodes[i] as DefaultTreeElement, action);
+    }
+}
 
 export function findVerbatimElements(htmlx: string) {
     let elements:Node[] = []
@@ -9,11 +18,9 @@ export function findVerbatimElements(htmlx: string) {
     
     let doc: DefaultTreeDocumentFragment = parse5.parseFragment (htmlx, { sourceCodeLocationInfo: true }) as DefaultTreeDocumentFragment;
     
-    for(var n of doc.childNodes) {
-        let el = n as DefaultTreeElement;
+    walkAst(doc as DefaultTreeElement, el => {
         if (tag_names.includes(el.nodeName)) {
             let content =  (el.childNodes && el.childNodes.length > 0) ? el.childNodes[0] as DefaultTreeTextNode : null;
-           
             elements.push({
                 start: el.sourceCodeLocation.startOffset,
                 end: el.sourceCodeLocation.endOffset,
@@ -39,7 +46,8 @@ export function findVerbatimElements(htmlx: string) {
                 }
             });
         }
-    }
+    });
+
     return elements;
 }
 
