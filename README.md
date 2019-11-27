@@ -25,14 +25,15 @@ Input.svelte
 </script>
 ```
 
-Will produce
+will produce this ugly but type checkable TSX
 ```tsx
 <></>;function render() {
 
-     let name = "world"
+     let world = "name"
 ;
-<></>
-return { props: {name}, slots: {} }}
+<><h1>hello {world}</h1>
+</>
+return { props: {world}, slots: {} }}
 
 export default class {
     $$prop_def = __sveltets_partial(render().props)
