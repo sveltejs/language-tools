@@ -45,7 +45,8 @@
     "build": "rollup -c",
     "dev": "rollup -c -w",
     "test": "mocha --opts mocha.opts",
-    "pretest": "rollup -c rollup.config.test.js"
+    "pretest": "rollup -c rollup.config.test.js",
+    "prepublishOnly": "npm run build"
   },
   "files": ["index.mjs", "index.js", "index.d.ts", "README.md", "svelte-jsx.d.ts", "svelte-shims.d.ts"]
 }
