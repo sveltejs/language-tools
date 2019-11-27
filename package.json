@@ -48,5 +48,5 @@
     "pretest": "rollup -c rollup.config.test.js",
     "prepublishOnly": "npm run build"
   },
-  "files": ["index.mjs", "index.js", "index.d.ts", "README.md", "svelte-jsx.d.ts", "svelte-shims.d.ts"]
+  "files": ["index.mjs", "index.js", "index.d.ts", "README.md", "LICENSE", "svelte-jsx.d.ts", "svelte-shims.d.ts"]
 }
