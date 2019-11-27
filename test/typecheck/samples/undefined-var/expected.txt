@@ -1,1 +1,0 @@
-input.svelte:1:2 TS2304 Cannot find name 'hello'.

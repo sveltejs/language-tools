@@ -1,5 +1,5 @@
 import MagicString from 'magic-string'
-import { parseHtmlx } from './parser';
+import { parseHtmlx } from './htmlxparser';
 import { convertHtmlxToJsx } from './htmlxtojsx';
 import { Node } from 'svelte/compiler'
 //import { createSourceFile, ScriptTarget, ScriptKind, SourceFile, SyntaxKind, VariableStatement, Identifier, FunctionDeclaration, BindingName, ExportDeclaration, ScriptSnapshot, LabeledStatement, ExpressionStatement, BinaryExpression, Statement } from 'typescript'
@@ -275,9 +275,10 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
         return ts.forEachChild(s, n => processChild(n, s))
     }
 
+    //walk the ast and convert to tsx as we go
     tsAst.forEachChild(processTopLevelStatement);
 
-    // declare implicit reactive variables
+    // declare implicit reactive variables we found in the script
     for ( var [name, pos]  of implicitTopLevelNames.entries()) {
         if (!declaredTopLevelNames.has(name)) {
             //add a declaration
@@ -342,10 +343,10 @@ export function svelte2tsx(svelte: string) {
     // process the htmlx as a svelte template
     let { moduleScriptTag, scriptTag, slots, uses$$props } = processSvelteTemplate(str);
     
-    /* Rearrange the script tags so that module is first, and instance second followed finally by the templatet
+    /* Rearrange the script tags so that module is first, and instance second followed finally by the template
      * This is a bit convoluted due to some trouble I had with magic string. A simple str.move(start,end,0) for each script wasn't enough
-     * since if the module script was already at 0, it wouldn't move (which is fine) but would mean the order would be swapped when the script tag tried to moved to 0
-     * instead in this case it has to move to moduleScriptTag.end. We track the location for the script move in the MoveInstanceScriptTarget var
+     * since if the module script was already at 0, it wouldn't move (which is fine) but would mean the order would be swapped when the script tag tried to move to 0
+     * In this case we instead have to move it to moduleScriptTag.end. We track the location for the script move in the MoveInstanceScriptTarget var
      */
     let instanceScriptTarget = 0;
 
@@ -354,7 +355,7 @@ export function svelte2tsx(svelte: string) {
             //move our module tag to the top
             str.move(moduleScriptTag.start, moduleScriptTag.end, 0);
         } else {
-            //since our module script was already at position 0, we need to move our script tag to the end of it.
+            //since our module script was already at position 0, we need to move our instance script tag to the end of it.
             instanceScriptTarget = moduleScriptTag.end;
         }
     }
@@ -362,7 +363,7 @@ export function svelte2tsx(svelte: string) {
     //move the instance script and process the content
     let exportedNames = new Map<string, string>();
     if (scriptTag) {
-        //ensure it is betweent he module script and the rest of the template (the variables need to be declared before the jsx template)
+        //ensure it is between the module script and the rest of the template (the variables need to be declared before the jsx template)
         if (scriptTag.start != instanceScriptTarget) {
             str.move(scriptTag.start, scriptTag.end, instanceScriptTarget);
         }

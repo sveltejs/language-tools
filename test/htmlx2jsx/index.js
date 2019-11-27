@@ -1,4 +1,4 @@
-let converter = require('../../index.js')
+let converter = require('../build/htmlxtojsx')
 let fs = require('fs')
 let assert = require('assert')
 

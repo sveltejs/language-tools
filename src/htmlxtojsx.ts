@@ -1,17 +1,10 @@
 import MagicString from 'magic-string';
 import { walk, Node } from 'estree-walker';
-import { parseHtmlx } from './parser';
+import { parseHtmlx } from './htmlxparser';
 import KnownEvents from './knownevents';
 
 
-
-type HtmlxToJsxResult = {
-    uses$$props: boolean;
-}
-
-
 export function convertHtmlxToJsx(str: MagicString, ast: Node, onWalk: (node: Node, parent: Node) => void = null) {
-    let uses$$props = false;
     let htmlx = str.original;
     str.prepend("<>");
     str.append("</>");
@@ -392,9 +385,6 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node, onWalk: (node: No
             if (onWalk) onWalk(node, parent);
         }
     });
-
-    
-    return { uses$$props }
 }
 
 export function htmlx2jsx(htmlx: string) {

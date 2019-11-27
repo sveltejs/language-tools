@@ -1,5 +1,5 @@
 {
-  "name": "ts-svelte",
+  "name": "svelte2tsx",
   "version": "1.0.0",
   "devDependencies": {
     "@types/mocha": "^5.2.7",
@@ -7,12 +7,12 @@
     "@types/parse5": "^5.0.2",
     "@types/unist": "^2.0.3",
     "@types/vfile": "^3.0.2",
-    "chalk": "^3.0.0",
     "magic-string": "^0.25.4",
     "mocha": "^6.2.2",
     "parse5": "^5.1.0",
     "rollup": "^1.12.0",
     "rollup-plugin-commonjs": "^10.0.0",
+    "rollup-plugin-delete": "^1.1.0",
     "rollup-plugin-json": "^4.0.0",
     "rollup-plugin-node-resolve": "^5.2.0",
     "rollup-plugin-typescript": "^1.0.1",
@@ -21,9 +21,6 @@
     "tiny-glob": "^0.2.6",
     "tslib": "^1.10.0",
     "typescript": "^3.6.4"
-  },
-  "dependencies": {
-    "source-map": "~0.6.1"
   },
   "main": "index.js",
   "peerDependencies": {
@@ -34,9 +31,6 @@
     "build": "rollup -c",
     "dev": "rollup -c -w",
     "test": "mocha --opts mocha.opts",
-    "test:unit": "mocha --require sucrase/register --recursive src/**/__test__.ts",
-    "pretest": "npm run build",
-    "precompile": "npm run build",
-    "compile": "node ./index.js ./test2/input2.svelte.tsx"
+    "pretest": "rollup -c rollup.config.test.js"
   }
 }
