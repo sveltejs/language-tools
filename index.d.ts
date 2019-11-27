@@ -1,8 +1,6 @@
-import { SourceMap } from "magic-string";
-
 type SvelteCompiledToTsx = {
     code: string,
-    map: SourceMap
+    map: import("magic-string").SourceMap
 }
 
-export declare function svelte2tsx(svelte: string): SvelteCompiledToTsx
+export default function svelte2tsx(svelte: string): SvelteCompiledToTsx

@@ -1,6 +1,21 @@
 {
   "name": "svelte2tsx",
-  "version": "1.0.0",
+  "version": "0.1.0",
+  "description": "Convert Svelte components to TSX for type checking",
+  "author": "David Pershouse",
+  "license": "MIT",
+  "keywords": [
+    "svelte",
+    "typescript"
+  ],
+  "homepage": "https://github.com/halfnelson/svelte2tsx",
+  "repository": {
+      "type": "git",
+      "url": "https://github.com/halfnelson/svelte2tsx.git"
+  },
+  "type": "commonjs",
+  "main": "index.js",
+  "types": "index.d.ts",
   "devDependencies": {
     "@types/mocha": "^5.2.7",
     "@types/node": "^8.10.53",
@@ -22,7 +37,6 @@
     "tslib": "^1.10.0",
     "typescript": "^3.6.4"
   },
-  "main": "index.js",
   "peerDependencies": {
     "svelte": "^3.14.1",
     "typescript": "^3.6.4"
@@ -32,5 +46,6 @@
     "dev": "rollup -c -w",
     "test": "mocha --opts mocha.opts",
     "pretest": "rollup -c rollup.config.test.js"
-  }
+  },
+  "files": ["index.mjs", "index.js", "index.d.ts", "README.md", "svelte-jsx.d.ts", "svelte-shims.d.ts"]
 }

@@ -23,5 +23,5 @@ export default [{
 	watch: {
 		clearScreen: false
 	},
-	external: [...builtins, 'typescript', 'svelte']
+	external: [...builtins, 'typescript', 'svelte', 'svelte/compiler']
 }];
