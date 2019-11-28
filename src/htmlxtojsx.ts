@@ -253,7 +253,7 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node, onWalk: (node: No
         let voidTags = "area,base,br,col,embed,hr,img,input,link,meta,param,source,track,wbr".split(',');
         if (voidTags.find(x => x == attr.name)) {
             if (htmlx[attr.end - 2] != '/') {
-                str.appendLeft(attr.end - 1, "/");
+                str.appendRight(attr.end - 1, "/");
             }
         }
     }
@@ -359,6 +359,12 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node, onWalk: (node: No
     const handleSvelteTag = (node: Node) => {
         let colon = htmlx.indexOf(":", node.start);
         str.remove(colon, colon + 1);
+
+        let closeTag = htmlx.lastIndexOf("/"+node.name, node.end)
+        if (closeTag > node.start) {
+            let colon = htmlx.indexOf(":",closeTag)
+            str.remove(colon, colon + 1);
+        }
     }
   
 

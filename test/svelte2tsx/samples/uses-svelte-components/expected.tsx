@@ -5,7 +5,9 @@
 <sveltecomponent this={testComponent} propa={5} />
 <sveltewindow  />
 <sveltebody />
-<sveltehead />
+<sveltehead>
+    <h1>Hi</h1>
+</sveltehead>
 <svelteoptions /></>
 return { props: {}, slots: {} }}
 
