@@ -10,11 +10,11 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node, onWalk: (node: No
     str.append("</>");
     const handleRaw = (rawBlock: Node) => {
         let tokenStart = htmlx.indexOf("@html", rawBlock.start);
-        str.remove(tokenStart, "@html".length + 1);
+        str.remove(tokenStart, tokenStart + "@html".length);
     };
     const handleDebug = (debugBlock: Node) => {
         let tokenStart = htmlx.indexOf("@debug", debugBlock.start);
-        str.remove(tokenStart, "@debug".length + 1);
+        str.remove(tokenStart, tokenStart + "@debug".length);
     };
 
     const handleEventHandler = (attr: Node, parent: Node) => {
@@ -202,6 +202,9 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node, onWalk: (node: No
     }
 
     const handleAttribute = (attr: Node) => {
+        //we are a bare attribute
+        if (attr.value === true) return;
+        
         if (attr.value.length == 0) return; //wut?
         //handle single value
         if (attr.value.length == 1) {
@@ -361,28 +364,33 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node, onWalk: (node: No
 
     walk(ast, {
         enter: (node: Node, parent: Node, prop, index) => {
-            switch (node.type) {
-                case "IfBlock": handleIf(node); break;
-                case "EachBlock": handleEach(node); break;
-                case "AwaitBlock": handleAwait(node); break;
-                case "RawMustacheTag": handleRaw(node); break;
-                case "DebugTag": handleDebug(node); break;
-                case "InlineComponent": handleComponent(node); break;
-                case "Element": handleElement(node); break;
-                case "Comment": handleComment(node); break;
-                case "Binding": handleBinding(node, parent); break;
-                case "Class": handleClassDirective(node); break;
-                case "Action": handleActionDirective(node); break;
-                case "Transition": handleTransitionDirective(node); break;
-                case "Animation": handleAnimateDirective(node); break;
-                case "Attribute": handleAttribute(node); break;
-                case "EventHandler": handleEventHandler(node, parent); break;
-                case "Options": handleSvelteTag(node); break;
-                case "Window": handleSvelteTag(node); break;
-                case "Head": handleSvelteTag(node); break;
-                case "Body": handleSvelteTag(node); break;
+            try {
+                switch (node.type) {
+                    case "IfBlock": handleIf(node); break;
+                    case "EachBlock": handleEach(node); break;
+                    case "AwaitBlock": handleAwait(node); break;
+                    case "RawMustacheTag": handleRaw(node); break;
+                    case "DebugTag": handleDebug(node); break;
+                    case "InlineComponent": handleComponent(node); break;
+                    case "Element": handleElement(node); break;
+                    case "Comment": handleComment(node); break;
+                    case "Binding": handleBinding(node, parent); break;
+                    case "Class": handleClassDirective(node); break;
+                    case "Action": handleActionDirective(node); break;
+                    case "Transition": handleTransitionDirective(node); break;
+                    case "Animation": handleAnimateDirective(node); break;
+                    case "Attribute": handleAttribute(node); break;
+                    case "EventHandler": handleEventHandler(node, parent); break;
+                    case "Options": handleSvelteTag(node); break;
+                    case "Window": handleSvelteTag(node); break;
+                    case "Head": handleSvelteTag(node); break;
+                    case "Body": handleSvelteTag(node); break;
+                }
+                if (onWalk) onWalk(node, parent);
+            } catch (e) {
+                console.error("Error parsing node ", node);
+                throw e;
             }
-            if (onWalk) onWalk(node, parent);
         }
     });
 }
