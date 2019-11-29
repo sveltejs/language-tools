@@ -5,19 +5,36 @@ import json from 'rollup-plugin-json';
 import del from 'rollup-plugin-delete';
 import builtins from 'builtin-modules'
 
-export default {
-	input: ['src/index.ts', 'src/htmlxtojsx.ts'],
+export default [{
+	input: ['src/index.ts'],
 	output: {
 		sourcemap: true,
 		format: 'commonjs',
-		dir: 'test/build'
+		file: 'test/build/index.js'
 	},
 	plugins: [
-		del({ targets: 'test/build/*' }),
+		del({ targets: 'test/build/index.*' }),
 		resolve({ browser: false, preferBuiltins: true }),
 		commonjs(),
 		json(),
 		typescript()
 	],
 	external: [...builtins, 'typescript', 'svelte', 'svelte/compiler', 'parse5', 'magic-string']
-};
+}, {
+	input: ['src/htmlxtojsx.ts'],
+	output: {
+		sourcemap: true,
+		format: 'commonjs',
+		file: 'test/build/htmlxtojsx.js'
+	},
+	plugins: [
+		del({ targets: 'test/build/htmlxtojsx.*' }),
+		resolve({ browser: false, preferBuiltins: true }),
+		commonjs(),
+		json(),
+		typescript()
+	],
+	external: [...builtins, 'typescript', 'svelte', 'svelte/compiler', 'parse5', 'magic-string']
+	
+}
+];

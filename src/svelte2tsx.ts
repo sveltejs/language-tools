@@ -26,15 +26,9 @@ function AttributeValueAsJsExpression(htmlx: string, attr: Node): string {
         throw Error("Unknown attribute value type:" + attrVal.type);
     }
 
-    // we have multiple attribute values, so we build a string out of them. 
-    // technically the user can do something funky like attr="text "{value} or even attr=text{value}
-    // so instead of trying to maintain a nice sourcemap with prepends etc, we just overwrite the whole thing
-    let valueParts = attr.value.map(n => {
-        if (n.type == "Text") return '${"' + n.raw + '"}';
-        if (n.type == "MustacheTag") return "$" + htmlx.substring(n.start, n.end);
-    })
-    let valuesAsStringTemplate = "`" + valueParts.join("") + "`";
-    return valuesAsStringTemplate;
+    // we have multiple attribute values, so we know we are building a string out of them. 
+    // so return a dummy string, it will typecheck the same :)
+    return '"__svelte_ts_string"';
 }
 
 
@@ -58,7 +52,7 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
 
         //handle store
         if (node.name[0] != "$") return;
-    
+
         //handle assign to
         if (parent.type == "AssignmentExpression" && parent.left == node && parent.operator == "=") {
             let dollar = str.original.indexOf("$", node.start);
@@ -72,6 +66,7 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
         let dollar = str.original.indexOf("$", node.start);
         str.overwrite(dollar, dollar+1, "__sveltets_store_get(");
         str.appendLeft(node.end, ")")
+        
     }
 
     let scriptTag: Node = null;

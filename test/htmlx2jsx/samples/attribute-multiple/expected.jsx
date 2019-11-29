@@ -1,1 +1,1 @@
-<><SomeComponent attr={`${"text "}${value}`} /></>
+<><SomeComponent attr={`text ${value}`} attrd={`t${thing}`} /></>

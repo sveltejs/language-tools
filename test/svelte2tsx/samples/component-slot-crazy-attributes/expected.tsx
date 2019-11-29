@@ -4,9 +4,9 @@
 ;
 <>
 <div>
-    <slot a={b} b={b} c="b" d={`${"a"}${b}`} e={b} >Hello</slot>
+    <slot a={b} b={b} c="b" d={`a${b}`} e={b} >Hello</slot>
 </div></>
-return { props: {}, slots: {default: {a:b, b:b, c:"b", d:`${"a"}${b}`, e:b}} }}
+return { props: {}, slots: {default: {a:b, b:b, c:"b", d:"__svelte_ts_string", e:b}} }}
 
 export default class {
     $$prop_def = __sveltets_partial(render().props)

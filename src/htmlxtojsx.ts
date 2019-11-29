@@ -1,5 +1,6 @@
 import MagicString from 'magic-string';
-import { walk, Node } from 'estree-walker';
+import svelte from 'svelte/compiler';
+import { Node } from 'estree-walker';
 import { parseHtmlx } from './htmlxparser';
 import KnownEvents from './knownevents';
 
@@ -239,13 +240,22 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node, onWalk: (node: No
         // we have multiple attribute values, so we build a string out of them. 
         // technically the user can do something funky like attr="text "{value} or even attr=text{value}
         // so instead of trying to maintain a nice sourcemap with prepends etc, we just overwrite the whole thing
-        let valueParts = attr.value.map(n => {
-            if (n.type == "Text") return '${"' + n.raw + '"}';
-            if (n.type == "MustacheTag") return "$" + htmlx.substring(n.start, n.end);
-        })
-        let valuesAsStringTemplate = "{`" + valueParts.join("") + "`}";
-        let equals = htmlx.lastIndexOf("=", attr.value[0].start) + 1;
-        str.overwrite(equals, attr.end, valuesAsStringTemplate);
+  
+        let equals = htmlx.lastIndexOf("=", attr.value[0].start);
+        str.overwrite(equals, attr.value[0].start, "={`");
+
+        for(let n of attr.value) {
+            if (n.type == "MustacheTag") {
+                str.appendRight(n.start, "$")
+            }
+        }
+
+        if (htmlx[attr.end-1] == '"') {
+            str.overwrite(attr.end-1, attr.end, "`}")
+        } else {
+            str.appendLeft(attr.end, "`}")
+        }
+        
     }
 
     const handleElement = (attr: Node) => {
@@ -259,25 +269,36 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node, onWalk: (node: No
     }
 
     const handleIf = (ifBlock: Node) => {
+        if (ifBlock.elseif) {
+            //we are an elseif so our work is easier
+            str.prependRight(ifBlock.expression.start,"(")
+            str.appendLeft(ifBlock.expression.end, ")");
+            return;  
+        } 
         // {#if expr} ->
         // {() => { if (expr) { <>
         str.overwrite(ifBlock.start, ifBlock.expression.start, "{() => {if (");
         let end = htmlx.indexOf("}", ifBlock.expression.end);
         str.appendLeft(ifBlock.expression.end, ")");
         str.overwrite(end, end + 1, "{<>");
-        // {:else} -> </>} else {<>
-        if (ifBlock.else) {
-            let elseEnd = htmlx.lastIndexOf("}", ifBlock.else.start);
-            let elseStart = htmlx.lastIndexOf("{", elseEnd);
-            str.overwrite(elseStart, elseStart + 1, "</>}");
-            str.overwrite(elseEnd, elseEnd + 1, "{<>");
-            let colon = htmlx.indexOf(":", elseStart);
-            str.remove(colon, colon + 1);
-        }
+
         // {/if} -> </>}}}</>
         let endif = htmlx.lastIndexOf("{", ifBlock.end);
         str.overwrite(endif, ifBlock.end, "</>}}}");
     };
+
+     // {:else} -> </>} else {<>
+    const handleElse = (elseBlock: Node, parent: Node) => {
+        if (parent.type != "IfBlock") return;
+        let elseEnd = htmlx.lastIndexOf("}", elseBlock.start);
+        let elseword = htmlx.lastIndexOf(":else", elseEnd);
+        let elseStart = htmlx.lastIndexOf("{:else", elseword);
+        str.overwrite(elseStart, elseStart + 1, "</>}");
+        str.overwrite(elseEnd, elseEnd + 1, "{<>");
+        let colon = htmlx.indexOf(":", elseword);
+        str.remove(colon, colon + 1);
+    }
+
     const handleEach = (eachBlock: Node) => {
         // {#each items as item,i (key)} ->
         // {(items).map((item,i) => (key) && <>
@@ -368,12 +389,13 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node, onWalk: (node: No
     }
   
 
-    walk(ast, {
+    (svelte as any).walk(ast, {
         enter: (node: Node, parent: Node, prop, index) => {
             try {
                 switch (node.type) {
                     case "IfBlock": handleIf(node); break;
                     case "EachBlock": handleEach(node); break;
+                    case "ElseBlock": handleElse(node, parent); break;
                     case "AwaitBlock": handleAwait(node); break;
                     case "RawMustacheTag": handleRaw(node); break;
                     case "DebugTag": handleDebug(node); break;
