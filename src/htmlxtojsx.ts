@@ -1,6 +1,6 @@
 import MagicString from 'magic-string';
 import svelte from 'svelte/compiler';
-import { Node } from 'estree-walker';
+import { walk, Node } from 'estree-walker';
 import { parseHtmlx } from './htmlxparser';
 import KnownEvents from './knownevents';
 
@@ -271,7 +271,7 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node, onWalk: (node: No
     const handleIf = (ifBlock: Node) => {
         if (ifBlock.elseif) {
             //we are an elseif so our work is easier
-            str.prependRight(ifBlock.expression.start,"(")
+            str.appendLeft(ifBlock.expression.start,"(")
             str.appendLeft(ifBlock.expression.end, ")");
             return;  
         } 
@@ -292,7 +292,7 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node, onWalk: (node: No
         if (parent.type != "IfBlock") return;
         let elseEnd = htmlx.lastIndexOf("}", elseBlock.start);
         let elseword = htmlx.lastIndexOf(":else", elseEnd);
-        let elseStart = htmlx.lastIndexOf("{:else", elseword);
+        let elseStart = htmlx.lastIndexOf("{", elseword);
         str.overwrite(elseStart, elseStart + 1, "</>}");
         str.overwrite(elseEnd, elseEnd + 1, "{<>");
         let colon = htmlx.indexOf(":", elseword);
@@ -389,7 +389,7 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node, onWalk: (node: No
     }
   
 
-    (svelte as any).walk(ast, {
+   walk(ast, {
         enter: (node: Node, parent: Node, prop, index) => {
             try {
                 switch (node.type) {
