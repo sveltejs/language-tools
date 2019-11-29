@@ -15,7 +15,8 @@
       "../../svelte-jsx.d.ts",
     ],
     "include": [
-       "/samples/**/*.tsx"
+       "/samples/**/*.tsx",
+       "../../*.d.ts"
     ],
     "exclude": [
       "node_modules"
