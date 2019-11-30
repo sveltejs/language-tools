@@ -5,7 +5,7 @@ import { parseHtmlx } from './htmlxparser';
 import KnownEvents from './knownevents';
 
 
-export function convertHtmlxToJsx(str: MagicString, ast: Node, onWalk: (node: Node, parent: Node) => void = null) {
+export function convertHtmlxToJsx(str: MagicString, ast: Node, onWalk: (node: Node, parent: Node, prop:string, index: number) => void = null, onLeave: (node: Node, parent: Node, prop: string, index: number) => void = null) {
     let htmlx = str.original;
     str.prepend("<>");
     str.append("</>");
@@ -407,7 +407,7 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node, onWalk: (node: No
   
 
    (svelte as any).walk(ast, {
-        enter: (node: Node, parent: Node, prop, index) => {
+        enter: (node: Node, parent: Node, prop: string, index: number) => {
             try {
                 switch (node.type) {
                     case "IfBlock": handleIf(node); break;
@@ -431,9 +431,18 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node, onWalk: (node: No
                     case "Head": handleSvelteTag(node); break;
                     case "Body": handleSvelteTag(node); break;
                 }
-                if (onWalk) onWalk(node, parent);
+                if (onWalk) onWalk(node, parent, prop, index);
             } catch (e) {
-                console.error("Error parsing node ", node);
+                console.error("Error walking node ", node);
+                throw e;
+            }
+        },
+
+        leave:  (node: Node, parent: Node, prop: string, index: number ) => {
+            try {
+                if (onLeave) onLeave(node, parent, prop, index);
+            } catch (e) {
+                console.error("Error leaving node ", node);
                 throw e;
             }
         }

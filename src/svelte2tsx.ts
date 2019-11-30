@@ -2,8 +2,8 @@ import MagicString from 'magic-string'
 import { parseHtmlx } from './htmlxparser';
 import { convertHtmlxToJsx } from './htmlxtojsx';
 import { Node } from 'svelte/compiler'
-//import { createSourceFile, ScriptTarget, ScriptKind, SourceFile, SyntaxKind, VariableStatement, Identifier, FunctionDeclaration, BindingName, ExportDeclaration, ScriptSnapshot, LabeledStatement, ExpressionStatement, BinaryExpression, Statement } from 'typescript'
 import * as ts from 'typescript';
+
 
 function AttributeValueAsJsExpression(htmlx: string, attr: Node): string {
     if (attr.value.length == 0) return "''"; //wut?
@@ -40,19 +40,39 @@ type TemplateProcessResult = {
 }
 
 
+class Scope {
+    declared: Set<string> = new Set()
+    parent: Scope
+
+    constructor(parent?: Scope) {
+        this.parent = parent
+    }
+}
+
+type pendingStoreResolution = {
+    node: Node,
+    parent: Node,
+    scope: Scope
+}
+
 function processSvelteTemplate(str: MagicString): TemplateProcessResult {
     let htmlxAst = parseHtmlx(str.original);
 
     let uses$$props = false;
-    const handleIdentifier = (node: Node, parent: Node) => {
-        if (node.name == "$$props") {
-            uses$$props = true; 
-            return;
-        }
 
-        //handle store
-        if (node.name[0] != "$") return;
+    //track if we are in a declaration scope
+    let isDeclaration = false;
 
+
+    //track $store variables since we are only supposed to give top level scopes special treatment, and users can declare $blah variables at higher scopes 
+    //which prevents us just changing all instances of Identity that start with $
+
+    let pendingStoreResolutions:pendingStoreResolution[] = []
+    let scope = new Scope();
+    const pushScope = () => scope = new Scope(scope)
+    const popScope = () => scope = scope.parent
+    
+    const handleStore = (node: Node, parent: Node) => {
         //handle assign to
         if (parent.type == "AssignmentExpression" && parent.left == node && parent.operator == "=") {
             let dollar = str.original.indexOf("$", node.start);
@@ -66,7 +86,49 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
         let dollar = str.original.indexOf("$", node.start);
         str.overwrite(dollar, dollar+1, "__sveltets_store_get(");
         str.appendLeft(node.end, ")")
-        
+    }
+
+    const resolveStore = (pending: pendingStoreResolution) => {
+        let { node, parent, scope } = pending;
+        let name = node.name
+        while (scope) {
+            if (scope.declared.has(name)) {
+                //we were manually declared, this isn't a store access.
+                return;
+            }
+            scope = scope.parent
+        }
+        //We haven't been resolved, we must be a store read/write, handle it.
+        handleStore(node, parent);
+    }
+    
+    const enterBlockStatement = () => pushScope()
+    const leaveBlockStatement = () => popScope()
+
+    const enterFunctionDeclaration = () => pushScope();
+    const leaveFunctionDeclaration = () => popScope();
+
+    const enterArrowFunctionExpression = () => pushScope();
+    const leaveArrowFunctionExpression = () => popScope();
+
+    const handleIdentifier = (node: Node, parent: Node, prop: string) => {
+        if (node.name == "$$props") {
+            uses$$props = true; 
+            return;
+        }
+
+        //handle potential store
+        if (node.name[0] == "$") {
+            if (isDeclaration) {
+                if (parent.type == "Property" && prop == "key") return;
+                scope.declared.add(node.name);
+            } else {
+                if (parent.type == "MemberExpression" && prop == "property") return;
+                if (parent.type == "Property" && prop == "key") return;
+                pendingStoreResolutions.push({ node, parent, scope })
+            }
+            return
+        }
     }
 
     let scriptTag: Node = null;
@@ -97,16 +159,50 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
         str.remove(node.start, node.end);
     }
 
-    const onHtmlxWalk = (node:Node, parent:Node) => {
+
+    const onHtmlxWalk = (node:Node, parent:Node, prop: string, index: number) => {
+
+        if (prop == "params" && (parent.type == "FunctionDeclaration" || parent.type == "ArrowFunctionExpression")) {
+            isDeclaration = true;
+        }
+        if (prop == "id" && parent.type == "VariableDeclarator") {
+            isDeclaration = true;
+        }
+        
+
         switch(node.type) {
-           case "Identifier": handleIdentifier(node, parent); break;
+           case "Identifier": handleIdentifier(node, parent, prop); break;
            case "Slot": handleSlot(node); break;
            case "Style": handleStyleTag(node); break;
            case "Script": handleScriptTag(node); break;
+           case "BlockStatement": enterBlockStatement(); break;
+           case "FunctionDeclaration": enterFunctionDeclaration(); break;
+           case "ArrowFunctionExpression": enterArrowFunctionExpression(); break;
+           case "VariableDeclarator": isDeclaration = true; break;
+        }
+    }
+    
+    const onHtmlxLeave = (node:Node, parent:Node, prop: string, index: number) => {
+        
+        if (prop == "params" && (parent.type == "FunctionDeclaration" || parent.type == "ArrowFunctionExpression")) {
+            isDeclaration = false;
+        }
+
+        if (prop == "id" && parent.type == "VariableDeclarator") {
+            isDeclaration = false;
+        }
+
+        switch(node.type) {
+           case "BlockStatement": leaveBlockStatement(); break;
+           case "FunctionDeclaration": leaveFunctionDeclaration(); break;
+           case "ArrowFunctionExpression": leaveArrowFunctionExpression(); break;
         }
     }
 
-    convertHtmlxToJsx(str, htmlxAst, onHtmlxWalk);
+    convertHtmlxToJsx(str, htmlxAst, onHtmlxWalk, onHtmlxLeave);
+
+    //resolve stores
+    pendingStoreResolutions.map(resolveStore)
 
     return {
         moduleScriptTag,
