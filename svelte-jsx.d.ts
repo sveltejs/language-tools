@@ -44,21 +44,21 @@
     //
     // Event Handler Types
     // ----------------------------------------------------------------------
-    type EventHandler<E = Event> = (event: E) => any;
+    type EventHandler<E = Event, T = HTMLElement> = (event: E & { target: EventTarget & T}) => any;
   
-    type ClipboardEventHandler = EventHandler<ClipboardEvent>;
-    type CompositionEventHandler = EventHandler<CompositionEvent>;
-    type DragEventHandler = EventHandler<DragEvent>;
-    type FocusEventHandler = EventHandler<FocusEvent>;
-    type FormEventHandler = EventHandler<Event>;
-    type ChangeEventHandler = EventHandler<Event>;
-    type KeyboardEventHandler = EventHandler<KeyboardEvent>;
-    type MouseEventHandler = EventHandler<MouseEvent>;
-    type TouchEventHandler = EventHandler<TouchEvent>;
-    type UIEventHandler = EventHandler<UIEvent>;
-    type WheelEventHandler = EventHandler<WheelEvent>;
-    type AnimationEventHandler = EventHandler<AnimationEvent>;
-    type TransitionEventHandler = EventHandler<TransitionEvent>;
+    type ClipboardEventHandler<T> = EventHandler<ClipboardEvent, T>;
+    type CompositionEventHandler<T> = EventHandler<CompositionEvent, T>;
+    type DragEventHandler<T> = EventHandler<DragEvent, T>;
+    type FocusEventHandler<T> = EventHandler<FocusEvent, T>;
+    type FormEventHandler<T> = EventHandler<Event, T>;
+    type ChangeEventHandler<T> = EventHandler<Event, T>;
+    type KeyboardEventHandler<T> = EventHandler<KeyboardEvent, T>;
+    type MouseEventHandler<T> = EventHandler<MouseEvent, T>;
+    type TouchEventHandler<T> = EventHandler<TouchEvent, T>;
+    type UIEventHandler<T> = EventHandler<UIEvent, T>;
+    type WheelEventHandler<T> = EventHandler<WheelEvent, T>;
+    type AnimationEventHandler<T> = EventHandler<AnimationEvent, T>;
+    type TransitionEventHandler<T> = EventHandler<TransitionEvent, T>;
   
     type ClassNameBase = boolean | string | number | void | null;
     type ClassName = string | (ClassNameBase | ClassNameBase[])[] | {
@@ -1807,36 +1807,36 @@
       ref?: ((e: T) => void) | Ref<T>; */
   
       // Clipboard Events
-      oncopy?: ClipboardEventHandler;
-      oncopycapture?: ClipboardEventHandler;
-      oncut?: ClipboardEventHandler;
-      oncutcapture?: ClipboardEventHandler;
-      onpaste?: ClipboardEventHandler;
-      onpastecapture?: ClipboardEventHandler;
+      oncopy?: ClipboardEventHandler<T>;
+      oncopycapture?: ClipboardEventHandler<T>;
+      oncut?: ClipboardEventHandler<T>;
+      oncutcapture?: ClipboardEventHandler<T>;
+      onpaste?: ClipboardEventHandler<T>;
+      onpastecapture?: ClipboardEventHandler<T>;
   
       // Composition Events
-      oncompositionend?: CompositionEventHandler;
-      oncompositionendcapture?: CompositionEventHandler;
-      oncompositionstart?: CompositionEventHandler;
-      oncompositionstartcapture?: CompositionEventHandler;
-      oncompositionupdate?: CompositionEventHandler;
-      oncompositionupdatecapture?: CompositionEventHandler;
+      oncompositionend?: CompositionEventHandler<T>;
+      oncompositionendcapture?: CompositionEventHandler<T>;
+      oncompositionstart?: CompositionEventHandler<T>;
+      oncompositionstartcapture?: CompositionEventHandler<T>;
+      oncompositionupdate?: CompositionEventHandler<T>;
+      oncompositionupdatecapture?: CompositionEventHandler<T>;
   
       // Focus Events
-      onfocus?: FocusEventHandler;
-      onfocuscapture?: FocusEventHandler;
-      onblur?: FocusEventHandler;
-      onblurcapture?: FocusEventHandler;
+      onfocus?: FocusEventHandler<T>;
+      onfocuscapture?: FocusEventHandler<T>;
+      onblur?: FocusEventHandler<T>;
+      onblurcapture?: FocusEventHandler<T>;
   
       // Form Events
-      onchange?: FormEventHandler;
-      onchangecapture?: FormEventHandler;
-      oninput?: FormEventHandler;
-      oninputcapture?: FormEventHandler;
-      onreset?: FormEventHandler;
-      onresetcapture?: FormEventHandler;
-      onsubmit?: FormEventHandler;
-      onsubmitcapture?: FormEventHandler;
+      onchange?: FormEventHandler<T>;
+      onchangecapture?: FormEventHandler<T>;
+      oninput?: FormEventHandler<T>;
+      oninputcapture?: FormEventHandler<T>;
+      onreset?: FormEventHandler<T>;
+      onresetcapture?: FormEventHandler<T>;
+      onsubmit?: FormEventHandler<T>;
+      onsubmitcapture?: FormEventHandler<T>;
   
       // Image Events
       onload?: EventHandler;
@@ -1845,128 +1845,128 @@
       onerrorcapture?: EventHandler; // also a Media Event
   
       // Keyboard Events
-      onkeydown?: KeyboardEventHandler;
-      onkeydowncapture?: KeyboardEventHandler;
-      onkeypress?: KeyboardEventHandler;
-      onkeypresscapture?: KeyboardEventHandler;
-      onkeyup?: KeyboardEventHandler;
-      onkeyupcapture?: KeyboardEventHandler;
+      onkeydown?: KeyboardEventHandler<T>;
+      onkeydowncapture?: KeyboardEventHandler<T>;
+      onkeypress?: KeyboardEventHandler<T>;
+      onkeypresscapture?: KeyboardEventHandler<T>;
+      onkeyup?: KeyboardEventHandler<T>;
+      onkeyupcapture?: KeyboardEventHandler<T>;
   
       // Media Events
-      onabort?: EventHandler;
-      onabortcapture?: EventHandler;
-      oncanplay?: EventHandler;
-      oncanplaycapture?: EventHandler;
-      oncanplaythrough?: EventHandler;
-      oncanplaythroughcapture?: EventHandler;
-      ondurationchange?: EventHandler;
-      ondurationchangecapture?: EventHandler;
-      onemptied?: EventHandler;
-      onemptiedcapture?: EventHandler;
-      onencrypted?: EventHandler;
-      onencryptedcapture?: EventHandler;
-      onended?: EventHandler;
-      onendedcapture?: EventHandler;
-      onloadeddata?: EventHandler;
-      onloadeddatacapture?: EventHandler;
-      onloadedmetadata?: EventHandler;
-      onloadedmetadatacapture?: EventHandler;
-      onloadstart?: EventHandler;
-      onloadstartcapture?: EventHandler;
-      onpause?: EventHandler;
-      onpausecapture?: EventHandler;
-      onplay?: EventHandler;
-      onplaycapture?: EventHandler;
-      onplaying?: EventHandler;
-      onplayingcapture?: EventHandler;
-      onprogress?: EventHandler;
-      onprogresscapture?: EventHandler;
-      onratechange?: EventHandler;
-      onratechangecapture?: EventHandler;
-      onseeked?: EventHandler;
-      onseekedcapture?: EventHandler;
-      onseeking?: EventHandler;
-      onseekingcapture?: EventHandler;
-      onstalled?: EventHandler;
-      onstalledcapture?: EventHandler;
-      onsuspend?: EventHandler;
-      onsuspendcapture?: EventHandler;
-      ontimeupdate?: EventHandler;
-      ontimeupdatecapture?: EventHandler;
-      onvolumechange?: EventHandler;
-      onvolumechangecapture?: EventHandler;
-      onwaiting?: EventHandler;
-      onwaitingcapture?: EventHandler;
+      onabort?: EventHandler<T>;
+      onabortcapture?: EventHandler<T>;
+      oncanplay?: EventHandler<T>;
+      oncanplaycapture?: EventHandler<T>;
+      oncanplaythrough?: EventHandler<T>;
+      oncanplaythroughcapture?: EventHandler<T>;
+      ondurationchange?: EventHandler<T>;
+      ondurationchangecapture?: EventHandler<T>;
+      onemptied?: EventHandler<T>;
+      onemptiedcapture?: EventHandler<T>;
+      onencrypted?: EventHandler<T>;
+      onencryptedcapture?: EventHandler<T>;
+      onended?: EventHandler<T>;
+      onendedcapture?: EventHandler<T>;
+      onloadeddata?: EventHandler<T>;
+      onloadeddatacapture?: EventHandler<T>;
+      onloadedmetadata?: EventHandler<T>;
+      onloadedmetadatacapture?: EventHandler<T>;
+      onloadstart?: EventHandler<T>;
+      onloadstartcapture?: EventHandler<T>;
+      onpause?: EventHandler<T>;
+      onpausecapture?: EventHandler<T>;
+      onplay?: EventHandler<T>;
+      onplaycapture?: EventHandler<T>;
+      onplaying?: EventHandler<T>;
+      onplayingcapture?: EventHandler<T>;
+      onprogress?: EventHandler<T>;
+      onprogresscapture?: EventHandler<T>;
+      onratechange?: EventHandler<T>;
+      onratechangecapture?: EventHandler<T>;
+      onseeked?: EventHandler<T>;
+      onseekedcapture?: EventHandler<T>;
+      onseeking?: EventHandler<T>;
+      onseekingcapture?: EventHandler<T>;
+      onstalled?: EventHandler<T>;
+      onstalledcapture?: EventHandler<T>;
+      onsuspend?: EventHandler<T>;
+      onsuspendcapture?: EventHandler<T>;
+      ontimeupdate?: EventHandler<T>;
+      ontimeupdatecapture?: EventHandler<T>;
+      onvolumechange?: EventHandler<T>;
+      onvolumechangecapture?: EventHandler<T>;
+      onwaiting?: EventHandler<T>;
+      onwaitingcapture?: EventHandler<T>;
   
       // MouseEvents
-      onclick?: MouseEventHandler;
-      onclickcapture?: MouseEventHandler;
-      oncontextmenu?: MouseEventHandler;
-      oncontextmenucapture?: MouseEventHandler;
-      ondoubleclick?: MouseEventHandler;
-      ondoubleclickcapture?: MouseEventHandler;
-      ondrag?: DragEventHandler;
-      ondragcapture?: DragEventHandler;
-      ondragend?: DragEventHandler;
-      ondragendcapture?: DragEventHandler;
-      ondragenter?: DragEventHandler;
-      ondragentercapture?: DragEventHandler;
-      ondragexit?: DragEventHandler;
-      ondragexitcapture?: DragEventHandler;
-      ondragleave?: DragEventHandler;
-      ondragleavecapture?: DragEventHandler;
-      ondragover?: DragEventHandler;
-      ondragovercapture?: DragEventHandler;
-      ondragstart?: DragEventHandler;
-      ondragstartcapture?: DragEventHandler;
-      ondrop?: DragEventHandler;
-      ondropcapture?: DragEventHandler;
-      onmousedown?: MouseEventHandler;
-      onmousedowncapture?: MouseEventHandler;
-      onmouseenter?: MouseEventHandler;
-      onmouseleave?: MouseEventHandler;
-      onmousemove?: MouseEventHandler;
-      onmousemovecapture?: MouseEventHandler;
-      onmouseout?: MouseEventHandler;
-      onmouseoutcapture?: MouseEventHandler;
-      onmouseover?: MouseEventHandler;
-      onmouseovercapture?: MouseEventHandler;
-      onmouseup?: MouseEventHandler;
-      onmouseupcapture?: MouseEventHandler;
+      onclick?: MouseEventHandler<T>;
+      onclickcapture?: MouseEventHandler<T>;
+      oncontextmenu?: MouseEventHandler<T>;
+      oncontextmenucapture?: MouseEventHandler<T>;
+      ondoubleclick?: MouseEventHandler<T>;
+      ondoubleclickcapture?: MouseEventHandler<T>;
+      ondrag?: DragEventHandler<T>;
+      ondragcapture?: DragEventHandler<T>;
+      ondragend?: DragEventHandler<T>;
+      ondragendcapture?: DragEventHandler<T>;
+      ondragenter?: DragEventHandler<T>;
+      ondragentercapture?: DragEventHandler<T>;
+      ondragexit?: DragEventHandler<T>;
+      ondragexitcapture?: DragEventHandler<T>;
+      ondragleave?: DragEventHandler<T>;
+      ondragleavecapture?: DragEventHandler<T>;
+      ondragover?: DragEventHandler<T>;
+      ondragovercapture?: DragEventHandler<T>;
+      ondragstart?: DragEventHandler<T>;
+      ondragstartcapture?: DragEventHandler<T>;
+      ondrop?: DragEventHandler<T>;
+      ondropcapture?: DragEventHandler<T>;
+      onmousedown?: MouseEventHandler<T>;
+      onmousedowncapture?: MouseEventHandler<T>;
+      onmouseenter?: MouseEventHandler<T>;
+      onmouseleave?: MouseEventHandler<T>;
+      onmousemove?: MouseEventHandler<T>;
+      onmousemovecapture?: MouseEventHandler<T>;
+      onmouseout?: MouseEventHandler<T>;
+      onmouseoutcapture?: MouseEventHandler<T>;
+      onmouseover?: MouseEventHandler<T>;
+      onmouseovercapture?: MouseEventHandler<T>;
+      onmouseup?: MouseEventHandler<T>;
+      onmouseupcapture?: MouseEventHandler<T>;
   
       // Selection Events
-      onselect?: EventHandler;
-      onselectcapture?: EventHandler;
+      onselect?: EventHandler<T>;
+      onselectcapture?: EventHandler<T>;
   
       // Touch Events
-      ontouchcancel?: TouchEventHandler;
-      ontouchcancelcapture?: TouchEventHandler;
-      ontouchend?: TouchEventHandler;
-      ontouchendcapture?: TouchEventHandler;
-      ontouchmove?: TouchEventHandler;
-      ontouchmovecapture?: TouchEventHandler;
-      ontouchstart?: TouchEventHandler;
-      ontouchstartcapture?: TouchEventHandler;
+      ontouchcancel?: TouchEventHandler<T>;
+      ontouchcancelcapture?: TouchEventHandler<T>;
+      ontouchend?: TouchEventHandler<T>;
+      ontouchendcapture?: TouchEventHandler<T>;
+      ontouchmove?: TouchEventHandler<T>;
+      ontouchmovecapture?: TouchEventHandler<T>;
+      ontouchstart?: TouchEventHandler<T>;
+      ontouchstartcapture?: TouchEventHandler<T>;
   
       // UI Events
-      onscroll?: UIEventHandler;
-      onscrollcapture?: UIEventHandler;
+      onscroll?: UIEventHandler<T>;
+      onscrollcapture?: UIEventHandler<T>;
   
       // Wheel Events
-      onwheel?: WheelEventHandler;
-      onwheelcapture?: WheelEventHandler;
+      onwheel?: WheelEventHandler<T>;
+      onwheelcapture?: WheelEventHandler<T>;
   
       // Animation Events
-      onanimationstart?: AnimationEventHandler;
-      onanimationstartcapture?: AnimationEventHandler;
-      onanimationend?: AnimationEventHandler;
-      onanimationendcapture?: AnimationEventHandler;
-      onanimationiteration?: AnimationEventHandler;
-      onanimationiterationcapture?: AnimationEventHandler;
+      onanimationstart?: AnimationEventHandler<T>;
+      onanimationstartcapture?: AnimationEventHandler<T>;
+      onanimationend?: AnimationEventHandler<T>;
+      onanimationendcapture?: AnimationEventHandler<T>;
+      onanimationiteration?: AnimationEventHandler<T>;
+      onanimationiterationcapture?: AnimationEventHandler<T>;
   
       // Transition Events
-      ontransitionend?: TransitionEventHandler;
-      ontransitionendcapture?: TransitionEventHandler;
+      ontransitionend?: TransitionEventHandler<T>;
+      ontransitionendcapture?: TransitionEventHandler<T>;
     }
   
     interface HTMLAttributes<T> extends DOMAttributes<T> {
@@ -2012,6 +2012,7 @@
       download?: any;
       draggable?: boolean;
       enctype?: string;
+      for?: string;
       form?: string;
       formaction?: string;
       formenctype?: string;

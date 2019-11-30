@@ -30,7 +30,7 @@ type SvelteAnimation<U extends any[]> = (node: HTMLElement, move: { from: DOMRec
 
 type SvelteAllProps = {	[index: string]: any }
 
-type SvelteStore<T> =  { subscribe: (value:T) => any }
+type SvelteStore<T> =  { subscribe: (run: (value:T) => any, invalidate?: any) => any }
 
 declare function __sveltets_ensureAnimation<U extends any[]>(animation: SvelteAnimation<U>, ...args: U): any;
 
