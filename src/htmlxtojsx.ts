@@ -49,8 +49,8 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node, onWalk: (node: No
 
     const handleClassDirective = (attr: Node) => {
         let needCurly = (attr.expression.start == attr.start + "class:".length);
-        str.overwrite(attr.start, attr.expression.start, `{...__sveltets_ensureType(Boolean, `)
-        str.appendLeft(attr.expression.end, `)${needCurly ? "}" : ""}`)
+        str.overwrite(attr.start, attr.expression.start, `{...__sveltets_ensureType(Boolean, !!(`)
+        str.appendLeft(attr.expression.end, `))${needCurly ? "}" : ""}`)
         if (htmlx[attr.end - 1] == '"') {
             str.remove(attr.end - 1, attr.end);
         }
