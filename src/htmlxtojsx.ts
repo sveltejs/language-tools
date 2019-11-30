@@ -1,6 +1,6 @@
 import MagicString from 'magic-string';
 import svelte from 'svelte/compiler';
-import { walk, Node } from 'estree-walker';
+import { Node } from 'estree-walker';
 import { parseHtmlx } from './htmlxparser';
 import KnownEvents from './knownevents';
 
@@ -103,7 +103,7 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node, onWalk: (node: No
         //bind group on input
         if (attr.name == "group" && el.name == "input") {
             str.remove(attr.start, attr.expression.start);
-            str.prependRight(attr.expression.start, "{...__sveltets_ensureType(String, ")
+            str.appendLeft(attr.expression.start, "{...__sveltets_ensureType(String, ")
             str.overwrite(attr.expression.end, attr.end, ")}")
             return;
         }
@@ -111,7 +111,7 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node, onWalk: (node: No
         //bind this on element
         if (attr.name == "this" && el.type == "Element") {
             str.remove(attr.start, attr.expression.start)
-            str.prependRight(attr.expression.start, "{...__sveltets_ensureType(HTMLElement, ");
+            str.appendLeft(attr.expression.start, "{...__sveltets_ensureType(HTMLElement, ");
             str.overwrite(attr.expression.end, attr.end, ")}");
             return;
         }
@@ -119,7 +119,7 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node, onWalk: (node: No
         //bind this on component
         if (attr.name == "this" && el.type == "InlineComponent") {
             str.remove(attr.start, attr.expression.start)
-            str.prependRight(attr.expression.start, `{...__sveltets_ensureType(${el.name}, `);
+            str.appendLeft(attr.expression.start, `{...__sveltets_ensureType(${el.name}, `);
             str.overwrite(attr.expression.end, attr.end, ")}");
             return;
         }
@@ -189,12 +189,13 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node, onWalk: (node: No
         //we only need to do something if there is a let or slot
         handleSlot(el, el.name, "default");
 
+        //walk the direct children looking for slots. We do this here because we need the name of our component for handleSlot
+        //we could lean on leave/enter, but I am lazy
         if (!el.children) return;
         for (let child of el.children) {
             if (!child.attributes) continue;
             let slot = child.attributes.find(a => a.name == "slot");
             if (slot) {
-                str.remove(slot.start, slot.end);
                 if (slot.value && slot.value.length) {
                     handleSlot(child, el.name, slot.value[0].raw)
                 }
@@ -202,7 +203,18 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node, onWalk: (node: No
         }
     }
 
-    const handleAttribute = (attr: Node) => {
+    const handleAttribute = (attr: Node, parent: Node) => {
+
+        //if we are on an "element" we are case insensitive, lowercase to match our JSX
+        if (parent.type == "Element") {
+            //skip Attribute shorthand, that is handled below
+            if (attr.value === true || (attr.value.length && attr.value.length == 1 && attr.value[0].type != "AttributeShorthand")) {
+                str.overwrite(attr.start, attr.start + attr.name.length, attr.name.toLowerCase())
+           }
+        }
+
+
+
         //we are a bare attribute
         if (attr.value === true) return;
         
@@ -210,6 +222,11 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node, onWalk: (node: No
         //handle single value
         if (attr.value.length == 1) {
             let attrVal = attr.value[0];
+
+            if (attr.name == "slot") {
+                str.remove(attr.start, attr.end);
+                return;
+            }
 
             if (attrVal.type == "AttributeShorthand") {
                 str.appendRight(attr.start, `${attrVal.expression.name}=`);
@@ -389,7 +406,7 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node, onWalk: (node: No
     }
   
 
-   walk(ast, {
+   (svelte as any).walk(ast, {
         enter: (node: Node, parent: Node, prop, index) => {
             try {
                 switch (node.type) {
@@ -407,7 +424,7 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node, onWalk: (node: No
                     case "Action": handleActionDirective(node); break;
                     case "Transition": handleTransitionDirective(node); break;
                     case "Animation": handleAnimateDirective(node); break;
-                    case "Attribute": handleAttribute(node); break;
+                    case "Attribute": handleAttribute(node, parent); break;
                     case "EventHandler": handleEventHandler(node, parent); break;
                     case "Options": handleSvelteTag(node); break;
                     case "Window": handleSvelteTag(node); break;

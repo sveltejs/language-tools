@@ -3,4 +3,7 @@
     <div  >{() => { let {slotvar:newvar} = __sveltets_instanceOf(Component).$$slot_def.someslot;<>
         <h2>Hi Slot</h2>
     </>}}</div>
+    <p >
+        Test
+    </p>
 </>}}</Component></>
