@@ -19,6 +19,7 @@ function test3() {
 }
 
 const test4 = ({a,  b: { $top1: $top2 }}) => $top2 && __sveltets_store_get(top1)
+
 ;
 <></>
 return { props: {}, slots: {} }}

@@ -4,7 +4,6 @@ import { convertHtmlxToJsx } from './htmlxtojsx';
 import { Node } from 'svelte/compiler'
 import * as ts from 'typescript';
 
-
 function AttributeValueAsJsExpression(htmlx: string, attr: Node): string {
     if (attr.value.length == 0) return "''"; //wut?
 
@@ -49,9 +48,9 @@ class Scope {
     }
 }
 
-type pendingStoreResolution = {
-    node: Node,
-    parent: Node,
+type pendingStoreResolution<T> = {
+    node: T,
+    parent: T,
     scope: Scope
 }
 
@@ -67,7 +66,7 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
     //track $store variables since we are only supposed to give top level scopes special treatment, and users can declare $blah variables at higher scopes 
     //which prevents us just changing all instances of Identity that start with $
 
-    let pendingStoreResolutions:pendingStoreResolution[] = []
+    let pendingStoreResolutions:pendingStoreResolution<Node>[] = []
     let scope = new Scope();
     const pushScope = () => scope = new Scope(scope)
     const popScope = () => scope = scope.parent
@@ -88,7 +87,7 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
         str.appendLeft(node.end, ")")
     }
 
-    const resolveStore = (pending: pendingStoreResolution) => {
+    const resolveStore = (pending: pendingStoreResolution<Node>) => {
         let { node, parent, scope } = pending;
         let name = node.name
         while (scope) {
@@ -223,15 +222,24 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
     let astOffset = script.content.start;
 
     let exportedNames = new Map<string,string>();
-    let declaredTopLevelNames: Set<string> = new Set();
+
     let implicitTopLevelNames: Map<string, number> = new Map();
     let uses$$props = false;
 
-    const addDeclaredName = (name: ts.BindingName) => {
-        if (name.kind == ts.SyntaxKind.Identifier) {
-            declaredTopLevelNames.add(name.text);
-        }
-    }
+
+    //track if we are in a declaration scope
+    let isDeclaration = false;
+    let isExport = false;
+
+    //track $store variables since we are only supposed to give top level scopes special treatment, and users can declare $blah variables at higher scopes 
+    //which prevents us just changing all instances of Identity that start with $
+    let pendingStoreResolutions:pendingStoreResolution<ts.Node>[] = []
+    
+    let scope = new Scope();
+    let rootScope = scope;
+
+    const pushScope = () => scope = new Scope(scope)
+    const popScope = () => scope = scope.parent
 
     const addExport = (name: ts.BindingName, target: ts.BindingName = null) => {
         if (name.kind != ts.SyntaxKind.Identifier) {
@@ -249,129 +257,176 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
         str.remove(exportStart, exportEnd);
     }
 
-    const handleIdentifier = (ident: ts.Identifier, parent: ts.Node) => {
-        if (ident.text == "$$props") {
-            uses$$props = true;
-            return
-        }
-
-        //convert store references
-        if (!ident.text.startsWith('$')) return;
-
-        //don't convert labels 
-        if (ts.isLabeledStatement(parent)) return;
-
-        //we are a store variable
-
-        //we are on the left, become a "set"
+    const handleStore = (ident: ts.Node, parent: ts.Node) => {
+        //handle assign to
         if (parent && ts.isBinaryExpression(parent) && parent.operatorToken.kind == ts.SyntaxKind.EqualsToken && parent.left == ident) {
-            //remove $
-            let dollar = str.original.indexOf("$", ident.pos + astOffset);
-            str.remove(dollar, dollar + 1);
-            // replace = with .set(
-            str.overwrite(ident.end+astOffset, parent.operatorToken.end + astOffset, ".set(");
-            // append )
-            str.appendLeft(parent.end+astOffset, ")");
-            return;
+              //remove $
+              let dollar = str.original.indexOf("$", ident.pos + astOffset);
+              str.remove(dollar, dollar + 1);
+              // replace = with .set(
+              str.overwrite(ident.end+astOffset, parent.operatorToken.end + astOffset, ".set(");
+              // append )
+              str.appendLeft(parent.end+astOffset, ")");
+              return;
         }
 
         // we must be on the right or not part of assignment
-       
         let dollar = str.original.indexOf("$", ident.pos + astOffset);
         str.overwrite(dollar, dollar+1, "__sveltets_store_get(");
         str.appendLeft(ident.end+astOffset, ")");
     }
 
-    const processChild = (s: ts.Node, parent: ts.Node) => {
-        if (ts.isIdentifier(s)) handleIdentifier(s, parent);
-        ts.forEachChild(s, n => processChild(n, s));
+    const resolveStore = (pending: pendingStoreResolution<ts.Node>) => {
+        let { node, parent, scope } = pending;
+        let name = (node as ts.Identifier).text;
+        while (scope) {
+            if (scope.declared.has(name)) {
+                //we were manually declared, this isn't a store access.
+                return;
+            }
+            scope = scope.parent
+        }
+        //We haven't been resolved, we must be a store read/write, handle it.
+        handleStore(node, parent);
     }
 
+    const handleIdentifier = (ident: ts.Identifier, parent: ts.Node) => {
+        if (ident.text == "$$props") {
+            uses$$props = true;
+            return
+        }
+        if (ts.isLabeledStatement(parent) && parent.label == ident) {
+            return;
+        }
 
-    const processTopLevelStatement = (s: ts.Statement) => {
-        if (ts.isVariableStatement(s)) {
-            let exportModifier = s.modifiers ? s.modifiers.find(x => x.kind == ts.SyntaxKind.ExportKeyword): null;
+        if (isExport) {
+           if (!ts.isBindingElement(ident.parent) || ident.parent.name == ident) {
+                addExport(ident);
+           } 
+        }
+
+        if (isDeclaration || ts.isParameter(parent)) {
+            if (!ts.isBindingElement(ident.parent) || ident.parent.name == ident) {  //we are a key, not a name, so don't care
+                if (ident.text.startsWith('$') || scope == rootScope) { //track all top level declared identifiers and all $ prefixed identifiers
+                    scope.declared.add(ident.text);
+                }
+            }
+        } else {
+            //track potential store usage to be resolved
+            if (ident.text.startsWith('$')) {
+                if ((!ts.isPropertyAccessExpression(parent) || parent.expression == ident ) &&
+                    (!ts.isPropertyAssignment(parent) || parent.initializer == ident)) {
+                    pendingStoreResolutions.push({ node: ident, parent, scope })
+                }
+            }
+        }
+    }
+
+    const walk = (node: ts.Node, parent: ts.Node) => {
+       
+        type onLeaveCallback = () => void;
+        let onLeaveCallbacks:onLeaveCallback[] = []
+
+        if (ts.isVariableStatement(node)) {
+            let exportModifier = node.modifiers ? node.modifiers.find(x => x.kind == ts.SyntaxKind.ExportKeyword): null;
             if (exportModifier) {
                 removeExport(exportModifier.pos, exportModifier.end);
-            }
-            for (let v of s.declarationList.declarations) {
-                if (exportModifier) {
-                    addExport(v.name);
-                }
-                addDeclaredName(v.name);
+                isExport = true;
+                onLeaveCallbacks.push(() => isExport = false);
             }
         }
 
-        if (ts.isFunctionDeclaration(s)) {
-            if (s.modifiers) {
-                let exportModifier = s.modifiers.find(x => x.kind == ts.SyntaxKind.ExportKeyword)
+        if (ts.isFunctionDeclaration(node)) {
+            if (node.modifiers) {
+                let exportModifier = node.modifiers.find(x => x.kind == ts.SyntaxKind.ExportKeyword)
                 if (exportModifier) {
-                    addExport(s.name)
+                    addExport(node.name)
                     removeExport(exportModifier.pos, exportModifier.end);
                 }
             }
-            addDeclaredName(s.name);
+            
+            pushScope();
+            onLeaveCallbacks.push(() => popScope());
         }
 
-        if (ts.isExportDeclaration(s)) {
-            for (let ne of s.exportClause.elements) {
+        if (ts.isBlock(node)) {
+            pushScope();
+            onLeaveCallbacks.push(() => popScope());
+        }
+
+        if (ts.isArrowFunction(node)) {
+            pushScope();
+            onLeaveCallbacks.push(() => popScope());
+        } 
+
+
+        if (ts.isExportDeclaration(node)) {
+            for (let ne of node.exportClause.elements) {
                 if (ne.propertyName) {
                     addExport(ne.propertyName, ne.name)
                 } else {
                     addExport(ne.name)
                 }
                 //we can remove entire statement
-                removeExport(s.pos, s.end);
+                removeExport(node.pos, node.end);
             }
         }
 
         //move imports to top of script so they appear outside our render function
-        if (ts.isImportDeclaration(s)) {
-            str.move(s.pos+astOffset, s.end+astOffset, script.start+1);
+        if (ts.isImportDeclaration(node)) {
+            str.move(node.pos+astOffset, node.end+astOffset, script.start+1);
             //add in a \n 
-            const originalEndChar = str.original[s.end+astOffset-1];
-            str.overwrite(s.end+astOffset-1, s.end+astOffset, originalEndChar+"\n");
-       
-            //track the top level declaration
-            if (s.importClause) {
-                if (s.importClause.name && ts.isIdentifier(s.importClause.name)) {
-                    addDeclaredName(s.importClause.name)
-                } 
-                if (s.importClause.namedBindings && ts.isNamedImports(s.importClause.namedBindings)) {
-                    for(let i of s.importClause.namedBindings.elements) {
-                        if (ts.isIdentifier(i.name)) {
-                            addDeclaredName(i.name)
-                        }
-                    }
-                }
-            }
+            const originalEndChar = str.original[node.end+astOffset-1];
+            str.overwrite(node.end+astOffset-1, node.end+astOffset, originalEndChar+"\n");
+        }
+        
+        if (ts.isVariableDeclaration(parent) && parent.name == node) {
+            isDeclaration = true;
+            onLeaveCallbacks.push(() => isDeclaration = false);
         }
 
-        //track implicit declarations in reactive blocks
-        if (ts.isLabeledStatement(s) 
-                && s.label.text == "$"
-                && s.statement 
-                && ts.isExpressionStatement(s.statement)
-                && ts.isBinaryExpression(s.statement.expression)
-                && s.statement.expression.operatorToken.kind == ts.SyntaxKind.EqualsToken
-                && ts.isIdentifier(s.statement.expression.left))   {
-                    
-            implicitTopLevelNames.set(s.statement.expression.left.text, s.label.pos );
+        if (ts.isBindingElement(parent) && parent.name == node) {
+            isDeclaration = true;
+            onLeaveCallbacks.push(() => isDeclaration = false);
         }
-        
+
+        if (ts.isImportClause(node)) {
+            isDeclaration = true;
+            onLeaveCallbacks.push(() => isDeclaration = false);
+        }
+
         //handle stores etc
-        if (ts.isIdentifier(s)) handleIdentifier(s, null);
+        if (ts.isIdentifier(node)) handleIdentifier(node, parent);
         
+
+        //track implicit declarations in reactive blocks at the top level
+        if (ts.isLabeledStatement(node)
+                && parent == tsAst //top level 
+                && node.label.text == "$"
+                && node.statement 
+                && ts.isExpressionStatement(node.statement)
+                && ts.isBinaryExpression(node.statement.expression)
+                && node.statement.expression.operatorToken.kind == ts.SyntaxKind.EqualsToken
+                && ts.isIdentifier(node.statement.expression.left))   {
+                    
+            implicitTopLevelNames.set(node.statement.expression.left.text, node.label.pos );
+        }
+   
         //to save a bunch of condition checks on each node, we recurse into processChild which skips all the checks for top level items
-        return ts.forEachChild(s, n => processChild(n, s))
+        ts.forEachChild(node, n => walk(n, node))
+        //fire off the on leave callbacks
+        onLeaveCallbacks.map(c => c())
     }
 
     //walk the ast and convert to tsx as we go
-    tsAst.forEachChild(processTopLevelStatement);
+    tsAst.forEachChild(n => walk(n, tsAst));
+
+    //resolve stores
+    pendingStoreResolutions.map(resolveStore)
 
     // declare implicit reactive variables we found in the script
-    for ( var [name, pos]  of implicitTopLevelNames.entries()) {
-        if (!declaredTopLevelNames.has(name)) {
+    for ( var [name, pos] of implicitTopLevelNames.entries()) {
+        if (!rootScope.declared.has(name)) {
             //add a declaration
             str.prependRight(pos + astOffset + 1, `;let ${name}; `)
         }
