@@ -230,7 +230,12 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node, onWalk: (node: No
             }
 
             if (attrVal.type == "AttributeShorthand") {
-                str.appendRight(attr.start, `${svgAttributes.find(a => a == attrVal.expression.name) ? attrVal.expression.name : attrVal.expression.name.toLowerCase()}=`);
+                let attrName = attrVal.expression.name
+                if (parent.type == "Element") {
+                   attrName = svgAttributes.find(a => a == attrName) ? attrName :attrName.toLowerCase()
+                }
+
+                str.appendRight(attr.start, `${attrName}=`);
                 return;
             }
 

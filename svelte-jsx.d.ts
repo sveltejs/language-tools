@@ -2137,7 +2137,7 @@
     interface SVGAttributes<T> extends DOMAttributes<T> {
       // Attributes which also defined in HTMLAttributes
       className?: string;
-      class: string;
+      class?: string;
       color?: string;
       height?: number | string;
       id?: string;
