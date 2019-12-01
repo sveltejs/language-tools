@@ -3,6 +3,7 @@ import svelte from 'svelte/compiler';
 import { Node } from 'estree-walker';
 import { parseHtmlx } from './htmlxparser';
 import KnownEvents from './knownevents';
+import svgAttributes from './svgattributes';
 
 
 export function convertHtmlxToJsx(str: MagicString, ast: Node, onWalk: (node: Node, parent: Node, prop:string, index: number) => void = null, onLeave: (node: Node, parent: Node, prop: string, index: number) => void = null) {
@@ -209,7 +210,7 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node, onWalk: (node: No
         if (parent.type == "Element") {
             //skip Attribute shorthand, that is handled below
             if (attr.value === true || (attr.value.length && attr.value.length == 1 && attr.value[0].type != "AttributeShorthand")) {
-                str.overwrite(attr.start, attr.start + attr.name.length, attr.name.toLowerCase())
+                str.overwrite(attr.start, attr.start + attr.name.length, svgAttributes.find(a => a == attr.name) ? attr.name : attr.name.toLowerCase())
            }
         }
 
@@ -229,7 +230,7 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node, onWalk: (node: No
             }
 
             if (attrVal.type == "AttributeShorthand") {
-                str.appendRight(attr.start, `${attrVal.expression.name}=`);
+                str.appendRight(attr.start, `${svgAttributes.find(a => a == attrVal.expression.name) ? attrVal.expression.name : attrVal.expression.name.toLowerCase()}=`);
                 return;
             }
 
