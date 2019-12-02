@@ -1998,7 +1998,7 @@
       cols?: number;
       colspan?: number;
       content?: string;
-      contenteditable?: boolean;
+      contenteditable?: "true" | "false" | boolean;
       contextmenu?: string;
       controls?: boolean;
       coords?: string;
@@ -2399,6 +2399,19 @@
     interface HTMLProps<T> extends HTMLAttributes<T> {}
     interface SVGProps<T> extends SVGAttributes<T> {}
   
+    interface SvelteOptionProps extends HTMLProps<HTMLOptionElement> {
+        value?: any;
+    }
+
+    interface SvelteSelectProps extends HTMLProps<HTMLSelectElement> {
+      value?: any;
+    }
+
+    interface SvelteInputProps extends HTMLProps<HTMLInputElement> {
+      group?: any;
+    }
+
+
     interface IntrinsicElements {
       // HTML
       a: HTMLProps<HTMLAnchorElement>;
@@ -2454,7 +2467,7 @@
       i: HTMLProps<HTMLElement>;
       iframe: HTMLProps<HTMLIFrameElement>;
       img: HTMLProps<HTMLImageElement>;
-      input: HTMLProps<HTMLInputElement>;
+      input: SvelteInputProps;
       ins: HTMLProps<HTMLModElement>;
       kbd: HTMLProps<HTMLElement>;
       keygen: HTMLProps<HTMLElement>;
@@ -2475,7 +2488,7 @@
       object: HTMLProps<HTMLObjectElement>;
       ol: HTMLProps<HTMLOListElement>;
       optgroup: HTMLProps<HTMLOptGroupElement>;
-      option: HTMLProps<HTMLOptionElement>;
+      option: SvelteOptionProps;
       output: HTMLProps<HTMLElement>;
       p: HTMLProps<HTMLParagraphElement>;
       param: HTMLProps<HTMLParamElement>;
@@ -2490,7 +2503,7 @@
       samp: HTMLProps<HTMLElement>;
       script: HTMLProps<HTMLElement>;
       section: HTMLProps<HTMLElement>;
-      select: HTMLProps<HTMLSelectElement>;
+      select: SvelteSelectProps;
       small: HTMLProps<HTMLElement>;
       source: HTMLProps<HTMLSourceElement>;
       span: HTMLProps<HTMLSpanElement>;

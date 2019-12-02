@@ -1,5 +1,5 @@
 <></>;function render() {
-<><input id="dom-input" type="radio" {...__sveltets_ensureType(String, __sveltets_store_get(compile_options).generate)} value="dom"/></>
+<><input id="dom-input" type="radio" {...__sveltets_any(__sveltets_store_get(compile_options).generate)} value="dom"/></>
 return { props: {}, slots: {} }}
 
 export default class {

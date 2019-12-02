@@ -81,10 +81,16 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node, onWalk: (node: No
     const handleTransitionDirective = (attr: Node) => {
         str.overwrite(attr.start, htmlx.indexOf(":", attr.start) + 1, "{...__sveltets_ensureTransition(")
 
+        if (attr.modifiers.length) {
+            let local = htmlx.indexOf("|",  attr.start);
+            str.remove(local, attr.expression ? attr.expression.start : attr.end);
+        } 
+
         if (!attr.expression) {
-            str.appendLeft(attr.end, ")}");
+            str.appendLeft(attr.end, ", {})}");
             return;
         }
+
         str.overwrite(htmlx.indexOf(":", attr.start) + 1 + `${attr.name}`.length, attr.expression.start, ", ")
         str.appendLeft(attr.expression.end, ")");
         if (htmlx[attr.end - 1] == '"') {
@@ -96,7 +102,7 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node, onWalk: (node: No
         str.overwrite(attr.start, htmlx.indexOf(":", attr.start) + 1, "{...__sveltets_ensureAnimation(")
 
         if (!attr.expression) {
-            str.appendLeft(attr.end, ")}");
+            str.appendLeft(attr.end, ", {})}");
             return;
         }
         str.overwrite(htmlx.indexOf(":", attr.start) + 1 + `${attr.name}`.length, attr.expression.start, ", ")
@@ -110,7 +116,7 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node, onWalk: (node: No
         //bind group on input
         if (attr.name == "group" && el.name == "input") {
             str.remove(attr.start, attr.expression.start);
-            str.appendLeft(attr.expression.start, "{...__sveltets_ensureType(String, ")
+            str.appendLeft(attr.expression.start, "{...__sveltets_any(")
             str.overwrite(attr.expression.end, attr.end, ")}")
             return;
         }
@@ -233,7 +239,7 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node, onWalk: (node: No
         //if we are on an "element" we are case insensitive, lowercase to match our JSX
         if (parent.type == "Element") {
             //skip Attribute shorthand, that is handled below
-            if (attr.value === true || (attr.value.length && attr.value.length == 1 && attr.value[0].type != "AttributeShorthand")) {
+            if (attr.value !== true &&  !(attr.value.length && attr.value.length == 1 && attr.value[0].type == "AttributeShorthand")) {
                 
                 let name = attr.name;
                 if (!svgAttributes.find(x => x == name)) {

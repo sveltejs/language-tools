@@ -12,15 +12,18 @@ type SvelteAction<U extends any[]> = (node: HTMLElement, ...args:U) => {
 	destroy?: () => void
 }
 
-type SvelteTransition<U extends any[]> = (node: HTMLElement, ...args:U) => {
-    delay?: number,
+
+type SvelteTransitionConfig = {
+	delay?: number,
 	duration?: number,
 	easing?: (t: number) => number,
 	css?: (t: number, u: number) => string,
 	tick?: (t: number, u: number) => void
 }
 
-type SvelteAnimation<U extends any[]> = (node: HTMLElement, move: { from: DOMRect, to: DOMRect}, ...args:U) => {
+type SvelteTransition<U extends any[]> = (node: Element, ...args:U) => SvelteTransitionConfig | (() => SvelteTransitionConfig)
+
+type SvelteAnimation<U extends any[]> = (node: Element, move: { from: DOMRect, to: DOMRect}, ...args:U) => {
     delay?: number,
 	duration?: number,
 	easing?: (t: number) => number,
