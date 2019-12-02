@@ -305,13 +305,18 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node, onWalk: (node: No
         
     }
 
-    const handleElement = (attr: Node) => {
+    const handleElement = (node: Node) => {
         //we just have to self close void tags since jsx always wants the />
         let voidTags = "area,base,br,col,embed,hr,img,input,link,meta,param,source,track,wbr".split(',');
-        if (voidTags.find(x => x == attr.name)) {
-            if (htmlx[attr.end - 2] != '/') {
-                str.appendRight(attr.end - 1, "/");
+        if (voidTags.find(x => x == node.name)) {
+            if (htmlx[node.end - 2] != '/') {
+                str.appendRight(node.end - 1, "/");
             }
+        }
+
+        //some tags auto close when they encounter certain elements, jsx doesn't support this
+        if (htmlx[node.end-1] != '>') {
+            str.appendRight(node.end, `</${node.name}>`)
         }
     }
 
