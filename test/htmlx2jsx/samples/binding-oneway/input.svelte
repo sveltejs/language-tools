@@ -6,12 +6,12 @@
 />
 
 <video
-	src={clip}
-	bind:duration
-	bind:buffered
-	bind:seekable
-	bind:seeking
-	bind:played
-	bind:ended
+    src={clip}
+    bind:duration
+    bind:buffered
+    bind:seekable
+    bind:seeking
+    bind:played
+    bind:ended
 ></video>
 

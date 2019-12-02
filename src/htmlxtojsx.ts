@@ -5,6 +5,12 @@ import { parseHtmlx } from './htmlxparser';
 import KnownEvents from './knownevents';
 import svgAttributes from './svgattributes';
 
+type ElementType = String
+const oneWayBindingAttributes:Map<String, ElementType> = new Map(
+    ['clientWidth', 'clientHeight', 'offsetWidth', 'offsetHeight'].map(e => [e, 'HTMLDivElement'] as [String, String]).concat(
+    ['duration','buffered','seekable','seeking', 'played', 'ended'].map(e => [e, 'HTMLMediaElement'])
+ ));
+
 
 export function convertHtmlxToJsx(str: MagicString, ast: Node, onWalk: (node: Node, parent: Node, prop:string, index: number) => void = null, onLeave: (node: Node, parent: Node, prop: string, index: number) => void = null) {
     let htmlx = str.original;
@@ -122,6 +128,18 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node, onWalk: (node: No
             str.remove(attr.start, attr.expression.start)
             str.appendLeft(attr.expression.start, `{...__sveltets_ensureType(${el.name}, `);
             str.overwrite(attr.expression.end, attr.end, ")}");
+            return;
+        }
+
+        //one way binding
+        if (oneWayBindingAttributes.has(attr.name) && el.type == "Element") {
+            str.remove(attr.start, attr.expression.start)
+            str.appendLeft(attr.expression.start, `{...__sveltets_any(`);
+            if (attr.expression.end == attr.end) {
+                str.appendLeft(attr.end,  `=__sveltets_instanceOf(${oneWayBindingAttributes.get(attr.name)}).${attr.name})}`)
+            } else {
+                str.overwrite(attr.expression.end, attr.end, `=__sveltets_instanceOf(${oneWayBindingAttributes.get(attr.name)}).${attr.name})}`)
+            }
             return;
         }
 
