@@ -2,7 +2,9 @@
 <>{() => {if (true){<>
 <svelteself prop1={1} />
 </>}}}
-<sveltecomponent this={testComponent} propa={5} />
+<sveltecomponent this={testComponent} propa={5}>
+    <h1>content</h1>
+</sveltecomponent>
 <sveltewindow  />
 <sveltebody />
 <sveltehead>

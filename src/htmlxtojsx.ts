@@ -203,6 +203,12 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node, onWalk: (node: No
         if (el.name.startsWith("svelte:")) {
             let colon = htmlx.indexOf(":", el.start);
             str.remove(colon, colon+1);
+
+            let closeTag = htmlx.lastIndexOf("/"+el.name, el.end)
+            if (closeTag > el.start) {
+                let colon = htmlx.indexOf(":",closeTag)
+                str.remove(colon, colon + 1);
+            }
         }
 
         //we only need to do something if there is a let or slot
