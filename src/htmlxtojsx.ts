@@ -234,8 +234,22 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node, onWalk: (node: No
         if (parent.type == "Element") {
             //skip Attribute shorthand, that is handled below
             if (attr.value === true || (attr.value.length && attr.value.length == 1 && attr.value[0].type != "AttributeShorthand")) {
-                str.overwrite(attr.start, attr.start + attr.name.length, svgAttributes.find(a => a == attr.name) ? attr.name : attr.name.toLowerCase())
+                
+                let name = attr.name;
+                if (!svgAttributes.find(x => x == name)) {
+                    name = name.toLowerCase();
+                }
+
+                //strip ":" from out attribute name and uppercase the next letter to convert to jsx attribute
+                let colonIndex = name.indexOf(":");
+                if (colonIndex >= 0) {
+                    let parts = name.split(":");
+                    name = parts[0] + parts[1][0].toUpperCase() + parts[1].substring(1);
+                }
+
+                str.overwrite(attr.start, attr.start + attr.name.length, name)
            }
+
         }
 
 
