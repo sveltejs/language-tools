@@ -31,6 +31,7 @@
     "rollup-plugin-json": "^4.0.0",
     "rollup-plugin-node-resolve": "^5.2.0",
     "rollup-plugin-typescript": "^1.0.1",
+    "source-map": "^0.6.1",
     "source-map-support": "^0.5.16",
     "svelte": "^3.16.0",
     "tiny-glob": "^0.2.6",
