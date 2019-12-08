@@ -1,10 +1,10 @@
-<></>;
-    import { a as b } from "./test.svelte"
-
-
-    import * as c from "b.ts"
+<></>;import { a as b } from "./test.svelte"
+import * as c from "b.ts"
 function render() {
 
+    
+
+    
      let world = "name"
 ;
 <><h1>hello {world}</h1>

@@ -1,6 +1,8 @@
 <></>;function render() {
 
+
 ;let b; $: b = 7;
+
 let a;
 $: a = 5;
 ;

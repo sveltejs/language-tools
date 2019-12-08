@@ -218,9 +218,9 @@ type InstanceScriptProcessResult = {
 
 function processInstanceScriptContent(str: MagicString, script: Node): InstanceScriptProcessResult {
     let htmlx = str.original;
-    let tsAst = ts.createSourceFile("component.ts.svelte", htmlx.substring(script.content.start, script.content.end), ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+    let scriptContent = htmlx.substring(script.content.start, script.content.end)
+    let tsAst = ts.createSourceFile("component.ts.svelte", scriptContent, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
     let astOffset = script.content.start;
-
     let exportedNames = new Map<string,string>();
 
     let implicitTopLevelNames: Map<string, number> = new Map();
@@ -261,7 +261,7 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
         //handle assign to
         if (parent && ts.isBinaryExpression(parent) && parent.operatorToken.kind == ts.SyntaxKind.EqualsToken && parent.left == ident) {
               //remove $
-              let dollar = str.original.indexOf("$", ident.pos + astOffset);
+              let dollar = str.original.indexOf("$", ident.getStart() + astOffset);
               str.remove(dollar, dollar + 1);
               // replace = with .set(
               str.overwrite(ident.end+astOffset, parent.operatorToken.end + astOffset, ".set(");
@@ -271,7 +271,7 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
         }
 
         // we must be on the right or not part of assignment
-        let dollar = str.original.indexOf("$", ident.pos + astOffset);
+        let dollar = str.original.indexOf("$", ident.getStart() + astOffset);
         str.overwrite(dollar, dollar+1, "__sveltets_store_get(");
         str.appendLeft(ident.end+astOffset, ")");
     }
@@ -330,7 +330,7 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
         if (ts.isVariableStatement(node)) {
             let exportModifier = node.modifiers ? node.modifiers.find(x => x.kind == ts.SyntaxKind.ExportKeyword): null;
             if (exportModifier) {
-                removeExport(exportModifier.pos, exportModifier.end);
+                removeExport(exportModifier.getStart(), exportModifier.end);
                 isExport = true;
                 onLeaveCallbacks.push(() => isExport = false);
             }
@@ -341,7 +341,7 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
                 let exportModifier = node.modifiers.find(x => x.kind == ts.SyntaxKind.ExportKeyword)
                 if (exportModifier) {
                     addExport(node.name)
-                    removeExport(exportModifier.pos, exportModifier.end);
+                    removeExport(exportModifier.getStart(), exportModifier.end);
                 }
             }
             
@@ -368,13 +368,13 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
                     addExport(ne.name)
                 }
                 //we can remove entire statement
-                removeExport(node.pos, node.end);
+                removeExport(node.getStart(), node.end);
             }
         }
 
         //move imports to top of script so they appear outside our render function
         if (ts.isImportDeclaration(node)) {
-            str.move(node.pos+astOffset, node.end+astOffset, script.start+1);
+            str.move(node.getStart()+astOffset, node.end+astOffset, script.start+1);
             //add in a \n 
             const originalEndChar = str.original[node.end+astOffset-1];
             str.overwrite(node.end+astOffset-1, node.end+astOffset, originalEndChar+"\n");
@@ -409,7 +409,7 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
                 && node.statement.expression.operatorToken.kind == ts.SyntaxKind.EqualsToken
                 && ts.isIdentifier(node.statement.expression.left))   {
                     
-            implicitTopLevelNames.set(node.statement.expression.left.text, node.label.pos );
+            implicitTopLevelNames.set(node.statement.expression.left.text, node.label.getStart() );
         }
    
         //to save a bunch of condition checks on each node, we recurse into processChild which skips all the checks for top level items
@@ -428,7 +428,7 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
     for ( var [name, pos] of implicitTopLevelNames.entries()) {
         if (!rootScope.declared.has(name)) {
             //add a declaration
-            str.prependRight(pos + astOffset + 1, `;let ${name}; `)
+            str.prependRight(pos + astOffset, `;let ${name}; `)
         }
     }
 
@@ -465,7 +465,7 @@ function createRenderFunction(str: MagicString, scriptTag: Node, scriptDestinati
         str.overwrite(scriptTag.start, scriptTag.start+ 1, "</>;");
         str.overwrite(scriptTag.start+1, scriptTagEnd, `function render() {${propsDecl}\n`);
 
-        let scriptEndTagStart = htmlx.lastIndexOf("<", scriptTag.end-1);
+        let scriptEndTagStart = htmlx.lastIndexOf("<", scriptTag.end-1);        
         str.overwrite(scriptEndTagStart, scriptTag.end, ";\n<>");
     } else {
         str.prependRight(scriptDestination, `</>;function render() {${propsDecl}\n<>`);

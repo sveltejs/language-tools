@@ -1,10 +1,6 @@
-<></>;import Test from './Test.svelte';
-function render() {
-
- 
-;
-<><Test b="6" />
-</>
+<></>;function render() {
+   __sveltets_store_get(var);
+<></>
 return { props: {}, slots: {} }}
 
 export default class {
