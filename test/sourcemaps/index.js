@@ -1,3 +1,4 @@
+let svelte2tsx = require('../build/index')
 let converter = require('../build/htmlxtojsx')
 let fs = require('fs')
 let assert = require('assert')
@@ -5,7 +6,7 @@ let sm = require('source-map')
 
 
 
-describe('htmlx2jsx', () => {
+describe('sourcemap', () => {
 	/**
 	 * 
 	 * @param {string} input 
@@ -18,9 +19,10 @@ describe('htmlx2jsx', () => {
 		let source_line = 0;
 		let source = []
 		let locations = new Map()
-		while (line = lines.shift()) {
+		while (lines.length) {
+			line = lines.shift()
 			//are we a range line, we test to see if it starts with whitespace followed by a digit
-			if (/^\s*\d/.test(line)) {
+			if (/^\s*[\d=]+[\s\d=]*$/.test(line)) {
 				//create the ranges
 				let currentId = null
 				let offset = 0
@@ -75,8 +77,12 @@ describe('htmlx2jsx', () => {
 			);
 		}
 
+		let showWhitespace = (str) => {
+			return str.replace(/\t/g, "\\t").replace(/\n/g,"\\n\n").replace(/\r/g, "\\r")
+		}
+
 		(solo ? it.only : it)(dir, () => {
-			const testContent = fs.readFileSync(`${__dirname}/${dir}`, 'utf-8').replace(/\s+$/, '').replace(/\r\n/g, "\n");
+			const testContent = fs.readFileSync(`${__dirname}/${dir}`, 'utf-8').replace(/\r\n/g, "\n").replace(/\t/g, "    ");
 
 			let [inputBlock, expectedBlock] = testContent.split(/\n!Expected.*?\n/)
 			let input = extractLocations(inputBlock);
@@ -85,8 +91,9 @@ describe('htmlx2jsx', () => {
 		
 			// seems backwards but we don't have an "input" source map, so we generate one from our expected output
 			// but assert that the source it generates matches our input source.
-			const { map, code } = converter.htmlx2jsx(expected.source);
-			assert.equal(code, input.source, "Couldn't generate input source map for test");
+			//console.log(expected.source)
+			const { map, code } = dir.endsWith(".htmlx.html") ?  converter.htmlx2jsx(expected.source) : svelte2tsx(expected.source);
+			assert.equal(showWhitespace(code) , showWhitespace(input.source), "Couldn't generate input source map for test");
 
 			let decoder = new sm.SourceMapConsumer(map);
 			
