@@ -240,14 +240,18 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
     const pushScope = () => scope = new Scope(scope)
     const popScope = () => scope = scope.parent
 
-    const addExport = (name: ts.BindingName, target: ts.BindingName = null) => {
+    const addExport = (name: ts.BindingName, target: ts.BindingName = null, type: ts.TypeNode = null) => {
         if (name.kind != ts.SyntaxKind.Identifier) {
             throw Error("export source kind not supported " + name)
         }
         if (target && target.kind != ts.SyntaxKind.Identifier) {
             throw Error("export target kind not supported " + target)
         }
-        exportedNames.set(name.text, target ? (target as ts.Identifier).text : null);
+        if (target) {
+          exportedNames.set(type ? `${name.text} as ${type.getText()}` : name.text, (target as ts.Identifier).text);
+        } else {
+          exportedNames.set(name.text, null);
+        }
     }
 
     const removeExport = (start: number, end: number) => {
@@ -319,7 +323,11 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
       ts.forEachChild(list, (node) => {
         if (ts.isVariableDeclaration(node)) {
           if (ts.isIdentifier(node.name)) {
-            addExport(node.name)
+            if (node.type) {
+              addExport(node.name, node.name, node.type);
+            } else {
+              addExport(node.name);
+            }
           } else if (ts.isObjectBindingPattern(node.name) || ts.isArrayBindingPattern(node.name)) {
             ts.forEachChild(node.name, (element) => {
               if (ts.isBindingElement(element)) {

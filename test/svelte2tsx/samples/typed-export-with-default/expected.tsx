@@ -1,10 +1,9 @@
 <></>;function render() {
 
-    interface A {}
-     let a: A;
+     let name: string = "world"
 ;
 <></>
-return { props: {a: a as A}, slots: {} }}
+return { props: {name: name as string}, slots: {} }}
 
 export default class {
     $$prop_def = __sveltets_partial(render().props)
