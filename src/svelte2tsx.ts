@@ -252,7 +252,7 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
 
     const removeExport = (start: number, end: number) => {
         let exportStart = str.original.indexOf("export", start+astOffset);
-        let exportEnd = exportStart + "export".length;
+        let exportEnd = exportStart + (end - start);
         str.remove(exportStart, exportEnd);
     }
 
@@ -374,9 +374,9 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
                 } else {
                     addExport(ne.name)
                 }
-                //we can remove entire statement
-                removeExport(node.getStart(), node.end);
             }
+            //we can remove entire statement
+            removeExport(node.getStart(), node.end);
         }
 
         //move imports to top of script so they appear outside our render function
