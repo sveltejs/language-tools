@@ -498,7 +498,7 @@ function createRenderFunction(str: MagicString, scriptTag: Node, scriptDestinati
 }
 
 
-export function svelte2tsx(svelte: string) {
+export function svelte2tsx(svelte: string, filename?: string) {
 
     let str = new MagicString(svelte);
     // process the htmlx as a svelte template
@@ -545,6 +545,6 @@ export function svelte2tsx(svelte: string) {
     
     return {
         code: str.toString(),
-        map: str.generateMap({ hires: true })
+        map: str.generateMap({ hires: true, source: filename })
     }
 }
