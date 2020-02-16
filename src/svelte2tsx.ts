@@ -229,7 +229,6 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
 
     //track if we are in a declaration scope
     let isDeclaration = false;
-    let isExport = false;
 
     //track $store variables since we are only supposed to give top level scopes special treatment, and users can declare $blah variables at higher scopes 
     //which prevents us just changing all instances of Identity that start with $
@@ -241,19 +240,23 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
     const pushScope = () => scope = new Scope(scope)
     const popScope = () => scope = scope.parent
 
-    const addExport = (name: ts.BindingName, target: ts.BindingName = null) => {
+    const addExport = (name: ts.BindingName, target: ts.BindingName = null, type: ts.TypeNode = null) => {
         if (name.kind != ts.SyntaxKind.Identifier) {
             throw Error("export source kind not supported " + name)
         }
         if (target && target.kind != ts.SyntaxKind.Identifier) {
             throw Error("export target kind not supported " + target)
         }
-        exportedNames.set(name.text, target ? (target as ts.Identifier).text : null);
+        if (target) {
+          exportedNames.set(type ? `${name.text} as ${type.getText()}` : name.text, (target as ts.Identifier).text);
+        } else {
+          exportedNames.set(name.text, null);
+        }
     }
 
     const removeExport = (start: number, end: number) => {
         let exportStart = str.original.indexOf("export", start+astOffset);
-        let exportEnd = exportStart + "export".length;
+        let exportEnd = exportStart + (end - start);
         str.remove(exportStart, exportEnd);
     }
 
@@ -299,12 +302,6 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
             return;
         }
 
-        if (isExport) {
-           if (!ts.isBindingElement(ident.parent) || ident.parent.name == ident) {
-                addExport(ident);
-           } 
-        }
-
         if (isDeclaration || ts.isParameter(parent)) {
             if (!ts.isBindingElement(ident.parent) || ident.parent.name == ident) {  //we are a key, not a name, so don't care
                 if (ident.text.startsWith('$') || scope == rootScope) { //track all top level declared identifiers and all $ prefixed identifiers
@@ -322,17 +319,35 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
         }
     }
 
+    const handleExportedVariableDeclarationList = (list: ts.VariableDeclarationList) => {
+      ts.forEachChild(list, (node) => {
+        if (ts.isVariableDeclaration(node)) {
+          if (ts.isIdentifier(node.name)) {
+            if (node.type) {
+              addExport(node.name, node.name, node.type);
+            } else {
+              addExport(node.name);
+            }
+          } else if (ts.isObjectBindingPattern(node.name) || ts.isArrayBindingPattern(node.name)) {
+            ts.forEachChild(node.name, (element) => {
+              if (ts.isBindingElement(element)) {
+                addExport(element.name);
+              }
+            });
+          }
+        }
+      });
+    }
+
     const walk = (node: ts.Node, parent: ts.Node) => {
-       
         type onLeaveCallback = () => void;
         let onLeaveCallbacks:onLeaveCallback[] = []
 
         if (ts.isVariableStatement(node)) {
             let exportModifier = node.modifiers ? node.modifiers.find(x => x.kind == ts.SyntaxKind.ExportKeyword): null;
             if (exportModifier) {
+                handleExportedVariableDeclarationList(node.declarationList);
                 removeExport(exportModifier.getStart(), exportModifier.end);
-                isExport = true;
-                onLeaveCallbacks.push(() => isExport = false);
             }
         }
 
@@ -367,9 +382,9 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
                 } else {
                     addExport(ne.name)
                 }
-                //we can remove entire statement
-                removeExport(node.getStart(), node.end);
             }
+            //we can remove entire statement
+            removeExport(node.getStart(), node.end);
         }
 
         //move imports to top of script so they appear outside our render function
@@ -483,7 +498,7 @@ function createRenderFunction(str: MagicString, scriptTag: Node, scriptDestinati
 }
 
 
-export function svelte2tsx(svelte: string) {
+export function svelte2tsx(svelte: string, filename?: string) {
 
     let str = new MagicString(svelte);
     // process the htmlx as a svelte template
@@ -530,6 +545,6 @@ export function svelte2tsx(svelte: string) {
     
     return {
         code: str.toString(),
-        map: str.generateMap({ hires: true })
+        map: str.generateMap({ hires: true, source: filename })
     }
 }
