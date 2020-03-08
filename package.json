@@ -1,7 +1,14 @@
 {
-  "name": "languge-tools",
+  "name": "@svelte/language-tools",
   "version": "1.0.0",
-  "main": "index.js",
-  "author": "Orta Therox <orta.therox@gmail.com>",
-  "license": "MIT"
+  "author": "Svelte Contributors",
+  "license": "MIT",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "yarn workspaces run build",
+    "test": "CI=true yarn workspaces run test"
+  }
 }

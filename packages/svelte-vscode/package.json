@@ -7,23 +7,24 @@
         "vscode:prepublish": "tsc -p ./",
         "build": "tsc -p ./",
         "watch": "tsc -w -p ./",
-        "update-vscode": "node ./node_modules/vscode/bin/install",
-        "postinstall": "node ./node_modules/vscode/bin/install"
+        "update-vscode": "node ../../node_modules/vscode/bin/install",
+        "postinstall": "node ../../node_modules/vscode/bin/install",
+        "test": "echo 'NOOP'"
     },
     "repository": {
         "type": "git",
-        "url": "https://github.com/UnwrittenFun/svelte-vscode.git"
+        "url": "https://github.com/sveltejs/language-tools.git"
     },
     "keywords": [
         "svelte",
         "vscode"
     ],
-    "author": "James Birtles <jameshbirtles@gmail.com>",
+    "author": "James Birtles <jameshbirtles@gmail.com> & the Svelte Core Team",
     "license": "MIT",
     "bugs": {
-        "url": "https://github.com/UnwrittenFun/svelte-vscode/issues"
+        "url": "https://github.com/sveltejs/language-tools/issues"
     },
-    "homepage": "https://github.com/UnwrittenFun/svelte-vscode#readme",
+    "homepage": "https://github.com/sveltejs/language-tools#readme",
     "displayName": "Svelte",
     "publisher": "JamesBirtles",
     "icon": "icons/logo.png",
@@ -227,11 +228,11 @@
     },
     "devDependencies": {
         "@types/node": "^9.6.5",
-        "typescript": "^3.0.1",
-        "vscode": "^1.1.30"
+        "typescript": "*",
+        "vscode": "*"
     },
     "dependencies": {
-        "svelte-language-server": "0.10.3",
+        "svelte-language-server": "*",
         "vscode-languageclient": "^5.0.1"
     }
 }

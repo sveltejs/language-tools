@@ -45,7 +45,7 @@ describe('CSS Plugin', () => {
         plugin.onRegister(host as any);
         host.emit('documentChange', document);
 
-        const completions = plugin.getCompletions(document, Position.create(0, 0));
+        const completions = plugin.getCompletions(document, Position.create(0, 0), " ");
         assert.ok(
             Array.isArray(completions && completions.items),
             'Expected completions to be an array',

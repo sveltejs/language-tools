@@ -1,5 +1,5 @@
 {
-    "name": "svelte-language-server",
+    "name": "@svelte/language-server",
     "version": "0.10.3",
     "description": "A language server for Svelte",
     "main": "dist/src/index.js",
@@ -15,7 +15,7 @@
     },
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/UnwrittenFun/svelte-language-server.git"
+        "url": "git+https://github.com/sveltejs/language-tools.git"
     },
     "keywords": [
         "svelte",
@@ -26,9 +26,9 @@
     "author": "James Birtles <jameshbirtles@gmail.com>",
     "license": "MIT",
     "bugs": {
-        "url": "https://github.com/UnwrittenFun/svelte-language-server/issues"
+        "url": "https://github.com/sveltejs/language-tools/issues"
     },
-    "homepage": "https://github.com/UnwrittenFun/svelte-language-server#readme",
+    "homepage": "https://github.com/sveltejs/language-tools#readme",
     "devDependencies": {
         "@types/cosmiconfig": "^4.0.0",
         "@types/lodash": "^4.14.116",
@@ -51,7 +51,7 @@
         "sinon": "^4.5.0",
         "source-map": "^0.7.3",
         "svelte": "3.6.7",
-        "typescript": "3.5.3",
+        "typescript": "*",
         "vscode-css-languageservice": "4.0.2",
         "vscode-emmet-helper": "1.2.15",
         "vscode-html-languageservice": "3.0.2",
