@@ -1,4 +1,7 @@
-import cosmic from 'cosmiconfig';
+// TODO: Remove
+type InitialMigrationAny = any
+
+import {cosmiconfig} from 'cosmiconfig';
 import * as prettier from 'prettier';
 import {
     DiagnosticsProvider,
@@ -94,9 +97,9 @@ export class SveltePlugin implements DiagnosticsProvider, FormattingProvider {
 
     private async loadConfig(path: string): Promise<SvelteConfig> {
         try {
-            const { config } = await cosmic('svelte', {
-                packageProp: false,
-            }).load(path);
+            const explorer = cosmiconfig('svelte', {packageProp: "svelte-ls"})
+            const result = await explorer.search(path);
+            const config = result?.config ?? {}
             return { ...DEFAULT_OPTIONS, ...config };
         } catch (err) {
             return { ...DEFAULT_OPTIONS, preprocess: {} };
@@ -149,7 +152,7 @@ function makePreprocessor(document: SvelteDocument, preprocessors: PreprocessorG
                     source: document.script,
                     transpiled: preprocessor.transpiledDocument.script,
                     code: res.code,
-                    map: res.map,
+                    map: res.map as InitialMigrationAny,
                 });
             }
             return res;
@@ -164,7 +167,7 @@ function makePreprocessor(document: SvelteDocument, preprocessors: PreprocessorG
                     source: document.style,
                     transpiled: preprocessor.transpiledDocument.style,
                     code: res.code,
-                    map: res.map,
+                    map: res.map as InitialMigrationAny,
                 });
             }
             return res;

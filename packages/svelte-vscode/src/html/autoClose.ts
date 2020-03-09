@@ -10,11 +10,12 @@ import {
     window,
     workspace,
     Disposable,
-    TextDocumentContentChangeEvent,
     TextDocument,
     Position,
     SnippetString,
 } from 'vscode';
+
+import { TextDocumentContentChangeEvent } from "vscode-languageserver-protocol"
 
 export function activateTagClosing(
     tagProvider: (document: TextDocument, position: Position) => Thenable<string>,
@@ -52,7 +53,7 @@ export function activateTagClosing(
 
     function onDidChangeTextDocument(
         document: TextDocument,
-        changes: TextDocumentContentChangeEvent[],
+        changes: readonly TextDocumentContentChangeEvent[],
     ) {
         if (!isEnabled) {
             return;
@@ -66,10 +67,10 @@ export function activateTagClosing(
         }
         let lastChange = changes[changes.length - 1];
         let lastCharacter = lastChange.text[lastChange.text.length - 1];
-        if (lastChange.rangeLength > 0 || (lastCharacter !== '>' && lastCharacter !== '/')) {
+        if ("range" in lastChange && lastChange.range.start !== lastChange.range.end || (lastCharacter !== '>' && lastCharacter !== '/')) {
             return;
         }
-        let rangeStart = lastChange.range.start;
+        let rangeStart = "range" in lastChange ? lastChange.range.start : new Position(0, document.getText().length);
         let version = document.version;
         timeout = setTimeout(() => {
             let position = new Position(

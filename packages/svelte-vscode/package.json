@@ -7,8 +7,6 @@
         "vscode:prepublish": "tsc -p ./",
         "build": "tsc -p ./",
         "watch": "tsc -w -p ./",
-        "update-vscode": "node ../../node_modules/vscode/bin/install",
-        "postinstall": "node ../../node_modules/vscode/bin/install",
         "test": "echo 'NOOP'"
     },
     "repository": {
@@ -227,12 +225,12 @@
         ]
     },
     "devDependencies": {
-        "@types/node": "^9.6.5",
+        "@types/node": "^13.9.0",
         "typescript": "*",
-        "vscode": "*"
+        "@types/vscode": "*"
     },
     "dependencies": {
         "svelte-language-server": "*",
-        "vscode-languageclient": "^5.0.1"
+        "vscode-languageclient": "^6.1.1"
     }
 }

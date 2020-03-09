@@ -11,6 +11,7 @@ import {
     SymbolInformation,
 } from '../api';
 import { svelteHtmlDataProvider } from './html/dataProvider';
+// import { svelteHtmlDataProvider } from './html/dataProvider';
 
 export class HTMLPlugin implements HoverProvider, CompletionsProvider {
     public pluginId = 'html';
@@ -94,3 +95,5 @@ export class HTMLPlugin implements HoverProvider, CompletionsProvider {
         return this.lang.findDocumentSymbols(document, html);
     }
 }
+
+

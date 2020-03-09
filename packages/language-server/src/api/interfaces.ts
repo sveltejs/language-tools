@@ -26,8 +26,10 @@ import {
     TextDocumentEdit,
     TextDocumentIdentifier,
     VersionedTextDocumentIdentifier,
-    TextDocumentContentChangeEvent,
 } from 'vscode-languageserver-types';
+
+import { TextDocumentContentChangeEvent } from "vscode-languageserver-protocol"
+
 import { Document } from './Document';
 
 export {
@@ -58,7 +60,7 @@ export {
     TextDocumentEdit,
     TextDocumentIdentifier,
     VersionedTextDocumentIdentifier,
-    TextDocumentContentChangeEvent,
+    TextDocumentContentChangeEvent
 };
 
 export type Resolvable<T> = T | Promise<T>;

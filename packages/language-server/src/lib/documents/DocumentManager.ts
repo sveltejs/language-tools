@@ -14,7 +14,6 @@ import {
     TextDocumentIdentifier,
     VersionedTextDocumentIdentifier,
     TextDocumentContentChangeEvent,
-    CompletionItem,
     TextEdit,
     DefinitionLink,
     CodeActionContext,
@@ -80,11 +79,11 @@ export class DocumentManager extends PluginHost {
         for (const change of changes) {
             let start = 0;
             let end = 0;
-            if (!change.range) {
-                end = document.getTextLength();
-            } else {
+            if ("range" in change) {
                 start = document.offsetAt(change.range.start);
                 end = document.offsetAt(change.range.end);
+            } else {
+                end = document.getTextLength();
             }
 
             document.update(change.text, start, end);
