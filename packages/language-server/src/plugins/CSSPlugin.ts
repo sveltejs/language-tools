@@ -11,7 +11,6 @@ import {
     HoverProvider,
     Position,
     Hover,
-    CompletionItem,
     CompletionsProvider,
     Fragment,
     DiagnosticsProvider,
@@ -106,9 +105,10 @@ export class CSSPlugin
     }
 
     getCompletions(document: Document, position: Position, triggerCharacter: string): CompletionList | null {
-        if (triggerCharacter != undefined && !this.triggerCharacters.includes(triggerCharacter)) {
-            return null;
-        }
+        // TODO: Why did this need to be removed?
+        // if (triggerCharacter != undefined && !this.triggerCharacters.includes(triggerCharacter)) {
+        //     return null;
+        // }
         
         if (!this.host.getConfig<boolean>('css.completions.enable')) {
             return null;

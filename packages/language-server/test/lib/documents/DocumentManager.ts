@@ -120,7 +120,7 @@ describe('Document Manager', () => {
         const plugin = {
             pluginId: 'test',
             defaultConfig: { enable: true },
-            getCompletions: sinon.stub().returns([]),
+            getCompletions: sinon.stub().returns({ items: [] }),
         };
         manager.register(plugin);
         const document = manager.openDocument(textDocument);

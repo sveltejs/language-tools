@@ -44,7 +44,9 @@ This repo contains the tools which provide editor integrations for Svelte.
 
 ## Packages
 
-This repo uses [`yarn workspaces`](https://classic.yarnpkg.com/blog/2017/08/02/introducing-workspaces/), which TLDR means if you want to run a commands in each project then you can either `cd` to that directory and run the command, or use `yarn workspace [name] [command]`.
+This repo uses [`yarn workspaces`](https://classic.yarnpkg.com/blog/2017/08/02/introducing-workspaces/), which TLDR means if you want to run a commands in each project then you can either `cd` to that directory and run the command, or use `yarn workspace [package_name] [command]`. 
+
+For example `yarn workspace svelte-language-server test`.
 
 #### [`svelte-language-server`](packages/language-server)
 
@@ -82,6 +84,8 @@ The tools are written in [TypeScript](https://www.typescriptlang.org/), but don'
 ```bash
 yarn test
 ```
+
+You can run the tests with a debugger in VSCode by setting a breakpoint (or adding `debugger` in the code)  and launching the task: "Run tests with debugger".
 
 ## License
 

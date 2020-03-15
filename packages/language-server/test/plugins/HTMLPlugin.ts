@@ -25,10 +25,12 @@ describe('HTML Plugin', () => {
         host.emit('documentChange|pre', document);
 
         assert.deepStrictEqual(plugin.doHover(document, Position.create(0, 2)), <Hover>{
-            contents: [
-                { language: 'html', value: '<h1>' },
-                'The h1 element represents a section heading\\.',
-            ],
+            contents: {
+                kind: 'markdown',
+                value:
+                    '```html\n<h1>\n```\nThe h1 element represents a section heading.\n\n[MDN Reference](https://developer.mozilla.org/docs/Web/HTML/Element/Heading_Elements)',
+            },
+
             range: Range.create(0, 1, 0, 3),
         });
 
@@ -49,6 +51,7 @@ describe('HTML Plugin', () => {
         const completions = plugin.getCompletions(document, Position.create(0, 1));
         assert.ok(Array.isArray(completions && completions.items));
         assert.ok(completions!.items.length > 0);
+
         assert.deepStrictEqual(completions!.items[0], <CompletionItem>{
             label: '!DOCTYPE',
             kind: CompletionItemKind.Property,
