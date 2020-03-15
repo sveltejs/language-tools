@@ -44,21 +44,25 @@ describe('CSS Plugin', () => {
         });
         plugin.onRegister(host as any);
         host.emit('documentChange', document);
-
-        const completions = plugin.getCompletions(document, Position.create(0, 0), " ");
+        
+        
+        const completions = plugin.getCompletions(document, Position.create(0, 0), " ")
         assert.ok(
             Array.isArray(completions && completions.items),
-            'Expected completions to be an array',
+            'Expected completion items to be an array',
         );
         assert.ok(completions!.items.length > 0, 'Expected completions to have length');
 
         assert.deepStrictEqual(completions!.items[0], <CompletionItem>{
             label: '@charset',
             kind: CompletionItemKind.Keyword,
-            documentation:
-                'Defines character set of the document.\n(Firefox 1, Safari 4, Chrome 2, IE 5, Opera 9)',
+             "documentation": {
+                    "kind": "markdown",
+                    "value": "Defines character set of the document.\n\n[MDN Reference](https://developer.mozilla.org/docs/Web/CSS/@charset)"
+             },
             textEdit: TextEdit.insert(Position.create(0, 0), '@charset'),
-            sortText: 'd',
+            sortText: 'd_0000',
+            tags: []
         });
     });
 });

@@ -128,8 +128,9 @@ export class DocumentManager extends PluginHost {
             ExecuteMode.Collect,
         )).filter(completion => completion != null);
 
+        const flattenedCompletions = flatten(completions.map(completion => completion.items));
         return CompletionList.create(
-            flatten(completions.map(completion => completion.items)),
+            flattenedCompletions,
             completions.reduce(
                 (incomplete, completion) => incomplete || completion.isIncomplete,
                 false as boolean,

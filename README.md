@@ -85,6 +85,8 @@ The tools are written in [TypeScript](https://www.typescriptlang.org/), but don'
 yarn test
 ```
 
+You can run the tests with a debugger in VSCode by setting a breakpoint (or adding `debugger` in the code)  and launching the task: "Run tests with debugger".
+
 ## License
 
 [MIT](LICENSE)
