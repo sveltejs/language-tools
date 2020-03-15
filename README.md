@@ -51,11 +51,11 @@ For example `yarn workspace svelte-language-server test`.
 
 #### [`svelte-language-server`](packages/language-server)
 
-The language server for Svelte. Built from [UnwrittenFun/svelte-language-server]|(https://github.com/UnwrittenFun/svelte-language-server) to become the official language server for the language.
+The language server for Svelte. Built from [UnwrittenFun/svelte-language-server](https://github.com/UnwrittenFun/svelte-language-server) to become the official language server for the language.
 
 #### [`svelte-vscode`](packages/svelte-vscode)
 
-The official vscode extension for Svelte. Built from [UnwrittenFun/svelte-vscode]|(https://github.com/UnwrittenFun/svelte-vscode) to become the official language server for the language.
+The official vscode extension for Svelte. Built from [UnwrittenFun/svelte-vscode](https://github.com/UnwrittenFun/svelte-vscode) to become the official language server for the language.
 
 ## Development
 
