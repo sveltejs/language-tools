@@ -20,8 +20,8 @@ A `.svelte` file would look something like this:
 ```html
 <script>
   let count = 1;
-	
-	// the `$:` means 're-run whenever these values change'
+
+  // the `$:` means 're-run whenever these values change'
   $: doubled = count * 2;
   $: quadrupled = doubled * 2;
 
@@ -38,7 +38,7 @@ A `.svelte` file would look something like this:
 <p>{doubled} * 2 = {quadrupled}</p>
 ```
 
-Which is a mix of [HTMLx](https://github.com/htmlx-org/HTMLx) and vanilla JavaScript (but with additional runtime behavior). 
+Which is a mix of [HTMLx](https://github.com/htmlx-org/HTMLx) and vanilla JavaScript (but with additional runtime behavior coming from the svelte compiler). 
 
 This repo contains the tools which provide editor integrations for Svelte files like this.
 
