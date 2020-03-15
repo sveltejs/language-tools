@@ -115,7 +115,7 @@ describe('Document Manager', () => {
         sinon.assert.calledWithExactly(plugin.doHover, document, pos);
     });
 
-    it('executes getCompletions on plugins', async () => {s
+    it('executes getCompletions on plugins', async () => {
         const manager = new DocumentManager(createTextDocument);
         const plugin = {
             pluginId: 'test',
