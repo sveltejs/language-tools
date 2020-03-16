@@ -1,5 +1,3 @@
-import * as path from 'path';
-
 import { workspace, ExtensionContext, TextDocument, Position, commands, window } from 'vscode';
 import {
     LanguageClient,
@@ -19,9 +17,7 @@ namespace TagCloseRequest {
 }
 
 export function activate(context: ExtensionContext) {
-    let serverModule = context.asAbsolutePath(
-        path.join('./', 'node_modules', 'svelte-language-server', 'bin', 'server.js'),
-    );
+    let serverModule = require.resolve('svelte-language-server/bin/server.js');
 
     let debugOptions = { execArgv: ['--nolazy', '--inspect=6009'] };
     let serverOptions: ServerOptions = {
