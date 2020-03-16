@@ -8,7 +8,8 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "yarn workspaces run build",
-    "test": "CI=true yarn workspaces run test"
+    "build": "tsc -b",
+    "test": "CI=true yarn workspaces run test",
+    "watch": "tsc -b -watch"
   }
 }
