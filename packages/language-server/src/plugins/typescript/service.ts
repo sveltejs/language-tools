@@ -1,6 +1,6 @@
 import ts from 'typescript';
 import { DocumentSnapshot } from './DocumentSnapshot';
-import { isSvelte } from './utils';
+import { isSvelte, getScriptKindFromFileName } from './utils';
 import { dirname, resolve, extname } from 'path';
 import { Document } from '../../api';
 
@@ -104,6 +104,14 @@ export function createLanguageService(
 
                 return resolved.resolvedModule!;
             });
+        },
+        getScriptKind: (fileName: string) => {
+            const doc = getSvelteSnapshot(fileName);
+            if(doc) {
+                return doc.scriptKind;
+            }
+
+            return getScriptKindFromFileName(fileName);
         },
 
         readFile(path: string, encoding?: string): string | undefined {
