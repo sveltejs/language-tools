@@ -85,30 +85,9 @@ export function createLanguageService(
         },
         getCurrentDirectory: () => workspacePath,
         getDefaultLibFileName: ts.getDefaultLibFilePath,
-
-        resolveModuleNames(moduleNames: string[], containingFile: string): ts.ResolvedModule[] {
-            return moduleNames.map(name => {
-                const resolved = ts.resolveModuleName(
-                    name,
-                    containingFile,
-                    compilerOptions,
-                    ts.sys,
-                );
-
-                if (!resolved.resolvedModule && isSvelte(name)) {
-                    return {
-                        resolvedFileName: resolve(dirname(containingFile), name),
-                        extension: extname(name),
-                    };
-                }
-
-                return resolved.resolvedModule!;
-            });
-        },
-
-        readFile(path: string, encoding?: string): string | undefined {
-            return ts.sys.readFile(path, encoding);
-        },
+        fileExists: ts.sys.fileExists,
+        readFile: ts.sys.readFile,
+        readDirectory: ts.sys.readDirectory,
     };
     let languageService = ts.createLanguageService(host);
 
