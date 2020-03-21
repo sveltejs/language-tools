@@ -92,6 +92,9 @@ To run the developer version of both the language server and the vscode extensio
 - Go to the debugging panel
 - Make sure "Run VSCode Extension" is selected, and hit run
 
+This launches a new vscode window and a watcher for your changes. 
+In this dev window you can choose an existing Svelte project to work against, when you make changes to the extension or language server you can use the command "Reload Window" in the VS Code command palette to see you changes.
+
 ### Running Tests
 
 You might think that as a language server, you'd need to handle a lot of back and forth between APIs, but actually it's mostly high-level JavaScript objects which are passed to the [npm module vscode-languageserver](https://code.visualstudio.com/api/language-extensions/language-server-extension-guide).
