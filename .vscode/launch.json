@@ -2,6 +2,17 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Run VS Code Extension",
+            "type": "extensionHost",
+            "request": "launch",
+            "runtimeExecutable": "${execPath}",
+            "args": ["--extensionDevelopmentPath=${workspaceRoot}/packages/svelte-vscode"],
+            "stopOnEntry": false,
+            "sourceMaps": true,
+            "outFiles": ["${workspaceRoot}/packkages/svelte-vscode/dist/**/*.js"],
+			"preLaunchTask": "npm: watch"
+        },
+        {
             "type": "node",
             "request": "launch",
             "name": "Run tests with debugger",
@@ -18,19 +29,9 @@
         {
             "type": "node",
             "request": "attach",
-            "name": "Attach to svelte-vscode client",
+            "name": "Attach to debugger to svelte-vscode client",
             "port": 6009,
             "skipFiles": ["<node_internals>/**"]
-        },
-        {
-            "name": "Launch svelte-vscode client",
-            "type": "extensionHost",
-            "request": "launch",
-            "runtimeExecutable": "${execPath}",
-            "args": ["--extensionDevelopmentPath=${workspaceRoot}/packages/svelte-vscode"],
-            "stopOnEntry": false,
-            "sourceMaps": true,
-            "outFiles": ["${workspaceRoot}/dist/**/*.js"]
         }
     ]
 }

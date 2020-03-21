@@ -42,7 +42,6 @@ Which is a mix of [HTMLx](https://github.com/htmlx-org/HTMLx) and vanilla JavaSc
 
 This repo contains the tools which provide editor integrations for Svelte files like this.
 
-
 ## Packages
 
 This repo uses [`yarn workspaces`](https://classic.yarnpkg.com/blog/2017/08/02/introducing-workspaces/), which TLDR means if you want to run a commands in each project then you can either `cd` to that directory and run the command, or use `yarn workspace [package_name] [command]`. 
@@ -58,6 +57,8 @@ The language server for Svelte. Built from [UnwrittenFun/svelte-language-server]
 The official vscode extension for Svelte. Built from [UnwrittenFun/svelte-vscode](https://github.com/UnwrittenFun/svelte-vscode) to become the official language server for the language.
 
 ## Development
+
+#### Setup
 
 Pull requests are encouraged and always welcome. [Pick an issue](https://github.com/sveltejs/language-tools/issues?q=is%3Aissue+is%3Aopen+sort%3Aupdated-desc) and help us out!
 
@@ -79,14 +80,29 @@ yarn build
 
 The tools are written in [TypeScript](https://www.typescriptlang.org/), but don't let that put you off — it's basically just JavaScript with type annotations. You'll pick it up in no time. If you're using an editor other than [Visual Studio Code](https://code.visualstudio.com/) you may need to install a plugin in order to get syntax highlighting and code hints etc.
 
+#### Making Changes
+
+There are two ways to work on this project: either by working against an existing project or entirely through tests.
+
+## Running the Dev Language Server Against Your App
+
+To run the developer version of both the language server and the vscode extension:
+
+- open the root of this repo in VS Code
+- Go to the debugging panel
+- Make sure "Run VSCode Extension" is selected, and hit run
 
 ### Running Tests
+
+You might think that as a language server, you'd need to handle a lot of back and forth between APIs, but actually it's mostly high-level JavaScript objects which are passed to the [npm module vscode-languageserver](https://code.visualstudio.com/api/language-extensions/language-server-extension-guide).
+
+This means it's easy to write tests for your changes:
 
 ```bash
 yarn test
 ```
 
-You can run the tests with a debugger in VSCode by setting a breakpoint (or adding `debugger` in the code)  and launching the task: "Run tests with debugger".
+For tricker issues, you can run the tests with a debugger in VSCode by setting a breakpoint (or adding `debugger` in the code)  and launching the task: "Run tests with debugger".
 
 ## License
 
