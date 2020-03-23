@@ -2,7 +2,7 @@
     "name": "svelte-vscode",
     "version": "0.9.3",
     "description": "Svelte language support for VS Code",
-    "main": "dist/extension.js",
+    "main": "dist/src/extension.js",
     "scripts": {
         "vscode:prepublish": "tsc -p ./",
         "build": "tsc -p ./",
