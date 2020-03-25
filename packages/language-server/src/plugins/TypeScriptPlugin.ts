@@ -185,12 +185,20 @@ export class TypeScriptPlugin
         }
 
         const lang = getLanguageServiceForDocument(document, this.createDocument);
+        // The language service throws an error if the character is not a valid trigger character.
+        // Also, the completions are worse.
+        // Therefore, only use the characters the typescript compiler treats as valid.
+        const validTriggerCharacter = ['.', '"', "'", '`', '/', '@', '<', '#'].includes(
+            triggerCharacter!,
+        )
+            ? triggerCharacter
+            : undefined;
         const completions = lang.getCompletionsAtPosition(
             document.getFilePath()!,
             document.offsetAt(position),
             {
                 includeCompletionsForModuleExports: true,
-                triggerCharacter: triggerCharacter as any,
+                triggerCharacter: validTriggerCharacter as any,
             },
         );
 
