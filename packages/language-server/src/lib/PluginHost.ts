@@ -46,16 +46,20 @@ export class PluginHost {
         switch (mode) {
             case ExecuteMode.FirstNonNull:
                 for (const plugin of plugins) {
-                    const res = await plugin[name](...args);
+                    const res = await this.tryExecutePlugin(plugin, name, args, null);
                     if (res != null) {
                         return res;
                     }
                 }
                 return null;
             case ExecuteMode.Collect:
-                return Promise.all(plugins.map(plugin => plugin[name](...args)));
+                return Promise.all(
+                    plugins.map(plugin => this.tryExecutePlugin(plugin, name, args, [])),
+                );
             case ExecuteMode.None:
-                await Promise.all(plugins.map(plugin => plugin[name](...args)));
+                await Promise.all(
+                    plugins.map(plugin => this.tryExecutePlugin(plugin, name, args, null)),
+                );
                 return;
         }
     }
@@ -70,6 +74,14 @@ export class PluginHost {
 
     getConfig<T>(key: string): T {
         return get(this.config.plugin, key) as any;
+    }
+
+    private async tryExecutePlugin(plugin: any, fnName: string, args: any[], failValue: any) {
+        try {
+            return await plugin[fnName](...args);
+        } catch (e) {
+            return failValue;
+        }
     }
 
     private get enabledPlugins(): any[] {
