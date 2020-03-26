@@ -1,7 +1,7 @@
 // TODO: Remove
-type InitialMigrationAny = any
+type InitialMigrationAny = any;
 
-import {cosmiconfig} from 'cosmiconfig';
+import { cosmiconfig } from 'cosmiconfig';
 import * as prettier from 'prettier';
 import {
     DiagnosticsProvider,
@@ -18,7 +18,7 @@ import {
 import { SvelteDocument } from '../lib/documents/SvelteDocument';
 import { RawSourceMap, RawIndexMap, SourceMapConsumer } from 'source-map';
 import { CompileOptions, Warning } from 'svelte/types/compiler/interfaces';
-import { importSvelte, getSveltePackageInfo } from './svelte/sveltePackage';
+import { importSvelte } from './svelte/sveltePackage';
 import { PreprocessorGroup } from 'svelte/types/compiler/preprocess';
 
 interface SvelteConfig extends CompileOptions {
@@ -54,9 +54,11 @@ export class SveltePlugin implements DiagnosticsProvider, FormattingProvider {
         const svelte = importSvelte(document.getFilePath()!);
 
         const preprocessor = makePreprocessor(document as SvelteDocument, config.preprocess);
-        source = (await svelte.preprocess(source, preprocessor, {
-            filename: document.getFilePath()!,
-        })).toString();
+        source = (
+            await svelte.preprocess(source, preprocessor, {
+                filename: document.getFilePath()!,
+            })
+        ).toString();
         preprocessor.transpiledDocument.setText(source);
 
         let diagnostics: Diagnostic[];
@@ -97,9 +99,9 @@ export class SveltePlugin implements DiagnosticsProvider, FormattingProvider {
 
     private async loadConfig(path: string): Promise<SvelteConfig> {
         try {
-            const explorer = cosmiconfig('svelte', {packageProp: "svelte-ls"})
+            const explorer = cosmiconfig('svelte', { packageProp: 'svelte-ls' });
             const result = await explorer.search(path);
-            const config = result?.config ?? {}
+            const config = result?.config ?? {};
             return { ...DEFAULT_OPTIONS, ...config };
         } catch (err) {
             return { ...DEFAULT_OPTIONS, preprocess: {} };
@@ -112,11 +114,10 @@ export class SveltePlugin implements DiagnosticsProvider, FormattingProvider {
         }
 
         const config = await prettier.resolveConfig(document.getFilePath()!);
-        const sveltePkg = getSveltePackageInfo(document.getFilePath()!);
         const formattedCode = prettier.format(document.getText(), {
             ...config,
             plugins: [require.resolve('prettier-plugin-svelte')],
-            parser: sveltePkg.version.major >= 3 ? ('svelte' as any) : 'html',
+            parser: 'svelte' as any,
         });
 
         return [

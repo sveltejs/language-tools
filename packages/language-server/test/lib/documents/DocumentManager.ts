@@ -6,7 +6,7 @@ import { DocumentManager } from '../../../src/lib/documents/DocumentManager';
 
 describe('Document Manager', () => {
     const textDocument: TextDocumentItem = {
-        uri: 'file:///hello.html',
+        uri: 'file:///hello.svelte',
         version: 0,
         languageId: '',
         text: 'Hello, world!',

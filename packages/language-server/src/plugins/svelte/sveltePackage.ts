@@ -21,13 +21,7 @@ export function getSveltePackageInfo(fromPath: string) {
 
 export function importSvelte(fromPath: string): typeof svelte {
     const pkg = getSveltePackageInfo(fromPath);
-
-    let main = pkg.path;
-    if (pkg.version.major > 2) {
-        main = resolve(pkg.path, 'compiler');
-    }
-
+    const main = resolve(pkg.path, 'compiler');
     console.log('Using Svelte v' + pkg.version.full, 'from', main);
-
     return require(main);
 }

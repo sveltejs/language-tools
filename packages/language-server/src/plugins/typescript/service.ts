@@ -1,7 +1,7 @@
 import ts from 'typescript';
 import { DocumentSnapshot } from './DocumentSnapshot';
 import { isSvelte } from './utils';
-import { dirname, resolve, extname } from 'path';
+import { dirname } from 'path';
 import { Document } from '../../api';
 
 export interface LanguageServiceContainer {
@@ -59,10 +59,7 @@ export function createLanguageService(
             compilerOptions,
             tsconfigPath,
             undefined,
-            [
-                { extension: 'html', isMixedContent: true },
-                { extension: 'svelte', isMixedContent: true },
-            ],
+            [{ extension: 'svelte', isMixedContent: true }],
         );
         files = parsedConfig.fileNames;
         compilerOptions = { ...compilerOptions, ...parsedConfig.options };
