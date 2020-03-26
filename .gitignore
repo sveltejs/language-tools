@@ -65,3 +65,5 @@ typings/
 
 # tdsx
 dist
+
+.DS_STORE

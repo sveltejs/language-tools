@@ -35,7 +35,7 @@ import {
     mapSeverity,
 } from './typescript/utils';
 import { getLanguageServiceForDocument, CreateDocument } from './typescript/service';
-import { pathToUrl } from '../utils';
+import { pathToUrl, isValidSvelteReactiveValueDiagnostic } from '../utils';
 import { TextDocument } from '../lib/documents/TextDocument';
 
 export class TypeScriptPlugin
@@ -103,7 +103,7 @@ export class TypeScriptPlugin
             source: isTypescript ? 'ts' : 'js',
             message: ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n'),
             code: diagnostic.code,
-        }));
+        })).filter(diagnostic => isValidSvelteReactiveValueDiagnostic(diagnostic));
     }
 
     doHover(document: Document, position: Position): Hover | null {
