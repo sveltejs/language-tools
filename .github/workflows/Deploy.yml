@@ -1,0 +1,45 @@
+name: Weekly builds of the Svelte Language Tools Beta
+
+# For testing
+on: push
+
+# For production
+# on:
+  # schedule:
+  #   # Monday once a week
+  #   - cron: "0 4 * * 0"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v1
+        with:
+          node-version: "10.x"
+          registry-url: "https://registry.npmjs.org"
+
+      - run: "yarn build"
+
+      # Lets us use one-liner JSON manipulations the package.json files
+      - run: "npm install -g json"
+
+      # Version as semver 
+      - run: "json -I -f packages/language-server/package.json -e "this.version=`99.0.0-${(new Date()).toISOString().substr(0, 10)}`"
+
+      # To deploy we need a node_modules folder which isn't in the yarn 
+      # So, remove the workspace
+      - run: rm package.json yarn.lock
+
+      # Re-run the  yarn isntall outside of the workspace
+      - run: cd packages/svelte-vscode
+      - run: yarn install
+
+      # Just a hard constraint from azure
+      - run: echo "Once a year this expires, tell Orta to access https://dev.azure.com/ortatherox0608/_usersSettings/tokens to get a new one"
+      
+      - run: npx vsce publish --yarn -p $VSCE_TOKEN
+        env:
+          VSCE_TOKEN: ${{ secrets.AZURE_PAN_TOKEN }}
+
