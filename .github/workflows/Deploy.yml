@@ -28,7 +28,7 @@ jobs:
       - run: "npm install -g json"
 
       # Version as semver
-      - run: "json -I -f packages/language-server/package.json -e \"this.version=`99.0.0-${(new Date()).toISOString().substr(0, 10)}`\""
+      - run: 'json -I -f packages/language-server/package.json -e "this.version=\`99.0.0-\` + (new Date()).toISOString().substr(0, 10)"'
 
       # To deploy we need a node_modules folder which isn't in the yarn 
       # So, remove the workspace
@@ -37,7 +37,7 @@ jobs:
       # Re-run the  yarn install outside of the workspace
       - run: "cd packages/svelte-vscode"
       - run: "yarn install"
-      - run: "mv ../packages/language-server node_modules/svelte-language-server"
+      - run: "mv ../language-server node_modules/svelte-language-server"
 
       # Just a hard constraint from azure
       - run: 'echo "Once a year this expires, tell Orta to access https://dev.azure.com/ortatherox0608/_usersSettings/tokens to get a new one"'
