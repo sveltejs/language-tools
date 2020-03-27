@@ -1,3 +1,4 @@
 **/tsconfig.json
 src
 .vscode
+node_modules

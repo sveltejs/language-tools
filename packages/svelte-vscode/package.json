@@ -4,9 +4,9 @@
     "description": "Svelte language support for VS Code",
     "main": "dist/src/extension.js",
     "scripts": {
-        "vscode:prepublish": "tsc -p ./",
-        "build": "tsc -p ./",
-        "watch": "tsc -w -p ./",
+        "vscode:prepublish": "webpack --mode production",
+        "build": "webpack --mode development",
+        "watch": "webpack --mode development --watch",
         "test": "echo 'NOOP'"
     },
     "repository": {
@@ -226,8 +226,11 @@
     },
     "devDependencies": {
         "@types/node": "^13.9.0",
+        "@types/vscode": "*",
+        "ts-loader": "^6.2.2",
         "typescript": "*",
-        "@types/vscode": "*"
+        "webpack": "^4.42.1",
+        "webpack-cli": "^3.3.11"
     },
     "dependencies": {
         "svelte-language-server": "*",
