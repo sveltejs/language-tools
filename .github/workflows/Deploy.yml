@@ -10,7 +10,7 @@ on: push
   #   - cron: "0 4 * * 0"
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
@@ -27,22 +27,30 @@ jobs:
       # Lets us use one-liner JSON manipulations the package.json files
       - run: "npm install -g json"
 
-      # Version as semver
-      - run: 'json -I -f packages/language-server/package.json -e "this.version=\`99.0.0-\` + (new Date()).toISOString().substr(0, 10)"'
+      # Setup the environment
+      - run: 'json -I -f packages/svelte-vscode/package.json -e "this.dependencies[\`svelte-language-server\`]=\`file:../language-server\`"'
+      - run: 'json -I -f packages/svelte-vscode/package.json -e "this.version=\`99.0.0-\` + (new Date()).toISOString().substr(0, 10)"'
 
       # To deploy we need a node_modules folder which isn't in the yarn 
       # So, remove the workspace
       - run: "rm package.json yarn.lock"
 
+      # Re-run the yarn install outside of the workspaceSetup the language server
+      - run: |
+         cd packages/language-server
+         yarn install
+         cd ..
+
       # Re-run the  yarn install outside of the workspace
-      - run: "cd packages/svelte-vscode"
-      - run: "yarn install"
-      - run: "mv ../language-server node_modules/svelte-language-server"
+      - run: |
+         cd packages/svelte-vscode
+         yarn install
 
-      # Just a hard constraint from azure
-      - run: 'echo "Once a year this expires, tell Orta to access https://dev.azure.com/ortatherox0608/_usersSettings/tokens to get a new one"'
-
-      - run: "npx vsce publish --yarn -p $VSCE_TOKEN"
+         # Just a hard constraint from azure
+         echo "Once a year this expires, tell Orta to access https://dev.azure.com/ortatherox0608/_usersSettings/tokens to get a new one"
+        
+         npx vsce publish --yarn -p $VSCE_TOKEN
+      
         env:
           VSCE_TOKEN: ${{ secrets.AZURE_PAN_TOKEN }}
 
