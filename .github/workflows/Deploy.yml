@@ -1,13 +1,12 @@
 name: Weekly builds of the Svelte Language Tools Beta
 
 # For testing
-on: push
+# on: push
 
 # For production
-# on:
-  # schedule:
-  #   # Monday once a week
-  #   - cron: "0 4 * * 0"
+on:
+  schedule:
+    - cron: "0 4 * * *"
 
 jobs:
   deploy:
@@ -29,7 +28,7 @@ jobs:
 
       # Setup the environment
       - run: 'json -I -f packages/svelte-vscode/package.json -e "this.dependencies[\`svelte-language-server\`]=\`file:../language-server\`"'
-      - run: 'json -I -f packages/svelte-vscode/package.json -e "this.version=\`99.0.0-\` + (new Date()).toISOString().substr(0, 10)"'
+      - run: 'json -I -f packages/svelte-vscode/package.json -e "this.version=\`99.0.0\`"'
 
       # To deploy we need a node_modules folder which isn't in the yarn 
       # So, remove the workspace
@@ -49,7 +48,7 @@ jobs:
          # Just a hard constraint from azure
          echo "Once a year this expires, tell Orta to access https://dev.azure.com/ortatherox0608/_usersSettings/tokens to get a new one"
         
-         npx vsce publish --yarn -p $VSCE_TOKEN
+         npx vsce publish patch --yarn -p $VSCE_TOKEN
       
         env:
           VSCE_TOKEN: ${{ secrets.AZURE_PAN_TOKEN }}
