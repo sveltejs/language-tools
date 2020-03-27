@@ -20,6 +20,8 @@ jobs:
           node-version: "10.x"
           registry-url: "https://registry.npmjs.org"
 
+      # Ensure everything is compiling
+      - run: "yarn install"
       - run: "yarn build"
 
       # Lets us use one-liner JSON manipulations the package.json files
@@ -32,9 +34,10 @@ jobs:
       # So, remove the workspace
       - run: "rm package.json yarn.lock"
 
-      # Re-run the  yarn isntall outside of the workspace
+      # Re-run the  yarn install outside of the workspace
       - run: "cd packages/svelte-vscode"
       - run: "yarn install"
+      - run: "mv ../packages/language-server node_modules/svelte-language-server"
 
       # Just a hard constraint from azure
       - run: 'echo "Once a year this expires, tell Orta to access https://dev.azure.com/ortatherox0608/_usersSettings/tokens to get a new one"'
