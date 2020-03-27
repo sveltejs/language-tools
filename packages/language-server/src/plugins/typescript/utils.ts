@@ -34,7 +34,7 @@ export function getScriptKindFromAttributes(attrs: Record<string, string>): ts.S
 }
 
 export function isSvelte(filePath: string) {
-    return filePath.endsWith('.html') || filePath.endsWith('.svelte');
+    return filePath.endsWith('.svelte');
 }
 
 export function convertRange(

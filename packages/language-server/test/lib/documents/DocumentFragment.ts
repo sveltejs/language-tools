@@ -4,7 +4,7 @@ import { DocumentFragment } from '../../../src/lib/documents/DocumentFragment';
 
 describe('Document Fragment', () => {
     it('gets the correct text', () => {
-        const parent = new TextDocument('file:///hello.html', 'Hello, world!');
+        const parent = new TextDocument('file:///hello.svelte', 'Hello, world!');
         const fragment = new DocumentFragment(parent, {
             start: 7,
             end: 12,
@@ -15,7 +15,7 @@ describe('Document Fragment', () => {
     });
 
     it('returns the correct text length', () => {
-        const parent = new TextDocument('file:///hello.html', 'Hello, world!');
+        const parent = new TextDocument('file:///hello.svelte', 'Hello, world!');
         const fragment = new DocumentFragment(parent, {
             start: 7,
             end: 12,
@@ -26,7 +26,7 @@ describe('Document Fragment', () => {
     });
 
     it('updates the parent document when setText is called', () => {
-        const parent = new TextDocument('file:///hello.html', 'Hello, world!');
+        const parent = new TextDocument('file:///hello.svelte', 'Hello, world!');
         const fragment = new DocumentFragment(parent, {
             start: 7,
             end: 12,
@@ -39,7 +39,7 @@ describe('Document Fragment', () => {
     });
 
     it('isInFragment works', () => {
-        const parent = new TextDocument('file:///hello.html', 'Hello, \nworld!');
+        const parent = new TextDocument('file:///hello.svelte', 'Hello, \nworld!');
         const fragment = new DocumentFragment(parent, {
             start: 8,
             end: 13,
@@ -53,7 +53,7 @@ describe('Document Fragment', () => {
     });
 
     it('calculates the offset in parent', () => {
-        const parent = new TextDocument('file:///hello.html', 'Hello, world!');
+        const parent = new TextDocument('file:///hello.svelte', 'Hello, world!');
         const fragment = new DocumentFragment(parent, {
             start: 7,
             end: 12,
@@ -64,7 +64,7 @@ describe('Document Fragment', () => {
     });
 
     it('calculates the offset in fragment', () => {
-        const parent = new TextDocument('file:///hello.html', 'Hello, world!');
+        const parent = new TextDocument('file:///hello.svelte', 'Hello, world!');
         const fragment = new DocumentFragment(parent, {
             start: 7,
             end: 12,
@@ -75,7 +75,7 @@ describe('Document Fragment', () => {
     });
 
     it('calculates the position in parent', () => {
-        const parent = new TextDocument('file:///hello.html', 'Hello, \nworld!');
+        const parent = new TextDocument('file:///hello.svelte', 'Hello, \nworld!');
         const fragment = new DocumentFragment(parent, {
             start: 8,
             end: 13,
@@ -89,7 +89,7 @@ describe('Document Fragment', () => {
     });
 
     it('calculates the position in fragment', () => {
-        const parent = new TextDocument('file:///hello.html', 'Hello, \nworld!');
+        const parent = new TextDocument('file:///hello.svelte', 'Hello, \nworld!');
         const fragment = new DocumentFragment(parent, {
             start: 8,
             end: 13,
@@ -103,7 +103,7 @@ describe('Document Fragment', () => {
     });
 
     it('returns the parent file path', () => {
-        const parent = new TextDocument('file:///hello.html', 'Hello, world!');
+        const parent = new TextDocument('file:///hello.svelte', 'Hello, world!');
         const fragment = new DocumentFragment(parent, {
             start: 7,
             end: 12,

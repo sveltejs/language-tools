@@ -7,7 +7,7 @@ describe('Svelte Plugin', () => {
     it('provides diagnostic warnings', async () => {
         const plugin = new SveltePlugin();
         const document = new SvelteDocument(
-            'file:///hello.html',
+            'file:///hello.svelte',
             '<h1>Hello, world!</h1>\n<img src="hello.png">',
         );
         const host = {
@@ -30,7 +30,7 @@ describe('Svelte Plugin', () => {
 
     it('provides diagnostic errors', async () => {
         const plugin = new SveltePlugin();
-        const document = new SvelteDocument('file:///hello.html', '<div bind:whatever></div>');
+        const document = new SvelteDocument('file:///hello.svelte', '<div bind:whatever></div>');
         const host = {
             getConfig() {
                 return true;
