@@ -65,3 +65,6 @@ typings/
 
 # tdsx
 dist
+
+# VSCode history extension
+.history

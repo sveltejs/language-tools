@@ -1,9 +1,10 @@
-import ts from 'typescript';
-import { DocumentSnapshot } from './DocumentSnapshot';
-import { isSvelte, getScriptKindFromFileName } from './utils';
 import { dirname, resolve } from 'path';
+import ts from 'typescript';
 import { Document } from '../../api';
 import { getSveltePackageInfo } from '../svelte/sveltePackage';
+import { DocumentSnapshot } from './DocumentSnapshot';
+import { createSvelteModuleLoader } from './module-loader';
+import { ensureRealSvelteFilePath, getScriptKindFromFileName, isSvelteFilePath } from './utils';
 
 export interface LanguageServiceContainer {
     getService(): ts.LanguageService;
@@ -49,9 +50,7 @@ export function createLanguageService(
         module: ts.ModuleKind.ESNext,
         moduleResolution: ts.ModuleResolutionKind.NodeJs,
         allowJs: true,
-        types: [
-            resolve(sveltePkgInfo.path, 'types', 'runtime')
-        ]
+        types: [resolve(sveltePkgInfo.path, 'types', 'runtime')],
     };
 
     const configJson = tsconfigPath && ts.readConfigFile(tsconfigPath, ts.sys.readFile).config;
@@ -70,6 +69,8 @@ export function createLanguageService(
         compilerOptions = { ...compilerOptions, ...parsedConfig.options };
     }
 
+    const svelteModuleLoader = createSvelteModuleLoader(getSvelteSnapshot, compilerOptions);
+
     const host: ts.LanguageServiceHost = {
         getCompilationSettings: () => compilerOptions,
         getScriptFileNames: () => Array.from(new Set([...files, ...Array.from(documents.keys())])),
@@ -87,13 +88,13 @@ export function createLanguageService(
         },
         getCurrentDirectory: () => workspacePath,
         getDefaultLibFileName: ts.getDefaultLibFilePath,
-
-        fileExists: ts.sys.fileExists,
-        readFile: ts.sys.readFile,
+        fileExists: svelteModuleLoader.fileExists,
+        readFile: svelteModuleLoader.readFile,
+        resolveModuleNames: svelteModuleLoader.resolveModuleNames,
         readDirectory: ts.sys.readDirectory,
         getScriptKind: (fileName: string) => {
             const doc = getSvelteSnapshot(fileName);
-            if(doc) {
+            if (doc) {
                 return doc.scriptKind;
             }
 
@@ -121,15 +122,15 @@ export function createLanguageService(
     }
 
     function getSvelteSnapshot(fileName: string): DocumentSnapshot | undefined {
+        fileName = ensureRealSvelteFilePath(fileName);
         const doc = documents.get(fileName);
         if (doc) {
             return doc;
         }
 
-        if (isSvelte(fileName)) {
-            const doc = DocumentSnapshot.fromDocument(
-                createDocument(fileName, ts.sys.readFile(fileName) || ''),
-            );
+        if (isSvelteFilePath(fileName)) {
+            const file = ts.sys.readFile(fileName) || '';
+            const doc = DocumentSnapshot.fromDocument(createDocument(fileName, file));
             documents.set(fileName, doc);
             return doc;
         }
