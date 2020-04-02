@@ -1,6 +1,6 @@
 {
     "name": "svelte-vscode",
-    "version": "0.9.3",
+    "version": "0.5.0",
     "description": "Svelte language support for VS Code",
     "main": "dist/src/extension.js",
     "scripts": {
@@ -23,11 +23,11 @@
         "url": "https://github.com/sveltejs/language-tools/issues"
     },
     "homepage": "https://github.com/sveltejs/language-tools#readme",
-    "displayName": "Svelte",
-    "publisher": "JamesBirtles",
+    "displayName": "Svelte Beta",
+    "publisher": "svelte",
     "icon": "icons/logo.png",
     "galleryBanner": {
-        "color": "#333333",
+        "color": "#FF3E00",
         "theme": "dark"
     },
     "categories": [

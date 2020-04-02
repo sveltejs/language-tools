@@ -15,7 +15,7 @@ import { TextDocument } from '../../src/lib/documents/TextDocument';
 describe('HTML Plugin', () => {
     it('provides hover info', async () => {
         const plugin = new HTMLPlugin();
-        const document = new TextDocument('file:///hello.html', '<h1>Hello, world!</h1>');
+        const document = new TextDocument('file:///hello.svelte', '<h1>Hello, world!</h1>');
         const host = Object.assign(new EventEmitter(), {
             getConfig() {
                 return true;
@@ -39,7 +39,7 @@ describe('HTML Plugin', () => {
 
     it('provides completions', async () => {
         const plugin = new HTMLPlugin();
-        const document = new TextDocument('file:///hello.html', '<');
+        const document = new TextDocument('file:///hello.svelte', '<');
         const host = Object.assign(new EventEmitter(), {
             getConfig() {
                 return true;

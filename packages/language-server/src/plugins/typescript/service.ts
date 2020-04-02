@@ -64,10 +64,7 @@ export function createLanguageService(
             compilerOptions,
             tsconfigPath,
             undefined,
-            [
-                { extension: 'html', isMixedContent: true },
-                { extension: 'svelte', isMixedContent: true },
-            ],
+            [{ extension: 'svelte', isMixedContent: true }],
         );
         files = parsedConfig.fileNames;
         compilerOptions = { ...compilerOptions, ...parsedConfig.options };
