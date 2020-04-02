@@ -1,8 +1,9 @@
 import ts from 'typescript';
 import { DocumentSnapshot } from './DocumentSnapshot';
 import { isSvelte, getScriptKindFromFileName } from './utils';
-import { dirname, resolve, extname } from 'path';
+import { dirname, resolve } from 'path';
 import { Document } from '../../api';
+import { getSveltePackageInfo } from '../svelte/sveltePackage';
 
 export interface LanguageServiceContainer {
     getService(): ts.LanguageService;
@@ -40,6 +41,7 @@ export function createLanguageService(
 ): LanguageServiceContainer {
     const workspacePath = tsconfigPath ? dirname(tsconfigPath) : '';
     const documents = new Map<string, DocumentSnapshot>();
+    const sveltePkgInfo = getSveltePackageInfo(workspacePath);
 
     let compilerOptions: ts.CompilerOptions = {
         allowNonTsExtensions: true,
@@ -47,6 +49,9 @@ export function createLanguageService(
         module: ts.ModuleKind.ESNext,
         moduleResolution: ts.ModuleResolutionKind.NodeJs,
         allowJs: true,
+        types: [
+            resolve(sveltePkgInfo.path, 'types', 'runtime')
+        ]
     };
 
     const configJson = tsconfigPath && ts.readConfigFile(tsconfigPath, ts.sys.readFile).config;
