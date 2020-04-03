@@ -20,6 +20,7 @@ import { RawSourceMap, RawIndexMap, SourceMapConsumer } from 'source-map';
 import { CompileOptions, Warning } from 'svelte/types/compiler/interfaces';
 import { importSvelte } from './svelte/sveltePackage';
 import { PreprocessorGroup } from 'svelte/types/compiler/preprocess';
+import { LSSvelteConfig } from '../ls-config';
 
 interface SvelteConfig extends CompileOptions {
     preprocess?: PreprocessorGroup;
@@ -30,13 +31,6 @@ const DEFAULT_OPTIONS: CompileOptions = {
 };
 
 export class SveltePlugin implements DiagnosticsProvider, FormattingProvider {
-    public pluginId = 'svelte';
-    public defaultConfig = {
-        enable: true,
-        diagnostics: { enable: true },
-        format: { enable: true },
-    };
-
     private host!: Host;
 
     onRegister(host: Host) {
@@ -44,7 +38,7 @@ export class SveltePlugin implements DiagnosticsProvider, FormattingProvider {
     }
 
     async getDiagnostics(document: Document): Promise<Diagnostic[]> {
-        if (!this.host.getConfig<boolean>('svelte.diagnostics.enable')) {
+        if (!this.featureEnabled('diagnostics')) {
             return [];
         }
 
@@ -109,7 +103,7 @@ export class SveltePlugin implements DiagnosticsProvider, FormattingProvider {
     }
 
     async formatDocument(document: Document): Promise<TextEdit[]> {
-        if (!this.host.getConfig<boolean>('svelte.format.enable')) {
+        if (!this.featureEnabled('format')) {
             return [];
         }
 
@@ -126,6 +120,13 @@ export class SveltePlugin implements DiagnosticsProvider, FormattingProvider {
                 formattedCode,
             ),
         ];
+    }
+
+    private featureEnabled(feature: keyof LSSvelteConfig) {
+        return (
+            this.host.getConfig<boolean>('svelte.enable') &&
+            this.host.getConfig<boolean>(`svelte.${feature}.enable`)
+        );
     }
 }
 

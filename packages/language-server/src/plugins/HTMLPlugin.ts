@@ -11,18 +11,10 @@ import {
     SymbolInformation,
 } from '../api';
 import { svelteHtmlDataProvider } from './html/dataProvider';
+import { LSHTMLConfig } from '../ls-config';
 // import { svelteHtmlDataProvider } from './html/dataProvider';
 
 export class HTMLPlugin implements HoverProvider, CompletionsProvider {
-    public pluginId = 'html';
-    public defaultConfig = {
-        enable: true,
-        hover: { enable: true },
-        completions: { enable: true },
-        tagComplete: { enable: true },
-        documentSymbols: { enable: true },
-    };
-
     private host!: Host;
     private lang = getLanguageService({ customDataProviders: [svelteHtmlDataProvider] });
     private documents = new WeakMap<Document, HTMLDocument>();
@@ -36,7 +28,7 @@ export class HTMLPlugin implements HoverProvider, CompletionsProvider {
     }
 
     doHover(document: Document, position: Position): Hover | null {
-        if (!this.host.getConfig<boolean>('html.hover.enable')) {
+        if (!this.featureEnabled('hover')) {
             return null;
         }
 
@@ -49,7 +41,7 @@ export class HTMLPlugin implements HoverProvider, CompletionsProvider {
     }
 
     getCompletions(document: Document, position: Position): CompletionList | null {
-        if (!this.host.getConfig<boolean>('html.completions.enable')) {
+        if (!this.featureEnabled('completions')) {
             return null;
         }
 
@@ -70,7 +62,7 @@ export class HTMLPlugin implements HoverProvider, CompletionsProvider {
     }
 
     doTagComplete(document: Document, position: Position): string | null {
-        if (!this.host.getConfig<boolean>('html.tagComplete.enable')) {
+        if (!this.featureEnabled('tagComplete')) {
             return null;
         }
 
@@ -83,7 +75,7 @@ export class HTMLPlugin implements HoverProvider, CompletionsProvider {
     }
 
     getDocumentSymbols(document: Document): SymbolInformation[] {
-        if (!this.host.getConfig<boolean>('html.documentSymbols.enable')) {
+        if (!this.featureEnabled('documentSymbols')) {
             return [];
         }
 
@@ -94,6 +86,11 @@ export class HTMLPlugin implements HoverProvider, CompletionsProvider {
 
         return this.lang.findDocumentSymbols(document, html);
     }
+
+    private featureEnabled(feature: keyof LSHTMLConfig) {
+        return (
+            this.host.getConfig<boolean>('html.enable') &&
+            this.host.getConfig<boolean>(`html.${feature}.enable`)
+        );
+    }
 }
-
-

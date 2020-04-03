@@ -1,6 +1,6 @@
 import { EventEmitter } from 'events';
-import { Plugin } from '../api';
-import { get } from 'lodash';
+import { get, merge } from 'lodash';
+import { LSConfig, defaultLSConfig } from '../ls-config';
 
 export enum ExecuteMode {
     None,
@@ -10,10 +10,8 @@ export enum ExecuteMode {
 
 export class PluginHost {
     private emitter = new EventEmitter();
-    private plugins: Plugin[] = [];
-    private config: Config = {
-        plugin: {},
-    };
+    private plugins: any[] = [];
+    private config: LSConfig = defaultLSConfig;
 
     on(name: string, listener: (...args: any[]) => void) {
         this.emitter.on(name, listener);
@@ -25,9 +23,8 @@ export class PluginHost {
         this.emitter.emit(name + '|post', ...args);
     }
 
-    register(plugin: Plugin) {
+    register(plugin: any) {
         this.plugins.push(plugin);
-        this.config.plugin[plugin.pluginId] = plugin.defaultConfig;
         if (typeof (plugin as any).onRegister === 'function') {
             (plugin as any).onRegister(this);
         }
@@ -41,7 +38,7 @@ export class PluginHost {
         args: any[],
         mode: ExecuteMode,
     ): Promise<(T | null) | T[] | void> {
-        const plugins = this.enabledPlugins.filter(plugin => typeof plugin[name] === 'function');
+        const plugins = this.plugins.filter(plugin => typeof plugin[name] === 'function');
 
         switch (mode) {
             case ExecuteMode.FirstNonNull:
@@ -64,16 +61,15 @@ export class PluginHost {
         }
     }
 
-    supports(name: string): boolean {
-        return this.enabledPlugins.find(plugin => typeof plugin[name] === 'function') != null;
-    }
-
-    updateConfig(config: Config) {
-        this.config = config;
+    updateConfig(config: LSConfig) {
+        // Ideally we shouldn't need the merge here because all updates should be valid and complete configs.
+        // But since those configs come from the client they might be out of synch with the valid config:
+        // We might at some point in the future forget to synch config settings in all packages after updating the config.
+        this.config = merge({}, defaultLSConfig, this.config, config);
     }
 
     getConfig<T>(key: string): T {
-        return get(this.config.plugin, key) as any;
+        return get(this.config, key) as any;
     }
 
     private async tryExecutePlugin(plugin: any, fnName: string, args: any[], failValue: any) {
@@ -83,12 +79,4 @@ export class PluginHost {
             return failValue;
         }
     }
-
-    private get enabledPlugins(): any[] {
-        return this.plugins.filter(p => this.getConfig(`${p.pluginId}.enable`));
-    }
-}
-
-export interface Config {
-    plugin: Record<string, any>;
 }

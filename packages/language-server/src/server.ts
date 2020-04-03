@@ -25,10 +25,9 @@ namespace TagCloseRequest {
 }
 
 export function startServer() {
-    const connection = process.argv.includes('--stdio') ? createConnection(process.stdin, process.stdout) : createConnection(
-        new IPCMessageReader(process),
-        new IPCMessageWriter(process),
-    );
+    const connection = process.argv.includes('--stdio')
+        ? createConnection(process.stdin, process.stdout)
+        : createConnection(new IPCMessageReader(process), new IPCMessageWriter(process));
 
     const manager = new DocumentManager(
         textDocument => new SvelteDocument(textDocument.uri, textDocument.text),
@@ -40,13 +39,14 @@ export function startServer() {
     manager.register(wrapFragmentPlugin(new TypeScriptPlugin(), TypeScriptPlugin.matchFragment));
 
     connection.onInitialize(evt => {
+        manager.updateConfig(evt.initializationOptions.config);
         return {
             capabilities: {
                 textDocumentSync: {
                     openClose: true,
                     change: TextDocumentSyncKind.Incremental,
                 },
-                hoverProvider: manager.supports('doHover'),
+                hoverProvider: true,
                 completionProvider: {
                     triggerCharacters: [
                         '.',
@@ -83,7 +83,7 @@ export function startServer() {
     });
 
     connection.onDidChangeConfiguration(({ settings }) => {
-        manager.updateConfig(settings.svelte);
+        manager.updateConfig(settings.svelte?.plugin);
     });
 
     connection.onDidOpenTextDocument(evt => manager.openDocument(evt.textDocument));

@@ -27,9 +27,7 @@ import {
     TextDocumentIdentifier,
     VersionedTextDocumentIdentifier,
 } from 'vscode-languageserver-types';
-
-import { TextDocumentContentChangeEvent } from "vscode-languageserver-protocol"
-
+import { TextDocumentContentChangeEvent } from 'vscode-languageserver-protocol';
 import { Document } from './Document';
 
 export {
@@ -60,7 +58,7 @@ export {
     TextDocumentEdit,
     TextDocumentIdentifier,
     VersionedTextDocumentIdentifier,
-    TextDocumentContentChangeEvent
+    TextDocumentContentChangeEvent,
 };
 
 export type Resolvable<T> = T | Promise<T>;
@@ -222,8 +220,3 @@ export interface FragmentDetails {
 }
 
 export type FragmentPredicate = (fragment: Fragment) => boolean;
-
-export interface Plugin {
-    pluginId: string;
-    defaultConfig: any;
-}

@@ -37,6 +37,7 @@ import {
 import { getLanguageServiceForDocument, CreateDocument } from './typescript/service';
 import { pathToUrl } from '../utils';
 import { TextDocument } from '../lib/documents/TextDocument';
+import { LSTypescriptConfig } from '../ls-config';
 
 export class TypeScriptPlugin
     implements
@@ -50,16 +51,6 @@ export class TypeScriptPlugin
     public static matchFragment(fragment: Fragment) {
         return fragment.details.attributes.tag == 'script';
     }
-
-    public pluginId = 'typescript';
-    public defaultConfig = {
-        enable: true,
-        diagnostics: { enable: true },
-        hover: { enable: true },
-        completions: { enable: true },
-        definitions: { enable: true },
-        documentSymbols: { enable: true },
-    };
 
     private host!: Host;
     private createDocument!: CreateDocument;
@@ -80,7 +71,7 @@ export class TypeScriptPlugin
     }
 
     getDiagnostics(document: Document): Diagnostic[] {
-        if (!this.host.getConfig<boolean>('typescript.diagnostics.enable')) {
+        if (!this.featureEnabled('diagnostics')) {
             return [];
         }
 
@@ -107,7 +98,7 @@ export class TypeScriptPlugin
     }
 
     doHover(document: Document, position: Position): Hover | null {
-        if (!this.host.getConfig<boolean>('typescript.hover.enable')) {
+        if (!this.featureEnabled('hover')) {
             return null;
         }
 
@@ -127,7 +118,7 @@ export class TypeScriptPlugin
     }
 
     getDocumentSymbols(document: Document): SymbolInformation[] {
-        if (!this.host.getConfig<boolean>('typescript.documentSymbols.enable')) {
+        if (!this.featureEnabled('documentSymbols')) {
             return [];
         }
 
@@ -180,7 +171,7 @@ export class TypeScriptPlugin
         position: Position,
         triggerCharacter?: string,
     ): CompletionList | null {
-        if (!this.host.getConfig<boolean>('typescript.completions.enable')) {
+        if (!this.featureEnabled('completions')) {
             return null;
         }
 
@@ -220,7 +211,7 @@ export class TypeScriptPlugin
     }
 
     getDefinitions(document: Document, position: Position): DefinitionLink[] {
-        if (!this.host.getConfig<boolean>('typescript.definitions.enable')) {
+        if (!this.featureEnabled('definitions')) {
             return [];
         }
 
@@ -263,7 +254,7 @@ export class TypeScriptPlugin
         range: Range,
         context: CodeActionContext,
     ): Resolvable<CodeAction[]> {
-        if (!this.host.getConfig<boolean>('typescript.codeActions.enable')) {
+        if (!this.featureEnabled('codeActions')) {
             return [];
         }
 
@@ -313,5 +304,12 @@ export class TypeScriptPlugin
                 fix.fixName,
             );
         });
+    }
+
+    private featureEnabled(feature: keyof LSTypescriptConfig) {
+        return (
+            this.host.getConfig<boolean>('typescript.enable') &&
+            this.host.getConfig<boolean>(`typescript.${feature}.enable`)
+        );
     }
 }

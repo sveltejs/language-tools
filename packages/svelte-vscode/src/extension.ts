@@ -25,9 +25,9 @@ export function activate(context: ExtensionContext) {
         debug: { module: serverModule, transport: TransportKind.ipc, options: debugOptions },
     };
 
-    const lsConfig = workspace.getConfiguration('svelte.language-server');
+    const runtimeConfig = workspace.getConfiguration('svelte.language-server');
 
-    const serverRuntime = lsConfig.get<string>('runtime');
+    const serverRuntime = runtimeConfig.get<string>('runtime');
     if (serverRuntime) {
         serverOptions.run.runtime = serverRuntime;
         serverOptions.debug.runtime = serverRuntime;
@@ -38,8 +38,9 @@ export function activate(context: ExtensionContext) {
         documentSelector: [{ scheme: 'file', language: 'svelte' }],
         revealOutputChannelOn: RevealOutputChannelOn.Never,
         synchronize: {
-            configurationSection: ['svelte', 'html'],
+            configurationSection: ['svelte'],
         },
+        initializationOptions: { config: workspace.getConfiguration('svelte.plugin') },
     };
 
     let ls = createLanguageServer(serverOptions, clientOptions);
