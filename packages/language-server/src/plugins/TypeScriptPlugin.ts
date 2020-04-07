@@ -91,11 +91,8 @@ export class TypeScriptPlugin
         let diagnostics: ts.Diagnostic[] = [
             ...lang.getSyntacticDiagnostics(document.getFilePath()!),
             ...lang.getSuggestionDiagnostics(document.getFilePath()!),
+            ...lang.getSemanticDiagnostics(document.getFilePath()!)
         ];
-
-        if (isTypescript) {
-            diagnostics.push(...lang.getSemanticDiagnostics(document.getFilePath()!));
-        }
 
         return diagnostics.map(diagnostic => ({
             range: convertRange(document, diagnostic),
