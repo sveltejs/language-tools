@@ -10,7 +10,6 @@ import {
     FormattingProvider,
     TextEdit,
     TextDocumentItem,
-    Plugin,
     DocumentColorsProvider,
     ColorInformation,
     ColorPresentationsProvider,
@@ -37,10 +36,7 @@ import {
 } from './fragmentPositions';
 import { Host, OnRegister } from './Host';
 
-export function wrapFragmentPlugin<P extends Plugin>(
-    plugin: P,
-    fragmentPredicate: FragmentPredicate,
-): P {
+export function wrapFragmentPlugin<P>(plugin: P, fragmentPredicate: FragmentPredicate): P {
     function getFragment(document: Document) {
         return document.findFragment(fragmentPredicate);
     }

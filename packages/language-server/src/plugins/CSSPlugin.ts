@@ -26,6 +26,7 @@ import {
     SymbolInformation,
 } from '../api';
 import { getEmmetCompletionParticipants } from 'vscode-emmet-helper';
+import { LSCSSConfig } from '../ls-config';
 
 export class CSSPlugin
     implements
@@ -36,21 +37,10 @@ export class CSSPlugin
         ColorPresentationsProvider,
         DocumentSymbolsProvider {
     private readonly triggerCharacters = ['/'];
-            
+
     public static matchFragment(fragment: Fragment) {
         return fragment.details.attributes.tag == 'style';
     }
-
-    public pluginId = 'css';
-    public defaultConfig = {
-        enable: true,
-        diagnostics: { enable: true },
-        hover: { enable: true },
-        completions: { enable: true },
-        documentColors: { enable: true },
-        colorPresentations: { enable: true },
-        documentSymbols: { enable: true },
-    };
 
     private host!: Host;
     private stylesheets = new WeakMap<Document, Stylesheet>();
@@ -67,7 +57,7 @@ export class CSSPlugin
     }
 
     getDiagnostics(document: Document): Diagnostic[] {
-        if (!this.host.getConfig<boolean>('css.diagnostics.enable')) {
+        if (!this.featureEnabled('diagnostics')) {
             return [];
         }
 
@@ -88,7 +78,7 @@ export class CSSPlugin
     }
 
     doHover(document: Document, position: Position): Hover | null {
-        if (!this.host.getConfig<boolean>('css.hover.enable')) {
+        if (!this.featureEnabled('hover')) {
             return null;
         }
 
@@ -104,13 +94,17 @@ export class CSSPlugin
         );
     }
 
-    getCompletions(document: Document, position: Position, triggerCharacter: string): CompletionList | null {
+    getCompletions(
+        document: Document,
+        position: Position,
+        triggerCharacter: string,
+    ): CompletionList | null {
         // TODO: Why did this need to be removed?
         // if (triggerCharacter != undefined && !this.triggerCharacters.includes(triggerCharacter)) {
         //     return null;
         // }
-        
-        if (!this.host.getConfig<boolean>('css.completions.enable')) {
+
+        if (!this.featureEnabled('completions')) {
             return null;
         }
 
@@ -136,7 +130,7 @@ export class CSSPlugin
     }
 
     getDocumentColors(document: Document): ColorInformation[] {
-        if (!this.host.getConfig<boolean>('css.documentColors.enable')) {
+        if (!this.featureEnabled('documentColors')) {
             return [];
         }
 
@@ -152,7 +146,7 @@ export class CSSPlugin
     }
 
     getColorPresentations(document: Document, range: Range, color: Color): ColorPresentation[] {
-        if (!this.host.getConfig<boolean>('css.colorPresentations.enable')) {
+        if (!this.featureEnabled('colorPresentations')) {
             return [];
         }
 
@@ -170,7 +164,7 @@ export class CSSPlugin
     }
 
     getDocumentSymbols(document: Document): SymbolInformation[] {
-        if (!this.host.getConfig<boolean>('css.documentColors.enable')) {
+        if (!this.featureEnabled('documentColors')) {
             return [];
         }
 
@@ -192,6 +186,13 @@ export class CSSPlugin
 
                 return symbol;
             });
+    }
+
+    private featureEnabled(feature: keyof LSCSSConfig) {
+        return (
+            this.host.getConfig<boolean>('css.enable') &&
+            this.host.getConfig<boolean>(`css.${feature}.enable`)
+        );
     }
 }
 
