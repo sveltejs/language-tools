@@ -61,7 +61,9 @@ export function wrapFragmentPlugin<P>(plugin: P, fragmentPredicate: FragmentPred
                     });
                 },
 
-                openDocument: (document: TextDocumentItem) => host.openDocument(document),
+                openDocument: (document: TextDocumentItem) => {
+                    return getFragment(host.openDocument(document))! as Document;
+                },
                 lockDocument: (uri: string) => host.lockDocument(uri),
                 getConfig: (key: string) => host.getConfig(key),
             });

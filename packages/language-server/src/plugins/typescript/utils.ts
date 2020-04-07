@@ -19,7 +19,9 @@ export function getScriptKindFromFileName(fileName: string): ts.ScriptKind {
     }
 }
 
-export function getScriptKindFromAttributes(attrs: Record<string, string>): ts.ScriptKind {
+export function getScriptKindFromAttributes(
+    attrs: Record<string, string>,
+): ts.ScriptKind.TS | ts.ScriptKind.JS {
     const type = attrs.lang || attrs.type;
 
     switch (type) {
@@ -33,8 +35,20 @@ export function getScriptKindFromAttributes(attrs: Record<string, string>): ts.S
     }
 }
 
-export function isSvelte(filePath: string) {
+export function isSvelteFilePath(filePath: string) {
     return filePath.endsWith('.svelte');
+}
+
+export function isVirtualSvelteFilePath(filePath: string) {
+    return filePath.endsWith('.svelte.ts');
+}
+
+export function toRealSvelteFilePath(filePath: string) {
+    return filePath.slice(0, -'.ts'.length);
+}
+
+export function ensureRealSvelteFilePath(filePath: string) {
+    return isVirtualSvelteFilePath(filePath) ? toRealSvelteFilePath(filePath) : filePath;
 }
 
 export function convertRange(

@@ -10,7 +10,7 @@
             "stopOnEntry": false,
             "sourceMaps": true,
             "outFiles": ["${workspaceRoot}/packkages/svelte-vscode/dist/**/*.js"],
-			"preLaunchTask": "npm: watch"
+            "preLaunchTask": "npm: watch"
         },
         {
             "type": "node",
@@ -23,6 +23,9 @@
                 "--colors",
                 "${workspaceFolder}/packages/*/test/**/*.ts"
             ],
+            "env": {
+                "TS_NODE_COMPILER_OPTIONS": "{\"esModuleInterop\":true}"
+            },
             "console": "integratedTerminal",
             "internalConsoleOptions": "neverOpen"
         },
