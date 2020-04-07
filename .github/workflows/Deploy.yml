@@ -1,4 +1,4 @@
-name: Weekly builds of the Svelte Language Tools Beta
+name: Daily builds of the Svelte Language Tools Beta
 
 # For testing
 # on: push
@@ -50,7 +50,10 @@ jobs:
 
          # Have commits been added in the last day?
          if [[ $(git log --pretty=format: --name-only --since="1 days ago") ]]; then
-            npx vsce publish patch --yarn -p $VSCE_TOKEN
+            # Bump the version  
+            yarn workspace svelte-vscode update:package:beta
+            # Ship it
+            npx vsce publish --yarn -p $VSCE_TOKEN
          fi
       
         env:
