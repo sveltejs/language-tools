@@ -6,30 +6,32 @@ import {
     LanguageService,
 } from 'vscode-css-languageservice';
 import {
-    Host,
     Document,
-    HoverProvider,
     Position,
     Hover,
-    CompletionsProvider,
     Fragment,
-    DiagnosticsProvider,
     Diagnostic,
     Range,
     CompletionList,
-    DocumentColorsProvider,
     ColorInformation,
-    ColorPresentationsProvider,
     Color,
     ColorPresentation,
-    DocumentSymbolsProvider,
     SymbolInformation,
+    HoverProvider,
+    CompletionsProvider,
+    DiagnosticsProvider,
+    DocumentColorsProvider,
+    ColorPresentationsProvider,
+    DocumentSymbolsProvider,
+    OnRegister,
 } from '../api';
 import { getEmmetCompletionParticipants } from 'vscode-emmet-helper';
-import { LSCSSConfig } from '../ls-config';
+import { LSCSSConfig, LSConfigManager } from '../ls-config';
+import { DocumentManager } from '../lib/documents/DocumentManager';
 
 export class CSSPlugin
     implements
+        OnRegister,
         HoverProvider,
         CompletionsProvider,
         DiagnosticsProvider,
@@ -42,18 +44,18 @@ export class CSSPlugin
         return fragment.details.attributes.tag == 'style';
     }
 
-    private host!: Host;
+    private configManager!: LSConfigManager;
     private stylesheets = new WeakMap<Document, Stylesheet>();
 
-    onRegister(host: Host) {
-        this.host = host;
-        host.on('documentChange', document =>
+    onRegister(docManager: DocumentManager, configManager: LSConfigManager) {
+        this.configManager = configManager;
+        docManager.on('documentChange', document =>
             this.stylesheets.set(
                 document,
                 getLanguageService(extractLanguage(document)).parseStylesheet(document),
             ),
         );
-        host.on('documentClose', document => this.stylesheets.delete(document));
+        docManager.on('documentClose', document => this.stylesheets.delete(document));
     }
 
     getDiagnostics(document: Document): Diagnostic[] {
@@ -190,8 +192,8 @@ export class CSSPlugin
 
     private featureEnabled(feature: keyof LSCSSConfig) {
         return (
-            this.host.getConfig<boolean>('css.enable') &&
-            this.host.getConfig<boolean>(`css.${feature}.enable`)
+            this.configManager.enabled('css.enable') &&
+            this.configManager.enabled(`css.${feature}.enable`)
         );
     }
 }

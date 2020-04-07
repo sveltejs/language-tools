@@ -1,7 +1,9 @@
+import { merge, get } from 'lodash';
+
 /**
  * Default config for the language server.
  */
-export const defaultLSConfig: LSConfig = {
+const defaultLSConfig: LSConfig = {
     typescript: {
         enable: true,
         diagnostics: { enable: true },
@@ -114,3 +116,27 @@ export interface LSSvelteConfig {
         enable: boolean;
     };
 }
+
+export class LSConfigManager {
+    private config: LSConfig = defaultLSConfig;
+
+    /**
+     * Updates config.
+     */
+    update(config: LSConfig): void {
+        // Ideally we shouldn't need the merge here because all updates should be valid and complete configs.
+        // But since those configs come from the client they might be out of synch with the valid config:
+        // We might at some point in the future forget to synch config settings in all packages after updating the config.
+        this.config = merge({}, defaultLSConfig, this.config, config);
+    }
+
+    /**
+     * Whether or not specified config is enabled
+     * @param key a string which is a path. Example: 'svelte.diagnostics.enable'.
+     */
+    enabled(key: string): boolean {
+        return !!get(this.config, key);
+    }
+}
+
+export const lsConfig = new LSConfigManager();

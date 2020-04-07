@@ -29,6 +29,8 @@ import {
 } from 'vscode-languageserver-types';
 import { TextDocumentContentChangeEvent } from 'vscode-languageserver-protocol';
 import { Document } from './Document';
+import { DocumentManager } from '../lib/documents/DocumentManager';
+import { LSConfigManager } from '../ls-config';
 
 export {
     Diagnostic,
@@ -174,6 +176,23 @@ export namespace CodeActionsProvider {
         return typeof obj.getCodeActions === 'function';
     }
 }
+
+export interface OnRegister {
+    onRegister(documentsManager: DocumentManager, config: LSConfigManager): void;
+}
+
+export type LSProvider = DiagnosticsProvider &
+    HoverProvider &
+    CompletionsProvider &
+    FormattingProvider &
+    TagCompleteProvider &
+    DocumentColorsProvider &
+    ColorPresentationsProvider &
+    DocumentSymbolsProvider &
+    DefinitionsProvider &
+    CodeActionsProvider;
+
+export type Plugin = Partial<LSProvider> & OnRegister;
 
 export interface Fragment extends Document {
     details: FragmentDetails;

@@ -1,6 +1,6 @@
-import * as sinon from 'sinon';
+import sinon from 'sinon';
 import * as assert from 'assert';
-import { TextDocumentItem, Range, Position } from 'vscode-languageserver-types';
+import { TextDocumentItem, Range } from 'vscode-languageserver-types';
 import { TextDocument } from '../../../src/lib/documents/TextDocument';
 import { DocumentManager } from '../../../src/lib/documents/DocumentManager';
 
@@ -80,55 +80,5 @@ describe('Document Manager', () => {
 
         manager.updateDocument(textDocument, []);
         sinon.assert.calledTwice(cb);
-    });
-
-    it('executes getDiagnostics on plugins', async () => {
-        const manager = new DocumentManager(createTextDocument);
-        const plugin = {
-            pluginId: 'test',
-            defaultConfig: { enable: true },
-            getDiagnostics: sinon.stub().returns([]),
-        };
-        manager.register(plugin);
-        const document = manager.openDocument(textDocument);
-
-        await manager.getDiagnostics(textDocument);
-
-        sinon.assert.calledOnce(plugin.getDiagnostics);
-        sinon.assert.calledWithExactly(plugin.getDiagnostics, document);
-    });
-
-    it('executes doHover on plugins', async () => {
-        const manager = new DocumentManager(createTextDocument);
-        const plugin = {
-            pluginId: 'test',
-            defaultConfig: { enable: true },
-            doHover: sinon.stub().returns(null),
-        };
-        manager.register(plugin);
-        const document = manager.openDocument(textDocument);
-
-        const pos = Position.create(0, 0);
-        await manager.doHover(textDocument, pos);
-
-        sinon.assert.calledOnce(plugin.doHover);
-        sinon.assert.calledWithExactly(plugin.doHover, document, pos);
-    });
-
-    it('executes getCompletions on plugins', async () => {
-        const manager = new DocumentManager(createTextDocument);
-        const plugin = {
-            pluginId: 'test',
-            defaultConfig: { enable: true },
-            getCompletions: sinon.stub().returns({ items: [] }),
-        };
-        manager.register(plugin);
-        const document = manager.openDocument(textDocument);
-
-        const pos = Position.create(0, 0);
-        await manager.getCompletions(textDocument, pos, '.');
-
-        sinon.assert.calledOnce(plugin.getCompletions);
-        sinon.assert.calledWithExactly(plugin.getCompletions, document, pos, '.');
     });
 });

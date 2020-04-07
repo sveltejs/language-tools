@@ -4,7 +4,6 @@ import {
     Hover,
     FragmentPredicate,
     CompletionsProvider,
-    CompletionItem,
     DiagnosticsProvider,
     Diagnostic,
     FormattingProvider,
@@ -19,6 +18,7 @@ import {
     DefinitionsProvider,
     CodeActionsProvider,
     CompletionList,
+    OnRegister,
 } from './interfaces';
 import { Document } from './Document';
 import {
@@ -34,24 +34,28 @@ import {
     mapDiagnosticToFragment,
     mapCodeActionToParent,
 } from './fragmentPositions';
-import { Host, OnRegister } from './Host';
+import { DocumentManager, DocumentEvent } from '../lib/documents/DocumentManager';
+import { LSConfigManager } from '../ls-config';
 
-export function wrapFragmentPlugin<P>(plugin: P, fragmentPredicate: FragmentPredicate): P {
+export function wrapFragmentPlugin<P extends OnRegister>(
+    plugin: P,
+    fragmentPredicate: FragmentPredicate,
+): P {
     function getFragment(document: Document) {
         return document.findFragment(fragmentPredicate);
     }
 
-    if (OnRegister.is(plugin)) {
-        const onRegister: OnRegister['onRegister'] = plugin.onRegister.bind(plugin);
-        plugin.onRegister = function(host) {
-            onRegister(<Host>{
-                on(name: string, listener: (...args: any[]) => void): void {
+    const onRegister: OnRegister['onRegister'] = plugin.onRegister.bind(plugin);
+    plugin.onRegister = function(docManager: DocumentManager, configManager: LSConfigManager) {
+        onRegister(
+            <any>{
+                on(name: DocumentEvent, listener: (...args: any[]) => void): void {
                     if (!name.startsWith('document')) {
-                        host.on(name, listener);
+                        docManager.on(name, listener);
                         return;
                     }
 
-                    host.on(name, (document: Document, ...args: any[]) => {
+                    docManager.on(name, (document: Document, ...args: any[]) => {
                         const fragment = getFragment(document);
                         if (!fragment) {
                             return;
@@ -62,13 +66,13 @@ export function wrapFragmentPlugin<P>(plugin: P, fragmentPredicate: FragmentPred
                 },
 
                 openDocument: (document: TextDocumentItem) => {
-                    return getFragment(host.openDocument(document))! as Document;
+                    return getFragment(docManager.openDocument(document))! as Document;
                 },
-                lockDocument: (uri: string) => host.lockDocument(uri),
-                getConfig: (key: string) => host.getConfig(key),
-            });
-        };
-    }
+                lockDocument: (uri: string) => docManager.lockDocument(uri),
+            },
+            configManager,
+        );
+    };
 
     if (DiagnosticsProvider.is(plugin)) {
         const getDiagnostics: DiagnosticsProvider['getDiagnostics'] = plugin.getDiagnostics.bind(

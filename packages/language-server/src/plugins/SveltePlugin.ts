@@ -3,24 +3,25 @@ type InitialMigrationAny = any;
 
 import { cosmiconfig } from 'cosmiconfig';
 import * as prettier from 'prettier';
+import { RawIndexMap, RawSourceMap, SourceMapConsumer } from 'source-map';
+import { CompileOptions, Warning } from 'svelte/types/compiler/interfaces';
+import { PreprocessorGroup } from 'svelte/types/compiler/preprocess';
 import {
-    DiagnosticsProvider,
-    Document,
     Diagnostic,
-    Range,
     DiagnosticSeverity,
+    Document,
     Fragment,
     Position,
-    Host,
-    FormattingProvider,
+    Range,
     TextEdit,
+    DiagnosticsProvider,
+    FormattingProvider,
+    OnRegister,
 } from '../api';
+import { DocumentManager } from '../lib/documents/DocumentManager';
 import { SvelteDocument } from '../lib/documents/SvelteDocument';
-import { RawSourceMap, RawIndexMap, SourceMapConsumer } from 'source-map';
-import { CompileOptions, Warning } from 'svelte/types/compiler/interfaces';
+import { LSConfigManager, LSSvelteConfig } from '../ls-config';
 import { importSvelte } from './svelte/sveltePackage';
-import { PreprocessorGroup } from 'svelte/types/compiler/preprocess';
-import { LSSvelteConfig } from '../ls-config';
 
 interface SvelteConfig extends CompileOptions {
     preprocess?: PreprocessorGroup;
@@ -30,11 +31,11 @@ const DEFAULT_OPTIONS: CompileOptions = {
     dev: true,
 };
 
-export class SveltePlugin implements DiagnosticsProvider, FormattingProvider {
-    private host!: Host;
+export class SveltePlugin implements OnRegister, DiagnosticsProvider, FormattingProvider {
+    private configManager!: LSConfigManager;
 
-    onRegister(host: Host) {
-        this.host = host;
+    onRegister(docManager: DocumentManager, configManager: LSConfigManager) {
+        this.configManager = configManager;
     }
 
     async getDiagnostics(document: Document): Promise<Diagnostic[]> {
@@ -124,8 +125,8 @@ export class SveltePlugin implements DiagnosticsProvider, FormattingProvider {
 
     private featureEnabled(feature: keyof LSSvelteConfig) {
         return (
-            this.host.getConfig<boolean>('svelte.enable') &&
-            this.host.getConfig<boolean>(`svelte.${feature}.enable`)
+            this.configManager.enabled('svelte.enable') &&
+            this.configManager.enabled(`svelte.${feature}.enable`)
         );
     }
 }

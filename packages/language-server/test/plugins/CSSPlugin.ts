@@ -1,5 +1,4 @@
 import * as assert from 'assert';
-import { EventEmitter } from 'events';
 import {
     Range,
     Position,
@@ -10,18 +9,22 @@ import {
 } from '../../src/api';
 import { TextDocument } from '../../src/lib/documents/TextDocument';
 import { CSSPlugin } from '../../src/plugins/CSSPlugin';
+import { DocumentManager } from '../../src/lib/documents/DocumentManager';
+import { LSConfigManager } from '../../src/ls-config';
 
 describe('CSS Plugin', () => {
-    it('provides hover info', async () => {
+    function setup(content: string) {
         const plugin = new CSSPlugin();
-        const document = new TextDocument('file:///hello.css', 'h1 {}');
-        const host = Object.assign(new EventEmitter(), {
-            getConfig() {
-                return true;
-            },
-        });
-        plugin.onRegister(host as any);
-        host.emit('documentChange', document);
+        const document = new TextDocument('file:///hello.svelte', content);
+        const docManager = new DocumentManager(() => document);
+        const pluginManager = new LSConfigManager();
+        plugin.onRegister(docManager, pluginManager);
+        docManager.openDocument(<any>'some doc');
+        return { plugin, document };
+    }
+
+    it('provides hover info', async () => {
+        const { plugin, document } = setup('h1 {}');
 
         assert.deepStrictEqual(plugin.doHover(document, Position.create(0, 1)), <Hover>{
             contents: [
@@ -35,18 +38,9 @@ describe('CSS Plugin', () => {
     });
 
     it('provides completions', async () => {
-        const plugin = new CSSPlugin();
-        const document = new TextDocument('file:///hello.css', '');
-        const host = Object.assign(new EventEmitter(), {
-            getConfig() {
-                return true;
-            },
-        });
-        plugin.onRegister(host as any);
-        host.emit('documentChange', document);
-        
-        
-        const completions = plugin.getCompletions(document, Position.create(0, 0), " ")
+        const { plugin, document } = setup('');
+
+        const completions = plugin.getCompletions(document, Position.create(0, 0), ' ');
         assert.ok(
             Array.isArray(completions && completions.items),
             'Expected completion items to be an array',
@@ -56,13 +50,14 @@ describe('CSS Plugin', () => {
         assert.deepStrictEqual(completions!.items[0], <CompletionItem>{
             label: '@charset',
             kind: CompletionItemKind.Keyword,
-             "documentation": {
-                    "kind": "markdown",
-                    "value": "Defines character set of the document.\n\n[MDN Reference](https://developer.mozilla.org/docs/Web/CSS/@charset)"
-             },
+            documentation: {
+                kind: 'markdown',
+                value:
+                    'Defines character set of the document.\n\n[MDN Reference](https://developer.mozilla.org/docs/Web/CSS/@charset)',
+            },
             textEdit: TextEdit.insert(Position.create(0, 0), '@charset'),
             sortText: 'd_0000',
-            tags: []
+            tags: [],
         });
     });
 });

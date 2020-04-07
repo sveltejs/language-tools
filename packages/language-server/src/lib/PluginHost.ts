@@ -1,40 +1,223 @@
-import { EventEmitter } from 'events';
-import { get, merge } from 'lodash';
-import { LSConfig, defaultLSConfig } from '../ls-config';
+import { flatten } from 'lodash';
+import {
+    CodeAction,
+    CodeActionContext,
+    Color,
+    ColorInformation,
+    ColorPresentation,
+    CompletionList,
+    DefinitionLink,
+    Diagnostic,
+    Hover,
+    Position,
+    Range,
+    SymbolInformation,
+    TextDocumentIdentifier,
+    TextEdit,
+    LSProvider,
+    Plugin,
+} from '../api';
+import { LSConfig, LSConfigManager } from '../ls-config';
+import { DocumentManager } from './documents/DocumentManager';
 
-export enum ExecuteMode {
+enum ExecuteMode {
     None,
     FirstNonNull,
     Collect,
 }
 
-export class PluginHost {
-    private emitter = new EventEmitter();
-    private plugins: any[] = [];
-    private config: LSConfig = defaultLSConfig;
+export class PluginHost implements LSProvider {
+    private plugins: Plugin[] = [];
 
-    on(name: string, listener: (...args: any[]) => void) {
-        this.emitter.on(name, listener);
-    }
+    constructor(private documentsManager: DocumentManager, private config: LSConfigManager) {}
 
-    notify(name: string, ...args: any[]) {
-        this.emitter.emit(name + '|pre', ...args);
-        this.emitter.emit(name, ...args);
-        this.emitter.emit(name + '|post', ...args);
-    }
-
-    register(plugin: any) {
+    register(plugin: Plugin) {
         this.plugins.push(plugin);
-        if (typeof (plugin as any).onRegister === 'function') {
-            (plugin as any).onRegister(this);
-        }
+        plugin.onRegister(this.documentsManager, this.config);
     }
 
-    execute<T>(name: string, args: any[], mode: ExecuteMode.FirstNonNull): Promise<T | null>;
-    execute<T>(name: string, args: any[], mode: ExecuteMode.Collect): Promise<T[]>;
-    execute<T>(name: string, args: any[], mode: ExecuteMode.None): Promise<void>;
-    async execute<T>(
-        name: string,
+    updateConfig(config: LSConfig) {
+        this.config.update(config);
+    }
+
+    async getDiagnostics(textDocument: TextDocumentIdentifier): Promise<Diagnostic[]> {
+        const document = this.getDocument(textDocument.uri);
+        if (!document) {
+            throw new Error('Cannot call methods on an unopened document');
+        }
+
+        return flatten(
+            await this.execute<Diagnostic[]>('getDiagnostics', [document], ExecuteMode.Collect),
+        );
+    }
+
+    async doHover(textDocument: TextDocumentIdentifier, position: Position): Promise<Hover | null> {
+        const document = this.getDocument(textDocument.uri);
+        if (!document) {
+            throw new Error('Cannot call methods on an unopened document');
+        }
+
+        return this.execute<Hover>('doHover', [document, position], ExecuteMode.FirstNonNull);
+    }
+
+    async getCompletions(
+        textDocument: TextDocumentIdentifier,
+        position: Position,
+        triggerCharacter?: string,
+    ): Promise<CompletionList> {
+        const document = this.getDocument(textDocument.uri);
+        if (!document) {
+            throw new Error('Cannot call methods on an unopened document');
+        }
+
+        const completions = (
+            await this.execute<CompletionList>(
+                'getCompletions',
+                [document, position, triggerCharacter],
+                ExecuteMode.Collect,
+            )
+        ).filter(completion => completion != null);
+
+        const flattenedCompletions = flatten(completions.map(completion => completion.items));
+        return CompletionList.create(
+            flattenedCompletions,
+            completions.reduce(
+                (incomplete, completion) => incomplete || completion.isIncomplete,
+                false as boolean,
+            ),
+        );
+    }
+
+    async formatDocument(textDocument: TextDocumentIdentifier): Promise<TextEdit[]> {
+        const document = this.getDocument(textDocument.uri);
+        if (!document) {
+            throw new Error('Cannot call methods on an unopened document');
+        }
+
+        return flatten(
+            await this.execute<TextEdit[]>('formatDocument', [document], ExecuteMode.Collect),
+        );
+    }
+
+    async doTagComplete(
+        textDocument: TextDocumentIdentifier,
+        position: Position,
+    ): Promise<string | null> {
+        const document = this.getDocument(textDocument.uri);
+        if (!document) {
+            throw new Error('Cannot call methods on an unopened document');
+        }
+
+        return this.execute<string | null>(
+            'doTagComplete',
+            [document, position],
+            ExecuteMode.FirstNonNull,
+        );
+    }
+
+    async getDocumentColors(textDocument: TextDocumentIdentifier): Promise<ColorInformation[]> {
+        const document = this.getDocument(textDocument.uri);
+        if (!document) {
+            throw new Error('Cannot call methods on an unopened document');
+        }
+
+        return flatten(
+            await this.execute<ColorInformation[]>(
+                'getDocumentColors',
+                [document],
+                ExecuteMode.Collect,
+            ),
+        );
+    }
+
+    async getColorPresentations(
+        textDocument: TextDocumentIdentifier,
+        range: Range,
+        color: Color,
+    ): Promise<ColorPresentation[]> {
+        const document = this.getDocument(textDocument.uri);
+        if (!document) {
+            throw new Error('Cannot call methods on an unopened document');
+        }
+
+        return flatten(
+            await this.execute<ColorPresentation[]>(
+                'getColorPresentations',
+                [document, range, color],
+                ExecuteMode.Collect,
+            ),
+        );
+    }
+
+    async getDocumentSymbols(textDocument: TextDocumentIdentifier): Promise<SymbolInformation[]> {
+        const document = this.getDocument(textDocument.uri);
+        if (!document) {
+            throw new Error('Cannot call methods on an unopened document');
+        }
+
+        return flatten(
+            await this.execute<SymbolInformation[]>(
+                'getDocumentSymbols',
+                [document],
+                ExecuteMode.Collect,
+            ),
+        );
+    }
+
+    async getDefinitions(
+        textDocument: TextDocumentIdentifier,
+        position: Position,
+    ): Promise<DefinitionLink[]> {
+        const document = this.getDocument(textDocument.uri);
+        if (!document) {
+            throw new Error('Cannot call methods on an unopened document');
+        }
+
+        return flatten(
+            await this.execute<DefinitionLink[]>(
+                'getDefinitions',
+                [document, position],
+                ExecuteMode.Collect,
+            ),
+        );
+    }
+
+    async getCodeActions(
+        textDocument: TextDocumentIdentifier,
+        range: Range,
+        context: CodeActionContext,
+    ): Promise<CodeAction[]> {
+        const document = this.getDocument(textDocument.uri);
+        if (!document) {
+            throw new Error('Cannot call methods on an unopened document');
+        }
+
+        return flatten(
+            await this.execute<CodeAction[]>(
+                'getCodeActions',
+                [document, range, context],
+                ExecuteMode.Collect,
+            ),
+        );
+    }
+
+    private getDocument(uri: string) {
+        return this.documentsManager.documents.get(uri);
+    }
+
+    private execute<T>(
+        name: keyof LSProvider,
+        args: any[],
+        mode: ExecuteMode.FirstNonNull,
+    ): Promise<T | null>;
+    private execute<T>(
+        name: keyof LSProvider,
+        args: any[],
+        mode: ExecuteMode.Collect,
+    ): Promise<T[]>;
+    private execute<T>(name: keyof LSProvider, args: any[], mode: ExecuteMode.None): Promise<void>;
+    private async execute<T>(
+        name: keyof LSProvider,
         args: any[],
         mode: ExecuteMode,
     ): Promise<(T | null) | T[] | void> {
@@ -59,17 +242,6 @@ export class PluginHost {
                 );
                 return;
         }
-    }
-
-    updateConfig(config: LSConfig) {
-        // Ideally we shouldn't need the merge here because all updates should be valid and complete configs.
-        // But since those configs come from the client they might be out of synch with the valid config:
-        // We might at some point in the future forget to synch config settings in all packages after updating the config.
-        this.config = merge({}, defaultLSConfig, this.config, config);
-    }
-
-    getConfig<T>(key: string): T {
-        return get(this.config, key) as any;
     }
 
     private async tryExecutePlugin(plugin: any, fnName: string, args: any[], failValue: any) {

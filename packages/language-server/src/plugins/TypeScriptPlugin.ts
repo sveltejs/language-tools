@@ -1,49 +1,49 @@
 import ts, { NavigationTree } from 'typescript';
 import {
-    DiagnosticsProvider,
-    Document,
-    Diagnostic,
-    Range,
-    Fragment,
-    HoverProvider,
-    Position,
-    Hover,
-    OnRegister,
-    Host,
-    DocumentSymbolsProvider,
-    SymbolInformation,
-    CompletionsProvider,
-    CompletionItem,
-    DefinitionsProvider,
-    DefinitionLink,
-    LocationLink,
-    CodeActionsProvider,
     CodeAction,
-    Resolvable,
     CodeActionContext,
-    TextEdit,
-    TextDocumentEdit,
-    VersionedTextDocumentIdentifier,
+    CompletionItem,
     CompletionList,
+    DefinitionLink,
+    Diagnostic,
+    Document,
+    Fragment,
+    Hover,
+    LocationLink,
+    Position,
+    Range,
+    SymbolInformation,
+    TextDocumentEdit,
+    TextEdit,
+    VersionedTextDocumentIdentifier,
+    CodeActionsProvider,
+    CompletionsProvider,
+    DefinitionsProvider,
+    DiagnosticsProvider,
+    DocumentSymbolsProvider,
+    HoverProvider,
+    OnRegister,
+    Resolvable,
 } from '../api';
+import { DocumentManager } from '../lib/documents/DocumentManager';
+import { TextDocument } from '../lib/documents/TextDocument';
+import { LSConfigManager, LSTypescriptConfig } from '../ls-config';
+import { pathToUrl } from '../utils';
+import { CreateDocument, getLanguageServiceForDocument } from './typescript/service';
 import {
     convertRange,
-    getScriptKindFromAttributes,
-    symbolKindFromString,
-    scriptElementKindToCompletionItemKind,
     getCommitCharactersForScriptElement,
+    getScriptKindFromAttributes,
     mapSeverity,
+    scriptElementKindToCompletionItemKind,
+    symbolKindFromString,
 } from './typescript/utils';
-import { getLanguageServiceForDocument, CreateDocument } from './typescript/service';
-import { pathToUrl } from '../utils';
-import { TextDocument } from '../lib/documents/TextDocument';
-import { LSTypescriptConfig } from '../ls-config';
 
 export class TypeScriptPlugin
     implements
+        OnRegister,
         DiagnosticsProvider,
         HoverProvider,
-        OnRegister,
         DocumentSymbolsProvider,
         CompletionsProvider,
         DefinitionsProvider,
@@ -52,20 +52,20 @@ export class TypeScriptPlugin
         return fragment.details.attributes.tag == 'script';
     }
 
-    private host!: Host;
+    private configManager!: LSConfigManager;
     private createDocument!: CreateDocument;
 
-    onRegister(host: Host) {
-        this.host = host;
+    onRegister(docManager: DocumentManager, configManager: LSConfigManager) {
+        this.configManager = configManager;
         this.createDocument = (fileName, content) => {
             const uri = pathToUrl(fileName);
-            const document = host.openDocument({
+            const document = docManager.openDocument({
                 languageId: '',
                 text: content,
                 uri,
                 version: 0,
             });
-            host.lockDocument(uri);
+            docManager.lockDocument(uri);
             return document;
         };
     }
@@ -82,7 +82,7 @@ export class TypeScriptPlugin
         let diagnostics: ts.Diagnostic[] = [
             ...lang.getSyntacticDiagnostics(document.getFilePath()!),
             ...lang.getSuggestionDiagnostics(document.getFilePath()!),
-            ...lang.getSemanticDiagnostics(document.getFilePath()!)
+            ...lang.getSemanticDiagnostics(document.getFilePath()!),
         ];
 
         return diagnostics.map(diagnostic => ({
@@ -305,8 +305,8 @@ export class TypeScriptPlugin
 
     private featureEnabled(feature: keyof LSTypescriptConfig) {
         return (
-            this.host.getConfig<boolean>('typescript.enable') &&
-            this.host.getConfig<boolean>(`typescript.${feature}.enable`)
+            this.configManager.enabled('typescript.enable') &&
+            this.configManager.enabled(`typescript.${feature}.enable`)
         );
     }
 }
