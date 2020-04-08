@@ -60,4 +60,130 @@ describe('CSS Plugin', () => {
             tags: [],
         });
     });
+
+    describe('provides diagnostics', () => {
+        it('- everything ok', () => {
+            const { plugin, document } = setup('h1 {color:blue;}');
+
+            const diagnostics = plugin.getDiagnostics(document);
+
+            assert.deepStrictEqual(diagnostics, []);
+        });
+
+        it('- has error', () => {
+            const { plugin, document } = setup('h1 {iDunnoDisProperty:blue;}');
+
+            const diagnostics = plugin.getDiagnostics(document);
+
+            assert.deepStrictEqual(diagnostics, [
+                {
+                    code: 'unknownProperties',
+                    message: "Unknown property: 'iDunnoDisProperty'",
+                    range: {
+                        end: {
+                            character: 21,
+                            line: 0,
+                        },
+                        start: {
+                            character: 4,
+                            line: 0,
+                        },
+                    },
+                    severity: 2,
+                    source: 'css',
+                },
+            ]);
+        });
+    });
+
+    describe('provides document colors', () => {
+        const { plugin, document } = setup('h1 {color:blue;}');
+
+        const colors = plugin.getColorPresentations(
+            document,
+            {
+                start: { line: 0, character: 10 },
+                end: { line: 0, character: 14 },
+            },
+            { alpha: 1, blue: 255, green: 0, red: 0 },
+        );
+
+        assert.deepStrictEqual(colors, [
+            {
+                label: 'rgb(0, 0, 65025)',
+                textEdit: {
+                    range: {
+                        end: {
+                            character: 14,
+                            line: 0,
+                        },
+                        start: {
+                            character: 10,
+                            line: 0,
+                        },
+                    },
+                    newText: 'rgb(0, 0, 65025)',
+                },
+            },
+            {
+                label: '#00000fe01',
+                textEdit: {
+                    range: {
+                        end: {
+                            character: 14,
+                            line: 0,
+                        },
+                        start: {
+                            character: 10,
+                            line: 0,
+                        },
+                    },
+                    newText: '#00000fe01',
+                },
+            },
+            {
+                label: 'hsl(240, -101%, 12750%)',
+                textEdit: {
+                    range: {
+                        end: {
+                            character: 14,
+                            line: 0,
+                        },
+                        start: {
+                            character: 10,
+                            line: 0,
+                        },
+                    },
+                    newText: 'hsl(240, -101%, 12750%)',
+                },
+            },
+        ]);
+    });
+
+    it('provides document symbols', () => {
+        const { plugin, document } = setup('h1 {color:blue;}');
+
+        const symbols = plugin.getDocumentSymbols(document);
+
+        assert.deepStrictEqual(symbols, [
+            {
+                containerName: 'style',
+                kind: 5,
+                location: {
+                    range: {
+                        end: {
+                            character: 16,
+                            line: 0,
+                        },
+                        start: {
+                            character: 0,
+                            line: 0,
+                        },
+                    },
+                    uri: 'file:///hello.svelte',
+                },
+                name: 'h1',
+            },
+        ]);
+    });
 });
