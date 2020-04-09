@@ -42,11 +42,11 @@ jobs:
 
       # Re-run the  yarn install outside of the workspace
       - run: |
-         # Bump the version  
-         yarn workspace svelte-vscode update:package:beta
-
          cd packages/svelte-vscode
          yarn install
+
+         # Bump the version  
+         yarn update:package:beta
 
          # Just a hard constraint from azure
          echo "Once a year this expires, tell Orta to access https://dev.azure.com/ortatherox0608/_usersSettings/tokens to get a new one"
