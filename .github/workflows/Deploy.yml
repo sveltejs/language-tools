@@ -1,12 +1,12 @@
 name: Daily builds of the Svelte Language Tools Beta
 
 # For testing
-# on: push
+on: push
 
 # For production
-on:
-  schedule:
-    - cron: "0 4 * * *"
+# on:
+#   schedule:
+#     - cron: "0 4 * * *"
 
 jobs:
   deploy:
@@ -42,6 +42,9 @@ jobs:
 
       # Re-run the  yarn install outside of the workspace
       - run: |
+         # Bump the version  
+         yarn workspace svelte-vscode update:package:beta
+
          cd packages/svelte-vscode
          yarn install
 
@@ -50,8 +53,6 @@ jobs:
 
          # Have commits been added in the last day?
          if [[ $(git log --pretty=format: --name-only --since="1 days ago") ]]; then
-            # Bump the version  
-            yarn workspace svelte-vscode update:package:beta
             # Ship it
             npx vsce publish --yarn -p $VSCE_TOKEN
          fi
