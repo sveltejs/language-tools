@@ -54,7 +54,7 @@ The language server for Svelte. Built from [UnwrittenFun/svelte-language-server]
 
 #### [`svelte-vscode`](packages/svelte-vscode)
 
-The official vscode extension for Svelte. Built from [UnwrittenFun/svelte-vscode](https://github.com/UnwrittenFun/svelte-vscode) to become the official language server for the language.
+The official vscode extension for Svelte. Built from [UnwrittenFun/svelte-vscode](https://github.com/UnwrittenFun/svelte-vscode) to become the official vscode extension for the language.
 
 ## Development
 
