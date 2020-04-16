@@ -1,5 +1,5 @@
 import { urlToPath } from '../../utils';
-import { WritableDocument } from '../../api';
+import { WritableDocument } from './Document';
 
 /**
  * Represents a text document that contains a svelte component.

@@ -1,18 +1,10 @@
 import { getEmmetCompletionParticipants } from 'vscode-emmet-helper';
 import { getLanguageService, HTMLDocument } from 'vscode-html-languageservice';
-import {
-    CompletionList,
-    Document,
-    Hover,
-    Position,
-    SymbolInformation,
-    CompletionsProvider,
-    HoverProvider,
-    OnRegister,
-} from '../api';
-import { DocumentManager } from '../lib/documents/DocumentManager';
-import { LSConfigManager, LSHTMLConfig } from '../ls-config';
-import { svelteHtmlDataProvider } from './html/dataProvider';
+import { CompletionList, Hover, Position, SymbolInformation } from 'vscode-languageserver';
+import { DocumentManager, Document } from '../../lib/documents';
+import { LSConfigManager, LSHTMLConfig } from '../../ls-config';
+import { svelteHtmlDataProvider } from './dataProvider';
+import { OnRegister, HoverProvider, CompletionsProvider } from '../interfaces';
 // import { svelteHtmlDataProvider } from './html/dataProvider';
 
 export class HTMLPlugin implements OnRegister, HoverProvider, CompletionsProvider {

@@ -1,12 +1,11 @@
 import { EventEmitter } from 'events';
 import {
-    Document,
     TextDocumentContentChangeEvent,
     TextDocumentIdentifier,
     TextDocumentItem,
     VersionedTextDocumentIdentifier,
-    WritableDocument,
-} from '../../api';
+} from 'vscode-languageserver';
+import { Document, WritableDocument } from './Document';
 
 export type DocumentEvent = 'documentOpen' | 'documentChange' | 'documentClose';
 

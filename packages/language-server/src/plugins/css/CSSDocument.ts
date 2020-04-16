@@ -1,7 +1,7 @@
 import { Stylesheet } from 'vscode-css-languageservice';
-import { Fragment, Position, Document } from '../../api';
+import { Position } from 'vscode-languageserver';
 import { getLanguageService } from './service';
-import { extractTag } from '../../lib/documents/utils';
+import { extractTag, Document, Fragment } from '../../lib/documents';
 
 export class CSSFragment {
     private version!: number;

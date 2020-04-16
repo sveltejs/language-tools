@@ -1,9 +1,8 @@
 import * as assert from 'assert';
-import { SveltePlugin } from '../../src/plugins/SveltePlugin';
-import { ManagedDocument } from '../../src/lib/documents/ManagedDocument';
-import { Diagnostic, Range, DiagnosticSeverity } from '../../src/api';
-import { DocumentManager } from '../../src/lib/documents/DocumentManager';
-import { LSConfigManager } from '../../src/ls-config';
+import { SveltePlugin } from '../../../src/plugins';
+import { ManagedDocument, DocumentManager } from '../../../src/lib/documents';
+import { Diagnostic, Range, DiagnosticSeverity } from 'vscode-languageserver';
+import { LSConfigManager } from '../../../src/ls-config';
 
 describe('Svelte Plugin', () => {
     function setup(content: string) {

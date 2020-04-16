@@ -1,5 +1,5 @@
 import * as assert from 'assert';
-import { ManagedDocument } from '../../../src/lib/documents/ManagedDocument';
+import { ManagedDocument } from '../../../src/lib/documents';
 
 describe('ManagedDocument', () => {
     it('gets the correct text', () => {

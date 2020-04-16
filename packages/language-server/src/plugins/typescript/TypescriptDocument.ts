@@ -1,5 +1,5 @@
-import { Fragment, Position, Document } from '../../api';
-import { extractTag } from '../../lib/documents/utils';
+import { Position } from 'vscode-languageserver';
+import { extractTag, Document, Fragment } from '../../lib/documents';
 
 export class TypescriptFragment {
     private version!: number;

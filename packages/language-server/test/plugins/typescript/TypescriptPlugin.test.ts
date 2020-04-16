@@ -1,10 +1,9 @@
 import * as assert from 'assert';
-import { TypeScriptPlugin } from '../../src/plugins/TypeScriptPlugin';
-import * as tsService from '../../src/plugins/typescript/service';
-import { DocumentManager } from '../../src/lib/documents/DocumentManager';
-import { TextDocument } from '../../src/lib/documents/TextDocument';
-import { LSConfigManager } from '../../src/ls-config';
-import { Range, Position, Hover, CompletionItem, CompletionItemKind, TextEdit } from '../../src';
+import { TypeScriptPlugin } from '../../../src/plugins';
+import * as tsService from '../../../src/plugins/typescript/service';
+import { DocumentManager, TextDocument } from '../../../src/lib/documents';
+import { LSConfigManager } from '../../../src/ls-config';
+import { Range, Position, Hover, CompletionItem, CompletionItemKind } from 'vscode-languageserver';
 import sinon from 'sinon';
 import ts from 'typescript';
 

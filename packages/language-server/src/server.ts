@@ -6,16 +6,10 @@ import {
     RequestType,
     TextDocumentPositionParams,
 } from 'vscode-languageserver';
-import { DocumentManager } from './lib/documents/DocumentManager';
-import { ManagedDocument } from './lib/documents/ManagedDocument';
-import { SveltePlugin } from './plugins/SveltePlugin';
-import { HTMLPlugin } from './plugins/HTMLPlugin';
-import { CSSPlugin } from './plugins/CSSPlugin';
-import { TypeScriptPlugin } from './plugins/TypeScriptPlugin';
+import { DocumentManager, ManagedDocument, Document } from './lib/documents';
+import { SveltePlugin, HTMLPlugin, CSSPlugin, TypeScriptPlugin, PluginHost } from './plugins';
 import _ from 'lodash';
-import { PluginHost } from './lib/PluginHost';
 import { LSConfigManager } from './ls-config';
-import { Document } from './api';
 
 namespace TagCloseRequest {
     export const type: RequestType<

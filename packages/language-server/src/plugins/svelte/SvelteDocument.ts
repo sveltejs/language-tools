@@ -1,5 +1,5 @@
-import { Position, WritableDocument, Fragment } from '../../api';
-import { extractTag, offsetAt } from '../../lib/documents/utils';
+import { Position } from 'vscode-languageserver';
+import { extractTag, offsetAt, WritableDocument, Fragment } from '../../lib/documents';
 import { urlToPath } from '../../utils';
 
 /**

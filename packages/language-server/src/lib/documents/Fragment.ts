@@ -1,18 +1,43 @@
 import {
-    CompletionItem,
-    TextEdit,
+    Position,
     Range,
+    TextEdit,
+    Location,
+    CompletionItem,
     Hover,
     Diagnostic,
     ColorInformation,
     ColorPresentation,
     SymbolInformation,
-    Location,
     LocationLink,
-    CodeAction,
     TextDocumentEdit,
-    Fragment,
-} from './interfaces';
+    CodeAction,
+} from 'vscode-languageserver';
+
+export interface Fragment {
+    /**
+     * Get the fragment position relative to the parent
+     * @param pos Position in fragment
+     */
+    positionInParent(pos: Position): Position;
+
+    /**
+     * Get the position relative to the start of the fragment
+     * @param pos Position in parent
+     */
+    positionInFragment(pos: Position): Position;
+
+    /**
+     * Returns true if the given parent position is inside of this fragment
+     * @param pos Position in parent
+     */
+    isInFragment(pos: Position): boolean;
+
+    /**
+     * Get document URL
+     */
+    getURL(): string;
+}
 
 export function mapRangeToParent(fragment: Fragment, range: Range): Range {
     return Range.create(

@@ -1,5 +1,6 @@
 import ts from 'typescript';
-import { Range, SymbolKind, CompletionItemKind, DiagnosticSeverity, Document } from '../../api';
+import { Range, SymbolKind, CompletionItemKind, DiagnosticSeverity } from 'vscode-languageserver';
+import { Document } from '../../lib/documents';
 
 export function getScriptKindFromFileName(fileName: string): ts.ScriptKind {
     const ext = fileName.substr(fileName.lastIndexOf('.'));

@@ -6,11 +6,10 @@ import {
     CompletionItem,
     CompletionItemKind,
     TextEdit,
-} from '../../src/api';
-import { TextDocument } from '../../src/lib/documents/TextDocument';
-import { CSSPlugin } from '../../src/plugins/CSSPlugin';
-import { DocumentManager } from '../../src/lib/documents/DocumentManager';
-import { LSConfigManager } from '../../src/ls-config';
+} from 'vscode-languageserver';
+import { TextDocument, DocumentManager } from '../../../src/lib/documents';
+import { CSSPlugin } from '../../../src/plugins';
+import { LSConfigManager } from '../../../src/ls-config';
 
 describe('CSS Plugin', () => {
     function setup(content: string) {

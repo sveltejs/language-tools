@@ -7,11 +7,10 @@ import {
     TextEdit,
     CompletionItemKind,
     InsertTextFormat,
-} from '../../src/api';
-import { HTMLPlugin } from '../../src/plugins/HTMLPlugin';
-import { TextDocument } from '../../src/lib/documents/TextDocument';
-import { DocumentManager } from '../../src/lib/documents/DocumentManager';
-import { LSConfigManager } from '../../src/ls-config';
+} from 'vscode-languageserver';
+import { HTMLPlugin } from '../../../src/plugins';
+import { TextDocument, DocumentManager } from '../../../src/lib/documents';
+import { LSConfigManager } from '../../../src/ls-config';
 
 describe('HTML Plugin', () => {
     function setup(content: string) {

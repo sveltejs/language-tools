@@ -6,7 +6,6 @@ import {
     CompletionList,
     DefinitionLink,
     Diagnostic,
-    Document,
     Hover,
     LocationLink,
     Position,
@@ -15,6 +14,31 @@ import {
     TextDocumentEdit,
     TextEdit,
     VersionedTextDocumentIdentifier,
+} from 'vscode-languageserver';
+import {
+    DocumentManager,
+    TextDocument,
+    Document,
+    mapDiagnosticToParent,
+    mapHoverToParent,
+    mapSymbolInformationToParent,
+    mapCompletionItemToParent,
+    mapLocationLinkToParent,
+    mapCodeActionToParent,
+} from '../../lib/documents';
+import { LSConfigManager, LSTypescriptConfig } from '../../ls-config';
+import { pathToUrl } from '../../utils';
+import { CreateDocument, getLanguageServiceForDocument } from './service';
+import {
+    convertRange,
+    getCommitCharactersForScriptElement,
+    getScriptKindFromAttributes,
+    mapSeverity,
+    scriptElementKindToCompletionItemKind,
+    symbolKindFromString,
+} from './utils';
+import { TypescriptDocument } from './TypescriptDocument';
+import {
     CodeActionsProvider,
     CompletionsProvider,
     DefinitionsProvider,
@@ -23,27 +47,7 @@ import {
     HoverProvider,
     OnRegister,
     Resolvable,
-    mapDiagnosticToParent,
-    mapHoverToParent,
-    mapSymbolInformationToParent,
-    mapCompletionItemToParent,
-    mapLocationLinkToParent,
-    mapCodeActionToParent,
-} from '../api';
-import { DocumentManager } from '../lib/documents/DocumentManager';
-import { TextDocument } from '../lib/documents/TextDocument';
-import { LSConfigManager, LSTypescriptConfig } from '../ls-config';
-import { pathToUrl } from '../utils';
-import { CreateDocument, getLanguageServiceForDocument } from './typescript/service';
-import {
-    convertRange,
-    getCommitCharactersForScriptElement,
-    getScriptKindFromAttributes,
-    mapSeverity,
-    scriptElementKindToCompletionItemKind,
-    symbolKindFromString,
-} from './typescript/utils';
-import { TypescriptDocument } from './typescript/TypescriptDocument';
+} from '../interfaces';
 
 export class TypeScriptPlugin
     implements

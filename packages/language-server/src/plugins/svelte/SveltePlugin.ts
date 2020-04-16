@@ -6,21 +6,12 @@ import * as prettier from 'prettier';
 import { RawIndexMap, RawSourceMap, SourceMapConsumer } from 'source-map';
 import { CompileOptions, Warning } from 'svelte/types/compiler/interfaces';
 import { PreprocessorGroup } from 'svelte/types/compiler/preprocess';
-import {
-    Diagnostic,
-    DiagnosticSeverity,
-    Document,
-    Position,
-    Range,
-    TextEdit,
-    DiagnosticsProvider,
-    FormattingProvider,
-    OnRegister,
-} from '../api';
-import { DocumentManager } from '../lib/documents/DocumentManager';
-import { LSConfigManager, LSSvelteConfig } from '../ls-config';
-import { importSvelte } from './svelte/sveltePackage';
-import { SvelteDocument, SvelteFragment } from './svelte/SvelteDocument';
+import { Diagnostic, DiagnosticSeverity, Position, Range, TextEdit } from 'vscode-languageserver';
+import { DocumentManager, Document } from '../../lib/documents';
+import { LSConfigManager, LSSvelteConfig } from '../../ls-config';
+import { importSvelte } from './sveltePackage';
+import { SvelteDocument, SvelteFragment } from './SvelteDocument';
+import { OnRegister, DiagnosticsProvider, FormattingProvider } from '../interfaces';
 
 interface SvelteConfig extends CompileOptions {
     preprocess?: PreprocessorGroup;

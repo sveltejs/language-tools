@@ -1,5 +1,5 @@
 import { clamp } from '../../utils';
-import { Position } from '../../api';
+import { Position } from 'vscode-languageserver';
 
 function parseAttributeValue(value: string): string {
     return /^['"]/.test(value) ? value.slice(1, -1) : value;

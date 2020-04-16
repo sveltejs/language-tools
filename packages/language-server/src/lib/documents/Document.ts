@@ -1,6 +1,5 @@
-import { clamp } from '../utils';
-import { Position } from './interfaces';
-import { TextDocument } from 'vscode-languageserver-types';
+import { clamp } from '../../utils';
+import { Position, TextDocument } from 'vscode-languageserver';
 
 /**
  * Represents a textual document.

@@ -1,5 +1,5 @@
 import * as assert from 'assert';
-import { TextDocument } from '../../../src/lib/documents/TextDocument';
+import { TextDocument } from '../../../src/lib/documents';
 import { SvelteFragment, SvelteFragmentDetails } from '../../../src/plugins/svelte/SvelteDocument';
 
 describe('SvelteFragment', () => {

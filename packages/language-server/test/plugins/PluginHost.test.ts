@@ -1,9 +1,8 @@
 import sinon from 'sinon';
 import { Position, TextDocumentItem } from 'vscode-languageserver-types';
-import { DocumentManager } from '../../src/lib/documents/DocumentManager';
-import { TextDocument } from '../../src/lib/documents/TextDocument';
+import { DocumentManager, TextDocument } from '../../src/lib/documents';
 import { LSConfigManager } from '../../src/ls-config';
-import { PluginHost } from '../../src/lib/PluginHost';
+import { PluginHost } from '../../src/plugins';
 
 describe('PluginHost', () => {
     const textDocument: TextDocumentItem = {

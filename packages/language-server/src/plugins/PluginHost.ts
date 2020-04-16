@@ -14,11 +14,10 @@ import {
     SymbolInformation,
     TextDocumentIdentifier,
     TextEdit,
-    LSProvider,
-    Plugin,
-} from '../api';
+} from 'vscode-languageserver';
 import { LSConfig, LSConfigManager } from '../ls-config';
-import { DocumentManager } from './documents/DocumentManager';
+import { DocumentManager } from '../lib/documents';
+import { LSProvider, Plugin } from './interfaces';
 
 enum ExecuteMode {
     None,

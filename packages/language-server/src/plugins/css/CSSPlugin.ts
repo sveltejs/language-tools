@@ -3,32 +3,36 @@ import {
     Color,
     ColorInformation,
     ColorPresentation,
-    ColorPresentationsProvider,
     CompletionList,
-    CompletionsProvider,
     Diagnostic,
-    DiagnosticsProvider,
-    Document,
-    DocumentColorsProvider,
-    DocumentSymbolsProvider,
     Hover,
-    HoverProvider,
-    mapColorInformationToParent,
-    mapColorPresentationToParent,
-    mapCompletionItemToParent,
-    mapDiagnosticToParent,
-    mapHoverToParent,
-    mapRangeToFragment,
-    mapSymbolInformationToParent,
-    OnRegister,
     Position,
     Range,
     SymbolInformation,
-} from '../api';
-import { DocumentManager } from '../lib/documents/DocumentManager';
-import { LSConfigManager, LSCSSConfig } from '../ls-config';
-import { CSSDocument } from './css/CSSDocument';
-import { getLanguage, getLanguageService } from './css/service';
+} from 'vscode-languageserver';
+import {
+    DocumentManager,
+    Document,
+    mapDiagnosticToParent,
+    mapHoverToParent,
+    mapCompletionItemToParent,
+    mapColorInformationToParent,
+    mapRangeToFragment,
+    mapColorPresentationToParent,
+    mapSymbolInformationToParent,
+} from '../../lib/documents';
+import { LSConfigManager, LSCSSConfig } from '../../ls-config';
+import { CSSDocument } from './CSSDocument';
+import { getLanguage, getLanguageService } from './service';
+import {
+    OnRegister,
+    HoverProvider,
+    CompletionsProvider,
+    DiagnosticsProvider,
+    DocumentColorsProvider,
+    ColorPresentationsProvider,
+    DocumentSymbolsProvider,
+} from '../interfaces';
 
 export class CSSPlugin
     implements
