@@ -1,5 +1,4 @@
 import {
-    Fragment,
     CompletionItem,
     TextEdit,
     Range,
@@ -12,6 +11,7 @@ import {
     LocationLink,
     CodeAction,
     TextDocumentEdit,
+    Fragment,
 } from './interfaces';
 
 export function mapRangeToParent(fragment: Fragment, range: Range): Range {

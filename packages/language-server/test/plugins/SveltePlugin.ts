@@ -1,6 +1,6 @@
 import * as assert from 'assert';
 import { SveltePlugin } from '../../src/plugins/SveltePlugin';
-import { SvelteDocument } from '../../src/lib/documents/SvelteDocument';
+import { ManagedDocument } from '../../src/lib/documents/ManagedDocument';
 import { Diagnostic, Range, DiagnosticSeverity } from '../../src/api';
 import { DocumentManager } from '../../src/lib/documents/DocumentManager';
 import { LSConfigManager } from '../../src/ls-config';
@@ -8,7 +8,7 @@ import { LSConfigManager } from '../../src/ls-config';
 describe('Svelte Plugin', () => {
     function setup(content: string) {
         const plugin = new SveltePlugin();
-        const document = new SvelteDocument('file:///hello.svelte', content);
+        const document = new ManagedDocument('file:///hello.svelte', content);
         const docManager = new DocumentManager(() => document);
         const pluginManager = new LSConfigManager();
         plugin.onRegister(docManager, pluginManager);

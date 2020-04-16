@@ -194,26 +194,12 @@ export type LSProvider = DiagnosticsProvider &
 
 export type Plugin = Partial<LSProvider> & OnRegister;
 
-export interface Fragment extends Document {
-    details: FragmentDetails;
-
-    /**
-     * Get the fragment offset relative to the parent
-     * @param offset Offset in fragment
-     */
-    offsetInParent(offset: number): number;
-
+export interface Fragment {
     /**
      * Get the fragment position relative to the parent
      * @param pos Position in fragment
      */
     positionInParent(pos: Position): Position;
-
-    /**
-     * Get the offset relative to the start of the fragment
-     * @param offset Offset in parent
-     */
-    offsetInFragment(offset: number): number;
 
     /**
      * Get the position relative to the start of the fragment
@@ -226,16 +212,9 @@ export interface Fragment extends Document {
      * @param pos Position in parent
      */
     isInFragment(pos: Position): boolean;
-}
 
-export interface FragmentDetails {
-    start: number;
-    end: number;
-    container?: {
-        start: number;
-        end: number;
-    };
-    attributes: Record<string, string>;
+    /**
+     * Get document URL
+     */
+    getURL(): string;
 }
-
-export type FragmentPredicate = (fragment: Fragment) => boolean;

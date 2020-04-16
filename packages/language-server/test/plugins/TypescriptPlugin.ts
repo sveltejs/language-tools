@@ -16,7 +16,6 @@ describe('TypescriptPlugin', () => {
     function setup(content: string) {
         const plugin = new TypeScriptPlugin();
         const document = new TextDocument('file:///hello.svelte', content);
-        sinon.stub(document, 'getAttributes').returns({ lang: 'typescript' });
         const docManager = new DocumentManager(() => document);
         const pluginManager = new LSConfigManager();
         plugin.onRegister(docManager, pluginManager);
@@ -25,7 +24,9 @@ describe('TypescriptPlugin', () => {
     }
 
     it('provides diagnostics', () => {
-        const { plugin, document } = setup('const asd: string = true');
+        const { plugin, document } = setup(
+            '<script lang="typescript">const asd: string = true</script>',
+        );
         const diagnosticsStub = sinon.stub().returns([
             <ts.Diagnostic>{
                 category: ts.DiagnosticCategory.Error,
@@ -50,12 +51,12 @@ describe('TypescriptPlugin', () => {
                 code: 2322,
                 message: "Type 'true' is not assignable to type 'string'.",
                 range: {
-                    end: {
-                        character: 23,
+                    start: {
+                        character: 46,
                         line: 0,
                     },
-                    start: {
-                        character: 20,
+                    end: {
+                        character: 49,
                         line: 0,
                     },
                 },
@@ -67,7 +68,7 @@ describe('TypescriptPlugin', () => {
     });
 
     it('provides hover info', async () => {
-        const { plugin, document } = setup('const a = true');
+        const { plugin, document } = setup('<script>const a = true</script>');
         const hoverInfoStub = sinon.stub().returns(<ts.QuickInfo>{
             kind: ts.ScriptElementKind.constElement,
             textSpan: { start: 6, length: 1 },
@@ -84,20 +85,19 @@ describe('TypescriptPlugin', () => {
         sinon
             .stub(tsService, 'getLanguageServiceForDocument')
             .returns(<any>{ getQuickInfoAtPosition: hoverInfoStub });
-        const position = Position.create(0, 6);
 
-        assert.deepStrictEqual(plugin.doHover(document, position), <Hover>{
+        assert.deepStrictEqual(plugin.doHover(document, Position.create(0, 14)), <Hover>{
             contents: {
                 language: 'ts',
                 value: 'const a: true',
             },
             range: {
                 start: {
-                    character: 6,
+                    character: 14,
                     line: 0,
                 },
                 end: {
-                    character: 7,
+                    character: 15,
                     line: 0,
                 },
             },
@@ -105,12 +105,12 @@ describe('TypescriptPlugin', () => {
         sinon.assert.calledWith(
             hoverInfoStub,
             document.getFilePath()!,
-            document.offsetAt(position),
+            document.offsetAt(Position.create(0, 6)),
         );
     });
 
     it('provides document symbols', () => {
-        const { plugin, document } = setup('function bla() {return true;} bla();');
+        const { plugin, document } = setup('<script>function bla() {return true;} bla();</script>');
 
         // Typescript gets the snapshot in this instance, which is our snapshot function
         // which contains the document, so no need to mock typescript here.
@@ -122,12 +122,12 @@ describe('TypescriptPlugin', () => {
                 kind: 12,
                 location: {
                     range: {
-                        end: {
-                            character: 29,
+                        start: {
+                            character: 8,
                             line: 0,
                         },
-                        start: {
-                            character: 0,
+                        end: {
+                            character: 37,
                             line: 0,
                         },
                     },
@@ -139,7 +139,9 @@ describe('TypescriptPlugin', () => {
     });
 
     it('provides completions', async () => {
-        const { plugin, document } = setup('class A { b() { return true; } } new A().');
+        const { plugin, document } = setup(
+            '<script>class A { b() { return true; } } new A().</script>',
+        );
 
         const completionStub = sinon.stub().returns(<ts.WithMetadata<ts.CompletionInfo>>{
             name: 'b',
@@ -162,8 +164,13 @@ describe('TypescriptPlugin', () => {
             .stub(tsService, 'getLanguageServiceForDocument')
             .returns(<any>{ getCompletionsAtPosition: completionStub });
 
-        const completions = plugin.getCompletions(document, Position.create(0, 40), '.');
+        const completions = plugin.getCompletions(document, Position.create(0, 48), '.');
 
+        sinon.assert.calledWith(
+            completionStub,
+            document.getFilePath()!,
+            document.offsetAt(Position.create(0, 40)),
+        );
         assert.ok(
             Array.isArray(completions && completions.items),
             'Expected completion items to be an array',
@@ -179,41 +186,43 @@ describe('TypescriptPlugin', () => {
     });
 
     it('provides definitions', () => {
-        const { plugin, document } = setup('function bla() {return true;} bla();');
+        const { plugin, document } = setup(
+            '<script lang="typescript">function bla() {return true;} bla();</script>',
+        );
 
         // Typescript gets the snapshot in this instance, which is our snapshot function
         // which contains the document, so no need to mock typescript here.
-        const definitions = plugin.getDefinitions(document, Position.create(0, 31));
+        const definitions = plugin.getDefinitions(document, Position.create(0, 57));
 
         assert.deepStrictEqual(definitions, [
             {
                 originSelectionRange: {
                     start: {
-                        character: 30,
+                        character: 56,
                         line: 0,
                     },
                     end: {
-                        character: 33,
+                        character: 59,
                         line: 0,
                     },
                 },
                 targetRange: {
                     start: {
-                        character: 9,
+                        character: 35,
                         line: 0,
                     },
                     end: {
-                        character: 12,
+                        character: 38,
                         line: 0,
                     },
                 },
                 targetSelectionRange: {
                     start: {
-                        character: 9,
+                        character: 35,
                         line: 0,
                     },
                     end: {
-                        character: 12,
+                        character: 38,
                         line: 0,
                     },
                 },
@@ -223,7 +232,7 @@ describe('TypescriptPlugin', () => {
     });
 
     it('provides code actions', () => {
-        const { plugin, document } = setup('let a = true');
+        const { plugin, document } = setup('<script>let a = true</script>');
         const codeFixStub = sinon.stub().returns([
             <ts.CodeFixAction>{
                 changes: [
@@ -244,13 +253,13 @@ describe('TypescriptPlugin', () => {
 
         const codeActions = plugin.getCodeActions(
             document,
-            Range.create(Position.create(0, 4), Position.create(0, 5)),
+            Range.create(Position.create(0, 12), Position.create(0, 13)),
             {
                 diagnostics: [
                     {
                         code: 6133,
                         message: "'a' is declared but its value is never read.",
-                        range: Range.create(Position.create(0, 4), Position.create(0, 5)),
+                        range: Range.create(Position.create(0, 12), Position.create(0, 13)),
                         source: 'ts',
                     },
                 ],
@@ -258,6 +267,7 @@ describe('TypescriptPlugin', () => {
             },
         );
 
+        sinon.assert.calledWith(codeFixStub, document.getFilePath()!, 4, 5, [6133], {}, {});
         assert.deepStrictEqual(codeActions, [
             {
                 edit: {
@@ -268,11 +278,11 @@ describe('TypescriptPlugin', () => {
                                     newText: '',
                                     range: {
                                         start: {
-                                            character: 0,
+                                            character: 8,
                                             line: 0,
                                         },
                                         end: {
-                                            character: 12,
+                                            character: 20,
                                             line: 0,
                                         },
                                     },

@@ -5,19 +5,20 @@ import {
     TextDocumentIdentifier,
     TextDocumentItem,
     VersionedTextDocumentIdentifier,
+    WritableDocument,
 } from '../../api';
 
 export type DocumentEvent = 'documentOpen' | 'documentChange' | 'documentClose';
 
 export class DocumentManager {
     private emitter = new EventEmitter();
-    public documents: Map<string, Document> = new Map();
+    public documents: Map<string, WritableDocument> = new Map();
     public locked = new Set<string>();
 
-    constructor(private createDocument: (textDocument: TextDocumentItem) => Document) {}
+    constructor(private createDocument: (textDocument: TextDocumentItem) => WritableDocument) {}
 
     openDocument(textDocument: TextDocumentItem): Document {
-        let document: Document;
+        let document: WritableDocument;
         if (this.documents.has(textDocument.uri)) {
             document = this.documents.get(textDocument.uri)!;
             document.setText(textDocument.text);

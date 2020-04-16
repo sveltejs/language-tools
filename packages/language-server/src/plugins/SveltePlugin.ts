@@ -10,7 +10,6 @@ import {
     Diagnostic,
     DiagnosticSeverity,
     Document,
-    Fragment,
     Position,
     Range,
     TextEdit,
@@ -19,9 +18,9 @@ import {
     OnRegister,
 } from '../api';
 import { DocumentManager } from '../lib/documents/DocumentManager';
-import { SvelteDocument } from '../lib/documents/SvelteDocument';
 import { LSConfigManager, LSSvelteConfig } from '../ls-config';
 import { importSvelte } from './svelte/sveltePackage';
+import { SvelteDocument, SvelteFragment } from './svelte/SvelteDocument';
 
 interface SvelteConfig extends CompileOptions {
     preprocess?: PreprocessorGroup;
@@ -43,15 +42,16 @@ export class SveltePlugin implements OnRegister, DiagnosticsProvider, Formatting
             return [];
         }
 
-        let source = document.getText();
+        const svelteDoc = new SvelteDocument(document.getURL(), document.getText());
+        let source = svelteDoc.getText();
 
-        const config = await this.loadConfig(document.getFilePath()!);
-        const svelte = importSvelte(document.getFilePath()!);
+        const config = await this.loadConfig(svelteDoc.getFilePath()!);
+        const svelte = importSvelte(svelteDoc.getFilePath()!);
 
-        const preprocessor = makePreprocessor(document as SvelteDocument, config.preprocess);
+        const preprocessor = makePreprocessor(svelteDoc, config.preprocess);
         source = (
             await svelte.preprocess(source, preprocessor, {
-                filename: document.getFilePath()!,
+                filename: svelteDoc.getFilePath()!,
             })
         ).toString();
         preprocessor.transpiledDocument.setText(source);
@@ -88,7 +88,7 @@ export class SveltePlugin implements OnRegister, DiagnosticsProvider, Formatting
             ];
         }
 
-        await fixDiagnostics(document, preprocessor, diagnostics);
+        await fixDiagnostics(svelteDoc, preprocessor, diagnostics);
         return diagnostics;
     }
 
@@ -133,8 +133,8 @@ export class SveltePlugin implements OnRegister, DiagnosticsProvider, Formatting
 
 interface Preprocessor extends PreprocessorGroup {
     fragments: {
-        source: Fragment;
-        transpiled: Fragment;
+        source: SvelteFragment;
+        transpiled: SvelteFragment;
         code: string;
         map: RawSourceMap | RawIndexMap | string;
     }[];
@@ -249,8 +249,8 @@ async function fixDiagnostics(
 }
 
 function mapFragmentPositionBySourceMap(
-    source: Fragment,
-    transpiled: Fragment,
+    source: SvelteFragment,
+    transpiled: SvelteFragment,
     consumer: SourceMapConsumer,
     pos: Position,
 ): Position {

@@ -1,5 +1,5 @@
 import * as assert from 'assert';
-import { SvelteDocument } from '../../../src/lib/documents/SvelteDocument';
+import { SvelteDocument } from '../../../src/plugins/svelte/SvelteDocument';
 
 describe('Svelte Document', () => {
     it('gets the correct text', () => {

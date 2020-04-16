@@ -7,7 +7,6 @@ import {
     DefinitionLink,
     Diagnostic,
     Document,
-    Fragment,
     Hover,
     LocationLink,
     Position,
@@ -24,6 +23,12 @@ import {
     HoverProvider,
     OnRegister,
     Resolvable,
+    mapDiagnosticToParent,
+    mapHoverToParent,
+    mapSymbolInformationToParent,
+    mapCompletionItemToParent,
+    mapLocationLinkToParent,
+    mapCodeActionToParent,
 } from '../api';
 import { DocumentManager } from '../lib/documents/DocumentManager';
 import { TextDocument } from '../lib/documents/TextDocument';
@@ -38,6 +43,7 @@ import {
     scriptElementKindToCompletionItemKind,
     symbolKindFromString,
 } from './typescript/utils';
+import { TypescriptDocument } from './typescript/TypescriptDocument';
 
 export class TypeScriptPlugin
     implements
@@ -48,12 +54,9 @@ export class TypeScriptPlugin
         CompletionsProvider,
         DefinitionsProvider,
         CodeActionsProvider {
-    public static matchFragment(fragment: Fragment) {
-        return fragment.details.attributes.tag == 'script';
-    }
-
     private configManager!: LSConfigManager;
     private createDocument!: CreateDocument;
+    private documents = new Map<Document, TypescriptDocument>();
 
     onRegister(docManager: DocumentManager, configManager: LSConfigManager) {
         this.configManager = configManager;
@@ -66,7 +69,7 @@ export class TypeScriptPlugin
                 version: 0,
             });
             docManager.lockDocument(uri);
-            return document;
+            return new TypescriptDocument(document);
         };
     }
 
@@ -75,23 +78,25 @@ export class TypeScriptPlugin
             return [];
         }
 
-        const lang = getLanguageServiceForDocument(document, this.createDocument);
+        const { lang, tsDoc } = this.getLSAndTSDoc(document);
         const isTypescript =
-            getScriptKindFromAttributes(document.getAttributes()) === ts.ScriptKind.TS;
+            getScriptKindFromAttributes(tsDoc.getAttributes()) === ts.ScriptKind.TS;
 
         let diagnostics: ts.Diagnostic[] = [
-            ...lang.getSyntacticDiagnostics(document.getFilePath()!),
-            ...lang.getSuggestionDiagnostics(document.getFilePath()!),
-            ...lang.getSemanticDiagnostics(document.getFilePath()!),
+            ...lang.getSyntacticDiagnostics(tsDoc.getFilePath()!),
+            ...lang.getSuggestionDiagnostics(tsDoc.getFilePath()!),
+            ...lang.getSemanticDiagnostics(tsDoc.getFilePath()!),
         ];
 
-        return diagnostics.map(diagnostic => ({
-            range: convertRange(document, diagnostic),
-            severity: mapSeverity(diagnostic.category),
-            source: isTypescript ? 'ts' : 'js',
-            message: ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n'),
-            code: diagnostic.code,
-        }));
+        return diagnostics
+            .map(diagnostic => ({
+                range: convertRange(tsDoc, diagnostic),
+                severity: mapSeverity(diagnostic.category),
+                source: isTypescript ? 'ts' : 'js',
+                message: ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n'),
+                code: diagnostic.code,
+            }))
+            .map(diagnostic => mapDiagnosticToParent(tsDoc, diagnostic));
     }
 
     doHover(document: Document, position: Position): Hover | null {
@@ -99,19 +104,19 @@ export class TypeScriptPlugin
             return null;
         }
 
-        const lang = getLanguageServiceForDocument(document, this.createDocument);
+        const { lang, tsDoc } = this.getLSAndTSDoc(document);
         const info = lang.getQuickInfoAtPosition(
-            document.getFilePath()!,
-            document.offsetAt(position),
+            tsDoc.getFilePath()!,
+            tsDoc.offsetAt(tsDoc.positionInFragment(position)),
         );
         if (!info) {
             return null;
         }
         let contents = ts.displayPartsToString(info.displayParts);
-        return {
-            range: convertRange(document, info.textSpan),
+        return mapHoverToParent(tsDoc, {
+            range: convertRange(tsDoc, info.textSpan),
             contents: { language: 'ts', value: contents },
-        };
+        });
     }
 
     getDocumentSymbols(document: Document): SymbolInformation[] {
@@ -119,20 +124,23 @@ export class TypeScriptPlugin
             return [];
         }
 
-        const lang = getLanguageServiceForDocument(document, this.createDocument);
-        const navTree = lang.getNavigationTree(document.getFilePath()!);
+        const { lang, tsDoc } = this.getLSAndTSDoc(document);
+        const navTree = lang.getNavigationTree(tsDoc.getFilePath()!);
 
         const symbols: SymbolInformation[] = [];
         collectSymbols(navTree, undefined, symbol => symbols.push(symbol));
 
         const topContainerName = symbols[0].name;
-        return symbols.slice(1).map(symbol => {
-            if (symbol.containerName === topContainerName) {
-                return { ...symbol, containerName: 'script' };
-            }
+        return symbols
+            .slice(1)
+            .map(symbol => {
+                if (symbol.containerName === topContainerName) {
+                    return { ...symbol, containerName: 'script' };
+                }
 
-            return symbol;
-        });
+                return symbol;
+            })
+            .map(symbol => mapSymbolInformationToParent(tsDoc, symbol));
 
         function collectSymbols(
             tree: NavigationTree,
@@ -147,10 +155,10 @@ export class TypeScriptPlugin
                         tree.text,
                         symbolKindFromString(tree.kind),
                         Range.create(
-                            document.positionAt(start.start),
-                            document.positionAt(end.start + end.length),
+                            tsDoc.positionAt(start.start),
+                            tsDoc.positionAt(end.start + end.length),
                         ),
-                        document.getURL(),
+                        tsDoc.getURL(),
                         container,
                     ),
                 );
@@ -172,7 +180,7 @@ export class TypeScriptPlugin
             return null;
         }
 
-        const lang = getLanguageServiceForDocument(document, this.createDocument);
+        const { lang, tsDoc } = this.getLSAndTSDoc(document);
         // The language service throws an error if the character is not a valid trigger character.
         // Also, the completions are worse.
         // Therefore, only use the characters the typescript compiler treats as valid.
@@ -182,8 +190,8 @@ export class TypeScriptPlugin
             ? triggerCharacter
             : undefined;
         const completions = lang.getCompletionsAtPosition(
-            document.getFilePath()!,
-            document.offsetAt(position),
+            tsDoc.getFilePath()!,
+            tsDoc.offsetAt(tsDoc.positionInFragment(position)),
             {
                 includeCompletionsForModuleExports: true,
                 triggerCharacter: validTriggerCharacter as any,
@@ -195,15 +203,17 @@ export class TypeScriptPlugin
         }
 
         return CompletionList.create(
-            completions!.entries.map(comp => {
-                return <CompletionItem>{
-                    label: comp.name,
-                    kind: scriptElementKindToCompletionItemKind(comp.kind),
-                    sortText: comp.sortText,
-                    commitCharacters: getCommitCharactersForScriptElement(comp.kind),
-                    preselect: comp.isRecommended,
-                };
-            }),
+            completions!.entries
+                .map(comp => {
+                    return <CompletionItem>{
+                        label: comp.name,
+                        kind: scriptElementKindToCompletionItemKind(comp.kind),
+                        sortText: comp.sortText,
+                        commitCharacters: getCommitCharactersForScriptElement(comp.kind),
+                        preselect: comp.isRecommended,
+                    };
+                })
+                .map(comp => mapCompletionItemToParent(tsDoc, comp)),
         );
     }
 
@@ -212,26 +222,28 @@ export class TypeScriptPlugin
             return [];
         }
 
-        const lang = getLanguageServiceForDocument(document, this.createDocument);
+        const { lang, tsDoc } = this.getLSAndTSDoc(document);
 
         const defs = lang.getDefinitionAndBoundSpan(
-            document.getFilePath()!,
-            document.offsetAt(position),
+            tsDoc.getFilePath()!,
+            tsDoc.offsetAt(tsDoc.positionInFragment(position)),
         );
 
         if (!defs || !defs.definitions) {
             return [];
         }
 
-        const docs = new Map<string, Document>([[document.getFilePath()!, document]]);
+        const docs = new Map<string, TypescriptDocument>([[tsDoc.getFilePath()!, tsDoc]]);
 
         return defs.definitions
             .map(def => {
                 let defDoc = docs.get(def.fileName);
                 if (!defDoc) {
-                    defDoc = new TextDocument(
-                        pathToUrl(def.fileName),
-                        ts.sys.readFile(def.fileName) || '',
+                    defDoc = new TypescriptDocument(
+                        new TextDocument(
+                            pathToUrl(def.fileName),
+                            ts.sys.readFile(def.fileName) || '',
+                        ),
                     );
                     docs.set(def.fileName, defDoc);
                 }
@@ -240,10 +252,11 @@ export class TypeScriptPlugin
                     pathToUrl(def.fileName),
                     convertRange(defDoc, def.textSpan),
                     convertRange(defDoc, def.textSpan),
-                    convertRange(document, defs.textSpan),
+                    convertRange(tsDoc, defs.textSpan),
                 );
             })
-            .filter(res => !!res) as DefinitionLink[];
+            .filter(def => !!def)
+            .map(def => mapLocationLinkToParent(tsDoc, def)) as DefinitionLink[];
     }
 
     getCodeActions(
@@ -255,13 +268,13 @@ export class TypeScriptPlugin
             return [];
         }
 
-        const lang = getLanguageServiceForDocument(document, this.createDocument);
+        const { lang, tsDoc } = this.getLSAndTSDoc(document);
 
-        const start = document.offsetAt(range.start);
-        const end = document.offsetAt(range.end);
+        const start = tsDoc.offsetAt(tsDoc.positionInFragment(range.start));
+        const end = tsDoc.offsetAt(tsDoc.positionInFragment(range.end));
         const errorCodes: number[] = context.diagnostics.map(diag => Number(diag.code));
         const codeFixes = lang.getCodeFixesAtPosition(
-            document.getFilePath()!,
+            tsDoc.getFilePath()!,
             start,
             end,
             errorCodes,
@@ -269,38 +282,54 @@ export class TypeScriptPlugin
             {},
         );
 
-        const docs = new Map<string, Document>([[document.getFilePath()!, document]]);
-        return codeFixes.map(fix => {
-            return CodeAction.create(
-                fix.description,
-                {
-                    documentChanges: fix.changes.map(change => {
-                        let doc = docs.get(change.fileName);
-                        if (!doc) {
-                            doc = new TextDocument(
-                                pathToUrl(change.fileName),
-                                ts.sys.readFile(change.fileName) || '',
-                            );
-                            docs.set(change.fileName, doc);
-                        }
-
-                        return TextDocumentEdit.create(
-                            VersionedTextDocumentIdentifier.create(
-                                pathToUrl(change.fileName),
-                                null,
-                            ),
-                            change.textChanges.map(edit => {
-                                return TextEdit.replace(
-                                    convertRange(doc!, edit.span),
-                                    edit.newText,
+        const docs = new Map<string, TypescriptDocument>([[tsDoc.getFilePath()!, tsDoc]]);
+        return codeFixes
+            .map(fix => {
+                return CodeAction.create(
+                    fix.description,
+                    {
+                        documentChanges: fix.changes.map(change => {
+                            let doc = docs.get(change.fileName);
+                            if (!doc) {
+                                doc = new TypescriptDocument(
+                                    new TextDocument(
+                                        pathToUrl(change.fileName),
+                                        ts.sys.readFile(change.fileName) || '',
+                                    ),
                                 );
-                            }),
-                        );
-                    }),
-                },
-                fix.fixName,
-            );
-        });
+                                docs.set(change.fileName, doc);
+                            }
+
+                            return TextDocumentEdit.create(
+                                VersionedTextDocumentIdentifier.create(
+                                    pathToUrl(change.fileName),
+                                    null,
+                                ),
+                                change.textChanges.map(edit => {
+                                    return TextEdit.replace(
+                                        convertRange(doc!, edit.span),
+                                        edit.newText,
+                                    );
+                                }),
+                            );
+                        }),
+                    },
+                    fix.fixName,
+                );
+            })
+            .map(fix => mapCodeActionToParent(tsDoc, fix));
+    }
+
+    private getLSAndTSDoc(document: Document) {
+        let tsDoc = this.documents.get(document);
+        if (!tsDoc) {
+            tsDoc = new TypescriptDocument(document);
+            this.documents.set(document, tsDoc);
+        }
+
+        const lang = getLanguageServiceForDocument(tsDoc, this.createDocument);
+
+        return { tsDoc, lang };
     }
 
     private featureEnabled(feature: keyof LSTypescriptConfig) {

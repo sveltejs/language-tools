@@ -1,5 +1,5 @@
 import { clamp } from '../utils';
-import { Position, Fragment, FragmentPredicate } from './interfaces';
+import { Position } from './interfaces';
 import { TextDocument } from 'vscode-languageserver-types';
 
 /**
@@ -12,58 +12,25 @@ export abstract class Document implements TextDocument {
     abstract getText(): string;
 
     /**
-     * Set the text content of the document
-     * @param text The new text content
-     */
-    abstract setText(text: string): void;
-
-    /**
-     * Returns the path where this file can be found or null if not on disk
-     */
-    abstract getFilePath(): string | null;
-
-    /**
      * Returns the url of the document
      */
     abstract getURL(): string;
 
     /**
-     * Returns an object containing any metadata associated with this file
+     * Returns the file path if the url scheme is file
      */
-    abstract getAttributes(): Record<string, any>;
+    abstract getFilePath(): string | null;
 
     /**
      * Current version of the document.
      */
     public version = 0;
 
-    private fragments: Fragment[] = [];
-
-    addFragment(document: Fragment): Fragment {
-        this.fragments.push(document);
-        return document;
-    }
-
-    findFragment(predicate: FragmentPredicate): Fragment | undefined {
-        return this.fragments.find(predicate);
-    }
-
     /**
      * Get the length of the document's content
      */
     getTextLength(): number {
         return this.getText().length;
-    }
-
-    /**
-     * Update the text between two positions.
-     * @param text The new text slice
-     * @param start Start offset of the new text
-     * @param end End offset of the new text
-     */
-    update(text: string, start: number, end: number): void {
-        const content = this.getText();
-        this.setText(content.slice(0, start) + text + content.slice(end));
     }
 
     /**
@@ -153,4 +120,26 @@ export abstract class Document implements TextDocument {
     }
 
     languageId = '';
+}
+
+/**
+ * Represents a textual document that can be manipulated.
+ */
+export abstract class WritableDocument extends Document {
+    /**
+     * Set the text content of the document
+     * @param text The new text content
+     */
+    abstract setText(text: string): void;
+
+    /**
+     * Update the text between two positions.
+     * @param text The new text slice
+     * @param start Start offset of the new text
+     * @param end End offset of the new text
+     */
+    update(text: string, start: number, end: number): void {
+        const content = this.getText();
+        this.setText(content.slice(0, start) + text + content.slice(end));
+    }
 }

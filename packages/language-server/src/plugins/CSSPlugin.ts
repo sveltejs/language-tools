@@ -1,33 +1,34 @@
-import {
-    getCSSLanguageService,
-    Stylesheet,
-    getSCSSLanguageService,
-    getLESSLanguageService,
-    LanguageService,
-} from 'vscode-css-languageservice';
-import {
-    Document,
-    Position,
-    Hover,
-    Fragment,
-    Diagnostic,
-    Range,
-    CompletionList,
-    ColorInformation,
-    Color,
-    ColorPresentation,
-    SymbolInformation,
-    HoverProvider,
-    CompletionsProvider,
-    DiagnosticsProvider,
-    DocumentColorsProvider,
-    ColorPresentationsProvider,
-    DocumentSymbolsProvider,
-    OnRegister,
-} from '../api';
 import { getEmmetCompletionParticipants } from 'vscode-emmet-helper';
-import { LSCSSConfig, LSConfigManager } from '../ls-config';
+import {
+    Color,
+    ColorInformation,
+    ColorPresentation,
+    ColorPresentationsProvider,
+    CompletionList,
+    CompletionsProvider,
+    Diagnostic,
+    DiagnosticsProvider,
+    Document,
+    DocumentColorsProvider,
+    DocumentSymbolsProvider,
+    Hover,
+    HoverProvider,
+    mapColorInformationToParent,
+    mapColorPresentationToParent,
+    mapCompletionItemToParent,
+    mapDiagnosticToParent,
+    mapHoverToParent,
+    mapRangeToFragment,
+    mapSymbolInformationToParent,
+    OnRegister,
+    Position,
+    Range,
+    SymbolInformation,
+} from '../api';
 import { DocumentManager } from '../lib/documents/DocumentManager';
+import { LSConfigManager, LSCSSConfig } from '../ls-config';
+import { CSSDocument } from './css/CSSDocument';
+import { getLanguage, getLanguageService } from './css/service';
 
 export class CSSPlugin
     implements
@@ -40,22 +41,15 @@ export class CSSPlugin
         DocumentSymbolsProvider {
     private readonly triggerCharacters = ['/'];
 
-    public static matchFragment(fragment: Fragment) {
-        return fragment.details.attributes.tag == 'style';
-    }
-
     private configManager!: LSConfigManager;
-    private stylesheets = new WeakMap<Document, Stylesheet>();
+    private cssDocuments = new WeakMap<Document, CSSDocument>();
 
     onRegister(docManager: DocumentManager, configManager: LSConfigManager) {
         this.configManager = configManager;
         docManager.on('documentChange', document =>
-            this.stylesheets.set(
-                document,
-                getLanguageService(extractLanguage(document)).parseStylesheet(document),
-            ),
+            this.cssDocuments.set(document, new CSSDocument(document)),
         );
-        docManager.on('documentClose', document => this.stylesheets.delete(document));
+        docManager.on('documentClose', document => this.cssDocuments.delete(document));
     }
 
     getDiagnostics(document: Document): Diagnostic[] {
@@ -63,20 +57,21 @@ export class CSSPlugin
             return [];
         }
 
-        const stylesheet = this.stylesheets.get(document);
-        if (!stylesheet) {
+        const cssDocument = this.cssDocuments.get(document);
+        if (!cssDocument) {
             return [];
         }
 
-        const kind = extractLanguage(document);
+        const kind = extractLanguage(cssDocument);
 
         if (shouldExcludeValidation(kind)) {
             return [];
         }
 
         return getLanguageService(kind)
-            .doValidation(document, stylesheet)
-            .map(diagnostic => ({ ...diagnostic, source: getLanguage(kind) }));
+            .doValidation(cssDocument, cssDocument.stylesheet)
+            .map(diagnostic => ({ ...diagnostic, source: getLanguage(kind) }))
+            .map(diagnostic => mapDiagnosticToParent(cssDocument, diagnostic));
     }
 
     doHover(document: Document, position: Position): Hover | null {
@@ -84,16 +79,17 @@ export class CSSPlugin
             return null;
         }
 
-        const stylesheet = this.stylesheets.get(document);
-        if (!stylesheet) {
+        const cssDocument = this.cssDocuments.get(document);
+        if (!cssDocument || !cssDocument.isInFragment(position)) {
             return null;
         }
 
-        return getLanguageService(extractLanguage(document)).doHover(
-            document,
-            position,
-            stylesheet,
+        const hoverInfo = getLanguageService(extractLanguage(cssDocument)).doHover(
+            cssDocument,
+            cssDocument.positionInFragment(position),
+            cssDocument.stylesheet,
         );
+        return hoverInfo ? mapHoverToParent(cssDocument, hoverInfo) : hoverInfo;
     }
 
     getCompletions(
@@ -110,23 +106,35 @@ export class CSSPlugin
             return null;
         }
 
-        const stylesheet = this.stylesheets.get(document);
-        if (!stylesheet) {
+        const cssDocument = this.cssDocuments.get(document);
+        if (!cssDocument || !cssDocument.isInFragment(position)) {
             return null;
         }
 
-        const type = extractLanguage(document);
+        const type = extractLanguage(cssDocument);
         const lang = getLanguageService(type);
         const emmetResults: CompletionList = {
             isIncomplete: true,
             items: [],
         };
         lang.setCompletionParticipants([
-            getEmmetCompletionParticipants(document, position, getLanguage(type), {}, emmetResults),
+            getEmmetCompletionParticipants(
+                cssDocument,
+                cssDocument.positionInFragment(position),
+                getLanguage(type),
+                {},
+                emmetResults,
+            ),
         ]);
-        const results = lang.doComplete(document, position, stylesheet);
+        const results = lang.doComplete(
+            cssDocument,
+            cssDocument.positionInFragment(position),
+            cssDocument.stylesheet,
+        );
         return CompletionList.create(
-            [...(results ? results.items : []), ...emmetResults.items],
+            [...(results ? results.items : []), ...emmetResults.items].map(completionItem =>
+                mapCompletionItemToParent(cssDocument, completionItem),
+            ),
             true,
         );
     }
@@ -136,15 +144,14 @@ export class CSSPlugin
             return [];
         }
 
-        const stylesheet = this.stylesheets.get(document);
-        if (!stylesheet) {
+        const cssDocument = this.cssDocuments.get(document);
+        if (!cssDocument) {
             return [];
         }
 
-        return getLanguageService(extractLanguage(document)).findDocumentColors(
-            document,
-            stylesheet,
-        );
+        return getLanguageService(extractLanguage(cssDocument))
+            .findDocumentColors(cssDocument, cssDocument.stylesheet)
+            .map(colorInfo => mapColorInformationToParent(cssDocument, colorInfo));
     }
 
     getColorPresentations(document: Document, range: Range, color: Color): ColorPresentation[] {
@@ -152,17 +159,22 @@ export class CSSPlugin
             return [];
         }
 
-        const stylesheet = this.stylesheets.get(document);
-        if (!stylesheet) {
+        const cssDocument = this.cssDocuments.get(document);
+        if (
+            !cssDocument ||
+            (!cssDocument.isInFragment(range.start) && !cssDocument.isInFragment(range.end))
+        ) {
             return [];
         }
 
-        return getLanguageService(extractLanguage(document)).getColorPresentations(
-            document,
-            stylesheet,
-            color,
-            range,
-        );
+        return getLanguageService(extractLanguage(cssDocument))
+            .getColorPresentations(
+                cssDocument,
+                cssDocument.stylesheet,
+                color,
+                mapRangeToFragment(cssDocument, range),
+            )
+            .map(colorPres => mapColorPresentationToParent(cssDocument, colorPres));
     }
 
     getDocumentSymbols(document: Document): SymbolInformation[] {
@@ -170,13 +182,13 @@ export class CSSPlugin
             return [];
         }
 
-        const stylesheet = this.stylesheets.get(document);
-        if (!stylesheet) {
+        const cssDocument = this.cssDocuments.get(document);
+        if (!cssDocument) {
             return [];
         }
 
-        return getLanguageService(extractLanguage(document))
-            .findDocumentSymbols(document, stylesheet)
+        return getLanguageService(extractLanguage(cssDocument))
+            .findDocumentSymbols(cssDocument, cssDocument.stylesheet)
             .map(symbol => {
                 if (!symbol.containerName) {
                     return {
@@ -187,7 +199,8 @@ export class CSSPlugin
                 }
 
                 return symbol;
-            });
+            })
+            .map(symbol => mapSymbolInformationToParent(cssDocument, symbol));
     }
 
     private featureEnabled(feature: keyof LSCSSConfig) {
@@ -195,32 +208,6 @@ export class CSSPlugin
             this.configManager.enabled('css.enable') &&
             this.configManager.enabled(`css.${feature}.enable`)
         );
-    }
-}
-
-const langs = {
-    css: getCSSLanguageService(),
-    scss: getSCSSLanguageService(),
-    less: getLESSLanguageService(),
-};
-
-function extractLanguage(document: Document): string {
-    const attrs = document.getAttributes();
-    return attrs.lang || attrs.type;
-}
-
-function getLanguage(kind?: string) {
-    switch (kind) {
-        case 'scss':
-        case 'text/scss':
-            return 'scss';
-        case 'less':
-        case 'text/less':
-            return 'less';
-        case 'css':
-        case 'text/css':
-        default:
-            return 'css';
     }
 }
 
@@ -234,7 +221,7 @@ function shouldExcludeValidation(kind?: string) {
     }
 }
 
-function getLanguageService(kind?: string): LanguageService {
-    const lang = getLanguage(kind);
-    return langs[lang];
+function extractLanguage(document: CSSDocument): string {
+    const attrs = document.getAttributes();
+    return attrs.lang || attrs.type;
 }

@@ -1,22 +1,22 @@
 import { dirname, resolve } from 'path';
 import ts from 'typescript';
-import { Document } from '../../api';
 import { getSveltePackageInfo } from '../svelte/sveltePackage';
 import { DocumentSnapshot } from './DocumentSnapshot';
 import { createSvelteModuleLoader } from './module-loader';
 import { ensureRealSvelteFilePath, getScriptKindFromFileName, isSvelteFilePath } from './utils';
+import { TypescriptDocument } from './TypescriptDocument';
 
 export interface LanguageServiceContainer {
     getService(): ts.LanguageService;
-    updateDocument(document: Document): ts.LanguageService;
+    updateDocument(document: TypescriptDocument): ts.LanguageService;
 }
 
 const services = new Map<string, LanguageServiceContainer>();
 
-export type CreateDocument = (fileName: string, content: string) => Document;
+export type CreateDocument = (fileName: string, content: string) => TypescriptDocument;
 
 export function getLanguageServiceForDocument(
-    document: Document,
+    document: TypescriptDocument,
     createDocument: CreateDocument,
 ): ts.LanguageService {
     const searchDir = dirname(document.getFilePath()!);
@@ -108,7 +108,7 @@ export function createLanguageService(
         updateDocument,
     };
 
-    function updateDocument(document: Document): ts.LanguageService {
+    function updateDocument(document: TypescriptDocument): ts.LanguageService {
         const preSnapshot = documents.get(document.getFilePath()!);
         const newSnapshot = DocumentSnapshot.fromDocument(document);
         if (preSnapshot && preSnapshot.scriptKind !== newSnapshot.scriptKind) {

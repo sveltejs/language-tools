@@ -24,23 +24,23 @@ describe('CSS Plugin', () => {
     }
 
     it('provides hover info', async () => {
-        const { plugin, document } = setup('h1 {}');
+        const { plugin, document } = setup('<style>h1 {}</style>');
 
-        assert.deepStrictEqual(plugin.doHover(document, Position.create(0, 1)), <Hover>{
+        assert.deepStrictEqual(plugin.doHover(document, Position.create(0, 8)), <Hover>{
             contents: [
                 { language: 'html', value: '<h1>' },
                 '[Selector Specificity](https://developer.mozilla.org/en-US/docs/Web/CSS/Specificity): (0, 0, 1)',
             ],
-            range: Range.create(0, 0, 0, 2),
+            range: Range.create(0, 7, 0, 9),
         });
 
-        assert.strictEqual(plugin.doHover(document, Position.create(0, 3)), null);
+        assert.strictEqual(plugin.doHover(document, Position.create(0, 10)), null);
     });
 
     it('provides completions', async () => {
-        const { plugin, document } = setup('');
+        const { plugin, document } = setup('<style></style>');
 
-        const completions = plugin.getCompletions(document, Position.create(0, 0), ' ');
+        const completions = plugin.getCompletions(document, Position.create(0, 7), ' ');
         assert.ok(
             Array.isArray(completions && completions.items),
             'Expected completion items to be an array',
@@ -55,7 +55,7 @@ describe('CSS Plugin', () => {
                 value:
                     'Defines character set of the document.\n\n[MDN Reference](https://developer.mozilla.org/docs/Web/CSS/@charset)',
             },
-            textEdit: TextEdit.insert(Position.create(0, 0), '@charset'),
+            textEdit: TextEdit.insert(Position.create(0, 7), '@charset'),
             sortText: 'd_0000',
             tags: [],
         });
@@ -63,7 +63,7 @@ describe('CSS Plugin', () => {
 
     describe('provides diagnostics', () => {
         it('- everything ok', () => {
-            const { plugin, document } = setup('h1 {color:blue;}');
+            const { plugin, document } = setup('<style>h1 {color:blue;}</style>');
 
             const diagnostics = plugin.getDiagnostics(document);
 
@@ -71,7 +71,7 @@ describe('CSS Plugin', () => {
         });
 
         it('- has error', () => {
-            const { plugin, document } = setup('h1 {iDunnoDisProperty:blue;}');
+            const { plugin, document } = setup('<style>h1 {iDunnoDisProperty:blue;}</style>');
 
             const diagnostics = plugin.getDiagnostics(document);
 
@@ -81,11 +81,11 @@ describe('CSS Plugin', () => {
                     message: "Unknown property: 'iDunnoDisProperty'",
                     range: {
                         end: {
-                            character: 21,
+                            character: 28,
                             line: 0,
                         },
                         start: {
-                            character: 4,
+                            character: 11,
                             line: 0,
                         },
                     },
@@ -97,13 +97,13 @@ describe('CSS Plugin', () => {
     });
 
     describe('provides document colors', () => {
-        const { plugin, document } = setup('h1 {color:blue;}');
+        const { plugin, document } = setup('<style>h1 {color:blue;}</style>');
 
         const colors = plugin.getColorPresentations(
             document,
             {
-                start: { line: 0, character: 10 },
-                end: { line: 0, character: 14 },
+                start: { line: 0, character: 17 },
+                end: { line: 0, character: 21 },
             },
             { alpha: 1, blue: 255, green: 0, red: 0 },
         );
@@ -114,11 +114,11 @@ describe('CSS Plugin', () => {
                 textEdit: {
                     range: {
                         end: {
-                            character: 14,
+                            character: 21,
                             line: 0,
                         },
                         start: {
-                            character: 10,
+                            character: 17,
                             line: 0,
                         },
                     },
@@ -130,11 +130,11 @@ describe('CSS Plugin', () => {
                 textEdit: {
                     range: {
                         end: {
-                            character: 14,
+                            character: 21,
                             line: 0,
                         },
                         start: {
-                            character: 10,
+                            character: 17,
                             line: 0,
                         },
                     },
@@ -146,11 +146,11 @@ describe('CSS Plugin', () => {
                 textEdit: {
                     range: {
                         end: {
-                            character: 14,
+                            character: 21,
                             line: 0,
                         },
                         start: {
-                            character: 10,
+                            character: 17,
                             line: 0,
                         },
                     },
@@ -161,7 +161,7 @@ describe('CSS Plugin', () => {
     });
 
     it('provides document symbols', () => {
-        const { plugin, document } = setup('h1 {color:blue;}');
+        const { plugin, document } = setup('<style>h1 {color:blue;}</style>');
 
         const symbols = plugin.getDocumentSymbols(document);
 
@@ -172,11 +172,11 @@ describe('CSS Plugin', () => {
                 location: {
                     range: {
                         end: {
-                            character: 16,
+                            character: 23,
                             line: 0,
                         },
                         start: {
-                            character: 0,
+                            character: 7,
                             line: 0,
                         },
                     },
