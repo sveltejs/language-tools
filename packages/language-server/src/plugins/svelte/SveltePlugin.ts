@@ -3,24 +3,15 @@ type InitialMigrationAny = any;
 
 import { cosmiconfig } from 'cosmiconfig';
 import * as prettier from 'prettier';
-import {
-    DiagnosticsProvider,
-    Document,
-    Diagnostic,
-    Range,
-    DiagnosticSeverity,
-    Fragment,
-    Position,
-    Host,
-    FormattingProvider,
-    TextEdit,
-} from '../api';
-import { SvelteDocument } from '../lib/documents/SvelteDocument';
-import { RawSourceMap, RawIndexMap, SourceMapConsumer } from 'source-map';
+import { RawIndexMap, RawSourceMap, SourceMapConsumer } from 'source-map';
 import { CompileOptions, Warning } from 'svelte/types/compiler/interfaces';
-import { importSvelte } from './svelte/sveltePackage';
 import { PreprocessorGroup } from 'svelte/types/compiler/preprocess';
-import { LSSvelteConfig } from '../ls-config';
+import { Diagnostic, DiagnosticSeverity, Position, Range, TextEdit } from 'vscode-languageserver';
+import { DocumentManager, Document } from '../../lib/documents';
+import { LSConfigManager, LSSvelteConfig } from '../../ls-config';
+import { importSvelte } from './sveltePackage';
+import { SvelteDocument, SvelteFragment } from './SvelteDocument';
+import { OnRegister, DiagnosticsProvider, FormattingProvider } from '../interfaces';
 
 interface SvelteConfig extends CompileOptions {
     preprocess?: PreprocessorGroup;
@@ -30,11 +21,11 @@ const DEFAULT_OPTIONS: CompileOptions = {
     dev: true,
 };
 
-export class SveltePlugin implements DiagnosticsProvider, FormattingProvider {
-    private host!: Host;
+export class SveltePlugin implements OnRegister, DiagnosticsProvider, FormattingProvider {
+    private configManager!: LSConfigManager;
 
-    onRegister(host: Host) {
-        this.host = host;
+    onRegister(docManager: DocumentManager, configManager: LSConfigManager) {
+        this.configManager = configManager;
     }
 
     async getDiagnostics(document: Document): Promise<Diagnostic[]> {
@@ -42,15 +33,16 @@ export class SveltePlugin implements DiagnosticsProvider, FormattingProvider {
             return [];
         }
 
-        let source = document.getText();
+        const svelteDoc = new SvelteDocument(document.getURL(), document.getText());
+        let source = svelteDoc.getText();
 
-        const config = await this.loadConfig(document.getFilePath()!);
-        const svelte = importSvelte(document.getFilePath()!);
+        const config = await this.loadConfig(svelteDoc.getFilePath()!);
+        const svelte = importSvelte(svelteDoc.getFilePath()!);
 
-        const preprocessor = makePreprocessor(document as SvelteDocument, config.preprocess);
+        const preprocessor = makePreprocessor(svelteDoc, config.preprocess);
         source = (
             await svelte.preprocess(source, preprocessor, {
-                filename: document.getFilePath()!,
+                filename: svelteDoc.getFilePath()!,
             })
         ).toString();
         preprocessor.transpiledDocument.setText(source);
@@ -87,7 +79,7 @@ export class SveltePlugin implements DiagnosticsProvider, FormattingProvider {
             ];
         }
 
-        await fixDiagnostics(document, preprocessor, diagnostics);
+        await fixDiagnostics(svelteDoc, preprocessor, diagnostics);
         return diagnostics;
     }
 
@@ -124,16 +116,16 @@ export class SveltePlugin implements DiagnosticsProvider, FormattingProvider {
 
     private featureEnabled(feature: keyof LSSvelteConfig) {
         return (
-            this.host.getConfig<boolean>('svelte.enable') &&
-            this.host.getConfig<boolean>(`svelte.${feature}.enable`)
+            this.configManager.enabled('svelte.enable') &&
+            this.configManager.enabled(`svelte.${feature}.enable`)
         );
     }
 }
 
 interface Preprocessor extends PreprocessorGroup {
     fragments: {
-        source: Fragment;
-        transpiled: Fragment;
+        source: SvelteFragment;
+        transpiled: SvelteFragment;
         code: string;
         map: RawSourceMap | RawIndexMap | string;
     }[];
@@ -248,8 +240,8 @@ async function fixDiagnostics(
 }
 
 function mapFragmentPositionBySourceMap(
-    source: Fragment,
-    transpiled: Fragment,
+    source: SvelteFragment,
+    transpiled: SvelteFragment,
     consumer: SourceMapConsumer,
     pos: Position,
 ): Position {

@@ -1,27 +1,20 @@
 import { getEmmetCompletionParticipants } from 'vscode-emmet-helper';
 import { getLanguageService, HTMLDocument } from 'vscode-html-languageservice';
-import {
-    CompletionList,
-    CompletionsProvider,
-    Document,
-    Host,
-    Hover,
-    HoverProvider,
-    Position,
-    SymbolInformation,
-} from '../api';
-import { svelteHtmlDataProvider } from './html/dataProvider';
-import { LSHTMLConfig } from '../ls-config';
+import { CompletionList, Hover, Position, SymbolInformation } from 'vscode-languageserver';
+import { DocumentManager, Document } from '../../lib/documents';
+import { LSConfigManager, LSHTMLConfig } from '../../ls-config';
+import { svelteHtmlDataProvider } from './dataProvider';
+import { OnRegister, HoverProvider, CompletionsProvider } from '../interfaces';
 // import { svelteHtmlDataProvider } from './html/dataProvider';
 
-export class HTMLPlugin implements HoverProvider, CompletionsProvider {
-    private host!: Host;
+export class HTMLPlugin implements OnRegister, HoverProvider, CompletionsProvider {
+    private configManager!: LSConfigManager;
     private lang = getLanguageService({ customDataProviders: [svelteHtmlDataProvider] });
     private documents = new WeakMap<Document, HTMLDocument>();
 
-    onRegister(host: Host) {
-        this.host = host;
-        host.on('documentChange|pre', document => {
+    onRegister(docManager: DocumentManager, configManager: LSConfigManager) {
+        this.configManager = configManager;
+        docManager.on('documentChange', document => {
             const html = this.lang.parseHTMLDocument(document);
             this.documents.set(document, html);
         });
@@ -89,8 +82,8 @@ export class HTMLPlugin implements HoverProvider, CompletionsProvider {
 
     private featureEnabled(feature: keyof LSHTMLConfig) {
         return (
-            this.host.getConfig<boolean>('html.enable') &&
-            this.host.getConfig<boolean>(`html.${feature}.enable`)
+            this.configManager.enabled('html.enable') &&
+            this.configManager.enabled(`html.${feature}.enable`)
         );
     }
 }

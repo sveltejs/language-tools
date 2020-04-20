@@ -6,14 +6,10 @@ import {
     RequestType,
     TextDocumentPositionParams,
 } from 'vscode-languageserver';
-import { DocumentManager } from './lib/documents/DocumentManager';
-import { SvelteDocument } from './lib/documents/SvelteDocument';
-import { SveltePlugin } from './plugins/SveltePlugin';
-import { HTMLPlugin } from './plugins/HTMLPlugin';
-import { CSSPlugin } from './plugins/CSSPlugin';
-import { wrapFragmentPlugin } from './api/wrapFragmentPlugin';
-import { TypeScriptPlugin } from './plugins/TypeScriptPlugin';
+import { DocumentManager, ManagedDocument, Document } from './lib/documents';
+import { SveltePlugin, HTMLPlugin, CSSPlugin, TypeScriptPlugin, PluginHost } from './plugins';
 import _ from 'lodash';
+import { LSConfigManager } from './ls-config';
 
 namespace TagCloseRequest {
     export const type: RequestType<
@@ -29,17 +25,18 @@ export function startServer() {
         ? createConnection(process.stdin, process.stdout)
         : createConnection(new IPCMessageReader(process), new IPCMessageWriter(process));
 
-    const manager = new DocumentManager(
-        textDocument => new SvelteDocument(textDocument.uri, textDocument.text),
+    const docManager = new DocumentManager(
+        textDocument => new ManagedDocument(textDocument.uri, textDocument.text),
     );
+    const pluginHost = new PluginHost(docManager, new LSConfigManager());
 
-    manager.register(new SveltePlugin());
-    manager.register(new HTMLPlugin());
-    manager.register(wrapFragmentPlugin(new CSSPlugin(), CSSPlugin.matchFragment));
-    manager.register(wrapFragmentPlugin(new TypeScriptPlugin(), TypeScriptPlugin.matchFragment));
+    pluginHost.register(new SveltePlugin());
+    pluginHost.register(new HTMLPlugin());
+    pluginHost.register(new CSSPlugin());
+    pluginHost.register(new TypeScriptPlugin());
 
     connection.onInitialize(evt => {
-        manager.updateConfig(evt.initializationOptions.config);
+        pluginHost.updateConfig(evt.initializationOptions.config);
         return {
             capabilities: {
                 textDocumentSync: {
@@ -83,40 +80,40 @@ export function startServer() {
     });
 
     connection.onDidChangeConfiguration(({ settings }) => {
-        manager.updateConfig(settings.svelte?.plugin);
+        pluginHost.updateConfig(settings.svelte?.plugin);
     });
 
-    connection.onDidOpenTextDocument(evt => manager.openDocument(evt.textDocument));
-    connection.onDidCloseTextDocument(evt => manager.closeDocument(evt.textDocument));
+    connection.onDidOpenTextDocument(evt => docManager.openDocument(evt.textDocument));
+    connection.onDidCloseTextDocument(evt => docManager.closeDocument(evt.textDocument));
     connection.onDidChangeTextDocument(evt =>
-        manager.updateDocument(evt.textDocument, evt.contentChanges),
+        docManager.updateDocument(evt.textDocument, evt.contentChanges),
     );
-    connection.onHover(evt => manager.doHover(evt.textDocument, evt.position));
+    connection.onHover(evt => pluginHost.doHover(evt.textDocument, evt.position));
     connection.onCompletion(evt =>
-        manager.getCompletions(
+        pluginHost.getCompletions(
             evt.textDocument,
             evt.position,
             evt.context && evt.context.triggerCharacter,
         ),
     );
-    connection.onDocumentFormatting(evt => manager.formatDocument(evt.textDocument));
+    connection.onDocumentFormatting(evt => pluginHost.formatDocument(evt.textDocument));
     connection.onRequest(TagCloseRequest.type, evt =>
-        manager.doTagComplete(evt.textDocument, evt.position),
+        pluginHost.doTagComplete(evt.textDocument, evt.position),
     );
-    connection.onDocumentColor(evt => manager.getDocumentColors(evt.textDocument));
+    connection.onDocumentColor(evt => pluginHost.getDocumentColors(evt.textDocument));
     connection.onColorPresentation(evt =>
-        manager.getColorPresentations(evt.textDocument, evt.range, evt.color),
+        pluginHost.getColorPresentations(evt.textDocument, evt.range, evt.color),
     );
-    connection.onDocumentSymbol(evt => manager.getDocumentSymbols(evt.textDocument));
-    connection.onDefinition(evt => manager.getDefinitions(evt.textDocument, evt.position));
+    connection.onDocumentSymbol(evt => pluginHost.getDocumentSymbols(evt.textDocument));
+    connection.onDefinition(evt => pluginHost.getDefinitions(evt.textDocument, evt.position));
     connection.onCodeAction(evt =>
-        manager.getCodeActions(evt.textDocument, evt.range, evt.context),
+        pluginHost.getCodeActions(evt.textDocument, evt.range, evt.context),
     );
 
-    manager.on(
+    docManager.on(
         'documentChange',
-        _.debounce(async document => {
-            const diagnostics = await manager.getDiagnostics({ uri: document.getURL() });
+        _.debounce(async (document: Document) => {
+            const diagnostics = await pluginHost.getDiagnostics({ uri: document.getURL() });
             connection.sendDiagnostics({
                 uri: document.getURL(),
                 diagnostics,

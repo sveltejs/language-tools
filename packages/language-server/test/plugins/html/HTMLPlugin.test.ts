@@ -1,5 +1,4 @@
 import * as assert from 'assert';
-import { EventEmitter } from 'events';
 import {
     Range,
     Position,
@@ -8,21 +7,24 @@ import {
     TextEdit,
     CompletionItemKind,
     InsertTextFormat,
-} from '../../src/api';
-import { HTMLPlugin } from '../../src/plugins/HTMLPlugin';
-import { TextDocument } from '../../src/lib/documents/TextDocument';
+} from 'vscode-languageserver';
+import { HTMLPlugin } from '../../../src/plugins';
+import { TextDocument, DocumentManager } from '../../../src/lib/documents';
+import { LSConfigManager } from '../../../src/ls-config';
 
 describe('HTML Plugin', () => {
-    it('provides hover info', async () => {
+    function setup(content: string) {
         const plugin = new HTMLPlugin();
-        const document = new TextDocument('file:///hello.svelte', '<h1>Hello, world!</h1>');
-        const host = Object.assign(new EventEmitter(), {
-            getConfig() {
-                return true;
-            },
-        });
-        plugin.onRegister(host as any);
-        host.emit('documentChange|pre', document);
+        const document = new TextDocument('file:///hello.svelte', content);
+        const docManager = new DocumentManager(() => document);
+        const pluginManager = new LSConfigManager();
+        plugin.onRegister(docManager, pluginManager);
+        docManager.openDocument(<any>'some doc');
+        return { plugin, document };
+    }
+
+    it('provides hover info', async () => {
+        const { plugin, document } = setup('<h1>Hello, world!</h1>');
 
         assert.deepStrictEqual(plugin.doHover(document, Position.create(0, 2)), <Hover>{
             contents: {
@@ -38,15 +40,7 @@ describe('HTML Plugin', () => {
     });
 
     it('provides completions', async () => {
-        const plugin = new HTMLPlugin();
-        const document = new TextDocument('file:///hello.svelte', '<');
-        const host = Object.assign(new EventEmitter(), {
-            getConfig() {
-                return true;
-            },
-        });
-        plugin.onRegister(host as any);
-        host.emit('documentChange|pre', document);
+        const { plugin, document } = setup('<');
 
         const completions = plugin.getCompletions(document, Position.create(0, 1));
         assert.ok(Array.isArray(completions && completions.items));

@@ -1,7 +1,7 @@
 import { urlToPath } from '../../utils';
-import { Document } from '../../api';
+import { WritableDocument } from './Document';
 
-export class TextDocument extends Document {
+export class TextDocument extends WritableDocument {
     constructor(public url: string, public content: string) {
         super();
     }
@@ -20,9 +20,5 @@ export class TextDocument extends Document {
 
     getFilePath(): string | null {
         return urlToPath(this.url);
-    }
-
-    getAttributes() {
-        return {};
     }
 }

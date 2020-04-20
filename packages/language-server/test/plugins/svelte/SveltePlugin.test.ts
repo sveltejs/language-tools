@@ -1,21 +1,23 @@
 import * as assert from 'assert';
-import { SveltePlugin } from '../../src/plugins/SveltePlugin';
-import { SvelteDocument } from '../../src/lib/documents/SvelteDocument';
-import { Diagnostic, Range, DiagnosticSeverity } from '../../src/api';
+import { SveltePlugin } from '../../../src/plugins';
+import { ManagedDocument, DocumentManager } from '../../../src/lib/documents';
+import { Diagnostic, Range, DiagnosticSeverity } from 'vscode-languageserver';
+import { LSConfigManager } from '../../../src/ls-config';
 
 describe('Svelte Plugin', () => {
-    it('provides diagnostic warnings', async () => {
+    function setup(content: string) {
         const plugin = new SveltePlugin();
-        const document = new SvelteDocument(
-            'file:///hello.svelte',
-            '<h1>Hello, world!</h1>\n<img src="hello.png">',
-        );
-        const host = {
-            getConfig() {
-                return true;
-            },
-        };
-        plugin.onRegister(host as any);
+        const document = new ManagedDocument('file:///hello.svelte', content);
+        const docManager = new DocumentManager(() => document);
+        const pluginManager = new LSConfigManager();
+        plugin.onRegister(docManager, pluginManager);
+        docManager.openDocument(<any>'some doc');
+        return { plugin, document };
+    }
+
+    it('provides diagnostic warnings', async () => {
+        const { plugin, document } = setup('<h1>Hello, world!</h1>\n<img src="hello.png">');
+
         const diagnostics = await plugin.getDiagnostics(document);
         const diagnostic = Diagnostic.create(
             Range.create(1, 0, 1, 21),
@@ -29,14 +31,8 @@ describe('Svelte Plugin', () => {
     });
 
     it('provides diagnostic errors', async () => {
-        const plugin = new SveltePlugin();
-        const document = new SvelteDocument('file:///hello.svelte', '<div bind:whatever></div>');
-        const host = {
-            getConfig() {
-                return true;
-            },
-        };
-        plugin.onRegister(host as any);
+        const { plugin, document } = setup('<div bind:whatever></div>');
+
         const diagnostics = await plugin.getDiagnostics(document);
         const diagnostic = Diagnostic.create(
             Range.create(0, 10, 0, 18),
