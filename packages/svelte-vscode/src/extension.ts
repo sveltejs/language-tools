@@ -34,11 +34,12 @@ export function activate(context: ExtensionContext) {
         console.log('setting server runtime to', serverRuntime);
     }
 
-    let clientOptions: LanguageClientOptions = {
+    const clientOptions: LanguageClientOptions = {
         documentSelector: [{ scheme: 'file', language: 'svelte' }],
         revealOutputChannelOn: RevealOutputChannelOn.Never,
         synchronize: {
             configurationSection: ['svelte'],
+            fileEvents: workspace.createFileSystemWatcher('{**/*.js,**/*.ts}', false, false, false)
         },
         initializationOptions: { config: workspace.getConfiguration('svelte.plugin') },
     };

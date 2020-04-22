@@ -14,10 +14,11 @@ import {
     SymbolInformation,
     TextDocumentIdentifier,
     TextEdit,
+    FileChangeType,
 } from 'vscode-languageserver';
 import { LSConfig, LSConfigManager } from '../ls-config';
 import { DocumentManager } from '../lib/documents';
-import { LSProvider, Plugin } from './interfaces';
+import { LSProvider, Plugin, OnWatchFileChanges } from './interfaces';
 
 enum ExecuteMode {
     None,
@@ -25,7 +26,7 @@ enum ExecuteMode {
     Collect,
 }
 
-export class PluginHost implements LSProvider {
+export class PluginHost implements LSProvider, OnWatchFileChanges {
     private plugins: Plugin[] = [];
 
     constructor(private documentsManager: DocumentManager, private config: LSConfigManager) {}
@@ -198,6 +199,10 @@ export class PluginHost implements LSProvider {
                 ExecuteMode.Collect,
             ),
         );
+    }
+
+    onWatchFileChanges(fileName: string, changeType: FileChangeType): void {
+        throw new Error('Method not implemented.');
     }
 
     private getDocument(uri: string) {
