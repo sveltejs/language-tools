@@ -90,4 +90,4 @@ export type LSProvider = DiagnosticsProvider &
     DefinitionsProvider &
     CodeActionsProvider;
 
-export type Plugin = Partial<LSProvider> & OnRegister;
+export type Plugin = Partial<LSProvider & OnWatchFileChanges> & OnRegister;

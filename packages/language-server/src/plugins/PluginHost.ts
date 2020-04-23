@@ -202,7 +202,9 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
     }
 
     onWatchFileChanges(fileName: string, changeType: FileChangeType): void {
-        throw new Error('Method not implemented.');
+        for (const support of this.plugins) {
+            support.onWatchFileChanges?.(fileName, changeType);
+        }
     }
 
     private getDocument(uri: string) {
