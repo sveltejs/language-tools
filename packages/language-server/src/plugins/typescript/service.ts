@@ -119,7 +119,7 @@ export function createLanguageService(
     }
 
     function getScriptSnapshot(fileName: string): DocumentSnapshot | undefined {
-        return getScriptSnapshot(fileName) ?? snapshotManager.get(fileName);
+        return getSvelteSnapshot(fileName) ?? snapshotManager.get(fileName);
     }
 
     function getSvelteSnapshot(fileName: string): DocumentSnapshot | undefined {
