@@ -331,7 +331,7 @@ describe('TypescriptPlugin', () => {
         plugin.onWatchFileChanges(mockProjectJsFile, FileChangeType.Changed);
         const secondSnapshot = snapshotManager.get(mockProjectJsFile);
 
-        assert.notEqual(secondSnapshot?.version, firstSnapshot);
+        assert.notEqual(secondSnapshot?.version, firstVersion);
     })
 
     it('should delete snapshot cache when file delete', () => {
