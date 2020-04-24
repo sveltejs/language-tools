@@ -348,7 +348,9 @@ export class TypeScriptPlugin
 
         const content = ts.sys.readFile(fileName) ?? '';
         const newSnapshot: DocumentSnapshot = {
-            ...ts.ScriptSnapshot.fromString(content),
+            getLength: () => content.length,
+            getText: (start, end) => content.substring(start, end),
+            getChangeRange: () => undefined,
             // ensure it's greater than initial build
             version: INITIAL_VERSION + 1,
             scriptKind: getScriptKindFromFileName(fileName)
