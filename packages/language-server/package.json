@@ -40,6 +40,7 @@
         "@types/source-map": "^0.5.7",
         "cross-env": "^7.0.2",
         "mocha": "^7.1.0",
+        "sinon": "^9.0.0",
         "ts-node": "^8.6.2"
     },
     "dependencies": {
@@ -49,7 +50,6 @@
         "magic-string": "^0.25.3",
         "prettier": "1.19.1",
         "prettier-plugin-svelte": "0.7.0",
-        "sinon": "^9.0.0",
         "source-map": "^0.7.3",
         "svelte": "3.19.2",
         "typescript": "*",
