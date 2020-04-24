@@ -123,11 +123,11 @@ export function createLanguageService(
     }
 
     function getSvelteSnapshot(fileName: string): DocumentSnapshot | undefined {
+        fileName = ensureRealSvelteFilePath(fileName);
+
         if (!isSvelteFilePath(fileName)) {
             return
         }
-
-        fileName = ensureRealSvelteFilePath(fileName);
         let doc = snapshotManager.get(fileName);
         if (doc) {
             return doc;
