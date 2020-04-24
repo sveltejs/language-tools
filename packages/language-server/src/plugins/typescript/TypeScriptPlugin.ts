@@ -362,8 +362,6 @@ export class TypeScriptPlugin
             }
         }
         snapshotManager.set(fileName, newSnapshot);
-
-        return
     }
 
     private getLSAndTSDoc(document: Document) {
