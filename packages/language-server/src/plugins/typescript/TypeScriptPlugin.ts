@@ -53,7 +53,7 @@ import {
     OnWatchFileChanges,
 } from '../interfaces';
 import { SnapshotManager } from './SnapshotManager';
-import { DocumentSnapshot } from './DocumentSnapshot';
+import { DocumentSnapshot, INITIAL_VERSION } from './DocumentSnapshot';
 
 export class TypeScriptPlugin
     implements
@@ -332,6 +332,12 @@ export class TypeScriptPlugin
     }
 
     onWatchFileChanges(fileName: string, changeType: FileChangeType) {
+        const scriptKind = getScriptKindFromFileName(fileName);
+
+        if (scriptKind === ts.ScriptKind.Unknown) {
+            return;
+        }
+
         const tsconfigPath = findTsConfigPath(fileName);
         const snapshotManager = SnapshotManager.getFromTsConfigPath(tsconfigPath);
 
@@ -341,12 +347,10 @@ export class TypeScriptPlugin
         }
 
         const content = ts.sys.readFile(fileName) ?? '';
-        const newSnapshot : DocumentSnapshot = {
-            // ensure it's greater than inital build
-            version: 1, 
-            getLength: () => content.length,
-            getText: () => content,
-            getChangeRange: () => undefined,
+        const newSnapshot: DocumentSnapshot = {
+            ...ts.ScriptSnapshot.fromString(content),
+            // ensure it's greater than initial build
+            version: INITIAL_VERSION + 1,
             scriptKind: getScriptKindFromFileName(fileName)
         }
 
