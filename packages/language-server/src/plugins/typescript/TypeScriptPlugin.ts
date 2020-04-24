@@ -356,13 +356,13 @@ export class TypeScriptPlugin
             scriptKind: getScriptKindFromFileName(fileName)
         }
 
-        if (changeType === FileChangeType.Changed) {
-            const previousSnapshot = snapshotManager.get(fileName);
 
-            if (previousSnapshot) {
-                newSnapshot.version = previousSnapshot.version + 1;
-            }
+        const previousSnapshot = snapshotManager.get(fileName);
+
+        if (previousSnapshot) {
+            newSnapshot.version = previousSnapshot.version + 1;
         }
+        
         snapshotManager.set(fileName, newSnapshot);
     }
 
