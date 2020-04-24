@@ -237,17 +237,15 @@ export class TypeScriptPlugin
             return [];
         }
 
-        const docs = new Map<string, TypescriptDocument>([[tsDoc.getFilePath()!, tsDoc]]);
+        const docs = new Map<string, Document>([[tsDoc.getFilePath()!, tsDoc]]);
 
         return defs.definitions
             .map(def => {
                 let defDoc = docs.get(def.fileName);
                 if (!defDoc) {
-                    defDoc = new TypescriptDocument(
-                        new TextDocument(
-                            pathToUrl(def.fileName),
-                            ts.sys.readFile(def.fileName) || '',
-                        ),
+                    defDoc = new TextDocument(
+                        pathToUrl(def.fileName),
+                        ts.sys.readFile(def.fileName) || '',
                     );
                     docs.set(def.fileName, defDoc);
                 }
@@ -286,7 +284,7 @@ export class TypeScriptPlugin
             {},
         );
 
-        const docs = new Map<string, TypescriptDocument>([[tsDoc.getFilePath()!, tsDoc]]);
+        const docs = new Map<string, Document>([[tsDoc.getFilePath()!, tsDoc]]);
         return codeFixes
             .map(fix => {
                 return CodeAction.create(
@@ -295,11 +293,9 @@ export class TypeScriptPlugin
                         documentChanges: fix.changes.map(change => {
                             let doc = docs.get(change.fileName);
                             if (!doc) {
-                                doc = new TypescriptDocument(
-                                    new TextDocument(
-                                        pathToUrl(change.fileName),
-                                        ts.sys.readFile(change.fileName) || '',
-                                    ),
+                                doc = new TextDocument(
+                                    pathToUrl(change.fileName),
+                                    ts.sys.readFile(change.fileName) || '',
                                 );
                                 docs.set(change.fileName, doc);
                             }
