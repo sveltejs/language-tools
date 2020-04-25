@@ -34,11 +34,22 @@ jobs:
       # So, remove the workspace
       - run: "rm package.json yarn.lock"
 
-      # Re-run the yarn install outside of the workspaceSetup the language server
+      # Re-run the yarn install outside of the workspace
       - run: |
          cd packages/language-server
          yarn install
+
+         yarn update:package:beta
+
+         # Have commits been added in the last day?
+         if [[ $(git log --pretty=format: --name-only --since="1 days ago") ]]; then
+            # Ship it
+            npm publish
+         fi
+
          cd ..
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       # Re-run the  yarn install outside of the workspace
       - run: |

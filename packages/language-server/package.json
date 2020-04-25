@@ -8,7 +8,8 @@
         "test": "cross-env TS_NODE_TRANSPILE_ONLY=true mocha --require ts-node/register \"test/**/*.ts\"",
         "build": "tsc",
         "watch": "tsc -w",
-        "prepublishOnly": "yarn test && yarn build"
+        "prepublishOnly": "yarn test && yarn build",
+        "update:package:bump": "node script/bump-release-version.js"
     },
     "bin": {
         "svelteserver": "bin/server.js"
@@ -21,9 +22,10 @@
         "svelte",
         "vscode",
         "atom",
-        "editor"
+        "editor",
+        "language-server"
     ],
-    "author": "James Birtles <jameshbirtles@gmail.com>",
+    "author": "James Birtles <jameshbirtles@gmail.com> and the Svelte Language Tools contributors",
     "license": "MIT",
     "bugs": {
         "url": "https://github.com/sveltejs/language-tools/issues"
