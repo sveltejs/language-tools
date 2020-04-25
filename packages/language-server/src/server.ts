@@ -10,6 +10,7 @@ import { DocumentManager, ManagedDocument, Document } from './lib/documents';
 import { SveltePlugin, HTMLPlugin, CSSPlugin, TypeScriptPlugin, PluginHost } from './plugins';
 import _ from 'lodash';
 import { LSConfigManager } from './ls-config';
+import { urlToPath } from './utils';
 
 namespace TagCloseRequest {
     export const type: RequestType<
@@ -109,6 +110,17 @@ export function startServer() {
     connection.onCodeAction(evt =>
         pluginHost.getCodeActions(evt.textDocument, evt.range, evt.context),
     );
+    connection.onDidChangeWatchedFiles((para) => {
+        for (const change of para.changes) {   
+            const filename = urlToPath(change.uri);
+            if(filename) {
+                pluginHost.onWatchFileChanges(
+                    filename, 
+                    change.type
+                )
+            }
+        }
+    })
 
     docManager.on(
         'documentChange',

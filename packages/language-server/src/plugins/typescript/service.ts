@@ -1,10 +1,11 @@
 import { dirname, resolve } from 'path';
 import ts from 'typescript';
 import { getSveltePackageInfo } from '../svelte/sveltePackage';
-import { DocumentSnapshot } from './DocumentSnapshot';
+import { DocumentSnapshot, INITIAL_VERSION } from './DocumentSnapshot';
 import { createSvelteModuleLoader } from './module-loader';
-import { ensureRealSvelteFilePath, getScriptKindFromFileName, isSvelteFilePath } from './utils';
+import { ensureRealSvelteFilePath, getScriptKindFromFileName, isSvelteFilePath, findTsConfigPath } from './utils';
 import { TypescriptDocument } from './TypescriptDocument';
+import { SnapshotManager } from './SnapshotManager';
 
 export interface LanguageServiceContainer {
     getService(): ts.LanguageService;
@@ -19,11 +20,7 @@ export function getLanguageServiceForDocument(
     document: TypescriptDocument,
     createDocument: CreateDocument,
 ): ts.LanguageService {
-    const searchDir = dirname(document.getFilePath()!);
-    const tsconfigPath =
-        ts.findConfigFile(searchDir, ts.sys.fileExists, 'tsconfig.json') ||
-        ts.findConfigFile(searchDir, ts.sys.fileExists, 'jsconfig.json') ||
-        '';
+    const tsconfigPath = findTsConfigPath(document.getFilePath()!)
 
     let service: LanguageServiceContainer;
     if (services.has(tsconfigPath)) {
@@ -41,7 +38,7 @@ export function createLanguageService(
     createDocument: CreateDocument,
 ): LanguageServiceContainer {
     const workspacePath = tsconfigPath ? dirname(tsconfigPath) : '';
-    const documents = new Map<string, DocumentSnapshot>();
+    const snapshotManager = SnapshotManager.getFromTsConfigPath(tsconfigPath);
     const sveltePkgInfo = getSveltePackageInfo(workspacePath);
 
     let compilerOptions: ts.CompilerOptions = {
@@ -73,13 +70,13 @@ export function createLanguageService(
 
     const host: ts.LanguageServiceHost = {
         getCompilationSettings: () => compilerOptions,
-        getScriptFileNames: () => Array.from(new Set([...files, ...Array.from(documents.keys())])),
+        getScriptFileNames: () => Array.from(new Set([...files, ...snapshotManager.getFileNames()])),
         getScriptVersion(fileName: string) {
-            const doc = getSvelteSnapshot(fileName);
-            return doc ? String(doc.version) : '0';
+            const doc = getScriptSnapshot(fileName);
+            return doc ? String(doc.version) : INITIAL_VERSION.toString();
         },
         getScriptSnapshot(fileName: string): ts.IScriptSnapshot | undefined {
-            const doc = getSvelteSnapshot(fileName);
+            const doc = getScriptSnapshot(fileName);
             if (doc) {
                 return doc;
             }
@@ -109,7 +106,7 @@ export function createLanguageService(
     };
 
     function updateDocument(document: TypescriptDocument): ts.LanguageService {
-        const preSnapshot = documents.get(document.getFilePath()!);
+        const preSnapshot = snapshotManager.get(document.getFilePath()!);
         const newSnapshot = DocumentSnapshot.fromDocument(document);
         if (preSnapshot && preSnapshot.scriptKind !== newSnapshot.scriptKind) {
             // Restart language service as it doesn't handle script kind changes.
@@ -117,22 +114,28 @@ export function createLanguageService(
             languageService = ts.createLanguageService(host);
         }
 
-        documents.set(document.getFilePath()!, newSnapshot);
+        snapshotManager.set(document.getFilePath()!, newSnapshot);
         return languageService;
+    }
+
+    function getScriptSnapshot(fileName: string): DocumentSnapshot | undefined {
+        return getSvelteSnapshot(fileName) ?? snapshotManager.get(fileName);
     }
 
     function getSvelteSnapshot(fileName: string): DocumentSnapshot | undefined {
         fileName = ensureRealSvelteFilePath(fileName);
-        const doc = documents.get(fileName);
+
+        if (!isSvelteFilePath(fileName)) {
+            return
+        }
+        let doc = snapshotManager.get(fileName);
         if (doc) {
             return doc;
         }
 
-        if (isSvelteFilePath(fileName)) {
-            const file = ts.sys.readFile(fileName) || '';
-            const doc = DocumentSnapshot.fromDocument(createDocument(fileName, file));
-            documents.set(fileName, doc);
-            return doc;
-        }
+        const file = ts.sys.readFile(fileName) || '';
+        doc = DocumentSnapshot.fromDocument(createDocument(fileName, file));
+        snapshotManager.set(fileName, doc);
+        return doc;
     }
 }

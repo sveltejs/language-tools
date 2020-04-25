@@ -1,6 +1,7 @@
 import ts from 'typescript';
 import { Range, SymbolKind, CompletionItemKind, DiagnosticSeverity } from 'vscode-languageserver';
 import { Document } from '../../lib/documents';
+import { dirname } from 'path';
 
 export function getScriptKindFromFileName(fileName: string): ts.ScriptKind {
     const ext = fileName.substr(fileName.lastIndexOf('.'));
@@ -60,6 +61,14 @@ export function convertRange(
         document.positionAt(range.start || 0),
         document.positionAt((range.start || 0) + (range.length || 0)),
     );
+}
+
+export function findTsConfigPath(fileName: string) {
+    const searchDir = dirname(fileName);
+
+    return ts.findConfigFile(searchDir, ts.sys.fileExists, 'tsconfig.json') ||
+        ts.findConfigFile(searchDir, ts.sys.fileExists, 'jsconfig.json') ||
+        '';
 }
 
 export function symbolKindFromString(kind: string): SymbolKind {

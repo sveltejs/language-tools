@@ -14,6 +14,7 @@ import {
     TextDocumentEdit,
     TextEdit,
     VersionedTextDocumentIdentifier,
+    FileChangeType,
 } from 'vscode-languageserver';
 import {
     DocumentManager,
@@ -36,6 +37,8 @@ import {
     mapSeverity,
     scriptElementKindToCompletionItemKind,
     symbolKindFromString,
+    findTsConfigPath,
+    getScriptKindFromFileName,
 } from './utils';
 import { TypescriptDocument } from './TypescriptDocument';
 import {
@@ -47,7 +50,10 @@ import {
     HoverProvider,
     OnRegister,
     Resolvable,
+    OnWatchFileChanges,
 } from '../interfaces';
+import { SnapshotManager } from './SnapshotManager';
+import { DocumentSnapshot, INITIAL_VERSION } from './DocumentSnapshot';
 
 export class TypeScriptPlugin
     implements
@@ -57,7 +63,8 @@ export class TypeScriptPlugin
         DocumentSymbolsProvider,
         CompletionsProvider,
         DefinitionsProvider,
-        CodeActionsProvider {
+        CodeActionsProvider,
+        OnWatchFileChanges {
     private configManager!: LSConfigManager;
     private createDocument!: CreateDocument;
     private documents = new Map<Document, TypescriptDocument>();
@@ -318,6 +325,41 @@ export class TypeScriptPlugin
                 );
             })
             .map(fix => mapCodeActionToParent(tsDoc, fix));
+    }
+
+    onWatchFileChanges(fileName: string, changeType: FileChangeType) {
+        const scriptKind = getScriptKindFromFileName(fileName);
+
+        if (scriptKind === ts.ScriptKind.Unknown) {
+            return;
+        }
+
+        const tsconfigPath = findTsConfigPath(fileName);
+        const snapshotManager = SnapshotManager.getFromTsConfigPath(tsconfigPath);
+
+        if (changeType === FileChangeType.Deleted) {
+            snapshotManager.delete(fileName);
+            return
+        }
+
+        const content = ts.sys.readFile(fileName) ?? '';
+        const newSnapshot: DocumentSnapshot = {
+            getLength: () => content.length,
+            getText: (start, end) => content.substring(start, end),
+            getChangeRange: () => undefined,
+            // ensure it's greater than initial build
+            version: INITIAL_VERSION + 1,
+            scriptKind: getScriptKindFromFileName(fileName)
+        }
+
+
+        const previousSnapshot = snapshotManager.get(fileName);
+
+        if (previousSnapshot) {
+            newSnapshot.version = previousSnapshot.version + 1;
+        }
+        
+        snapshotManager.set(fileName, newSnapshot);
     }
 
     private getLSAndTSDoc(document: Document) {

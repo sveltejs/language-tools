@@ -7,6 +7,8 @@ export interface DocumentSnapshot extends ts.IScriptSnapshot {
     scriptKind: ts.ScriptKind;
 }
 
+export const INITIAL_VERSION = 0
+
 export namespace DocumentSnapshot {
     export function fromDocument(document: TypescriptDocument): DocumentSnapshot {
         const text = document.getText();
