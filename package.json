@@ -10,9 +10,20 @@
   "scripts": {
     "build": "tsc -b",
     "test": "CI=true yarn workspaces run test",
-    "watch": "tsc -b -watch"
+    "watch": "tsc -b -watch",
+    "prettier": "prettier --write **/src/**/*.{ts,js}"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "pretty-quick --staged --pattern '**/src/**/*.{ts,js}'"
+    }
   },
   "dependencies": {
     "axios": "0.19.2"
+  },
+  "devDependencies": {
+    "husky": "^4.2.5",
+    "prettier": "^2.0.5",
+    "pretty-quick": "^2.0.1"
   }
 }
