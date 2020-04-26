@@ -34,25 +34,37 @@ jobs:
       # So, remove the workspace
       - run: "rm package.json yarn.lock"
 
-      # Re-run the yarn install outside of the workspaceSetup the language server
+      # Re-run the yarn install outside of the workspace
       - run: |
          cd packages/language-server
          yarn install
+
+         # Have commits been added in the last day?
+         if [[ $(git log --pretty=format: --name-only --since="1 days ago") ]]; then
+            yarn update:package:bump
+            
+            # Ship it
+            npm publish
+         fi
+
          cd ..
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       # Re-run the  yarn install outside of the workspace
       - run: |
          cd packages/svelte-vscode
          yarn install
 
-         # Bump the version  
-         yarn update:package:beta
 
          # Just a hard constraint from azure
          echo "Once a year this expires, tell Orta to access https://dev.azure.com/ortatherox0608/_usersSettings/tokens to get a new one"
 
          # Have commits been added in the last day?
          if [[ $(git log --pretty=format: --name-only --since="1 days ago") ]]; then
+            # Bump the version  
+            yarn update:package:beta
+
             # Ship it
             npx vsce publish --yarn -p $VSCE_TOKEN
          fi
