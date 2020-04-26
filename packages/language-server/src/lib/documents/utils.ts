@@ -24,16 +24,20 @@ function parseAttributes(str: string): Record<string, string> {
  * @param tag the tag to extract
  */
 export function extractTag(source: string, tag: 'script' | 'style') {
-    const exp = new RegExp(`(<${tag}([\\S\\s]*?)>)([\\S\\s]*?)<\\/${tag}>`, 'ig');
-    const match = exp.exec(source);
+    const exp = new RegExp(`(<!--.*-->)|(<${tag}([\\S\\s]*?)>)([\\S\\s]*?)<\\/${tag}>`, 'igs');
+    let match = exp.exec(source);
+
+    while (match && match[0].startsWith('<!--')) {
+        match = exp.exec(source);
+    }
 
     if (!match) {
         return null;
     }
 
-    const attributes = parseAttributes(match[2]);
-    const content = match[3];
-    const start = match.index + match[1].length;
+    const attributes = parseAttributes(match[3]);
+    const content = match[4];
+    const start = match.index + match[2].length;
     const end = start + content.length;
 
     return {
