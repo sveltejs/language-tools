@@ -48,13 +48,13 @@ describe('Svelte Document', () => {
         });
     });
 
-    it('defaults fragment to the end of the component if not found', () => {
+    it('defaults fragment to -1 if not found', () => {
         const document = new SvelteDocument('file:///hello.svelte', '<h1>Hello, world</h1>');
-        assert.strictEqual(document.script.details.start, 21);
-        assert.strictEqual(document.script.details.end, 21);
+        assert.strictEqual(document.script.details.start, -1);
+        assert.strictEqual(document.script.details.end, -1);
         assert.deepStrictEqual(document.script.details.attributes, { tag: 'script' });
-        assert.strictEqual(document.style.details.start, 21);
-        assert.strictEqual(document.style.details.end, 21);
+        assert.strictEqual(document.style.details.start, -1);
+        assert.strictEqual(document.style.details.end, -1);
         assert.deepStrictEqual(document.style.details.attributes, { tag: 'style' });
     });
 

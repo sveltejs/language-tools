@@ -69,6 +69,9 @@ export function startServer() {
                         ']',
                         '@',
                         '-',
+
+                        // Svelte
+                        ':',
                     ],
                 },
                 documentFormattingProvider: true,
@@ -110,17 +113,14 @@ export function startServer() {
     connection.onCodeAction(evt =>
         pluginHost.getCodeActions(evt.textDocument, evt.range, evt.context),
     );
-    connection.onDidChangeWatchedFiles((para) => {
-        for (const change of para.changes) {   
+    connection.onDidChangeWatchedFiles(para => {
+        for (const change of para.changes) {
             const filename = urlToPath(change.uri);
-            if(filename) {
-                pluginHost.onWatchFileChanges(
-                    filename, 
-                    change.type
-                )
+            if (filename) {
+                pluginHost.onWatchFileChanges(filename, change.type);
             }
         }
-    })
+    });
 
     docManager.on(
         'documentChange',
