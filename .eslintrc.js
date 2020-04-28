@@ -18,6 +18,7 @@ module.exports = {
             'error',
             { code: 100, ignoreComments: true, ignoreStrings: true }
         ],
+        'no-trailing-spaces': 'error',
 
         'no-const-assign': 'error',
         'no-class-assign': 'error',
