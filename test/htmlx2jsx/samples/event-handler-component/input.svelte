@@ -1,1 +1,1 @@
-<Component on:event={() => click()}/>
+<Component on:event={() => click()} on:UpperCaseEvent={() => log('hi')}/>
