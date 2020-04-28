@@ -1,0 +1,1 @@
+<script>function bla() {return true;} bla();</script>
