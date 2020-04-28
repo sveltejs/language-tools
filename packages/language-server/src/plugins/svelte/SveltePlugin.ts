@@ -6,12 +6,26 @@ import * as prettier from 'prettier';
 import { RawIndexMap, RawSourceMap, SourceMapConsumer } from 'source-map';
 import { CompileOptions, Warning } from 'svelte/types/compiler/interfaces';
 import { PreprocessorGroup } from 'svelte/types/compiler/preprocess';
-import { Diagnostic, DiagnosticSeverity, Position, Range, TextEdit } from 'vscode-languageserver';
-import { DocumentManager, Document } from '../../lib/documents';
+import {
+    CompletionList,
+    Diagnostic,
+    DiagnosticSeverity,
+    Position,
+    Range,
+    TextEdit,
+} from 'vscode-languageserver';
+import { Document, DocumentManager } from '../../lib/documents';
 import { LSConfigManager, LSSvelteConfig } from '../../ls-config';
-import { importSvelte } from './sveltePackage';
+import {
+    CompletionsProvider,
+    DiagnosticsProvider,
+    FormattingProvider,
+    OnRegister,
+    Resolvable,
+} from '../interfaces';
+import { getCompletions } from './features/getCompletions';
 import { SvelteDocument, SvelteFragment } from './SvelteDocument';
-import { OnRegister, DiagnosticsProvider, FormattingProvider } from '../interfaces';
+import { importSvelte } from './sveltePackage';
 
 interface SvelteConfig extends CompileOptions {
     preprocess?: PreprocessorGroup;
@@ -21,7 +35,8 @@ const DEFAULT_OPTIONS: CompileOptions = {
     dev: true,
 };
 
-export class SveltePlugin implements OnRegister, DiagnosticsProvider, FormattingProvider {
+export class SveltePlugin
+    implements OnRegister, DiagnosticsProvider, FormattingProvider, CompletionsProvider {
     private configManager!: LSConfigManager;
 
     onRegister(docManager: DocumentManager, configManager: LSConfigManager) {
@@ -112,6 +127,15 @@ export class SveltePlugin implements OnRegister, DiagnosticsProvider, Formatting
                 formattedCode,
             ),
         ];
+    }
+
+    getCompletions(
+        document: Document,
+        position: Position,
+        triggerCharacter?: string | undefined,
+    ): Resolvable<CompletionList | null> {
+        const svelteDoc = new SvelteDocument(document.getURL(), document.getText());
+        return getCompletions(svelteDoc, position);
     }
 
     private featureEnabled(feature: keyof LSSvelteConfig) {
