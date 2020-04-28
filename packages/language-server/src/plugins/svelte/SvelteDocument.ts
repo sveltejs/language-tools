@@ -150,8 +150,8 @@ export class SvelteFragmentDetails {
         const length = this.document.getTextLength();
         this.info = {
             attributes: {},
-            start: length,
-            end: length,
+            start: -1,
+            end: -1,
             container: {
                 start: length,
                 end: length,
