@@ -150,12 +150,12 @@ function getLatestOpeningTag(svelteDoc: SvelteDocument, offset: number) {
  * Get the last tag and its index that is opened but not closed.
  */
 function idxOfLastOpeningTag(content: string, tag: SvelteTag) {
-    const nrOfEndingTags = content.match(new RegExp(`{\s*/${tag}`, 'g'))?.length ?? 0;
+    const nrOfEndingTags = content.match(new RegExp(`{\\s*/${tag}`, 'g'))?.length ?? 0;
 
     let lastIdx = -1;
     let nrOfOpeningTags = 0;
     let match: RegExpExecArray | null;
-    const regexp = new RegExp(`{\s*#${tag}`, 'g');
+    const regexp = new RegExp(`{\\s*#${tag}`, 'g');
     while ((match = regexp.exec(content)) != null) {
         nrOfOpeningTags += 1;
         lastIdx = match.index;
