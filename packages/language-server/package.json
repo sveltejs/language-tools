@@ -9,7 +9,7 @@
         "build": "tsc",
         "watch": "tsc -w",
         "prepublishOnly": "yarn test && yarn build",
-        "update:package:bump": "node script/bump-release-version.js"
+        "update:package:bump": "node scripts/bump-release-version.js"
     },
     "bin": {
         "svelteserver": "bin/server.js"
