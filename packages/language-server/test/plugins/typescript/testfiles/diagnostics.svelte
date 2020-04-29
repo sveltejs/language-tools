@@ -1,0 +1,1 @@
+<script lang="typescript">const asd: string = true</script>

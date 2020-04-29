@@ -1,24 +1,33 @@
 import * as assert from 'assert';
+import * as path from 'path';
 import { dirname, join } from 'path';
-import { TypeScriptPlugin } from '../../../src/plugins';
-import * as tsService from '../../../src/plugins/typescript/service';
+import ts from 'typescript';
+import {
+    CompletionItem,
+    CompletionItemKind,
+    FileChangeType,
+    Hover,
+    Position,
+    Range,
+} from 'vscode-languageserver';
 import { DocumentManager, TextDocument } from '../../../src/lib/documents';
 import { LSConfigManager } from '../../../src/ls-config';
-import { Range, Position, Hover, CompletionItem, CompletionItemKind, FileChangeType } from 'vscode-languageserver';
-import sinon from 'sinon';
-import ts from 'typescript';
-import { findTsConfigPath } from '../../../src/plugins/typescript/utils';
-import { SnapshotManager } from '../../../src/plugins/typescript/SnapshotManager';
+import { TypeScriptPlugin } from '../../../src/plugins';
 import { INITIAL_VERSION } from '../../../src/plugins/typescript/DocumentSnapshot';
+import { SnapshotManager } from '../../../src/plugins/typescript/SnapshotManager';
+import { findTsConfigPath } from '../../../src/plugins/typescript/utils';
+import { pathToUrl } from '../../../src/utils';
 
 describe('TypescriptPlugin', () => {
-    afterEach(() => {
-        sinon.restore();
-    });
+    function getUri(filename: string) {
+        const filePath = path.join(__dirname, 'testfiles', filename);
+        return pathToUrl(filePath);
+    }
 
-    function setup(content: string) {
+    function setup(filename: string) {
         const plugin = new TypeScriptPlugin();
-        const document = new TextDocument('file:///hello.svelte', content);
+        const filePath = path.join(__dirname, 'testfiles', filename);
+        const document = new TextDocument(pathToUrl(filePath), ts.sys.readFile(filePath)!);
         const docManager = new DocumentManager(() => document);
         const pluginManager = new LSConfigManager();
         plugin.onRegister(docManager, pluginManager);
@@ -27,26 +36,7 @@ describe('TypescriptPlugin', () => {
     }
 
     it('provides diagnostics', () => {
-        const { plugin, document } = setup(
-            '<script lang="typescript">const asd: string = true</script>',
-        );
-        const diagnosticsStub = sinon.stub().returns([
-            <ts.Diagnostic>{
-                category: ts.DiagnosticCategory.Error,
-                code: 2322,
-                file: <any>null,
-                length: 3,
-                messageText: "Type 'true' is not assignable to type 'string'.",
-                relatedInformation: undefined,
-                start: 20,
-            },
-        ]);
-        sinon.stub(tsService, 'getLanguageServiceForDocument').returns(<any>{
-            getSyntacticDiagnostics: diagnosticsStub,
-            getSuggestionDiagnostics: sinon.stub().returns([]),
-            getSemanticDiagnostics: sinon.stub().returns([]),
-        });
-
+        const { plugin, document } = setup('diagnostics.svelte');
         const diagnostics = plugin.getDiagnostics(document);
 
         assert.deepStrictEqual(diagnostics, [
@@ -55,11 +45,11 @@ describe('TypescriptPlugin', () => {
                 message: "Type 'true' is not assignable to type 'string'.",
                 range: {
                     start: {
-                        character: 46,
+                        character: 32,
                         line: 0,
                     },
                     end: {
-                        character: 49,
+                        character: 35,
                         line: 0,
                     },
                 },
@@ -67,27 +57,12 @@ describe('TypescriptPlugin', () => {
                 source: 'ts',
             },
         ]);
-        sinon.assert.calledWith(diagnosticsStub, document.getFilePath()!);
-    });
+    })
+        // diagnostics might take longer, therefore increase the timeout
+        .timeout(8000);
 
     it('provides hover info', async () => {
-        const { plugin, document } = setup('<script>const a = true</script>');
-        const hoverInfoStub = sinon.stub().returns(<ts.QuickInfo>{
-            kind: ts.ScriptElementKind.constElement,
-            textSpan: { start: 6, length: 1 },
-            kindModifiers: '',
-            displayParts: [
-                { text: 'const', kind: 'keyword' },
-                { text: ' ', kind: 'space' },
-                { text: 'a', kind: 'localName' },
-                { text: ':', kind: 'punctuation' },
-                { text: ' ', kind: 'space' },
-                { text: 'true', kind: 'keyword' },
-            ],
-        });
-        sinon
-            .stub(tsService, 'getLanguageServiceForDocument')
-            .returns(<any>{ getQuickInfoAtPosition: hoverInfoStub });
+        const { plugin, document } = setup('hoverinfo.svelte');
 
         assert.deepStrictEqual(plugin.doHover(document, Position.create(0, 14)), <Hover>{
             contents: {
@@ -105,18 +80,10 @@ describe('TypescriptPlugin', () => {
                 },
             },
         });
-        sinon.assert.calledWith(
-            hoverInfoStub,
-            document.getFilePath()!,
-            document.offsetAt(Position.create(0, 6)),
-        );
     });
 
     it('provides document symbols', () => {
-        const { plugin, document } = setup('<script>function bla() {return true;} bla();</script>');
-
-        // Typescript gets the snapshot in this instance, which is our snapshot function
-        // which contains the document, so no need to mock typescript here.
+        const { plugin, document } = setup('documentsymbols.svelte');
         const symbols = plugin.getDocumentSymbols(document);
 
         assert.deepStrictEqual(symbols, [
@@ -134,7 +101,7 @@ describe('TypescriptPlugin', () => {
                             line: 0,
                         },
                     },
-                    uri: 'file:///hello.svelte',
+                    uri: getUri('documentsymbols.svelte'),
                 },
                 name: 'bla',
             },
@@ -142,38 +109,10 @@ describe('TypescriptPlugin', () => {
     });
 
     it('provides completions', async () => {
-        const { plugin, document } = setup(
-            '<script>class A { b() { return true; } } new A().</script>',
-        );
+        const { plugin, document } = setup('completions.svelte');
 
-        const completionStub = sinon.stub().returns(<ts.WithMetadata<ts.CompletionInfo>>{
-            name: 'b',
-            kind: 'method',
-            kindModifiers: '',
-            isGlobalCompletion: false,
-            isMemberCompletion: true,
-            isNewIdentifierLocation: false,
-            entries: [
-                {
-                    name: 'b',
-                    kind: 'method',
-                    kindModifiers: '',
-                    sortText: '0',
-                    isRecommended: undefined,
-                },
-            ],
-        });
-        sinon
-            .stub(tsService, 'getLanguageServiceForDocument')
-            .returns(<any>{ getCompletionsAtPosition: completionStub });
+        const completions = plugin.getCompletions(document, Position.create(0, 49), '.');
 
-        const completions = plugin.getCompletions(document, Position.create(0, 48), '.');
-
-        sinon.assert.calledWith(
-            completionStub,
-            document.getFilePath()!,
-            document.offsetAt(Position.create(0, 40)),
-        );
         assert.ok(
             Array.isArray(completions && completions.items),
             'Expected completion items to be an array',
@@ -188,71 +127,92 @@ describe('TypescriptPlugin', () => {
         });
     });
 
-    it('provides definitions', () => {
-        const { plugin, document } = setup(
-            '<script lang="typescript">function bla() {return true;} bla();</script>',
-        );
+    it('provides definitions within svelte doc', () => {
+        const { plugin, document } = setup('definitions.svelte');
 
-        // Typescript gets the snapshot in this instance, which is our snapshot function
-        // which contains the document, so no need to mock typescript here.
-        const definitions = plugin.getDefinitions(document, Position.create(0, 57));
+        const definitions = plugin.getDefinitions(document, Position.create(0, 94)); // +7
 
         assert.deepStrictEqual(definitions, [
             {
                 originSelectionRange: {
                     start: {
-                        character: 56,
+                        character: 93,
                         line: 0,
                     },
                     end: {
-                        character: 59,
+                        character: 96,
                         line: 0,
                     },
                 },
                 targetRange: {
                     start: {
-                        character: 35,
+                        character: 72,
                         line: 0,
                     },
                     end: {
-                        character: 38,
+                        character: 75,
                         line: 0,
                     },
                 },
                 targetSelectionRange: {
                     start: {
-                        character: 35,
+                        character: 72,
                         line: 0,
                     },
                     end: {
-                        character: 38,
+                        character: 75,
                         line: 0,
                     },
                 },
-                targetUri: 'file:///hello.svelte',
+                targetUri: getUri('definitions.svelte'),
+            },
+        ]);
+    });
+
+    it('provides definitions from svelte to ts doc', () => {
+        const { plugin, document } = setup('definitions.svelte');
+
+        const definitions = plugin.getDefinitions(document, Position.create(0, 101));
+
+        assert.deepStrictEqual(definitions, [
+            {
+                originSelectionRange: {
+                    start: {
+                        character: 100,
+                        line: 0,
+                    },
+                    end: {
+                        character: 105,
+                        line: 0,
+                    },
+                },
+                targetRange: {
+                    start: {
+                        character: 16,
+                        line: 0,
+                    },
+                    end: {
+                        character: 21,
+                        line: 0,
+                    },
+                },
+                targetSelectionRange: {
+                    start: {
+                        character: 16,
+                        line: 0,
+                    },
+                    end: {
+                        character: 21,
+                        line: 0,
+                    },
+                },
+                targetUri: getUri('definitions.ts'),
             },
         ]);
     });
 
     it('provides code actions', () => {
-        const { plugin, document } = setup('<script>let a = true</script>');
-        const codeFixStub = sinon.stub().returns([
-            <ts.CodeFixAction>{
-                changes: [
-                    {
-                        fileName: '/hello.svelte',
-                        textChanges: [{ span: { start: 0, length: 12 }, newText: '' }],
-                    },
-                ],
-                description: "Remove unused declaration for: 'a'",
-                fixAllDescription: 'Delete all unused declarations',
-                fixId: 'unusedIdentifier_delete',
-                fixName: 'unusedIdentifier',
-            },
-        ]);
-        sinon
-            .stub(tsService, 'getLanguageServiceForDocument')
-            .returns(<any>{ getCodeFixesAtPosition: codeFixStub });
+        const { plugin, document } = setup('codeactions.svelte');
 
         const codeActions = plugin.getCodeActions(
             document,
@@ -270,7 +230,6 @@ describe('TypescriptPlugin', () => {
             },
         );
 
-        sinon.assert.calledWith(codeFixStub, document.getFilePath()!, 4, 5, [6133], {}, {});
         assert.deepStrictEqual(codeActions, [
             {
                 edit: {
@@ -292,7 +251,7 @@ describe('TypescriptPlugin', () => {
                                 },
                             ],
                             textDocument: {
-                                uri: 'file:///hello.svelte',
+                                uri: getUri('codeactions.svelte'),
                                 version: null,
                             },
                         },
@@ -317,8 +276,8 @@ describe('TypescriptPlugin', () => {
             snapshotManager,
             plugin,
             mockProjectJsFile,
-        }
-    }
+        };
+    };
 
     it('bumps snapshot version when watched file changes', () => {
         const { snapshotManager, mockProjectJsFile, plugin } = setupForOnWatchedFileChanges();
@@ -332,7 +291,7 @@ describe('TypescriptPlugin', () => {
         const secondSnapshot = snapshotManager.get(mockProjectJsFile);
 
         assert.notEqual(secondSnapshot?.version, firstVersion);
-    })
+    });
 
     it('should delete snapshot cache when file delete', () => {
         const { snapshotManager, mockProjectJsFile, plugin } = setupForOnWatchedFileChanges();
@@ -344,5 +303,5 @@ describe('TypescriptPlugin', () => {
         const secondSnapshot = snapshotManager.get(mockProjectJsFile);
 
         assert.equal(secondSnapshot, undefined);
-    })
+    });
 });
