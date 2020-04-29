@@ -33,6 +33,7 @@ const defaultLSConfig: LSConfig = {
         enable: true,
         diagnostics: { enable: true },
         format: { enable: true },
+        completions: { enable: true },
     },
 };
 
@@ -113,6 +114,9 @@ export interface LSSvelteConfig {
         enable: boolean;
     };
     format: {
+        enable: boolean;
+    };
+    completions: {
         enable: boolean;
     };
 }
