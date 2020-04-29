@@ -134,6 +134,10 @@ export class SveltePlugin
         position: Position,
         triggerCharacter?: string | undefined,
     ): Resolvable<CompletionList | null> {
+        if (!this.featureEnabled('completions')) {
+            return null;
+        }
+
         const svelteDoc = new SvelteDocument(document.getURL(), document.getText());
         return getCompletions(svelteDoc, position);
     }
