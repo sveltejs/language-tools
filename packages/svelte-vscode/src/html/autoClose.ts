@@ -15,14 +15,14 @@ import {
     SnippetString,
 } from 'vscode';
 
-import { TextDocumentContentChangeEvent } from "vscode-languageserver-protocol"
+import { TextDocumentContentChangeEvent } from "vscode-languageserver-protocol";
 
 export function activateTagClosing(
     tagProvider: (document: TextDocument, position: Position) => Thenable<string>,
     supportedLanguages: { [id: string]: boolean },
     configName: string,
 ): Disposable {
-    let disposables: Disposable[] = [];
+    const disposables: Disposable[] = [];
     workspace.onDidChangeTextDocument(
         event => onDidChangeTextDocument(event.document, event.contentChanges),
         null,
@@ -37,11 +37,11 @@ export function activateTagClosing(
 
     function updateEnabledState() {
         isEnabled = false;
-        let editor = window.activeTextEditor;
+        const editor = window.activeTextEditor;
         if (!editor) {
             return;
         }
-        let document = editor.document;
+        const document = editor.document;
         if (!supportedLanguages[document.languageId]) {
             return;
         }
@@ -58,32 +58,32 @@ export function activateTagClosing(
         if (!isEnabled) {
             return;
         }
-        let activeDocument = window.activeTextEditor && window.activeTextEditor.document;
+        const activeDocument = window.activeTextEditor && window.activeTextEditor.document;
         if (document !== activeDocument || changes.length === 0) {
             return;
         }
         if (typeof timeout !== 'undefined') {
             clearTimeout(timeout);
         }
-        let lastChange = changes[changes.length - 1];
-        let lastCharacter = lastChange.text[lastChange.text.length - 1];
+        const lastChange = changes[changes.length - 1];
+        const lastCharacter = lastChange.text[lastChange.text.length - 1];
         if ("range" in lastChange && lastChange.range.start !== lastChange.range.end || (lastCharacter !== '>' && lastCharacter !== '/')) {
             return;
         }
-        let rangeStart = "range" in lastChange ? lastChange.range.start : new Position(0, document.getText().length);
-        let version = document.version;
+        const rangeStart = "range" in lastChange ? lastChange.range.start : new Position(0, document.getText().length);
+        const version = document.version;
         timeout = setTimeout(() => {
-            let position = new Position(
+            const position = new Position(
                 rangeStart.line,
                 rangeStart.character + lastChange.text.length,
             );
             tagProvider(document, position).then(text => {
                 if (text && isEnabled) {
-                    let activeEditor = window.activeTextEditor;
+                    const activeEditor = window.activeTextEditor;
                     if (activeEditor) {
-                        let activeDocument = activeEditor.document;
+                        const activeDocument = activeEditor.document;
                         if (document === activeDocument && activeDocument.version === version) {
-                            let selections = activeEditor.selections;
+                            const selections = activeEditor.selections;
                             if (
                                 selections.length &&
                                 selections.some(s => s.active.isEqual(position))

@@ -6,7 +6,7 @@ import { DocumentSnapshot } from '../../../src/plugins/typescript/DocumentSnapsh
 import { createSvelteModuleLoader } from '../../../src/plugins/typescript/module-loader';
 
 describe('createSvelteModuleLoader', () => {
-    afterEach(function() {
+    afterEach(() => {
         sinon.restore();
     });
 

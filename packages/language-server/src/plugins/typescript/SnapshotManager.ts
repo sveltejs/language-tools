@@ -11,7 +11,7 @@ export class SnapshotManager {
             this.managerContainer.set(tsconfigPath, manager);
         }
 
-        return manager
+        return manager;
     }
 
     private documents: Map<string, DocumentSnapshot> = new Map();
@@ -28,6 +28,6 @@ export class SnapshotManager {
         return this.documents.delete(fileName);
     }
     getFileNames() {
-        return Array.from(this.documents.keys())
+        return Array.from(this.documents.keys());
     }
 }

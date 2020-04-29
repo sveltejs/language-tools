@@ -43,7 +43,6 @@ export class CSSPlugin
         DocumentColorsProvider,
         ColorPresentationsProvider,
         DocumentSymbolsProvider {
-    private readonly triggerCharacters = ['/'];
 
     private configManager!: LSConfigManager;
     private cssDocuments = new WeakMap<Document, CSSDocument>();
@@ -99,7 +98,7 @@ export class CSSPlugin
     getCompletions(
         document: Document,
         position: Position,
-        triggerCharacter: string,
+        _triggerCharacter: string,
     ): CompletionList | null {
         // TODO: Why did this need to be removed?
         // if (triggerCharacter != undefined && !this.triggerCharacters.includes(triggerCharacter)) {

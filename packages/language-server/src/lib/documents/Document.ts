@@ -47,7 +47,7 @@ export abstract class Document implements TextDocument {
         }
 
         while (low < high) {
-            var mid = Math.floor((low + high) / 2);
+            const mid = Math.floor((low + high) / 2);
             if (lineOffsets[mid] > offset) {
                 high = mid;
             } else {

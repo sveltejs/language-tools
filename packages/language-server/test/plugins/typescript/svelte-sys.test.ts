@@ -5,7 +5,7 @@ import { DocumentSnapshot } from '../../../src/plugins/typescript/DocumentSnapsh
 import { createSvelteSys } from '../../../src/plugins/typescript/svelte-sys';
 
 describe('Svelte Sys', () => {
-    afterEach(function() {
+    afterEach(() => {
         sinon.restore();
     });
 

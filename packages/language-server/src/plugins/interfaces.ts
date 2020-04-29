@@ -13,7 +13,7 @@ import {
     SymbolInformation,
     TextEdit,
 } from 'vscode-languageserver-types';
-import { FileChangeType } from 'vscode-languageserver'
+import { FileChangeType } from 'vscode-languageserver';
 import { DocumentManager, Document } from '../lib/documents';
 import { LSConfigManager } from '../ls-config';
 
@@ -76,7 +76,7 @@ export interface OnRegister {
 }
 
 export interface OnWatchFileChanges {
-    onWatchFileChanges(fileName: string, changeType: FileChangeType): void
+    onWatchFileChanges(fileName: string, changeType: FileChangeType): void;
 }
 
 export type LSProvider = DiagnosticsProvider &

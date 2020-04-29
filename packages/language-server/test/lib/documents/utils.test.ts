@@ -1,5 +1,4 @@
 import * as assert from 'assert';
-import { get } from 'lodash';
 import { extractTag } from '../../../src/lib/documents/utils';
 
 describe('document/utils', () => {

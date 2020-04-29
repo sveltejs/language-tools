@@ -1,7 +1,6 @@
 import sinon from 'sinon';
 import { Position, TextDocumentItem } from 'vscode-languageserver-types';
 import { DocumentManager, TextDocument } from '../../src/lib/documents';
-import { LSConfigManager } from '../../src/ls-config';
 import { PluginHost } from '../../src/plugins';
 
 describe('PluginHost', () => {
@@ -20,7 +19,7 @@ describe('PluginHost', () => {
 
         const pluginHost = new PluginHost(docManager, <any>{});
         const plugin = {
-            onRegister: (d: DocumentManager, c: LSConfigManager) => {},
+            onRegister: () => undefined,
             ...pluginProviderStubs,
         };
 

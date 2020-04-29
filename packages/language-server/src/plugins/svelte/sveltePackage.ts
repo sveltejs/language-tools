@@ -5,6 +5,7 @@ export function getSveltePackageInfo(fromPath: string) {
     const packageJSONPath = require.resolve('svelte/package.json', {
         paths: [fromPath, __dirname],
     });
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { version } = require(packageJSONPath);
     const [major, minor, patch] = version.split('.');
 

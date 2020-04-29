@@ -75,8 +75,8 @@ describe('SveltePlugin#getCompletions', () => {
         });
 
         it('when the only completed tag before it has white space before close symbol', () => {
-            expectCompletionsFor('{#if}{ /if}{/').toEqual(null)
-        })
+            expectCompletionsFor('{#if}{ /if}{/').toEqual(null);
+        });
     });
 
     describe('should return completion for :', () => {

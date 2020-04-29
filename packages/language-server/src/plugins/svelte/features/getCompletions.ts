@@ -191,7 +191,8 @@ function createCompletionItems(items: { label: string; tag: SvelteTag }[]): Comp
  */
 const documentation = {
     await: `\`{#await ...}\`\\
-Await blocks allow you to branch on the three possible states of a Promise — pending, fulfilled or rejected.
+Await blocks allow you to branch on the three possible states of a Promise — pending, ` +
+`fulfilled or rejected.
 #### Usage:
 \`{#await expression}...{:then name}...{:catch name}...{/await}\`\\
 \`{#await expression}...{:then name}...{/await}\`\\
@@ -213,17 +214,20 @@ Content that is conditionally rendered can be wrapped in an if block.
 \`{#if expression}...{:else}...{/if}\`
 `,
     html: `\`{@html ...}\`\\
-In a text expression, characters like < and > are escaped; however, with HTML expressions, they're not.
+In a text expression, characters like < and > are escaped; however, ` +
+`with HTML expressions, they're not.
 The expression should be valid standalone HTML.
 #### Caution
 Svelte does not sanitize expressions before injecting HTML.
-If the data comes from an untrusted source, you must sanitize it, or you are exposing your users to an XSS vulnerability.
+If the data comes from an untrusted source, you must sanitize it, ` +
+`or you are exposing your users to an XSS vulnerability.
 #### Usage:
 \`{@html expression}\`
 `,
     debug: `\`{@debug ...}\`\\
 Offers an alternative to \`console.log(...)\`.
-It logs the values of specific variables whenever they change, and pauses code execution if you have devtools open.
+It logs the values of specific variables whenever they change, ` +
+`and pauses code execution if you have devtools open.
 It accepts a comma-separated list of variable names (not arbitrary expressions).
 #### Usage:
 \`{@debug\`}
