@@ -38,7 +38,7 @@ module.exports = {
                 argsIgnorePattern: '^_'
             }
         ],
-        '@typescript-eslint/consistent-type-assertions': ['error', { assertionStyle: 'angle-bracket' }],
+        '@typescript-eslint/consistent-type-assertions': 'off',
         // might wanted to migrate to module only
         '@typescript-eslint/no-namespace': 'off'
     }
