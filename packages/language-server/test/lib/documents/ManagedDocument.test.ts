@@ -13,23 +13,6 @@ describe('ManagedDocument', () => {
         assert.strictEqual(document.getText(), '<h1>Hello, svelte!</h1>');
     });
 
-    const component = new ManagedDocument(
-        'file:///hello.svelte',
-        `
-        <h1 on:click="hello()">Hello, world!</h1>
-        <style type="text/css">
-            h1 {
-                font-size: 28px;
-            }
-        </style>
-        <script type="text/javascript">
-            function hello() {
-                alert('Hello, world!');
-            }
-        </script>
-    `,
-    );
-
     it('increments the version on edits', () => {
         const document = new ManagedDocument('file:///hello.svelte', 'hello');
         assert.strictEqual(document.version, 0);

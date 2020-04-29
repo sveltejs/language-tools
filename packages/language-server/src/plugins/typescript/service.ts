@@ -20,7 +20,7 @@ export function getLanguageServiceForDocument(
     document: TypescriptDocument,
     createDocument: CreateDocument,
 ): ts.LanguageService {
-    const tsconfigPath = findTsConfigPath(document.getFilePath()!)
+    const tsconfigPath = findTsConfigPath(document.getFilePath()!);
 
     let service: LanguageServiceContainer;
     if (services.has(tsconfigPath)) {
@@ -70,7 +70,8 @@ export function createLanguageService(
 
     const host: ts.LanguageServiceHost = {
         getCompilationSettings: () => compilerOptions,
-        getScriptFileNames: () => Array.from(new Set([...files, ...snapshotManager.getFileNames()])),
+        getScriptFileNames: () =>
+            Array.from(new Set([...files, ...snapshotManager.getFileNames()])),
         getScriptVersion(fileName: string) {
             const doc = getScriptSnapshot(fileName);
             return doc ? String(doc.version) : INITIAL_VERSION.toString();
@@ -126,7 +127,7 @@ export function createLanguageService(
         fileName = ensureRealSvelteFilePath(fileName);
 
         if (!isSvelteFilePath(fileName)) {
-            return
+            return;
         }
         let doc = snapshotManager.get(fileName);
         if (doc) {

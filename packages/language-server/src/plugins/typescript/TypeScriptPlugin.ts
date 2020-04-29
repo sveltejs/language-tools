@@ -93,7 +93,7 @@ export class TypeScriptPlugin
         const isTypescript =
             getScriptKindFromAttributes(tsDoc.getAttributes()) === ts.ScriptKind.TS;
 
-        let diagnostics: ts.Diagnostic[] = [
+        const diagnostics: ts.Diagnostic[] = [
             ...lang.getSyntacticDiagnostics(tsDoc.getFilePath()!),
             ...lang.getSuggestionDiagnostics(tsDoc.getFilePath()!),
             ...lang.getSemanticDiagnostics(tsDoc.getFilePath()!),
@@ -123,7 +123,7 @@ export class TypeScriptPlugin
         if (!info) {
             return null;
         }
-        let contents = ts.displayPartsToString(info.displayParts);
+        const contents = ts.displayPartsToString(info.displayParts);
         return mapHoverToParent(tsDoc, {
             range: convertRange(tsDoc, info.textSpan),
             contents: { language: 'ts', value: contents },
@@ -339,7 +339,7 @@ export class TypeScriptPlugin
 
         if (changeType === FileChangeType.Deleted) {
             snapshotManager.delete(fileName);
-            return
+            return;
         }
 
         const content = ts.sys.readFile(fileName) ?? '';
@@ -350,7 +350,7 @@ export class TypeScriptPlugin
             // ensure it's greater than initial build
             version: INITIAL_VERSION + 1,
             scriptKind: getScriptKindFromFileName(fileName)
-        }
+        };
 
 
         const previousSnapshot = snapshotManager.get(fileName);
@@ -358,7 +358,7 @@ export class TypeScriptPlugin
         if (previousSnapshot) {
             newSnapshot.version = previousSnapshot.version + 1;
         }
-        
+
         snapshotManager.set(fileName, newSnapshot);
     }
 

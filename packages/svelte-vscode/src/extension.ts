@@ -17,10 +17,10 @@ namespace TagCloseRequest {
 }
 
 export function activate(context: ExtensionContext) {
-    let serverModule = require.resolve('svelte-language-server/bin/server.js');
+    const serverModule = require.resolve('svelte-language-server/bin/server.js');
 
-    let debugOptions = { execArgv: ['--nolazy', '--inspect=6009'] };
-    let serverOptions: ServerOptions = {
+    const debugOptions = { execArgv: ['--nolazy', '--inspect=6009'] };
+    const serverOptions: ServerOptions = {
         run: { module: serverModule, transport: TransportKind.ipc },
         debug: { module: serverModule, transport: TransportKind.ipc, options: debugOptions },
     };
@@ -48,11 +48,14 @@ export function activate(context: ExtensionContext) {
     context.subscriptions.push(ls.start());
 
     ls.onReady().then(() => {
-        let tagRequestor = (document: TextDocument, position: Position) => {
-            let param = ls.code2ProtocolConverter.asTextDocumentPositionParams(document, position);
+        const tagRequestor = (document: TextDocument, position: Position) => {
+            const param = ls.code2ProtocolConverter.asTextDocumentPositionParams(
+                document,
+                position
+            );
             return ls.sendRequest(TagCloseRequest.type, param);
         };
-        let disposable = activateTagClosing(tagRequestor, { svelte: true }, 'html.autoClosingTags');
+        const disposable = activateTagClosing(tagRequestor, { svelte: true }, 'html.autoClosingTags');
         context.subscriptions.push(disposable);
     });
 

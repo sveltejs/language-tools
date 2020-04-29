@@ -132,7 +132,6 @@ export class SveltePlugin
     getCompletions(
         document: Document,
         position: Position,
-        triggerCharacter?: string | undefined,
     ): Resolvable<CompletionList | null> {
         if (!this.featureEnabled('completions')) {
             return null;
@@ -207,7 +206,7 @@ async function fixDiagnostics(
     for (const fragment of preprocessor.fragments) {
         const newDiagnostics: Diagnostic[] = [];
         const fragmentDiagnostics: Diagnostic[] = [];
-        for (let diag of diagnostics) {
+        for (const diag of diagnostics) {
             if (fragment.transpiled.isInFragment(diag.range.start)) {
                 fragmentDiagnostics.push(diag);
             } else {
