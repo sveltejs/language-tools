@@ -183,6 +183,12 @@
                     "default": true,
                     "title": "Svelte: Format",
                     "description": "Enable formatting for Svelte (includes css & js)"
+                },
+                "svelte.plugin.svelte.completions.enable": {
+                    "type": "boolean",
+                    "default": true,
+                    "title": "Svelte: Completions",
+                    "description": "Enable auto completions for Svelte"
                 }
             }
         },
