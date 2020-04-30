@@ -9,6 +9,9 @@ module.exports = {
         'plugin:@typescript-eslint/eslint-recommended',
         'plugin:@typescript-eslint/recommended',
     ],
+    env: {
+        node: true,
+    },
     rules: {
         semi: ['error', 'always'],
         'keyword-spacing': ['error', { before: true, after: true }],
