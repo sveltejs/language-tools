@@ -1,6 +1,7 @@
 import * as assert from 'assert';
 import * as path from 'path';
 import { dirname, join } from 'path';
+import { mkdirSync, rmdirSync } from 'fs';
 import ts from 'typescript';
 import {
     CompletionItem,
@@ -125,6 +126,30 @@ describe('TypescriptPlugin', () => {
             commitCharacters: ['.', ',', '('],
             preselect: undefined,
         });
+    });
+
+    it('provides import completions for directory', async () => {
+        const { plugin, document } = setup('importcompletions.svelte');
+        const mockDirName = 'foo';
+        const mockDirPath = path.join(__dirname, 'testfiles', mockDirName);
+
+        mkdirSync(mockDirPath);
+
+        try {
+            const completions = plugin.getCompletions(document, Position.create(0, 27), '/');
+            const mockedDirImportCompletion = completions?.items
+                .find(item => item.label === mockDirName);
+
+            assert.notEqual(
+                mockedDirImportCompletion,
+                undefined,
+                `can't provides completions on directory`
+            );
+            assert.equal(mockedDirImportCompletion?.kind, CompletionItemKind.Folder);
+        } finally {
+            rmdirSync(mockDirPath);
+        }
+
     });
 
     it('provides definitions within svelte doc', () => {

@@ -195,13 +195,20 @@ export class TypeScriptPlugin
         // The language service throws an error if the character is not a valid trigger character.
         // Also, the completions are worse.
         // Therefore, only use the characters the typescript compiler treats as valid.
-        const validTriggerCharacter = ['.', '"', "'", '`', '/', '@', '<', '#'].includes(
-            triggerCharacter!,
+        const validTriggerCharacters = ['.', '"', "'", '`', '/', '@', '<', '#'];
+        const validTriggerCharacter = triggerCharacter && validTriggerCharacters.includes(
+            triggerCharacter,
         )
             ? triggerCharacter
             : undefined;
+        const filePath = tsDoc.getFilePath();
+
+        if (!filePath) {
+            return null;
+        }
+
         const completions = lang.getCompletionsAtPosition(
-            tsDoc.getFilePath()!,
+            filePath,
             tsDoc.offsetAt(tsDoc.positionInFragment(position)),
             {
                 includeCompletionsForModuleExports: true,
@@ -213,19 +220,32 @@ export class TypeScriptPlugin
             return null;
         }
 
-        return CompletionList.create(
-            completions!.entries
-                .map(comp => {
-                    return <CompletionItem>{
-                        label: comp.name,
-                        kind: scriptElementKindToCompletionItemKind(comp.kind),
-                        sortText: comp.sortText,
-                        commitCharacters: getCommitCharactersForScriptElement(comp.kind),
-                        preselect: comp.isRecommended,
-                    };
-                })
-                .map(comp => mapCompletionItemToParent(tsDoc, comp)),
-        );
+        const completionItems = completions.entries
+            .map(comp => this.toCompletionItem(comp))
+            .map(comp => mapCompletionItemToParent(tsDoc, comp));
+
+        return CompletionList.create(completionItems);
+    }
+
+    private toCompletionItem(comp: ts.CompletionEntry) {
+        return <CompletionItem>{
+            label: this.getCompletionLabel(comp),
+            kind: scriptElementKindToCompletionItemKind(comp.kind),
+            sortText: comp.sortText,
+            commitCharacters: getCommitCharactersForScriptElement(comp.kind),
+            preselect: comp.isRecommended,
+        };
+    }
+
+    private getCompletionLabel(comp: ts.CompletionEntry) {
+        const { kind, kindModifiers, name } = comp;
+        const isScriptElement = kind === ts.ScriptElementKind.scriptElement;
+        const hasModifier = Boolean(comp.kindModifiers);
+
+        if (isScriptElement && hasModifier) {
+            return name + kindModifiers;
+        }
+        return name;
     }
 
     getDefinitions(document: Document, position: Position): DefinitionLink[] {

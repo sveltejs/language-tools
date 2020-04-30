@@ -90,6 +90,7 @@ export function createLanguageService(
         readFile: svelteModuleLoader.readFile,
         resolveModuleNames: svelteModuleLoader.resolveModuleNames,
         readDirectory: ts.sys.readDirectory,
+        getDirectories: ts.sys.getDirectories,
         getScriptKind: (fileName: string) => {
             const doc = getSvelteSnapshot(fileName);
             if (doc) {
