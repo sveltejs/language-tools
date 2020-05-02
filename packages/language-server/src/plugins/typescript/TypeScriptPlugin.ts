@@ -12,7 +12,6 @@ import {
     Range,
     SymbolInformation,
     TextDocumentEdit,
-    TextEdit,
     VersionedTextDocumentIdentifier,
     FileChangeType,
 } from 'vscode-languageserver';
@@ -313,10 +312,10 @@ export class TypeScriptPlugin
                                     null,
                                 ),
                                 change.textChanges.map(edit => {
-                                    return TextEdit.replace(
-                                        convertRange(doc!, edit.span),
-                                        edit.newText,
-                                    );
+                                    return {
+                                        range: convertRange(doc!, edit.span),
+                                        newText: edit.newText,
+                                    };
                                 }),
                             );
                         }),
