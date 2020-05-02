@@ -11,7 +11,7 @@
     "build": "tsc -b",
     "test": "CI=true yarn workspaces run test",
     "watch": "tsc -b -watch",
-    "lint": "eslint \"packages/**/{src,test}/**/*.{ts,js}\""
+    "lint": "eslint \"packages/**/*.{ts,js}\""
   },
   "dependencies": {
     "axios": "0.19.2"
