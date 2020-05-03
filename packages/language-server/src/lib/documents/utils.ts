@@ -23,9 +23,8 @@ function parseAttributes(str: string): Record<string, string> {
  * @param source text content to extract tag from
  * @param tag the tag to extract
  */
-
 export function extractTag(source: string, tag: 'script' | 'style') {
-    const exp = new RegExp(`(<!--.*-->)|(<${tag}( [\\S\\s]*)?>)([\\S\\s]*?)<\\/${tag}>`, 'igs');
+    const exp = new RegExp(`(<!--.*-->)|(<${tag}(\\s[\\S\\s]*)?>)([\\S\\s]*?)<\\/${tag}>`, 'igs');
     let match = exp.exec(source);
 
     while (match && match[0].startsWith('<!--')) {
