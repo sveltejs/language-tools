@@ -30,7 +30,7 @@ jobs:
       - run: 'json -I -f packages/svelte-vscode/package.json -e "this.dependencies[\`svelte-language-server\`]=\`file:../language-server\`"'
       - run: 'json -I -f packages/svelte-vscode/package.json -e "this.version=\`99.0.0\`"'
 
-      # To deploy we need a node_modules folder which isn't in the yarn 
+      # To deploy we need a node_modules folder which isn't in the yarn
       # So, remove the workspace
       - run: "rm package.json yarn.lock"
 
@@ -42,14 +42,15 @@ jobs:
          # Have commits been added in the last day?
          if [[ $(git log --pretty=format: --name-only --since="1 days ago") ]]; then
             yarn update:package:bump
-            
+
             # Ship it
             npm publish
          fi
 
          cd ..
         env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        name: 'Deploy language server to NPM'
 
       # Re-run the  yarn install outside of the workspace
       - run: |
@@ -62,13 +63,14 @@ jobs:
 
          # Have commits been added in the last day?
          if [[ $(git log --pretty=format: --name-only --since="1 days ago") ]]; then
-            # Bump the version  
+            # Bump the version
             yarn update:package:beta
 
             # Ship it
             npx vsce publish --yarn -p $VSCE_TOKEN
          fi
-      
+
         env:
           VSCE_TOKEN: ${{ secrets.AZURE_PAN_TOKEN }}
+        name: 'Deploy vscode extension'
 
