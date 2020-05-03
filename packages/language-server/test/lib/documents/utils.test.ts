@@ -30,5 +30,15 @@ describe('document/utils', () => {
                 container: { start: 44, end: 76 },
             });
         });
+        it('does not extract tags starting with style/script', () => {
+            // https://github.com/sveltejs/language-tools/issues/43
+            // this would previously match <styles>....</style> due to misconfigured attribute matching regex
+            const text = `
+            <styles>p{ color: blue; }</styles>
+            <p>bla</p>
+            ></style>
+            `;
+            assert.deepStrictEqual(extractTag(text, 'style'), null);
+        });
     });
 });
