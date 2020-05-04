@@ -16,7 +16,7 @@ describe('createSvelteModuleLoader', () => {
             getText: (_, __) => svelteFile,
             getLength: () => svelteFile.length,
             getChangeRange: () => undefined,
-            scriptKind: ts.ScriptKind.TS,
+            scriptKind: ts.ScriptKind.TSX,
             version: 0,
         };
         const getSvelteSnapshotStub = sinon.stub().returns(snapshot);
@@ -80,7 +80,7 @@ describe('createSvelteModuleLoader', () => {
 
         assert.deepStrictEqual(result, [
             <ts.ResolvedModuleFull>{
-                extension: ts.Extension.Ts,
+                extension: ts.Extension.Tsx,
                 resolvedFileName: 'filename.svelte',
             },
         ]);

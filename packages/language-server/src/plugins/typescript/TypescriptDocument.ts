@@ -1,115 +1,81 @@
 import { Position } from 'vscode-languageserver';
-import { extractTag, Document, Fragment } from '../../lib/documents';
+import { extractTag, Document, Fragment, positionAt, offsetAt } from '../../lib/documents';
+import { RawSourceMap, SourceMapConsumer } from 'source-map';
+import { isSvelteFilePath } from './utils';
+import svelte2tsx from 'svelte2tsx';
+import { DocumentMapper, IdentityMapper, ConsumerDocumentMapper } from './DocumentMapper';
 
-export class TypescriptFragment {
-    private version!: number;
-    private info!: {
-        attributes: {};
-        start: number;
-        end: number;
-    };
+export class TypescriptFragment implements Fragment {
+    constructor(private mapper: DocumentMapper, private text: string, private url: string) {}
 
-    constructor(private document: Document) {
-        this.update();
+    positionInParent(pos: Position): Position {
+        return this.mapper.getOriginalPosition(pos)!;
     }
 
-    /**
-     * Start of fragment within document.
-     */
-    get start(): number {
-        this.update();
-        return this.info.start;
+    positionInFragment(pos: Position): Position {
+        return this.mapper.getGeneratedPosition(pos)!;
     }
 
-    /**
-     * End of fragment within document.
-     */
-    get end(): number {
-        this.update();
-        return this.info.end;
+    isInFragment(pos: Position): boolean {
+        return true;
     }
 
-    /**
-     * Attributes of fragment within document.
-     */
-    get attributes(): Record<string, string> {
-        this.update();
-        return { ...this.info.attributes, tag: 'script' };
+    getURL(): string {
+        return this.url;
     }
 
-    /**
-     * Find the tag in the document if we detected a change
-     */
-    private update() {
-        if (this.document.version === this.version) {
-            return;
-        }
+    positionAt(offset: number) {
+        return positionAt(offset, this.text);
+    }
 
-        this.version = this.document.version;
-        const info = extractTag(this.document.getText(), 'script');
-        if (info) {
-            this.info = info;
-            return;
-        }
-
-        const length = this.document.getTextLength();
-        this.info = {
-            attributes: {},
-            start: length,
-            end: length,
-        };
+    offsetAt(position: Position) {
+        return offsetAt(position, this.text);
     }
 }
 
-export class TypescriptDocument extends Document implements Fragment {
-    private typescriptFragment: TypescriptFragment;
+export class TypescriptDocument extends Document {
+    private text: string;
+    private tsxMap?: RawSourceMap;
+    private attributes: Record<string, string>;
+    private fragment?: TypescriptFragment;
+    private _version: number;
 
     constructor(private parent: Document) {
         super();
-        this.typescriptFragment = new TypescriptFragment(parent);
-    }
+        this._version = parent.version;
 
-    /**
-     * Get the fragment position relative to the parent
-     * @param pos Position in fragment
-     */
-    positionInParent(pos: Position): Position {
-        const parentOffset = this.typescriptFragment.start + this.offsetAt(pos);
-        return this.parent.positionAt(parentOffset);
-    }
+        this.attributes = extractTag(parent.getText(), 'script')?.attributes || {};
+        this.attributes = { ...this.attributes, tag: 'script' };
 
-    /**
-     * Get the position relative to the start of the fragment
-     * @param pos Position in parent
-     */
-    positionInFragment(pos: Position): Position {
-        const fragmentOffset = this.parent.offsetAt(pos) - this.typescriptFragment.start;
-        return this.positionAt(fragmentOffset);
-    }
+        this.text = parent.getText();
 
-    /**
-     * Returns true if the given parent position is inside of this fragment
-     * @param pos Position in parent
-     */
-    isInFragment(pos: Position): boolean {
-        const offset = this.parent.offsetAt(pos);
-        return offset >= this.typescriptFragment.start && offset <= this.typescriptFragment.end;
+        if (isSvelteFilePath(parent.uri)) {
+            try {
+                const tsx = svelte2tsx(parent.getText());
+                this.text = tsx.code;
+                this.tsxMap = tsx.map;
+                if (this.tsxMap) {
+                    this.tsxMap.sources = [parent.uri];
+                }
+            } catch (e) {
+                this.text = '';
+                console.error(`Couldn't convert ${parent.uri} to tsx`, e);
+            }
+        }
     }
 
     /**
      * Get the fragment text from the parent
      */
     getText(): string {
-        return this.parent
-            .getText()
-            .slice(this.typescriptFragment.start, this.typescriptFragment.end);
+        return this.text;
     }
 
     /**
      * Returns the length of the fragment as calculated from the start and end positon
      */
     getTextLength(): number {
-        return this.typescriptFragment.end - this.typescriptFragment.start;
+        return this.text.length;
     }
 
     /**
@@ -124,7 +90,7 @@ export class TypescriptDocument extends Document implements Fragment {
     }
 
     get version(): number {
-        return this.parent.version;
+        return this._version;
     }
 
     set version(version: number) {
@@ -132,6 +98,19 @@ export class TypescriptDocument extends Document implements Fragment {
     }
 
     getAttributes() {
-        return this.typescriptFragment.attributes;
+        return this.attributes;
+    }
+
+    async getFragment() {
+        if (!this.fragment) {
+            const mapper = !this.tsxMap
+                ? new IdentityMapper()
+                : new ConsumerDocumentMapper(
+                      await new SourceMapConsumer(this.tsxMap),
+                      this.parent.uri,
+                  );
+            this.fragment = new TypescriptFragment(mapper, this.text, this.getURL());
+        }
+        return this.fragment;
     }
 }

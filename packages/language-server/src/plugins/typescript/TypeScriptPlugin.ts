@@ -49,7 +49,6 @@ import {
     DocumentSymbolsProvider,
     HoverProvider,
     OnRegister,
-    Resolvable,
     OnWatchFileChanges,
 } from '../interfaces';
 import { SnapshotManager } from './SnapshotManager';
@@ -84,20 +83,22 @@ export class TypeScriptPlugin
         };
     }
 
-    getDiagnostics(document: Document): Diagnostic[] {
+    async getDiagnostics(document: Document): Promise<Diagnostic[]> {
         if (!this.featureEnabled('diagnostics')) {
             return [];
         }
 
         const { lang, tsDoc } = this.getLSAndTSDoc(document);
         const isTypescript =
-            getScriptKindFromAttributes(tsDoc.getAttributes()) === ts.ScriptKind.TS;
+            getScriptKindFromAttributes(tsDoc.getAttributes()) === ts.ScriptKind.TSX;
 
         const diagnostics: ts.Diagnostic[] = [
             ...lang.getSyntacticDiagnostics(tsDoc.getFilePath()!),
             ...lang.getSuggestionDiagnostics(tsDoc.getFilePath()!),
             ...lang.getSemanticDiagnostics(tsDoc.getFilePath()!),
         ];
+
+        const fragment = await tsDoc.getFragment();
 
         return diagnostics
             .map(diagnostic => ({
@@ -107,35 +108,40 @@ export class TypeScriptPlugin
                 message: ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n'),
                 code: diagnostic.code,
             }))
-            .map(diagnostic => mapDiagnosticToParent(tsDoc, diagnostic));
+            .map(diagnostic => mapDiagnosticToParent(fragment, diagnostic))
+            .filter(
+                diagnostic => diagnostic.range.start.line >= 0 && diagnostic.range.end.line >= 0,
+            );
     }
 
-    doHover(document: Document, position: Position): Hover | null {
+    async doHover(document: Document, position: Position): Promise<Hover | null> {
         if (!this.featureEnabled('hover')) {
             return null;
         }
 
         const { lang, tsDoc } = this.getLSAndTSDoc(document);
+        const fragment = await tsDoc.getFragment();
         const info = lang.getQuickInfoAtPosition(
             tsDoc.getFilePath()!,
-            tsDoc.offsetAt(tsDoc.positionInFragment(position)),
+            tsDoc.offsetAt(fragment.positionInFragment(position)),
         );
         if (!info) {
             return null;
         }
         const contents = ts.displayPartsToString(info.displayParts);
-        return mapHoverToParent(tsDoc, {
-            range: convertRange(tsDoc, info.textSpan),
+        return mapHoverToParent(fragment, {
+            range: convertRange(fragment, info.textSpan),
             contents: { language: 'ts', value: contents },
         });
     }
 
-    getDocumentSymbols(document: Document): SymbolInformation[] {
+    async getDocumentSymbols(document: Document): Promise<SymbolInformation[]> {
         if (!this.featureEnabled('documentSymbols')) {
             return [];
         }
 
         const { lang, tsDoc } = this.getLSAndTSDoc(document);
+        const fragment = await tsDoc.getFragment();
         const navTree = lang.getNavigationTree(tsDoc.getFilePath()!);
 
         const symbols: SymbolInformation[] = [];
@@ -151,7 +157,7 @@ export class TypeScriptPlugin
 
                 return symbol;
             })
-            .map(symbol => mapSymbolInformationToParent(tsDoc, symbol));
+            .map(symbol => mapSymbolInformationToParent(fragment, symbol));
 
         function collectSymbols(
             tree: NavigationTree,
@@ -166,10 +172,10 @@ export class TypeScriptPlugin
                         tree.text,
                         symbolKindFromString(tree.kind),
                         Range.create(
-                            tsDoc.positionAt(start.start),
-                            tsDoc.positionAt(end.start + end.length),
+                            fragment.positionAt(start.start),
+                            fragment.positionAt(end.start + end.length),
                         ),
-                        tsDoc.getURL(),
+                        fragment.getURL(),
                         container,
                     ),
                 );
@@ -182,16 +188,17 @@ export class TypeScriptPlugin
         }
     }
 
-    getCompletions(
+    async getCompletions(
         document: Document,
         position: Position,
         triggerCharacter?: string,
-    ): CompletionList | null {
+    ): Promise<CompletionList | null> {
         if (!this.featureEnabled('completions')) {
             return null;
         }
 
         const { lang, tsDoc } = this.getLSAndTSDoc(document);
+        const fragment = await tsDoc.getFragment();
         // The language service throws an error if the character is not a valid trigger character.
         // Also, the completions are worse.
         // Therefore, only use the characters the typescript compiler treats as valid.
@@ -202,7 +209,7 @@ export class TypeScriptPlugin
             : undefined;
         const completions = lang.getCompletionsAtPosition(
             tsDoc.getFilePath()!,
-            tsDoc.offsetAt(tsDoc.positionInFragment(position)),
+            fragment.offsetAt(fragment.positionInFragment(position)),
             {
                 includeCompletionsForModuleExports: true,
                 triggerCharacter: validTriggerCharacter as any,
@@ -224,27 +231,30 @@ export class TypeScriptPlugin
                         preselect: comp.isRecommended,
                     };
                 })
-                .map(comp => mapCompletionItemToParent(tsDoc, comp)),
+                .map(comp => mapCompletionItemToParent(fragment, comp)),
         );
     }
 
-    getDefinitions(document: Document, position: Position): DefinitionLink[] {
+    async getDefinitions(document: Document, position: Position): Promise<DefinitionLink[]> {
         if (!this.featureEnabled('definitions')) {
             return [];
         }
 
         const { lang, tsDoc } = this.getLSAndTSDoc(document);
+        const fragment = await tsDoc.getFragment();
 
         const defs = lang.getDefinitionAndBoundSpan(
             tsDoc.getFilePath()!,
-            tsDoc.offsetAt(tsDoc.positionInFragment(position)),
+            fragment.offsetAt(fragment.positionInFragment(position)),
         );
 
         if (!defs || !defs.definitions) {
             return [];
         }
 
-        const docs = new Map<string, Document>([[tsDoc.getFilePath()!, tsDoc]]);
+        const docs = new Map<string, { positionAt: (offset: number) => Position }>([
+            [tsDoc.getFilePath()!, fragment],
+        ]);
 
         return defs.definitions
             .map(def => {
@@ -261,26 +271,27 @@ export class TypeScriptPlugin
                     pathToUrl(def.fileName),
                     convertRange(defDoc, def.textSpan),
                     convertRange(defDoc, def.textSpan),
-                    convertRange(tsDoc, defs.textSpan),
+                    convertRange(fragment, defs.textSpan),
                 );
             })
             .filter(def => !!def)
-            .map(def => mapLocationLinkToParent(tsDoc, def)) as DefinitionLink[];
+            .map(def => mapLocationLinkToParent(fragment, def)) as DefinitionLink[];
     }
 
-    getCodeActions(
+    async getCodeActions(
         document: Document,
         range: Range,
         context: CodeActionContext,
-    ): Resolvable<CodeAction[]> {
+    ): Promise<CodeAction[]> {
         if (!this.featureEnabled('codeActions')) {
             return [];
         }
 
         const { lang, tsDoc } = this.getLSAndTSDoc(document);
+        const fragment = await tsDoc.getFragment();
 
-        const start = tsDoc.offsetAt(tsDoc.positionInFragment(range.start));
-        const end = tsDoc.offsetAt(tsDoc.positionInFragment(range.end));
+        const start = fragment.offsetAt(fragment.positionInFragment(range.start));
+        const end = fragment.offsetAt(fragment.positionInFragment(range.end));
         const errorCodes: number[] = context.diagnostics.map(diag => Number(diag.code));
         const codeFixes = lang.getCodeFixesAtPosition(
             tsDoc.getFilePath()!,
@@ -291,7 +302,9 @@ export class TypeScriptPlugin
             {},
         );
 
-        const docs = new Map<string, Document>([[tsDoc.getFilePath()!, tsDoc]]);
+        const docs = new Map<string, { positionAt: (offset: number) => Position }>([
+            [tsDoc.getFilePath()!, fragment],
+        ]);
         return codeFixes
             .map(fix => {
                 return CodeAction.create(
@@ -324,7 +337,11 @@ export class TypeScriptPlugin
                     fix.fixName,
                 );
             })
-            .map(fix => mapCodeActionToParent(tsDoc, fix));
+            .map(fix => {
+                console.log(JSON.stringify(fix, null, 3));
+                return fix;
+            })
+            .map(fix => mapCodeActionToParent(fragment, fix));
     }
 
     onWatchFileChanges(fileName: string, changeType: FileChangeType) {
@@ -349,9 +366,8 @@ export class TypeScriptPlugin
             getChangeRange: () => undefined,
             // ensure it's greater than initial build
             version: INITIAL_VERSION + 1,
-            scriptKind: getScriptKindFromFileName(fileName)
+            scriptKind: getScriptKindFromFileName(fileName),
         };
-
 
         const previousSnapshot = snapshotManager.get(fileName);
 
@@ -364,7 +380,7 @@ export class TypeScriptPlugin
 
     private getLSAndTSDoc(document: Document) {
         let tsDoc = this.documents.get(document);
-        if (!tsDoc) {
+        if (!tsDoc || document.version !== tsDoc.version) {
             tsDoc = new TypescriptDocument(document);
             this.documents.set(document, tsDoc);
         }

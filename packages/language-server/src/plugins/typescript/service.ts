@@ -3,7 +3,12 @@ import ts from 'typescript';
 import { getSveltePackageInfo } from '../svelte/sveltePackage';
 import { DocumentSnapshot, INITIAL_VERSION } from './DocumentSnapshot';
 import { createSvelteModuleLoader } from './module-loader';
-import { ensureRealSvelteFilePath, getScriptKindFromFileName, isSvelteFilePath, findTsConfigPath } from './utils';
+import {
+    ensureRealSvelteFilePath,
+    getScriptKindFromFileName,
+    isSvelteFilePath,
+    findTsConfigPath,
+} from './utils';
 import { TypescriptDocument } from './TypescriptDocument';
 import { SnapshotManager } from './SnapshotManager';
 
@@ -60,18 +65,31 @@ export function createLanguageService(
             compilerOptions,
             tsconfigPath,
             undefined,
-            [{ extension: 'svelte', isMixedContent: true }],
+            [{ extension: 'svelte', isMixedContent: false, scriptKind: ts.ScriptKind.TSX }],
         );
+        const forcedOptions: ts.CompilerOptions = {
+            noEmit: true,
+            declaration: false,
+            jsx: ts.JsxEmit.Preserve,
+            jsxFactory: 'h',
+            skipLibCheck: true,
+        };
+        compilerOptions = { ...compilerOptions, ...parsedConfig.options, ...forcedOptions };
+
         files = parsedConfig.fileNames;
-        compilerOptions = { ...compilerOptions, ...parsedConfig.options };
     }
 
     const svelteModuleLoader = createSvelteModuleLoader(getSvelteSnapshot, compilerOptions);
 
+    const svelteTsPath = dirname(require.resolve('svelte2tsx'));
+    const svelteTsxFiles = ['./svelte-shims.d.ts', './svelte-jsx.d.ts'].map(f =>
+        ts.sys.resolvePath(resolve(svelteTsPath, f)),
+    );
+
     const host: ts.LanguageServiceHost = {
         getCompilationSettings: () => compilerOptions,
         getScriptFileNames: () =>
-            Array.from(new Set([...files, ...snapshotManager.getFileNames()])),
+            Array.from(new Set([...files, ...snapshotManager.getFileNames(), ...svelteTsxFiles])),
         getScriptVersion(fileName: string) {
             const doc = getScriptSnapshot(fileName);
             return doc ? String(doc.version) : INITIAL_VERSION.toString();

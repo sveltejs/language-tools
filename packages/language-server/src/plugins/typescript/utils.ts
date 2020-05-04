@@ -1,6 +1,11 @@
 import ts from 'typescript';
-import { Range, SymbolKind, CompletionItemKind, DiagnosticSeverity } from 'vscode-languageserver';
-import { Document } from '../../lib/documents';
+import {
+    Range,
+    SymbolKind,
+    CompletionItemKind,
+    DiagnosticSeverity,
+    Position,
+} from 'vscode-languageserver';
 import { dirname } from 'path';
 
 export function getScriptKindFromFileName(fileName: string): ts.ScriptKind {
@@ -21,19 +26,35 @@ export function getScriptKindFromFileName(fileName: string): ts.ScriptKind {
     }
 }
 
+export function getExtensionFromScriptKind(kind: ts.ScriptKind | undefined): ts.Extension {
+    switch (kind) {
+        case ts.ScriptKind.JSX:
+            return ts.Extension.Jsx;
+        case ts.ScriptKind.TS:
+            return ts.Extension.Ts;
+        case ts.ScriptKind.TSX:
+            return ts.Extension.Tsx;
+        case ts.ScriptKind.JSON:
+            return ts.Extension.Json;
+        case ts.ScriptKind.JS:
+        default:
+            return ts.Extension.Js;
+    }
+}
+
 export function getScriptKindFromAttributes(
     attrs: Record<string, string>,
-): ts.ScriptKind.TS | ts.ScriptKind.JS {
+): ts.ScriptKind.TSX | ts.ScriptKind.JSX {
     const type = attrs.lang || attrs.type;
 
     switch (type) {
         case 'typescript':
         case 'text/typescript':
-            return ts.ScriptKind.TS;
+            return ts.ScriptKind.TSX;
         case 'javascript':
         case 'text/javascript':
         default:
-            return ts.ScriptKind.JS;
+            return ts.ScriptKind.JSX;
     }
 }
 
@@ -54,7 +75,7 @@ export function ensureRealSvelteFilePath(filePath: string) {
 }
 
 export function convertRange(
-    document: Document,
+    document: { positionAt: (offset: number) => Position },
     range: { start?: number; length?: number },
 ): Range {
     return Range.create(
@@ -66,9 +87,11 @@ export function convertRange(
 export function findTsConfigPath(fileName: string) {
     const searchDir = dirname(fileName);
 
-    return ts.findConfigFile(searchDir, ts.sys.fileExists, 'tsconfig.json') ||
+    return (
+        ts.findConfigFile(searchDir, ts.sys.fileExists, 'tsconfig.json') ||
         ts.findConfigFile(searchDir, ts.sys.fileExists, 'jsconfig.json') ||
-        '';
+        ''
+    );
 }
 
 export function symbolKindFromString(kind: string): SymbolKind {

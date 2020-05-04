@@ -35,9 +35,9 @@ describe('TypescriptPlugin', () => {
         return { plugin, document };
     }
 
-    it('provides diagnostics', () => {
+    it('provides diagnostics', async () => {
         const { plugin, document } = setup('diagnostics.svelte');
-        const diagnostics = plugin.getDiagnostics(document);
+        const diagnostics = await plugin.getDiagnostics(document);
 
         assert.deepStrictEqual(diagnostics, [
             {
@@ -64,7 +64,7 @@ describe('TypescriptPlugin', () => {
     it('provides hover info', async () => {
         const { plugin, document } = setup('hoverinfo.svelte');
 
-        assert.deepStrictEqual(plugin.doHover(document, Position.create(0, 14)), <Hover>{
+        assert.deepStrictEqual(await plugin.doHover(document, Position.create(0, 14)), <Hover>{
             contents: {
                 language: 'ts',
                 value: 'const a: true',
@@ -82,13 +82,14 @@ describe('TypescriptPlugin', () => {
         });
     });
 
-    it('provides document symbols', () => {
+    it('provides document symbols', async () => {
         const { plugin, document } = setup('documentsymbols.svelte');
-        const symbols = plugin.getDocumentSymbols(document);
+        const symbols = await plugin.getDocumentSymbols(document);
 
-        assert.deepStrictEqual(symbols, [
+        assert.deepStrictEqual(
+            symbols.find(symbol => symbol.name === 'bla'),
             {
-                containerName: 'script',
+                containerName: 'render',
                 kind: 12,
                 location: {
                     range: {
@@ -105,13 +106,13 @@ describe('TypescriptPlugin', () => {
                 },
                 name: 'bla',
             },
-        ]);
+        );
     });
 
     it('provides completions', async () => {
         const { plugin, document } = setup('completions.svelte');
 
-        const completions = plugin.getCompletions(document, Position.create(0, 49), '.');
+        const completions = await plugin.getCompletions(document, Position.create(0, 49), '.');
 
         assert.ok(
             Array.isArray(completions && completions.items),
@@ -127,10 +128,10 @@ describe('TypescriptPlugin', () => {
         });
     });
 
-    it('provides definitions within svelte doc', () => {
+    it('provides definitions within svelte doc', async () => {
         const { plugin, document } = setup('definitions.svelte');
 
-        const definitions = plugin.getDefinitions(document, Position.create(0, 94)); // +7
+        const definitions = await plugin.getDefinitions(document, Position.create(0, 94)); // +7
 
         assert.deepStrictEqual(definitions, [
             {
@@ -169,10 +170,10 @@ describe('TypescriptPlugin', () => {
         ]);
     });
 
-    it('provides definitions from svelte to ts doc', () => {
+    it('provides definitions from svelte to ts doc', async () => {
         const { plugin, document } = setup('definitions.svelte');
 
-        const definitions = plugin.getDefinitions(document, Position.create(0, 101));
+        const definitions = await plugin.getDefinitions(document, Position.create(0, 101));
 
         assert.deepStrictEqual(definitions, [
             {
@@ -211,24 +212,25 @@ describe('TypescriptPlugin', () => {
         ]);
     });
 
-    it('provides code actions', () => {
+    it('provides code actions', async () => {
         const { plugin, document } = setup('codeactions.svelte');
 
-        const codeActions = plugin.getCodeActions(
+        const codeActions = await plugin.getCodeActions(
             document,
-            Range.create(Position.create(0, 12), Position.create(0, 13)),
+            Range.create(Position.create(0, 11), Position.create(0, 12)),
             {
                 diagnostics: [
                     {
                         code: 6133,
                         message: "'a' is declared but its value is never read.",
-                        range: Range.create(Position.create(0, 12), Position.create(0, 13)),
+                        range: Range.create(Position.create(0, 11), Position.create(0, 12)),
                         source: 'ts',
                     },
                 ],
                 only: ['quickfix'],
             },
         );
+        console.log(JSON.stringify(codeActions, null, 3));
 
         assert.deepStrictEqual(codeActions, [
             {
