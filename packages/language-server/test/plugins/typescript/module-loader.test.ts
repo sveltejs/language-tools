@@ -4,6 +4,7 @@ import ts from 'typescript';
 import * as svS from '../../../src/plugins/typescript/svelte-sys';
 import { DocumentSnapshot } from '../../../src/plugins/typescript/DocumentSnapshot';
 import { createSvelteModuleLoader } from '../../../src/plugins/typescript/module-loader';
+import { TextDocument } from '../../../src/lib/documents';
 
 describe('createSvelteModuleLoader', () => {
     afterEach(() => {
@@ -12,13 +13,9 @@ describe('createSvelteModuleLoader', () => {
 
     function setup(resolvedModule: ts.ResolvedModuleFull) {
         const svelteFile = 'const a = "svelte file";';
-        const snapshot: DocumentSnapshot = {
-            getText: (_, __) => svelteFile,
-            getLength: () => svelteFile.length,
-            getChangeRange: () => undefined,
-            scriptKind: ts.ScriptKind.TSX,
-            version: 0,
-        };
+        const snapshot: DocumentSnapshot = DocumentSnapshot.fromDocument(
+            new TextDocument('', svelteFile),
+        );
         const getSvelteSnapshotStub = sinon.stub().returns(snapshot);
 
         const resolveStub = sinon.stub().returns(<ts.ResolvedModuleWithFailedLookupLocations>{
@@ -80,7 +77,7 @@ describe('createSvelteModuleLoader', () => {
 
         assert.deepStrictEqual(result, [
             <ts.ResolvedModuleFull>{
-                extension: ts.Extension.Tsx,
+                extension: ts.Extension.Jsx,
                 resolvedFileName: 'filename.svelte',
             },
         ]);

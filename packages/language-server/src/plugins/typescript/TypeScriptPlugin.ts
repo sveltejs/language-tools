@@ -6,6 +6,7 @@ import {
     CompletionList,
     DefinitionLink,
     Diagnostic,
+    FileChangeType,
     Hover,
     LocationLink,
     Position,
@@ -14,33 +15,20 @@ import {
     TextDocumentEdit,
     TextEdit,
     VersionedTextDocumentIdentifier,
-    FileChangeType,
 } from 'vscode-languageserver';
 import {
-    DocumentManager,
-    TextDocument,
     Document,
+    DocumentManager,
+    mapCodeActionToParent,
+    mapCompletionItemToParent,
     mapDiagnosticToParent,
     mapHoverToParent,
     mapSymbolInformationToParent,
-    mapCompletionItemToParent,
+    TextDocument,
     mapLocationLinkToParent,
-    mapCodeActionToParent,
 } from '../../lib/documents';
 import { LSConfigManager, LSTypescriptConfig } from '../../ls-config';
 import { pathToUrl } from '../../utils';
-import { CreateDocument, getLanguageServiceForDocument } from './service';
-import {
-    convertRange,
-    getCommitCharactersForScriptElement,
-    getScriptKindFromAttributes,
-    mapSeverity,
-    scriptElementKindToCompletionItemKind,
-    symbolKindFromString,
-    findTsConfigPath,
-    getScriptKindFromFileName,
-} from './utils';
-import { TypescriptDocument } from './TypescriptDocument';
 import {
     CodeActionsProvider,
     CompletionsProvider,
@@ -51,8 +39,19 @@ import {
     OnRegister,
     OnWatchFileChanges,
 } from '../interfaces';
+import { DocumentSnapshot, SnapshotFragment } from './DocumentSnapshot';
+import { CreateDocument, getLanguageServiceForDocument } from './service';
 import { SnapshotManager } from './SnapshotManager';
-import { DocumentSnapshot, INITIAL_VERSION } from './DocumentSnapshot';
+import {
+    convertRange,
+    convertToLocationRange,
+    findTsConfigPath,
+    getCommitCharactersForScriptElement,
+    getScriptKindFromFileName,
+    mapSeverity,
+    scriptElementKindToCompletionItemKind,
+    symbolKindFromString,
+} from './utils';
 
 export class TypeScriptPlugin
     implements
@@ -66,7 +65,6 @@ export class TypeScriptPlugin
         OnWatchFileChanges {
     private configManager!: LSConfigManager;
     private createDocument!: CreateDocument;
-    private documents = new Map<Document, TypescriptDocument>();
 
     onRegister(docManager: DocumentManager, configManager: LSConfigManager) {
         this.configManager = configManager;
@@ -79,7 +77,7 @@ export class TypeScriptPlugin
                 version: 0,
             });
             docManager.lockDocument(uri);
-            return new TypescriptDocument(document);
+            return document;
         };
     }
 
@@ -89,13 +87,12 @@ export class TypeScriptPlugin
         }
 
         const { lang, tsDoc } = this.getLSAndTSDoc(document);
-        const isTypescript =
-            getScriptKindFromAttributes(tsDoc.getAttributes()) === ts.ScriptKind.TSX;
+        const isTypescript = tsDoc.scriptKind === ts.ScriptKind.TSX;
 
         const diagnostics: ts.Diagnostic[] = [
-            ...lang.getSyntacticDiagnostics(tsDoc.getFilePath()!),
-            ...lang.getSuggestionDiagnostics(tsDoc.getFilePath()!),
-            ...lang.getSemanticDiagnostics(tsDoc.getFilePath()!),
+            ...lang.getSyntacticDiagnostics(tsDoc.filePath),
+            ...lang.getSuggestionDiagnostics(tsDoc.filePath),
+            ...lang.getSemanticDiagnostics(tsDoc.filePath),
         ];
 
         const fragment = await tsDoc.getFragment();
@@ -122,8 +119,8 @@ export class TypeScriptPlugin
         const { lang, tsDoc } = this.getLSAndTSDoc(document);
         const fragment = await tsDoc.getFragment();
         const info = lang.getQuickInfoAtPosition(
-            tsDoc.getFilePath()!,
-            tsDoc.offsetAt(fragment.positionInFragment(position)),
+            tsDoc.filePath,
+            fragment.offsetAt(fragment.positionInFragment(position)),
         );
         if (!info) {
             return null;
@@ -142,7 +139,7 @@ export class TypeScriptPlugin
 
         const { lang, tsDoc } = this.getLSAndTSDoc(document);
         const fragment = await tsDoc.getFragment();
-        const navTree = lang.getNavigationTree(tsDoc.getFilePath()!);
+        const navTree = lang.getNavigationTree(tsDoc.filePath);
 
         const symbols: SymbolInformation[] = [];
         collectSymbols(navTree, undefined, symbol => symbols.push(symbol));
@@ -208,7 +205,7 @@ export class TypeScriptPlugin
             ? triggerCharacter
             : undefined;
         const completions = lang.getCompletionsAtPosition(
-            tsDoc.getFilePath()!,
+            tsDoc.filePath,
             fragment.offsetAt(fragment.positionInFragment(position)),
             {
                 includeCompletionsForModuleExports: true,
@@ -244,7 +241,7 @@ export class TypeScriptPlugin
         const fragment = await tsDoc.getFragment();
 
         const defs = lang.getDefinitionAndBoundSpan(
-            tsDoc.getFilePath()!,
+            tsDoc.filePath,
             fragment.offsetAt(fragment.positionInFragment(position)),
         );
 
@@ -253,7 +250,7 @@ export class TypeScriptPlugin
         }
 
         const docs = new Map<string, { positionAt: (offset: number) => Position }>([
-            [tsDoc.getFilePath()!, fragment],
+            [tsDoc.filePath, fragment],
         ]);
 
         return defs.definitions
@@ -294,7 +291,7 @@ export class TypeScriptPlugin
         const end = fragment.offsetAt(fragment.positionInFragment(range.end));
         const errorCodes: number[] = context.diagnostics.map(diag => Number(diag.code));
         const codeFixes = lang.getCodeFixesAtPosition(
-            tsDoc.getFilePath()!,
+            tsDoc.filePath,
             start,
             end,
             errorCodes,
@@ -303,7 +300,7 @@ export class TypeScriptPlugin
         );
 
         const docs = new Map<string, { positionAt: (offset: number) => Position }>([
-            [tsDoc.getFilePath()!, fragment],
+            [tsDoc.filePath, fragment],
         ]);
         return codeFixes
             .map(fix => {
@@ -337,10 +334,6 @@ export class TypeScriptPlugin
                     fix.fixName,
                 );
             })
-            .map(fix => {
-                console.log(JSON.stringify(fix, null, 3));
-                return fix;
-            })
             .map(fix => mapCodeActionToParent(fragment, fix));
     }
 
@@ -351,24 +344,14 @@ export class TypeScriptPlugin
             return;
         }
 
-        const tsconfigPath = findTsConfigPath(fileName);
-        const snapshotManager = SnapshotManager.getFromTsConfigPath(tsconfigPath);
+        const snapshotManager = this.getSnapshotManager(fileName);
 
         if (changeType === FileChangeType.Deleted) {
             snapshotManager.delete(fileName);
             return;
         }
 
-        const content = ts.sys.readFile(fileName) ?? '';
-        const newSnapshot: DocumentSnapshot = {
-            getLength: () => content.length,
-            getText: (start, end) => content.substring(start, end),
-            getChangeRange: () => undefined,
-            // ensure it's greater than initial build
-            version: INITIAL_VERSION + 1,
-            scriptKind: getScriptKindFromFileName(fileName),
-        };
-
+        const newSnapshot = DocumentSnapshot.fromFilePath(fileName);
         const previousSnapshot = snapshotManager.get(fileName);
 
         if (previousSnapshot) {
@@ -379,15 +362,31 @@ export class TypeScriptPlugin
     }
 
     private getLSAndTSDoc(document: Document) {
-        let tsDoc = this.documents.get(document);
-        if (!tsDoc || document.version !== tsDoc.version) {
-            tsDoc = new TypescriptDocument(document);
-            this.documents.set(document, tsDoc);
-        }
-
-        const lang = getLanguageServiceForDocument(tsDoc, this.createDocument);
+        const lang = getLanguageServiceForDocument(document, this.createDocument);
+        const filePath = document.getFilePath()!;
+        const tsDoc = this.getSnapshot(filePath, document);
 
         return { tsDoc, lang };
+    }
+
+    private getSnapshot(filePath: string, document?: Document) {
+        const snapshotManager = this.getSnapshotManager(filePath);
+
+        let tsDoc = snapshotManager.get(filePath);
+        if (!tsDoc) {
+            tsDoc = document
+                ? DocumentSnapshot.fromDocument(document)
+                : DocumentSnapshot.fromFilePath(filePath);
+            snapshotManager.set(filePath, tsDoc);
+        }
+
+        return tsDoc;
+    }
+
+    private getSnapshotManager(fileName: string) {
+        const tsconfigPath = findTsConfigPath(fileName);
+        const snapshotManager = SnapshotManager.getFromTsConfigPath(tsconfigPath);
+        return snapshotManager;
     }
 
     private featureEnabled(feature: keyof LSTypescriptConfig) {

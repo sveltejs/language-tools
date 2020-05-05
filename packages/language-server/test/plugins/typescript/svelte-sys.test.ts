@@ -3,6 +3,7 @@ import sinon from 'sinon';
 import ts from 'typescript';
 import { DocumentSnapshot } from '../../../src/plugins/typescript/DocumentSnapshot';
 import { createSvelteSys } from '../../../src/plugins/typescript/svelte-sys';
+import { TextDocument } from '../../../src/lib/documents';
 
 describe('Svelte Sys', () => {
     afterEach(() => {
@@ -12,13 +13,9 @@ describe('Svelte Sys', () => {
     function setupLoader() {
         const tsFile = 'const a = "ts file";';
         const svelteFile = 'const a = "svelte file";';
-        const snapshot: DocumentSnapshot = {
-            getText: (_, __) => svelteFile,
-            getLength: () => svelteFile.length,
-            getChangeRange: () => undefined,
-            scriptKind: ts.ScriptKind.TS,
-            version: 0,
-        };
+        const snapshot: DocumentSnapshot = DocumentSnapshot.fromDocument(
+            new TextDocument('', svelteFile),
+        );
         const fileExistsStub = sinon.stub().returns(true);
         const readFileStub = sinon.stub().returns(tsFile);
         const getSvelteSnapshotStub = sinon.stub().returns(snapshot);

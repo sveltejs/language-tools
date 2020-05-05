@@ -26,7 +26,7 @@ export class ConsumerDocumentMapper implements DocumentMapper {
     }
 
     getOriginalPosition(generatedPosition: Position): Position {
-        let mapped = this.consumer.originalPositionFor({
+        const mapped = this.consumer.originalPositionFor({
             line: generatedPosition.line + 1,
             column: generatedPosition.character,
         });
@@ -46,7 +46,7 @@ export class ConsumerDocumentMapper implements DocumentMapper {
     }
 
     getGeneratedPosition(originalPosition: Position): Position {
-        let mapped = this.consumer.generatedPositionFor({
+        const mapped = this.consumer.generatedPositionFor({
             line: originalPosition.line + 1,
             column: originalPosition.character,
             source: this.sourceUri,

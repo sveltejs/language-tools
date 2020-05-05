@@ -27,6 +27,7 @@ export class SnapshotManager {
     delete(fileName: string) {
         return this.documents.delete(fileName);
     }
+
     getFileNames() {
         return Array.from(this.documents.keys());
     }

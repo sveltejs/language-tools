@@ -9,20 +9,20 @@ import {
     isSvelteFilePath,
     findTsConfigPath,
 } from './utils';
-import { TypescriptDocument } from './TypescriptDocument';
 import { SnapshotManager } from './SnapshotManager';
+import { Document } from '../../lib/documents';
 
 export interface LanguageServiceContainer {
     getService(): ts.LanguageService;
-    updateDocument(document: TypescriptDocument): ts.LanguageService;
+    updateDocument(document: Document): ts.LanguageService;
 }
 
 const services = new Map<string, LanguageServiceContainer>();
 
-export type CreateDocument = (fileName: string, content: string) => TypescriptDocument;
+export type CreateDocument = (fileName: string, content: string) => Document;
 
 export function getLanguageServiceForDocument(
-    document: TypescriptDocument,
+    document: Document,
     createDocument: CreateDocument,
 ): ts.LanguageService {
     const tsconfigPath = findTsConfigPath(document.getFilePath()!);
@@ -124,8 +124,14 @@ export function createLanguageService(
         updateDocument,
     };
 
-    function updateDocument(document: TypescriptDocument): ts.LanguageService {
+    function updateDocument(document: Document): ts.LanguageService {
         const preSnapshot = snapshotManager.get(document.getFilePath()!);
+
+        // Don't reinitialize document if no update needed.
+        if (preSnapshot?.version === document.version) {
+            return languageService;
+        }
+
         const newSnapshot = DocumentSnapshot.fromDocument(document);
         if (preSnapshot && preSnapshot.scriptKind !== newSnapshot.scriptKind) {
             // Restart language service as it doesn't handle script kind changes.
