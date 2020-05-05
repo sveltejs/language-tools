@@ -1,1 +1,3 @@
-<script>let a = true</script>
+<script lang="typescript">
+let a = true;
+</script>

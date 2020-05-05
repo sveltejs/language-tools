@@ -20,12 +20,11 @@ import {
 import {
     Document,
     DocumentManager,
-    mapCodeActionToParent,
     mapCompletionItemToParent,
     mapDiagnosticToParent,
     mapHoverToParent,
     mapSymbolInformationToParent,
-    TextDocument,
+    mapRangeToParent,
 } from '../../lib/documents';
 import { LSConfigManager, LSTypescriptConfig } from '../../ls-config';
 import { pathToUrl } from '../../utils';
@@ -306,42 +305,39 @@ export class TypeScriptPlugin
             {},
         );
 
-        const docs = new Map<string, { positionAt: (offset: number) => Position }>([
-            [tsDoc.filePath, fragment],
-        ]);
-        return codeFixes
-            .map(fix => {
+        const docs = new Map<string, SnapshotFragment>([[tsDoc.filePath, fragment]]);
+        return await Promise.all(
+            codeFixes.map(async fix => {
+                const documentChanges = await Promise.all(
+                    fix.changes.map(async change => {
+                        let doc = docs.get(change.fileName);
+                        if (!doc) {
+                            doc = await this.getSnapshot(change.fileName).getFragment();
+                            docs.set(change.fileName, doc);
+                        }
+                        return TextDocumentEdit.create(
+                            VersionedTextDocumentIdentifier.create(
+                                pathToUrl(change.fileName),
+                                null,
+                            ),
+                            change.textChanges.map(edit => {
+                                return TextEdit.replace(
+                                    mapRangeToParent(doc!, convertRange(doc!, edit.span)),
+                                    edit.newText,
+                                );
+                            }),
+                        );
+                    }),
+                );
                 return CodeAction.create(
                     fix.description,
                     {
-                        documentChanges: fix.changes.map(change => {
-                            let doc = docs.get(change.fileName);
-                            if (!doc) {
-                                doc = new TextDocument(
-                                    pathToUrl(change.fileName),
-                                    ts.sys.readFile(change.fileName) || '',
-                                );
-                                docs.set(change.fileName, doc);
-                            }
-
-                            return TextDocumentEdit.create(
-                                VersionedTextDocumentIdentifier.create(
-                                    pathToUrl(change.fileName),
-                                    null,
-                                ),
-                                change.textChanges.map(edit => {
-                                    return TextEdit.replace(
-                                        convertRange(doc!, edit.span),
-                                        edit.newText,
-                                    );
-                                }),
-                            );
-                        }),
+                        documentChanges,
                     },
                     fix.fixName,
                 );
-            })
-            .map(fix => mapCodeActionToParent(fragment, fix));
+            }),
+        );
     }
 
     onWatchFileChanges(fileName: string, changeType: FileChangeType) {

@@ -285,13 +285,13 @@ describe('TypescriptPlugin', () => {
 
         const codeActions = await plugin.getCodeActions(
             document,
-            Range.create(Position.create(0, 11), Position.create(0, 12)),
+            Range.create(Position.create(1, 4), Position.create(1, 5)),
             {
                 diagnostics: [
                     {
                         code: 6133,
                         message: "'a' is declared but its value is never read.",
-                        range: Range.create(Position.create(0, 11), Position.create(0, 12)),
+                        range: Range.create(Position.create(1, 4), Position.create(1, 5)),
                         source: 'ts',
                     },
                 ],
@@ -309,12 +309,12 @@ describe('TypescriptPlugin', () => {
                                     newText: '',
                                     range: {
                                         start: {
-                                            character: 8,
-                                            line: 0,
+                                            character: 0,
+                                            line: 1,
                                         },
                                         end: {
-                                            character: 20,
-                                            line: 0,
+                                            character: 0,
+                                            line: 2,
                                         },
                                     },
                                 },
