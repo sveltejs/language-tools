@@ -1,8 +1,9 @@
 import { dirname, resolve } from 'path';
+import * as prettier from 'prettier';
 import * as svelte from 'svelte/compiler';
 
-export function getSveltePackageInfo(fromPath: string) {
-    const packageJSONPath = require.resolve('svelte/package.json', {
+export function getPackageInfo(packageName: string, fromPath: string) {
+    const packageJSONPath = require.resolve(`${packageName}/package.json`, {
         paths: [fromPath, __dirname],
     });
     // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -20,8 +21,15 @@ export function getSveltePackageInfo(fromPath: string) {
     };
 }
 
+export function importPrettier(fromPath: string): typeof prettier {
+    const pkg = getPackageInfo('prettier', fromPath);
+    const main = resolve(pkg.path);
+    console.log('Using Prettier v' + pkg.version.full, 'from', main);
+    return require(main);
+}
+
 export function importSvelte(fromPath: string): typeof svelte {
-    const pkg = getSveltePackageInfo(fromPath);
+    const pkg = getPackageInfo('svelte', fromPath);
     const main = resolve(pkg.path, 'compiler');
     console.log('Using Svelte v' + pkg.version.full, 'from', main);
     return require(main);
