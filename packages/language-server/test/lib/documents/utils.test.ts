@@ -27,6 +27,16 @@ describe('document/utils', () => {
             `;
             assert.deepStrictEqual(extractTag(text, 'style'), null);
         });
+        it('only extract attribute until tag ends', () => {
+            const text = `
+            <script type="typescript">
+            () => abc
+            </script>
+            `;
+            const extracted = extractTag(text, 'script');
+            const attributes = extracted?.attributes;
+            assert.deepStrictEqual(attributes , { type: 'typescript' });
+        });
         it('extracts style tag', () => {
             const text = `
                 <p>bla</p>
