@@ -2,10 +2,16 @@ import ts from 'typescript';
 import { getScriptKindFromAttributes, isSvelteFilePath, getScriptKindFromFileName } from './utils';
 import { Fragment, positionAt, offsetAt, Document, extractTag } from '../../lib/documents';
 import { DocumentMapper, IdentityMapper, ConsumerDocumentMapper } from './DocumentMapper';
-import { Position } from 'vscode-languageserver';
+import { Position, Range } from 'vscode-languageserver';
 import { SourceMapConsumer, RawSourceMap } from 'source-map';
 import { pathToUrl } from '../../utils';
 import svelte2tsx from 'svelte2tsx';
+
+export interface ParserError {
+    message: string;
+    range: Range;
+    code: number;
+}
 
 export const INITIAL_VERSION = 0;
 
@@ -13,7 +19,7 @@ export class DocumentSnapshot implements ts.IScriptSnapshot {
     private fragment?: SnapshotFragment;
 
     static fromDocument(document: Document) {
-        const { tsxMap, text } = DocumentSnapshot.preprocessIfIsSvelteFile(
+        const { tsxMap, text, parserError } = DocumentSnapshot.preprocessIfIsSvelteFile(
             document.uri,
             document.getText(),
         );
@@ -22,13 +28,14 @@ export class DocumentSnapshot implements ts.IScriptSnapshot {
             document.version,
             getScriptKindFromAttributes(extractTag(document.getText(), 'script')?.attributes ?? {}),
             document.getFilePath() || '',
+            parserError,
             text,
             tsxMap,
         );
     }
 
     static fromFilePath(filePath: string) {
-        const { text, tsxMap } = DocumentSnapshot.preprocessIfIsSvelteFile(
+        const { text, tsxMap, parserError } = DocumentSnapshot.preprocessIfIsSvelteFile(
             pathToUrl(filePath),
             ts.sys.readFile(filePath) ?? '',
         );
@@ -37,6 +44,7 @@ export class DocumentSnapshot implements ts.IScriptSnapshot {
             INITIAL_VERSION + 1, // ensure it's greater than initial build
             getScriptKindFromFileName(filePath),
             filePath,
+            parserError,
             text,
             tsxMap,
         );
@@ -44,6 +52,8 @@ export class DocumentSnapshot implements ts.IScriptSnapshot {
 
     private static preprocessIfIsSvelteFile(uri: string, text: string) {
         let tsxMap: RawSourceMap | undefined;
+        let parserError: ParserError | null = null;
+
         if (isSvelteFilePath(uri)) {
             try {
                 const tsx = svelte2tsx(text);
@@ -53,17 +63,28 @@ export class DocumentSnapshot implements ts.IScriptSnapshot {
                     tsxMap.sources = [uri];
                 }
             } catch (e) {
+                // Error start/end logic is different and has different offsets for line, so we need to convert that
+                const start: Position = { line: e.start.line - 1, character: e.start.column };
+                const end: Position = e.end
+                    ? { line: e.end.line - 1, character: e.end.column }
+                    : start;
+                parserError = {
+                    range: { start, end },
+                    message: e.message,
+                    code: -1,
+                };
                 text = '';
-                console.error(`Couldn't convert ${uri} to tsx`, e);
             }
         }
-        return { tsxMap, text };
+
+        return { tsxMap, text, parserError };
     }
 
     private constructor(
         public version: number,
         public scriptKind: ts.ScriptKind,
         public filePath: string,
+        public parserError: ParserError | null,
         private text: string,
         private tsxMap?: RawSourceMap,
     ) {}
@@ -100,11 +121,11 @@ export class SnapshotFragment implements Fragment {
     constructor(private mapper: DocumentMapper, private text: string, private url: string) {}
 
     positionInParent(pos: Position): Position {
-        return this.mapper.getOriginalPosition(pos)!;
+        return this.mapper.getOriginalPosition(pos);
     }
 
     positionInFragment(pos: Position): Position {
-        return this.mapper.getGeneratedPosition(pos)!;
+        return this.mapper.getGeneratedPosition(pos);
     }
 
     isInFragment(): boolean {

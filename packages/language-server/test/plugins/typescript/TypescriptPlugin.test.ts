@@ -61,6 +61,32 @@ describe('TypescriptPlugin', () => {
         // diagnostics might take longer, therefore increase the timeout
         .timeout(8000);
 
+    it('provides diagnostics when there is a parser error', async () => {
+        const { plugin, document } = setup('diagnostics-parsererror.svelte');
+        const diagnostics = await plugin.getDiagnostics(document);
+
+        assert.deepStrictEqual(diagnostics, [
+            {
+                code: -1,
+                message: 'You can only have one top-level <style> tag per component',
+                range: {
+                    start: {
+                        character: 0,
+                        line: 1,
+                    },
+                    end: {
+                        character: 0,
+                        line: 1,
+                    },
+                },
+                severity: 1,
+                source: 'js',
+            },
+        ]);
+    })
+        // diagnostics might take longer, therefore increase the timeout
+        .timeout(8000);
+
     it('provides hover info', async () => {
         const { plugin, document } = setup('hoverinfo.svelte');
 

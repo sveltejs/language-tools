@@ -15,6 +15,7 @@ import {
     TextDocumentEdit,
     TextEdit,
     VersionedTextDocumentIdentifier,
+    DiagnosticSeverity,
 } from 'vscode-languageserver';
 import {
     Document,
@@ -87,6 +88,19 @@ export class TypeScriptPlugin
 
         const { lang, tsDoc } = this.getLSAndTSDoc(document);
         const isTypescript = tsDoc.scriptKind === ts.ScriptKind.TSX;
+
+        // Document preprocessing failed, show parser error instead
+        if (tsDoc.parserError) {
+            return [
+                {
+                    range: tsDoc.parserError.range,
+                    severity: DiagnosticSeverity.Error,
+                    source: isTypescript ? 'ts' : 'js',
+                    message: tsDoc.parserError.message,
+                    code: tsDoc.parserError.code,
+                },
+            ];
+        }
 
         const diagnostics: ts.Diagnostic[] = [
             ...lang.getSyntacticDiagnostics(tsDoc.filePath),
