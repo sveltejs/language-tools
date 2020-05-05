@@ -12,12 +12,26 @@ import {
     Range,
     SymbolInformation,
     TextEdit,
+    CompletionItem,
+    TextDocumentIdentifier,
 } from 'vscode-languageserver-types';
 import { FileChangeType } from 'vscode-languageserver';
 import { DocumentManager, Document } from '../lib/documents';
 import { LSConfigManager } from '../ls-config';
 
 export type Resolvable<T> = T | Promise<T>;
+
+export interface AppCompletionItem<
+        T extends TextDocumentIdentifier = any
+    > extends CompletionItem {
+    data?: T;
+}
+
+export interface AppCompletionList<
+        T extends TextDocumentIdentifier = any
+    > extends CompletionList {
+    items: AppCompletionItem<T>[];
+}
 
 export interface DiagnosticsProvider {
     getDiagnostics(document: Document): Resolvable<Diagnostic[]>;
@@ -27,12 +41,15 @@ export interface HoverProvider {
     doHover(document: Document, position: Position): Resolvable<Hover | null>;
 }
 
-export interface CompletionsProvider {
+export interface CompletionsProvider<T extends TextDocumentIdentifier = any> {
     getCompletions(
         document: Document,
         position: Position,
         triggerCharacter?: string,
-    ): Resolvable<CompletionList | null>;
+    ): Resolvable<AppCompletionList<T> | null>;
+
+    resolveCompletion?(document: Document, completionItem: AppCompletionItem<T>):
+        Resolvable<AppCompletionItem<T>>;
 }
 
 export interface FormattingProvider {

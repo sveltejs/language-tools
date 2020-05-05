@@ -1,1 +1,1 @@
-<script>import {} from '../testfiles/'</script>
+<script>import {} from '../testfiles/' blu</script>

@@ -2,7 +2,6 @@ import ts, { NavigationTree } from 'typescript';
 import {
     CodeAction,
     CodeActionContext,
-    CompletionItem,
     CompletionList,
     DefinitionLink,
     Diagnostic,
@@ -15,6 +14,7 @@ import {
     TextEdit,
     VersionedTextDocumentIdentifier,
     FileChangeType,
+    TextDocumentIdentifier,
 } from 'vscode-languageserver';
 import {
     DocumentManager,
@@ -43,7 +43,6 @@ import {
 import { TypescriptDocument } from './TypescriptDocument';
 import {
     CodeActionsProvider,
-    CompletionsProvider,
     DefinitionsProvider,
     DiagnosticsProvider,
     DocumentSymbolsProvider,
@@ -51,20 +50,28 @@ import {
     OnRegister,
     Resolvable,
     OnWatchFileChanges,
+    CompletionsProvider,
+    AppCompletionItem,
+    AppCompletionList,
 } from '../interfaces';
 import { SnapshotManager } from './SnapshotManager';
 import { DocumentSnapshot, INITIAL_VERSION } from './DocumentSnapshot';
 
+export interface CompletionEntryWithIdentifer extends
+    ts.CompletionEntry, TextDocumentIdentifier {
+    position: Position;
+}
+
 export class TypeScriptPlugin
     implements
-        OnRegister,
-        DiagnosticsProvider,
-        HoverProvider,
-        DocumentSymbolsProvider,
-        CompletionsProvider,
-        DefinitionsProvider,
-        CodeActionsProvider,
-        OnWatchFileChanges {
+    OnRegister,
+    DiagnosticsProvider,
+    HoverProvider,
+    DocumentSymbolsProvider,
+    DefinitionsProvider,
+    CodeActionsProvider,
+    OnWatchFileChanges,
+    CompletionsProvider<CompletionEntryWithIdentifer> {
     private configManager!: LSConfigManager;
     private createDocument!: CreateDocument;
     private documents = new Map<Document, TypescriptDocument>();
@@ -186,7 +193,7 @@ export class TypeScriptPlugin
         document: Document,
         position: Position,
         triggerCharacter?: string,
-    ): CompletionList | null {
+    ): AppCompletionList<CompletionEntryWithIdentifer> | null {
         if (!this.featureEnabled('completions')) {
             return null;
         }
@@ -221,20 +228,44 @@ export class TypeScriptPlugin
         }
 
         const completionItems = completions.entries
-            .map(comp => this.toCompletionItem(comp))
+            .map(comp => this.toCompletionItem(comp, tsDoc.uri, position))
             .map(comp => mapCompletionItemToParent(tsDoc, comp));
 
         return CompletionList.create(completionItems);
     }
 
-    private toCompletionItem(comp: ts.CompletionEntry) {
-        return <CompletionItem>{
+    private toCompletionItem(
+        comp: ts.CompletionEntry,
+        uri: string,
+        position: Position
+    ): AppCompletionItem<CompletionEntryWithIdentifer> {
+        const { source } = comp;
+        const detail = source ? `Auto import from ${source}` : undefined;
+
+        return {
             label: this.getCompletionLabel(comp),
             kind: scriptElementKindToCompletionItemKind(comp.kind),
             sortText: comp.sortText,
             commitCharacters: getCommitCharactersForScriptElement(comp.kind),
             preselect: comp.isRecommended,
+            detail,
+            // pass essential data for resolving completion
+            data: {
+                ...comp,
+                uri,
+                position
+            }
         };
+    }
+
+    private codeActionChangeToTextEdit(
+        tsDoc: TypescriptDocument,
+        change: ts.FileTextChanges
+    ): TextEdit[] {
+        return change.textChanges.map(item => ({
+            range: convertRange(tsDoc, item.span),
+            newText: item.newText
+        }));
     }
 
     private getCompletionLabel(comp: ts.CompletionEntry) {
@@ -246,6 +277,44 @@ export class TypeScriptPlugin
             return name + kindModifiers;
         }
         return name;
+    }
+
+    resolveCompletion(
+        document: Document,
+        completionItem: AppCompletionItem<CompletionEntryWithIdentifer>):
+        Resolvable<AppCompletionItem<CompletionEntryWithIdentifer>> {
+        const { data: comp } = completionItem;
+        const { tsDoc, lang } = this.getLSAndTSDoc(document);
+
+        const filePath = tsDoc.getFilePath();
+
+        if (!comp || !filePath) {
+            return completionItem;
+        }
+
+        const detail = lang.getCompletionEntryDetails(
+            filePath,
+            tsDoc.offsetAt(tsDoc.positionInFragment(comp.position)),
+            comp.name,
+            {},
+            comp.source,
+            {}
+        );
+
+        const actions = detail?.codeActions;
+        if (actions) {
+            const edit: TextEdit[] = [];
+
+            for (const action of actions) {
+                for (const change of action.changes) {
+                    edit.push(...this.codeActionChangeToTextEdit(tsDoc, change));
+                }
+            }
+
+            completionItem.additionalTextEdits = edit;
+        }
+
+        return completionItem;
     }
 
     getDefinitions(document: Document, position: Position): DefinitionLink[] {

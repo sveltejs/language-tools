@@ -119,12 +119,46 @@ describe('TypescriptPlugin', () => {
             'Expected completion items to be an array',
         );
         assert.ok(completions!.items.length > 0, 'Expected completions to have length');
-        assert.deepStrictEqual(completions!.items[0], <CompletionItem>{
+
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { data, ...withoutData } = completions!.items[0];
+
+        assert.deepStrictEqual(withoutData, <CompletionItem>{
             label: 'b',
             kind: CompletionItemKind.Method,
             sortText: '0',
             commitCharacters: ['.', ',', '('],
             preselect: undefined,
+            detail: undefined
+        });
+    });
+
+    it('provides completion resolve info', async () => {
+        const { plugin, document } = setup('completions.svelte');
+
+        const completions = plugin.getCompletions(document, Position.create(0, 49), '.');
+
+        const { data } = completions!.items[0];
+
+        // uri would not be the same, so only check if exist;
+        assert.notEqual(data, null);
+        const { uri, ...withoutUri } = data!;
+        assert.ok(uri);
+
+        assert.deepStrictEqual(withoutUri, {
+            hasAction: undefined,
+            insertText: undefined,
+            isRecommended: undefined,
+            kind: 'method',
+            kindModifiers: '',
+            name: 'b',
+            position: {
+                character: 49,
+                line: 0
+            },
+            replacementSpan: undefined,
+            sortText: '0',
+            source: undefined,
         });
     });
 
@@ -149,7 +183,34 @@ describe('TypescriptPlugin', () => {
         } finally {
             rmdirSync(mockDirPath);
         }
+    });
 
+    const setupAutoImportCompletions = () => {
+        const { plugin, document } = setup('importcompletions.svelte');
+
+        const completions = plugin.getCompletions(document, Position.create(0, 40));
+
+        const item = completions?.items.find(item => item.label === 'blubb');
+
+        return { plugin, document, item };
+    };
+
+    it('provides auto import completions', async () => {
+        const { item } = setupAutoImportCompletions();
+        assert.equal(/Auto import from .*\/definitions/.test(item?.detail ?? ''), true);
+        assert.equal(item?.kind, CompletionItemKind.Function);
+    });
+
+    it('resolve auto import completion', async () => {
+        const { item, plugin, document } = setupAutoImportCompletions();
+        assert.equal(item?.additionalTextEdits, undefined);
+
+        const { additionalTextEdits } = await plugin.resolveCompletion(document, item!);
+
+        assert.equal(
+            additionalTextEdits![0]?.newText.replace('\r', '').replace('\n', ''),
+            `import { blubb } from './definitions'`,
+        );
     });
 
     it('provides definitions within svelte doc', () => {
