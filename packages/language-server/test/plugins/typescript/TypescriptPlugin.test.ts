@@ -131,38 +131,38 @@ describe('TypescriptPlugin', () => {
     it('provides definitions within svelte doc', async () => {
         const { plugin, document } = setup('definitions.svelte');
 
-        const definitions = await plugin.getDefinitions(document, Position.create(0, 94)); // +7
+        const definitions = await plugin.getDefinitions(document, Position.create(4, 1));
 
         assert.deepStrictEqual(definitions, [
             {
                 originSelectionRange: {
                     start: {
-                        character: 93,
-                        line: 0,
+                        character: 0,
+                        line: 4,
                     },
                     end: {
-                        character: 96,
-                        line: 0,
+                        character: 3,
+                        line: 4,
                     },
                 },
                 targetRange: {
                     start: {
-                        character: 72,
-                        line: 0,
+                        character: 9,
+                        line: 3,
                     },
                     end: {
-                        character: 75,
-                        line: 0,
+                        character: 12,
+                        line: 3,
                     },
                 },
                 targetSelectionRange: {
                     start: {
-                        character: 72,
-                        line: 0,
+                        character: 9,
+                        line: 3,
                     },
                     end: {
-                        character: 75,
-                        line: 0,
+                        character: 12,
+                        line: 3,
                     },
                 },
                 targetUri: getUri('definitions.svelte'),
@@ -173,18 +173,18 @@ describe('TypescriptPlugin', () => {
     it('provides definitions from svelte to ts doc', async () => {
         const { plugin, document } = setup('definitions.svelte');
 
-        const definitions = await plugin.getDefinitions(document, Position.create(0, 101));
+        const definitions = await plugin.getDefinitions(document, Position.create(5, 1));
 
         assert.deepStrictEqual(definitions, [
             {
                 originSelectionRange: {
                     start: {
-                        character: 100,
-                        line: 0,
+                        character: 0,
+                        line: 5,
                     },
                     end: {
-                        character: 105,
-                        line: 0,
+                        character: 5,
+                        line: 5,
                     },
                 },
                 targetRange: {
@@ -212,6 +212,48 @@ describe('TypescriptPlugin', () => {
         ]);
     });
 
+    it('provides definitions from svelte to svelte doc', async () => {
+        const { plugin, document } = setup('definitions.svelte');
+
+        const definitions = await plugin.getDefinitions(document, Position.create(7, 3));
+
+        assert.deepStrictEqual(definitions, [
+            {
+                originSelectionRange: {
+                    start: {
+                        character: 1,
+                        line: 7,
+                    },
+                    end: {
+                        character: 13,
+                        line: 7,
+                    },
+                },
+                targetRange: {
+                    start: {
+                        character: 1,
+                        line: 0,
+                    },
+                    end: {
+                        character: 1,
+                        line: 0,
+                    },
+                },
+                targetSelectionRange: {
+                    start: {
+                        character: 1,
+                        line: 0,
+                    },
+                    end: {
+                        character: 1,
+                        line: 0,
+                    },
+                },
+                targetUri: getUri('imported-file.svelte'),
+            },
+        ]);
+    });
+
     it('provides code actions', async () => {
         const { plugin, document } = setup('codeactions.svelte');
 
@@ -230,7 +272,6 @@ describe('TypescriptPlugin', () => {
                 only: ['quickfix'],
             },
         );
-        console.log(JSON.stringify(codeActions, null, 3));
 
         assert.deepStrictEqual(codeActions, [
             {

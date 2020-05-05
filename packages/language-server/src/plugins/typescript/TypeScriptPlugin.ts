@@ -25,7 +25,6 @@ import {
     mapHoverToParent,
     mapSymbolInformationToParent,
     TextDocument,
-    mapLocationLinkToParent,
 } from '../../lib/documents';
 import { LSConfigManager, LSTypescriptConfig } from '../../ls-config';
 import { pathToUrl } from '../../utils';
@@ -249,30 +248,24 @@ export class TypeScriptPlugin
             return [];
         }
 
-        const docs = new Map<string, { positionAt: (offset: number) => Position }>([
-            [tsDoc.filePath, fragment],
-        ]);
+        const docs = new Map<string, SnapshotFragment>([[tsDoc.filePath, fragment]]);
 
-        return defs.definitions
-            .map(def => {
+        return await Promise.all(
+            defs.definitions.map(async def => {
                 let defDoc = docs.get(def.fileName);
                 if (!defDoc) {
-                    defDoc = new TextDocument(
-                        pathToUrl(def.fileName),
-                        ts.sys.readFile(def.fileName) || '',
-                    );
+                    defDoc = await this.getSnapshot(def.fileName).getFragment();
                     docs.set(def.fileName, defDoc);
                 }
 
                 return LocationLink.create(
                     pathToUrl(def.fileName),
-                    convertRange(defDoc, def.textSpan),
-                    convertRange(defDoc, def.textSpan),
-                    convertRange(fragment, defs.textSpan),
+                    convertToLocationRange(defDoc, def.textSpan),
+                    convertToLocationRange(defDoc, def.textSpan),
+                    convertToLocationRange(fragment, defs.textSpan),
                 );
-            })
-            .filter(def => !!def)
-            .map(def => mapLocationLinkToParent(fragment, def)) as DefinitionLink[];
+            }),
+        );
     }
 
     async getCodeActions(

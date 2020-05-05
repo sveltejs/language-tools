@@ -7,6 +7,8 @@ import {
     Position,
 } from 'vscode-languageserver';
 import { dirname } from 'path';
+import { SnapshotFragment } from './DocumentSnapshot';
+import { mapRangeToParent } from '../../lib/documents';
 
 export function getScriptKindFromFileName(fileName: string): ts.ScriptKind {
     const ext = fileName.substr(fileName.lastIndexOf('.'));
@@ -82,6 +84,20 @@ export function convertRange(
         document.positionAt(range.start || 0),
         document.positionAt((range.start || 0) + (range.length || 0)),
     );
+}
+
+export function convertToLocationRange(defDoc: SnapshotFragment, textSpan: ts.TextSpan): Range {
+    const range = mapRangeToParent(defDoc, convertRange(defDoc, textSpan));
+    // Some definition like the svelte component class definition don't exist in the original, so we map to 0,1
+    if (range.start.line < 0) {
+        range.start.line = 0;
+        range.start.character = 1;
+    }
+    if (range.end.line < 0) {
+        range.end = range.start;
+    }
+
+    return range;
 }
 
 export function findTsConfigPath(fileName: string) {
