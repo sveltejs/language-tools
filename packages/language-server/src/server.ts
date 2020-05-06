@@ -35,7 +35,7 @@ export function startServer() {
     pluginHost.register(new SveltePlugin());
     pluginHost.register(new HTMLPlugin());
     pluginHost.register(new CSSPlugin());
-    pluginHost.register(new TypeScriptPlugin());
+    pluginHost.register(new TypeScriptPlugin(docManager));
 
     connection.onInitialize(evt => {
         pluginHost.updateConfig(evt.initializationOptions.config);

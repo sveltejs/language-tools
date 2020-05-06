@@ -1,0 +1,194 @@
+import ts from 'typescript';
+import { Position, TextDocumentIdentifier, TextEdit, CompletionList } from 'vscode-languageserver';
+import { CompletionsProvider, AppCompletionList, AppCompletionItem, Resolvable } from '../../interfaces';
+import { Document, mapCompletionItemToParent } from '../../../lib/documents';
+import { LSAndTSDocResovler } from '../TypeScriptPlugin';
+import {
+    scriptElementKindToCompletionItemKind,
+    getCommitCharactersForScriptElement,
+    convertRange
+} from '../utils';
+import { TypescriptDocument } from '../TypescriptDocument';
+
+export interface CompletionEntryWithIdentifer extends
+    ts.CompletionEntry, TextDocumentIdentifier {
+    position: Position;
+}
+
+type validTriggerCharacter = '.' | '"'| "'" | '`' | '/' | '@' | '<' | '#'
+
+export class CompletionsProviderImpl
+    implements CompletionsProvider<CompletionEntryWithIdentifer> {
+    constructor(
+        private readonly lsAndTsDocResovler: LSAndTSDocResovler
+    ) { }
+
+    /**
+     * @author James Birtles
+     * The language service throws an error if the character is not a valid trigger character.
+     * Also, the completions are worse.
+     * Therefore, only use the characters the typescript compiler treats as valid.
+     */
+    private readonly validTriggerCharacters =
+        ['.', '"', "'", '`', '/', '@', '<', '#'] as const;
+
+    private isValidTriggerCharacter(character: string | undefined):
+        character is validTriggerCharacter {
+        return this.validTriggerCharacters.includes(character as validTriggerCharacter);
+    }
+
+    getCompletions(
+        document: Document,
+        position: Position,
+        triggerCharacter?: string | undefined
+    ): AppCompletionList<CompletionEntryWithIdentifer> | null {
+        const { lang, tsDoc } = this.lsAndTsDocResovler.getLSAndTSDoc(document);
+
+
+        const filePath = tsDoc.getFilePath();
+
+        if (!filePath) {
+            return null;
+        }
+
+        const validTriggerCharacter =
+            this.isValidTriggerCharacter(triggerCharacter) ? triggerCharacter :
+            undefined;
+
+        const completions = lang.getCompletionsAtPosition(
+            filePath,
+            tsDoc.offsetAt(tsDoc.positionInFragment(position)),
+            {
+                includeCompletionsForModuleExports: true,
+                triggerCharacter: validTriggerCharacter,
+            },
+        );
+
+        if (!completions) {
+            return null;
+        }
+
+        const completionItems = completions.entries
+            .map(comp => this.toCompletionItem(comp, tsDoc.uri, position))
+            .map(comp => mapCompletionItemToParent(tsDoc, comp));
+
+        return CompletionList.create(completionItems);
+    }
+
+    private toCompletionItem(
+        comp: ts.CompletionEntry,
+        uri: string,
+        position: Position
+    ): AppCompletionItem<CompletionEntryWithIdentifer> {
+        const { label, insertText } = this.getCompletionLableAndInsert(comp);
+
+        return {
+            label,
+            insertText,
+            kind: scriptElementKindToCompletionItemKind(comp.kind),
+            sortText: comp.sortText,
+            commitCharacters: getCommitCharactersForScriptElement(comp.kind),
+            preselect: comp.isRecommended,
+            // pass essential data for resolving completion
+            data: {
+                ...comp,
+                uri,
+                position
+            }
+        };
+    }
+
+    private getCompletionLableAndInsert(comp: ts.CompletionEntry) {
+        const { kind, kindModifiers, name } = comp;
+        const isScriptElement = kind === ts.ScriptElementKind.scriptElement;
+        const hasModifier = Boolean(comp.kindModifiers);
+
+        if (isScriptElement && hasModifier) {
+            return {
+                insertText: name,
+                label: name + kindModifiers
+            };
+        }
+        return {
+            label: name
+        };
+    }
+
+    resolveCompletion(
+        document: Document,
+        completionItem: AppCompletionItem<CompletionEntryWithIdentifer>):
+        Resolvable<AppCompletionItem<CompletionEntryWithIdentifer>> {
+        const { data: comp } = completionItem;
+        const { tsDoc, lang } = this.lsAndTsDocResovler.getLSAndTSDoc(document);
+
+        const filePath = tsDoc.getFilePath();
+
+        if (!comp || !filePath) {
+            return completionItem;
+        }
+
+        const detail = lang.getCompletionEntryDetails(
+            filePath,
+            tsDoc.offsetAt(tsDoc.positionInFragment(comp.position)),
+            comp.name,
+            {},
+            comp.source,
+            {}
+        );
+
+        if (detail) {
+            const {
+                detail: itemDetail,
+                documentation: itemDocumentation
+            } = this.getCompletionDocument(detail);
+
+            completionItem.detail = itemDetail;
+            completionItem.documentation = itemDocumentation;
+        }
+
+        const actions = detail?.codeActions;
+        if (actions) {
+            const edit: TextEdit[] = [];
+
+            for (const action of actions) {
+                for (const change of action.changes) {
+                    edit.push(...this.codeActionChangeToTextEdit(tsDoc, change));
+                }
+            }
+
+            completionItem.additionalTextEdits = edit;
+        }
+
+        return completionItem;
+    }
+
+
+    private getCompletionDocument(compDetail: ts.CompletionEntryDetails) {
+        const { source, documentation: tsDocumentation, displayParts } = compDetail;
+        let detail: string = ts.displayPartsToString(displayParts);
+
+        if (source) {
+            const importPath = ts.displayPartsToString(source);
+            detail = `Auto import from ${importPath}\n${detail}`;
+        }
+
+        const documentation = tsDocumentation ?
+            ts.displayPartsToString(tsDocumentation) :
+            undefined;
+
+        return {
+            documentation,
+            detail
+        };
+    }
+
+    private codeActionChangeToTextEdit(
+        tsDoc: TypescriptDocument,
+        change: ts.FileTextChanges
+    ): TextEdit[] {
+        return change.textChanges.map(item => ({
+            range: convertRange(tsDoc, item.span),
+            newText: item.newText
+        }));
+    }
+}
