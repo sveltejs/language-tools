@@ -258,9 +258,11 @@ export class TypeScriptPlugin
         uri: string,
         position: Position
     ): AppCompletionItem<CompletionEntryWithIdentifer> {
+        const { label, insertText } = this.getCompletionLableAndInsert(comp);
 
         return {
-            label: this.getCompletionLabel(comp),
+            label,
+            insertText,
             kind: scriptElementKindToCompletionItemKind(comp.kind),
             sortText: comp.sortText,
             commitCharacters: getCommitCharactersForScriptElement(comp.kind),
@@ -284,15 +286,20 @@ export class TypeScriptPlugin
         }));
     }
 
-    private getCompletionLabel(comp: ts.CompletionEntry) {
+    private getCompletionLableAndInsert(comp: ts.CompletionEntry) {
         const { kind, kindModifiers, name } = comp;
         const isScriptElement = kind === ts.ScriptElementKind.scriptElement;
         const hasModifier = Boolean(comp.kindModifiers);
 
         if (isScriptElement && hasModifier) {
-            return name + kindModifiers;
+            return {
+                insertText: name,
+                label: name + kindModifiers
+            };
         }
-        return name;
+        return {
+            label: name
+        };
     }
 
     resolveCompletion(

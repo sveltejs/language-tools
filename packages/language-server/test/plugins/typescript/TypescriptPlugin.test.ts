@@ -125,6 +125,7 @@ describe('TypescriptPlugin', () => {
 
         assert.deepStrictEqual(withoutData, <CompletionItem>{
             label: 'b',
+            insertText: undefined,
             kind: CompletionItemKind.Method,
             sortText: '0',
             commitCharacters: ['.', ',', '('],
