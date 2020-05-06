@@ -100,7 +100,7 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         }
 
         const result = await this.execute<CompletionItem>(
-            "resolveCompletion",
+            'resolveCompletion',
             [document, completionItem],
             ExecuteMode.FirstNonNull
         );

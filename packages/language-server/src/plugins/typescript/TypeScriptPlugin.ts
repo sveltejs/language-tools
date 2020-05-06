@@ -234,13 +234,30 @@ export class TypeScriptPlugin
         return CompletionList.create(completionItems);
     }
 
+    private getCompletionDocument(compDetail: ts.CompletionEntryDetails) {
+        const { source, documentation: tsDocumentation, displayParts } = compDetail;
+        let detail: string = ts.displayPartsToString(displayParts);
+
+        if (source) {
+            const importPath = ts.displayPartsToString(source);
+            detail = `Auto import from ${importPath}\n${detail}`;
+        }
+
+        const documentation = tsDocumentation ?
+            ts.displayPartsToString(tsDocumentation) :
+            undefined;
+
+        return {
+            documentation,
+            detail
+        };
+    }
+
     private toCompletionItem(
         comp: ts.CompletionEntry,
         uri: string,
         position: Position
     ): AppCompletionItem<CompletionEntryWithIdentifer> {
-        const { source } = comp;
-        const detail = source ? `Auto import from ${source}` : undefined;
 
         return {
             label: this.getCompletionLabel(comp),
@@ -248,7 +265,6 @@ export class TypeScriptPlugin
             sortText: comp.sortText,
             commitCharacters: getCommitCharactersForScriptElement(comp.kind),
             preselect: comp.isRecommended,
-            detail,
             // pass essential data for resolving completion
             data: {
                 ...comp,
@@ -300,6 +316,16 @@ export class TypeScriptPlugin
             comp.source,
             {}
         );
+
+        if (detail) {
+            const {
+                detail: itemDetail,
+                documentation: itemDocumentation
+            } = this.getCompletionDocument(detail);
+
+            completionItem.detail = itemDetail;
+            completionItem.documentation = itemDocumentation;
+        }
 
         const actions = detail?.codeActions;
         if (actions) {

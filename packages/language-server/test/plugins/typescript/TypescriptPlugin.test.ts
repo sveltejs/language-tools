@@ -129,7 +129,6 @@ describe('TypescriptPlugin', () => {
             sortText: '0',
             commitCharacters: ['.', ',', '('],
             preselect: undefined,
-            detail: undefined
         });
     });
 
@@ -162,6 +161,20 @@ describe('TypescriptPlugin', () => {
         });
     });
 
+    it('resolve completion and provide documentation', async () => {
+        const { plugin, document } = setup('documentation.svelte');
+
+        const completions = plugin.getCompletions(document, Position.create(4, 8), '(');
+
+        const { documentation, detail } = await plugin.resolveCompletion(
+            document,
+            completions?.items[0]!
+        );
+
+        assert.deepStrictEqual(detail, '(alias) function foo(): boolean\nimport foo');
+        assert.deepStrictEqual(documentation, 'bars');
+    });
+
     it('provides import completions for directory', async () => {
         const { plugin, document } = setup('importcompletions.svelte');
         const mockDirName = 'foo';
@@ -185,29 +198,22 @@ describe('TypescriptPlugin', () => {
         }
     });
 
-    const setupAutoImportCompletions = () => {
+    it('resolve auto import completion', async () => {
         const { plugin, document } = setup('importcompletions.svelte');
 
         const completions = plugin.getCompletions(document, Position.create(0, 40));
+        document.version++;
 
         const item = completions?.items.find(item => item.label === 'blubb');
 
-        return { plugin, document, item };
-    };
-
-    it('provides auto import completions', async () => {
-        const { item } = setupAutoImportCompletions();
-        assert.equal(/Auto import from .*\/definitions/.test(item?.detail ?? ''), true);
-        assert.equal(item?.kind, CompletionItemKind.Function);
-    });
-
-    it('resolve auto import completion', async () => {
-        const { item, plugin, document } = setupAutoImportCompletions();
         assert.equal(item?.additionalTextEdits, undefined);
+        assert.equal(item?.detail, undefined);
 
-        const { additionalTextEdits } = await plugin.resolveCompletion(document, item!);
+        const { additionalTextEdits, detail } = await plugin.resolveCompletion(document, item!);
 
-        assert.equal(
+        assert.strictEqual(detail, 'Auto import from ./definitions\nfunction blubb(): boolean');
+
+        assert.strictEqual(
             additionalTextEdits![0]?.newText.replace('\r', '').replace('\n', ''),
             `import { blubb } from './definitions'`,
         );
