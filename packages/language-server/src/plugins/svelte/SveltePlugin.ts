@@ -2,7 +2,6 @@
 type InitialMigrationAny = any;
 
 import { cosmiconfig } from 'cosmiconfig';
-import * as prettier from 'prettier';
 import { RawIndexMap, RawSourceMap, SourceMapConsumer } from 'source-map';
 import { CompileOptions, Warning } from 'svelte/types/compiler/interfaces';
 import { PreprocessorGroup } from 'svelte/types/compiler/preprocess';
@@ -25,7 +24,7 @@ import {
 } from '../interfaces';
 import { getCompletions } from './features/getCompletions';
 import { SvelteDocument, SvelteFragment } from './SvelteDocument';
-import { importSvelte } from './sveltePackage';
+import { importSvelte, importPrettier } from '../importPackage';
 
 interface SvelteConfig extends CompileOptions {
     preprocess?: PreprocessorGroup;
@@ -68,7 +67,7 @@ export class SveltePlugin
             const res = svelte.compile(source, config);
 
             diagnostics = (((res.stats as any).warnings || res.warnings || []) as Warning[]).map(
-                warning => {
+                (warning) => {
                     const start = warning.start || { line: 1, column: 0 };
                     const end = warning.end || start;
                     return {
@@ -114,7 +113,9 @@ export class SveltePlugin
             return [];
         }
 
-        const config = await prettier.resolveConfig(document.getFilePath()!);
+        const filePath = document.getFilePath()!;
+        const prettier = importPrettier(filePath);
+        const config = await prettier.resolveConfig(filePath);
         const formattedCode = prettier.format(document.getText(), {
             ...config,
             plugins: [require.resolve('prettier-plugin-svelte')],
@@ -129,10 +130,7 @@ export class SveltePlugin
         ];
     }
 
-    getCompletions(
-        document: Document,
-        position: Position,
-    ): Resolvable<CompletionList | null> {
+    getCompletions(document: Document, position: Position): Resolvable<CompletionList | null> {
         if (!this.featureEnabled('completions')) {
             return null;
         }
@@ -218,7 +216,7 @@ async function fixDiagnostics(
             continue;
         }
 
-        await SourceMapConsumer.with(fragment.map, null, consumer => {
+        await SourceMapConsumer.with(fragment.map, null, (consumer) => {
             for (const diag of fragmentDiagnostics) {
                 diag.range = {
                     start: mapFragmentPositionBySourceMap(

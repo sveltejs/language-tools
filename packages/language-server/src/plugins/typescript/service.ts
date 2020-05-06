@@ -1,11 +1,16 @@
 import { dirname, resolve } from 'path';
 import ts from 'typescript';
-import { getSveltePackageInfo } from '../svelte/sveltePackage';
 import { DocumentSnapshot, INITIAL_VERSION } from './DocumentSnapshot';
 import { createSvelteModuleLoader } from './module-loader';
-import { ensureRealSvelteFilePath, getScriptKindFromFileName, isSvelteFilePath, findTsConfigPath } from './utils';
+import {
+    ensureRealSvelteFilePath,
+    getScriptKindFromFileName,
+    isSvelteFilePath,
+    findTsConfigPath,
+} from './utils';
 import { TypescriptDocument } from './TypescriptDocument';
 import { SnapshotManager } from './SnapshotManager';
+import { getPackageInfo } from '../importPackage';
 
 export interface LanguageServiceContainer {
     getService(): ts.LanguageService;
@@ -39,7 +44,7 @@ export function createLanguageService(
 ): LanguageServiceContainer {
     const workspacePath = tsconfigPath ? dirname(tsconfigPath) : '';
     const snapshotManager = SnapshotManager.getFromTsConfigPath(tsconfigPath);
-    const sveltePkgInfo = getSveltePackageInfo(workspacePath);
+    const sveltePkgInfo = getPackageInfo('svelte', workspacePath);
 
     let compilerOptions: ts.CompilerOptions = {
         allowNonTsExtensions: true,
