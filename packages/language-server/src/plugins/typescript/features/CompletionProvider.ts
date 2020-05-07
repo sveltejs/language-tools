@@ -1,7 +1,12 @@
 import ts from 'typescript';
 import { Position, TextDocumentIdentifier, TextEdit, CompletionList } from 'vscode-languageserver';
-import { CompletionsProvider, AppCompletionList, AppCompletionItem, Resolvable } from '../../interfaces';
-import { Document, mapCompletionItemToParent } from '../../../lib/documents';
+import {
+    CompletionsProvider,
+    AppCompletionList,
+    AppCompletionItem,
+    Resolvable
+} from '../../interfaces';
+import { Document, mapCompletionItemToParent, mapRangeToParent } from '../../../lib/documents';
 import { LSAndTSDocResovler } from "../LSAndTSDocResovler";
 import {
     scriptElementKindToCompletionItemKind,
@@ -43,7 +48,6 @@ export class CompletionsProviderImpl
         triggerCharacter?: string | undefined
     ): AppCompletionList<CompletionEntryWithIdentifer> | null {
         const { lang, tsDoc } = this.lsAndTsDocResovler.getLSAndTSDoc(document);
-
 
         const filePath = tsDoc.getFilePath();
 
@@ -152,7 +156,7 @@ export class CompletionsProviderImpl
 
             for (const action of actions) {
                 for (const change of action.changes) {
-                    edit.push(...this.codeActionChangeToTextEdit(tsDoc, change));
+                    edit.push(...this.codeActionChangesToTextEdit(tsDoc, change));
                 }
             }
 
@@ -182,13 +186,29 @@ export class CompletionsProviderImpl
         };
     }
 
+    private codeActionChangesToTextEdit(
+        tsDoc: TypescriptDocument,
+        changes: ts.FileTextChanges
+    ): TextEdit[] {
+        return changes.textChanges.map(change =>
+            this.codeActionChangeToTextEdit(tsDoc, change)
+        );
+    }
+
     private codeActionChangeToTextEdit(
         tsDoc: TypescriptDocument,
-        change: ts.FileTextChanges
-    ): TextEdit[] {
-        return change.textChanges.map(item => ({
-            range: convertRange(tsDoc, item.span),
-            newText: item.newText
-        }));
+        change: ts.TextChange
+    ): TextEdit {
+        const { span } = change;
+        // stop newText be placed like this: <script>import {} from ''
+        if (span.start === 0) {
+            change.newText = ts.sys.newLine + change.newText;
+        }
+        const range = mapRangeToParent(
+            tsDoc,
+            convertRange(tsDoc, span)
+        );
+
+        return TextEdit.replace(range, change.newText);
     }
 }
