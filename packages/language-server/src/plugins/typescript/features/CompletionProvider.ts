@@ -2,7 +2,7 @@ import ts from 'typescript';
 import { Position, TextDocumentIdentifier, TextEdit, CompletionList } from 'vscode-languageserver';
 import { CompletionsProvider, AppCompletionList, AppCompletionItem, Resolvable } from '../../interfaces';
 import { Document, mapCompletionItemToParent } from '../../../lib/documents';
-import { LSAndTSDocResovler } from '../TypeScriptPlugin';
+import { LSAndTSDocResovler } from "../LSAndTSDocResovler";
 import {
     scriptElementKindToCompletionItemKind,
     getCommitCharactersForScriptElement,
