@@ -5,9 +5,10 @@ import {
     TextDocumentSyncKind,
     RequestType,
     TextDocumentPositionParams,
+    TextDocumentIdentifier,
 } from 'vscode-languageserver';
 import { DocumentManager, ManagedDocument, Document } from './lib/documents';
-import { SveltePlugin, HTMLPlugin, CSSPlugin, TypeScriptPlugin, PluginHost } from './plugins';
+import { SveltePlugin, HTMLPlugin, CSSPlugin, TypeScriptPlugin, PluginHost, AppCompletionItem } from './plugins';
 import _ from 'lodash';
 import { LSConfigManager } from './ls-config';
 import { urlToPath } from './utils';
@@ -34,7 +35,7 @@ export function startServer() {
     pluginHost.register(new SveltePlugin());
     pluginHost.register(new HTMLPlugin());
     pluginHost.register(new CSSPlugin());
-    pluginHost.register(new TypeScriptPlugin());
+    pluginHost.register(new TypeScriptPlugin(docManager));
 
     connection.onInitialize(evt => {
         pluginHost.updateConfig(evt.initializationOptions.config);
@@ -46,6 +47,7 @@ export function startServer() {
                 },
                 hoverProvider: true,
                 completionProvider: {
+                    resolveProvider: true,
                     triggerCharacters: [
                         '.',
                         '"',
@@ -113,6 +115,15 @@ export function startServer() {
     connection.onCodeAction(evt =>
         pluginHost.getCodeActions(evt.textDocument, evt.range, evt.context),
     );
+    connection.onCompletionResolve(completionItem => {
+        const data = (completionItem as AppCompletionItem).data as TextDocumentIdentifier;
+
+        if (!data) {
+            return completionItem;
+        }
+
+        return pluginHost.resolveCompletion(data, completionItem);
+    });
     connection.onDidChangeWatchedFiles(para => {
         for (const change of para.changes) {
             const filename = urlToPath(change.uri);

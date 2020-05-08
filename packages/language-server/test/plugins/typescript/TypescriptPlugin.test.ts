@@ -2,14 +2,7 @@ import * as assert from 'assert';
 import * as path from 'path';
 import { dirname, join } from 'path';
 import ts from 'typescript';
-import {
-    CompletionItem,
-    CompletionItemKind,
-    FileChangeType,
-    Hover,
-    Position,
-    Range,
-} from 'vscode-languageserver';
+import { FileChangeType, Hover, Position, Range } from 'vscode-languageserver';
 import { DocumentManager, TextDocument } from '../../../src/lib/documents';
 import { LSConfigManager } from '../../../src/ls-config';
 import { TypeScriptPlugin } from '../../../src/plugins';
@@ -25,10 +18,10 @@ describe('TypescriptPlugin', () => {
     }
 
     function setup(filename: string) {
-        const plugin = new TypeScriptPlugin();
+        const docManager = new DocumentManager(() => document);
+        const plugin = new TypeScriptPlugin(docManager);
         const filePath = path.join(__dirname, 'testfiles', filename);
         const document = new TextDocument(pathToUrl(filePath), ts.sys.readFile(filePath)!);
-        const docManager = new DocumentManager(() => document);
         const pluginManager = new LSConfigManager();
         plugin.onRegister(docManager, pluginManager);
         docManager.openDocument(<any>'some doc');
@@ -113,7 +106,7 @@ describe('TypescriptPlugin', () => {
         const symbols = await plugin.getDocumentSymbols(document);
 
         assert.deepStrictEqual(
-            symbols.find(symbol => symbol.name === 'bla'),
+            symbols.find((symbol) => symbol.name === 'bla'),
             {
                 containerName: 'render',
                 kind: 12,
@@ -133,25 +126,6 @@ describe('TypescriptPlugin', () => {
                 name: 'bla',
             },
         );
-    });
-
-    it('provides completions', async () => {
-        const { plugin, document } = setup('completions.svelte');
-
-        const completions = await plugin.getCompletions(document, Position.create(0, 49), '.');
-
-        assert.ok(
-            Array.isArray(completions && completions.items),
-            'Expected completion items to be an array',
-        );
-        assert.ok(completions!.items.length > 0, 'Expected completions to have length');
-        assert.deepStrictEqual(completions!.items[0], <CompletionItem>{
-            label: 'b',
-            kind: CompletionItemKind.Method,
-            sortText: '0',
-            commitCharacters: ['.', ',', '('],
-            preselect: undefined,
-        });
     });
 
     it('provides definitions within svelte doc', async () => {

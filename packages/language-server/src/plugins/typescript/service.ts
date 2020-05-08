@@ -1,6 +1,5 @@
 import { dirname, resolve } from 'path';
 import ts from 'typescript';
-import { getSveltePackageInfo } from '../svelte/sveltePackage';
 import { DocumentSnapshot, INITIAL_VERSION } from './DocumentSnapshot';
 import { createSvelteModuleLoader } from './module-loader';
 import {
@@ -11,6 +10,7 @@ import {
 } from './utils';
 import { SnapshotManager } from './SnapshotManager';
 import { Document } from '../../lib/documents';
+import { getPackageInfo } from '../importPackage';
 
 export interface LanguageServiceContainer {
     getService(): ts.LanguageService;
@@ -44,7 +44,7 @@ export function createLanguageService(
 ): LanguageServiceContainer {
     const workspacePath = tsconfigPath ? dirname(tsconfigPath) : '';
     const snapshotManager = SnapshotManager.getFromTsConfigPath(tsconfigPath);
-    const sveltePkgInfo = getSveltePackageInfo(workspacePath);
+    const sveltePkgInfo = getPackageInfo('svelte', workspacePath);
 
     let compilerOptions: ts.CompilerOptions = {
         allowNonTsExtensions: true,
@@ -82,7 +82,7 @@ export function createLanguageService(
     const svelteModuleLoader = createSvelteModuleLoader(getSvelteSnapshot, compilerOptions);
 
     const svelteTsPath = dirname(require.resolve('svelte2tsx'));
-    const svelteTsxFiles = ['./svelte-shims.d.ts', './svelte-jsx.d.ts'].map(f =>
+    const svelteTsxFiles = ['./svelte-shims.d.ts', './svelte-jsx.d.ts'].map((f) =>
         ts.sys.resolvePath(resolve(svelteTsPath, f)),
     );
 
@@ -108,6 +108,9 @@ export function createLanguageService(
         readFile: svelteModuleLoader.readFile,
         resolveModuleNames: svelteModuleLoader.resolveModuleNames,
         readDirectory: ts.sys.readDirectory,
+        getDirectories: ts.sys.getDirectories,
+        // vscode's uri is all lowercase
+        useCaseSensitiveFileNames: () => false,
         getScriptKind: (fileName: string) => {
             const doc = getSvelteSnapshot(fileName);
             if (doc) {
