@@ -66,9 +66,7 @@ export function startServer() {
                         '+',
                         '^',
                         '(',
-                        ')',
                         '[',
-                        ']',
                         '@',
                         '-',
 
