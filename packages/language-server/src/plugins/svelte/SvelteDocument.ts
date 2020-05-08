@@ -8,6 +8,7 @@ import { urlToPath } from '../../utils';
 export class SvelteDocument extends WritableDocument {
     public script: SvelteFragment;
     public style: SvelteFragment;
+    public languageId = 'svelte';
 
     constructor(public url: string, public content: string) {
         super();
