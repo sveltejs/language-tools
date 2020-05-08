@@ -2,6 +2,9 @@ import { urlToPath } from '../../utils';
 import { WritableDocument } from './Document';
 
 export class TextDocument extends WritableDocument {
+
+    public languageId = 'svelte';
+
     constructor(public url: string, public content: string) {
         super();
     }

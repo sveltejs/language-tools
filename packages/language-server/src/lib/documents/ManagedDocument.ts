@@ -5,6 +5,9 @@ import { WritableDocument } from './Document';
  * Represents a text document that contains a svelte component.
  */
 export class ManagedDocument extends WritableDocument {
+
+    public languageId = 'svelte';
+
     constructor(public url: string, public content: string) {
         super();
     }

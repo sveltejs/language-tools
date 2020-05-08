@@ -5,10 +5,10 @@ import { TypescriptDocument } from './TypescriptDocument';
 
 export class LSAndTSDocResovler {
     constructor(private readonly docManager: DocumentManager) { }
-    createDocument = (fileName: string, content: string) => {
+    private createDocument = (fileName: string, content: string) => {
         const uri = pathToUrl(fileName);
         const document = this.docManager.openDocument({
-            languageId: '',
+            languageId: 'typescript',
             text: content,
             uri,
             version: 0,

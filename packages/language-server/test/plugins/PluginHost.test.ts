@@ -7,7 +7,7 @@ describe('PluginHost', () => {
     const textDocument: TextDocumentItem = {
         uri: 'file:///hello.svelte',
         version: 0,
-        languageId: '',
+        languageId: 'svelte',
         text: 'Hello, world!',
     };
 
