@@ -316,4 +316,27 @@ describe('CompletionProviderImpl', () => {
     })
         // this might take longer
         .timeout(4000);
+
+    it('resolve auto completion without auto import (a svelte component which was already imported)', async () => {
+        const { completionProvider, document, docManager } = setup('importcompletions6.svelte');
+        // make sure that the ts language service does know about the imported-file file
+        await openFileToBeImported(docManager, completionProvider);
+
+        const completions = await completionProvider.getCompletions(
+            document,
+            Position.create(3, 7),
+        );
+        document.version++;
+
+        const item = completions?.items.find((item) => item.label === 'ImportedFile');
+
+        assert.equal(item?.additionalTextEdits, undefined);
+        assert.equal(item?.detail, undefined);
+
+        const { additionalTextEdits } = await completionProvider.resolveCompletion(document, item!);
+
+        assert.strictEqual(additionalTextEdits, undefined);
+    })
+        // this might take longer
+        .timeout(4000);
 });

@@ -208,9 +208,20 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         fragment: SnapshotFragment,
         changes: ts.FileTextChanges,
     ): TextEdit[] {
-        return changes.textChanges.map((change) =>
-            this.codeActionChangeToTextEdit(doc, fragment, change),
-        );
+        return changes.textChanges
+            .map((change) => this.codeActionChangeToTextEdit(doc, fragment, change))
+            .filter((change) => this.isNoExistingSvelteComponentImport(fragment, change));
+    }
+
+    private isNoExistingSvelteComponentImport(
+        fragment: SnapshotFragment,
+        change: TextEdit,
+    ): boolean {
+        if (!this.isSvelteComponentImport(change.newText)) {
+            return true;
+        }
+        const importStatement = change.newText.replace(new RegExp(ts.sys.newLine, 'g'), '');
+        return !fragment.text.includes(importStatement);
     }
 
     private codeActionChangeToTextEdit(
