@@ -3,12 +3,34 @@ import {
     getSCSSLanguageService,
     getLESSLanguageService,
     LanguageService,
+    ICSSDataProvider
 } from 'vscode-css-languageservice';
+import { pesudoClass } from './features/svelte-selectors';
+
+const customDataProvider: ICSSDataProvider = {
+    providePseudoClasses() {
+        return pesudoClass;
+    },
+    provideProperties() {
+        return [];
+    },
+    provideAtDirectives() {
+        return [];
+    },
+    providePseudoElements() {
+        return [];
+    },
+};
+
+const [css, scss, less] = [getCSSLanguageService, getSCSSLanguageService, getLESSLanguageService]
+    .map(getService => getService({
+        customDataProviders: [customDataProvider]
+    }));
 
 const langs = {
-    css: getCSSLanguageService(),
-    scss: getSCSSLanguageService(),
-    less: getLESSLanguageService(),
+    css,
+    scss,
+    less,
 };
 
 export function getLanguage(kind?: string) {
