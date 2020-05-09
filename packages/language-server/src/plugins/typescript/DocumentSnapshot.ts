@@ -121,7 +121,7 @@ export class DocumentSnapshot implements ts.IScriptSnapshot {
 }
 
 export class SnapshotFragment implements Fragment {
-    constructor(private mapper: DocumentMapper, private text: string, private url: string) {}
+    constructor(private mapper: DocumentMapper, public text: string, private url: string) {}
 
     positionInParent(pos: Position): Position {
         return this.mapper.getOriginalPosition(pos);

@@ -2,7 +2,7 @@ import { join } from 'path';
 import ts from 'typescript';
 import assert from 'assert';
 
-import { DocumentManager, TextDocument } from '../../../../src/lib/documents';
+import { DocumentManager, TextDocument, ManagedDocument } from '../../../../src/lib/documents';
 import { pathToUrl } from '../../../../src/utils';
 import { CompletionItem, CompletionItemKind, Position, Range } from 'vscode-languageserver';
 import { rmdirSync, mkdirSync } from 'fs';
@@ -10,16 +10,19 @@ import { CompletionsProviderImpl } from '../../../../src/plugins/typescript/feat
 import { LSAndTSDocResovler } from '../../../../src/plugins/typescript/LSAndTSDocResovler';
 
 const testFilesDir = join(__dirname, '..', 'testfiles');
+const newLine = ts.sys.newLine;
 
 describe('CompletionProviderImpl', () => {
     function setup(filename: string) {
-        const docManager = new DocumentManager(() => document);
+        const docManager = new DocumentManager(
+            (textDocument) => new ManagedDocument(textDocument.uri, textDocument.text),
+        );
         const lsAndTsDocResolver = new LSAndTSDocResovler(docManager);
         const completionProvider = new CompletionsProviderImpl(lsAndTsDocResolver);
         const filePath = join(testFilesDir, filename);
         const document = new TextDocument(pathToUrl(filePath), ts.sys.readFile(filePath)!);
-        docManager.openDocument(<any>'some doc');
-        return { completionProvider, document };
+        docManager.openDocument(<any>{ uri: document.uri, text: document.getText() });
+        return { completionProvider, document, docManager };
     }
 
     it('provides completions', async () => {
@@ -157,7 +160,7 @@ describe('CompletionProviderImpl', () => {
         assert.strictEqual(
             additionalTextEdits![0]?.newText,
             // " instead of ' because VSCode uses " by default when there are no other imports indicating otherwise
-            `\r\nimport { blubb } from "./definitions";\r\n\r\n`,
+            `${newLine}import { blubb } from "./definitions";${newLine}${newLine}`,
         );
 
         assert.deepEqual(
@@ -189,7 +192,7 @@ describe('CompletionProviderImpl', () => {
 
         assert.strictEqual(
             additionalTextEdits![0]?.newText,
-            `import { blubb } from './definitions';\r\n`,
+            `import { blubb } from './definitions';${newLine}`,
         );
 
         assert.deepEqual(
@@ -199,7 +202,7 @@ describe('CompletionProviderImpl', () => {
     });
 
     it('resolve auto import completion (importing in same line as first import)', async () => {
-        const { completionProvider, document } = setup('importcompletions2.svelte');
+        const { completionProvider, document } = setup('importcompletions3.svelte');
 
         const completions = await completionProvider.getCompletions(
             document,
@@ -221,12 +224,96 @@ describe('CompletionProviderImpl', () => {
 
         assert.strictEqual(
             additionalTextEdits![0]?.newText,
-            `import { blubb } from './definitions';\r\n`,
+            `import { blubb } from './definitions';${newLine}`,
         );
 
         assert.deepEqual(
             additionalTextEdits![0]?.range,
-            Range.create(Position.create(2, 0), Position.create(2, 0)),
+            Range.create(Position.create(1, 0), Position.create(1, 0)),
         );
     });
+
+    async function openFileToBeImported(
+        docManager: DocumentManager,
+        completionProvider: CompletionsProviderImpl,
+    ) {
+        const filePath = join(testFilesDir, 'imported-file.svelte');
+        const hoverinfoDoc = new TextDocument(pathToUrl(filePath), ts.sys.readFile(filePath) || '');
+        docManager.openDocument(<any>hoverinfoDoc);
+        await completionProvider.getCompletions(hoverinfoDoc, Position.create(1, 1));
+    }
+
+    it('resolve auto import completion (importing a svelte component)', async () => {
+        const { completionProvider, document, docManager } = setup('importcompletions4.svelte');
+        // make sure that the ts language service does know about the imported-file file
+        await openFileToBeImported(docManager, completionProvider);
+
+        const completions = await completionProvider.getCompletions(
+            document,
+            Position.create(2, 7),
+        );
+        document.version++;
+
+        const item = completions?.items.find((item) => item.label === 'ImportedFile');
+
+        assert.equal(item?.additionalTextEdits, undefined);
+        assert.equal(item?.detail, undefined);
+
+        const { additionalTextEdits, detail } = await completionProvider.resolveCompletion(
+            document,
+            item!,
+        );
+
+        assert.strictEqual(detail, 'Auto import from ./imported-file.svelte\nclass default');
+
+        assert.strictEqual(
+            additionalTextEdits![0]?.newText,
+            // " instead of ' because VSCode uses " by default when there are no other imports indicating otherwise
+            `import ImportedFile from "./imported-file.svelte";${newLine}`,
+        );
+
+        assert.deepEqual(
+            additionalTextEdits![0]?.range,
+            Range.create(Position.create(1, 0), Position.create(1, 0)),
+        );
+    })
+        // this might take longer
+        .timeout(4000);
+
+    it('resolve auto import completion (importing a svelte component, no script tag yet)', async () => {
+        const { completionProvider, document, docManager } = setup('importcompletions5.svelte');
+        // make sure that the ts language service does know about the imported-file file
+        await openFileToBeImported(docManager, completionProvider);
+
+        const completions = await completionProvider.getCompletions(
+            document,
+            Position.create(0, 7),
+        );
+        document.version++;
+
+        const item = completions?.items.find((item) => item.label === 'ImportedFile');
+
+        assert.equal(item?.additionalTextEdits, undefined);
+        assert.equal(item?.detail, undefined);
+
+        const { additionalTextEdits, detail } = await completionProvider.resolveCompletion(
+            document,
+            item!,
+        );
+
+        assert.strictEqual(detail, 'Auto import from ./imported-file.svelte\nclass default');
+
+        assert.strictEqual(
+            additionalTextEdits![0]?.newText,
+            // " instead of ' because VSCode uses " by default when there are no other imports indicating otherwise
+            `<script>${newLine}import ImportedFile from "./imported-file.svelte";${newLine}${newLine}</script>${newLine}`,
+        );
+
+        assert.deepEqual(
+            additionalTextEdits![0]?.range,
+            Range.create(Position.create(0, 0), Position.create(0, 0)),
+        );
+    })
+        // this might take longer
+        .timeout(4000);
 });

@@ -1,5 +1,11 @@
 import ts from 'typescript';
-import { Position, TextDocumentIdentifier, TextEdit, CompletionList } from 'vscode-languageserver';
+import {
+    Position,
+    TextDocumentIdentifier,
+    TextEdit,
+    CompletionList,
+    Range,
+} from 'vscode-languageserver';
 import { CompletionsProvider, AppCompletionList, AppCompletionItem } from '../../interfaces';
 import {
     Document,
@@ -45,48 +51,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
     ): Promise<AppCompletionList<CompletionEntryWithIdentifer> | null> {
         const { lang, tsDoc } = this.lsAndTsDocResovler.getLSAndTSDoc(document);
 
-        // ------------------------------
-        //     const { lang, tsDoc } = this.getLSAndTSDoc(document);
-        //     const fragment = await tsDoc.getFragment();
-        //     // The language service throws an error if the character is not a valid trigger character.
-        //     // Also, the completions are worse.
-        //     // Therefore, only use the characters the typescript compiler treats as valid.
-        //     const validTriggerCharacter = ['.', '"', "'", '`', '/', '@', '<', '#'].includes(
-        //         triggerCharacter!,
-        //     )
-        //         ? triggerCharacter
-        //         : undefined;
-        //     const completions = lang.getCompletionsAtPosition(
-        //         tsDoc.filePath,
-        //         fragment.offsetAt(fragment.positionInFragment(position)),
-        //         {
-        //             includeCompletionsForModuleExports: true,
-        //             triggerCharacter: validTriggerCharacter as any,
-        //         },
-        //     );
-        // }
-
-        //     if (!completions) {
-        //         return null;
-        //     }
-
-        //     return CompletionList.create(
-        //         completions!.entries
-        //             .map(comp => {
-        //                 return <CompletionItem>{
-        //                     label: comp.name,
-        //                     kind: scriptElementKindToCompletionItemKind(comp.kind),
-        //                     sortText: comp.sortText,
-        //                     commitCharacters: getCommitCharactersForScriptElement(comp.kind),
-        //                     preselect: comp.isRecommended,
-        //                 };
-        //             })
-        //             .map(comp => mapCompletionItemToParent(fragment, comp)),
-        //     );
-        // ------------------------------
-
         const filePath = tsDoc.filePath;
-
         if (!filePath) {
             return null;
         }
@@ -121,15 +86,16 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         uri: string,
         position: Position,
     ): AppCompletionItem<CompletionEntryWithIdentifer> {
-        const { label, insertText } = this.getCompletionLableAndInsert(comp);
+        const { label, insertText, isSvelteComp } = this.getCompletionLableAndInsert(comp);
 
         return {
             label,
             insertText,
             kind: scriptElementKindToCompletionItemKind(comp.kind),
-            sortText: comp.sortText,
             commitCharacters: getCommitCharactersForScriptElement(comp.kind),
-            preselect: comp.isRecommended,
+            // Make sure svelte component takes precedence
+            sortText: isSvelteComp ? '-1' : comp.sortText,
+            preselect: isSvelteComp ? true : comp.isRecommended,
             // pass essential data for resolving completion
             data: {
                 ...comp,
@@ -140,18 +106,25 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
     }
 
     private getCompletionLableAndInsert(comp: ts.CompletionEntry) {
-        const { kind, kindModifiers, name } = comp;
+        let { kind, kindModifiers, name, source } = comp;
         const isScriptElement = kind === ts.ScriptElementKind.scriptElement;
         const hasModifier = Boolean(comp.kindModifiers);
+
+        const isSvelteComp = this.isSvelteComponentImport(`import ${name} from ${source}`);
+        if (isSvelteComp) {
+            name = this.changeSvelteComponentName(name);
+        }
 
         if (isScriptElement && hasModifier) {
             return {
                 insertText: name,
                 label: name + kindModifiers,
+                isSvelteComp,
             };
         }
         return {
             label: name,
+            isSvelteComp,
         };
     }
 
@@ -238,14 +211,36 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         fragment: SnapshotFragment,
         change: ts.TextChange,
     ): TextEdit {
+        if (this.isSvelteComponentImport(change.newText)) {
+            change.newText = this.changeSvelteComponentImportName(change.newText);
+        }
+
+        const scriptTagInfo = extractTag(doc.getText(), 'script');
+        if (!scriptTagInfo) {
+            // no script tag defined yet, add it.
+            return TextEdit.replace(
+                beginOfDocumentRange,
+                `<script>${ts.sys.newLine}${change.newText}</script>${ts.sys.newLine}`,
+            );
+        }
+        const scriptTagStart = scriptTagInfo.start;
+
         const { span } = change;
         // prevent newText from being placed like this: <script>import {} from ''
         if (span.start === 0) {
             change.newText = ts.sys.newLine + change.newText;
         }
+        // If a component is imported while there are errors in the code, the fragment text is empty.
+        // Therefore the typescript language service does not know there are other imports and treats
+        // the import as the first one. Most of the time this is wrong and produces unnecessary empty lines
+        // -> remove them.
+        if (!fragment.text) {
+            change.newText = change.newText.replace(/\r|\n/g, '') + ts.sys.newLine;
+        }
+
         let range = mapRangeToParent(fragment, convertRange(fragment, span));
         // Special case handling to get around wrong mapping of imports.
-        if (range.start.line === 0 && range.start.character === 1 && span.length === 0) {
+        if (range.start.line === 0 && range.start.character <= 1 && span.length === 0) {
             span.start = span.start - 1 || 0;
             range = mapRangeToParent(fragment, convertRange(fragment, span));
             range.start.line += 1;
@@ -256,11 +251,30 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         // This happens if the completion is the first import of the file.
         if (range.start.line === -1) {
             range = convertRange(doc, {
-                start: extractTag(doc.getText(), 'script')?.start || 0 + span.start,
+                start: scriptTagStart + span.start,
                 length: span.length,
             });
         }
 
         return TextEdit.replace(range, change.newText);
     }
+
+    private isSvelteComponentImport(text: string) {
+        return /import \w+ from [\s\S]*.svelte($|"|'| )/.test(text);
+    }
+
+    private changeSvelteComponentImportName(text: string) {
+        return text.replace(
+            /import (\w+) from /,
+            (_, componentMatch) => `import ${this.changeSvelteComponentName(componentMatch)} from `,
+        );
+    }
+
+    private changeSvelteComponentName(name: string) {
+        let newName = name.replace(/(\w+)Svelte$/, '$1');
+        // make sure first letter is uppercase
+        return newName[0].toUpperCase() + newName.substr(1);
+    }
 }
+
+const beginOfDocumentRange = Range.create(Position.create(0, 0), Position.create(0, 0));
