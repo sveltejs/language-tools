@@ -269,12 +269,12 @@ describe('CompletionProviderImpl', () => {
         assert.strictEqual(
             additionalTextEdits![0]?.newText,
             // " instead of ' because VSCode uses " by default when there are no other imports indicating otherwise
-            `import ImportedFile from "./imported-file.svelte";${newLine}`,
+            `${newLine}import ImportedFile from "./imported-file.svelte";${newLine}`,
         );
 
         assert.deepEqual(
             additionalTextEdits![0]?.range,
-            Range.create(Position.create(1, 0), Position.create(1, 0)),
+            Range.create(Position.create(0, 8), Position.create(0, 8)),
         );
     })
         // this might take longer

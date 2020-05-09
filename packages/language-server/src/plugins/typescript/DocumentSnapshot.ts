@@ -1,7 +1,19 @@
 import ts from 'typescript';
 import { getScriptKindFromAttributes, isSvelteFilePath, getScriptKindFromFileName } from './utils';
-import { Fragment, positionAt, offsetAt, Document, extractTag } from '../../lib/documents';
-import { DocumentMapper, IdentityMapper, ConsumerDocumentMapper } from './DocumentMapper';
+import {
+    Fragment,
+    positionAt,
+    offsetAt,
+    Document,
+    extractTag,
+    TagInformation,
+} from '../../lib/documents';
+import {
+    DocumentMapper,
+    IdentityMapper,
+    ConsumerDocumentMapper,
+    FragmentMapper,
+} from './DocumentMapper';
 import { Position, Range } from 'vscode-languageserver';
 import { SourceMapConsumer, RawSourceMap } from 'source-map';
 import { pathToUrl } from '../../utils';
@@ -19,7 +31,7 @@ export class DocumentSnapshot implements ts.IScriptSnapshot {
     private fragment?: SnapshotFragment;
 
     static fromDocument(document: Document) {
-        const { tsxMap, text, parserError } = DocumentSnapshot.preprocessIfIsSvelteFile(
+        const { tsxMap, text, details, parserError } = DocumentSnapshot.preprocessIfIsSvelteFile(
             document.uri,
             document.getText(),
         );
@@ -29,15 +41,18 @@ export class DocumentSnapshot implements ts.IScriptSnapshot {
             getScriptKindFromAttributes(extractTag(document.getText(), 'script')?.attributes ?? {}),
             document.getFilePath() || '',
             parserError,
+            details,
             text,
+            document.getText(),
             tsxMap,
         );
     }
 
     static fromFilePath(filePath: string) {
-        const { text, tsxMap, parserError } = DocumentSnapshot.preprocessIfIsSvelteFile(
+        const originalText = ts.sys.readFile(filePath) ?? '';
+        const { text, tsxMap, details, parserError } = DocumentSnapshot.preprocessIfIsSvelteFile(
             pathToUrl(filePath),
-            ts.sys.readFile(filePath) ?? '',
+            originalText,
         );
 
         return new DocumentSnapshot(
@@ -45,7 +60,9 @@ export class DocumentSnapshot implements ts.IScriptSnapshot {
             getScriptKindFromFileName(filePath),
             filePath,
             parserError,
+            details,
             text,
+            originalText,
             tsxMap,
         );
     }
@@ -53,6 +70,7 @@ export class DocumentSnapshot implements ts.IScriptSnapshot {
     private static preprocessIfIsSvelteFile(uri: string, text: string) {
         let tsxMap: RawSourceMap | undefined;
         let parserError: ParserError | null = null;
+        let details = extractTag(text, 'script');
 
         if (isSvelteFilePath(uri)) {
             try {
@@ -76,20 +94,23 @@ export class DocumentSnapshot implements ts.IScriptSnapshot {
                     message: e.message,
                     code: -1,
                 };
-                text = '';
+                // fall back to extracted script, if any
+                text = details ? details.content : '';
             }
         }
 
-        return { tsxMap, text, parserError };
+        return { tsxMap, text, details, parserError };
     }
 
     private constructor(
         public version: number,
-        public scriptKind: ts.ScriptKind,
-        public filePath: string,
-        public parserError: ParserError | null,
-        private text: string,
-        private tsxMap?: RawSourceMap,
+        public readonly scriptKind: ts.ScriptKind,
+        public readonly filePath: string,
+        public readonly parserError: ParserError | null,
+        public readonly details: any,
+        private readonly text: string,
+        private readonly originalText: string,
+        private readonly tsxMap?: RawSourceMap,
     ) {}
 
     getText(start: number, end: number) {
@@ -111,17 +132,25 @@ export class DocumentSnapshot implements ts.IScriptSnapshot {
     async getFragment() {
         if (!this.fragment) {
             const uri = pathToUrl(this.filePath);
-            const mapper = !this.tsxMap
-                ? new IdentityMapper()
-                : new ConsumerDocumentMapper(await new SourceMapConsumer(this.tsxMap), uri);
-            this.fragment = new SnapshotFragment(mapper, this.text, uri);
+            const mapper =
+                !this.tsxMap && !this.details
+                    ? new IdentityMapper()
+                    : !this.tsxMap
+                    ? new FragmentMapper(this.originalText, this.details)
+                    : new ConsumerDocumentMapper(await new SourceMapConsumer(this.tsxMap), uri);
+            this.fragment = new SnapshotFragment(mapper, this.text, this.details, uri);
         }
         return this.fragment;
     }
 }
 
 export class SnapshotFragment implements Fragment {
-    constructor(private mapper: DocumentMapper, public text: string, private url: string) {}
+    constructor(
+        private readonly mapper: DocumentMapper,
+        public readonly text: string,
+        public readonly details: TagInformation,
+        private readonly url: string,
+    ) {}
 
     positionInParent(pos: Position): Position {
         return this.mapper.getOriginalPosition(pos);

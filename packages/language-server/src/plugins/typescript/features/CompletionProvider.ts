@@ -122,6 +122,13 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
                 isSvelteComp,
             };
         }
+        if (isSvelteComp && kind === ts.ScriptElementKind.classElement) {
+            return {
+                insertText: name,
+                label: name,
+                isSvelteComp,
+            };
+        }
         return {
             label: name,
             isSvelteComp,
@@ -215,7 +222,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             change.newText = this.changeSvelteComponentImportName(change.newText);
         }
 
-        const scriptTagInfo = extractTag(doc.getText(), 'script');
+        const scriptTagInfo = fragment.details;
         if (!scriptTagInfo) {
             // no script tag defined yet, add it.
             return TextEdit.replace(
@@ -225,17 +232,12 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         }
         const scriptTagStart = scriptTagInfo.start;
 
+        // TODO somehow filter out already done svelte import
+
         const { span } = change;
         // prevent newText from being placed like this: <script>import {} from ''
         if (span.start === 0) {
             change.newText = ts.sys.newLine + change.newText;
-        }
-        // If a component is imported while there are errors in the code, the fragment text is empty.
-        // Therefore the typescript language service does not know there are other imports and treats
-        // the import as the first one. Most of the time this is wrong and produces unnecessary empty lines
-        // -> remove them.
-        if (!fragment.text) {
-            change.newText = change.newText.replace(/\r|\n/g, '') + ts.sys.newLine;
         }
 
         let range = mapRangeToParent(fragment, convertRange(fragment, span));
