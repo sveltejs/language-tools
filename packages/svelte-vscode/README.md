@@ -2,6 +2,10 @@
 
 Provides syntax highlighting and rich intellisense for Svelte components in VS Code, utilising the [svelte language server](../language-server).
 
+## Installing
+
+[The extension is available on VisualStudio Marketplace](https://marketplace.visualstudio.com/items?itemName=svelte.svelte-vscode). Alternatively, you can [install and run the development extension](../../README.md#running-the-dev-language-server-against-your-app) if you wish to improve and contribute to it.
+
 ## Features
 
 -   Svelte
