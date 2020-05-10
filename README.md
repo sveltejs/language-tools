@@ -15,6 +15,8 @@
 
 ## What is Svelte Language Tools?
 
+This repository contains the code that powers the [VSCode extension](https://marketplace.visualstudio.com/items?itemName=svelte.svelte-vscode).
+
 A `.svelte` file would look something like this:
 
 ```html
@@ -40,7 +42,7 @@ A `.svelte` file would look something like this:
 
 Which is a mix of [HTMLx](https://github.com/htmlx-org/HTMLx) and vanilla JavaScript (but with additional runtime behavior coming from the svelte compiler). 
 
-This repo contains the tools which provide editor integrations for Svelte files like this.
+This repo contains the VSCode integration for Svelte files like this.
 
 ## Packages
 
@@ -50,7 +52,7 @@ For example `yarn workspace svelte-language-server test`.
 
 #### [`svelte-language-server`](packages/language-server)
 
-The language server for Svelte. Built from [UnwrittenFun/svelte-language-server](https://github.com/UnwrittenFun/svelte-language-server) to become the official language server for the language.
+The VSCode language server for Svelte. Built from [UnwrittenFun/svelte-language-server](https://github.com/UnwrittenFun/svelte-language-server) to become the official language server for the language.
 
 #### [`svelte-vscode`](packages/svelte-vscode)
 
