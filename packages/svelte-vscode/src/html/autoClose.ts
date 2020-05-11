@@ -67,7 +67,7 @@ export function activateTagClosing(
         }
         const lastChange = changes[changes.length - 1];
         const lastCharacter = lastChange.text[lastChange.text.length - 1];
-        if ("range" in lastChange && lastChange.range.start !== lastChange.range.end || (lastCharacter !== '>' && lastCharacter !== '/')) {
+        if ("range" in lastChange && (lastChange.rangeLength ?? 0) > 0 || (lastCharacter !== '>' && lastCharacter !== '/')) {
             return;
         }
         const rangeStart = "range" in lastChange ? lastChange.range.start : new Position(0, document.getText().length);
