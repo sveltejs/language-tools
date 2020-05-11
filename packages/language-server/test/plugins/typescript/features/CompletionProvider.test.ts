@@ -355,5 +355,5 @@ describe('CompletionProviderImpl', () => {
 });
 
 function harmonizeNewLines(input?: string) {
-    return input?.replace(/\r\n/g, ts.sys.newLine);
+    return input?.replace(/\r\n/g, '~:~').replace(/\n/g, '~:~').replace(/~:~/g, ts.sys.newLine);
 }
