@@ -29,5 +29,8 @@ export function isInRange(range: Range, positionToTest: Position): boolean {
 }
 
 export function isBeforeOrEqualToPosition(position: Position, positionToTest: Position): boolean {
-    return positionToTest.line < position.line || positionToTest.character <= position.character;
+    return (
+        positionToTest.line < position.line ||
+        (positionToTest.line === position.line && positionToTest.character <= position.character)
+    );
 }
