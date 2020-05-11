@@ -118,7 +118,7 @@ export abstract class Document implements TextDocument {
         return this.getText().split(/\r?\n/).length;
     }
 
-    languageId = '';
+    abstract languageId: string;
 }
 
 /**

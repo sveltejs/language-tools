@@ -60,6 +60,14 @@ describe('CSS Plugin', () => {
         });
     });
 
+    it('provides completions for :global modifier', async () => {
+        const { plugin, document } = setup('<style>:g</style>');
+
+        const completions = plugin.getCompletions(document, Position.create(0, 9), ' ');
+        const globalCompletion = completions?.items.find(item => item.label === ':global()');
+        assert.ok(globalCompletion);
+    });
+
     describe('provides diagnostics', () => {
         it('- everything ok', () => {
             const { plugin, document } = setup('<style>h1 {color:blue;}</style>');
