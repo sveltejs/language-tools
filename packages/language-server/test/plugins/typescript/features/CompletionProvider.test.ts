@@ -170,7 +170,7 @@ describe('CompletionProviderImpl', () => {
         assert.strictEqual(detail, 'Auto import from ./definitions\nfunction blubb(): boolean');
 
         assert.strictEqual(
-            additionalTextEdits![0]?.newText,
+            harmonizeNewLines(additionalTextEdits![0]?.newText),
             // " instead of ' because VSCode uses " by default when there are no other imports indicating otherwise
             `${newLine}import { blubb } from "./definitions";${newLine}${newLine}`,
         );
@@ -203,7 +203,7 @@ describe('CompletionProviderImpl', () => {
         assert.strictEqual(detail, 'Auto import from ./definitions\nfunction blubb(): boolean');
 
         assert.strictEqual(
-            additionalTextEdits![0]?.newText,
+            harmonizeNewLines(additionalTextEdits![0]?.newText),
             `import { blubb } from './definitions';${newLine}`,
         );
 
@@ -235,7 +235,7 @@ describe('CompletionProviderImpl', () => {
         assert.strictEqual(detail, 'Auto import from ./definitions\nfunction blubb(): boolean');
 
         assert.strictEqual(
-            additionalTextEdits![0]?.newText,
+            harmonizeNewLines(additionalTextEdits![0]?.newText),
             `import { blubb } from './definitions';${newLine}`,
         );
 
@@ -316,7 +316,7 @@ describe('CompletionProviderImpl', () => {
         assert.strictEqual(detail, 'Auto import from ./imported-file.svelte\nclass default');
 
         assert.strictEqual(
-            additionalTextEdits![0]?.newText,
+            harmonizeNewLines(additionalTextEdits![0]?.newText),
             // " instead of ' because VSCode uses " by default when there are no other imports indicating otherwise
             `<script>${newLine}import ImportedFile from "./imported-file.svelte";` +
                 `${newLine}${newLine}</script>${newLine}`,
@@ -353,3 +353,7 @@ describe('CompletionProviderImpl', () => {
         // this might take longer
         .timeout(4000);
 });
+
+function harmonizeNewLines(input?: string) {
+    return input?.replace(/\r\n/g, ts.sys.newLine);
+}
