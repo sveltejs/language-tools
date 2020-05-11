@@ -82,8 +82,8 @@ export class DocumentSnapshot implements ts.IScriptSnapshot {
     private static preprocessIfIsSvelteFile(uri: string, text: string) {
         let tsxMap: RawSourceMap | undefined;
         let parserError: ParserError | null = null;
-        let scriptInfo = extractTag(text, 'script');
-        let styleInfo = extractTag(text, 'style');
+        const scriptInfo = extractTag(text, 'script');
+        const styleInfo = extractTag(text, 'style');
         let nrPrependedLines = 0;
 
         if (isSvelteFilePath(uri)) {
@@ -212,4 +212,5 @@ export class SnapshotFragment implements Fragment {
     }
 }
 
+// eslint-disable-next-line
 const tsCheckRegex = /^\s*(\/\/[ \t\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff]*(@ts-(no)?check)($|\n|\r\n))/;

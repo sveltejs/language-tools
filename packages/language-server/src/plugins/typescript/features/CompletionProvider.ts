@@ -1,26 +1,21 @@
 import ts from 'typescript';
 import {
+    CompletionList,
     Position,
+    Range,
     TextDocumentIdentifier,
     TextEdit,
-    CompletionList,
-    Range,
 } from 'vscode-languageserver';
-import { CompletionsProvider, AppCompletionList, AppCompletionItem } from '../../interfaces';
-import {
-    Document,
-    mapCompletionItemToParent,
-    mapRangeToParent,
-    extractTag,
-} from '../../../lib/documents';
+import { Document, mapCompletionItemToParent, mapRangeToParent } from '../../../lib/documents';
+import { isNotNullOrUndefined, pathToUrl } from '../../../utils';
+import { AppCompletionItem, AppCompletionList, CompletionsProvider } from '../../interfaces';
+import { SnapshotFragment } from '../DocumentSnapshot';
 import { LSAndTSDocResovler } from '../LSAndTSDocResovler';
 import {
-    scriptElementKindToCompletionItemKind,
-    getCommitCharactersForScriptElement,
     convertRange,
+    getCommitCharactersForScriptElement,
+    scriptElementKindToCompletionItemKind,
 } from '../utils';
-import { pathToUrl, isNotNullOrUndefined } from '../../../utils';
-import { SnapshotFragment } from '../DocumentSnapshot';
 
 export interface CompletionEntryWithIdentifer extends ts.CompletionEntry, TextDocumentIdentifier {
     position: Position;
@@ -299,7 +294,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
     }
 
     private changeSvelteComponentName(name: string) {
-        let newName = name.replace(/(\w+)Svelte$/, '$1');
+        const newName = name.replace(/(\w+)Svelte$/, '$1');
         // make sure first letter is uppercase
         return newName[0].toUpperCase() + newName.substr(1);
     }

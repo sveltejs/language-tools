@@ -318,7 +318,8 @@ describe('CompletionProviderImpl', () => {
         assert.strictEqual(
             additionalTextEdits![0]?.newText,
             // " instead of ' because VSCode uses " by default when there are no other imports indicating otherwise
-            `<script>${newLine}import ImportedFile from "./imported-file.svelte";${newLine}${newLine}</script>${newLine}`,
+            `<script>${newLine}import ImportedFile from "./imported-file.svelte";` +
+                `${newLine}${newLine}</script>${newLine}`,
         );
 
         assert.deepEqual(

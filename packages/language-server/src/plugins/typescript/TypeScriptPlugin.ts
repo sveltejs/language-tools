@@ -4,6 +4,7 @@ import {
     CodeActionContext,
     DefinitionLink,
     Diagnostic,
+    DiagnosticSeverity,
     FileChangeType,
     Hover,
     LocationLink,
@@ -13,51 +14,42 @@ import {
     TextDocumentEdit,
     TextEdit,
     VersionedTextDocumentIdentifier,
-    DiagnosticSeverity,
 } from 'vscode-languageserver';
 import {
     Document,
     DocumentManager,
-    mapCompletionItemToParent,
     mapDiagnosticToParent,
     mapHoverToParent,
-    mapSymbolInformationToParent,
     mapRangeToParent,
+    mapSymbolInformationToParent,
 } from '../../lib/documents';
-import { pathToUrl } from '../../utils';
-import { mapLocationLinkToParent, mapCodeActionToParent } from '../../lib/documents';
 import { LSConfigManager, LSTypescriptConfig } from '../../ls-config';
+import { pathToUrl } from '../../utils';
 import {
+    AppCompletionItem,
+    AppCompletionList,
     CodeActionsProvider,
+    CompletionsProvider,
     DefinitionsProvider,
     DiagnosticsProvider,
     DocumentSymbolsProvider,
     HoverProvider,
     OnRegister,
     OnWatchFileChanges,
-    CompletionsProvider,
-    AppCompletionItem,
-    AppCompletionList,
 } from '../interfaces';
 import { DocumentSnapshot, SnapshotFragment } from './DocumentSnapshot';
-import { CreateDocument, getLanguageServiceForDocument } from './service';
-import { SnapshotManager } from './SnapshotManager';
-import {
-    getScriptKindFromAttributes,
-    convertRange,
-    convertToLocationRange,
-    findTsConfigPath,
-    getCommitCharactersForScriptElement,
-    getScriptKindFromFileName,
-    mapSeverity,
-    scriptElementKindToCompletionItemKind,
-    symbolKindFromString,
-} from './utils';
 import {
     CompletionEntryWithIdentifer,
     CompletionsProviderImpl,
 } from './features/CompletionProvider';
 import { LSAndTSDocResovler } from './LSAndTSDocResovler';
+import {
+    convertRange,
+    convertToLocationRange,
+    getScriptKindFromFileName,
+    mapSeverity,
+    symbolKindFromString,
+} from './utils';
 
 export class TypeScriptPlugin
     implements
