@@ -36,15 +36,18 @@ export class FragmentMapper implements DocumentMapper {
 }
 
 export class ConsumerDocumentMapper implements DocumentMapper {
-    consumer: SourceMapConsumer;
-    sourceUri: string;
-
-    constructor(consumer: SourceMapConsumer, sourceUri: string) {
-        this.consumer = consumer;
-        this.sourceUri = sourceUri;
-    }
+    constructor(
+        private consumer: SourceMapConsumer,
+        private sourceUri: string,
+        private nrPrependesLines: number,
+    ) {}
 
     getOriginalPosition(generatedPosition: Position): Position {
+        generatedPosition = Position.create(
+            generatedPosition.line - this.nrPrependesLines,
+            generatedPosition.character,
+        );
+
         const mapped = this.consumer.originalPositionFor({
             line: generatedPosition.line + 1,
             column: generatedPosition.character,
@@ -75,9 +78,16 @@ export class ConsumerDocumentMapper implements DocumentMapper {
             return { line: -1, character: -1 };
         }
 
-        return {
+        const result = {
             line: (mapped.line || 0) - 1,
             character: mapped.column || 0,
         };
+
+        if (result.line < 0) {
+            return result;
+        }
+
+        result.line += this.nrPrependesLines;
+        return result;
     }
 }

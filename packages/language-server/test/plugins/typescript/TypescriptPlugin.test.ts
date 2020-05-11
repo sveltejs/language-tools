@@ -54,6 +54,41 @@ describe('TypescriptPlugin', () => {
         // diagnostics might take longer, therefore increase the timeout
         .timeout(8000);
 
+    it('provides typecheck diagnostics for js file when //@ts-check at top of script', async () => {
+        const { plugin, document } = setup('diagnostics-js-typecheck.svelte');
+        const diagnostics = await plugin.getDiagnostics(document);
+
+        assert.deepStrictEqual(diagnostics, [
+            {
+                code: 2339,
+                message: "Property 'bla' does not exist on type '1'.",
+                range: {
+                    start: {
+                        character: 4,
+                        line: 3,
+                    },
+                    end: {
+                        character: 7,
+                        line: 3,
+                    },
+                },
+                severity: 1,
+                source: 'js',
+            },
+        ]);
+    })
+        // diagnostics might take longer, therefore increase the timeout
+        .timeout(8000);
+
+    it('provides no typecheck diagnostics for js file', async () => {
+        const { plugin, document } = setup('diagnostics-js-notypecheck.svelte');
+        const diagnostics = await plugin.getDiagnostics(document);
+
+        assert.deepStrictEqual(diagnostics, []);
+    })
+        // diagnostics might take longer, therefore increase the timeout
+        .timeout(8000);
+
     it('provides diagnostics when there is a parser error', async () => {
         const { plugin, document } = setup('diagnostics-parsererror.svelte');
         const diagnostics = await plugin.getDiagnostics(document);

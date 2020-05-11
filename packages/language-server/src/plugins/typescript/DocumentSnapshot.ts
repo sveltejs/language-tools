@@ -37,6 +37,7 @@ export class DocumentSnapshot implements ts.IScriptSnapshot {
             scriptInfo,
             styleInfo,
             parserError,
+            nrPrependedLines,
         } = DocumentSnapshot.preprocessIfIsSvelteFile(document.uri, document.getText());
 
         return new DocumentSnapshot(
@@ -48,6 +49,7 @@ export class DocumentSnapshot implements ts.IScriptSnapshot {
             styleInfo,
             text,
             document.getText(),
+            nrPrependedLines,
             tsxMap,
         );
     }
@@ -60,6 +62,7 @@ export class DocumentSnapshot implements ts.IScriptSnapshot {
             scriptInfo,
             styleInfo,
             parserError,
+            nrPrependedLines,
         } = DocumentSnapshot.preprocessIfIsSvelteFile(pathToUrl(filePath), originalText);
 
         return new DocumentSnapshot(
@@ -71,6 +74,7 @@ export class DocumentSnapshot implements ts.IScriptSnapshot {
             styleInfo,
             text,
             originalText,
+            nrPrependedLines,
             tsxMap,
         );
     }
@@ -80,6 +84,7 @@ export class DocumentSnapshot implements ts.IScriptSnapshot {
         let parserError: ParserError | null = null;
         let scriptInfo = extractTag(text, 'script');
         let styleInfo = extractTag(text, 'style');
+        let nrPrependedLines = 0;
 
         if (isSvelteFilePath(uri)) {
             try {
@@ -88,6 +93,12 @@ export class DocumentSnapshot implements ts.IScriptSnapshot {
                 tsxMap = tsx.map;
                 if (tsxMap) {
                     tsxMap.sources = [uri];
+
+                    const tsCheck = scriptInfo?.content.match(tsCheckRegex);
+                    if (tsCheck) {
+                        text = `//${tsCheck[2]}${ts.sys.newLine}` + text;
+                        nrPrependedLines = 1;
+                    }
                 }
             } catch (e) {
                 // Error start/end logic is different and has different offsets for line, so we need to convert that
@@ -108,7 +119,7 @@ export class DocumentSnapshot implements ts.IScriptSnapshot {
             }
         }
 
-        return { tsxMap, text, scriptInfo, styleInfo, parserError };
+        return { tsxMap, text, scriptInfo, styleInfo, parserError, nrPrependedLines };
     }
 
     private constructor(
@@ -120,6 +131,7 @@ export class DocumentSnapshot implements ts.IScriptSnapshot {
         public readonly styleInfo: TagInformation | null,
         private readonly text: string,
         private readonly originalText: string,
+        private readonly nrPrependedLines: number,
         private readonly tsxMap?: RawSourceMap,
     ) {}
 
@@ -146,7 +158,11 @@ export class DocumentSnapshot implements ts.IScriptSnapshot {
                 ? new IdentityMapper()
                 : !this.tsxMap
                 ? new FragmentMapper(this.originalText, this.scriptInfo)
-                : new ConsumerDocumentMapper(await new SourceMapConsumer(this.tsxMap), uri);
+                : new ConsumerDocumentMapper(
+                      await new SourceMapConsumer(this.tsxMap),
+                      uri,
+                      this.nrPrependedLines,
+                  );
             this.fragment = new SnapshotFragment(
                 mapper,
                 this.text,
@@ -195,3 +211,5 @@ export class SnapshotFragment implements Fragment {
         return offsetAt(position, this.text);
     }
 }
+
+const tsCheckRegex = /^\s*(\/\/[ \t\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff]*(@ts-(no)?check)($|\n|\r\n))/;
