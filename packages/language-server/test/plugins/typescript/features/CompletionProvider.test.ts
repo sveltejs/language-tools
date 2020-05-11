@@ -279,7 +279,7 @@ describe('CompletionProviderImpl', () => {
         assert.strictEqual(detail, 'Auto import from ./imported-file.svelte\nclass default');
 
         assert.strictEqual(
-            additionalTextEdits![0]?.newText,
+            harmonizeNewLines(additionalTextEdits![0]?.newText),
             // " instead of ' because VSCode uses " by default when there are no other imports indicating otherwise
             `${newLine}import ImportedFile from "./imported-file.svelte";${newLine}`,
         );
