@@ -34,3 +34,7 @@ export function isBeforeOrEqualToPosition(position: Position, positionToTest: Po
         (positionToTest.line === position.line && positionToTest.character <= position.character)
     );
 }
+
+export function isNotNullOrUndefined<T>(val: T | undefined | null): val is T {
+    return val !== undefined && val !== null;
+}
