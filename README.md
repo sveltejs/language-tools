@@ -15,6 +15,9 @@
 
 ## What is Svelte Language Tools?
 
+Svelte Language Tools contains a library implementing the Language Server Protocol (LSP). LSP powers the [VSCode extension](https://marketplace.visualstudio.com/items?itemName=svelte.svelte-vscode), which is also hosted in this repository. Additionally, LSP is capable of powering plugins for [numerous other IDEs](https://microsoft.github.io/language-server-protocol/implementors/tools/
+).
+
 A `.svelte` file would look something like this:
 
 ```html
@@ -86,14 +89,13 @@ There are two ways to work on this project: either by working against an existin
 
 ## Running the Dev Language Server Against Your App
 
-To run the developer version of both the language server and the vscode extension:
+To run the developer version of both the language server and the VSCode extension:
 
-- open the root of this repo in VS Code
+- open the root of this repo in VSCode
 - Go to the debugging panel
 - Make sure "Run VSCode Extension" is selected, and hit run
 
-This launches a new vscode window and a watcher for your changes. 
-In this dev window you can choose an existing Svelte project to work against, when you make changes to the extension or language server you can use the command "Reload Window" in the VS Code command palette to see you changes.
+This launches a new VSCode window and a watcher for your changes. In this dev window you can choose an existing Svelte project to work against. If you don't use pure Javascript and CSS, but languages like Typescript or SCSS, your project will need a [Svelte preprocessor setup](packages/svelte-vscode#using-with-preprocessors). When you make changes to the extension or language server you can use the command "Reload Window" in the VSCode command palette to see your changes.
 
 ### Running Tests
 

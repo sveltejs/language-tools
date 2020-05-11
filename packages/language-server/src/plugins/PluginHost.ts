@@ -15,10 +15,11 @@ import {
     TextDocumentIdentifier,
     TextEdit,
     FileChangeType,
+    CompletionItem,
 } from 'vscode-languageserver';
 import { LSConfig, LSConfigManager } from '../ls-config';
 import { DocumentManager } from '../lib/documents';
-import { LSProvider, Plugin, OnWatchFileChanges } from './interfaces';
+import { LSProvider, Plugin, OnWatchFileChanges, AppCompletionItem } from './interfaces';
 
 enum ExecuteMode {
     None,
@@ -87,6 +88,26 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
             ),
         );
     }
+
+    async resolveCompletion(
+        textDocument: TextDocumentIdentifier,
+        completionItem: AppCompletionItem
+    ): Promise<CompletionItem> {
+        const document = this.getDocument(textDocument.uri);
+
+        if (!document) {
+            throw new Error('Cannot call methods on an unopened document');
+        }
+
+        const result = await this.execute<CompletionItem>(
+            'resolveCompletion',
+            [document, completionItem],
+            ExecuteMode.FirstNonNull
+        );
+
+        return result ?? completionItem;
+    }
+
 
     async formatDocument(textDocument: TextDocumentIdentifier): Promise<TextEdit[]> {
         const document = this.getDocument(textDocument.uri);

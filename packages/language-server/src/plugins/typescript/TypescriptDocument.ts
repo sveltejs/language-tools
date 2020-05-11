@@ -63,6 +63,7 @@ export class TypescriptFragment {
 
 export class TypescriptDocument extends Document implements Fragment {
     private typescriptFragment: TypescriptFragment;
+    public languageId = 'typescript';
 
     constructor(private parent: Document) {
         super();

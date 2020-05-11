@@ -66,6 +66,7 @@ export class CSSFragment {
 export class CSSDocument extends Document implements Fragment {
     private cssFragment: CSSFragment;
     public stylesheet: Stylesheet;
+    public languageId = 'css';
 
     constructor(private parent: Document) {
         super();

@@ -2,8 +2,6 @@ import ts, { NavigationTree } from 'typescript';
 import {
     CodeAction,
     CodeActionContext,
-    CompletionItem,
-    CompletionList,
     DefinitionLink,
     Diagnostic,
     Hover,
@@ -23,27 +21,21 @@ import {
     mapDiagnosticToParent,
     mapHoverToParent,
     mapSymbolInformationToParent,
-    mapCompletionItemToParent,
     mapLocationLinkToParent,
     mapCodeActionToParent,
 } from '../../lib/documents';
 import { LSConfigManager, LSTypescriptConfig } from '../../ls-config';
 import { pathToUrl } from '../../utils';
-import { CreateDocument, getLanguageServiceForDocument } from './service';
 import {
     convertRange,
-    getCommitCharactersForScriptElement,
     getScriptKindFromAttributes,
     mapSeverity,
-    scriptElementKindToCompletionItemKind,
     symbolKindFromString,
     findTsConfigPath,
     getScriptKindFromFileName,
 } from './utils';
-import { TypescriptDocument } from './TypescriptDocument';
 import {
     CodeActionsProvider,
-    CompletionsProvider,
     DefinitionsProvider,
     DiagnosticsProvider,
     DocumentSymbolsProvider,
@@ -51,37 +43,38 @@ import {
     OnRegister,
     Resolvable,
     OnWatchFileChanges,
+    CompletionsProvider,
+    AppCompletionItem,
+    AppCompletionList,
 } from '../interfaces';
 import { SnapshotManager } from './SnapshotManager';
 import { DocumentSnapshot, INITIAL_VERSION } from './DocumentSnapshot';
+import { CompletionEntryWithIdentifer, CompletionsProviderImpl } from './features/CompletionProvider';
+import { LSAndTSDocResovler } from './LSAndTSDocResovler';
 
 export class TypeScriptPlugin
     implements
-        OnRegister,
-        DiagnosticsProvider,
-        HoverProvider,
-        DocumentSymbolsProvider,
-        CompletionsProvider,
-        DefinitionsProvider,
-        CodeActionsProvider,
-        OnWatchFileChanges {
+    OnRegister,
+    DiagnosticsProvider,
+    HoverProvider,
+    DocumentSymbolsProvider,
+    DefinitionsProvider,
+    CodeActionsProvider,
+    OnWatchFileChanges,
+    CompletionsProvider<CompletionEntryWithIdentifer> {
     private configManager!: LSConfigManager;
-    private createDocument!: CreateDocument;
-    private documents = new Map<Document, TypescriptDocument>();
+    private readonly lsAndTsDocResolver: LSAndTSDocResovler;
+    private readonly completionProvider: CompletionsProviderImpl;
 
-    onRegister(docManager: DocumentManager, configManager: LSConfigManager) {
+    constructor(
+        docManager: DocumentManager,
+    ) {
+        this.lsAndTsDocResolver = new LSAndTSDocResovler(docManager);
+        this.completionProvider = new CompletionsProviderImpl(this.lsAndTsDocResolver);
+    }
+
+    onRegister(_docManager: DocumentManager, configManager: LSConfigManager) {
         this.configManager = configManager;
-        this.createDocument = (fileName, content) => {
-            const uri = pathToUrl(fileName);
-            const document = docManager.openDocument({
-                languageId: '',
-                text: content,
-                uri,
-                version: 0,
-            });
-            docManager.lockDocument(uri);
-            return new TypescriptDocument(document);
-        };
     }
 
     getDiagnostics(document: Document): Diagnostic[] {
@@ -186,45 +179,25 @@ export class TypeScriptPlugin
         document: Document,
         position: Position,
         triggerCharacter?: string,
-    ): CompletionList | null {
+    ): AppCompletionList<CompletionEntryWithIdentifer> | null {
         if (!this.featureEnabled('completions')) {
             return null;
         }
 
-        const { lang, tsDoc } = this.getLSAndTSDoc(document);
-        // The language service throws an error if the character is not a valid trigger character.
-        // Also, the completions are worse.
-        // Therefore, only use the characters the typescript compiler treats as valid.
-        const validTriggerCharacter = ['.', '"', "'", '`', '/', '@', '<', '#'].includes(
-            triggerCharacter!,
-        )
-            ? triggerCharacter
-            : undefined;
-        const completions = lang.getCompletionsAtPosition(
-            tsDoc.getFilePath()!,
-            tsDoc.offsetAt(tsDoc.positionInFragment(position)),
-            {
-                includeCompletionsForModuleExports: true,
-                triggerCharacter: validTriggerCharacter as any,
-            },
+        return this.completionProvider.getCompletions(
+            document,
+            position,
+            triggerCharacter
         );
+    }
 
-        if (!completions) {
-            return null;
-        }
-
-        return CompletionList.create(
-            completions!.entries
-                .map(comp => {
-                    return <CompletionItem>{
-                        label: comp.name,
-                        kind: scriptElementKindToCompletionItemKind(comp.kind),
-                        sortText: comp.sortText,
-                        commitCharacters: getCommitCharactersForScriptElement(comp.kind),
-                        preselect: comp.isRecommended,
-                    };
-                })
-                .map(comp => mapCompletionItemToParent(tsDoc, comp)),
+    resolveCompletion(
+        document: Document,
+        completionItem: AppCompletionItem<CompletionEntryWithIdentifer>):
+        Resolvable<AppCompletionItem<CompletionEntryWithIdentifer>> {
+        return this.completionProvider.resolveCompletion(
+            document,
+            completionItem,
         );
     }
 
@@ -363,15 +336,7 @@ export class TypeScriptPlugin
     }
 
     private getLSAndTSDoc(document: Document) {
-        let tsDoc = this.documents.get(document);
-        if (!tsDoc) {
-            tsDoc = new TypescriptDocument(document);
-            this.documents.set(document, tsDoc);
-        }
-
-        const lang = getLanguageServiceForDocument(tsDoc, this.createDocument);
-
-        return { tsDoc, lang };
+        return this.lsAndTsDocResolver.getLSAndTSDoc(document);
     }
 
     private featureEnabled(feature: keyof LSTypescriptConfig) {
@@ -381,3 +346,4 @@ export class TypeScriptPlugin
         );
     }
 }
+

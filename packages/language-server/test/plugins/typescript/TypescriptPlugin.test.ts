@@ -3,8 +3,6 @@ import * as path from 'path';
 import { dirname, join } from 'path';
 import ts from 'typescript';
 import {
-    CompletionItem,
-    CompletionItemKind,
     FileChangeType,
     Hover,
     Position,
@@ -25,10 +23,10 @@ describe('TypescriptPlugin', () => {
     }
 
     function setup(filename: string) {
-        const plugin = new TypeScriptPlugin();
+        const docManager = new DocumentManager(() => document);
+        const plugin = new TypeScriptPlugin(docManager);
         const filePath = path.join(__dirname, 'testfiles', filename);
         const document = new TextDocument(pathToUrl(filePath), ts.sys.readFile(filePath)!);
-        const docManager = new DocumentManager(() => document);
         const pluginManager = new LSConfigManager();
         plugin.onRegister(docManager, pluginManager);
         docManager.openDocument(<any>'some doc');
@@ -106,25 +104,6 @@ describe('TypescriptPlugin', () => {
                 name: 'bla',
             },
         ]);
-    });
-
-    it('provides completions', async () => {
-        const { plugin, document } = setup('completions.svelte');
-
-        const completions = plugin.getCompletions(document, Position.create(0, 49), '.');
-
-        assert.ok(
-            Array.isArray(completions && completions.items),
-            'Expected completion items to be an array',
-        );
-        assert.ok(completions!.items.length > 0, 'Expected completions to have length');
-        assert.deepStrictEqual(completions!.items[0], <CompletionItem>{
-            label: 'b',
-            kind: CompletionItemKind.Method,
-            sortText: '0',
-            commitCharacters: ['.', ',', '('],
-            preselect: undefined,
-        });
     });
 
     it('provides definitions within svelte doc', () => {
