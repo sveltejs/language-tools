@@ -21,7 +21,9 @@ Await blocks allow you to branch on the three possible states of a Promise — p
 #### Usage:
 \`{#await expression}...{:then name}...{:catch name}...{/await}\`\\
 \`{#await expression}...{:then name}...{/await}\`\\
-\`{#await expression then name}...{/await}\`
+\`{#await expression then name}...{/await}\`\\
+\\
+https://svelte.dev/docs#await
 `,
     each: `\`{#each ...}\`\\
 Iterating over lists of values can be done with an each block.
@@ -29,14 +31,18 @@ Iterating over lists of values can be done with an each block.
 \`{#each expression as name}...{/each}\`\\
 \`{#each expression as name, index}...{/each}\`\\
 \`{#each expression as name, index (key)}...{/each}\`\\
-\`{#each expression as name}...{:else}...{/each}\`
+\`{#each expression as name}...{:else}...{/each}\`\\
+\\
+https://svelte.dev/docs#each
 `,
     if: `\`{#if ...}\`\\
 Content that is conditionally rendered can be wrapped in an if block.
 #### Usage:
 \`{#if expression}...{/if}\`\\
 \`{#if expression}...{:else if expression}...{/if}\`\\
-\`{#if expression}...{:else}...{/if}\`
+\`{#if expression}...{:else}...{/if}\`\\
+\\
+https://svelte.dev/docs#if
 `,
     html:
         `\`{@html ...}\`\\
@@ -48,7 +54,9 @@ Svelte does not sanitize expressions before injecting HTML.
 If the data comes from an untrusted source, you must sanitize it, ` +
         `or you are exposing your users to an XSS vulnerability.
 #### Usage:
-\`{@html expression}\`
+\`{@html expression}\`\\
+\\
+https://svelte.dev/docs#html
 `,
     debug:
         `\`{@debug ...}\`\\
@@ -58,7 +66,9 @@ It logs the values of specific variables whenever they change, ` +
 It accepts a comma-separated list of variable names (not arbitrary expressions).
 #### Usage:
 \`{@debug\`}
-\`{@debug var1, var2, ..., varN}\`
+\`{@debug var1, var2, ..., varN}\`\\
+\\
+https://svelte.dev/docs#debug
 `,
 };
 
