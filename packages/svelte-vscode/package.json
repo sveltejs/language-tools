@@ -189,6 +189,12 @@
                     "default": true,
                     "title": "Svelte: Completions",
                     "description": "Enable auto completions for Svelte"
+                },
+                "svelte.plugin.svelte.hover.enable": {
+                    "type": "boolean",
+                    "default": true,
+                    "title": "Svelte: Hover",
+                    "description": "Enable hover information for Svelte"
                 }
             }
         },
