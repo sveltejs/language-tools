@@ -55,6 +55,18 @@ describe('CompletionProviderImpl', () => {
         // initial build might take longer
         .timeout(8000);
 
+    it('does not provide completions inside style tag', async () => {
+        const { completionProvider, document } = setup('completionsstyle.svelte');
+
+        const completions = await completionProvider.getCompletions(
+            document,
+            Position.create(4, 1),
+            'a',
+        );
+
+        assert.ok(completions === null, 'Expected completion to be null');
+    });
+
     it('provides completion resolve info', async () => {
         const { completionProvider, document } = setup('completions.svelte');
 

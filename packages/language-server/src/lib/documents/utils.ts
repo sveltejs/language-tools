@@ -6,6 +6,8 @@ export interface TagInformation {
     attributes: Record<string, string>;
     start: number;
     end: number;
+    startPos: Position;
+    endPos: Position;
     container: { start: number; end: number };
 }
 
@@ -47,12 +49,16 @@ export function extractTag(source: string, tag: 'script' | 'style'): TagInformat
     const content = match[4];
     const start = match.index + match[2].length;
     const end = start + content.length;
+    const startPos = positionAt(start, source);
+    const endPos = positionAt(end, source);
 
     return {
         content,
         attributes,
         start,
         end,
+        startPos,
+        endPos,
         container: { start: match.index, end: match.index + match[0].length },
     };
 }

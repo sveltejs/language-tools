@@ -57,6 +57,10 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         }
 
         const fragment = await tsDoc.getFragment();
+        if (!fragment.isInFragment(position)) {
+            return null;
+        }
+
         const validTriggerCharacter = this.isValidTriggerCharacter(triggerCharacter)
             ? triggerCharacter
             : undefined;
@@ -233,7 +237,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             change.newText = this.changeSvelteComponentImportName(change.newText);
         }
 
-        const scriptTagInfo = fragment.details;
+        const scriptTagInfo = fragment.scriptInfo;
         if (!scriptTagInfo) {
             // no script tag defined yet, add it.
             return TextEdit.replace(
