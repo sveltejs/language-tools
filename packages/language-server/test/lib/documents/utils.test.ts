@@ -99,15 +99,15 @@ describe('document/utils', () => {
             <!--<script lang="scss">
             p{ color: blue; }
             </script> -->
-            <scrit>asdasda</script>
-            <script>p{ color: blue; }</script>
+            <scrit>blah</script>
+            <script>top level script</script>
             `;
             assert.deepStrictEqual(extractTag(text, 'script'), {
-                content: 'p{ color: blue; }',
+                content: 'top level script',
                 attributes: {},
-                start: 362,
-                end: 379,
-                container: { start: 354, end: 388 },
+                start: 359,
+                end: 375,
+                container: { start: 351, end: 384 },
             });
         });
     });
