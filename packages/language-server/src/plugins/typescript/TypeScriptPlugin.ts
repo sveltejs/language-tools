@@ -114,6 +114,9 @@ export class TypeScriptPlugin
             }))
             .map((diagnostic) => mapDiagnosticToParent(fragment, diagnostic))
             .filter(
+                // In some rare cases mapping of diagnostics does not work and produces negative lines.
+                // We filter out these diagnostics with negative lines because else the LSP (or VSCode?)
+                // apparently has a hickup and does not show any diagnostics at all.
                 (diagnostic) => diagnostic.range.start.line >= 0 && diagnostic.range.end.line >= 0,
             );
     }
