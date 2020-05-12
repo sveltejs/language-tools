@@ -97,7 +97,7 @@ export function startServer() {
         pluginHost.getCompletions(
             evt.textDocument,
             evt.position,
-            evt.context && evt.context.triggerCharacter,
+            evt.context,
         ),
     );
     connection.onDocumentFormatting(evt => pluginHost.formatDocument(evt.textDocument));

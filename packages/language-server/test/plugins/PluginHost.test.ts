@@ -2,6 +2,7 @@ import sinon from 'sinon';
 import { Position, TextDocumentItem } from 'vscode-languageserver-types';
 import { DocumentManager, TextDocument } from '../../src/lib/documents';
 import { PluginHost } from '../../src/plugins';
+import { CompletionTriggerKind } from 'vscode-languageserver';
 
 describe('PluginHost', () => {
     const textDocument: TextDocumentItem = {
@@ -60,9 +61,15 @@ describe('PluginHost', () => {
         const document = docManager.openDocument(textDocument);
         const pos = Position.create(0, 0);
 
-        await pluginHost.getCompletions(textDocument, pos, '.');
+        await pluginHost.getCompletions(textDocument, pos, {
+            triggerKind: CompletionTriggerKind.TriggerCharacter,
+            triggerCharacter: '.'
+        });
 
         sinon.assert.calledOnce(plugin.getCompletions);
-        sinon.assert.calledWithExactly(plugin.getCompletions, document, pos, '.');
+        sinon.assert.calledWithExactly(plugin.getCompletions, document, pos, {
+            triggerKind: CompletionTriggerKind.TriggerCharacter,
+            triggerCharacter: '.'
+        });
     });
 });
