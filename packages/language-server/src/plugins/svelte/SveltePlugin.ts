@@ -12,6 +12,7 @@ import {
     Position,
     Range,
     TextEdit,
+    Hover,
 } from 'vscode-languageserver';
 import { Document, DocumentManager } from '../../lib/documents';
 import { LSConfigManager, LSSvelteConfig } from '../../ls-config';
@@ -21,10 +22,12 @@ import {
     FormattingProvider,
     OnRegister,
     Resolvable,
+    HoverProvider,
 } from '../interfaces';
 import { getCompletions } from './features/getCompletions';
 import { SvelteDocument, SvelteFragment } from './SvelteDocument';
 import { importSvelte, importPrettier } from '../importPackage';
+import { getHoverInfo } from './features/getHoverInfo';
 
 interface SvelteConfig extends CompileOptions {
     preprocess?: PreprocessorGroup;
@@ -35,7 +38,12 @@ const DEFAULT_OPTIONS: CompileOptions = {
 };
 
 export class SveltePlugin
-    implements OnRegister, DiagnosticsProvider, FormattingProvider, CompletionsProvider {
+    implements
+        OnRegister,
+        DiagnosticsProvider,
+        FormattingProvider,
+        CompletionsProvider,
+        HoverProvider {
     private configManager!: LSConfigManager;
 
     onRegister(docManager: DocumentManager, configManager: LSConfigManager) {
@@ -137,6 +145,15 @@ export class SveltePlugin
 
         const svelteDoc = new SvelteDocument(document.getURL(), document.getText());
         return getCompletions(svelteDoc, position);
+    }
+
+    doHover(document: Document, position: Position): Hover | null {
+        if (!this.featureEnabled('hover')) {
+            return null;
+        }
+
+        const svelteDoc = new SvelteDocument(document.getURL(), document.getText());
+        return getHoverInfo(svelteDoc, position);
     }
 
     private featureEnabled(feature: keyof LSSvelteConfig) {

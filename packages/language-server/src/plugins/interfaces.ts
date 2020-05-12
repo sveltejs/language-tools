@@ -15,7 +15,7 @@ import {
     CompletionItem,
     TextDocumentIdentifier,
 } from 'vscode-languageserver-types';
-import { FileChangeType } from 'vscode-languageserver';
+import { FileChangeType, CompletionContext } from 'vscode-languageserver';
 import { DocumentManager, Document } from '../lib/documents';
 import { LSConfigManager } from '../ls-config';
 
@@ -45,7 +45,7 @@ export interface CompletionsProvider<T extends TextDocumentIdentifier = any> {
     getCompletions(
         document: Document,
         position: Position,
-        triggerCharacter?: string,
+        completionContext?: CompletionContext,
     ): Resolvable<AppCompletionList<T> | null>;
 
     resolveCompletion?(document: Document, completionItem: AppCompletionItem<T>):

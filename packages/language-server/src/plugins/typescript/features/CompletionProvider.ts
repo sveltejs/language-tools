@@ -1,6 +1,8 @@
 import ts from 'typescript';
 import {
+    CompletionContext,
     CompletionList,
+    CompletionTriggerKind,
     Position,
     Range,
     TextDocumentIdentifier,
@@ -42,7 +44,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
     async getCompletions(
         document: Document,
         position: Position,
-        triggerCharacter?: string | undefined,
+        completionContext?: CompletionContext,
     ): Promise<AppCompletionList<CompletionEntryWithIdentifer> | null> {
         const { lang, tsDoc } = this.lsAndTsDocResovler.getLSAndTSDoc(document);
 
@@ -51,14 +53,24 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             return null;
         }
 
-        const fragment = await tsDoc.getFragment();
-        if (!fragment.isInFragment(position)) {
-            return null;
-        }
+        const triggerCharacter = completionContext?.triggerCharacter;
+        const triggerKind = completionContext?.triggerKind;
 
         const validTriggerCharacter = this.isValidTriggerCharacter(triggerCharacter)
             ? triggerCharacter
             : undefined;
+        const isCustomTriggerCharacter = triggerKind === CompletionTriggerKind.TriggerCharacter;
+
+        // ignore any custom trigger character specified in server capabilities
+        //  and is not allow by ts
+        if (isCustomTriggerCharacter && !validTriggerCharacter) {
+            return null;
+        }
+
+        const fragment = await tsDoc.getFragment();
+        if (!fragment.isInFragment(position)) {
+            return null;
+        }
 
         const completions = lang.getCompletionsAtPosition(
             filePath,

@@ -2,6 +2,7 @@ import ts, { NavigationTree } from 'typescript';
 import {
     CodeAction,
     CodeActionContext,
+    CompletionContext,
     DefinitionLink,
     Diagnostic,
     DiagnosticSeverity,
@@ -194,13 +195,13 @@ export class TypeScriptPlugin
     async getCompletions(
         document: Document,
         position: Position,
-        triggerCharacter?: string,
+        completionContext?: CompletionContext,
     ): Promise<AppCompletionList<CompletionEntryWithIdentifer> | null> {
         if (!this.featureEnabled('completions')) {
             return null;
         }
 
-        return this.completionProvider.getCompletions(document, position, triggerCharacter);
+        return this.completionProvider.getCompletions(document, position, completionContext);
     }
 
     async resolveCompletion(

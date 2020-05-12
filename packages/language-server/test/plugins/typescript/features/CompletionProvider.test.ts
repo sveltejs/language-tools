@@ -4,7 +4,13 @@ import assert from 'assert';
 
 import { DocumentManager, TextDocument, ManagedDocument } from '../../../../src/lib/documents';
 import { pathToUrl } from '../../../../src/utils';
-import { CompletionItem, CompletionItemKind, Position, Range } from 'vscode-languageserver';
+import {
+    CompletionItem,
+    CompletionItemKind,
+    Position,
+    Range,
+    CompletionTriggerKind,
+} from 'vscode-languageserver';
 import { rmdirSync, mkdirSync } from 'fs';
 import { CompletionsProviderImpl } from '../../../../src/plugins/typescript/features/CompletionProvider';
 import { LSAndTSDocResovler } from '../../../../src/plugins/typescript/LSAndTSDocResovler';
@@ -31,7 +37,10 @@ describe('CompletionProviderImpl', () => {
         const completions = await completionProvider.getCompletions(
             document,
             Position.create(0, 49),
-            '.',
+            {
+                triggerKind: CompletionTriggerKind.TriggerCharacter,
+                triggerCharacter: '.',
+            },
         );
 
         assert.ok(
@@ -61,7 +70,10 @@ describe('CompletionProviderImpl', () => {
         const completions = await completionProvider.getCompletions(
             document,
             Position.create(4, 1),
-            'a',
+            {
+                triggerKind: CompletionTriggerKind.Invoked,
+                triggerCharacter: 'a',
+            },
         );
 
         assert.ok(completions === null, 'Expected completion to be null');
@@ -73,7 +85,10 @@ describe('CompletionProviderImpl', () => {
         const completions = await completionProvider.getCompletions(
             document,
             Position.create(0, 49),
-            '.',
+            {
+                triggerKind: CompletionTriggerKind.TriggerCharacter,
+                triggerCharacter: '.',
+            },
         );
 
         const { data } = completions!.items[0];
@@ -131,7 +146,10 @@ describe('CompletionProviderImpl', () => {
             const completions = await completionProvider.getCompletions(
                 document,
                 Position.create(0, 27),
-                '/',
+                {
+                    triggerKind: CompletionTriggerKind.TriggerCharacter,
+                    triggerCharacter: '/',
+                },
             );
             const mockedDirImportCompletion = completions?.items.find(
                 (item) => item.label === mockDirName,
