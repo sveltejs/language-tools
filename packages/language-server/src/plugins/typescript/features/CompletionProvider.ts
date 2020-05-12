@@ -263,9 +263,6 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
                 `<script>${ts.sys.newLine}${change.newText}</script>${ts.sys.newLine}`,
             );
         }
-        const scriptTagStart = scriptTagInfo.start;
-
-        // TODO somehow filter out already done svelte import
 
         const { span } = change;
         // prevent newText from being placed like this: <script>import {} from ''
@@ -274,19 +271,15 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         }
 
         let range = mapRangeToParent(fragment, convertRange(fragment, span));
-        // Special case handling to get around wrong mapping of imports.
-        if (range.start.line === 0 && range.start.character <= 1 && span.length === 0) {
-            span.start = span.start - 1 || 0;
-            range = mapRangeToParent(fragment, convertRange(fragment, span));
-            range.start.line += 1;
-            range.start.character = 0;
-            range.end = range.start;
-        }
-        // If range is somehow not mapped in parent, use script starting point instead.
-        // This happens if the completion is the first import of the file.
-        if (range.start.line === -1) {
+        // If range is somehow not mapped in parent or the import is mapped wrong,
+        // use script starting point instead.
+        // This happens among other things if the completion is the first import of the file.
+        if (
+            range.start.line === -1 ||
+            (range.start.line === 0 && range.start.character <= 1 && span.length === 0)
+        ) {
             range = convertRange(doc, {
-                start: scriptTagStart + span.start,
+                start: scriptTagInfo.start,
                 length: span.length,
             });
         }

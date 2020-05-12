@@ -227,7 +227,7 @@ describe('CompletionProviderImpl', () => {
 
         assert.deepEqual(
             additionalTextEdits![0]?.range,
-            Range.create(Position.create(2, 0), Position.create(2, 0)),
+            Range.create(Position.create(0, 8), Position.create(0, 8)),
         );
     });
 
@@ -259,7 +259,7 @@ describe('CompletionProviderImpl', () => {
 
         assert.deepEqual(
             additionalTextEdits![0]?.range,
-            Range.create(Position.create(1, 0), Position.create(1, 0)),
+            Range.create(Position.create(0, 8), Position.create(0, 8)),
         );
     });
 
