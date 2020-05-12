@@ -35,6 +35,7 @@ function parseAttributes(str: string): Record<string, string> {
  */
 export function extractTag(source: string, tag: 'script' | 'style') {
     const exp = new RegExp(
+        // eslint-disable-next-line max-len
         `({#if[\\s\\S]*{\\/if})|(<!--[\\s\\S]*-->)|(<${tag}(\\s[\\S\\s]*?)?>)([\\S\\s]*?)<\\/${tag}>`,
         'igs',
     );
