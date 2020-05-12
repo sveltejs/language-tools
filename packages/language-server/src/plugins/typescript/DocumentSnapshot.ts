@@ -213,6 +213,11 @@ export class SnapshotFragment implements Fragment {
     }
 }
 
+// The following regex matches @ts-check or @ts-nocheck if:
+// - it is before the first line of code (so other lines with comments before it are ok)
+// - must be @ts-(no)check
+// - the comment which has @ts-(no)check can have any type of whitespace before it, but not other characters
+// - what's coming after @ts-(no)check is irrelevant as long there is any kind of whitespace or line break, so this would be picked up, too: // @ts-check asdasd
 // [ \t\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff]
 // is just \s (a.k.a any whitespace character) without linebreak and vertical tab
 // eslint-disable-next-line
