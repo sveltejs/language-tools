@@ -101,7 +101,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         uri: string,
         position: Position,
     ): AppCompletionItem<CompletionEntryWithIdentifer> | null {
-        const result = this.getCompletionLableAndInsert(fragment, comp);
+        const result = this.getCompletionLabelAndInsert(fragment, comp);
         if (!result) {
             return null;
         }
@@ -125,7 +125,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         };
     }
 
-    private getCompletionLableAndInsert(fragment: SnapshotFragment, comp: ts.CompletionEntry) {
+    private getCompletionLabelAndInsert(fragment: SnapshotFragment, comp: ts.CompletionEntry) {
         let { kind, kindModifiers, name, source } = comp;
         const isScriptElement = kind === ts.ScriptElementKind.scriptElement;
         const hasModifier = Boolean(comp.kindModifiers);
