@@ -6,6 +6,7 @@ import {
     CompletionItem,
     CompletionItemKind,
     TextEdit,
+    CompletionContext,
 } from 'vscode-languageserver';
 import { TextDocument, DocumentManager } from '../../../src/lib/documents';
 import { CSSPlugin } from '../../../src/plugins';
@@ -39,7 +40,9 @@ describe('CSS Plugin', () => {
     it('provides completions', async () => {
         const { plugin, document } = setup('<style></style>');
 
-        const completions = plugin.getCompletions(document, Position.create(0, 7), ' ');
+        const completions = plugin.getCompletions(document, Position.create(0, 7), {
+            triggerCharacter: '.'
+        } as CompletionContext);
         assert.ok(
             Array.isArray(completions && completions.items),
             'Expected completion items to be an array',
@@ -63,7 +66,9 @@ describe('CSS Plugin', () => {
     it('provides completions for :global modifier', async () => {
         const { plugin, document } = setup('<style>:g</style>');
 
-        const completions = plugin.getCompletions(document, Position.create(0, 9), ' ');
+        const completions = plugin.getCompletions(document, Position.create(0, 9), {
+            triggerCharacter: ':'
+        } as CompletionContext);
         const globalCompletion = completions?.items.find(item => item.label === ':global()');
         assert.ok(globalCompletion);
     });

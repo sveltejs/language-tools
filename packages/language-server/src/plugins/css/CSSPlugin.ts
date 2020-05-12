@@ -9,6 +9,8 @@ import {
     Position,
     Range,
     SymbolInformation,
+    CompletionContext,
+    CompletionTriggerKind,
 } from 'vscode-languageserver';
 import {
     DocumentManager,
@@ -46,6 +48,7 @@ export class CSSPlugin
 
     private configManager!: LSConfigManager;
     private cssDocuments = new WeakMap<Document, CSSDocument>();
+    private triggerCharacters = ['.', ':', '-', '/'];
 
     onRegister(docManager: DocumentManager, configManager: LSConfigManager) {
         this.configManager = configManager;
@@ -98,12 +101,19 @@ export class CSSPlugin
     getCompletions(
         document: Document,
         position: Position,
-        _triggerCharacter: string,
+        completionContext?: CompletionContext
     ): CompletionList | null {
-        // TODO: Why did this need to be removed?
-        // if (triggerCharacter != undefined && !this.triggerCharacters.includes(triggerCharacter)) {
-        //     return null;
-        // }
+        const triggerCharacter = completionContext?.triggerCharacter;
+        const triggerKind = completionContext?.triggerKind;
+        const isCustomTriggerCharater = triggerKind === CompletionTriggerKind.TriggerCharacter;
+
+        if (
+            isCustomTriggerCharater &&
+            triggerCharacter &&
+            !this.triggerCharacters.includes(triggerCharacter)
+        ) {
+            return null;
+        }
 
         if (!this.featureEnabled('completions')) {
             return null;

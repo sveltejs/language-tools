@@ -16,6 +16,7 @@ import {
     TextEdit,
     FileChangeType,
     CompletionItem,
+    CompletionContext,
 } from 'vscode-languageserver';
 import { LSConfig, LSConfigManager } from '../ls-config';
 import { DocumentManager } from '../lib/documents';
@@ -64,7 +65,7 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
     async getCompletions(
         textDocument: TextDocumentIdentifier,
         position: Position,
-        triggerCharacter?: string,
+        completionContext?: CompletionContext,
     ): Promise<CompletionList> {
         const document = this.getDocument(textDocument.uri);
         if (!document) {
@@ -74,7 +75,7 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         const completions = (
             await this.execute<CompletionList>(
                 'getCompletions',
-                [document, position, triggerCharacter],
+                [document, position, completionContext],
                 ExecuteMode.Collect,
             )
         ).filter(completion => completion != null);

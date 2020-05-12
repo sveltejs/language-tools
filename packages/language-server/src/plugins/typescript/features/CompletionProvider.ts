@@ -1,5 +1,5 @@
 import ts from 'typescript';
-import { Position, TextDocumentIdentifier, TextEdit, CompletionList } from 'vscode-languageserver';
+import { Position, TextDocumentIdentifier, TextEdit, CompletionList, CompletionContext, CompletionTriggerKind } from 'vscode-languageserver';
 import {
     CompletionsProvider,
     AppCompletionList,
@@ -29,7 +29,6 @@ export class CompletionsProviderImpl
     ) { }
 
     /**
-     * @author James Birtles
      * The language service throws an error if the character is not a valid trigger character.
      * Also, the completions are worse.
      * Therefore, only use the characters the typescript compiler treats as valid.
@@ -45,7 +44,7 @@ export class CompletionsProviderImpl
     getCompletions(
         document: Document,
         position: Position,
-        triggerCharacter?: string | undefined
+        completionContext?: CompletionContext
     ): AppCompletionList<CompletionEntryWithIdentifer> | null {
         const { lang, tsDoc } = this.lsAndTsDocResovler.getLSAndTSDoc(document);
 
@@ -54,10 +53,20 @@ export class CompletionsProviderImpl
         if (!filePath) {
             return null;
         }
+        const triggerCharacter = completionContext?.triggerCharacter;
+        const triggerKind = completionContext?.triggerKind;
 
         const validTriggerCharacter =
             this.isValidTriggerCharacter(triggerCharacter) ? triggerCharacter :
             undefined;
+        const isCustomTriggerCharacter =
+            triggerKind === CompletionTriggerKind.TriggerCharacter;
+
+        // ignore any custom trigger character specified in server capabilities
+        //  and is not allow by ts
+        if (isCustomTriggerCharacter && !validTriggerCharacter) {
+            return null;
+        }
 
         const completions = lang.getCompletionsAtPosition(
             filePath,

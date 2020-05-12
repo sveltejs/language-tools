@@ -1,5 +1,5 @@
 <script>
     import { foo } from './documentation'
 
-    foo
+    fo
 </script>

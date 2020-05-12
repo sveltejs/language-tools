@@ -13,6 +13,7 @@ import {
     TextEdit,
     VersionedTextDocumentIdentifier,
     FileChangeType,
+    CompletionContext,
 } from 'vscode-languageserver';
 import {
     DocumentManager,
@@ -178,7 +179,7 @@ export class TypeScriptPlugin
     getCompletions(
         document: Document,
         position: Position,
-        triggerCharacter?: string,
+        completionContext?: CompletionContext,
     ): AppCompletionList<CompletionEntryWithIdentifer> | null {
         if (!this.featureEnabled('completions')) {
             return null;
@@ -187,7 +188,7 @@ export class TypeScriptPlugin
         return this.completionProvider.getCompletions(
             document,
             position,
-            triggerCharacter
+            completionContext
         );
     }
 

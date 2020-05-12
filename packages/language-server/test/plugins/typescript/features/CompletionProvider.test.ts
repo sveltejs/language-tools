@@ -4,7 +4,7 @@ import assert from 'assert';
 
 import { DocumentManager, TextDocument } from '../../../../src/lib/documents';
 import { pathToUrl } from '../../../../src/utils';
-import { CompletionItem, CompletionItemKind, Position } from 'vscode-languageserver';
+import { CompletionItem, CompletionItemKind, Position, CompletionTriggerKind } from 'vscode-languageserver';
 import { rmdirSync, mkdirSync } from 'fs';
 import {
     CompletionsProviderImpl
@@ -30,7 +30,10 @@ describe('CompletionProviderImpl', () => {
 
         const { completionProvider, document } = setup('completions.svelte');
 
-        const completions = completionProvider.getCompletions(document, Position.create(0, 49), '.');
+        const completions = completionProvider.getCompletions(document, Position.create(0, 49), {
+            triggerKind: CompletionTriggerKind.TriggerCharacter,
+            triggerCharacter: '.'
+        });
 
         assert.ok(
             Array.isArray(completions && completions.items),
@@ -56,7 +59,10 @@ describe('CompletionProviderImpl', () => {
     it('provides completion resolve info', async () => {
         const { completionProvider, document } = setup('completions.svelte');
 
-        const completions = completionProvider.getCompletions(document, Position.create(0, 49), '.');
+        const completions = completionProvider.getCompletions(document, Position.create(0, 49), {
+            triggerKind: CompletionTriggerKind.TriggerCharacter,
+            triggerCharacter: '.'
+        });
 
         const { data } = completions!.items[0];
 
@@ -85,7 +91,10 @@ describe('CompletionProviderImpl', () => {
     it('resolve completion and provide documentation', async () => {
         const { completionProvider, document } = setup('documentation.svelte');
 
-        const completions = completionProvider.getCompletions(document, Position.create(4, 8), '(');
+        const completions = completionProvider.getCompletions(document, Position.create(4, 8), {
+            triggerKind: CompletionTriggerKind.Invoked,
+            triggerCharacter: 'o'
+        });
 
         const { documentation, detail } = await completionProvider.resolveCompletion(
             document,
@@ -104,7 +113,11 @@ describe('CompletionProviderImpl', () => {
         mkdirSync(mockDirPath);
 
         try {
-            const completions = completionProvider.getCompletions(document, Position.create(0, 27), '/');
+            const completions = completionProvider.getCompletions(
+                document, Position.create(0, 27), {
+                triggerKind: CompletionTriggerKind.TriggerCharacter,
+                triggerCharacter: '/'
+            });
             const mockedDirImportCompletion = completions?.items
                 .find(item => item.label === mockDirName);
 
