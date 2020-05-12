@@ -19,7 +19,7 @@ function parseAttributes(str: string): Record<string, string> {
     const attrs: Record<string, string> = {};
     str.split(/\s+/)
         .filter(Boolean)
-        .forEach((attr) => {
+        .forEach(attr => {
             const [name, value] = attr.split('=');
             attrs[name] = value ? parseAttributeValue(value) : name;
         });
@@ -33,11 +33,13 @@ function parseAttributes(str: string): Record<string, string> {
  * @param source text content to extract tag from
  * @param tag the tag to extract
  */
-export function extractTag(source: string, tag: 'script' | 'style'): TagInformation | null {
-    const exp = new RegExp(`(<!--.*-->)|(<${tag}(\\s[\\S\\s]*?)?>)([\\S\\s]*?)<\\/${tag}>`, 'igs');
+export function extractTag(source: string, tag: 'script' | 'style') {
+    const exp = new RegExp(
+        `({#if[\\s\\S]*{\\/if})|(<!--[\\s\\S]*-->)|(<${tag}(\\s[\\S\\s]*?)?>)([\\S\\s]*?)<\\/${tag}>`,
+        'igs',
+    );
     let match = exp.exec(source);
-
-    while (match && match[0].startsWith('<!--')) {
+    while (match && (match[0].startsWith('<!--') || match[0].startsWith('{#if'))) {
         match = exp.exec(source);
     }
 
@@ -45,9 +47,9 @@ export function extractTag(source: string, tag: 'script' | 'style'): TagInformat
         return null;
     }
 
-    const attributes = parseAttributes(match[3] || '');
-    const content = match[4];
-    const start = match.index + match[2].length;
+    const attributes = parseAttributes(match[4] || '');
+    const content = match[5];
+    const start = match.index + match[3].length;
     const end = start + content.length;
     const startPos = positionAt(start, source);
     const endPos = positionAt(end, source);

@@ -88,5 +88,27 @@ describe('document/utils', () => {
                 container: { start: 17, end: 73 },
             });
         });
+        it('extracts top level script tag only', () => {
+            const text = `
+            {#if name}
+                <script>
+                    console.log('I should not be treated as top level')
+                </script>
+            {/if}
+            <!-- p{ color: blue; }</script> -->
+            <!--<script lang="scss">
+            p{ color: blue; }
+            </script> -->
+            <scrit>asdasda</script>
+            <script>p{ color: blue; }</script>
+            `;
+            assert.deepStrictEqual(extractTag(text, 'script'), {
+                content: 'p{ color: blue; }',
+                attributes: {},
+                start: 362,
+                end: 379,
+                container: { start: 354, end: 388 },
+            });
+        });
     });
 });
