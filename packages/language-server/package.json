@@ -54,6 +54,7 @@
         "prettier-plugin-svelte": "1.1.0",
         "source-map": "^0.7.3",
         "svelte": "3.19.2",
+        "svelte2tsx": "~0.1.4",
         "typescript": "*",
         "vscode-css-languageservice": "4.1.0",
         "vscode-emmet-helper": "1.2.17",

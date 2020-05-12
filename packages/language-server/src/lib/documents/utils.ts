@@ -1,6 +1,16 @@
 import { clamp } from '../../utils';
 import { Position } from 'vscode-languageserver';
 
+export interface TagInformation {
+    content: string;
+    attributes: Record<string, string>;
+    start: number;
+    end: number;
+    startPos: Position;
+    endPos: Position;
+    container: { start: number; end: number };
+}
+
 function parseAttributeValue(value: string): string {
     return /^['"]/.test(value) ? value.slice(1, -1) : value;
 }
@@ -9,7 +19,7 @@ function parseAttributes(str: string): Record<string, string> {
     const attrs: Record<string, string> = {};
     str.split(/\s+/)
         .filter(Boolean)
-        .forEach(attr => {
+        .forEach((attr) => {
             const [name, value] = attr.split('=');
             attrs[name] = value ? parseAttributeValue(value) : name;
         });
@@ -23,7 +33,7 @@ function parseAttributes(str: string): Record<string, string> {
  * @param source text content to extract tag from
  * @param tag the tag to extract
  */
-export function extractTag(source: string, tag: 'script' | 'style') {
+export function extractTag(source: string, tag: 'script' | 'style'): TagInformation | null {
     const exp = new RegExp(`(<!--.*-->)|(<${tag}(\\s[\\S\\s]*?)?>)([\\S\\s]*?)<\\/${tag}>`, 'igs');
     let match = exp.exec(source);
 
@@ -39,12 +49,16 @@ export function extractTag(source: string, tag: 'script' | 'style') {
     const content = match[4];
     const start = match.index + match[2].length;
     const end = start + content.length;
+    const startPos = positionAt(start, source);
+    const endPos = positionAt(end, source);
 
     return {
         content,
         attributes,
         start,
         end,
+        startPos,
+        endPos,
         container: { start: match.index, end: match.index + match[0].length },
     };
 }

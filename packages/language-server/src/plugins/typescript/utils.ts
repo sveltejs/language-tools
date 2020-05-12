@@ -1,7 +1,14 @@
 import ts from 'typescript';
-import { Range, SymbolKind, CompletionItemKind, DiagnosticSeverity } from 'vscode-languageserver';
-import { Document } from '../../lib/documents';
+import {
+    Range,
+    SymbolKind,
+    CompletionItemKind,
+    DiagnosticSeverity,
+    Position,
+} from 'vscode-languageserver';
 import { dirname } from 'path';
+import { SnapshotFragment } from './DocumentSnapshot';
+import { mapRangeToParent } from '../../lib/documents';
 
 export function getScriptKindFromFileName(fileName: string): ts.ScriptKind {
     const ext = fileName.substr(fileName.lastIndexOf('.'));
@@ -21,19 +28,35 @@ export function getScriptKindFromFileName(fileName: string): ts.ScriptKind {
     }
 }
 
+export function getExtensionFromScriptKind(kind: ts.ScriptKind | undefined): ts.Extension {
+    switch (kind) {
+        case ts.ScriptKind.JSX:
+            return ts.Extension.Jsx;
+        case ts.ScriptKind.TS:
+            return ts.Extension.Ts;
+        case ts.ScriptKind.TSX:
+            return ts.Extension.Tsx;
+        case ts.ScriptKind.JSON:
+            return ts.Extension.Json;
+        case ts.ScriptKind.JS:
+        default:
+            return ts.Extension.Js;
+    }
+}
+
 export function getScriptKindFromAttributes(
     attrs: Record<string, string>,
-): ts.ScriptKind.TS | ts.ScriptKind.JS {
+): ts.ScriptKind.TSX | ts.ScriptKind.JSX {
     const type = attrs.lang || attrs.type;
 
     switch (type) {
         case 'typescript':
         case 'text/typescript':
-            return ts.ScriptKind.TS;
+            return ts.ScriptKind.TSX;
         case 'javascript':
         case 'text/javascript':
         default:
-            return ts.ScriptKind.JS;
+            return ts.ScriptKind.JSX;
     }
 }
 
@@ -54,7 +77,7 @@ export function ensureRealSvelteFilePath(filePath: string) {
 }
 
 export function convertRange(
-    document: Document,
+    document: { positionAt: (offset: number) => Position },
     range: { start?: number; length?: number },
 ): Range {
     return Range.create(
@@ -63,12 +86,28 @@ export function convertRange(
     );
 }
 
+export function convertToLocationRange(defDoc: SnapshotFragment, textSpan: ts.TextSpan): Range {
+    const range = mapRangeToParent(defDoc, convertRange(defDoc, textSpan));
+    // Some definition like the svelte component class definition don't exist in the original, so we map to 0,1
+    if (range.start.line < 0) {
+        range.start.line = 0;
+        range.start.character = 1;
+    }
+    if (range.end.line < 0) {
+        range.end = range.start;
+    }
+
+    return range;
+}
+
 export function findTsConfigPath(fileName: string) {
     const searchDir = dirname(fileName);
 
-    return ts.findConfigFile(searchDir, ts.sys.fileExists, 'tsconfig.json') ||
+    return (
+        ts.findConfigFile(searchDir, ts.sys.fileExists, 'tsconfig.json') ||
         ts.findConfigFile(searchDir, ts.sys.fileExists, 'jsconfig.json') ||
-        '';
+        ''
+    );
 }
 
 export function symbolKindFromString(kind: string): SymbolKind {

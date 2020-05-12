@@ -1,5 +1,10 @@
 import ts from 'typescript';
-import { isVirtualSvelteFilePath, ensureRealSvelteFilePath, isSvelteFilePath } from './utils';
+import {
+    isVirtualSvelteFilePath,
+    ensureRealSvelteFilePath,
+    isSvelteFilePath,
+    getExtensionFromScriptKind,
+} from './utils';
 import { isAbsolute } from 'path';
 import { DocumentSnapshot } from './DocumentSnapshot';
 import { createSvelteSys } from './svelte-sys';
@@ -96,13 +101,9 @@ export function createSvelteModuleLoader(
 
         const resolvedFileName = ensureRealSvelteFilePath(tsResolvedModule.resolvedFileName);
         const snapshot = getSvelteSnapshot(resolvedFileName);
-        const extension: ts.Extension =
-            snapshot && snapshot.scriptKind === ts.ScriptKind.TS
-                ? ts.Extension.Ts
-                : ts.Extension.Js;
 
         const resolvedSvelteModule: ts.ResolvedModuleFull = {
-            extension,
+            extension: getExtensionFromScriptKind(snapshot && snapshot.scriptKind),
             resolvedFileName,
         };
         return resolvedSvelteModule;

@@ -2,12 +2,7 @@ import * as assert from 'assert';
 import * as path from 'path';
 import { dirname, join } from 'path';
 import ts from 'typescript';
-import {
-    FileChangeType,
-    Hover,
-    Position,
-    Range,
-} from 'vscode-languageserver';
+import { FileChangeType, Hover, Position, Range } from 'vscode-languageserver';
 import { DocumentManager, TextDocument } from '../../../src/lib/documents';
 import { LSConfigManager } from '../../../src/ls-config';
 import { TypeScriptPlugin } from '../../../src/plugins';
@@ -33,9 +28,9 @@ describe('TypescriptPlugin', () => {
         return { plugin, document };
     }
 
-    it('provides diagnostics', () => {
+    it('provides diagnostics', async () => {
         const { plugin, document } = setup('diagnostics.svelte');
-        const diagnostics = plugin.getDiagnostics(document);
+        const diagnostics = await plugin.getDiagnostics(document);
 
         assert.deepStrictEqual(diagnostics, [
             {
@@ -59,10 +54,71 @@ describe('TypescriptPlugin', () => {
         // diagnostics might take longer, therefore increase the timeout
         .timeout(8000);
 
+    it('provides typecheck diagnostics for js file when //@ts-check at top of script', async () => {
+        const { plugin, document } = setup('diagnostics-js-typecheck.svelte');
+        const diagnostics = await plugin.getDiagnostics(document);
+
+        assert.deepStrictEqual(diagnostics, [
+            {
+                code: 2339,
+                message: "Property 'bla' does not exist on type '1'.",
+                range: {
+                    start: {
+                        character: 4,
+                        line: 3,
+                    },
+                    end: {
+                        character: 7,
+                        line: 3,
+                    },
+                },
+                severity: 1,
+                source: 'js',
+            },
+        ]);
+    })
+        // diagnostics might take longer, therefore increase the timeout
+        .timeout(8000);
+
+    it('provides no typecheck diagnostics for js file', async () => {
+        const { plugin, document } = setup('diagnostics-js-notypecheck.svelte');
+        const diagnostics = await plugin.getDiagnostics(document);
+
+        assert.deepStrictEqual(diagnostics, []);
+    })
+        // diagnostics might take longer, therefore increase the timeout
+        .timeout(8000);
+
+    it('provides diagnostics when there is a parser error', async () => {
+        const { plugin, document } = setup('diagnostics-parsererror.svelte');
+        const diagnostics = await plugin.getDiagnostics(document);
+
+        assert.deepStrictEqual(diagnostics, [
+            {
+                code: -1,
+                message: 'You can only have one top-level <style> tag per component',
+                range: {
+                    start: {
+                        character: 0,
+                        line: 1,
+                    },
+                    end: {
+                        character: 0,
+                        line: 1,
+                    },
+                },
+                severity: 1,
+                source: 'js',
+            },
+        ]);
+    })
+        // diagnostics might take longer, therefore increase the timeout
+        .timeout(8000);
+
     it('provides hover info', async () => {
         const { plugin, document } = setup('hoverinfo.svelte');
 
-        assert.deepStrictEqual(plugin.doHover(document, Position.create(0, 14)), <Hover>{
+        assert.deepStrictEqual(await plugin.doHover(document, Position.create(0, 14)), <Hover>{
             contents: {
                 language: 'ts',
                 value: 'const a: true',
@@ -80,13 +136,14 @@ describe('TypescriptPlugin', () => {
         });
     });
 
-    it('provides document symbols', () => {
+    it('provides document symbols', async () => {
         const { plugin, document } = setup('documentsymbols.svelte');
-        const symbols = plugin.getDocumentSymbols(document);
+        const symbols = await plugin.getDocumentSymbols(document);
 
-        assert.deepStrictEqual(symbols, [
+        assert.deepStrictEqual(
+            symbols.find((symbol) => symbol.name === 'bla'),
             {
-                containerName: 'script',
+                containerName: 'render',
                 kind: 12,
                 location: {
                     range: {
@@ -103,44 +160,44 @@ describe('TypescriptPlugin', () => {
                 },
                 name: 'bla',
             },
-        ]);
+        );
     });
 
-    it('provides definitions within svelte doc', () => {
+    it('provides definitions within svelte doc', async () => {
         const { plugin, document } = setup('definitions.svelte');
 
-        const definitions = plugin.getDefinitions(document, Position.create(0, 94)); // +7
+        const definitions = await plugin.getDefinitions(document, Position.create(4, 1));
 
         assert.deepStrictEqual(definitions, [
             {
                 originSelectionRange: {
                     start: {
-                        character: 93,
-                        line: 0,
+                        character: 0,
+                        line: 4,
                     },
                     end: {
-                        character: 96,
-                        line: 0,
+                        character: 3,
+                        line: 4,
                     },
                 },
                 targetRange: {
                     start: {
-                        character: 72,
-                        line: 0,
+                        character: 9,
+                        line: 3,
                     },
                     end: {
-                        character: 75,
-                        line: 0,
+                        character: 12,
+                        line: 3,
                     },
                 },
                 targetSelectionRange: {
                     start: {
-                        character: 72,
-                        line: 0,
+                        character: 9,
+                        line: 3,
                     },
                     end: {
-                        character: 75,
-                        line: 0,
+                        character: 12,
+                        line: 3,
                     },
                 },
                 targetUri: getUri('definitions.svelte'),
@@ -148,21 +205,21 @@ describe('TypescriptPlugin', () => {
         ]);
     });
 
-    it('provides definitions from svelte to ts doc', () => {
+    it('provides definitions from svelte to ts doc', async () => {
         const { plugin, document } = setup('definitions.svelte');
 
-        const definitions = plugin.getDefinitions(document, Position.create(0, 101));
+        const definitions = await plugin.getDefinitions(document, Position.create(5, 1));
 
         assert.deepStrictEqual(definitions, [
             {
                 originSelectionRange: {
                     start: {
-                        character: 100,
-                        line: 0,
+                        character: 0,
+                        line: 5,
                     },
                     end: {
-                        character: 105,
-                        line: 0,
+                        character: 5,
+                        line: 5,
                     },
                 },
                 targetRange: {
@@ -190,18 +247,60 @@ describe('TypescriptPlugin', () => {
         ]);
     });
 
-    it('provides code actions', () => {
+    it('provides definitions from svelte to svelte doc', async () => {
+        const { plugin, document } = setup('definitions.svelte');
+
+        const definitions = await plugin.getDefinitions(document, Position.create(7, 3));
+
+        assert.deepStrictEqual(definitions, [
+            {
+                originSelectionRange: {
+                    start: {
+                        character: 1,
+                        line: 7,
+                    },
+                    end: {
+                        character: 13,
+                        line: 7,
+                    },
+                },
+                targetRange: {
+                    start: {
+                        character: 1,
+                        line: 0,
+                    },
+                    end: {
+                        character: 1,
+                        line: 0,
+                    },
+                },
+                targetSelectionRange: {
+                    start: {
+                        character: 1,
+                        line: 0,
+                    },
+                    end: {
+                        character: 1,
+                        line: 0,
+                    },
+                },
+                targetUri: getUri('imported-file.svelte'),
+            },
+        ]);
+    });
+
+    it('provides code actions', async () => {
         const { plugin, document } = setup('codeactions.svelte');
 
-        const codeActions = plugin.getCodeActions(
+        const codeActions = await plugin.getCodeActions(
             document,
-            Range.create(Position.create(0, 12), Position.create(0, 13)),
+            Range.create(Position.create(1, 4), Position.create(1, 5)),
             {
                 diagnostics: [
                     {
                         code: 6133,
                         message: "'a' is declared but its value is never read.",
-                        range: Range.create(Position.create(0, 12), Position.create(0, 13)),
+                        range: Range.create(Position.create(1, 4), Position.create(1, 5)),
                         source: 'ts',
                     },
                 ],
@@ -219,12 +318,12 @@ describe('TypescriptPlugin', () => {
                                     newText: '',
                                     range: {
                                         start: {
-                                            character: 8,
-                                            line: 0,
+                                            character: 0,
+                                            line: 1,
                                         },
                                         end: {
-                                            character: 20,
-                                            line: 0,
+                                            character: 0,
+                                            line: 2,
                                         },
                                     },
                                 },

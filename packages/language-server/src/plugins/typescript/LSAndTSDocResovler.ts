@@ -1,10 +1,13 @@
 import { DocumentManager, Document } from '../../lib/documents';
 import { pathToUrl } from '../../utils';
 import { getLanguageServiceForDocument } from './service';
-import { TypescriptDocument } from './TypescriptDocument';
+import { DocumentSnapshot } from './DocumentSnapshot';
+import { findTsConfigPath } from './utils';
+import { SnapshotManager } from './SnapshotManager';
 
 export class LSAndTSDocResovler {
-    constructor(private readonly docManager: DocumentManager) { }
+    constructor(private readonly docManager: DocumentManager) {}
+
     private createDocument = (fileName: string, content: string) => {
         const uri = pathToUrl(fileName);
         const document = this.docManager.openDocument({
@@ -14,16 +17,34 @@ export class LSAndTSDocResovler {
             version: 0,
         });
         this.docManager.lockDocument(uri);
-        return new TypescriptDocument(document);
+        return document;
     };
-    private documents = new Map<Document, TypescriptDocument>();
-    public getLSAndTSDoc(document: Document) {
-        let tsDoc = this.documents.get(document);
-        if (!tsDoc) {
-            tsDoc = new TypescriptDocument(document);
-            this.documents.set(document, tsDoc);
-        }
-        const lang = getLanguageServiceForDocument(tsDoc, this.createDocument);
+
+    getLSAndTSDoc(document: Document) {
+        const lang = getLanguageServiceForDocument(document, this.createDocument);
+        const filePath = document.getFilePath()!;
+        const tsDoc = this.getSnapshot(filePath, document);
+
         return { tsDoc, lang };
+    }
+
+    getSnapshot(filePath: string, document?: Document) {
+        const snapshotManager = this.getSnapshotManager(filePath);
+
+        let tsDoc = snapshotManager.get(filePath);
+        if (!tsDoc) {
+            tsDoc = document
+                ? DocumentSnapshot.fromDocument(document)
+                : DocumentSnapshot.fromFilePath(filePath);
+            snapshotManager.set(filePath, tsDoc);
+        }
+
+        return tsDoc;
+    }
+
+    getSnapshotManager(fileName: string) {
+        const tsconfigPath = findTsConfigPath(fileName);
+        const snapshotManager = SnapshotManager.getFromTsConfigPath(tsconfigPath);
+        return snapshotManager;
     }
 }

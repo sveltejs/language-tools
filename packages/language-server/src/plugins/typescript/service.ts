@@ -8,21 +8,21 @@ import {
     isSvelteFilePath,
     findTsConfigPath,
 } from './utils';
-import { TypescriptDocument } from './TypescriptDocument';
 import { SnapshotManager } from './SnapshotManager';
+import { Document } from '../../lib/documents';
 import { getPackageInfo } from '../importPackage';
 
 export interface LanguageServiceContainer {
     getService(): ts.LanguageService;
-    updateDocument(document: TypescriptDocument): ts.LanguageService;
+    updateDocument(document: Document): ts.LanguageService;
 }
 
 const services = new Map<string, LanguageServiceContainer>();
 
-export type CreateDocument = (fileName: string, content: string) => TypescriptDocument;
+export type CreateDocument = (fileName: string, content: string) => Document;
 
 export function getLanguageServiceForDocument(
-    document: TypescriptDocument,
+    document: Document,
     createDocument: CreateDocument,
 ): ts.LanguageService {
     const tsconfigPath = findTsConfigPath(document.getFilePath()!);
@@ -65,18 +65,31 @@ export function createLanguageService(
             compilerOptions,
             tsconfigPath,
             undefined,
-            [{ extension: 'svelte', isMixedContent: true }],
+            [{ extension: 'svelte', isMixedContent: false, scriptKind: ts.ScriptKind.TSX }],
         );
+        const forcedOptions: ts.CompilerOptions = {
+            noEmit: true,
+            declaration: false,
+            jsx: ts.JsxEmit.Preserve,
+            jsxFactory: 'h',
+            skipLibCheck: true,
+        };
+        compilerOptions = { ...compilerOptions, ...parsedConfig.options, ...forcedOptions };
+
         files = parsedConfig.fileNames;
-        compilerOptions = { ...compilerOptions, ...parsedConfig.options };
     }
 
     const svelteModuleLoader = createSvelteModuleLoader(getSvelteSnapshot, compilerOptions);
 
+    const svelteTsPath = dirname(require.resolve('svelte2tsx'));
+    const svelteTsxFiles = ['./svelte-shims.d.ts', './svelte-jsx.d.ts'].map((f) =>
+        ts.sys.resolvePath(resolve(svelteTsPath, f)),
+    );
+
     const host: ts.LanguageServiceHost = {
         getCompilationSettings: () => compilerOptions,
         getScriptFileNames: () =>
-            Array.from(new Set([...files, ...snapshotManager.getFileNames()])),
+            Array.from(new Set([...files, ...snapshotManager.getFileNames(), ...svelteTsxFiles])),
         getScriptVersion(fileName: string) {
             const doc = getScriptSnapshot(fileName);
             return doc ? String(doc.version) : INITIAL_VERSION.toString();
@@ -114,8 +127,14 @@ export function createLanguageService(
         updateDocument,
     };
 
-    function updateDocument(document: TypescriptDocument): ts.LanguageService {
+    function updateDocument(document: Document): ts.LanguageService {
         const preSnapshot = snapshotManager.get(document.getFilePath()!);
+
+        // Don't reinitialize document if no update needed.
+        if (preSnapshot?.version === document.version) {
+            return languageService;
+        }
+
         const newSnapshot = DocumentSnapshot.fromDocument(document);
         if (preSnapshot && preSnapshot.scriptKind !== newSnapshot.scriptKind) {
             // Restart language service as it doesn't handle script kind changes.
