@@ -5,19 +5,22 @@ import {
     TextDocumentItem,
     VersionedTextDocumentIdentifier,
 } from 'vscode-languageserver';
-import { Document, WritableDocument } from './Document';
+import { Document } from './Document';
 
 export type DocumentEvent = 'documentOpen' | 'documentChange' | 'documentClose';
 
+/**
+ * Manages svelte documents
+ */
 export class DocumentManager {
     private emitter = new EventEmitter();
-    public documents: Map<string, WritableDocument> = new Map();
+    public documents: Map<string, Document> = new Map();
     public locked = new Set<string>();
 
-    constructor(private createDocument: (textDocument: TextDocumentItem) => WritableDocument) {}
+    constructor(private createDocument: (textDocument: TextDocumentItem) => Document) {}
 
     openDocument(textDocument: TextDocumentItem): Document {
-        let document: WritableDocument;
+        let document: Document;
         if (this.documents.has(textDocument.uri)) {
             document = this.documents.get(textDocument.uri)!;
             document.setText(textDocument.text);

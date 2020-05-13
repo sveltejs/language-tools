@@ -62,11 +62,7 @@ export class CSSPlugin
             return [];
         }
 
-        const cssDocument = this.cssDocuments.get(document);
-        if (!cssDocument) {
-            return [];
-        }
-
+        const cssDocument = this.getCSSDoc(document);
         const kind = extractLanguage(cssDocument);
 
         if (shouldExcludeValidation(kind)) {
@@ -84,8 +80,8 @@ export class CSSPlugin
             return null;
         }
 
-        const cssDocument = this.cssDocuments.get(document);
-        if (!cssDocument || !cssDocument.isInGenerated(position)) {
+        const cssDocument = this.getCSSDoc(document);
+        if (!cssDocument.isInGenerated(position)) {
             return null;
         }
 
@@ -118,8 +114,8 @@ export class CSSPlugin
             return null;
         }
 
-        const cssDocument = this.cssDocuments.get(document);
-        if (!cssDocument || !cssDocument.isInGenerated(position)) {
+        const cssDocument = this.getCSSDoc(document);
+        if (!cssDocument.isInGenerated(position)) {
             return null;
         }
 
@@ -156,10 +152,7 @@ export class CSSPlugin
             return [];
         }
 
-        const cssDocument = this.cssDocuments.get(document);
-        if (!cssDocument) {
-            return [];
-        }
+        const cssDocument = this.getCSSDoc(document);
 
         return getLanguageService(extractLanguage(cssDocument))
             .findDocumentColors(cssDocument, cssDocument.stylesheet)
@@ -171,11 +164,8 @@ export class CSSPlugin
             return [];
         }
 
-        const cssDocument = this.cssDocuments.get(document);
-        if (
-            !cssDocument ||
-            (!cssDocument.isInGenerated(range.start) && !cssDocument.isInGenerated(range.end))
-        ) {
+        const cssDocument = this.getCSSDoc(document);
+        if (!cssDocument.isInGenerated(range.start) && !cssDocument.isInGenerated(range.end)) {
             return [];
         }
 
@@ -194,10 +184,7 @@ export class CSSPlugin
             return [];
         }
 
-        const cssDocument = this.cssDocuments.get(document);
-        if (!cssDocument) {
-            return [];
-        }
+        const cssDocument = this.getCSSDoc(document);
 
         return getLanguageService(extractLanguage(cssDocument))
             .findDocumentSymbols(cssDocument, cssDocument.stylesheet)
@@ -213,6 +200,15 @@ export class CSSPlugin
                 return symbol;
             })
             .map((symbol) => mapSymbolInformationToParent(cssDocument, symbol));
+    }
+
+    private getCSSDoc(document: Document) {
+        let cssDoc = this.cssDocuments.get(document);
+        if (!cssDoc || cssDoc.version < document.version) {
+            cssDoc = new CSSDocument(document);
+            this.cssDocuments.set(document, cssDoc);
+        }
+        return cssDoc;
     }
 
     private featureEnabled(feature: keyof LSCSSConfig) {

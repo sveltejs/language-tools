@@ -1,7 +1,7 @@
 import sinon from 'sinon';
 import * as assert from 'assert';
 import { TextDocumentItem, Range } from 'vscode-languageserver-types';
-import { TextDocument, DocumentManager } from '../../../src/lib/documents';
+import { DocumentManager, Document } from '../../../src/lib/documents';
 
 describe('Document Manager', () => {
     const textDocument: TextDocumentItem = {
@@ -12,7 +12,7 @@ describe('Document Manager', () => {
     };
 
     const createTextDocument = (textDocument: TextDocumentItem) =>
-        new TextDocument(textDocument.uri, textDocument.text);
+        new Document(textDocument.uri, textDocument.text);
 
     it('opens documents', () => {
         const createDocument = sinon.spy();

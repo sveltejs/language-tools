@@ -1,6 +1,5 @@
 export * from './DocumentManager';
-export * from './ManagedDocument';
 export * from './Document';
-export * from './TextDocument';
+export * from './DocumentBase';
 export * from './DocumentMapper';
 export * from './utils';

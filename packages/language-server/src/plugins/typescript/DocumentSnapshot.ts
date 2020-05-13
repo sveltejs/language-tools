@@ -1,137 +1,151 @@
-import ts from 'typescript';
-import { getScriptKindFromAttributes, isSvelteFilePath, getScriptKindFromFileName } from './utils';
-import {
-    DocumentMapper,
-    positionAt,
-    offsetAt,
-    Document,
-    extractTag,
-    TagInformation,
-    IdentityMapper,
-    FragmentMapper,
-} from '../../lib/documents';
-import { ConsumerDocumentMapper } from './DocumentMapper';
-import { Position, Range } from 'vscode-languageserver';
-import { SourceMapConsumer, RawSourceMap } from 'source-map';
-import { pathToUrl, isInRange } from '../../utils';
+import { RawSourceMap, SourceMapConsumer } from 'source-map';
 import svelte2tsx from 'svelte2tsx';
+import ts from 'typescript';
+import { Position, Range } from 'vscode-languageserver';
+import {
+    Document,
+    DocumentMapper,
+    extractTag,
+    FragmentMapper,
+    IdentityMapper,
+    offsetAt,
+    positionAt,
+    TagInformation,
+} from '../../lib/documents';
+import { isInRange, pathToUrl } from '../../utils';
+import { ConsumerDocumentMapper } from './DocumentMapper';
+import { getScriptKindFromAttributes, getScriptKindFromFileName, isSvelteFilePath } from './utils';
 
+/**
+ * An error which occured while trying to parse/preprocess the svelte file contents.
+ */
 export interface ParserError {
     message: string;
     range: Range;
     code: number;
 }
 
+/**
+ * Initial version of snapshots.
+ */
 export const INITIAL_VERSION = 0;
 
-export class DocumentSnapshot implements ts.IScriptSnapshot {
-    private fragment?: SnapshotFragment;
+/**
+ * A document snapshot suitable for the ts language service and the plugin.
+ * Can be a svelte or ts/js file.
+ */
+export interface DocumentSnapshot extends ts.IScriptSnapshot {
+    version: number;
+    filePath: string;
+    scriptKind: ts.ScriptKind;
+    positionAt(offset: number): Position;
+    getFragment(): Promise<SnapshotFragment>;
+}
 
-    static fromDocument(document: Document) {
-        const {
-            tsxMap,
-            text,
-            scriptInfo,
-            styleInfo,
-            parserError,
-            nrPrependedLines,
-        } = DocumentSnapshot.preprocessIfIsSvelteFile(document.uri, document.getText());
+/**
+ * The mapper to get from original snapshot positions to generated and vice versa.
+ */
+export interface SnapshotFragment extends DocumentMapper {
+    scriptInfo: TagInformation | null;
+    positionAt(offset: number): Position;
+    offsetAt(position: Position): number;
+}
 
-        return new DocumentSnapshot(
-            document.version,
-            getScriptKindFromAttributes(extractTag(document.getText(), 'script')?.attributes ?? {}),
-            document.getFilePath() || '',
-            parserError,
-            scriptInfo,
-            styleInfo,
-            text,
-            document.getText(),
-            nrPrependedLines,
-            tsxMap,
-        );
+export namespace DocumentSnapshot {
+    /**
+     * Returns a svelte snapshot from a svelte document.
+     */
+    export function fromDocument(document: Document) {
+        const { tsxMap, text, parserError, nrPrependedLines } = preprocessSvelteFile(document);
+
+        return new SvelteDocumentSnapshot(document, parserError, text, nrPrependedLines, tsxMap);
     }
 
-    static fromFilePath(filePath: string) {
+    /**
+     * Returns a svelte or ts/js snapshot from a file path, depending on the file contents.
+     */
+    export function fromFilePath(filePath: string) {
         const originalText = ts.sys.readFile(filePath) ?? '';
-        const {
-            text,
-            tsxMap,
-            scriptInfo,
-            styleInfo,
-            parserError,
-            nrPrependedLines,
-        } = DocumentSnapshot.preprocessIfIsSvelteFile(pathToUrl(filePath), originalText);
 
-        return new DocumentSnapshot(
-            INITIAL_VERSION + 1, // ensure it's greater than initial build
-            getScriptKindFromFileName(filePath),
-            filePath,
-            parserError,
-            scriptInfo,
-            styleInfo,
-            text,
-            originalText,
-            nrPrependedLines,
-            tsxMap,
-        );
+        if (isSvelteFilePath(filePath)) {
+            return fromDocument(new Document(pathToUrl(filePath), originalText));
+        } else {
+            return new JSOrTSDocumentSnapshot(INITIAL_VERSION, filePath, originalText);
+        }
     }
+}
 
-    private static preprocessIfIsSvelteFile(uri: string, text: string) {
-        let tsxMap: RawSourceMap | undefined;
-        let parserError: ParserError | null = null;
-        const scriptInfo = extractTag(text, 'script');
-        const styleInfo = extractTag(text, 'style');
-        let nrPrependedLines = 0;
+/**
+ * Tries to preprocess the svelte document and convert the contents into better analyzable js/ts(x) content.
+ */
+function preprocessSvelteFile(document: Document) {
+    let tsxMap: RawSourceMap | undefined;
+    let parserError: ParserError | null = null;
+    let nrPrependedLines = 0;
+    let text = document.getText();
 
-        if (isSvelteFilePath(uri)) {
-            try {
-                const tsx = svelte2tsx(text);
-                text = tsx.code;
-                tsxMap = tsx.map;
-                if (tsxMap) {
-                    tsxMap.sources = [uri];
+    try {
+        const tsx = svelte2tsx(text);
+        text = tsx.code;
+        tsxMap = tsx.map;
+        if (tsxMap) {
+            tsxMap.sources = [document.uri];
 
-                    const tsCheck = scriptInfo?.content.match(tsCheckRegex);
-                    if (tsCheck) {
-                        // second-last entry is the capturing group with the exact ts-check wording
-                        text = `//${tsCheck[tsCheck.length - 3]}${ts.sys.newLine}` + text;
-                        nrPrependedLines = 1;
-                    }
-                }
-            } catch (e) {
-                // Error start/end logic is different and has different offsets for line, so we need to convert that
-                const start: Position = {
-                    line: e.start?.line - 1 ?? 0,
-                    character: e.start?.column ?? 0,
-                };
-                const end: Position = e.end
-                    ? { line: e.end.line - 1, character: e.end.column }
-                    : start;
-                parserError = {
-                    range: { start, end },
-                    message: e.message,
-                    code: -1,
-                };
-                // fall back to extracted script, if any
-                text = scriptInfo ? scriptInfo.content : '';
+            const tsCheck = document.scriptInfo?.content.match(tsCheckRegex);
+            if (tsCheck) {
+                // second-last entry is the capturing group with the exact ts-check wording
+                text = `//${tsCheck[tsCheck.length - 3]}${ts.sys.newLine}` + text;
+                nrPrependedLines = 1;
             }
         }
-
-        return { tsxMap, text, scriptInfo, styleInfo, parserError, nrPrependedLines };
+    } catch (e) {
+        // Error start/end logic is different and has different offsets for line, so we need to convert that
+        const start: Position = {
+            line: e.start?.line - 1 ?? 0,
+            character: e.start?.column ?? 0,
+        };
+        const end: Position = e.end ? { line: e.end.line - 1, character: e.end.column } : start;
+        parserError = {
+            range: { start, end },
+            message: e.message,
+            code: -1,
+        };
+        // fall back to extracted script, if any
+        text = document.scriptInfo ? document.scriptInfo.content : '';
     }
 
-    private constructor(
-        public version: number,
-        public readonly scriptKind: ts.ScriptKind,
-        public readonly filePath: string,
+    return { tsxMap, text, parserError, nrPrependedLines };
+}
+
+/**
+ * A svelte document snapshot suitable for the ts language service and the plugin.
+ */
+export class SvelteDocumentSnapshot implements DocumentSnapshot {
+    private fragment?: SvelteSnapshotFragment;
+    private _scriptKind?: ts.ScriptKind;
+
+    version = this.parent.version;
+
+    constructor(
+        private readonly parent: Document,
         public readonly parserError: ParserError | null,
-        public readonly scriptInfo: TagInformation | null,
-        public readonly styleInfo: TagInformation | null,
         private readonly text: string,
-        private readonly originalText: string,
         private readonly nrPrependedLines: number,
         private readonly tsxMap?: RawSourceMap,
     ) {}
+
+    get filePath() {
+        return this.parent.getFilePath() || '';
+    }
+
+    get scriptKind() {
+        if (!this._scriptKind) {
+            this._scriptKind = getScriptKindFromAttributes(
+                extractTag(this.parent.getText(), 'script')?.attributes ?? {},
+            );
+        }
+        return this._scriptKind;
+    }
 
     getText(start: number, end: number) {
         return this.text.substring(start, end);
@@ -152,11 +166,10 @@ export class DocumentSnapshot implements ts.IScriptSnapshot {
     async getFragment() {
         if (!this.fragment) {
             const uri = pathToUrl(this.filePath);
-            this.fragment = new SnapshotFragment(
+            this.fragment = new SvelteSnapshotFragment(
                 await this.getMapper(uri),
                 this.text,
-                this.scriptInfo,
-                this.styleInfo,
+                this.parent,
                 uri,
             );
         }
@@ -164,11 +177,11 @@ export class DocumentSnapshot implements ts.IScriptSnapshot {
     }
 
     private async getMapper(uri: string) {
-        if (!this.scriptInfo) {
+        if (!this.parent.scriptInfo) {
             return new IdentityMapper(uri);
         }
         if (!this.tsxMap) {
-            return new FragmentMapper(this.originalText, this.scriptInfo, uri);
+            return new FragmentMapper(this.parent.getText(), this.parent.scriptInfo, uri);
         }
         return new ConsumerDocumentMapper(
             await new SourceMapConsumer(this.tsxMap),
@@ -178,14 +191,63 @@ export class DocumentSnapshot implements ts.IScriptSnapshot {
     }
 }
 
-export class SnapshotFragment implements DocumentMapper {
+/**
+ * A js/ts document snapshot suitable for the ts language service and the plugin.
+ * Since no mapping has to be done here, it also implements the mapper interface.
+ */
+export class JSOrTSDocumentSnapshot extends IdentityMapper
+    implements DocumentSnapshot, SnapshotFragment {
+    scriptKind = getScriptKindFromFileName(this.filePath);
+    scriptInfo = null;
+
+    constructor(
+        public version: number,
+        public readonly filePath: string,
+        private readonly text: string,
+    ) {
+        super(pathToUrl(filePath));
+    }
+
+    getText(start: number, end: number) {
+        return this.text.substring(start, end);
+    }
+
+    getLength() {
+        return this.text.length;
+    }
+
+    getChangeRange() {
+        return undefined;
+    }
+
+    positionAt(offset: number) {
+        return positionAt(offset, this.text);
+    }
+
+    offsetAt(position: Position): number {
+        return offsetAt(position, this.text);
+    }
+
+    async getFragment() {
+        return this;
+    }
+}
+
+/**
+ * The mapper to get from original svelte document positions
+ * to generated snapshot positions and vice versa.
+ */
+export class SvelteSnapshotFragment implements SnapshotFragment {
     constructor(
         private readonly mapper: DocumentMapper,
         public readonly text: string,
-        public readonly scriptInfo: TagInformation | null,
-        public readonly styleInfo: TagInformation | null,
+        private readonly parent: Document,
         private readonly url: string,
     ) {}
+
+    get scriptInfo() {
+        return this.parent.scriptInfo;
+    }
 
     getOriginalPosition(pos: Position): Position {
         return this.mapper.getOriginalPosition(pos);
@@ -197,8 +259,11 @@ export class SnapshotFragment implements DocumentMapper {
 
     isInGenerated(pos: Position): boolean {
         return (
-            !this.styleInfo ||
-            !isInRange(Range.create(this.styleInfo.startPos, this.styleInfo.endPos), pos)
+            !this.parent.styleInfo ||
+            !isInRange(
+                Range.create(this.parent.styleInfo.startPos, this.parent.styleInfo.endPos),
+                pos,
+            )
         );
     }
 

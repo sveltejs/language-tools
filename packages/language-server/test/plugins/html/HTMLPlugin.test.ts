@@ -9,13 +9,13 @@ import {
     InsertTextFormat,
 } from 'vscode-languageserver';
 import { HTMLPlugin } from '../../../src/plugins';
-import { TextDocument, DocumentManager } from '../../../src/lib/documents';
+import { DocumentManager, Document } from '../../../src/lib/documents';
 import { LSConfigManager } from '../../../src/ls-config';
 
 describe('HTML Plugin', () => {
     function setup(content: string) {
         const plugin = new HTMLPlugin();
-        const document = new TextDocument('file:///hello.svelte', content);
+        const document = new Document('file:///hello.svelte', content);
         const docManager = new DocumentManager(() => document);
         const pluginManager = new LSConfigManager();
         plugin.onRegister(docManager, pluginManager);

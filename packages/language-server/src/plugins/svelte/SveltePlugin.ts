@@ -14,7 +14,7 @@ import {
     TextEdit,
     Hover,
 } from 'vscode-languageserver';
-import { Document, DocumentManager } from '../../lib/documents';
+import { Document, DocumentManager, ReadableDocument } from '../../lib/documents';
 import { LSConfigManager, LSSvelteConfig } from '../../ls-config';
 import {
     CompletionsProvider,
@@ -214,7 +214,7 @@ function makePreprocessor(document: SvelteDocument, preprocessors: PreprocessorG
 }
 
 async function fixDiagnostics(
-    document: Document,
+    document: ReadableDocument,
     preprocessor: Preprocessor,
     diagnostics: Diagnostic[],
 ): Promise<void> {

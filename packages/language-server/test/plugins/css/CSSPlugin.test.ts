@@ -8,14 +8,14 @@ import {
     TextEdit,
     CompletionContext,
 } from 'vscode-languageserver';
-import { TextDocument, DocumentManager } from '../../../src/lib/documents';
+import { DocumentManager, Document } from '../../../src/lib/documents';
 import { CSSPlugin } from '../../../src/plugins';
 import { LSConfigManager } from '../../../src/ls-config';
 
 describe('CSS Plugin', () => {
     function setup(content: string) {
         const plugin = new CSSPlugin();
-        const document = new TextDocument('file:///hello.svelte', content);
+        const document = new Document('file:///hello.svelte', content);
         const docManager = new DocumentManager(() => document);
         const pluginManager = new LSConfigManager();
         plugin.onRegister(docManager, pluginManager);
@@ -41,7 +41,7 @@ describe('CSS Plugin', () => {
         const { plugin, document } = setup('<style></style>');
 
         const completions = plugin.getCompletions(document, Position.create(0, 7), {
-            triggerCharacter: '.'
+            triggerCharacter: '.',
         } as CompletionContext);
         assert.ok(
             Array.isArray(completions && completions.items),
@@ -67,9 +67,9 @@ describe('CSS Plugin', () => {
         const { plugin, document } = setup('<style>:g</style>');
 
         const completions = plugin.getCompletions(document, Position.create(0, 9), {
-            triggerCharacter: ':'
+            triggerCharacter: ':',
         } as CompletionContext);
-        const globalCompletion = completions?.items.find(item => item.label === ':global()');
+        const globalCompletion = completions?.items.find((item) => item.label === ':global()');
         assert.ok(globalCompletion);
     });
 
@@ -108,7 +108,7 @@ describe('CSS Plugin', () => {
         });
     });
 
-    describe('provides document colors', () => {
+    it('provides document colors', () => {
         const { plugin, document } = setup('<style>h1 {color:blue;}</style>');
 
         const colors = plugin.getColorPresentations(

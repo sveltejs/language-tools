@@ -314,6 +314,7 @@ export class TypeScriptPlugin
         const scriptKind = getScriptKindFromFileName(fileName);
 
         if (scriptKind === ts.ScriptKind.Unknown) {
+            // We don't deal with svelte files here
             return;
         }
 
@@ -329,6 +330,10 @@ export class TypeScriptPlugin
 
         if (previousSnapshot) {
             newSnapshot.version = previousSnapshot.version + 1;
+        } else {
+            // ensure it's greater than initial version
+            // so that ts server picks up the change
+            newSnapshot.version += 1;
         }
 
         snapshotManager.set(fileName, newSnapshot);

@@ -11,7 +11,7 @@ import {
 import { Document, mapCompletionItemToParent, mapRangeToParent } from '../../../lib/documents';
 import { isNotNullOrUndefined, pathToUrl } from '../../../utils';
 import { AppCompletionItem, AppCompletionList, CompletionsProvider } from '../../interfaces';
-import { SnapshotFragment } from '../DocumentSnapshot';
+import { SvelteSnapshotFragment } from '../DocumentSnapshot';
 import { LSAndTSDocResovler } from '../LSAndTSDocResovler';
 import {
     convertRange,
@@ -96,7 +96,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
     }
 
     private toCompletionItem(
-        fragment: SnapshotFragment,
+        fragment: SvelteSnapshotFragment,
         comp: ts.CompletionEntry,
         uri: string,
         position: Position,
@@ -125,7 +125,10 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         };
     }
 
-    private getCompletionLabelAndInsert(fragment: SnapshotFragment, comp: ts.CompletionEntry) {
+    private getCompletionLabelAndInsert(
+        fragment: SvelteSnapshotFragment,
+        comp: ts.CompletionEntry,
+    ) {
         let { kind, kindModifiers, name, source } = comp;
         const isScriptElement = kind === ts.ScriptElementKind.scriptElement;
         const hasModifier = Boolean(comp.kindModifiers);
@@ -160,7 +163,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
     }
 
     private isExistingSvelteComponentImport(
-        fragment: SnapshotFragment,
+        fragment: SvelteSnapshotFragment,
         name: string,
         source?: string,
     ): boolean {
@@ -238,7 +241,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
 
     private codeActionChangesToTextEdit(
         doc: Document,
-        fragment: SnapshotFragment,
+        fragment: SvelteSnapshotFragment,
         changes: ts.FileTextChanges,
     ): TextEdit[] {
         return changes.textChanges.map((change) =>
@@ -248,7 +251,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
 
     private codeActionChangeToTextEdit(
         doc: Document,
-        fragment: SnapshotFragment,
+        fragment: SvelteSnapshotFragment,
         change: ts.TextChange,
     ): TextEdit {
         if (this.isSvelteComponentImport(change.newText)) {

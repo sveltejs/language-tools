@@ -1,13 +1,13 @@
 import * as assert from 'assert';
 import { SveltePlugin } from '../../../src/plugins';
-import { ManagedDocument, DocumentManager } from '../../../src/lib/documents';
+import { DocumentManager, Document } from '../../../src/lib/documents';
 import { Diagnostic, Range, DiagnosticSeverity } from 'vscode-languageserver';
 import { LSConfigManager } from '../../../src/ls-config';
 
 describe('Svelte Plugin', () => {
     function setup(content: string) {
         const plugin = new SveltePlugin();
-        const document = new ManagedDocument('file:///hello.svelte', content);
+        const document = new Document('file:///hello.svelte', content);
         const docManager = new DocumentManager(() => document);
         const pluginManager = new LSConfigManager();
         plugin.onRegister(docManager, pluginManager);
