@@ -1,19 +1,16 @@
 import ts from 'typescript';
 import { getScriptKindFromAttributes, isSvelteFilePath, getScriptKindFromFileName } from './utils';
 import {
-    Fragment,
+    DocumentMapper,
     positionAt,
     offsetAt,
     Document,
     extractTag,
     TagInformation,
-} from '../../lib/documents';
-import {
-    DocumentMapper,
     IdentityMapper,
-    ConsumerDocumentMapper,
     FragmentMapper,
-} from './DocumentMapper';
+} from '../../lib/documents';
+import { ConsumerDocumentMapper } from './DocumentMapper';
 import { Position, Range } from 'vscode-languageserver';
 import { SourceMapConsumer, RawSourceMap } from 'source-map';
 import { pathToUrl, isInRange } from '../../utils';
@@ -155,17 +152,8 @@ export class DocumentSnapshot implements ts.IScriptSnapshot {
     async getFragment() {
         if (!this.fragment) {
             const uri = pathToUrl(this.filePath);
-            const mapper = !this.scriptInfo
-                ? new IdentityMapper()
-                : !this.tsxMap
-                ? new FragmentMapper(this.originalText, this.scriptInfo)
-                : new ConsumerDocumentMapper(
-                      await new SourceMapConsumer(this.tsxMap),
-                      uri,
-                      this.nrPrependedLines,
-                  );
             this.fragment = new SnapshotFragment(
-                mapper,
+                await this.getMapper(uri),
                 this.text,
                 this.scriptInfo,
                 this.styleInfo,
@@ -174,9 +162,23 @@ export class DocumentSnapshot implements ts.IScriptSnapshot {
         }
         return this.fragment;
     }
+
+    private async getMapper(uri: string) {
+        if (!this.scriptInfo) {
+            return new IdentityMapper(uri);
+        }
+        if (!this.tsxMap) {
+            return new FragmentMapper(this.originalText, this.scriptInfo, uri);
+        }
+        return new ConsumerDocumentMapper(
+            await new SourceMapConsumer(this.tsxMap),
+            uri,
+            this.nrPrependedLines,
+        );
+    }
 }
 
-export class SnapshotFragment implements Fragment {
+export class SnapshotFragment implements DocumentMapper {
     constructor(
         private readonly mapper: DocumentMapper,
         public readonly text: string,
@@ -185,15 +187,15 @@ export class SnapshotFragment implements Fragment {
         private readonly url: string,
     ) {}
 
-    positionInParent(pos: Position): Position {
+    getOriginalPosition(pos: Position): Position {
         return this.mapper.getOriginalPosition(pos);
     }
 
-    positionInFragment(pos: Position): Position {
+    getGeneratedPosition(pos: Position): Position {
         return this.mapper.getGeneratedPosition(pos);
     }
 
-    isInFragment(pos: Position): boolean {
+    isInGenerated(pos: Position): boolean {
         return (
             !this.styleInfo ||
             !isInRange(Range.create(this.styleInfo.startPos, this.styleInfo.endPos), pos)

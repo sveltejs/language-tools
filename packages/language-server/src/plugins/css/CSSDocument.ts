@@ -1,7 +1,7 @@
 import { Stylesheet } from 'vscode-css-languageservice';
 import { Position } from 'vscode-languageserver';
 import { getLanguageService } from './service';
-import { extractTag, Document, Fragment } from '../../lib/documents';
+import { extractTag, Document, DocumentMapper } from '../../lib/documents';
 
 export class CSSFragment {
     private version!: number;
@@ -63,7 +63,7 @@ export class CSSFragment {
     }
 }
 
-export class CSSDocument extends Document implements Fragment {
+export class CSSDocument extends Document implements DocumentMapper {
     private cssFragment: CSSFragment;
     public stylesheet: Stylesheet;
     public languageId = 'css';
@@ -78,7 +78,7 @@ export class CSSDocument extends Document implements Fragment {
      * Get the fragment position relative to the parent
      * @param pos Position in fragment
      */
-    positionInParent(pos: Position): Position {
+    getOriginalPosition(pos: Position): Position {
         const parentOffset = this.cssFragment.start + this.offsetAt(pos);
         return this.parent.positionAt(parentOffset);
     }
@@ -87,7 +87,7 @@ export class CSSDocument extends Document implements Fragment {
      * Get the position relative to the start of the fragment
      * @param pos Position in parent
      */
-    positionInFragment(pos: Position): Position {
+    getGeneratedPosition(pos: Position): Position {
         const fragmentOffset = this.parent.offsetAt(pos) - this.cssFragment.start;
         return this.positionAt(fragmentOffset);
     }
@@ -96,7 +96,7 @@ export class CSSDocument extends Document implements Fragment {
      * Returns true if the given parent position is inside of this fragment
      * @param pos Position in parent
      */
-    isInFragment(pos: Position): boolean {
+    isInGenerated(pos: Position): boolean {
         const offset = this.parent.offsetAt(pos);
         return offset >= this.cssFragment.start && offset <= this.cssFragment.end;
     }

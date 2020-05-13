@@ -68,13 +68,13 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         }
 
         const fragment = await tsDoc.getFragment();
-        if (!fragment.isInFragment(position)) {
+        if (!fragment.isInGenerated(position)) {
             return null;
         }
 
         const completions = lang.getCompletionsAtPosition(
             filePath,
-            fragment.offsetAt(fragment.positionInFragment(position)),
+            fragment.offsetAt(fragment.getGeneratedPosition(position)),
             {
                 includeCompletionsForModuleExports: true,
                 triggerCharacter: validTriggerCharacter,
@@ -184,7 +184,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         const fragment = await tsDoc.getFragment();
         const detail = lang.getCompletionEntryDetails(
             filePath,
-            fragment.offsetAt(fragment.positionInFragment(comp.position)),
+            fragment.offsetAt(fragment.getGeneratedPosition(comp.position)),
             comp.name,
             {},
             comp.source,

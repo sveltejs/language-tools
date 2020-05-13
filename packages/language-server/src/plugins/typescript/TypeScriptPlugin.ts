@@ -130,7 +130,7 @@ export class TypeScriptPlugin
         const fragment = await tsDoc.getFragment();
         const info = lang.getQuickInfoAtPosition(
             tsDoc.filePath,
-            fragment.offsetAt(fragment.positionInFragment(position)),
+            fragment.offsetAt(fragment.getGeneratedPosition(position)),
         );
         if (!info) {
             return null;
@@ -224,7 +224,7 @@ export class TypeScriptPlugin
 
         const defs = lang.getDefinitionAndBoundSpan(
             tsDoc.filePath,
-            fragment.offsetAt(fragment.positionInFragment(position)),
+            fragment.offsetAt(fragment.getGeneratedPosition(position)),
         );
 
         if (!defs || !defs.definitions) {
@@ -263,8 +263,8 @@ export class TypeScriptPlugin
         const { lang, tsDoc } = this.getLSAndTSDoc(document);
         const fragment = await tsDoc.getFragment();
 
-        const start = fragment.offsetAt(fragment.positionInFragment(range.start));
-        const end = fragment.offsetAt(fragment.positionInFragment(range.end));
+        const start = fragment.offsetAt(fragment.getGeneratedPosition(range.start));
+        const end = fragment.offsetAt(fragment.getGeneratedPosition(range.end));
         const errorCodes: number[] = context.diagnostics.map((diag) => Number(diag.code));
         const codeFixes = lang.getCodeFixesAtPosition(
             tsDoc.filePath,

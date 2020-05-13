@@ -10,7 +10,7 @@ export function getHoverInfo(svelteDoc: SvelteDocument, position: Position): Hov
     const offset = svelteDoc.offsetAt(position);
 
     const isInStyleOrScript =
-        svelteDoc.style.isInFragment(position) || svelteDoc.script.isInFragment(position);
+        svelteDoc.style.isInGenerated(position) || svelteDoc.script.isInGenerated(position);
 
     const offsetStart = Math.max(offset - 10, 0);
     const charactersAroundOffset = svelteDoc

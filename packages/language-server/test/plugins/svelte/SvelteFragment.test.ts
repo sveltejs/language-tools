@@ -12,10 +12,10 @@ describe('SvelteFragment', () => {
         const parent = new TextDocument('file:///hello.svelte', 'Hello, \nworld!');
         const fragment = new SvelteFragment(parent, createDetails(8, 13));
 
-        assert.strictEqual(fragment.isInFragment({ line: 0, character: 0 }), false);
-        assert.strictEqual(fragment.isInFragment({ line: 1, character: 0 }), true);
-        assert.strictEqual(fragment.isInFragment({ line: 1, character: 5 }), true);
-        assert.strictEqual(fragment.isInFragment({ line: 1, character: 6 }), false);
+        assert.strictEqual(fragment.isInGenerated({ line: 0, character: 0 }), false);
+        assert.strictEqual(fragment.isInGenerated({ line: 1, character: 0 }), true);
+        assert.strictEqual(fragment.isInGenerated({ line: 1, character: 5 }), true);
+        assert.strictEqual(fragment.isInGenerated({ line: 1, character: 6 }), false);
     });
 
     it('calculates the offset in parent', () => {
@@ -29,7 +29,7 @@ describe('SvelteFragment', () => {
         const parent = new TextDocument('file:///hello.svelte', 'Hello, \nworld!');
         const fragment = new SvelteFragment(parent, createDetails(8, 13));
 
-        assert.deepStrictEqual(fragment.positionInParent({ line: 0, character: 2 }), {
+        assert.deepStrictEqual(fragment.getOriginalPosition({ line: 0, character: 2 }), {
             line: 1,
             character: 2,
         });
@@ -39,7 +39,7 @@ describe('SvelteFragment', () => {
         const parent = new TextDocument('file:///hello.svelte', 'Hello, \nworld!');
         const fragment = new SvelteFragment(parent, createDetails(8, 13));
 
-        assert.deepStrictEqual(fragment.positionInFragment({ line: 1, character: 2 }), {
+        assert.deepStrictEqual(fragment.getGeneratedPosition({ line: 1, character: 2 }), {
             line: 0,
             character: 2,
         });

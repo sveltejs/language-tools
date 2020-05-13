@@ -1,5 +1,5 @@
 import { Position } from 'vscode-languageserver';
-import { extractTag, offsetAt, WritableDocument, Fragment } from '../../lib/documents';
+import { extractTag, offsetAt, WritableDocument, DocumentMapper } from '../../lib/documents';
 import { urlToPath } from '../../utils';
 
 /**
@@ -48,7 +48,7 @@ export class SvelteDocument extends WritableDocument {
     }
 }
 
-export class SvelteFragment implements Fragment {
+export class SvelteFragment implements DocumentMapper {
     /**
      * @param parent The fragment's parent document
      * @param offsets The start and end offset in the parent document
@@ -67,7 +67,7 @@ export class SvelteFragment implements Fragment {
      * Get the fragment position relative to the parent
      * @param pos Position in fragment
      */
-    positionInParent(pos: Position): Position {
+    getOriginalPosition(pos: Position): Position {
         const parentOffset = this.offsetInParent(
             offsetAt(pos, this.parent.getText().slice(this.details.start, this.details.end)),
         );
@@ -78,7 +78,7 @@ export class SvelteFragment implements Fragment {
      * Get the position relative to the start of the fragment
      * @param pos Position in parent
      */
-    positionInFragment(pos: Position): Position {
+    getGeneratedPosition(pos: Position): Position {
         const fragmentOffset = this.parent.offsetAt(pos) - this.details.start;
         return this.parent.positionAt(fragmentOffset);
     }
@@ -87,7 +87,7 @@ export class SvelteFragment implements Fragment {
      * Returns true if the given parent position is inside of this fragment
      * @param pos Position in parent
      */
-    isInFragment(pos: Position): boolean {
+    isInGenerated(pos: Position): boolean {
         const offset = this.parent.offsetAt(pos);
         return offset >= this.details.start && offset <= this.details.end;
     }

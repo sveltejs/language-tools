@@ -45,17 +45,16 @@ export class CSSPlugin
         DocumentColorsProvider,
         ColorPresentationsProvider,
         DocumentSymbolsProvider {
-
     private configManager!: LSConfigManager;
     private cssDocuments = new WeakMap<Document, CSSDocument>();
     private triggerCharacters = ['.', ':', '-', '/'];
 
     onRegister(docManager: DocumentManager, configManager: LSConfigManager) {
         this.configManager = configManager;
-        docManager.on('documentChange', document =>
+        docManager.on('documentChange', (document) =>
             this.cssDocuments.set(document, new CSSDocument(document)),
         );
-        docManager.on('documentClose', document => this.cssDocuments.delete(document));
+        docManager.on('documentClose', (document) => this.cssDocuments.delete(document));
     }
 
     getDiagnostics(document: Document): Diagnostic[] {
@@ -76,8 +75,8 @@ export class CSSPlugin
 
         return getLanguageService(kind)
             .doValidation(cssDocument, cssDocument.stylesheet)
-            .map(diagnostic => ({ ...diagnostic, source: getLanguage(kind) }))
-            .map(diagnostic => mapDiagnosticToParent(cssDocument, diagnostic));
+            .map((diagnostic) => ({ ...diagnostic, source: getLanguage(kind) }))
+            .map((diagnostic) => mapDiagnosticToParent(cssDocument, diagnostic));
     }
 
     doHover(document: Document, position: Position): Hover | null {
@@ -86,13 +85,13 @@ export class CSSPlugin
         }
 
         const cssDocument = this.cssDocuments.get(document);
-        if (!cssDocument || !cssDocument.isInFragment(position)) {
+        if (!cssDocument || !cssDocument.isInGenerated(position)) {
             return null;
         }
 
         const hoverInfo = getLanguageService(extractLanguage(cssDocument)).doHover(
             cssDocument,
-            cssDocument.positionInFragment(position),
+            cssDocument.getGeneratedPosition(position),
             cssDocument.stylesheet,
         );
         return hoverInfo ? mapHoverToParent(cssDocument, hoverInfo) : hoverInfo;
@@ -101,7 +100,7 @@ export class CSSPlugin
     getCompletions(
         document: Document,
         position: Position,
-        completionContext?: CompletionContext
+        completionContext?: CompletionContext,
     ): CompletionList | null {
         const triggerCharacter = completionContext?.triggerCharacter;
         const triggerKind = completionContext?.triggerKind;
@@ -120,7 +119,7 @@ export class CSSPlugin
         }
 
         const cssDocument = this.cssDocuments.get(document);
-        if (!cssDocument || !cssDocument.isInFragment(position)) {
+        if (!cssDocument || !cssDocument.isInGenerated(position)) {
             return null;
         }
 
@@ -133,7 +132,7 @@ export class CSSPlugin
         lang.setCompletionParticipants([
             getEmmetCompletionParticipants(
                 cssDocument,
-                cssDocument.positionInFragment(position),
+                cssDocument.getGeneratedPosition(position),
                 getLanguage(type),
                 {},
                 emmetResults,
@@ -141,11 +140,11 @@ export class CSSPlugin
         ]);
         const results = lang.doComplete(
             cssDocument,
-            cssDocument.positionInFragment(position),
+            cssDocument.getGeneratedPosition(position),
             cssDocument.stylesheet,
         );
         return CompletionList.create(
-            [...(results ? results.items : []), ...emmetResults.items].map(completionItem =>
+            [...(results ? results.items : []), ...emmetResults.items].map((completionItem) =>
                 mapCompletionItemToParent(cssDocument, completionItem),
             ),
             true,
@@ -164,7 +163,7 @@ export class CSSPlugin
 
         return getLanguageService(extractLanguage(cssDocument))
             .findDocumentColors(cssDocument, cssDocument.stylesheet)
-            .map(colorInfo => mapColorInformationToParent(cssDocument, colorInfo));
+            .map((colorInfo) => mapColorInformationToParent(cssDocument, colorInfo));
     }
 
     getColorPresentations(document: Document, range: Range, color: Color): ColorPresentation[] {
@@ -175,7 +174,7 @@ export class CSSPlugin
         const cssDocument = this.cssDocuments.get(document);
         if (
             !cssDocument ||
-            (!cssDocument.isInFragment(range.start) && !cssDocument.isInFragment(range.end))
+            (!cssDocument.isInGenerated(range.start) && !cssDocument.isInGenerated(range.end))
         ) {
             return [];
         }
@@ -187,7 +186,7 @@ export class CSSPlugin
                 color,
                 mapRangeToFragment(cssDocument, range),
             )
-            .map(colorPres => mapColorPresentationToParent(cssDocument, colorPres));
+            .map((colorPres) => mapColorPresentationToParent(cssDocument, colorPres));
     }
 
     getDocumentSymbols(document: Document): SymbolInformation[] {
@@ -202,7 +201,7 @@ export class CSSPlugin
 
         return getLanguageService(extractLanguage(cssDocument))
             .findDocumentSymbols(cssDocument, cssDocument.stylesheet)
-            .map(symbol => {
+            .map((symbol) => {
                 if (!symbol.containerName) {
                     return {
                         ...symbol,
@@ -213,7 +212,7 @@ export class CSSPlugin
 
                 return symbol;
             })
-            .map(symbol => mapSymbolInformationToParent(cssDocument, symbol));
+            .map((symbol) => mapSymbolInformationToParent(cssDocument, symbol));
     }
 
     private featureEnabled(feature: keyof LSCSSConfig) {
