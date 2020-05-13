@@ -43,7 +43,7 @@ import {
     CompletionEntryWithIdentifer,
     CompletionsProviderImpl,
 } from './features/CompletionProvider';
-import { LSAndTSDocResovler } from './LSAndTSDocResovler';
+import { LSAndTSDocResolver } from './LSAndTSDocResolver';
 import {
     convertRange,
     convertToLocationRange,
@@ -63,11 +63,11 @@ export class TypeScriptPlugin
         OnWatchFileChanges,
         CompletionsProvider<CompletionEntryWithIdentifer> {
     private configManager!: LSConfigManager;
-    private readonly lsAndTsDocResolver: LSAndTSDocResovler;
+    private readonly lsAndTsDocResolver: LSAndTSDocResolver;
     private readonly completionProvider: CompletionsProviderImpl;
 
     constructor(docManager: DocumentManager) {
-        this.lsAndTsDocResolver = new LSAndTSDocResovler(docManager);
+        this.lsAndTsDocResolver = new LSAndTSDocResolver(docManager);
         this.completionProvider = new CompletionsProviderImpl(this.lsAndTsDocResolver);
     }
 

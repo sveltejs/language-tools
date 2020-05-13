@@ -13,7 +13,7 @@ import {
 } from 'vscode-languageserver';
 import { rmdirSync, mkdirSync } from 'fs';
 import { CompletionsProviderImpl } from '../../../../src/plugins/typescript/features/CompletionProvider';
-import { LSAndTSDocResovler } from '../../../../src/plugins/typescript/LSAndTSDocResovler';
+import { LSAndTSDocResolver } from '../../../../src/plugins/typescript/LSAndTSDocResolver';
 
 const testFilesDir = join(__dirname, '..', 'testfiles');
 const newLine = ts.sys.newLine;
@@ -23,7 +23,7 @@ describe('CompletionProviderImpl', () => {
         const docManager = new DocumentManager(
             (textDocument) => new Document(textDocument.uri, textDocument.text),
         );
-        const lsAndTsDocResolver = new LSAndTSDocResovler(docManager);
+        const lsAndTsDocResolver = new LSAndTSDocResolver(docManager);
         const completionProvider = new CompletionsProviderImpl(lsAndTsDocResolver);
         const filePath = join(testFilesDir, filename);
         const document = docManager.openDocument(<any>{

@@ -6,7 +6,7 @@ import { findTsConfigPath } from './utils';
 import { SnapshotManager } from './SnapshotManager';
 import ts from 'typescript';
 
-export class LSAndTSDocResovler {
+export class LSAndTSDocResolver {
     constructor(private readonly docManager: DocumentManager) {}
 
     /**

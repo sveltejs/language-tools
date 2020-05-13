@@ -12,7 +12,7 @@ import { Document, mapCompletionItemToParent, mapRangeToParent } from '../../../
 import { isNotNullOrUndefined, pathToUrl } from '../../../utils';
 import { AppCompletionItem, AppCompletionList, CompletionsProvider } from '../../interfaces';
 import { SvelteSnapshotFragment } from '../DocumentSnapshot';
-import { LSAndTSDocResovler } from '../LSAndTSDocResovler';
+import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import {
     convertRange,
     getCommitCharactersForScriptElement,
@@ -26,7 +26,7 @@ export interface CompletionEntryWithIdentifer extends ts.CompletionEntry, TextDo
 type validTriggerCharacter = '.' | '"' | "'" | '`' | '/' | '@' | '<' | '#';
 
 export class CompletionsProviderImpl implements CompletionsProvider<CompletionEntryWithIdentifer> {
-    constructor(private readonly lsAndTsDocResovler: LSAndTSDocResovler) {}
+    constructor(private readonly lsAndTsDocResovler: LSAndTSDocResolver) {}
 
     /**
      * The language service throws an error if the character is not a valid trigger character.
