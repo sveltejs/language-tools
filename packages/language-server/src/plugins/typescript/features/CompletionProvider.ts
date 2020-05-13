@@ -8,7 +8,7 @@ import {
     TextDocumentIdentifier,
     TextEdit,
 } from 'vscode-languageserver';
-import { Document, mapCompletionItemToParent, mapRangeToParent } from '../../../lib/documents';
+import { Document, mapCompletionItemToOriginal, mapRangeToOriginal } from '../../../lib/documents';
 import { isNotNullOrUndefined, pathToUrl } from '../../../utils';
 import { AppCompletionItem, AppCompletionList, CompletionsProvider } from '../../interfaces';
 import { SvelteSnapshotFragment } from '../DocumentSnapshot';
@@ -90,7 +90,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
                 this.toCompletionItem(fragment, comp, pathToUrl(tsDoc.filePath), position),
             )
             .filter(isNotNullOrUndefined)
-            .map((comp) => mapCompletionItemToParent(fragment, comp));
+            .map((comp) => mapCompletionItemToOriginal(fragment, comp));
 
         return CompletionList.create(completionItems);
     }
@@ -273,7 +273,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             change.newText = ts.sys.newLine + change.newText;
         }
 
-        let range = mapRangeToParent(fragment, convertRange(fragment, span));
+        let range = mapRangeToOriginal(fragment, convertRange(fragment, span));
         // If range is somehow not mapped in parent or the import is mapped wrong,
         // use script starting point instead.
         // This happens among other things if the completion is the first import of the file.

@@ -3,38 +3,38 @@ import {
     Color,
     ColorInformation,
     ColorPresentation,
+    CompletionContext,
     CompletionList,
+    CompletionTriggerKind,
     Diagnostic,
     Hover,
     Position,
     Range,
     SymbolInformation,
-    CompletionContext,
-    CompletionTriggerKind,
 } from 'vscode-languageserver';
 import {
-    DocumentManager,
     Document,
-    mapDiagnosticToParent,
+    DocumentManager,
+    mapColorInformationToOriginal,
+    mapColorPresentationToOriginal,
+    mapCompletionItemToOriginal,
+    mapDiagnosticToOriginal,
     mapHoverToParent,
-    mapCompletionItemToParent,
-    mapColorInformationToParent,
-    mapRangeToFragment,
-    mapColorPresentationToParent,
-    mapSymbolInformationToParent,
+    mapRangeToGenerated,
+    mapSymbolInformationToOriginal,
 } from '../../lib/documents';
 import { LSConfigManager, LSCSSConfig } from '../../ls-config';
-import { CSSDocument } from './CSSDocument';
-import { getLanguage, getLanguageService } from './service';
 import {
-    OnRegister,
-    HoverProvider,
+    ColorPresentationsProvider,
     CompletionsProvider,
     DiagnosticsProvider,
     DocumentColorsProvider,
-    ColorPresentationsProvider,
     DocumentSymbolsProvider,
+    HoverProvider,
+    OnRegister,
 } from '../interfaces';
+import { CSSDocument } from './CSSDocument';
+import { getLanguage, getLanguageService } from './service';
 
 export class CSSPlugin
     implements
@@ -72,7 +72,7 @@ export class CSSPlugin
         return getLanguageService(kind)
             .doValidation(cssDocument, cssDocument.stylesheet)
             .map((diagnostic) => ({ ...diagnostic, source: getLanguage(kind) }))
-            .map((diagnostic) => mapDiagnosticToParent(cssDocument, diagnostic));
+            .map((diagnostic) => mapDiagnosticToOriginal(cssDocument, diagnostic));
     }
 
     doHover(document: Document, position: Position): Hover | null {
@@ -141,7 +141,7 @@ export class CSSPlugin
         );
         return CompletionList.create(
             [...(results ? results.items : []), ...emmetResults.items].map((completionItem) =>
-                mapCompletionItemToParent(cssDocument, completionItem),
+                mapCompletionItemToOriginal(cssDocument, completionItem),
             ),
             true,
         );
@@ -156,7 +156,7 @@ export class CSSPlugin
 
         return getLanguageService(extractLanguage(cssDocument))
             .findDocumentColors(cssDocument, cssDocument.stylesheet)
-            .map((colorInfo) => mapColorInformationToParent(cssDocument, colorInfo));
+            .map((colorInfo) => mapColorInformationToOriginal(cssDocument, colorInfo));
     }
 
     getColorPresentations(document: Document, range: Range, color: Color): ColorPresentation[] {
@@ -174,9 +174,9 @@ export class CSSPlugin
                 cssDocument,
                 cssDocument.stylesheet,
                 color,
-                mapRangeToFragment(cssDocument, range),
+                mapRangeToGenerated(cssDocument, range),
             )
-            .map((colorPres) => mapColorPresentationToParent(cssDocument, colorPres));
+            .map((colorPres) => mapColorPresentationToOriginal(cssDocument, colorPres));
     }
 
     getDocumentSymbols(document: Document): SymbolInformation[] {
@@ -199,7 +199,7 @@ export class CSSPlugin
 
                 return symbol;
             })
-            .map((symbol) => mapSymbolInformationToParent(cssDocument, symbol));
+            .map((symbol) => mapSymbolInformationToOriginal(cssDocument, symbol));
     }
 
     private getCSSDoc(document: Document) {

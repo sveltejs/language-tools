@@ -19,10 +19,10 @@ import {
 import {
     Document,
     DocumentManager,
-    mapDiagnosticToParent,
+    mapDiagnosticToOriginal,
     mapHoverToParent,
-    mapRangeToParent,
-    mapSymbolInformationToParent,
+    mapRangeToOriginal,
+    mapSymbolInformationToOriginal,
 } from '../../lib/documents';
 import { LSConfigManager, LSTypescriptConfig } from '../../ls-config';
 import { pathToUrl } from '../../utils';
@@ -112,7 +112,7 @@ export class TypeScriptPlugin
                 message: ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n'),
                 code: diagnostic.code,
             }))
-            .map((diagnostic) => mapDiagnosticToParent(fragment, diagnostic))
+            .map((diagnostic) => mapDiagnosticToOriginal(fragment, diagnostic))
             .filter(
                 // In some rare cases mapping of diagnostics does not work and produces negative lines.
                 // We filter out these diagnostics with negative lines because else the LSP (or VSCode?)
@@ -164,7 +164,7 @@ export class TypeScriptPlugin
 
                 return symbol;
             })
-            .map((symbol) => mapSymbolInformationToParent(fragment, symbol));
+            .map((symbol) => mapSymbolInformationToOriginal(fragment, symbol));
 
         function collectSymbols(
             tree: NavigationTree,
@@ -292,7 +292,7 @@ export class TypeScriptPlugin
                             ),
                             change.textChanges.map((edit) => {
                                 return TextEdit.replace(
-                                    mapRangeToParent(doc!, convertRange(doc!, edit.span)),
+                                    mapRangeToOriginal(doc!, convertRange(doc!, edit.span)),
                                     edit.newText,
                                 );
                             }),

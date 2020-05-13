@@ -97,29 +97,29 @@ export class FragmentMapper implements DocumentMapper {
     }
 }
 
-export function mapRangeToParent(fragment: DocumentMapper, range: Range): Range {
+export function mapRangeToOriginal(fragment: DocumentMapper, range: Range): Range {
     return Range.create(
         fragment.getOriginalPosition(range.start),
         fragment.getOriginalPosition(range.end),
     );
 }
 
-export function mapRangeToFragment(fragment: DocumentMapper, range: Range): Range {
+export function mapRangeToGenerated(fragment: DocumentMapper, range: Range): Range {
     return Range.create(
         fragment.getGeneratedPosition(range.start),
         fragment.getGeneratedPosition(range.end),
     );
 }
 
-export function mapTextEditToParent(fragment: DocumentMapper, edit: TextEdit): TextEdit {
-    return { ...edit, range: mapRangeToParent(fragment, edit.range) };
+export function mapTextEditToOriginal(fragment: DocumentMapper, edit: TextEdit): TextEdit {
+    return { ...edit, range: mapRangeToOriginal(fragment, edit.range) };
 }
 
-export function mapLocationToParent(fragment: DocumentMapper, loc: Location): Location {
-    return { ...loc, range: mapRangeToParent(fragment, loc.range) };
+export function mapLocationToOriginal(fragment: DocumentMapper, loc: Location): Location {
+    return { ...loc, range: mapRangeToOriginal(fragment, loc.range) };
 }
 
-export function mapCompletionItemToParent(
+export function mapCompletionItemToOriginal(
     fragment: DocumentMapper,
     item: CompletionItem,
 ): CompletionItem {
@@ -127,7 +127,7 @@ export function mapCompletionItemToParent(
         return item;
     }
 
-    return { ...item, textEdit: mapTextEditToParent(fragment, item.textEdit) };
+    return { ...item, textEdit: mapTextEditToOriginal(fragment, item.textEdit) };
 }
 
 export function mapHoverToParent(fragment: DocumentMapper, hover: Hover): Hover {
@@ -135,31 +135,31 @@ export function mapHoverToParent(fragment: DocumentMapper, hover: Hover): Hover 
         return hover;
     }
 
-    return { ...hover, range: mapRangeToParent(fragment, hover.range) };
+    return { ...hover, range: mapRangeToOriginal(fragment, hover.range) };
 }
 
-export function mapDiagnosticToParent(
+export function mapDiagnosticToOriginal(
     fragment: DocumentMapper,
     diagnostic: Diagnostic,
 ): Diagnostic {
-    return { ...diagnostic, range: mapRangeToParent(fragment, diagnostic.range) };
+    return { ...diagnostic, range: mapRangeToOriginal(fragment, diagnostic.range) };
 }
 
-export function mapDiagnosticToFragment(
+export function mapDiagnosticToGenerated(
     fragment: DocumentMapper,
     diagnostic: Diagnostic,
 ): Diagnostic {
-    return { ...diagnostic, range: mapRangeToFragment(fragment, diagnostic.range) };
+    return { ...diagnostic, range: mapRangeToGenerated(fragment, diagnostic.range) };
 }
 
-export function mapColorInformationToParent(
+export function mapColorInformationToOriginal(
     fragment: DocumentMapper,
     info: ColorInformation,
 ): ColorInformation {
-    return { ...info, range: mapRangeToParent(fragment, info.range) };
+    return { ...info, range: mapRangeToOriginal(fragment, info.range) };
 }
 
-export function mapColorPresentationToParent(
+export function mapColorPresentationToOriginal(
     fragment: DocumentMapper,
     presentation: ColorPresentation,
 ): ColorPresentation {
@@ -168,55 +168,60 @@ export function mapColorPresentationToParent(
     };
 
     if (item.textEdit) {
-        item.textEdit = mapTextEditToParent(fragment, item.textEdit);
+        item.textEdit = mapTextEditToOriginal(fragment, item.textEdit);
     }
 
     if (item.additionalTextEdits) {
         item.additionalTextEdits = item.additionalTextEdits.map((edit) =>
-            mapTextEditToParent(fragment, edit),
+            mapTextEditToOriginal(fragment, edit),
         );
     }
 
     return item;
 }
 
-export function mapSymbolInformationToParent(
+export function mapSymbolInformationToOriginal(
     fragment: DocumentMapper,
     info: SymbolInformation,
 ): SymbolInformation {
-    return { ...info, location: mapLocationToParent(fragment, info.location) };
+    return { ...info, location: mapLocationToOriginal(fragment, info.location) };
 }
 
-export function mapLocationLinkToParent(fragment: DocumentMapper, def: LocationLink): LocationLink {
+export function mapLocationLinkToOriginal(
+    fragment: DocumentMapper,
+    def: LocationLink,
+): LocationLink {
     return LocationLink.create(
         def.targetUri,
         fragment.getURL() === def.targetUri
-            ? mapRangeToParent(fragment, def.targetRange)
+            ? mapRangeToOriginal(fragment, def.targetRange)
             : def.targetRange,
         fragment.getURL() === def.targetUri
-            ? mapRangeToParent(fragment, def.targetSelectionRange)
+            ? mapRangeToOriginal(fragment, def.targetSelectionRange)
             : def.targetSelectionRange,
-        def.originSelectionRange ? mapRangeToParent(fragment, def.originSelectionRange) : undefined,
+        def.originSelectionRange
+            ? mapRangeToOriginal(fragment, def.originSelectionRange)
+            : undefined,
     );
 }
 
-export function mapTextDocumentEditToParent(fragment: DocumentMapper, edit: TextDocumentEdit) {
+export function mapTextDocumentEditToOriginal(fragment: DocumentMapper, edit: TextDocumentEdit) {
     if (edit.textDocument.uri !== fragment.getURL()) {
         return edit;
     }
 
     return TextDocumentEdit.create(
         edit.textDocument,
-        edit.edits.map((textEdit) => mapTextEditToParent(fragment, textEdit)),
+        edit.edits.map((textEdit) => mapTextEditToOriginal(fragment, textEdit)),
     );
 }
 
-export function mapCodeActionToParent(fragment: DocumentMapper, codeAction: CodeAction) {
+export function mapCodeActionToOriginal(fragment: DocumentMapper, codeAction: CodeAction) {
     return CodeAction.create(
         codeAction.title,
         {
             documentChanges: codeAction.edit!.documentChanges!.map((edit) =>
-                mapTextDocumentEditToParent(fragment, edit as TextDocumentEdit),
+                mapTextDocumentEditToOriginal(fragment, edit as TextDocumentEdit),
             ),
         },
         codeAction.kind,

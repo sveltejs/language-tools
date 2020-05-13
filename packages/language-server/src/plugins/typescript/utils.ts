@@ -1,14 +1,14 @@
+import { dirname } from 'path';
 import ts from 'typescript';
 import {
-    Range,
-    SymbolKind,
     CompletionItemKind,
     DiagnosticSeverity,
     Position,
+    Range,
+    SymbolKind,
 } from 'vscode-languageserver';
-import { dirname } from 'path';
+import { mapRangeToOriginal } from '../../lib/documents';
 import { SnapshotFragment } from './DocumentSnapshot';
-import { mapRangeToParent } from '../../lib/documents';
 
 export function getScriptKindFromFileName(fileName: string): ts.ScriptKind {
     const ext = fileName.substr(fileName.lastIndexOf('.'));
@@ -87,7 +87,7 @@ export function convertRange(
 }
 
 export function convertToLocationRange(defDoc: SnapshotFragment, textSpan: ts.TextSpan): Range {
-    const range = mapRangeToParent(defDoc, convertRange(defDoc, textSpan));
+    const range = mapRangeToOriginal(defDoc, convertRange(defDoc, textSpan));
     // Some definition like the svelte component class definition don't exist in the original, so we map to 0,1
     if (range.start.line < 0) {
         range.start.line = 0;
