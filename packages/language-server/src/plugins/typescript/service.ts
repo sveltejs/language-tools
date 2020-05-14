@@ -46,38 +46,7 @@ export function createLanguageService(
     const snapshotManager = SnapshotManager.getFromTsConfigPath(tsconfigPath);
     const sveltePkgInfo = getPackageInfo('svelte', workspacePath);
 
-    let compilerOptions: ts.CompilerOptions = {
-        allowNonTsExtensions: true,
-        target: ts.ScriptTarget.Latest,
-        module: ts.ModuleKind.ESNext,
-        moduleResolution: ts.ModuleResolutionKind.NodeJs,
-        allowJs: true,
-        types: [resolve(sveltePkgInfo.path, 'types', 'runtime')],
-    };
-
-    const configJson = tsconfigPath && ts.readConfigFile(tsconfigPath, ts.sys.readFile).config;
-    let files: string[] = [];
-    if (configJson) {
-        const parsedConfig = ts.parseJsonConfigFileContent(
-            configJson,
-            ts.sys,
-            workspacePath,
-            compilerOptions,
-            tsconfigPath,
-            undefined,
-            [{ extension: 'svelte', isMixedContent: false, scriptKind: ts.ScriptKind.TSX }],
-        );
-        const forcedOptions: ts.CompilerOptions = {
-            noEmit: true,
-            declaration: false,
-            jsx: ts.JsxEmit.Preserve,
-            jsxFactory: 'h',
-            skipLibCheck: true,
-        };
-        compilerOptions = { ...compilerOptions, ...parsedConfig.options, ...forcedOptions };
-
-        files = parsedConfig.fileNames;
-    }
+    const { compilerOptions, files } = getCompilerOptionsAndRootFiles();
 
     const svelteModuleLoader = createSvelteModuleLoader(getSvelteSnapshot, compilerOptions);
 
@@ -165,5 +134,45 @@ export function createLanguageService(
         doc = DocumentSnapshot.fromDocument(createDocument(fileName, file));
         snapshotManager.set(fileName, doc);
         return doc;
+    }
+
+    function getCompilerOptionsAndRootFiles() {
+        let compilerOptions: ts.CompilerOptions = {
+            allowNonTsExtensions: true,
+            target: ts.ScriptTarget.Latest,
+            module: ts.ModuleKind.ESNext,
+            moduleResolution: ts.ModuleResolutionKind.NodeJs,
+            allowJs: true,
+            types: [resolve(sveltePkgInfo.path, 'types', 'runtime')],
+        };
+
+        const configJson = tsconfigPath && ts.readConfigFile(tsconfigPath, ts.sys.readFile).config;
+        let files: string[] = [];
+        if (configJson) {
+            const parsedConfig = ts.parseJsonConfigFileContent(
+                configJson,
+                ts.sys,
+                workspacePath,
+                compilerOptions,
+                tsconfigPath,
+                undefined,
+                [{ extension: 'svelte', isMixedContent: false, scriptKind: ts.ScriptKind.TSX }],
+            );
+
+            compilerOptions = { ...compilerOptions, ...parsedConfig.options };
+            files = parsedConfig.fileNames;
+        }
+
+        const forcedOptions: ts.CompilerOptions = {
+            noEmit: true,
+            declaration: false,
+            skipLibCheck: true,
+            // these are needed to handle the results of svelte2tsx preprocessing:
+            jsx: ts.JsxEmit.Preserve,
+            jsxFactory: 'h',
+        };
+        compilerOptions = { ...compilerOptions, ...forcedOptions };
+
+        return { compilerOptions, files };
     }
 }
