@@ -3,7 +3,7 @@ import * as path from 'path';
 import { dirname, join } from 'path';
 import ts from 'typescript';
 import { FileChangeType, Hover, Position, Range } from 'vscode-languageserver';
-import { DocumentManager, TextDocument } from '../../../src/lib/documents';
+import { DocumentManager, Document } from '../../../src/lib/documents';
 import { LSConfigManager } from '../../../src/ls-config';
 import { TypeScriptPlugin } from '../../../src/plugins';
 import { INITIAL_VERSION } from '../../../src/plugins/typescript/DocumentSnapshot';
@@ -21,7 +21,7 @@ describe('TypescriptPlugin', () => {
         const docManager = new DocumentManager(() => document);
         const plugin = new TypeScriptPlugin(docManager);
         const filePath = path.join(__dirname, 'testfiles', filename);
-        const document = new TextDocument(pathToUrl(filePath), ts.sys.readFile(filePath)!);
+        const document = new Document(pathToUrl(filePath), ts.sys.readFile(filePath)!);
         const pluginManager = new LSConfigManager();
         plugin.onRegister(docManager, pluginManager);
         docManager.openDocument(<any>'some doc');

@@ -2,7 +2,7 @@ import { join } from 'path';
 import ts from 'typescript';
 import assert from 'assert';
 
-import { DocumentManager, TextDocument, ManagedDocument } from '../../../../src/lib/documents';
+import { DocumentManager, Document } from '../../../../src/lib/documents';
 import { pathToUrl } from '../../../../src/utils';
 import {
     CompletionItem,
@@ -13,7 +13,7 @@ import {
 } from 'vscode-languageserver';
 import { rmdirSync, mkdirSync } from 'fs';
 import { CompletionsProviderImpl } from '../../../../src/plugins/typescript/features/CompletionProvider';
-import { LSAndTSDocResovler } from '../../../../src/plugins/typescript/LSAndTSDocResovler';
+import { LSAndTSDocResolver } from '../../../../src/plugins/typescript/LSAndTSDocResolver';
 
 const testFilesDir = join(__dirname, '..', 'testfiles');
 const newLine = ts.sys.newLine;
@@ -21,13 +21,15 @@ const newLine = ts.sys.newLine;
 describe('CompletionProviderImpl', () => {
     function setup(filename: string) {
         const docManager = new DocumentManager(
-            (textDocument) => new ManagedDocument(textDocument.uri, textDocument.text),
+            (textDocument) => new Document(textDocument.uri, textDocument.text),
         );
-        const lsAndTsDocResolver = new LSAndTSDocResovler(docManager);
+        const lsAndTsDocResolver = new LSAndTSDocResolver(docManager);
         const completionProvider = new CompletionsProviderImpl(lsAndTsDocResolver);
         const filePath = join(testFilesDir, filename);
-        const document = new TextDocument(pathToUrl(filePath), ts.sys.readFile(filePath)!);
-        docManager.openDocument(<any>{ uri: document.uri, text: document.getText() });
+        const document = docManager.openDocument(<any>{
+            uri: pathToUrl(filePath),
+            text: ts.sys.readFile(filePath) || '',
+        });
         return { completionProvider, document, docManager };
     }
 
@@ -268,8 +270,10 @@ describe('CompletionProviderImpl', () => {
         completionProvider: CompletionsProviderImpl,
     ) {
         const filePath = join(testFilesDir, 'imported-file.svelte');
-        const hoverinfoDoc = new TextDocument(pathToUrl(filePath), ts.sys.readFile(filePath) || '');
-        docManager.openDocument(<any>hoverinfoDoc);
+        const hoverinfoDoc = docManager.openDocument(<any>{
+            uri: pathToUrl(filePath),
+            text: ts.sys.readFile(filePath) || '',
+        });
         await completionProvider.getCompletions(hoverinfoDoc, Position.create(1, 1));
     }
 

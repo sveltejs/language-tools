@@ -3,38 +3,38 @@ import {
     Color,
     ColorInformation,
     ColorPresentation,
+    CompletionContext,
     CompletionList,
+    CompletionTriggerKind,
     Diagnostic,
     Hover,
     Position,
     Range,
     SymbolInformation,
-    CompletionContext,
-    CompletionTriggerKind,
 } from 'vscode-languageserver';
 import {
-    DocumentManager,
     Document,
-    mapDiagnosticToParent,
+    DocumentManager,
+    mapColorInformationToOriginal,
+    mapColorPresentationToOriginal,
+    mapCompletionItemToOriginal,
+    mapDiagnosticToOriginal,
     mapHoverToParent,
-    mapCompletionItemToParent,
-    mapColorInformationToParent,
-    mapRangeToFragment,
-    mapColorPresentationToParent,
-    mapSymbolInformationToParent,
+    mapRangeToGenerated,
+    mapSymbolInformationToOriginal,
 } from '../../lib/documents';
 import { LSConfigManager, LSCSSConfig } from '../../ls-config';
-import { CSSDocument } from './CSSDocument';
-import { getLanguage, getLanguageService } from './service';
 import {
-    OnRegister,
-    HoverProvider,
+    ColorPresentationsProvider,
     CompletionsProvider,
     DiagnosticsProvider,
     DocumentColorsProvider,
-    ColorPresentationsProvider,
     DocumentSymbolsProvider,
+    HoverProvider,
+    OnRegister,
 } from '../interfaces';
+import { CSSDocument } from './CSSDocument';
+import { getLanguage, getLanguageService } from './service';
 
 export class CSSPlugin
     implements
@@ -45,17 +45,16 @@ export class CSSPlugin
         DocumentColorsProvider,
         ColorPresentationsProvider,
         DocumentSymbolsProvider {
-
     private configManager!: LSConfigManager;
     private cssDocuments = new WeakMap<Document, CSSDocument>();
     private triggerCharacters = ['.', ':', '-', '/'];
 
     onRegister(docManager: DocumentManager, configManager: LSConfigManager) {
         this.configManager = configManager;
-        docManager.on('documentChange', document =>
+        docManager.on('documentChange', (document) =>
             this.cssDocuments.set(document, new CSSDocument(document)),
         );
-        docManager.on('documentClose', document => this.cssDocuments.delete(document));
+        docManager.on('documentClose', (document) => this.cssDocuments.delete(document));
     }
 
     getDiagnostics(document: Document): Diagnostic[] {
@@ -63,11 +62,7 @@ export class CSSPlugin
             return [];
         }
 
-        const cssDocument = this.cssDocuments.get(document);
-        if (!cssDocument) {
-            return [];
-        }
-
+        const cssDocument = this.getCSSDoc(document);
         const kind = extractLanguage(cssDocument);
 
         if (shouldExcludeValidation(kind)) {
@@ -76,8 +71,8 @@ export class CSSPlugin
 
         return getLanguageService(kind)
             .doValidation(cssDocument, cssDocument.stylesheet)
-            .map(diagnostic => ({ ...diagnostic, source: getLanguage(kind) }))
-            .map(diagnostic => mapDiagnosticToParent(cssDocument, diagnostic));
+            .map((diagnostic) => ({ ...diagnostic, source: getLanguage(kind) }))
+            .map((diagnostic) => mapDiagnosticToOriginal(cssDocument, diagnostic));
     }
 
     doHover(document: Document, position: Position): Hover | null {
@@ -85,14 +80,14 @@ export class CSSPlugin
             return null;
         }
 
-        const cssDocument = this.cssDocuments.get(document);
-        if (!cssDocument || !cssDocument.isInFragment(position)) {
+        const cssDocument = this.getCSSDoc(document);
+        if (!cssDocument.isInGenerated(position)) {
             return null;
         }
 
         const hoverInfo = getLanguageService(extractLanguage(cssDocument)).doHover(
             cssDocument,
-            cssDocument.positionInFragment(position),
+            cssDocument.getGeneratedPosition(position),
             cssDocument.stylesheet,
         );
         return hoverInfo ? mapHoverToParent(cssDocument, hoverInfo) : hoverInfo;
@@ -101,7 +96,7 @@ export class CSSPlugin
     getCompletions(
         document: Document,
         position: Position,
-        completionContext?: CompletionContext
+        completionContext?: CompletionContext,
     ): CompletionList | null {
         const triggerCharacter = completionContext?.triggerCharacter;
         const triggerKind = completionContext?.triggerKind;
@@ -119,8 +114,8 @@ export class CSSPlugin
             return null;
         }
 
-        const cssDocument = this.cssDocuments.get(document);
-        if (!cssDocument || !cssDocument.isInFragment(position)) {
+        const cssDocument = this.getCSSDoc(document);
+        if (!cssDocument.isInGenerated(position)) {
             return null;
         }
 
@@ -133,7 +128,7 @@ export class CSSPlugin
         lang.setCompletionParticipants([
             getEmmetCompletionParticipants(
                 cssDocument,
-                cssDocument.positionInFragment(position),
+                cssDocument.getGeneratedPosition(position),
                 getLanguage(type),
                 {},
                 emmetResults,
@@ -141,12 +136,12 @@ export class CSSPlugin
         ]);
         const results = lang.doComplete(
             cssDocument,
-            cssDocument.positionInFragment(position),
+            cssDocument.getGeneratedPosition(position),
             cssDocument.stylesheet,
         );
         return CompletionList.create(
-            [...(results ? results.items : []), ...emmetResults.items].map(completionItem =>
-                mapCompletionItemToParent(cssDocument, completionItem),
+            [...(results ? results.items : []), ...emmetResults.items].map((completionItem) =>
+                mapCompletionItemToOriginal(cssDocument, completionItem),
             ),
             true,
         );
@@ -157,14 +152,11 @@ export class CSSPlugin
             return [];
         }
 
-        const cssDocument = this.cssDocuments.get(document);
-        if (!cssDocument) {
-            return [];
-        }
+        const cssDocument = this.getCSSDoc(document);
 
         return getLanguageService(extractLanguage(cssDocument))
             .findDocumentColors(cssDocument, cssDocument.stylesheet)
-            .map(colorInfo => mapColorInformationToParent(cssDocument, colorInfo));
+            .map((colorInfo) => mapColorInformationToOriginal(cssDocument, colorInfo));
     }
 
     getColorPresentations(document: Document, range: Range, color: Color): ColorPresentation[] {
@@ -172,11 +164,8 @@ export class CSSPlugin
             return [];
         }
 
-        const cssDocument = this.cssDocuments.get(document);
-        if (
-            !cssDocument ||
-            (!cssDocument.isInFragment(range.start) && !cssDocument.isInFragment(range.end))
-        ) {
+        const cssDocument = this.getCSSDoc(document);
+        if (!cssDocument.isInGenerated(range.start) && !cssDocument.isInGenerated(range.end)) {
             return [];
         }
 
@@ -185,9 +174,9 @@ export class CSSPlugin
                 cssDocument,
                 cssDocument.stylesheet,
                 color,
-                mapRangeToFragment(cssDocument, range),
+                mapRangeToGenerated(cssDocument, range),
             )
-            .map(colorPres => mapColorPresentationToParent(cssDocument, colorPres));
+            .map((colorPres) => mapColorPresentationToOriginal(cssDocument, colorPres));
     }
 
     getDocumentSymbols(document: Document): SymbolInformation[] {
@@ -195,14 +184,11 @@ export class CSSPlugin
             return [];
         }
 
-        const cssDocument = this.cssDocuments.get(document);
-        if (!cssDocument) {
-            return [];
-        }
+        const cssDocument = this.getCSSDoc(document);
 
         return getLanguageService(extractLanguage(cssDocument))
             .findDocumentSymbols(cssDocument, cssDocument.stylesheet)
-            .map(symbol => {
+            .map((symbol) => {
                 if (!symbol.containerName) {
                     return {
                         ...symbol,
@@ -213,7 +199,16 @@ export class CSSPlugin
 
                 return symbol;
             })
-            .map(symbol => mapSymbolInformationToParent(cssDocument, symbol));
+            .map((symbol) => mapSymbolInformationToOriginal(cssDocument, symbol));
+    }
+
+    private getCSSDoc(document: Document) {
+        let cssDoc = this.cssDocuments.get(document);
+        if (!cssDoc || cssDoc.version < document.version) {
+            cssDoc = new CSSDocument(document);
+            this.cssDocuments.set(document, cssDoc);
+        }
+        return cssDoc;
     }
 
     private featureEnabled(feature: keyof LSCSSConfig) {

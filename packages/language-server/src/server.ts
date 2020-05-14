@@ -7,8 +7,15 @@ import {
     TextDocumentPositionParams,
     TextDocumentIdentifier,
 } from 'vscode-languageserver';
-import { DocumentManager, ManagedDocument, Document } from './lib/documents';
-import { SveltePlugin, HTMLPlugin, CSSPlugin, TypeScriptPlugin, PluginHost, AppCompletionItem } from './plugins';
+import { DocumentManager, Document } from './lib/documents';
+import {
+    SveltePlugin,
+    HTMLPlugin,
+    CSSPlugin,
+    TypeScriptPlugin,
+    PluginHost,
+    AppCompletionItem,
+} from './plugins';
 import _ from 'lodash';
 import { LSConfigManager } from './ls-config';
 import { urlToPath } from './utils';
@@ -28,7 +35,7 @@ export function startServer() {
         : createConnection(new IPCMessageReader(process), new IPCMessageWriter(process));
 
     const docManager = new DocumentManager(
-        textDocument => new ManagedDocument(textDocument.uri, textDocument.text),
+        (textDocument) => new Document(textDocument.uri, textDocument.text),
     );
     const pluginHost = new PluginHost(docManager, new LSConfigManager());
 
@@ -37,7 +44,7 @@ export function startServer() {
     pluginHost.register(new CSSPlugin());
     pluginHost.register(new TypeScriptPlugin(docManager));
 
-    connection.onInitialize(evt => {
+    connection.onInitialize((evt) => {
         pluginHost.updateConfig(evt.initializationOptions.config);
         return {
             capabilities: {
@@ -87,33 +94,29 @@ export function startServer() {
         pluginHost.updateConfig(settings.svelte?.plugin);
     });
 
-    connection.onDidOpenTextDocument(evt => docManager.openDocument(evt.textDocument));
-    connection.onDidCloseTextDocument(evt => docManager.closeDocument(evt.textDocument));
-    connection.onDidChangeTextDocument(evt =>
+    connection.onDidOpenTextDocument((evt) => docManager.openDocument(evt.textDocument));
+    connection.onDidCloseTextDocument((evt) => docManager.closeDocument(evt.textDocument));
+    connection.onDidChangeTextDocument((evt) =>
         docManager.updateDocument(evt.textDocument, evt.contentChanges),
     );
-    connection.onHover(evt => pluginHost.doHover(evt.textDocument, evt.position));
-    connection.onCompletion(evt =>
-        pluginHost.getCompletions(
-            evt.textDocument,
-            evt.position,
-            evt.context,
-        ),
+    connection.onHover((evt) => pluginHost.doHover(evt.textDocument, evt.position));
+    connection.onCompletion((evt) =>
+        pluginHost.getCompletions(evt.textDocument, evt.position, evt.context),
     );
-    connection.onDocumentFormatting(evt => pluginHost.formatDocument(evt.textDocument));
-    connection.onRequest(TagCloseRequest.type, evt =>
+    connection.onDocumentFormatting((evt) => pluginHost.formatDocument(evt.textDocument));
+    connection.onRequest(TagCloseRequest.type, (evt) =>
         pluginHost.doTagComplete(evt.textDocument, evt.position),
     );
-    connection.onDocumentColor(evt => pluginHost.getDocumentColors(evt.textDocument));
-    connection.onColorPresentation(evt =>
+    connection.onDocumentColor((evt) => pluginHost.getDocumentColors(evt.textDocument));
+    connection.onColorPresentation((evt) =>
         pluginHost.getColorPresentations(evt.textDocument, evt.range, evt.color),
     );
-    connection.onDocumentSymbol(evt => pluginHost.getDocumentSymbols(evt.textDocument));
-    connection.onDefinition(evt => pluginHost.getDefinitions(evt.textDocument, evt.position));
-    connection.onCodeAction(evt =>
+    connection.onDocumentSymbol((evt) => pluginHost.getDocumentSymbols(evt.textDocument));
+    connection.onDefinition((evt) => pluginHost.getDefinitions(evt.textDocument, evt.position));
+    connection.onCodeAction((evt) =>
         pluginHost.getCodeActions(evt.textDocument, evt.range, evt.context),
     );
-    connection.onCompletionResolve(completionItem => {
+    connection.onCompletionResolve((completionItem) => {
         const data = (completionItem as AppCompletionItem).data as TextDocumentIdentifier;
 
         if (!data) {
@@ -122,7 +125,7 @@ export function startServer() {
 
         return pluginHost.resolveCompletion(data, completionItem);
     });
-    connection.onDidChangeWatchedFiles(para => {
+    connection.onDidChangeWatchedFiles((para) => {
         for (const change of para.changes) {
             const filename = urlToPath(change.uri);
             if (filename) {

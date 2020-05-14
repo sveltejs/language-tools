@@ -8,11 +8,11 @@ import {
     TextDocumentIdentifier,
     TextEdit,
 } from 'vscode-languageserver';
-import { Document, mapCompletionItemToParent, mapRangeToParent } from '../../../lib/documents';
+import { Document, mapCompletionItemToOriginal, mapRangeToOriginal } from '../../../lib/documents';
 import { isNotNullOrUndefined, pathToUrl } from '../../../utils';
 import { AppCompletionItem, AppCompletionList, CompletionsProvider } from '../../interfaces';
-import { SnapshotFragment } from '../DocumentSnapshot';
-import { LSAndTSDocResovler } from '../LSAndTSDocResovler';
+import { SvelteSnapshotFragment } from '../DocumentSnapshot';
+import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import {
     convertRange,
     getCommitCharactersForScriptElement,
@@ -26,7 +26,7 @@ export interface CompletionEntryWithIdentifer extends ts.CompletionEntry, TextDo
 type validTriggerCharacter = '.' | '"' | "'" | '`' | '/' | '@' | '<' | '#';
 
 export class CompletionsProviderImpl implements CompletionsProvider<CompletionEntryWithIdentifer> {
-    constructor(private readonly lsAndTsDocResovler: LSAndTSDocResovler) {}
+    constructor(private readonly lsAndTsDocResovler: LSAndTSDocResolver) {}
 
     /**
      * The language service throws an error if the character is not a valid trigger character.
@@ -68,13 +68,13 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         }
 
         const fragment = await tsDoc.getFragment();
-        if (!fragment.isInFragment(position)) {
+        if (!fragment.isInGenerated(position)) {
             return null;
         }
 
         const completions = lang.getCompletionsAtPosition(
             filePath,
-            fragment.offsetAt(fragment.positionInFragment(position)),
+            fragment.offsetAt(fragment.getGeneratedPosition(position)),
             {
                 includeCompletionsForModuleExports: true,
                 triggerCharacter: validTriggerCharacter,
@@ -90,13 +90,13 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
                 this.toCompletionItem(fragment, comp, pathToUrl(tsDoc.filePath), position),
             )
             .filter(isNotNullOrUndefined)
-            .map((comp) => mapCompletionItemToParent(fragment, comp));
+            .map((comp) => mapCompletionItemToOriginal(fragment, comp));
 
         return CompletionList.create(completionItems);
     }
 
     private toCompletionItem(
-        fragment: SnapshotFragment,
+        fragment: SvelteSnapshotFragment,
         comp: ts.CompletionEntry,
         uri: string,
         position: Position,
@@ -125,7 +125,10 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         };
     }
 
-    private getCompletionLabelAndInsert(fragment: SnapshotFragment, comp: ts.CompletionEntry) {
+    private getCompletionLabelAndInsert(
+        fragment: SvelteSnapshotFragment,
+        comp: ts.CompletionEntry,
+    ) {
         let { kind, kindModifiers, name, source } = comp;
         const isScriptElement = kind === ts.ScriptElementKind.scriptElement;
         const hasModifier = Boolean(comp.kindModifiers);
@@ -160,7 +163,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
     }
 
     private isExistingSvelteComponentImport(
-        fragment: SnapshotFragment,
+        fragment: SvelteSnapshotFragment,
         name: string,
         source?: string,
     ): boolean {
@@ -184,7 +187,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         const fragment = await tsDoc.getFragment();
         const detail = lang.getCompletionEntryDetails(
             filePath,
-            fragment.offsetAt(fragment.positionInFragment(comp.position)),
+            fragment.offsetAt(fragment.getGeneratedPosition(comp.position)),
             comp.name,
             {},
             comp.source,
@@ -238,7 +241,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
 
     private codeActionChangesToTextEdit(
         doc: Document,
-        fragment: SnapshotFragment,
+        fragment: SvelteSnapshotFragment,
         changes: ts.FileTextChanges,
     ): TextEdit[] {
         return changes.textChanges.map((change) =>
@@ -248,7 +251,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
 
     private codeActionChangeToTextEdit(
         doc: Document,
-        fragment: SnapshotFragment,
+        fragment: SvelteSnapshotFragment,
         change: ts.TextChange,
     ): TextEdit {
         if (this.isSvelteComponentImport(change.newText)) {
@@ -270,7 +273,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             change.newText = ts.sys.newLine + change.newText;
         }
 
-        let range = mapRangeToParent(fragment, convertRange(fragment, span));
+        let range = mapRangeToOriginal(fragment, convertRange(fragment, span));
         // If range is somehow not mapped in parent or the import is mapped wrong,
         // use script starting point instead.
         // This happens among other things if the completion is the first import of the file.

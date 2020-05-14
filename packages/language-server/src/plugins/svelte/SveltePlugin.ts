@@ -14,7 +14,7 @@ import {
     TextEdit,
     Hover,
 } from 'vscode-languageserver';
-import { Document, DocumentManager } from '../../lib/documents';
+import { Document, DocumentManager, ReadableDocument } from '../../lib/documents';
 import { LSConfigManager, LSSvelteConfig } from '../../ls-config';
 import {
     CompletionsProvider,
@@ -214,7 +214,7 @@ function makePreprocessor(document: SvelteDocument, preprocessors: PreprocessorG
 }
 
 async function fixDiagnostics(
-    document: Document,
+    document: ReadableDocument,
     preprocessor: Preprocessor,
     diagnostics: Diagnostic[],
 ): Promise<void> {
@@ -222,7 +222,7 @@ async function fixDiagnostics(
         const newDiagnostics: Diagnostic[] = [];
         const fragmentDiagnostics: Diagnostic[] = [];
         for (const diag of diagnostics) {
-            if (fragment.transpiled.isInFragment(diag.range.start)) {
+            if (fragment.transpiled.isInGenerated(diag.range.start)) {
                 fragmentDiagnostics.push(diag);
             } else {
                 newDiagnostics.push(diag);
@@ -290,7 +290,7 @@ function mapFragmentPositionBySourceMap(
     // Start with a position that exists in the transpiled fragment's parent
 
     // Map the position to be relative to the transpiled fragment only
-    const transpiledPosition = transpiled.positionInFragment(pos);
+    const transpiledPosition = transpiled.getGeneratedPosition(pos);
 
     // Map the position, using the sourcemap, to a position in the source fragment
     const mappedPosition = consumer.originalPositionFor({
@@ -303,5 +303,5 @@ function mapFragmentPositionBySourceMap(
     };
 
     // Map the position to be relative to the source fragment's parent
-    return source.positionInParent(sourcePosition);
+    return source.getOriginalPosition(sourcePosition);
 }

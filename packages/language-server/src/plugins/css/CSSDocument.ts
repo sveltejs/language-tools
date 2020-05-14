@@ -1,76 +1,29 @@
 import { Stylesheet } from 'vscode-css-languageservice';
 import { Position } from 'vscode-languageserver';
 import { getLanguageService } from './service';
-import { extractTag, Document, Fragment } from '../../lib/documents';
+import { Document, DocumentMapper, ReadableDocument, TagInformation } from '../../lib/documents';
 
-export class CSSFragment {
-    private version!: number;
-    private info!: {
-        attributes: {};
-        start: number;
-        end: number;
-    };
+export class CSSDocument extends ReadableDocument implements DocumentMapper {
+    private styleInfo: Pick<TagInformation, 'attributes' | 'start' | 'end'>;
+    private _version = this.parent.version;
 
-    constructor(private document: Document) {
-        this.update();
-    }
-
-    /**
-     * Start of fragment within document.
-     */
-    get start(): number {
-        this.update();
-        return this.info.start;
-    }
-
-    /**
-     * End of fragment within document.
-     */
-    get end(): number {
-        this.update();
-        return this.info.end;
-    }
-
-    /**
-     * Attributes of fragment within document.
-     */
-    get attributes(): Record<string, string> {
-        this.update();
-        return { ...this.info.attributes, tag: 'style' };
-    }
-
-    /**
-     * Find the tag in the document if we detected a change
-     */
-    private update() {
-        if (this.document.version === this.version) {
-            return;
-        }
-
-        this.version = this.document.version;
-        const info = extractTag(this.document.getText(), 'style');
-        if (info) {
-            this.info = info;
-            return;
-        }
-
-        const length = this.document.getTextLength();
-        this.info = {
-            attributes: {},
-            start: length,
-            end: length,
-        };
-    }
-}
-
-export class CSSDocument extends Document implements Fragment {
-    private cssFragment: CSSFragment;
     public stylesheet: Stylesheet;
-    public languageId = 'css';
+    public languageId: string;
 
     constructor(private parent: Document) {
         super();
-        this.cssFragment = new CSSFragment(parent);
+
+        if (this.parent.styleInfo) {
+            this.styleInfo = this.parent.styleInfo;
+        } else {
+            this.styleInfo = {
+                attributes: {},
+                start: -1,
+                end: -1,
+            };
+        }
+
+        this.languageId = this.language;
         this.stylesheet = getLanguageService(this.language).parseStylesheet(this);
     }
 
@@ -78,8 +31,8 @@ export class CSSDocument extends Document implements Fragment {
      * Get the fragment position relative to the parent
      * @param pos Position in fragment
      */
-    positionInParent(pos: Position): Position {
-        const parentOffset = this.cssFragment.start + this.offsetAt(pos);
+    getOriginalPosition(pos: Position): Position {
+        const parentOffset = this.styleInfo.start + this.offsetAt(pos);
         return this.parent.positionAt(parentOffset);
     }
 
@@ -87,8 +40,8 @@ export class CSSDocument extends Document implements Fragment {
      * Get the position relative to the start of the fragment
      * @param pos Position in parent
      */
-    positionInFragment(pos: Position): Position {
-        const fragmentOffset = this.parent.offsetAt(pos) - this.cssFragment.start;
+    getGeneratedPosition(pos: Position): Position {
+        const fragmentOffset = this.parent.offsetAt(pos) - this.styleInfo.start;
         return this.positionAt(fragmentOffset);
     }
 
@@ -96,23 +49,23 @@ export class CSSDocument extends Document implements Fragment {
      * Returns true if the given parent position is inside of this fragment
      * @param pos Position in parent
      */
-    isInFragment(pos: Position): boolean {
+    isInGenerated(pos: Position): boolean {
         const offset = this.parent.offsetAt(pos);
-        return offset >= this.cssFragment.start && offset <= this.cssFragment.end;
+        return offset >= this.styleInfo.start && offset <= this.styleInfo.end;
     }
 
     /**
      * Get the fragment text from the parent
      */
     getText(): string {
-        return this.parent.getText().slice(this.cssFragment.start, this.cssFragment.end);
+        return this.parent.getText().slice(this.styleInfo.start, this.styleInfo.end);
     }
 
     /**
      * Returns the length of the fragment as calculated from the start and end positon
      */
     getTextLength(): number {
-        return this.cssFragment.end - this.cssFragment.start;
+        return this.styleInfo.end - this.styleInfo.start;
     }
 
     /**
@@ -126,20 +79,20 @@ export class CSSDocument extends Document implements Fragment {
         return this.parent.getURL();
     }
 
+    getAttributes() {
+        return this.styleInfo.attributes;
+    }
+
     get version(): number {
-        return this.parent.version;
+        return this._version;
     }
 
     set version(version: number) {
         // ignore
     }
 
-    getAttributes() {
-        return this.cssFragment.attributes;
-    }
-
     private get language() {
         const attrs = this.getAttributes();
-        return attrs.lang || attrs.type;
+        return attrs.lang || attrs.type || 'css';
     }
 }

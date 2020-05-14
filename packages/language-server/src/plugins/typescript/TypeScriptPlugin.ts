@@ -19,10 +19,10 @@ import {
 import {
     Document,
     DocumentManager,
-    mapDiagnosticToParent,
+    mapDiagnosticToOriginal,
     mapHoverToParent,
-    mapRangeToParent,
-    mapSymbolInformationToParent,
+    mapRangeToOriginal,
+    mapSymbolInformationToOriginal,
 } from '../../lib/documents';
 import { LSConfigManager, LSTypescriptConfig } from '../../ls-config';
 import { pathToUrl } from '../../utils';
@@ -43,7 +43,7 @@ import {
     CompletionEntryWithIdentifer,
     CompletionsProviderImpl,
 } from './features/CompletionProvider';
-import { LSAndTSDocResovler } from './LSAndTSDocResovler';
+import { LSAndTSDocResolver } from './LSAndTSDocResolver';
 import {
     convertRange,
     convertToLocationRange,
@@ -63,11 +63,11 @@ export class TypeScriptPlugin
         OnWatchFileChanges,
         CompletionsProvider<CompletionEntryWithIdentifer> {
     private configManager!: LSConfigManager;
-    private readonly lsAndTsDocResolver: LSAndTSDocResovler;
+    private readonly lsAndTsDocResolver: LSAndTSDocResolver;
     private readonly completionProvider: CompletionsProviderImpl;
 
     constructor(docManager: DocumentManager) {
-        this.lsAndTsDocResolver = new LSAndTSDocResovler(docManager);
+        this.lsAndTsDocResolver = new LSAndTSDocResolver(docManager);
         this.completionProvider = new CompletionsProviderImpl(this.lsAndTsDocResolver);
     }
 
@@ -112,7 +112,7 @@ export class TypeScriptPlugin
                 message: ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n'),
                 code: diagnostic.code,
             }))
-            .map((diagnostic) => mapDiagnosticToParent(fragment, diagnostic))
+            .map((diagnostic) => mapDiagnosticToOriginal(fragment, diagnostic))
             .filter(
                 // In some rare cases mapping of diagnostics does not work and produces negative lines.
                 // We filter out these diagnostics with negative lines because else the LSP (or VSCode?)
@@ -130,7 +130,7 @@ export class TypeScriptPlugin
         const fragment = await tsDoc.getFragment();
         const info = lang.getQuickInfoAtPosition(
             tsDoc.filePath,
-            fragment.offsetAt(fragment.positionInFragment(position)),
+            fragment.offsetAt(fragment.getGeneratedPosition(position)),
         );
         if (!info) {
             return null;
@@ -164,7 +164,7 @@ export class TypeScriptPlugin
 
                 return symbol;
             })
-            .map((symbol) => mapSymbolInformationToParent(fragment, symbol));
+            .map((symbol) => mapSymbolInformationToOriginal(fragment, symbol));
 
         function collectSymbols(
             tree: NavigationTree,
@@ -224,7 +224,7 @@ export class TypeScriptPlugin
 
         const defs = lang.getDefinitionAndBoundSpan(
             tsDoc.filePath,
-            fragment.offsetAt(fragment.positionInFragment(position)),
+            fragment.offsetAt(fragment.getGeneratedPosition(position)),
         );
 
         if (!defs || !defs.definitions) {
@@ -263,8 +263,8 @@ export class TypeScriptPlugin
         const { lang, tsDoc } = this.getLSAndTSDoc(document);
         const fragment = await tsDoc.getFragment();
 
-        const start = fragment.offsetAt(fragment.positionInFragment(range.start));
-        const end = fragment.offsetAt(fragment.positionInFragment(range.end));
+        const start = fragment.offsetAt(fragment.getGeneratedPosition(range.start));
+        const end = fragment.offsetAt(fragment.getGeneratedPosition(range.end));
         const errorCodes: number[] = context.diagnostics.map((diag) => Number(diag.code));
         const codeFixes = lang.getCodeFixesAtPosition(
             tsDoc.filePath,
@@ -292,7 +292,7 @@ export class TypeScriptPlugin
                             ),
                             change.textChanges.map((edit) => {
                                 return TextEdit.replace(
-                                    mapRangeToParent(doc!, convertRange(doc!, edit.span)),
+                                    mapRangeToOriginal(doc!, convertRange(doc!, edit.span)),
                                     edit.newText,
                                 );
                             }),
@@ -314,6 +314,7 @@ export class TypeScriptPlugin
         const scriptKind = getScriptKindFromFileName(fileName);
 
         if (scriptKind === ts.ScriptKind.Unknown) {
+            // We don't deal with svelte files here
             return;
         }
 
@@ -329,6 +330,10 @@ export class TypeScriptPlugin
 
         if (previousSnapshot) {
             newSnapshot.version = previousSnapshot.version + 1;
+        } else {
+            // ensure it's greater than initial version
+            // so that ts server picks up the change
+            newSnapshot.version += 1;
         }
 
         snapshotManager.set(fileName, newSnapshot);

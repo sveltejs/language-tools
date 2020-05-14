@@ -17,7 +17,7 @@ export function getCompletions(
     const offset = svelteDoc.offsetAt(position);
 
     const isInStyleOrScript =
-        svelteDoc.style.isInFragment(position) || svelteDoc.script.isInFragment(position);
+        svelteDoc.style.isInGenerated(position) || svelteDoc.script.isInGenerated(position);
     const lastCharactersBeforePosition = svelteDoc
         .getText()
         // use last 10 characters, should cover 99% of all cases

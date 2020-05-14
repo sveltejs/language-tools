@@ -1,17 +1,21 @@
 import { DocumentManager, Document } from '../../lib/documents';
 import { pathToUrl } from '../../utils';
 import { getLanguageServiceForDocument } from './service';
-import { DocumentSnapshot } from './DocumentSnapshot';
+import { DocumentSnapshot, SvelteDocumentSnapshot } from './DocumentSnapshot';
 import { findTsConfigPath } from './utils';
 import { SnapshotManager } from './SnapshotManager';
+import ts from 'typescript';
 
-export class LSAndTSDocResovler {
+export class LSAndTSDocResolver {
     constructor(private readonly docManager: DocumentManager) {}
 
+    /**
+     * Create a svelte document -> should only be invoked with svelte files.
+     */
     private createDocument = (fileName: string, content: string) => {
         const uri = pathToUrl(fileName);
         const document = this.docManager.openDocument({
-            languageId: 'typescript',
+            languageId: 'svelte',
             text: content,
             uri,
             version: 0,
@@ -20,7 +24,12 @@ export class LSAndTSDocResovler {
         return document;
     };
 
-    getLSAndTSDoc(document: Document) {
+    getLSAndTSDoc(
+        document: Document,
+    ): {
+        tsDoc: SvelteDocumentSnapshot;
+        lang: ts.LanguageService;
+    } {
         const lang = getLanguageServiceForDocument(document, this.createDocument);
         const filePath = document.getFilePath()!;
         const tsDoc = this.getSnapshot(filePath, document);
@@ -28,6 +37,8 @@ export class LSAndTSDocResovler {
         return { tsDoc, lang };
     }
 
+    getSnapshot(filePath: string, document: Document): SvelteDocumentSnapshot;
+    getSnapshot(filePath: string, document?: Document): DocumentSnapshot;
     getSnapshot(filePath: string, document?: Document) {
         const snapshotManager = this.getSnapshotManager(filePath);
 
@@ -42,7 +53,7 @@ export class LSAndTSDocResovler {
         return tsDoc;
     }
 
-    getSnapshotManager(fileName: string) {
+    getSnapshotManager(fileName: string): SnapshotManager {
         const tsconfigPath = findTsConfigPath(fileName);
         const snapshotManager = SnapshotManager.getFromTsConfigPath(tsconfigPath);
         return snapshotManager;

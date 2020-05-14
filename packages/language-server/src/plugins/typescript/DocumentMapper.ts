@@ -1,39 +1,6 @@
 import { Position } from 'vscode-languageserver';
 import { SourceMapConsumer } from 'source-map';
-import { TagInformation, offsetAt, positionAt } from '../../lib/documents';
-
-export interface DocumentMapper {
-    getOriginalPosition(generatedPosition: Position): Position;
-    getGeneratedPosition(originalPosition: Position): Position;
-}
-
-export class IdentityMapper implements DocumentMapper {
-    getOriginalPosition(generatedPosition: Position): Position {
-        return generatedPosition;
-    }
-
-    getGeneratedPosition(originalPosition: Position): Position {
-        return originalPosition;
-    }
-}
-
-export class FragmentMapper implements DocumentMapper {
-    constructor(private originalText: string, private tagInfo: TagInformation) {}
-
-    getOriginalPosition(generatedPosition: Position): Position {
-        const parentOffset = this.offsetInParent(offsetAt(generatedPosition, this.tagInfo.content));
-        return positionAt(parentOffset, this.originalText);
-    }
-
-    private offsetInParent(offset: number): number {
-        return this.tagInfo.start + offset;
-    }
-
-    getGeneratedPosition(originalPosition: Position): Position {
-        const fragmentOffset = offsetAt(originalPosition, this.originalText) - this.tagInfo.start;
-        return positionAt(fragmentOffset, this.originalText);
-    }
-}
+import { DocumentMapper } from '../../lib/documents';
 
 export class ConsumerDocumentMapper implements DocumentMapper {
     constructor(
@@ -89,5 +56,14 @@ export class ConsumerDocumentMapper implements DocumentMapper {
 
         result.line += this.nrPrependesLines;
         return result;
+    }
+
+    isInGenerated(): boolean {
+        // always return true and map outliers case by case
+        return true;
+    }
+
+    getURL(): string {
+        return this.sourceUri;
     }
 }

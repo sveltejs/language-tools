@@ -1,6 +1,6 @@
 import sinon from 'sinon';
 import { Position, TextDocumentItem } from 'vscode-languageserver-types';
-import { DocumentManager, TextDocument } from '../../src/lib/documents';
+import { DocumentManager, Document } from '../../src/lib/documents';
 import { PluginHost } from '../../src/plugins';
 import { CompletionTriggerKind } from 'vscode-languageserver';
 
@@ -14,7 +14,7 @@ describe('PluginHost', () => {
 
     function setup<T>(pluginProviderStubs: T) {
         const createTextDocument = (textDocument: TextDocumentItem) =>
-            new TextDocument(textDocument.uri, textDocument.text);
+            new Document(textDocument.uri, textDocument.text);
 
         const docManager = new DocumentManager(createTextDocument);
 
@@ -63,13 +63,13 @@ describe('PluginHost', () => {
 
         await pluginHost.getCompletions(textDocument, pos, {
             triggerKind: CompletionTriggerKind.TriggerCharacter,
-            triggerCharacter: '.'
+            triggerCharacter: '.',
         });
 
         sinon.assert.calledOnce(plugin.getCompletions);
         sinon.assert.calledWithExactly(plugin.getCompletions, document, pos, {
             triggerKind: CompletionTriggerKind.TriggerCharacter,
-            triggerCharacter: '.'
+            triggerCharacter: '.',
         });
     });
 });
