@@ -166,9 +166,10 @@ export function createLanguageService(
         const forcedOptions: ts.CompilerOptions = {
             noEmit: true,
             declaration: false,
+            skipLibCheck: true,
+            // these are needed to handle the results of svelte2tsx preprocessing:
             jsx: ts.JsxEmit.Preserve,
             jsxFactory: 'h',
-            skipLibCheck: true,
         };
         compilerOptions = { ...compilerOptions, ...forcedOptions };
 
