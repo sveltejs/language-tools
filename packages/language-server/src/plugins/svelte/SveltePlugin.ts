@@ -3,31 +3,32 @@ type InitialMigrationAny = any;
 
 import { cosmiconfig } from 'cosmiconfig';
 import { RawIndexMap, RawSourceMap, SourceMapConsumer } from 'source-map';
+import sveltePreprocess from 'svelte-preprocess';
 import { CompileOptions, Warning } from 'svelte/types/compiler/interfaces';
 import { PreprocessorGroup } from 'svelte/types/compiler/preprocess';
 import {
     CompletionList,
     Diagnostic,
     DiagnosticSeverity,
+    Hover,
     Position,
     Range,
     TextEdit,
-    Hover,
 } from 'vscode-languageserver';
 import { Document, DocumentManager, ReadableDocument } from '../../lib/documents';
 import { LSConfigManager, LSSvelteConfig } from '../../ls-config';
+import { importPrettier, importSvelte } from '../importPackage';
 import {
     CompletionsProvider,
     DiagnosticsProvider,
     FormattingProvider,
+    HoverProvider,
     OnRegister,
     Resolvable,
-    HoverProvider,
 } from '../interfaces';
 import { getCompletions } from './features/getCompletions';
-import { SvelteDocument, SvelteFragment } from './SvelteDocument';
-import { importSvelte, importPrettier } from '../importPackage';
 import { getHoverInfo } from './features/getHoverInfo';
+import { SvelteDocument, SvelteFragment } from './SvelteDocument';
 
 interface SvelteConfig extends CompileOptions {
     preprocess?: PreprocessorGroup;
@@ -106,14 +107,25 @@ export class SveltePlugin
     }
 
     private async loadConfig(path: string): Promise<SvelteConfig> {
+        console.log('loading config for', path);
         try {
             const explorer = cosmiconfig('svelte', { packageProp: 'svelte-ls' });
             const result = await explorer.search(path);
-            const config = result?.config ?? {};
+            const config = result?.config ?? this.useFallbackPreprocessor();
             return { ...DEFAULT_OPTIONS, ...config };
         } catch (err) {
-            return { ...DEFAULT_OPTIONS, preprocess: {} };
+            return { ...DEFAULT_OPTIONS, ...this.useFallbackPreprocessor() };
         }
+    }
+
+    private useFallbackPreprocessor() {
+        console.log(
+            'No svelte.config.js found. ' +
+                'Using https://github.com/kaisermann/svelte-preprocess as fallback',
+        );
+        return {
+            preprocess: sveltePreprocess({ typescript: { transpileOnly: true } }),
+        };
     }
 
     async formatDocument(document: Document): Promise<TextEdit[]> {
