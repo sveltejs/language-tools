@@ -3,7 +3,6 @@ type InitialMigrationAny = any;
 
 import { cosmiconfig } from 'cosmiconfig';
 import { RawIndexMap, RawSourceMap, SourceMapConsumer } from 'source-map';
-import sveltePreprocess from 'svelte-preprocess';
 import { CompileOptions, Warning } from 'svelte/types/compiler/interfaces';
 import { PreprocessorGroup } from 'svelte/types/compiler/preprocess';
 import {
@@ -17,7 +16,7 @@ import {
 } from 'vscode-languageserver';
 import { Document, DocumentManager, ReadableDocument } from '../../lib/documents';
 import { LSConfigManager, LSSvelteConfig } from '../../ls-config';
-import { importPrettier, importSvelte } from '../importPackage';
+import { importPrettier, importSvelte, importSveltePreprocess } from '../importPackage';
 import {
     CompletionsProvider,
     DiagnosticsProvider,
@@ -63,11 +62,28 @@ export class SveltePlugin
         const svelte = importSvelte(svelteDoc.getFilePath()!);
 
         const preprocessor = makePreprocessor(svelteDoc, config.preprocess);
-        source = (
-            await svelte.preprocess(source, preprocessor, {
-                filename: svelteDoc.getFilePath()!,
-            })
-        ).toString();
+        try {
+            source = (
+                await svelte.preprocess(source, preprocessor, {
+                    filename: svelteDoc.getFilePath()!,
+                })
+            ).toString();
+        } catch (e) {
+            // Preprocessing could fail if packages like less/sass/babel cannot be resolved
+            // when our fallback-version of svelte-preprocess is used.
+            // Add a warning about a broken svelte.configs.js/preprocessor setup
+            return [
+                {
+                    message:
+                        "The file cannot be parsed because script or style require a preprocessor that doesn't seem to be setup. " +
+                        'Have you setup a `svelte.config.js`? ' +
+                        'See https://github.com/sveltejs/language-tools/tree/master/packages/svelte-vscode#using-with-preprocessors for more infos.',
+                    range: Range.create(Position.create(0, 0), Position.create(0, 1)),
+                    severity: DiagnosticSeverity.Warning,
+                    source: 'svelte',
+                },
+            ];
+        }
         preprocessor.transpiledDocument.setText(source);
 
         let diagnostics: Diagnostic[];
@@ -111,20 +127,20 @@ export class SveltePlugin
         try {
             const explorer = cosmiconfig('svelte', { packageProp: 'svelte-ls' });
             const result = await explorer.search(path);
-            const config = result?.config ?? this.useFallbackPreprocessor();
+            const config = result?.config ?? this.useFallbackPreprocessor(path);
             return { ...DEFAULT_OPTIONS, ...config };
         } catch (err) {
-            return { ...DEFAULT_OPTIONS, ...this.useFallbackPreprocessor() };
+            return { ...DEFAULT_OPTIONS, ...this.useFallbackPreprocessor(path) };
         }
     }
 
-    private useFallbackPreprocessor() {
+    private useFallbackPreprocessor(path: string) {
         console.log(
             'No svelte.config.js found. ' +
                 'Using https://github.com/kaisermann/svelte-preprocess as fallback',
         );
         return {
-            preprocess: sveltePreprocess({ typescript: { transpileOnly: true } }),
+            preprocess: importSveltePreprocess(path)({ typescript: { transpileOnly: true } }),
         };
     }
 

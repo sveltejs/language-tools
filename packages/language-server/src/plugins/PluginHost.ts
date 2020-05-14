@@ -78,9 +78,9 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
                 [document, position, completionContext],
                 ExecuteMode.Collect,
             )
-        ).filter(completion => completion != null);
+        ).filter((completion) => completion != null);
 
-        const flattenedCompletions = flatten(completions.map(completion => completion.items));
+        const flattenedCompletions = flatten(completions.map((completion) => completion.items));
         return CompletionList.create(
             flattenedCompletions,
             completions.reduce(
@@ -92,7 +92,7 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
 
     async resolveCompletion(
         textDocument: TextDocumentIdentifier,
-        completionItem: AppCompletionItem
+        completionItem: AppCompletionItem,
     ): Promise<CompletionItem> {
         const document = this.getDocument(textDocument.uri);
 
@@ -103,12 +103,11 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         const result = await this.execute<CompletionItem>(
             'resolveCompletion',
             [document, completionItem],
-            ExecuteMode.FirstNonNull
+            ExecuteMode.FirstNonNull,
         );
 
         return result ?? completionItem;
     }
-
 
     async formatDocument(textDocument: TextDocumentIdentifier): Promise<TextEdit[]> {
         const document = this.getDocument(textDocument.uri);
@@ -249,7 +248,7 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         args: any[],
         mode: ExecuteMode,
     ): Promise<(T | null) | T[] | void> {
-        const plugins = this.plugins.filter(plugin => typeof plugin[name] === 'function');
+        const plugins = this.plugins.filter((plugin) => typeof plugin[name] === 'function');
 
         switch (mode) {
             case ExecuteMode.FirstNonNull:
@@ -262,11 +261,11 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
                 return null;
             case ExecuteMode.Collect:
                 return Promise.all(
-                    plugins.map(plugin => this.tryExecutePlugin(plugin, name, args, [])),
+                    plugins.map((plugin) => this.tryExecutePlugin(plugin, name, args, [])),
                 );
             case ExecuteMode.None:
                 await Promise.all(
-                    plugins.map(plugin => this.tryExecutePlugin(plugin, name, args, null)),
+                    plugins.map((plugin) => this.tryExecutePlugin(plugin, name, args, null)),
                 );
                 return;
         }
@@ -276,6 +275,7 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         try {
             return await plugin[fnName](...args);
         } catch (e) {
+            console.error(e);
             return failValue;
         }
     }
