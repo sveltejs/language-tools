@@ -1,4 +1,6 @@
-# SCSS Support
+# SCSS/Less Support
+
+The following document talks about SCSS, but the same applies for Less.
 
 ## Syntax Highlighting
 
@@ -67,3 +69,7 @@ module.exports = {
 You will need to tell svelte-vscode to restart the svelte language server in order to pick up the new configuration.
 
 Hit `ctrl-shift-p` or `cmd-shift-p` on mac, type `svelte restart`, and select `Svelte: Restart Language Server`. Any errors you were seeing should now go away and you're now all set up!
+
+## SCSS: Still having errors?
+
+The `node-sass` package is very sensitive to node versions. It may be possible that this plugin runs on a different version than your application. Then it is necessary to set the `svelte.language-server.runtime` setting to the path of your node runtime.
