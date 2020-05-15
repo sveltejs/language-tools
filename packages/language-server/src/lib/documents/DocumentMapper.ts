@@ -84,7 +84,7 @@ export class FragmentMapper implements DocumentMapper {
 
     getGeneratedPosition(originalPosition: Position): Position {
         const fragmentOffset = offsetAt(originalPosition, this.originalText) - this.tagInfo.start;
-        return positionAt(fragmentOffset, this.originalText);
+        return positionAt(fragmentOffset, this.tagInfo.content);
     }
 
     isInGenerated(pos: Position): boolean {
