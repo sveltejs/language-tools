@@ -77,7 +77,7 @@ export class SveltePlugin
 
     private async tryGetDiagnostics(document: Document): Promise<Diagnostic[]> {
         const svelteDoc = new SvelteDocument(document.getURL(), document.getText());
-        const config = await this.loadConfig(svelteDoc.getFilePath()!);
+        const config = await this.loadConfig(document);
         const svelte = importSvelte(svelteDoc.getFilePath()!);
 
         const preprocessor = makePreprocessor(svelteDoc, config.preprocess);
@@ -154,26 +154,36 @@ export class SveltePlugin
         return [diagnostic];
     }
 
-    private async loadConfig(path: string): Promise<SvelteConfig> {
-        console.log('loading config for', path);
+    private async loadConfig(document: Document): Promise<SvelteConfig> {
+        console.log('loading config for', document.getFilePath());
         try {
             const explorer = cosmiconfig('svelte', { packageProp: 'svelte-ls' });
-            const result = await explorer.search(path);
-            const config = result?.config ?? this.useFallbackPreprocessor(path);
+            const result = await explorer.search(document.getFilePath() || '');
+            const config = result?.config ?? this.useFallbackPreprocessor(document);
             return { ...DEFAULT_OPTIONS, ...config };
         } catch (err) {
-            return { ...DEFAULT_OPTIONS, ...this.useFallbackPreprocessor(path) };
+            return { ...DEFAULT_OPTIONS, ...this.useFallbackPreprocessor(document) };
         }
     }
 
-    private useFallbackPreprocessor(path: string) {
-        console.log(
-            'No svelte.config.js found. ' +
-                'Using https://github.com/kaisermann/svelte-preprocess as fallback',
-        );
-        return {
-            preprocess: importSveltePreprocess(path)({ typescript: { transpileOnly: true } }),
-        };
+    private useFallbackPreprocessor(document: Document) {
+        if (
+            document.styleInfo?.attributes.lang ||
+            document.styleInfo?.attributes.type ||
+            document.scriptInfo?.attributes.lang ||
+            document.scriptInfo?.attributes.type
+        ) {
+            console.log(
+                'No svelte.config.js found but one is needed. ' +
+                    'Using https://github.com/kaisermann/svelte-preprocess as fallback',
+            );
+            return {
+                preprocess: importSveltePreprocess(document.getFilePath() || '')({
+                    typescript: { transpileOnly: true },
+                }),
+            };
+        }
+        return {};
     }
 
     async formatDocument(document: Document): Promise<TextEdit[]> {
