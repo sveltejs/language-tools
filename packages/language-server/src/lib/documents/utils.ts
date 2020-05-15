@@ -19,13 +19,21 @@ function parseAttributes(str: string): Record<string, string> {
     const attrs: Record<string, string> = {};
     str.split(/\s+/)
         .filter(Boolean)
-        .forEach((attr) => {
+        .forEach(attr => {
             const [name, value] = attr.split('=');
             attrs[name] = value ? parseAttributeValue(value) : name;
         });
     return attrs;
 }
 
+const EXTRACT_TAG_EXCLUSIONS = [
+    '{#if[\\s\\S]*{\\/if}',
+    '<!--[\\s\\S]*-->',
+    '{#each[\\s\\S]*{\\/each}',
+    '{#await[\\s\\S]*{\\/await}',
+    '{@html[\\s\\S]+}',
+];
+const EXTRACT_TAG_EXCLUSION_EXPS = EXTRACT_TAG_EXCLUSIONS.map(exp => new RegExp(exp));
 /**
  * Extracts a tag (style or script) from the given text
  * and returns its start, end and the attributes on that tag.
@@ -33,11 +41,16 @@ function parseAttributes(str: string): Record<string, string> {
  * @param source text content to extract tag from
  * @param tag the tag to extract
  */
-export function extractTag(source: string, tag: 'script' | 'style'): TagInformation | null {
-    const exp = new RegExp(`(<!--.*-->)|(<${tag}(\\s[\\S\\s]*?)?>)([\\S\\s]*?)<\\/${tag}>`, 'igs');
+export function extractTag(source: string, tag: 'script' | 'style') {
+    const exp = new RegExp(
+        `(${EXTRACT_TAG_EXCLUSIONS.join(')|(')})|(<${tag}(\\s[\\S\\s]*?)?>)([\\S\\s]*?)<\\/${tag}>`,
+        'igs',
+    );
     let match = exp.exec(source);
-
-    while (match && match[0].startsWith('<!--')) {
+    while (
+        match &&
+        EXTRACT_TAG_EXCLUSION_EXPS.some(exclusionExp => exclusionExp.exec(match?.[0] ?? ''))
+    ) {
         match = exp.exec(source);
     }
 
@@ -45,9 +58,9 @@ export function extractTag(source: string, tag: 'script' | 'style'): TagInformat
         return null;
     }
 
-    const attributes = parseAttributes(match[3] || '');
-    const content = match[4];
-    const start = match.index + match[2].length;
+    const attributes = parseAttributes(match[7] || '');
+    const content = match[8];
+    const start = match.index + match[6].length;
     const end = start + content.length;
     const startPos = positionAt(start, source);
     const endPos = positionAt(end, source);
