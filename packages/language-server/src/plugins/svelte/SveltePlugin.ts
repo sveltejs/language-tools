@@ -14,7 +14,7 @@ import {
     Range,
     TextEdit,
 } from 'vscode-languageserver';
-import { Document, DocumentManager, ReadableDocument } from '../../lib/documents';
+import { Document, DocumentManager, isInTag, ReadableDocument } from '../../lib/documents';
 import { LSConfigManager, LSSvelteConfig } from '../../ls-config';
 import { importPrettier, importSvelte, importSveltePreprocess } from '../importPackage';
 import {
@@ -55,19 +55,8 @@ export class SveltePlugin
             return [];
         }
 
-        const svelteDoc = new SvelteDocument(document.getURL(), document.getText());
-        let source = svelteDoc.getText();
-
-        const config = await this.loadConfig(svelteDoc.getFilePath()!);
-        const svelte = importSvelte(svelteDoc.getFilePath()!);
-
-        const preprocessor = makePreprocessor(svelteDoc, config.preprocess);
         try {
-            source = (
-                await svelte.preprocess(source, preprocessor, {
-                    filename: svelteDoc.getFilePath()!,
-                })
-            ).toString();
+            return await this.tryGetDiagnostics(document);
         } catch (e) {
             // Preprocessing could fail if packages like less/sass/babel cannot be resolved
             // when our fallback-version of svelte-preprocess is used.
@@ -76,21 +65,33 @@ export class SveltePlugin
                 {
                     message:
                         "The file cannot be parsed because script or style require a preprocessor that doesn't seem to be setup. " +
-                        'Have you setup a `svelte.config.js`? ' +
-                        'See https://github.com/sveltejs/language-tools/tree/master/packages/svelte-vscode#using-with-preprocessors for more infos.',
-                    range: Range.create(Position.create(0, 0), Position.create(0, 1)),
+                        'Did you setup a `svelte.config.js`? ' +
+                        'See https://github.com/sveltejs/language-tools/tree/master/packages/svelte-vscode#using-with-preprocessors for more info.',
+                    range: Range.create(Position.create(0, 0), Position.create(0, 5)),
                     severity: DiagnosticSeverity.Warning,
                     source: 'svelte',
                 },
             ];
         }
+    }
+
+    private async tryGetDiagnostics(document: Document): Promise<Diagnostic[]> {
+        const svelteDoc = new SvelteDocument(document.getURL(), document.getText());
+        const config = await this.loadConfig(svelteDoc.getFilePath()!);
+        const svelte = importSvelte(svelteDoc.getFilePath()!);
+
+        const preprocessor = makePreprocessor(svelteDoc, config.preprocess);
+        const source = (
+            await svelte.preprocess(svelteDoc.getText(), preprocessor, {
+                filename: svelteDoc.getFilePath()!,
+            })
+        ).toString();
         preprocessor.transpiledDocument.setText(source);
 
         let diagnostics: Diagnostic[];
         try {
             delete config.preprocess;
             const res = svelte.compile(source, config);
-
             diagnostics = (((res.stats as any).warnings || res.warnings || []) as Warning[]).map(
                 (warning) => {
                     const start = warning.start || { line: 1, column: 0 };
@@ -105,21 +106,52 @@ export class SveltePlugin
                 },
             );
         } catch (err) {
-            const start = err.start || { line: 1, column: 0 };
-            const end = err.end || start;
-            diagnostics = [
-                {
-                    range: Range.create(start.line - 1, start.column, end.line - 1, end.column),
-                    message: err.message,
-                    severity: DiagnosticSeverity.Error,
-                    source: 'svelte',
-                    code: err.code,
-                },
-            ];
+            return await this.createParserErrorDiagnostic(err, document, svelteDoc, preprocessor);
         }
 
-        await fixDiagnostics(svelteDoc, preprocessor, diagnostics);
+        await mapDiagnosticsToOriginal(svelteDoc, preprocessor, diagnostics);
         return diagnostics;
+    }
+
+    private async createParserErrorDiagnostic(
+        error: any,
+        document: Document,
+        svelteDoc: SvelteDocument,
+        preprocessor: Preprocessor,
+    ) {
+        const start = error.start || { line: 1, column: 0 };
+        const end = error.end || start;
+        const diagnostic: Diagnostic = {
+            range: Range.create(start.line - 1, start.column, end.line - 1, end.column),
+            message: error.message,
+            severity: DiagnosticSeverity.Error,
+            source: 'svelte',
+            code: error.code,
+        };
+        await mapDiagnosticsToOriginal(svelteDoc, preprocessor, [diagnostic]);
+
+        if (diagnostic.message.includes('expected')) {
+            const isInStyle = isInTag(diagnostic.range.start, document.styleInfo);
+            const isInScript = isInTag(diagnostic.range.start, document.scriptInfo);
+
+            if (isInStyle || isInScript) {
+                diagnostic.message +=
+                    '. If you expect this syntax to work, here are some suggestions: ';
+                if (isInScript) {
+                    diagnostic.message +=
+                        'If you use typescript with `svelte-preprocessor`, did you add `lang="typescript"` to your `script` tag? ';
+                } else {
+                    diagnostic.message +=
+                        'If you use less/SCSS with `svelte-preprocessor`, did you add `lang="scss"`/`lang="less"` to you `style` tag? ' +
+                        'If you use SCSS, it may be necessary to add the path to your NODE runtime to the setting `svelte.language-server.runtime`. ';
+                }
+                diagnostic.message +=
+                    'Did you setup a `svelte.config.js`? ' +
+                    'See https://github.com/sveltejs/language-tools/tree/master/packages/svelte-vscode#using-with-preprocessors for more info.';
+            }
+        }
+
+        return [diagnostic];
     }
 
     private async loadConfig(path: string): Promise<SvelteConfig> {
@@ -241,7 +273,7 @@ function makePreprocessor(document: SvelteDocument, preprocessors: PreprocessorG
     return preprocessor;
 }
 
-async function fixDiagnostics(
+async function mapDiagnosticsToOriginal(
     document: ReadableDocument,
     preprocessor: Preprocessor,
     diagnostics: Diagnostic[],

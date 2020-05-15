@@ -1,5 +1,5 @@
-import { clamp } from '../../utils';
-import { Position } from 'vscode-languageserver';
+import { clamp, isInRange } from '../../utils';
+import { Position, Range } from 'vscode-languageserver';
 
 export interface TagInformation {
     content: string;
@@ -19,7 +19,7 @@ function parseAttributes(str: string): Record<string, string> {
     const attrs: Record<string, string> = {};
     str.split(/\s+/)
         .filter(Boolean)
-        .forEach(attr => {
+        .forEach((attr) => {
             const [name, value] = attr.split('=');
             attrs[name] = value ? parseAttributeValue(value) : name;
         });
@@ -33,7 +33,7 @@ const EXTRACT_TAG_EXCLUSIONS = [
     '{#await[\\s\\S]*{\\/await}',
     '{@html[\\s\\S]+}',
 ];
-const EXTRACT_TAG_EXCLUSION_EXPS = EXTRACT_TAG_EXCLUSIONS.map(exp => new RegExp(exp));
+const EXTRACT_TAG_EXCLUSION_EXPS = EXTRACT_TAG_EXCLUSIONS.map((exp) => new RegExp(exp));
 /**
  * Extracts a tag (style or script) from the given text
  * and returns its start, end and the attributes on that tag.
@@ -49,7 +49,7 @@ export function extractTag(source: string, tag: 'script' | 'style') {
     let match = exp.exec(source);
     while (
         match &&
-        EXTRACT_TAG_EXCLUSION_EXPS.some(exclusionExp => exclusionExp.exec(match?.[0] ?? ''))
+        EXTRACT_TAG_EXCLUSION_EXPS.some((exclusionExp) => exclusionExp.exec(match?.[0] ?? ''))
     ) {
         match = exp.exec(source);
     }
@@ -148,4 +148,8 @@ function getLineOffsets(text: string) {
     }
 
     return lineOffsets;
+}
+
+export function isInTag(position: Position, tagInfo: TagInformation | null): boolean {
+    return !!tagInfo && isInRange(Range.create(tagInfo.startPos, tagInfo.endPos), position);
 }
