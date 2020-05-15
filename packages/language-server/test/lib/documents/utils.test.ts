@@ -92,9 +92,30 @@ describe('document/utils', () => {
             const text = `
             {#if name}
                 <script>
-                    console.log('I should not be treated as top level')
+                    console.log('not top level')
                 </script>
             {/if}
+            <ul>
+                {#each cats as cat}
+                    <script>
+                        console.log('not top level')
+                    </script>
+                {/each}
+            </ul>
+            {#await promise}
+                <script>
+                    console.log('not top level')
+                </script>
+            {:then number}
+                <script>
+                    console.log('not top level')
+                </script>
+            {:catch error}
+                <script>
+                    console.log('not top level')
+                </script>
+            {/await}
+            <p>{@html <script> consolelog('not top level')</script>}</p>
             <!-- p{ color: blue; }</script> -->
             <!--<script lang="scss">
             p{ color: blue; }
@@ -105,9 +126,9 @@ describe('document/utils', () => {
             assert.deepStrictEqual(extractTag(text, 'script'), {
                 content: 'top level script',
                 attributes: {},
-                start: 359,
-                end: 375,
-                container: { start: 351, end: 384 },
+                start: 1020,
+                end: 1036,
+                container: { start: 1012, end: 1045 },
             });
         });
     });

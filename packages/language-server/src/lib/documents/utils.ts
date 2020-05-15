@@ -26,6 +26,14 @@ function parseAttributes(str: string): Record<string, string> {
     return attrs;
 }
 
+const EXTRACT_TAG_EXCLUSIONS = [
+    '{#if[\\s\\S]*{\\/if}',
+    '<!--[\\s\\S]*-->',
+    '{#each[\\s\\S]*{\\/each}',
+    '{#await[\\s\\S]*{\\/await}',
+    '{@html[\\s\\S]+}',
+];
+const EXTRACT_TAG_EXCLUSION_EXPS = EXTRACT_TAG_EXCLUSIONS.map(exp => new RegExp(exp));
 /**
  * Extracts a tag (style or script) from the given text
  * and returns its start, end and the attributes on that tag.
@@ -35,12 +43,14 @@ function parseAttributes(str: string): Record<string, string> {
  */
 export function extractTag(source: string, tag: 'script' | 'style') {
     const exp = new RegExp(
-        // eslint-disable-next-line max-len
-        `({#if[\\s\\S]*{\\/if})|(<!--[\\s\\S]*-->)|(<${tag}(\\s[\\S\\s]*?)?>)([\\S\\s]*?)<\\/${tag}>`,
+        `(${EXTRACT_TAG_EXCLUSIONS.join(')|(')})|(<${tag}(\\s[\\S\\s]*?)?>)([\\S\\s]*?)<\\/${tag}>`,
         'igs',
     );
     let match = exp.exec(source);
-    while (match && (match[0].startsWith('<!--') || match[0].startsWith('{#if'))) {
+    while (
+        match &&
+        EXTRACT_TAG_EXCLUSION_EXPS.some(exclusionExp => exclusionExp.exec(match?.[0] ?? ''))
+    ) {
         match = exp.exec(source);
     }
 
@@ -48,9 +58,9 @@ export function extractTag(source: string, tag: 'script' | 'style') {
         return null;
     }
 
-    const attributes = parseAttributes(match[4] || '');
-    const content = match[5];
-    const start = match.index + match[3].length;
+    const attributes = parseAttributes(match[7] || '');
+    const content = match[8];
+    const start = match.index + match[6].length;
     const end = start + content.length;
     const startPos = positionAt(start, source);
     const endPos = positionAt(end, source);
