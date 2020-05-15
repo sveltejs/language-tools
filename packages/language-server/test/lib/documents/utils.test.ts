@@ -90,45 +90,47 @@ describe('document/utils', () => {
         });
         it('extracts top level script tag only', () => {
             const text = `
-            {#if name}
-                <script>
-                    console.log('not top level')
-                </script>
-            {/if}
-            <ul>
-                {#each cats as cat}
+                {#if name}
                     <script>
                         console.log('not top level')
                     </script>
-                {/each}
-            </ul>
-            {#await promise}
-                <script>
-                    console.log('not top level')
-                </script>
-            {:then number}
-                <script>
-                    console.log('not top level')
-                </script>
-            {:catch error}
-                <script>
-                    console.log('not top level')
-                </script>
-            {/await}
-            <p>{@html <script> consolelog('not top level')</script>}</p>
-            <!-- p{ color: blue; }</script> -->
-            <!--<script lang="scss">
-            p{ color: blue; }
-            </script> -->
-            <scrit>blah</script>
-            <script>top level script</script>
+                {/if}
+                <ul>
+                    {#each cats as cat}
+                        <script>
+                            console.log('not top level')
+                        </script>
+                    {/each}
+                </ul>
+                {#await promise}
+                    <script>
+                        console.log('not top level')
+                    </script>
+                {:then number}
+                    <script>
+                        console.log('not top level')
+                    </script>
+                {:catch error}
+                    <script>
+                        console.log('not top level')
+                    </script>
+                {/await}
+                <p>{@html <script> consolelog('not top level')</script>}</p>
+                <!-- p{ color: blue; }</script> -->
+                <!--<script lang="scss">
+                p{ color: blue; }
+                </script> -->
+                <scrit>blah</script>
+                <script>top level script</script>
             `;
             assert.deepStrictEqual(extractTag(text, 'script'), {
                 content: 'top level script',
                 attributes: {},
-                start: 1020,
-                end: 1036,
-                container: { start: 1012, end: 1045 },
+                start: 1148,
+                end: 1164,
+                startPos: Position.create(32, 24),
+                endPos: Position.create(32, 40),
+                container: { start: 1140, end: 1173 },
             });
         });
     });
