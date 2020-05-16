@@ -14,7 +14,7 @@ export class HTMLPlugin implements OnRegister, HoverProvider, CompletionsProvide
 
     onRegister(docManager: DocumentManager, configManager: LSConfigManager) {
         this.configManager = configManager;
-        docManager.on('documentChange', document => {
+        docManager.on('documentChange', (document) => {
             const html = this.lang.parseHTMLDocument(document);
             this.documents.set(document, html);
         });
@@ -43,6 +43,10 @@ export class HTMLPlugin implements OnRegister, HoverProvider, CompletionsProvide
             return null;
         }
 
+        if (this.isInsideMoustacheTag(html, document, position)) {
+            return null;
+        }
+
         const emmetResults: CompletionList = {
             isIncomplete: true,
             items: [],
@@ -64,7 +68,18 @@ export class HTMLPlugin implements OnRegister, HoverProvider, CompletionsProvide
             return null;
         }
 
+        if (this.isInsideMoustacheTag(html, document, position)) {
+            return null;
+        }
+
         return this.lang.doTagComplete(document, position, html);
+    }
+
+    private isInsideMoustacheTag(html: HTMLDocument, document: Document, position: Position) {
+        const offset = document.offsetAt(position);
+        const node = html.findNodeAt(offset);
+        const charactersInNode = document.getText().substring(node.start, offset);
+        return charactersInNode.lastIndexOf('{') > charactersInNode.lastIndexOf('}');
     }
 
     getDocumentSymbols(document: Document): SymbolInformation[] {
