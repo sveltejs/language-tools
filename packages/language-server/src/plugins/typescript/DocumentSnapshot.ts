@@ -39,7 +39,19 @@ export interface DocumentSnapshot extends ts.IScriptSnapshot {
     filePath: string;
     scriptKind: ts.ScriptKind;
     positionAt(offset: number): Position;
+    /**
+     * Instantiates a source mapper.
+     * `destroyFragment` needs to be called when
+     * it's no longer needed / the class should be cleaned up
+     * in order to prevent memory leaks.
+     */
     getFragment(): Promise<SnapshotFragment>;
+    /**
+     * Needs to be called when source mapper
+     * is no longer needed / the class should be cleaned up
+     * in order to prevent memory leaks.
+     */
+    destroyFragment(): void;
 }
 
 /**
@@ -176,6 +188,12 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
         return this.fragment;
     }
 
+    destroyFragment() {
+        if (this.fragment) {
+            this.fragment.destroy();
+        }
+    }
+
     private async getMapper(uri: string) {
         if (!this.parent.scriptInfo) {
             return new IdentityMapper(uri);
@@ -231,6 +249,10 @@ export class JSOrTSDocumentSnapshot extends IdentityMapper
     async getFragment() {
         return this;
     }
+
+    destroyFragment() {
+        // nothing to clean up
+    }
 }
 
 /**
@@ -277,6 +299,15 @@ export class SvelteSnapshotFragment implements SnapshotFragment {
 
     offsetAt(position: Position) {
         return offsetAt(position, this.text);
+    }
+
+    /**
+     * Needs to be called when source mapper is no longer needed in order to prevent memory leaks.
+     */
+    destroy() {
+        if (this.mapper.destroy) {
+            this.mapper.destroy();
+        }
     }
 }
 
