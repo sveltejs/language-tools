@@ -31,26 +31,25 @@ import {
     DocumentColorsProvider,
     DocumentSymbolsProvider,
     HoverProvider,
-    OnRegister,
 } from '../interfaces';
 import { CSSDocument } from './CSSDocument';
 import { getLanguage, getLanguageService } from './service';
 
 export class CSSPlugin
     implements
-        OnRegister,
         HoverProvider,
         CompletionsProvider,
         DiagnosticsProvider,
         DocumentColorsProvider,
         ColorPresentationsProvider,
         DocumentSymbolsProvider {
-    private configManager!: LSConfigManager;
+    private configManager: LSConfigManager;
     private cssDocuments = new WeakMap<Document, CSSDocument>();
     private triggerCharacters = ['.', ':', '-', '/'];
 
-    onRegister(docManager: DocumentManager, configManager: LSConfigManager) {
+    constructor(docManager: DocumentManager, configManager: LSConfigManager) {
         this.configManager = configManager;
+
         docManager.on('documentChange', (document) =>
             this.cssDocuments.set(document, new CSSDocument(document)),
         );

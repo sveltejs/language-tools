@@ -20,7 +20,6 @@ describe('PluginHost', () => {
 
         const pluginHost = new PluginHost(docManager, <any>{});
         const plugin = {
-            onRegister: () => undefined,
             ...pluginProviderStubs,
         };
 

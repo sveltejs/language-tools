@@ -37,12 +37,13 @@ export function startServer() {
     const docManager = new DocumentManager(
         (textDocument) => new Document(textDocument.uri, textDocument.text),
     );
-    const pluginHost = new PluginHost(docManager, new LSConfigManager());
+    const configManager = new LSConfigManager();
+    const pluginHost = new PluginHost(docManager, configManager);
 
-    pluginHost.register(new SveltePlugin());
-    pluginHost.register(new HTMLPlugin());
-    pluginHost.register(new CSSPlugin());
-    pluginHost.register(new TypeScriptPlugin(docManager));
+    pluginHost.register(new SveltePlugin(configManager));
+    pluginHost.register(new HTMLPlugin(docManager, configManager));
+    pluginHost.register(new CSSPlugin(docManager, configManager));
+    pluginHost.register(new TypeScriptPlugin(docManager, configManager));
 
     connection.onInitialize((evt) => {
         pluginHost.updateConfig(evt.initializationOptions.config);
