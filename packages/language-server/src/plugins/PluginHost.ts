@@ -35,7 +35,6 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
 
     register(plugin: Plugin) {
         this.plugins.push(plugin);
-        plugin.onRegister(this.documentsManager, this.config);
     }
 
     updateConfig(config: LSConfig) {

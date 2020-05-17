@@ -4,17 +4,16 @@ import { CompletionList, Hover, Position, SymbolInformation } from 'vscode-langu
 import { DocumentManager, Document } from '../../lib/documents';
 import { LSConfigManager, LSHTMLConfig } from '../../ls-config';
 import { svelteHtmlDataProvider } from './dataProvider';
-import { OnRegister, HoverProvider, CompletionsProvider } from '../interfaces';
-// import { svelteHtmlDataProvider } from './html/dataProvider';
+import { HoverProvider, CompletionsProvider } from '../interfaces';
 
-export class HTMLPlugin implements OnRegister, HoverProvider, CompletionsProvider {
-    private configManager!: LSConfigManager;
+export class HTMLPlugin implements HoverProvider, CompletionsProvider {
+    private configManager: LSConfigManager;
     private lang = getLanguageService({ customDataProviders: [svelteHtmlDataProvider] });
     private documents = new WeakMap<Document, HTMLDocument>();
 
-    onRegister(docManager: DocumentManager, configManager: LSConfigManager) {
+    constructor(docManager: DocumentManager, configManager: LSConfigManager) {
         this.configManager = configManager;
-        docManager.on('documentChange', document => {
+        docManager.on('documentChange', (document) => {
             const html = this.lang.parseHTMLDocument(document);
             this.documents.set(document, html);
         });
@@ -43,6 +42,10 @@ export class HTMLPlugin implements OnRegister, HoverProvider, CompletionsProvide
             return null;
         }
 
+        if (this.isInsideMoustacheTag(html, document, position)) {
+            return null;
+        }
+
         const emmetResults: CompletionList = {
             isIncomplete: true,
             items: [],
@@ -64,7 +67,18 @@ export class HTMLPlugin implements OnRegister, HoverProvider, CompletionsProvide
             return null;
         }
 
+        if (this.isInsideMoustacheTag(html, document, position)) {
+            return null;
+        }
+
         return this.lang.doTagComplete(document, position, html);
+    }
+
+    private isInsideMoustacheTag(html: HTMLDocument, document: Document, position: Position) {
+        const offset = document.offsetAt(position);
+        const node = html.findNodeAt(offset);
+        const charactersInNode = document.getText().substring(node.start, offset);
+        return charactersInNode.lastIndexOf('{') > charactersInNode.lastIndexOf('}');
     }
 
     getDocumentSymbols(document: Document): SymbolInformation[] {

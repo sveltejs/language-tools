@@ -38,6 +38,11 @@ export interface DocumentMapper {
      * Get document URL
      */
     getURL(): string;
+
+    /**
+     * Implement this if you need teardown logic before this mapper gets cleaned up.
+     */
+    destroy?(): void;
 }
 
 /**

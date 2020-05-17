@@ -14,7 +14,7 @@ import {
     Range,
     TextEdit,
 } from 'vscode-languageserver';
-import { Document, DocumentManager, isInTag, ReadableDocument } from '../../lib/documents';
+import { Document, isInTag, ReadableDocument } from '../../lib/documents';
 import { LSConfigManager, LSSvelteConfig } from '../../ls-config';
 import { importPrettier, importSvelte, importSveltePreprocess } from '../importPackage';
 import {
@@ -22,7 +22,6 @@ import {
     DiagnosticsProvider,
     FormattingProvider,
     HoverProvider,
-    OnRegister,
     Resolvable,
 } from '../interfaces';
 import { getCompletions } from './features/getCompletions';
@@ -38,17 +37,8 @@ const DEFAULT_OPTIONS: CompileOptions = {
 };
 
 export class SveltePlugin
-    implements
-        OnRegister,
-        DiagnosticsProvider,
-        FormattingProvider,
-        CompletionsProvider,
-        HoverProvider {
-    private configManager!: LSConfigManager;
-
-    onRegister(docManager: DocumentManager, configManager: LSConfigManager) {
-        this.configManager = configManager;
-    }
+    implements DiagnosticsProvider, FormattingProvider, CompletionsProvider, HoverProvider {
+    constructor(private configManager: LSConfigManager) {}
 
     async getDiagnostics(document: Document): Promise<Diagnostic[]> {
         if (!this.featureEnabled('diagnostics')) {

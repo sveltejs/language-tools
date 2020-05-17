@@ -17,6 +17,11 @@ export class SnapshotManager {
     private documents: Map<string, DocumentSnapshot> = new Map();
 
     set(fileName: string, snapshot: DocumentSnapshot) {
+        const prev = this.get(fileName);
+        if (prev) {
+            prev.destroyFragment();
+        }
+
         return this.documents.set(fileName, snapshot);
     }
 

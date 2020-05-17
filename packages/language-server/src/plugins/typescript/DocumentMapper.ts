@@ -66,4 +66,11 @@ export class ConsumerDocumentMapper implements DocumentMapper {
     getURL(): string {
         return this.sourceUri;
     }
+
+    /**
+     * Needs to be called when source mapper is no longer needed in order to prevent memory leaks.
+     */
+    destroy() {
+        this.consumer.destroy();
+    }
 }

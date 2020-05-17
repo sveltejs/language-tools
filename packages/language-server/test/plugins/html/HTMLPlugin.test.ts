@@ -14,11 +14,10 @@ import { LSConfigManager } from '../../../src/ls-config';
 
 describe('HTML Plugin', () => {
     function setup(content: string) {
-        const plugin = new HTMLPlugin();
         const document = new Document('file:///hello.svelte', content);
         const docManager = new DocumentManager(() => document);
         const pluginManager = new LSConfigManager();
-        plugin.onRegister(docManager, pluginManager);
+        const plugin = new HTMLPlugin(docManager, pluginManager);
         docManager.openDocument(<any>'some doc');
         return { plugin, document };
     }
@@ -53,5 +52,43 @@ describe('HTML Plugin', () => {
             textEdit: TextEdit.insert(Position.create(0, 1), '!DOCTYPE html>'),
             insertTextFormat: InsertTextFormat.PlainText,
         });
+    });
+
+    it('does not provide completions inside of moustache tag', async () => {
+        const { plugin, document } = setup('<div on:click={() =>');
+
+        const completions = plugin.getCompletions(document, Position.create(0, 20));
+        assert.strictEqual(completions, null);
+
+        const tagCompletion = plugin.doTagComplete(document, Position.create(0, 20));
+        assert.strictEqual(tagCompletion, null);
+    });
+
+    it('does provide completions outside of moustache tag', async () => {
+        const { plugin, document } = setup('<div on:click={bla} >');
+
+        const completions = plugin.getCompletions(document, Position.create(0, 21));
+        assert.deepEqual(completions?.items[0], <CompletionItem>{
+            filterText: '</div>',
+            insertTextFormat: 2,
+            kind: 10,
+            label: '</div>',
+            textEdit: {
+                newText: '$0</div>',
+                range: {
+                    end: {
+                        character: 21,
+                        line: 0,
+                    },
+                    start: {
+                        character: 21,
+                        line: 0,
+                    },
+                },
+            },
+        });
+
+        const tagCompletion = plugin.doTagComplete(document, Position.create(0, 21));
+        assert.strictEqual(tagCompletion, '$0</div>');
     });
 });
