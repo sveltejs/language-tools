@@ -14,13 +14,12 @@ import {
     TextEdit,
     Hover,
 } from 'vscode-languageserver';
-import { Document, DocumentManager, ReadableDocument } from '../../lib/documents';
+import { Document, ReadableDocument } from '../../lib/documents';
 import { LSConfigManager, LSSvelteConfig } from '../../ls-config';
 import {
     CompletionsProvider,
     DiagnosticsProvider,
     FormattingProvider,
-    OnRegister,
     Resolvable,
     HoverProvider,
 } from '../interfaces';
@@ -38,17 +37,8 @@ const DEFAULT_OPTIONS: CompileOptions = {
 };
 
 export class SveltePlugin
-    implements
-        OnRegister,
-        DiagnosticsProvider,
-        FormattingProvider,
-        CompletionsProvider,
-        HoverProvider {
-    private configManager!: LSConfigManager;
-
-    onRegister(docManager: DocumentManager, configManager: LSConfigManager) {
-        this.configManager = configManager;
-    }
+    implements DiagnosticsProvider, FormattingProvider, CompletionsProvider, HoverProvider {
+    constructor(private configManager: LSConfigManager) {}
 
     async getDiagnostics(document: Document): Promise<Diagnostic[]> {
         if (!this.featureEnabled('diagnostics')) {

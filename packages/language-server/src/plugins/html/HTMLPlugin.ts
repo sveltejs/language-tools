@@ -4,15 +4,14 @@ import { CompletionList, Hover, Position, SymbolInformation } from 'vscode-langu
 import { DocumentManager, Document } from '../../lib/documents';
 import { LSConfigManager, LSHTMLConfig } from '../../ls-config';
 import { svelteHtmlDataProvider } from './dataProvider';
-import { OnRegister, HoverProvider, CompletionsProvider } from '../interfaces';
-// import { svelteHtmlDataProvider } from './html/dataProvider';
+import { HoverProvider, CompletionsProvider } from '../interfaces';
 
-export class HTMLPlugin implements OnRegister, HoverProvider, CompletionsProvider {
-    private configManager!: LSConfigManager;
+export class HTMLPlugin implements HoverProvider, CompletionsProvider {
+    private configManager: LSConfigManager;
     private lang = getLanguageService({ customDataProviders: [svelteHtmlDataProvider] });
     private documents = new WeakMap<Document, HTMLDocument>();
 
-    onRegister(docManager: DocumentManager, configManager: LSConfigManager) {
+    constructor(docManager: DocumentManager, configManager: LSConfigManager) {
         this.configManager = configManager;
         docManager.on('documentChange', (document) => {
             const html = this.lang.parseHTMLDocument(document);

@@ -35,7 +35,6 @@ import {
     DiagnosticsProvider,
     DocumentSymbolsProvider,
     HoverProvider,
-    OnRegister,
     OnWatchFileChanges,
 } from '../interfaces';
 import { DocumentSnapshot, SnapshotFragment } from './DocumentSnapshot';
@@ -54,7 +53,6 @@ import {
 
 export class TypeScriptPlugin
     implements
-        OnRegister,
         DiagnosticsProvider,
         HoverProvider,
         DocumentSymbolsProvider,
@@ -62,17 +60,14 @@ export class TypeScriptPlugin
         CodeActionsProvider,
         OnWatchFileChanges,
         CompletionsProvider<CompletionEntryWithIdentifer> {
-    private configManager!: LSConfigManager;
+    private configManager: LSConfigManager;
     private readonly lsAndTsDocResolver: LSAndTSDocResolver;
     private readonly completionProvider: CompletionsProviderImpl;
 
-    constructor(docManager: DocumentManager) {
+    constructor(docManager: DocumentManager, configManager: LSConfigManager) {
+        this.configManager = configManager;
         this.lsAndTsDocResolver = new LSAndTSDocResolver(docManager);
         this.completionProvider = new CompletionsProviderImpl(this.lsAndTsDocResolver);
-    }
-
-    onRegister(_docManager: DocumentManager, configManager: LSConfigManager) {
-        this.configManager = configManager;
     }
 
     async getDiagnostics(document: Document): Promise<Diagnostic[]> {

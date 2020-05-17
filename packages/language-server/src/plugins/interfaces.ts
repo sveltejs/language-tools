@@ -1,9 +1,11 @@
+import { CompletionContext, FileChangeType } from 'vscode-languageserver';
 import {
     CodeAction,
     CodeActionContext,
     Color,
     ColorInformation,
     ColorPresentation,
+    CompletionItem,
     CompletionList,
     DefinitionLink,
     Diagnostic,
@@ -11,25 +13,18 @@ import {
     Position,
     Range,
     SymbolInformation,
-    TextEdit,
-    CompletionItem,
     TextDocumentIdentifier,
+    TextEdit,
 } from 'vscode-languageserver-types';
-import { FileChangeType, CompletionContext } from 'vscode-languageserver';
-import { DocumentManager, Document } from '../lib/documents';
-import { LSConfigManager } from '../ls-config';
+import { Document } from '../lib/documents';
 
 export type Resolvable<T> = T | Promise<T>;
 
-export interface AppCompletionItem<
-        T extends TextDocumentIdentifier = any
-    > extends CompletionItem {
+export interface AppCompletionItem<T extends TextDocumentIdentifier = any> extends CompletionItem {
     data?: T;
 }
 
-export interface AppCompletionList<
-        T extends TextDocumentIdentifier = any
-    > extends CompletionList {
+export interface AppCompletionList<T extends TextDocumentIdentifier = any> extends CompletionList {
     items: AppCompletionItem<T>[];
 }
 
@@ -48,8 +43,10 @@ export interface CompletionsProvider<T extends TextDocumentIdentifier = any> {
         completionContext?: CompletionContext,
     ): Resolvable<AppCompletionList<T> | null>;
 
-    resolveCompletion?(document: Document, completionItem: AppCompletionItem<T>):
-        Resolvable<AppCompletionItem<T>>;
+    resolveCompletion?(
+        document: Document,
+        completionItem: AppCompletionItem<T>,
+    ): Resolvable<AppCompletionItem<T>>;
 }
 
 export interface FormattingProvider {
@@ -88,10 +85,6 @@ export interface CodeActionsProvider {
     ): Resolvable<CodeAction[]>;
 }
 
-export interface OnRegister {
-    onRegister(documentsManager: DocumentManager, config: LSConfigManager): void;
-}
-
 export interface OnWatchFileChanges {
     onWatchFileChanges(fileName: string, changeType: FileChangeType): void;
 }
@@ -107,4 +100,4 @@ export type LSProvider = DiagnosticsProvider &
     DefinitionsProvider &
     CodeActionsProvider;
 
-export type Plugin = Partial<LSProvider & OnWatchFileChanges> & OnRegister;
+export type Plugin = Partial<LSProvider & OnWatchFileChanges>;

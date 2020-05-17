@@ -14,11 +14,10 @@ import { LSConfigManager } from '../../../src/ls-config';
 
 describe('HTML Plugin', () => {
     function setup(content: string) {
-        const plugin = new HTMLPlugin();
         const document = new Document('file:///hello.svelte', content);
         const docManager = new DocumentManager(() => document);
         const pluginManager = new LSConfigManager();
-        plugin.onRegister(docManager, pluginManager);
+        const plugin = new HTMLPlugin(docManager, pluginManager);
         docManager.openDocument(<any>'some doc');
         return { plugin, document };
     }
