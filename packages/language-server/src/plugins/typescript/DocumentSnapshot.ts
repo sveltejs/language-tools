@@ -191,6 +191,7 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
     destroyFragment() {
         if (this.fragment) {
             this.fragment.destroy();
+            this.fragment = undefined;
         }
     }
 
