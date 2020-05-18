@@ -75,6 +75,13 @@ Path to the node executable you would like to use to run the language server.
 This is useful when you depend on native modules such as node-sass as without
 this they will run in the context of vscode, meaning v8 version mismatch is likely.
 
+##### `svelte.language-server.port`
+
+At which port to spawn the language server.
+Can be used for attaching to the process for debugging / profiling.
+If you experience crashes due to "port already in use", try setting the port.
+-1 = default port is used.
+
 ##### `svelte.plugin.typescript.enable`
 
 Enable the TypeScript plugin. _Default_: `true`
