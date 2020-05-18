@@ -18,14 +18,26 @@ namespace TagCloseRequest {
 
 export function activate(context: ExtensionContext) {
     const serverModule = require.resolve('svelte-language-server/bin/server.js');
+    const runtimeConfig = workspace.getConfiguration('svelte.language-server');
 
-    const debugOptions = { execArgv: ['--nolazy', '--inspect=6009'] };
+    const runExecArgv: string[] = [];
+    let port = runtimeConfig.get<number>('port') ?? -1;
+    if (port < 0) {
+        port = 6009;
+    } else {
+        console.log('setting port to', port);
+        runExecArgv.push(`--inspect=${port}`);
+    }
+    const debugOptions = { execArgv: ['--nolazy', `--inspect=${port}`] };
+
     const serverOptions: ServerOptions = {
-        run: { module: serverModule, transport: TransportKind.ipc },
+        run: {
+            module: serverModule,
+            transport: TransportKind.ipc,
+            options: { execArgv: runExecArgv },
+        },
         debug: { module: serverModule, transport: TransportKind.ipc, options: debugOptions },
     };
-
-    const runtimeConfig = workspace.getConfiguration('svelte.language-server');
 
     const serverRuntime = runtimeConfig.get<string>('runtime');
     if (serverRuntime) {
@@ -39,7 +51,7 @@ export function activate(context: ExtensionContext) {
         revealOutputChannelOn: RevealOutputChannelOn.Never,
         synchronize: {
             configurationSection: ['svelte'],
-            fileEvents: workspace.createFileSystemWatcher('{**/*.js,**/*.ts}', false, false, false)
+            fileEvents: workspace.createFileSystemWatcher('{**/*.js,**/*.ts}', false, false, false),
         },
         initializationOptions: { config: workspace.getConfiguration('svelte.plugin') },
     };
@@ -51,11 +63,15 @@ export function activate(context: ExtensionContext) {
         const tagRequestor = (document: TextDocument, position: Position) => {
             const param = ls.code2ProtocolConverter.asTextDocumentPositionParams(
                 document,
-                position
+                position,
             );
             return ls.sendRequest(TagCloseRequest.type, param);
         };
-        const disposable = activateTagClosing(tagRequestor, { svelte: true }, 'html.autoClosingTags');
+        const disposable = activateTagClosing(
+            tagRequestor,
+            { svelte: true },
+            'html.autoClosingTags',
+        );
         context.subscriptions.push(disposable);
     });
 
