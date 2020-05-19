@@ -15,7 +15,6 @@ import {
 } from 'vscode-languageserver';
 import { TagInformation, offsetAt, positionAt } from './utils';
 import { SourceMapConsumer } from 'source-map';
-import { isBeforeOrEqualToPosition } from '../../utils';
 
 export interface DocumentMapper {
     /**
@@ -105,11 +104,9 @@ export class FragmentMapper implements DocumentMapper {
 }
 
 export class SourceMapDocumentMapper implements DocumentMapper {
-    constructor(private consumer: SourceMapConsumer, private sourceUri: string) {}
+    constructor(protected consumer: SourceMapConsumer, protected sourceUri: string) {}
 
     getOriginalPosition(generatedPosition: Position): Position {
-        generatedPosition = Position.create(generatedPosition.line, generatedPosition.character);
-
         const mapped = this.consumer.originalPositionFor({
             line: generatedPosition.line + 1,
             column: generatedPosition.character,
@@ -159,6 +156,13 @@ export class SourceMapDocumentMapper implements DocumentMapper {
 
     getURL(): string {
         return this.sourceUri;
+    }
+
+    /**
+     * Needs to be called when source mapper is no longer needed in order to prevent memory leaks.
+     */
+    destroy() {
+        this.consumer.destroy();
     }
 }
 
