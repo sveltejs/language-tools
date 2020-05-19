@@ -34,7 +34,7 @@ Provides syntax highlighting and rich intellisense for Svelte components in VS C
 
 #### Language specific setup
 
--   [SCSS](docs/preprocessors/scss.md)
+-   [SCSS/Less](docs/preprocessors/scss.md)
 -   [TypeScript](docs/preprocessors/typescript.md)
 
 #### Generic setup
@@ -169,3 +169,11 @@ Enable diagnostic messages for Svelte. _Default_: `true`
 ##### `svelte.plugin.svelte.format.enable`
 
 Enable formatting for Svelte (includes css & js). _Default_: `true`
+
+##### `svelte.plugin.svelte.hover.enable`
+
+Enable hover info for Svelte (for tags like #if/#each). _Default_: `true`
+
+##### `svelte.plugin.svelte.completions.enable`
+
+Enable autocompletion for Svelte (for tags like #if/#each). _Default_: `true`

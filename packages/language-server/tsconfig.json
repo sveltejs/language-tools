@@ -9,6 +9,7 @@
         "outDir": "dist",
         "esModuleInterop": true,
         "sourceMap": true,
-        "composite":true
+        "composite": true,
+        "skipLibCheck": true
     }
 }

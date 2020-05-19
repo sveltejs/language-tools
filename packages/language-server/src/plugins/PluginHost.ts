@@ -274,6 +274,7 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         try {
             return await plugin[fnName](...args);
         } catch (e) {
+            console.error(e);
             return failValue;
         }
     }
