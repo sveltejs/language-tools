@@ -6,6 +6,7 @@ import {
     CompletionItem,
 } from 'vscode-languageserver';
 import { SvelteTag, documentation, getLatestOpeningTag } from './SvelteTags';
+import { isInTag } from '../../../lib/documents';
 
 /**
  * Get completions for special svelte tags within moustache tags.
@@ -17,7 +18,7 @@ export function getCompletions(
     const offset = svelteDoc.offsetAt(position);
 
     const isInStyleOrScript =
-        svelteDoc.style.isInGenerated(position) || svelteDoc.script.isInGenerated(position);
+        isInTag(position, svelteDoc.style) || isInTag(position, svelteDoc.script);
     const lastCharactersBeforePosition = svelteDoc
         .getText()
         // use last 10 characters, should cover 99% of all cases

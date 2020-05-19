@@ -4,6 +4,18 @@ import { Position } from 'vscode-languageserver';
 
 describe('document/utils', () => {
     describe('extractTag', () => {
+        it('supports boolean attributes', () => {
+            const extracted = extractTag('<style test></style>', 'style');
+            assert.deepStrictEqual(extracted?.attributes, { test: 'test' });
+        });
+
+        it('supports unquoted attributes', () => {
+            const extracted = extractTag('<style type=text/css></style>', 'style');
+            assert.deepStrictEqual(extracted?.attributes, {
+                type: 'text/css',
+            });
+        });
+
         it('does not extract style tag inside comment', () => {
             const text = `
                 <p>bla</p>
@@ -88,6 +100,7 @@ describe('document/utils', () => {
                 container: { start: 17, end: 73 },
             });
         });
+
         it('extracts top level script tag only', () => {
             const text = `
                 {#if name}

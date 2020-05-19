@@ -2,6 +2,7 @@ import { Hover, Position } from 'vscode-languageserver';
 import { SvelteDocument } from '../SvelteDocument';
 import { documentation, SvelteTag, getLatestOpeningTag } from './SvelteTags';
 import { flatten } from '../../../utils';
+import { isInTag } from '../../../lib/documents';
 
 /**
  * Get hover information for special svelte tags within moustache tags.
@@ -10,7 +11,7 @@ export function getHoverInfo(svelteDoc: SvelteDocument, position: Position): Hov
     const offset = svelteDoc.offsetAt(position);
 
     const isInStyleOrScript =
-        svelteDoc.style.isInGenerated(position) || svelteDoc.script.isInGenerated(position);
+        isInTag(position, svelteDoc.style) || isInTag(position, svelteDoc.script);
 
     const offsetStart = Math.max(offset - 10, 0);
     const charactersAroundOffset = svelteDoc
