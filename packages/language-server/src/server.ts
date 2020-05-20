@@ -6,6 +6,7 @@ import {
     RequestType,
     TextDocumentPositionParams,
     TextDocumentIdentifier,
+    IConnection,
 } from 'vscode-languageserver';
 import { DocumentManager, Document } from './lib/documents';
 import {
@@ -19,6 +20,7 @@ import {
 import _ from 'lodash';
 import { LSConfigManager } from './ls-config';
 import { urlToPath } from './utils';
+import { Logger } from './logger';
 
 namespace TagCloseRequest {
     export const type: RequestType<
@@ -29,10 +31,35 @@ namespace TagCloseRequest {
     > = new RequestType('html/tag');
 }
 
-export function startServer() {
-    const connection = process.argv.includes('--stdio')
-        ? createConnection(process.stdin, process.stdout)
-        : createConnection(new IPCMessageReader(process), new IPCMessageWriter(process));
+export interface LSOptions {
+    /**
+     * If you have a connection already that the ls should use, pass it in.
+     * Else the connection will be created from `process`.
+     */
+    connection?: IConnection;
+    /**
+     * If you want only errors getting logged.
+     * Defaults to false.
+     */
+    logErrorsOnly?: boolean;
+}
+
+/**
+ * Starts the language server.
+ *
+ * @param options Options to customize behavior
+ */
+export function startServer(options?: LSOptions) {
+    let connection = options?.connection;
+    if (!connection) {
+        connection = process.argv.includes('--stdio')
+            ? createConnection(process.stdin, process.stdout)
+            : createConnection(new IPCMessageReader(process), new IPCMessageWriter(process));
+    }
+
+    if (options?.logErrorsOnly !== undefined) {
+        Logger.setLogErrorsOnly(options.logErrorsOnly);
+    }
 
     const docManager = new DocumentManager(
         (textDocument) => new Document(textDocument.uri, textDocument.text),
@@ -139,12 +166,17 @@ export function startServer() {
         'documentChange',
         _.debounce(async (document: Document) => {
             const diagnostics = await pluginHost.getDiagnostics({ uri: document.getURL() });
-            connection.sendDiagnostics({
+            connection!.sendDiagnostics({
                 uri: document.getURL(),
                 diagnostics,
             });
         }, 500),
     );
+
+    // This event is triggered by Svelte-Check:
+    connection.onRequest('$/getDiagnostics', async (params) => {
+        return await pluginHost.getDiagnostics({ uri: params.uri });
+    });
 
     connection.listen();
 }

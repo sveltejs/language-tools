@@ -21,6 +21,7 @@ import {
 import { LSConfig, LSConfigManager } from '../ls-config';
 import { DocumentManager } from '../lib/documents';
 import { LSProvider, Plugin, OnWatchFileChanges, AppCompletionItem } from './interfaces';
+import { Logger } from '../logger';
 
 enum ExecuteMode {
     None,
@@ -274,7 +275,7 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         try {
             return await plugin[fnName](...args);
         } catch (e) {
-            console.error(e);
+            Logger.error(e);
             return failValue;
         }
     }
