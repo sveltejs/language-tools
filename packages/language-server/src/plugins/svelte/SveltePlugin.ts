@@ -148,7 +148,7 @@ export class SveltePlugin
         ) {
             console.log(
                 'No svelte.config.js found but one is needed. ' +
-                    'Using https://github.com/kaisermann/svelte-preprocess as fallback',
+                    'Using https://github.com/sveltejs/svelte-preprocess as fallback',
             );
             return {
                 preprocess: importSveltePreprocess(document.getFilePath() || '')({

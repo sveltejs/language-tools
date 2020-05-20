@@ -37,7 +37,7 @@ _Tip: To avoid duplication of config, you can import the `svelte.config.js` file
 
 ### Example Configurations
 
-#### Using [svelte-preprocess](https://github.com/kaisermann/svelte-preprocess) by [@kaisermann](https://github.com/kaisermann)
+#### Using [svelte-preprocess](https://github.com/sveltejs/svelte-preprocess)
 
 ##### Install
 
