@@ -14,6 +14,7 @@ import {
     CodeAction,
 } from 'vscode-languageserver';
 import { TagInformation, offsetAt, positionAt } from './utils';
+import { SourceMapConsumer } from 'source-map';
 
 export interface DocumentMapper {
     /**
@@ -102,7 +103,73 @@ export class FragmentMapper implements DocumentMapper {
     }
 }
 
-export function mapRangeToOriginal(fragment: DocumentMapper, range: Range): Range {
+export class SourceMapDocumentMapper implements DocumentMapper {
+    constructor(protected consumer: SourceMapConsumer, protected sourceUri: string) {}
+
+    getOriginalPosition(generatedPosition: Position): Position {
+        const mapped = this.consumer.originalPositionFor({
+            line: generatedPosition.line + 1,
+            column: generatedPosition.character,
+        });
+
+        if (!mapped) {
+            return { line: -1, character: -1 };
+        }
+
+        if (mapped.line === 0) {
+            console.warn('Got 0 mapped line from', generatedPosition, 'col was', mapped.column);
+        }
+
+        return {
+            line: (mapped.line || 0) - 1,
+            character: mapped.column || 0,
+        };
+    }
+
+    getGeneratedPosition(originalPosition: Position): Position {
+        const mapped = this.consumer.generatedPositionFor({
+            line: originalPosition.line + 1,
+            column: originalPosition.character,
+            source: this.sourceUri,
+        });
+
+        if (!mapped) {
+            return { line: -1, character: -1 };
+        }
+
+        const result = {
+            line: (mapped.line || 0) - 1,
+            character: mapped.column || 0,
+        };
+
+        if (result.line < 0) {
+            return result;
+        }
+
+        return result;
+    }
+
+    isInGenerated(position: Position): boolean {
+        const generated = this.getGeneratedPosition(position);
+        return generated.line >= 0;
+    }
+
+    getURL(): string {
+        return this.sourceUri;
+    }
+
+    /**
+     * Needs to be called when source mapper is no longer needed in order to prevent memory leaks.
+     */
+    destroy() {
+        this.consumer.destroy();
+    }
+}
+
+export function mapRangeToOriginal(
+    fragment: Pick<DocumentMapper, 'getOriginalPosition'>,
+    range: Range,
+): Range {
     return Range.create(
         fragment.getOriginalPosition(range.start),
         fragment.getOriginalPosition(range.end),
@@ -116,16 +183,22 @@ export function mapRangeToGenerated(fragment: DocumentMapper, range: Range): Ran
     );
 }
 
-export function mapTextEditToOriginal(fragment: DocumentMapper, edit: TextEdit): TextEdit {
+export function mapTextEditToOriginal(
+    fragment: Pick<DocumentMapper, 'getOriginalPosition'>,
+    edit: TextEdit,
+): TextEdit {
     return { ...edit, range: mapRangeToOriginal(fragment, edit.range) };
 }
 
-export function mapLocationToOriginal(fragment: DocumentMapper, loc: Location): Location {
+export function mapLocationToOriginal(
+    fragment: Pick<DocumentMapper, 'getOriginalPosition'>,
+    loc: Location,
+): Location {
     return { ...loc, range: mapRangeToOriginal(fragment, loc.range) };
 }
 
 export function mapCompletionItemToOriginal(
-    fragment: DocumentMapper,
+    fragment: Pick<DocumentMapper, 'getOriginalPosition'>,
     item: CompletionItem,
 ): CompletionItem {
     if (!item.textEdit) {
@@ -135,7 +208,10 @@ export function mapCompletionItemToOriginal(
     return { ...item, textEdit: mapTextEditToOriginal(fragment, item.textEdit) };
 }
 
-export function mapHoverToParent(fragment: DocumentMapper, hover: Hover): Hover {
+export function mapHoverToParent(
+    fragment: Pick<DocumentMapper, 'getOriginalPosition'>,
+    hover: Hover,
+): Hover {
     if (!hover.range) {
         return hover;
     }
@@ -144,7 +220,7 @@ export function mapHoverToParent(fragment: DocumentMapper, hover: Hover): Hover 
 }
 
 export function mapDiagnosticToOriginal(
-    fragment: DocumentMapper,
+    fragment: Pick<DocumentMapper, 'getOriginalPosition'>,
     diagnostic: Diagnostic,
 ): Diagnostic {
     return { ...diagnostic, range: mapRangeToOriginal(fragment, diagnostic.range) };
@@ -158,14 +234,14 @@ export function mapDiagnosticToGenerated(
 }
 
 export function mapColorInformationToOriginal(
-    fragment: DocumentMapper,
+    fragment: Pick<DocumentMapper, 'getOriginalPosition'>,
     info: ColorInformation,
 ): ColorInformation {
     return { ...info, range: mapRangeToOriginal(fragment, info.range) };
 }
 
 export function mapColorPresentationToOriginal(
-    fragment: DocumentMapper,
+    fragment: Pick<DocumentMapper, 'getOriginalPosition'>,
     presentation: ColorPresentation,
 ): ColorPresentation {
     const item = {
@@ -186,7 +262,7 @@ export function mapColorPresentationToOriginal(
 }
 
 export function mapSymbolInformationToOriginal(
-    fragment: DocumentMapper,
+    fragment: Pick<DocumentMapper, 'getOriginalPosition'>,
     info: SymbolInformation,
 ): SymbolInformation {
     return { ...info, location: mapLocationToOriginal(fragment, info.location) };

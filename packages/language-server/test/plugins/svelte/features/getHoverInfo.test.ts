@@ -3,10 +3,11 @@ import { Position } from 'vscode-languageserver';
 import { getHoverInfo } from '../../../../src/plugins/svelte/features/getHoverInfo';
 import { SvelteDocument } from '../../../../src/plugins/svelte/SvelteDocument';
 import { documentation, SvelteTag } from '../../../../src/plugins/svelte/features/SvelteTags';
+import { Document } from '../../../../src/lib/documents';
 
 describe('SveltePlugin#getHoverInfo', () => {
     function expectHoverInfoFor(content: string, position: Position) {
-        const svelteDoc = new SvelteDocument('url', content);
+        const svelteDoc = new SvelteDocument(new Document('url', content));
         const hover = getHoverInfo(svelteDoc, position);
         return {
             toEqual: (tag: SvelteTag | null) =>

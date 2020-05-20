@@ -41,7 +41,7 @@ const EXTRACT_TAG_EXCLUSION_EXPS = EXTRACT_TAG_EXCLUSIONS.map((exp) => new RegEx
  * @param source text content to extract tag from
  * @param tag the tag to extract
  */
-export function extractTag(source: string, tag: 'script' | 'style') {
+export function extractTag(source: string, tag: 'script' | 'style'): TagInformation | null {
     const exp = new RegExp(
         `(${EXTRACT_TAG_EXCLUSIONS.join(')|(')})|(<${tag}(\\s[\\S\\s]*?)?>)([\\S\\s]*?)<\\/${tag}>`,
         'igs',

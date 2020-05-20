@@ -1,162 +1,251 @@
+import { SourceMapConsumer } from 'source-map';
+import { PreprocessorGroup } from 'svelte-preprocess/dist/types';
+import { Processed } from 'svelte/types/compiler/preprocess';
 import { Position } from 'vscode-languageserver';
-import { extractTag, offsetAt, WritableDocument, DocumentMapper } from '../../lib/documents';
-import { urlToPath } from '../../utils';
+import {
+    Document,
+    DocumentMapper,
+    extractTag,
+    FragmentMapper,
+    IdentityMapper,
+    SourceMapDocumentMapper,
+    TagInformation,
+    offsetAt,
+} from '../../lib/documents';
+import { importSvelte } from '../importPackage';
 
 /**
  * Represents a text document that contains a svelte component.
  */
-export class SvelteDocument extends WritableDocument {
-    public script: SvelteFragment;
-    public style: SvelteFragment;
+export class SvelteDocument {
+    private transpiledDoc: TranspiledSvelteDocument | undefined;
+
+    public script: TagInformation | null;
+    public style: TagInformation | null;
     public languageId = 'svelte';
+    public version = 0;
 
-    constructor(public url: string, public content: string) {
-        super();
+    constructor(private parent: Document) {
+        this.script = this.parent.scriptInfo;
+        this.style = this.parent.styleInfo;
+        this.version = this.parent.version;
+    }
 
-        this.script = new SvelteFragment(this, new SvelteFragmentDetails(this, 'script'));
-        this.style = new SvelteFragment(this, new SvelteFragmentDetails(this, 'style'));
+    getText() {
+        return this.parent.getText();
+    }
+
+    getFilePath(): string {
+        return this.parent.getFilePath() || '';
+    }
+
+    offsetAt(position: Position): number {
+        return this.parent.offsetAt(position);
+    }
+
+    async getTranspiled(preprocessors: PreprocessorGroup | undefined) {
+        if (!this.transpiledDoc) {
+            this.transpiledDoc = await TranspiledSvelteDocument.create(this.parent, preprocessors);
+        }
+        return this.transpiledDoc;
     }
 
     /**
-     * Get text content
+     * Needs to be called before cleanup to prevent source map memory leaks.
      */
-    getText(): string {
-        return this.content;
-    }
-
-    /**
-     * Set text content and increase the document version
-     */
-    setText(text: string) {
-        this.content = text;
-        this.version++;
-    }
-
-    /**
-     * Returns the file path if the url scheme is file
-     */
-    getFilePath(): string | null {
-        return urlToPath(this.url);
-    }
-
-    getURL() {
-        return this.url;
-    }
-
-    getAttributes() {
-        return {};
+    destroyTranspiled() {
+        if (this.transpiledDoc) {
+            this.transpiledDoc.destroy();
+            this.transpiledDoc = undefined;
+        }
     }
 }
 
-export class SvelteFragment implements DocumentMapper {
-    /**
-     * @param parent The fragment's parent document
-     * @param offsets The start and end offset in the parent document
-     */
-    constructor(private parent: WritableDocument, public details: SvelteFragmentDetails) {}
-
-    /**
-     * Get the fragment offset relative to the parent
-     * @param offset Offset in fragment
-     */
-    offsetInParent(offset: number): number {
-        return this.details.start + offset;
-    }
-
-    /**
-     * Get the fragment position relative to the parent
-     * @param pos Position in fragment
-     */
-    getOriginalPosition(pos: Position): Position {
-        const parentOffset = this.offsetInParent(
-            offsetAt(pos, this.parent.getText().slice(this.details.start, this.details.end)),
+export class TranspiledSvelteDocument implements Pick<DocumentMapper, 'getOriginalPosition'> {
+    static async create(document: Document, preprocessors: PreprocessorGroup = {}) {
+        const { transpiled, processedScript, processedStyle } = await transpile(
+            document,
+            preprocessors,
         );
-        return this.parent.positionAt(parentOffset);
+        const scriptMapper = await SvelteFragmentMapper.create(
+            document,
+            transpiled,
+            'script',
+            processedScript,
+        );
+        const styleMapper = await SvelteFragmentMapper.create(
+            document,
+            transpiled,
+            'style',
+            processedStyle,
+        );
+
+        return new TranspiledSvelteDocument(document, transpiled, scriptMapper, styleMapper);
     }
 
-    /**
-     * Get the position relative to the start of the fragment
-     * @param pos Position in parent
-     */
-    getGeneratedPosition(pos: Position): Position {
-        const fragmentOffset = this.parent.offsetAt(pos) - this.details.start;
-        return this.parent.positionAt(fragmentOffset);
+    private fragmentInfos = [this.scriptMapper.fragmentInfo, this.styleMapper.fragmentInfo].sort(
+        (i1, i2) => i1.end - i2.end,
+    );
+
+    private constructor(
+        private parent: Document,
+        private transpiled: string,
+        public scriptMapper: SvelteFragmentMapper,
+        public styleMapper: SvelteFragmentMapper,
+    ) {}
+
+    getOriginalPosition(generatedPosition: Position): Position {
+        if (this.scriptMapper.isInTranspiledFragment(generatedPosition)) {
+            return this.scriptMapper.getOriginalPosition(generatedPosition);
+        }
+        if (this.styleMapper.isInTranspiledFragment(generatedPosition)) {
+            return this.styleMapper.getOriginalPosition(generatedPosition);
+        }
+
+        // Position is not in fragments, but we still need to account for
+        // the length differences of the fragments before the position.
+        let offset = offsetAt(generatedPosition, this.transpiled);
+        for (const fragmentInfo of this.fragmentInfos) {
+            if (offset > fragmentInfo.end) {
+                offset += fragmentInfo.diff;
+            }
+        }
+        return this.parent.positionAt(offset);
     }
 
-    /**
-     * Returns true if the given parent position is inside of this fragment
-     * @param pos Position in parent
-     */
-    isInGenerated(pos: Position): boolean {
-        const offset = this.parent.offsetAt(pos);
-        return offset >= this.details.start && offset <= this.details.end;
-    }
-
-    getURL() {
+    getURL(): string {
         return this.parent.getURL();
     }
-}
 
-export class SvelteFragmentDetails {
-    private info!: {
-        start: number;
-        end: number;
-        container?: {
-            start: number;
-            end: number;
-        };
-        attributes: Record<string, string>;
-    };
-    private version = -1;
-
-    constructor(public document: SvelteDocument, public tag: 'style' | 'script') {
-        this.update();
-    }
-
-    get start(): number {
-        this.update();
-        return this.info.start;
-    }
-
-    get end(): number {
-        this.update();
-        return this.info.end;
-    }
-
-    get container() {
-        this.update();
-        return this.info.container;
-    }
-
-    get attributes(): Record<string, string> {
-        this.update();
-        return { ...this.info.attributes, tag: this.tag };
+    getText() {
+        return this.transpiled;
     }
 
     /**
-     * Find the tag in the document if we detected a change
+     * Needs to be called before cleanup to prevent source map memory leaks.
      */
-    private update() {
-        if (this.document.version === this.version) {
-            return;
+    destroy() {
+        this.scriptMapper.destroy();
+        this.styleMapper.destroy();
+    }
+}
+
+export class SvelteFragmentMapper {
+    static async create(
+        originalDoc: Document,
+        transpiled: string,
+        tag: 'style' | 'script',
+        processed?: Processed,
+    ) {
+        const sourceMapper = processed?.map
+            ? new SourceMapDocumentMapper(
+                  await new SourceMapConsumer(processed.map.toString()),
+                  originalDoc.uri,
+              )
+            : new IdentityMapper(originalDoc.uri);
+
+        const transpiledTagInfo = extractTag(transpiled, tag);
+        const originalTagInfo = tag === 'style' ? originalDoc.styleInfo : originalDoc.scriptInfo;
+
+        if (originalTagInfo && transpiledTagInfo) {
+            const sourceLength = originalTagInfo.container.end - originalTagInfo.container.start;
+            const transpiledLength =
+                transpiledTagInfo.container.end - transpiledTagInfo.container.start;
+            const diff = sourceLength - transpiledLength;
+
+            return new SvelteFragmentMapper(
+                { end: transpiledTagInfo.container.end, diff },
+                new FragmentMapper(originalDoc.getText(), originalTagInfo, originalDoc.uri),
+                new FragmentMapper(transpiled, transpiledTagInfo, originalDoc.uri),
+                sourceMapper,
+            );
         }
 
-        this.version = this.document.version;
-        const info = extractTag(this.document.getText(), this.tag);
-        if (info) {
-            this.info = info;
-            return;
-        }
+        return new SvelteFragmentMapper(
+            { end: -1, diff: 0 },
+            new IdentityMapper(originalDoc.uri),
+            new IdentityMapper(originalDoc.uri),
+            sourceMapper,
+        );
+    }
 
-        const length = this.document.getTextLength();
-        this.info = {
-            attributes: {},
-            start: -1,
-            end: -1,
-            container: {
-                start: length,
-                end: length,
-            },
+    private constructor(
+        /**
+         * End offset + length difference to original
+         */
+        public fragmentInfo: { end: number; diff: number },
+        /**
+         * Maps between full original source and fragment within that original.
+         */
+        private originalFragmentMapper: DocumentMapper,
+        /**
+         * Maps between full transpiled source and fragment within that transpiled.
+         */
+        private transpiledFragmentMapper: DocumentMapper,
+        /**
+         * Maps between original and transpiled, within fragment.
+         */
+        private sourceMapper: DocumentMapper,
+    ) {}
+
+    isInTranspiledFragment(generatedPosition: Position): boolean {
+        return this.transpiledFragmentMapper.isInGenerated(generatedPosition);
+    }
+
+    getOriginalPosition(generatedPosition: Position): Position {
+        // Map the position to be relative to the transpiled fragment
+        const positionInTranspiledFragment = this.transpiledFragmentMapper.getGeneratedPosition(
+            generatedPosition,
+        );
+        // Map the position, using the sourcemap, to the original position in the source fragment
+        const positionInOriginalFragment = this.sourceMapper.getOriginalPosition(
+            positionInTranspiledFragment,
+        );
+        // Map the position to be in the original fragment's parent
+        return this.originalFragmentMapper.getOriginalPosition(positionInOriginalFragment);
+    }
+
+    /**
+     * Needs to be called before cleanup to prevent source map memory leaks.
+     */
+    destroy() {
+        if (this.sourceMapper.destroy) {
+            this.sourceMapper.destroy();
+        }
+    }
+}
+
+async function transpile(document: Document, preprocessors: PreprocessorGroup = {}) {
+    const preprocessor: PreprocessorGroup = {};
+    let processedScript: Processed | undefined;
+    let processedStyle: Processed | undefined;
+
+    if (preprocessors.script) {
+        preprocessor.script = async (args: any) => {
+            const res = await preprocessors.script!(args);
+            if (res && res.map) {
+                processedScript = res;
+            }
+            return res;
         };
     }
+
+    if (preprocessors.style) {
+        preprocessor.style = async (args: any) => {
+            const res = await preprocessors.style!(args);
+            if (res && res.map) {
+                processedStyle = res;
+            }
+            return res;
+        };
+    }
+
+    const svelte = importSvelte(document.getFilePath() || '');
+    const transpiled = (
+        await svelte.preprocess(document.getText(), preprocessor, {
+            filename: document.getFilePath() || '',
+        })
+    ).toString();
+
+    return { transpiled, processedScript, processedStyle };
 }

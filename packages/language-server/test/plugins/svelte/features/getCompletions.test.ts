@@ -2,18 +2,19 @@ import * as assert from 'assert';
 import { Position } from 'vscode-languageserver';
 import { getCompletions } from '../../../../src/plugins/svelte/features/getCompletions';
 import { SvelteDocument } from '../../../../src/plugins/svelte/SvelteDocument';
+import { Document } from '../../../../src/lib/documents';
 
 describe('SveltePlugin#getCompletions', () => {
     function expectCompletionsFor(
         content: string,
         position: Position = Position.create(0, content.length),
     ) {
-        const svelteDoc = new SvelteDocument('url', content);
+        const svelteDoc = new SvelteDocument(new Document('url', content));
         const completions = getCompletions(svelteDoc, position);
         return {
             toEqual: (expectedLabels: string[] | null) =>
                 assert.deepStrictEqual(
-                    completions?.items.map(item => item.label) ?? null,
+                    completions?.items.map((item) => item.label) ?? null,
                     expectedLabels,
                 ),
         };

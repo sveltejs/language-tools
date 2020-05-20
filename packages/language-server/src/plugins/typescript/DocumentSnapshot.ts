@@ -11,8 +11,9 @@ import {
     offsetAt,
     positionAt,
     TagInformation,
+    isInTag,
 } from '../../lib/documents';
-import { isInRange, pathToUrl } from '../../utils';
+import { pathToUrl } from '../../utils';
 import { ConsumerDocumentMapper } from './DocumentMapper';
 import { getScriptKindFromAttributes, getScriptKindFromFileName, isSvelteFilePath } from './utils';
 
@@ -281,13 +282,7 @@ export class SvelteSnapshotFragment implements SnapshotFragment {
     }
 
     isInGenerated(pos: Position): boolean {
-        return (
-            !this.parent.styleInfo ||
-            !isInRange(
-                Range.create(this.parent.styleInfo.startPos, this.parent.styleInfo.endPos),
-                pos,
-            )
-        );
+        return !isInTag(pos, this.parent.styleInfo);
     }
 
     getURL(): string {

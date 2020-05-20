@@ -1,8 +1,4 @@
-// TODO: Remove
-type InitialMigrationAny = any;
-
 import { cosmiconfig } from 'cosmiconfig';
-import { RawIndexMap, RawSourceMap, SourceMapConsumer } from 'source-map';
 import { CompileOptions, Warning } from 'svelte/types/compiler/interfaces';
 import { PreprocessorGroup } from 'svelte/types/compiler/preprocess';
 import {
@@ -14,7 +10,7 @@ import {
     Range,
     TextEdit,
 } from 'vscode-languageserver';
-import { Document, isInTag, ReadableDocument } from '../../lib/documents';
+import { Document, isInTag, mapDiagnosticToOriginal } from '../../lib/documents';
 import { LSConfigManager, LSSvelteConfig } from '../../ls-config';
 import { importPrettier, importSvelte, importSveltePreprocess } from '../importPackage';
 import {
@@ -26,7 +22,7 @@ import {
 } from '../interfaces';
 import { getCompletions } from './features/getCompletions';
 import { getHoverInfo } from './features/getHoverInfo';
-import { SvelteDocument, SvelteFragment } from './SvelteDocument';
+import { SvelteDocument } from './SvelteDocument';
 
 interface SvelteConfig extends CompileOptions {
     preprocess?: PreprocessorGroup;
@@ -38,6 +34,8 @@ const DEFAULT_OPTIONS: CompileOptions = {
 
 export class SveltePlugin
     implements DiagnosticsProvider, FormattingProvider, CompletionsProvider, HoverProvider {
+    private docManager = new Map<Document, SvelteDocument>();
+
     constructor(private configManager: LSConfigManager) {}
 
     async getDiagnostics(document: Document): Promise<Diagnostic[]> {
@@ -66,24 +64,16 @@ export class SveltePlugin
     }
 
     private async tryGetDiagnostics(document: Document): Promise<Diagnostic[]> {
-        const svelteDoc = new SvelteDocument(document.getURL(), document.getText());
+        const svelteDoc = this.getSvelteDoc(document);
         const config = await this.loadConfig(document);
-        const svelte = importSvelte(svelteDoc.getFilePath()!);
+        const svelte = importSvelte(svelteDoc.getFilePath());
+        const transpiled = await svelteDoc.getTranspiled(config.preprocess);
 
-        const preprocessor = makePreprocessor(svelteDoc, config.preprocess);
-        const source = (
-            await svelte.preprocess(svelteDoc.getText(), preprocessor, {
-                filename: svelteDoc.getFilePath()!,
-            })
-        ).toString();
-        preprocessor.transpiledDocument.setText(source);
-
-        let diagnostics: Diagnostic[];
         try {
-            delete config.preprocess;
-            const res = svelte.compile(source, config);
-            diagnostics = (((res.stats as any).warnings || res.warnings || []) as Warning[]).map(
-                (warning) => {
+            delete config.preprocess; // svelte compiler throws an error if we don't do this
+            const res = svelte.compile(transpiled.getText(), config);
+            return (((res.stats as any).warnings || res.warnings || []) as Warning[])
+                .map((warning) => {
                     const start = warning.start || { line: 1, column: 0 };
                     const end = warning.end || start;
                     return {
@@ -93,22 +83,16 @@ export class SveltePlugin
                         source: 'svelte',
                         code: warning.code,
                     };
-                },
-            );
+                })
+                .map((diag) => mapDiagnosticToOriginal(transpiled, diag));
         } catch (err) {
-            return await this.createParserErrorDiagnostic(err, document, svelteDoc, preprocessor);
+            return (await this.createParserErrorDiagnostic(err, document)).map((diag) =>
+                mapDiagnosticToOriginal(transpiled, diag),
+            );
         }
-
-        await mapDiagnosticsToOriginal(svelteDoc, preprocessor, diagnostics);
-        return diagnostics;
     }
 
-    private async createParserErrorDiagnostic(
-        error: any,
-        document: Document,
-        svelteDoc: SvelteDocument,
-        preprocessor: Preprocessor,
-    ) {
+    private async createParserErrorDiagnostic(error: any, document: Document) {
         const start = error.start || { line: 1, column: 0 };
         const end = error.end || start;
         const diagnostic: Diagnostic = {
@@ -118,7 +102,6 @@ export class SveltePlugin
             source: 'svelte',
             code: error.code,
         };
-        await mapDiagnosticsToOriginal(svelteDoc, preprocessor, [diagnostic]);
 
         if (diagnostic.message.includes('expected')) {
             const isInStyle = isInTag(diagnostic.range.start, document.styleInfo);
@@ -203,8 +186,7 @@ export class SveltePlugin
             return null;
         }
 
-        const svelteDoc = new SvelteDocument(document.getURL(), document.getText());
-        return getCompletions(svelteDoc, position);
+        return getCompletions(this.getSvelteDoc(document), position);
     }
 
     doHover(document: Document, position: Position): Hover | null {
@@ -212,8 +194,7 @@ export class SveltePlugin
             return null;
         }
 
-        const svelteDoc = new SvelteDocument(document.getURL(), document.getText());
-        return getHoverInfo(svelteDoc, position);
+        return getHoverInfo(this.getSvelteDoc(document), position);
     }
 
     private featureEnabled(feature: keyof LSSvelteConfig) {
@@ -222,146 +203,14 @@ export class SveltePlugin
             this.configManager.enabled(`svelte.${feature}.enable`)
         );
     }
-}
 
-interface Preprocessor extends PreprocessorGroup {
-    fragments: {
-        source: SvelteFragment;
-        transpiled: SvelteFragment;
-        code: string;
-        map: RawSourceMap | RawIndexMap | string;
-    }[];
-    transpiledDocument: SvelteDocument;
-}
-
-function makePreprocessor(document: SvelteDocument, preprocessors: PreprocessorGroup = {}) {
-    const preprocessor: Preprocessor = {
-        fragments: [],
-        transpiledDocument: new SvelteDocument(document.getURL(), document.getText()),
-    };
-
-    if (preprocessors.script) {
-        preprocessor.script = (async (args: any) => {
-            const res = await preprocessors.script!(args);
-            if (res && res.map) {
-                preprocessor.fragments.push({
-                    source: document.script,
-                    transpiled: preprocessor.transpiledDocument.script,
-                    code: res.code,
-                    map: res.map as InitialMigrationAny,
-                });
-            }
-            return res;
-        }) as any;
-    }
-
-    if (preprocessors.style) {
-        preprocessor.style = (async (args: any) => {
-            const res = await preprocessors.style!(args);
-            if (res && res.map) {
-                preprocessor.fragments.push({
-                    source: document.style,
-                    transpiled: preprocessor.transpiledDocument.style,
-                    code: res.code,
-                    map: res.map as InitialMigrationAny,
-                });
-            }
-            return res;
-        }) as any;
-    }
-
-    return preprocessor;
-}
-
-async function mapDiagnosticsToOriginal(
-    document: ReadableDocument,
-    preprocessor: Preprocessor,
-    diagnostics: Diagnostic[],
-): Promise<void> {
-    for (const fragment of preprocessor.fragments) {
-        const newDiagnostics: Diagnostic[] = [];
-        const fragmentDiagnostics: Diagnostic[] = [];
-        for (const diag of diagnostics) {
-            if (fragment.transpiled.isInGenerated(diag.range.start)) {
-                fragmentDiagnostics.push(diag);
-            } else {
-                newDiagnostics.push(diag);
-            }
+    private getSvelteDoc(document: Document) {
+        let svelteDoc = this.docManager.get(document);
+        if (!svelteDoc || svelteDoc.version !== document.version) {
+            svelteDoc?.destroyTranspiled();
+            svelteDoc = new SvelteDocument(document);
+            this.docManager.set(document, svelteDoc);
         }
-        diagnostics = newDiagnostics;
-        if (fragmentDiagnostics.length === 0) {
-            continue;
-        }
-
-        await SourceMapConsumer.with(fragment.map, null, (consumer) => {
-            for (const diag of fragmentDiagnostics) {
-                diag.range = {
-                    start: mapFragmentPositionBySourceMap(
-                        fragment.source,
-                        fragment.transpiled,
-                        consumer,
-                        diag.range.start,
-                    ),
-                    end: mapFragmentPositionBySourceMap(
-                        fragment.source,
-                        fragment.transpiled,
-                        consumer,
-                        diag.range.end,
-                    ),
-                };
-            }
-        });
+        return svelteDoc;
     }
-
-    const sortedFragments = preprocessor.fragments.sort(
-        (a, b) => a.transpiled.offsetInParent(0) - b.transpiled.offsetInParent(0),
-    );
-    if (diagnostics.length > 0) {
-        for (const diag of diagnostics) {
-            for (const fragment of sortedFragments) {
-                const start = preprocessor.transpiledDocument.offsetAt(diag.range.start);
-                if (fragment.transpiled.details.container!.end > start) {
-                    continue;
-                }
-
-                const sourceLength =
-                    fragment.source.details.container!.end -
-                    fragment.source.details.container!.start;
-                const transpiledLength =
-                    fragment.transpiled.details.container!.end -
-                    fragment.transpiled.details.container!.start;
-                const diff = sourceLength - transpiledLength;
-                const end = preprocessor.transpiledDocument.offsetAt(diag.range.end);
-                diag.range = {
-                    start: document.positionAt(start + diff),
-                    end: document.positionAt(end + diff),
-                };
-            }
-        }
-    }
-}
-
-function mapFragmentPositionBySourceMap(
-    source: SvelteFragment,
-    transpiled: SvelteFragment,
-    consumer: SourceMapConsumer,
-    pos: Position,
-): Position {
-    // Start with a position that exists in the transpiled fragment's parent
-
-    // Map the position to be relative to the transpiled fragment only
-    const transpiledPosition = transpiled.getGeneratedPosition(pos);
-
-    // Map the position, using the sourcemap, to a position in the source fragment
-    const mappedPosition = consumer.originalPositionFor({
-        line: transpiledPosition.line + 1,
-        column: transpiledPosition.character,
-    });
-    const sourcePosition = {
-        line: mappedPosition.line! - 1,
-        character: mappedPosition.column!,
-    };
-
-    // Map the position to be relative to the source fragment's parent
-    return source.getOriginalPosition(sourcePosition);
 }
