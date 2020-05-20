@@ -84,7 +84,7 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
         //rewrite get
         let dollar = str.original.indexOf("$", node.start);
         str.overwrite(dollar, dollar+1, "__sveltets_store_get(");
-        str.appendLeft(node.end, ")")
+        str.prependLeft(node.end, ")")
     }
 
     const resolveStore = (pending: pendingStoreResolution<Node>) => {
