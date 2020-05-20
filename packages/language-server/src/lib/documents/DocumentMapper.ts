@@ -15,6 +15,7 @@ import {
 } from 'vscode-languageserver';
 import { TagInformation, offsetAt, positionAt } from './utils';
 import { SourceMapConsumer } from 'source-map';
+import { Logger } from '../../logger';
 
 export interface DocumentMapper {
     /**
@@ -117,7 +118,7 @@ export class SourceMapDocumentMapper implements DocumentMapper {
         }
 
         if (mapped.line === 0) {
-            console.warn('Got 0 mapped line from', generatedPosition, 'col was', mapped.column);
+            Logger.log('Got 0 mapped line from', generatedPosition, 'col was', mapped.column);
         }
 
         return {

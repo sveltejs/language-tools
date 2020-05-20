@@ -23,6 +23,7 @@ import {
 import { getCompletions } from './features/getCompletions';
 import { getHoverInfo } from './features/getHoverInfo';
 import { SvelteDocument } from './SvelteDocument';
+import { Logger } from '../../logger';
 
 interface SvelteConfig extends CompileOptions {
     preprocess?: PreprocessorGroup;
@@ -128,7 +129,7 @@ export class SveltePlugin
     }
 
     private async loadConfig(document: Document): Promise<SvelteConfig> {
-        console.log('loading config for', document.getFilePath());
+        Logger.log('loading config for', document.getFilePath());
         try {
             const explorer = cosmiconfig('svelte', { packageProp: 'svelte-ls' });
             const result = await explorer.search(document.getFilePath() || '');
@@ -146,7 +147,7 @@ export class SveltePlugin
             document.scriptInfo?.attributes.lang ||
             document.scriptInfo?.attributes.type
         ) {
-            console.log(
+            Logger.log(
                 'No svelte.config.js found but one is needed. ' +
                     'Using https://github.com/kaisermann/svelte-preprocess as fallback',
             );
