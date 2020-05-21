@@ -159,4 +159,4 @@ export default [
 // transition events
 "ontransitionend",
 "ontransitionendcapture"
-]
+];

@@ -3,7 +3,7 @@ import commonjs from 'rollup-plugin-commonjs';
 import resolve from 'rollup-plugin-node-resolve';
 import json from 'rollup-plugin-json';
 import del from 'rollup-plugin-delete';
-import builtins from 'builtin-modules'
+import builtins from 'builtin-modules';
 
 export default [{
 	input: ['src/index.ts'],
@@ -35,6 +35,6 @@ export default [{
 		typescript()
 	],
 	external: [...builtins, 'typescript', 'svelte', 'svelte/compiler', 'parse5', 'magic-string']
-	
+
 }
 ];

@@ -1,8 +1,6 @@
-import parse5, { DefaultTreeDocumentFragment, DefaultTreeElement, DefaultTreeTextNode, DefaultTreeNode } from 'parse5'
-import compiler from 'svelte/compiler'
+import parse5, { DefaultTreeDocumentFragment, DefaultTreeElement, DefaultTreeTextNode } from 'parse5';
+import compiler from 'svelte/compiler';
 import { Node } from 'svelte/types/compiler/interfaces';
-
-
 
 function walkAst(doc: DefaultTreeElement, action: (c: DefaultTreeElement) => void) {
     action(doc);
@@ -13,10 +11,11 @@ function walkAst(doc: DefaultTreeElement, action: (c: DefaultTreeElement) => voi
 }
 
 export function findVerbatimElements(htmlx: string) {
-    let elements:Node[] = []
-    let tag_names = ['script', 'style'];
+    const elements: Node[] = [];
+    const tagNames = ['script', 'style'];
 
-    let doc: DefaultTreeDocumentFragment = parse5.parseFragment (htmlx, { sourceCodeLocationInfo: true }) as DefaultTreeDocumentFragment;
+    const parseOpts = { sourceCodeLocationInfo: true };
+    const doc = parse5.parseFragment(htmlx, parseOpts) as DefaultTreeDocumentFragment;
 
     const checkCase = (content: DefaultTreeTextNode, el: parse5.DefaultTreeElement) => {
         const orgStart = el.sourceCodeLocation.startOffset || 0;
@@ -24,14 +23,15 @@ export function findVerbatimElements(htmlx: string) {
         const outerHtml = htmlx.substring(orgStart, orgEnd);
         const onlyTag = content ? outerHtml.replace(content.value, '') : outerHtml;
 
-        return tag_names.some(tag => onlyTag.match(tag));
-    }
+        return tagNames.some(tag => onlyTag.match(tag));
+    };
 
 
     walkAst(doc as DefaultTreeElement, el => {
-        if (tag_names.includes(el.nodeName)) {
-            let content =  (el.childNodes && el.childNodes.length > 0) ? el.childNodes[0] as DefaultTreeTextNode : null;
-            if(!checkCase(content, el)) {
+        if (tagNames.includes(el.nodeName)) {
+            const hasNodes = el.childNodes && el.childNodes.length > 0;
+            const content = hasNodes ? el.childNodes[0] as DefaultTreeTextNode : null;
+            if (!checkCase(content, el)) {
                 return;
             }
             elements.push({
@@ -49,7 +49,7 @@ export function findVerbatimElements(htmlx: string) {
                     }],
                     start: el.sourceCodeLocation.attrs[a.name].startOffset,
                     end: el.sourceCodeLocation.attrs[a.name].endOffset
-                }}),
+                };}),
                 content: !content ? null : {
                     type: "Text",
                     start: content.sourceCodeLocation.startOffset,
@@ -66,29 +66,29 @@ export function findVerbatimElements(htmlx: string) {
 
 export function blankVerbatimContent(htmlx: string, verbatimElements: Node[]) {
     let output = htmlx;
-    for (var node of verbatimElements) {
-        let content = node.content;
+    for (const node of verbatimElements) {
+        const content = node.content;
         if (content) {
             output = output.substring(0, content.start)
                                 + output.substring(content.start, content.end).replace(/[^\n]/g, " ")
                                 + output.substring(content.end);
         }
     }
-    return output
+    return output;
 }
 
 
 export function parseHtmlx(htmlx: string): Node {
     //Svelte tries to parse style and script tags which doesn't play well with typescript, so we blank them out.
     //HTMLx spec says they should just be retained after processing as is, so this is fine
-    let verbatimElements = findVerbatimElements(htmlx);
-    let deconstructed = blankVerbatimContent(htmlx, verbatimElements);
+    const verbatimElements = findVerbatimElements(htmlx);
+    const deconstructed = blankVerbatimContent(htmlx, verbatimElements);
 
     //extract the html content parsed as htmlx this excludes our script and style tags
-    let svelteHtmlxAst = compiler.parse(deconstructed).html;
+    const svelteHtmlxAst = compiler.parse(deconstructed).html;
 
     //restore our script and style tags as nodes to maintain validity with HTMLx
-    for (var s of verbatimElements) {
+    for (const s of verbatimElements) {
         svelteHtmlxAst.children.push(s);
         svelteHtmlxAst.start = Math.min(svelteHtmlxAst.start, s.start);
         svelteHtmlxAst.end = Math.max(svelteHtmlxAst.end, s.end);
