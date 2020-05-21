@@ -1,0 +1,1 @@
+<input id="dom-input" type="radio" bind:group={$compile_options.generate} value="dom">
