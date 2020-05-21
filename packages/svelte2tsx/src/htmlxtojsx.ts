@@ -141,12 +141,12 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node, onWalk: Walker = 
         if (oneWayBindingAttributes.has(attr.name) && el.type == "Element") {
             str.remove(attr.start, attr.expression.start);
             str.appendLeft(attr.expression.start, `{...__sveltets_any(`);
-            const name = oneWayBindingAttributes.get(attr.name);
             if (attr.expression.end == attr.end) {
-                str.appendLeft(attr.end,  `=__sveltets_instanceOf(${name}.${attr.name})}`);
+                // eslint-disable-next-line max-len
+                str.appendLeft(attr.end,  `=__sveltets_instanceOf(${oneWayBindingAttributes.get(attr.name)}).${attr.name})}`);
             } else {
                 // eslint-disable-next-line max-len
-                str.overwrite(attr.expression.end, attr.end, `=__sveltets_instanceOf(${name}).${attr.name})}`);
+                str.overwrite(attr.expression.end, attr.end, `=__sveltets_instanceOf(${oneWayBindingAttributes.get(attr.name)}).${attr.name})}`);
             }
             return;
         }
