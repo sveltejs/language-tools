@@ -41,13 +41,13 @@ A `.svelte` file would look something like this:
 <p>{doubled} * 2 = {quadrupled}</p>
 ```
 
-Which is a mix of [HTMLx](https://github.com/htmlx-org/HTMLx) and vanilla JavaScript (but with additional runtime behavior coming from the svelte compiler). 
+Which is a mix of [HTMLx](https://github.com/htmlx-org/HTMLx) and vanilla JavaScript (but with additional runtime behavior coming from the svelte compiler).
 
 This repo contains the tools which provide editor integrations for Svelte files like this.
 
 ## Packages
 
-This repo uses [`yarn workspaces`](https://classic.yarnpkg.com/blog/2017/08/02/introducing-workspaces/), which TLDR means if you want to run a commands in each project then you can either `cd` to that directory and run the command, or use `yarn workspace [package_name] [command]`. 
+This repo uses [`yarn workspaces`](https://classic.yarnpkg.com/blog/2017/08/02/introducing-workspaces/), which TLDR means if you want to run a commands in each project then you can either `cd` to that directory and run the command, or use `yarn workspace [package_name] [command]`.
 
 For example `yarn workspace svelte-language-server test`.
 
@@ -58,6 +58,10 @@ The language server for Svelte. Built from [UnwrittenFun/svelte-language-server]
 #### [`svelte-vscode`](packages/svelte-vscode)
 
 The official vscode extension for Svelte. Built from [UnwrittenFun/svelte-vscode](https://github.com/UnwrittenFun/svelte-vscode) to become the official vscode extension for the language.
+
+#### [`svelte2tsx`](packages/svelte2tsx)
+
+Converts a .svelte file into a legal TypeScript file. Built from [halfnelson/svelte2tsx](https://github.com/UnwrittenFun/halfnelson/svelte2tsx) to provide the auto-complete and import mapping inside the language server.
 
 ## Development
 
@@ -71,6 +75,7 @@ To install and work on Svelte locally:
 git clone https://github.com/sveltejs/language-tools.git svelte-language-tools
 cd svelte-language-tools
 yarn install
+yarn bootstrap
 ```
 
 > Do not use npm to install the dependencies, as the specific package versions in `yarn.lock` are used to build and test Svelte.
