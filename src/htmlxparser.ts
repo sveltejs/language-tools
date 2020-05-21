@@ -15,12 +15,25 @@ function walkAst(doc: DefaultTreeElement, action: (c: DefaultTreeElement) => voi
 export function findVerbatimElements(htmlx: string) {
     let elements:Node[] = []
     let tag_names = ['script', 'style'];
-    
+
     let doc: DefaultTreeDocumentFragment = parse5.parseFragment (htmlx, { sourceCodeLocationInfo: true }) as DefaultTreeDocumentFragment;
-    
+
+    const checkCase = (content: DefaultTreeTextNode, el: parse5.DefaultTreeElement) => {
+        const orgStart = el.sourceCodeLocation.startOffset || 0;
+        const orgEnd = el.sourceCodeLocation.endOffset || 0;
+        const outerHtml = htmlx.substring(orgStart, orgEnd);
+        const onlyTag = content ? outerHtml.replace(content.value, '') : outerHtml;
+
+        return tag_names.some(tag => onlyTag.match(tag));
+    }
+
+
     walkAst(doc as DefaultTreeElement, el => {
         if (tag_names.includes(el.nodeName)) {
             let content =  (el.childNodes && el.childNodes.length > 0) ? el.childNodes[0] as DefaultTreeTextNode : null;
+            if(!checkCase(content, el)) {
+                return;
+            }
             elements.push({
                 start: el.sourceCodeLocation.startOffset,
                 end: el.sourceCodeLocation.endOffset,
@@ -51,7 +64,6 @@ export function findVerbatimElements(htmlx: string) {
     return elements;
 }
 
-
 export function blankVerbatimContent(htmlx: string, verbatimElements: Node[]) {
     let output = htmlx;
     for (var node of verbatimElements) {
@@ -67,14 +79,14 @@ export function blankVerbatimContent(htmlx: string, verbatimElements: Node[]) {
 
 
 export function parseHtmlx(htmlx: string): Node {
-    //Svelte tries to parse style and script tags which doesn't play well with typescript, so we blank them out. 
+    //Svelte tries to parse style and script tags which doesn't play well with typescript, so we blank them out.
     //HTMLx spec says they should just be retained after processing as is, so this is fine
     let verbatimElements = findVerbatimElements(htmlx);
     let deconstructed = blankVerbatimContent(htmlx, verbatimElements);
-    
+
     //extract the html content parsed as htmlx this excludes our script and style tags
-    let svelteHtmlxAst = compiler.parse(deconstructed).html; 
-    
+    let svelteHtmlxAst = compiler.parse(deconstructed).html;
+
     //restore our script and style tags as nodes to maintain validity with HTMLx
     for (var s of verbatimElements) {
         svelteHtmlxAst.children.push(s);
