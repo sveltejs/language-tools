@@ -44,8 +44,7 @@ export function convertHtmlxToJsx(str: MagicString, ast: Node, onWalk: (node: No
             //We don't know the type of the event handler
             if (attr.expression) {
                 //for handler assignment, we changeIt to call to our __sveltets_ensureFunction
-                str.remove(attr.start, attr.expression.start);
-                str.prependRight(attr.expression.start, "{...__sveltets_ensureFunction((")
+                str.overwrite(attr.start, attr.expression.start, "{...__sveltets_ensureFunction((");
                 str.overwrite(attr.expression.end, attr.end, "))}");
             } else {
                 //for passthrough handlers, we just remove
