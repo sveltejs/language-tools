@@ -17,6 +17,7 @@ import {
 } from 'vscode-languageserver-protocol';
 import { URI } from 'vscode-uri';
 
+/* eslint-disable @typescript-eslint/no-empty-function */
 class NullLogger implements Logger {
     error(_message: string): void {}
     warn(_message: string): void {}
@@ -32,6 +33,7 @@ class TestStream extends Duplex {
 
     _read(_size: number) {}
 }
+/* eslint-enable @typescript-eslint/no-empty-function */
 
 async function prepareClientConnection() {
     const up = new TestStream();
@@ -52,6 +54,28 @@ async function prepareClientConnection() {
 
     clientConnection.listen();
     return clientConnection;
+}
+
+function logDiagnostic(diagnostic: Diagnostic, text: string): 0 | 1 {
+    const source = diagnostic.source ? `(${diagnostic.source})` : '';
+    // eslint-disable-next-line max-len
+    const position = `Line: ${diagnostic.range.start.line}, Character: ${diagnostic.range.start.character}`;
+    // Show some context around diagnostic range
+    const startOffset = offsetAt(diagnostic.range.start, text);
+    const endOffset = offsetAt(diagnostic.range.end, text);
+    const codePrev = chalk.cyan(text.substring(Math.max(startOffset - 10, 0), startOffset));
+    const codeHighlight = chalk.magenta(text.substring(startOffset, endOffset));
+    const codePost = chalk.cyan(text.substring(endOffset, endOffset + 10));
+    const code = codePrev + codeHighlight + codePost;
+    const msg = `${diagnostic.message} ${source}\n${position}\n${chalk.cyan(code)}`;
+
+    if (diagnostic.severity === DiagnosticSeverity.Error) {
+        console.log(`${chalk.red('Error')}: ${msg}`);
+        return 1;
+    }
+
+    console.log(`${chalk.yellow('Warn')} : ${msg}`);
+    return 0;
 }
 
 async function getDiagnostics(workspaceUri: URI) {
@@ -84,29 +108,7 @@ async function getDiagnostics(workspaceUri: URI) {
             if (res.length > 0) {
                 console.log('');
                 console.log(`${chalk.green('File')} : ${chalk.green(absFilePath)}`);
-                res.forEach((d) => {
-                    const source = d.source ? `(${d.source})` : '';
-                    const position = `Line: ${d.range.start.line}, Character: ${d.range.start.character}`;
-
-                    // Show some context around diagnostic range
-                    const startOffset = offsetAt(d.range.start, text);
-                    const endOffset = offsetAt(d.range.end, text);
-                    const codePrev = chalk.cyan(
-                        text.substring(Math.max(startOffset - 10, 0), startOffset),
-                    );
-                    const codeHighlight = chalk.magenta(text.substring(startOffset, endOffset));
-                    const codePost = chalk.cyan(text.substring(endOffset, endOffset + 10));
-                    const code = codePrev + codeHighlight + codePost;
-
-                    const msg = `${d.message} ${source}\n${position}\n${chalk.cyan(code)}`;
-
-                    if (d.severity === DiagnosticSeverity.Error) {
-                        console.log(`${chalk.red('Error')}: ${msg}`);
-                        errCount++;
-                    } else {
-                        console.log(`${chalk.yellow('Warn')} : ${msg}`);
-                    }
-                });
+                res.forEach((d) => (errCount += logDiagnostic(d, text)));
                 console.log('');
             }
         } catch (err) {
