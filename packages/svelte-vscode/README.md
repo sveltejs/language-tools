@@ -2,6 +2,12 @@
 
 Provides syntax highlighting and rich intellisense for Svelte components in VS Code, utilising the [svelte language server](../language-server).
 
+## Setup
+
+Do you want to use Typescript/SCSS/Less/..? See [Using with preprocessors](using-with-preprocessors).
+
+If you added `"files.associations": {"*.svelte": "html"  }` to your VSCode settings, remove it.
+
 ## Features
 
 -   Svelte
