@@ -12,48 +12,50 @@
   </a>
 </p>
 
-
 ## What is Svelte Language Tools?
 
-Svelte Language Tools contains a library implementing the Language Server Protocol (LSP). LSP powers the [VSCode extension](https://marketplace.visualstudio.com/items?itemName=svelte.svelte-vscode), which is also hosted in this repository. Additionally, LSP is capable of powering plugins for [numerous other IDEs](https://microsoft.github.io/language-server-protocol/implementors/tools/
-).
+Svelte Language Tools contains a library implementing the Language Server Protocol (LSP). LSP powers the [VSCode extension](https://marketplace.visualstudio.com/items?itemName=svelte.svelte-vscode), which is also hosted in this repository. Additionally, LSP is capable of powering plugins for [numerous other IDEs](https://microsoft.github.io/language-server-protocol/implementors/tools/).
 
 A `.svelte` file would look something like this:
 
 ```html
 <script>
-  let count = 1;
+    let count = 1;
 
-  // the `$:` means 're-run whenever these values change'
-  $: doubled = count * 2;
-  $: quadrupled = doubled * 2;
+    // the `$:` means 're-run whenever these values change'
+    $: doubled = count * 2;
+    $: quadrupled = doubled * 2;
 
-  function handleClick() {
-    count += 1;
-  }
+    function handleClick() {
+        count += 1;
+    }
 </script>
 
-<button on:click={handleClick}>
-  Count: {count}
+<button on:click="{handleClick}">
+    Count: {count}
 </button>
 
 <p>{count} * 2 = {doubled}</p>
 <p>{doubled} * 2 = {quadrupled}</p>
 ```
 
-Which is a mix of [HTMLx](https://github.com/htmlx-org/HTMLx) and vanilla JavaScript (but with additional runtime behavior coming from the svelte compiler). 
+Which is a mix of [HTMLx](https://github.com/htmlx-org/HTMLx) and vanilla JavaScript (but with additional runtime behavior coming from the svelte compiler).
 
 This repo contains the tools which provide editor integrations for Svelte files like this.
 
 ## Packages
 
-This repo uses [`yarn workspaces`](https://classic.yarnpkg.com/blog/2017/08/02/introducing-workspaces/), which TLDR means if you want to run a commands in each project then you can either `cd` to that directory and run the command, or use `yarn workspace [package_name] [command]`. 
+This repo uses [`yarn workspaces`](https://classic.yarnpkg.com/blog/2017/08/02/introducing-workspaces/), which TLDR means if you want to run a commands in each project then you can either `cd` to that directory and run the command, or use `yarn workspace [package_name] [command]`.
 
 For example `yarn workspace svelte-language-server test`.
 
 #### [`svelte-language-server`](packages/language-server)
 
 The language server for Svelte. Built from [UnwrittenFun/svelte-language-server](https://github.com/UnwrittenFun/svelte-language-server) to become the official language server for the language.
+
+#### [`svelte-check`](packages/svelte-check)
+
+A command line tool to check your svelte files for type errors, unused css, and more.
 
 #### [`svelte-vscode`](packages/svelte-vscode)
 
@@ -91,9 +93,9 @@ There are two ways to work on this project: either by working against an existin
 
 To run the developer version of both the language server and the VSCode extension:
 
-- open the root of this repo in VSCode
-- Go to the debugging panel
-- Make sure "Run VSCode Extension" is selected, and hit run
+-   open the root of this repo in VSCode
+-   Go to the debugging panel
+-   Make sure "Run VSCode Extension" is selected, and hit run
 
 This launches a new VSCode window and a watcher for your changes. In this dev window you can choose an existing Svelte project to work against. If you don't use pure Javascript and CSS, but languages like Typescript or SCSS, your project will need a [Svelte preprocessor setup](packages/svelte-vscode#using-with-preprocessors). When you make changes to the extension or language server you can use the command "Reload Window" in the VSCode command palette to see your changes.
 
@@ -107,7 +109,7 @@ This means it's easy to write tests for your changes:
 yarn test
 ```
 
-For tricker issues, you can run the tests with a debugger in VSCode by setting a breakpoint (or adding `debugger` in the code)  and launching the task: "Run tests with debugger".
+For tricker issues, you can run the tests with a debugger in VSCode by setting a breakpoint (or adding `debugger` in the code) and launching the task: "Run tests with debugger".
 
 ## License
 
