@@ -7,6 +7,7 @@ import {
     TextDocumentPositionParams,
     TextDocumentIdentifier,
     IConnection,
+    CodeActionKind,
 } from 'vscode-languageserver';
 import { DocumentManager, Document } from './lib/documents';
 import {
@@ -113,7 +114,15 @@ export function startServer(options?: LSOptions) {
                 colorProvider: true,
                 documentSymbolProvider: true,
                 definitionProvider: true,
-                codeActionProvider: true,
+                codeActionProvider: evt.capabilities.textDocument?.codeAction
+                    ?.codeActionLiteralSupport
+                    ? {
+                          codeActionKinds: [
+                              CodeActionKind.QuickFix,
+                              CodeActionKind.SourceOrganizeImports,
+                          ],
+                      }
+                    : true,
             },
         };
     });
