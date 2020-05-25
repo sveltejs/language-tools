@@ -2,7 +2,7 @@ import * as assert from 'assert';
 import * as path from 'path';
 import { dirname, join } from 'path';
 import ts from 'typescript';
-import { FileChangeType, Hover, Position, Range } from 'vscode-languageserver';
+import { FileChangeType, Hover, Position } from 'vscode-languageserver';
 import { DocumentManager, Document } from '../../../src/lib/documents';
 import { LSConfigManager } from '../../../src/ls-config';
 import { TypeScriptPlugin } from '../../../src/plugins';
@@ -284,58 +284,6 @@ describe('TypescriptPlugin', () => {
                     },
                 },
                 targetUri: getUri('imported-file.svelte'),
-            },
-        ]);
-    });
-
-    it('provides code actions', async () => {
-        const { plugin, document } = setup('codeactions.svelte');
-
-        const codeActions = await plugin.getCodeActions(
-            document,
-            Range.create(Position.create(1, 4), Position.create(1, 5)),
-            {
-                diagnostics: [
-                    {
-                        code: 6133,
-                        message: "'a' is declared but its value is never read.",
-                        range: Range.create(Position.create(1, 4), Position.create(1, 5)),
-                        source: 'ts',
-                    },
-                ],
-                only: ['quickfix'],
-            },
-        );
-
-        assert.deepStrictEqual(codeActions, [
-            {
-                edit: {
-                    documentChanges: [
-                        {
-                            edits: [
-                                {
-                                    newText: '',
-                                    range: {
-                                        start: {
-                                            character: 0,
-                                            line: 1,
-                                        },
-                                        end: {
-                                            character: 0,
-                                            line: 2,
-                                        },
-                                    },
-                                },
-                            ],
-                            textDocument: {
-                                uri: getUri('codeactions.svelte'),
-                                version: null,
-                            },
-                        },
-                    ],
-                },
-                kind: 'unusedIdentifier',
-                title: "Remove unused declaration for: 'a'",
             },
         ]);
     });
