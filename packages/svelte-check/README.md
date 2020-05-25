@@ -4,7 +4,7 @@ Provides diagnostics for things such as
 
 -   unused css
 -   Svelte A11y hints
--   Javascript/Typescript diagnostics
+-   JavaScript/TypeScript diagnostics
 
 ### Usage:
 
