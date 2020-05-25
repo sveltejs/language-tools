@@ -128,10 +128,10 @@ async function getDiagnostics(workspaceUri: URI) {
         if (!path.isAbsolute(workspacePath)) {
             workspacePath = path.resolve(process.cwd(), workspacePath);
         }
-        console.log(`Loading Svelte-Check in workspace path: ${workspacePath}`);
+        console.log(`Loading svelte-check in workspace path: ${workspacePath}`);
         workspaceUri = URI.file(workspacePath);
     } else {
-        console.log(`Loading Svelte-Check in current directory: ${process.cwd()}`);
+        console.log(`Loading svelte-check in current directory: ${process.cwd()}`);
         workspaceUri = URI.file(process.cwd());
     }
 
@@ -142,15 +142,15 @@ async function getDiagnostics(workspaceUri: URI) {
     console.log('====================================');
 
     if (errCount === 0) {
-        console.log(chalk.green(`Svelte-Check found no error`));
+        console.log(chalk.green(`svelte-check found no errors`));
         process.exit(0);
     } else {
         console.log(
-            chalk.red(`Svelte-Check found ${errCount} ${errCount === 1 ? 'error' : 'errors'}`),
+            chalk.red(`svelte-check found ${errCount} ${errCount === 1 ? 'error' : 'errors'}`),
         );
         process.exit(1);
     }
 })().catch((_err) => {
     console.error(_err);
-    console.error('Svelte-Check failed');
+    console.error('svelte-check failed');
 });

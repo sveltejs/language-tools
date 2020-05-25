@@ -1,4 +1,4 @@
-# Check your code with Svelte-Check
+# Check your code with svelte-check
 
 Provides diagnostics for things such as
 
