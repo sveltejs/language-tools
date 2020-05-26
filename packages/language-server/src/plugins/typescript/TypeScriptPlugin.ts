@@ -12,6 +12,7 @@ import {
     Position,
     Range,
     SymbolInformation,
+    WorkspaceEdit,
 } from 'vscode-languageserver';
 import {
     Document,
@@ -30,8 +31,10 @@ import {
     DefinitionsProvider,
     DiagnosticsProvider,
     DocumentSymbolsProvider,
+    FileRename,
     HoverProvider,
     OnWatchFileChanges,
+    UpdateImportsProvider,
 } from '../interfaces';
 import { DocumentSnapshot, SnapshotFragment } from './DocumentSnapshot';
 import { CodeActionsProviderImpl } from './features/CodeActionsProvider';
@@ -39,6 +42,7 @@ import {
     CompletionEntryWithIdentifer,
     CompletionsProviderImpl,
 } from './features/CompletionProvider';
+import { UpdateImportsProviderImpl } from './features/UpdateImportsProvider';
 import { LSAndTSDocResolver } from './LSAndTSDocResolver';
 import {
     convertRange,
@@ -55,18 +59,21 @@ export class TypeScriptPlugin
         DocumentSymbolsProvider,
         DefinitionsProvider,
         CodeActionsProvider,
+        UpdateImportsProvider,
         OnWatchFileChanges,
         CompletionsProvider<CompletionEntryWithIdentifer> {
     private configManager: LSConfigManager;
     private readonly lsAndTsDocResolver: LSAndTSDocResolver;
     private readonly completionProvider: CompletionsProviderImpl;
     private readonly codeActionsProvider: CodeActionsProviderImpl;
+    private readonly updateImportsProvider: UpdateImportsProviderImpl;
 
     constructor(docManager: DocumentManager, configManager: LSConfigManager) {
         this.configManager = configManager;
         this.lsAndTsDocResolver = new LSAndTSDocResolver(docManager);
         this.completionProvider = new CompletionsProviderImpl(this.lsAndTsDocResolver);
         this.codeActionsProvider = new CodeActionsProviderImpl(this.lsAndTsDocResolver);
+        this.updateImportsProvider = new UpdateImportsProviderImpl(this.lsAndTsDocResolver);
     }
 
     async getDiagnostics(document: Document): Promise<Diagnostic[]> {
@@ -257,6 +264,14 @@ export class TypeScriptPlugin
         return this.codeActionsProvider.getCodeActions(document, range, context);
     }
 
+    async updateImports(fileRename: FileRename): Promise<WorkspaceEdit | null> {
+        if (!this.featureEnabled('rename')) {
+            return null;
+        }
+
+        return this.updateImportsProvider.updateImports(fileRename);
+    }
+
     onWatchFileChanges(fileName: string, changeType: FileChangeType) {
         const scriptKind = getScriptKindFromFileName(fileName);
 
@@ -288,6 +303,10 @@ export class TypeScriptPlugin
 
     private getLSAndTSDoc(document: Document) {
         return this.lsAndTsDocResolver.getLSAndTSDoc(document);
+    }
+
+    private getLSForPath(path: string) {
+        return this.lsAndTsDocResolver.getLSForPath(path);
     }
 
     private getSnapshot(filePath: string, document?: Document) {

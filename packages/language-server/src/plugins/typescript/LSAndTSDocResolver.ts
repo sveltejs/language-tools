@@ -1,6 +1,6 @@
 import { DocumentManager, Document } from '../../lib/documents';
 import { pathToUrl } from '../../utils';
-import { getLanguageServiceForDocument } from './service';
+import { getLanguageServiceForDocument, getLanguageServiceForPath } from './service';
 import { DocumentSnapshot, SvelteDocumentSnapshot } from './DocumentSnapshot';
 import { findTsConfigPath } from './utils';
 import { SnapshotManager } from './SnapshotManager';
@@ -23,6 +23,10 @@ export class LSAndTSDocResolver {
         this.docManager.lockDocument(uri);
         return document;
     };
+
+    getLSForPath(path: string) {
+        return getLanguageServiceForPath(path, this.createDocument);
+    }
 
     getLSAndTSDoc(
         document: Document,

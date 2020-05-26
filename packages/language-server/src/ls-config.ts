@@ -12,6 +12,7 @@ const defaultLSConfig: LSConfig = {
         definitions: { enable: true },
         documentSymbols: { enable: true },
         codeActions: { enable: true },
+        rename: { enable: true },
     },
     css: {
         enable: true,
@@ -67,6 +68,9 @@ export interface LSTypescriptConfig {
         enable: boolean;
     };
     codeActions: {
+        enable: boolean;
+    };
+    rename: {
         enable: boolean;
     };
 }

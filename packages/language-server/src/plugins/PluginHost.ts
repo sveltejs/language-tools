@@ -17,10 +17,17 @@ import {
     FileChangeType,
     CompletionItem,
     CompletionContext,
+    WorkspaceEdit,
 } from 'vscode-languageserver';
 import { LSConfig, LSConfigManager } from '../ls-config';
 import { DocumentManager } from '../lib/documents';
-import { LSProvider, Plugin, OnWatchFileChanges, AppCompletionItem } from './interfaces';
+import {
+    LSProvider,
+    Plugin,
+    OnWatchFileChanges,
+    AppCompletionItem,
+    FileRename,
+} from './interfaces';
 import { Logger } from '../logger';
 
 enum ExecuteMode {
@@ -219,6 +226,14 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
                 [document, range, context],
                 ExecuteMode.Collect,
             ),
+        );
+    }
+
+    async updateImports(fileRename: FileRename): Promise<WorkspaceEdit | null> {
+        return await this.execute<WorkspaceEdit>(
+            'updateImports',
+            [fileRename],
+            ExecuteMode.FirstNonNull,
         );
     }
 

@@ -21,11 +21,22 @@ const services = new Map<string, LanguageServiceContainer>();
 
 export type CreateDocument = (fileName: string, content: string) => Document;
 
+export function getLanguageServiceForPath(
+    path: string,
+    createDocument: CreateDocument,
+): ts.LanguageService {
+    return getService(path, createDocument).getService();
+}
+
 export function getLanguageServiceForDocument(
     document: Document,
     createDocument: CreateDocument,
 ): ts.LanguageService {
-    const tsconfigPath = findTsConfigPath(document.getFilePath()!);
+    return getService(document.getFilePath() || '', createDocument).updateDocument(document);
+}
+
+function getService(path: string, createDocument: CreateDocument) {
+    const tsconfigPath = findTsConfigPath(path);
 
     let service: LanguageServiceContainer;
     if (services.has(tsconfigPath)) {
@@ -35,7 +46,7 @@ export function getLanguageServiceForDocument(
         services.set(tsconfigPath, service);
     }
 
-    return service.updateDocument(document);
+    return service;
 }
 
 export function createLanguageService(
