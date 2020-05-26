@@ -1,4 +1,8 @@
-import parse5, { DefaultTreeDocumentFragment, DefaultTreeElement, DefaultTreeTextNode } from 'parse5';
+import parse5, {
+    DefaultTreeDocumentFragment,
+    DefaultTreeElement,
+    DefaultTreeTextNode,
+} from 'parse5';
 import compiler from 'svelte/compiler';
 import { Node } from 'svelte/types/compiler/interfaces';
 
@@ -23,14 +27,13 @@ export function findVerbatimElements(htmlx: string) {
         const outerHtml = htmlx.substring(orgStart, orgEnd);
         const onlyTag = content ? outerHtml.replace(content.value, '') : outerHtml;
 
-        return tagNames.some(tag => onlyTag.match(tag));
+        return tagNames.some((tag) => onlyTag.match(tag));
     };
 
-
-    walkAst(doc as DefaultTreeElement, el => {
+    walkAst(doc as DefaultTreeElement, (el) => {
         if (tagNames.includes(el.nodeName)) {
             const hasNodes = el.childNodes && el.childNodes.length > 0;
-            const content = hasNodes ? el.childNodes[0] as DefaultTreeTextNode : null;
+            const content = hasNodes ? (el.childNodes[0] as DefaultTreeTextNode) : null;
             if (!checkCase(content, el)) {
                 return;
             }
@@ -38,25 +41,37 @@ export function findVerbatimElements(htmlx: string) {
                 start: el.sourceCodeLocation.startOffset,
                 end: el.sourceCodeLocation.endOffset,
                 type: el.nodeName[0].toUpperCase() + el.nodeName.substr(1),
-                attributes: !el.attrs ? [] : el.attrs.map(a => {return {
-                    type: "Attribute",
-                    name: a.name,
-                    value: [{
-                        type: "Text",
-                        start: htmlx.indexOf("=", el.sourceCodeLocation.attrs[a.name].startOffset) +1,
-                        end: el.sourceCodeLocation.attrs[a.name].endOffset,
-                        raw: a.value,
-                    }],
-                    start: el.sourceCodeLocation.attrs[a.name].startOffset,
-                    end: el.sourceCodeLocation.attrs[a.name].endOffset
-                };}),
-                content: !content ? null : {
-                    type: "Text",
-                    start: content.sourceCodeLocation.startOffset,
-                    end: content.sourceCodeLocation.endOffset,
-                    value: content.value,
-                    raw: content.value
-                }
+                attributes: !el.attrs
+                    ? []
+                    : el.attrs.map((a) => {
+                          return {
+                              type: 'Attribute',
+                              name: a.name,
+                              value: [
+                                  {
+                                      type: 'Text',
+                                      start:
+                                          htmlx.indexOf(
+                                              '=',
+                                              el.sourceCodeLocation.attrs[a.name].startOffset,
+                                          ) + 1,
+                                      end: el.sourceCodeLocation.attrs[a.name].endOffset,
+                                      raw: a.value,
+                                  },
+                              ],
+                              start: el.sourceCodeLocation.attrs[a.name].startOffset,
+                              end: el.sourceCodeLocation.attrs[a.name].endOffset,
+                          };
+                      }),
+                content: !content
+                    ? null
+                    : {
+                          type: 'Text',
+                          start: content.sourceCodeLocation.startOffset,
+                          end: content.sourceCodeLocation.endOffset,
+                          value: content.value,
+                          raw: content.value,
+                      },
             });
         }
     });
@@ -69,14 +84,14 @@ export function blankVerbatimContent(htmlx: string, verbatimElements: Node[]) {
     for (const node of verbatimElements) {
         const content = node.content;
         if (content) {
-            output = output.substring(0, content.start)
-                                + output.substring(content.start, content.end).replace(/[^\n]/g, " ")
-                                + output.substring(content.end);
+            output =
+                output.substring(0, content.start) +
+                output.substring(content.start, content.end).replace(/[^\n]/g, ' ') +
+                output.substring(content.end);
         }
     }
     return output;
 }
-
 
 export function parseHtmlx(htmlx: string): Node {
     //Svelte tries to parse style and script tags which doesn't play well with typescript, so we blank them out.
