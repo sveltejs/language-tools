@@ -1,0 +1,7 @@
+.DS_Store
+node_modules
+/index.js
+/index.js.map
+/index.mjs
+test/typecheck/samples/**/input.svelte.tsx
+test/build

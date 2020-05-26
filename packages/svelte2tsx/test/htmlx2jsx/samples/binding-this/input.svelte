@@ -1,0 +1,1 @@
+<input type="radio" bind:this={element} value="Plain"/>

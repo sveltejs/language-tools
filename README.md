@@ -61,6 +61,10 @@ A command line tool to check your svelte files for type errors, unused css, and 
 
 The official vscode extension for Svelte. Built from [UnwrittenFun/svelte-vscode](https://github.com/UnwrittenFun/svelte-vscode) to become the official vscode extension for the language.
 
+#### [`svelte2tsx`](packages/svelte2tsx)
+
+Converts a .svelte file into a legal TypeScript file. Built from [halfnelson/svelte2tsx](https://github.com/UnwrittenFun/halfnelson/svelte2tsx) to provide the auto-complete and import mapping inside the language server.
+
 ## Development
 
 #### Setup
@@ -73,6 +77,7 @@ To install and work on Svelte locally:
 git clone https://github.com/sveltejs/language-tools.git svelte-language-tools
 cd svelte-language-tools
 yarn install
+yarn bootstrap
 ```
 
 > Do not use npm to install the dependencies, as the specific package versions in `yarn.lock` are used to build and test Svelte.

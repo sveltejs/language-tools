@@ -8,6 +8,7 @@
     "packages/*"
   ],
   "scripts": {
+    "bootstrap": "yarn workspace svelte2tsx build",
     "build": "tsc -b",
     "test": "CI=true yarn workspaces run test",
     "watch": "tsc -b -watch",

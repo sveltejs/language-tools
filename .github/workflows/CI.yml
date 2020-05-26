@@ -23,6 +23,7 @@ jobs:
 
       # Get projects set up
       - run: yarn install
+      - run: yarn bootstrap
       - run: yarn build
 
       # Run any tests
