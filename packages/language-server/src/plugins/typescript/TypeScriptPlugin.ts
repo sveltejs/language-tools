@@ -12,16 +12,12 @@ import {
     Position,
     Range,
     SymbolInformation,
-    TextDocumentEdit,
-    TextEdit,
-    VersionedTextDocumentIdentifier,
 } from 'vscode-languageserver';
 import {
     Document,
     DocumentManager,
     mapDiagnosticToOriginal,
     mapHoverToParent,
-    mapRangeToOriginal,
     mapSymbolInformationToOriginal,
 } from '../../lib/documents';
 import { LSConfigManager, LSTypescriptConfig } from '../../ls-config';
@@ -38,6 +34,7 @@ import {
     OnWatchFileChanges,
 } from '../interfaces';
 import { DocumentSnapshot, SnapshotFragment } from './DocumentSnapshot';
+import { CodeActionsProviderImpl } from './features/CodeActionsProvider';
 import {
     CompletionEntryWithIdentifer,
     CompletionsProviderImpl,
@@ -63,11 +60,13 @@ export class TypeScriptPlugin
     private configManager: LSConfigManager;
     private readonly lsAndTsDocResolver: LSAndTSDocResolver;
     private readonly completionProvider: CompletionsProviderImpl;
+    private readonly codeActionsProvider: CodeActionsProviderImpl;
 
     constructor(docManager: DocumentManager, configManager: LSConfigManager) {
         this.configManager = configManager;
         this.lsAndTsDocResolver = new LSAndTSDocResolver(docManager);
         this.completionProvider = new CompletionsProviderImpl(this.lsAndTsDocResolver);
+        this.codeActionsProvider = new CodeActionsProviderImpl(this.lsAndTsDocResolver);
     }
 
     async getDiagnostics(document: Document): Promise<Diagnostic[]> {
@@ -255,54 +254,7 @@ export class TypeScriptPlugin
             return [];
         }
 
-        const { lang, tsDoc } = this.getLSAndTSDoc(document);
-        const fragment = await tsDoc.getFragment();
-
-        const start = fragment.offsetAt(fragment.getGeneratedPosition(range.start));
-        const end = fragment.offsetAt(fragment.getGeneratedPosition(range.end));
-        const errorCodes: number[] = context.diagnostics.map((diag) => Number(diag.code));
-        const codeFixes = lang.getCodeFixesAtPosition(
-            tsDoc.filePath,
-            start,
-            end,
-            errorCodes,
-            {},
-            {},
-        );
-
-        const docs = new Map<string, SnapshotFragment>([[tsDoc.filePath, fragment]]);
-        return await Promise.all(
-            codeFixes.map(async (fix) => {
-                const documentChanges = await Promise.all(
-                    fix.changes.map(async (change) => {
-                        let doc = docs.get(change.fileName);
-                        if (!doc) {
-                            doc = await this.getSnapshot(change.fileName).getFragment();
-                            docs.set(change.fileName, doc);
-                        }
-                        return TextDocumentEdit.create(
-                            VersionedTextDocumentIdentifier.create(
-                                pathToUrl(change.fileName),
-                                null,
-                            ),
-                            change.textChanges.map((edit) => {
-                                return TextEdit.replace(
-                                    mapRangeToOriginal(doc!, convertRange(doc!, edit.span)),
-                                    edit.newText,
-                                );
-                            }),
-                        );
-                    }),
-                );
-                return CodeAction.create(
-                    fix.description,
-                    {
-                        documentChanges,
-                    },
-                    fix.fixName,
-                );
-            }),
-        );
+        return this.codeActionsProvider.getCodeActions(document, range, context);
     }
 
     onWatchFileChanges(fileName: string, changeType: FileChangeType) {
