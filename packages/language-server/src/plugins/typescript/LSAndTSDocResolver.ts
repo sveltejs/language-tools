@@ -1,13 +1,25 @@
-import { DocumentManager, Document } from '../../lib/documents';
-import { pathToUrl } from '../../utils';
-import { getLanguageServiceForDocument, getLanguageServiceForPath } from './service';
-import { DocumentSnapshot, SvelteDocumentSnapshot } from './DocumentSnapshot';
-import { findTsConfigPath } from './utils';
-import { SnapshotManager } from './SnapshotManager';
 import ts from 'typescript';
+import { Document, DocumentManager } from '../../lib/documents';
+import { debounceSameArg, pathToUrl } from '../../utils';
+import { DocumentSnapshot, SvelteDocumentSnapshot } from './DocumentSnapshot';
+import { getLanguageServiceForDocument, getLanguageServiceForPath } from './service';
+import { SnapshotManager } from './SnapshotManager';
+import { findTsConfigPath } from './utils';
 
 export class LSAndTSDocResolver {
-    constructor(private readonly docManager: DocumentManager) {}
+    constructor(private readonly docManager: DocumentManager) {
+        docManager.on(
+            'documentChange',
+            debounceSameArg(
+                async (document: Document) => {
+                    // This refreshes the document in the ts language service
+                    this.getLSAndTSDoc(document);
+                },
+                (newDoc, prevDoc) => newDoc.uri === prevDoc?.uri,
+                1000,
+            ),
+        );
+    }
 
     /**
      * Create a svelte document -> should only be invoked with svelte files.

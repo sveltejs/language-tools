@@ -41,21 +41,11 @@ export class UpdateImportsProviderImpl implements UpdateImportsProvider {
                 return TextDocumentEdit.create(
                     VersionedTextDocumentIdentifier.create(fragment.getURL(), null),
                     change.textChanges.map((edit) => {
-                        let range = mapRangeToOriginal(
+                        const range = mapRangeToOriginal(
                             fragment!,
                             convertRange(fragment!, edit.span),
                         );
-                        // Handle svelte2tsx wrong import mapping:
-                        // The character after the last import maps to the start of the script
-                        // TODO find a way to fix this in svelte2tsx and then remove this
-                        if (range.end.line === 0 && range.end.character === 1) {
-                            edit.span.length -= 1;
-                            range = mapRangeToOriginal(
-                                fragment!,
-                                convertRange(fragment!, edit.span),
-                            );
-                            range.end.character += 1;
-                        }
+                        console.log(JSON.stringify(range, null, 3));
                         return TextEdit.replace(range, edit.newText);
                     }),
                 );
