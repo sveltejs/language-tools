@@ -543,7 +543,7 @@ function createRenderFunction(
     uses$$props: boolean,
 ) {
     const htmlx = str.original;
-    const propsDecl = uses$$props ? ' let $$props: SvelteAllProps;' : '';
+    const propsDecl = uses$$props ? ' let $$props = __sveltets_allPropsType();' : '';
 
     if (scriptTag) {
         //I couldn't get magicstring to let me put the script before the <> we prepend during conversion of the template to jsx, so we just close it instead

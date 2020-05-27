@@ -42,6 +42,7 @@ declare function __sveltets_ensureTransition<U extends any[]>(transition: Svelte
 declare function __sveltets_ensureFunction(expression: (e: Event) => unknown ):any;
 declare function __sveltets_ensureType<T>(type: AConstructorTypeOf<T>, el: T): any;
 declare function __sveltets_instanceOf<T>(type: AConstructorTypeOf<T>): T;
+declare function __sveltets_allPropsType(): SvelteAllProps
 declare function __sveltets_partial<T>(obj: T): Partial<T>;
 declare function __sveltets_partial_with_any<T>(obj: T): Partial<T> & SvelteAllProps
 declare function __sveltets_store_get<T=any>(store: SvelteStore<T>): T
