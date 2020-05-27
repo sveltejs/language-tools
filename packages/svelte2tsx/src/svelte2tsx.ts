@@ -112,7 +112,7 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
     const leaveArrowFunctionExpression = () => popScope();
 
     const handleIdentifier = (node: Node, parent: Node, prop: string) => {
-        if (node.name == '$$props') {
+        if (node.name === '$$props' || node.name === '$$restProps') {
             uses$$props = true;
             return;
         }
@@ -344,7 +344,7 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
     };
 
     const handleIdentifier = (ident: ts.Identifier, parent: ts.Node) => {
-        if (ident.text == '$$props') {
+        if (ident.text === '$$props' || ident.text === '$$restProps') {
             uses$$props = true;
             return;
         }
@@ -533,7 +533,6 @@ function processModuleScriptTag(str: MagicString, script: Node) {
     str.overwrite(scriptEndTagStart, script.end, ';<>');
 }
 
-// eslint-disable-next-line max-len
 function createRenderFunction(
     str: MagicString,
     scriptTag: Node,
@@ -543,7 +542,9 @@ function createRenderFunction(
     uses$$props: boolean,
 ) {
     const htmlx = str.original;
-    const propsDecl = uses$$props ? ' let $$props: SvelteAllProps;' : '';
+    const propsDecl = uses$$props ?
+        ' let $$props = __sveltets_allPropsType(); let $$restProps = __sveltets_restPropsType();' :
+        '';
 
     if (scriptTag) {
         //I couldn't get magicstring to let me put the script before the <> we prepend during conversion of the template to jsx, so we just close it instead

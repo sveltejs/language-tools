@@ -32,6 +32,7 @@ type SvelteAnimation<U extends any[]> = (node: Element, move: { from: DOMRect, t
 }
 
 type SvelteAllProps = {	[index: string]: any }
+type SvelteRestProps = { [index: string]: any }
 type SvelteStore<T> =  { subscribe: (run: (value:T) => any, invalidate?: any) => any }
 
 declare var process: NodeJS.Process & { browser: boolean }
@@ -42,6 +43,8 @@ declare function __sveltets_ensureTransition<U extends any[]>(transition: Svelte
 declare function __sveltets_ensureFunction(expression: (e: Event) => unknown ):any;
 declare function __sveltets_ensureType<T>(type: AConstructorTypeOf<T>, el: T): any;
 declare function __sveltets_instanceOf<T>(type: AConstructorTypeOf<T>): T;
+declare function __sveltets_allPropsType(): SvelteAllProps
+declare function __sveltets_restPropsType(): SvelteRestProps
 declare function __sveltets_partial<T>(obj: T): Partial<T>;
 declare function __sveltets_partial_with_any<T>(obj: T): Partial<T> & SvelteAllProps
 declare function __sveltets_store_get<T=any>(store: SvelteStore<T>): T
