@@ -139,12 +139,22 @@ export function convertHtmlxToJsx(
         }
     };
 
+    const isShortHandAttribute = (attr: Node) => {
+        return attr.expression.end === attr.end;
+    };
+
     const handleBinding = (attr: Node, el: Node) => {
         //bind group on input
         if (attr.name == 'group' && el.name == 'input') {
             str.remove(attr.start, attr.expression.start);
             str.appendLeft(attr.expression.start, '{...__sveltets_any(');
-            str.overwrite(attr.expression.end, attr.end, ')}');
+
+            const endBrackets = ')}';
+            if (isShortHandAttribute(attr)) {
+                str.appendRight(attr.end, endBrackets);
+            } else {
+                str.overwrite(attr.expression.end, attr.end, endBrackets);
+            }
             return;
         }
 
@@ -168,7 +178,7 @@ export function convertHtmlxToJsx(
         if (oneWayBindingAttributes.has(attr.name) && el.type == 'Element') {
             str.remove(attr.start, attr.expression.start);
             str.appendLeft(attr.expression.start, `{...__sveltets_any(`);
-            if (attr.expression.end == attr.end) {
+            if (isShortHandAttribute(attr)) {
                 // eslint-disable-next-line max-len
                 str.appendLeft(
                     attr.end,
