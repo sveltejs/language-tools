@@ -55,13 +55,13 @@ export function debounceSameArg<T>(
     let timeout: any;
     let prevArg: T | undefined;
 
-    return function (arg: T) {
+    return (arg: T) => {
         if (shouldCancelPrevious(arg, prevArg)) {
             clearTimeout(timeout);
         }
 
         prevArg = arg;
-        timeout = setTimeout(function () {
+        timeout = setTimeout(() => {
             fn(arg);
             prevArg = undefined;
         }, miliseconds);

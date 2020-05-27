@@ -45,7 +45,6 @@ export class UpdateImportsProviderImpl implements UpdateImportsProvider {
                             fragment!,
                             convertRange(fragment!, edit.span),
                         );
-                        console.log(JSON.stringify(range, null, 3));
                         return TextEdit.replace(range, edit.newText);
                     }),
                 );
