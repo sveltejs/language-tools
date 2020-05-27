@@ -7,8 +7,7 @@
         "vscode:prepublish": "tsc -p ./",
         "build": "tsc -p ./",
         "watch": "tsc -w -p ./",
-        "test": "echo 'NOOP'",
-        "update:package:beta": "node scripts/bump-beta-version.js"
+        "test": "echo 'NOOP'"
     },
     "repository": {
         "type": "git",
