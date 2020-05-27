@@ -220,6 +220,8 @@ async function transpile(document: Document, preprocessors: PreprocessorGroup = 
     let processedScript: Processed | undefined;
     let processedStyle: Processed | undefined;
 
+    preprocessor.markup = preprocessors.markup;
+
     if (preprocessors.script) {
         preprocessor.script = async (args: any) => {
             const res = await preprocessors.script!(args);
