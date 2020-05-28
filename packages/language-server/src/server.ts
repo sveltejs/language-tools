@@ -8,6 +8,7 @@ import {
     TextDocumentIdentifier,
     IConnection,
     CodeActionKind,
+    RenameFile,
 } from 'vscode-languageserver';
 import { DocumentManager, Document } from './lib/documents';
 import {
@@ -132,7 +133,7 @@ export function startServer(options?: LSOptions) {
     });
 
     connection.onDidOpenTextDocument((evt) => docManager.openDocument(evt.textDocument));
-    connection.onDidCloseTextDocument((evt) => docManager.closeDocument(evt.textDocument));
+    connection.onDidCloseTextDocument((evt) => docManager.closeDocument(evt.textDocument.uri));
     connection.onDidChangeTextDocument((evt) =>
         docManager.updateDocument(evt.textDocument, evt.contentChanges),
     );
@@ -180,6 +181,12 @@ export function startServer(options?: LSOptions) {
                 diagnostics,
             });
         }, 500),
+    );
+
+    // The language server protocol does not have a specific "did rename/move files" event,
+    // so we create our own in the extension client and handle it here
+    connection.onRequest('$/getEditsForFileRename', async (fileRename: RenameFile) =>
+        pluginHost.updateImports(fileRename),
     );
 
     // This event is triggered by Svelte-Check:

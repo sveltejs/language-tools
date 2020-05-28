@@ -1,7 +1,6 @@
 import { EventEmitter } from 'events';
 import {
     TextDocumentContentChangeEvent,
-    TextDocumentIdentifier,
     TextDocumentItem,
     VersionedTextDocumentIdentifier,
 } from 'vscode-languageserver';
@@ -16,6 +15,7 @@ export class DocumentManager {
     private emitter = new EventEmitter();
     public documents: Map<string, Document> = new Map();
     public locked = new Set<string>();
+    public deleteCandidates = new Set<string>();
 
     constructor(private createDocument: (textDocument: TextDocumentItem) => Document) {}
 
@@ -39,8 +39,16 @@ export class DocumentManager {
         this.locked.add(uri);
     }
 
-    closeDocument(textDocument: TextDocumentIdentifier) {
-        const document = this.documents.get(textDocument.uri);
+    releaseDocument(uri: string): void {
+        this.locked.delete(uri);
+        if (this.deleteCandidates.has(uri)) {
+            this.deleteCandidates.delete(uri);
+            this.closeDocument(uri);
+        }
+    }
+
+    closeDocument(uri: string) {
+        const document = this.documents.get(uri);
         if (!document) {
             throw new Error('Cannot call methods on an unopened document');
         }
@@ -48,8 +56,10 @@ export class DocumentManager {
         this.notify('documentClose', document);
 
         // Some plugin may prevent a document from actually being closed.
-        if (!this.locked.has(textDocument.uri)) {
-            this.documents.delete(textDocument.uri);
+        if (!this.locked.has(uri)) {
+            this.documents.delete(uri);
+        } else {
+            this.deleteCandidates.add(uri);
         }
     }
 

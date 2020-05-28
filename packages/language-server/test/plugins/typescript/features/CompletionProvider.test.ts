@@ -62,9 +62,7 @@ describe('CompletionProviderImpl', () => {
             commitCharacters: ['.', ',', '('],
             preselect: undefined,
         });
-    })
-        // initial build might take longer
-        .timeout(8000);
+    });
 
     it('does not provide completions inside style tag', async () => {
         const { completionProvider, document } = setup('completionsstyle.svelte');
@@ -310,9 +308,7 @@ describe('CompletionProviderImpl', () => {
             additionalTextEdits![0]?.range,
             Range.create(Position.create(0, 8), Position.create(0, 8)),
         );
-    })
-        // this might take longer
-        .timeout(4000);
+    });
 
     it('resolve auto import completion (importing a svelte component, no script tag yet)', async () => {
         const { completionProvider, document, docManager } = setup('importcompletions5.svelte');
@@ -348,9 +344,7 @@ describe('CompletionProviderImpl', () => {
             additionalTextEdits![0]?.range,
             Range.create(Position.create(0, 0), Position.create(0, 0)),
         );
-    })
-        // this might take longer
-        .timeout(4000);
+    });
 
     it('resolve auto completion without auto import (a svelte component which was already imported)', async () => {
         const { completionProvider, document, docManager } = setup('importcompletions6.svelte');
@@ -371,9 +365,7 @@ describe('CompletionProviderImpl', () => {
         const { additionalTextEdits } = await completionProvider.resolveCompletion(document, item!);
 
         assert.strictEqual(additionalTextEdits, undefined);
-    })
-        // this might take longer
-        .timeout(4000);
+    });
 });
 
 function harmonizeNewLines(input?: string) {

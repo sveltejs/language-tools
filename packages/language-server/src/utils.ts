@@ -38,3 +38,32 @@ export function isBeforeOrEqualToPosition(position: Position, positionToTest: Po
 export function isNotNullOrUndefined<T>(val: T | undefined | null): val is T {
     return val !== undefined && val !== null;
 }
+
+/**
+ * Debounces a function but cancels previous invocation only if
+ * a second function determines it should.
+ *
+ * @param fn The function with it's argument
+ * @param determineIfSame The function which determines if the previous invocation should be canceld or not
+ * @param miliseconds Number of miliseconds to debounce
+ */
+export function debounceSameArg<T>(
+    fn: (arg: T) => void,
+    shouldCancelPrevious: (newArg: T, prevArg?: T) => boolean,
+    miliseconds: number,
+): (arg: T) => void {
+    let timeout: any;
+    let prevArg: T | undefined;
+
+    return (arg: T) => {
+        if (shouldCancelPrevious(arg, prevArg)) {
+            clearTimeout(timeout);
+        }
+
+        prevArg = arg;
+        timeout = setTimeout(() => {
+            fn(arg);
+            prevArg = undefined;
+        }, miliseconds);
+    };
+}

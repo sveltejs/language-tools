@@ -1,4 +1,15 @@
-import { workspace, ExtensionContext, TextDocument, Position, commands, window } from 'vscode';
+import {
+    workspace,
+    ExtensionContext,
+    TextDocument,
+    Position,
+    Range,
+    commands,
+    window,
+    WorkspaceEdit,
+    Uri,
+    ProgressLocation,
+} from 'vscode';
 import {
     LanguageClient,
     LanguageClientOptions,
@@ -7,6 +18,8 @@ import {
     TextDocumentPositionParams,
     RequestType,
     RevealOutputChannelOn,
+    WorkspaceEdit as LSWorkspaceEdit,
+    TextDocumentEdit,
 } from 'vscode-languageclient';
 import { activateTagClosing } from './html/autoClose';
 
@@ -84,6 +97,45 @@ export function activate(context: ExtensionContext) {
             window.showInformationMessage('Svelte language server restarted.');
         }),
     );
+
+    workspace.onDidRenameFiles(async (evt) => {
+        window.withProgress(
+            { location: ProgressLocation.Window, title: 'Updating Imports..' },
+            async () => {
+                const editsForFileRename = await ls.sendRequest<LSWorkspaceEdit | null>(
+                    '$/getEditsForFileRename',
+                    // Right now files is always an array with a single entry.
+                    // The signature was only designed that way to - maybe, in the future -
+                    // have the possibility to change that. If that ever does, update this.
+                    // In the meantime, just assume it's a single entry and simplify the
+                    // rest of the logic that way.
+                    {
+                        oldUri: evt.files[0].oldUri.toString(true),
+                        newUri: evt.files[0].newUri.toString(true),
+                    },
+                );
+                if (!editsForFileRename) {
+                    return;
+                }
+
+                const workspaceEdit = new WorkspaceEdit();
+                // Renaming a file should only result in edits of existing files
+                editsForFileRename.documentChanges?.filter(TextDocumentEdit.is).forEach((change) =>
+                    change.edits.forEach((edit) => {
+                        workspaceEdit.replace(
+                            Uri.parse(change.textDocument.uri),
+                            new Range(
+                                new Position(edit.range.start.line, edit.range.start.character),
+                                new Position(edit.range.end.line, edit.range.end.character),
+                            ),
+                            edit.newText,
+                        );
+                    }),
+                );
+                workspace.applyEdit(workspaceEdit);
+            },
+        );
+    });
 }
 
 function createLanguageServer(serverOptions: ServerOptions, clientOptions: LanguageClientOptions) {

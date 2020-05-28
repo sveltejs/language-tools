@@ -84,9 +84,7 @@ describe('CodeActionsProvider', () => {
                 title: "Remove unused declaration for: 'a'",
             },
         ]);
-    })
-        // initial build might take longer
-        .timeout(8000);
+    });
 
     it('organizes imports', async () => {
         const { provider, document } = setup('codeactions.svelte');

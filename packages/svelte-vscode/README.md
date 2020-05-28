@@ -6,7 +6,7 @@ Provides syntax highlighting and rich intellisense for Svelte components in VS C
 
 Do you want to use Typescript/SCSS/Less/..? See [Using with preprocessors](using-with-preprocessors).
 
-If you added `"files.associations": {"*.svelte": "html"  }` to your VSCode settings, remove it.
+If you added `"files.associations": {"*.svelte": "html" }` to your VSCode settings, remove it.
 
 ## Features
 
@@ -183,3 +183,7 @@ Enable hover info for Svelte (for tags like #if/#each). _Default_: `true`
 ##### `svelte.plugin.svelte.completions.enable`
 
 Enable autocompletion for Svelte (for tags like #if/#each). _Default_: `true`
+
+##### `svelte.plugin.svelte.rename.enable`
+
+Enable rename functionality (rename svelte files or variables inside svelte files). _Default_: `true`

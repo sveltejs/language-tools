@@ -49,9 +49,7 @@ describe('TypescriptPlugin', () => {
                 source: 'ts',
             },
         ]);
-    })
-        // diagnostics might take longer, therefore increase the timeout
-        .timeout(8000);
+    });
 
     it('provides typecheck diagnostics for js file when //@ts-check at top of script', async () => {
         const { plugin, document } = setup('diagnostics-js-typecheck.svelte');
@@ -75,18 +73,14 @@ describe('TypescriptPlugin', () => {
                 source: 'js',
             },
         ]);
-    })
-        // diagnostics might take longer, therefore increase the timeout
-        .timeout(8000);
+    });
 
     it('provides no typecheck diagnostics for js file', async () => {
         const { plugin, document } = setup('diagnostics-js-notypecheck.svelte');
         const diagnostics = await plugin.getDiagnostics(document);
 
         assert.deepStrictEqual(diagnostics, []);
-    })
-        // diagnostics might take longer, therefore increase the timeout
-        .timeout(8000);
+    });
 
     it('provides diagnostics when there is a parser error', async () => {
         const { plugin, document } = setup('diagnostics-parsererror.svelte');
@@ -110,9 +104,7 @@ describe('TypescriptPlugin', () => {
                 source: 'js',
             },
         ]);
-    })
-        // diagnostics might take longer, therefore increase the timeout
-        .timeout(8000);
+    });
 
     it('provides hover info', async () => {
         const { plugin, document } = setup('hoverinfo.svelte');
