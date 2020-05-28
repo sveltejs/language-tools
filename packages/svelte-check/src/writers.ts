@@ -40,14 +40,17 @@ export class HumanFriendlyWriter implements Writer {
 
             diagnostics.forEach((diagnostic) => {
                 const source = diagnostic.source ? `(${diagnostic.source})` : '';
+                const { line, character } = diagnostic.range.start;
 
                 // eslint-disable-next-line max-len
-                const position = `Line: ${diagnostic.range.start.line}, Character: ${diagnostic.range.start.character}`;
+                const position = `Line: ${line}, Character: ${character}`;
 
                 // Show some context around diagnostic range
                 const startOffset = offsetAt(diagnostic.range.start, text);
                 const endOffset = offsetAt(diagnostic.range.end, text);
-                const codePrev = chalk.cyan(text.substring(Math.max(startOffset - 10, 0), startOffset));
+                const codePrev = chalk.cyan(
+                  text.substring(Math.max(startOffset - 10, 0), startOffset)
+                );
                 const codeHighlight = chalk.magenta(text.substring(startOffset, endOffset));
                 const codePost = chalk.cyan(text.substring(endOffset, endOffset + 10));
                 const code = codePrev + codeHighlight + codePost;
@@ -72,13 +75,13 @@ export class HumanFriendlyWriter implements Writer {
         }
     }
 
-    completion(_fileCount: number, errorCount: number, _warningCount: number) {
+    completion(_f: number, err: number, _w: number) {
         this._stream.write('====================================\n');
 
-        if (errorCount === 0) {
+        if (err === 0) {
             this._stream.write(chalk.green(`svelte-check found no errors\n`));
         } else {
-            this._stream.write(chalk.red(`svelte-check found ${errorCount} ${errorCount === 1 ? 'error' : 'errors'}\n`));
+            this._stream.write(chalk.red(`svelte-check found ${err} ${err === 1 ? 'error' : 'errors'}\n`));
         }
     }
 
@@ -105,11 +108,16 @@ export class MachineFriendlyWriter implements Writer {
     file(diagnostics: Diagnostic[], filename: string, _text: string) {
         diagnostics.forEach((d) => {
             const { message, severity, range } = d;
-            const type = severity === DiagnosticSeverity.Error ? "ERROR" : severity === DiagnosticSeverity.Warning ? "WARNING" : null;
+            const type =
+              severity === DiagnosticSeverity.Error ? "ERROR" :
+              severity === DiagnosticSeverity.Warning ? "WARNING" :
+              null;
 
             if (type) {
                 const { line, character } = range.start;
-                this._log(`${type} ${JSON.stringify(filename)} ${line}:${character} ${JSON.stringify(message)}`);
+                const fn = JSON.stringify(filename);
+                const msg = JSON.stringify(message);
+                this._log(`${type} ${fn} ${line}:${character} ${msg}`);
             }
         });
     }
