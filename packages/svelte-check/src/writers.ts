@@ -15,8 +15,6 @@ export interface Writer {
 
 export class HumanFriendlyWriter implements Writer {
     constructor(private stream: Writable, private isVerbose = true) {
-        this.stream = stream;
-        this.isVerbose = isVerbose;
     }
 
     start(workspaceUri: string) {
@@ -88,7 +86,6 @@ export class HumanFriendlyWriter implements Writer {
 
 export class MachineFriendlyWriter implements Writer {
     constructor(private stream: Writable) {
-        this.stream = stream;
     }
 
     private log(msg: string) {
