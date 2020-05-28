@@ -29,44 +29,40 @@ export class HumanFriendlyWriter implements Writer {
     }
 
     file(diagnostics: Diagnostic[], filename: string, text: string): void {
-        if (diagnostics.length > 0) {
-            this.stream.write(`${chalk.green('File')}: ${chalk.green(filename)}\n`);
+        diagnostics.forEach((diagnostic) => {
+            const source = diagnostic.source ? `(${diagnostic.source})` : '';
 
-            diagnostics.forEach((diagnostic) => {
-                const source = diagnostic.source ? `(${diagnostic.source})` : '';
-                const { line, character } = diagnostic.range.start;
+            // Display location in a format that IDEs will turn into file links
+            const { line, character } = diagnostic.range.start;
+            this.stream.write(`${chalk.green(filename)}:${line + 1}:${character + 1}\n`);
 
-                // eslint-disable-next-line max-len
-                const position = `Line: ${line}, Character: ${character}`;
+            // Show some context around diagnostic range
+            const startOffset = offsetAt(diagnostic.range.start, text);
+            const endOffset = offsetAt(diagnostic.range.end, text);
+            const codePrev = chalk.cyan(
+                text.substring(Math.max(startOffset - 10, 0), startOffset)
+            );
+            const codeHighlight = chalk.magenta(text.substring(startOffset, endOffset));
+            const codePost = chalk.cyan(text.substring(endOffset, endOffset + 10));
+            const code = codePrev + codeHighlight + codePost;
+            let msg;
 
-                // Show some context around diagnostic range
-                const startOffset = offsetAt(diagnostic.range.start, text);
-                const endOffset = offsetAt(diagnostic.range.end, text);
-                const codePrev = chalk.cyan(
-                  text.substring(Math.max(startOffset - 10, 0), startOffset)
-                );
-                const codeHighlight = chalk.magenta(text.substring(startOffset, endOffset));
-                const codePost = chalk.cyan(text.substring(endOffset, endOffset + 10));
-                const code = codePrev + codeHighlight + codePost;
-                let msg;
+            if (this.isVerbose) {
+                msg = `${diagnostic.message} ${source}\n${chalk.cyan(code)}`;
+            }
+            else {
+                msg = `${diagnostic.message} ${source}`;
+            }
 
-                if (this.isVerbose) {
-                    msg = `${diagnostic.message} ${source}\n${position}\n${chalk.cyan(code)}`;
-                }
-                else {
-                    msg = `${diagnostic.message} ${source}:${position}`;
-                }
+            if (diagnostic.severity === DiagnosticSeverity.Error) {
+                this.stream.write(`${chalk.red('Error')}: ${msg}\n`);
+            }
+            else {
+                this.stream.write(`${chalk.yellow('Warn')}: ${msg}\n`);
+            }
 
-                if (diagnostic.severity === DiagnosticSeverity.Error) {
-                    this.stream.write(`${chalk.red('Error')}: ${msg}\n`);
-                }
-                else {
-                    this.stream.write(`${chalk.yellow('Warn')}: ${msg}\n`);
-                }
-            });
-
-            this.stream.write('\n');
-        }
+            this.stream.write("\n");
+        });
     }
 
     completion(_f: number, err: number, _w: number) {
@@ -108,7 +104,7 @@ export class MachineFriendlyWriter implements Writer {
                 const { line, character } = range.start;
                 const fn = JSON.stringify(filename);
                 const msg = JSON.stringify(message);
-                this.log(`${type} ${fn} ${line}:${character} ${msg}`);
+                this.log(`${type} ${fn} ${line + 1}:${character + 1} ${msg}`);
             }
         });
     }
