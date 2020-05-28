@@ -15,6 +15,7 @@ import { getPackageInfo } from '../importPackage';
 export interface LanguageServiceContainer {
     getService(): ts.LanguageService;
     updateDocument(document: Document): ts.LanguageService;
+    deleteDocument(filePath: string): void;
 }
 
 const services = new Map<string, LanguageServiceContainer>();
@@ -35,7 +36,7 @@ export function getLanguageServiceForDocument(
     return getService(document.getFilePath() || '', createDocument).updateDocument(document);
 }
 
-function getService(path: string, createDocument: CreateDocument) {
+export function getService(path: string, createDocument: CreateDocument) {
     const tsconfigPath = findTsConfigPath(path);
 
     let service: LanguageServiceContainer;
@@ -105,7 +106,13 @@ export function createLanguageService(
     return {
         getService: () => languageService,
         updateDocument,
+        deleteDocument,
     };
+
+    function deleteDocument(filePath: string): void {
+        svelteModuleLoader.deleteFromModuleCache(filePath);
+        snapshotManager.delete(filePath);
+    }
 
     function updateDocument(document: Document): ts.LanguageService {
         const preSnapshot = snapshotManager.get(document.getFilePath()!);

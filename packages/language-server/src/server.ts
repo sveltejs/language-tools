@@ -133,7 +133,7 @@ export function startServer(options?: LSOptions) {
     });
 
     connection.onDidOpenTextDocument((evt) => docManager.openDocument(evt.textDocument));
-    connection.onDidCloseTextDocument((evt) => docManager.closeDocument(evt.textDocument));
+    connection.onDidCloseTextDocument((evt) => docManager.closeDocument(evt.textDocument.uri));
     connection.onDidChangeTextDocument((evt) =>
         docManager.updateDocument(evt.textDocument, evt.contentChanges),
     );

@@ -32,6 +32,18 @@ class ModuleResolutionCache {
         this.cache.set(this.getKey(moduleName, containingFile), resolvedModule);
     }
 
+    /**
+     * Deletes module from cache. Call this if a file was deleted.
+     * @param resolvedModuleName full path of the module
+     */
+    delete(resolvedModuleName: string): void {
+        this.cache.forEach((val, key) => {
+            if (val.resolvedFileName === resolvedModuleName) {
+                this.cache.delete(key);
+            }
+        });
+    }
+
     private getKey(moduleName: string, containingFile: string) {
         return containingFile + ':::' + ensureRealSvelteFilePath(moduleName);
     }
@@ -59,6 +71,7 @@ export function createSvelteModuleLoader(
     return {
         fileExists: svelteSys.fileExists,
         readFile: svelteSys.readFile,
+        deleteFromModuleCache: (path: string) => moduleCache.delete(path),
         resolveModuleNames,
     };
 
@@ -66,7 +79,7 @@ export function createSvelteModuleLoader(
         moduleNames: string[],
         containingFile: string,
     ): (ts.ResolvedModule | undefined)[] {
-        return moduleNames.map(moduleName => {
+        return moduleNames.map((moduleName) => {
             const cachedModule = moduleCache.get(moduleName, containingFile);
             if (cachedModule) {
                 return cachedModule;

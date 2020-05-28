@@ -2,7 +2,7 @@ import ts from 'typescript';
 import { Document, DocumentManager } from '../../lib/documents';
 import { debounceSameArg, pathToUrl } from '../../utils';
 import { DocumentSnapshot, SvelteDocumentSnapshot } from './DocumentSnapshot';
-import { getLanguageServiceForDocument, getLanguageServiceForPath } from './service';
+import { getLanguageServiceForDocument, getLanguageServiceForPath, getService } from './service';
 import { SnapshotManager } from './SnapshotManager';
 import { findTsConfigPath } from './utils';
 
@@ -67,6 +67,16 @@ export class LSAndTSDocResolver {
         }
 
         return tsDoc;
+    }
+
+    updateSnapshotPath(oldPath: string, newPath: string): DocumentSnapshot {
+        this.deleteSnapshot(oldPath);
+        return this.getSnapshot(newPath);
+    }
+
+    deleteSnapshot(filePath: string) {
+        getService(filePath, this.createDocument).deleteDocument(filePath);
+        this.docManager.releaseDocument(pathToUrl(filePath));
     }
 
     getSnapshotManager(fileName: string): SnapshotManager {

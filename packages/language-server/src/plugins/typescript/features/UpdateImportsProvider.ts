@@ -25,11 +25,19 @@ export class UpdateImportsProviderImpl implements UpdateImportsProvider {
         // `getEditsForFileRename` might take a while
         const fileChanges = ls.getEditsForFileRename(oldPath, newPath, {}, {});
 
-        const docs = new Map<string, SnapshotFragment>();
-        // Assumption: Updating imports will not create new files, and to make sure just filter those out
-        // who - for whatever reason - might be new ones.
-        const updateImportsChanges = fileChanges.filter((change) => !change.isNewFile);
+        this.lsAndTsDocResolver.updateSnapshotPath(oldPath, newPath);
+        const updateImportsChanges = fileChanges
+            // Assumption: Updating imports will not create new files, and to make sure just filter those out
+            // who - for whatever reason - might be new ones.
+            .filter((change) => !change.isNewFile || change.fileName === oldPath)
+            // The language service might want to do edits to the old path, not the new path -> rewire it.
+            // If there is a better solution for this, please file a PR :)
+            .map((change) => {
+                change.fileName = change.fileName.replace(oldPath, newPath);
+                return change;
+            });
 
+        const docs = new Map<string, SnapshotFragment>();
         const documentChanges = await Promise.all(
             updateImportsChanges.map(async (change) => {
                 let fragment = docs.get(change.fileName);
