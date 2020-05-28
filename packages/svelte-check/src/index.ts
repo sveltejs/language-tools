@@ -1,10 +1,9 @@
-import * as chalk from 'chalk';
 import * as fs from 'fs';
 import * as glob from 'glob';
 import * as argv from 'minimist';
 import * as path from 'path';
 import { Duplex } from 'stream';
-import { offsetAt, startServer } from 'svelte-language-server';
+import { startServer } from 'svelte-language-server';
 import { createConnection } from 'vscode-languageserver';
 import {
     createProtocolConnection,
@@ -16,6 +15,16 @@ import {
     StreamMessageWriter,
 } from 'vscode-languageserver-protocol';
 import { URI } from 'vscode-uri';
+import { Writer, HumanFriendlyWriter, MachineFriendlyWriter } from "./writers";
+
+const outputFormats = ["human", "human-verbose", "machine"] as const;
+type OutputFormat = typeof outputFormats[number];
+
+type Result = {
+    fileCount: number;
+    errorCount: number;
+    warningCount: number;
+};
 
 /* eslint-disable @typescript-eslint/no-empty-function */
 class NullLogger implements Logger {
@@ -56,42 +65,27 @@ async function prepareClientConnection() {
     return clientConnection;
 }
 
-function logDiagnostic(diagnostic: Diagnostic, text: string): 0 | 1 {
-    const source = diagnostic.source ? `(${diagnostic.source})` : '';
-    // eslint-disable-next-line max-len
-    const position = `Line: ${diagnostic.range.start.line}, Character: ${diagnostic.range.start.character}`;
-    // Show some context around diagnostic range
-    const startOffset = offsetAt(diagnostic.range.start, text);
-    const endOffset = offsetAt(diagnostic.range.end, text);
-    const codePrev = chalk.cyan(text.substring(Math.max(startOffset - 10, 0), startOffset));
-    const codeHighlight = chalk.magenta(text.substring(startOffset, endOffset));
-    const codePost = chalk.cyan(text.substring(endOffset, endOffset + 10));
-    const code = codePrev + codeHighlight + codePost;
-    const msg = `${diagnostic.message} ${source}\n${position}\n${chalk.cyan(code)}`;
+async function getDiagnostics(workspaceUri: URI, writer: Writer): Promise<Result | null> {
+    writer.start(workspaceUri.fsPath);
 
-    if (diagnostic.severity === DiagnosticSeverity.Error) {
-        console.log(`${chalk.red('Error')}: ${msg}`);
-        return 1;
-    }
-
-    console.log(`${chalk.yellow('Warn')} : ${msg}`);
-    return 0;
-}
-
-async function getDiagnostics(workspaceUri: URI) {
     const clientConnection = await prepareClientConnection();
 
     const files = glob.sync('**/*.svelte', {
         cwd: workspaceUri.fsPath,
         ignore: ['node_modules/**'],
     });
+
     const absFilePaths = files.map((f) => path.resolve(workspaceUri.fsPath, f));
 
-    console.log('');
-    let errCount = 0;
+    const result = {
+        fileCount: absFilePaths.length,
+        errorCount: 0,
+        warningCount: 0
+    };
 
     for (const absFilePath of absFilePaths) {
         const text = fs.readFileSync(absFilePath, 'utf-8');
+
         clientConnection.sendNotification(DidOpenTextDocumentNotification.type, {
             textDocument: {
                 languageId: 'svelte',
@@ -101,22 +95,33 @@ async function getDiagnostics(workspaceUri: URI) {
             },
         });
 
+        let res: Diagnostic[] = [];
+
         try {
-            const res = (await clientConnection.sendRequest('$/getDiagnostics', {
+            res = (await clientConnection.sendRequest('$/getDiagnostics', {
                 uri: URI.file(absFilePath).toString(),
             })) as Diagnostic[];
-            if (res.length > 0) {
-                console.log('');
-                console.log(`${chalk.green('File')} : ${chalk.green(absFilePath)}`);
-                res.forEach((d) => (errCount += logDiagnostic(d, text)));
-                console.log('');
-            }
         } catch (err) {
-            console.log(err);
+            writer.failure(err);
+            return null;
         }
+
+        // eslint-disable-next-line max-len
+        writer.file(res, workspaceUri.fsPath, path.relative(workspaceUri.fsPath, absFilePath), text);
+
+        res.forEach((d: Diagnostic) => {
+            if (d.severity === DiagnosticSeverity.Error) {
+                result.errorCount += 1;
+            }
+            else if (d.severity === DiagnosticSeverity.Warning) {
+                result.warningCount += 1;
+            }
+        });
     }
 
-    return errCount;
+    writer.completion(result.fileCount, result.errorCount, result.warningCount);
+
+    return result;
 }
 
 (async () => {
@@ -128,26 +133,26 @@ async function getDiagnostics(workspaceUri: URI) {
         if (!path.isAbsolute(workspacePath)) {
             workspacePath = path.resolve(process.cwd(), workspacePath);
         }
-        console.log(`Loading svelte-check in workspace path: ${workspacePath}`);
         workspaceUri = URI.file(workspacePath);
     } else {
-        console.log(`Loading svelte-check in current directory: ${process.cwd()}`);
         workspaceUri = URI.file(process.cwd());
     }
 
-    console.log('');
-    console.log('Getting Svelte diagnostics...');
-    console.log('====================================');
-    const errCount = await getDiagnostics(workspaceUri);
-    console.log('====================================');
+    const outputFormat: OutputFormat = outputFormats.includes(myArgs['output']) ? myArgs['output'] : "human-verbose";
+    let writer: Writer;
 
-    if (errCount === 0) {
-        console.log(chalk.green(`svelte-check found no errors`));
+    if (outputFormat === "human-verbose" || outputFormat === "human") {
+        writer = new HumanFriendlyWriter(process.stdout, outputFormat === "human-verbose");
+    }
+    else {
+        writer = new MachineFriendlyWriter(process.stdout);
+    }
+
+    const result = await getDiagnostics(workspaceUri, writer);
+
+    if (result && (result as Result).errorCount === 0) {
         process.exit(0);
     } else {
-        console.log(
-            chalk.red(`svelte-check found ${errCount} ${errCount === 1 ? 'error' : 'errors'}`),
-        );
         process.exit(1);
     }
 })().catch((_err) => {
