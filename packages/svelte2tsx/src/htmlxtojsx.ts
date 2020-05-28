@@ -16,6 +16,8 @@ const oneWayBindingAttributes: Map<string, ElementType> = new Map(
         ),
 );
 
+const beforeStart = (start: number) => start - 1;
+
 type Walker = (node: Node, parent: Node, prop: string, index: number) => void;
 
 // eslint-disable-next-line max-len
@@ -216,6 +218,7 @@ export function convertHtmlxToJsx(
     const handleSlot = (slotEl: Node, componentName: string, slotName: string) => {
         //collect "let" definitions
         let hasMoved = false;
+        let afterTag: number;
         for (const attr of slotEl.attributes) {
             if (attr.type != 'Let') continue;
 
@@ -225,9 +228,7 @@ export function convertHtmlxToJsx(
                 continue;
             }
 
-            // TODO: This code is confusing :D
-            // eslint-disable-next-line no-var
-            var afterTag = afterTag || htmlx.lastIndexOf('>', slotEl.children[0].start) + 1;
+            afterTag = afterTag || htmlx.lastIndexOf('>', slotEl.children[0].start) + 1;
 
             str.move(attr.start, attr.end, afterTag);
 
@@ -241,7 +242,7 @@ export function convertHtmlxToJsx(
             if (attr.expression) {
                 //overwrite the = as a :
                 const equalSign = htmlx.lastIndexOf('=', attr.expression.start);
-                const curly = htmlx.lastIndexOf('{', attr.expression.start);
+                const curly = htmlx.lastIndexOf('{', beforeStart(attr.expression.start));
                 str.overwrite(equalSign, curly + 1, ':');
                 str.remove(attr.expression.end, attr.end);
             }
