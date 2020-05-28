@@ -1,4 +1,5 @@
 import * as chalk from 'chalk';
+import { sep } from 'path';
 import { Writable } from "stream";
 import {
     Diagnostic,
@@ -7,8 +8,8 @@ import {
 import { offsetAt } from 'svelte-language-server';
 
 export interface Writer {
-    start: (workspaceUri: string) => void;
-    file: (d: Diagnostic[], filename: string, text: string) => void;
+    start: (workspaceDir: string) => void;
+    file: (d: Diagnostic[], workspaceDir: string, filename: string, text: string) => void;
     completion: (fileCount: number, errorCount: number, warningCount: number) => void;
     failure: (err: Error) => void;
 }
@@ -17,10 +18,10 @@ export class HumanFriendlyWriter implements Writer {
     constructor(private stream: Writable, private isVerbose = true) {
     }
 
-    start(workspaceUri: string) {
+    start(workspaceDir: string) {
         if (this.isVerbose) {
             this.stream.write('\n');
-            this.stream.write(`Loading svelte-check in workspace: ${workspaceUri}`);
+            this.stream.write(`Loading svelte-check in workspace: ${workspaceDir}`);
             this.stream.write('\n');
             this.stream.write('Getting Svelte diagnostics...\n');
             this.stream.write('====================================\n');
@@ -28,13 +29,14 @@ export class HumanFriendlyWriter implements Writer {
         }
     }
 
-    file(diagnostics: Diagnostic[], filename: string, text: string): void {
+    file(diagnostics: Diagnostic[], workspaceDir: string, filename: string, text: string): void {
         diagnostics.forEach((diagnostic) => {
             const source = diagnostic.source ? `(${diagnostic.source})` : '';
 
             // Display location in a format that IDEs will turn into file links
             const { line, character } = diagnostic.range.start;
-            this.stream.write(`${chalk.green(filename)}:${line + 1}:${character + 1}\n`);
+            // eslint-disable-next-line max-len
+            this.stream.write(`${workspaceDir}${sep}${chalk.green(filename)}:${line + 1}:${character + 1}\n`);
 
             // Show some context around diagnostic range
             const startOffset = offsetAt(diagnostic.range.start, text);
@@ -88,11 +90,11 @@ export class MachineFriendlyWriter implements Writer {
         this.stream.write(`${new Date().getTime()} ${msg}\n`);
     }
 
-    start(workspaceUri: string) {
-        this.log(`START ${JSON.stringify(workspaceUri)}`);
+    start(workspaceDir: string) {
+        this.log(`START ${JSON.stringify(workspaceDir)}`);
     }
 
-    file(diagnostics: Diagnostic[], filename: string, _text: string) {
+    file(diagnostics: Diagnostic[], workspaceDir: string, filename: string, _text: string) {
         diagnostics.forEach((d) => {
             const { message, severity, range } = d;
             const type =

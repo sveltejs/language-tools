@@ -106,7 +106,8 @@ async function getDiagnostics(workspaceUri: URI, writer: Writer): Promise<Result
             return null;
         }
 
-        writer.file(res, path.relative(workspaceUri.fsPath, absFilePath), text);
+        // eslint-disable-next-line max-len
+        writer.file(res, workspaceUri.fsPath, path.relative(workspaceUri.fsPath, absFilePath), text);
 
         res.forEach((d: Diagnostic) => {
             if (d.severity === DiagnosticSeverity.Error) {
