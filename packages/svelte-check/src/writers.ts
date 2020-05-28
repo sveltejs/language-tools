@@ -32,8 +32,7 @@ export class HumanFriendlyWriter implements Writer {
 
     file(diagnostics: Diagnostic[], filename: string, text: string): void {
         if (diagnostics.length > 0) {
-            this.stream.write('\n');
-            this.stream.write(`${chalk.green('File')} : ${chalk.green(filename)}\n`);
+            this.stream.write(`${chalk.green('File')}: ${chalk.green(filename)}\n`);
 
             diagnostics.forEach((diagnostic) => {
                 const source = diagnostic.source ? `(${diagnostic.source})` : '';
