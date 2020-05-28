@@ -60,7 +60,7 @@ export class HumanFriendlyWriter implements Writer {
                     msg = `${diagnostic.message} ${source}\n${position}\n${chalk.cyan(code)}`;
                 }
                 else {
-                    msg = diagnostic.message;
+                    msg = `${diagnostic.message} ${source}:${position}`;
                 }
 
                 if (diagnostic.severity === DiagnosticSeverity.Error) {
