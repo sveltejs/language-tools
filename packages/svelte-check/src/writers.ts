@@ -14,29 +14,26 @@ export interface Writer {
 }
 
 export class HumanFriendlyWriter implements Writer {
-    _stream: Writable;
-    _isVerbose: boolean;
-
-    constructor(stream: Writable, isVerbose = true) {
-        this._stream = stream;
-        this._isVerbose = isVerbose;
+    constructor(private stream: Writable, private isVerbose = true) {
+        this.stream = stream;
+        this.isVerbose = isVerbose;
     }
 
     start(workspaceUri: string) {
-        if (this._isVerbose) {
-            this._stream.write('\n');
-            this._stream.write(`Loading svelte-check in workspace: ${workspaceUri}`);
-            this._stream.write('\n');
-            this._stream.write('Getting Svelte diagnostics...\n');
-            this._stream.write('====================================\n');
-            this._stream.write('\n');
+        if (this.isVerbose) {
+            this.stream.write('\n');
+            this.stream.write(`Loading svelte-check in workspace: ${workspaceUri}`);
+            this.stream.write('\n');
+            this.stream.write('Getting Svelte diagnostics...\n');
+            this.stream.write('====================================\n');
+            this.stream.write('\n');
         }
     }
 
     file(diagnostics: Diagnostic[], filename: string, text: string): void {
         if (diagnostics.length > 0) {
-            this._stream.write('\n');
-            this._stream.write(`${chalk.green('File')} : ${chalk.green(filename)}\n`);
+            this.stream.write('\n');
+            this.stream.write(`${chalk.green('File')} : ${chalk.green(filename)}\n`);
 
             diagnostics.forEach((diagnostic) => {
                 const source = diagnostic.source ? `(${diagnostic.source})` : '';
@@ -56,7 +53,7 @@ export class HumanFriendlyWriter implements Writer {
                 const code = codePrev + codeHighlight + codePost;
                 let msg;
 
-                if (this._isVerbose) {
+                if (this.isVerbose) {
                     msg = `${diagnostic.message} ${source}\n${position}\n${chalk.cyan(code)}`;
                 }
                 else {
@@ -64,45 +61,43 @@ export class HumanFriendlyWriter implements Writer {
                 }
 
                 if (diagnostic.severity === DiagnosticSeverity.Error) {
-                    this._stream.write(`${chalk.red('Error')}: ${msg}\n`);
+                    this.stream.write(`${chalk.red('Error')}: ${msg}\n`);
                 }
                 else {
-                    this._stream.write(`${chalk.yellow('Warn')}: ${msg}\n`);
+                    this.stream.write(`${chalk.yellow('Warn')}: ${msg}\n`);
                 }
             });
 
-            this._stream.write('\n');
+            this.stream.write('\n');
         }
     }
 
     completion(_f: number, err: number, _w: number) {
-        this._stream.write('====================================\n');
+        this.stream.write('====================================\n');
 
         if (err === 0) {
-            this._stream.write(chalk.green(`svelte-check found no errors\n`));
+            this.stream.write(chalk.green(`svelte-check found no errors\n`));
         } else {
-            this._stream.write(chalk.red(`svelte-check found ${err} ${err === 1 ? 'error' : 'errors'}\n`));
+            this.stream.write(chalk.red(`svelte-check found ${err} ${err === 1 ? 'error' : 'errors'}\n`));
         }
     }
 
     failure(err: Error) {
-        this._stream.write(`${err}\n`);
+        this.stream.write(`${err}\n`);
     }
 }
 
 export class MachineFriendlyWriter implements Writer {
-    _stream: Writable;
-
-    constructor(stream: Writable) {
-        this._stream = stream;
+    constructor(private stream: Writable) {
+        this.stream = stream;
     }
 
-    _log(msg: string) {
-        this._stream.write(`${new Date().getTime()} ${msg}\n`);
+    private log(msg: string) {
+        this.stream.write(`${new Date().getTime()} ${msg}\n`);
     }
 
     start(workspaceUri: string) {
-        this._log(`START ${JSON.stringify(workspaceUri)}`);
+        this.log(`START ${JSON.stringify(workspaceUri)}`);
     }
 
     file(diagnostics: Diagnostic[], filename: string, _text: string) {
@@ -117,16 +112,16 @@ export class MachineFriendlyWriter implements Writer {
                 const { line, character } = range.start;
                 const fn = JSON.stringify(filename);
                 const msg = JSON.stringify(message);
-                this._log(`${type} ${fn} ${line}:${character} ${msg}`);
+                this.log(`${type} ${fn} ${line}:${character} ${msg}`);
             }
         });
     }
 
     completion(fileCount: number, errorCount: number, warningCount: number) {
-        this._log(`COMPLETED ${fileCount} FILES ${errorCount} ERRORS ${warningCount} WARNINGS`);
+        this.log(`COMPLETED ${fileCount} FILES ${errorCount} ERRORS ${warningCount} WARNINGS`);
     }
 
     failure(err: Error) {
-        this._log(`FAILURE ${JSON.stringify(err.message)}`);
+        this.log(`FAILURE ${JSON.stringify(err.message)}`);
     }
 }
