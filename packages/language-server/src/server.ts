@@ -69,13 +69,19 @@ export function startServer(options?: LSOptions) {
     const configManager = new LSConfigManager();
     const pluginHost = new PluginHost(docManager, configManager);
 
-    pluginHost.register(new SveltePlugin(configManager));
-    pluginHost.register(new HTMLPlugin(docManager, configManager));
-    pluginHost.register(new CSSPlugin(docManager, configManager));
-    pluginHost.register(new TypeScriptPlugin(docManager, configManager));
-
     connection.onInitialize((evt) => {
-        pluginHost.updateConfig(evt.initializationOptions.config);
+        const workspacePath = urlToPath(evt.rootUri || '') || '';
+        Logger.log('Initialize language server at ', workspacePath);
+        if (!workspacePath) {
+            Logger.error('No workspace path set');
+        }
+
+        pluginHost.updateConfig(evt.initializationOptions?.config);
+        pluginHost.register(new SveltePlugin(configManager));
+        pluginHost.register(new HTMLPlugin(docManager, configManager));
+        pluginHost.register(new CSSPlugin(docManager, configManager));
+        pluginHost.register(new TypeScriptPlugin(docManager, configManager, workspacePath));
+
         return {
             capabilities: {
                 textDocumentSync: {

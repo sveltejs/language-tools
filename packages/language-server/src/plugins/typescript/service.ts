@@ -11,6 +11,7 @@ import {
 import { SnapshotManager } from './SnapshotManager';
 import { Document } from '../../lib/documents';
 import { getPackageInfo } from '../importPackage';
+import { Logger } from '../../logger';
 
 export interface LanguageServiceContainer {
     getService(): ts.LanguageService;
@@ -24,25 +25,30 @@ export type CreateDocument = (fileName: string, content: string) => Document;
 
 export function getLanguageServiceForPath(
     path: string,
+    workspacePath: string,
     createDocument: CreateDocument,
 ): ts.LanguageService {
-    return getService(path, createDocument).getService();
+    return getService(path, workspacePath, createDocument).getService();
 }
 
 export function getLanguageServiceForDocument(
     document: Document,
+    workspacePath: string,
     createDocument: CreateDocument,
 ): ts.LanguageService {
-    return getService(document.getFilePath() || '', createDocument).updateDocument(document);
+    return getService(document.getFilePath() || '', workspacePath, createDocument).updateDocument(
+        document,
+    );
 }
 
-export function getService(path: string, createDocument: CreateDocument) {
-    const tsconfigPath = findTsConfigPath(path);
+export function getService(path: string, workspacePath: string, createDocument: CreateDocument) {
+    const tsconfigPath = findTsConfigPath(path, workspacePath);
 
     let service: LanguageServiceContainer;
     if (services.has(tsconfigPath)) {
         service = services.get(tsconfigPath)!;
     } else {
+        Logger.log('Initialize new ts service at ', tsconfigPath);
         service = createLanguageService(tsconfigPath, createDocument);
         services.set(tsconfigPath, service);
     }
