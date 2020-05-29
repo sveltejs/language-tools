@@ -32,6 +32,7 @@ function AttributeValueAsJsExpression(htmlx: string, attr: Node): string {
 
 type TemplateProcessResult = {
     uses$$props: boolean;
+    uses$$restProps: boolean;
     slots: Map<string, Map<string, string>>;
     scriptTag: Node;
     moduleScriptTag: Node;
@@ -56,6 +57,7 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
     const htmlxAst = parseHtmlx(str.original);
 
     let uses$$props = false;
+    let uses$$restProps = false;
 
     //track if we are in a declaration scope
     let isDeclaration = false;
@@ -112,8 +114,12 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
     const leaveArrowFunctionExpression = () => popScope();
 
     const handleIdentifier = (node: Node, parent: Node, prop: string) => {
-        if (node.name === '$$props' || node.name === '$$restProps') {
+        if (node.name === '$$props') {
             uses$$props = true;
+            return;
+        }
+        if (node.name === '$$restProps') {
+            uses$$restProps = true;
             return;
         }
 
@@ -238,12 +244,14 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
         scriptTag,
         slots,
         uses$$props,
+        uses$$restProps
     };
 }
 
 type InstanceScriptProcessResult = {
     exportedNames: Map<string, string>;
     uses$$props: boolean;
+    uses$$restProps: boolean;
 };
 
 function processInstanceScriptContent(str: MagicString, script: Node): InstanceScriptProcessResult {
@@ -261,6 +269,7 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
 
     const implicitTopLevelNames: Map<string, number> = new Map();
     let uses$$props = false;
+    let uses$$restProps = false;
 
     //track if we are in a declaration scope
     let isDeclaration = false;
@@ -344,10 +353,15 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
     };
 
     const handleIdentifier = (ident: ts.Identifier, parent: ts.Node) => {
-        if (ident.text === '$$props' || ident.text === '$$restProps') {
+        if (ident.text === '$$props') {
             uses$$props = true;
             return;
         }
+        if (ident.text === '$$restProps') {
+            uses$$restProps = true;
+            return;
+        }
+
         if (ts.isLabeledStatement(parent) && parent.label == ident) {
             return;
         }
@@ -512,13 +526,14 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
     return {
         exportedNames,
         uses$$props,
+        uses$$restProps
     };
 }
 
-function addComponentExport(str: MagicString, uses$$props: boolean) {
+function addComponentExport(str: MagicString, uses$$propsOr$$restProps: boolean) {
     str.append(
         `\n\nexport default class {\n    $$prop_def = __sveltets_partial${
-            uses$$props ? '_with_any' : ''
+            uses$$propsOr$$restProps ? '_with_any' : ''
         }(render().props)\n    $$slot_def = render().slots\n}`,
     );
 }
@@ -540,11 +555,17 @@ function createRenderFunction(
     slots: Map<string, Map<string, string>>,
     exportedNames: Map<string, string>,
     uses$$props: boolean,
+    uses$$restProps: boolean
 ) {
     const htmlx = str.original;
-    const propsDecl = uses$$props ?
-        ' let $$props = __sveltets_allPropsType(); let $$restProps = __sveltets_restPropsType();' :
-        '';
+    let propsDecl = '';
+
+    if (uses$$props) {
+        propsDecl += ' let $$props = __sveltets_allPropsType();';
+    }
+    if (uses$$restProps) {
+        propsDecl += ' let $$restProps = __sveltets_restPropsType();';
+    }
 
     if (scriptTag) {
         //I couldn't get magicstring to let me put the script before the <> we prepend during conversion of the template to jsx, so we just close it instead
@@ -582,7 +603,13 @@ function createRenderFunction(
 export function svelte2tsx(svelte: string, filename?: string) {
     const str = new MagicString(svelte);
     // process the htmlx as a svelte template
-    let { moduleScriptTag, scriptTag, slots, uses$$props } = processSvelteTemplate(str);
+    let {
+        moduleScriptTag,
+        scriptTag,
+        slots,
+        uses$$props,
+        uses$$restProps
+    } = processSvelteTemplate(str);
 
     /* Rearrange the script tags so that module is first, and instance second followed finally by the template
      * This is a bit convoluted due to some trouble I had with magic string. A simple str.move(start,end,0) for each script wasn't enough
@@ -611,17 +638,25 @@ export function svelte2tsx(svelte: string, filename?: string) {
         const res = processInstanceScriptContent(str, scriptTag);
         exportedNames = res.exportedNames;
         uses$$props = uses$$props || res.uses$$props;
+        uses$$restProps = uses$$restProps || res.uses$$restProps;
     }
 
     //wrap the script tag and template content in a function returning the slot and exports
-    createRenderFunction(str, scriptTag, instanceScriptTarget, slots, exportedNames, uses$$props);
+    createRenderFunction(
+        str,
+        scriptTag,
+        instanceScriptTarget,
+        slots, exportedNames,
+        uses$$props,
+        uses$$restProps
+    );
 
     // we need to process the module script after the instance script has moved otherwise we get warnings about moving edited items
     if (moduleScriptTag) {
         processModuleScriptTag(str, moduleScriptTag);
     }
 
-    addComponentExport(str, uses$$props);
+    addComponentExport(str, uses$$props || uses$$restProps);
 
     return {
         code: str.toString(),

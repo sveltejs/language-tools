@@ -1,5 +1,9 @@
-<></>;function render() { let $$props = __sveltets_allPropsType();
-<><h1>{$$props['name']}</h1></>
+<></>;function render() { let $$restProps = __sveltets_restPropsType();
+
+    let name = $$restProps['name'];
+;
+<><h1>{name}</h1>
+</>
 return { props: {}, slots: {} }}
 
 export default class {
