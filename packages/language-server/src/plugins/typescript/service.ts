@@ -48,7 +48,7 @@ export function getService(path: string, workspacePath: string, createDocument: 
     if (services.has(tsconfigPath)) {
         service = services.get(tsconfigPath)!;
     } else {
-        Logger.log('Instantiating new ts service at ', tsconfigPath);
+        Logger.log('Initialize new ts service at ', tsconfigPath);
         service = createLanguageService(tsconfigPath, createDocument);
         services.set(tsconfigPath, service);
     }

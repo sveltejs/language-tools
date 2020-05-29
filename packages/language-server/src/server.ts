@@ -71,7 +71,7 @@ export function startServer(options?: LSOptions) {
 
     connection.onInitialize((evt) => {
         const workspacePath = urlToPath(evt.rootUri || '') || '';
-        Logger.log('Initialize language server in ', workspacePath);
+        Logger.log('Initialize language server at ', workspacePath);
         if (!workspacePath) {
             Logger.error('No workspace path set');
         }
