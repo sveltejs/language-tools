@@ -14,14 +14,15 @@ import { UpdateImportsProviderImpl } from '../../../../src/plugins/typescript/fe
 import { LSAndTSDocResolver } from '../../../../src/plugins/typescript/LSAndTSDocResolver';
 import { pathToUrl } from '../../../../src/utils';
 
-const testFilesDir = join(__dirname, '..', 'testfiles');
+const testDir = join(__dirname, '..');
+const testFilesDir = join(testDir, 'testfiles');
 
 describe('UpdateImportsProviderImpl', () => {
     function setup(filename: string) {
         const docManager = new DocumentManager(
             (textDocument) => new Document(textDocument.uri, textDocument.text),
         );
-        const lsAndTsDocResolver = new LSAndTSDocResolver(docManager);
+        const lsAndTsDocResolver = new LSAndTSDocResolver(docManager, testDir);
         const updateImportsProvider = new UpdateImportsProviderImpl(lsAndTsDocResolver);
         const filePath = join(testFilesDir, filename);
         const fileUri = pathToUrl(filePath);

@@ -19,10 +19,11 @@ describe('TypescriptPlugin', () => {
 
     function setup(filename: string) {
         const docManager = new DocumentManager(() => document);
-        const filePath = path.join(__dirname, 'testfiles', filename);
+        const testDir = path.join(__dirname, 'testfiles');
+        const filePath = path.join(testDir, filename);
         const document = new Document(pathToUrl(filePath), ts.sys.readFile(filePath)!);
         const pluginManager = new LSConfigManager();
-        const plugin = new TypeScriptPlugin(docManager, pluginManager);
+        const plugin = new TypeScriptPlugin(docManager, pluginManager, testDir);
         docManager.openDocument(<any>'some doc');
         return { plugin, document };
     }
@@ -283,7 +284,7 @@ describe('TypescriptPlugin', () => {
     const setupForOnWatchedFileChanges = () => {
         const { plugin, document } = setup('');
         const filePath = document.getFilePath()!;
-        const tsConfigPath = findTsConfigPath(filePath);
+        const tsConfigPath = findTsConfigPath(filePath, filePath);
         const snapshotManager = SnapshotManager.getFromTsConfigPath(tsConfigPath);
         const mockProjectJsFile = join(dirname(filePath), 'whatever.js');
 

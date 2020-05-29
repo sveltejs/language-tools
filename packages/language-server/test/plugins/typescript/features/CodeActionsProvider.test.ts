@@ -7,9 +7,11 @@ import * as path from 'path';
 import * as assert from 'assert';
 import { Range, Position, CodeActionKind, TextDocumentEdit } from 'vscode-languageserver';
 
+const testDir = path.join(__dirname, '..');
+
 describe('CodeActionsProvider', () => {
     function getFullPath(filename: string) {
-        return path.join(__dirname, '..', 'testfiles', filename);
+        return path.join(testDir, 'testfiles', filename);
     }
 
     function getUri(filename: string) {
@@ -24,7 +26,7 @@ describe('CodeActionsProvider', () => {
         const docManager = new DocumentManager(
             (textDocument) => new Document(textDocument.uri, textDocument.text),
         );
-        const lsAndTsDocResolver = new LSAndTSDocResolver(docManager);
+        const lsAndTsDocResolver = new LSAndTSDocResolver(docManager, testDir);
         const provider = new CodeActionsProviderImpl(lsAndTsDocResolver);
         const filePath = getFullPath(filename);
         const document = docManager.openDocument(<any>{
@@ -97,7 +99,7 @@ describe('CodeActionsProvider', () => {
                 only: [CodeActionKind.SourceOrganizeImports],
             },
         );
-        (<TextDocumentEdit>codeActions[0]?.edit?.documentChanges?.[0]).edits.forEach(
+        (<TextDocumentEdit>codeActions[0]?.edit?.documentChanges?.[0])?.edits.forEach(
             (edit) => (edit.newText = harmonizeNewLines(edit.newText)),
         );
 

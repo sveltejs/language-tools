@@ -7,7 +7,10 @@ import { SnapshotManager } from './SnapshotManager';
 import { findTsConfigPath } from './utils';
 
 export class LSAndTSDocResolver {
-    constructor(private readonly docManager: DocumentManager) {
+    constructor(
+        private readonly docManager: DocumentManager,
+        private readonly workspacePath: string,
+    ) {
         docManager.on(
             'documentChange',
             debounceSameArg(
@@ -37,7 +40,7 @@ export class LSAndTSDocResolver {
     };
 
     getLSForPath(path: string) {
-        return getLanguageServiceForPath(path, this.createDocument);
+        return getLanguageServiceForPath(path, this.workspacePath, this.createDocument);
     }
 
     getLSAndTSDoc(
@@ -46,7 +49,11 @@ export class LSAndTSDocResolver {
         tsDoc: SvelteDocumentSnapshot;
         lang: ts.LanguageService;
     } {
-        const lang = getLanguageServiceForDocument(document, this.createDocument);
+        const lang = getLanguageServiceForDocument(
+            document,
+            this.workspacePath,
+            this.createDocument,
+        );
         const filePath = document.getFilePath()!;
         const tsDoc = this.getSnapshot(filePath, document);
 
@@ -75,12 +82,12 @@ export class LSAndTSDocResolver {
     }
 
     deleteSnapshot(filePath: string) {
-        getService(filePath, this.createDocument).deleteDocument(filePath);
+        getService(filePath, this.workspacePath, this.createDocument).deleteDocument(filePath);
         this.docManager.releaseDocument(pathToUrl(filePath));
     }
 
     getSnapshotManager(fileName: string): SnapshotManager {
-        const tsconfigPath = findTsConfigPath(fileName);
+        const tsconfigPath = findTsConfigPath(fileName, this.workspacePath);
         const snapshotManager = SnapshotManager.getFromTsConfigPath(tsconfigPath);
         return snapshotManager;
     }

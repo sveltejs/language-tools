@@ -1,4 +1,4 @@
-import { dirname } from 'path';
+import { dirname, relative, isAbsolute } from 'path';
 import ts from 'typescript';
 import {
     CompletionItemKind,
@@ -102,14 +102,20 @@ export function convertToLocationRange(defDoc: SnapshotFragment, textSpan: ts.Te
     return range;
 }
 
-export function findTsConfigPath(fileName: string) {
+export function findTsConfigPath(fileName: string, rootPath: string) {
     const searchDir = dirname(fileName);
 
-    return (
+    const path =
         ts.findConfigFile(searchDir, ts.sys.fileExists, 'tsconfig.json') ||
         ts.findConfigFile(searchDir, ts.sys.fileExists, 'jsconfig.json') ||
-        ''
-    );
+        '';
+    // Don't return config files that exceed the current workspace context.
+    return !!path && isSubPath(rootPath, path) ? path : '';
+}
+
+export function isSubPath(path: string, possibleSubPath: string): boolean {
+    const relativePath = relative(path, possibleSubPath);
+    return !!relativePath && !relativePath.startsWith('..') && !isAbsolute(relativePath);
 }
 
 export function symbolKindFromString(kind: string): SymbolKind {

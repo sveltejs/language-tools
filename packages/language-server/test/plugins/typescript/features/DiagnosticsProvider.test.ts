@@ -9,10 +9,11 @@ import { pathToUrl } from '../../../../src/utils';
 describe('TypescriptPlugin', () => {
     function setup(filename: string) {
         const docManager = new DocumentManager(() => document);
-        const filePath = path.join(__dirname, '..', 'testfiles', filename);
+        const testDir = path.join(__dirname, '..');
+        const filePath = path.join(testDir, 'testfiles', filename);
         const document = new Document(pathToUrl(filePath), ts.sys.readFile(filePath)!);
         const pluginManager = new LSConfigManager();
-        const plugin = new TypeScriptPlugin(docManager, pluginManager);
+        const plugin = new TypeScriptPlugin(docManager, pluginManager, testDir);
         docManager.openDocument(<any>'some doc');
         return { plugin, document };
     }

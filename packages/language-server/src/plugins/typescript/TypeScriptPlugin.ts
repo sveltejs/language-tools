@@ -60,16 +60,20 @@ export class TypeScriptPlugin
         UpdateImportsProvider,
         OnWatchFileChanges,
         CompletionsProvider<CompletionEntryWithIdentifer> {
-    private configManager: LSConfigManager;
+    private readonly configManager: LSConfigManager;
     private readonly lsAndTsDocResolver: LSAndTSDocResolver;
     private readonly completionProvider: CompletionsProviderImpl;
     private readonly codeActionsProvider: CodeActionsProviderImpl;
     private readonly updateImportsProvider: UpdateImportsProviderImpl;
     private readonly diagnosticsProvider: DiagnosticsProviderImpl;
 
-    constructor(docManager: DocumentManager, configManager: LSConfigManager) {
+    constructor(
+        docManager: DocumentManager,
+        configManager: LSConfigManager,
+        workspacePath: string,
+    ) {
         this.configManager = configManager;
-        this.lsAndTsDocResolver = new LSAndTSDocResolver(docManager);
+        this.lsAndTsDocResolver = new LSAndTSDocResolver(docManager, workspacePath);
         this.completionProvider = new CompletionsProviderImpl(this.lsAndTsDocResolver);
         this.codeActionsProvider = new CodeActionsProviderImpl(this.lsAndTsDocResolver);
         this.updateImportsProvider = new UpdateImportsProviderImpl(this.lsAndTsDocResolver);

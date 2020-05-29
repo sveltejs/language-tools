@@ -15,7 +15,8 @@ import { rmdirSync, mkdirSync } from 'fs';
 import { CompletionsProviderImpl } from '../../../../src/plugins/typescript/features/CompletionProvider';
 import { LSAndTSDocResolver } from '../../../../src/plugins/typescript/LSAndTSDocResolver';
 
-const testFilesDir = join(__dirname, '..', 'testfiles');
+const testDir = join(__dirname, '..');
+const testFilesDir = join(testDir, 'testfiles');
 const newLine = ts.sys.newLine;
 
 describe('CompletionProviderImpl', () => {
@@ -23,7 +24,7 @@ describe('CompletionProviderImpl', () => {
         const docManager = new DocumentManager(
             (textDocument) => new Document(textDocument.uri, textDocument.text),
         );
-        const lsAndTsDocResolver = new LSAndTSDocResolver(docManager);
+        const lsAndTsDocResolver = new LSAndTSDocResolver(docManager, testDir);
         const completionProvider = new CompletionsProviderImpl(lsAndTsDocResolver);
         const filePath = join(testFilesDir, filename);
         const document = docManager.openDocument(<any>{
