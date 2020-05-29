@@ -50,7 +50,9 @@ export function getScriptKindFromAttributes(
     const type = attrs.lang || attrs.type;
 
     switch (type) {
+        case 'ts':
         case 'typescript':
+        case 'text/ts':
         case 'text/typescript':
             return ts.ScriptKind.TSX;
         case 'javascript':
