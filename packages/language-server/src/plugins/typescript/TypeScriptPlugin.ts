@@ -5,7 +5,6 @@ import {
     CompletionContext,
     DefinitionLink,
     Diagnostic,
-    DiagnosticSeverity,
     FileChangeType,
     Hover,
     LocationLink,
@@ -17,7 +16,6 @@ import {
 import {
     Document,
     DocumentManager,
-    mapDiagnosticToOriginal,
     mapHoverToParent,
     mapSymbolInformationToOriginal,
 } from '../../lib/documents';
@@ -42,13 +40,13 @@ import {
     CompletionEntryWithIdentifer,
     CompletionsProviderImpl,
 } from './features/CompletionProvider';
+import { DiagnosticsProviderImpl } from './features/DiagnosticsProvider';
 import { UpdateImportsProviderImpl } from './features/UpdateImportsProvider';
 import { LSAndTSDocResolver } from './LSAndTSDocResolver';
 import {
     convertRange,
     convertToLocationRange,
     getScriptKindFromFileName,
-    mapSeverity,
     symbolKindFromString,
 } from './utils';
 
@@ -67,6 +65,7 @@ export class TypeScriptPlugin
     private readonly completionProvider: CompletionsProviderImpl;
     private readonly codeActionsProvider: CodeActionsProviderImpl;
     private readonly updateImportsProvider: UpdateImportsProviderImpl;
+    private readonly diagnosticsProvider: DiagnosticsProviderImpl;
 
     constructor(docManager: DocumentManager, configManager: LSConfigManager) {
         this.configManager = configManager;
@@ -74,6 +73,7 @@ export class TypeScriptPlugin
         this.completionProvider = new CompletionsProviderImpl(this.lsAndTsDocResolver);
         this.codeActionsProvider = new CodeActionsProviderImpl(this.lsAndTsDocResolver);
         this.updateImportsProvider = new UpdateImportsProviderImpl(this.lsAndTsDocResolver);
+        this.diagnosticsProvider = new DiagnosticsProviderImpl(this.lsAndTsDocResolver);
     }
 
     async getDiagnostics(document: Document): Promise<Diagnostic[]> {
@@ -81,45 +81,7 @@ export class TypeScriptPlugin
             return [];
         }
 
-        const { lang, tsDoc } = this.getLSAndTSDoc(document);
-        const isTypescript = tsDoc.scriptKind === ts.ScriptKind.TSX;
-
-        // Document preprocessing failed, show parser error instead
-        if (tsDoc.parserError) {
-            return [
-                {
-                    range: tsDoc.parserError.range,
-                    severity: DiagnosticSeverity.Error,
-                    source: isTypescript ? 'ts' : 'js',
-                    message: tsDoc.parserError.message,
-                    code: tsDoc.parserError.code,
-                },
-            ];
-        }
-
-        const diagnostics: ts.Diagnostic[] = [
-            ...lang.getSyntacticDiagnostics(tsDoc.filePath),
-            ...lang.getSuggestionDiagnostics(tsDoc.filePath),
-            ...lang.getSemanticDiagnostics(tsDoc.filePath),
-        ];
-
-        const fragment = await tsDoc.getFragment();
-
-        return diagnostics
-            .map((diagnostic) => ({
-                range: convertRange(tsDoc, diagnostic),
-                severity: mapSeverity(diagnostic.category),
-                source: isTypescript ? 'ts' : 'js',
-                message: ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n'),
-                code: diagnostic.code,
-            }))
-            .map((diagnostic) => mapDiagnosticToOriginal(fragment, diagnostic))
-            .filter(
-                // In some rare cases mapping of diagnostics does not work and produces negative lines.
-                // We filter out these diagnostics with negative lines because else the LSP (or VSCode?)
-                // apparently has a hickup and does not show any diagnostics at all.
-                (diagnostic) => diagnostic.range.start.line >= 0 && diagnostic.range.end.line >= 0,
-            );
+        return this.diagnosticsProvider.getDiagnostics(document);
     }
 
     async doHover(document: Document, position: Position): Promise<Hover | null> {
