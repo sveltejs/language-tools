@@ -156,16 +156,25 @@ export class TypeScriptPlugin
         collectSymbols(navTree, undefined, (symbol) => symbols.push(symbol));
 
         const topContainerName = symbols[0].name;
-        return symbols
-            .slice(1)
-            .map((symbol) => {
-                if (symbol.containerName === topContainerName) {
-                    return { ...symbol, containerName: 'script' };
-                }
+        return (
+            symbols
+                .slice(1)
+                .map((symbol) => {
+                    if (symbol.containerName === topContainerName) {
+                        return { ...symbol, containerName: 'script' };
+                    }
 
-                return symbol;
-            })
-            .map((symbol) => mapSymbolInformationToOriginal(fragment, symbol));
+                    return symbol;
+                })
+                .map((symbol) => mapSymbolInformationToOriginal(fragment, symbol))
+                // Due to svelte2tsx, there will also be some symbols that are unmapped.
+                // Filter those out to keep the lsp from throwing errors
+                .filter(
+                    (symbol) =>
+                        symbol.location.range.start.line >= 0 &&
+                        symbol.location.range.end.line >= 0,
+                )
+        );
 
         function collectSymbols(
             tree: NavigationTree,
