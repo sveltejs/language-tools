@@ -72,6 +72,9 @@ export function startServer(options?: LSOptions) {
     connection.onInitialize((evt) => {
         const workspacePath = urlToPath(evt.rootUri || '') || '';
         Logger.log('Initialize language server in ', workspacePath);
+        if (!workspacePath) {
+            Logger.error('No workspace path set');
+        }
 
         pluginHost.updateConfig(evt.initializationOptions?.config);
         pluginHost.register(new SveltePlugin(configManager));
