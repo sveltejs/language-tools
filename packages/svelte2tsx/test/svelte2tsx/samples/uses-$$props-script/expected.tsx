@@ -1,4 +1,4 @@
-<></>;function render() { let $$props = __sveltets_allPropsType(); let $$restProps = __sveltets_restPropsType();
+<></>;function render() { let $$props = __sveltets_allPropsType();
 
     let name = $$props['name'];
 ;
