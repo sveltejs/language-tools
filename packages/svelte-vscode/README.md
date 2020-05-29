@@ -1,10 +1,10 @@
 # Svelte for VS Code
 
-Provides syntax highlighting and rich intellisense for Svelte components in VS Code, utilising the [svelte language server](../language-server).
+Provides syntax highlighting and rich intellisense for Svelte components in VS Code, utilising the [svelte language server](/packages/language-server).
 
 ## Setup
 
-Do you want to use Typescript/SCSS/Less/..? See [Using with preprocessors](using-with-preprocessors).
+Do you want to use Typescript/SCSS/Less/..? See "Using with preprocessors" below.
 
 If you added `"files.associations": {"*.svelte": "html" }` to your VSCode settings, remove it.
 
@@ -13,7 +13,7 @@ If you added `"files.associations": {"*.svelte": "html" }` to your VSCode settin
 -   Svelte
     -   Diagnostic messages for warnings and errors
     -   Support for svelte preprocessors that provide source maps
-    -   Svelte specific formatting (via [prettier-plugin-svelte](https://github.com/UnwrittenFun/prettier-plugin-svelte))
+    -   Svelte specific formatting (via [prettier-plugin-svelte](https://github.com/sveltejs/prettier-plugin-svelte))
 -   HTML
     -   Hover info
     -   Autocompletions
@@ -40,8 +40,8 @@ If you added `"files.associations": {"*.svelte": "html" }` to your VSCode settin
 
 #### Language specific setup
 
--   [SCSS/Less](docs/preprocessors/scss.md)
--   [TypeScript](docs/preprocessors/typescript.md)
+-   [SCSS/Less](/packages/svelte-vscode/docs/preprocessors/scss.md)
+-   [TypeScript](/packages/svelte-vscode/docs/preprocessors/typescript.md)
 
 #### Generic setup
 
