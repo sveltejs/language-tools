@@ -6,6 +6,18 @@
     "bin": "./bin/svelte-check",
     "author": "The Svelte Community",
     "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/sveltejs/language-tools.git"
+    },
+    "keywords": [
+        "svelte",
+        "cli"
+    ],
+    "bugs": {
+        "url": "https://github.com/sveltejs/language-tools/issues"
+    },
+    "homepage": "https://github.com/sveltejs/language-tools#readme",
     "dependencies": {
         "chalk": "^4.0.0",
         "glob": "^7.1.6",
@@ -18,7 +30,7 @@
     },
     "scripts": {
         "build": "tsc",
-        "test": "npm --version"
+        "test": "echo 'NOOP'"
     },
     "devDependencies": {
         "@types/glob": "^7.1.1",
