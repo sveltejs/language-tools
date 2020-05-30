@@ -42,7 +42,11 @@ export function convertHtmlxToJsx(
     const handleEventHandler = (attr: Node, parent: Node) => {
         const jsxEventName = attr.name;
 
-        if (parent.type == 'Element' /*&& KnownEvents.indexOf('on'+jsxEventName) >= 0*/) {
+        if (
+            ['Element', 'Window', 'Body'].includes(
+                parent.type,
+            ) /*&& KnownEvents.indexOf('on'+jsxEventName) >= 0*/
+        ) {
             if (attr.expression) {
                 const endAttr = htmlx.indexOf('=', attr.start);
                 str.overwrite(attr.start + 'on:'.length - 1, endAttr, jsxEventName);
