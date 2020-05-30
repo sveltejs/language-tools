@@ -14,22 +14,23 @@ describe('Svelte Sys', () => {
         const svelteFile = 'const a = "svelte file";';
 
         const fileExistsStub = sinon.stub().returns(true);
-        const readFileStub = sinon.stub().returns(tsFile);
-        const getSvelteSnapshotStub = sinon.stub().returns(<Partial<DocumentSnapshot>>{
-            getText: () => svelteFile,
-            getLength: () => svelteFile.length,
-        });
+        const getSnapshotStub = sinon.stub().callsFake(
+            (path: string) =>
+                <Partial<DocumentSnapshot>>{
+                    getText: () => (path.endsWith('.svelte.ts') ? svelteFile : tsFile),
+                    getLength: () =>
+                        path.endsWith('.svelte.ts') ? svelteFile.length : tsFile.length,
+                },
+        );
 
         sinon.replace(ts.sys, 'fileExists', fileExistsStub);
-        sinon.replace(ts.sys, 'readFile', readFileStub);
-        const loader = createSvelteSys(getSvelteSnapshotStub);
+        const loader = createSvelteSys(getSnapshotStub);
 
         return {
             tsFile,
             svelteFile,
             fileExistsStub,
-            readFileStub,
-            getSvelteSnapshotStub,
+            getSnapshotStub,
             loader,
         };
     }
@@ -51,21 +52,19 @@ describe('Svelte Sys', () => {
     });
 
     describe('#readFile', () => {
-        it('should delegate read to ts.sys for files with no .svelte.ts-ending as is', async () => {
-            const { loader, readFileStub, getSvelteSnapshotStub, tsFile } = setupLoader();
+        it('should invoke getSnapshot for ts/js files', async () => {
+            const { loader, getSnapshotStub, tsFile } = setupLoader();
             const code = loader.readFile('../file.ts')!;
 
-            assert.strictEqual(readFileStub.getCall(0).args[0], '../file.ts');
-            assert.strictEqual(getSvelteSnapshotStub.called, false);
+            assert.strictEqual(getSnapshotStub.called, true);
             assert.strictEqual(code, tsFile);
         });
 
-        it('should convert .svelte.ts-endings and invoke getSvelteSnapshot', async () => {
-            const { loader, readFileStub, getSvelteSnapshotStub, svelteFile } = setupLoader();
+        it('should invoke getSnapshot for svelte files', async () => {
+            const { loader, getSnapshotStub, svelteFile } = setupLoader();
             const code = loader.readFile('../file.svelte.ts')!;
 
-            assert.strictEqual(readFileStub.getCall(0).args[0], '../file.svelte');
-            assert.strictEqual(getSvelteSnapshotStub.called, true);
+            assert.strictEqual(getSnapshotStub.called, true);
             assert.strictEqual(code, svelteFile);
         });
     });

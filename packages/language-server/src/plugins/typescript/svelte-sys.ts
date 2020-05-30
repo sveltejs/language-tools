@@ -5,28 +5,21 @@ import { ensureRealSvelteFilePath, isVirtualSvelteFilePath, toRealSvelteFilePath
 /**
  * This should only be accessed by TS svelte module resolution.
  */
-export function createSvelteSys(
-    getSvelteSnapshot: (fileName: string) => DocumentSnapshot | undefined,
-) {
+export function createSvelteSys(getSnapshot: (fileName: string) => DocumentSnapshot) {
     const svelteSys: ts.System = {
         ...ts.sys,
         fileExists(path: string) {
             return ts.sys.fileExists(ensureRealSvelteFilePath(path));
         },
-        readFile(path, encoding) {
-            if (isVirtualSvelteFilePath(path)) {
-                const fileText = ts.sys.readFile(toRealSvelteFilePath(path), encoding);
-                const snapshot = getSvelteSnapshot(fileText!);
-                return fileText ? snapshot?.getText(0, snapshot.getLength()) : fileText;
-            }
-            const fileText = ts.sys.readFile(path, encoding);
-            return fileText;
+        readFile(path: string) {
+            const snapshot = getSnapshot(path);
+            return snapshot.getText(0, snapshot.getLength());
         },
     };
 
     if (ts.sys.realpath) {
         const realpath = ts.sys.realpath;
-        svelteSys.realpath = function(path) {
+        svelteSys.realpath = function (path) {
             if (isVirtualSvelteFilePath(path)) {
                 return realpath(toRealSvelteFilePath(path)) + '.ts';
             }
