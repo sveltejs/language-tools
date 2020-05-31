@@ -58,14 +58,14 @@ class ModuleResolutionCache {
  * so it assumes it's a normal typescript file and searches for files like `../Component.svelte.ts`, which is wrong.
  * In order to fix this, we need to wrap typescript's module resolution and reroute all `.svelte.ts` file lookups to .svelte.
  *
- * @param getSvelteSnapshot A function which returns a fully preprocessed typescript/javascript snapshot
+ * @param getSnapshot A function which returns a (in case of svelte file fully preprocessed) typescript/javascript snapshot
  * @param compilerOptions The typescript compiler options
  */
 export function createSvelteModuleLoader(
-    getSvelteSnapshot: (fileName: string) => DocumentSnapshot | undefined,
+    getSnapshot: (fileName: string) => DocumentSnapshot,
     compilerOptions: ts.CompilerOptions,
 ) {
-    const svelteSys = createSvelteSys(getSvelteSnapshot);
+    const svelteSys = createSvelteSys(getSnapshot);
     const moduleCache = new ModuleResolutionCache();
 
     return {
@@ -113,7 +113,7 @@ export function createSvelteModuleLoader(
         }
 
         const resolvedFileName = ensureRealSvelteFilePath(tsResolvedModule.resolvedFileName);
-        const snapshot = getSvelteSnapshot(resolvedFileName);
+        const snapshot = getSnapshot(resolvedFileName);
 
         const resolvedSvelteModule: ts.ResolvedModuleFull = {
             extension: getExtensionFromScriptKind(snapshot && snapshot.scriptKind),

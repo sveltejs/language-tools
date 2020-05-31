@@ -1,17 +1,12 @@
 import { dirname, resolve } from 'path';
 import ts from 'typescript';
-import { DocumentSnapshot, INITIAL_VERSION } from './DocumentSnapshot';
-import { createSvelteModuleLoader } from './module-loader';
-import {
-    ensureRealSvelteFilePath,
-    getScriptKindFromFileName,
-    isSvelteFilePath,
-    findTsConfigPath,
-} from './utils';
-import { SnapshotManager } from './SnapshotManager';
 import { Document } from '../../lib/documents';
-import { getPackageInfo } from '../importPackage';
 import { Logger } from '../../logger';
+import { getPackageInfo } from '../importPackage';
+import { DocumentSnapshot } from './DocumentSnapshot';
+import { createSvelteModuleLoader } from './module-loader';
+import { SnapshotManager } from './SnapshotManager';
+import { ensureRealSvelteFilePath, findTsConfigPath, isSvelteFilePath } from './utils';
 
 export interface LanguageServiceContainer {
     getService(): ts.LanguageService;
@@ -66,7 +61,7 @@ export function createLanguageService(
 
     const { compilerOptions, files } = getCompilerOptionsAndRootFiles();
 
-    const svelteModuleLoader = createSvelteModuleLoader(getSvelteSnapshot, compilerOptions);
+    const svelteModuleLoader = createSvelteModuleLoader(getSnapshot, compilerOptions);
 
     const svelteTsPath = dirname(require.resolve('svelte2tsx'));
     const svelteTsxFiles = ['./svelte-shims.d.ts', './svelte-jsx.d.ts'].map((f) =>
@@ -77,18 +72,8 @@ export function createLanguageService(
         getCompilationSettings: () => compilerOptions,
         getScriptFileNames: () =>
             Array.from(new Set([...files, ...snapshotManager.getFileNames(), ...svelteTsxFiles])),
-        getScriptVersion(fileName: string) {
-            const doc = getScriptSnapshot(fileName);
-            return doc ? String(doc.version) : INITIAL_VERSION.toString();
-        },
-        getScriptSnapshot(fileName: string): ts.IScriptSnapshot | undefined {
-            const doc = getScriptSnapshot(fileName);
-            if (doc) {
-                return doc;
-            }
-
-            return ts.ScriptSnapshot.fromString(this.readFile!(fileName) || '');
-        },
+        getScriptVersion: (fileName: string) => getSnapshot(fileName).version.toString(),
+        getScriptSnapshot: getSnapshot,
         getCurrentDirectory: () => workspacePath,
         getDefaultLibFileName: ts.getDefaultLibFilePath,
         fileExists: svelteModuleLoader.fileExists,
@@ -98,14 +83,7 @@ export function createLanguageService(
         getDirectories: ts.sys.getDirectories,
         // vscode's uri is all lowercase
         useCaseSensitiveFileNames: () => false,
-        getScriptKind: (fileName: string) => {
-            const doc = getSvelteSnapshot(fileName);
-            if (doc) {
-                return doc.scriptKind;
-            }
-
-            return getScriptKindFromFileName(fileName);
-        },
+        getScriptKind: (fileName: string) => getSnapshot(fileName).scriptKind,
     };
     let languageService = ts.createLanguageService(host);
 
@@ -139,23 +117,21 @@ export function createLanguageService(
         return languageService;
     }
 
-    function getScriptSnapshot(fileName: string): DocumentSnapshot | undefined {
-        return getSvelteSnapshot(fileName) ?? snapshotManager.get(fileName);
-    }
-
-    function getSvelteSnapshot(fileName: string): DocumentSnapshot | undefined {
+    function getSnapshot(fileName: string): DocumentSnapshot {
         fileName = ensureRealSvelteFilePath(fileName);
 
-        if (!isSvelteFilePath(fileName)) {
-            return;
-        }
         let doc = snapshotManager.get(fileName);
         if (doc) {
             return doc;
         }
 
-        const file = ts.sys.readFile(fileName) || '';
-        doc = DocumentSnapshot.fromDocument(createDocument(fileName, file));
+        if (isSvelteFilePath(fileName)) {
+            const file = ts.sys.readFile(fileName) || '';
+            doc = DocumentSnapshot.fromDocument(createDocument(fileName, file));
+        } else {
+            doc = DocumentSnapshot.fromFilePath(fileName);
+        }
+
         snapshotManager.set(fileName, doc);
         return doc;
     }
