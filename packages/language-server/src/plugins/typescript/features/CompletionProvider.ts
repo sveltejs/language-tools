@@ -92,7 +92,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             .filter(isNotNullOrUndefined)
             .map((comp) => mapCompletionItemToOriginal(fragment, comp));
 
-        return CompletionList.create(completionItems);
+        return CompletionList.create(completionItems, !!tsDoc.parserError);
     }
 
     private toCompletionItem(
