@@ -4,8 +4,8 @@
 <svelte:component this={testComponent} propa={5}>
     <h1>content</h1>
 </svelte:component>
-<svelte:window  />
-<svelte:body />
+<svelte:window on:click={e => {}}  />
+<svelte:body on:click={e => {}} />
 <svelte:head>
     <h1>Hi</h1>
 </svelte:head>

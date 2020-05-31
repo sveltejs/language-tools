@@ -5,8 +5,8 @@
 <sveltecomponent this={testComponent} propa={5}>
     <h1>content</h1>
 </sveltecomponent>
-<sveltewindow  />
-<sveltebody />
+<sveltewindow onclick={e => {}}  />
+<sveltebody onclick={e => {}} />
 <sveltehead>
     <h1>Hi</h1>
 </sveltehead>

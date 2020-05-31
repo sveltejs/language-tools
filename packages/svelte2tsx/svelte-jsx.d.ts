@@ -2586,6 +2586,11 @@
       tspan: SVGProps<SVGTSpanElement>;
       use: SVGProps<SVGUseElement>;
       view: SVGProps<SVGViewElement>;
+
+      // Svelte specific
+      sveltewindow: HTMLProps<Window>;
+      sveltebody: HTMLProps<HTMLElement>;
+
       [name: string]: { [name: string]: any };
     }
   }
