@@ -155,6 +155,8 @@ export class SveltePlugin
             }
             return { ...DEFAULT_OPTIONS, ...config };
         } catch (err) {
+            Logger.error('Error while loading config');
+            Logger.error(err);
             return { ...DEFAULT_OPTIONS, ...this.useFallbackPreprocessor(document) };
         }
     }
