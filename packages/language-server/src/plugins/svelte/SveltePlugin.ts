@@ -33,6 +33,9 @@ const DEFAULT_OPTIONS: CompileOptions = {
     dev: true,
 };
 
+const scssNodeRuntimeHint =
+    'If you use SCSS, it may be necessary to add the path to your NODE runtime to the setting `svelte.language-server.runtime`. ';
+
 export class SveltePlugin
     implements DiagnosticsProvider, FormattingProvider, CompletionsProvider, HoverProvider {
     private docManager = new Map<Document, SvelteDocument>();
@@ -46,15 +49,28 @@ export class SveltePlugin
 
         try {
             return await this.tryGetDiagnostics(document);
-        } catch (e) {
+        } catch (error) {
+            Logger.error('Preprocessing failed');
+            Logger.error(error);
             // Preprocessing could fail if packages like less/sass/babel cannot be resolved
             // when our fallback-version of svelte-preprocess is used.
             // Add a warning about a broken svelte.configs.js/preprocessor setup
+            // Also add svelte-preprocess error message.
+            const errorMsg =
+                error instanceof Error && error.message.startsWith('Cannot find any of modules')
+                    ? error.message + '. '
+                    : '';
+            const hint =
+                error instanceof Error && error.message.includes('node-sass')
+                    ? scssNodeRuntimeHint
+                    : '';
             return [
                 {
                     message:
+                        errorMsg +
                         "The file cannot be parsed because script or style require a preprocessor that doesn't seem to be setup. " +
                         'Did you setup a `svelte.config.js`? ' +
+                        hint +
                         'See https://github.com/sveltejs/language-tools/tree/master/packages/svelte-vscode#using-with-preprocessors for more info.',
                     range: Range.create(Position.create(0, 0), Position.create(0, 5)),
                     severity: DiagnosticSeverity.Warning,
@@ -117,7 +133,7 @@ export class SveltePlugin
                 } else {
                     diagnostic.message +=
                         'If you use less/SCSS with `svelte-preprocessor`, did you add `lang="scss"`/`lang="less"` to you `style` tag? ' +
-                        'If you use SCSS, it may be necessary to add the path to your NODE runtime to the setting `svelte.language-server.runtime`. ';
+                        scssNodeRuntimeHint;
                 }
                 diagnostic.message +=
                     'Did you setup a `svelte.config.js`? ' +
@@ -129,13 +145,18 @@ export class SveltePlugin
     }
 
     private async loadConfig(document: Document): Promise<SvelteConfig> {
-        Logger.log('loading config for', document.getFilePath());
+        Logger.log('Trying to load config for', document.getFilePath());
         try {
             const explorer = cosmiconfig('svelte', { packageProp: 'svelte-ls' });
             const result = await explorer.search(document.getFilePath() || '');
             const config = result?.config ?? this.useFallbackPreprocessor(document);
+            if (result) {
+                Logger.log('Found config at ', result.filepath);
+            }
             return { ...DEFAULT_OPTIONS, ...config };
         } catch (err) {
+            Logger.error('Error while loading config');
+            Logger.error(err);
             return { ...DEFAULT_OPTIONS, ...this.useFallbackPreprocessor(document) };
         }
     }
