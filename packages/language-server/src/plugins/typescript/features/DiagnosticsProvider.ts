@@ -1,6 +1,6 @@
 import ts from 'typescript';
 import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver';
-import { Document, mapDiagnosticToOriginal } from '../../../lib/documents';
+import { Document, mapDiagnosticToOriginal, getTextInRange } from '../../../lib/documents';
 import { DiagnosticsProvider } from '../../interfaces';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { convertRange, mapSeverity } from '../utils';
@@ -43,7 +43,7 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
             }))
             .map((diagnostic) => mapDiagnosticToOriginal(fragment, diagnostic))
             .filter(hasNoNegativeLines)
-            .filter(isNoFalsePositive);
+            .filter(isNoFalsePositive(document.getText()));
     }
 
     private getLSAndTSDoc(document: Document) {
@@ -60,13 +60,43 @@ function hasNoNegativeLines(diagnostic: Diagnostic): boolean {
     return diagnostic.range.start.line >= 0 && diagnostic.range.end.line >= 0;
 }
 
-function isNoFalsePositive(diagnostic: Diagnostic): boolean {
+function isNoFalsePositive(text: string) {
+    return (diagnostic: Diagnostic) => {
+        return (
+            isNoJsxCannotHaveMultipleAttrsError(diagnostic) &&
+            isNoUnusedLabelWarningForReactiveStatement(diagnostic) &&
+            isNoUsedBeforeAssigned(diagnostic, text)
+        );
+    };
+}
+
+/**
+ * Variable used before being assigned, can happend when  you do `export let x`
+ * without assigning a value in strict mode.
+ */
+function isNoUsedBeforeAssigned(diagnostic: Diagnostic, text: string): boolean {
+    if (diagnostic.code !== 2454) {
+        return true;
+    }
+
+    const exportLetRegex = new RegExp(`export\\s+let\\s+${getTextInRange(diagnostic.range, text)}`);
+    return !exportLetRegex.test(text);
+}
+
+/**
+ * Unused label warning when using reactive statement (`$: a = ...`)
+ */
+function isNoUnusedLabelWarningForReactiveStatement(diagnostic: Diagnostic) {
     return (
-        diagnostic.code !==
-            17001 /* jsx cannot have multiple attributes with same name,
-            but that's allowed for svelte */ &&
-        (diagnostic.code !== 7028 ||
-            diagnostic.range.end.character - 1 !== diagnostic.range.start.character)
-        /* unused label warning when using reactive statement (`$: a = ...`) */
+        diagnostic.code !== 7028 ||
+        diagnostic.range.end.character - 1 !== diagnostic.range.start.character
     );
+}
+
+/**
+ * Jsx cannot have multiple attributes with same name,
+ * but that's allowed for svelte
+ */
+function isNoJsxCannotHaveMultipleAttrsError(diagnostic: Diagnostic) {
+    return diagnostic.code !== 17001;
 }
