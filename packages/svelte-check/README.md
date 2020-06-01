@@ -55,11 +55,11 @@ Usage:
 ### Machine-Readable Output
 
 Setting the `--output` to `machine` will format output in a way that is easier to read
-by machines, e.g. inside CI pipelines, for code quality checks, ets.
+by machines, e.g. inside CI pipelines, for code quality checks, etc.
 
 Each row corresponds to a new record. Rows are made up of columns that are separated by a
 single space character. The first column of every row contains a timestamp in milliseconds
-which can be used for monitoring purposes. The second columns gives us the "row type", based
+which can be used for monitoring purposes. The second column gives us the "row type", based
 on which the number and types of subsequent columns may differ.
 
 The first row is of type `START` and contains the workspace folder (wrapped in quotes).
