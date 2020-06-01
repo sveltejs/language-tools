@@ -280,10 +280,6 @@ export class TypeScriptPlugin
         return this.lsAndTsDocResolver.getLSAndTSDoc(document);
     }
 
-    private getLSForPath(path: string) {
-        return this.lsAndTsDocResolver.getLSForPath(path);
-    }
-
     private getSnapshot(filePath: string, document?: Document) {
         return this.lsAndTsDocResolver.getSnapshot(filePath, document);
     }
