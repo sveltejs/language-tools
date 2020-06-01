@@ -50,11 +50,11 @@ Usage:
 
 `--workspace <path to your workspace, where checking starts>`
 
-`--outputFormat <human|human-verbose|machine>`
+`--output <human|human-verbose|machine>`
 
 ### Machine-Readable Output
 
-Setting the `--outputFormat` to `machine` will format output in a way that is easier to read
+Setting the `--output` to `machine` will format output in a way that is easier to read
 by machines, e.g. inside CI pipelines, for code quality checks, ets.
 
 Each row corresponds to a new record. Rows are made up of columns that are separated by a
