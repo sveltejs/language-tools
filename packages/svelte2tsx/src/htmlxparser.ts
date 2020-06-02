@@ -4,7 +4,7 @@ import parse5, {
     DefaultTreeTextNode,
 } from 'parse5';
 import compiler from 'svelte/compiler';
-import { Node } from 'svelte/types/compiler/interfaces';
+import { Node } from 'estree-walker';
 
 function walkAst(doc: DefaultTreeElement, action: (c: DefaultTreeElement) => void) {
     action(doc);
@@ -31,47 +31,52 @@ export function findVerbatimElements(htmlx: string) {
     };
 
     walkAst(doc as DefaultTreeElement, (el) => {
+        const parseValue = (attr: parse5.Attribute) => {
+            const sourceCodeLocation = el.sourceCodeLocation.attrs[attr.name];
+            const { startOffset, endOffset } = sourceCodeLocation;
+            const beforeAttrEnd = htmlx.substring(0, endOffset);
+            const valueStartIndex = beforeAttrEnd.indexOf('=', startOffset);
+            const isBare = valueStartIndex === -1;
+
+            return {
+                type: 'Attribute',
+                name: attr.name,
+                value: isBare || [
+                    {
+                        type: 'Text',
+                        start: valueStartIndex + 1,
+                        end: endOffset,
+                        raw: attr.value,
+                    },
+                ],
+                start: startOffset,
+                end: endOffset,
+            };
+        };
+
         if (tagNames.includes(el.nodeName)) {
             const hasNodes = el.childNodes && el.childNodes.length > 0;
             const content = hasNodes ? (el.childNodes[0] as DefaultTreeTextNode) : null;
             if (!checkCase(content, el)) {
                 return;
             }
+
             elements.push({
                 start: el.sourceCodeLocation.startOffset,
                 end: el.sourceCodeLocation.endOffset,
                 type: el.nodeName[0].toUpperCase() + el.nodeName.substr(1),
                 attributes: !el.attrs
                     ? []
-                    : el.attrs.map((a) => {
-                          return {
-                              type: 'Attribute',
-                              name: a.name,
-                              value: [
-                                  {
-                                      type: 'Text',
-                                      start:
-                                          htmlx.indexOf(
-                                              '=',
-                                              el.sourceCodeLocation.attrs[a.name].startOffset,
-                                          ) + 1,
-                                      end: el.sourceCodeLocation.attrs[a.name].endOffset,
-                                      raw: a.value,
-                                  },
-                              ],
-                              start: el.sourceCodeLocation.attrs[a.name].startOffset,
-                              end: el.sourceCodeLocation.attrs[a.name].endOffset,
-                          };
-                      }),
+                    : el.attrs.map((a) => parseValue(a)),
                 content: !content
                     ? null
                     : {
-                          type: 'Text',
-                          start: content.sourceCodeLocation.startOffset,
-                          end: content.sourceCodeLocation.endOffset,
-                          value: content.value,
-                          raw: content.value,
-                      },
+                        type: 'Text',
+                        start: content.sourceCodeLocation.startOffset,
+                        end: content.sourceCodeLocation.endOffset,
+                        value: content.value,
+                        raw: content.value,
+                    },
             });
         }
     });
