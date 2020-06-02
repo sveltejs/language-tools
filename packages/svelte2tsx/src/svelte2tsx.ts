@@ -1,7 +1,7 @@
 import MagicString from 'magic-string';
 import { parseHtmlx } from './htmlxparser';
 import { convertHtmlxToJsx } from './htmlxtojsx';
-import { Node } from 'svelte/compiler';
+import { Node } from 'estree-walker';
 import * as ts from 'typescript';
 
 function AttributeValueAsJsExpression(htmlx: string, attr: Node): string {
@@ -452,15 +452,18 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
         }
 
         if (ts.isExportDeclaration(node)) {
-            for (const ne of node.exportClause.elements) {
-                if (ne.propertyName) {
-                    addExport(ne.propertyName, ne.name);
-                } else {
-                    addExport(ne.name);
+            const { exportClause } = node;
+            if (ts.isNamedExports(exportClause)) {
+                for (const ne of exportClause.elements) {
+                    if (ne.propertyName) {
+                        addExport(ne.propertyName, ne.name);
+                    } else {
+                        addExport(ne.name);
+                    }
                 }
+                //we can remove entire statement
+                removeExport(node.getStart(), node.end);
             }
-            //we can remove entire statement
-            removeExport(node.getStart(), node.end);
         }
 
         //move imports to top of script so they appear outside our render function
