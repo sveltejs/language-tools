@@ -1,61 +1,61 @@
 {
-  "name": "svelte2tsx",
-  "version": "0.1.4",
-  "description": "Convert Svelte components to TSX for type checking",
-  "author": "David Pershouse",
-  "license": "MIT",
-  "keywords": [
-    "svelte",
-    "typescript"
-  ],
-  "homepage": "https://github.com/halfnelson/svelte2tsx",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/halfnelson/svelte2tsx.git"
-  },
-  "type": "commonjs",
-  "main": "index.js",
-  "types": "index.d.ts",
-  "devDependencies": {
-    "@types/mocha": "^5.2.7",
-    "@types/node": "^8.10.53",
-    "@types/parse5": "^5.0.2",
-    "@types/unist": "^2.0.3",
-    "@types/vfile": "^3.0.2",
-    "magic-string": "^0.25.4",
-    "mocha": "^6.2.2",
-    "parse5": "^5.1.0",
-    "rollup": "^1.12.0",
-    "rollup-plugin-commonjs": "^10.0.0",
-    "rollup-plugin-delete": "^1.1.0",
-    "rollup-plugin-json": "^4.0.0",
-    "rollup-plugin-node-resolve": "^5.2.0",
-    "rollup-plugin-typescript": "^1.0.1",
-    "source-map": "^0.6.1",
-    "source-map-support": "^0.5.16",
-    "svelte": "3.16.0",
-    "tiny-glob": "^0.2.6",
-    "tslib": "^1.10.0",
-    "typescript": "^3.6.4"
-  },
-  "peerDependencies": {
-    "svelte": "^3.16",
-    "typescript": "^3.6"
-  },
-  "scripts": {
-    "build": "rollup -c",
-    "dev": "rollup -c -w",
-    "test": "mocha --opts mocha.opts",
-    "pretest": "rollup -c rollup.config.test.js",
-    "prepublishOnly": "npm run build"
-  },
-  "files": [
-    "index.mjs",
-    "index.js",
-    "index.d.ts",
-    "README.md",
-    "LICENSE",
-    "svelte-jsx.d.ts",
-    "svelte-shims.d.ts"
-  ]
+    "name": "svelte2tsx",
+    "version": "0.1.4",
+    "description": "Convert Svelte components to TSX for type checking",
+    "author": "David Pershouse",
+    "license": "MIT",
+    "keywords": [
+        "svelte",
+        "typescript"
+    ],
+    "homepage": "https://github.com/halfnelson/svelte2tsx",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/halfnelson/svelte2tsx.git"
+    },
+    "type": "commonjs",
+    "main": "index.js",
+    "types": "index.d.ts",
+    "devDependencies": {
+        "@types/mocha": "^5.2.7",
+        "@types/node": "^8.10.53",
+        "@types/parse5": "^5.0.2",
+        "@types/unist": "^2.0.3",
+        "@types/vfile": "^3.0.2",
+        "magic-string": "^0.25.4",
+        "mocha": "^6.2.2",
+        "parse5": "^5.1.0",
+        "rollup": "^1.12.0",
+        "rollup-plugin-commonjs": "^10.0.0",
+        "rollup-plugin-delete": "^1.1.0",
+        "rollup-plugin-json": "^4.0.0",
+        "rollup-plugin-node-resolve": "^5.2.0",
+        "rollup-plugin-typescript": "^1.0.1",
+        "source-map": "^0.6.1",
+        "source-map-support": "^0.5.16",
+        "svelte": "3.23.0",
+        "tiny-glob": "^0.2.6",
+        "tslib": "^1.10.0",
+        "typescript": "^3.9.3"
+    },
+    "peerDependencies": {
+        "svelte": "^3.23",
+        "typescript": "^3.9.3"
+    },
+    "scripts": {
+        "build": "rollup -c",
+        "dev": "rollup -c -w",
+        "test": "mocha --opts mocha.opts",
+        "pretest": "rollup -c rollup.config.test.js",
+        "prepublishOnly": "npm run build"
+    },
+    "files": [
+        "index.mjs",
+        "index.js",
+        "index.d.ts",
+        "README.md",
+        "LICENSE",
+        "svelte-jsx.d.ts",
+        "svelte-shims.d.ts"
+    ]
 }

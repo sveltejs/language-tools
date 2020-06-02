@@ -464,6 +464,7 @@ export function convertHtmlxToJsx(
             str.overwrite(endEach, eachBlock.end, '</>)}');
         }
     };
+
     // {#await somePromise then value} ->
     // {() => {let _$$p = (somePromise);
     const handleAwait = (awaitBlock: Node) => {
@@ -474,9 +475,9 @@ export function convertHtmlxToJsx(
         let thenStart: number;
         let thenEnd: number;
         if (!awaitBlock.pending.skip) {
-            //thenBlock seems to include the {:then} tag
+            //thenBlock includes the {:then}
             thenStart = awaitBlock.then.start;
-            thenEnd = htmlx.indexOf('}', thenStart) + 1;
+            thenEnd = htmlx.indexOf('}', awaitBlock.value.end) + 1;
             str.prependLeft(thenStart, '</>; ');
             // add the start tag too
             const awaitEnd = htmlx.indexOf('}', awaitBlock.expression.end);
@@ -486,20 +487,23 @@ export function convertHtmlxToJsx(
             thenEnd = htmlx.lastIndexOf('}', awaitBlock.then.start) + 1;
             thenStart = htmlx.indexOf('then', awaitBlock.expression.end);
         }
-        // console.log("overwriting",thenStart, thenEnd);
-        str.overwrite(thenStart, thenEnd, '_$$p.then((' + awaitBlock.value + ') => {<>');
+        str.overwrite(
+            thenStart,
+            thenEnd,
+            '_$$p.then((' +
+                htmlx.substring(awaitBlock.value.start, awaitBlock.value.end) +
+                ') => {<>',
+        );
         //{:catch error} ->
         //</>}).catch((error) => {<>
         if (!awaitBlock.catch.skip) {
             //catch block includes the {:catch}
             const catchStart = awaitBlock.catch.start;
             const catchSymbolEnd = htmlx.indexOf(':catch', catchStart) + ':catch'.length;
-            // eslint-disable-next-line max-len
-            const errorStart = awaitBlock.error
-                ? htmlx.indexOf(awaitBlock.error, catchSymbolEnd)
-                : catchSymbolEnd;
-            const errorEnd = awaitBlock.error ? errorStart + awaitBlock.error.length : errorStart;
-            const catchEnd = htmlx.indexOf('}', awaitBlock.catch.start) + 1;
+
+            const errorStart = awaitBlock.error ? awaitBlock.error.start : catchSymbolEnd;
+            const errorEnd = awaitBlock.error ? awaitBlock.error.end : errorStart;
+            const catchEnd = htmlx.indexOf('}', errorEnd) + 1;
             str.overwrite(catchStart, errorStart, '</>}).catch((');
             str.overwrite(errorEnd, catchEnd, ') => {<>');
         }
