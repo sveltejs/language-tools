@@ -29,6 +29,7 @@ jobs:
       # Setup the environment
       - run: 'json -I -f packages/svelte-vscode/package.json -e "this.dependencies[\`svelte-language-server\`]=\`file:../language-server\`"'
       - run: 'json -I -f packages/svelte-vscode/package.json -e "this.version=\`99.0.0\`"'
+      - run: 'json -I -f packages/svelte-vscode/package.json -e "this.preview=true"'
 
       # To deploy we need a node_modules folder which isn't in the yarn
       # So, remove the workspace
