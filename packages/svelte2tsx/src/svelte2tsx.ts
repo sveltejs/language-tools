@@ -244,12 +244,20 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
         scriptTag,
         slots,
         uses$$props,
-        uses$$restProps
+        uses$$restProps,
     };
 }
 
+type ExportedNames = Map<
+    string,
+    {
+        type?: string;
+        identifierText?: string;
+    }
+>;
+
 type InstanceScriptProcessResult = {
-    exportedNames: Map<string, string>;
+    exportedNames: ExportedNames;
     uses$$props: boolean;
     uses$$restProps: boolean;
 };
@@ -265,7 +273,7 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
         ts.ScriptKind.TS,
     );
     const astOffset = script.content.start;
-    const exportedNames = new Map<string, string>();
+    const exportedNames = new Map<string, { type?: string; identifierText?: string }>();
 
     const implicitTopLevelNames: Map<string, number> = new Map();
     let uses$$props = false;
@@ -297,13 +305,12 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
             throw Error('export target kind not supported ' + target);
         }
         if (target) {
-            // eslint-disable-next-line max-len
-            exportedNames.set(
-                type ? `${name.text} as ${type.getText()}` : name.text,
-                (target as ts.Identifier).text,
-            );
+            exportedNames.set(name.text, {
+                type: type?.getText(),
+                identifierText: (target as ts.Identifier).text,
+            });
         } else {
-            exportedNames.set(name.text, null);
+            exportedNames.set(name.text, {});
         }
     };
 
@@ -529,15 +536,23 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
     return {
         exportedNames,
         uses$$props,
-        uses$$restProps
+        uses$$restProps,
     };
 }
 
-function addComponentExport(str: MagicString, uses$$propsOr$$restProps: boolean) {
+function addComponentExport(
+    str: MagicString,
+    uses$$propsOr$$restProps: boolean,
+    strictMode: boolean,
+) {
+    const propDef = strictMode
+        ? uses$$propsOr$$restProps
+            ? '__sveltets_with_any(render().props)'
+            : 'render().props'
+        : `__sveltets_partial${uses$$propsOr$$restProps ? '_with_any' : ''}(render().props)`;
     str.append(
-        `\n\nexport default class {\n    $$prop_def = __sveltets_partial${
-            uses$$propsOr$$restProps ? '_with_any' : ''
-        }(render().props)\n    $$slot_def = render().slots\n}`,
+        // eslint-disable-next-line max-len
+        `\n\nexport default class {\n    $$prop_def = ${propDef}\n    $$slot_def = render().slots\n}`,
     );
 }
 
@@ -556,9 +571,9 @@ function createRenderFunction(
     scriptTag: Node,
     scriptDestination: number,
     slots: Map<string, Map<string, string>>,
-    exportedNames: Map<string, string>,
+    exportedNames: ExportedNames,
     uses$$props: boolean,
-    uses$$restProps: boolean
+    uses$$restProps: boolean,
 ) {
     const htmlx = str.original;
     let propsDecl = '';
@@ -582,10 +597,6 @@ function createRenderFunction(
         str.prependRight(scriptDestination, `</>;function render() {${propsDecl}\n<>`);
     }
 
-    // eslint-disable-next-line max-len
-    const returnElements = [...exportedNames.entries()].map(([key, value]) =>
-        value ? `${value}: ${key}` : key,
-    );
     const slotsAsDef =
         '{' +
         [...slots.entries()]
@@ -598,21 +609,49 @@ function createRenderFunction(
             .join(', ') +
         '}';
 
-    const returnString =
-        '\nreturn { props: {' + returnElements.join(' , ') + '}, slots: ' + slotsAsDef + ' }}';
+    const returnString = `\nreturn { props: ${createPropsStr(
+        exportedNames,
+    )}, slots: ${slotsAsDef} }}`;
     str.append(returnString);
 }
 
-export function svelte2tsx(svelte: string, filename?: string) {
+function createPropsStr(exportedNames: ExportedNames) {
+    const names = [...exportedNames.entries()];
+
+    const returnElements = names.map(([key, value]) => {
+        if (!value.identifierText) {
+            return key;
+        }
+
+        return `${value.identifierText}: ${key}`;
+    });
+
+    if (names.length === 0 || !names.some(([_, value]) => !!value.type)) {
+        // No exports or only `typeof` exports -> omit the `as {...}` completely
+        // -> 2nd case could be that it's because it's a js file without typing, so
+        // omit the types to not have a "cannot use types in jsx" error
+        return `{${returnElements.join(' , ')}}`;
+    }
+
+    const returnElementsType = names.map(([key, value]) => {
+        const identifier = value.identifierText || key;
+        if (!value.type) {
+            return `${identifier}: typeof ${key}`;
+        }
+
+        const containsUndefined = /(^|\s+)undefined(\s+|$)/.test(value.type);
+        return `${identifier}${containsUndefined ? '?' : ''}: ${value.type}`;
+    });
+
+    return `{${returnElements.join(' , ')}} as {${returnElementsType.join(', ')}}`;
+}
+
+export function svelte2tsx(svelte: string, options?: { filename?: string; strictMode?: boolean }) {
     const str = new MagicString(svelte);
     // process the htmlx as a svelte template
-    let {
-        moduleScriptTag,
-        scriptTag,
-        slots,
-        uses$$props,
-        uses$$restProps
-    } = processSvelteTemplate(str);
+    let { moduleScriptTag, scriptTag, slots, uses$$props, uses$$restProps } = processSvelteTemplate(
+        str,
+    );
 
     /* Rearrange the script tags so that module is first, and instance second followed finally by the template
      * This is a bit convoluted due to some trouble I had with magic string. A simple str.move(start,end,0) for each script wasn't enough
@@ -632,7 +671,7 @@ export function svelte2tsx(svelte: string, filename?: string) {
     }
 
     //move the instance script and process the content
-    let exportedNames = new Map<string, string>();
+    let exportedNames = new Map<string, { type?: string; identifierText?: string }>();
     if (scriptTag) {
         //ensure it is between the module script and the rest of the template (the variables need to be declared before the jsx template)
         if (scriptTag.start != instanceScriptTarget) {
@@ -649,9 +688,10 @@ export function svelte2tsx(svelte: string, filename?: string) {
         str,
         scriptTag,
         instanceScriptTarget,
-        slots, exportedNames,
+        slots,
+        exportedNames,
         uses$$props,
-        uses$$restProps
+        uses$$restProps,
     );
 
     // we need to process the module script after the instance script has moved otherwise we get warnings about moving edited items
@@ -659,10 +699,10 @@ export function svelte2tsx(svelte: string, filename?: string) {
         processModuleScriptTag(str, moduleScriptTag);
     }
 
-    addComponentExport(str, uses$$props || uses$$restProps);
+    addComponentExport(str, uses$$props || uses$$restProps, !!options?.strictMode);
 
     return {
         code: str.toString(),
-        map: str.generateMap({ hires: true, source: filename }),
+        map: str.generateMap({ hires: true, source: options?.filename }),
     };
 }

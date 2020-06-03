@@ -262,7 +262,9 @@ export class TypeScriptPlugin
             return;
         }
 
-        const newSnapshot = DocumentSnapshot.fromFilePath(fileName);
+        // Since the options parameter only applies to svelte snapshots, and this is not
+        // a svelte file, we can just set it to false without having any effect.
+        const newSnapshot = DocumentSnapshot.fromFilePath(fileName, { strictMode: false });
         const previousSnapshot = snapshotManager.get(fileName);
 
         if (previousSnapshot) {

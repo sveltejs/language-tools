@@ -56,7 +56,11 @@ export function convertHtmlxToJsx(
                     str.remove(attr.end - 1, attr.end);
                 }
             } else {
-                str.overwrite(attr.start + 'on:'.length - 1, attr.end, `${jsxEventName}={null}`);
+                str.overwrite(
+                    attr.start + 'on:'.length - 1,
+                    attr.end,
+                    `${jsxEventName}={undefined}`,
+                );
             }
         } else {
             //We don't know the type of the event handler

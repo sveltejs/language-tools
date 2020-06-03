@@ -47,5 +47,6 @@ declare function __sveltets_allPropsType(): SvelteAllProps
 declare function __sveltets_restPropsType(): SvelteRestProps
 declare function __sveltets_partial<T>(obj: T): Partial<T>;
 declare function __sveltets_partial_with_any<T>(obj: T): Partial<T> & SvelteAllProps
+declare function __sveltets_with_any<T>(obj: T): T & SvelteAllProps
 declare function __sveltets_store_get<T=any>(store: SvelteStore<T>): T
 declare function __sveltets_any(dummy: any): any;
