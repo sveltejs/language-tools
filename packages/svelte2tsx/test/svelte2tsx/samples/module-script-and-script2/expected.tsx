@@ -8,7 +8,7 @@
 <><h1>hello {world}</h1>
 
 </>
-return { props: {world} as {world: typeof world}, slots: {} }}
+return { props: {world}, slots: {} }}
 
 export default class {
     $$prop_def = __sveltets_partial(render().props)

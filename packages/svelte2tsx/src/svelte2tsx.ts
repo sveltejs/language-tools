@@ -616,14 +616,24 @@ function createRenderFunction(
 }
 
 function createPropsStr(exportedNames: ExportedNames) {
-    const returnElements = [...exportedNames.entries()].map(([key, value]) => {
+    const names = [...exportedNames.entries()];
+
+    const returnElements = names.map(([key, value]) => {
         if (!value.identifierText) {
             return key;
         }
 
         return `${value.identifierText}: ${key}`;
     });
-    const returnElementsType = [...exportedNames.entries()].map(([key, value]) => {
+
+    if (names.length === 0 || !names.some(([key, value]) => !!value.type)) {
+        // No exports or only `typeof` exports -> omit the `as {...}` completely
+        // -> 2nd case could be that it's because it's a js file without typing, so
+        // omit the types to not have a "cannot use types in jsx" error
+        return `{${returnElements.join(' , ')}}`;
+    }
+
+    const returnElementsType = names.map(([key, value]) => {
         const identifier = value.identifierText || key;
         if (!value.type) {
             return `${identifier}: typeof ${key}`;
@@ -633,9 +643,7 @@ function createPropsStr(exportedNames: ExportedNames) {
         return `${identifier}${containsUndefined ? '?' : ''}: ${value.type}`;
     });
 
-    return `{${returnElements.join(' , ')}}${
-        returnElementsType.length === 0 ? '' : ` as {${returnElementsType.join(', ')}}`
-    }`;
+    return `{${returnElements.join(' , ')}} as {${returnElementsType.join(', ')}}`;
 }
 
 export function svelte2tsx(svelte: string, options?: { filename?: string; strictMode?: boolean }) {
