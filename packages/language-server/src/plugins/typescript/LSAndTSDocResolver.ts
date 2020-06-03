@@ -2,9 +2,13 @@ import ts from 'typescript';
 import { Document, DocumentManager } from '../../lib/documents';
 import { debounceSameArg, pathToUrl } from '../../utils';
 import { DocumentSnapshot, SvelteDocumentSnapshot } from './DocumentSnapshot';
-import { getLanguageServiceForDocument, getLanguageServiceForPath, getService } from './service';
+import {
+    getLanguageServiceForDocument,
+    getLanguageServiceForPath,
+    getService,
+    LanguageServiceContainer,
+} from './service';
 import { SnapshotManager } from './SnapshotManager';
-import { findTsConfigPath } from './utils';
 
 export class LSAndTSDocResolver {
     constructor(
@@ -63,13 +67,14 @@ export class LSAndTSDocResolver {
     getSnapshot(filePath: string, document: Document): SvelteDocumentSnapshot;
     getSnapshot(filePath: string, document?: Document): DocumentSnapshot;
     getSnapshot(filePath: string, document?: Document) {
-        const snapshotManager = this.getSnapshotManager(filePath);
+        const [tsService, snapshotManager] = this.getTSServiceWithManager(filePath);
 
         let tsDoc = snapshotManager.get(filePath);
         if (!tsDoc) {
+            const options = { strictMode: !!tsService.compilerOptions.strict };
             tsDoc = document
-                ? DocumentSnapshot.fromDocument(document)
-                : DocumentSnapshot.fromFilePath(filePath);
+                ? DocumentSnapshot.fromDocument(document, options)
+                : DocumentSnapshot.fromFilePath(filePath, options);
             snapshotManager.set(filePath, tsDoc);
         }
 
@@ -82,13 +87,21 @@ export class LSAndTSDocResolver {
     }
 
     deleteSnapshot(filePath: string) {
-        getService(filePath, this.workspacePath, this.createDocument).deleteDocument(filePath);
+        this.getTSService(filePath).deleteDocument(filePath);
         this.docManager.releaseDocument(pathToUrl(filePath));
     }
 
-    getSnapshotManager(fileName: string): SnapshotManager {
-        const tsconfigPath = findTsConfigPath(fileName, this.workspacePath);
-        const snapshotManager = SnapshotManager.getFromTsConfigPath(tsconfigPath);
-        return snapshotManager;
+    getSnapshotManager(filePath: string): SnapshotManager {
+        return this.getTSServiceWithManager(filePath)[1];
+    }
+
+    private getTSServiceWithManager(filePath: string): [LanguageServiceContainer, SnapshotManager] {
+        const tsService = this.getTSService(filePath);
+        const snapshotManager = SnapshotManager.getFromTsConfigPath(tsService.tsconfigPath);
+        return [tsService, snapshotManager];
+    }
+
+    private getTSService(filePath: string): LanguageServiceContainer {
+        return getService(filePath, this.workspacePath, this.createDocument);
     }
 }

@@ -64,24 +64,38 @@ export interface SnapshotFragment extends DocumentMapper {
     offsetAt(position: Position): number;
 }
 
+/**
+ * Options that apply to svelte files.
+ */
+export interface SvelteSnapshotOptions {
+    strictMode: boolean;
+}
+
 export namespace DocumentSnapshot {
     /**
      * Returns a svelte snapshot from a svelte document.
+     * @param document the svelte document
+     * @param options options that apply to the svelte document
      */
-    export function fromDocument(document: Document) {
-        const { tsxMap, text, parserError, nrPrependedLines } = preprocessSvelteFile(document);
+    export function fromDocument(document: Document, options: SvelteSnapshotOptions) {
+        const { tsxMap, text, parserError, nrPrependedLines } = preprocessSvelteFile(
+            document,
+            options,
+        );
 
         return new SvelteDocumentSnapshot(document, parserError, text, nrPrependedLines, tsxMap);
     }
 
     /**
      * Returns a svelte or ts/js snapshot from a file path, depending on the file contents.
+     * @param filePath path to the js/ts/svelte file
+     * @param options options that apply in case it's a svelte file
      */
-    export function fromFilePath(filePath: string) {
+    export function fromFilePath(filePath: string, options: SvelteSnapshotOptions) {
         const originalText = ts.sys.readFile(filePath) ?? '';
 
         if (isSvelteFilePath(filePath)) {
-            return fromDocument(new Document(pathToUrl(filePath), originalText));
+            return fromDocument(new Document(pathToUrl(filePath), originalText), options);
         } else {
             return new JSOrTSDocumentSnapshot(INITIAL_VERSION, filePath, originalText);
         }
@@ -91,14 +105,14 @@ export namespace DocumentSnapshot {
 /**
  * Tries to preprocess the svelte document and convert the contents into better analyzable js/ts(x) content.
  */
-function preprocessSvelteFile(document: Document) {
+function preprocessSvelteFile(document: Document, options: SvelteSnapshotOptions) {
     let tsxMap: RawSourceMap | undefined;
     let parserError: ParserError | null = null;
     let nrPrependedLines = 0;
     let text = document.getText();
 
     try {
-        const tsx = svelte2tsx(text);
+        const tsx = svelte2tsx(text, { strictMode: options.strictMode });
         text = tsx.code;
         tsxMap = tsx.map;
         if (tsxMap) {

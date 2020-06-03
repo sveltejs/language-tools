@@ -9,6 +9,8 @@ import { SnapshotManager } from './SnapshotManager';
 import { ensureRealSvelteFilePath, findTsConfigPath, isSvelteFilePath } from './utils';
 
 export interface LanguageServiceContainer {
+    readonly tsconfigPath: string;
+    readonly compilerOptions: ts.CompilerOptions;
     getService(): ts.LanguageService;
     updateDocument(document: Document): ts.LanguageService;
     deleteDocument(filePath: string): void;
@@ -88,6 +90,8 @@ export function createLanguageService(
     let languageService = ts.createLanguageService(host);
 
     return {
+        tsconfigPath,
+        compilerOptions,
         getService: () => languageService,
         updateDocument,
         deleteDocument,
@@ -106,7 +110,9 @@ export function createLanguageService(
             return languageService;
         }
 
-        const newSnapshot = DocumentSnapshot.fromDocument(document);
+        const newSnapshot = DocumentSnapshot.fromDocument(document, {
+            strictMode: !!compilerOptions.strict,
+        });
         if (preSnapshot && preSnapshot.scriptKind !== newSnapshot.scriptKind) {
             // Restart language service as it doesn't handle script kind changes.
             languageService.dispose();
@@ -127,9 +133,11 @@ export function createLanguageService(
 
         if (isSvelteFilePath(fileName)) {
             const file = ts.sys.readFile(fileName) || '';
-            doc = DocumentSnapshot.fromDocument(createDocument(fileName, file));
+            doc = DocumentSnapshot.fromDocument(createDocument(fileName, file), {
+                strictMode: !!compilerOptions.strict,
+            });
         } else {
-            doc = DocumentSnapshot.fromFilePath(fileName);
+            doc = DocumentSnapshot.fromFilePath(fileName, { strictMode: !!compilerOptions.strict });
         }
 
         snapshotManager.set(fileName, doc);

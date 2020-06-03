@@ -4,7 +4,7 @@
      let a: A;
 ;
 <></>
-return { props: {a: a as A}, slots: {} }}
+return { props: {a: a} as {a: A}, slots: {} }}
 
 export default class {
     $$prop_def = __sveltets_partial(render().props)

@@ -6,7 +6,7 @@
     }
 ;
 <></>
-return { props: {f}, slots: {} }}
+return { props: {f} as {f: typeof f}, slots: {} }}
 
 export default class {
     $$prop_def = __sveltets_partial(render().props)

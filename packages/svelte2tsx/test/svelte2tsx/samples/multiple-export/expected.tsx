@@ -5,7 +5,7 @@
 ;
 <>
 <h1>{number1} + {number2} = {number1 + number2}</h1></>
-return { props: {number1: number1 as number , number2: number2 as number}, slots: {} }}
+return { props: {number1: number1 , number2: number2} as {number1: number, number2: number}, slots: {} }}
 
 export default class {
     $$prop_def = __sveltets_partial(render().props)

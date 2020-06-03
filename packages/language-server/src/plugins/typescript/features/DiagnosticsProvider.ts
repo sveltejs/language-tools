@@ -71,8 +71,9 @@ function isNoFalsePositive(text: string) {
 }
 
 /**
- * Variable used before being assigned, can happend when  you do `export let x`
- * without assigning a value in strict mode.
+ * Variable used before being assigned, can happen when  you do `export let x`
+ * without assigning a value in strict mode. Should not throw an error here
+ * but on the component-user-side ("you did not set a required prop").
  */
 function isNoUsedBeforeAssigned(diagnostic: Diagnostic, text: string): boolean {
     if (diagnostic.code !== 2454) {
