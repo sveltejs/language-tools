@@ -626,7 +626,7 @@ function createPropsStr(exportedNames: ExportedNames) {
         return `${value.identifierText}: ${key}`;
     });
 
-    if (names.length === 0 || !names.some(([key, value]) => !!value.type)) {
+    if (names.length === 0 || !names.some(([_, value]) => !!value.type)) {
         // No exports or only `typeof` exports -> omit the `as {...}` completely
         // -> 2nd case could be that it's because it's a js file without typing, so
         // omit the types to not have a "cannot use types in jsx" error
