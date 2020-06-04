@@ -3,6 +3,8 @@
 A language server (implementing the [language server protocol](https://microsoft.github.io/language-server-protocol/))
 for Svelte.
 
+Requires Node 12 or later.
+
 ## What is a language server?
 
 From https://microsoft.github.io/language-server-protocol/overview

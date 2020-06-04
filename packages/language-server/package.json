@@ -31,6 +31,7 @@
     },
     "homepage": "https://github.com/sveltejs/language-tools#readme",
     "devDependencies": {
+        "@tsconfig/node12": "^1.0.0",
         "@types/cosmiconfig": "^6.0.0",
         "@types/estree": "^0.0.42",
         "@types/lodash": "^4.14.116",

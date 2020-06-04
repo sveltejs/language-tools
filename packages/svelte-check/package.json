@@ -19,6 +19,7 @@
     },
     "homepage": "https://github.com/sveltejs/language-tools#readme",
     "dependencies": {
+        "@tsconfig/node12": "^1.0.0",
         "chalk": "^4.0.0",
         "glob": "^7.1.6",
         "minimist": "^1.2.5",

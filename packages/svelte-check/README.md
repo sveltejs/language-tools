@@ -6,6 +6,8 @@ Provides diagnostics for things such as
 -   Svelte A11y hints
 -   JavaScript/TypeScript diagnostics
 
+Requires Node 12 or later.
+
 ### Usage:
 
 #### Global

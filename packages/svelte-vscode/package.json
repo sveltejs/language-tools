@@ -243,9 +243,10 @@
         ]
     },
     "devDependencies": {
+        "@tsconfig/node12": "^1.0.0",
         "@types/node": "^13.9.0",
-        "typescript": "*",
-        "@types/vscode": "*"
+        "@types/vscode": "*",
+        "typescript": "*"
     },
     "dependencies": {
         "svelte-language-server": "*",
