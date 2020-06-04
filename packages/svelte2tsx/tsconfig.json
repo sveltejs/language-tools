@@ -1,6 +1,7 @@
 {
-    "extends": "@tsconfig/node12/tsconfig.json",
     "compilerOptions": {
+        "target": "es2018",
+        "lib": ["ES2018"],
         "rootDir": "src",
 
         "sourceMap": true,

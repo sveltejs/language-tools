@@ -17,7 +17,6 @@
     "main": "index.js",
     "types": "index.d.ts",
     "devDependencies": {
-        "@tsconfig/node12": "^1.0.0",
         "@types/mocha": "^5.2.7",
         "@types/node": "^8.10.53",
         "@types/parse5": "^5.0.2",
