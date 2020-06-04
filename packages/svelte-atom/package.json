@@ -9,7 +9,7 @@
     "svelte",
     "ide"
   ],
-  "repository": "https://github.com/UnwrittenFun/svelte-atom",
+  "repository": "https://github.com/sveltejs/language-server",
   "license": "MIT",
   "engines": {
     "atom": ">=1.0.0 <2.0.0"
@@ -60,6 +60,6 @@
   },
   "dependencies": {
     "atom-languageclient": "^0.9.5",
-    "svelte-language-server": "0.6.1"
+    "svelte-language-server": "*"
   }
 }

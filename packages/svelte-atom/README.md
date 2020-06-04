@@ -27,9 +27,12 @@ Provides syntax highlighting and rich intellisense for Svelte components in Atom
     -   Formatting (via [prettier](https://github.com/prettier/prettier))
     -   Symbols in Outline panel
 
-More features coming soon.
+#### Language specific setup
+
+-   [SCSS/Less](/packages/svelte-vscode/docs/preprocessors/scss.md)
+-   [TypeScript](/packages/svelte-vscode/docs/preprocessors/typescript.md)
 
 ## See Also
 
--   [Svelte Language Server](https://github.com/UnwrittenFun/svelte-language-server)
--   [Svelte VS Code](https://github.com/UnwrittenFun/svelte-vscode)
+-   [Svelte Language Server](https://github.com/sveltejs/language-tools/tree/master/packages/svelte-language-server)
+-   [Svelte VS Code](https://github.com/sveltejs/language-tools/tree/master/packages/svelte-vscode)
