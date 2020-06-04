@@ -599,9 +599,9 @@ function createRenderFunction(
 
     const slotsAsDef =
         '{' +
-        [...slots.entries()]
+        Array.from(slots.entries())
             .map(([name, attrs]) => {
-                const attrsAsString = [...attrs.entries()]
+                const attrsAsString = Array.from(attrs.entries())
                     .map(([exportName, expr]) => `${exportName}:${expr}`)
                     .join(', ');
                 return `${name}: {${attrsAsString}}`;
@@ -616,7 +616,7 @@ function createRenderFunction(
 }
 
 function createPropsStr(exportedNames: ExportedNames) {
-    const names = [...exportedNames.entries()];
+    const names = Array.from(exportedNames.entries());
 
     const returnElements = names.map(([key, value]) => {
         if (!value.identifierText) {
