@@ -8,17 +8,40 @@ To tell us to treat your script tags as typescript, add a `type` or `lang` attri
     export let name: string;
 </script>
 
-<!-- Or add lang="typescript" -->
+<!-- Or add lang="typescript" or lang="ts" -->
 <script lang="typescript">
     export let name: string;
 </script>
 ```
 
-Now you'll need to add a `svelte.config.js` file at the root of your project to tell svelte how to convert your TypeScript into JavaScript that it understands.
+This will work with Svelte and TypeScript as long as you enable `svelte-preprocess` and `@rollup/plugin-typescript`:
 
-You likely already have this configuration somewhere if you are/are planning to use TypeScript with svelte, e.g. webpack config, rollup config, etc.
+- Install these packages `npm i svelte-preprocess typescript tslib @rollup/plugin-typescript`
+- Add these lines to `rollup.config.js`:
 
-_Tip: To avoid duplication of config, you can import the `svelte.config.js` file in your bundle configuration_
+```js
+// ...
+import sveltePreprocess from 'svelte-preprocess';
+import typescript from '@rollup/plugin-typescript';
+
+// ...
+  plugins: [
+    svelte({
+      // ...
+      preprocess: sveltePreprocess(), // <--
+    }),
+
+    // ...
+    commonjs(),
+    typescript(), // <-- added below commonjs
+    // ...
+```
+
+And this should work to enable full TypeScript checking in your Svelte files. For further discussion and a clonable template [see this issue](https://github.com/sveltejs/language-tools/issues/161).
+
+> Caveat: Your entry file (`main.js`) has still to be a javascript file
+
+You may optionally want to extract this out to a standalone `svelte.config.js` file - this used to be necessary but is no longer required. However you may wish to do this to avoid duplication of config.
 
 ### Example Configurations
 
