@@ -9,6 +9,8 @@ import {
     Position,
     Range,
     TextEdit,
+    CodeActionContext,
+    CodeAction,
 } from 'vscode-languageserver';
 import { Document, isInTag, mapDiagnosticToOriginal } from '../../lib/documents';
 import { LSConfigManager, LSSvelteConfig } from '../../ls-config';
@@ -19,11 +21,13 @@ import {
     FormattingProvider,
     HoverProvider,
     Resolvable,
+    CodeActionsProvider,
 } from '../interfaces';
 import { getCompletions } from './features/getCompletions';
 import { getHoverInfo } from './features/getHoverInfo';
 import { SvelteDocument } from './SvelteDocument';
 import { Logger } from '../../logger';
+import { getCodeActions } from './features/getCodeActions';
 
 interface SvelteConfig extends CompileOptions {
     preprocess?: PreprocessorGroup;
@@ -37,10 +41,15 @@ const scssNodeRuntimeHint =
     'If you use SCSS, it may be necessary to add the path to your NODE runtime to the setting `svelte.language-server.runtime`. ';
 
 export class SveltePlugin
-    implements DiagnosticsProvider, FormattingProvider, CompletionsProvider, HoverProvider {
+    implements
+    DiagnosticsProvider,
+    FormattingProvider,
+    CompletionsProvider,
+    HoverProvider,
+    CodeActionsProvider {
     private docManager = new Map<Document, SvelteDocument>();
 
-    constructor(private configManager: LSConfigManager) {}
+    constructor(private configManager: LSConfigManager) { }
 
     async getDiagnostics(document: Document): Promise<Diagnostic[]> {
         if (!this.featureEnabled('diagnostics')) {
@@ -170,7 +179,7 @@ export class SveltePlugin
         ) {
             Logger.log(
                 'No svelte.config.js found but one is needed. ' +
-                    'Using https://github.com/sveltejs/svelte-preprocess as fallback',
+                'Using https://github.com/sveltejs/svelte-preprocess as fallback',
             );
             return {
                 preprocess: importSveltePreprocess(document.getFilePath() || '')({
@@ -217,6 +226,18 @@ export class SveltePlugin
         }
 
         return getHoverInfo(this.getSvelteDoc(document), position);
+    }
+
+
+
+    getCodeActions(
+        document: Document,
+        _range: Range,
+        context: CodeActionContext
+    ): CodeAction[] {
+        const result = getCodeActions(document, context);
+
+        return result;
     }
 
     private featureEnabled(feature: keyof LSSvelteConfig) {
