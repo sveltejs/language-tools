@@ -16,7 +16,7 @@ To tell us to treat your script tags as typescript, add a `type` or `lang` attri
 </script>
 ```
 
-You may optionally want to add a `svelte.config.js` file (see below) - this used to be necessary but is no longer required as long as you only use TypeScript.
+You may optionally want to add a `svelte.config.js` file (see below) - but it is not required as long as you only use TypeScript.
 
 ### Getting it to work for your build
 
