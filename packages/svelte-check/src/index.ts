@@ -1,3 +1,7 @@
+/**
+ * This code's groundwork is taken from https://github.com/vuejs/vetur/tree/master/vti
+ */
+
 import * as fs from 'fs';
 import * as glob from 'glob';
 import * as argv from 'minimist';
