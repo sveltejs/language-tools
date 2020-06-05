@@ -8,7 +8,7 @@ export class SnapshotManager {
     private documents: Map<string, DocumentSnapshot> = new Map();
 
     updateByFileName(fileName: string, options: SvelteSnapshotOptions) {
-        if (!this.projectFiles.includes(fileName)) {
+        if (!this.has(fileName)) {
             return;
         }
 
@@ -24,6 +24,10 @@ export class SnapshotManager {
         }
 
         this.set(fileName, newSnapshot);
+    }
+
+    has(fileName: string) {
+        return this.projectFiles.includes(fileName) || this.getFileNames().includes(fileName);
     }
 
     set(fileName: string, snapshot: DocumentSnapshot) {
