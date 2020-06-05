@@ -1,5 +1,7 @@
 # TypeScript Support
 
+### Getting it to work in the editor
+
 To tell us to treat your script tags as typescript, add a `type` or `lang` attribute to your script tags like so:
 
 ```html
@@ -14,7 +16,11 @@ To tell us to treat your script tags as typescript, add a `type` or `lang` attri
 </script>
 ```
 
-This will work with Svelte and TypeScript as long as you enable `svelte-preprocess` and `@rollup/plugin-typescript`:
+You may optionally want to add a `svelte.config.js` file (see below) - this used to be necessary but is no longer required as long as you only use TypeScript.
+
+### Getting it to work for your build
+
+For the editor, this is already enough - nothing more to do. But you also need to enhance your build config. Using Rollup, this will work with Svelte and TypeScript as long as you enable `svelte-preprocess` and `@rollup/plugin-typescript`:
 
 - Install these packages `npm i svelte-preprocess typescript tslib @rollup/plugin-typescript`
 - Add these lines to `rollup.config.js`:
@@ -41,9 +47,7 @@ And this should work to enable full TypeScript checking in your Svelte files. Fo
 
 > Caveat: Your entry file (`main.js`) has still to be a javascript file
 
-You may optionally want to extract this out to a standalone `svelte.config.js` file - this used to be necessary but is no longer required. However you may wish to do this to avoid duplication of config.
-
-### Example Configurations
+### Example configuration for the editor
 
 #### Using [svelte-preprocess](https://github.com/sveltejs/svelte-preprocess)
 
