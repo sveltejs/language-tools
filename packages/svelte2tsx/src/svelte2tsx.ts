@@ -83,7 +83,23 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
             str.appendLeft(parent.end, ')');
             return;
         }
-
+        // handle $store +=, -=, *=, /=, %=, **=
+        const operators = ['+=', '-=', '*=', '/=', '%=', '**='];
+        if (
+            parent.type == 'AssignmentExpression' &&
+            parent.left == node &&
+            operators.includes(parent.operator)
+        ) {
+            const storename = node.name.slice(1); // drop the $
+            const operator = parent.operator.substring(0, parent.operator.length - 1); // drop the = sign
+            str.overwrite(
+                parent.start,
+                str.original.indexOf('=', node.end) + 1,
+                `${storename}.set( __sveltets_store_get(${storename}) ${operator}`,
+            );
+            str.appendLeft(parent.end, ')');
+            return;
+        }
         // handle $store++, $store--, ++$store, --$store
         // https://github.com/sveltejs/language-tools/issues/170
         if (parent.type == 'UpdateExpression') {
@@ -357,7 +373,30 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
             str.appendLeft(parent.end + astOffset, ')');
             return;
         }
-
+        // handle $store +=, -=, *=, /=, %=, **=
+        const operators = {
+            [ts.SyntaxKind.PlusEqualsToken]: '+',
+            [ts.SyntaxKind.MinusEqualsToken]: '-',
+            [ts.SyntaxKind.AsteriskEqualsToken]: '*',
+            [ts.SyntaxKind.SlashEqualsToken]: '/',
+            [ts.SyntaxKind.PercentEqualsToken]: '%',
+            [ts.SyntaxKind.AsteriskAsteriskEqualsToken]: '**',
+        };
+        if (
+            ts.isBinaryExpression(parent) &&
+            parent.left == ident &&
+            Object.keys(operators).find((x) => x === String(parent.operatorToken.kind))
+        ) {
+            const storename = ident.getText().slice(1); // drop the $
+            const operator = operators[parent.operatorToken.kind];
+            str.overwrite(
+                parent.getStart() + astOffset,
+                str.original.indexOf('=', ident.end + astOffset) + 1,
+                `${storename}.set( __sveltets_store_get(${storename}) ${operator}`,
+            );
+            str.appendLeft(parent.end + astOffset, ')');
+            return;
+        }
         // handle $store++, $store--, ++$store, --$store
         // https://github.com/sveltejs/language-tools/issues/170
         if (ts.isPrefixUnaryExpression(parent) || ts.isPostfixUnaryExpression(parent)) {

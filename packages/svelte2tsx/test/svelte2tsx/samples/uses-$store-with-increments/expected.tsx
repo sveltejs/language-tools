@@ -10,9 +10,7 @@ function render() {
 
 
 <button onclick={() => count.set( __sveltets_store_get(count) + 1)}>add</button>
-<button onclick={() => count.set( __sveltets_store_get(count) - 1)}>subtract</button>
-<button onclick={handler1}>add</button>
-<button onclick={handler2}>subtract</button></>
+<button onclick={() => count.set( __sveltets_store_get(count) - 1)}>subtract</button></>
 return { props: {}, slots: {} }}
 
 export default class {
