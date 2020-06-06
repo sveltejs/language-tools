@@ -235,6 +235,10 @@ export class SveltePlugin
         _range: Range,
         context: CodeActionContext
     ): CodeAction[] {
+        if (!this.featureEnabled('codeActions')) {
+            return [];
+        }
+
         return getCodeActions(this.getSvelteDoc(document), context);
     }
 
