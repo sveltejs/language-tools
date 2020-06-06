@@ -71,7 +71,7 @@ Converts a .svelte file into a legal TypeScript file. Built from [halfnelson/sve
 
 Pull requests are encouraged and always welcome. [Pick an issue](https://github.com/sveltejs/language-tools/issues?q=is%3Aissue+is%3Aopen+sort%3Aupdated-desc) and help us out!
 
-To install and work on Svelte locally:
+To install and work on these tools locally:
 
 ```bash
 git clone https://github.com/sveltejs/language-tools.git svelte-language-tools
