@@ -237,6 +237,23 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         );
     }
 
+    async rename(
+        textDocument: TextDocumentIdentifier,
+        position: Position,
+        newName: string,
+    ): Promise<WorkspaceEdit | null> {
+        const document = this.getDocument(textDocument.uri);
+        if (!document) {
+            throw new Error('Cannot call methods on an unopened document');
+        }
+
+        return await this.execute<any>(
+            'rename',
+            [document, position, newName],
+            ExecuteMode.FirstNonNull,
+        );
+    }
+
     onWatchFileChanges(fileName: string, changeType: FileChangeType): void {
         for (const support of this.plugins) {
             support.onWatchFileChanges?.(fileName, changeType);
