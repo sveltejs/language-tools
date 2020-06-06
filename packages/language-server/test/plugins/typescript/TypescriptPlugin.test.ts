@@ -21,7 +21,7 @@ describe('TypescriptPlugin', () => {
         const docManager = new DocumentManager(() => document);
         const testDir = path.join(__dirname, 'testfiles');
         const filePath = path.join(testDir, filename);
-        const document = new Document(pathToUrl(filePath), ts.sys.readFile(filePath)!);
+        const document = new Document(pathToUrl(filePath), ts.sys.readFile(filePath) || '');
         const pluginManager = new LSConfigManager();
         const plugin = new TypeScriptPlugin(docManager, pluginManager, testDir);
         docManager.openDocument(<any>'some doc');
