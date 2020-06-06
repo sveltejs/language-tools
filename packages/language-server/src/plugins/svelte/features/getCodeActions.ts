@@ -6,14 +6,16 @@ import {
     TextDocumentEdit,
     Position,
     CodeActionKind,
-    VersionedTextDocumentIdentifier
+    VersionedTextDocumentIdentifier,
+    DiagnosticSeverity
 } from 'vscode-languageserver';
 import { EOL } from 'os';
 import { Document } from '../../../lib/documents';
 
 export function getCodeActions(document: Document, context: CodeActionContext) {
     const svelteDiagnostics = context.diagnostics
-        .filter(diagnostic => diagnostic.source === 'svelte');
+        .filter(isIgnorableSvelteDiagnostic);
+
     return svelteDiagnostics.map(diagnostic => {
         const textDocument = VersionedTextDocumentIdentifier.create(
             document.uri,
@@ -34,6 +36,12 @@ export function getCodeActions(document: Document, context: CodeActionContext) {
 function getCodeActionTitle(diagnostic: Diagnostic) {
     // make it distinguishable with eslint's code action
     return `(svelte) Disable ${diagnostic.code} for this line`;
+}
+
+function isIgnorableSvelteDiagnostic(diagnostic: Diagnostic) {
+    const { source, severity, code } = diagnostic;
+    return code && source === 'svelte' &&
+        severity !== DiagnosticSeverity.Error;
 }
 
 function getSvelteIgnoreEdit(diagnostic: Diagnostic) {
