@@ -122,6 +122,6 @@ For tricker issues, you can run the tests with a debugger in VSCode by setting a
 
 ## Credits
 
--   [UnwrittenFun](https://github.com/UnwrittenFun) for creating the foundation which this language server is built on
+-   [UnwrittenFun](https://github.com/UnwrittenFun) for creating the foundation which this language server, and the extensions are built on
 -   Vue's [Vetur](https://github.com/vuejs/vetur) language server which heavily inspires this project
 -   [halfnelson](https://github.com/halfnelson) for creating `svelte2tsx`
