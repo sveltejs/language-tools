@@ -11,7 +11,7 @@ import { pathToUrl } from '../../../../src/utils';
 describe('SveltePlugin#getCodeAction', () => {
     const testDir = path.join(__dirname, '..', 'testfiles');
     function getFullPath(filename: string) {
-        return path.join(testDir, filename)
+        return path.join(testDir, filename);
     }
     function getUri(filename: string) {
         return pathToUrl(getFullPath(filename));
