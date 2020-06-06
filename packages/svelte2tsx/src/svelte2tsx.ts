@@ -84,6 +84,25 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
             return;
         }
 
+        // handle $store++, $store--, ++$store, --$store
+        // https://github.com/sveltejs/language-tools/issues/170
+        if (parent.type == 'UpdateExpression') {
+            let appendor;
+            if (parent.operator === '++') appendor = '+';
+            if (parent.operator === '--') appendor = '-';
+            if (appendor === undefined)
+                throw new Error(
+                    'warning - unrecognized UpdateExpression operator! Probably some edge case unaccounted for in svelte2tsx, please file an issue.',
+                );
+            const storename = node.name.slice(1); // drop the $
+            str.overwrite(
+                parent.start,
+                parent.end,
+                `${storename}.set( __sveltets_store_get(${storename}) ${appendor} 1)`,
+            );
+            return;
+        }
+
         //rewrite get
         const dollar = str.original.indexOf('$', node.start);
         str.overwrite(dollar, dollar + 1, '__sveltets_store_get(');
@@ -336,6 +355,25 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
             str.overwrite(ident.end + astOffset, parent.operatorToken.end + astOffset, '.set(');
             // append )
             str.appendLeft(parent.end + astOffset, ')');
+            return;
+        }
+
+        // handle $store++, $store--, ++$store, --$store
+        // https://github.com/sveltejs/language-tools/issues/170
+        if (ts.isPrefixUnaryExpression(parent) || ts.isPostfixUnaryExpression(parent)) {
+            let appendor;
+            if (parent.operator === 45) appendor = '+';
+            if (parent.operator === 46) appendor = '-';
+            if (appendor === undefined)
+                throw new Error(
+                    'warning - unrecognized UpdateExpression operator! Probably some edge case unaccounted for in svelte2tsx, please file an issue.',
+                );
+            const storename = ident.getText().slice(1); // drop the $
+            str.overwrite(
+                parent.getStart() + astOffset,
+                parent.end + astOffset,
+                `${storename}.set( __sveltets_store_get(${storename}) ${appendor} 1)`,
+            );
             return;
         }
 
