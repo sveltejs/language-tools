@@ -20,6 +20,18 @@ function parseAttributes(attrlist: { name: string; value: string }[]): Record<st
     return attrs;
 }
 
+function isMatchingTag(source: string, node: ParsedNode, tag: string): boolean {
+    if (node.nodeName !== tag) {
+        return false;
+    }
+
+    // node name equals tag, but we still have to check for case sensitivity
+    const orgStart = node.sourceCodeLocation?.startTag.startOffset || 0;
+    const orgEnd = node.sourceCodeLocation?.startTag.endOffset || 0;
+    const tagHtml = source.substring(orgStart, orgEnd);
+    return tagHtml.startsWith(`<${tag}`);
+}
+
 // parse5's DefaultTreeNode type is insufficient; make our own type to make TS happy
 type ParsedNode = {
     nodeName: string;
@@ -30,12 +42,14 @@ type ParsedNode = {
     parentNode: ParsedNode;
     sourceCodeLocation: Location & { startTag: Location; endTag: Location };
 };
-const regexIf = new RegExp('{#if (.*?)*}', 'igms');
+
+const regexIf = new RegExp('{#if\\s(.*?)*}', 'igms');
 const regexIfEnd = new RegExp('{/if}', 'igms');
-const regexEach = new RegExp('{#each (.*?)*}', 'igms');
+const regexEach = new RegExp('{#each\\s(.*?)*}', 'igms');
 const regexEachEnd = new RegExp('{/each}', 'igms');
-const regexAwait = new RegExp('{#await (.*?)*}', 'igms');
+const regexAwait = new RegExp('{#await\\s(.*?)*}', 'igms');
 const regexAwaitEnd = new RegExp('{/await}', 'igms');
+
 /**
  * Extracts a tag (style or script) from the given text
  * and returns its start, end and the attributes on that tag.
@@ -49,7 +63,7 @@ export function extractTag(source: string, tag: 'script' | 'style'): TagInformat
     }) as { childNodes: ParsedNode[] };
 
     let matchedNode;
-    let inSvelteDirective;
+    let currentSvelteDirective;
     for (const node of childNodes) {
         /**
          * skip matching tags if we are inside a directive
@@ -67,23 +81,23 @@ export function extractTag(source: string, tag: 'script' | 'style'): TagInformat
          * and use regex to detect the svelte directives.
          * We might need to improve this regex in future.
          */
-        if (inSvelteDirective) {
+        if (currentSvelteDirective) {
             if (node.value && node.nodeName === '#text') {
                 if (
-                    (inSvelteDirective === 'if' && regexIfEnd.exec(node.value)) ||
-                    (inSvelteDirective === 'each' && regexEachEnd.exec(node.value)) ||
-                    (inSvelteDirective === 'await' && regexAwaitEnd.exec(node.value))
+                    (currentSvelteDirective === 'if' && regexIfEnd.exec(node.value)) ||
+                    (currentSvelteDirective === 'each' && regexEachEnd.exec(node.value)) ||
+                    (currentSvelteDirective === 'await' && regexAwaitEnd.exec(node.value))
                 ) {
-                    inSvelteDirective = undefined;
+                    currentSvelteDirective = undefined;
                 }
             }
         } else {
             if (node.value && node.nodeName === '#text') {
                 // potentially a svelte directive
-                if (regexIf.exec(node.value)) inSvelteDirective = 'if';
-                else if (regexEach.exec(node.value)) inSvelteDirective = 'each';
-                else if (regexAwait.exec(node.value)) inSvelteDirective = 'await';
-            } else if (node.nodeName === tag) {
+                if (regexIf.exec(node.value)) currentSvelteDirective = 'if';
+                else if (regexEach.exec(node.value)) currentSvelteDirective = 'each';
+                else if (regexAwait.exec(node.value)) currentSvelteDirective = 'await';
+            } else if (isMatchingTag(source, node, tag)) {
                 matchedNode = node;
                 break;
             }
@@ -93,13 +107,13 @@ export function extractTag(source: string, tag: 'script' | 'style'): TagInformat
 
     const SCL = matchedNode.sourceCodeLocation; // shorthand
     const attributes = parseAttributes(matchedNode.attrs);
-    const content = matchedNode.childNodes[0]?.value || '';
     /**
-     * Note: this `content` will only show top level child node content.
-     * This is probably ok given that extractTag is only meant to extract top level
+     * Note: `content` will only show top level child node content.
+     * This is ok given that extractTag is only meant to extract top level
      * <style> and <script> tags. But if that ever changes we may have to make this
-     * recruse and concat all childnodes.
+     * recurse and concat all childnodes.
      */
+    const content = matchedNode.childNodes[0]?.value || '';
     const start = SCL.startTag.endOffset;
     const end = SCL.endTag.startOffset;
     const startPos = positionAt(start, source);

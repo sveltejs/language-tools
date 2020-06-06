@@ -44,6 +44,15 @@ describe('document/utils', () => {
             assert.deepStrictEqual(extractTag(text, 'style'), null);
         });
 
+        it('is canse sensitive to style/script', () => {
+            const text = `
+            <Style></Style>
+            <Script></Script>
+            `;
+            assert.deepStrictEqual(extractTag(text, 'style'), null);
+            assert.deepStrictEqual(extractTag(text, 'script'), null);
+        });
+
         it('only extract attribute until tag ends', () => {
             const text = `
             <script type="typescript">
