@@ -6,7 +6,6 @@
     "typings": "dist/src/index",
     "scripts": {
         "test": "cross-env TS_NODE_TRANSPILE_ONLY=true mocha --require ts-node/register \"test/**/*.ts\"",
-        "runonce": "ts-node runonce.ts",
         "build": "tsc",
         "watch": "tsc -w",
         "prepublishOnly": "yarn test && yarn build"

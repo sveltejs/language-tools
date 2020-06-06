@@ -50,7 +50,22 @@ export function extractTag(source: string, tag: 'script' | 'style'): TagInformat
 
     let matchedNode, inSvelteDirective;
     for (let node of childNodes) {
-        // skip matching tags if we are inside a directive
+        /**
+         * skip matching tags if we are inside a directive
+         * 
+         * extractTag's goal is solely to identify the top level <script> or <style>.
+         * 
+         * therefore only iterating through top level childNodes is a feature we want!
+         * 
+         * however, we cannot do a naive childNodes.find() because context matters.
+         * if we have a <script> tag inside an {#if}, we want to skip that until the {/if}.
+         * if we have a <script> tag inside an {#each}, we want to skip that until the {/each}.
+         * if we have a <script> tag inside an {#await}, we want to skip that until the {/await}.
+         * 
+         * and so on. So we use a tiny inSvelteDirective 'state machine' to track this
+         * and use regex to detect the svelte directives. 
+         * We might need to improve this regex in future.
+         */
         if (inSvelteDirective) {
             if (node.value && node.nodeName === '#text') {
                 if (
@@ -77,7 +92,13 @@ export function extractTag(source: string, tag: 'script' | 'style'): TagInformat
 
     const SCL = matchedNode.sourceCodeLocation; // shorthand
     const attributes = parseAttributes(matchedNode.attrs);
-    const content = matchedNode.childNodes[0]?.value || ''; // TODO: may need to recurse and concat all values
+    const content = matchedNode.childNodes[0]?.value || ''; 
+    /**
+     * Note: this `content` will only show top level child node content.
+     * This is probably ok given that extractTag is only meant to extract top level 
+     * <style> and <script> tags. But if that ever changes we may have to make this
+     * recruse and concat all childnodes.
+     */
     const start = SCL.startTag.endOffset;
     const end = SCL.endTag.startOffset;
     const startPos = positionAt(start, source);
