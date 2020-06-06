@@ -10,22 +10,23 @@ import {
     DiagnosticSeverity
 } from 'vscode-languageserver';
 import { EOL } from 'os';
-import { Document } from '../../../lib/documents';
+import { SvelteDocument } from '../SvelteDocument';
+import { pathToUrl } from '../../../utils';
 
-export function getCodeActions(document: Document, context: CodeActionContext) {
+export function getCodeActions(svelteDoc: SvelteDocument, context: CodeActionContext) {
     const svelteDiagnostics = context.diagnostics
         .filter(isIgnorableSvelteDiagnostic);
 
     return svelteDiagnostics.map(diagnostic => {
         const textDocument = VersionedTextDocumentIdentifier.create(
-            document.uri,
-            document.version
+            pathToUrl(svelteDoc.getFilePath()),
+            svelteDoc.version
         );
 
         return CodeAction.create(getCodeActionTitle(diagnostic), {
             documentChanges: [
                 TextDocumentEdit.create(textDocument, [
-                    getSvelteIgnoreEdit(diagnostic)
+                    getSvelteIgnoreEdit(svelteDoc, diagnostic)
                 ])
             ]
         },
@@ -44,12 +45,16 @@ function isIgnorableSvelteDiagnostic(diagnostic: Diagnostic) {
         severity !== DiagnosticSeverity.Error;
 }
 
-function getSvelteIgnoreEdit(diagnostic: Diagnostic) {
+function getSvelteIgnoreEdit(svelteDoc: SvelteDocument, diagnostic: Diagnostic) {
     const { code, range: { start } } = diagnostic;
+    const content = svelteDoc.getText();
+    const startLineStart = svelteDoc.offsetAt({ line: start.line, character: 0 });
+    const afterStartLineStart = content.slice(startLineStart);
+    const indent = /^[ |\t]+/.exec(afterStartLineStart)?.[0] ?? '';
 
     // TODO: Make all code action's new line consistent
-    const ignore = `<!-- svelte-ignore ${code} -->${EOL}`;
-    const position = Position.create(start.line, start.character);
+    const ignore = `${indent}<!-- svelte-ignore ${code} -->${EOL}`;
+    const position = Position.create(start.line, 0);
 
     return TextEdit.insert(position, ignore);
 }

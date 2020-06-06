@@ -235,9 +235,7 @@ export class SveltePlugin
         _range: Range,
         context: CodeActionContext
     ): CodeAction[] {
-        const result = getCodeActions(document, context);
-
-        return result;
+        return getCodeActions(this.getSvelteDoc(document), context);
     }
 
     private featureEnabled(feature: keyof LSSvelteConfig) {
