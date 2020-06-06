@@ -129,22 +129,50 @@ describe('document/utils', () => {
                     </script>
                 {/await}
                 <p>{@html <script> consolelog('not top level')</script>}</p>
+                {@html mycontent}
+                {@debug myvar}
                 <!-- p{ color: blue; }</script> -->
                 <!--<script lang="scss">
                 p{ color: blue; }
                 </script> -->
-                <scrit>blah</script>
+                <scrit>blah</scrit>
                 <script>top level script</script>
             `;
+            // Note: cannot test <scrit>blah</scriPt> as that breaks parse5 parsing for top level script!
+
             assert.deepStrictEqual(extractTag(text, 'script'), {
                 content: 'top level script',
                 attributes: {},
-                start: 1148,
-                end: 1164,
-                startPos: Position.create(32, 24),
-                endPos: Position.create(32, 40),
-                container: { start: 1140, end: 1173 },
+                start: 1212,
+                end: 1228,
+                startPos: Position.create(34, 24),
+                endPos: Position.create(34, 40),
+                container: { start: 1204, end: 1237 },
             });
         });
+
+        it('ignores script tag in svelte:head', () => {
+            // https://github.com/sveltejs/language-tools/issues/143#issuecomment-636422045
+            const text = `
+            <svelte:head>
+                <link rel="stylesheet" href="/lib/jodit.es2018.min.css" />
+                <script src="/lib/jodit.es2018.min.js"> 
+                </script>
+            </svelte:head>
+            <p>jo</p>
+            <script>top level script</script>
+            <h1>Hello, world!</h1>
+            <style>.bla {}</style>
+            `
+            assert.deepStrictEqual(extractTag(text, 'script'), {
+                content: 'top level script',
+                attributes: {},
+                start: 254,
+                end: 270,
+                startPos: Position.create(7, 20),
+                endPos: Position.create(7, 36),
+                container: { start: 246, end: 279 },
+            });
+        })
     });
 });
