@@ -163,7 +163,7 @@ describe('document/utils', () => {
             <script>top level script</script>
             <h1>Hello, world!</h1>
             <style>.bla {}</style>
-            `
+            `;
             assert.deepStrictEqual(extractTag(text, 'script'), {
                 content: 'top level script',
                 attributes: {},
@@ -173,6 +173,6 @@ describe('document/utils', () => {
                 endPos: Position.create(7, 36),
                 container: { start: 246, end: 279 },
             });
-        })
+        });
     });
 });
