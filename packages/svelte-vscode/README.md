@@ -45,14 +45,14 @@ If you added `"files.associations": {"*.svelte": "html" }` to your VSCode settin
 
 #### Generic setup
 
-If a svelte file contains some language other than `html`, `css` or `javascript`, `svelte-vscode` needs to know how to [preprocess](https://svelte.dev/docs#svelte_preprocess) it. This can be achieved by creating a `svelte.config.js` file at the root of your project which exports a svelte options object (similar to `svelte-loader` and `rollup-plugin-svelte`).
+If a svelte file contains some language other than `html`, `css` or `javascript`, `svelte-vscode` needs to know how to [preprocess](https://svelte.dev/docs#svelte_preprocess) it. This can be achieved by creating a `svelte.config.js` file at the root of your project which exports a svelte options object (similar to `svelte-loader` and `rollup-plugin-svelte`). It's recommended to use the official [svelte-preprocess](https://github.com/sveltejs/svelte-preprocess) package which can handle many languages.
 
 ```js
 // svelte.config.js
-const preprocess = require('my-example-svelte-preprocessor');
+const sveltePreprocess = require('svelte-preprocess');
 
 module.exports = {
-    preprocess: [preprocess()],
+    preprocess: sveltePreprocess(),
     // ...other svelte options
 };
 ```

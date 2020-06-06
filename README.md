@@ -51,11 +51,11 @@ For example `yarn workspace svelte-language-server test`.
 
 #### [`svelte-language-server`](packages/language-server)
 
-The language server for Svelte. Built from [UnwrittenFun/svelte-language-server](https://github.com/UnwrittenFun/svelte-language-server) to become the official language server for the language.
+The language server for Svelte. Built from [UnwrittenFun/svelte-language-server](https://github.com/UnwrittenFun/svelte-language-server) and heavily inspired by [Vetur](https://github.com/vuejs/vetur) to become the official language server for the language.
 
 #### [`svelte-check`](packages/svelte-check)
 
-A command line tool to check your svelte files for type errors, unused css, and more.
+A command line tool to check your svelte files for type errors, unused css, and more. Built from [Vetur's VTI](https://github.com/vuejs/vetur/tree/master/vti).
 
 #### [`svelte-vscode`](packages/svelte-vscode)
 
@@ -63,7 +63,7 @@ The official vscode extension for Svelte. Built from [UnwrittenFun/svelte-vscode
 
 #### [`svelte2tsx`](packages/svelte2tsx)
 
-Converts a .svelte file into a legal TypeScript file. Built from [halfnelson/svelte2tsx](https://github.com/UnwrittenFun/halfnelson/svelte2tsx) to provide the auto-complete and import mapping inside the language server.
+Converts a .svelte file into a legal TypeScript file. Built from [halfnelson/svelte2tsx](https://github.com/halfnelson/svelte2tsx) to provide the auto-complete and import mapping inside the language server.
 
 ## Development
 
@@ -119,3 +119,9 @@ For tricker issues, you can run the tests with a debugger in VSCode by setting a
 ## License
 
 [MIT](LICENSE)
+
+## Credits
+
+-   [UnwrittenFun](https://github.com/UnwrittenFun) for creating the foundation which this language server is built on
+-   Vue's [Vetur](https://github.com/vuejs/vetur) language server which heavily inspires this project
+-   [halfnelson](https://github.com/halfnelson) for creating `svelte2tsx`
