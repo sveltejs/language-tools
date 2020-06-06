@@ -83,7 +83,7 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
             str.appendLeft(parent.end, ')');
             return;
         }
-        // handle $store +=, -=, *=, /=, %=, **=
+        // handle Assignment operators ($store +=, -=, *=, /=, %=, **=)
         const operators = ['+=', '-=', '*=', '/=', '%=', '**='];
         if (
             parent.type == 'AssignmentExpression' &&
@@ -101,7 +101,6 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
             return;
         }
         // handle $store++, $store--, ++$store, --$store
-        // https://github.com/sveltejs/language-tools/issues/170
         if (parent.type == 'UpdateExpression') {
             let appendor;
             if (parent.operator === '++') appendor = '+';
@@ -373,7 +372,7 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
             str.appendLeft(parent.end + astOffset, ')');
             return;
         }
-        // handle $store +=, -=, *=, /=, %=, **=
+        // handle Assignment operators ($store +=, -=, *=, /=, %=, **=)
         const operators = {
             [ts.SyntaxKind.PlusEqualsToken]: '+',
             [ts.SyntaxKind.MinusEqualsToken]: '-',
@@ -398,7 +397,6 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
             return;
         }
         // handle $store++, $store--, ++$store, --$store
-        // https://github.com/sveltejs/language-tools/issues/170
         if (ts.isPrefixUnaryExpression(parent) || ts.isPostfixUnaryExpression(parent)) {
             let appendor;
             if (parent.operator === 45) appendor = '+';

@@ -13,7 +13,6 @@ function render() {
 ;
 <>
 
-
 <button onclick={() => count.set( __sveltets_store_get(count) + myvar)}>add</button>
 <button onclick={() => count.set( __sveltets_store_get(count) - myvar)}>subtract</button>
 <button onclick={() => count.set( __sveltets_store_get(count) * myvar)}>multiply</button>

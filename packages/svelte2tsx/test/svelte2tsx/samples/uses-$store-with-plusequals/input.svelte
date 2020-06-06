@@ -1,4 +1,3 @@
-<!-- https://github.com/sveltejs/language-tools/issues/170 -->
 <script>
   import { writable } from 'svelte/store';
   const count = writable(0);
