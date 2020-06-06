@@ -8,7 +8,7 @@
         "test": "cross-env TS_NODE_TRANSPILE_ONLY=true mocha --require ts-node/register \"test/**/*.ts\"",
         "build": "tsc",
         "watch": "tsc -w",
-        "prepublishOnly": "yarn test && yarn build"
+        "prepublishOnly": "yarn build"
     },
     "bin": {
         "svelteserver": "bin/server.js"
