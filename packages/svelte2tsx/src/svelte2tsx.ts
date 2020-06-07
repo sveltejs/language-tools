@@ -85,7 +85,20 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
         }
         // handle Assignment operators ($store +=, -=, *=, /=, %=, **=, etc.)
         // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Expressions_and_Operators#Assignment
-        const operators = ['+=', '-=', '*=', '/=', '%=', '**=', '<<=', '>>=', '>>>=', '&=', '^=', '|='];
+        const operators = [
+            '+=',
+            '-=',
+            '*=',
+            '/=',
+            '%=',
+            '**=',
+            '<<=',
+            '>>=',
+            '>>>=',
+            '&=',
+            '^=',
+            '|=',
+        ];
         if (
             parent.type == 'AssignmentExpression' &&
             parent.left == node &&
@@ -103,19 +116,25 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
         }
         // handle $store++, $store--, ++$store, --$store
         if (parent.type == 'UpdateExpression') {
-            let appendor;
-            if (parent.operator === '++') appendor = '+';
-            if (parent.operator === '--') appendor = '-';
-            if (appendor === undefined)
-                throw new Error(
-                    'warning - unrecognized UpdateExpression operator! Probably some edge case unaccounted for in svelte2tsx, please file an issue.',
+            let simpleOperator;
+            if (parent.operator === '++') simpleOperator = '+';
+            if (parent.operator === '--') simpleOperator = '-';
+            if (simpleOperator) {
+                const storename = node.name.slice(1); // drop the $
+                str.overwrite(
+                    parent.start,
+                    parent.end,
+                    `${storename}.set( __sveltets_store_get(${storename}) ${simpleOperator} 1)`,
                 );
-            const storename = node.name.slice(1); // drop the $
-            str.overwrite(
-                parent.start,
-                parent.end,
-                `${storename}.set( __sveltets_store_get(${storename}) ${appendor} 1)`,
-            );
+            } else {
+                console.warn(
+                    `Warning - unrecognized UpdateExpression operator ${parent.operator}! 
+                This is an edge case unaccounted for in svelte2tsx, please file an issue:
+                https://github.com/sveltejs/language-tools/issues/new/choose
+                `,
+                    parent,
+                );
+            }
             return;
         }
 
@@ -406,20 +425,26 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
         }
         // handle $store++, $store--, ++$store, --$store
         if (ts.isPrefixUnaryExpression(parent) || ts.isPostfixUnaryExpression(parent)) {
-            let appendor;
-            if (parent.operator === 45) appendor = '+';
-            if (parent.operator === 46) appendor = '-';
-            if (appendor === undefined)
-                throw new Error(
-                    'warning - unrecognized UpdateExpression operator! Probably some edge case unaccounted for in svelte2tsx, please file an issue.',
+            let simpleOperator;
+            if (parent.operator === 45) simpleOperator = '+';
+            if (parent.operator === 46) simpleOperator = '-';
+            if (simpleOperator) {
+                const storename = ident.getText().slice(1); // drop the $
+                str.overwrite(
+                    parent.getStart() + astOffset,
+                    parent.end + astOffset,
+                    `${storename}.set( __sveltets_store_get(${storename}) ${simpleOperator} 1)`,
                 );
-            const storename = ident.getText().slice(1); // drop the $
-            str.overwrite(
-                parent.getStart() + astOffset,
-                parent.end + astOffset,
-                `${storename}.set( __sveltets_store_get(${storename}) ${appendor} 1)`,
-            );
-            return;
+                return;
+            } else {
+                console.warn(
+                    `Warning - unrecognized UnaryExpression operator ${parent.operator}! 
+                This is an edge case unaccounted for in svelte2tsx, please file an issue:
+                https://github.com/sveltejs/language-tools/issues/new/choose
+                `,
+                    parent,
+                );
+            }
         }
 
         // we must be on the right or not part of assignment
