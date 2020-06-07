@@ -132,7 +132,7 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
                 This is an edge case unaccounted for in svelte2tsx, please file an issue:
                 https://github.com/sveltejs/language-tools/issues/new/choose
                 `,
-                    parent,
+                    str.original.slice(parent.start, parent.end),
                 );
             }
             return;
@@ -442,7 +442,7 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
                 This is an edge case unaccounted for in svelte2tsx, please file an issue:
                 https://github.com/sveltejs/language-tools/issues/new/choose
                 `,
-                    parent,
+                    parent.getText(),
                 );
             }
         }
