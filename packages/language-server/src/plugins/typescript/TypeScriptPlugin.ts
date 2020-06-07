@@ -51,6 +51,7 @@ import {
     getScriptKindFromFileName,
     symbolKindFromString,
 } from './utils';
+import { RenameProviderImpl } from './features/RenameProvider';
 
 export class TypeScriptPlugin
     implements
@@ -69,6 +70,7 @@ export class TypeScriptPlugin
     private readonly codeActionsProvider: CodeActionsProviderImpl;
     private readonly updateImportsProvider: UpdateImportsProviderImpl;
     private readonly diagnosticsProvider: DiagnosticsProviderImpl;
+    private readonly renameProvider: RenameProviderImpl;
 
     constructor(
         docManager: DocumentManager,
@@ -81,6 +83,7 @@ export class TypeScriptPlugin
         this.codeActionsProvider = new CodeActionsProviderImpl(this.lsAndTsDocResolver);
         this.updateImportsProvider = new UpdateImportsProviderImpl(this.lsAndTsDocResolver);
         this.diagnosticsProvider = new DiagnosticsProviderImpl(this.lsAndTsDocResolver);
+        this.renameProvider = new RenameProviderImpl(this.lsAndTsDocResolver);
     }
 
     async getDiagnostics(document: Document): Promise<Diagnostic[]> {
@@ -235,48 +238,7 @@ export class TypeScriptPlugin
         position: Position,
         newName: string,
     ): Promise<WorkspaceEdit | null> {
-        const { lang, tsDoc } = this.getLSAndTSDoc(document);
-        const fragment = await tsDoc.getFragment();
-
-        const renameLocations = lang.findRenameLocations(
-            tsDoc.filePath,
-            fragment.offsetAt(fragment.getGeneratedPosition(position)),
-            true,
-            false,
-        );
-        if (!renameLocations) {
-            return null;
-        }
-
-        const docs = new Map<string, SnapshotFragment>([[tsDoc.filePath, fragment]]);
-        const convertedRenameLocations = await Promise.all(
-            renameLocations.map(async (loc) => {
-                let doc = docs.get(loc.fileName);
-                if (!doc) {
-                    doc = await this.getSnapshot(loc.fileName).getFragment();
-                    docs.set(loc.fileName, doc);
-                }
-
-                return {
-                    ...loc,
-                    range: mapRangeToOriginal(doc, convertRange(doc, loc.textSpan)),
-                };
-            }),
-        );
-
-        return convertedRenameLocations
-            .filter((loc) => loc.range.start.line >= 0 && loc.range.end.line >= 0)
-            .reduce(
-                (acc, loc) => {
-                    const uri = pathToUrl(loc.fileName);
-                    if (!acc.changes[uri]) {
-                        acc.changes[uri] = [];
-                    }
-                    acc.changes[uri].push({ newText: newName, range: loc.range });
-                    return acc;
-                },
-                <Required<Pick<WorkspaceEdit, 'changes'>>>{ changes: {} },
-            );
+        return this.renameProvider.rename(document, position, newName);
     }
 
     async getCodeActions(
