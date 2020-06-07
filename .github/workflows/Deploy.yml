@@ -48,7 +48,7 @@ jobs:
          yarn install
         name: 'setup svelte-vscode'
 
-      - uses: orta/monorepo-deploy-nightly@master
+      - uses: orta/monorepo-deploy-nightly@c3f2585573a4533ce99333a22d53b528176047e7
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           VSCE_TOKEN: ${{ secrets.AZURE_PAN_TOKEN }}
