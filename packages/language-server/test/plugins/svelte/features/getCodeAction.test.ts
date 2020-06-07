@@ -83,8 +83,8 @@ describe('SveltePlugin#getCodeAction', () => {
                     severity: DiagnosticSeverity.Warning,
                     code: 'a11y-missing-attribute',
                     range: Range.create(
-                        { line: 1, character: 0 },
-                        { line: 1, character: 6 }
+                        { line: 0, character: 0 },
+                        { line: 0, character: 6 }
                     ),
                     message: '',
                     source: 'svelte'
@@ -99,11 +99,11 @@ describe('SveltePlugin#getCodeAction', () => {
                                     range: {
                                         end: {
                                             character: 0,
-                                            line: 1,
+                                            line: 0,
                                         },
                                         start: {
                                             character: 0,
-                                            line: 1
+                                            line: 0
                                         }
                                     }
                                 }
@@ -138,8 +138,8 @@ describe('SveltePlugin#getCodeAction', () => {
                         {
                             edits: [
                                 {
-                                    // eslint-disable-next-line max-len
-                                    newText: `    <!-- svelte-ignore a11y-missing-attribute -->${EOL}`,
+                                    newText:
+                                        `${' '.repeat(4)}<!-- svelte-ignore a11y-missing-attribute -->${EOL}`,
                                     range: {
                                         end: {
                                             character: 0,
@@ -160,6 +160,50 @@ describe('SveltePlugin#getCodeAction', () => {
                     ],
                 },
                 title: '(svelte) Disable a11y-missing-attribute for this line',
+                kind: 'quickfix'
+            }]);
+        });
+
+        it('should provide ignore comment with indent of parent tag', () => {
+            expectCodeActionFor(svelteIgnoreCodeAction, {
+                diagnostics: [{
+                    severity: DiagnosticSeverity.Warning,
+                    code: 'a11y-invalid-attribute',
+                    range: Range.create(
+                        { line: 6, character: 8 },
+                        { line: 6, character: 15 }
+                    ),
+                    message: '',
+                    source: 'svelte'
+                }]
+            }).toEqual([{
+                edit: {
+                    documentChanges: [
+                        {
+                            edits: [
+                                {
+                                    newText:
+                                        `${' '.repeat(4)}<!-- svelte-ignore a11y-invalid-attribute -->${EOL}`,
+                                    range: {
+                                        end: {
+                                            character: 0,
+                                            line: 5,
+                                        },
+                                        start: {
+                                            character: 0,
+                                            line: 5
+                                        }
+                                    }
+                                }
+                            ],
+                            textDocument: {
+                                uri: getUri(svelteIgnoreCodeAction),
+                                version: 0
+                            },
+                        },
+                    ],
+                },
+                title: '(svelte) Disable a11y-invalid-attribute for this line',
                 kind: 'quickfix'
             }]);
         });

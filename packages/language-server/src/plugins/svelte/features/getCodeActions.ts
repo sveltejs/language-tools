@@ -7,11 +7,19 @@ import {
     Position,
     CodeActionKind,
     VersionedTextDocumentIdentifier,
-    DiagnosticSeverity
+    DiagnosticSeverity,
 } from 'vscode-languageserver';
+import { walk, Node } from 'estree-walker';
 import { EOL } from 'os';
 import { SvelteDocument } from '../SvelteDocument';
 import { pathToUrl } from '../../../utils';
+import { importSvelte } from '../../importPackage';
+import { positionAt } from '../../../lib/documents';
+
+interface OffsetRange {
+    start: number;
+    end: number;
+}
 
 export function getCodeActions(svelteDoc: SvelteDocument, context: CodeActionContext) {
     const svelteDiagnostics = context.diagnostics
@@ -46,15 +54,59 @@ function isIgnorableSvelteDiagnostic(diagnostic: Diagnostic) {
 }
 
 function getSvelteIgnoreEdit(svelteDoc: SvelteDocument, diagnostic: Diagnostic) {
-    const { code, range: { start } } = diagnostic;
+    const { code, range: { start, end } } = diagnostic;
     const content = svelteDoc.getText();
-    const startLineStart = svelteDoc.offsetAt({ line: start.line, character: 0 });
-    const afterStartLineStart = content.slice(startLineStart);
+    const { html } = importSvelte(svelteDoc.getFilePath()).parse(content);
+
+    const diagnosticStartOffset = svelteDoc.offsetAt(start);
+    const diagnosticEndOffset = svelteDoc.offsetAt(end);
+    const OffsetRange = {
+        start: diagnosticStartOffset,
+        end: diagnosticEndOffset
+    };
+
+    const node = findTagForRange(html, OffsetRange);
+
+    const nodeStartPosition = positionAt(node.start, content);
+    const nodeLineStart = svelteDoc.offsetAt({
+        line: nodeStartPosition.line,
+        character: 0
+    });
+    const afterStartLineStart = content.slice(nodeLineStart);
     const indent = /^[ |\t]+/.exec(afterStartLineStart)?.[0] ?? '';
 
     // TODO: Make all code action's new line consistent
     const ignore = `${indent}<!-- svelte-ignore ${code} -->${EOL}`;
-    const position = Position.create(start.line, 0);
+    const position = Position.create(nodeStartPosition.line, 0);
 
     return TextEdit.insert(position, ignore);
+}
+
+const elementOrComponent = ['Component', 'Element', 'InlineComponent'];
+
+function findTagForRange(html: Node, range: OffsetRange) {
+    let nearest = html;
+
+    walk(html, {
+        enter(node, parent) {
+            const { type } = node;
+            const isBlock = 'block' in node || node.type.toLowerCase().includes('block');
+            const isFragment = type === 'Fragment';
+            const keepLooking = isFragment || elementOrComponent.includes(type) || isBlock;
+            if (!keepLooking) {
+                this.skip();
+                return;
+            }
+
+            if (within(node, range) && parent === nearest) {
+                nearest = node;
+            }
+        },
+    });
+
+    return nearest;
+}
+
+function within(node: Node, range: OffsetRange) {
+    return node.end >= range.end && node.start <= range.start;
 }
