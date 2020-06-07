@@ -83,8 +83,9 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
             str.appendLeft(parent.end, ')');
             return;
         }
-        // handle Assignment operators ($store +=, -=, *=, /=, %=, **=)
-        const operators = ['+=', '-=', '*=', '/=', '%=', '**='];
+        // handle Assignment operators ($store +=, -=, *=, /=, %=, **=, etc.)
+        // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Expressions_and_Operators#Assignment
+        const operators = ['+=', '-=', '*=', '/=', '%=', '**=', '<<=', '>>=', '>>>=', '&=', '^=', '|='];
         if (
             parent.type == 'AssignmentExpression' &&
             parent.left == node &&
@@ -372,7 +373,8 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
             str.appendLeft(parent.end + astOffset, ')');
             return;
         }
-        // handle Assignment operators ($store +=, -=, *=, /=, %=, **=)
+        // handle Assignment operators ($store +=, -=, *=, /=, %=, **=, etc.)
+        // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Expressions_and_Operators#Assignment
         const operators = {
             [ts.SyntaxKind.PlusEqualsToken]: '+',
             [ts.SyntaxKind.MinusEqualsToken]: '-',
@@ -380,6 +382,12 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
             [ts.SyntaxKind.SlashEqualsToken]: '/',
             [ts.SyntaxKind.PercentEqualsToken]: '%',
             [ts.SyntaxKind.AsteriskAsteriskEqualsToken]: '**',
+            [ts.SyntaxKind.LessThanLessThanEqualsToken]: '<<',
+            [ts.SyntaxKind.GreaterThanGreaterThanEqualsToken]: '>>',
+            [ts.SyntaxKind.GreaterThanGreaterThanGreaterThanEqualsToken]: '>>>',
+            [ts.SyntaxKind.AmpersandEqualsToken]: '&',
+            [ts.SyntaxKind.CaretEqualsToken]: '^',
+            [ts.SyntaxKind.BarEqualsToken]: '|',
         };
         if (
             ts.isBinaryExpression(parent) &&
