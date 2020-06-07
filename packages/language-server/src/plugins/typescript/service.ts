@@ -160,21 +160,26 @@ export function createLanguageService(
         };
 
         const configJson = tsconfigPath && ts.readConfigFile(tsconfigPath, ts.sys.readFile).config;
-        let files: string[] = [];
-        if (configJson) {
-            const parsedConfig = ts.parseJsonConfigFileContent(
-                configJson,
-                ts.sys,
-                workspacePath,
-                compilerOptions,
-                tsconfigPath,
-                undefined,
-                [{ extension: 'svelte', isMixedContent: false, scriptKind: ts.ScriptKind.TSX }],
-            );
 
-            compilerOptions = { ...compilerOptions, ...parsedConfig.options };
-            files = parsedConfig.fileNames;
-        }
+        const defaultExclude = [
+            '__sapper__',
+            'node_modules'
+        ];
+
+        const config = Object.assign({ exclude: defaultExclude }, configJson);
+
+        const parsedConfig = ts.parseJsonConfigFileContent(
+            config,
+            ts.sys,
+            workspacePath,
+            compilerOptions,
+            tsconfigPath,
+            undefined,
+            [{ extension: 'svelte', isMixedContent: false, scriptKind: ts.ScriptKind.TSX }],
+        );
+
+        compilerOptions = { ...compilerOptions, ...parsedConfig.options };
+        const files = parsedConfig.fileNames;
 
         const forcedOptions: ts.CompilerOptions = {
             noEmit: true,
