@@ -35,20 +35,10 @@ jobs:
       # So, remove the workspace
       - run: "rm package.json yarn.lock"
 
-      # Re-run the yarn install outside of the workspace
-      - run: |
-         cd packages/language-server
-         yarn install
-         cd ..
-        name: 'Setup language-server'
-
-      # Re-run the  yarn install outside of the workspace
-      - run: |
-         cd packages/svelte-vscode
-         yarn install
-        name: 'setup svelte-vscode'
-
       - uses: orta/monorepo-deploy-nightly@master
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           VSCE_TOKEN: ${{ secrets.AZURE_PAN_TOKEN }}
+        with: 
+          sort: '["svelte-check", "svelte2tsx", "svelte-language-server", "svelte-vscode"]'
+          install: "true"
