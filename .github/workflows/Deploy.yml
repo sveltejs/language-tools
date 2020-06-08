@@ -1,6 +1,6 @@
 name: Daily builds of the Svelte Language Tools Beta
 
-# For testing
+# For testing the deploy
 on: push
 
 # For production
