@@ -4,7 +4,6 @@
     "description": "Svelte language support for VS Code",
     "main": "dist/src/extension.js",
     "scripts": {
-        "vscode:prepublish": "tsc -p ./",
         "build": "tsc -p ./",
         "watch": "tsc -w -p ./",
         "test": "echo 'NOOP'"
