@@ -40,5 +40,5 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           VSCE_TOKEN: ${{ secrets.AZURE_PAN_TOKEN }}
         with: 
-          sort: '["svelte-check", "svelte2tsx", "svelte-language-server", "svelte-vscode"]'
+          sort: '["svelte2tsx", "svelte-language-server", "svelte-check", "svelte-vscode"]'
           install: "true"
