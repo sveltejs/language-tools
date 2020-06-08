@@ -1,12 +1,12 @@
 name: Daily builds of the Svelte Language Tools Beta
 
 # For testing
-# on: push
+on: push
 
 # For production
-on:
-  schedule:
-    - cron: "0 4 * * *"
+#on:
+#  schedule:
+#    - cron: "0 4 * * *"
 
 jobs:
   deploy:
@@ -34,6 +34,13 @@ jobs:
       # To deploy we need a node_modules folder which isn't in the yarn
       # So, remove the workspace
       - run: "rm package.json yarn.lock"
+      
+      # Re-run the  yarn install outside of the workspace (TEST, to fix deploy for now)
+      - run: |
+         cd packages/svelte-vscode
+         yarn install
+         cd ..
+        name: 'setup svelte-vscode'
 
       - uses: orta/monorepo-deploy-nightly@master
         env:
