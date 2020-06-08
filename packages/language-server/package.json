@@ -7,6 +7,7 @@
     "scripts": {
         "test": "cross-env TS_NODE_TRANSPILE_ONLY=true mocha --require ts-node/register \"test/**/*.ts\"",
         "build": "tsc",
+        "prepublishOnly": "npm run build",
         "watch": "tsc -w"
     },
     "bin": {
