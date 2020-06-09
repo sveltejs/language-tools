@@ -1,5 +1,6 @@
 import { SourceMapConsumer } from 'source-map';
 import { PreprocessorGroup } from 'svelte-preprocess/dist/types';
+import type { compile } from 'svelte/compiler';
 import { Processed } from 'svelte/types/compiler/preprocess';
 import { Position } from 'vscode-languageserver';
 import {
@@ -13,12 +14,16 @@ import {
     offsetAt,
 } from '../../lib/documents';
 import { importSvelte } from '../importPackage';
+import { CompileOptions } from 'svelte/types/compiler/interfaces';
+
+export type SvelteCompileResult = ReturnType<typeof compile>
 
 /**
  * Represents a text document that contains a svelte component.
  */
 export class SvelteDocument {
     private transpiledDoc: TranspiledSvelteDocument | undefined;
+    private compileResult: SvelteCompileResult | undefined;
 
     public script: TagInformation | null;
     public style: TagInformation | null;
@@ -48,6 +53,15 @@ export class SvelteDocument {
             this.transpiledDoc = await TranspiledSvelteDocument.create(this.parent, preprocessors);
         }
         return this.transpiledDoc;
+    }
+
+    getCompiled(transpiled: string, config?: CompileOptions): SvelteCompileResult {
+        if (!this.compileResult) {
+            const svelte = importSvelte(this.getFilePath());
+            this.compileResult = svelte.compile(transpiled, config);
+        }
+
+        return this.compileResult;
     }
 
     /**

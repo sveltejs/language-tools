@@ -13,15 +13,19 @@ import { walk, Node } from 'estree-walker';
 import { EOL } from 'os';
 import { SvelteDocument } from '../SvelteDocument';
 import { pathToUrl } from '../../../utils';
-import { importSvelte } from '../../importPackage';
 import { positionAt } from '../../../lib/documents';
+import { Ast } from 'svelte/types/compiler/interfaces';
 
 interface OffsetRange {
     start: number;
     end: number;
 }
 
-export function getCodeActions(svelteDoc: SvelteDocument, context: CodeActionContext) {
+export function getCodeActions(
+    svelteDoc: SvelteDocument,
+    ast: Ast,
+    context: CodeActionContext
+) {
     const svelteDiagnostics = context.diagnostics
         .filter(isIgnorableSvelteDiagnostic);
 
@@ -34,7 +38,7 @@ export function getCodeActions(svelteDoc: SvelteDocument, context: CodeActionCon
         return CodeAction.create(getCodeActionTitle(diagnostic), {
             documentChanges: [
                 TextDocumentEdit.create(textDocument, [
-                    getSvelteIgnoreEdit(svelteDoc, diagnostic)
+                    getSvelteIgnoreEdit(svelteDoc, ast, diagnostic)
                 ])
             ]
         },
@@ -53,10 +57,14 @@ function isIgnorableSvelteDiagnostic(diagnostic: Diagnostic) {
         severity !== DiagnosticSeverity.Error;
 }
 
-function getSvelteIgnoreEdit(svelteDoc: SvelteDocument, diagnostic: Diagnostic) {
+function getSvelteIgnoreEdit(
+    svelteDoc: SvelteDocument,
+    ast: Ast,
+    diagnostic: Diagnostic
+) {
     const { code, range: { start, end } } = diagnostic;
     const content = svelteDoc.getText();
-    const { html } = importSvelte(svelteDoc.getFilePath()).parse(content);
+    const { html } = ast;
 
     const diagnosticStartOffset = svelteDoc.offsetAt(start);
     const diagnosticEndOffset = svelteDoc.offsetAt(end);

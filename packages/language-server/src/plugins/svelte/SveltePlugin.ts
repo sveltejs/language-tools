@@ -14,7 +14,7 @@ import {
 } from 'vscode-languageserver';
 import { Document, isInTag, mapDiagnosticToOriginal } from '../../lib/documents';
 import { LSConfigManager, LSSvelteConfig } from '../../ls-config';
-import { importPrettier, importSvelte, importSveltePreprocess } from '../importPackage';
+import { importPrettier, importSveltePreprocess } from '../importPackage';
 import {
     CompletionsProvider,
     DiagnosticsProvider,
@@ -37,6 +37,10 @@ const DEFAULT_OPTIONS: CompileOptions = {
     dev: true,
 };
 
+const NO_GENERATE: CompileOptions = {
+    generate: false
+};
+
 const scssNodeRuntimeHint =
     'If you use SCSS, it may be necessary to add the path to your NODE runtime to the setting `svelte.language-server.runtime`. ';
 
@@ -48,6 +52,10 @@ export class SveltePlugin
     HoverProvider,
     CodeActionsProvider {
     private docManager = new Map<Document, SvelteDocument>();
+    private cosmiConfigExplorer = cosmiconfig('svelte', {
+        packageProp: 'svelte-ls',
+        cache: true
+    });
 
     constructor(private configManager: LSConfigManager) { }
 
@@ -89,15 +97,21 @@ export class SveltePlugin
         }
     }
 
+    private configToCompileOption(config: SvelteConfig) {
+        delete config.preprocess; // svelte compiler throws an error if we don't do this
+        return config;
+    }
+
     private async tryGetDiagnostics(document: Document): Promise<Diagnostic[]> {
         const svelteDoc = this.getSvelteDoc(document);
         const config = await this.loadConfig(document);
-        const svelte = importSvelte(svelteDoc.getFilePath());
         const transpiled = await svelteDoc.getTranspiled(config.preprocess);
 
         try {
-            delete config.preprocess; // svelte compiler throws an error if we don't do this
-            const res = svelte.compile(transpiled.getText(), config);
+            const res = svelteDoc.getCompiled(
+                transpiled.getText(),
+                this.configToCompileOption(config)
+            );
             return (((res.stats as any).warnings || res.warnings || []) as Warning[])
                 .map((warning) => {
                     const start = warning.start || { line: 1, column: 0 };
@@ -156,17 +170,20 @@ export class SveltePlugin
     private async loadConfig(document: Document): Promise<SvelteConfig> {
         Logger.log('Trying to load config for', document.getFilePath());
         try {
-            const explorer = cosmiconfig('svelte', { packageProp: 'svelte-ls' });
-            const result = await explorer.search(document.getFilePath() || '');
+            const result = await this.cosmiConfigExplorer.search(document.getFilePath() || '');
             const config = result?.config ?? this.useFallbackPreprocessor(document);
             if (result) {
                 Logger.log('Found config at ', result.filepath);
             }
-            return { ...DEFAULT_OPTIONS, ...config };
+            return { ...DEFAULT_OPTIONS, ...config, ...NO_GENERATE };
         } catch (err) {
             Logger.error('Error while loading config');
             Logger.error(err);
-            return { ...DEFAULT_OPTIONS, ...this.useFallbackPreprocessor(document) };
+            return {
+                ...DEFAULT_OPTIONS,
+                ...this.useFallbackPreprocessor(document),
+                ...NO_GENERATE
+            };
         }
     }
 
@@ -228,18 +245,30 @@ export class SveltePlugin
         return getHoverInfo(this.getSvelteDoc(document), position);
     }
 
-
-
-    getCodeActions(
+    async getCodeActions(
         document: Document,
         _range: Range,
         context: CodeActionContext
-    ): CodeAction[] {
+    ): Promise<CodeAction[]> {
         if (!this.featureEnabled('codeActions')) {
             return [];
         }
 
-        return getCodeActions(this.getSvelteDoc(document), context);
+        const svelteDoc = this.getSvelteDoc(document);
+        const config = await this.loadConfig(document);
+        const transpiled = await svelteDoc.getTranspiled(config.preprocess);
+
+        try {
+            const { ast }  = svelteDoc.getCompiled(
+                transpiled.getText(),
+                this.configToCompileOption(config)
+            );
+
+            return getCodeActions(svelteDoc, ast, context);
+        } catch (error) {
+            return [];
+        }
+
     }
 
     private featureEnabled(feature: keyof LSSvelteConfig) {

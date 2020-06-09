@@ -26,7 +26,8 @@ describe('SveltePlugin#getCodeAction', () => {
             filename ? fs.readFileSync(filePath)?.toString() : ''
         );
         const svelteDoc = new SvelteDocument(document);
-        const codeAction = getCodeActions(svelteDoc, context);
+        const { ast } = svelteDoc.getCompiled(svelteDoc.getText());
+        const codeAction = getCodeActions(svelteDoc, ast, context);
         return {
             toEqual: (expected: CodeAction[]) =>
                 assert.deepStrictEqual(
