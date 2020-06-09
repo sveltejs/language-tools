@@ -5,7 +5,7 @@
     "main": "dist/src/extension.js",
     "scripts": {
         "build": "tsc -p ./",
-        "vscode:prepublish": "npm run build",
+        "vscode:prepublish": "npm run build && npm prune --production",
         "watch": "tsc -w -p ./",
         "test": "echo 'NOOP'"
     },
