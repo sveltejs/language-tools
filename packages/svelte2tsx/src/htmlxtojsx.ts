@@ -352,7 +352,10 @@ export function convertHtmlxToJsx(
 
             const equals = htmlx.lastIndexOf('=', attrVal.start);
             if (attrVal.type == 'Text') {
-                if (attrVal.end == attr.end) {
+                const endsWithQuote =
+                    htmlx.lastIndexOf('"', attrVal.end) === attrVal.end - 1 ||
+                    htmlx.lastIndexOf("'", attrVal.end) === attrVal.end - 1;
+                if (attrVal.end == attr.end && !endsWithQuote) {
                     //we are not quoted. Add some
                     str.prependRight(equals + 1, '"');
                     str.appendLeft(attr.end, '"');
