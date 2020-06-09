@@ -154,22 +154,25 @@ export function createLanguageService(
             types: [resolve(sveltePkgInfo.path, 'types', 'runtime')],
         };
 
-        const configJson = tsconfigPath && ts.readConfigFile(tsconfigPath, ts.sys.readFile).config;
-        let files: string[] = [];
-        if (configJson) {
-            const parsedConfig = ts.parseJsonConfigFileContent(
-                configJson,
-                ts.sys,
-                workspacePath,
-                compilerOptions,
-                tsconfigPath,
-                undefined,
-                [{ extension: 'svelte', isMixedContent: false, scriptKind: ts.ScriptKind.TSX }],
-            );
+        // always let ts parse config to get default compilerOption
+        const configJson = (
+            tsconfigPath && ts.readConfigFile(tsconfigPath, ts.sys.readFile).config
+        ) || {
+            compilerOptions: getDeaultJsCompilerOption()
+        };
 
-            compilerOptions = { ...compilerOptions, ...parsedConfig.options };
-            files = parsedConfig.fileNames;
-        }
+        const parsedConfig = ts.parseJsonConfigFileContent(
+            configJson,
+            ts.sys,
+            workspacePath,
+            compilerOptions,
+            tsconfigPath,
+            undefined,
+            [{ extension: 'svelte', isMixedContent: false, scriptKind: ts.ScriptKind.TSX }],
+        );
+
+        compilerOptions = { ...compilerOptions, ...parsedConfig.options };
+        const files = parsedConfig.fileNames;
 
         const forcedOptions: ts.CompilerOptions = {
             noEmit: true,
@@ -182,5 +185,15 @@ export function createLanguageService(
         compilerOptions = { ...compilerOptions, ...forcedOptions };
 
         return { compilerOptions, files };
+    }
+
+    /**
+     * this should only be used when no jsconfig/tsconfig at all
+     */
+    function getDeaultJsCompilerOption(): ts.CompilerOptions {
+        return {
+            maxNodeModuleJsDepth: 2,
+            allowSyntheticDefaultImports: true,
+        };
     }
 }
