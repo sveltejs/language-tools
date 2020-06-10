@@ -159,17 +159,16 @@ export function createLanguageService(
             types: [resolve(sveltePkgInfo.path, 'types', 'runtime')],
         };
 
-        const configJson = tsconfigPath && ts.readConfigFile(tsconfigPath, ts.sys.readFile).config;
-
-        const defaultExclude = [
-            '__sapper__',
-            'node_modules'
-        ];
-
-        const config = Object.assign({ exclude: defaultExclude }, configJson);
+        // always let ts parse config to get default compilerOption
+        let configJson = (
+            tsconfigPath && ts.readConfigFile(tsconfigPath, ts.sys.readFile).config
+        ) || {
+            compilerOptions: getDeaultJsCompilerOption()
+        };
+        configJson = Object.assign({ exclude: getDefaultExclude() }, configJson);
 
         const parsedConfig = ts.parseJsonConfigFileContent(
-            config,
+            configJson,
             ts.sys,
             workspacePath,
             compilerOptions,
@@ -192,5 +191,22 @@ export function createLanguageService(
         compilerOptions = { ...compilerOptions, ...forcedOptions };
 
         return { compilerOptions, files };
+    }
+
+    /**
+     * this should only be used when no jsconfig/tsconfig at all
+     */
+    function getDeaultJsCompilerOption(): ts.CompilerOptions {
+        return {
+            maxNodeModuleJsDepth: 2,
+            allowSyntheticDefaultImports: true,
+        };
+    }
+
+    function getDefaultExclude() {
+        return [
+            '__sapper__',
+            'node_modules'
+        ];
     }
 }

@@ -4,8 +4,8 @@
     "description": "Svelte language support for VS Code",
     "main": "dist/src/extension.js",
     "scripts": {
-        "vscode:prepublish": "tsc -p ./",
         "build": "tsc -p ./",
+        "vscode:prepublish": "npm run build && npm prune --production",
         "watch": "tsc -w -p ./",
         "test": "echo 'NOOP'"
     },
@@ -243,9 +243,10 @@
         ]
     },
     "devDependencies": {
+        "@tsconfig/node12": "^1.0.0",
         "@types/node": "^13.9.0",
-        "typescript": "*",
-        "@types/vscode": "*"
+        "@types/vscode": "*",
+        "typescript": "*"
     },
     "dependencies": {
         "svelte-language-server": "*",

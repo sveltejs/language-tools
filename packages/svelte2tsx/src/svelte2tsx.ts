@@ -83,6 +83,60 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
             str.appendLeft(parent.end, ')');
             return;
         }
+        // handle Assignment operators ($store +=, -=, *=, /=, %=, **=, etc.)
+        // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Expressions_and_Operators#Assignment
+        const operators = [
+            '+=',
+            '-=',
+            '*=',
+            '/=',
+            '%=',
+            '**=',
+            '<<=',
+            '>>=',
+            '>>>=',
+            '&=',
+            '^=',
+            '|=',
+        ];
+        if (
+            parent.type == 'AssignmentExpression' &&
+            parent.left == node &&
+            operators.includes(parent.operator)
+        ) {
+            const storename = node.name.slice(1); // drop the $
+            const operator = parent.operator.substring(0, parent.operator.length - 1); // drop the = sign
+            str.overwrite(
+                parent.start,
+                str.original.indexOf('=', node.end) + 1,
+                `${storename}.set( __sveltets_store_get(${storename}) ${operator}`,
+            );
+            str.appendLeft(parent.end, ')');
+            return;
+        }
+        // handle $store++, $store--, ++$store, --$store
+        if (parent.type == 'UpdateExpression') {
+            let simpleOperator;
+            if (parent.operator === '++') simpleOperator = '+';
+            if (parent.operator === '--') simpleOperator = '-';
+            if (simpleOperator) {
+                const storename = node.name.slice(1); // drop the $
+                str.overwrite(
+                    parent.start,
+                    parent.end,
+                    `${storename}.set( __sveltets_store_get(${storename}) ${simpleOperator} 1)`,
+                );
+            } else {
+                console.warn(
+                    `Warning - unrecognized UpdateExpression operator ${parent.operator}! 
+                This is an edge case unaccounted for in svelte2tsx, please file an issue:
+                https://github.com/sveltejs/language-tools/issues/new/choose
+                `,
+                    str.original.slice(parent.start, parent.end),
+                );
+            }
+            return;
+        }
 
         //rewrite get
         const dollar = str.original.indexOf('$', node.start);
@@ -337,6 +391,60 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
             // append )
             str.appendLeft(parent.end + astOffset, ')');
             return;
+        }
+        // handle Assignment operators ($store +=, -=, *=, /=, %=, **=, etc.)
+        // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Expressions_and_Operators#Assignment
+        const operators = {
+            [ts.SyntaxKind.PlusEqualsToken]: '+',
+            [ts.SyntaxKind.MinusEqualsToken]: '-',
+            [ts.SyntaxKind.AsteriskEqualsToken]: '*',
+            [ts.SyntaxKind.SlashEqualsToken]: '/',
+            [ts.SyntaxKind.PercentEqualsToken]: '%',
+            [ts.SyntaxKind.AsteriskAsteriskEqualsToken]: '**',
+            [ts.SyntaxKind.LessThanLessThanEqualsToken]: '<<',
+            [ts.SyntaxKind.GreaterThanGreaterThanEqualsToken]: '>>',
+            [ts.SyntaxKind.GreaterThanGreaterThanGreaterThanEqualsToken]: '>>>',
+            [ts.SyntaxKind.AmpersandEqualsToken]: '&',
+            [ts.SyntaxKind.CaretEqualsToken]: '^',
+            [ts.SyntaxKind.BarEqualsToken]: '|',
+        };
+        if (
+            ts.isBinaryExpression(parent) &&
+            parent.left == ident &&
+            Object.keys(operators).find((x) => x === String(parent.operatorToken.kind))
+        ) {
+            const storename = ident.getText().slice(1); // drop the $
+            const operator = operators[parent.operatorToken.kind];
+            str.overwrite(
+                parent.getStart() + astOffset,
+                str.original.indexOf('=', ident.end + astOffset) + 1,
+                `${storename}.set( __sveltets_store_get(${storename}) ${operator}`,
+            );
+            str.appendLeft(parent.end + astOffset, ')');
+            return;
+        }
+        // handle $store++, $store--, ++$store, --$store
+        if (ts.isPrefixUnaryExpression(parent) || ts.isPostfixUnaryExpression(parent)) {
+            let simpleOperator;
+            if (parent.operator === 45) simpleOperator = '+';
+            if (parent.operator === 46) simpleOperator = '-';
+            if (simpleOperator) {
+                const storename = ident.getText().slice(1); // drop the $
+                str.overwrite(
+                    parent.getStart() + astOffset,
+                    parent.end + astOffset,
+                    `${storename}.set( __sveltets_store_get(${storename}) ${simpleOperator} 1)`,
+                );
+                return;
+            } else {
+                console.warn(
+                    `Warning - unrecognized UnaryExpression operator ${parent.operator}! 
+                This is an edge case unaccounted for in svelte2tsx, please file an issue:
+                https://github.com/sveltejs/language-tools/issues/new/choose
+                `,
+                    parent.getText(),
+                );
+            }
         }
 
         // we must be on the right or not part of assignment
@@ -599,9 +707,9 @@ function createRenderFunction(
 
     const slotsAsDef =
         '{' +
-        [...slots.entries()]
+        Array.from(slots.entries())
             .map(([name, attrs]) => {
-                const attrsAsString = [...attrs.entries()]
+                const attrsAsString = Array.from(attrs.entries())
                     .map(([exportName, expr]) => `${exportName}:${expr}`)
                     .join(', ');
                 return `${name}: {${attrsAsString}}`;
@@ -616,7 +724,7 @@ function createRenderFunction(
 }
 
 function createPropsStr(exportedNames: ExportedNames) {
-    const names = [...exportedNames.entries()];
+    const names = Array.from(exportedNames.entries());
 
     const returnElements = names.map(([key, value]) => {
         if (!value.identifierText) {

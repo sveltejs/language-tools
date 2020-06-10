@@ -3,6 +3,8 @@
 A language server (implementing the [language server protocol](https://microsoft.github.io/language-server-protocol/))
 for Svelte.
 
+Requires Node 12 or later.
+
 ## What is a language server?
 
 From https://microsoft.github.io/language-server-protocol/overview
@@ -47,3 +49,8 @@ Currently Supported:
 Install a plugin for your editor:
 
 -   [VS Code](../svelte-vscode)
+
+## Credits
+
+-   [UnwrittenFun](https://github.com/UnwrittenFun) for creating the foundation which this language server is built on
+-   Vue's [Vetur](https://github.com/vuejs/vetur) language server which heavily inspires this project

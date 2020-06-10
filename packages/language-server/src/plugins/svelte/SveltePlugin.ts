@@ -34,7 +34,7 @@ const DEFAULT_OPTIONS: CompileOptions = {
 };
 
 const scssNodeRuntimeHint =
-    'If you use SCSS, it may be necessary to add the path to your NODE runtime to the setting `svelte.language-server.runtime`. ';
+    'If you use SCSS, it may be necessary to add the path to your NODE runtime to the setting `svelte.language-server.runtime`, or use `sass` instead of `node-sass`. ';
 
 export class SveltePlugin
     implements DiagnosticsProvider, FormattingProvider, CompletionsProvider, HoverProvider {
