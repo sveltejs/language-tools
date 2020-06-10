@@ -1,15 +1,12 @@
 import * as assert from 'assert';
 import * as path from 'path';
-import { dirname, join } from 'path';
 import ts from 'typescript';
 import { FileChangeType, Hover, Position } from 'vscode-languageserver';
 import { DocumentManager, Document } from '../../../src/lib/documents';
 import { LSConfigManager } from '../../../src/ls-config';
 import { TypeScriptPlugin } from '../../../src/plugins';
 import { INITIAL_VERSION } from '../../../src/plugins/typescript/DocumentSnapshot';
-import { SnapshotManager } from '../../../src/plugins/typescript/SnapshotManager';
-import { findTsConfigPath } from '../../../src/plugins/typescript/utils';
-import { pathToUrl } from '../../../src/utils';
+import { pathToUrl, urlToPath } from '../../../src/utils';
 
 describe('TypescriptPlugin', () => {
     function getUri(filename: string) {
@@ -282,43 +279,46 @@ describe('TypescriptPlugin', () => {
     });
 
     const setupForOnWatchedFileChanges = () => {
-        const { plugin, document } = setup('');
+        const { plugin, document } = setup('empty.svelte');
         const filePath = document.getFilePath()!;
-        const tsConfigPath = findTsConfigPath(filePath, filePath);
-        const snapshotManager = SnapshotManager.getFromTsConfigPath(tsConfigPath);
-        const mockProjectJsFile = join(dirname(filePath), 'whatever.js');
+        const snapshotManager = plugin.getSnapshotManager(filePath);
 
-        plugin.onWatchFileChanges(mockProjectJsFile, FileChangeType.Changed);
+        // make it the same style of path delimiter as vscode's request
+        const projectJsFile = urlToPath(
+            pathToUrl(path.join(path.dirname(filePath), 'documentation.ts'))
+        ) ?? '';
+
+        plugin.onWatchFileChanges(projectJsFile, FileChangeType.Changed);
 
         return {
             snapshotManager,
             plugin,
-            mockProjectJsFile,
+            projectJsFile,
         };
     };
 
     it('bumps snapshot version when watched file changes', () => {
-        const { snapshotManager, mockProjectJsFile, plugin } = setupForOnWatchedFileChanges();
+        const { snapshotManager, projectJsFile, plugin } = setupForOnWatchedFileChanges();
 
-        const firstSnapshot = snapshotManager.get(mockProjectJsFile);
+        const firstSnapshot = snapshotManager.get(projectJsFile);
         const firstVersion = firstSnapshot?.version;
 
         assert.notEqual(firstVersion, INITIAL_VERSION);
 
-        plugin.onWatchFileChanges(mockProjectJsFile, FileChangeType.Changed);
-        const secondSnapshot = snapshotManager.get(mockProjectJsFile);
+        plugin.onWatchFileChanges(projectJsFile, FileChangeType.Changed);
+        const secondSnapshot = snapshotManager.get(projectJsFile);
 
         assert.notEqual(secondSnapshot?.version, firstVersion);
     });
 
     it('should delete snapshot cache when file delete', () => {
-        const { snapshotManager, mockProjectJsFile, plugin } = setupForOnWatchedFileChanges();
+        const { snapshotManager, projectJsFile, plugin } = setupForOnWatchedFileChanges();
 
-        const firstSnapshot = snapshotManager.get(mockProjectJsFile);
+        const firstSnapshot = snapshotManager.get(projectJsFile);
         assert.notEqual(firstSnapshot, undefined);
 
-        plugin.onWatchFileChanges(mockProjectJsFile, FileChangeType.Deleted);
-        const secondSnapshot = snapshotManager.get(mockProjectJsFile);
+        plugin.onWatchFileChanges(projectJsFile, FileChangeType.Deleted);
+        const secondSnapshot = snapshotManager.get(projectJsFile);
 
         assert.equal(secondSnapshot, undefined);
     });

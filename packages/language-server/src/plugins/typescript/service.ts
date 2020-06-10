@@ -11,6 +11,7 @@ import { ensureRealSvelteFilePath, findTsConfigPath, isSvelteFilePath } from './
 export interface LanguageServiceContainer {
     readonly tsconfigPath: string;
     readonly compilerOptions: ts.CompilerOptions;
+    readonly snapshotManager: SnapshotManager;
     getService(): ts.LanguageService;
     updateDocument(document: Document): ts.LanguageService;
     deleteDocument(filePath: string): void;
@@ -58,10 +59,9 @@ export function createLanguageService(
     createDocument: CreateDocument,
 ): LanguageServiceContainer {
     const workspacePath = tsconfigPath ? dirname(tsconfigPath) : '';
-    const snapshotManager = SnapshotManager.getFromTsConfigPath(tsconfigPath);
-    const sveltePkgInfo = getPackageInfo('svelte', workspacePath);
 
-    const { compilerOptions, files } = getCompilerOptionsAndRootFiles();
+    const { compilerOptions, files } = getCompilerOptionsAndProjectFiles();
+    const snapshotManager = new SnapshotManager(files);
 
     const svelteModuleLoader = createSvelteModuleLoader(getSnapshot, compilerOptions);
 
@@ -72,8 +72,11 @@ export function createLanguageService(
 
     const host: ts.LanguageServiceHost = {
         getCompilationSettings: () => compilerOptions,
-        getScriptFileNames: () =>
-            Array.from(new Set([...files, ...snapshotManager.getFileNames(), ...svelteTsxFiles])),
+        getScriptFileNames: () => Array.from(new Set([
+            ...snapshotManager.getProjectFileNames(),
+            ...snapshotManager.getFileNames(),
+            ...svelteTsxFiles
+        ])),
         getScriptVersion: (fileName: string) => getSnapshot(fileName).version.toString(),
         getScriptSnapshot: getSnapshot,
         getCurrentDirectory: () => workspacePath,
@@ -95,6 +98,7 @@ export function createLanguageService(
         getService: () => languageService,
         updateDocument,
         deleteDocument,
+        snapshotManager
     };
 
     function deleteDocument(filePath: string): void {
@@ -144,7 +148,8 @@ export function createLanguageService(
         return doc;
     }
 
-    function getCompilerOptionsAndRootFiles() {
+    function getCompilerOptionsAndProjectFiles() {
+        const sveltePkgInfo = getPackageInfo('svelte', workspacePath);
         let compilerOptions: ts.CompilerOptions = {
             allowNonTsExtensions: true,
             target: ts.ScriptTarget.Latest,
@@ -155,11 +160,18 @@ export function createLanguageService(
         };
 
         // always let ts parse config to get default compilerOption
-        const configJson = (
+        let configJson = (
             tsconfigPath && ts.readConfigFile(tsconfigPath, ts.sys.readFile).config
         ) || {
             compilerOptions: getDeaultJsCompilerOption()
         };
+
+        // Only default exclude when no extends for now
+        if (!configJson.extends) {
+            configJson = Object.assign({
+                exclude: getDefaultExclude()
+            }, configJson);
+        }
 
         const parsedConfig = ts.parseJsonConfigFileContent(
             configJson,
@@ -195,5 +207,12 @@ export function createLanguageService(
             maxNodeModuleJsDepth: 2,
             allowSyntheticDefaultImports: true,
         };
+    }
+
+    function getDefaultExclude() {
+        return [
+            '__sapper__',
+            'node_modules'
+        ];
     }
 }
