@@ -34,7 +34,7 @@ jobs:
       # So, remove the workspace
       - run: "rm package.json yarn.lock"
 
-      - uses: orta/monorepo-deploy-nightly@02c30dbcbe0fb375ffe69ffec25f8bd6ca5e4c70
+      - uses: orta/monorepo-deploy-nightly@master
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           VSCE_TOKEN: ${{ secrets.AZURE_PAN_TOKEN }}
