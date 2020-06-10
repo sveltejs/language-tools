@@ -165,7 +165,13 @@ export function createLanguageService(
         ) || {
             compilerOptions: getDeaultJsCompilerOption()
         };
-        configJson = Object.assign({ exclude: getDefaultExclude() }, configJson);
+
+        // Only default exclude when no extends for now
+        if (!configJson.extends) {
+            configJson = Object.assign({
+                exclude: getDefaultExclude()
+            }, configJson);
+        }
 
         const parsedConfig = ts.parseJsonConfigFileContent(
             configJson,
