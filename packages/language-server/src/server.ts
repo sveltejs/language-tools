@@ -207,10 +207,10 @@ export function startServer(options?: LSOptions) {
         if (!doc) return null;
 
         if (doc) {
-            const res = await sveltePlugin.getCompiledResult(doc, false);
-            if (res.compiled) {
-                const js = res.compiled.js;
-                const css = res.compiled.css;
+            const compiled = await sveltePlugin.getCompiledResult(doc);
+            if (compiled) {
+                const js = compiled.js;
+                const css = compiled.css;
                 return { js, css };
             } else {
                 return null;

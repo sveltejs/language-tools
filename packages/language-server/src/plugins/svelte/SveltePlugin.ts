@@ -22,7 +22,7 @@ import {
 } from '../interfaces';
 import { getCompletions } from './features/getCompletions';
 import { getHoverInfo } from './features/getHoverInfo';
-import { SvelteDocument, TranspiledSvelteDocument } from './SvelteDocument';
+import { SvelteDocument } from './SvelteDocument';
 import { Logger } from '../../logger';
 
 export type SvelteCompiledResult = {
@@ -70,42 +70,25 @@ export class SveltePlugin
             return [];
         }
 
-        const res = await this.getCompiledResult(document, true);
-        return res.diagnostics;
-    }
-
-    async getCompiledResult(
-        document: Document,
-        includeDiagnostics: boolean,
-    ): Promise<{
-        compiled: SvelteCompiledResult | null;
-        diagnostics: Diagnostic[];
-    }> {
-        const svelteDoc = this.getSvelteDoc(document);
-        const config = await this.loadConfig(document);
-        const svelte = importSvelte(svelteDoc.getFilePath());
-        let transpiled: TranspiledSvelteDocument = null as any;
-        let diagnostics: Diagnostic[] = [];
-
         try {
-            transpiled = await svelteDoc.getTranspiled(config.preprocess);
+            return await this.tryGetDiagnostics(document);
         } catch (error) {
             Logger.error('Preprocessing failed');
             Logger.error(error);
-            if (includeDiagnostics) {
-                // Preprocessing could fail if packages like less/sass/babel cannot be resolved
-                // when our fallback-version of svelte-preprocess is used.
-                // Add a warning about a broken svelte.configs.js/preprocessor setup
-                // Also add svelte-preprocess error message.
-                const errorMsg =
-                    error instanceof Error && error.message.startsWith('Cannot find any of modules')
-                        ? error.message + '. '
-                        : '';
-                const hint =
-                    error instanceof Error && error.message.includes('node-sass')
-                        ? scssNodeRuntimeHint
-                        : '';
-                diagnostics.push({
+            // Preprocessing could fail if packages like less/sass/babel cannot be resolved
+            // when our fallback-version of svelte-preprocess is used.
+            // Add a warning about a broken svelte.configs.js/preprocessor setup
+            // Also add svelte-preprocess error message.
+            const errorMsg =
+                error instanceof Error && error.message.startsWith('Cannot find any of modules')
+                    ? error.message + '. '
+                    : '';
+            const hint =
+                error instanceof Error && error.message.includes('node-sass')
+                    ? scssNodeRuntimeHint
+                    : '';
+            return [
+                {
                     message:
                         errorMsg +
                         "The file cannot be parsed because script or style require a preprocessor that doesn't seem to be setup. " +
@@ -115,35 +98,51 @@ export class SveltePlugin
                     range: Range.create(Position.create(0, 0), Position.create(0, 5)),
                     severity: DiagnosticSeverity.Warning,
                     source: 'svelte',
-                });
-            }
+                },
+            ];
         }
+    }
 
-        if (!transpiled) {
-            return {
-                compiled: null,
-                diagnostics,
-            };
-        }
+    private async tryGetDiagnostics(document: Document): Promise<Diagnostic[]> {
+        const svelteDoc = this.getSvelteDoc(document);
+        const config = await this.loadConfig(document);
+        const svelte = importSvelte(svelteDoc.getFilePath());
+        const transpiled = await svelteDoc.getTranspiled(config.preprocess);
 
         try {
             delete config.preprocess; // svelte compiler throws an error if we don't do this
             const res = svelte.compile(transpiled.getText(), config);
-            return {
-                compiled: res,
-                diagnostics,
-            };
-        } catch (error) {
-            if (includeDiagnostics) {
-                diagnostics = (
-                    await this.createParserErrorDiagnostic(error, document)
-                ).map((diag) => mapDiagnosticToOriginal(transpiled, diag));
-            }
+            return (((res.stats as any).warnings || res.warnings || []) as Warning[])
+                .map((warning) => {
+                    const start = warning.start || { line: 1, column: 0 };
+                    const end = warning.end || start;
+                    return {
+                        range: Range.create(start.line - 1, start.column, end.line - 1, end.column),
+                        message: warning.message,
+                        severity: DiagnosticSeverity.Warning,
+                        source: 'svelte',
+                        code: warning.code,
+                    };
+                })
+                .map((diag) => mapDiagnosticToOriginal(transpiled, diag));
+        } catch (err) {
+            return (await this.createParserErrorDiagnostic(err, document)).map((diag) =>
+                mapDiagnosticToOriginal(transpiled, diag),
+            );
+        }
+    }
 
-            return {
-                compiled: null,
-                diagnostics,
-            };
+    async getCompiledResult(document: Document): Promise<SvelteCompiledResult | null> {
+        try {
+            const svelteDoc = this.getSvelteDoc(document);
+            const config = await this.loadConfig(document);
+            const svelte = importSvelte(svelteDoc.getFilePath());
+            const transpiled = await svelteDoc.getTranspiled(config.preprocess);
+
+            delete config.preprocess; // svelte compiler throws an error if we don't do this
+            return svelte.compile(transpiled.getText(), config);
+        } catch (error) {
+            return null;
         }
     }
 
