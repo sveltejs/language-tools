@@ -10,7 +10,6 @@ import {
     Uri,
     ProgressLocation,
     ViewColumn,
-    TextDocumentContentProvider,
 } from 'vscode';
 import {
     LanguageClient,
@@ -24,16 +23,7 @@ import {
     TextDocumentEdit,
 } from 'vscode-languageclient';
 import { activateTagClosing } from './html/autoClose';
-
-function atob(encoded: string) {
-    const buffer = Buffer.from(encoded, 'base64');
-    return buffer.toString('utf8');
-}
-
-function btoa(decoded: string) {
-    const buffer = Buffer.from(decoded, 'utf8');
-    return buffer.toString('base64');
-}
+import CompiledCodeContentProvider from './CompiledCodeContentProvider';
 
 namespace TagCloseRequest {
     export const type: RequestType<TextDocumentPositionParams, string, any, any> = new RequestType(
@@ -110,48 +100,6 @@ export function activate(context: ExtensionContext) {
         }),
     );
 
-    context.subscriptions.push(
-        commands.registerTextEditorCommand('svelte.showCompiledCodeToSide', async (editor) => {
-            if (editor?.document?.languageId !== 'svelte') return;
-
-            const uri = editor.document.uri;
-            window.withProgress(
-                { location: ProgressLocation.Window, title: 'Compiling..' },
-                async () => {
-                    const result: {
-                        js: { code: string; map: any };
-                        css: { code: string; map: any };
-                    } = await ls.sendRequest('$/getCompiledCode', uri.toString());
-
-                    if (!result || !result.js.code) {
-                        window.showInformationMessage('Svelte compilation failed.');
-                        return;
-                    }
-
-                    const b64 = btoa(result.js.code);
-                    const newUriString = `svelte://${uri.path}.js#${b64}`;
-                    const doc = await workspace.openTextDocument(Uri.parse(newUriString));
-                    await window.showTextDocument(doc, {
-                        preview: true,
-                        viewColumn: ViewColumn.Beside,
-                    });
-                },
-            );
-        }),
-    );
-
-    const compiledCodePreviewProvider = new (class CompiledCodePreviewProvider
-        implements TextDocumentContentProvider {
-        provideTextDocumentContent(uri: Uri): string {
-            const b64 = uri.fragment;
-            return atob(b64);
-        }
-    })();
-
-    context.subscriptions.push(
-        workspace.registerTextDocumentContentProvider('svelte', compiledCodePreviewProvider),
-    );
-
     workspace.onDidRenameFiles(async (evt) => {
         window.withProgress(
             { location: ProgressLocation.Window, title: 'Updating Imports..' },
@@ -190,6 +138,34 @@ export function activate(context: ExtensionContext) {
             },
         );
     });
+
+    const compiledCodeContentProvider = new CompiledCodeContentProvider(() => ls);
+
+    context.subscriptions.push(
+        workspace.registerTextDocumentContentProvider(
+            CompiledCodeContentProvider.scheme,
+            compiledCodeContentProvider,
+        ),
+        compiledCodeContentProvider,
+    );
+
+    context.subscriptions.push(
+        commands.registerTextEditorCommand('svelte.showCompiledCodeToSide', async (editor) => {
+            if (editor?.document?.languageId !== 'svelte') return;
+
+            const uri = editor.document.uri;
+            const svelteUri = CompiledCodeContentProvider.toSvelteSchemeUri(uri);
+            window.withProgress(
+                { location: ProgressLocation.Window, title: 'Compiling..' },
+                async () => {
+                    return await window.showTextDocument(svelteUri, {
+                        preview: true,
+                        viewColumn: ViewColumn.Beside,
+                    });
+                },
+            );
+        }),
+    );
 }
 
 function createLanguageServer(serverOptions: ServerOptions, clientOptions: LanguageClientOptions) {
