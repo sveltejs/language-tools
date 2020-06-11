@@ -1,5 +1,6 @@
 import { cosmiconfig } from 'cosmiconfig';
-import { CompileOptions, Warning, Ast as SvelteAst } from 'svelte/types/compiler/interfaces';
+import { CompileOptions, Warning } from 'svelte/types/compiler/interfaces';
+import { compile } from 'svelte/compiler';
 import { PreprocessorGroup } from 'svelte/types/compiler/preprocess';
 import {
     CompletionList,
@@ -25,28 +26,7 @@ import { getHoverInfo } from './features/getHoverInfo';
 import { SvelteDocument } from './SvelteDocument';
 import { Logger } from '../../logger';
 
-export type SvelteCompiledResult = {
-    js: any;
-    css: any;
-    ast: SvelteAst;
-    warnings: Warning[];
-    vars: {
-        name: string;
-        export_name: string;
-        injected: boolean;
-        module: boolean;
-        mutated: boolean;
-        reassigned: boolean;
-        referenced: boolean;
-        writable: boolean;
-        referenced_from_script: boolean;
-    }[];
-    stats: {
-        timings: {
-            total: number;
-        };
-    };
-};
+export type SvelteCompiledResult = ReturnType<typeof compile>;
 
 interface SvelteConfig extends CompileOptions {
     preprocess?: PreprocessorGroup;
