@@ -139,7 +139,7 @@ export function activate(context: ExtensionContext) {
         );
     });
 
-    const compiledCodeContentProvider = new CompiledCodeContentProvider(() => ls);
+    const compiledCodeContentProvider = new CompiledCodeContentProvider(ls);
 
     context.subscriptions.push(
         workspace.registerTextDocumentContentProvider(
@@ -151,7 +151,9 @@ export function activate(context: ExtensionContext) {
 
     context.subscriptions.push(
         commands.registerTextEditorCommand('svelte.showCompiledCodeToSide', async (editor) => {
-            if (editor?.document?.languageId !== 'svelte') return;
+            if (editor?.document?.languageId !== 'svelte') {
+                return;
+            }
 
             const uri = editor.document.uri;
             const svelteUri = CompiledCodeContentProvider.toSvelteSchemeUri(uri);
