@@ -234,8 +234,31 @@
             {
                 "command": "svelte.restartLanguageServer",
                 "title": "Svelte: Restart Language Server"
+            },
+            {
+                "command": "svelte.showCompiledCodeToSide",
+                "title": "Svelte: Show Compiled Code",
+                "icon": {
+                    "light": "icons/preview-right-light.svg",
+                    "dark": "icons/preview-right-dark.svg"
+                }
             }
         ],
+        "menus": {
+            "commandPalette": [
+                {
+                    "command": "svelte.showCompiledCodeToSide",
+                    "when": "editorLangId == svelte"
+                }
+            ],
+            "editor/title": [
+                {
+                    "command": "svelte.showCompiledCodeToSide",
+                    "when": "editorLangId == svelte",
+                    "group": "navigation"
+                }
+            ]
+        },
         "breakpoints": [
             {
                 "language": "svelte"

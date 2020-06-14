@@ -23,7 +23,7 @@ import {
 } from '../interfaces';
 import { getCompletions } from './features/getCompletions';
 import { getHoverInfo } from './features/getHoverInfo';
-import { SvelteDocument, SvelteConfig } from './SvelteDocument';
+import { SvelteDocument, SvelteConfig, SvelteCompileResult } from './SvelteDocument';
 import { Logger } from '../../logger';
 import { getCodeActions } from './features/getCodeActions';
 
@@ -114,6 +114,15 @@ export class SveltePlugin
             return (await this.createParserErrorDiagnostic(err, document)).map((diag) =>
                 mapDiagnosticToOriginal(transpiled, diag),
             );
+        }
+    }
+
+    async getCompiledResult(document: Document): Promise<SvelteCompileResult | null> {
+        try {
+            const svelteDoc = await this.getSvelteDoc(document);
+            return svelteDoc.getCompiledWith({ generate: 'dom' });
+        } catch (error) {
+            return null;
         }
     }
 

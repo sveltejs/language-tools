@@ -64,14 +64,15 @@ export class SvelteDocument {
 
     async getCompiled(): Promise<SvelteCompileResult> {
         if (!this.compileResult) {
-            const svelte = importSvelte(this.getFilePath());
-            this.compileResult = svelte.compile(
-                (await this.getTranspiled()).getText(),
-                this.getCompileOptions(),
-            );
+            this.compileResult = await this.getCompiledWith(this.getCompileOptions());
         }
 
         return this.compileResult;
+    }
+
+    async getCompiledWith(options: CompileOptions): Promise<SvelteCompileResult> {
+        const svelte = importSvelte(this.getFilePath());
+        return svelte.compile((await this.getTranspiled()).getText(), options);
     }
 
     private getCompileOptions() {
