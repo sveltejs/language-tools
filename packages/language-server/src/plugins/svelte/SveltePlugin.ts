@@ -152,7 +152,7 @@ export class SveltePlugin
         return [diagnostic];
     }
 
-    private useFallbackPreprocessor(document: Document) {
+    private useFallbackPreprocessor(document: Document, foundConfig: boolean) {
         if (
             document.styleInfo?.attributes.lang ||
             document.styleInfo?.attributes.type ||
@@ -160,7 +160,9 @@ export class SveltePlugin
             document.scriptInfo?.attributes.type
         ) {
             Logger.log(
-                'No svelte.config.js found but one is needed. ' +
+                (foundConfig
+                    ? 'Found svelte.config.js but there was an error loading it. '
+                    : 'No svelte.config.js found but one is needed. ') +
                     'Using https://github.com/sveltejs/svelte-preprocess as fallback',
             );
             return {
@@ -250,7 +252,7 @@ export class SveltePlugin
         Logger.log('Trying to load config for', document.getFilePath());
         try {
             const result = await this.cosmiConfigExplorer.search(document.getFilePath() || '');
-            const config = result?.config ?? this.useFallbackPreprocessor(document);
+            const config = result?.config ?? this.useFallbackPreprocessor(document, false);
             if (result) {
                 Logger.log('Found config at ', result.filepath);
             }
@@ -260,7 +262,7 @@ export class SveltePlugin
             Logger.error(err);
             return {
                 ...DEFAULT_OPTIONS,
-                ...this.useFallbackPreprocessor(document),
+                ...this.useFallbackPreprocessor(document, true),
                 ...NO_GENERATE,
             };
         }
