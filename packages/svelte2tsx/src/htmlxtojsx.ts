@@ -484,7 +484,11 @@ export function convertHtmlxToJsx(
         if (!awaitBlock.pending.skip) {
             //thenBlock includes the {:then}
             thenStart = awaitBlock.then.start;
-            thenEnd = htmlx.indexOf('}', awaitBlock.value.end) + 1;
+            if (awaitBlock.value) {
+                thenEnd = htmlx.indexOf('}', awaitBlock.value.end) + 1;
+            } else {
+                thenEnd = htmlx.indexOf('}', awaitBlock.then.start) + 1;
+            }
             str.prependLeft(thenStart, '</>; ');
             // add the start tag too
             const awaitEnd = htmlx.indexOf('}', awaitBlock.expression.end);
@@ -494,13 +498,17 @@ export function convertHtmlxToJsx(
             thenEnd = htmlx.lastIndexOf('}', awaitBlock.then.start) + 1;
             thenStart = htmlx.indexOf('then', awaitBlock.expression.end);
         }
-        str.overwrite(
-            thenStart,
-            thenEnd,
-            '_$$p.then((' +
-                htmlx.substring(awaitBlock.value.start, awaitBlock.value.end) +
-                ') => {<>',
-        );
+        if (awaitBlock.value) {
+            str.overwrite(
+                thenStart,
+                thenEnd,
+                '_$$p.then((' +
+                    htmlx.substring(awaitBlock.value.start, awaitBlock.value.end) +
+                    ') => {<>',
+            );
+        } else {
+            str.overwrite(thenStart, thenEnd, '_$$p.then(() => {<>');
+        }
         //{:catch error} ->
         //</>}).catch((error) => {<>
         if (!awaitBlock.catch.skip) {
