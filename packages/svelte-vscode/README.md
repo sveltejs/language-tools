@@ -187,3 +187,7 @@ Enable autocompletion for Svelte (for tags like #if/#each). _Default_: `true`
 ##### `svelte.plugin.svelte.rename.enable`
 
 Enable rename functionality (rename svelte files or variables inside svelte files). _Default_: `true`
+
+##### `svelte.plugin.svelte.codeActions.enable`
+
+Enable code actions for Svelte. _Default_: `true`

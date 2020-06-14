@@ -1,20 +1,34 @@
-import { DocumentSnapshot } from './DocumentSnapshot';
+import { DocumentSnapshot, SvelteSnapshotOptions } from './DocumentSnapshot';
 
 export class SnapshotManager {
-    private static managerContainer: Map<string, SnapshotManager> = new Map();
-
-    static getFromTsConfigPath(tsconfigPath: string): SnapshotManager {
-        let manager = this.managerContainer.get(tsconfigPath);
-
-        if (!manager) {
-            manager = new SnapshotManager();
-            this.managerContainer.set(tsconfigPath, manager);
-        }
-
-        return manager;
-    }
+    constructor(
+        private projectFiles: string[]
+    ) { }
 
     private documents: Map<string, DocumentSnapshot> = new Map();
+
+    updateByFileName(fileName: string, options: SvelteSnapshotOptions) {
+        if (!this.has(fileName)) {
+            return;
+        }
+
+        const newSnapshot = DocumentSnapshot.fromFilePath(fileName, options);
+        const previousSnapshot = this.get(fileName);
+
+        if (previousSnapshot) {
+            newSnapshot.version = previousSnapshot.version + 1;
+        } else {
+            // ensure it's greater than initial version
+            // so that ts server picks up the change
+            newSnapshot.version += 1;
+        }
+
+        this.set(fileName, newSnapshot);
+    }
+
+    has(fileName: string) {
+        return this.projectFiles.includes(fileName) || this.getFileNames().includes(fileName);
+    }
 
     set(fileName: string, snapshot: DocumentSnapshot) {
         const prev = this.get(fileName);
@@ -30,10 +44,16 @@ export class SnapshotManager {
     }
 
     delete(fileName: string) {
+        this.projectFiles = this.projectFiles
+            .filter(s => s !== fileName);
         return this.documents.delete(fileName);
     }
 
     getFileNames() {
         return Array.from(this.documents.keys());
+    }
+
+    getProjectFileNames() {
+        return [...this.projectFiles];
     }
 }

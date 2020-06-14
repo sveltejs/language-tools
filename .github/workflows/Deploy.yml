@@ -1,6 +1,6 @@
 name: Daily builds of the Svelte Language Tools Beta
 
-# For testing
+# For testing the deploy
 # on: push
 
 # For production
@@ -27,11 +27,10 @@ jobs:
       - run: "npm install -g json"
 
       # Setup the environment
-      - run: 'json -I -f packages/svelte-vscode/package.json -e "this.dependencies[\`svelte-language-server\`]=\`file:../language-server\`"'
       - run: 'json -I -f packages/svelte-vscode/package.json -e "this.version=\`99.0.0\`"'
       - run: 'json -I -f packages/svelte-vscode/package.json -e "this.preview=true"'
 
-      # To deploy we need a node_modules folder which isn't in the yarn
+      # To deploy we need isolated node_modules folders which yarn won't do because it is a workspace
       # So, remove the workspace
       - run: "rm package.json yarn.lock"
 
