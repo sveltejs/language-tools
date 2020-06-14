@@ -161,7 +161,7 @@ export function convertHtmlxToJsx(
 
             const endBrackets = ')}';
             if (isShortHandAttribute(attr)) {
-                str.appendRight(attr.end, endBrackets);
+                str.prependRight(attr.end, endBrackets);
             } else {
                 str.overwrite(attr.expression.end, attr.end, endBrackets);
             }
