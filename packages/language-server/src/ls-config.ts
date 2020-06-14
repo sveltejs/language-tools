@@ -36,6 +36,7 @@ const defaultLSConfig: LSConfig = {
         format: { enable: true },
         completions: { enable: true },
         hover: { enable: true },
+        codeActions: { enable: true },
     },
 };
 
@@ -125,6 +126,9 @@ export interface LSSvelteConfig {
         enable: boolean;
     };
     hover: {
+        enable: boolean;
+    };
+    codeActions: {
         enable: boolean;
     };
 }
