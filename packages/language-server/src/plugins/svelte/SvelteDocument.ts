@@ -16,7 +16,11 @@ import {
 import { importSvelte } from '../importPackage';
 import { CompileOptions } from 'svelte/types/compiler/interfaces';
 
-export type SvelteCompileResult = ReturnType<typeof compile>
+export type SvelteCompileResult = ReturnType<typeof compile>;
+
+export interface SvelteConfig extends CompileOptions {
+    preprocess?: PreprocessorGroup;
+}
 
 /**
  * Represents a text document that contains a svelte component.
@@ -30,7 +34,7 @@ export class SvelteDocument {
     public languageId = 'svelte';
     public version = 0;
 
-    constructor(private parent: Document) {
+    constructor(private parent: Document, public config: SvelteConfig) {
         this.script = this.parent.scriptInfo;
         this.style = this.parent.styleInfo;
         this.version = this.parent.version;
@@ -48,20 +52,32 @@ export class SvelteDocument {
         return this.parent.offsetAt(position);
     }
 
-    async getTranspiled(preprocessors: PreprocessorGroup | undefined) {
+    async getTranspiled(): Promise<TranspiledSvelteDocument> {
         if (!this.transpiledDoc) {
-            this.transpiledDoc = await TranspiledSvelteDocument.create(this.parent, preprocessors);
+            this.transpiledDoc = await TranspiledSvelteDocument.create(
+                this.parent,
+                this.config.preprocess,
+            );
         }
         return this.transpiledDoc;
     }
 
-    getCompiled(transpiled: string, config?: CompileOptions): SvelteCompileResult {
+    async getCompiled(): Promise<SvelteCompileResult> {
         if (!this.compileResult) {
             const svelte = importSvelte(this.getFilePath());
-            this.compileResult = svelte.compile(transpiled, config);
+            this.compileResult = svelte.compile(
+                (await this.getTranspiled()).getText(),
+                this.getCompileOptions(),
+            );
         }
 
         return this.compileResult;
+    }
+
+    private getCompileOptions() {
+        const config = { ...this.config };
+        delete config.preprocess; // svelte compiler throws an error if we don't do this
+        return config;
     }
 
     /**

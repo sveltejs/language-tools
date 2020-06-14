@@ -13,7 +13,7 @@ import { walk, Node } from 'estree-walker';
 import { EOL } from 'os';
 import { SvelteDocument } from '../SvelteDocument';
 import { pathToUrl } from '../../../utils';
-import { positionAt } from '../../../lib/documents';
+import { positionAt, offsetAt, mapTextEditToOriginal } from '../../../lib/documents';
 import { Ast } from 'svelte/types/compiler/interfaces';
 
 interface OffsetRange {
@@ -21,29 +21,41 @@ interface OffsetRange {
     end: number;
 }
 
-export function getCodeActions(
+export async function getCodeActions(
+    svelteDoc: SvelteDocument,
+    context: CodeActionContext,
+): Promise<CodeAction[]> {
+    const { ast } = await svelteDoc.getCompiled();
+    const svelteDiagnostics = context.diagnostics.filter(isIgnorableSvelteDiagnostic);
+
+    return Promise.all(
+        svelteDiagnostics.map(
+            async (diagnostic) => await createCodeAction(diagnostic, svelteDoc, ast),
+        ),
+    );
+}
+
+async function createCodeAction(
+    diagnostic: Diagnostic,
     svelteDoc: SvelteDocument,
     ast: Ast,
-    context: CodeActionContext
-) {
-    const svelteDiagnostics = context.diagnostics
-        .filter(isIgnorableSvelteDiagnostic);
+): Promise<CodeAction> {
+    const textDocument = VersionedTextDocumentIdentifier.create(
+        pathToUrl(svelteDoc.getFilePath()),
+        svelteDoc.version,
+    );
 
-    return svelteDiagnostics.map(diagnostic => {
-        const textDocument = VersionedTextDocumentIdentifier.create(
-            pathToUrl(svelteDoc.getFilePath()),
-            svelteDoc.version
-        );
-
-        return CodeAction.create(getCodeActionTitle(diagnostic), {
+    return CodeAction.create(
+        getCodeActionTitle(diagnostic),
+        {
             documentChanges: [
                 TextDocumentEdit.create(textDocument, [
-                    getSvelteIgnoreEdit(svelteDoc, ast, diagnostic)
-                ])
-            ]
+                    await getSvelteIgnoreEdit(svelteDoc, ast, diagnostic),
+                ]),
+            ],
         },
-            CodeActionKind.QuickFix);
-    });
+        CodeActionKind.QuickFix,
+    );
 }
 
 function getCodeActionTitle(diagnostic: Diagnostic) {
@@ -53,33 +65,35 @@ function getCodeActionTitle(diagnostic: Diagnostic) {
 
 function isIgnorableSvelteDiagnostic(diagnostic: Diagnostic) {
     const { source, severity, code } = diagnostic;
-    return code && source === 'svelte' &&
-        severity !== DiagnosticSeverity.Error;
+    return code && source === 'svelte' && severity !== DiagnosticSeverity.Error;
 }
 
-function getSvelteIgnoreEdit(
-    svelteDoc: SvelteDocument,
-    ast: Ast,
-    diagnostic: Diagnostic
-) {
-    const { code, range: { start, end } } = diagnostic;
-    const content = svelteDoc.getText();
+async function getSvelteIgnoreEdit(svelteDoc: SvelteDocument, ast: Ast, diagnostic: Diagnostic) {
+    const {
+        code,
+        range: { start, end },
+    } = diagnostic;
+    const transpiled = await svelteDoc.getTranspiled();
+    const content = transpiled.getText();
     const { html } = ast;
 
-    const diagnosticStartOffset = svelteDoc.offsetAt(start);
-    const diagnosticEndOffset = svelteDoc.offsetAt(end);
+    const diagnosticStartOffset = offsetAt(start, transpiled.getText());
+    const diagnosticEndOffset = offsetAt(end, transpiled.getText());
     const OffsetRange = {
         start: diagnosticStartOffset,
-        end: diagnosticEndOffset
+        end: diagnosticEndOffset,
     };
 
     const node = findTagForRange(html, OffsetRange);
 
     const nodeStartPosition = positionAt(node.start, content);
-    const nodeLineStart = svelteDoc.offsetAt({
-        line: nodeStartPosition.line,
-        character: 0
-    });
+    const nodeLineStart = offsetAt(
+        {
+            line: nodeStartPosition.line,
+            character: 0,
+        },
+        transpiled.getText(),
+    );
     const afterStartLineStart = content.slice(nodeLineStart);
     const indent = /^[ |\t]+/.exec(afterStartLineStart)?.[0] ?? '';
 
@@ -87,7 +101,7 @@ function getSvelteIgnoreEdit(
     const ignore = `${indent}<!-- svelte-ignore ${code} -->${EOL}`;
     const position = Position.create(nodeStartPosition.line, 0);
 
-    return TextEdit.insert(position, ignore);
+    return mapTextEditToOriginal(transpiled, TextEdit.insert(position, ignore));
 }
 
 const elementOrComponent = ['Component', 'Element', 'InlineComponent'];

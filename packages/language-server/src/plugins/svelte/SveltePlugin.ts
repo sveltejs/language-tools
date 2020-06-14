@@ -1,6 +1,5 @@
 import { cosmiconfig } from 'cosmiconfig';
 import { CompileOptions, Warning } from 'svelte/types/compiler/interfaces';
-import { PreprocessorGroup } from 'svelte/types/compiler/preprocess';
 import {
     CompletionList,
     Diagnostic,
@@ -20,44 +19,39 @@ import {
     DiagnosticsProvider,
     FormattingProvider,
     HoverProvider,
-    Resolvable,
     CodeActionsProvider,
 } from '../interfaces';
 import { getCompletions } from './features/getCompletions';
 import { getHoverInfo } from './features/getHoverInfo';
-import { SvelteDocument } from './SvelteDocument';
+import { SvelteDocument, SvelteConfig } from './SvelteDocument';
 import { Logger } from '../../logger';
 import { getCodeActions } from './features/getCodeActions';
-
-interface SvelteConfig extends CompileOptions {
-    preprocess?: PreprocessorGroup;
-}
 
 const DEFAULT_OPTIONS: CompileOptions = {
     dev: true,
 };
 
 const NO_GENERATE: CompileOptions = {
-    generate: false
+    generate: false,
 };
 
 const scssNodeRuntimeHint =
-    'If you use SCSS, it may be necessary to add the path to your NODE runtime to the setting `svelte.language-server.runtime`. ';
+    'If you use SCSS, it may be necessary to add the path to your NODE runtime to the setting `svelte.language-server.runtime`, or use `sass` instead of `node-sass`. ';
 
 export class SveltePlugin
     implements
-    DiagnosticsProvider,
-    FormattingProvider,
-    CompletionsProvider,
-    HoverProvider,
-    CodeActionsProvider {
+        DiagnosticsProvider,
+        FormattingProvider,
+        CompletionsProvider,
+        HoverProvider,
+        CodeActionsProvider {
     private docManager = new Map<Document, SvelteDocument>();
     private cosmiConfigExplorer = cosmiconfig('svelte', {
         packageProp: 'svelte-ls',
-        cache: true
+        cache: true,
     });
 
-    constructor(private configManager: LSConfigManager) { }
+    constructor(private configManager: LSConfigManager) {}
 
     async getDiagnostics(document: Document): Promise<Diagnostic[]> {
         if (!this.featureEnabled('diagnostics')) {
@@ -97,21 +91,12 @@ export class SveltePlugin
         }
     }
 
-    private configToCompileOption(config: SvelteConfig) {
-        delete config.preprocess; // svelte compiler throws an error if we don't do this
-        return config;
-    }
-
     private async tryGetDiagnostics(document: Document): Promise<Diagnostic[]> {
-        const svelteDoc = this.getSvelteDoc(document);
-        const config = await this.loadConfig(document);
-        const transpiled = await svelteDoc.getTranspiled(config.preprocess);
+        const svelteDoc = await this.getSvelteDoc(document);
+        const transpiled = await svelteDoc.getTranspiled();
 
         try {
-            const res = svelteDoc.getCompiled(
-                transpiled.getText(),
-                this.configToCompileOption(config)
-            );
+            const res = await svelteDoc.getCompiled();
             return (((res.stats as any).warnings || res.warnings || []) as Warning[])
                 .map((warning) => {
                     const start = warning.start || { line: 1, column: 0 };
@@ -167,26 +152,6 @@ export class SveltePlugin
         return [diagnostic];
     }
 
-    private async loadConfig(document: Document): Promise<SvelteConfig> {
-        Logger.log('Trying to load config for', document.getFilePath());
-        try {
-            const result = await this.cosmiConfigExplorer.search(document.getFilePath() || '');
-            const config = result?.config ?? this.useFallbackPreprocessor(document);
-            if (result) {
-                Logger.log('Found config at ', result.filepath);
-            }
-            return { ...DEFAULT_OPTIONS, ...config, ...NO_GENERATE };
-        } catch (err) {
-            Logger.error('Error while loading config');
-            Logger.error(err);
-            return {
-                ...DEFAULT_OPTIONS,
-                ...this.useFallbackPreprocessor(document),
-                ...NO_GENERATE
-            };
-        }
-    }
-
     private useFallbackPreprocessor(document: Document) {
         if (
             document.styleInfo?.attributes.lang ||
@@ -196,7 +161,7 @@ export class SveltePlugin
         ) {
             Logger.log(
                 'No svelte.config.js found but one is needed. ' +
-                'Using https://github.com/sveltejs/svelte-preprocess as fallback',
+                    'Using https://github.com/sveltejs/svelte-preprocess as fallback',
             );
             return {
                 preprocess: importSveltePreprocess(document.getFilePath() || '')({
@@ -229,46 +194,37 @@ export class SveltePlugin
         ];
     }
 
-    getCompletions(document: Document, position: Position): Resolvable<CompletionList | null> {
+    async getCompletions(document: Document, position: Position): Promise<CompletionList | null> {
         if (!this.featureEnabled('completions')) {
             return null;
         }
 
-        return getCompletions(this.getSvelteDoc(document), position);
+        return getCompletions(await this.getSvelteDoc(document), position);
     }
 
-    doHover(document: Document, position: Position): Hover | null {
+    async doHover(document: Document, position: Position): Promise<Hover | null> {
         if (!this.featureEnabled('hover')) {
             return null;
         }
 
-        return getHoverInfo(this.getSvelteDoc(document), position);
+        return getHoverInfo(await this.getSvelteDoc(document), position);
     }
 
     async getCodeActions(
         document: Document,
         _range: Range,
-        context: CodeActionContext
+        context: CodeActionContext,
     ): Promise<CodeAction[]> {
         if (!this.featureEnabled('codeActions')) {
             return [];
         }
 
-        const svelteDoc = this.getSvelteDoc(document);
-        const config = await this.loadConfig(document);
-        const transpiled = await svelteDoc.getTranspiled(config.preprocess);
-
+        const svelteDoc = await this.getSvelteDoc(document);
         try {
-            const { ast }  = svelteDoc.getCompiled(
-                transpiled.getText(),
-                this.configToCompileOption(config)
-            );
-
-            return getCodeActions(svelteDoc, ast, context);
+            return getCodeActions(svelteDoc, context);
         } catch (error) {
             return [];
         }
-
     }
 
     private featureEnabled(feature: keyof LSSvelteConfig) {
@@ -278,13 +234,35 @@ export class SveltePlugin
         );
     }
 
-    private getSvelteDoc(document: Document) {
+    private async getSvelteDoc(document: Document) {
         let svelteDoc = this.docManager.get(document);
         if (!svelteDoc || svelteDoc.version !== document.version) {
             svelteDoc?.destroyTranspiled();
-            svelteDoc = new SvelteDocument(document);
+            // Reuse previous config. Assumption: Config does not change often (if at all).
+            const config = svelteDoc?.config || (await this.loadConfig(document));
+            svelteDoc = new SvelteDocument(document, config);
             this.docManager.set(document, svelteDoc);
         }
         return svelteDoc;
+    }
+
+    private async loadConfig(document: Document): Promise<SvelteConfig> {
+        Logger.log('Trying to load config for', document.getFilePath());
+        try {
+            const result = await this.cosmiConfigExplorer.search(document.getFilePath() || '');
+            const config = result?.config ?? this.useFallbackPreprocessor(document);
+            if (result) {
+                Logger.log('Found config at ', result.filepath);
+            }
+            return { ...DEFAULT_OPTIONS, ...config, ...NO_GENERATE };
+        } catch (err) {
+            Logger.error('Error while loading config');
+            Logger.error(err);
+            return {
+                ...DEFAULT_OPTIONS,
+                ...this.useFallbackPreprocessor(document),
+                ...NO_GENERATE,
+            };
+        }
     }
 }
