@@ -54,7 +54,7 @@ export default class CompiledCodeContentProvider implements TextDocumentContentP
         return this.didChangeEmitter.event;
     }
 
-    constructor(private languageClient: LanguageClient) {
+    constructor(private getLanguageClient: () => LanguageClient) {
         this.subscriptions.push(
             workspace.onDidChangeTextDocument(
                 debounce(async (changeEvent) => {
@@ -84,7 +84,7 @@ export default class CompiledCodeContentProvider implements TextDocumentContentP
         const srcUriStr = fromSvelteSchemeUri(uri, true);
         this.watchedSourceUri.add(srcUriStr);
 
-        const resp = await this.languageClient.sendRequest<CompiledCodeResp>(
+        const resp = await this.getLanguageClient().sendRequest<CompiledCodeResp>(
             '$/getCompiledCode',
             srcUriStr,
         );
