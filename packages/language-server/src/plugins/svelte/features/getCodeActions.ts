@@ -9,12 +9,17 @@ import {
     VersionedTextDocumentIdentifier,
     DiagnosticSeverity,
 } from 'vscode-languageserver';
-import { walk, Node } from 'estree-walker';
+import { walk } from 'estree-walker';
 import { EOL } from 'os';
 import { SvelteDocument } from '../SvelteDocument';
 import { pathToUrl } from '../../../utils';
 import { positionAt, offsetAt, mapTextEditToOriginal } from '../../../lib/documents';
 import { Ast } from 'svelte/types/compiler/interfaces';
+// There are multiple estree-walker versions in the monorepo.
+// To get the Node type right in both dev and prod environment,
+// declaring the Node type like this is necessary. Once
+// all depend on the same estree(-walker) version, this should be removed.
+type Node = Parameters<typeof walk>[0];
 
 interface OffsetRange {
     start: number;
