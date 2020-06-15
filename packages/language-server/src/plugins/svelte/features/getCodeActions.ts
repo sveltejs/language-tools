@@ -16,10 +16,12 @@ import { pathToUrl } from '../../../utils';
 import { positionAt, offsetAt, mapTextEditToOriginal } from '../../../lib/documents';
 import { Ast } from 'svelte/types/compiler/interfaces';
 // There are multiple estree-walker versions in the monorepo.
+// The newer versions don't have start/end in their public interface,
+// but the AST returned by svelte/compiler does.
 // To get the Node type right in both dev and prod environment,
 // declaring the Node type like this is necessary. Once
-// all depend on the same estree(-walker) version, this should be removed.
-type Node = Parameters<typeof walk>[0];
+// all depend on the same estree(-walker) version, this should be revisited.
+type Node = any;
 
 interface OffsetRange {
     start: number;
