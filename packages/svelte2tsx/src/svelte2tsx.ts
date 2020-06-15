@@ -191,19 +191,42 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
         }
     };
 
-    let scriptTag: Node = null;
-    let moduleScriptTag: Node = null;
-    const handleScriptTag = (node: Node) => {
-        if (
-            node.attributes &&
-            node.attributes.find(
-                (a) => a.name == 'context' && a.value.length == 1 && a.value[0].raw == 'module',
-            )
-        ) {
-            moduleScriptTag = node;
-        } else {
-            scriptTag = node;
+    // All script tags, no matter at what level, are listed within the root children.
+    // To get the top level scripts, filter out all those that are part of children's children.
+    // Those have another type ('Element' with name 'script').
+    const scriptTags = (<Node[]>htmlxAst.children).filter((child) => child.type === 'Script');
+    let topLevelScripts = scriptTags;
+    const handleScriptTag = (node: Node, parent: Node) => {
+        if (parent !== htmlxAst && node.name === 'script') {
+            topLevelScripts = topLevelScripts.filter(
+                (tag) => tag.start !== node.start || tag.end !== node.end,
+            );
         }
+    };
+    const getTopLevelScriptTags = () => {
+        let scriptTag: Node = null;
+        let moduleScriptTag: Node = null;
+        // should be 2 at most, one each, so using forEach is safe
+        topLevelScripts.forEach((tag) => {
+            if (
+                tag.attributes &&
+                tag.attributes.find(
+                    (a) => a.name == 'context' && a.value.length == 1 && a.value[0].raw == 'module',
+                )
+            ) {
+                moduleScriptTag = tag;
+            } else {
+                scriptTag = tag;
+            }
+        });
+        return { scriptTag, moduleScriptTag };
+    };
+    const blankOtherScriptTags = () => {
+        scriptTags
+            .filter((tag) => !topLevelScripts.includes(tag))
+            .forEach((tag) => {
+                str.remove(tag.start, tag.end);
+            });
     };
 
     const slots = new Map<string, Map<string, string>>();
@@ -245,8 +268,8 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
             case 'Style':
                 handleStyleTag(node);
                 break;
-            case 'Script':
-                handleScriptTag(node);
+            case 'Element':
+                handleScriptTag(node, parent);
                 break;
             case 'BlockStatement':
                 enterBlockStatement();
@@ -289,6 +312,10 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
     };
 
     convertHtmlxToJsx(str, htmlxAst, onHtmlxWalk, onHtmlxLeave);
+
+    // resolve scripts
+    const { scriptTag, moduleScriptTag } = getTopLevelScriptTags();
+    blankOtherScriptTags();
 
     //resolve stores
     pendingStoreResolutions.map(resolveStore);
