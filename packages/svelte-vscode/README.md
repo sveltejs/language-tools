@@ -14,6 +14,7 @@ If you added `"files.associations": {"*.svelte": "html" }` to your VSCode settin
     -   Diagnostic messages for warnings and errors
     -   Support for svelte preprocessors that provide source maps
     -   Svelte specific formatting (via [prettier-plugin-svelte](https://github.com/sveltejs/prettier-plugin-svelte))
+    -   A command to preview the compiled code (DOM mode): "Svelte: Show Compiled Code"
 -   HTML
     -   Hover info
     -   Autocompletions
@@ -187,3 +188,7 @@ Enable autocompletion for Svelte (for tags like #if/#each). _Default_: `true`
 ##### `svelte.plugin.svelte.rename.enable`
 
 Enable rename functionality (rename svelte files or variables inside svelte files). _Default_: `true`
+
+##### `svelte.plugin.svelte.codeActions.enable`
+
+Enable code actions for Svelte. _Default_: `true`

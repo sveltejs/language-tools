@@ -3,7 +3,7 @@ import sinon from 'sinon';
 import { Position } from 'vscode-languageserver';
 import { Document } from '../../../src/lib/documents';
 import * as importPackage from '../../../src/plugins/importPackage';
-import { SvelteDocument } from '../../../src/plugins/svelte/SvelteDocument';
+import { SvelteDocument, SvelteConfig } from '../../../src/plugins/svelte/SvelteDocument';
 
 describe('Svelte Document', () => {
     function getSourceCode(transpiled: boolean): string {
@@ -15,9 +15,9 @@ describe('Svelte Document', () => {
         `;
     }
 
-    function setup() {
+    function setup(config: SvelteConfig = {}) {
         const parent = new Document('file:///hello.svelte', getSourceCode(false));
-        const svelteDoc = new SvelteDocument(parent);
+        const svelteDoc = new SvelteDocument(parent, config);
         return { parent, svelteDoc };
     }
 
@@ -28,7 +28,21 @@ describe('Svelte Document', () => {
 
     describe('#transpiled', () => {
         async function setupTranspiled() {
-            const { parent, svelteDoc } = setup();
+            const { parent, svelteDoc } = setup({
+                preprocess: {
+                    script: () => ({
+                        code: '',
+                        map: JSON.stringify({
+                            version: 3,
+                            file: '',
+                            names: [],
+                            sources: [],
+                            sourceRoot: '',
+                            mappings: '',
+                        }),
+                    }),
+                },
+            });
 
             // stub svelte preprocess and getOriginalPosition
             // to fake a source mapping process
@@ -45,19 +59,7 @@ describe('Svelte Document', () => {
                 compile: <any>null,
                 parse: <any>null,
             });
-            const transpiled = await svelteDoc.getTranspiled({
-                script: () => ({
-                    code: '',
-                    map: JSON.stringify({
-                        version: 3,
-                        file: '',
-                        names: [],
-                        sources: [],
-                        sourceRoot: '',
-                        mappings: '',
-                    }),
-                }),
-            });
+            const transpiled = await svelteDoc.getTranspiled();
             // hacky reset of method because mocking the SourceMap constructor is an impossible task
             (<any>transpiled.scriptMapper).sourceMapper.getOriginalPosition = (pos: any) => {
                 pos.line--;

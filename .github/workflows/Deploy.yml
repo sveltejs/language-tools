@@ -1,7 +1,7 @@
 name: Daily builds of the Svelte Language Tools Beta
 
-# For testing
-# on: push
+# For testing the deploy
+#on: push
 
 # For production
 on:
@@ -16,7 +16,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v1
         with:
-          node-version: "10.x"
+          node-version: "12.x"
           registry-url: "https://registry.npmjs.org"
 
       # Ensure everything is compiling
@@ -27,27 +27,17 @@ jobs:
       - run: "npm install -g json"
 
       # Setup the environment
-      - run: 'json -I -f packages/svelte-vscode/package.json -e "this.dependencies[\`svelte-language-server\`]=\`file:../language-server\`"'
       - run: 'json -I -f packages/svelte-vscode/package.json -e "this.version=\`99.0.0\`"'
+      - run: 'json -I -f packages/svelte-vscode/package.json -e "this.preview=true"'
 
-      # To deploy we need a node_modules folder which isn't in the yarn
+      # To deploy we need isolated node_modules folders which yarn won't do because it is a workspace
       # So, remove the workspace
       - run: "rm package.json yarn.lock"
-
-      # Re-run the yarn install outside of the workspace
-      - run: |
-         cd packages/language-server
-         yarn install
-         cd ..
-        name: 'Setup language-server'
-
-      # Re-run the  yarn install outside of the workspace
-      - run: |
-         cd packages/svelte-vscode
-         yarn install
-        name: 'setup svelte-vscode'
 
       - uses: orta/monorepo-deploy-nightly@master
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           VSCE_TOKEN: ${{ secrets.AZURE_PAN_TOKEN }}
+        with: 
+          sort: '["svelte2tsx", "svelte-language-server", "svelte-check", "svelte-vscode"]'
+          install: "true"

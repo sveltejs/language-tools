@@ -1,6 +1,5 @@
 import { cosmiconfig } from 'cosmiconfig';
 import { CompileOptions, Warning } from 'svelte/types/compiler/interfaces';
-import { PreprocessorGroup } from 'svelte/types/compiler/preprocess';
 import {
     CompletionList,
     Diagnostic,
@@ -9,36 +8,48 @@ import {
     Position,
     Range,
     TextEdit,
+    CodeActionContext,
+    CodeAction,
 } from 'vscode-languageserver';
 import { Document, isInTag, mapDiagnosticToOriginal } from '../../lib/documents';
 import { LSConfigManager, LSSvelteConfig } from '../../ls-config';
-import { importPrettier, importSvelte, importSveltePreprocess } from '../importPackage';
+import { importPrettier, importSveltePreprocess } from '../importPackage';
 import {
     CompletionsProvider,
     DiagnosticsProvider,
     FormattingProvider,
     HoverProvider,
-    Resolvable,
+    CodeActionsProvider,
 } from '../interfaces';
 import { getCompletions } from './features/getCompletions';
 import { getHoverInfo } from './features/getHoverInfo';
-import { SvelteDocument } from './SvelteDocument';
+import { SvelteDocument, SvelteConfig, SvelteCompileResult } from './SvelteDocument';
 import { Logger } from '../../logger';
-
-interface SvelteConfig extends CompileOptions {
-    preprocess?: PreprocessorGroup;
-}
+import { getCodeActions } from './features/getCodeActions';
 
 const DEFAULT_OPTIONS: CompileOptions = {
     dev: true,
+};
+
+const NO_GENERATE: CompileOptions = {
+    generate: false,
 };
 
 const scssNodeRuntimeHint =
     'If you use SCSS, it may be necessary to add the path to your NODE runtime to the setting `svelte.language-server.runtime`, or use `sass` instead of `node-sass`. ';
 
 export class SveltePlugin
-    implements DiagnosticsProvider, FormattingProvider, CompletionsProvider, HoverProvider {
+    implements
+        DiagnosticsProvider,
+        FormattingProvider,
+        CompletionsProvider,
+        HoverProvider,
+        CodeActionsProvider {
     private docManager = new Map<Document, SvelteDocument>();
+    private cosmiConfigExplorer = cosmiconfig('svelte', {
+        packageProp: 'svelte-ls',
+        cache: true,
+    });
 
     constructor(private configManager: LSConfigManager) {}
 
@@ -81,14 +92,11 @@ export class SveltePlugin
     }
 
     private async tryGetDiagnostics(document: Document): Promise<Diagnostic[]> {
-        const svelteDoc = this.getSvelteDoc(document);
-        const config = await this.loadConfig(document);
-        const svelte = importSvelte(svelteDoc.getFilePath());
-        const transpiled = await svelteDoc.getTranspiled(config.preprocess);
+        const svelteDoc = await this.getSvelteDoc(document);
+        const transpiled = await svelteDoc.getTranspiled();
 
         try {
-            delete config.preprocess; // svelte compiler throws an error if we don't do this
-            const res = svelte.compile(transpiled.getText(), config);
+            const res = await svelteDoc.getCompiled();
             return (((res.stats as any).warnings || res.warnings || []) as Warning[])
                 .map((warning) => {
                     const start = warning.start || { line: 1, column: 0 };
@@ -106,6 +114,15 @@ export class SveltePlugin
             return (await this.createParserErrorDiagnostic(err, document)).map((diag) =>
                 mapDiagnosticToOriginal(transpiled, diag),
             );
+        }
+    }
+
+    async getCompiledResult(document: Document): Promise<SvelteCompileResult | null> {
+        try {
+            const svelteDoc = await this.getSvelteDoc(document);
+            return svelteDoc.getCompiledWith({ generate: 'dom' });
+        } catch (error) {
+            return null;
         }
     }
 
@@ -144,24 +161,7 @@ export class SveltePlugin
         return [diagnostic];
     }
 
-    private async loadConfig(document: Document): Promise<SvelteConfig> {
-        Logger.log('Trying to load config for', document.getFilePath());
-        try {
-            const explorer = cosmiconfig('svelte', { packageProp: 'svelte-ls' });
-            const result = await explorer.search(document.getFilePath() || '');
-            const config = result?.config ?? this.useFallbackPreprocessor(document);
-            if (result) {
-                Logger.log('Found config at ', result.filepath);
-            }
-            return { ...DEFAULT_OPTIONS, ...config };
-        } catch (err) {
-            Logger.error('Error while loading config');
-            Logger.error(err);
-            return { ...DEFAULT_OPTIONS, ...this.useFallbackPreprocessor(document) };
-        }
-    }
-
-    private useFallbackPreprocessor(document: Document) {
+    private useFallbackPreprocessor(document: Document, foundConfig: boolean) {
         if (
             document.styleInfo?.attributes.lang ||
             document.styleInfo?.attributes.type ||
@@ -169,7 +169,9 @@ export class SveltePlugin
             document.scriptInfo?.attributes.type
         ) {
             Logger.log(
-                'No svelte.config.js found but one is needed. ' +
+                (foundConfig
+                    ? 'Found svelte.config.js but there was an error loading it. '
+                    : 'No svelte.config.js found but one is needed. ') +
                     'Using https://github.com/sveltejs/svelte-preprocess as fallback',
             );
             return {
@@ -203,20 +205,37 @@ export class SveltePlugin
         ];
     }
 
-    getCompletions(document: Document, position: Position): Resolvable<CompletionList | null> {
+    async getCompletions(document: Document, position: Position): Promise<CompletionList | null> {
         if (!this.featureEnabled('completions')) {
             return null;
         }
 
-        return getCompletions(this.getSvelteDoc(document), position);
+        return getCompletions(await this.getSvelteDoc(document), position);
     }
 
-    doHover(document: Document, position: Position): Hover | null {
+    async doHover(document: Document, position: Position): Promise<Hover | null> {
         if (!this.featureEnabled('hover')) {
             return null;
         }
 
-        return getHoverInfo(this.getSvelteDoc(document), position);
+        return getHoverInfo(await this.getSvelteDoc(document), position);
+    }
+
+    async getCodeActions(
+        document: Document,
+        _range: Range,
+        context: CodeActionContext,
+    ): Promise<CodeAction[]> {
+        if (!this.featureEnabled('codeActions')) {
+            return [];
+        }
+
+        const svelteDoc = await this.getSvelteDoc(document);
+        try {
+            return getCodeActions(svelteDoc, context);
+        } catch (error) {
+            return [];
+        }
     }
 
     private featureEnabled(feature: keyof LSSvelteConfig) {
@@ -226,13 +245,35 @@ export class SveltePlugin
         );
     }
 
-    private getSvelteDoc(document: Document) {
+    private async getSvelteDoc(document: Document) {
         let svelteDoc = this.docManager.get(document);
         if (!svelteDoc || svelteDoc.version !== document.version) {
             svelteDoc?.destroyTranspiled();
-            svelteDoc = new SvelteDocument(document);
+            // Reuse previous config. Assumption: Config does not change often (if at all).
+            const config = svelteDoc?.config || (await this.loadConfig(document));
+            svelteDoc = new SvelteDocument(document, config);
             this.docManager.set(document, svelteDoc);
         }
         return svelteDoc;
+    }
+
+    private async loadConfig(document: Document): Promise<SvelteConfig> {
+        Logger.log('Trying to load config for', document.getFilePath());
+        try {
+            const result = await this.cosmiConfigExplorer.search(document.getFilePath() || '');
+            const config = result?.config ?? this.useFallbackPreprocessor(document, false);
+            if (result) {
+                Logger.log('Found config at ', result.filepath);
+            }
+            return { ...DEFAULT_OPTIONS, ...config, ...NO_GENERATE };
+        } catch (err) {
+            Logger.error('Error while loading config');
+            Logger.error(err);
+            return {
+                ...DEFAULT_OPTIONS,
+                ...this.useFallbackPreprocessor(document, true),
+                ...NO_GENERATE,
+            };
+        }
     }
 }

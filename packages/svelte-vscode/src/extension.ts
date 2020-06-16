@@ -9,6 +9,7 @@ import {
     WorkspaceEdit,
     Uri,
     ProgressLocation,
+    ViewColumn,
 } from 'vscode';
 import {
     LanguageClient,
@@ -22,6 +23,7 @@ import {
     TextDocumentEdit,
 } from 'vscode-languageclient';
 import { activateTagClosing } from './html/autoClose';
+import CompiledCodeContentProvider from './CompiledCodeContentProvider';
 
 namespace TagCloseRequest {
     export const type: RequestType<TextDocumentPositionParams, string, any, any> = new RequestType(
@@ -98,11 +100,21 @@ export function activate(context: ExtensionContext) {
         }),
     );
 
+    function getLS() {
+        return ls;
+    }
+
+    addRenameFileListener(getLS);
+
+    addCompilePreviewCommand(getLS, context);
+}
+
+function addRenameFileListener(getLS: () => LanguageClient) {
     workspace.onDidRenameFiles(async (evt) => {
         window.withProgress(
             { location: ProgressLocation.Window, title: 'Updating Imports..' },
             async () => {
-                const editsForFileRename = await ls.sendRequest<LSWorkspaceEdit | null>(
+                const editsForFileRename = await getLS().sendRequest<LSWorkspaceEdit | null>(
                     '$/getEditsForFileRename',
                     // Right now files is always an array with a single entry.
                     // The signature was only designed that way to - maybe, in the future -
@@ -136,6 +148,38 @@ export function activate(context: ExtensionContext) {
             },
         );
     });
+}
+
+function addCompilePreviewCommand(getLS: () => LanguageClient, context: ExtensionContext) {
+    const compiledCodeContentProvider = new CompiledCodeContentProvider(getLS);
+
+    context.subscriptions.push(
+        workspace.registerTextDocumentContentProvider(
+            CompiledCodeContentProvider.scheme,
+            compiledCodeContentProvider,
+        ),
+        compiledCodeContentProvider,
+    );
+
+    context.subscriptions.push(
+        commands.registerTextEditorCommand('svelte.showCompiledCodeToSide', async (editor) => {
+            if (editor?.document?.languageId !== 'svelte') {
+                return;
+            }
+
+            const uri = editor.document.uri;
+            const svelteUri = CompiledCodeContentProvider.toSvelteSchemeUri(uri);
+            window.withProgress(
+                { location: ProgressLocation.Window, title: 'Compiling..' },
+                async () => {
+                    return await window.showTextDocument(svelteUri, {
+                        preview: true,
+                        viewColumn: ViewColumn.Beside,
+                    });
+                },
+            );
+        }),
+    );
 }
 
 function createLanguageServer(serverOptions: ServerOptions, clientOptions: LanguageClientOptions) {

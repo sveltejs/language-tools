@@ -35,7 +35,7 @@ import {
     RenameProvider,
     UpdateImportsProvider,
 } from '../interfaces';
-import { DocumentSnapshot, SnapshotFragment } from './DocumentSnapshot';
+import { SnapshotFragment } from './DocumentSnapshot';
 import { CodeActionsProviderImpl } from './features/CodeActionsProvider';
 import {
     CompletionEntryWithIdentifer,
@@ -277,18 +277,7 @@ export class TypeScriptPlugin
 
         // Since the options parameter only applies to svelte snapshots, and this is not
         // a svelte file, we can just set it to false without having any effect.
-        const newSnapshot = DocumentSnapshot.fromFilePath(fileName, { strictMode: false });
-        const previousSnapshot = snapshotManager.get(fileName);
-
-        if (previousSnapshot) {
-            newSnapshot.version = previousSnapshot.version + 1;
-        } else {
-            // ensure it's greater than initial version
-            // so that ts server picks up the change
-            newSnapshot.version += 1;
-        }
-
-        snapshotManager.set(fileName, newSnapshot);
+        snapshotManager.updateByFileName(fileName, { strictMode: false });
     }
 
     private getLSAndTSDoc(document: Document) {
@@ -299,7 +288,11 @@ export class TypeScriptPlugin
         return this.lsAndTsDocResolver.getSnapshot(filePath, document);
     }
 
-    private getSnapshotManager(fileName: string) {
+    /**
+     *
+     * @internal
+     */
+    public getSnapshotManager(fileName: string) {
         return this.lsAndTsDocResolver.getSnapshotManager(fileName);
     }
 
