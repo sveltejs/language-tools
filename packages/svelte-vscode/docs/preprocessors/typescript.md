@@ -22,7 +22,7 @@ You may optionally want to add a `svelte.config.js` file (see below) - but it is
 
 For the editor, this is already enough - nothing more to do. But you also need to enhance your build config. Using Rollup, this will work with Svelte and TypeScript as long as you enable `svelte-preprocess` and `@rollup/plugin-typescript`:
 
-- Install these packages `npm i svelte-preprocess typescript tslib @rollup/plugin-typescript`
+- Install these packages `npm i -D svelte-preprocess typescript tslib @rollup/plugin-typescript`
 - Add these lines to `rollup.config.js`:
 
 ```js
