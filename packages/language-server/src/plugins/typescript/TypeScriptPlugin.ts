@@ -17,7 +17,6 @@ import {
     Document,
     DocumentManager,
     mapHoverToParent,
-    mapRangeToOriginal,
     mapSymbolInformationToOriginal,
 } from '../../lib/documents';
 import { LSConfigManager, LSTypescriptConfig } from '../../ls-config';

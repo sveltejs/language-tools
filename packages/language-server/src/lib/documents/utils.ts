@@ -163,7 +163,7 @@ export function getVariableAtPosition(position: Position, text: string) {
 }
 
 export function getVariableAtOffset(offset: number, text: string) {
-    let start = text.lastIndexOf(' ', offset) + 1;
+    const start = text.lastIndexOf(' ', offset) + 1;
     let end = Math.min(
         text.indexOf(' ', offset),
         text.indexOf(';', offset),

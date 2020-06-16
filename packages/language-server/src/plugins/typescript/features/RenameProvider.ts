@@ -39,6 +39,7 @@ export class RenameProviderImpl implements RenameProvider {
         let convertedRenameLocations: (ts.RenameLocation & {
             range: Range;
         })[] = await this.mapRenameLocationsToParent(renameLocations, docs);
+        // eslint-disable-next-line max-len
         const additionalRenameForPropRenameInsideComponentWithProp = await this.getAdditionLocationsForRenameOfPropInsideComponentWithProp(
             document,
             fragment,
