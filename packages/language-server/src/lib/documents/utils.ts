@@ -222,12 +222,17 @@ export function getVariableAtPosition(position: Position, text: string) {
 
 export function getVariableAtOffset(offset: number, text: string) {
     const start = text.lastIndexOf(' ', offset) + 1;
-    let end = Math.min(
-        text.indexOf(' ', offset),
-        text.indexOf(';', offset),
-        text.indexOf(',', offset),
-        text.indexOf(':', offset),
-    );
+    let end =
+        [
+            text.indexOf(' ', offset),
+            text.indexOf(';', offset),
+            text.indexOf(',', offset),
+            text.indexOf(':', offset),
+            text.indexOf('\r', offset),
+            text.indexOf('\n', offset),
+        ]
+            .filter((idx) => idx >= 0)
+            .sort((i1, i2) => i1 - i2)[0] ?? -1;
     if (end === -1) {
         end = text.length;
     }

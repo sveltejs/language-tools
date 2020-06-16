@@ -13,6 +13,7 @@ import { SnapshotFragment, SvelteSnapshotFragment } from '../DocumentSnapshot';
 import { convertRange } from '../utils';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import ts from 'typescript';
+import { uniqWith, isEqual } from 'lodash';
 
 export class RenameProviderImpl implements RenameProvider {
     constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
@@ -63,19 +64,21 @@ export class RenameProviderImpl implements RenameProvider {
             ...additionalRenamesForPropRenameOutsideComponentWithProp,
         ];
 
-        return convertedRenameLocations
-            .filter((loc) => loc.range.start.line >= 0 && loc.range.end.line >= 0)
-            .reduce(
-                (acc, loc) => {
-                    const uri = pathToUrl(loc.fileName);
-                    if (!acc.changes[uri]) {
-                        acc.changes[uri] = [];
-                    }
-                    acc.changes[uri].push({ newText: newName, range: loc.range });
-                    return acc;
-                },
-                <Required<Pick<WorkspaceEdit, 'changes'>>>{ changes: {} },
-            );
+        return unique(
+            convertedRenameLocations.filter(
+                (loc) => loc.range.start.line >= 0 && loc.range.end.line >= 0,
+            ),
+        ).reduce(
+            (acc, loc) => {
+                const uri = pathToUrl(loc.fileName);
+                if (!acc.changes[uri]) {
+                    acc.changes[uri] = [];
+                }
+                acc.changes[uri].push({ newText: newName, range: loc.range });
+                return acc;
+            },
+            <Required<Pick<WorkspaceEdit, 'changes'>>>{ changes: {} },
+        );
     }
 
     /**
@@ -117,6 +120,8 @@ export class RenameProviderImpl implements RenameProvider {
         }
         // Typescript does a rename of `oldPropName: newPropName` -> find oldPropName and rename that, too.
         const idxOfOldPropName = fragment.text.lastIndexOf(':', updatePropLocation.textSpan.start);
+        // TODO will not work for `return props: {bla}` because typescript will do a rename of `{bla: renamed}`,
+        // so other locations will not be affected.
         const replacementsForProp = (
             lang.findRenameLocations(updatePropLocation.fileName, idxOfOldPropName, true, false) ||
             []
@@ -229,10 +234,27 @@ export class RenameProviderImpl implements RenameProvider {
 
                 return {
                     ...loc,
-                    range: mapRangeToOriginal(doc, convertRange(doc, loc.textSpan)),
+                    range: this.mapRangeToOriginal(doc, loc),
                 };
             }),
         );
+    }
+
+    private mapRangeToOriginal(doc: SnapshotFragment, loc: ts.RenameLocation): Range {
+        // We need to work around a current svelte2tsx limitation: Replacements and
+        // source mapping is done in such a way that sometimes the end of the range is unmapped
+        // and the index of the last character is returned instead (which is one less).
+        // Most of the time this is not much of a problem, but in the context of renaming, it is.
+        // We work around that by adding +1 to the end, if necessary.
+        // This can be done because
+        // 1. we know renames can only ever occur in one line
+        // 2. the generated svelte2tsx code will not modify variable names, so we know
+        //    the original range should be the same length as the textSpan's length
+        const range = mapRangeToOriginal(doc, convertRange(doc, loc.textSpan));
+        if (range.end.character - range.start.character < loc.textSpan.length) {
+            range.end.character++;
+        }
+        return range;
     }
 
     private getLSAndTSDoc(document: Document) {
@@ -242,4 +264,8 @@ export class RenameProviderImpl implements RenameProvider {
     private getSnapshot(filePath: string, document?: Document) {
         return this.lsAndTsDocResolver.getSnapshot(filePath, document);
     }
+}
+
+function unique<T>(array: T[]): T[] {
+    return uniqWith(array, isEqual);
 }
