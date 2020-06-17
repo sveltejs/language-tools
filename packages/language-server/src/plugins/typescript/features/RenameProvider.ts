@@ -32,7 +32,7 @@ export class RenameProviderImpl implements RenameProvider {
             return null;
         }
 
-        return mapRangeToOriginal(fragment, convertRange(fragment, renameInfo.triggerSpan));
+        return this.mapRangeToOriginal(fragment, renameInfo.triggerSpan);
     }
 
     async rename(
@@ -278,13 +278,13 @@ export class RenameProviderImpl implements RenameProvider {
 
                 return {
                     ...loc,
-                    range: this.mapRangeToOriginal(doc, loc),
+                    range: this.mapRangeToOriginal(doc, loc.textSpan),
                 };
             }),
         );
     }
 
-    private mapRangeToOriginal(doc: SnapshotFragment, loc: ts.RenameLocation): Range {
+    private mapRangeToOriginal(doc: SnapshotFragment, textSpan: ts.TextSpan): Range {
         // We need to work around a current svelte2tsx limitation: Replacements and
         // source mapping is done in such a way that sometimes the end of the range is unmapped
         // and the index of the last character is returned instead (which is one less).
@@ -294,8 +294,8 @@ export class RenameProviderImpl implements RenameProvider {
         // 1. we know renames can only ever occur in one line
         // 2. the generated svelte2tsx code will not modify variable names, so we know
         //    the original range should be the same length as the textSpan's length
-        const range = mapRangeToOriginal(doc, convertRange(doc, loc.textSpan));
-        if (range.end.character - range.start.character < loc.textSpan.length) {
+        const range = mapRangeToOriginal(doc, convertRange(doc, textSpan));
+        if (range.end.character - range.start.character < textSpan.length) {
             range.end.character++;
         }
         return range;
