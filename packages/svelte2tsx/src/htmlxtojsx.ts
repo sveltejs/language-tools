@@ -155,7 +155,7 @@ export function convertHtmlxToJsx(
 
     const handleBinding = (attr: Node, el: Node) => {
         const getThisTypeForComponent = (node: Node) => {
-            if (node.name === 'svelte:component') {
+            if (node.name === 'svelte:component' || node.name === 'svelte:self') {
                 return '__sveltets_componentType()';
             } else {
                 return node.name;
