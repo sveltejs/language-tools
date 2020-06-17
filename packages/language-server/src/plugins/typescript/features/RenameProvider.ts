@@ -110,7 +110,9 @@ export class RenameProviderImpl implements RenameProvider {
         fullDisplayName: string;
         triggerSpan: { start: number; length: number };
     } | null {
-        const renameInfo: any = lang.getRenameInfo(tsDoc.filePath, offset);
+        const renameInfo: any = lang.getRenameInfo(tsDoc.filePath, offset, {
+            allowRenameOfImportPath: false,
+        });
         // TODO this will also forbid renames of svelte component properties
         // in another component because the ScriptElementKind is a JSXAttribute.
         // To fix this we would need to enhance svelte2tsx with info methods like
