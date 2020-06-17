@@ -154,6 +154,24 @@ export function convertHtmlxToJsx(
     };
 
     const handleBinding = (attr: Node, el: Node) => {
+        const getThisTypeForComponent = (node: Node) => {
+            if (node.name === 'svelte:component') {
+                return '__sveltets_componentType()';
+            } else {
+                return node.name;
+            }
+        };
+        const getThisType = (node: Node) => {
+            switch (node.type) {
+                case 'InlineComponent':
+                    return getThisTypeForComponent(node);
+                case 'Element':
+                    return 'HTMLElement';
+                default:
+                    break;
+            }
+        };
+
         //bind group on input
         if (attr.name == 'group' && el.name == 'input') {
             str.remove(attr.start, attr.expression.start);
@@ -168,20 +186,18 @@ export function convertHtmlxToJsx(
             return;
         }
 
-        //bind this on element
-        if (attr.name == 'this' && el.type == 'Element') {
-            str.remove(attr.start, attr.expression.start);
-            str.appendLeft(attr.expression.start, '{...__sveltets_ensureType(HTMLElement, ');
-            str.overwrite(attr.expression.end, attr.end, ')}');
-            return;
-        }
+        const supportsBindThis = ['InlineComponent', 'Element'];
 
-        //bind this on component
-        if (attr.name == 'this' && el.type == 'InlineComponent') {
-            str.remove(attr.start, attr.expression.start);
-            str.appendLeft(attr.expression.start, `{...__sveltets_ensureType(${el.name}, `);
-            str.overwrite(attr.expression.end, attr.end, ')}');
-            return;
+        //bind this
+        if (attr.name == 'this' && supportsBindThis.includes(el.type)) {
+            const thisType = getThisType(el);
+
+            if (thisType) {
+                str.remove(attr.start, attr.expression.start);
+                str.appendLeft(attr.expression.start, `{...__sveltets_ensureType(${thisType}, `);
+                str.overwrite(attr.expression.end, attr.end, ')}');
+                return;
+            }
         }
 
         //one way binding
