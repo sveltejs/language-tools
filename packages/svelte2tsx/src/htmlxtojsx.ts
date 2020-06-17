@@ -167,6 +167,8 @@ export function convertHtmlxToJsx(
                     return getThisTypeForComponent(node);
                 case 'Element':
                     return 'HTMLElement';
+                case 'Body':
+                    return 'HTMLBodyElement';
                 default:
                     break;
             }
@@ -186,7 +188,7 @@ export function convertHtmlxToJsx(
             return;
         }
 
-        const supportsBindThis = ['InlineComponent', 'Element'];
+        const supportsBindThis = ['InlineComponent', 'Element', 'Body'];
 
         //bind this
         if (attr.name == 'this' && supportsBindThis.includes(el.type)) {
