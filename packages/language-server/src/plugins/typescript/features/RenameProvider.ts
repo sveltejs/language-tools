@@ -9,7 +9,11 @@ import {
 } from '../../../lib/documents';
 import { pathToUrl } from '../../../utils';
 import { RenameProvider } from '../../interfaces';
-import { SnapshotFragment, SvelteSnapshotFragment } from '../DocumentSnapshot';
+import {
+    SnapshotFragment,
+    SvelteSnapshotFragment,
+    SvelteDocumentSnapshot,
+} from '../DocumentSnapshot';
 import { convertRange } from '../utils';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import ts from 'typescript';
@@ -26,12 +30,13 @@ export class RenameProviderImpl implements RenameProvider {
         const { lang, tsDoc } = this.getLSAndTSDoc(document);
         const fragment = await tsDoc.getFragment();
 
-        const renameLocations = lang.findRenameLocations(
-            tsDoc.filePath,
-            fragment.offsetAt(fragment.getGeneratedPosition(position)),
-            true,
-            false,
-        );
+        const offset = fragment.offsetAt(fragment.getGeneratedPosition(position));
+
+        if (this.cannotRename(lang, tsDoc, offset)) {
+            return null;
+        }
+
+        const renameLocations = lang.findRenameLocations(tsDoc.filePath, offset, true, false);
         if (!renameLocations) {
             return null;
         }
@@ -78,6 +83,19 @@ export class RenameProviderImpl implements RenameProvider {
                 return acc;
             },
             <Required<Pick<WorkspaceEdit, 'changes'>>>{ changes: {} },
+        );
+    }
+
+    private cannotRename(lang: ts.LanguageService, tsDoc: SvelteDocumentSnapshot, offset: number) {
+        const renameInfo: any = lang.getRenameInfo(tsDoc.filePath, offset);
+        // TODO this will also forbid renames of svelte component properties
+        // in another component because the ScriptElementKind is a JSXAttribute.
+        // To fix this we would need to enhance svelte2tsx with info methods like
+        // "what props does this file have?"
+        return (
+            !renameInfo.canRename ||
+            renameInfo.kind === ts.ScriptElementKind.jsxAttribute ||
+            renameInfo.fullDisplayName?.startsWith('JSX.')
         );
     }
 
