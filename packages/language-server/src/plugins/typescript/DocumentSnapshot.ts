@@ -132,11 +132,17 @@ function preprocessSvelteFile(document: Document, options: SvelteSnapshotOptions
             character: e.start?.column ?? 0,
         };
         const end: Position = e.end ? { line: e.end.line - 1, character: e.end.column } : start;
-        parserError = {
-            range: { start, end },
-            message: e.message,
-            code: -1,
-        };
+
+        // Suppress parse error on empty script.
+        parserError =
+            document.scriptInfo?.content === ''
+                ? null
+                : {
+                      range: { start, end },
+                      message: e.message,
+                      code: -1,
+                  };
+
         // fall back to extracted script, if any
         text = document.scriptInfo ? document.scriptInfo.content : '';
     }
