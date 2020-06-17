@@ -49,7 +49,7 @@ export class RenameProviderImpl implements RenameProvider {
             return null;
         }
 
-        const renameLocations = lang.findRenameLocations(tsDoc.filePath, offset, true, false);
+        const renameLocations = lang.findRenameLocations(tsDoc.filePath, offset, false, false);
         if (!renameLocations) {
             return null;
         }
@@ -167,7 +167,7 @@ export class RenameProviderImpl implements RenameProvider {
         // TODO will not work for `return props: {bla}` because typescript will do a rename of `{bla: renamed}`,
         // so other locations will not be affected.
         const replacementsForProp = (
-            lang.findRenameLocations(updatePropLocation.fileName, idxOfOldPropName, true, false) ||
+            lang.findRenameLocations(updatePropLocation.fileName, idxOfOldPropName, false, false) ||
             []
         ).filter(
             (rename) =>
@@ -208,7 +208,7 @@ export class RenameProviderImpl implements RenameProvider {
         // Use match to replace that let, too.
         const idx = (match.index || 0) + match[0].lastIndexOf(match[1]);
         const replacementsForProp =
-            lang.findRenameLocations(updatePropLocation.fileName, idx, true, false) || [];
+            lang.findRenameLocations(updatePropLocation.fileName, idx, false, false) || [];
         return await this.mapRenameLocationsToParent(replacementsForProp, fragments);
     }
 
