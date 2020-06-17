@@ -26,7 +26,8 @@ describe('RenameProvider', () => {
         const provider = new RenameProviderImpl(lsAndTsDocResolver);
         const renameDoc1 = await openDoc('rename.svelte');
         const renameDoc2 = await openDoc('rename2.svelte');
-        return { provider, renameDoc1, renameDoc2, docManager };
+        const renameDoc3 = await openDoc('rename3.svelte');
+        return { provider, renameDoc1, renameDoc2, renameDoc3, docManager };
 
         async function openDoc(filename: string) {
             const filePath = getFullPath(filename);
@@ -166,11 +167,11 @@ describe('RenameProvider', () => {
                     range: {
                         start: {
                             character: 8,
-                            line: 4,
+                            line: 5,
                         },
                         end: {
                             character: 20,
-                            line: 4,
+                            line: 5,
                         },
                     },
                 },
@@ -192,6 +193,46 @@ describe('RenameProvider', () => {
 
     //     assert.deepStrictEqual(result, expectedEditsForPropRename);
     // });
+
+    it('should do rename of prop without type of component A in component A', async () => {
+        const { provider, renameDoc3 } = await setup();
+        const result = await provider.rename(renameDoc3, Position.create(1, 25), 'newName');
+
+        assert.deepStrictEqual(result, {
+            changes: {
+                [getUri('rename3.svelte')]: [
+                    {
+                        newText: 'newName',
+                        range: {
+                            start: {
+                                character: 15,
+                                line: 1,
+                            },
+                            end: {
+                                character: 33,
+                                line: 1,
+                            },
+                        },
+                    },
+                ],
+                [getUri('rename2.svelte')]: [
+                    {
+                        newText: 'newName',
+                        range: {
+                            start: {
+                                character: 9,
+                                line: 6,
+                            },
+                            end: {
+                                character: 27,
+                                line: 6,
+                            },
+                        },
+                    },
+                ],
+            },
+        });
+    });
 
     it('should allow rename of variable', async () => {
         const { provider, renameDoc1 } = await setup();

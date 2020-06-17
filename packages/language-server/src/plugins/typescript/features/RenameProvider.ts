@@ -166,8 +166,9 @@ export class RenameProviderImpl implements RenameProvider {
         }
         // Typescript does a rename of `oldPropName: newPropName` -> find oldPropName and rename that, too.
         const idxOfOldPropName = fragment.text.lastIndexOf(':', updatePropLocation.textSpan.start);
-        // TODO will not work for `return props: {bla}` because typescript will do a rename of `{bla: renamed}`,
-        // so other locations will not be affected.
+        // This requires svelte2tsx to have the properties written down like `return props: {bla: bla}`.
+        // It would not work for `return props: {bla}` because then typescript would do a rename of `{bla: renamed}`,
+        // so other locations would not be affected.
         const replacementsForProp = (
             lang.findRenameLocations(updatePropLocation.fileName, idxOfOldPropName, false, false) ||
             []

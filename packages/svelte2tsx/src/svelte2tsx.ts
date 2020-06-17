@@ -754,11 +754,8 @@ function createPropsStr(exportedNames: ExportedNames) {
     const names = Array.from(exportedNames.entries());
 
     const returnElements = names.map(([key, value]) => {
-        if (!value.identifierText) {
-            return key;
-        }
-
-        return `${value.identifierText}: ${key}`;
+        // Important to not use shorthand props for rename functionality
+        return `${value.identifierText || key}: ${key}`;
     });
 
     if (names.length === 0 || !names.some(([_, value]) => !!value.type)) {
