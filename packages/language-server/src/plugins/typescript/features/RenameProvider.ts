@@ -110,6 +110,11 @@ export class RenameProviderImpl implements RenameProvider {
         fullDisplayName: string;
         triggerSpan: { start: number; length: number };
     } | null {
+        // Don't allow renames in error-state, because then there is no generated svelte2tsx-code
+        // and rename cannot work
+        if (tsDoc.parserError) {
+            return null;
+        }
         const renameInfo: any = lang.getRenameInfo(tsDoc.filePath, offset, {
             allowRenameOfImportPath: false,
         });
@@ -215,6 +220,7 @@ export class RenameProviderImpl implements RenameProvider {
         return await this.mapRenameLocationsToParent(replacementsForProp, fragments);
     }
 
+    // --------> svelte2tsx?
     private matchGeneratedExportLet(
         fragment: SvelteSnapshotFragment,
         updatePropLocation: ts.RenameLocation,
@@ -250,6 +256,7 @@ export class RenameProviderImpl implements RenameProvider {
         });
     }
 
+    // --------> svelte2tsx?
     private isInSvelte2TsxPropLine(fragment: SvelteSnapshotFragment, loc: ts.RenameLocation) {
         const pos = positionAt(loc.textSpan.start, fragment.text);
         const textInLine = fragment.text.substring(
