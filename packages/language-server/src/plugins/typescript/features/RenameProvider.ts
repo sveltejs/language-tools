@@ -22,6 +22,19 @@ import { uniqWith, isEqual } from 'lodash';
 export class RenameProviderImpl implements RenameProvider {
     constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
 
+    async prepareRename(document: Document, position: Position): Promise<Range | null> {
+        const { lang, tsDoc } = this.getLSAndTSDoc(document);
+        const fragment = await tsDoc.getFragment();
+
+        const offset = fragment.offsetAt(fragment.getGeneratedPosition(position));
+        const renameInfo = this.getRenameInfo(lang, tsDoc, offset);
+        if (!renameInfo) {
+            return null;
+        }
+
+        return mapRangeToOriginal(fragment, convertRange(fragment, renameInfo.triggerSpan));
+    }
+
     async rename(
         document: Document,
         position: Position,
@@ -32,7 +45,7 @@ export class RenameProviderImpl implements RenameProvider {
 
         const offset = fragment.offsetAt(fragment.getGeneratedPosition(position));
 
-        if (this.cannotRename(lang, tsDoc, offset)) {
+        if (!this.getRenameInfo(lang, tsDoc, offset)) {
             return null;
         }
 
@@ -86,17 +99,30 @@ export class RenameProviderImpl implements RenameProvider {
         );
     }
 
-    private cannotRename(lang: ts.LanguageService, tsDoc: SvelteDocumentSnapshot, offset: number) {
+    private getRenameInfo(
+        lang: ts.LanguageService,
+        tsDoc: SvelteDocumentSnapshot,
+        offset: number,
+    ): {
+        canRename: true;
+        kind: ts.ScriptElementKind;
+        displayName: string;
+        fullDisplayName: string;
+        triggerSpan: { start: number; length: number };
+    } | null {
         const renameInfo: any = lang.getRenameInfo(tsDoc.filePath, offset);
         // TODO this will also forbid renames of svelte component properties
         // in another component because the ScriptElementKind is a JSXAttribute.
         // To fix this we would need to enhance svelte2tsx with info methods like
         // "what props does this file have?"
-        return (
+        if (
             !renameInfo.canRename ||
             renameInfo.kind === ts.ScriptElementKind.jsxAttribute ||
             renameInfo.fullDisplayName?.startsWith('JSX.')
-        );
+        ) {
+            return null;
+        }
+        return renameInfo;
     }
 
     /**

@@ -192,4 +192,34 @@ describe('RenameProvider', () => {
 
     //     assert.deepStrictEqual(result, expectedEditsForPropRename);
     // });
+
+    it('should allow rename of variable', async () => {
+        const { provider, renameDoc1 } = await setup();
+        const result = await provider.prepareRename(renameDoc1, Position.create(1, 25));
+
+        assert.deepStrictEqual(result, {
+            start: {
+                character: 15,
+                line: 1,
+            },
+            end: {
+                character: 27,
+                line: 1,
+            },
+        });
+    });
+
+    it('should not allow rename of html element', async () => {
+        const { provider, renameDoc1 } = await setup();
+        const result = await provider.prepareRename(renameDoc1, Position.create(12, 1));
+
+        assert.deepStrictEqual(result, null);
+    });
+
+    it('should not allow rename of html attribute', async () => {
+        const { provider, renameDoc1 } = await setup();
+        const result = await provider.prepareRename(renameDoc1, Position.create(12, 5));
+
+        assert.deepStrictEqual(result, null);
+    });
 });

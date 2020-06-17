@@ -232,11 +232,23 @@ export class TypeScriptPlugin
         );
     }
 
+    async prepareRename(document: Document, position: Position): Promise<Range | null> {
+        if (!this.featureEnabled('rename')) {
+            return null;
+        }
+
+        return this.renameProvider.prepareRename(document, position);
+    }
+
     async rename(
         document: Document,
         position: Position,
         newName: string,
     ): Promise<WorkspaceEdit | null> {
+        if (!this.featureEnabled('rename')) {
+            return null;
+        }
+
         return this.renameProvider.rename(document, position, newName);
     }
 
