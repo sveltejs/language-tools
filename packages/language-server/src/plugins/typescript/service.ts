@@ -84,7 +84,7 @@ export function createLanguageService(
         fileExists: svelteModuleLoader.fileExists,
         readFile: svelteModuleLoader.readFile,
         resolveModuleNames: svelteModuleLoader.resolveModuleNames,
-        readDirectory: ts.sys.readDirectory,
+        readDirectory: svelteModuleLoader.readDirectory,
         getDirectories: ts.sys.getDirectories,
         // vscode's uri is all lowercase
         useCaseSensitiveFileNames: () => false,
