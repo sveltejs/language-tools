@@ -211,7 +211,8 @@ export function convertHtmlxToJsx(
 
         str.remove(attr.start, attr.start + 'bind:'.length);
         if (attr.expression.start == attr.start + 'bind:'.length) {
-            str.appendLeft(attr.end, `={${attr.name}}`);
+            str.prependLeft(attr.expression.start, `${attr.name}={`);
+            str.appendLeft(attr.end, `}`);
             return;
         }
 
