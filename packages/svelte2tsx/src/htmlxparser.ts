@@ -65,18 +65,23 @@ export function findVerbatimElements(htmlx: string) {
                 start: el.sourceCodeLocation.startOffset,
                 end: el.sourceCodeLocation.endOffset,
                 type: el.nodeName[0].toUpperCase() + el.nodeName.substr(1),
-                attributes: !el.attrs
-                    ? []
-                    : el.attrs.map((a) => parseValue(a)),
-                content: !content
-                    ? null
-                    : {
-                        type: 'Text',
-                        start: content.sourceCodeLocation.startOffset,
-                        end: content.sourceCodeLocation.endOffset,
-                        value: content.value,
-                        raw: content.value,
-                    },
+                attributes: !el.attrs ? [] : el.attrs.map((a) => parseValue(a)),
+                content:
+                    content === null
+                        ? {
+                              type: 'Text',
+                              start: el.sourceCodeLocation.startTag.endCol,
+                              end: el.sourceCodeLocation.endTag.startCol,
+                              value: '',
+                              raw: '',
+                          }
+                        : {
+                              type: 'Text',
+                              start: content.sourceCodeLocation.startOffset,
+                              end: content.sourceCodeLocation.endOffset,
+                              value: content.value,
+                              raw: content.value,
+                          },
             });
         }
     });
