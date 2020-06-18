@@ -82,6 +82,11 @@ Path to the node executable you would like to use to run the language server.
 This is useful when you depend on native modules such as node-sass as without
 this they will run in the context of vscode, meaning v8 version mismatch is likely.
 
+##### `svelte.language-server.ls-path`
+
+Path to the langauge server file (either a relative path from the workspace root or an absolute path).
+Can be used to use a custom variant of the language server.
+
 ##### `svelte.language-server.port`
 
 At which port to spawn the language server.

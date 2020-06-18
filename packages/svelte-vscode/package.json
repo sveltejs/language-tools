@@ -54,7 +54,7 @@
                 "svelte.language-server.ls-path": {
                     "type": "string",
                     "title": "Language Server Path",
-                    "description": "Path to the langauge server file"
+                    "description": "Path to the langauge server file (either a relative path from the workspace root or an absolute path). Can be used to use a custom variant of the language server."
                 },
                 "svelte.language-server.port": {
                     "type": "number",

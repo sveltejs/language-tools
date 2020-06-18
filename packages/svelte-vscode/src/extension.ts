@@ -42,7 +42,7 @@ export function activate(context: ExtensionContext) {
     // Returns undefined if path is empty string
     // Return absolute path if not already
     const lsPath =
-        tempLsPath && tempLsPath.trim() != ''
+        tempLsPath && tempLsPath.trim() !== ''
             ? path.isAbsolute(tempLsPath)
                 ? tempLsPath
                 : path.join(rootPath as string, tempLsPath)
