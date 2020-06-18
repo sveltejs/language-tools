@@ -51,6 +51,11 @@
                     "title": "Language Server Runtime",
                     "description": "Path to the node executable to use to spawn the language server"
                 },
+                "svelte.language-server.ls-path": {
+                    "type": "string",
+                    "title": "Language Server Path",
+                    "description": "Path to the langauge server file"
+                },
                 "svelte.language-server.port": {
                     "type": "number",
                     "title": "Language Server Port",

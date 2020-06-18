@@ -32,8 +32,11 @@ namespace TagCloseRequest {
 }
 
 export function activate(context: ExtensionContext) {
-    const serverModule = require.resolve('svelte-language-server/bin/server.js');
     const runtimeConfig = workspace.getConfiguration('svelte.language-server');
+
+    const lsPath = runtimeConfig.get<string>('ls-path');
+    const serverModule =
+        lsPath && lsPath != '' ? lsPath : require.resolve('svelte-language-server/bin/server.js');
 
     const runExecArgv: string[] = [];
     let port = runtimeConfig.get<number>('port') ?? -1;
