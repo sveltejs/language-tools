@@ -34,9 +34,18 @@ namespace TagCloseRequest {
 export function activate(context: ExtensionContext) {
     const runtimeConfig = workspace.getConfiguration('svelte.language-server');
 
-    const lsPath = runtimeConfig.get<string>('ls-path');
-    const serverModule =
-        lsPath && lsPath != '' ? lsPath : require.resolve('svelte-language-server/bin/server.js');
+    const tempLsPath = runtimeConfig.get<string>('ls-path');
+    const lsPath = tempLsPath && tempLsPath.trim() != '' ? tempLsPath : undefined;
+
+    const { workspaceFolders } = workspace;
+    const workspaceRoots: string[] = workspaceFolders
+        ? workspaceFolders.map(({ uri }) => uri.fsPath)
+        : [];
+
+    const serverModule = require.resolve(lsPath || 'svelte-language-server/bin/server.js', {
+        paths: workspaceRoots,
+    });
+    console.log('Loading server from ', serverModule);
 
     const runExecArgv: string[] = [];
     let port = runtimeConfig.get<number>('port') ?? -1;
