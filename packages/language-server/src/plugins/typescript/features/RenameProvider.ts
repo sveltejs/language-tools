@@ -4,7 +4,6 @@ import {
     mapRangeToOriginal,
     positionAt,
     offsetAt,
-    getVariableAtPosition,
     getLineAtPosition,
 } from '../../../lib/documents';
 import { pathToUrl } from '../../../utils';
@@ -21,6 +20,8 @@ import { uniqWith, isEqual } from 'lodash';
 
 export class RenameProviderImpl implements RenameProvider {
     constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
+
+    // TODO props written as `export {x as y}` are not supported yet.
 
     async prepareRename(document: Document, position: Position): Promise<Range | null> {
         const { lang, tsDoc } = this.getLSAndTSDoc(document);
@@ -61,6 +62,7 @@ export class RenameProviderImpl implements RenameProvider {
         // eslint-disable-next-line max-len
         const additionalRenameForPropRenameInsideComponentWithProp = await this.getAdditionLocationsForRenameOfPropInsideComponentWithProp(
             document,
+            tsDoc,
             fragment,
             position,
             convertedRenameLocations,
@@ -140,6 +142,7 @@ export class RenameProviderImpl implements RenameProvider {
      */
     private async getAdditionLocationsForRenameOfPropInsideComponentWithProp(
         document: Document,
+        tsDoc: SvelteDocumentSnapshot,
         fragment: SvelteSnapshotFragment,
         position: Position,
         convertedRenameLocations: (ts.RenameLocation & { range: Range })[],
@@ -149,9 +152,11 @@ export class RenameProviderImpl implements RenameProvider {
         // First find out if it's really the "rename prop inside component with that prop" case
         // Use original document for that because only there the `export` is present.
         const regex = new RegExp(
-            `export\\s+(const|let)\\s+${getVariableAtPosition(
+            `export\\s+(const|let)\\s+${this.getVariableAtPosition(
+                tsDoc,
+                fragment,
+                lang,
                 position,
-                document.getText(),
             )}($|\\s|;|:)`, // ':' for typescript's type operator (`export let bla: boolean`)
         );
         const isRenameInsideComponentWithProp = regex.test(
@@ -309,6 +314,17 @@ export class RenameProviderImpl implements RenameProvider {
             range.end.character++;
         }
         return range;
+    }
+
+    private getVariableAtPosition(
+        tsDoc: SvelteDocumentSnapshot,
+        fragment: SvelteSnapshotFragment,
+        lang: ts.LanguageService,
+        position: Position,
+    ) {
+        const offset = fragment.offsetAt(fragment.getGeneratedPosition(position));
+        const { start, length } = lang.getSmartSelectionRange(tsDoc.filePath, offset).textSpan;
+        return tsDoc.getText(start, start + length);
     }
 
     private getLSAndTSDoc(document: Document) {

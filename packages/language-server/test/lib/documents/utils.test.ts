@@ -1,9 +1,5 @@
 import * as assert from 'assert';
-import {
-    extractTag,
-    getLineAtPosition,
-    getVariableAtPosition,
-} from '../../../src/lib/documents/utils';
+import { extractTag, getLineAtPosition } from '../../../src/lib/documents/utils';
 import { Position } from 'vscode-languageserver';
 
 describe('document/utils', () => {
@@ -186,40 +182,6 @@ describe('document/utils', () => {
                 endPos: Position.create(7, 36),
                 container: { start: 246, end: 279 },
             });
-        });
-    });
-
-    describe('#getVariableAtPosition', () => {
-        function expectToFindVariableIn(str: string, pos: Position) {
-            assert.deepStrictEqual(getVariableAtPosition(pos, str), 'variable');
-        }
-
-        it('should get variable (ending with ,)', () => {
-            expectToFindVariableIn('let variable, otherVariable', Position.create(0, 5));
-        });
-
-        it('should get variable (ending with ;)', () => {
-            expectToFindVariableIn('let variable;', Position.create(0, 5));
-        });
-
-        it('should get variable (ending with :)', () => {
-            expectToFindVariableIn('let variable: true', Position.create(0, 5));
-        });
-
-        it('should get variable (ending with space)', () => {
-            expectToFindVariableIn('let variable bla', Position.create(0, 5));
-        });
-
-        it('should get variable (ending with \\r)', () => {
-            expectToFindVariableIn('let variable\r\nlet otherVariable', Position.create(0, 5));
-        });
-
-        it('should get variable (ending with \\n)', () => {
-            expectToFindVariableIn('let variable\nlet otherVariable', Position.create(0, 5));
-        });
-
-        it('should get variable using earliest ending', () => {
-            expectToFindVariableIn('let variable;let otherVariable,', Position.create(0, 5));
         });
     });
 

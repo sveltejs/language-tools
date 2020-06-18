@@ -216,29 +216,6 @@ export function getTextInRange(range: Range, text: string) {
     return text.substring(offsetAt(range.start, text), offsetAt(range.end, text));
 }
 
-export function getVariableAtPosition(position: Position, text: string) {
-    return getVariableAtOffset(offsetAt(position, text), text);
-}
-
-export function getVariableAtOffset(offset: number, text: string) {
-    const start = text.lastIndexOf(' ', offset) + 1;
-    let end =
-        [
-            text.indexOf(' ', offset),
-            text.indexOf(';', offset),
-            text.indexOf(',', offset),
-            text.indexOf(':', offset),
-            text.indexOf('\r', offset),
-            text.indexOf('\n', offset),
-        ]
-            .filter((idx) => idx >= 0)
-            .sort((i1, i2) => i1 - i2)[0] ?? -1;
-    if (end === -1) {
-        end = text.length;
-    }
-    return text.substring(start, end);
-}
-
 export function getLineAtPosition(position: Position, text: string) {
     return text.substring(
         offsetAt({ line: position.line, character: 0 }, text),
