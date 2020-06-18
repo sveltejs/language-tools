@@ -24,6 +24,7 @@ import {
 } from 'vscode-languageclient';
 import { activateTagClosing } from './html/autoClose';
 import CompiledCodeContentProvider from './CompiledCodeContentProvider';
+import * as path from 'path';
 
 namespace TagCloseRequest {
     export const type: RequestType<TextDocumentPositionParams, string, any, any> = new RequestType(
@@ -32,8 +33,23 @@ namespace TagCloseRequest {
 }
 
 export function activate(context: ExtensionContext) {
-    const serverModule = require.resolve('svelte-language-server/bin/server.js');
     const runtimeConfig = workspace.getConfiguration('svelte.language-server');
+
+    const { workspaceFolders } = workspace;
+    const rootPath = Array.isArray(workspaceFolders) ? workspaceFolders[0].uri.fsPath : undefined;
+
+    const tempLsPath = runtimeConfig.get<string>('ls-path');
+    // Returns undefined if path is empty string
+    // Return absolute path if not already
+    const lsPath =
+        tempLsPath && tempLsPath.trim() !== ''
+            ? path.isAbsolute(tempLsPath)
+                ? tempLsPath
+                : path.join(rootPath as string, tempLsPath)
+            : undefined;
+
+    const serverModule = require.resolve(lsPath || 'svelte-language-server/bin/server.js');
+    console.log('Loading server from ', serverModule);
 
     const runExecArgv: string[] = [];
     let port = runtimeConfig.get<number>('port') ?? -1;
