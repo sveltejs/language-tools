@@ -1,5 +1,5 @@
 import * as assert from 'assert';
-import { extractTag } from '../../../src/lib/documents/utils';
+import { extractTag, getLineAtPosition } from '../../../src/lib/documents/utils';
 import { Position } from 'vscode-languageserver';
 
 describe('document/utils', () => {
@@ -182,6 +182,19 @@ describe('document/utils', () => {
                 endPos: Position.create(7, 36),
                 container: { start: 246, end: 279 },
             });
+        });
+    });
+
+    describe('#getLineAtPosition', () => {
+        it('should return line at position (only one line)', () => {
+            assert.deepStrictEqual(getLineAtPosition(Position.create(0, 1), 'ABC'), 'ABC');
+        });
+
+        it('should return line at position (multiple lines)', () => {
+            assert.deepStrictEqual(
+                getLineAtPosition(Position.create(1, 1), 'ABC\nDEF\nGHI'),
+                'DEF\n',
+            );
         });
     });
 });

@@ -5,7 +5,7 @@
     
 ;
 <></>
-return { props: {name , name2}, slots: {} }}
+return { props: {name: name , name2: name2}, slots: {} }}
 
 export default class {
     $$prop_def = __sveltets_partial(render().props)

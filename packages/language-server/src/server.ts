@@ -132,9 +132,17 @@ export function startServer(options?: LSOptions) {
                           ],
                       }
                     : true,
+                renameProvider: evt.capabilities.textDocument?.rename?.prepareSupport
+                    ? { prepareProvider: true }
+                    : true,
             },
         };
     });
+
+    connection.onRenameRequest((req) =>
+        pluginHost.rename(req.textDocument, req.position, req.newName),
+    );
+    connection.onPrepareRename((req) => pluginHost.prepareRename(req.textDocument, req.position));
 
     connection.onDidChangeConfiguration(({ settings }) => {
         pluginHost.updateConfig(settings.svelte?.plugin);

@@ -32,6 +32,7 @@ import {
     FileRename,
     HoverProvider,
     OnWatchFileChanges,
+    RenameProvider,
     UpdateImportsProvider,
 } from '../interfaces';
 import { SnapshotFragment } from './DocumentSnapshot';
@@ -49,6 +50,7 @@ import {
     getScriptKindFromFileName,
     symbolKindFromString,
 } from './utils';
+import { RenameProviderImpl } from './features/RenameProvider';
 
 export class TypeScriptPlugin
     implements
@@ -58,6 +60,7 @@ export class TypeScriptPlugin
         DefinitionsProvider,
         CodeActionsProvider,
         UpdateImportsProvider,
+        RenameProvider,
         OnWatchFileChanges,
         CompletionsProvider<CompletionEntryWithIdentifer> {
     private readonly configManager: LSConfigManager;
@@ -66,6 +69,7 @@ export class TypeScriptPlugin
     private readonly codeActionsProvider: CodeActionsProviderImpl;
     private readonly updateImportsProvider: UpdateImportsProviderImpl;
     private readonly diagnosticsProvider: DiagnosticsProviderImpl;
+    private readonly renameProvider: RenameProviderImpl;
 
     constructor(
         docManager: DocumentManager,
@@ -78,6 +82,7 @@ export class TypeScriptPlugin
         this.codeActionsProvider = new CodeActionsProviderImpl(this.lsAndTsDocResolver);
         this.updateImportsProvider = new UpdateImportsProviderImpl(this.lsAndTsDocResolver);
         this.diagnosticsProvider = new DiagnosticsProviderImpl(this.lsAndTsDocResolver);
+        this.renameProvider = new RenameProviderImpl(this.lsAndTsDocResolver);
     }
 
     async getDiagnostics(document: Document): Promise<Diagnostic[]> {
@@ -225,6 +230,26 @@ export class TypeScriptPlugin
                 );
             }),
         );
+    }
+
+    async prepareRename(document: Document, position: Position): Promise<Range | null> {
+        if (!this.featureEnabled('rename')) {
+            return null;
+        }
+
+        return this.renameProvider.prepareRename(document, position);
+    }
+
+    async rename(
+        document: Document,
+        position: Position,
+        newName: string,
+    ): Promise<WorkspaceEdit | null> {
+        if (!this.featureEnabled('rename')) {
+            return null;
+        }
+
+        return this.renameProvider.rename(document, position, newName);
     }
 
     async getCodeActions(

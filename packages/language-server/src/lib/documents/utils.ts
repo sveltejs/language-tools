@@ -215,3 +215,10 @@ export function isInTag(position: Position, tagInfo: TagInformation | null): boo
 export function getTextInRange(range: Range, text: string) {
     return text.substring(offsetAt(range.start, text), offsetAt(range.end, text));
 }
+
+export function getLineAtPosition(position: Position, text: string) {
+    return text.substring(
+        offsetAt({ line: position.line, character: 0 }, text),
+        offsetAt({ line: position.line, character: Number.MAX_VALUE }, text),
+    );
+}
