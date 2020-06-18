@@ -1,11 +1,11 @@
 import { DocumentSnapshot, SvelteSnapshotOptions } from './DocumentSnapshot';
+import { Logger } from '../../logger';
 
 export class SnapshotManager {
-    constructor(
-        private projectFiles: string[]
-    ) { }
-
     private documents: Map<string, DocumentSnapshot> = new Map();
+    private lastLogged = new Date(new Date().getTime() - 60_001);
+
+    constructor(private projectFiles: string[]) {}
 
     updateByFileName(fileName: string, options: SvelteSnapshotOptions) {
         if (!this.has(fileName)) {
@@ -36,6 +36,8 @@ export class SnapshotManager {
             prev.destroyFragment();
         }
 
+        this.logStatistics();
+
         return this.documents.set(fileName, snapshot);
     }
 
@@ -44,8 +46,7 @@ export class SnapshotManager {
     }
 
     delete(fileName: string) {
-        this.projectFiles = this.projectFiles
-            .filter(s => s !== fileName);
+        this.projectFiles = this.projectFiles.filter((s) => s !== fileName);
         return this.documents.delete(fileName);
     }
 
@@ -55,5 +56,27 @@ export class SnapshotManager {
 
     getProjectFileNames() {
         return [...this.projectFiles];
+    }
+
+    private logStatistics() {
+        const date = new Date();
+        // Don't use setInterval because that will keep tests running forever
+        if (date.getTime() - this.lastLogged.getTime() > 60_000) {
+            this.lastLogged = date;
+
+            const projectFiles = this.getProjectFileNames();
+            const allFiles = Array.from(new Set([...projectFiles, ...this.getFileNames()]));
+            Logger.log(
+                `SnapshotManager File Statistics:\n` +
+                    `Project files: ${projectFiles.length}\n` +
+                    `Svelte files: ${
+                        allFiles.filter((name) => name.endsWith('.svelte')).length
+                    }\n` +
+                    `From node_modules: ${
+                        allFiles.filter((name) => name.includes('node_modules')).length
+                    }\n` +
+                    `Total: ${allFiles.length}`,
+            );
+        }
     }
 }
