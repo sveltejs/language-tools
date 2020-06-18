@@ -79,7 +79,12 @@ export function startServer(options?: LSOptions) {
         }
 
         pluginHost.updateConfig(evt.initializationOptions?.config);
-        pluginHost.register((sveltePlugin = new SveltePlugin(configManager)));
+        pluginHost.register(
+            (sveltePlugin = new SveltePlugin(
+                configManager,
+                evt.initializationOptions?.prettierConfig || {},
+            )),
+        );
         pluginHost.register(new HTMLPlugin(docManager, configManager));
         pluginHost.register(new CSSPlugin(docManager, configManager));
         pluginHost.register(new TypeScriptPlugin(docManager, configManager, workspacePath));

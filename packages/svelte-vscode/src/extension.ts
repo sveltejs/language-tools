@@ -84,7 +84,10 @@ export function activate(context: ExtensionContext) {
             configurationSection: ['svelte'],
             fileEvents: workspace.createFileSystemWatcher('{**/*.js,**/*.ts}', false, false, false),
         },
-        initializationOptions: { config: workspace.getConfiguration('svelte.plugin') },
+        initializationOptions: {
+            config: workspace.getConfiguration('svelte.plugin'),
+            prettierConfig: workspace.getConfiguration('prettier'),
+        },
     };
 
     let ls = createLanguageServer(serverOptions, clientOptions);

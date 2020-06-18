@@ -51,7 +51,7 @@ export class SveltePlugin
         cache: true,
     });
 
-    constructor(private configManager: LSConfigManager) {}
+    constructor(private configManager: LSConfigManager, private prettierConfig: any) {}
 
     async getDiagnostics(document: Document): Promise<Diagnostic[]> {
         if (!this.featureEnabled('diagnostics')) {
@@ -190,7 +190,8 @@ export class SveltePlugin
 
         const filePath = document.getFilePath()!;
         const prettier = importPrettier(filePath);
-        const config = await prettier.resolveConfig(filePath);
+        // Try resolving the config through prettier and fall back to possible editor config
+        const config = (await prettier.resolveConfig(filePath)) || this.prettierConfig;
         const formattedCode = prettier.format(document.getText(), {
             ...config,
             plugins: [require.resolve('prettier-plugin-svelte')],
