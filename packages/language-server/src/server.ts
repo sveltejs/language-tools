@@ -210,11 +210,6 @@ export function startServer(options?: LSOptions) {
         pluginHost.updateImports(fileRename),
     );
 
-    // This event is triggered by Svelte-Check:
-    connection.onRequest('$/getDiagnostics', async (params) => {
-        return await pluginHost.getDiagnostics({ uri: params.uri });
-    });
-
     connection.onRequest('$/getCompiledCode', async (uri: DocumentUri) => {
         const doc = docManager.documents.get(uri);
         if (!doc) return null;
