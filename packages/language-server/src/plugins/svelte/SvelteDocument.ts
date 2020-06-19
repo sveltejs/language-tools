@@ -6,12 +6,13 @@ import { Position } from 'vscode-languageserver';
 import {
     Document,
     DocumentMapper,
-    extractTag,
     FragmentMapper,
     IdentityMapper,
     SourceMapDocumentMapper,
     TagInformation,
     offsetAt,
+    extractStyleTag,
+    extractScriptTags,
 } from '../../lib/documents';
 import { importSvelte } from '../importPackage';
 import { CompileOptions } from 'svelte/types/compiler/interfaces';
@@ -98,16 +99,14 @@ export class TranspiledSvelteDocument implements Pick<DocumentMapper, 'getOrigin
             document,
             preprocessors,
         );
-        const scriptMapper = await SvelteFragmentMapper.create(
+        const scriptMapper = await SvelteFragmentMapper.createScript(
             document,
             transpiled,
-            'script',
             processedScript,
         );
-        const styleMapper = await SvelteFragmentMapper.create(
+        const styleMapper = await SvelteFragmentMapper.createStyle(
             document,
             transpiled,
-            'style',
             processedStyle,
         );
 
@@ -162,10 +161,31 @@ export class TranspiledSvelteDocument implements Pick<DocumentMapper, 'getOrigin
 }
 
 export class SvelteFragmentMapper {
-    static async create(
+    static async createStyle(originalDoc: Document, transpiled: string, processed?: Processed) {
+        return SvelteFragmentMapper.create(
+            originalDoc,
+            transpiled,
+            originalDoc.styleInfo,
+            extractStyleTag(transpiled),
+            processed,
+        );
+    }
+
+    static async createScript(originalDoc: Document, transpiled: string, processed?: Processed) {
+        return SvelteFragmentMapper.create(
+            originalDoc,
+            transpiled,
+            originalDoc.scriptInfo,
+            extractScriptTags(transpiled)?.script || null,
+            processed,
+        );
+    }
+
+    private static async create(
         originalDoc: Document,
         transpiled: string,
-        tag: 'style' | 'script',
+        originalTagInfo: TagInformation | null,
+        transpiledTagInfo: TagInformation | null,
         processed?: Processed,
     ) {
         const sourceMapper = processed?.map
@@ -174,9 +194,6 @@ export class SvelteFragmentMapper {
                   originalDoc.uri,
               )
             : new IdentityMapper(originalDoc.uri);
-
-        const transpiledTagInfo = extractTag(transpiled, tag);
-        const originalTagInfo = tag === 'style' ? originalDoc.styleInfo : originalDoc.scriptInfo;
 
         if (originalTagInfo && transpiledTagInfo) {
             const sourceLength = originalTagInfo.container.end - originalTagInfo.container.start;
