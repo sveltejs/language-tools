@@ -5,13 +5,13 @@ import { Position, Range } from 'vscode-languageserver';
 import {
     Document,
     DocumentMapper,
-    extractTag,
     FragmentMapper,
     IdentityMapper,
     offsetAt,
     positionAt,
     TagInformation,
     isInTag,
+    extractScriptTags,
 } from '../../lib/documents';
 import { pathToUrl } from '../../utils';
 import { ConsumerDocumentMapper } from './DocumentMapper';
@@ -167,9 +167,14 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
 
     get scriptKind() {
         if (!this._scriptKind) {
-            this._scriptKind = getScriptKindFromAttributes(
-                extractTag(this.parent.getText(), 'script')?.attributes ?? {},
+            const scriptTags = extractScriptTags(this.parent.getText());
+            const scriptKind = getScriptKindFromAttributes(scriptTags?.script?.attributes ?? {});
+            const moduleScriptKind = getScriptKindFromAttributes(
+                scriptTags?.moduleScript?.attributes ?? {},
             );
+            this._scriptKind = [scriptKind, moduleScriptKind].includes(ts.ScriptKind.TSX)
+                ? ts.ScriptKind.TSX
+                : ts.ScriptKind.JSX;
         }
         return this._scriptKind;
     }

@@ -1,16 +1,20 @@
 import * as assert from 'assert';
-import { extractTag, getLineAtPosition } from '../../../src/lib/documents/utils';
+import {
+    getLineAtPosition,
+    extractStyleTag,
+    extractScriptTags,
+} from '../../../src/lib/documents/utils';
 import { Position } from 'vscode-languageserver';
 
 describe('document/utils', () => {
     describe('extractTag', () => {
         it('supports boolean attributes', () => {
-            const extracted = extractTag('<style test></style>', 'style');
+            const extracted = extractStyleTag('<style test></style>');
             assert.deepStrictEqual(extracted?.attributes, { test: 'test' });
         });
 
         it('supports unquoted attributes', () => {
-            const extracted = extractTag('<style type=text/css></style>', 'style');
+            const extracted = extractStyleTag('<style type=text/css></style>');
             assert.deepStrictEqual(extracted?.attributes, {
                 type: 'text/css',
             });
@@ -22,7 +26,7 @@ describe('document/utils', () => {
                 <!--<style>h1{ color: blue; }</style>-->
                 <style>p{ color: blue; }</style>
             `;
-            assert.deepStrictEqual(extractTag(text, 'style'), {
+            assert.deepStrictEqual(extractStyleTag(text), {
                 content: 'p{ color: blue; }',
                 attributes: {},
                 start: 108,
@@ -41,7 +45,7 @@ describe('document/utils', () => {
             <p>bla</p>
             ></style>
             `;
-            assert.deepStrictEqual(extractTag(text, 'style'), null);
+            assert.deepStrictEqual(extractStyleTag(text), null);
         });
 
         it('is canse sensitive to style/script', () => {
@@ -49,8 +53,8 @@ describe('document/utils', () => {
             <Style></Style>
             <Script></Script>
             `;
-            assert.deepStrictEqual(extractTag(text, 'style'), null);
-            assert.deepStrictEqual(extractTag(text, 'script'), null);
+            assert.deepStrictEqual(extractStyleTag(text), null);
+            assert.deepStrictEqual(extractScriptTags(text), null);
         });
 
         it('only extract attribute until tag ends', () => {
@@ -59,8 +63,8 @@ describe('document/utils', () => {
             () => abc
             </script>
             `;
-            const extracted = extractTag(text, 'script');
-            const attributes = extracted?.attributes;
+            const extracted = extractScriptTags(text);
+            const attributes = extracted?.script?.attributes;
             assert.deepStrictEqual(attributes, { type: 'typescript' });
         });
 
@@ -69,7 +73,7 @@ describe('document/utils', () => {
                 <p>bla</p>
                 <style>p{ color: blue; }</style>
             `;
-            assert.deepStrictEqual(extractTag(text, 'style'), {
+            assert.deepStrictEqual(extractStyleTag(text), {
                 content: 'p{ color: blue; }',
                 attributes: {},
                 start: 51,
@@ -84,7 +88,7 @@ describe('document/utils', () => {
             const text = `
                 <style lang="scss">p{ color: blue; }</style>
             `;
-            assert.deepStrictEqual(extractTag(text, 'style'), {
+            assert.deepStrictEqual(extractStyleTag(text), {
                 content: 'p{ color: blue; }',
                 attributes: { lang: 'scss' },
                 start: 36,
@@ -99,7 +103,7 @@ describe('document/utils', () => {
             const text = `
                 <style     lang="scss"    >  p{ color: blue; }  </style>
             `;
-            assert.deepStrictEqual(extractTag(text, 'style'), {
+            assert.deepStrictEqual(extractStyleTag(text), {
                 content: '  p{ color: blue; }  ',
                 attributes: { lang: 'scss' },
                 start: 44,
@@ -149,7 +153,7 @@ describe('document/utils', () => {
             `;
             // Note: cannot test <scrit>blah</scriPt> as that breaks parse5 parsing for top level script!
 
-            assert.deepStrictEqual(extractTag(text, 'script'), {
+            assert.deepStrictEqual(extractScriptTags(text)?.script, {
                 content: 'top level script',
                 attributes: {},
                 start: 1212,
@@ -173,7 +177,7 @@ describe('document/utils', () => {
             <h1>Hello, world!</h1>
             <style>.bla {}</style>
             `;
-            assert.deepStrictEqual(extractTag(text, 'script'), {
+            assert.deepStrictEqual(extractScriptTags(text)?.script, {
                 content: 'top level script',
                 attributes: {},
                 start: 254,
@@ -181,6 +185,53 @@ describe('document/utils', () => {
                 startPos: Position.create(7, 20),
                 endPos: Position.create(7, 36),
                 container: { start: 246, end: 279 },
+            });
+        });
+
+        it('extracts script and module script', () => {
+            const text = `
+            <script context="module">a</script>
+            <script>b</script>
+            `;
+            assert.deepStrictEqual(extractScriptTags(text), {
+                moduleScript: {
+                    attributes: {
+                        context: 'module',
+                    },
+                    container: {
+                        end: 48,
+                        start: 13,
+                    },
+                    content: 'a',
+                    start: 38,
+                    end: 39,
+                    startPos: {
+                        character: 37,
+                        line: 1,
+                    },
+                    endPos: {
+                        character: 38,
+                        line: 1,
+                    },
+                },
+                script: {
+                    attributes: {},
+                    container: {
+                        end: 79,
+                        start: 61,
+                    },
+                    content: 'b',
+                    start: 69,
+                    end: 70,
+                    startPos: {
+                        character: 20,
+                        line: 2,
+                    },
+                    endPos: {
+                        character: 21,
+                        line: 2,
+                    },
+                },
             });
         });
     });
