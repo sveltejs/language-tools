@@ -104,8 +104,13 @@ export interface RenameProvider {
     prepareRename(document: Document, position: Position): Resolvable<Range | null>;
 }
 
+export interface OnWatchFileChangesPara {
+    fileName: string;
+    changeType: FileChangeType;
+}
+
 export interface OnWatchFileChanges {
-    onWatchFileChanges(fileName: string, changeType: FileChangeType): void;
+    onWatchFileChanges(onWatchFileChangesParas: OnWatchFileChangesPara[]): void;
 }
 
 export type LSProvider = DiagnosticsProvider &

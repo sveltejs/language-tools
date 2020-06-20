@@ -60,8 +60,8 @@ export function createLanguageService(
 ): LanguageServiceContainer {
     const workspacePath = tsconfigPath ? dirname(tsconfigPath) : '';
 
-    const { compilerOptions, files } = getCompilerOptionsAndProjectFiles();
-    const snapshotManager = new SnapshotManager(files);
+    const { options: compilerOptions, fileNames: files, raw } = getParsedConfig();
+    const snapshotManager = new SnapshotManager(files, raw, tsconfigPath || process.cwd());
 
     const svelteModuleLoader = createSvelteModuleLoader(getSnapshot, compilerOptions);
 
@@ -148,7 +148,7 @@ export function createLanguageService(
         return doc;
     }
 
-    function getCompilerOptionsAndProjectFiles() {
+    function getParsedConfig() {
         const sveltePkgInfo = getPackageInfo('svelte', workspacePath);
         let compilerOptions: ts.CompilerOptions = {
             allowNonTsExtensions: true,
@@ -184,7 +184,6 @@ export function createLanguageService(
         );
 
         compilerOptions = { ...compilerOptions, ...parsedConfig.options };
-        const files = parsedConfig.fileNames;
 
         const forcedOptions: ts.CompilerOptions = {
             noEmit: true,
@@ -196,7 +195,10 @@ export function createLanguageService(
         };
         compilerOptions = { ...compilerOptions, ...forcedOptions };
 
-        return { compilerOptions, files };
+        return {
+            ...parsedConfig,
+            options: compilerOptions
+        };
     }
 
     /**

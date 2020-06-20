@@ -19,6 +19,7 @@ import {
     TypeScriptPlugin,
     PluginHost,
     AppCompletionItem,
+    OnWatchFileChangesPara,
 } from './plugins';
 import _ from 'lodash';
 import { LSConfigManager } from './ls-config';
@@ -180,12 +181,12 @@ export function startServer(options?: LSOptions) {
         return pluginHost.resolveCompletion(data, completionItem);
     });
     connection.onDidChangeWatchedFiles((para) => {
-        for (const change of para.changes) {
-            const filename = urlToPath(change.uri);
-            if (filename) {
-                pluginHost.onWatchFileChanges(filename, change.type);
-            }
-        }
+        const onWatchFileChangesParas = para.changes.map((change) => ({
+            fileName: urlToPath(change.uri),
+            changeType: change.type
+        })).filter((change): change is OnWatchFileChangesPara => !!change.fileName);
+
+        return pluginHost.onWatchFileChanges(onWatchFileChangesParas);
     });
 
     docManager.on(

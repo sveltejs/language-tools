@@ -14,7 +14,6 @@ import {
     SymbolInformation,
     TextDocumentIdentifier,
     TextEdit,
-    FileChangeType,
     CompletionItem,
     CompletionContext,
     WorkspaceEdit,
@@ -27,6 +26,7 @@ import {
     OnWatchFileChanges,
     AppCompletionItem,
     FileRename,
+    OnWatchFileChangesPara,
 } from './interfaces';
 import { Logger } from '../logger';
 
@@ -270,9 +270,9 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         );
     }
 
-    onWatchFileChanges(fileName: string, changeType: FileChangeType): void {
+    onWatchFileChanges(onWatchFileChangesParas: OnWatchFileChangesPara[]): void {
         for (const support of this.plugins) {
-            support.onWatchFileChanges?.(fileName, changeType);
+            support.onWatchFileChanges?.(onWatchFileChangesParas);
         }
     }
 

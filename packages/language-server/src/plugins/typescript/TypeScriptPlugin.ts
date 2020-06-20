@@ -34,6 +34,7 @@ import {
     OnWatchFileChanges,
     RenameProvider,
     UpdateImportsProvider,
+    OnWatchFileChangesPara,
 } from '../interfaces';
 import { SnapshotFragment } from './DocumentSnapshot';
 import { CodeActionsProviderImpl } from './features/CodeActionsProvider';
@@ -51,6 +52,7 @@ import {
     symbolKindFromString,
 } from './utils';
 import { RenameProviderImpl } from './features/RenameProvider';
+import { dirname } from 'path';
 
 export class TypeScriptPlugin
     implements
@@ -272,24 +274,30 @@ export class TypeScriptPlugin
         return this.updateImportsProvider.updateImports(fileRename);
     }
 
-    onWatchFileChanges(fileName: string, changeType: FileChangeType) {
-        const scriptKind = getScriptKindFromFileName(fileName);
+    onWatchFileChanges(onWatchFileChangesParas: OnWatchFileChangesPara[]) {
+        const readDirCache = new Map<string, string[]>();
 
-        if (scriptKind === ts.ScriptKind.Unknown) {
-            // We don't deal with svelte files here
-            return;
+        for (const { fileName, changeType } of onWatchFileChangesParas) {
+            const scriptKind = getScriptKindFromFileName(fileName);
+            console.log(scriptKind);
+
+            if (scriptKind === ts.ScriptKind.Unknown) {
+                // We don't deal with svelte files here
+                continue;
+            }
+
+            const snapshotManager = this.getSnapshotManager(fileName);
+            if (changeType === FileChangeType.Created) {
+                snapshotManager.updateProjectFilesByDirname(dirname(fileName), readDirCache);
+            } else if (changeType === FileChangeType.Deleted) {
+                snapshotManager.delete(fileName);
+                return;
+            }
+
+            // Since the options parameter only applies to svelte snapshots, and this is not
+            // a svelte file, we can just set it to false without having any effect.
+            snapshotManager.updateByFileName(fileName, { strictMode: false });
         }
-
-        const snapshotManager = this.getSnapshotManager(fileName);
-
-        if (changeType === FileChangeType.Deleted) {
-            snapshotManager.delete(fileName);
-            return;
-        }
-
-        // Since the options parameter only applies to svelte snapshots, and this is not
-        // a svelte file, we can just set it to false without having any effect.
-        snapshotManager.updateByFileName(fileName, { strictMode: false });
     }
 
     private getLSAndTSDoc(document: Document) {
