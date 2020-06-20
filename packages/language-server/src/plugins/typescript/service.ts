@@ -149,14 +149,18 @@ export function createLanguageService(
     }
 
     function getCompilerOptionsAndProjectFiles() {
-        const sveltePkgInfo = getPackageInfo('svelte', workspacePath);
-        let compilerOptions: ts.CompilerOptions = {
+        const forcedCompilerOptions: ts.CompilerOptions = {
             allowNonTsExtensions: true,
             target: ts.ScriptTarget.Latest,
             module: ts.ModuleKind.ESNext,
             moduleResolution: ts.ModuleResolutionKind.NodeJs,
             allowJs: true,
-            types: [resolve(sveltePkgInfo.path, 'types', 'runtime')],
+            noEmit: true,
+            declaration: false,
+            skipLibCheck: true,
+            // these are needed to handle the results of svelte2tsx preprocessing:
+            jsx: ts.JsxEmit.Preserve,
+            jsxFactory: 'h',
         };
 
         // always let ts parse config to get default compilerOption
@@ -177,24 +181,20 @@ export function createLanguageService(
             configJson,
             ts.sys,
             workspacePath,
-            compilerOptions,
+            forcedCompilerOptions,
             tsconfigPath,
             undefined,
             [{ extension: 'svelte', isMixedContent: false, scriptKind: ts.ScriptKind.TSX }],
         );
 
-        compilerOptions = { ...compilerOptions, ...parsedConfig.options };
         const files = parsedConfig.fileNames;
 
-        const forcedOptions: ts.CompilerOptions = {
-            noEmit: true,
-            declaration: false,
-            skipLibCheck: true,
-            // these are needed to handle the results of svelte2tsx preprocessing:
-            jsx: ts.JsxEmit.Preserve,
-            jsxFactory: 'h',
+        const sveltePkgInfo = getPackageInfo('svelte', workspacePath || process.cwd());
+        const compilerOptions: ts.CompilerOptions = {
+            types: [resolve(sveltePkgInfo.path, 'types', 'runtime')],
+            ...parsedConfig.options,
+            ...forcedCompilerOptions,
         };
-        compilerOptions = { ...compilerOptions, ...forcedOptions };
 
         return { compilerOptions, files };
     }
