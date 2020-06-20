@@ -20,6 +20,12 @@ const beforeStart = (start: number) => start - 1;
 
 type Walker = (node: Node, parent: Node, prop: string, index: number) => void;
 
+const stripDoctype = (str: MagicString) => {
+    const regex = /<!doctype(.+?)>(\n)?/i;
+    const result = regex.exec(str.original);
+    if (result) str.remove(result.index, result.index + result[0].length);
+};
+
 // eslint-disable-next-line max-len
 export function convertHtmlxToJsx(
     str: MagicString,
@@ -28,6 +34,7 @@ export function convertHtmlxToJsx(
     onLeave: Walker = null,
 ) {
     const htmlx = str.original;
+    stripDoctype(str);
     str.prepend('<>');
     str.append('</>');
     const handleRaw = (rawBlock: Node) => {
