@@ -29,7 +29,9 @@ jobs:
       # Setup the environment
       - run: 'json -I -f packages/svelte-vscode/package.json -e "this.version=\`99.0.0\`"'
       - run: 'json -I -f packages/svelte-vscode/package.json -e "this.preview=true"'
-      - run: 'json -I -f packages/svelte-vscode/package.json -e "this.name=\`svelte-vscode-nightly`"'
+      - run: 'json -I -f packages/svelte-vscode/package.json -e "this.name=\`svelte-vscode-nightly\`"'
+      - run: 'json -I -f packages/svelte-vscode/package.json -e "this.icon=\`icons/logo-nightly.png\`"'
+      - run: 'json -I -f packages/svelte-vscode/package.json -e "this.displayName=\`Svelte Language Tools Nightly Builds\`"'
 
       # To deploy we need isolated node_modules folders which yarn won't do because it is a workspace
       # So, remove the workspace
