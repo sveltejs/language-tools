@@ -13,7 +13,7 @@ import {
     TextDocument,
     Position,
     SnippetString,
-	Range
+    Range
 } from 'vscode';
 
 import { TextDocumentContentChangeEvent } from "vscode-languageserver-protocol";
@@ -71,23 +71,23 @@ export function activateTagClosing(
         if ("range" in lastChange && (lastChange.rangeLength ?? 0) > 0 || (lastCharacter !== '>' && lastCharacter !== '/')) {
             return;
         }
-		if ("range" in lastChange && lastChange.range.end.character > 0 && lastCharacter === '>') {
+        if ("range" in lastChange && lastChange.range.end.character > 0 && lastCharacter === '>') {
             const lastCharacterPosition = new Position(
                 lastChange.range.end.line,
                 lastChange.range.end.character,
             );
-			const secondToLastCharacterPosition =
-				lastCharacterPosition.translate(0, -1);
-			const secondToLastCharacterRange =
-				new Range(
-					secondToLastCharacterPosition,
-					lastCharacterPosition);
-			const secondToLastCharacter =
-				document.getText(secondToLastCharacterRange);
-			if (secondToLastCharacter === '=') {
-				return;
-			}
-		}
+            const secondToLastCharacterPosition =
+                lastCharacterPosition.translate(0, -1);
+            const secondToLastCharacterRange =
+                new Range(
+                    secondToLastCharacterPosition,
+                    lastCharacterPosition);
+            const secondToLastCharacter =
+                document.getText(secondToLastCharacterRange);
+            if (secondToLastCharacter === '=') {
+                return;
+            }
+        }
         const rangeStart = "range" in lastChange ? lastChange.range.start : new Position(0, document.getText().length);
         const version = document.version;
         timeout = setTimeout(() => {
