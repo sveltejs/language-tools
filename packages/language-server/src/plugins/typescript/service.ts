@@ -190,9 +190,11 @@ export function createLanguageService(
         const files = parsedConfig.fileNames;
 
         const sveltePkgInfo = getPackageInfo('svelte', workspacePath || process.cwd());
+        const types = (parsedConfig.options?.types ?? [])
+            .concat(resolve(sveltePkgInfo.path, 'types', 'runtime'));
         const compilerOptions: ts.CompilerOptions = {
-            types: [resolve(sveltePkgInfo.path, 'types', 'runtime')],
             ...parsedConfig.options,
+            types,
             ...forcedCompilerOptions,
         };
 
