@@ -95,6 +95,15 @@ export interface UpdateImportsProvider {
     updateImports(fileRename: FileRename): Resolvable<WorkspaceEdit | null>;
 }
 
+export interface RenameProvider {
+    rename(
+        document: Document,
+        position: Position,
+        newName: string,
+    ): Resolvable<WorkspaceEdit | null>;
+    prepareRename(document: Document, position: Position): Resolvable<Range | null>;
+}
+
 export interface OnWatchFileChanges {
     onWatchFileChanges(fileName: string, changeType: FileChangeType): void;
 }
@@ -109,6 +118,7 @@ export type LSProvider = DiagnosticsProvider &
     DocumentSymbolsProvider &
     DefinitionsProvider &
     UpdateImportsProvider &
-    CodeActionsProvider;
+    CodeActionsProvider &
+    RenameProvider;
 
 export type Plugin = Partial<LSProvider & OnWatchFileChanges>;

@@ -72,4 +72,4 @@ Hit `ctrl-shift-p` or `cmd-shift-p` on mac, type `svelte restart`, and select `S
 
 ## SCSS: Still having errors?
 
-The `node-sass` package is very sensitive to node versions. It may be possible that this plugin runs on a different version than your application. Then it is necessary to set the `svelte.language-server.runtime` setting to the path of your node runtime.
+The `node-sass` package is very sensitive to node versions. It may be possible that this plugin runs on a different version than your application. Then it is necessary to set the `svelte.language-server.runtime` setting to the path of your node runtime. E.g. `"svelte.language-server.runtime": "/<LOCAL_PATH>/bin/node"`.

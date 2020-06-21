@@ -9,6 +9,7 @@ import {
     IConnection,
     CodeActionKind,
     RenameFile,
+    DocumentUri,
 } from 'vscode-languageserver';
 import { DocumentManager, Document } from './lib/documents';
 import {
@@ -68,6 +69,7 @@ export function startServer(options?: LSOptions) {
     );
     const configManager = new LSConfigManager();
     const pluginHost = new PluginHost(docManager, configManager);
+    let sveltePlugin: SveltePlugin = undefined as any;
 
     connection.onInitialize((evt) => {
         const workspacePath = urlToPath(evt.rootUri || '') || '';
@@ -77,7 +79,12 @@ export function startServer(options?: LSOptions) {
         }
 
         pluginHost.updateConfig(evt.initializationOptions?.config);
-        pluginHost.register(new SveltePlugin(configManager));
+        pluginHost.register(
+            (sveltePlugin = new SveltePlugin(
+                configManager,
+                evt.initializationOptions?.prettierConfig || {},
+            )),
+        );
         pluginHost.register(new HTMLPlugin(docManager, configManager));
         pluginHost.register(new CSSPlugin(docManager, configManager));
         pluginHost.register(new TypeScriptPlugin(docManager, configManager, workspacePath));
@@ -130,9 +137,17 @@ export function startServer(options?: LSOptions) {
                           ],
                       }
                     : true,
+                renameProvider: evt.capabilities.textDocument?.rename?.prepareSupport
+                    ? { prepareProvider: true }
+                    : true,
             },
         };
     });
+
+    connection.onRenameRequest((req) =>
+        pluginHost.rename(req.textDocument, req.position, req.newName),
+    );
+    connection.onPrepareRename((req) => pluginHost.prepareRename(req.textDocument, req.position));
 
     connection.onDidChangeConfiguration(({ settings }) => {
         pluginHost.updateConfig(settings.svelte?.plugin);
@@ -195,9 +210,20 @@ export function startServer(options?: LSOptions) {
         pluginHost.updateImports(fileRename),
     );
 
-    // This event is triggered by Svelte-Check:
-    connection.onRequest('$/getDiagnostics', async (params) => {
-        return await pluginHost.getDiagnostics({ uri: params.uri });
+    connection.onRequest('$/getCompiledCode', async (uri: DocumentUri) => {
+        const doc = docManager.documents.get(uri);
+        if (!doc) return null;
+
+        if (doc) {
+            const compiled = await sveltePlugin.getCompiledResult(doc);
+            if (compiled) {
+                const js = compiled.js;
+                const css = compiled.css;
+                return { js, css };
+            } else {
+                return null;
+            }
+        }
     });
 
     connection.listen();

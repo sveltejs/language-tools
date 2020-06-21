@@ -9,6 +9,7 @@ import {
     WorkspaceEdit,
     Uri,
     ProgressLocation,
+    ViewColumn,
 } from 'vscode';
 import {
     LanguageClient,
@@ -22,6 +23,8 @@ import {
     TextDocumentEdit,
 } from 'vscode-languageclient';
 import { activateTagClosing } from './html/autoClose';
+import CompiledCodeContentProvider from './CompiledCodeContentProvider';
+import * as path from 'path';
 
 namespace TagCloseRequest {
     export const type: RequestType<TextDocumentPositionParams, string, any, any> = new RequestType(
@@ -30,8 +33,23 @@ namespace TagCloseRequest {
 }
 
 export function activate(context: ExtensionContext) {
-    const serverModule = require.resolve('svelte-language-server/bin/server.js');
     const runtimeConfig = workspace.getConfiguration('svelte.language-server');
+
+    const { workspaceFolders } = workspace;
+    const rootPath = Array.isArray(workspaceFolders) ? workspaceFolders[0].uri.fsPath : undefined;
+
+    const tempLsPath = runtimeConfig.get<string>('ls-path');
+    // Returns undefined if path is empty string
+    // Return absolute path if not already
+    const lsPath =
+        tempLsPath && tempLsPath.trim() !== ''
+            ? path.isAbsolute(tempLsPath)
+                ? tempLsPath
+                : path.join(rootPath as string, tempLsPath)
+            : undefined;
+
+    const serverModule = require.resolve(lsPath || 'svelte-language-server/bin/server.js');
+    console.log('Loading server from ', serverModule);
 
     const runExecArgv: string[] = [];
     let port = runtimeConfig.get<number>('port') ?? -1;
@@ -66,7 +84,10 @@ export function activate(context: ExtensionContext) {
             configurationSection: ['svelte'],
             fileEvents: workspace.createFileSystemWatcher('{**/*.js,**/*.ts}', false, false, false),
         },
-        initializationOptions: { config: workspace.getConfiguration('svelte.plugin') },
+        initializationOptions: {
+            config: workspace.getConfiguration('svelte.plugin'),
+            prettierConfig: workspace.getConfiguration('prettier'),
+        },
     };
 
     let ls = createLanguageServer(serverOptions, clientOptions);
@@ -98,11 +119,21 @@ export function activate(context: ExtensionContext) {
         }),
     );
 
+    function getLS() {
+        return ls;
+    }
+
+    addRenameFileListener(getLS);
+
+    addCompilePreviewCommand(getLS, context);
+}
+
+function addRenameFileListener(getLS: () => LanguageClient) {
     workspace.onDidRenameFiles(async (evt) => {
         window.withProgress(
             { location: ProgressLocation.Window, title: 'Updating Imports..' },
             async () => {
-                const editsForFileRename = await ls.sendRequest<LSWorkspaceEdit | null>(
+                const editsForFileRename = await getLS().sendRequest<LSWorkspaceEdit | null>(
                     '$/getEditsForFileRename',
                     // Right now files is always an array with a single entry.
                     // The signature was only designed that way to - maybe, in the future -
@@ -136,6 +167,38 @@ export function activate(context: ExtensionContext) {
             },
         );
     });
+}
+
+function addCompilePreviewCommand(getLS: () => LanguageClient, context: ExtensionContext) {
+    const compiledCodeContentProvider = new CompiledCodeContentProvider(getLS);
+
+    context.subscriptions.push(
+        workspace.registerTextDocumentContentProvider(
+            CompiledCodeContentProvider.scheme,
+            compiledCodeContentProvider,
+        ),
+        compiledCodeContentProvider,
+    );
+
+    context.subscriptions.push(
+        commands.registerTextEditorCommand('svelte.showCompiledCodeToSide', async (editor) => {
+            if (editor?.document?.languageId !== 'svelte') {
+                return;
+            }
+
+            const uri = editor.document.uri;
+            const svelteUri = CompiledCodeContentProvider.toSvelteSchemeUri(uri);
+            window.withProgress(
+                { location: ProgressLocation.Window, title: 'Compiling..' },
+                async () => {
+                    return await window.showTextDocument(svelteUri, {
+                        preview: true,
+                        viewColumn: ViewColumn.Beside,
+                    });
+                },
+            );
+        }),
+    );
 }
 
 function createLanguageServer(serverOptions: ServerOptions, clientOptions: LanguageClientOptions) {

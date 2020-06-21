@@ -1,6 +1,7 @@
-import { join } from 'path';
+import { join, extname } from 'path';
 import ts from 'typescript';
 import assert from 'assert';
+import { rmdirSync, mkdirSync, readdirSync } from 'fs';
 
 import { DocumentManager, Document } from '../../../../src/lib/documents';
 import { pathToUrl } from '../../../../src/utils';
@@ -11,13 +12,16 @@ import {
     Range,
     CompletionTriggerKind,
 } from 'vscode-languageserver';
-import { rmdirSync, mkdirSync } from 'fs';
-import { CompletionsProviderImpl } from '../../../../src/plugins/typescript/features/CompletionProvider';
+import { CompletionsProviderImpl, CompletionEntryWithIdentifer } from '../../../../src/plugins/typescript/features/CompletionProvider';
 import { LSAndTSDocResolver } from '../../../../src/plugins/typescript/LSAndTSDocResolver';
 
 const testDir = join(__dirname, '..');
 const testFilesDir = join(testDir, 'testfiles');
 const newLine = ts.sys.newLine;
+
+const fileNameToAbosoluteUri = (file: string) => {
+    return pathToUrl(join(testFilesDir, file));
+};
 
 describe('CompletionProviderImpl', () => {
     function setup(filename: string) {
@@ -81,7 +85,8 @@ describe('CompletionProviderImpl', () => {
     });
 
     it('provides completion resolve info', async () => {
-        const { completionProvider, document } = setup('completions.svelte');
+        const filename = 'completions.svelte';
+        const { completionProvider, document } = setup(filename);
 
         const completions = await completionProvider.getCompletions(
             document,
@@ -94,12 +99,7 @@ describe('CompletionProviderImpl', () => {
 
         const { data } = completions!.items[0];
 
-        // uri would not be the same, so only check if exist;
-        assert.notEqual(data, null);
-        const { uri, ...withoutUri } = data!;
-        assert.ok(uri);
-
-        assert.deepStrictEqual(withoutUri, {
+        assert.deepStrictEqual(data, {
             hasAction: undefined,
             insertText: undefined,
             isRecommended: undefined,
@@ -113,7 +113,8 @@ describe('CompletionProviderImpl', () => {
             replacementSpan: undefined,
             sortText: '0',
             source: undefined,
-        });
+            uri: fileNameToAbosoluteUri(filename)
+        } as CompletionEntryWithIdentifer);
     });
 
     it('resolve completion and provide documentation', async () => {
@@ -165,6 +166,35 @@ describe('CompletionProviderImpl', () => {
         } finally {
             rmdirSync(mockDirPath);
         }
+    });
+
+    it('provides import completions for supported files', async () => {
+        const sourceFile = 'importcompletions.svelte';
+        const { completionProvider, document } = setup(sourceFile);
+        const supportedExtensions = [
+            ts.Extension.Js,
+            ts.Extension.Ts,
+            ts.Extension.Dts,
+            ts.Extension.Jsx,
+            ts.Extension.Tsx,
+            ts.Extension.Json,
+            '.svelte'
+        ];
+        const ignores = ['tsconfig.json', sourceFile];
+
+        const testfiles = readdirSync(testFilesDir)
+            .filter((f) => supportedExtensions.includes(extname(f)) && !ignores.includes(f));
+
+        const completions = await completionProvider.getCompletions(
+            document,
+            Position.create(0, 27),
+            {
+                triggerKind: CompletionTriggerKind.TriggerCharacter,
+                triggerCharacter: '/',
+            },
+        );
+
+        assert.deepStrictEqual(completions?.items.map(item => item.label), testfiles);
     });
 
     it('resolve auto import completion (is first import in file)', async () => {
@@ -338,7 +368,7 @@ describe('CompletionProviderImpl', () => {
             harmonizeNewLines(additionalTextEdits![0]?.newText),
             // " instead of ' because VSCode uses " by default when there are no other imports indicating otherwise
             `<script>${newLine}import ImportedFile from "./imported-file.svelte";` +
-                `${newLine}${newLine}</script>${newLine}`,
+            `${newLine}${newLine}</script>${newLine}`,
         );
 
         assert.deepEqual(

@@ -1,5 +1,5 @@
 <></>;function render() {
-<>""</>
+<></>
 return { props: {}, slots: {} }}
 
 export default class {
