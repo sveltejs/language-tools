@@ -128,7 +128,7 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
                 );
             } else {
                 console.warn(
-                    `Warning - unrecognized UpdateExpression operator ${parent.operator}! 
+                    `Warning - unrecognized UpdateExpression operator ${parent.operator}!
                 This is an edge case unaccounted for in svelte2tsx, please file an issue:
                 https://github.com/sveltejs/language-tools/issues/new/choose
                 `,
@@ -357,6 +357,7 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
     const exportedNames = new Map<string, { type?: string; identifierText?: string }>();
 
     const implicitTopLevelNames: Map<string, number> = new Map();
+    const reactiveAssignments: ts.Expression[] = [];
     let uses$$props = false;
     let uses$$restProps = false;
 
@@ -465,7 +466,7 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
                 return;
             } else {
                 console.warn(
-                    `Warning - unrecognized UnaryExpression operator ${parent.operator}! 
+                    `Warning - unrecognized UnaryExpression operator ${parent.operator}!
                 This is an edge case unaccounted for in svelte2tsx, please file an issue:
                 https://github.com/sveltejs/language-tools/issues/new/choose
                 `,
@@ -634,6 +635,14 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
         //handle stores etc
         if (ts.isIdentifier(node)) handleIdentifier(node, parent);
 
+        if (
+            ts.isLabeledStatement(node) &&
+            parent == tsAst && //top level
+            node.label.text == '$'
+        ) {
+            // console.log(node);
+        }
+
         //track implicit declarations in reactive blocks at the top level
         if (
             ts.isLabeledStatement(node) &&
@@ -645,7 +654,12 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
             node.statement.expression.operatorToken.kind == ts.SyntaxKind.EqualsToken &&
             ts.isIdentifier(node.statement.expression.left)
         ) {
-            implicitTopLevelNames.set(node.statement.expression.left.text, node.label.getStart());
+            const name = node.statement.expression.left.text;
+            if (!implicitTopLevelNames.has(name)) {
+                implicitTopLevelNames.set(name, node.label.getStart());
+            }
+
+            reactiveAssignments.push(node.statement.expression.right);
         }
 
         //to save a bunch of condition checks on each node, we recurse into processChild which skips all the checks for top level items
@@ -663,9 +677,17 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
     // declare implicit reactive variables we found in the script
     for (const [name, pos] of implicitTopLevelNames.entries()) {
         if (!rootScope.declared.has(name)) {
-            //add a declaration
-            str.prependRight(pos + astOffset, `;let ${name}; `);
+            const start = pos + astOffset;
+            const end = start + '$:'.length;
+            //replace label with a declaration
+            str.overwrite(start, end, `;let `);
         }
+    }
+
+
+    for (const expression of reactiveAssignments) {
+        str.appendLeft(astOffset + expression.getStart(), '__sveltets_invalidate(() => ');
+        str.appendRight(astOffset + expression.getEnd(), ')');
     }
 
     return {

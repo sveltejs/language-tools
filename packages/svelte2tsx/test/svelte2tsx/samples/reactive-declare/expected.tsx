@@ -1,10 +1,10 @@
 <></>;function render() {
 
 
-;let b; $: b = 7;
+;let b = 7;
 
 let a;
-$: a = 5;
+$: a = __sveltets_invalidate(() => 5);
 ;
 <></>
 return { props: {}, slots: {} }}
