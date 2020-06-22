@@ -2411,6 +2411,7 @@
 
     interface SvelteInputProps extends HTMLProps<HTMLInputElement> {
       group?: any;
+      files?: FileList | null;
     }
 
 
