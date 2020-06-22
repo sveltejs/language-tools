@@ -217,7 +217,7 @@ export function createLanguageService(
             },
             // Necessary to not flood the initial files
             // with potentially completely unrelated .ts/.js files:
-            include: ['**/*.svelte'],
+            include: [],
         };
     }
 
