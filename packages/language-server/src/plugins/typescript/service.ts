@@ -72,11 +72,14 @@ export function createLanguageService(
 
     const host: ts.LanguageServiceHost = {
         getCompilationSettings: () => compilerOptions,
-        getScriptFileNames: () => Array.from(new Set([
-            ...snapshotManager.getProjectFileNames(),
-            ...snapshotManager.getFileNames(),
-            ...svelteTsxFiles
-        ])),
+        getScriptFileNames: () =>
+            Array.from(
+                new Set([
+                    ...snapshotManager.getProjectFileNames(),
+                    ...snapshotManager.getFileNames(),
+                    ...svelteTsxFiles,
+                ]),
+            ),
         getScriptVersion: (fileName: string) => getSnapshot(fileName).version.toString(),
         getScriptSnapshot: getSnapshot,
         getCurrentDirectory: () => workspacePath,
@@ -98,7 +101,7 @@ export function createLanguageService(
         getService: () => languageService,
         updateDocument,
         deleteDocument,
-        snapshotManager
+        snapshotManager,
     };
 
     function deleteDocument(filePath: string): void {
@@ -160,17 +163,18 @@ export function createLanguageService(
         };
 
         // always let ts parse config to get default compilerOption
-        let configJson = (
-            tsconfigPath && ts.readConfigFile(tsconfigPath, ts.sys.readFile).config
-        ) || {
-            compilerOptions: getDeaultJsCompilerOption()
-        };
+        let configJson =
+            (tsconfigPath && ts.readConfigFile(tsconfigPath, ts.sys.readFile).config) ||
+            getDefaultJsConfig();
 
         // Only default exclude when no extends for now
         if (!configJson.extends) {
-            configJson = Object.assign({
-                exclude: getDefaultExclude()
-            }, configJson);
+            configJson = Object.assign(
+                {
+                    exclude: getDefaultExclude(),
+                },
+                configJson,
+            );
         }
 
         const parsedConfig = ts.parseJsonConfigFileContent(
@@ -200,19 +204,24 @@ export function createLanguageService(
     }
 
     /**
-     * this should only be used when no jsconfig/tsconfig at all
+     * This should only be used when there's no jsconfig/tsconfig at all
      */
-    function getDeaultJsCompilerOption(): ts.CompilerOptions {
+    function getDefaultJsConfig(): {
+        compilerOptions: ts.CompilerOptions;
+        include: string[];
+    } {
         return {
-            maxNodeModuleJsDepth: 2,
-            allowSyntheticDefaultImports: true,
+            compilerOptions: {
+                maxNodeModuleJsDepth: 2,
+                allowSyntheticDefaultImports: true,
+            },
+            // Necessary to not flood the initial files
+            // with potentially completely unrelated .ts/.js files:
+            include: ['**/*.svelte'],
         };
     }
 
     function getDefaultExclude() {
-        return [
-            '__sapper__',
-            'node_modules'
-        ];
+        return ['__sapper__', 'node_modules'];
     }
 }
