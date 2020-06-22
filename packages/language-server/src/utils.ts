@@ -67,3 +67,22 @@ export function debounceSameArg<T>(
         }, miliseconds);
     };
 }
+
+/**
+ * Like str.lastIndexOf, but for regular expressions. Note that you need to provide the g-flag to your RegExp!
+ */
+export function regexLastIndexOf(text: string, regex: RegExp, endPos?: number) {
+    if (endPos === undefined) {
+        endPos = text.length;
+    } else if (endPos < 0) {
+        endPos = 0;
+    }
+
+    const stringToWorkWith = text.substring(0, endPos + 1);
+    let lastIndexOf = -1;
+    let result: RegExpExecArray | null = null;
+    while ((result = regex.exec(stringToWorkWith)) !== null) {
+        lastIndexOf = result.index;
+    }
+    return lastIndexOf;
+}
