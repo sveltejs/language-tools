@@ -128,7 +128,7 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
                 );
             } else {
                 console.warn(
-                    `Warning - unrecognized UpdateExpression operator ${parent.operator}! 
+                    `Warning - unrecognized UpdateExpression operator ${parent.operator}!
                 This is an edge case unaccounted for in svelte2tsx, please file an issue:
                 https://github.com/sveltejs/language-tools/issues/new/choose
                 `,
@@ -465,7 +465,7 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
                 return;
             } else {
                 console.warn(
-                    `Warning - unrecognized UnaryExpression operator ${parent.operator}! 
+                    `Warning - unrecognized UnaryExpression operator ${parent.operator}!
                 This is an edge case unaccounted for in svelte2tsx, please file an issue:
                 https://github.com/sveltejs/language-tools/issues/new/choose
                 `,
@@ -639,13 +639,25 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
             ts.isLabeledStatement(node) &&
             parent == tsAst && //top level
             node.label.text == '$' &&
-            node.statement &&
-            ts.isExpressionStatement(node.statement) &&
-            ts.isBinaryExpression(node.statement.expression) &&
-            node.statement.expression.operatorToken.kind == ts.SyntaxKind.EqualsToken &&
-            ts.isIdentifier(node.statement.expression.left)
+            node.statement
         ) {
-            implicitTopLevelNames.set(node.statement.expression.left.text, node.label.getStart());
+            if (
+                ts.isExpressionStatement(node.statement) &&
+                ts.isBinaryExpression(node.statement.expression) &&
+                node.statement.expression.operatorToken.kind == ts.SyntaxKind.EqualsToken &&
+                ts.isIdentifier(node.statement.expression.left)
+            ) {
+                implicitTopLevelNames.set(
+                    node.statement.expression.left.text, node.label.getStart()
+                );
+            } else {
+                const start = node.getStart() + astOffset;
+                const end = node.getEnd() + astOffset;
+
+                str.prependLeft(start, '() => {');
+                str.prependRight(end, '}');
+            }
+
         }
 
         //to save a bunch of condition checks on each node, we recurse into processChild which skips all the checks for top level items
