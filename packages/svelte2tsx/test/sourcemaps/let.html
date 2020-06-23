@@ -1,6 +1,6 @@
 <></>;function render() {
 
-    ;let selected; $: selected = lookup.get(slug);
+    ;let  selected = __sveltets_invalidate(() => lookup.get(slug));
 ;
 <>
 </>
