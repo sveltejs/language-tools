@@ -1,0 +1,2 @@
+[test/**/*.{tsx,jsx,html}]
+trim_trailing_whitespace = false
