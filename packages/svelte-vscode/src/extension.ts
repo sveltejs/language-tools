@@ -87,6 +87,7 @@ export function activate(context: ExtensionContext) {
         initializationOptions: {
             config: workspace.getConfiguration('svelte.plugin'),
             prettierConfig: workspace.getConfiguration('prettier'),
+            dontFilterIncompleteCompletions: true, // VSCode filters client side and is smarter at it than us
         },
     };
 

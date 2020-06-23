@@ -8,8 +8,13 @@ import {
     TextDocumentIdentifier,
     TextEdit,
 } from 'vscode-languageserver';
-import { Document, mapCompletionItemToOriginal, mapRangeToOriginal } from '../../../lib/documents';
-import { isNotNullOrUndefined, pathToUrl, regexLastIndexOf } from '../../../utils';
+import {
+    Document,
+    isInTag,
+    mapCompletionItemToOriginal,
+    mapRangeToOriginal,
+} from '../../../lib/documents';
+import { isNotNullOrUndefined, pathToUrl } from '../../../utils';
 import { AppCompletionItem, AppCompletionList, CompletionsProvider } from '../../interfaces';
 import { SvelteSnapshotFragment } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
@@ -46,6 +51,10 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         position: Position,
         completionContext?: CompletionContext,
     ): Promise<AppCompletionList<CompletionEntryWithIdentifer> | null> {
+        if (isInTag(position, document.styleInfo)) {
+            return null;
+        }
+
         const { lang, tsDoc } = this.lsAndTsDocResovler.getLSAndTSDoc(document);
 
         const filePath = tsDoc.filePath;
@@ -79,7 +88,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         });
 
         if (!completions) {
-            return null;
+            return tsDoc.parserError ? CompletionList.create([], true) : null;
         }
 
         const completionItems = completions.entries
@@ -87,14 +96,6 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
                 this.toCompletionItem(fragment, comp, pathToUrl(tsDoc.filePath), position),
             )
             .filter(isNotNullOrUndefined)
-            .filter(
-                filterOurselvesIfError(
-                    !!tsDoc.parserError,
-                    document,
-                    position,
-                    completionContext?.triggerCharacter,
-                ),
-            )
             .map((comp) => mapCompletionItemToOriginal(fragment, comp));
 
         return CompletionList.create(completionItems, !!tsDoc.parserError);
@@ -314,29 +315,3 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
 }
 
 const beginOfDocumentRange = Range.create(Position.create(0, 0), Position.create(0, 0));
-
-/**
- * In case of a svelte2tsx parser error, we set the completion list to incomplete
- * so that recomputations are triggered.
- * In this case we need to handle filtering ourselves according to the lsp spec.
- */
-function filterOurselvesIfError(
-    hasError: boolean,
-    document: Document,
-    position: Position,
-    triggerCharacter: string | undefined,
-) {
-    if (!hasError || triggerCharacter) {
-        return () => true;
-    }
-
-    // Since we have no svelte2tsx output, we need to find the typed import name ourselves.
-    const offset = document.offsetAt(position);
-    // Assumption for performance reasons:
-    // Noone types import names longer than 20 characters and still expects perfect autocompletion.
-    const text = document.getText().substring(Math.max(0, offset - 20), offset);
-    const start = regexLastIndexOf(text, /[\W\s]/g) + 1;
-    const filterValue = text.substring(start).toLowerCase();
-    return (comp: AppCompletionItem<CompletionEntryWithIdentifer>) =>
-        comp.label.toLowerCase().includes(filterValue);
-}

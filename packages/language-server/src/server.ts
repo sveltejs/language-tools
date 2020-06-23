@@ -78,6 +78,7 @@ export function startServer(options?: LSOptions) {
             Logger.error('No workspace path set');
         }
 
+        pluginHost.initialize(!!evt.initializationOptions.dontFilterIncompleteCompletions);
         pluginHost.updateConfig(evt.initializationOptions?.config);
         pluginHost.register(
             (sveltePlugin = new SveltePlugin(
@@ -107,18 +108,20 @@ export function startServer(options?: LSOptions) {
                         '@',
                         '<',
 
-                        // For Emmet
+                        // Emmet
                         '>',
                         '*',
                         '#',
                         '$',
-                        ' ',
                         '+',
                         '^',
                         '(',
                         '[',
                         '@',
                         '-',
+                        // No whitespace because
+                        // it makes for weird/too many completions
+                        // of other completion providers
 
                         // Svelte
                         ':',
