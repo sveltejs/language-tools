@@ -357,7 +357,6 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
     const exportedNames = new Map<string, { type?: string; identifierText?: string }>();
 
     const implicitTopLevelNames: Map<string, number> = new Map();
-    const reactiveAssignments: ts.Expression[] = [];
     let uses$$props = false;
     let uses$$restProps = false;
 
@@ -553,6 +552,29 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
         });
     };
 
+    const semiRegex = /^\s*;/;
+    const wrapExpressionWithInvalidate = (expression: ts.Expression | undefined) => {
+        if (!expression) {
+            return;
+        }
+
+        const start = expression.getStart() + astOffset;
+        const end = expression.getEnd() + astOffset;
+
+        // () => ({})
+        if (ts.isObjectLiteralExpression(expression)) {
+            str.appendLeft(start, '(');
+            str.appendRight(end, ')');
+        }
+
+        str.prependLeft(start, '__sveltets_invalidate(() => ');
+        str.appendRight(end, ')');
+
+        if (!semiRegex.test(htmlx.substring(end))) {
+            str.appendRight(end, ';');
+        }
+    };
+
     const walk = (node: ts.Node, parent: ts.Node) => {
         type onLeaveCallback = () => void;
         const onLeaveCallbacks: onLeaveCallback[] = [];
@@ -659,7 +681,7 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
                 implicitTopLevelNames.set(name, node.label.getStart());
             }
 
-            reactiveAssignments.push(node.statement.expression.right);
+            wrapExpressionWithInvalidate(node.statement.expression.right);
         }
 
         //to save a bunch of condition checks on each node, we recurse into processChild which skips all the checks for top level items
@@ -682,12 +704,6 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
             //replace label with a declaration
             str.overwrite(start, end, `;let `);
         }
-    }
-
-
-    for (const expression of reactiveAssignments) {
-        str.appendLeft(astOffset + expression.getStart(), '__sveltets_invalidate(() => ');
-        str.appendRight(astOffset + expression.getEnd(), ')');
     }
 
     return {
