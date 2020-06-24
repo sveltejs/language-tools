@@ -373,7 +373,6 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
     const pushScope = () => (scope = new Scope(scope));
     const popScope = () => (scope = scope.parent);
 
-    // eslint-disable-next-line max-len
     const addExport = (
         name: ts.BindingName,
         target: ts.BindingName = null,
@@ -399,6 +398,30 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
         const exportStart = str.original.indexOf('export', start + astOffset);
         const exportEnd = exportStart + (end - start);
         str.remove(exportStart, exportEnd);
+    };
+
+    const invalidatePropControlflowType = (node: ts.VariableDeclarationList) => {
+        if (node.flags !== ts.NodeFlags.Let) {
+            return;
+        }
+        const getType = (declaration: ts.VariableDeclaration) => {
+            return declaration.type || ts.getJSDocType(declaration);
+        };
+
+        const declarationEnd = node.end + astOffset;
+        const shouldInvalidates = node.declarations.filter(
+            (declaration) => declaration.initializer && getType(declaration)
+        );
+        for (const declaration of shouldInvalidates) {
+            const identifier = declaration.name;
+            if (ts.isIdentifier(identifier)) {
+                const name = identifier.text;
+                str.appendRight(
+                    declarationEnd,
+                    `\n${name} = __sveltets_invalidate(() => ${name});`
+                );
+            }
+        }
     };
 
     const handleStore = (ident: ts.Node, parent: ts.Node) => {
@@ -557,19 +580,30 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
         const onLeaveCallbacks: onLeaveCallback[] = [];
 
         if (ts.isVariableStatement(node)) {
-            // eslint-disable-next-line max-len
             const exportModifier = node.modifiers
                 ? node.modifiers.find((x) => x.kind == ts.SyntaxKind.ExportKeyword)
                 : null;
             if (exportModifier) {
                 handleExportedVariableDeclarationList(node.declarationList);
+                invalidatePropControlflowType(node.declarationList);
                 removeExport(exportModifier.getStart(), exportModifier.end);
+
+                // const hasJsDocType
+                // if (ts.isJSDocCommentContainingNode(node)) {
+                //     const type = ts.getJSDocType(node);
+                //     if (type) {
+                //         // only invalidate this first one because the type doc only affect it
+                //         invalidatePropControlflowType({
+                //             ...node.declarationList,
+                //             declarations: node.declarationList[0]
+                //         });
+                //     }
+                // }
             }
         }
 
         if (ts.isFunctionDeclaration(node)) {
             if (node.modifiers) {
-                // eslint-disable-next-line max-len
                 const exportModifier = node.modifiers.find(
                     (x) => x.kind == ts.SyntaxKind.ExportKeyword,
                 );
@@ -767,7 +801,9 @@ function createRenderFunction(
         str.overwrite(scriptTag.start + 1, scriptTagEnd, `function render() {${propsDecl}\n`);
 
         const scriptEndTagStart = htmlx.lastIndexOf('<', scriptTag.end - 1);
-        str.overwrite(scriptEndTagStart, scriptTag.end, ';\n<>');
+        str.overwrite(scriptEndTagStart, scriptTag.end, ';\n<>', {
+            contentOnly: true
+        });
     } else {
         str.prependRight(scriptDestination, `</>;function render() {${propsDecl}\n<>`);
     }

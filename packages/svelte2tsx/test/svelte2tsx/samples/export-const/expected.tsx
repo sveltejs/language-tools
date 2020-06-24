@@ -1,7 +1,6 @@
 <></>;function render() {
 
-     let name: string = "world"
-name = __sveltets_invalidate(() => name);
+     const name: string = "world";
 ;
 <></>
 return { props: {name: name} as {name: string}, slots: {} }}
