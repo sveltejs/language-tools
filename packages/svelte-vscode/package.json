@@ -23,7 +23,7 @@
         "url": "https://github.com/sveltejs/language-tools/issues"
     },
     "homepage": "https://github.com/sveltejs/language-tools#readme",
-    "displayName": "Svelte Beta",
+    "displayName": "Svelte for VS Code",
     "publisher": "svelte",
     "icon": "icons/logo.png",
     "galleryBanner": {
