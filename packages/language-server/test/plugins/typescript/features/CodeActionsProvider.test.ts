@@ -217,6 +217,7 @@ describe('CodeActionsProvider', () => {
                 {
                     edits: [
                         {
+                            // eslint-disable-next-line max-len
                             newText: `const newLocal=Math.random()>0.5? true:false;${ts.sys.newLine}`,
                             range: {
                                 start: {
