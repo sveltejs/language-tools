@@ -233,8 +233,18 @@ function getLineOffsets(text: string) {
     return lineOffsets;
 }
 
-export function isInTag(position: Position, tagInfo: TagInformation | null): boolean {
+export function isInTag(
+    position: Position,
+    tagInfo: TagInformation | null,
+): tagInfo is TagInformation {
     return !!tagInfo && isInRange(Range.create(tagInfo.startPos, tagInfo.endPos), position);
+}
+
+export function isRangeInTag(
+    range: Range,
+    tagInfo: TagInformation | null,
+): tagInfo is TagInformation {
+    return isInTag(range.start, tagInfo) && isInTag(range.end, tagInfo);
 }
 
 export function getTextInRange(range: Range, text: string) {

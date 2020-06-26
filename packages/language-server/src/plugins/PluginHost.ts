@@ -249,6 +249,23 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         );
     }
 
+    async executeCommand(
+        textDocument: TextDocumentIdentifier,
+        command: string,
+        args?: any[],
+    ): Promise<WorkspaceEdit | null> {
+        const document = this.getDocument(textDocument.uri);
+        if (!document) {
+            throw new Error('Cannot call methods on an unopened document');
+        }
+
+        return await this.execute<WorkspaceEdit>(
+            'executeCommand',
+            [document, command, args],
+            ExecuteMode.FirstNonNull,
+        );
+    }
+
     async updateImports(fileRename: FileRename): Promise<WorkspaceEdit | null> {
         return await this.execute<WorkspaceEdit>(
             'updateImports',
