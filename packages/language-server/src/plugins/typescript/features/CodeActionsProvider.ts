@@ -8,7 +8,7 @@ import {
     VersionedTextDocumentIdentifier,
     WorkspaceEdit,
 } from 'vscode-languageserver';
-import { Document, mapRangeToOriginal } from '../../../lib/documents';
+import { Document, mapRangeToOriginal, isRangeInTag } from '../../../lib/documents';
 import { pathToUrl } from '../../../utils';
 import { CodeActionsProvider } from '../../interfaces';
 import { SnapshotFragment } from '../DocumentSnapshot';
@@ -16,6 +16,13 @@ import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { convertRange } from '../utils';
 import { flatten } from '../../../utils';
 import ts from 'typescript';
+
+interface RefactorArgs {
+    type: 'refactor';
+    refactorName: string;
+    textRange: ts.TextRange;
+    originalRange: Range;
+}
 
 export class CodeActionsProviderImpl implements CodeActionsProvider {
     constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
@@ -135,6 +142,13 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
     }
 
     private async getApplicableRefactors(document: Document, range: Range): Promise<CodeAction[]> {
+        if (
+            !isRangeInTag(range, document.scriptInfo) &&
+            !isRangeInTag(range, document.moduleScriptInfo)
+        ) {
+            return [];
+        }
+
         const { lang, tsDoc } = this.getLSAndTSDoc(document);
         const fragment = await tsDoc.getFragment();
         const textRange = {
@@ -148,7 +162,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         );
 
         return (
-            this.applicableRefactorsToCodeActions(applicableRefactors, document, textRange)
+            this.applicableRefactorsToCodeActions(applicableRefactors, document, range, textRange)
                 // Only allow refactorings from which we know they work
                 .filter(
                     (refactor) =>
@@ -175,6 +189,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
     private applicableRefactorsToCodeActions(
         applicableRefactors: ts.ApplicableRefactorInfo[],
         document: Document,
+        originalRange: Range,
         textRange: { pos: number; end: number },
     ) {
         return flatten(
@@ -184,15 +199,32 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                         CodeAction.create(applicableRefactor.description, {
                             title: applicableRefactor.description,
                             command: applicableRefactor.name,
-                            arguments: [document.uri, textRange],
+                            arguments: [
+                                document.uri,
+                                <RefactorArgs>{
+                                    type: 'refactor',
+                                    textRange,
+                                    originalRange,
+                                    refactorName: 'Extract Symbol',
+                                },
+                            ],
                         }),
                     ];
                 }
+
                 return applicableRefactor.actions.map((action) => {
                     return CodeAction.create(action.description, {
                         title: action.description,
                         command: action.name,
-                        arguments: [document.uri, textRange],
+                        arguments: [
+                            document.uri,
+                            <RefactorArgs>{
+                                type: 'refactor',
+                                textRange,
+                                originalRange,
+                                refactorName: applicableRefactor.name,
+                            },
+                        ],
                     });
                 });
             }),
@@ -204,20 +236,20 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         command: string,
         args?: any[],
     ): Promise<WorkspaceEdit | null> {
-        if (!args || !args[1]) {
+        if (!(args?.[1]?.type === 'refactor')) {
             return null;
         }
 
         const { lang, tsDoc } = this.getLSAndTSDoc(document);
         const fragment = await tsDoc.getFragment();
         const path = document.getFilePath() || '';
-        const range: ts.TextRange = args[1];
+        const { refactorName, originalRange, textRange } = <RefactorArgs>args[1];
 
         const edits = lang.getEditsForRefactor(
             path,
             {},
-            range,
-            'Extract Symbol',
+            textRange,
+            refactorName,
             command,
             undefined,
         );
@@ -233,11 +265,17 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                     // Some refactorings place the new code at the end of svelte2tsx' render function,
                     // which is unmapped. In this case, add it to the end of the script tag ourselves.
                     if (range.start.line < 0 || range.end.line < 0) {
-                        // TODO could be module script tag -> find out
-                        range = Range.create(
-                            document.scriptInfo!.endPos,
-                            document.scriptInfo!.endPos,
-                        );
+                        if (isRangeInTag(originalRange, document.scriptInfo)) {
+                            range = Range.create(
+                                document.scriptInfo.endPos,
+                                document.scriptInfo.endPos,
+                            );
+                        } else if (isRangeInTag(originalRange, document.moduleScriptInfo)) {
+                            range = Range.create(
+                                document.moduleScriptInfo.endPos,
+                                document.moduleScriptInfo.endPos,
+                            );
+                        }
                     }
                     return TextEdit.replace(range, edit.newText);
                 }),

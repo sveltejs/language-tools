@@ -162,4 +162,190 @@ describe('CodeActionsProvider', () => {
             },
         ]);
     });
+
+    it('should do extract into const refactor', async () => {
+        const { provider, document } = setup('codeactions.svelte');
+
+        const actions = await provider.getCodeActions(
+            document,
+            Range.create(Position.create(7, 8), Position.create(7, 42)),
+            { diagnostics: [], only: [CodeActionKind.Refactor] },
+        );
+        const action = actions[0];
+
+        assert.deepStrictEqual(action, {
+            command: {
+                arguments: [
+                    getUri('codeactions.svelte'),
+                    {
+                        type: 'refactor',
+                        refactorName: 'Extract Symbol',
+                        originalRange: {
+                            start: {
+                                character: 8,
+                                line: 7,
+                            },
+                            end: {
+                                character: 42,
+                                line: 7,
+                            },
+                        },
+                        textRange: {
+                            pos: 136,
+                            end: 170,
+                        },
+                    },
+                ],
+                command: 'constant_scope_0',
+                title: 'Extract to constant in enclosing scope',
+            },
+            title: 'Extract to constant in enclosing scope',
+        });
+
+        const edit = await provider.executeCommand(
+            document,
+            action.command?.command || '',
+            action.command?.arguments,
+        );
+
+        (<TextDocumentEdit>edit?.documentChanges?.[0])?.edits.forEach(
+            (edit) => (edit.newText = harmonizeNewLines(edit.newText)),
+        );
+
+        assert.deepStrictEqual(edit, {
+            documentChanges: [
+                {
+                    edits: [
+                        {
+                            newText: `const newLocal=Math.random()>0.5? true:false;${ts.sys.newLine}`,
+                            range: {
+                                start: {
+                                    character: 0,
+                                    line: 7,
+                                },
+                                end: {
+                                    character: 0,
+                                    line: 7,
+                                },
+                            },
+                        },
+                        {
+                            newText: 'newLocal',
+                            range: {
+                                start: {
+                                    character: 8,
+                                    line: 7,
+                                },
+                                end: {
+                                    character: 42,
+                                    line: 7,
+                                },
+                            },
+                        },
+                    ],
+                    textDocument: {
+                        uri: getUri('codeactions.svelte'),
+                        version: null,
+                    },
+                },
+            ],
+        });
+    });
+
+    it('should do extract into function refactor', async () => {
+        const { provider, document } = setup('codeactions.svelte');
+
+        const actions = await provider.getCodeActions(
+            document,
+            Range.create(Position.create(7, 8), Position.create(7, 42)),
+            { diagnostics: [], only: [CodeActionKind.Refactor] },
+        );
+        const action = actions[1];
+
+        assert.deepStrictEqual(action, {
+            command: {
+                arguments: [
+                    getUri('codeactions.svelte'),
+                    {
+                        type: 'refactor',
+                        refactorName: 'Extract Symbol',
+                        originalRange: {
+                            start: {
+                                character: 8,
+                                line: 7,
+                            },
+                            end: {
+                                character: 42,
+                                line: 7,
+                            },
+                        },
+                        textRange: {
+                            pos: 136,
+                            end: 170,
+                        },
+                    },
+                ],
+                command: 'function_scope_0',
+                title: `Extract to inner function in function 'render'`,
+            },
+            title: 'Extract to function',
+        });
+
+        const edit = await provider.executeCommand(
+            document,
+            action.command?.command || '',
+            action.command?.arguments,
+        );
+
+        (<TextDocumentEdit>edit?.documentChanges?.[0])?.edits.forEach(
+            (edit) => (edit.newText = harmonizeNewLines(edit.newText)),
+        );
+
+        assert.deepStrictEqual(edit, {
+            documentChanges: [
+                {
+                    edits: [
+                        {
+                            newText: 'newFunction()',
+                            range: {
+                                start: {
+                                    character: 8,
+                                    line: 7,
+                                },
+                                end: {
+                                    character: 42,
+                                    line: 7,
+                                },
+                            },
+                        },
+                        {
+                            newText:
+                                ts.sys.newLine +
+                                ts.sys.newLine +
+                                'function newFunction() {' +
+                                ts.sys.newLine +
+                                'return Math.random()>0.5? true:false;' +
+                                ts.sys.newLine +
+                                '}' +
+                                ts.sys.newLine,
+                            range: {
+                                start: {
+                                    character: 0,
+                                    line: 8,
+                                },
+                                end: {
+                                    character: 0,
+                                    line: 8,
+                                },
+                            },
+                        },
+                    ],
+                    textDocument: {
+                        uri: getUri('codeactions.svelte'),
+                        version: null,
+                    },
+                },
+            ],
+        });
+    });
 });
