@@ -19,7 +19,7 @@ describe('CodeActionsProvider', () => {
     }
 
     function harmonizeNewLines(input: string) {
-        return input.replace(/\r\n/g, '~:~').replace(/\n/g, '~:~').replace(/~:~/g, ts.sys.newLine);
+        return input.replace(/\r\n/g, '~:~').replace(/\n/g, '~:~').replace(/~:~/g, '\n');
     }
 
     function setup(filename: string) {
@@ -31,7 +31,7 @@ describe('CodeActionsProvider', () => {
         const filePath = getFullPath(filename);
         const document = docManager.openDocument(<any>{
             uri: pathToUrl(filePath),
-            text: ts.sys.readFile(filePath) || '',
+            text: harmonizeNewLines(ts.sys.readFile(filePath) || ''),
         });
         return { provider, document, docManager };
     }
@@ -111,7 +111,7 @@ describe('CodeActionsProvider', () => {
                             edits: [
                                 {
                                     // eslint-disable-next-line max-len
-                                    newText: `import { A } from 'bla';${ts.sys.newLine}import { C } from 'blubb';${ts.sys.newLine}`,
+                                    newText: `import { A } from 'bla';\nimport { C } from 'blubb';\n`,
                                     range: {
                                         start: {
                                             character: 0,
@@ -191,8 +191,8 @@ describe('CodeActionsProvider', () => {
                             },
                         },
                         textRange: {
-                            pos: 136,
-                            end: 170,
+                            pos: 129,
+                            end: 163,
                         },
                     },
                 ],
@@ -218,7 +218,7 @@ describe('CodeActionsProvider', () => {
                     edits: [
                         {
                             // eslint-disable-next-line max-len
-                            newText: `const newLocal=Math.random()>0.5? true:false;${ts.sys.newLine}`,
+                            newText: `const newLocal=Math.random()>0.5? true:false;\n`,
                             range: {
                                 start: {
                                     character: 0,
@@ -281,8 +281,8 @@ describe('CodeActionsProvider', () => {
                             },
                         },
                         textRange: {
-                            pos: 136,
-                            end: 170,
+                            pos: 129,
+                            end: 163,
                         },
                     },
                 ],
@@ -321,14 +321,14 @@ describe('CodeActionsProvider', () => {
                         },
                         {
                             newText:
-                                ts.sys.newLine +
-                                ts.sys.newLine +
+                                '\n' +
+                                '\n' +
                                 'function newFunction() {' +
-                                ts.sys.newLine +
+                                '\n' +
                                 'return Math.random()>0.5? true:false;' +
-                                ts.sys.newLine +
+                                '\n' +
                                 '}' +
-                                ts.sys.newLine,
+                                '\n',
                             range: {
                                 start: {
                                     character: 0,
