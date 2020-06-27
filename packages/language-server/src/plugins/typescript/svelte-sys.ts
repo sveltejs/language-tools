@@ -15,6 +15,17 @@ export function createSvelteSys(getSnapshot: (fileName: string) => DocumentSnaps
             const snapshot = getSnapshot(path);
             return snapshot.getText(0, snapshot.getLength());
         },
+        readDirectory(path, extensions, exclude, include, depth) {
+            const extensionsWithSvelte = (extensions ?? []).concat('.svelte');
+
+            return ts.sys.readDirectory(
+                path,
+                extensionsWithSvelte,
+                exclude,
+                include,
+                depth
+            );
+        }
     };
 
     if (ts.sys.realpath) {

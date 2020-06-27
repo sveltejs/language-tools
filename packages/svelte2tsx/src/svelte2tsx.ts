@@ -83,6 +83,60 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
             str.appendLeft(parent.end, ')');
             return;
         }
+        // handle Assignment operators ($store +=, -=, *=, /=, %=, **=, etc.)
+        // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Expressions_and_Operators#Assignment
+        const operators = [
+            '+=',
+            '-=',
+            '*=',
+            '/=',
+            '%=',
+            '**=',
+            '<<=',
+            '>>=',
+            '>>>=',
+            '&=',
+            '^=',
+            '|=',
+        ];
+        if (
+            parent.type == 'AssignmentExpression' &&
+            parent.left == node &&
+            operators.includes(parent.operator)
+        ) {
+            const storename = node.name.slice(1); // drop the $
+            const operator = parent.operator.substring(0, parent.operator.length - 1); // drop the = sign
+            str.overwrite(
+                parent.start,
+                str.original.indexOf('=', node.end) + 1,
+                `${storename}.set( __sveltets_store_get(${storename}) ${operator}`,
+            );
+            str.appendLeft(parent.end, ')');
+            return;
+        }
+        // handle $store++, $store--, ++$store, --$store
+        if (parent.type == 'UpdateExpression') {
+            let simpleOperator;
+            if (parent.operator === '++') simpleOperator = '+';
+            if (parent.operator === '--') simpleOperator = '-';
+            if (simpleOperator) {
+                const storename = node.name.slice(1); // drop the $
+                str.overwrite(
+                    parent.start,
+                    parent.end,
+                    `${storename}.set( __sveltets_store_get(${storename}) ${simpleOperator} 1)`,
+                );
+            } else {
+                console.warn(
+                    `Warning - unrecognized UpdateExpression operator ${parent.operator}! 
+                This is an edge case unaccounted for in svelte2tsx, please file an issue:
+                https://github.com/sveltejs/language-tools/issues/new/choose
+                `,
+                    str.original.slice(parent.start, parent.end),
+                );
+            }
+            return;
+        }
 
         //rewrite get
         const dollar = str.original.indexOf('$', node.start);
@@ -137,19 +191,42 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
         }
     };
 
-    let scriptTag: Node = null;
-    let moduleScriptTag: Node = null;
-    const handleScriptTag = (node: Node) => {
-        if (
-            node.attributes &&
-            node.attributes.find(
-                (a) => a.name == 'context' && a.value.length == 1 && a.value[0].raw == 'module',
-            )
-        ) {
-            moduleScriptTag = node;
-        } else {
-            scriptTag = node;
+    // All script tags, no matter at what level, are listed within the root children.
+    // To get the top level scripts, filter out all those that are part of children's children.
+    // Those have another type ('Element' with name 'script').
+    const scriptTags = (<Node[]>htmlxAst.children).filter((child) => child.type === 'Script');
+    let topLevelScripts = scriptTags;
+    const handleScriptTag = (node: Node, parent: Node) => {
+        if (parent !== htmlxAst && node.name === 'script') {
+            topLevelScripts = topLevelScripts.filter(
+                (tag) => tag.start !== node.start || tag.end !== node.end,
+            );
         }
+    };
+    const getTopLevelScriptTags = () => {
+        let scriptTag: Node = null;
+        let moduleScriptTag: Node = null;
+        // should be 2 at most, one each, so using forEach is safe
+        topLevelScripts.forEach((tag) => {
+            if (
+                tag.attributes &&
+                tag.attributes.find(
+                    (a) => a.name == 'context' && a.value.length == 1 && a.value[0].raw == 'module',
+                )
+            ) {
+                moduleScriptTag = tag;
+            } else {
+                scriptTag = tag;
+            }
+        });
+        return { scriptTag, moduleScriptTag };
+    };
+    const blankOtherScriptTags = () => {
+        scriptTags
+            .filter((tag) => !topLevelScripts.includes(tag))
+            .forEach((tag) => {
+                str.remove(tag.start, tag.end);
+            });
     };
 
     const slots = new Map<string, Map<string, string>>();
@@ -191,8 +268,8 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
             case 'Style':
                 handleStyleTag(node);
                 break;
-            case 'Script':
-                handleScriptTag(node);
+            case 'Element':
+                handleScriptTag(node, parent);
                 break;
             case 'BlockStatement':
                 enterBlockStatement();
@@ -235,6 +312,10 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
     };
 
     convertHtmlxToJsx(str, htmlxAst, onHtmlxWalk, onHtmlxLeave);
+
+    // resolve scripts
+    const { scriptTag, moduleScriptTag } = getTopLevelScriptTags();
+    blankOtherScriptTags();
 
     //resolve stores
     pendingStoreResolutions.map(resolveStore);
@@ -337,6 +418,60 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
             // append )
             str.appendLeft(parent.end + astOffset, ')');
             return;
+        }
+        // handle Assignment operators ($store +=, -=, *=, /=, %=, **=, etc.)
+        // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Expressions_and_Operators#Assignment
+        const operators = {
+            [ts.SyntaxKind.PlusEqualsToken]: '+',
+            [ts.SyntaxKind.MinusEqualsToken]: '-',
+            [ts.SyntaxKind.AsteriskEqualsToken]: '*',
+            [ts.SyntaxKind.SlashEqualsToken]: '/',
+            [ts.SyntaxKind.PercentEqualsToken]: '%',
+            [ts.SyntaxKind.AsteriskAsteriskEqualsToken]: '**',
+            [ts.SyntaxKind.LessThanLessThanEqualsToken]: '<<',
+            [ts.SyntaxKind.GreaterThanGreaterThanEqualsToken]: '>>',
+            [ts.SyntaxKind.GreaterThanGreaterThanGreaterThanEqualsToken]: '>>>',
+            [ts.SyntaxKind.AmpersandEqualsToken]: '&',
+            [ts.SyntaxKind.CaretEqualsToken]: '^',
+            [ts.SyntaxKind.BarEqualsToken]: '|',
+        };
+        if (
+            ts.isBinaryExpression(parent) &&
+            parent.left == ident &&
+            Object.keys(operators).find((x) => x === String(parent.operatorToken.kind))
+        ) {
+            const storename = ident.getText().slice(1); // drop the $
+            const operator = operators[parent.operatorToken.kind];
+            str.overwrite(
+                parent.getStart() + astOffset,
+                str.original.indexOf('=', ident.end + astOffset) + 1,
+                `${storename}.set( __sveltets_store_get(${storename}) ${operator}`,
+            );
+            str.appendLeft(parent.end + astOffset, ')');
+            return;
+        }
+        // handle $store++, $store--, ++$store, --$store
+        if (ts.isPrefixUnaryExpression(parent) || ts.isPostfixUnaryExpression(parent)) {
+            let simpleOperator;
+            if (parent.operator === 45) simpleOperator = '+';
+            if (parent.operator === 46) simpleOperator = '-';
+            if (simpleOperator) {
+                const storename = ident.getText().slice(1); // drop the $
+                str.overwrite(
+                    parent.getStart() + astOffset,
+                    parent.end + astOffset,
+                    `${storename}.set( __sveltets_store_get(${storename}) ${simpleOperator} 1)`,
+                );
+                return;
+            } else {
+                console.warn(
+                    `Warning - unrecognized UnaryExpression operator ${parent.operator}! 
+                This is an edge case unaccounted for in svelte2tsx, please file an issue:
+                https://github.com/sveltejs/language-tools/issues/new/choose
+                `,
+                    parent.getText(),
+                );
+            }
         }
 
         // we must be on the right or not part of assignment
@@ -544,16 +679,44 @@ function addComponentExport(
     str: MagicString,
     uses$$propsOr$$restProps: boolean,
     strictMode: boolean,
+    isTsFile: boolean,
 ) {
-    const propDef = strictMode
-        ? uses$$propsOr$$restProps
-            ? '__sveltets_with_any(render().props)'
-            : 'render().props'
-        : `__sveltets_partial${uses$$propsOr$$restProps ? '_with_any' : ''}(render().props)`;
+    const propDef =
+        // Omit partial-wrapper only if both strict mode and ts file, because
+        // in a js file the user has no way of telling the language that
+        // the prop is optional
+        strictMode && isTsFile
+            ? uses$$propsOr$$restProps
+                ? '__sveltets_with_any(render().props)'
+                : 'render().props'
+            : `__sveltets_partial${uses$$propsOr$$restProps ? '_with_any' : ''}(render().props)`;
     str.append(
         // eslint-disable-next-line max-len
         `\n\nexport default class {\n    $$prop_def = ${propDef}\n    $$slot_def = render().slots\n}`,
     );
+}
+
+function isTsFile(scriptTag: Node | undefined, moduleScriptTag: Node | undefined) {
+    return tagIsLangTs(scriptTag) || tagIsLangTs(moduleScriptTag);
+
+    function tagIsLangTs(tag: Node | undefined) {
+        return tag?.attributes?.some((attr) => {
+            if (attr.name !== 'lang' && attr.name !== 'type') {
+                return false;
+            }
+
+            const type = attr.value[0]?.raw;
+            switch (type) {
+                case 'ts':
+                case 'typescript':
+                case 'text/ts':
+                case 'text/typescript':
+                    return true;
+                default:
+                    return false;
+            }
+        });
+    }
 }
 
 function processModuleScriptTag(str: MagicString, script: Node) {
@@ -599,9 +762,9 @@ function createRenderFunction(
 
     const slotsAsDef =
         '{' +
-        [...slots.entries()]
+        Array.from(slots.entries())
             .map(([name, attrs]) => {
-                const attrsAsString = [...attrs.entries()]
+                const attrsAsString = Array.from(attrs.entries())
                     .map(([exportName, expr]) => `${exportName}:${expr}`)
                     .join(', ');
                 return `${name}: {${attrsAsString}}`;
@@ -616,14 +779,11 @@ function createRenderFunction(
 }
 
 function createPropsStr(exportedNames: ExportedNames) {
-    const names = [...exportedNames.entries()];
+    const names = Array.from(exportedNames.entries());
 
     const returnElements = names.map(([key, value]) => {
-        if (!value.identifierText) {
-            return key;
-        }
-
-        return `${value.identifierText}: ${key}`;
+        // Important to not use shorthand props for rename functionality
+        return `${value.identifierText || key}: ${key}`;
     });
 
     if (names.length === 0 || !names.some(([_, value]) => !!value.type)) {
@@ -699,7 +859,12 @@ export function svelte2tsx(svelte: string, options?: { filename?: string; strict
         processModuleScriptTag(str, moduleScriptTag);
     }
 
-    addComponentExport(str, uses$$props || uses$$restProps, !!options?.strictMode);
+    addComponentExport(
+        str,
+        uses$$props || uses$$restProps,
+        !!options?.strictMode,
+        isTsFile(scriptTag, moduleScriptTag),
+    );
 
     return {
         code: str.toString(),

@@ -6,6 +6,8 @@ Provides diagnostics for things such as
 -   Svelte A11y hints
 -   JavaScript/TypeScript diagnostics
 
+Requires Node 12 or later.
+
 ### Usage:
 
 #### Global
@@ -97,3 +99,7 @@ Example:
 ```
 1590680328921 FAILURE "Connection closed"
 ```
+
+### Credits
+
+-   Vue's [VTI](https://github.com/vuejs/vetur/tree/master/vti) which lays the foundation for `svelte-check`

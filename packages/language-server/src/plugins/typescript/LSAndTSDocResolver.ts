@@ -67,7 +67,8 @@ export class LSAndTSDocResolver {
     getSnapshot(filePath: string, document: Document): SvelteDocumentSnapshot;
     getSnapshot(filePath: string, document?: Document): DocumentSnapshot;
     getSnapshot(filePath: string, document?: Document) {
-        const [tsService, snapshotManager] = this.getTSServiceWithManager(filePath);
+        const tsService = this.getTSService(filePath);
+        const { snapshotManager } = tsService;
 
         let tsDoc = snapshotManager.get(filePath);
         if (!tsDoc) {
@@ -92,13 +93,7 @@ export class LSAndTSDocResolver {
     }
 
     getSnapshotManager(filePath: string): SnapshotManager {
-        return this.getTSServiceWithManager(filePath)[1];
-    }
-
-    private getTSServiceWithManager(filePath: string): [LanguageServiceContainer, SnapshotManager] {
-        const tsService = this.getTSService(filePath);
-        const snapshotManager = SnapshotManager.getFromTsConfigPath(tsService.tsconfigPath);
-        return [tsService, snapshotManager];
+        return this.getTSService(filePath).snapshotManager;
     }
 
     private getTSService(filePath: string): LanguageServiceContainer {

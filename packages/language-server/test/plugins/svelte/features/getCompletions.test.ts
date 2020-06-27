@@ -9,7 +9,7 @@ describe('SveltePlugin#getCompletions', () => {
         content: string,
         position: Position = Position.create(0, content.length),
     ) {
-        const svelteDoc = new SvelteDocument(new Document('url', content));
+        const svelteDoc = new SvelteDocument(new Document('url', content), {});
         const completions = getCompletions(svelteDoc, position);
         return {
             toEqual: (expectedLabels: string[] | null) =>

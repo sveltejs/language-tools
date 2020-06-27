@@ -4,8 +4,8 @@
     "description": "Svelte language support for VS Code",
     "main": "dist/src/extension.js",
     "scripts": {
-        "vscode:prepublish": "tsc -p ./",
         "build": "tsc -p ./",
+        "vscode:prepublish": "npm run build && npm prune --production",
         "watch": "tsc -w -p ./",
         "test": "echo 'NOOP'"
     },
@@ -23,7 +23,7 @@
         "url": "https://github.com/sveltejs/language-tools/issues"
     },
     "homepage": "https://github.com/sveltejs/language-tools#readme",
-    "displayName": "Svelte Beta",
+    "displayName": "Svelte for VS Code",
     "publisher": "svelte",
     "icon": "icons/logo.png",
     "galleryBanner": {
@@ -50,6 +50,11 @@
                     "type": "string",
                     "title": "Language Server Runtime",
                     "description": "Path to the node executable to use to spawn the language server"
+                },
+                "svelte.language-server.ls-path": {
+                    "type": "string",
+                    "title": "Language Server Path",
+                    "description": "Path to the langauge server file (either a relative path from the workspace root or an absolute path). Can be used to use a custom variant of the language server."
                 },
                 "svelte.language-server.port": {
                     "type": "number",
@@ -234,8 +239,31 @@
             {
                 "command": "svelte.restartLanguageServer",
                 "title": "Svelte: Restart Language Server"
+            },
+            {
+                "command": "svelte.showCompiledCodeToSide",
+                "title": "Svelte: Show Compiled Code",
+                "icon": {
+                    "light": "icons/preview-right-light.svg",
+                    "dark": "icons/preview-right-dark.svg"
+                }
             }
         ],
+        "menus": {
+            "commandPalette": [
+                {
+                    "command": "svelte.showCompiledCodeToSide",
+                    "when": "editorLangId == svelte"
+                }
+            ],
+            "editor/title": [
+                {
+                    "command": "svelte.showCompiledCodeToSide",
+                    "when": "editorLangId == svelte",
+                    "group": "navigation"
+                }
+            ]
+        },
         "breakpoints": [
             {
                 "language": "svelte"
@@ -243,9 +271,10 @@
         ]
     },
     "devDependencies": {
+        "@tsconfig/node12": "^1.0.0",
         "@types/node": "^13.9.0",
-        "typescript": "*",
-        "@types/vscode": "*"
+        "@types/vscode": "*",
+        "typescript": "*"
     },
     "dependencies": {
         "svelte-language-server": "*",

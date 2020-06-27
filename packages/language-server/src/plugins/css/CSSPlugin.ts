@@ -62,6 +62,11 @@ export class CSSPlugin
         }
 
         const cssDocument = this.getCSSDoc(document);
+
+        if (isSASS(cssDocument)) {
+            return [];
+        }
+
         const kind = extractLanguage(cssDocument);
 
         if (shouldExcludeValidation(kind)) {
@@ -80,7 +85,7 @@ export class CSSPlugin
         }
 
         const cssDocument = this.getCSSDoc(document);
-        if (!cssDocument.isInGenerated(position)) {
+        if (!cssDocument.isInGenerated(position) || isSASS(cssDocument)) {
             return null;
         }
 
@@ -114,7 +119,7 @@ export class CSSPlugin
         }
 
         const cssDocument = this.getCSSDoc(document);
-        if (!cssDocument.isInGenerated(position)) {
+        if (!cssDocument.isInGenerated(position) || isSASS(cssDocument)) {
             return null;
         }
 
@@ -142,7 +147,8 @@ export class CSSPlugin
             [...(results ? results.items : []), ...emmetResults.items].map((completionItem) =>
                 mapCompletionItemToOriginal(cssDocument, completionItem),
             ),
-            true,
+            // Emmet completions change on every keystroke, so they are never complete
+            emmetResults.items.length > 0,
         );
     }
 
@@ -152,6 +158,10 @@ export class CSSPlugin
         }
 
         const cssDocument = this.getCSSDoc(document);
+
+        if (isSASS(cssDocument)) {
+            return [];
+        }
 
         return getLanguageService(extractLanguage(cssDocument))
             .findDocumentColors(cssDocument, cssDocument.stylesheet)
@@ -164,7 +174,10 @@ export class CSSPlugin
         }
 
         const cssDocument = this.getCSSDoc(document);
-        if (!cssDocument.isInGenerated(range.start) && !cssDocument.isInGenerated(range.end)) {
+        if (
+            (!cssDocument.isInGenerated(range.start) && !cssDocument.isInGenerated(range.end)) ||
+            isSASS(cssDocument)
+        ) {
             return [];
         }
 
@@ -184,6 +197,10 @@ export class CSSPlugin
         }
 
         const cssDocument = this.getCSSDoc(document);
+
+        if (isSASS(cssDocument)) {
+            return [];
+        }
 
         return getLanguageService(extractLanguage(cssDocument))
             .findDocumentSymbols(cssDocument, cssDocument.stylesheet)
@@ -222,6 +239,16 @@ function shouldExcludeValidation(kind?: string) {
     switch (kind) {
         case 'postcss':
         case 'text/postcss':
+            return true;
+        default:
+            return false;
+    }
+}
+
+function isSASS(document: CSSDocument) {
+    switch (extractLanguage(document)) {
+        case 'sass':
+        case 'text/sass':
             return true;
         default:
             return false;

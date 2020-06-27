@@ -7,7 +7,7 @@ import { Document } from '../../../../src/lib/documents';
 
 describe('SveltePlugin#getHoverInfo', () => {
     function expectHoverInfoFor(content: string, position: Position) {
-        const svelteDoc = new SvelteDocument(new Document('url', content));
+        const svelteDoc = new SvelteDocument(new Document('url', content), {});
         const hover = getHoverInfo(svelteDoc, position);
         return {
             toEqual: (tag: SvelteTag | null) =>

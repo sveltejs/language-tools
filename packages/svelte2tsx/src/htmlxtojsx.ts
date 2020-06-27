@@ -20,6 +20,12 @@ const beforeStart = (start: number) => start - 1;
 
 type Walker = (node: Node, parent: Node, prop: string, index: number) => void;
 
+const stripDoctype = (str: MagicString) => {
+    const regex = /<!doctype(.+?)>(\n)?/i;
+    const result = regex.exec(str.original);
+    if (result) str.remove(result.index, result.index + result[0].length);
+};
+
 // eslint-disable-next-line max-len
 export function convertHtmlxToJsx(
     str: MagicString,
@@ -28,6 +34,7 @@ export function convertHtmlxToJsx(
     onLeave: Walker = null,
 ) {
     const htmlx = str.original;
+    stripDoctype(str);
     str.prepend('<>');
     str.append('</>');
     const handleRaw = (rawBlock: Node) => {
@@ -154,6 +161,26 @@ export function convertHtmlxToJsx(
     };
 
     const handleBinding = (attr: Node, el: Node) => {
+        const getThisTypeForComponent = (node: Node) => {
+            if (node.name === 'svelte:component' || node.name === 'svelte:self') {
+                return '__sveltets_componentType()';
+            } else {
+                return node.name;
+            }
+        };
+        const getThisType = (node: Node) => {
+            switch (node.type) {
+                case 'InlineComponent':
+                    return getThisTypeForComponent(node);
+                case 'Element':
+                    return 'HTMLElement';
+                case 'Body':
+                    return 'HTMLBodyElement';
+                default:
+                    break;
+            }
+        };
+
         //bind group on input
         if (attr.name == 'group' && el.name == 'input') {
             str.remove(attr.start, attr.expression.start);
@@ -161,27 +188,25 @@ export function convertHtmlxToJsx(
 
             const endBrackets = ')}';
             if (isShortHandAttribute(attr)) {
-                str.appendRight(attr.end, endBrackets);
+                str.prependRight(attr.end, endBrackets);
             } else {
                 str.overwrite(attr.expression.end, attr.end, endBrackets);
             }
             return;
         }
 
-        //bind this on element
-        if (attr.name == 'this' && el.type == 'Element') {
-            str.remove(attr.start, attr.expression.start);
-            str.appendLeft(attr.expression.start, '{...__sveltets_ensureType(HTMLElement, ');
-            str.overwrite(attr.expression.end, attr.end, ')}');
-            return;
-        }
+        const supportsBindThis = ['InlineComponent', 'Element', 'Body'];
 
-        //bind this on component
-        if (attr.name == 'this' && el.type == 'InlineComponent') {
-            str.remove(attr.start, attr.expression.start);
-            str.appendLeft(attr.expression.start, `{...__sveltets_ensureType(${el.name}, `);
-            str.overwrite(attr.expression.end, attr.end, ')}');
-            return;
+        //bind this
+        if (attr.name == 'this' && supportsBindThis.includes(el.type)) {
+            const thisType = getThisType(el);
+
+            if (thisType) {
+                str.remove(attr.start, attr.expression.start);
+                str.appendLeft(attr.expression.start, `{...__sveltets_ensureType(${thisType}, `);
+                str.overwrite(attr.expression.end, attr.end, ')}');
+                return;
+            }
         }
 
         //one way binding
@@ -211,7 +236,8 @@ export function convertHtmlxToJsx(
 
         str.remove(attr.start, attr.start + 'bind:'.length);
         if (attr.expression.start == attr.start + 'bind:'.length) {
-            str.appendLeft(attr.end, `={${attr.name}}`);
+            str.prependLeft(attr.expression.start, `${attr.name}={`);
+            str.appendLeft(attr.end, `}`);
             return;
         }
 
@@ -352,7 +378,10 @@ export function convertHtmlxToJsx(
 
             const equals = htmlx.lastIndexOf('=', attrVal.start);
             if (attrVal.type == 'Text') {
-                if (attrVal.end == attr.end) {
+                const endsWithQuote =
+                    htmlx.lastIndexOf('"', attrVal.end) === attrVal.end - 1 ||
+                    htmlx.lastIndexOf("'", attrVal.end) === attrVal.end - 1;
+                if (attrVal.end == attr.end && !endsWithQuote) {
                     //we are not quoted. Add some
                     str.prependRight(equals + 1, '"');
                     str.appendLeft(attr.end, '"');
@@ -481,7 +510,11 @@ export function convertHtmlxToJsx(
         if (!awaitBlock.pending.skip) {
             //thenBlock includes the {:then}
             thenStart = awaitBlock.then.start;
-            thenEnd = htmlx.indexOf('}', awaitBlock.value.end) + 1;
+            if (awaitBlock.value) {
+                thenEnd = htmlx.indexOf('}', awaitBlock.value.end) + 1;
+            } else {
+                thenEnd = htmlx.indexOf('}', awaitBlock.then.start) + 1;
+            }
             str.prependLeft(thenStart, '</>; ');
             // add the start tag too
             const awaitEnd = htmlx.indexOf('}', awaitBlock.expression.end);
@@ -491,13 +524,17 @@ export function convertHtmlxToJsx(
             thenEnd = htmlx.lastIndexOf('}', awaitBlock.then.start) + 1;
             thenStart = htmlx.indexOf('then', awaitBlock.expression.end);
         }
-        str.overwrite(
-            thenStart,
-            thenEnd,
-            '_$$p.then((' +
-                htmlx.substring(awaitBlock.value.start, awaitBlock.value.end) +
-                ') => {<>',
-        );
+        if (awaitBlock.value) {
+            str.overwrite(
+                thenStart,
+                thenEnd,
+                '_$$p.then((' +
+                    htmlx.substring(awaitBlock.value.start, awaitBlock.value.end) +
+                    ') => {<>',
+            );
+        } else {
+            str.overwrite(thenStart, thenEnd, '_$$p.then(() => {<>');
+        }
         //{:catch error} ->
         //</>}).catch((error) => {<>
         if (!awaitBlock.catch.skip) {

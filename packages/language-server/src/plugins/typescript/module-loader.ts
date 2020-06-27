@@ -71,6 +71,7 @@ export function createSvelteModuleLoader(
     return {
         fileExists: svelteSys.fileExists,
         readFile: svelteSys.readFile,
+        readDirectory: svelteSys.readDirectory,
         deleteFromModuleCache: (path: string) => moduleCache.delete(path),
         resolveModuleNames,
     };

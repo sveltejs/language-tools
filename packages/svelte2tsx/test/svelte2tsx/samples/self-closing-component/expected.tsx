@@ -1,7 +1,8 @@
 <></>;import Test from './Test.svelte';
 function render() {
 
- 
+
+let a = 'b';
 ;
 <><Test b="6" />
 </>

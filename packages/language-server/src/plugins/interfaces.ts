@@ -84,6 +84,11 @@ export interface CodeActionsProvider {
         range: Range,
         context: CodeActionContext,
     ): Resolvable<CodeAction[]>;
+    executeCommand?(
+        document: Document,
+        command: string,
+        args?: any[],
+    ): Resolvable<WorkspaceEdit | null>;
 }
 
 export interface FileRename {
@@ -93,6 +98,15 @@ export interface FileRename {
 
 export interface UpdateImportsProvider {
     updateImports(fileRename: FileRename): Resolvable<WorkspaceEdit | null>;
+}
+
+export interface RenameProvider {
+    rename(
+        document: Document,
+        position: Position,
+        newName: string,
+    ): Resolvable<WorkspaceEdit | null>;
+    prepareRename(document: Document, position: Position): Resolvable<Range | null>;
 }
 
 export interface OnWatchFileChanges {
@@ -109,6 +123,7 @@ export type LSProvider = DiagnosticsProvider &
     DocumentSymbolsProvider &
     DefinitionsProvider &
     UpdateImportsProvider &
-    CodeActionsProvider;
+    CodeActionsProvider &
+    RenameProvider;
 
 export type Plugin = Partial<LSProvider & OnWatchFileChanges>;

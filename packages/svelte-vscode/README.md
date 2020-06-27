@@ -14,6 +14,7 @@ If you added `"files.associations": {"*.svelte": "html" }` to your VSCode settin
     -   Diagnostic messages for warnings and errors
     -   Support for svelte preprocessors that provide source maps
     -   Svelte specific formatting (via [prettier-plugin-svelte](https://github.com/sveltejs/prettier-plugin-svelte))
+    -   A command to preview the compiled code (DOM mode): "Svelte: Show Compiled Code"
 -   HTML
     -   Hover info
     -   Autocompletions
@@ -45,14 +46,14 @@ If you added `"files.associations": {"*.svelte": "html" }` to your VSCode settin
 
 #### Generic setup
 
-If a svelte file contains some language other than `html`, `css` or `javascript`, `svelte-vscode` needs to know how to [preprocess](https://svelte.dev/docs#svelte_preprocess) it. This can be achieved by creating a `svelte.config.js` file at the root of your project which exports a svelte options object (similar to `svelte-loader` and `rollup-plugin-svelte`).
+If a svelte file contains some language other than `html`, `css` or `javascript`, `svelte-vscode` needs to know how to [preprocess](https://svelte.dev/docs#svelte_preprocess) it. This can be achieved by creating a `svelte.config.js` file at the root of your project which exports a svelte options object (similar to `svelte-loader` and `rollup-plugin-svelte`). It's recommended to use the official [svelte-preprocess](https://github.com/sveltejs/svelte-preprocess) package which can handle many languages.
 
 ```js
 // svelte.config.js
-const preprocess = require('my-example-svelte-preprocessor');
+const sveltePreprocess = require('svelte-preprocess');
 
 module.exports = {
-    preprocess: [preprocess()],
+    preprocess: sveltePreprocess(),
     // ...other svelte options
 };
 ```
@@ -80,6 +81,11 @@ It's also necessary to add a `type="text/language-name"` or `lang="language-name
 Path to the node executable you would like to use to run the language server.
 This is useful when you depend on native modules such as node-sass as without
 this they will run in the context of vscode, meaning v8 version mismatch is likely.
+
+##### `svelte.language-server.ls-path`
+
+Path to the langauge server file (either a relative path from the workspace root or an absolute path).
+Can be used to use a custom variant of the language server.
 
 ##### `svelte.language-server.port`
 
@@ -187,3 +193,7 @@ Enable autocompletion for Svelte (for tags like #if/#each). _Default_: `true`
 ##### `svelte.plugin.svelte.rename.enable`
 
 Enable rename functionality (rename svelte files or variables inside svelte files). _Default_: `true`
+
+##### `svelte.plugin.svelte.codeActions.enable`
+
+Enable code actions for Svelte. _Default_: `true`
