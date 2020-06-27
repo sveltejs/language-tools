@@ -19,7 +19,6 @@
     },
     "homepage": "https://github.com/sveltejs/language-tools#readme",
     "dependencies": {
-        "@tsconfig/node12": "^1.0.0",
         "chalk": "^4.0.0",
         "glob": "^7.1.6",
         "minimist": "^1.2.5",
@@ -34,6 +33,7 @@
         "test": "echo 'NOOP'"
     },
     "devDependencies": {
+        "@tsconfig/node12": "^1.0.0",
         "@types/glob": "^7.1.1",
         "@types/minimist": "^1.2.0",
         "typescript": "*"
