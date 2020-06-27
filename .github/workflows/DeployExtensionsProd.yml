@@ -24,7 +24,7 @@ jobs:
       - run: "npm install -g json"
 
       # Setup the environment
-      - run: 'json -I -f packages/svelte-vscode/package.json -e "this.version=\`${{ github.ref }}\`"'
+      - run: 'json -I -f packages/svelte-vscode/package.json -e "this.version=\`${{ github.ref }}\`.split(\`/\`).pop()"'
 
       # To deploy we need isolated node_modules folders which yarn won't do because it is a workspace
       # So, remove the workspace
