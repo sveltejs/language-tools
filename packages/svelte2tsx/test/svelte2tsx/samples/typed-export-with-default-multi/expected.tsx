@@ -2,8 +2,8 @@
 
      let name: string = "world",
         world: string = ''
-name = __sveltets_invalidate(() => name);
-world = __sveltets_invalidate(() => world);
+name = __sveltets_invalidateWithDefault(() => name);
+world = __sveltets_invalidateWithDefault(() => world);
 ;
 <></>
 return { props: {name: name , world: world} as {name: string, world: string}, slots: {} }}

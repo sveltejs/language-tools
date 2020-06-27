@@ -418,7 +418,7 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
                 const name = identifier.text;
                 str.appendRight(
                     declarationEnd,
-                    `\n${name} = __sveltets_invalidate(() => ${name});`
+                    `\n${name} = __sveltets_invalidateWithDefault(() => ${name});`
                 );
             }
         }

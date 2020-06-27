@@ -3,7 +3,7 @@
     /**@type { string | number }*/
      let name = "world",
         world = ''
-name = __sveltets_invalidate(() => name);;
+name = __sveltets_invalidateWithDefault(() => name);;
 ;
 <></>
 return { props: {name: name , world: world}, slots: {} }}
