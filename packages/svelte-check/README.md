@@ -1,25 +1,14 @@
 # Check your code with svelte-check
 
-Provides diagnostics for things such as
+Provides CLI diagnostics checks for:
 
--   unused css
+-   Unused CSS
 -   Svelte A11y hints
--   JavaScript/TypeScript diagnostics
+-   JavaScript/TypeScript compiler errors
 
 Requires Node 12 or later.
 
 ### Usage:
-
-#### Global
-
-Installation:
-
-`npm i svelte-check -g`
-
-Usage:
-
-1. Go to folder where to start checking
-2. `svelte-check`
 
 #### Local / in your project
 
@@ -48,6 +37,17 @@ Usage:
 
 `npm run svelte-check`
 
+#### Global (not recommended)
+
+Installation:
+
+`npm i svelte-check -g`
+
+Usage:
+
+1. Go to folder where to start checking
+2. `svelte-check`
+
 ### Args:
 
 `--workspace <path to your workspace, where checking starts>`
@@ -66,7 +66,7 @@ on which the number and types of subsequent columns may differ.
 
 The first row is of type `START` and contains the workspace folder (wrapped in quotes).
 
-Example:
+###### Example:
 
 ```
 1590680325583 START "/home/user/language-tools/packages/language-server/test/plugins/typescript/testfiles"
@@ -76,7 +76,7 @@ Any number of `ERROR` or `WARNING` records may follow. Their structure is identi
 us the filename, the line and column numbers, and the error message. The filename is relative
 to the workspace directory. The filename and the message are both wrapped in quotes.
 
-Example:
+###### Example:
 
 ```
 1590680326283 ERROR "codeactions.svelte" 1:16 "Cannot find module 'blubb' or its corresponding type declarations."
@@ -86,7 +86,7 @@ Example:
 The output concludes with a `COMPLETED` message that summarizes total numbers of files, errors,
 and warnings that were encountered during the check.
 
-Example:
+###### Example:
 
 ```
 1590680326807 COMPLETED 20 FILES 21 ERRORS 1 WARNINGS
@@ -94,7 +94,7 @@ Example:
 
 If the application experiences a runtime error, this error will appear as a `FAILURE` record.
 
-Example:
+###### Example:
 
 ```
 1590680328921 FAILURE "Connection closed"
