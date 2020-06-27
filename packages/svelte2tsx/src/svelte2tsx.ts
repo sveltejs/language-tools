@@ -657,14 +657,6 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
         //handle stores etc
         if (ts.isIdentifier(node)) handleIdentifier(node, parent);
 
-        if (
-            ts.isLabeledStatement(node) &&
-            parent == tsAst && //top level
-            node.label.text == '$'
-        ) {
-            // console.log(node);
-        }
-
         //track implicit declarations in reactive blocks at the top level
         if (
             ts.isLabeledStatement(node) &&
