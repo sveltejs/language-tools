@@ -1,7 +1,7 @@
 import { getEmmetCompletionParticipants } from 'vscode-emmet-helper';
 import { getLanguageService, HTMLDocument } from 'vscode-html-languageservice';
 import { CompletionList, Hover, Position, SymbolInformation } from 'vscode-languageserver';
-import { DocumentManager, Document } from '../../lib/documents';
+import { DocumentManager, Document, isInTag } from '../../lib/documents';
 import { LSConfigManager, LSHTMLConfig } from '../../ls-config';
 import { svelteHtmlDataProvider } from './dataProvider';
 import { HoverProvider, CompletionsProvider } from '../interfaces';
@@ -42,7 +42,11 @@ export class HTMLPlugin implements HoverProvider, CompletionsProvider {
             return null;
         }
 
-        if (this.isInsideMoustacheTag(html, document, position)) {
+        if (
+            this.isInsideMoustacheTag(html, document, position) ||
+            isInTag(position, document.scriptInfo) ||
+            isInTag(position, document.moduleScriptInfo)
+        ) {
             return null;
         }
 
@@ -54,7 +58,11 @@ export class HTMLPlugin implements HoverProvider, CompletionsProvider {
             getEmmetCompletionParticipants(document, position, 'html', {}, emmetResults),
         ]);
         const results = this.lang.doComplete(document, position, html);
-        return CompletionList.create([...results.items, ...emmetResults.items], true);
+        return CompletionList.create(
+            [...results.items, ...emmetResults.items],
+            // Emmet completions change on every keystroke, so they are never complete
+            emmetResults.items.length > 0,
+        );
     }
 
     doTagComplete(document: Document, position: Position): string | null {

@@ -10,6 +10,8 @@ import {
     CodeActionKind,
     RenameFile,
     DocumentUri,
+    ApplyWorkspaceEditRequest,
+    ApplyWorkspaceEditParams,
 } from 'vscode-languageserver';
 import { DocumentManager, Document } from './lib/documents';
 import {
@@ -78,6 +80,7 @@ export function startServer(options?: LSOptions) {
             Logger.error('No workspace path set');
         }
 
+        pluginHost.initialize(!!evt.initializationOptions.dontFilterIncompleteCompletions);
         pluginHost.updateConfig(evt.initializationOptions?.config);
         pluginHost.register(
             (sveltePlugin = new SveltePlugin(
@@ -88,6 +91,8 @@ export function startServer(options?: LSOptions) {
         pluginHost.register(new HTMLPlugin(docManager, configManager));
         pluginHost.register(new CSSPlugin(docManager, configManager));
         pluginHost.register(new TypeScriptPlugin(docManager, configManager, workspacePath));
+
+        const clientSupportApplyEditCommand = !!evt.capabilities.workspace?.applyEdit;
 
         return {
             capabilities: {
@@ -107,18 +112,20 @@ export function startServer(options?: LSOptions) {
                         '@',
                         '<',
 
-                        // For Emmet
+                        // Emmet
                         '>',
                         '*',
                         '#',
                         '$',
-                        ' ',
                         '+',
                         '^',
                         '(',
                         '[',
                         '@',
                         '-',
+                        // No whitespace because
+                        // it makes for weird/too many completions
+                        // of other completion providers
 
                         // Svelte
                         ':',
@@ -134,9 +141,24 @@ export function startServer(options?: LSOptions) {
                           codeActionKinds: [
                               CodeActionKind.QuickFix,
                               CodeActionKind.SourceOrganizeImports,
+                              ...(clientSupportApplyEditCommand ? [CodeActionKind.Refactor] : []),
                           ],
                       }
                     : true,
+                executeCommandProvider: clientSupportApplyEditCommand
+                    ? {
+                          commands: [
+                              'function_scope_0',
+                              'function_scope_1',
+                              'function_scope_2',
+                              'function_scope_3',
+                              'constant_scope_0',
+                              'constant_scope_1',
+                              'constant_scope_2',
+                              'constant_scope_3',
+                          ],
+                      }
+                    : undefined,
                 renameProvider: evt.capabilities.textDocument?.rename?.prepareSupport
                     ? { prepareProvider: true }
                     : true,
@@ -172,9 +194,22 @@ export function startServer(options?: LSOptions) {
     );
     connection.onDocumentSymbol((evt) => pluginHost.getDocumentSymbols(evt.textDocument));
     connection.onDefinition((evt) => pluginHost.getDefinitions(evt.textDocument, evt.position));
+
     connection.onCodeAction((evt) =>
         pluginHost.getCodeActions(evt.textDocument, evt.range, evt.context),
     );
+    connection.onExecuteCommand(async (evt) => {
+        const result = await pluginHost.executeCommand(
+            { uri: evt.arguments?.[0] },
+            evt.command,
+            evt.arguments,
+        );
+        if (result) {
+            const edit: ApplyWorkspaceEditParams = { edit: result };
+            connection?.sendRequest(ApplyWorkspaceEditRequest.type.method, edit);
+        }
+    });
+
     connection.onCompletionResolve((completionItem) => {
         const data = (completionItem as AppCompletionItem).data as TextDocumentIdentifier;
 

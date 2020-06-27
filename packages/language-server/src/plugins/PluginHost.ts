@@ -29,6 +29,7 @@ import {
     FileRename,
 } from './interfaces';
 import { Logger } from '../logger';
+import { regexLastIndexOf } from '../utils';
 
 enum ExecuteMode {
     None,
@@ -37,9 +38,14 @@ enum ExecuteMode {
 }
 
 export class PluginHost implements LSProvider, OnWatchFileChanges {
+    private filterIncompleteCompletions = false;
     private plugins: Plugin[] = [];
 
     constructor(private documentsManager: DocumentManager, private config: LSConfigManager) {}
+
+    initialize(dontFilterIncompleteCompletions: boolean) {
+        this.filterIncompleteCompletions = !dontFilterIncompleteCompletions;
+    }
 
     register(plugin: Plugin) {
         this.plugins.push(plugin);
@@ -87,14 +93,28 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
             )
         ).filter((completion) => completion != null);
 
-        const flattenedCompletions = flatten(completions.map((completion) => completion.items));
-        return CompletionList.create(
-            flattenedCompletions,
-            completions.reduce(
-                (incomplete, completion) => incomplete || completion.isIncomplete,
-                false as boolean,
-            ),
+        let flattenedCompletions = flatten(completions.map((completion) => completion.items));
+        const isIncomplete = completions.reduce(
+            (incomplete, completion) => incomplete || completion.isIncomplete,
+            false as boolean,
         );
+
+        // If the result is incomplete, we need to filter the results ourselves
+        // to throw out non-matching results. VSCode does filter client-side,
+        // but other IDEs might not.
+        if (isIncomplete && this.filterIncompleteCompletions) {
+            const offset = document.offsetAt(position);
+            // Assumption for performance reasons:
+            // Noone types import names longer than 20 characters and still expects perfect autocompletion.
+            const text = document.getText().substring(Math.max(0, offset - 20), offset);
+            const start = regexLastIndexOf(text, /[\W\s]/g) + 1;
+            const filterValue = text.substring(start).toLowerCase();
+            flattenedCompletions = flattenedCompletions.filter((comp) =>
+                comp.label.toLowerCase().includes(filterValue),
+            );
+        }
+
+        return CompletionList.create(flattenedCompletions, isIncomplete);
     }
 
     async resolveCompletion(
@@ -226,6 +246,23 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
                 [document, range, context],
                 ExecuteMode.Collect,
             ),
+        );
+    }
+
+    async executeCommand(
+        textDocument: TextDocumentIdentifier,
+        command: string,
+        args?: any[],
+    ): Promise<WorkspaceEdit | null> {
+        const document = this.getDocument(textDocument.uri);
+        if (!document) {
+            throw new Error('Cannot call methods on an unopened document');
+        }
+
+        return await this.execute<WorkspaceEdit>(
+            'executeCommand',
+            [document, command, args],
+            ExecuteMode.FirstNonNull,
         );
     }
 

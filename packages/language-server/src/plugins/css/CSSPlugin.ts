@@ -147,7 +147,8 @@ export class CSSPlugin
             [...(results ? results.items : []), ...emmetResults.items].map((completionItem) =>
                 mapCompletionItemToOriginal(cssDocument, completionItem),
             ),
-            true,
+            // Emmet completions change on every keystroke, so they are never complete
+            emmetResults.items.length > 0,
         );
     }
 
