@@ -4,7 +4,7 @@ Provides syntax highlighting and rich intellisense for Svelte components in VS C
 
 ## Setup
 
-Do you want to use Typescript/SCSS/Less/..? See "Using with preprocessors" below.
+Do you want to use TypeScript/SCSS/Less/..? See "Using with preprocessors" below.
 
 If you added `"files.associations": {"*.svelte": "html" }` to your VSCode settings, remove it.
 

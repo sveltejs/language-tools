@@ -1,6 +1,6 @@
 # Svelte for Atom
 
-Provides syntax highlighting and rich intellisense for Svelte components in Atom, utilising the [svelte language server](https://github.com/UnwrittenFun/svelte-language-server).
+Provides syntax highlighting and rich intellisense for Svelte components in Atom, utilising the [svelte language server](https://github.com/sveltejs/language-tools/).
 
 ## Features
 
@@ -36,3 +36,9 @@ Provides syntax highlighting and rich intellisense for Svelte components in Atom
 
 -   [Svelte Language Server](https://github.com/sveltejs/language-tools/tree/master/packages/svelte-language-server)
 -   [Svelte VS Code](https://github.com/sveltejs/language-tools/tree/master/packages/svelte-vscode)
+
+## Credits
+
+-   [UnwrittenFun](https://github.com/UnwrittenFun) for creating the foundation which the official extensions are built on
+-   Vue's [Vetur](https://github.com/vuejs/vetur) language server which heavily inspires this project
+-   [halfnelson](https://github.com/halfnelson) for creating `svelte2tsx`

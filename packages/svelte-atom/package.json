@@ -1,8 +1,9 @@
 {
-  "name": "ide-svelte",
-  "version": "0.1.1",
+  "name": "svelte-atom",
+  "private": true,
+  "version": "0.0.1",
   "main": "./lib/main.js",
-  "description": "Syntax, diagnostics, and other smarts for svelte",
+  "description": "The official Atom package for Svelte",
   "keywords": [
     "language",
     "grammar",
