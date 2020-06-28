@@ -8,7 +8,12 @@ import {
     TextDocumentIdentifier,
     TextEdit,
 } from 'vscode-languageserver';
-import { Document, mapCompletionItemToOriginal, mapRangeToOriginal } from '../../../lib/documents';
+import {
+    Document,
+    isInTag,
+    mapCompletionItemToOriginal,
+    mapRangeToOriginal,
+} from '../../../lib/documents';
 import { isNotNullOrUndefined, pathToUrl } from '../../../utils';
 import { AppCompletionItem, AppCompletionList, CompletionsProvider } from '../../interfaces';
 import { SvelteSnapshotFragment } from '../DocumentSnapshot';
@@ -46,6 +51,10 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         position: Position,
         completionContext?: CompletionContext,
     ): Promise<AppCompletionList<CompletionEntryWithIdentifer> | null> {
+        if (isInTag(position, document.styleInfo)) {
+            return null;
+        }
+
         const { lang, tsDoc } = this.lsAndTsDocResovler.getLSAndTSDoc(document);
 
         const filePath = tsDoc.filePath;
@@ -72,17 +81,14 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             return null;
         }
 
-        const completions = lang.getCompletionsAtPosition(
-            filePath,
-            fragment.offsetAt(fragment.getGeneratedPosition(position)),
-            {
-                includeCompletionsForModuleExports: true,
-                triggerCharacter: validTriggerCharacter,
-            },
-        );
+        const offset = fragment.offsetAt(fragment.getGeneratedPosition(position));
+        const completions = lang.getCompletionsAtPosition(filePath, offset, {
+            includeCompletionsForModuleExports: true,
+            triggerCharacter: validTriggerCharacter,
+        });
 
         if (!completions) {
-            return null;
+            return tsDoc.parserError ? CompletionList.create([], true) : null;
         }
 
         const completionItems = completions.entries

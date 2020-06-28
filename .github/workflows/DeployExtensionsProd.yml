@@ -1,0 +1,43 @@
+name: Tagged Production Deploys
+
+on:
+  push:
+    tags:
+      - "*"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v1
+        with:
+          node-version: "12.x"
+          registry-url: "https://registry.npmjs.org"
+
+      # Ensure everything is compiling
+      - run: "yarn install"
+      - run: "yarn build"
+
+      # Lets us use one-liner JSON manipulations the package.json files
+      - run: "npm install -g json"
+
+      # Setup the environment
+      - run: 'json -I -f packages/svelte-vscode/package.json -e "this.version=\`${{ github.ref }}\`.split(\`/\`).pop()"'
+
+      # To deploy we need isolated node_modules folders which yarn won't do because it is a workspace
+      # So, remove the workspace
+      - run: "rm package.json yarn.lock"  # Re-run the  yarn install outside of the workspace
+
+      - run: |
+         cd packages/svelte-vscode
+         yarn install
+
+         # Just a hard constraint from the vscode marketplace's usage of azure tokens
+         echo "Once a year this expires, tell Orta to access https://dev.azure.com/ortatherox0608/_usersSettings/tokens to get a new one"
+
+         # Ship it
+         npx vsce publish --yarn -p $VSCE_TOKEN
+        env:
+          VSCE_TOKEN: ${{ secrets.AZURE_PAN_TOKEN }}

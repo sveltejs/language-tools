@@ -266,6 +266,18 @@ export class TypeScriptPlugin
         return this.codeActionsProvider.getCodeActions(document, range, context);
     }
 
+    async executeCommand(
+        document: Document,
+        command: string,
+        args?: any[],
+    ): Promise<WorkspaceEdit | null> {
+        if (!this.featureEnabled('codeActions')) {
+            return null;
+        }
+
+        return this.codeActionsProvider.executeCommand(document, command, args);
+    }
+
     async updateImports(fileRename: FileRename): Promise<WorkspaceEdit | null> {
         if (!this.featureEnabled('rename')) {
             return null;

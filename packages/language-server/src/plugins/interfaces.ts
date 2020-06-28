@@ -84,6 +84,11 @@ export interface CodeActionsProvider {
         range: Range,
         context: CodeActionContext,
     ): Resolvable<CodeAction[]>;
+    executeCommand?(
+        document: Document,
+        command: string,
+        args?: any[],
+    ): Resolvable<WorkspaceEdit | null>;
 }
 
 export interface FileRename {

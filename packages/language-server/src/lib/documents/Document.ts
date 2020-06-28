@@ -1,6 +1,6 @@
 import { urlToPath } from '../../utils';
 import { WritableDocument } from './DocumentBase';
-import { extractTag, TagInformation } from './utils';
+import { TagInformation, extractStyleTag, extractScriptTags } from './utils';
 
 /**
  * Represents a text document contains a svelte component.
@@ -8,6 +8,7 @@ import { extractTag, TagInformation } from './utils';
 export class Document extends WritableDocument {
     languageId = 'svelte';
     scriptInfo: TagInformation | null = null;
+    moduleScriptInfo: TagInformation | null = null;
     styleInfo: TagInformation | null = null;
 
     constructor(public url: string, public content: string) {
@@ -16,8 +17,10 @@ export class Document extends WritableDocument {
     }
 
     private updateTagInfo() {
-        this.scriptInfo = extractTag(this.content, 'script');
-        this.styleInfo = extractTag(this.content, 'style');
+        const scriptTags = extractScriptTags(this.content);
+        this.scriptInfo = scriptTags?.script || null;
+        this.moduleScriptInfo = scriptTags?.moduleScript || null;
+        this.styleInfo = extractStyleTag(this.content);
     }
 
     /**

@@ -84,7 +84,11 @@ export function activate(context: ExtensionContext) {
             configurationSection: ['svelte'],
             fileEvents: workspace.createFileSystemWatcher('{**/*.js,**/*.ts}', false, false, false),
         },
-        initializationOptions: { config: workspace.getConfiguration('svelte.plugin') },
+        initializationOptions: {
+            config: workspace.getConfiguration('svelte.plugin'),
+            prettierConfig: workspace.getConfiguration('prettier'),
+            dontFilterIncompleteCompletions: true, // VSCode filters client side and is smarter at it than us
+        },
     };
 
     let ls = createLanguageServer(serverOptions, clientOptions);

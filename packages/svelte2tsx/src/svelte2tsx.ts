@@ -679,16 +679,44 @@ function addComponentExport(
     str: MagicString,
     uses$$propsOr$$restProps: boolean,
     strictMode: boolean,
+    isTsFile: boolean,
 ) {
-    const propDef = strictMode
-        ? uses$$propsOr$$restProps
-            ? '__sveltets_with_any(render().props)'
-            : 'render().props'
-        : `__sveltets_partial${uses$$propsOr$$restProps ? '_with_any' : ''}(render().props)`;
+    const propDef =
+        // Omit partial-wrapper only if both strict mode and ts file, because
+        // in a js file the user has no way of telling the language that
+        // the prop is optional
+        strictMode && isTsFile
+            ? uses$$propsOr$$restProps
+                ? '__sveltets_with_any(render().props)'
+                : 'render().props'
+            : `__sveltets_partial${uses$$propsOr$$restProps ? '_with_any' : ''}(render().props)`;
     str.append(
         // eslint-disable-next-line max-len
         `\n\nexport default class {\n    $$prop_def = ${propDef}\n    $$slot_def = render().slots\n}`,
     );
+}
+
+function isTsFile(scriptTag: Node | undefined, moduleScriptTag: Node | undefined) {
+    return tagIsLangTs(scriptTag) || tagIsLangTs(moduleScriptTag);
+
+    function tagIsLangTs(tag: Node | undefined) {
+        return tag?.attributes?.some((attr) => {
+            if (attr.name !== 'lang' && attr.name !== 'type') {
+                return false;
+            }
+
+            const type = attr.value[0]?.raw;
+            switch (type) {
+                case 'ts':
+                case 'typescript':
+                case 'text/ts':
+                case 'text/typescript':
+                    return true;
+                default:
+                    return false;
+            }
+        });
+    }
 }
 
 function processModuleScriptTag(str: MagicString, script: Node) {
@@ -831,7 +859,12 @@ export function svelte2tsx(svelte: string, options?: { filename?: string; strict
         processModuleScriptTag(str, moduleScriptTag);
     }
 
-    addComponentExport(str, uses$$props || uses$$restProps, !!options?.strictMode);
+    addComponentExport(
+        str,
+        uses$$props || uses$$restProps,
+        !!options?.strictMode,
+        isTsFile(scriptTag, moduleScriptTag),
+    );
 
     return {
         code: str.toString(),

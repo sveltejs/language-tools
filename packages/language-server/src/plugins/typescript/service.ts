@@ -72,11 +72,14 @@ export function createLanguageService(
 
     const host: ts.LanguageServiceHost = {
         getCompilationSettings: () => compilerOptions,
-        getScriptFileNames: () => Array.from(new Set([
-            ...snapshotManager.getProjectFileNames(),
-            ...snapshotManager.getFileNames(),
-            ...svelteTsxFiles
-        ])),
+        getScriptFileNames: () =>
+            Array.from(
+                new Set([
+                    ...snapshotManager.getProjectFileNames(),
+                    ...snapshotManager.getFileNames(),
+                    ...svelteTsxFiles,
+                ]),
+            ),
         getScriptVersion: (fileName: string) => getSnapshot(fileName).version.toString(),
         getScriptSnapshot: getSnapshot,
         getCurrentDirectory: () => workspacePath,
@@ -98,7 +101,7 @@ export function createLanguageService(
         getService: () => languageService,
         updateDocument,
         deleteDocument,
-        snapshotManager
+        snapshotManager,
     };
 
     function deleteDocument(filePath: string): void {
@@ -149,43 +152,12 @@ export function createLanguageService(
     }
 
     function getParsedConfig() {
-        const sveltePkgInfo = getPackageInfo('svelte', workspacePath);
-        let compilerOptions: ts.CompilerOptions = {
+        const forcedCompilerOptions: ts.CompilerOptions = {
             allowNonTsExtensions: true,
             target: ts.ScriptTarget.Latest,
             module: ts.ModuleKind.ESNext,
             moduleResolution: ts.ModuleResolutionKind.NodeJs,
             allowJs: true,
-            types: [resolve(sveltePkgInfo.path, 'types', 'runtime')],
-        };
-
-        // always let ts parse config to get default compilerOption
-        let configJson = (
-            tsconfigPath && ts.readConfigFile(tsconfigPath, ts.sys.readFile).config
-        ) || {
-            compilerOptions: getDeaultJsCompilerOption()
-        };
-
-        // Only default exclude when no extends for now
-        if (!configJson.extends) {
-            configJson = Object.assign({
-                exclude: getDefaultExclude()
-            }, configJson);
-        }
-
-        const parsedConfig = ts.parseJsonConfigFileContent(
-            configJson,
-            ts.sys,
-            workspacePath,
-            compilerOptions,
-            tsconfigPath,
-            undefined,
-            [{ extension: 'svelte', isMixedContent: false, scriptKind: ts.ScriptKind.TSX }],
-        );
-
-        compilerOptions = { ...compilerOptions, ...parsedConfig.options };
-
-        const forcedOptions: ts.CompilerOptions = {
             noEmit: true,
             declaration: false,
             skipLibCheck: true,
@@ -193,7 +165,52 @@ export function createLanguageService(
             jsx: ts.JsxEmit.Preserve,
             jsxFactory: 'h',
         };
-        compilerOptions = { ...compilerOptions, ...forcedOptions };
+
+        // always let ts parse config to get default compilerOption
+        let configJson =
+            (tsconfigPath && ts.readConfigFile(tsconfigPath, ts.sys.readFile).config) ||
+            getDefaultJsConfig();
+
+        // Only default exclude when no extends for now
+        if (!configJson.extends) {
+            configJson = Object.assign(
+                {
+                    exclude: getDefaultExclude(),
+                },
+                configJson,
+            );
+        }
+
+        configJson.compilerOptions = configJson.compilerOptions || {};
+        // Reroute react paths to a sink with no typings to prevent conflicts between the
+        // svelte2tsx JSX typings and react's JSX typings.
+        // This may happen if a node module has (in)directly installed/imported react's types.
+        if (!configJson.compilerOptions.paths?.react) {
+            configJson.paths = configJson.paths || {};
+            configJson.paths.react = [
+                ts.sys.resolvePath(resolve(__dirname, '../../../../public/sink.d.ts')),
+            ];
+        }
+
+        const parsedConfig = ts.parseJsonConfigFileContent(
+            configJson,
+            ts.sys,
+            workspacePath,
+            forcedCompilerOptions,
+            tsconfigPath,
+            undefined,
+            [{ extension: 'svelte', isMixedContent: false, scriptKind: ts.ScriptKind.TSX }],
+        );
+
+        const sveltePkgInfo = getPackageInfo('svelte', workspacePath || process.cwd());
+        const types = (parsedConfig.options?.types ?? []).concat(
+            resolve(sveltePkgInfo.path, 'types', 'runtime'),
+        );
+        const compilerOptions: ts.CompilerOptions = {
+            ...parsedConfig.options,
+            types,
+            ...forcedCompilerOptions,
+        };
 
         return {
             ...parsedConfig,
@@ -202,19 +219,24 @@ export function createLanguageService(
     }
 
     /**
-     * this should only be used when no jsconfig/tsconfig at all
+     * This should only be used when there's no jsconfig/tsconfig at all
      */
-    function getDeaultJsCompilerOption(): ts.CompilerOptions {
+    function getDefaultJsConfig(): {
+        compilerOptions: ts.CompilerOptions;
+        include: string[];
+    } {
         return {
-            maxNodeModuleJsDepth: 2,
-            allowSyntheticDefaultImports: true,
+            compilerOptions: {
+                maxNodeModuleJsDepth: 2,
+                allowSyntheticDefaultImports: true,
+            },
+            // Necessary to not flood the initial files
+            // with potentially completely unrelated .ts/.js files:
+            include: [],
         };
     }
 
     function getDefaultExclude() {
-        return [
-            '__sapper__',
-            'node_modules'
-        ];
+        return ['__sapper__', 'node_modules'];
     }
 }

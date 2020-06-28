@@ -57,12 +57,12 @@ const regexAwaitEnd = new RegExp('{/await}', 'igms');
  * @param source text content to extract tag from
  * @param tag the tag to extract
  */
-export function extractTag(source: string, tag: 'script' | 'style'): TagInformation | null {
+function extractTags(source: string, tag: 'script' | 'style'): TagInformation[] {
     const { childNodes } = parse5.parseFragment(source, {
         sourceCodeLocationInfo: true,
     }) as { childNodes: ParsedNode[] };
 
-    let matchedNode;
+    const matchedNodes: ParsedNode[] = [];
     let currentSvelteDirective;
     for (const node of childNodes) {
         /**
@@ -98,40 +98,65 @@ export function extractTag(source: string, tag: 'script' | 'style'): TagInformat
                 else if (regexEach.exec(node.value)) currentSvelteDirective = 'each';
                 else if (regexAwait.exec(node.value)) currentSvelteDirective = 'await';
             } else if (isMatchingTag(source, node, tag)) {
-                matchedNode = node;
-                break;
+                matchedNodes.push(node);
             }
         }
     }
-    if (matchedNode === undefined) return null; // no match at all; early return
 
-    const SCL = matchedNode.sourceCodeLocation; // shorthand
-    const attributes = parseAttributes(matchedNode.attrs);
-    /**
-     * Note: `content` will only show top level child node content.
-     * This is ok given that extractTag is only meant to extract top level
-     * <style> and <script> tags. But if that ever changes we may have to make this
-     * recurse and concat all childnodes.
-     */
-    const content = matchedNode.childNodes[0]?.value || '';
-    const start = SCL.startTag.endOffset;
-    const end = SCL.endTag.startOffset;
-    const startPos = positionAt(start, source);
-    const endPos = positionAt(end, source);
-    const container = {
-        start: SCL.startTag.startOffset,
-        end: SCL.endTag.endOffset,
-    };
+    return matchedNodes.map(transformToTagInfo);
 
-    return {
-        content,
-        attributes,
-        start,
-        end,
-        startPos,
-        endPos,
-        container,
-    };
+    function transformToTagInfo(matchedNode: ParsedNode) {
+        const SCL = matchedNode.sourceCodeLocation; // shorthand
+        const attributes = parseAttributes(matchedNode.attrs);
+        /**
+         * Note: `content` will only show top level child node content.
+         * This is ok given that extractTag is only meant to extract top level
+         * <style> and <script> tags. But if that ever changes we may have to make this
+         * recurse and concat all childnodes.
+         */
+        const content = matchedNode.childNodes[0]?.value || '';
+        const start = SCL.startTag.endOffset;
+        const end = SCL.endTag.startOffset;
+        const startPos = positionAt(start, source);
+        const endPos = positionAt(end, source);
+        const container = {
+            start: SCL.startTag.startOffset,
+            end: SCL.endTag.endOffset,
+        };
+
+        return {
+            content,
+            attributes,
+            start,
+            end,
+            startPos,
+            endPos,
+            container,
+        };
+    }
+}
+
+export function extractScriptTags(
+    source: string,
+): { script?: TagInformation; moduleScript?: TagInformation } | null {
+    const scripts = extractTags(source, 'script');
+    if (!scripts.length) {
+        return null;
+    }
+
+    const script = scripts.find((s) => s.attributes['context'] !== 'module');
+    const moduleScript = scripts.find((s) => s.attributes['context'] === 'module');
+    return { script, moduleScript };
+}
+
+export function extractStyleTag(source: string): TagInformation | null {
+    const styles = extractTags(source, 'style');
+    if (!styles.length) {
+        return null;
+    }
+
+    // There can only be one style tag
+    return styles[0];
 }
 
 /**
@@ -208,8 +233,18 @@ function getLineOffsets(text: string) {
     return lineOffsets;
 }
 
-export function isInTag(position: Position, tagInfo: TagInformation | null): boolean {
+export function isInTag(
+    position: Position,
+    tagInfo: TagInformation | null,
+): tagInfo is TagInformation {
     return !!tagInfo && isInRange(Range.create(tagInfo.startPos, tagInfo.endPos), position);
+}
+
+export function isRangeInTag(
+    range: Range,
+    tagInfo: TagInformation | null,
+): tagInfo is TagInformation {
+    return isInTag(range.start, tagInfo) && isInTag(range.end, tagInfo);
 }
 
 export function getTextInRange(range: Range, text: string) {
