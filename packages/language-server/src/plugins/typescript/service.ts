@@ -181,6 +181,17 @@ export function createLanguageService(
             );
         }
 
+        configJson.compilerOptions = configJson.compilerOptions || {};
+        // Reroute react paths to a sink with no typings to prevent conflicts between the
+        // svelte2tsx JSX typings and react's JSX typings.
+        // This may happen if a node module has (in)directly installed/imported react's types.
+        if (!configJson.compilerOptions.paths?.react) {
+            configJson.paths = configJson.paths || {};
+            configJson.paths.react = [
+                ts.sys.resolvePath(resolve(__dirname, '../../../../public/sink.d.ts')),
+            ];
+        }
+
         const parsedConfig = ts.parseJsonConfigFileContent(
             configJson,
             ts.sys,
@@ -194,8 +205,9 @@ export function createLanguageService(
         const files = parsedConfig.fileNames;
 
         const sveltePkgInfo = getPackageInfo('svelte', workspacePath || process.cwd());
-        const types = (parsedConfig.options?.types ?? [])
-            .concat(resolve(sveltePkgInfo.path, 'types', 'runtime'));
+        const types = (parsedConfig.options?.types ?? []).concat(
+            resolve(sveltePkgInfo.path, 'types', 'runtime'),
+        );
         const compilerOptions: ts.CompilerOptions = {
             ...parsedConfig.options,
             types,
