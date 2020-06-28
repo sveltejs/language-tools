@@ -291,7 +291,6 @@ export class TypeScriptPlugin
 
         for (const { fileName, changeType } of onWatchFileChangesParas) {
             const scriptKind = getScriptKindFromFileName(fileName);
-            console.log(scriptKind);
 
             if (scriptKind === ts.ScriptKind.Unknown) {
                 // We don't deal with svelte files here
