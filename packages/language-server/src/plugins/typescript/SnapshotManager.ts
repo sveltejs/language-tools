@@ -4,8 +4,8 @@ import { DocumentSnapshot, SvelteSnapshotOptions } from './DocumentSnapshot';
 import { Logger } from '../../logger';
 
 export interface TsFilesSpec {
-    include: readonly string[];
-    exclude: readonly string[];
+    include?: readonly string[];
+    exclude?: readonly string[];
 }
 
 export class SnapshotManager {
@@ -27,8 +27,8 @@ export class SnapshotManager {
         const resolveToBase = (path: string) => resolve(basePath, path);
 
         return {
-            exclude: fileSpec.exclude.map(resolveToBase),
-            include: fileSpec.include.map(resolveToBase)
+            exclude: fileSpec.exclude?.map(resolveToBase),
+            include: fileSpec.include?.map(resolveToBase)
         };
     }
     updateProjectFilesByDirname(
@@ -48,7 +48,6 @@ export class SnapshotManager {
             );
 
             readDirCache.set(path, projectFilesInDir);
-            console.log(projectFilesInDir);
         }
 
         this.projectFiles = Array.from(new Set([...this.projectFiles, ...projectFilesInDir]));
