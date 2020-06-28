@@ -15,7 +15,7 @@ export async function getDiagnostics(
     try {
         return await tryGetDiagnostics(document, svelteDoc);
     } catch (error) {
-        return getPreprocessErrorDiagnostics(document, error);
+        return getPreprocessErrorDiagnostics(document, svelteDoc, error);
     }
 }
 
@@ -91,9 +91,17 @@ async function createParserErrorDiagnostic(error: any, document: Document) {
 /**
  * Try to infer a nice diagnostic error message from the transpilation error.
  */
-function getPreprocessErrorDiagnostics(document: Document, error: any) {
+function getPreprocessErrorDiagnostics(
+    document: Document,
+    svelteDoc: SvelteDocument,
+    error: any,
+): Diagnostic[] {
     Logger.error('Preprocessing failed');
     Logger.error(error);
+
+    if (svelteDoc.config.loadConfigError) {
+        return getConfigLoadErrorDiagnostics(svelteDoc.config.loadConfigError);
+    }
 
     if (document.styleInfo && error.__source === TranspileErrorSource.Style) {
         return getStyleErrorDiagnostics(error, document);
@@ -109,10 +117,21 @@ function getPreprocessErrorDiagnostics(document: Document, error: any) {
     return getOtherErrorDiagnostics(error);
 }
 
+function getConfigLoadErrorDiagnostics(error: any): Diagnostic[] {
+    return [
+        {
+            message: 'Error in svelte.config.js\n\n' + error,
+            range: Range.create(Position.create(0, 0), Position.create(0, 5)),
+            severity: DiagnosticSeverity.Error,
+            source: 'svelte',
+        },
+    ];
+}
+
 /**
  * Try to infer a nice diagnostic error message from the transpilation error.
  */
-function getStyleErrorDiagnostics(error: any, document: Document) {
+function getStyleErrorDiagnostics(error: any, document: Document): Diagnostic[] {
     return [
         {
             message: getStyleErrorMessage(),
@@ -153,7 +172,7 @@ function getStyleErrorDiagnostics(error: any, document: Document) {
 /**
  * Try to infer a nice diagnostic error message from the transpilation error.
  */
-function getScriptErrorDiagnostics(error: any, document: Document) {
+function getScriptErrorDiagnostics(error: any, document: Document): Diagnostic[] {
     return [
         {
             message: getScriptErrorMessage(),
@@ -183,7 +202,7 @@ function getScriptErrorDiagnostics(error: any, document: Document) {
 /**
  * Try to infer a nice diagnostic error message from the transpilation error.
  */
-function getOtherErrorDiagnostics(error: any) {
+function getOtherErrorDiagnostics(error: any): Diagnostic[] {
     return [
         {
             message: getOtherErrorMessage(),

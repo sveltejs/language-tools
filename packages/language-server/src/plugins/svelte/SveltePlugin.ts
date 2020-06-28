@@ -134,7 +134,10 @@ export class SveltePlugin
         if (!svelteDoc || svelteDoc.version !== document.version) {
             svelteDoc?.destroyTranspiled();
             // Reuse previous config. Assumption: Config does not change often (if at all).
-            const config = svelteDoc?.config || (await this.loadConfig(document));
+            const config =
+                svelteDoc?.config && !svelteDoc.config.loadConfigError
+                    ? svelteDoc.config
+                    : await this.loadConfig(document);
             svelteDoc = new SvelteDocument(document, config);
             this.docManager.set(document, svelteDoc);
         }
@@ -157,6 +160,7 @@ export class SveltePlugin
                 ...DEFAULT_OPTIONS,
                 ...this.useFallbackPreprocessor(document, true),
                 ...NO_GENERATE,
+                loadConfigError: err,
             };
         }
     }

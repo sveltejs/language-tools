@@ -21,6 +21,7 @@ export type SvelteCompileResult = ReturnType<typeof compile>;
 
 export interface SvelteConfig extends CompileOptions {
     preprocess?: PreprocessorGroup;
+    loadConfigError?: any;
 }
 
 export enum TranspileErrorSource {
@@ -83,7 +84,10 @@ export class SvelteDocument {
 
     private getCompileOptions() {
         const config = { ...this.config };
-        delete config.preprocess; // svelte compiler throws an error if we don't do this
+        // svelte compiler throws an error if we don't do this
+        delete config.preprocess;
+        delete config.loadConfigError;
+
         return config;
     }
 
