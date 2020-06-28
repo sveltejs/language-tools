@@ -182,7 +182,7 @@ export function startServer(options?: LSOptions) {
 
     connection.onDidOpenTextDocument((evt) => {
         docManager.openDocument(evt.textDocument);
-        docManager.unmarkOpenedByServer(evt.textDocument.uri);
+        docManager.markAsOpenedInClient(evt.textDocument.uri);
     });
 
     connection.onDidCloseTextDocument((evt) => docManager.closeDocument(evt.textDocument.uri));

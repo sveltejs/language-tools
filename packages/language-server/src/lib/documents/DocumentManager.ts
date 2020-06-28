@@ -13,7 +13,7 @@ export type DocumentEvent = 'documentOpen' | 'documentChange' | 'documentClose';
  */
 export class DocumentManager {
     private emitter = new EventEmitter();
-    private openedByServer = new Set<string>();
+    private openedInClient = new Set<string>();
     public documents: Map<string, Document> = new Map();
     public locked = new Set<string>();
     public deleteCandidates = new Set<string>();
@@ -41,22 +41,18 @@ export class DocumentManager {
         this.locked.add(uri);
     }
 
-    markAsOpenedByServer(uri: string): void {
-        this.openedByServer.add(uri);
-    }
-
-    unmarkOpenedByServer(uri: string): void {
-        this.openedByServer.delete(uri);
+    markAsOpenedInClient(uri: string): void {
+        this.openedInClient.add(uri);
     }
 
     getAllOpenedByClient() {
         return Array.from(this.documents.entries())
-            .filter((doc) => !this.openedByServer.has(doc[0]));
+            .filter((doc) => this.openedInClient.has(doc[0]));
     }
 
     releaseDocument(uri: string): void {
         this.locked.delete(uri);
-        this.openedByServer.delete(uri);
+        this.openedInClient.delete(uri);
         if (this.deleteCandidates.has(uri)) {
             this.deleteCandidates.delete(uri);
             this.closeDocument(uri);
@@ -79,7 +75,7 @@ export class DocumentManager {
             this.deleteCandidates.add(uri);
         }
 
-        this.openedByServer.delete(uri);
+        this.openedInClient.delete(uri);
     }
 
     updateDocument(
