@@ -40,6 +40,7 @@ export class LSAndTSDocResolver {
             version: 0,
         });
         this.docManager.lockDocument(uri);
+        this.docManager.markAsOpenedByServer(uri);
         return document;
     };
 

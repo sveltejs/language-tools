@@ -13,6 +13,7 @@ export type DocumentEvent = 'documentOpen' | 'documentChange' | 'documentClose';
  */
 export class DocumentManager {
     private emitter = new EventEmitter();
+    private openedByServer = new Set<string>();
     public documents: Map<string, Document> = new Map();
     public locked = new Set<string>();
     public deleteCandidates = new Set<string>();
@@ -20,6 +21,7 @@ export class DocumentManager {
     constructor(private createDocument: (textDocument: TextDocumentItem) => Document) {}
 
     openDocument(textDocument: TextDocumentItem): Document {
+        console.log(textDocument.uri);
         let document: Document;
         if (this.documents.has(textDocument.uri)) {
             document = this.documents.get(textDocument.uri)!;
@@ -39,13 +41,28 @@ export class DocumentManager {
         this.locked.add(uri);
     }
 
+    markAsOpenedByServer(uri: string): void {
+        this.openedByServer.add(uri);
+    }
+
+    unmarkOpenedByServer(uri: string): void {
+        this.openedByServer.delete(uri);
+    }
+
+    getAllOpenedByClient() {
+        return Array.from(this.documents.entries())
+            .filter((doc) => !this.openedByServer.has(doc[0]));
+    }
+
     releaseDocument(uri: string): void {
         this.locked.delete(uri);
+        this.openedByServer.delete(uri);
         if (this.deleteCandidates.has(uri)) {
             this.deleteCandidates.delete(uri);
             this.closeDocument(uri);
         }
     }
+
 
     closeDocument(uri: string) {
         const document = this.documents.get(uri);
@@ -61,6 +78,8 @@ export class DocumentManager {
         } else {
             this.deleteCandidates.add(uri);
         }
+
+        this.openedByServer.delete(uri);
     }
 
     updateDocument(
