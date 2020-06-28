@@ -21,7 +21,6 @@ export class DocumentManager {
     constructor(private createDocument: (textDocument: TextDocumentItem) => Document) {}
 
     openDocument(textDocument: TextDocumentItem): Document {
-        console.log(textDocument.uri);
         let document: Document;
         if (this.documents.has(textDocument.uri)) {
             document = this.documents.get(textDocument.uri)!;
