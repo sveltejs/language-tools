@@ -10,6 +10,8 @@ import {
     Uri,
     ProgressLocation,
     ViewColumn,
+    languages,
+    IndentAction,
 } from 'vscode';
 import {
     LanguageClient,
@@ -23,6 +25,7 @@ import {
     TextDocumentEdit,
 } from 'vscode-languageclient';
 import { activateTagClosing } from './html/autoClose';
+import { EMPTY_ELEMENTS } from './html/htmlEmptyTagsShared';
 import CompiledCodeContentProvider from './CompiledCodeContentProvider';
 import * as path from 'path';
 
@@ -127,6 +130,25 @@ export function activate(context: ExtensionContext) {
     addRenameFileListener(getLS);
 
     addCompilePreviewCommand(getLS, context);
+
+    languages.setLanguageConfiguration('svelte', {
+        indentationRules: {
+            increaseIndentPattern: /<(?!\?|(?:area|base|br|col|frame|hr|html|img|input|link|meta|param)\b|[^>]*\/>)([-_\.A-Za-z0-9]+)(?=\s|>)\b[^>]*>(?!.*<\/\1>)|<!--(?!.*-->)|\{[^}"']*$/,
+            decreaseIndentPattern: /^\s*(<\/(?!html)[-_\.A-Za-z0-9]+\b[^>]*>|-->|\})/,
+        },
+        wordPattern: /(-?\d*\.\d\w*)|([^\`\~\!\@\$\^\&\*\(\)\=\+\[\{\]\}\\\|\;\:\'\"\,\.\<\>\/\s]+)/g,
+        onEnterRules: [
+            {
+                beforeText: new RegExp(`<(?!(?:${EMPTY_ELEMENTS.join('|')}))([_:\\w][_:\\w-.\\d]*)([^/>]*(?!/)>)[^<]*$`, 'i'),
+                afterText: /^<\/([_:\w][_:\w-.\d]*)\s*>/i,
+                action: { indentAction: IndentAction.IndentOutdent },
+            },
+            {
+                beforeText: new RegExp(`<(?!(?:${EMPTY_ELEMENTS.join('|')}))(\\w[\\w\\d]*)([^/>]*(?!/)>)[^<]*$`, 'i'),
+                action: { indentAction: IndentAction.Indent },
+            },
+        ],
+    });
 }
 
 function addRenameFileListener(getLS: () => LanguageClient) {
