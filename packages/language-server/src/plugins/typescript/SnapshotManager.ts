@@ -34,11 +34,17 @@ export class SnapshotManager {
     updateProjectFilesByDirname(
         path: string,
         readDirCache: Map<string, string[]>) {
+        const { include, exclude } = this.fileSpec;
+
+        // Since we default to not include anything,
+        //  just don't waste time on this
+        if (include?.length === 0) {
+            return;
+        }
+
         let projectFilesInDir = readDirCache.get(path);
 
         if (!projectFilesInDir) {
-            const { include, exclude } = this.fileSpec;
-
             projectFilesInDir = ts.sys.readDirectory(
                 path,
                 this.getExtensions(),
