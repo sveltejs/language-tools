@@ -39,5 +39,8 @@ jobs:
 
          # Ship it
          npx vsce publish --yarn -p $VSCE_TOKEN
+         npx ovsx publish --yarn -p $OVSX_TOKEN
+
         env:
           VSCE_TOKEN: ${{ secrets.AZURE_PAN_TOKEN }}
+          OVSX_TOKEN: ${{ secrets.OVSX_TOKEN }}
