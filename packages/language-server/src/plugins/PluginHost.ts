@@ -307,7 +307,7 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         );
     }
 
-    onWatchFileChanges(onWatchFileChangesParas: OnWatchFileChangesPara[]): void {
+    onWatchFileChanges(onWatchFileChangesParas: OnWatchFileChangesPara[]) {
         for (const support of this.plugins) {
             support.onWatchFileChanges?.(onWatchFileChangesParas);
         }

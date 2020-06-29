@@ -30,7 +30,7 @@ If applicable, add screenshots to help explain your problem.
 **System (please complete the following information):**
  - OS: [e.g. Windows]
  - IDE: [e.g. VSCode, Atom]
- - Plugin/Package: [e.g. "Svelte Beta", or `svelte-language-server`, `svelte-check`, or `svelte2tsx` if you use one of the npm packages directly]
+ - Plugin/Package: [e.g. "Svelte for VSCode", or `svelte-language-server`, `svelte-check`, or `svelte2tsx` if you use one of the npm packages directly]
 
 **Additional context**
 Add any other context about the problem here.

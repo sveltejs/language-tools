@@ -13,6 +13,7 @@ export type DocumentEvent = 'documentOpen' | 'documentChange' | 'documentClose';
  */
 export class DocumentManager {
     private emitter = new EventEmitter();
+    private openedInClient = new Set<string>();
     public documents: Map<string, Document> = new Map();
     public locked = new Set<string>();
     public deleteCandidates = new Set<string>();
@@ -39,13 +40,24 @@ export class DocumentManager {
         this.locked.add(uri);
     }
 
+    markAsOpenedInClient(uri: string): void {
+        this.openedInClient.add(uri);
+    }
+
+    getAllOpenedByClient() {
+        return Array.from(this.documents.entries())
+            .filter((doc) => this.openedInClient.has(doc[0]));
+    }
+
     releaseDocument(uri: string): void {
         this.locked.delete(uri);
+        this.openedInClient.delete(uri);
         if (this.deleteCandidates.has(uri)) {
             this.deleteCandidates.delete(uri);
             this.closeDocument(uri);
         }
     }
+
 
     closeDocument(uri: string) {
         const document = this.documents.get(uri);
@@ -61,6 +73,8 @@ export class DocumentManager {
         } else {
             this.deleteCandidates.add(uri);
         }
+
+        this.openedInClient.delete(uri);
     }
 
     updateDocument(
