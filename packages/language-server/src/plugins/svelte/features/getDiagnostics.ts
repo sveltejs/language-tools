@@ -143,11 +143,8 @@ function getStyleErrorDiagnostics(error: any, document: Document): Diagnostic[] 
 
     function getStyleErrorMessage() {
         if (isSveltePreprocessCannotFindModulesError(error)) {
-            const hint =
-                error instanceof Error && error.message.includes('node-sass')
-                    ? scssNodeRuntimeHint
-                    : '';
-            return error.message + preprocessSetupErrorMsg + hint + preprocessorsLinkMsg;
+            const hint = error.message.includes('node-sass') ? scssNodeRuntimeHint : '';
+            return getErrorMessage(error.message, hint);
         }
 
         return (
@@ -184,7 +181,7 @@ function getScriptErrorDiagnostics(error: any, document: Document): Diagnostic[]
 
     function getScriptErrorMessage() {
         if (isSveltePreprocessCannotFindModulesError(error)) {
-            return error.message + preprocessSetupErrorMsg + preprocessorsLinkMsg;
+            return getErrorMessage(error.message);
         }
 
         return error.message || 'Script error. Transpilation failed.';
@@ -214,7 +211,7 @@ function getOtherErrorDiagnostics(error: any): Diagnostic[] {
 
     function getOtherErrorMessage() {
         if (isSveltePreprocessCannotFindModulesError(error)) {
-            return error.message + preprocessSetupErrorMsg + preprocessorsLinkMsg;
+            return getErrorMessage(error.message);
         }
 
         return error.message || 'Error. Transpilation failed.';
@@ -225,14 +222,19 @@ function getOtherErrorDiagnostics(error: any): Diagnostic[] {
  * Preprocessing could fail if packages cannot be resolved.
  * A warning about a broken svelte.configs.js/preprocessor setup should be added then.
  */
-function isSveltePreprocessCannotFindModulesError(error: any) {
+function isSveltePreprocessCannotFindModulesError(error: any): error is Error {
     return error instanceof Error && error.message.startsWith('Cannot find any of modules');
 }
 
-const preprocessSetupErrorMsg =
-    "\n\nThe file cannot be parsed because style requires a preprocessor that doesn't seem to be setup or failed during setup. " +
-    'Did you setup a `svelte.config.js`? ';
-const preprocessorsLinkMsg =
-    '\n\nSee https://github.com/sveltejs/language-tools/tree/master/packages/svelte-vscode#using-with-preprocessors for more info.';
+function getErrorMessage(error: any, hint = '') {
+    return (
+        error +
+        "\n\nThe file cannot be parsed because style requires a preprocessor that doesn't seem to be setup or failed during setup. " +
+        'Did you setup a `svelte.config.js`? ' +
+        hint +
+        '\n\nSee https://github.com/sveltejs/language-tools/tree/master/packages/svelte-vscode#using-with-preprocessors for more info.'
+    );
+}
+
 const scssNodeRuntimeHint =
     'If you use SCSS, it may be necessary to add the path to your NODE runtime to the setting `svelte.language-server.runtime`, or use `sass` instead of `node-sass`. ';
