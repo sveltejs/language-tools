@@ -1,6 +1,0 @@
-'.source.svelte':
-  'autocomplete':
-    'extraWordCharacters': '-'
-  'editor':
-    'commentStart': '<!-- '
-    'commentEnd': ' -->'
