@@ -21,6 +21,12 @@ export type SvelteCompileResult = ReturnType<typeof compile>;
 
 export interface SvelteConfig extends CompileOptions {
     preprocess?: PreprocessorGroup;
+    loadConfigError?: any;
+}
+
+export enum TranspileErrorSource {
+    Script = 'Script',
+    Style = 'Style',
 }
 
 /**
@@ -78,7 +84,10 @@ export class SvelteDocument {
 
     private getCompileOptions() {
         const config = { ...this.config };
-        delete config.preprocess; // svelte compiler throws an error if we don't do this
+        // svelte compiler throws an error if we don't do this
+        delete config.preprocess;
+        delete config.loadConfigError;
+
         return config;
     }
 
@@ -272,21 +281,31 @@ async function transpile(document: Document, preprocessors: PreprocessorGroup = 
 
     if (preprocessors.script) {
         preprocessor.script = async (args: any) => {
-            const res = await preprocessors.script!(args);
-            if (res && res.map) {
-                processedScript = res;
+            try {
+                const res = await preprocessors.script!(args);
+                if (res && res.map) {
+                    processedScript = res;
+                }
+                return res;
+            } catch (e) {
+                e.__source = TranspileErrorSource.Script;
+                throw e;
             }
-            return res;
         };
     }
 
     if (preprocessors.style) {
         preprocessor.style = async (args: any) => {
-            const res = await preprocessors.style!(args);
-            if (res && res.map) {
-                processedStyle = res;
+            try {
+                const res = await preprocessors.style!(args);
+                if (res && res.map) {
+                    processedStyle = res;
+                }
+                return res;
+            } catch (e) {
+                e.__source = TranspileErrorSource.Style;
+                throw e;
             }
-            return res;
         };
     }
 
