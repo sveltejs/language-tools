@@ -144,7 +144,7 @@ function getStyleErrorDiagnostics(error: any, document: Document): Diagnostic[] 
     function getStyleErrorMessage() {
         if (isSveltePreprocessCannotFindModulesError(error)) {
             const hint = error.message.includes('node-sass') ? scssNodeRuntimeHint : '';
-            return getErrorMessage(error.message, hint);
+            return getErrorMessage(error.message, 'style', hint);
         }
 
         return (
@@ -181,7 +181,7 @@ function getScriptErrorDiagnostics(error: any, document: Document): Diagnostic[]
 
     function getScriptErrorMessage() {
         if (isSveltePreprocessCannotFindModulesError(error)) {
-            return getErrorMessage(error.message);
+            return getErrorMessage(error.message, 'script');
         }
 
         return error.message || 'Script error. Transpilation failed.';
@@ -211,7 +211,7 @@ function getOtherErrorDiagnostics(error: any): Diagnostic[] {
 
     function getOtherErrorMessage() {
         if (isSveltePreprocessCannotFindModulesError(error)) {
-            return getErrorMessage(error.message);
+            return getErrorMessage(error.message, 'it');
         }
 
         return error.message || 'Error. Transpilation failed.';
@@ -226,10 +226,12 @@ function isSveltePreprocessCannotFindModulesError(error: any): error is Error {
     return error instanceof Error && error.message.startsWith('Cannot find any of modules');
 }
 
-function getErrorMessage(error: any, hint = '') {
+function getErrorMessage(error: any, source: string, hint = '') {
     return (
         error +
-        "\n\nThe file cannot be parsed because style requires a preprocessor that doesn't seem to be setup or failed during setup. " +
+        '\n\nThe file cannot be parsed because ' +
+        source +
+        " requires a preprocessor that doesn't seem to be setup or failed during setup. " +
         'Did you setup a `svelte.config.js`? ' +
         hint +
         '\n\nSee https://github.com/sveltejs/language-tools/tree/master/packages/svelte-vscode#using-with-preprocessors for more info.'
