@@ -70,18 +70,18 @@ async function createParserErrorDiagnostic(error: any, document: Document) {
 
         if (isInStyle || isInScript) {
             diagnostic.message +=
-                '. If you expect this syntax to work, here are some suggestions: ';
+                '\n\nIf you expect this syntax to work, here are some suggestions: ';
             if (isInScript) {
                 diagnostic.message +=
-                    'If you use typescript with `svelte-preprocessor`, did you add `lang="typescript"` to your `script` tag? ';
+                    '\nIf you use typescript with `svelte-preprocessor`, did you add `lang="typescript"` to your `script` tag? ';
             } else {
                 diagnostic.message +=
-                    'If you use less/SCSS with `svelte-preprocessor`, did you add `lang="scss"`/`lang="less"` to you `style` tag? ' +
+                    '\nIf you use less/SCSS with `svelte-preprocessor`, did you add `lang="scss"`/`lang="less"` to you `style` tag? ' +
                     scssNodeRuntimeHint;
             }
             diagnostic.message +=
-                'Did you setup a `svelte.config.js`? ' +
-                'See https://github.com/sveltejs/language-tools/tree/master/packages/svelte-vscode#using-with-preprocessors for more info.';
+                '\nDid you setup a `svelte.config.js`? ' +
+                '\nSee https://github.com/sveltejs/language-tools/tree/master/packages/svelte-vscode#using-with-preprocessors for more info.';
         }
     }
 
