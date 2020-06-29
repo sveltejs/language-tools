@@ -1,9 +1,8 @@
 <></>;function render() {
 
     /**@type { string | number }*/
-     let name = "world",
-        world = ''
-name = __sveltets_invalidate(() => name);;
+     let name = /** @type {string | number} */ ("world"),
+        world = '';
 ;
 <></>
 return { props: {name: name , world: world}, slots: {} }}

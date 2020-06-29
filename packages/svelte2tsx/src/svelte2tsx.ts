@@ -400,27 +400,37 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
         str.remove(exportStart, exportEnd);
     };
 
-    const invalidatePropControlflowType = (node: ts.VariableDeclarationList) => {
+    const castPropToUserDefined = (node: ts.VariableDeclarationList) => {
         if (node.flags !== ts.NodeFlags.Let) {
             return;
         }
-        const getType = (declaration: ts.VariableDeclaration) => {
-            return declaration.type || ts.getJSDocType(declaration);
+
+        const hasInitializers = node.declarations.filter(
+            (declaration) => declaration.initializer
+        );
+        const handleCasting = (declaration: ts.VariableDeclaration) => {
+            const identifier = declaration.name;
+            const tsType = declaration.type;
+            const jsDocType = ts.getJSDocType(declaration);
+            const type = tsType || jsDocType;
+
+            if (!ts.isIdentifier(identifier) || !type) {
+                return;
+            }
+            const castingTo = type.getFullText().trim();
+
+            const end = declaration.initializer.getEnd() + astOffset;
+            if (tsType)  {
+                str.appendLeft(end, ` as ${castingTo}`);
+            } else {
+                const start = declaration.initializer.getStart() + astOffset;
+                str.appendRight(start, `/** @type {${castingTo}} */ (`);
+                str.appendLeft(end, ')');
+            }
         };
 
-        const declarationEnd = node.end + astOffset;
-        const shouldInvalidates = node.declarations.filter(
-            (declaration) => declaration.initializer && getType(declaration)
-        );
-        for (const declaration of shouldInvalidates) {
-            const identifier = declaration.name;
-            if (ts.isIdentifier(identifier)) {
-                const name = identifier.text;
-                str.appendRight(
-                    declarationEnd,
-                    `\n${name} = __sveltets_invalidate(() => ${name});`
-                );
-            }
+        for (const declaration of hasInitializers) {
+            handleCasting(declaration);
         }
     };
 
@@ -585,20 +595,8 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
                 : null;
             if (exportModifier) {
                 handleExportedVariableDeclarationList(node.declarationList);
-                invalidatePropControlflowType(node.declarationList);
+                castPropToUserDefined(node.declarationList);
                 removeExport(exportModifier.getStart(), exportModifier.end);
-
-                // const hasJsDocType
-                // if (ts.isJSDocCommentContainingNode(node)) {
-                //     const type = ts.getJSDocType(node);
-                //     if (type) {
-                //         // only invalidate this first one because the type doc only affect it
-                //         invalidatePropControlflowType({
-                //             ...node.declarationList,
-                //             declarations: node.declarationList[0]
-                //         });
-                //     }
-                // }
             }
         }
 
