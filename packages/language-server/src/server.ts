@@ -26,6 +26,7 @@ import _ from 'lodash';
 import { LSConfigManager } from './ls-config';
 import { urlToPath } from './utils';
 import { Logger } from './logger';
+import { DiagnosticsManager } from './lib/DiagnosticsManager';
 
 namespace TagCloseRequest {
     export const type: RequestType<
@@ -99,6 +100,9 @@ export function startServer(options?: LSOptions) {
                 textDocumentSync: {
                     openClose: true,
                     change: TextDocumentSyncKind.Incremental,
+                    save: {
+                        includeText: false
+                    },
                 },
                 hoverProvider: true,
                 completionProvider: {
@@ -162,6 +166,7 @@ export function startServer(options?: LSOptions) {
                 renameProvider: evt.capabilities.textDocument?.rename?.prepareSupport
                     ? { prepareProvider: true }
                     : true,
+
             },
         };
     });
@@ -175,7 +180,11 @@ export function startServer(options?: LSOptions) {
         pluginHost.updateConfig(settings.svelte?.plugin);
     });
 
-    connection.onDidOpenTextDocument((evt) => docManager.openDocument(evt.textDocument));
+    connection.onDidOpenTextDocument((evt) => {
+        docManager.openDocument(evt.textDocument);
+        docManager.markAsOpenedInClient(evt.textDocument.uri);
+    });
+
     connection.onDidCloseTextDocument((evt) => docManager.closeDocument(evt.textDocument.uri));
     connection.onDidChangeTextDocument((evt) =>
         docManager.updateDocument(evt.textDocument, evt.contentChanges),
@@ -219,6 +228,13 @@ export function startServer(options?: LSOptions) {
 
         return pluginHost.resolveCompletion(data, completionItem);
     });
+
+    const diagnosticsManager = new DiagnosticsManager(
+        connection.sendDiagnostics,
+        docManager,
+        pluginHost.getDiagnostics.bind(pluginHost)
+    );
+
     connection.onDidChangeWatchedFiles((para) => {
         for (const change of para.changes) {
             const filename = urlToPath(change.uri);
@@ -226,17 +242,14 @@ export function startServer(options?: LSOptions) {
                 pluginHost.onWatchFileChanges(filename, change.type);
             }
         }
+
+        diagnosticsManager.updateAll();
     });
+    connection.onDidSaveTextDocument(() => diagnosticsManager.updateAll());
 
     docManager.on(
         'documentChange',
-        _.debounce(async (document: Document) => {
-            const diagnostics = await pluginHost.getDiagnostics({ uri: document.getURL() });
-            connection!.sendDiagnostics({
-                uri: document.getURL(),
-                diagnostics,
-            });
-        }, 500),
+        _.debounce(async (document: Document) => diagnosticsManager.update(document), 500),
     );
 
     // The language server protocol does not have a specific "did rename/move files" event,
