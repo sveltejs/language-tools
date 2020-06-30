@@ -451,10 +451,19 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
             return;
         }
         // handle $store++, $store--, ++$store, --$store
-        if (ts.isPrefixUnaryExpression(parent) || ts.isPostfixUnaryExpression(parent)) {
-            let simpleOperator;
-            if (parent.operator === 45) simpleOperator = '+';
-            if (parent.operator === 46) simpleOperator = '-';
+        if (
+            (ts.isPrefixUnaryExpression(parent) || ts.isPostfixUnaryExpression(parent)) &&
+            parent.operator !==
+                ts.SyntaxKind.ExclamationToken /* `!$store` does not need processing */
+        ) {
+            let simpleOperator: string;
+            if (parent.operator === ts.SyntaxKind.PlusPlusToken) {
+                simpleOperator = '+';
+            }
+            if (parent.operator === ts.SyntaxKind.MinusMinusToken) {
+                simpleOperator = '-';
+            }
+
             if (simpleOperator) {
                 const storename = ident.getText().slice(1); // drop the $
                 str.overwrite(
