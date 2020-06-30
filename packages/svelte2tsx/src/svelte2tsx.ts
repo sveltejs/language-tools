@@ -417,17 +417,36 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
             if (!ts.isIdentifier(identifier) || !type) {
                 return;
             }
-            const castingTo = type.getFullText().trim();
+            const name = identifier.getText();
+            const end = declaration.end + astOffset;
 
-            const end = declaration.initializer.getEnd() + astOffset;
-            if (tsType)  {
-                str.appendLeft(end, ` as ${castingTo}`);
-            } else {
-                const start = declaration.initializer.getStart() + astOffset;
-                str.appendRight(start, `/** @type {${castingTo}} */ (`);
-                str.appendLeft(end, ')');
-            }
+            str.appendLeft(end, `;name = __sveltets_any(${name});`);
         };
+        const commas: ts.Token<ts.SyntaxKind.CommaToken>[] = [];
+        const findComma = (target: ts.Node) => {
+            target.getChildren().forEach((child) => {
+                if (child.kind === ts.SyntaxKind.CommaToken) {
+                    commas.push(child as ts.Token<ts.SyntaxKind.CommaToken>);
+                }
+            });
+        };
+        const split = () => {
+            node.getChildren()
+                .filter((child) => child.kind === ts.SyntaxKind.SyntaxList)
+                .forEach(findComma);
+
+            commas.forEach((comma) => {
+                str.overwrite(
+                    comma.getStart() + astOffset,
+                    comma.getEnd() + astOffset,
+                    ';let ',
+                    {
+                        contentOnly: true
+                    }
+                );
+            });
+        };
+        split();
 
         for (const declaration of hasInitializers) {
             handleCasting(declaration);
