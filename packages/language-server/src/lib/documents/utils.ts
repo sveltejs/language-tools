@@ -68,7 +68,8 @@ function extractTags(text: string, tag: 'script' | 'style'): TagInformation[] {
     return matchedNodes.map(transformToTagInfo);
 
     /**
-     * For every match AFTER the tag do a search for `{/X` . If that is BEFORE `{#X` kommt, we are inside a moustache tag.
+     * For every match AFTER the tag do a search for `{/X`.
+     * If that is BEFORE `{#X`, we are inside a moustache tag.
      */
     function isNotInsideControlFlowTag(tag: Node) {
         const nodes = rootNodes.slice(rootNodes.indexOf(tag));
