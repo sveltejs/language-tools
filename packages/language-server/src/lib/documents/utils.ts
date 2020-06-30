@@ -1,6 +1,6 @@
-import { clamp, isInRange } from '../../utils';
+import { clamp, isInRange, regexLastIndexOf } from '../../utils';
 import { Position, Range } from 'vscode-languageserver';
-import parse5, { Location } from 'parse5';
+import { Node, getLanguageService } from 'vscode-html-languageservice';
 
 export interface TagInformation {
     content: string;
@@ -12,43 +12,44 @@ export interface TagInformation {
     container: { start: number; end: number };
 }
 
-function parseAttributes(attrlist: { name: string; value: string }[]): Record<string, string> {
+function parseAttributes(
+    rawAttrs: Record<string, string | null> | undefined,
+): Record<string, string> {
     const attrs: Record<string, string> = {};
-    attrlist.forEach((attr) => {
-        attrs[attr.name] = attr.value === '' ? attr.name : attr.value; // in order to support boolean attributes (see utils.test.ts)
-    });
-    return attrs;
-}
-
-function isMatchingTag(source: string, node: ParsedNode, tag: string): boolean {
-    if (node.nodeName !== tag) {
-        return false;
+    if (!rawAttrs) {
+        return attrs;
     }
 
-    // node name equals tag, but we still have to check for case sensitivity
-    const orgStart = node.sourceCodeLocation?.startTag.startOffset || 0;
-    const orgEnd = node.sourceCodeLocation?.startTag.endOffset || 0;
-    const tagHtml = source.substring(orgStart, orgEnd);
-    return tagHtml.startsWith(`<${tag}`);
+    Object.keys(rawAttrs).forEach((attrName) => {
+        const attrValue = rawAttrs[attrName];
+        attrs[attrName] = attrValue === null ? attrName : removeOuterQuotes(attrValue);
+    });
+    return attrs;
+
+    function removeOuterQuotes(attrValue: string) {
+        if (
+            (attrValue.startsWith('"') && attrValue.endsWith('"')) ||
+            (attrValue.startsWith("'") && attrValue.endsWith("'"))
+        ) {
+            return attrValue.slice(1, attrValue.length - 1);
+        }
+        return attrValue;
+    }
 }
 
-// parse5's DefaultTreeNode type is insufficient; make our own type to make TS happy
-type ParsedNode = {
-    nodeName: string;
-    tagName: string;
-    value?: string;
-    attrs: { name: string; value: string }[];
-    childNodes: ParsedNode[];
-    parentNode: ParsedNode;
-    sourceCodeLocation: Location & { startTag: Location; endTag: Location };
-};
+const parser = getLanguageService();
+function parseHtml(text: string) {
+    // We can safely only set getText because only this is used for parsing
+    return parser.parseHTMLDocument(<any>{ getText: () => text });
+}
 
-const regexIf = new RegExp('{#if\\s(.*?)*}', 'igms');
+const regexIf = new RegExp('{#if\\s.*?}', 'igms');
 const regexIfEnd = new RegExp('{/if}', 'igms');
-const regexEach = new RegExp('{#each\\s(.*?)*}', 'igms');
+const regexEach = new RegExp('{#each\\s.*?}', 'igms');
 const regexEachEnd = new RegExp('{/each}', 'igms');
-const regexAwait = new RegExp('{#await\\s(.*?)*}', 'igms');
+const regexAwait = new RegExp('{#await\\s.*?}', 'igms');
 const regexAwaitEnd = new RegExp('{/await}', 'igms');
+const regexHtml = new RegExp('{@html\\s.*?', 'igms');
 
 /**
  * Extracts a tag (style or script) from the given text
@@ -57,76 +58,72 @@ const regexAwaitEnd = new RegExp('{/await}', 'igms');
  * @param source text content to extract tag from
  * @param tag the tag to extract
  */
-function extractTags(source: string, tag: 'script' | 'style'): TagInformation[] {
-    const { childNodes } = parse5.parseFragment(source, {
-        sourceCodeLocationInfo: true,
-    }) as { childNodes: ParsedNode[] };
-
-    const matchedNodes: ParsedNode[] = [];
-    let currentSvelteDirective;
-    for (const node of childNodes) {
-        /**
-         * skip matching tags if we are inside a directive
-         *
-         * extractTag's goal is solely to identify the top level <script> or <style>.
-         *
-         * therefore only iterating through top level childNodes is a feature we want!
-         *
-         * however, we cannot do a naive childNodes.find() because context matters.
-         * if we have a <script> tag inside an {#if}, we want to skip that until the {/if}.
-         * if we have a <script> tag inside an {#each}, we want to skip that until the {/each}.
-         * if we have a <script> tag inside an {#await}, we want to skip that until the {/await}.
-         *
-         * and so on. So we use a tiny inSvelteDirective 'state machine' to track this
-         * and use regex to detect the svelte directives.
-         * We might need to improve this regex in future.
-         */
-        if (currentSvelteDirective) {
-            if (node.value && node.nodeName === '#text') {
-                if (
-                    (currentSvelteDirective === 'if' && regexIfEnd.exec(node.value)) ||
-                    (currentSvelteDirective === 'each' && regexEachEnd.exec(node.value)) ||
-                    (currentSvelteDirective === 'await' && regexAwaitEnd.exec(node.value))
-                ) {
-                    currentSvelteDirective = undefined;
-                }
-            }
-        } else {
-            if (node.value && node.nodeName === '#text') {
-                // potentially a svelte directive
-                if (regexIf.exec(node.value)) currentSvelteDirective = 'if';
-                else if (regexEach.exec(node.value)) currentSvelteDirective = 'each';
-                else if (regexAwait.exec(node.value)) currentSvelteDirective = 'await';
-            } else if (isMatchingTag(source, node, tag)) {
-                matchedNodes.push(node);
-            }
-        }
-    }
-
+function extractTags(text: string, tag: 'script' | 'style'): TagInformation[] {
+    const rootNodes = parseHtml(text).roots;
+    const matchedNodes = rootNodes
+        .filter((node) => node.tag === tag)
+        .filter((tag) => {
+            return isNotInsideControlFlowTag(tag) && isNotInsideHtmlTag(tag);
+        });
     return matchedNodes.map(transformToTagInfo);
 
-    function transformToTagInfo(matchedNode: ParsedNode) {
-        const SCL = matchedNode.sourceCodeLocation; // shorthand
-        const attributes = parseAttributes(matchedNode.attrs);
-        /**
-         * Note: `content` will only show top level child node content.
-         * This is ok given that extractTag is only meant to extract top level
-         * <style> and <script> tags. But if that ever changes we may have to make this
-         * recurse and concat all childnodes.
-         */
-        const content = matchedNode.childNodes[0]?.value || '';
-        const start = SCL.startTag.endOffset;
-        const end = SCL.endTag.startOffset;
-        const startPos = positionAt(start, source);
-        const endPos = positionAt(end, source);
+    /**
+     * For every match AFTER the tag do a search for `{/X`.
+     * If that is BEFORE `{#X`, we are inside a moustache tag.
+     */
+    function isNotInsideControlFlowTag(tag: Node) {
+        const nodes = rootNodes.slice(rootNodes.indexOf(tag));
+        const rootContentAfterTag = nodes
+            .map((node, idx) => {
+                return text.substring(node.end, nodes[idx + 1]?.start);
+            })
+            .join('');
+
+        return ![
+            [regexIf, regexIfEnd],
+            [regexEach, regexEachEnd],
+            [regexAwait, regexAwaitEnd],
+        ].some((pair) => {
+            pair[0].lastIndex = 0;
+            pair[1].lastIndex = 0;
+            const start = pair[0].exec(rootContentAfterTag);
+            const end = pair[1].exec(rootContentAfterTag);
+            return (end?.index ?? text.length) < (start?.index ?? text.length);
+        });
+    }
+
+    /**
+     * For every match BEFORE the tag do a search for `{@html`.
+     * If that is BEFORE `}`, we are inside a moustache tag.
+     */
+    function isNotInsideHtmlTag(tag: Node) {
+        const nodes = rootNodes.slice(0, rootNodes.indexOf(tag));
+        const rootContentBeforeTag = [{ start: 0, end: 0 }, ...nodes]
+            .map((node, idx) => {
+                return text.substring(node.end, nodes[idx]?.start);
+            })
+            .join('');
+
+        return !(
+            regexLastIndexOf(rootContentBeforeTag, regexHtml) >
+            rootContentBeforeTag.lastIndexOf('}')
+        );
+    }
+
+    function transformToTagInfo(matchedNode: Node) {
+        const start = matchedNode.startTagEnd ?? matchedNode.start;
+        const end = matchedNode.endTagStart ?? matchedNode.end;
+        const startPos = positionAt(start, text);
+        const endPos = positionAt(end, text);
         const container = {
-            start: SCL.startTag.startOffset,
-            end: SCL.endTag.endOffset,
+            start: matchedNode.start,
+            end: matchedNode.end,
         };
+        const content = text.substring(start, end);
 
         return {
             content,
-            attributes,
+            attributes: parseAttributes(matchedNode.attributes),
             start,
             end,
             startPos,
