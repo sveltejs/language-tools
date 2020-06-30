@@ -595,6 +595,29 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
         });
     };
 
+    const semiRegex = /^\s*;/;
+    const wrapExpressionWithInvalidate = (expression: ts.Expression | undefined) => {
+        if (!expression) {
+            return;
+        }
+
+        const start = expression.getStart() + astOffset;
+        const end = expression.getEnd() + astOffset;
+
+        // () => ({})
+        if (ts.isObjectLiteralExpression(expression)) {
+            str.appendLeft(start, '(');
+            str.appendRight(end, ')');
+        }
+
+        str.prependLeft(start, '__sveltets_invalidate(() => ');
+        str.appendRight(end, ')');
+
+        if (!semiRegex.test(htmlx.substring(end))) {
+            str.appendRight(end, ';');
+        }
+    };
+
     const walk = (node: ts.Node, parent: ts.Node) => {
         type onLeaveCallback = () => void;
         const onLeaveCallbacks: onLeaveCallback[] = [];
@@ -689,9 +712,12 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
                 node.statement.expression.operatorToken.kind == ts.SyntaxKind.EqualsToken &&
                 ts.isIdentifier(node.statement.expression.left)
             ) {
-                implicitTopLevelNames.set(
-                    node.statement.expression.left.text, node.label.getStart()
-                );
+                const name = node.statement.expression.left.text;
+                if (!implicitTopLevelNames.has(name)) {
+                    implicitTopLevelNames.set(name, node.label.getStart());
+                }
+
+                wrapExpressionWithInvalidate(node.statement.expression.right);
             } else {
                 const start = node.getStart() + astOffset;
                 const end = node.getEnd() + astOffset;
@@ -699,7 +725,6 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
                 str.prependLeft(start, '() => {');
                 str.prependRight(end, '}');
             }
-
         }
 
         //to save a bunch of condition checks on each node, we recurse into processChild which skips all the checks for top level items
@@ -717,8 +742,10 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
     // declare implicit reactive variables we found in the script
     for (const [name, pos] of implicitTopLevelNames.entries()) {
         if (!rootScope.declared.has(name)) {
-            //add a declaration
-            str.prependRight(pos + astOffset, `;let ${name}; `);
+            const start = pos + astOffset;
+            const end = start + '$:'.length;
+            //replace label with a declaration
+            str.overwrite(start, end, `;let `);
         }
     }
 
