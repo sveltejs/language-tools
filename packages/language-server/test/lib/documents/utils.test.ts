@@ -68,6 +68,28 @@ describe('document/utils', () => {
             assert.deepStrictEqual(attributes, { type: 'typescript' });
         });
 
+        it('can extract with self-closing component before it', () => {
+            const extracted = extractStyleTag('<SelfClosing /><style></style>');
+            assert.deepStrictEqual(extracted, {
+                start: 22,
+                end: 22,
+                startPos: {
+                    character: 22,
+                    line: 0,
+                },
+                endPos: {
+                    character: 22,
+                    line: 0,
+                },
+                attributes: {},
+                content: '',
+                container: {
+                    end: 30,
+                    start: 15,
+                },
+            });
+        });
+
         it('extracts style tag', () => {
             const text = `
                 <p>bla</p>
@@ -118,30 +140,30 @@ describe('document/utils', () => {
             const text = `
                 {#if name}
                     <script>
-                        console.log('not top level')
+                        console.log('if not top level')
                     </script>
                 {/if}
                 <ul>
                     {#each cats as cat}
                         <script>
-                            console.log('not top level')
+                            console.log('each not top level')
                         </script>
                     {/each}
                 </ul>
                 {#await promise}
                     <script>
-                        console.log('not top level')
+                        console.log('await not top level')
                     </script>
                 {:then number}
                     <script>
-                        console.log('not top level')
+                        console.log('then not top level')
                     </script>
                 {:catch error}
                     <script>
-                        console.log('not top level')
+                        console.log('catch not top level')
                     </script>
                 {/await}
-                <p>{@html <script> consolelog('not top level')</script>}</p>
+                <p>{@html <script> console.log('html not top level')</script>}</p>
                 {@html mycontent}
                 {@debug myvar}
                 <!-- p{ color: blue; }</script> -->
@@ -156,11 +178,11 @@ describe('document/utils', () => {
             assert.deepStrictEqual(extractScriptTags(text)?.script, {
                 content: 'top level script',
                 attributes: {},
-                start: 1212,
-                end: 1228,
+                start: 1243,
+                end: 1259,
                 startPos: Position.create(34, 24),
                 endPos: Position.create(34, 40),
-                container: { start: 1204, end: 1237 },
+                container: { start: 1235, end: 1268 },
             });
         });
 
