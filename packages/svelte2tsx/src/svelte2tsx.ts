@@ -400,27 +400,56 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
         str.remove(exportStart, exportEnd);
     };
 
-    const invalidatePropControlflowType = (node: ts.VariableDeclarationList) => {
+    const castPropToUserDefined = (node: ts.VariableDeclarationList) => {
         if (node.flags !== ts.NodeFlags.Let) {
             return;
         }
-        const getType = (declaration: ts.VariableDeclaration) => {
-            return declaration.type || ts.getJSDocType(declaration);
-        };
 
-        const declarationEnd = node.end + astOffset;
-        const shouldInvalidates = node.declarations.filter(
-            (declaration) => declaration.initializer && getType(declaration)
+        const hasInitializers = node.declarations.filter(
+            (declaration) => declaration.initializer
         );
-        for (const declaration of shouldInvalidates) {
+        const handleCasting = (declaration: ts.VariableDeclaration) => {
             const identifier = declaration.name;
-            if (ts.isIdentifier(identifier)) {
-                const name = identifier.text;
-                str.appendRight(
-                    declarationEnd,
-                    `\n${name} = __sveltets_invalidateWithDefault(() => ${name});`
-                );
+            const tsType = declaration.type;
+            const jsDocType = ts.getJSDocType(declaration);
+            const type = tsType || jsDocType;
+
+            if (!ts.isIdentifier(identifier) || !type) {
+                return;
             }
+            const name = identifier.getText();
+            const end = declaration.end + astOffset;
+
+            str.appendLeft(end, `;name = __sveltets_any(${name});`);
+        };
+        const commas: ts.Token<ts.SyntaxKind.CommaToken>[] = [];
+        const findComma = (target: ts.Node) => {
+            target.getChildren().forEach((child) => {
+                if (child.kind === ts.SyntaxKind.CommaToken) {
+                    commas.push(child as ts.Token<ts.SyntaxKind.CommaToken>);
+                }
+            });
+        };
+        const split = () => {
+            node.getChildren()
+                .filter((child) => child.kind === ts.SyntaxKind.SyntaxList)
+                .forEach(findComma);
+
+            commas.forEach((comma) => {
+                str.overwrite(
+                    comma.getStart() + astOffset,
+                    comma.getEnd() + astOffset,
+                    ';let ',
+                    {
+                        contentOnly: true
+                    }
+                );
+            });
+        };
+        split();
+
+        for (const declaration of hasInitializers) {
+            handleCasting(declaration);
         }
     };
 
@@ -585,20 +614,8 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
                 : null;
             if (exportModifier) {
                 handleExportedVariableDeclarationList(node.declarationList);
-                invalidatePropControlflowType(node.declarationList);
+                castPropToUserDefined(node.declarationList);
                 removeExport(exportModifier.getStart(), exportModifier.end);
-
-                // const hasJsDocType
-                // if (ts.isJSDocCommentContainingNode(node)) {
-                //     const type = ts.getJSDocType(node);
-                //     if (type) {
-                //         // only invalidate this first one because the type doc only affect it
-                //         invalidatePropControlflowType({
-                //             ...node.declarationList,
-                //             declarations: node.declarationList[0]
-                //         });
-                //     }
-                // }
             }
         }
 

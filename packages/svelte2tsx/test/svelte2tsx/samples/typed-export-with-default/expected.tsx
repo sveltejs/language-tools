@@ -1,10 +1,9 @@
 <></>;function render() {
 
-     let name: string = "world"
-name = __sveltets_invalidateWithDefault(() => name);
+     let name: string | number = "world" as string | number
 ;
 <></>
-return { props: {name: name} as {name: string}, slots: {} }}
+return { props: {name: name} as {name: string | number}, slots: {} }}
 
 export default class {
     $$prop_def = __sveltets_partial(render().props)
