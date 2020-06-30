@@ -149,6 +149,17 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             return [];
         }
 
+        // Don't allow refactorings when there is likely a store subscription.
+        // Reason: Extracting that would lead to svelte2tsx' transformed store representation
+        // showing up, which will confuse the user. In the long run, we maybe have to
+        // setup a separate ts language service which only knows of the original script.
+        const textInRange = document
+            .getText()
+            .substring(document.offsetAt(range.start), document.offsetAt(range.end));
+        if (textInRange.includes('$')) {
+            return [];
+        }
+
         const { lang, tsDoc } = this.getLSAndTSDoc(document);
         const fragment = await tsDoc.getFragment();
         const textRange = {
