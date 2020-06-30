@@ -1,7 +1,7 @@
 <></>;function render() {
 
     /**@type { string | number }*/
-     let name = /** @type {string | number} */ ("world"),
+     let name = "world";name = __sveltets_any(name);;let 
         world = '';
 ;
 <></>

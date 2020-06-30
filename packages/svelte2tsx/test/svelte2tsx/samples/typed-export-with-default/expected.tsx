@@ -1,6 +1,6 @@
 <></>;function render() {
 
-     let name: string | number = "world" as string | number
+     let name: string | number = "world";name = __sveltets_any(name);
 ;
 <></>
 return { props: {name: name} as {name: string | number}, slots: {} }}

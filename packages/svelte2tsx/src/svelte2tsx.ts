@@ -400,7 +400,7 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
         str.remove(exportStart, exportEnd);
     };
 
-    const castPropToUserDefined = (node: ts.VariableDeclarationList) => {
+    const propTypeAssertToUserDefined = (node: ts.VariableDeclarationList) => {
         if (node.flags !== ts.NodeFlags.Let) {
             return;
         }
@@ -408,7 +408,7 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
         const hasInitializers = node.declarations.filter(
             (declaration) => declaration.initializer
         );
-        const handleCasting = (declaration: ts.VariableDeclaration) => {
+        const handleTypeAssertion = (declaration: ts.VariableDeclaration) => {
             const identifier = declaration.name;
             const tsType = declaration.type;
             const jsDocType = ts.getJSDocType(declaration);
@@ -422,34 +422,25 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
 
             str.appendLeft(end, `;name = __sveltets_any(${name});`);
         };
-        const commas: ts.Token<ts.SyntaxKind.CommaToken>[] = [];
-        const findComma = (target: ts.Node) => {
-            target.getChildren().forEach((child) => {
-                if (child.kind === ts.SyntaxKind.CommaToken) {
-                    commas.push(child as ts.Token<ts.SyntaxKind.CommaToken>);
-                }
-            });
-        };
-        const split = () => {
-            node.getChildren()
+
+        const findComma = (target: ts.Node) => target.getChildren()
+            .filter((child) => child.kind === ts.SyntaxKind.CommaToken);
+        const splitDeclaration = () => {
+            const commas = node.getChildren()
                 .filter((child) => child.kind === ts.SyntaxKind.SyntaxList)
-                .forEach(findComma);
+                .map(findComma)
+                .reduce((current, previous) => [...current, ...previous], []);
 
             commas.forEach((comma) => {
-                str.overwrite(
-                    comma.getStart() + astOffset,
-                    comma.getEnd() + astOffset,
-                    ';let ',
-                    {
-                        contentOnly: true
-                    }
-                );
+                const start = comma.getStart() + astOffset;
+                const end = comma.getEnd() + astOffset;
+                str.overwrite(start, end, ';let ', { contentOnly: true });
             });
         };
-        split();
+        splitDeclaration();
 
         for (const declaration of hasInitializers) {
-            handleCasting(declaration);
+            handleTypeAssertion(declaration);
         }
     };
 
@@ -614,7 +605,7 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
                 : null;
             if (exportModifier) {
                 handleExportedVariableDeclarationList(node.declarationList);
-                castPropToUserDefined(node.declarationList);
+                propTypeAssertToUserDefined(node.declarationList);
                 removeExport(exportModifier.getStart(), exportModifier.end);
             }
         }
