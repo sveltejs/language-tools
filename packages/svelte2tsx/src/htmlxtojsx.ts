@@ -445,11 +445,10 @@ export function convertHtmlxToJsx(
             return;
         }
         // {#if expr} ->
-        // {() => { if (expr) { <>
+        // {() => { if (expr){ <>
         str.overwrite(ifBlock.start, ifBlock.expression.start, '{() => {if (');
         const end = htmlx.indexOf('}', ifBlock.expression.end);
-        str.appendLeft(ifBlock.expression.end, ')');
-        str.overwrite(end, end + 1, '{<>');
+        str.overwrite(ifBlock.expression.end, end + 1, '){<>');
 
         // {/if} -> </>}}}</>
         const endif = htmlx.lastIndexOf('{', ifBlock.end);
