@@ -166,24 +166,21 @@ export class SveltePlugin
     }
 
     private useFallbackPreprocessor(document: Document, foundConfig: boolean) {
-        if (
+        const needsConfig =
             document.styleInfo?.attributes.lang ||
             document.styleInfo?.attributes.type ||
             document.scriptInfo?.attributes.lang ||
-            document.scriptInfo?.attributes.type
-        ) {
-            Logger.log(
-                (foundConfig
-                    ? 'Found svelte.config.js but there was an error loading it. '
-                    : 'No svelte.config.js found but one is needed. ') +
-                    'Using https://github.com/sveltejs/svelte-preprocess as fallback',
-            );
-            return {
-                preprocess: importSveltePreprocess(document.getFilePath() || '')({
-                    typescript: { transpileOnly: true },
-                }),
-            };
-        }
-        return {};
+            document.scriptInfo?.attributes.type;
+        Logger.log(
+            (foundConfig
+                ? 'Found svelte.config.js but there was an error loading it. '
+                : 'No svelte.config.js found' + (needsConfig ? ' but one is needed. ' : '. ')) +
+                'Using https://github.com/sveltejs/svelte-preprocess as fallback',
+        );
+        return {
+            preprocess: importSveltePreprocess(document.getFilePath() || '')({
+                typescript: { transpileOnly: true },
+            }),
+        };
     }
 }
