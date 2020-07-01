@@ -74,7 +74,8 @@ export class SveltePlugin
         const filePath = document.getFilePath()!;
         const prettier = importPrettier(filePath);
         // Try resolving the config through prettier and fall back to possible editor config
-        const config = (await prettier.resolveConfig(filePath)) || this.prettierConfig;
+        const config =
+            (await prettier.resolveConfig(filePath, { editorconfig: true })) || this.prettierConfig;
         const formattedCode = prettier.format(document.getText(), {
             ...config,
             plugins: [require.resolve('prettier-plugin-svelte')],
