@@ -1,9 +1,12 @@
 <></>;function render() {
 
-     let name: string | number = "world";name = __sveltets_any(name);
+let a: 1 | 2 = 1;
+() => {$: {
+    console.log(a + 1);
+}}
 ;
 <></>
-return { props: {name: name} as {name: string | number}, slots: {} }}
+return { props: {}, slots: {} }}
 
 export default class {
     $$prop_def = __sveltets_partial(render().props)

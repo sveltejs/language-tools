@@ -128,7 +128,7 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
                 );
             } else {
                 console.warn(
-                    `Warning - unrecognized UpdateExpression operator ${parent.operator}! 
+                    `Warning - unrecognized UpdateExpression operator ${parent.operator}!
                 This is an edge case unaccounted for in svelte2tsx, please file an issue:
                 https://github.com/sveltejs/language-tools/issues/new/choose
                 `,
@@ -373,7 +373,6 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
     const pushScope = () => (scope = new Scope(scope));
     const popScope = () => (scope = scope.parent);
 
-    // eslint-disable-next-line max-len
     const addExport = (
         name: ts.BindingName,
         target: ts.BindingName = null,
@@ -399,6 +398,50 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
         const exportStart = str.original.indexOf('export', start + astOffset);
         const exportEnd = exportStart + (end - start);
         str.remove(exportStart, exportEnd);
+    };
+
+    const propTypeAssertToUserDefined = (node: ts.VariableDeclarationList) => {
+        if (node.flags !== ts.NodeFlags.Let) {
+            return;
+        }
+
+        const hasInitializers = node.declarations.filter(
+            (declaration) => declaration.initializer
+        );
+        const handleTypeAssertion = (declaration: ts.VariableDeclaration) => {
+            const identifier = declaration.name;
+            const tsType = declaration.type;
+            const jsDocType = ts.getJSDocType(declaration);
+            const type = tsType || jsDocType;
+
+            if (!ts.isIdentifier(identifier) || !type) {
+                return;
+            }
+            const name = identifier.getText();
+            const end = declaration.end + astOffset;
+
+            str.appendLeft(end, `;${name} = __sveltets_any(${name});`);
+        };
+
+        const findComma = (target: ts.Node) => target.getChildren()
+            .filter((child) => child.kind === ts.SyntaxKind.CommaToken);
+        const splitDeclaration = () => {
+            const commas = node.getChildren()
+                .filter((child) => child.kind === ts.SyntaxKind.SyntaxList)
+                .map(findComma)
+                .reduce((current, previous) => [...current, ...previous], []);
+
+            commas.forEach((comma) => {
+                const start = comma.getStart() + astOffset;
+                const end = comma.getEnd() + astOffset;
+                str.overwrite(start, end, ';let ', { contentOnly: true });
+            });
+        };
+        splitDeclaration();
+
+        for (const declaration of hasInitializers) {
+            handleTypeAssertion(declaration);
+        }
     };
 
     const handleStore = (ident: ts.Node, parent: ts.Node) => {
@@ -474,7 +517,7 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
                 return;
             } else {
                 console.warn(
-                    `Warning - unrecognized UnaryExpression operator ${parent.operator}! 
+                    `Warning - unrecognized UnaryExpression operator ${parent.operator}!
                 This is an edge case unaccounted for in svelte2tsx, please file an issue:
                 https://github.com/sveltejs/language-tools/issues/new/choose
                 `,
@@ -561,24 +604,46 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
         });
     };
 
+    const semiRegex = /^\s*;/;
+    const wrapExpressionWithInvalidate = (expression: ts.Expression | undefined) => {
+        if (!expression) {
+            return;
+        }
+
+        const start = expression.getStart() + astOffset;
+        const end = expression.getEnd() + astOffset;
+
+        // () => ({})
+        if (ts.isObjectLiteralExpression(expression)) {
+            str.appendLeft(start, '(');
+            str.appendRight(end, ')');
+        }
+
+        str.prependLeft(start, '__sveltets_invalidate(() => ');
+        str.appendRight(end, ')');
+
+        if (!semiRegex.test(htmlx.substring(end))) {
+            str.appendRight(end, ';');
+        }
+    };
+
     const walk = (node: ts.Node, parent: ts.Node) => {
         type onLeaveCallback = () => void;
         const onLeaveCallbacks: onLeaveCallback[] = [];
 
         if (ts.isVariableStatement(node)) {
-            // eslint-disable-next-line max-len
             const exportModifier = node.modifiers
                 ? node.modifiers.find((x) => x.kind == ts.SyntaxKind.ExportKeyword)
                 : null;
             if (exportModifier) {
                 handleExportedVariableDeclarationList(node.declarationList);
+                propTypeAssertToUserDefined(node.declarationList);
                 removeExport(exportModifier.getStart(), exportModifier.end);
             }
         }
 
         if (ts.isFunctionDeclaration(node)) {
             if (node.modifiers) {
-                // eslint-disable-next-line max-len
                 const exportModifier = node.modifiers.find(
                     (x) => x.kind == ts.SyntaxKind.ExportKeyword,
                 );
@@ -648,13 +713,27 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
             ts.isLabeledStatement(node) &&
             parent == tsAst && //top level
             node.label.text == '$' &&
-            node.statement &&
-            ts.isExpressionStatement(node.statement) &&
-            ts.isBinaryExpression(node.statement.expression) &&
-            node.statement.expression.operatorToken.kind == ts.SyntaxKind.EqualsToken &&
-            ts.isIdentifier(node.statement.expression.left)
+            node.statement
         ) {
-            implicitTopLevelNames.set(node.statement.expression.left.text, node.label.getStart());
+            if (
+                ts.isExpressionStatement(node.statement) &&
+                ts.isBinaryExpression(node.statement.expression) &&
+                node.statement.expression.operatorToken.kind == ts.SyntaxKind.EqualsToken &&
+                ts.isIdentifier(node.statement.expression.left)
+            ) {
+                const name = node.statement.expression.left.text;
+                if (!implicitTopLevelNames.has(name)) {
+                    implicitTopLevelNames.set(name, node.label.getStart());
+                }
+
+                wrapExpressionWithInvalidate(node.statement.expression.right);
+            } else {
+                const start = node.getStart() + astOffset;
+                const end = node.getEnd() + astOffset;
+
+                str.prependLeft(start, '() => {');
+                str.prependRight(end, '}');
+            }
         }
 
         //to save a bunch of condition checks on each node, we recurse into processChild which skips all the checks for top level items
@@ -672,7 +751,6 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
     // declare implicit reactive variables we found in the script
     for (const [name, pos] of implicitTopLevelNames.entries()) {
         if (!rootScope.declared.has(name)) {
-            //add a declaration
             str.prependRight(pos + astOffset, `;let ${name}; `);
         }
     }
@@ -764,7 +842,9 @@ function createRenderFunction(
         str.overwrite(scriptTag.start + 1, scriptTagEnd, `function render() {${propsDecl}\n`);
 
         const scriptEndTagStart = htmlx.lastIndexOf('<', scriptTag.end - 1);
-        str.overwrite(scriptEndTagStart, scriptTag.end, ';\n<>');
+        str.overwrite(scriptEndTagStart, scriptTag.end, ';\n<>', {
+            contentOnly: true
+        });
     } else {
         str.prependRight(scriptDestination, `</>;function render() {${propsDecl}\n<>`);
     }

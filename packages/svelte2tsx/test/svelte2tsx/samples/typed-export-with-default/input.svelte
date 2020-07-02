@@ -1,3 +1,3 @@
 <script>
-    export let name: string = "world"
+    export let name: string | number = "world"
 </script>
