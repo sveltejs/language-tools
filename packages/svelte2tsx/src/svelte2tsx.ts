@@ -420,7 +420,7 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
             const name = identifier.getText();
             const end = declaration.end + astOffset;
 
-            str.appendLeft(end, `;name = __sveltets_any(${name});`);
+            str.appendLeft(end, `;${name} = __sveltets_any(${name});`);
         };
 
         const findComma = (target: ts.Node) => target.getChildren()
