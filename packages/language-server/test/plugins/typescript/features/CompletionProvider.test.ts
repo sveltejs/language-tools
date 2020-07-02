@@ -216,7 +216,7 @@ describe('CompletionProviderImpl', () => {
             item!,
         );
 
-        assert.strictEqual(detail, 'Auto import from ./definitions\nfunction blubb(): boolean');
+        assert.strictEqual(detail, 'Auto import from definitions\nfunction blubb(): boolean');
 
         assert.strictEqual(
             harmonizeNewLines(additionalTextEdits![0]?.newText),
@@ -249,7 +249,7 @@ describe('CompletionProviderImpl', () => {
             item!,
         );
 
-        assert.strictEqual(detail, 'Auto import from ./definitions\nfunction blubb(): boolean');
+        assert.strictEqual(detail, 'Auto import from definitions\nfunction blubb(): boolean');
 
         assert.strictEqual(
             harmonizeNewLines(additionalTextEdits![0]?.newText),
@@ -281,7 +281,7 @@ describe('CompletionProviderImpl', () => {
             item!,
         );
 
-        assert.strictEqual(detail, 'Auto import from ./definitions\nfunction blubb(): boolean');
+        assert.strictEqual(detail, 'Auto import from definitions\nfunction blubb(): boolean');
 
         assert.strictEqual(
             harmonizeNewLines(additionalTextEdits![0]?.newText),
@@ -327,7 +327,7 @@ describe('CompletionProviderImpl', () => {
             item!,
         );
 
-        assert.strictEqual(detail, 'Auto import from ./imported-file.svelte\nclass default');
+        assert.strictEqual(detail, 'Auto import from imported-file.svelte\nclass default');
 
         assert.strictEqual(
             harmonizeNewLines(additionalTextEdits![0]?.newText),
@@ -362,7 +362,7 @@ describe('CompletionProviderImpl', () => {
             item!,
         );
 
-        assert.strictEqual(detail, 'Auto import from ./imported-file.svelte\nclass default');
+        assert.strictEqual(detail, 'Auto import from imported-file.svelte\nclass default');
 
         assert.strictEqual(
             harmonizeNewLines(additionalTextEdits![0]?.newText),
