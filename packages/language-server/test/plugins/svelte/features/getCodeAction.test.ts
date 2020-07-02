@@ -2,7 +2,13 @@ import * as assert from 'assert';
 import * as path from 'path';
 import * as fs from 'fs';
 import { EOL } from 'os';
-import { CodeActionContext, CodeAction, Range, DiagnosticSeverity } from 'vscode-languageserver';
+import {
+    CodeActionContext,
+    CodeAction,
+    Range,
+    DiagnosticSeverity,
+    Position,
+} from 'vscode-languageserver';
 import { getCodeActions } from '../../../../src/plugins/svelte/features/getCodeActions';
 import { SvelteDocument } from '../../../../src/plugins/svelte/SvelteDocument';
 import { Document } from '../../../../src/lib/documents';
@@ -26,7 +32,11 @@ describe('SveltePlugin#getCodeAction', () => {
             filename ? fs.readFileSync(filePath)?.toString() : '',
         );
         const svelteDoc = new SvelteDocument(document, {});
-        const codeAction = await getCodeActions(svelteDoc, context);
+        const codeAction = await getCodeActions(
+            svelteDoc,
+            Range.create(Position.create(0, 0), Position.create(0, 0)),
+            context,
+        );
         return {
             toEqual: (expected: CodeAction[]) => assert.deepStrictEqual(codeAction, expected),
         };

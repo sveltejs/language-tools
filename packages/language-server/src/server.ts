@@ -101,7 +101,7 @@ export function startServer(options?: LSOptions) {
                     openClose: true,
                     change: TextDocumentSyncKind.Incremental,
                     save: {
-                        includeText: false
+                        includeText: false,
                     },
                 },
                 hoverProvider: true,
@@ -160,13 +160,13 @@ export function startServer(options?: LSOptions) {
                               'constant_scope_1',
                               'constant_scope_2',
                               'constant_scope_3',
+                              'extract_to_svelte_component',
                           ],
                       }
                     : undefined,
                 renameProvider: evt.capabilities.textDocument?.rename?.prepareSupport
                     ? { prepareProvider: true }
                     : true,
-
             },
         };
     });
@@ -232,7 +232,7 @@ export function startServer(options?: LSOptions) {
     const diagnosticsManager = new DiagnosticsManager(
         connection.sendDiagnostics,
         docManager,
-        pluginHost.getDiagnostics.bind(pluginHost)
+        pluginHost.getDiagnostics.bind(pluginHost),
     );
 
     connection.onDidChangeWatchedFiles((para) => {
