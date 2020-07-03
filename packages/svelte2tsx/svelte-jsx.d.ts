@@ -2414,6 +2414,15 @@
       files?: FileList | null;
     }
 
+    interface SvelteWindowProps  {
+      readonly innerWidth?: Window['innerWidth'];
+      readonly innerHeight?: Window['innerHeight'];
+      readonly outerWidth?: Window['outerWidth'];
+      readonly outerHeight?: Window['outerHeight'];
+      scrollX?: Window['scrollX'];
+      scrollY?: Window['scrollY'];
+      readonly online?: Window['navigator']['onLine'];
+    }
 
     interface IntrinsicElements {
       // HTML
@@ -2589,7 +2598,7 @@
       view: SVGProps<SVGViewElement>;
 
       // Svelte specific
-      sveltewindow: HTMLProps<Window>;
+      sveltewindow: HTMLProps<Window> & SvelteWindowProps;
       sveltebody: HTMLProps<HTMLElement>;
 
       [name: string]: { [name: string]: any };
