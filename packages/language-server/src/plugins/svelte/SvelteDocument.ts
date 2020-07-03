@@ -19,7 +19,8 @@ import { CompileOptions } from 'svelte/types/compiler/interfaces';
 
 export type SvelteCompileResult = ReturnType<typeof compile>;
 
-export interface SvelteConfig extends CompileOptions {
+export interface SvelteConfig {
+    compilerOptions?: CompileOptions;
     preprocess?: PreprocessorGroup;
     loadConfigError?: any;
 }
@@ -71,24 +72,15 @@ export class SvelteDocument {
 
     async getCompiled(): Promise<SvelteCompileResult> {
         if (!this.compileResult) {
-            this.compileResult = await this.getCompiledWith(this.getCompileOptions());
+            this.compileResult = await this.getCompiledWith(this.config.compilerOptions);
         }
 
         return this.compileResult;
     }
 
-    async getCompiledWith(options: CompileOptions): Promise<SvelteCompileResult> {
+    async getCompiledWith(options: CompileOptions = {}): Promise<SvelteCompileResult> {
         const svelte = importSvelte(this.getFilePath());
         return svelte.compile((await this.getTranspiled()).getText(), options);
-    }
-
-    private getCompileOptions() {
-        const config = { ...this.config };
-        // svelte compiler throws an error if we don't do this
-        delete config.preprocess;
-        delete config.loadConfigError;
-
-        return config;
     }
 
     /**

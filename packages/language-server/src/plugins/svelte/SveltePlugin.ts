@@ -149,24 +149,30 @@ export class SveltePlugin
         Logger.log('Trying to load config for', document.getFilePath());
         try {
             const result = await this.cosmiConfigExplorer.search(document.getFilePath() || '');
-            const config = result?.config ?? this.useFallbackPreprocessor(document, false);
+            const config: SvelteConfig =
+                result?.config ?? this.useFallbackPreprocessor(document, false);
             if (result) {
                 Logger.log('Found config at ', result.filepath);
             }
-            return { ...DEFAULT_OPTIONS, ...config, ...NO_GENERATE };
+            return {
+                ...config,
+                compilerOptions: { ...DEFAULT_OPTIONS, ...config.compilerOptions, ...NO_GENERATE },
+            };
         } catch (err) {
             Logger.error('Error while loading config');
             Logger.error(err);
             return {
-                ...DEFAULT_OPTIONS,
                 ...this.useFallbackPreprocessor(document, true),
-                ...NO_GENERATE,
+                compilerOptions: {
+                    ...DEFAULT_OPTIONS,
+                    ...NO_GENERATE,
+                },
                 loadConfigError: err,
             };
         }
     }
 
-    private useFallbackPreprocessor(document: Document, foundConfig: boolean) {
+    private useFallbackPreprocessor(document: Document, foundConfig: boolean): SvelteConfig {
         const needsConfig =
             document.styleInfo?.attributes.lang ||
             document.styleInfo?.attributes.type ||
