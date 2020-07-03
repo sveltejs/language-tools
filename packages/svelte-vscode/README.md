@@ -74,6 +74,40 @@ It's also necessary to add a `type="text/language-name"` or `lang="language-name
 </style>
 ```
 
+### Troubleshooting
+
+#### I get weird type errors on my html tags
+
+This may be due to some library you are using having installed typings for `react`. These are picked up by the TypeScript compiler. Because we internally transform svelte to jsx, there is a clash and said error occurs.
+
+To fix this, do the following:
+
+1. Add a `sink.d.ts` with content `declare module 'react' {}`
+2. Go to your `tsconfig.json`
+3. If you do not have such a setting already, enhance `compilerOptions` with `"baseUrl": "."`
+4. Enhance `compilerOptions` with `"paths": { "react": ["<path to your sink.d.ts, relative to the baseUrl>"] }`
+
+`tsconfig.json`
+
+```json
+{
+    "compilerOptions": {
+        "baseUrl": ".",
+        "paths": {
+            "react": ["sink.d.ts"]
+        }
+    }
+}
+```
+
+`sink.d.ts:`
+
+```ts
+declare module 'react';
+```
+
+For more info see [this issue](https://github.com/sveltejs/language-tools/issues/228)
+
 ### Settings
 
 ##### `svelte.language-server.runtime`
