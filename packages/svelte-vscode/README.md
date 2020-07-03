@@ -82,7 +82,7 @@ This may be due to some library you are using having installed typings for `reac
 
 ![image](https://user-images.githubusercontent.com/374638/85633868-72697280-b67a-11ea-8f8c-7fe2b4702339.png)
 
-The underlying [issue in TypeScript](https://github.com/microsoft/TypeScript/issues/18588) is yet to be fixed but in the meantime, one way to work around it as follows:
+The underlying [issue in TypeScript](https://github.com/microsoft/TypeScript/issues/18588) is yet to be fixed but in the meantime, one way to work around it is as follows:
 
 1. Add a `sink.d.ts` with content `declare module 'react' {}`
 2. Go to your `tsconfig.json`
