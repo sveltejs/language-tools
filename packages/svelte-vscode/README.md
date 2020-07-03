@@ -80,7 +80,7 @@ It's also necessary to add a `type="text/language-name"` or `lang="language-name
 
 This may be due to some library you are using having installed typings for `react`. These are picked up by the TypeScript compiler. Because we internally transform svelte to jsx, there is a clash and said error occurs.
 
-To fix this, do the following:
+The underlying [issue in TypeScript](https://github.com/microsoft/TypeScript/issues/18588) is yet to be fixed but in the meantime, one way to work around it as follows:
 
 1. Add a `sink.d.ts` with content `declare module 'react' {}`
 2. Go to your `tsconfig.json`
