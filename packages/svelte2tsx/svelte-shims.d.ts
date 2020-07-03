@@ -51,5 +51,5 @@ declare function __sveltets_partial_with_any<T>(obj: T): Partial<T> & SvelteAllP
 declare function __sveltets_with_any<T>(obj: T): T & SvelteAllProps
 declare function __sveltets_store_get<T=any>(store: SvelteStore<T>): T
 declare function __sveltets_any(dummy: any): any;
-declare function __sveltets_componentType(): SvelteComponent
+declare function __sveltets_componentType(): AConstructorTypeOf<SvelteComponent>
 declare function __sveltets_invalidate<T>(getValue: () => T): T
