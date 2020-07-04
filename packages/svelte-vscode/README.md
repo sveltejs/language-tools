@@ -15,6 +15,7 @@ If you added `"files.associations": {"*.svelte": "html" }` to your VSCode settin
     -   Support for svelte preprocessors that provide source maps
     -   Svelte specific formatting (via [prettier-plugin-svelte](https://github.com/sveltejs/prettier-plugin-svelte))
     -   A command to preview the compiled code (DOM mode): "Svelte: Show Compiled Code"
+    -   A command to extract template content into a new component: "Svelte: Extract Component"
 -   HTML
     -   Hover info
     -   Autocompletions
