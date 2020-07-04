@@ -118,13 +118,6 @@ let show: boolean; // <--- added above the reactive assignment
 $: show = !!data.someKey; // <-- `show` now has type `boolean`
 ```
 
-The following is INVALID TypeScript, so DON'T do this:
-
-```ts
-$: show = !!data.someKey as boolean; // DON'T DO THIS
-$: show: boolean = !!data.someKey; // DON'T DO THIS
-```
-
 ### How do I import interfaces into my Svelte components? I get errors after transpilation!
 
 -   If you use `svelte-preprocess` BELOW `v4.x` and did NOT set `transpileOnly: true`, then make sure to have at least `v3.9.3` installed, which fixes this.
