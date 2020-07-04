@@ -1,6 +1,5 @@
 import * as path from 'path';
 import {
-    CodeAction,
     CreateFile,
     Position,
     Range,

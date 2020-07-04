@@ -283,7 +283,7 @@ function addExtracComponentCommand(getLS: () => LanguageClient, context: Extensi
             }
 
             // Prompt for new component name
-            let options = {
+            const options = {
                 prompt: 'Component Name: ',
                 placeHolder: 'NewComponent',
             };

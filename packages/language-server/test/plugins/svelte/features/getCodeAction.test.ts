@@ -1,29 +1,28 @@
 import * as assert from 'assert';
-import * as path from 'path';
 import * as fs from 'fs';
 import { EOL } from 'os';
+import * as path from 'path';
 import {
-    CodeActionContext,
     CodeAction,
-    Range,
+    CodeActionContext,
+    CreateFile,
     DiagnosticSeverity,
     Position,
-    WorkspaceEdit,
+    Range,
     TextDocumentEdit,
-    TextDocumentIdentifier,
     TextEdit,
-    CreateFile,
     VersionedTextDocumentIdentifier,
+    WorkspaceEdit,
 } from 'vscode-languageserver';
-import { getCodeActions } from '../../../../src/plugins/svelte/features/getCodeActions';
-import { SvelteDocument } from '../../../../src/plugins/svelte/SvelteDocument';
 import { Document } from '../../../../src/lib/documents';
-import { pathToUrl } from '../../../../src/utils';
+import { getCodeActions } from '../../../../src/plugins/svelte/features/getCodeActions';
 import {
     executeRefactoringCommand,
-    extractComponentCommand,
     ExtractComponentArgs,
+    extractComponentCommand,
 } from '../../../../src/plugins/svelte/features/getCodeActions/getRefactorings';
+import { SvelteDocument } from '../../../../src/plugins/svelte/SvelteDocument';
+import { pathToUrl } from '../../../../src/utils';
 
 describe('SveltePlugin#getCodeAction', () => {
     const testDir = path.join(__dirname, '..', 'testfiles');
