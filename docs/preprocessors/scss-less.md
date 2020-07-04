@@ -70,6 +70,8 @@ You will need to tell svelte-vscode to restart the svelte language server in ord
 
 Hit `ctrl-shift-p` or `cmd-shift-p` on mac, type `svelte restart`, and select `Svelte: Restart Language Server`. Any errors you were seeing should now go away and you're now all set up!
 
-## SCSS: Still having errors?
+## Troubleshooting / FAQ
+
+### SCSS: Still having errors?
 
 The `node-sass` package is very sensitive to node versions. It may be possible that this plugin runs on a different version than your application. Then it is necessary to set the `svelte.language-server.runtime` setting to the path of your node runtime. E.g. `"svelte.language-server.runtime": "/<LOCAL_PATH>/bin/node"`.

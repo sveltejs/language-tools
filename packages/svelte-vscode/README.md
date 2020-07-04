@@ -4,9 +4,11 @@ Provides syntax highlighting and rich intellisense for Svelte components in VS C
 
 ## Setup
 
-Do you want to use Typescript/SCSS/Less/..? See "Using with preprocessors" below.
-
 If you added `"files.associations": {"*.svelte": "html" }` to your VSCode settings, remove it.
+
+Do you want to use TypeScript/SCSS/Less/..? [See the docs](/docs/README.md#language-specific-setup).
+
+More docs and troubleshooting: [See here](/docs/README.md).
 
 ## Features
 
@@ -36,79 +38,6 @@ If you added `"files.associations": {"*.svelte": "html" }` to your VSCode settin
     -   Autocompletions
     -   Go to definition
     -   Code Actions
-
-### Using with preprocessors
-
-#### Language specific setup
-
--   [SCSS/Less](/packages/svelte-vscode/docs/preprocessors/scss.md)
--   [TypeScript](/packages/svelte-vscode/docs/preprocessors/typescript.md)
-
-#### Generic setup
-
-If a svelte file contains some language other than `html`, `css` or `javascript`, `svelte-vscode` needs to know how to [preprocess](https://svelte.dev/docs#svelte_preprocess) it. This can be achieved by creating a `svelte.config.js` file at the root of your project which exports a svelte options object (similar to `svelte-loader` and `rollup-plugin-svelte`). It's recommended to use the official [svelte-preprocess](https://github.com/sveltejs/svelte-preprocess) package which can handle many languages.
-
-```js
-// svelte.config.js - NOTE: you cannot use the new "import x from y" and "export const" syntax in here.
-const sveltePreprocess = require('svelte-preprocess');
-
-module.exports = {
-    preprocess: sveltePreprocess(),
-    // ...other svelte options
-};
-```
-
-It's also necessary to add a `type="text/language-name"` or `lang="language-name"` to your `style` and `script` tags, which defines how that code should be interpreted by the extension.
-
-```html
-<div>
-    <h1>Hello, world!</h1>
-</div>
-
-<style type="text/scss">
-    div {
-        h1 {
-            color: red;
-        }
-    }
-</style>
-```
-
-### Troubleshooting
-
-#### I get weird type errors on my html tags
-
-This may be due to some library you are using having installed typings for `react`. These are picked up by the TypeScript compiler. Because we internally transform svelte to jsx, there is a clash and said error occurs.
-
-![image](https://user-images.githubusercontent.com/374638/85633868-72697280-b67a-11ea-8f8c-7fe2b4702339.png)
-
-The underlying [issue in TypeScript](https://github.com/microsoft/TypeScript/issues/18588) is yet to be fixed but in the meantime, one way to work around it is as follows:
-
-1. Add a `sink.d.ts` with content `declare module 'react' {}`
-2. Go to your `tsconfig.json`
-3. If you do not have such a setting already, enhance `compilerOptions` with `"baseUrl": "."`
-4. Enhance `compilerOptions` with `"paths": { "react": ["<path to your sink.d.ts, relative to the baseUrl>"] }`
-
-`tsconfig.json`
-
-```json
-{
-    "compilerOptions": {
-        "baseUrl": ".",
-        "paths": {
-            "react": ["sink.d.ts"]
-        }
-    }
-}
-```
-
-`sink.d.ts:`
-
-```ts
-declare module 'react';
-```
-
-For more info see [this issue](https://github.com/sveltejs/language-tools/issues/228)
 
 ### Settings
 
