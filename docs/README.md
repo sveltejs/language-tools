@@ -45,9 +45,9 @@ It's also necessary to add a `type="text/language-name"` or `lang="language-name
 
 ## Troubleshooting / FAQ
 
-### Using TypeScript? See [this section](./preprocessors/typescript.md#troubleshooting-faq)
+### Using TypeScript? See [this section](./preprocessors/typescript.md#troubleshooting--faq)
 
-### Using SCSS or Less? See [this section](./preprocessors/scss-less.md#troubleshooting-faq)
+### Using SCSS or Less? See [this section](./preprocessors/scss-less.md#troubleshooting--faq)
 
 ## Internals
 
