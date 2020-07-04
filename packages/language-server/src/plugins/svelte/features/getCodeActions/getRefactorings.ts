@@ -13,52 +13,57 @@ import { isRangeInTag, TagInformation } from '../../../../lib/documents';
 import { pathToUrl } from '../../../../utils';
 import { SvelteDocument } from '../../SvelteDocument';
 
-export interface RefactorArgs {
+export interface ExtractComponentArgs {
+    uri: string;
     range: Range;
+    filePath: string;
 }
 
 const extractComponentCommand = 'extract_to_svelte_component';
 
-/**
- * Get applicable refactoring commands at given range.
- */
-export async function getRefactorings(
+export async function executeRefactoringCommand(
     svelteDoc: SvelteDocument,
-    range: Range,
-): Promise<CodeAction[]> {
-    return getExtractRefactoringCommand(svelteDoc, range);
+    command: string,
+    args?: any[],
+): Promise<WorkspaceEdit | string | null> {
+    if (command === extractComponentCommand && args) {
+        return executeExtractComponentCommand(svelteDoc, args[1]);
+    }
+
+    return null;
 }
 
-async function getExtractRefactoringCommand(
+async function executeExtractComponentCommand(
     svelteDoc: SvelteDocument,
-    range: Range,
-): Promise<CodeAction[]> {
-    const offsetStart = svelteDoc.offsetAt(range.start);
-    const offsetEnd = svelteDoc.offsetAt(range.end);
+    refactorArgs: ExtractComponentArgs,
+): Promise<WorkspaceEdit | string | null> {
+    const { range } = refactorArgs;
 
-    if (isSmallSelectionRange() || isInvalidSelectionRange()) {
-        return [];
+    if (isInvalidSelectionRange()) {
+        return 'Invalid selection range';
     }
 
-    return [
-        CodeAction.create('Extract into component', {
-            title: 'Extract into component',
-            command: extractComponentCommand,
-            arguments: [
-                svelteDoc.uri,
-                <RefactorArgs>{
-                    range,
-                },
-            ],
-        }),
-    ];
-
-    function isSmallSelectionRange() {
-        return offsetEnd - offsetStart < 10;
+    let filePath = refactorArgs.filePath || './NewComponent.svelte';
+    if (!filePath.endsWith('.svelte')) {
+        filePath += '.svelte';
     }
+    const componentName = filePath.split('/').pop()?.split('.svelte')[0] || '';
+    const newFileUri = pathToUrl(path.join(path.dirname(svelteDoc.getFilePath()), filePath));
+    return <WorkspaceEdit>{
+        documentChanges: [
+            TextDocumentEdit.create(VersionedTextDocumentIdentifier.create(svelteDoc.uri, null), [
+                TextEdit.replace(range, `<${componentName}></${componentName}>`),
+                createComponentImportTextEdit(),
+            ]),
+            CreateFile.create(newFileUri, { overwrite: true }),
+            createNewFileEdit(),
+        ],
+    };
 
     function isInvalidSelectionRange() {
         const text = svelteDoc.getText();
+        const offsetStart = svelteDoc.offsetAt(range.start);
+        const offsetEnd = svelteDoc.offsetAt(range.end);
         const validStart = offsetStart === 0 || /[\s\W]/.test(text[offsetStart - 1]);
         const validEnd = offsetEnd === text.length - 1 || /[\s\W]/.test(text[offsetEnd]);
         return (
@@ -69,39 +74,6 @@ async function getExtractRefactoringCommand(
             isRangeInTag(range, svelteDoc.moduleScript)
         );
     }
-}
-
-export async function executeRefactoringCommand(
-    svelteDoc: SvelteDocument,
-    command: string,
-    args?: any[],
-): Promise<WorkspaceEdit | null> {
-    if (command === extractComponentCommand && args) {
-        return executeExtractComponentCommand(svelteDoc, args[1]);
-    }
-
-    return null;
-}
-
-async function executeExtractComponentCommand(
-    svelteDoc: SvelteDocument,
-    refactorArgs: RefactorArgs,
-): Promise<WorkspaceEdit | null> {
-    const { range } = refactorArgs;
-
-    const newFileUri = pathToUrl(
-        path.join(path.dirname(svelteDoc.getFilePath()), 'NewComponent.svelte'),
-    );
-    return <WorkspaceEdit>{
-        documentChanges: [
-            TextDocumentEdit.create(VersionedTextDocumentIdentifier.create(svelteDoc.uri, null), [
-                TextEdit.replace(range, '<NewComponent></NewComponent>'),
-                createComponentImportTextEdit(),
-            ]),
-            CreateFile.create(newFileUri, { overwrite: true }),
-            createNewFileEdit(),
-        ],
-    };
 
     function createNewFileEdit() {
         const text = svelteDoc.getText();
@@ -142,7 +114,7 @@ async function executeExtractComponentCommand(
 
     function createComponentImportTextEdit(): TextEdit {
         const startPos = (svelteDoc.script || svelteDoc.moduleScript)?.startPos;
-        const importText = `\n  import NewComponent from './NewComponent.svelte';\n`;
+        const importText = `\n  import ${componentName} from '${filePath}';\n`;
         return TextEdit.insert(
             startPos || Position.create(0, 0),
             startPos ? importText : `<script>\n${importText}</script>`,

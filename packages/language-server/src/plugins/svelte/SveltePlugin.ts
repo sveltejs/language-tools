@@ -128,7 +128,7 @@ export class SveltePlugin
         document: Document,
         command: string,
         args?: any[],
-    ): Promise<WorkspaceEdit | null> {
+    ): Promise<WorkspaceEdit | string | null> {
         if (!this.featureEnabled('codeActions')) {
             return null;
         }

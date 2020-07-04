@@ -7,7 +7,7 @@ import {
 } from 'vscode-languageserver';
 import { SvelteDocument } from '../../SvelteDocument';
 import { getQuickfixActions, isIgnorableSvelteDiagnostic } from './getQuickfixes';
-import { getRefactorings, executeRefactoringCommand } from './getRefactorings';
+import { executeRefactoringCommand } from './getRefactorings';
 
 export async function getCodeActions(
     svelteDoc: SvelteDocument,
@@ -22,13 +22,13 @@ export async function getCodeActions(
         return await getQuickfixActions(svelteDoc, svelteDiagnostics);
     }
 
-    return await getRefactorings(svelteDoc, range);
+    return [];
 }
 
 export async function executeCommand(
     svelteDoc: SvelteDocument,
     command: string,
     args?: any[],
-): Promise<WorkspaceEdit | null> {
+): Promise<WorkspaceEdit | string | null> {
     return await executeRefactoringCommand(svelteDoc, command, args);
 }

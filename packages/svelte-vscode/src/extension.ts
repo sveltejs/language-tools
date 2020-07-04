@@ -23,6 +23,7 @@ import {
     RevealOutputChannelOn,
     WorkspaceEdit as LSWorkspaceEdit,
     TextDocumentEdit,
+    ExecuteCommandRequest,
 } from 'vscode-languageclient';
 import { activateTagClosing } from './html/autoClose';
 import { EMPTY_ELEMENTS } from './html/htmlEmptyTagsShared';
@@ -131,6 +132,8 @@ export function activate(context: ExtensionContext) {
 
     addCompilePreviewCommand(getLS, context);
 
+    addExtracComponentCommand(getLS, context);
+
     languages.setLanguageConfiguration('svelte', {
         indentationRules: {
             // Matches a valid opening tag that is:
@@ -169,7 +172,12 @@ export function activate(context: ExtensionContext) {
                 //  - Isn't followed by another tag on the same line
                 //
                 // eslint-disable-next-line no-useless-escape
-                beforeText: new RegExp(`<(?!(?:${EMPTY_ELEMENTS.join('|')}))([_:\\w][_:\\w-.\\d]*)([^/>]*(?!/)>)[^<]*$`, 'i'),
+                beforeText: new RegExp(
+                    `<(?!(?:${EMPTY_ELEMENTS.join(
+                        '|',
+                    )}))([_:\\w][_:\\w-.\\d]*)([^/>]*(?!/)>)[^<]*$`,
+                    'i',
+                ),
                 // Matches a closing tag that:
                 //  - Is possibly namespaced
                 //  - Possibly has excess whitespace following tagname
@@ -184,7 +192,10 @@ export function activate(context: ExtensionContext) {
                 //  - Isn't followed by another tag on the same line
                 //
                 // eslint-disable-next-line no-useless-escape
-                beforeText: new RegExp(`<(?!(?:${EMPTY_ELEMENTS.join('|')}))(\\w[\\w\\d]*)([^/>]*(?!/)>)[^<]*$`, 'i'),
+                beforeText: new RegExp(
+                    `<(?!(?:${EMPTY_ELEMENTS.join('|')}))(\\w[\\w\\d]*)([^/>]*(?!/)>)[^<]*$`,
+                    'i',
+                ),
                 action: { indentAction: IndentAction.Indent },
             },
         ],
@@ -260,6 +271,35 @@ function addCompilePreviewCommand(getLS: () => LanguageClient, context: Extensio
                     });
                 },
             );
+        }),
+    );
+}
+
+function addExtracComponentCommand(getLS: () => LanguageClient, context: ExtensionContext) {
+    context.subscriptions.push(
+        commands.registerTextEditorCommand('svelte.extractComponent', async (editor) => {
+            if (editor?.document?.languageId !== 'svelte') {
+                return;
+            }
+
+            // Prompt for new component name
+            let options = {
+                prompt: 'Component Name: ',
+                placeHolder: 'NewComponent',
+            };
+
+            window.showInputBox(options).then(async (filePath) => {
+                if (!filePath) {
+                    return window.showErrorMessage('No component name');
+                }
+
+                const uri = editor.document.uri.toString();
+                const range = editor.selection;
+                getLS().sendRequest(ExecuteCommandRequest.type, {
+                    command: 'extract_to_svelte_component',
+                    arguments: [uri, { uri, range, filePath }],
+                });
+            });
         }),
     );
 }

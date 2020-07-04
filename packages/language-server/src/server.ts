@@ -1,32 +1,35 @@
+import _ from 'lodash';
 import {
+    ApplyWorkspaceEditParams,
+    ApplyWorkspaceEditRequest,
+    CodeActionKind,
     createConnection,
+    DocumentUri,
+    IConnection,
     IPCMessageReader,
     IPCMessageWriter,
-    TextDocumentSyncKind,
-    RequestType,
-    TextDocumentPositionParams,
-    TextDocumentIdentifier,
-    IConnection,
-    CodeActionKind,
+    MessageType,
     RenameFile,
-    DocumentUri,
-    ApplyWorkspaceEditRequest,
-    ApplyWorkspaceEditParams,
+    RequestType,
+    ShowMessageNotification,
+    TextDocumentIdentifier,
+    TextDocumentPositionParams,
+    TextDocumentSyncKind,
+    WorkspaceEdit,
 } from 'vscode-languageserver';
-import { DocumentManager, Document } from './lib/documents';
-import {
-    SveltePlugin,
-    HTMLPlugin,
-    CSSPlugin,
-    TypeScriptPlugin,
-    PluginHost,
-    AppCompletionItem,
-} from './plugins';
-import _ from 'lodash';
-import { LSConfigManager } from './ls-config';
-import { urlToPath } from './utils';
-import { Logger } from './logger';
 import { DiagnosticsManager } from './lib/DiagnosticsManager';
+import { Document, DocumentManager } from './lib/documents';
+import { Logger } from './logger';
+import { LSConfigManager } from './ls-config';
+import {
+    AppCompletionItem,
+    CSSPlugin,
+    HTMLPlugin,
+    PluginHost,
+    SveltePlugin,
+    TypeScriptPlugin,
+} from './plugins';
+import { urlToPath } from './utils';
 
 namespace TagCloseRequest {
     export const type: RequestType<
@@ -213,9 +216,14 @@ export function startServer(options?: LSOptions) {
             evt.command,
             evt.arguments,
         );
-        if (result) {
+        if (WorkspaceEdit.is(result)) {
             const edit: ApplyWorkspaceEditParams = { edit: result };
             connection?.sendRequest(ApplyWorkspaceEditRequest.type.method, edit);
+        } else if (result) {
+            connection?.sendNotification(ShowMessageNotification.type.method, {
+                message: result,
+                type: MessageType.Error,
+            });
         }
     });
 
