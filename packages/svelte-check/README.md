@@ -54,6 +54,10 @@ Usage:
 
 `--output <human|human-verbose|machine>`
 
+### More docs, preprocessor setup and troubleshooting
+
+[See here](/docs/README.md).
+
 ### Machine-Readable Output
 
 Setting the `--output` to `machine` will format output in a way that is easier to read
