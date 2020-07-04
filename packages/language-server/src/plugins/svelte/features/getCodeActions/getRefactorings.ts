@@ -19,7 +19,7 @@ export interface ExtractComponentArgs {
     filePath: string;
 }
 
-const extractComponentCommand = 'extract_to_svelte_component';
+export const extractComponentCommand = 'extract_to_svelte_component';
 
 export async function executeRefactoringCommand(
     svelteDoc: SvelteDocument,
@@ -47,8 +47,12 @@ async function executeExtractComponentCommand(
     if (!filePath.endsWith('.svelte')) {
         filePath += '.svelte';
     }
+    if (!filePath.startsWith('.')) {
+        filePath = './' + filePath;
+    }
     const componentName = filePath.split('/').pop()?.split('.svelte')[0] || '';
     const newFileUri = pathToUrl(path.join(path.dirname(svelteDoc.getFilePath()), filePath));
+
     return <WorkspaceEdit>{
         documentChanges: [
             TextDocumentEdit.create(VersionedTextDocumentIdentifier.create(svelteDoc.uri, null), [
@@ -95,7 +99,7 @@ async function executeExtractComponentCommand(
         function getTemplate() {
             const startOffset = svelteDoc.offsetAt(range.start);
             return {
-                text: text.substring(startOffset, svelteDoc.offsetAt(range.end)),
+                text: text.substring(startOffset, svelteDoc.offsetAt(range.end)) + '\n\n',
                 start: startOffset,
             };
         }

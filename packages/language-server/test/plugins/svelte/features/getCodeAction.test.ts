@@ -8,11 +8,22 @@ import {
     Range,
     DiagnosticSeverity,
     Position,
+    WorkspaceEdit,
+    TextDocumentEdit,
+    TextDocumentIdentifier,
+    TextEdit,
+    CreateFile,
+    VersionedTextDocumentIdentifier,
 } from 'vscode-languageserver';
 import { getCodeActions } from '../../../../src/plugins/svelte/features/getCodeActions';
 import { SvelteDocument } from '../../../../src/plugins/svelte/SvelteDocument';
 import { Document } from '../../../../src/lib/documents';
 import { pathToUrl } from '../../../../src/utils';
+import {
+    executeRefactoringCommand,
+    extractComponentCommand,
+    ExtractComponentArgs,
+} from '../../../../src/plugins/svelte/features/getCodeActions/getRefactorings';
 
 describe('SveltePlugin#getCodeAction', () => {
     const testDir = path.join(__dirname, '..', 'testfiles');
@@ -245,6 +256,84 @@ describe('SveltePlugin#getCodeAction', () => {
                     kind: 'quickfix',
                 },
             ]);
+        });
+    });
+
+    describe('#extractComponent', async () => {
+        const scriptContent = `<script>
+        const bla = true;
+        </script>`;
+        const styleContent = `<style>p{color: blue}</style>`;
+        const content = `
+        ${scriptContent}
+        <p>something else</p>
+        <p>extract me</p>
+        ${styleContent}`;
+
+        const doc = new SvelteDocument(new Document('someUrl', content), {});
+
+        async function extractComponent(filePath: string, range: Range) {
+            return executeRefactoringCommand(doc, extractComponentCommand, [
+                '',
+                <ExtractComponentArgs>{
+                    filePath,
+                    range,
+                    uri: '',
+                },
+            ]);
+        }
+
+        async function shouldExtractComponent(
+            path: 'NewComp' | 'NewComp.svelte' | './NewComp' | './NewComp.svelte',
+        ) {
+            const range = Range.create(Position.create(5, 8), Position.create(5, 25));
+            const result = await extractComponent(path, range);
+            assert.deepStrictEqual(result, <WorkspaceEdit>{
+                documentChanges: [
+                    TextDocumentEdit.create(
+                        VersionedTextDocumentIdentifier.create('someUrl', null),
+                        [
+                            TextEdit.replace(range, '<NewComp></NewComp>'),
+                            TextEdit.insert(
+                                doc.script?.startPos || Position.create(0, 0),
+                                `\n  import NewComp from './NewComp.svelte';\n`,
+                            ),
+                        ],
+                    ),
+                    CreateFile.create('file:///NewComp.svelte', { overwrite: true }),
+                    TextDocumentEdit.create(
+                        VersionedTextDocumentIdentifier.create('file:///NewComp.svelte', null),
+                        [
+                            TextEdit.insert(
+                                Position.create(0, 0),
+                                `${scriptContent}\n\n<p>extract me</p>\n\n${styleContent}\n\n`,
+                            ),
+                        ],
+                    ),
+                ],
+            });
+        }
+
+        it('should extract component (no .svelte at the end)', async () => {
+            await shouldExtractComponent('./NewComp');
+        });
+
+        it('should extract component (no .svelte at the end, no relative path)', async () => {
+            await shouldExtractComponent('NewComp');
+        });
+
+        it('should extract component (.svelte at the end, no relative path', async () => {
+            await shouldExtractComponent('NewComp.svelte');
+        });
+
+        it('should extract component (.svelte at the end, relative path)', async () => {
+            await shouldExtractComponent('./NewComp.svelte');
+        });
+
+        it('should return "Invalid selection range"', async () => {
+            const range = Range.create(Position.create(6, 8), Position.create(6, 25));
+            const result = await extractComponent('Bla', range);
+            assert.deepStrictEqual(result, 'Invalid selection range');
         });
     });
 });
