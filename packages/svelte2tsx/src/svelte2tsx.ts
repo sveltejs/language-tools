@@ -1,4 +1,5 @@
 import MagicString from 'magic-string';
+import path from 'path';
 import { parseHtmlx } from './htmlxparser';
 import { convertHtmlxToJsx } from './htmlxtojsx';
 import { Node } from 'estree-walker';
@@ -767,6 +768,8 @@ function addComponentExport(
     uses$$propsOr$$restProps: boolean,
     strictMode: boolean,
     isTsFile: boolean,
+    /** A named export allows for TSDoc-compatible docstrings */
+    name?: string,
 ) {
     const propDef =
         // Omit partial-wrapper only if both strict mode and ts file, because
@@ -777,10 +780,11 @@ function addComponentExport(
                 ? '__sveltets_with_any(render().props)'
                 : 'render().props'
             : `__sveltets_partial${uses$$propsOr$$restProps ? '_with_any' : ''}(render().props)`;
-    str.append(
-        // eslint-disable-next-line max-len
-        `\n\nexport default class {\n    $$prop_def = ${propDef}\n    $$slot_def = render().slots\n}`,
-    );
+
+    // eslint-disable-next-line max-len
+    const statement = `\n\nexport default class ${name ? `${name} ` : ''}{\n    $$prop_def = ${propDef}\n    $$slot_def = render().slots\n}`;
+
+    str.append(statement);
 }
 
 function isTsFile(scriptTag: Node | undefined, moduleScriptTag: Node | undefined) {
@@ -948,11 +952,14 @@ export function svelte2tsx(svelte: string, options?: { filename?: string; strict
         processModuleScriptTag(str, moduleScriptTag);
     }
 
+    const name = options?.filename && path.parse(options.filename).name;
+
     addComponentExport(
         str,
         uses$$props || uses$$restProps,
         !!options?.strictMode,
         isTsFile(scriptTag, moduleScriptTag),
+        name,
     );
 
     return {
