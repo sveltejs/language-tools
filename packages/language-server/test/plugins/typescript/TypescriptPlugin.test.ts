@@ -104,22 +104,37 @@ describe('TypescriptPlugin', () => {
         ]);
     });
 
-    it('provides hover info', async () => {
+    it('provides basic hover info when no docstring exists', async () => {
         const { plugin, document } = setup('hoverinfo.svelte');
 
-        assert.deepStrictEqual(await plugin.doHover(document, Position.create(0, 14)), <Hover>{
-            contents: {
-                language: 'ts',
-                value: 'const a: true',
-            },
+        assert.deepStrictEqual(await plugin.doHover(document, Position.create(4, 10)), <Hover>{
+            contents: '```typescript\nconst withoutDocs: true\n```',
             range: {
                 start: {
-                    character: 14,
-                    line: 0,
+                    character: 10,
+                    line: 4,
                 },
                 end: {
-                    character: 15,
-                    line: 0,
+                    character: 21,
+                    line: 4,
+                },
+            },
+        });
+    });
+
+    it('provides formatted hover info when a docstring exists', async () => {
+        const { plugin, document } = setup('hoverinfo.svelte');
+
+        assert.deepStrictEqual(await plugin.doHover(document, Position.create(2, 10)), <Hover>{
+            contents: '```typescript\nconst withDocs: true\n```\n---\nDocumentation string',
+            range: {
+                start: {
+                    character: 10,
+                    line: 2,
+                },
+                end: {
+                    character: 18,
+                    line: 2,
                 },
             },
         });

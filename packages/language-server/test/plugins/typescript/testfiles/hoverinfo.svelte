@@ -1,1 +1,6 @@
-<script>const a = true</script>
+<script>
+    /** Documentation string */
+    const withDocs = true
+
+    const withoutDocs = true
+</script>
