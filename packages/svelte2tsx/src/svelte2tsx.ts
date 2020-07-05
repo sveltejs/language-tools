@@ -378,7 +378,7 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
         name: ts.BindingName,
         target: ts.BindingName = null,
         type: ts.TypeNode = null,
-        required: boolean = false,
+        required = false,
     ) => {
         if (name.kind != ts.SyntaxKind.Identifier) {
             throw Error('export source kind not supported ' + name);
