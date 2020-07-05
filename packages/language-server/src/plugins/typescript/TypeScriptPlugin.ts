@@ -107,10 +107,19 @@ export class TypeScriptPlugin
         if (!info) {
             return null;
         }
-        const contents = ts.displayPartsToString(info.displayParts);
+        const declaration = ts.displayPartsToString(info.displayParts);
+        const documentation = typeof info.documentation === 'string'
+            ? info.documentation
+            : ts.displayPartsToString(info.documentation);
+
+        // https://microsoft.github.io/language-server-protocol/specification#textDocument_hover
+        const contents = ['```typescript', declaration, '```']
+            .concat(documentation ? ['---', documentation] : [])
+            .join('\n');
+
         return mapHoverToParent(fragment, {
             range: convertRange(fragment, info.textSpan),
-            contents: { language: 'ts', value: contents },
+            contents,
         });
     }
 
