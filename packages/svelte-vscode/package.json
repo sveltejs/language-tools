@@ -247,6 +247,10 @@
                     "light": "icons/preview-right-light.svg",
                     "dark": "icons/preview-right-dark.svg"
                 }
+            },
+            {
+                "command": "svelte.extractComponent",
+                "title": "Svelte: Extract Component"
             }
         ],
         "menus": {

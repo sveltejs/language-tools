@@ -3,6 +3,7 @@ import {
     getLineAtPosition,
     extractStyleTag,
     extractScriptTags,
+    updateRelativeImport,
 } from '../../../src/lib/documents/utils';
 import { Position } from 'vscode-languageserver';
 
@@ -268,6 +269,35 @@ describe('document/utils', () => {
                 getLineAtPosition(Position.create(1, 1), 'ABC\nDEF\nGHI'),
                 'DEF\n',
             );
+        });
+    });
+
+    describe('#updateRelativeImport', () => {
+        it('should update path of component with ending', () => {
+            const newPath = updateRelativeImport(
+                'C:/absolute/path/oldPath',
+                'C:/absolute/newPath',
+                './Component.svelte',
+            );
+            assert.deepStrictEqual(newPath, '../path/oldPath/Component.svelte');
+        });
+
+        it('should update path of file without ending', () => {
+            const newPath = updateRelativeImport(
+                'C:/absolute/path/oldPath',
+                'C:/absolute/newPath',
+                './someTsFile',
+            );
+            assert.deepStrictEqual(newPath, '../path/oldPath/someTsFile');
+        });
+
+        it('should update path of file going one up', () => {
+            const newPath = updateRelativeImport(
+                'C:/absolute/path/oldPath',
+                'C:/absolute/path',
+                './someTsFile',
+            );
+            assert.deepStrictEqual(newPath, './oldPath/someTsFile');
         });
     });
 });

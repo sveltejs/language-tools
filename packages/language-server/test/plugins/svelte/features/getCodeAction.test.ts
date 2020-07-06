@@ -1,11 +1,27 @@
 import * as assert from 'assert';
-import * as path from 'path';
 import * as fs from 'fs';
 import { EOL } from 'os';
-import { CodeActionContext, CodeAction, Range, DiagnosticSeverity } from 'vscode-languageserver';
-import { getCodeActions } from '../../../../src/plugins/svelte/features/getCodeActions';
-import { SvelteDocument } from '../../../../src/plugins/svelte/SvelteDocument';
+import * as path from 'path';
+import {
+    CodeAction,
+    CodeActionContext,
+    CreateFile,
+    DiagnosticSeverity,
+    Position,
+    Range,
+    TextDocumentEdit,
+    TextEdit,
+    VersionedTextDocumentIdentifier,
+    WorkspaceEdit,
+} from 'vscode-languageserver';
 import { Document } from '../../../../src/lib/documents';
+import { getCodeActions } from '../../../../src/plugins/svelte/features/getCodeActions';
+import {
+    executeRefactoringCommand,
+    ExtractComponentArgs,
+    extractComponentCommand,
+} from '../../../../src/plugins/svelte/features/getCodeActions/getRefactorings';
+import { SvelteDocument } from '../../../../src/plugins/svelte/SvelteDocument';
 import { pathToUrl } from '../../../../src/utils';
 
 describe('SveltePlugin#getCodeAction', () => {
@@ -26,7 +42,11 @@ describe('SveltePlugin#getCodeAction', () => {
             filename ? fs.readFileSync(filePath)?.toString() : '',
         );
         const svelteDoc = new SvelteDocument(document, {});
-        const codeAction = await getCodeActions(svelteDoc, context);
+        const codeAction = await getCodeActions(
+            svelteDoc,
+            Range.create(Position.create(0, 0), Position.create(0, 0)),
+            context,
+        );
         return {
             toEqual: (expected: CodeAction[]) => assert.deepStrictEqual(codeAction, expected),
         };
@@ -235,6 +255,137 @@ describe('SveltePlugin#getCodeAction', () => {
                     kind: 'quickfix',
                 },
             ]);
+        });
+    });
+
+    describe('#extractComponent', async () => {
+        const scriptContent = `<script>
+        const bla = true;
+        </script>`;
+        const styleContent = `<style>p{color: blue}</style>`;
+        const content = `
+        ${scriptContent}
+        <p>something else</p>
+        <p>extract me</p>
+        ${styleContent}`;
+
+        const doc = new SvelteDocument(new Document('someUrl', content), {});
+
+        async function extractComponent(filePath: string, range: Range) {
+            return executeRefactoringCommand(doc, extractComponentCommand, [
+                '',
+                <ExtractComponentArgs>{
+                    filePath,
+                    range,
+                    uri: '',
+                },
+            ]);
+        }
+
+        async function shouldExtractComponent(
+            path: 'NewComp' | 'NewComp.svelte' | './NewComp' | './NewComp.svelte',
+        ) {
+            const range = Range.create(Position.create(5, 8), Position.create(5, 25));
+            const result = await extractComponent(path, range);
+            assert.deepStrictEqual(result, <WorkspaceEdit>{
+                documentChanges: [
+                    TextDocumentEdit.create(
+                        VersionedTextDocumentIdentifier.create('someUrl', null),
+                        [
+                            TextEdit.replace(range, '<NewComp></NewComp>'),
+                            TextEdit.insert(
+                                doc.script?.startPos || Position.create(0, 0),
+                                `\n  import NewComp from './NewComp.svelte';\n`,
+                            ),
+                        ],
+                    ),
+                    CreateFile.create('file:///NewComp.svelte', { overwrite: true }),
+                    TextDocumentEdit.create(
+                        VersionedTextDocumentIdentifier.create('file:///NewComp.svelte', null),
+                        [
+                            TextEdit.insert(
+                                Position.create(0, 0),
+                                `${scriptContent}\n\n<p>extract me</p>\n\n${styleContent}\n\n`,
+                            ),
+                        ],
+                    ),
+                ],
+            });
+        }
+
+        it('should extract component (no .svelte at the end)', async () => {
+            await shouldExtractComponent('./NewComp');
+        });
+
+        it('should extract component (no .svelte at the end, no relative path)', async () => {
+            await shouldExtractComponent('NewComp');
+        });
+
+        it('should extract component (.svelte at the end, no relative path', async () => {
+            await shouldExtractComponent('NewComp.svelte');
+        });
+
+        it('should extract component (.svelte at the end, relative path)', async () => {
+            await shouldExtractComponent('./NewComp.svelte');
+        });
+
+        it('should return "Invalid selection range"', async () => {
+            const range = Range.create(Position.create(6, 8), Position.create(6, 25));
+            const result = await extractComponent('Bla', range);
+            assert.deepStrictEqual(result, 'Invalid selection range');
+        });
+
+        it('should update relative imports', async () => {
+            const content = `<script>
+            import OtherComponent from './OtherComponent.svelte';
+            import {test} from '../test';
+            </script>
+            toExtract
+            <style>
+            @import './style.css';
+            </style>`;
+            const existingFileUri = pathToUrl('C:/path/File.svelte');
+            const doc = new SvelteDocument(new Document(existingFileUri, content), {});
+            const range = Range.create(Position.create(4, 12), Position.create(4, 21));
+            const result = await executeRefactoringCommand(doc, extractComponentCommand, [
+                '',
+                <ExtractComponentArgs>{
+                    filePath: '../NewComp',
+                    range,
+                    uri: '',
+                },
+            ]);
+
+            const newFileUri = pathToUrl('C:/NewComp.svelte');
+            assert.deepStrictEqual(result, <WorkspaceEdit>{
+                documentChanges: [
+                    TextDocumentEdit.create(
+                        VersionedTextDocumentIdentifier.create(existingFileUri, null),
+                        [
+                            TextEdit.replace(range, '<NewComp></NewComp>'),
+                            TextEdit.insert(
+                                doc.script?.startPos || Position.create(0, 0),
+                                `\n  import NewComp from '../NewComp.svelte';\n`,
+                            ),
+                        ],
+                    ),
+                    CreateFile.create(newFileUri, { overwrite: true }),
+                    TextDocumentEdit.create(
+                        VersionedTextDocumentIdentifier.create(newFileUri, null),
+                        [
+                            TextEdit.insert(
+                                Position.create(0, 0),
+                                `<script>
+            import OtherComponent from './path/OtherComponent.svelte';
+            import {test} from './test';
+            </script>\n\ntoExtract\n\n<style>
+            @import './path/style.css';
+            </style>\n\n`,
+                            ),
+                        ],
+                    ),
+                ],
+            });
         });
     });
 });

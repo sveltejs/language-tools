@@ -1,6 +1,7 @@
 import { clamp, isInRange, regexLastIndexOf } from '../../utils';
 import { Position, Range } from 'vscode-languageserver';
 import { Node, getLanguageService } from 'vscode-html-languageservice';
+import * as path from 'path';
 
 export interface TagInformation {
     content: string;
@@ -253,4 +254,21 @@ export function getLineAtPosition(position: Position, text: string) {
         offsetAt({ line: position.line, character: 0 }, text),
         offsetAt({ line: position.line, character: Number.MAX_VALUE }, text),
     );
+}
+
+/**
+ * Updates a relative import
+ *
+ * @param oldPath Old absolute path
+ * @param newPath New absolute path
+ * @param relativeImportPath Import relative to the old path
+ */
+export function updateRelativeImport(oldPath: string, newPath: string, relativeImportPath: string) {
+    let newImportPath = path
+        .join(path.relative(newPath, oldPath), relativeImportPath)
+        .replace(/\\/g, '/');
+    if (!newImportPath.startsWith('.')) {
+        newImportPath = './' + newImportPath;
+    }
+    return newImportPath;
 }

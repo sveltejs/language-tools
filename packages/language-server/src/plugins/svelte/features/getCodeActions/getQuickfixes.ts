@@ -1,20 +1,20 @@
-import {
-    Diagnostic,
-    CodeActionContext,
-    CodeAction,
-    TextEdit,
-    TextDocumentEdit,
-    Position,
-    CodeActionKind,
-    VersionedTextDocumentIdentifier,
-    DiagnosticSeverity,
-} from 'vscode-languageserver';
 import { walk } from 'estree-walker';
 import { EOL } from 'os';
-import { SvelteDocument } from '../SvelteDocument';
-import { pathToUrl } from '../../../utils';
-import { positionAt, offsetAt, mapTextEditToOriginal } from '../../../lib/documents';
 import { Ast } from 'svelte/types/compiler/interfaces';
+import {
+    CodeAction,
+    CodeActionKind,
+    Diagnostic,
+    DiagnosticSeverity,
+    Position,
+    TextDocumentEdit,
+    TextEdit,
+    VersionedTextDocumentIdentifier,
+} from 'vscode-languageserver';
+import { mapTextEditToOriginal, offsetAt, positionAt } from '../../../../lib/documents';
+import { pathToUrl } from '../../../../utils';
+import { SvelteDocument } from '../../SvelteDocument';
+import ts from 'typescript';
 // There are multiple estree-walker versions in the monorepo.
 // The newer versions don't have start/end in their public interface,
 // but the AST returned by svelte/compiler does.
@@ -23,26 +23,23 @@ import { Ast } from 'svelte/types/compiler/interfaces';
 // all depend on the same estree(-walker) version, this should be revisited.
 type Node = any;
 
-interface OffsetRange {
-    start: number;
-    end: number;
-}
-
-export async function getCodeActions(
+/**
+ * Get applicable quick fixes.
+ */
+export async function getQuickfixActions(
     svelteDoc: SvelteDocument,
-    context: CodeActionContext,
-): Promise<CodeAction[]> {
+    svelteDiagnostics: Diagnostic[],
+) {
     const { ast } = await svelteDoc.getCompiled();
-    const svelteDiagnostics = context.diagnostics.filter(isIgnorableSvelteDiagnostic);
 
     return Promise.all(
         svelteDiagnostics.map(
-            async (diagnostic) => await createCodeAction(diagnostic, svelteDoc, ast),
+            async (diagnostic) => await createQuickfixAction(diagnostic, svelteDoc, ast),
         ),
     );
 }
 
-async function createCodeAction(
+async function createQuickfixAction(
     diagnostic: Diagnostic,
     svelteDoc: SvelteDocument,
     ast: Ast,
@@ -70,7 +67,7 @@ function getCodeActionTitle(diagnostic: Diagnostic) {
     return `(svelte) Disable ${diagnostic.code} for this line`;
 }
 
-function isIgnorableSvelteDiagnostic(diagnostic: Diagnostic) {
+export function isIgnorableSvelteDiagnostic(diagnostic: Diagnostic) {
     const { source, severity, code } = diagnostic;
     return code && source === 'svelte' && severity !== DiagnosticSeverity.Error;
 }
@@ -86,12 +83,12 @@ async function getSvelteIgnoreEdit(svelteDoc: SvelteDocument, ast: Ast, diagnost
 
     const diagnosticStartOffset = offsetAt(start, transpiled.getText());
     const diagnosticEndOffset = offsetAt(end, transpiled.getText());
-    const OffsetRange = {
-        start: diagnosticStartOffset,
+    const offsetRange: ts.TextRange = {
+        pos: diagnosticStartOffset,
         end: diagnosticEndOffset,
     };
 
-    const node = findTagForRange(html, OffsetRange);
+    const node = findTagForRange(html, offsetRange);
 
     const nodeStartPosition = positionAt(node.start, content);
     const nodeLineStart = offsetAt(
@@ -113,7 +110,7 @@ async function getSvelteIgnoreEdit(svelteDoc: SvelteDocument, ast: Ast, diagnost
 
 const elementOrComponent = ['Component', 'Element', 'InlineComponent'];
 
-function findTagForRange(html: Node, range: OffsetRange) {
+function findTagForRange(html: Node, range: ts.TextRange) {
     let nearest = html;
 
     walk(html, {
@@ -136,6 +133,6 @@ function findTagForRange(html: Node, range: OffsetRange) {
     return nearest;
 }
 
-function within(node: Node, range: OffsetRange) {
-    return node.end >= range.end && node.start <= range.start;
+function within(node: Node, range: ts.TextRange) {
+    return node.end >= range.end && node.start <= range.pos;
 }

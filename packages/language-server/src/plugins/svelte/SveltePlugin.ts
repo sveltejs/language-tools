@@ -9,6 +9,7 @@ import {
     Position,
     Range,
     TextEdit,
+    WorkspaceEdit,
 } from 'vscode-languageserver';
 import { Document } from '../../lib/documents';
 import { Logger } from '../../logger';
@@ -21,7 +22,7 @@ import {
     FormattingProvider,
     HoverProvider,
 } from '../interfaces';
-import { getCodeActions } from './features/getCodeActions';
+import { getCodeActions, executeCommand } from './features/getCodeActions';
 import { getCompletions } from './features/getCompletions';
 import { getDiagnostics } from './features/getDiagnostics';
 import { getHoverInfo } from './features/getHoverInfo';
@@ -108,7 +109,7 @@ export class SveltePlugin
 
     async getCodeActions(
         document: Document,
-        _range: Range,
+        range: Range,
         context: CodeActionContext,
     ): Promise<CodeAction[]> {
         if (!this.featureEnabled('codeActions')) {
@@ -117,9 +118,26 @@ export class SveltePlugin
 
         const svelteDoc = await this.getSvelteDoc(document);
         try {
-            return getCodeActions(svelteDoc, context);
+            return getCodeActions(svelteDoc, range, context);
         } catch (error) {
             return [];
+        }
+    }
+
+    async executeCommand(
+        document: Document,
+        command: string,
+        args?: any[],
+    ): Promise<WorkspaceEdit | string | null> {
+        if (!this.featureEnabled('codeActions')) {
+            return null;
+        }
+
+        const svelteDoc = await this.getSvelteDoc(document);
+        try {
+            return executeCommand(svelteDoc, command, args);
+        } catch (error) {
+            return null;
         }
     }
 

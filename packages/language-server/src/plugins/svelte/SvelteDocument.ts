@@ -38,12 +38,15 @@ export class SvelteDocument {
     private compileResult: SvelteCompileResult | undefined;
 
     public script: TagInformation | null;
+    public moduleScript: TagInformation | null;
     public style: TagInformation | null;
     public languageId = 'svelte';
     public version = 0;
+    public uri = this.parent.uri;
 
     constructor(private parent: Document, public config: SvelteConfig) {
         this.script = this.parent.scriptInfo;
+        this.moduleScript = this.parent.moduleScriptInfo;
         this.style = this.parent.styleInfo;
         this.version = this.parent.version;
     }
