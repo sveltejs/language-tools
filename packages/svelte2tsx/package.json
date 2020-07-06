@@ -57,5 +57,8 @@
         "LICENSE",
         "svelte-jsx.d.ts",
         "svelte-shims.d.ts"
-    ]
+    ],
+    "dependencies": {
+        "pascal-case": "^3.1.1"
+    }
 }

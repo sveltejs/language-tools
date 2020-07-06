@@ -1,3 +1,4 @@
+import { pascalCase } from 'pascal-case';
 import MagicString from 'magic-string';
 import path from 'path';
 import { parseHtmlx } from './htmlxparser';
@@ -787,8 +788,25 @@ function addComponentExport(
     str.append(statement);
 }
 
-function classNameFromFilename(filename: string): string {
-    return path.parse(filename).name;
+/**
+ * Returns a Svelte-compatible component name from a filename. Svelte
+ * components must use capitalized tags, so we try to transform the filename.
+ *
+ * Works with most filename styles except for filenames with multiple
+ * extensions, such as my-component.extension.svelte, which will result in
+ * MyComponentExtension.
+ *
+ * https://svelte.dev/docs#Tags
+ */
+export function classNameFromFilename(filename: string): string | undefined {
+    try {
+        const withoutExtension = path.parse(filename).name;
+        const inPascalCase = pascalCase(withoutExtension);
+        return inPascalCase;
+    } catch (error) {
+        console.warn(`Failed to create a name for the component class from filename ${filename}`);
+        return undefined;
+    }
 }
 
 function isTsFile(scriptTag: Node | undefined, moduleScriptTag: Node | undefined) {

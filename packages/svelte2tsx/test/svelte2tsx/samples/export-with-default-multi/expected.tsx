@@ -7,7 +7,7 @@
 <></>
 return { props: {name: name , world: world}, slots: {} }}
 
-export default class input {
+export default class Input {
     $$prop_def = __sveltets_partial(render().props)
     $$slot_def = render().slots
 }

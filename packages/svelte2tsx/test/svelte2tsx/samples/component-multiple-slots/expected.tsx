@@ -11,7 +11,7 @@
 </div></>
 return { props: {}, slots: {default: {a:b}, test: {c:d, e:e}} }}
 
-export default class input {
+export default class Input {
     $$prop_def = __sveltets_partial(render().props)
     $$slot_def = render().slots
 }
