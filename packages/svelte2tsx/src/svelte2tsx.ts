@@ -769,7 +769,7 @@ function addComponentExport(
     strictMode: boolean,
     isTsFile: boolean,
     /** A named export allows for TSDoc-compatible docstrings */
-    name?: string,
+    className?: string,
 ) {
     const propDef =
         // Omit partial-wrapper only if both strict mode and ts file, because
@@ -782,9 +782,13 @@ function addComponentExport(
             : `__sveltets_partial${uses$$propsOr$$restProps ? '_with_any' : ''}(render().props)`;
 
     // eslint-disable-next-line max-len
-    const statement = `\n\nexport default class ${name ? `${name} ` : ''}{\n    $$prop_def = ${propDef}\n    $$slot_def = render().slots\n}`;
+    const statement = `\n\nexport default class ${className ? `${className} ` : ''}{\n    $$prop_def = ${propDef}\n    $$slot_def = render().slots\n}`;
 
     str.append(statement);
+}
+
+function classNameFromFilename(filename: string): string {
+    return path.parse(filename).name;
 }
 
 function isTsFile(scriptTag: Node | undefined, moduleScriptTag: Node | undefined) {
@@ -952,14 +956,14 @@ export function svelte2tsx(svelte: string, options?: { filename?: string; strict
         processModuleScriptTag(str, moduleScriptTag);
     }
 
-    const name = options?.filename && path.parse(options.filename).name;
+    const className = options?.filename && classNameFromFilename(options?.filename);
 
     addComponentExport(
         str,
         uses$$props || uses$$restProps,
         !!options?.strictMode,
         isTsFile(scriptTag, moduleScriptTag),
-        name,
+        className,
     );
 
     return {
