@@ -8,7 +8,7 @@ import {
     VersionedTextDocumentIdentifier,
     WorkspaceEdit,
 } from 'vscode-languageserver';
-import { isRangeInTag, TagInformation } from '../../../../lib/documents';
+import { isRangeInTag, TagInformation, updateRelativeImport } from '../../../../lib/documents';
 import { pathToUrl } from '../../../../utils';
 import { SvelteDocument } from '../../SvelteDocument';
 
@@ -82,9 +82,9 @@ async function executeExtractComponentCommand(
         const text = svelteDoc.getText();
         const newText = [
             getTemplate(),
-            getTag(svelteDoc.script),
-            getTag(svelteDoc.moduleScript),
-            getTag(svelteDoc.style),
+            getTag(svelteDoc.script, false),
+            getTag(svelteDoc.moduleScript, false),
+            getTag(svelteDoc.style, true),
         ]
             .filter((tag) => tag.start >= 0)
             .sort((a, b) => a.start - b.start)
@@ -103,13 +103,19 @@ async function executeExtractComponentCommand(
             };
         }
 
-        function getTag(tag: TagInformation | null) {
+        function getTag(tag: TagInformation | null, isStyleTag: boolean) {
             if (!tag) {
                 return { text: '', start: -1 };
             }
 
+            const tagText = updateRelativeImports(
+                svelteDoc,
+                text.substring(tag.container.start, tag.container.end),
+                filePath,
+                isStyleTag,
+            );
             return {
-                text: `${text.substring(tag.container.start, tag.container.end)}\n\n`,
+                text: `${tagText}\n\n`,
                 start: tag.container.start,
             };
         }
@@ -123,4 +129,30 @@ async function executeExtractComponentCommand(
             startPos ? importText : `<script>\n${importText}</script>`,
         );
     }
+}
+
+// `import {...} from '..'` or `import ... from '..'`
+// eslint-disable-next-line max-len
+const scriptRelativeImportRegex = /import\s+{[^}]*}.*['"`](((\.\/)|(\.\.\/)).*?)['"`]|import\s+\w+\s+from\s+['"`](((\.\/)|(\.\.\/)).*?)['"`]/g;
+// `@import '..'`
+const styleRelativeImportRege = /@import\s+['"`](((\.\/)|(\.\.\/)).*?)['"`]/g;
+
+function updateRelativeImports(
+    svelteDoc: SvelteDocument,
+    tagText: string,
+    newComponentRelativePath: string,
+    isStyleTag: boolean,
+) {
+    const oldPath = path.dirname(svelteDoc.getFilePath());
+    const newPath = path.dirname(path.join(oldPath, newComponentRelativePath));
+    const regex = isStyleTag ? styleRelativeImportRege : scriptRelativeImportRegex;
+    let match = regex.exec(tagText);
+    while (match) {
+        // match[1]: match before | and style regex. match[5]: match after | (script regex)
+        const importPath = match[1] || match[5];
+        const newImportPath = updateRelativeImport(oldPath, newPath, importPath);
+        tagText = tagText.replace(importPath, newImportPath);
+        match = regex.exec(tagText);
+    }
+    return tagText;
 }

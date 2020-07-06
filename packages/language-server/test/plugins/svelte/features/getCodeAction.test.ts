@@ -334,5 +334,58 @@ describe('SveltePlugin#getCodeAction', () => {
             const result = await extractComponent('Bla', range);
             assert.deepStrictEqual(result, 'Invalid selection range');
         });
+
+        it('should update relative imports', async () => {
+            const content = `<script>
+            import OtherComponent from './OtherComponent.svelte';
+            import {test} from '../test';
+            </script>
+            toExtract
+            <style>
+            @import './style.css';
+            </style>`;
+            const existingFileUri = pathToUrl('C:/path/File.svelte');
+            const doc = new SvelteDocument(new Document(existingFileUri, content), {});
+            const range = Range.create(Position.create(4, 12), Position.create(4, 21));
+            const result = await executeRefactoringCommand(doc, extractComponentCommand, [
+                '',
+                <ExtractComponentArgs>{
+                    filePath: '../NewComp',
+                    range,
+                    uri: '',
+                },
+            ]);
+
+            const newFileUri = pathToUrl('C:/NewComp.svelte');
+            assert.deepStrictEqual(result, <WorkspaceEdit>{
+                documentChanges: [
+                    TextDocumentEdit.create(
+                        VersionedTextDocumentIdentifier.create(existingFileUri, null),
+                        [
+                            TextEdit.replace(range, '<NewComp></NewComp>'),
+                            TextEdit.insert(
+                                doc.script?.startPos || Position.create(0, 0),
+                                `\n  import NewComp from '../NewComp.svelte';\n`,
+                            ),
+                        ],
+                    ),
+                    CreateFile.create(newFileUri, { overwrite: true }),
+                    TextDocumentEdit.create(
+                        VersionedTextDocumentIdentifier.create(newFileUri, null),
+                        [
+                            TextEdit.insert(
+                                Position.create(0, 0),
+                                `<script>
+            import OtherComponent from './path/OtherComponent.svelte';
+            import {test} from './test';
+            </script>\n\ntoExtract\n\n<style>
+            @import './path/style.css';
+            </style>\n\n`,
+                            ),
+                        ],
+                    ),
+                ],
+            });
+        });
     });
 });
