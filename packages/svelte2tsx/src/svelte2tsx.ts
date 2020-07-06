@@ -1,3 +1,4 @@
+import dedent from 'dedent-js';
 import { pascalCase } from 'pascal-case';
 import MagicString from 'magic-string';
 import path from 'path';
@@ -792,12 +793,15 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
 
 function formatComponentDocumentation(contents?: string | null) {
     if (!contents) return '';
-
     if (!contents.includes('\n')) {
         return `/** ${contents} */\n`;
     }
 
-    const lines = contents.split('\n').map(line => ` *${line ? ` ${line}` : ''}`).join('\n');
+    const lines = dedent(contents)
+        .split('\n')
+        .map(line => ` *${line ? ` ${line}` : ''}`)
+        .join('\n');
+
     return `/**\n${lines}\n */\n`;
 }
 
