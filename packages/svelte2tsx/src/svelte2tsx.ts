@@ -334,6 +334,7 @@ type ExportedNames = Map<
     {
         type?: string;
         identifierText?: string;
+        required?: boolean;
     }
 >;
 
@@ -354,7 +355,7 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
         ts.ScriptKind.TS,
     );
     const astOffset = script.content.start;
-    const exportedNames = new Map<string, { type?: string; identifierText?: string }>();
+    const exportedNames: ExportedNames = new Map();
 
     const implicitTopLevelNames: Map<string, number> = new Map();
     let uses$$props = false;
@@ -377,6 +378,7 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
         name: ts.BindingName,
         target: ts.BindingName = null,
         type: ts.TypeNode = null,
+        required = false,
     ) => {
         if (name.kind != ts.SyntaxKind.Identifier) {
             throw Error('export source kind not supported ' + name);
@@ -388,6 +390,7 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
             exportedNames.set(name.text, {
                 type: type?.getText(),
                 identifierText: (target as ts.Identifier).text,
+                required,
             });
         } else {
             exportedNames.set(name.text, {});
@@ -586,9 +589,9 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
             if (ts.isVariableDeclaration(node)) {
                 if (ts.isIdentifier(node.name)) {
                     if (node.type) {
-                        addExport(node.name, node.name, node.type);
+                        addExport(node.name, node.name, node.type, !node.initializer);
                     } else {
-                        addExport(node.name);
+                        addExport(node.name, null, null, !node.initializer);
                     }
                 } else if (
                     ts.isObjectBindingPattern(node.name) ||
@@ -888,8 +891,7 @@ function createPropsStr(exportedNames: ExportedNames) {
             return `${identifier}: typeof ${key}`;
         }
 
-        const containsUndefined = /(^|\s+)undefined(\s+|$)/.test(value.type);
-        return `${identifier}${containsUndefined ? '?' : ''}: ${value.type}`;
+        return `${identifier}${value.required ? '' : '?'}: ${value.type}`;
     });
 
     return `{${returnElements.join(' , ')}} as {${returnElementsType.join(', ')}}`;
@@ -920,7 +922,7 @@ export function svelte2tsx(svelte: string, options?: { filename?: string; strict
     }
 
     //move the instance script and process the content
-    let exportedNames = new Map<string, { type?: string; identifierText?: string }>();
+    let exportedNames: ExportedNames = new Map();
     if (scriptTag) {
         //ensure it is between the module script and the rest of the template (the variables need to be declared before the jsx template)
         if (scriptTag.start != instanceScriptTarget) {
