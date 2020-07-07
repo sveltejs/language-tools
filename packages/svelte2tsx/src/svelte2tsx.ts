@@ -763,7 +763,7 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
                 const start = node.getStart() + astOffset;
                 const end = node.getEnd() + astOffset;
 
-                str.prependLeft(start, '() => {');
+                str.prependLeft(start, ';() => {');
                 str.prependRight(end, '}');
             }
         }
