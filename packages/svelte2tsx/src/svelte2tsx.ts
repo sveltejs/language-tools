@@ -836,16 +836,12 @@ function addComponentExport(
  * Returns a Svelte-compatible component name from a filename. Svelte
  * components must use capitalized tags, so we try to transform the filename.
  *
- * Works with most filename styles except for filenames with multiple
- * extensions, such as my-component.extension.svelte, which will result in
- * MyComponentExtension.
- *
  * https://svelte.dev/docs#Tags
  */
 export function classNameFromFilename(filename: string): string | undefined {
     try {
-        const withoutExtension = path.parse(filename).name;
-        const inPascalCase = pascalCase(withoutExtension);
+        const withoutExtensions = path.parse(filename).name?.split('.')[0];
+        const inPascalCase = pascalCase(withoutExtensions);
         return inPascalCase;
     } catch (error) {
         console.warn(`Failed to create a name for the component class from filename ${filename}`);
