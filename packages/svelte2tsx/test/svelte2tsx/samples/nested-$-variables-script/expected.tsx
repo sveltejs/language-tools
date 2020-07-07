@@ -24,7 +24,7 @@ const test4 = ({a,  b: { $top1: $top2 }}) => $top2 && __sveltets_store_get(top1)
 <></>
 return { props: {}, slots: {} }}
 
-export default class {
+export default class Input {
     $$prop_def = __sveltets_partial(render().props)
     $$slot_def = render().slots
 }

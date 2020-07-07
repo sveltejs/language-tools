@@ -327,7 +327,7 @@ describe('CompletionProviderImpl', () => {
             item!,
         );
 
-        assert.strictEqual(detail, 'Auto import from ./imported-file.svelte\nclass default');
+        assert.strictEqual(detail, 'Auto import from ./imported-file.svelte\nclass ImportedFile');
 
         assert.strictEqual(
             harmonizeNewLines(additionalTextEdits![0]?.newText),
@@ -362,7 +362,7 @@ describe('CompletionProviderImpl', () => {
             item!,
         );
 
-        assert.strictEqual(detail, 'Auto import from ./imported-file.svelte\nclass default');
+        assert.strictEqual(detail, 'Auto import from ./imported-file.svelte\nclass ImportedFile');
 
         assert.strictEqual(
             harmonizeNewLines(additionalTextEdits![0]?.newText),

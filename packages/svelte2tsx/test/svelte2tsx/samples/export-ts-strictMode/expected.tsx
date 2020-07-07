@@ -7,7 +7,7 @@
 <></>
 return { props: {a: a , b: b , c: c} as {a: number, b: number | undefined, c?: number}, slots: {} }}
 
-export default class {
+export default class Input {
     $$prop_def = render().props
     $$slot_def = render().slots
 }

@@ -1,4 +1,7 @@
+import dedent from 'dedent-js';
+import { pascalCase } from 'pascal-case';
 import MagicString from 'magic-string';
+import path from 'path';
 import { parseHtmlx } from './htmlxparser';
 import { convertHtmlxToJsx } from './htmlxtojsx';
 import { Node } from 'estree-walker';
@@ -36,6 +39,8 @@ type TemplateProcessResult = {
     slots: Map<string, Map<string, string>>;
     scriptTag: Node;
     moduleScriptTag: Node;
+    /** To be added later as a comment on the default class export */
+    componentDocumentation: string | null;
 };
 
 class Scope {
@@ -53,11 +58,19 @@ type pendingStoreResolution<T> = {
     scope: Scope;
 };
 
+/**
+ * Add this tag to a HTML comment in a Svelte component and its contents will
+ * be added as a docstring in the resulting JSX for the component class.
+ */
+const COMPONENT_DOCUMENTATION_HTML_COMMENT_TAG = '@component';
+
 function processSvelteTemplate(str: MagicString): TemplateProcessResult {
     const htmlxAst = parseHtmlx(str.original);
 
     let uses$$props = false;
     let uses$$restProps = false;
+
+    let componentDocumentation = null;
 
     //track if we are in a declaration scope
     let isDeclaration = false;
@@ -167,6 +180,18 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
     const enterArrowFunctionExpression = () => pushScope();
     const leaveArrowFunctionExpression = () => popScope();
 
+    const handleComment = (node: Node) => {
+        if (
+            'data' in node &&
+            typeof node.data === 'string' &&
+            node.data.includes(COMPONENT_DOCUMENTATION_HTML_COMMENT_TAG)
+        ) {
+            componentDocumentation = node.data
+                .replace(COMPONENT_DOCUMENTATION_HTML_COMMENT_TAG, '')
+                .trim();
+        }
+    };
+
     const handleIdentifier = (node: Node, parent: Node, prop: string) => {
         if (node.name === '$$props') {
             uses$$props = true;
@@ -259,6 +284,9 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
         }
 
         switch (node.type) {
+            case 'Comment':
+                handleComment(node);
+                break;
             case 'Identifier':
                 handleIdentifier(node, parent, prop);
                 break;
@@ -326,6 +354,7 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
         slots,
         uses$$props,
         uses$$restProps,
+        componentDocumentation,
     };
 }
 
@@ -765,11 +794,28 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
     };
 }
 
+function formatComponentDocumentation(contents?: string | null) {
+    if (!contents) return '';
+    if (!contents.includes('\n')) {
+        return `/** ${contents} */\n`;
+    }
+
+    const lines = dedent(contents)
+        .split('\n')
+        .map(line => ` *${line ? ` ${line}` : ''}`)
+        .join('\n');
+
+    return `/**\n${lines}\n */\n`;
+}
+
 function addComponentExport(
     str: MagicString,
     uses$$propsOr$$restProps: boolean,
     strictMode: boolean,
     isTsFile: boolean,
+    /** A named export allows for TSDoc-compatible docstrings */
+    className?: string,
+    componentDocumentation?: string | null
 ) {
     const propDef =
         // Omit partial-wrapper only if both strict mode and ts file, because
@@ -780,10 +826,30 @@ function addComponentExport(
                 ? '__sveltets_with_any(render().props)'
                 : 'render().props'
             : `__sveltets_partial${uses$$propsOr$$restProps ? '_with_any' : ''}(render().props)`;
-    str.append(
-        // eslint-disable-next-line max-len
-        `\n\nexport default class {\n    $$prop_def = ${propDef}\n    $$slot_def = render().slots\n}`,
-    );
+
+    const doc = formatComponentDocumentation(componentDocumentation);
+
+    // eslint-disable-next-line max-len
+    const statement = `\n\n${doc}export default class ${className ? `${className} ` : ''}{\n    $$prop_def = ${propDef}\n    $$slot_def = render().slots\n}`;
+
+    str.append(statement);
+}
+
+/**
+ * Returns a Svelte-compatible component name from a filename. Svelte
+ * components must use capitalized tags, so we try to transform the filename.
+ *
+ * https://svelte.dev/docs#Tags
+ */
+export function classNameFromFilename(filename: string): string | undefined {
+    try {
+        const withoutExtensions = path.parse(filename).name?.split('.')[0];
+        const inPascalCase = pascalCase(withoutExtensions);
+        return inPascalCase;
+    } catch (error) {
+        console.warn(`Failed to create a name for the component class from filename ${filename}`);
+        return undefined;
+    }
 }
 
 function isTsFile(scriptTag: Node | undefined, moduleScriptTag: Node | undefined) {
@@ -900,7 +966,14 @@ function createPropsStr(exportedNames: ExportedNames) {
 export function svelte2tsx(svelte: string, options?: { filename?: string; strictMode?: boolean }) {
     const str = new MagicString(svelte);
     // process the htmlx as a svelte template
-    let { moduleScriptTag, scriptTag, slots, uses$$props, uses$$restProps } = processSvelteTemplate(
+    let {
+        moduleScriptTag,
+        scriptTag,
+        slots,
+        uses$$props,
+        uses$$restProps,
+        componentDocumentation,
+    } = processSvelteTemplate(
         str,
     );
 
@@ -950,11 +1023,15 @@ export function svelte2tsx(svelte: string, options?: { filename?: string; strict
         processModuleScriptTag(str, moduleScriptTag);
     }
 
+    const className = options?.filename && classNameFromFilename(options?.filename);
+
     addComponentExport(
         str,
         uses$$props || uses$$restProps,
         !!options?.strictMode,
         isTsFile(scriptTag, moduleScriptTag),
+        className,
+        componentDocumentation,
     );
 
     return {

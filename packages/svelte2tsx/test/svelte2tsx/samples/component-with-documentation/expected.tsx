@@ -1,10 +1,10 @@
 <></>;function render() {
+<>
 
-     let { name: rename } = { name: "world" };
-;
-<></>
-return { props: {rename: rename}, slots: {} }}
+<main>At least I am documented</main></>
+return { props: {}, slots: {} }}
 
+/** This component does nothing at all */
 export default class Input {
     $$prop_def = __sveltets_partial(render().props)
     $$slot_def = render().slots

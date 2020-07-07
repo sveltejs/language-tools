@@ -112,7 +112,13 @@ function preprocessSvelteFile(document: Document, options: SvelteSnapshotOptions
     let text = document.getText();
 
     try {
-        const tsx = svelte2tsx(text, { strictMode: options.strictMode });
+        const tsx = svelte2tsx(
+            text,
+            {
+                strictMode: options.strictMode,
+                filename: document.getFilePath() ?? undefined,
+            }
+        );
         text = tsx.code;
         tsxMap = tsx.map;
         if (tsxMap) {
