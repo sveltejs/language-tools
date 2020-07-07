@@ -62,7 +62,7 @@ function render() {
 	});
 
     // TODO is there a non-hacky way to trigger scroll when chapter changes?
-    () => {$: if (scrollable) chapter, scrollable.scrollTo(0, 0);}
+    ;() => {$: if (scrollable) chapter, scrollable.scrollTo(0, 0);}
 
 	// TODO: this will need to be changed to the master branch, and probably should be dynamic instead of included
 	//   here statically
@@ -77,7 +77,7 @@ function render() {
 		source: file.source
 	});
 
-    () => {$: if (repl) {
+    ;() => {$: if (repl) {
 		completed = false;
 		repl.set({
 			components: chapter.app_a.map(clone)
