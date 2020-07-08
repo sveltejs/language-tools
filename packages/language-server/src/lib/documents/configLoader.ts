@@ -1,7 +1,7 @@
 import { Logger } from '../../logger';
 import { cosmiconfigSync } from 'cosmiconfig';
 import { CompileOptions } from 'svelte/types/compiler/interfaces';
-import { PreprocessorGroup } from 'svelte-preprocess/dist/types';
+import { PreprocessorGroup } from 'svelte/types/compiler/preprocess';
 import { importSveltePreprocess } from '../../importPackage';
 
 export interface SvelteConfig {

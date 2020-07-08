@@ -1,5 +1,5 @@
 import { SourceMapConsumer } from 'source-map';
-import { PreprocessorGroup } from 'svelte-preprocess/dist/types';
+import { PreprocessorGroup } from 'svelte/types/compiler/preprocess';
 import type { compile } from 'svelte/compiler';
 import { CompileOptions } from 'svelte/types/compiler/interfaces';
 import { Processed } from 'svelte/types/compiler/preprocess';
