@@ -11,7 +11,6 @@ import {
     positionAt,
     TagInformation,
     isInTag,
-    extractScriptTags,
 } from '../../lib/documents';
 import { pathToUrl } from '../../utils';
 import { ConsumerDocumentMapper } from './DocumentMapper';
@@ -112,13 +111,10 @@ function preprocessSvelteFile(document: Document, options: SvelteSnapshotOptions
     let text = document.getText();
 
     try {
-        const tsx = svelte2tsx(
-            text,
-            {
-                strictMode: options.strictMode,
-                filename: document.getFilePath() ?? undefined,
-            }
-        );
+        const tsx = svelte2tsx(text, {
+            strictMode: options.strictMode,
+            filename: document.getFilePath() ?? undefined,
+        });
         text = tsx.code;
         tsxMap = tsx.map;
         if (tsxMap) {
@@ -175,10 +171,11 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
 
     get scriptKind() {
         if (!this._scriptKind) {
-            const scriptTags = extractScriptTags(this.parent.getText());
-            const scriptKind = getScriptKindFromAttributes(scriptTags?.script?.attributes ?? {});
+            const scriptKind = getScriptKindFromAttributes(
+                this.parent.scriptInfo?.attributes ?? {},
+            );
             const moduleScriptKind = getScriptKindFromAttributes(
-                scriptTags?.moduleScript?.attributes ?? {},
+                this.parent.moduleScriptInfo?.attributes ?? {},
             );
             this._scriptKind = [scriptKind, moduleScriptKind].includes(ts.ScriptKind.TSX)
                 ? ts.ScriptKind.TSX

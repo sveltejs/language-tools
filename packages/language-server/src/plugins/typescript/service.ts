@@ -2,7 +2,7 @@ import { dirname, resolve } from 'path';
 import ts from 'typescript';
 import { Document } from '../../lib/documents';
 import { Logger } from '../../logger';
-import { getPackageInfo } from '../importPackage';
+import { getPackageInfo } from '../../importPackage';
 import { DocumentSnapshot } from './DocumentSnapshot';
 import { createSvelteModuleLoader } from './module-loader';
 import { SnapshotManager } from './SnapshotManager';

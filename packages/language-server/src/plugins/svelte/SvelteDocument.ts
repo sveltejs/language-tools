@@ -1,29 +1,23 @@
 import { SourceMapConsumer } from 'source-map';
 import { PreprocessorGroup } from 'svelte-preprocess/dist/types';
 import type { compile } from 'svelte/compiler';
+import { CompileOptions } from 'svelte/types/compiler/interfaces';
 import { Processed } from 'svelte/types/compiler/preprocess';
 import { Position } from 'vscode-languageserver';
 import {
     Document,
     DocumentMapper,
+    extractScriptTags,
+    extractStyleTag,
     FragmentMapper,
     IdentityMapper,
+    offsetAt,
     SourceMapDocumentMapper,
     TagInformation,
-    offsetAt,
-    extractStyleTag,
-    extractScriptTags,
 } from '../../lib/documents';
-import { importSvelte } from '../importPackage';
-import { CompileOptions } from 'svelte/types/compiler/interfaces';
+import { importSvelte } from '../../importPackage';
 
 export type SvelteCompileResult = ReturnType<typeof compile>;
-
-export interface SvelteConfig {
-    compilerOptions?: CompileOptions;
-    preprocess?: PreprocessorGroup;
-    loadConfigError?: any;
-}
 
 export enum TranspileErrorSource {
     Script = 'Script',
@@ -43,8 +37,9 @@ export class SvelteDocument {
     public languageId = 'svelte';
     public version = 0;
     public uri = this.parent.uri;
+    public config = this.parent.config;
 
-    constructor(private parent: Document, public config: SvelteConfig) {
+    constructor(private parent: Document) {
         this.script = this.parent.scriptInfo;
         this.moduleScript = this.parent.moduleScriptInfo;
         this.style = this.parent.styleInfo;
@@ -67,7 +62,7 @@ export class SvelteDocument {
         if (!this.transpiledDoc) {
             this.transpiledDoc = await TranspiledSvelteDocument.create(
                 this.parent,
-                this.config.preprocess,
+                this.parent.config.preprocess,
             );
         }
         return this.transpiledDoc;
@@ -75,7 +70,7 @@ export class SvelteDocument {
 
     async getCompiled(): Promise<SvelteCompileResult> {
         if (!this.compileResult) {
-            this.compileResult = await this.getCompiledWith(this.config.compilerOptions);
+            this.compileResult = await this.getCompiledWith(this.parent.config.compilerOptions);
         }
 
         return this.compileResult;

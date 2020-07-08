@@ -3,10 +3,10 @@ import { Diagnostic, DiagnosticSeverity, Position } from 'vscode-languageserver'
 import { Document } from '../../../../src/lib/documents';
 import { getDiagnostics } from '../../../../src/plugins/svelte/features/getDiagnostics';
 import {
-    SvelteConfig,
     SvelteDocument,
     TranspileErrorSource,
 } from '../../../../src/plugins/svelte/SvelteDocument';
+import { SvelteConfig } from '../../../../src/lib/documents/configLoader';
 
 describe('SveltePlugin#getDiagnostics', () => {
     async function expectDiagnosticsFor(

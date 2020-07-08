@@ -1,5 +1,4 @@
 import { cosmiconfig } from 'cosmiconfig';
-import { CompileOptions } from 'svelte/types/compiler/interfaces';
 import {
     CodeAction,
     CodeActionContext,
@@ -12,9 +11,8 @@ import {
     WorkspaceEdit,
 } from 'vscode-languageserver';
 import { Document } from '../../lib/documents';
-import { Logger } from '../../logger';
 import { LSConfigManager, LSSvelteConfig } from '../../ls-config';
-import { importPrettier, importSveltePreprocess } from '../importPackage';
+import { importPrettier } from '../../importPackage';
 import {
     CodeActionsProvider,
     CompletionsProvider,
@@ -22,19 +20,12 @@ import {
     FormattingProvider,
     HoverProvider,
 } from '../interfaces';
-import { getCodeActions, executeCommand } from './features/getCodeActions';
+import { executeCommand, getCodeActions } from './features/getCodeActions';
 import { getCompletions } from './features/getCompletions';
 import { getDiagnostics } from './features/getDiagnostics';
 import { getHoverInfo } from './features/getHoverInfo';
-import { SvelteCompileResult, SvelteConfig, SvelteDocument } from './SvelteDocument';
+import { SvelteCompileResult, SvelteDocument } from './SvelteDocument';
 
-const DEFAULT_OPTIONS: CompileOptions = {
-    dev: true,
-};
-
-const NO_GENERATE: CompileOptions = {
-    generate: false,
-};
 export class SveltePlugin
     implements
         DiagnosticsProvider,
@@ -152,60 +143,9 @@ export class SveltePlugin
         let svelteDoc = this.docManager.get(document);
         if (!svelteDoc || svelteDoc.version !== document.version) {
             svelteDoc?.destroyTranspiled();
-            // Reuse previous config. Assumption: Config does not change often (if at all).
-            const config =
-                svelteDoc?.config && !svelteDoc.config.loadConfigError
-                    ? svelteDoc.config
-                    : await this.loadConfig(document);
-            svelteDoc = new SvelteDocument(document, config);
+            svelteDoc = new SvelteDocument(document);
             this.docManager.set(document, svelteDoc);
         }
         return svelteDoc;
-    }
-
-    private async loadConfig(document: Document): Promise<SvelteConfig> {
-        Logger.log('Trying to load config for', document.getFilePath());
-        try {
-            const result = await this.cosmiConfigExplorer.search(document.getFilePath() || '');
-            const config: SvelteConfig =
-                result?.config ?? this.useFallbackPreprocessor(document, false);
-            if (result) {
-                Logger.log('Found config at ', result.filepath);
-            }
-            return {
-                ...config,
-                compilerOptions: { ...DEFAULT_OPTIONS, ...config.compilerOptions, ...NO_GENERATE },
-            };
-        } catch (err) {
-            Logger.error('Error while loading config');
-            Logger.error(err);
-            return {
-                ...this.useFallbackPreprocessor(document, true),
-                compilerOptions: {
-                    ...DEFAULT_OPTIONS,
-                    ...NO_GENERATE,
-                },
-                loadConfigError: err,
-            };
-        }
-    }
-
-    private useFallbackPreprocessor(document: Document, foundConfig: boolean): SvelteConfig {
-        const needsConfig =
-            document.styleInfo?.attributes.lang ||
-            document.styleInfo?.attributes.type ||
-            document.scriptInfo?.attributes.lang ||
-            document.scriptInfo?.attributes.type;
-        Logger.log(
-            (foundConfig
-                ? 'Found svelte.config.js but there was an error loading it. '
-                : 'No svelte.config.js found' + (needsConfig ? ' but one is needed. ' : '. ')) +
-                'Using https://github.com/sveltejs/svelte-preprocess as fallback',
-        );
-        return {
-            preprocess: importSveltePreprocess(document.getFilePath() || '')({
-                typescript: { transpileOnly: true },
-            }),
-        };
     }
 }
