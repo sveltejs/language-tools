@@ -2,7 +2,7 @@ import { dirname, resolve } from 'path';
 import * as prettier from 'prettier';
 import * as svelte from 'svelte/compiler';
 import sveltePreprocess from 'svelte-preprocess';
-import { Logger } from '../logger';
+import { Logger } from './logger';
 
 export function getPackageInfo(packageName: string, fromPath: string) {
     const packageJSONPath = require.resolve(`${packageName}/package.json`, {

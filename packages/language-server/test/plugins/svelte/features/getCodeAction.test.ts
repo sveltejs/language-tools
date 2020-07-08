@@ -41,7 +41,7 @@ describe('SveltePlugin#getCodeAction', () => {
             pathToUrl(filePath),
             filename ? fs.readFileSync(filePath)?.toString() : '',
         );
-        const svelteDoc = new SvelteDocument(document, {});
+        const svelteDoc = new SvelteDocument(document);
         const codeAction = await getCodeActions(
             svelteDoc,
             Range.create(Position.create(0, 0), Position.create(0, 0)),
@@ -269,7 +269,7 @@ describe('SveltePlugin#getCodeAction', () => {
         <p>extract me</p>
         ${styleContent}`;
 
-        const doc = new SvelteDocument(new Document('someUrl', content), {});
+        const doc = new SvelteDocument(new Document('someUrl', content));
 
         async function extractComponent(filePath: string, range: Range) {
             return executeRefactoringCommand(doc, extractComponentCommand, [
@@ -345,7 +345,7 @@ describe('SveltePlugin#getCodeAction', () => {
             @import './style.css';
             </style>`;
             const existingFileUri = pathToUrl('C:/path/File.svelte');
-            const doc = new SvelteDocument(new Document(existingFileUri, content), {});
+            const doc = new SvelteDocument(new Document(existingFileUri, content));
             const range = Range.create(Position.create(4, 12), Position.create(4, 21));
             const result = await executeRefactoringCommand(doc, extractComponentCommand, [
                 '',
