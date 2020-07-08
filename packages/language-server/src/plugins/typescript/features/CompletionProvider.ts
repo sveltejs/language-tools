@@ -14,7 +14,7 @@ import {
     mapCompletionItemToOriginal,
     mapRangeToOriginal,
 } from '../../../lib/documents';
-import { isNotNullOrUndefined, pathToUrl } from '../../../utils';
+import { pathToUrl } from '../../../utils';
 import { AppCompletionItem, AppCompletionList, CompletionsProvider } from '../../interfaces';
 import { SvelteSnapshotFragment } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
@@ -92,27 +92,18 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         }
 
         const completionItems = completions.entries
-            .map((comp) =>
-                this.toCompletionItem(fragment, comp, pathToUrl(tsDoc.filePath), position),
-            )
-            .filter(isNotNullOrUndefined)
+            .map((comp) => this.toCompletionItem(comp, pathToUrl(tsDoc.filePath), position))
             .map((comp) => mapCompletionItemToOriginal(fragment, comp));
 
         return CompletionList.create(completionItems, !!tsDoc.parserError);
     }
 
     private toCompletionItem(
-        fragment: SvelteSnapshotFragment,
         comp: ts.CompletionEntry,
         uri: string,
         position: Position,
-    ): AppCompletionItem<CompletionEntryWithIdentifer> | null {
-        const result = this.getCompletionLabelAndInsert(fragment, comp);
-        if (!result) {
-            return null;
-        }
-
-        const { label, insertText, isSvelteComp } = result;
+    ): AppCompletionItem<CompletionEntryWithIdentifer> {
+        const { label, insertText, isSvelteComp } = this.getCompletionLabelAndInsert(comp);
 
         return {
             label,
@@ -131,22 +122,11 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         };
     }
 
-    private getCompletionLabelAndInsert(
-        fragment: SvelteSnapshotFragment,
-        comp: ts.CompletionEntry,
-    ) {
-        let { kind, kindModifiers, name, source } = comp;
+    private getCompletionLabelAndInsert(comp: ts.CompletionEntry) {
+        const { kind, kindModifiers, name, source } = comp;
         const isScriptElement = kind === ts.ScriptElementKind.scriptElement;
         const hasModifier = Boolean(comp.kindModifiers);
-
         const isSvelteComp = this.isSvelteComponentImport(`import ${name} from ${source}`);
-        if (isSvelteComp) {
-            name = this.changeSvelteComponentName(name);
-
-            if (this.isExistingSvelteComponentImport(fragment, name, source)) {
-                return null;
-            }
-        }
 
         if (isScriptElement && hasModifier) {
             return {
@@ -155,26 +135,11 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
                 isSvelteComp,
             };
         }
-        if (isSvelteComp && kind === ts.ScriptElementKind.classElement) {
-            return {
-                insertText: name,
-                label: name,
-                isSvelteComp,
-            };
-        }
+
         return {
             label: name,
             isSvelteComp,
         };
-    }
-
-    private isExistingSvelteComponentImport(
-        fragment: SvelteSnapshotFragment,
-        name: string,
-        source?: string,
-    ): boolean {
-        const importStatement = new RegExp(`import ${name} from ["'\`][\\s\\S]+\\.svelte["'\`]`);
-        return !!source && !!fragment.text.match(importStatement);
     }
 
     async resolveCompletion(
@@ -260,10 +225,6 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         fragment: SvelteSnapshotFragment,
         change: ts.TextChange,
     ): TextEdit {
-        if (this.isSvelteComponentImport(change.newText)) {
-            change.newText = this.changeSvelteComponentImportName(change.newText);
-        }
-
         const scriptTagInfo = fragment.scriptInfo;
         if (!scriptTagInfo) {
             // no script tag defined yet, add it.
@@ -298,19 +259,6 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
 
     private isSvelteComponentImport(text: string) {
         return /import \w+ from [\s\S]*.svelte($|"|'| )/.test(text);
-    }
-
-    private changeSvelteComponentImportName(text: string) {
-        return text.replace(
-            /import (\w+) from /,
-            (_, componentMatch) => `import ${this.changeSvelteComponentName(componentMatch)} from `,
-        );
-    }
-
-    private changeSvelteComponentName(name: string) {
-        const newName = name.replace(/(\w+)Svelte$/, '$1');
-        // make sure first letter is uppercase
-        return newName[0].toUpperCase() + newName.substr(1);
     }
 }
 
