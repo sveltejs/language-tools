@@ -14,7 +14,7 @@ import {
     mapCompletionItemToOriginal,
     mapRangeToOriginal,
 } from '../../../lib/documents';
-import { pathToUrl } from '../../../utils';
+import { isNotNullOrUndefined, pathToUrl } from '../../../utils';
 import { AppCompletionItem, AppCompletionList, CompletionsProvider } from '../../interfaces';
 import { SvelteSnapshotFragment } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
@@ -92,19 +92,27 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         }
 
         const completionItems = completions.entries
-            .map((comp) => this.toCompletionItem(comp, pathToUrl(tsDoc.filePath), position))
+            .map((comp) =>
+                this.toCompletionItem(fragment, comp, pathToUrl(tsDoc.filePath), position),
+            )
+            .filter(isNotNullOrUndefined)
             .map((comp) => mapCompletionItemToOriginal(fragment, comp));
 
         return CompletionList.create(completionItems, !!tsDoc.parserError);
     }
 
     private toCompletionItem(
+        fragment: SvelteSnapshotFragment,
         comp: ts.CompletionEntry,
         uri: string,
         position: Position,
-    ): AppCompletionItem<CompletionEntryWithIdentifer> {
-        const { label, insertText, isSvelteComp } = this.getCompletionLabelAndInsert(comp);
+    ): AppCompletionItem<CompletionEntryWithIdentifer> | null {
+        const completionLabelAndInsert = this.getCompletionLabelAndInsert(fragment, comp);
+        if (!completionLabelAndInsert) {
+            return null;
+        }
 
+        const { label, insertText, isSvelteComp } = completionLabelAndInsert;
         return {
             label,
             insertText,
@@ -122,11 +130,21 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         };
     }
 
-    private getCompletionLabelAndInsert(comp: ts.CompletionEntry) {
-        const { kind, kindModifiers, name, source } = comp;
+    private getCompletionLabelAndInsert(
+        fragment: SvelteSnapshotFragment,
+        comp: ts.CompletionEntry,
+    ) {
+        let { kind, kindModifiers, name, source } = comp;
         const isScriptElement = kind === ts.ScriptElementKind.scriptElement;
         const hasModifier = Boolean(comp.kindModifiers);
-        const isSvelteComp = this.isSvelteComponentImport(`import ${name} from ${source}`);
+        const isSvelteComp = this.isSvelteComponentImport(name);
+        if (isSvelteComp) {
+            name = this.changeSvelteComponentName(name);
+
+            if (this.isExistingSvelteComponentImport(fragment, name, source)) {
+                return null;
+            }
+        }
 
         if (isScriptElement && hasModifier) {
             return {
@@ -140,6 +158,15 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             label: name,
             isSvelteComp,
         };
+    }
+
+    private isExistingSvelteComponentImport(
+        fragment: SvelteSnapshotFragment,
+        name: string,
+        source?: string,
+    ): boolean {
+        const importStatement = new RegExp(`import ${name} from ["'\`][\\s\\S]+\\.svelte["'\`]`);
+        return !!source && !!fragment.text.match(importStatement);
     }
 
     async resolveCompletion(
@@ -193,7 +220,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
 
     private getCompletionDocument(compDetail: ts.CompletionEntryDetails) {
         const { source, documentation: tsDocumentation, displayParts } = compDetail;
-        let detail: string = ts.displayPartsToString(displayParts);
+        let detail: string = this.changeSvelteComponentName(ts.displayPartsToString(displayParts));
 
         if (source) {
             const importPath = ts.displayPartsToString(source);
@@ -225,6 +252,8 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         fragment: SvelteSnapshotFragment,
         change: ts.TextChange,
     ): TextEdit {
+        change.newText = this.changeSvelteComponentName(change.newText);
+
         const scriptTagInfo = fragment.scriptInfo;
         if (!scriptTagInfo) {
             // no script tag defined yet, add it.
@@ -257,8 +286,12 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         return TextEdit.replace(range, change.newText);
     }
 
-    private isSvelteComponentImport(text: string) {
-        return /import \w+ from [\s\S]*.svelte($|"|'| )/.test(text);
+    private isSvelteComponentImport(className: string) {
+        return className.endsWith('__SvelteComponent_');
+    }
+
+    private changeSvelteComponentName(name: string) {
+        return name.replace(/(\w+)__SvelteComponent_/, '$1');
     }
 }
 

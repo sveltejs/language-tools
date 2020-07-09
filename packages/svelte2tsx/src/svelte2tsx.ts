@@ -64,6 +64,12 @@ type pendingStoreResolution<T> = {
  */
 const COMPONENT_DOCUMENTATION_HTML_COMMENT_TAG = '@component';
 
+/**
+ * A component class name suffix is necessary to prevent class name clashes
+ * like reported in https://github.com/sveltejs/language-tools/issues/294
+ */
+const COMPONENT_SUFFIX = '__SvelteComponent_';
+
 function processSvelteTemplate(str: MagicString): TemplateProcessResult {
     const htmlxAst = parseHtmlx(str.original);
 
@@ -437,9 +443,7 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
             return;
         }
 
-        const hasInitializers = node.declarations.filter(
-            (declaration) => declaration.initializer
-        );
+        const hasInitializers = node.declarations.filter((declaration) => declaration.initializer);
         const handleTypeAssertion = (declaration: ts.VariableDeclaration) => {
             const identifier = declaration.name;
             const tsType = declaration.type;
@@ -455,10 +459,11 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
             str.appendLeft(end, `;${name} = __sveltets_any(${name});`);
         };
 
-        const findComma = (target: ts.Node) => target.getChildren()
-            .filter((child) => child.kind === ts.SyntaxKind.CommaToken);
+        const findComma = (target: ts.Node) =>
+            target.getChildren().filter((child) => child.kind === ts.SyntaxKind.CommaToken);
         const splitDeclaration = () => {
-            const commas = node.getChildren()
+            const commas = node
+                .getChildren()
                 .filter((child) => child.kind === ts.SyntaxKind.SyntaxList)
                 .map(findComma)
                 .reduce((current, previous) => [...current, ...previous], []);
@@ -802,7 +807,7 @@ function formatComponentDocumentation(contents?: string | null) {
 
     const lines = dedent(contents)
         .split('\n')
-        .map(line => ` *${line ? ` ${line}` : ''}`)
+        .map((line) => ` *${line ? ` ${line}` : ''}`)
         .join('\n');
 
     return `/**\n${lines}\n */\n`;
@@ -815,7 +820,7 @@ function addComponentExport(
     isTsFile: boolean,
     /** A named export allows for TSDoc-compatible docstrings */
     className?: string,
-    componentDocumentation?: string | null
+    componentDocumentation?: string | null,
 ) {
     const propDef =
         // Omit partial-wrapper only if both strict mode and ts file, because
@@ -830,7 +835,9 @@ function addComponentExport(
     const doc = formatComponentDocumentation(componentDocumentation);
 
     // eslint-disable-next-line max-len
-    const statement = `\n\n${doc}export default class ${className ? `${className} ` : ''}{\n    $$prop_def = ${propDef}\n    $$slot_def = render().slots\n}`;
+    const statement = `\n\n${doc}export default class ${
+        className ? `${className} ` : ''
+    }{\n    $$prop_def = ${propDef}\n    $$slot_def = render().slots\n}`;
 
     str.append(statement);
 }
@@ -845,7 +852,7 @@ export function classNameFromFilename(filename: string): string | undefined {
     try {
         const withoutExtensions = path.parse(filename).name?.split('.')[0];
         const inPascalCase = pascalCase(withoutExtensions);
-        return inPascalCase;
+        return `${inPascalCase}${COMPONENT_SUFFIX}`;
     } catch (error) {
         console.warn(`Failed to create a name for the component class from filename ${filename}`);
         return undefined;
@@ -912,7 +919,7 @@ function createRenderFunction(
 
         const scriptEndTagStart = htmlx.lastIndexOf('<', scriptTag.end - 1);
         str.overwrite(scriptEndTagStart, scriptTag.end, ';\n<>', {
-            contentOnly: true
+            contentOnly: true,
         });
     } else {
         str.prependRight(scriptDestination, `</>;function render() {${propsDecl}\n<>`);
@@ -973,9 +980,7 @@ export function svelte2tsx(svelte: string, options?: { filename?: string; strict
         uses$$props,
         uses$$restProps,
         componentDocumentation,
-    } = processSvelteTemplate(
-        str,
-    );
+    } = processSvelteTemplate(str);
 
     /* Rearrange the script tags so that module is first, and instance second followed finally by the template
      * This is a bit convoluted due to some trouble I had with magic string. A simple str.move(start,end,0) for each script wasn't enough
