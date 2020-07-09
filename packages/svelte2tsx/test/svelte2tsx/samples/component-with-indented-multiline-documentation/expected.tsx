@@ -17,7 +17,7 @@ return { props: {}, slots: {} }}
  *
  * The output should be indented properly!
  */
-export default class Input {
+export default class Input__SvelteComponent_ {
     $$prop_def = __sveltets_partial(render().props)
     $$slot_def = render().slots
 }
