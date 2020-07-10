@@ -233,6 +233,16 @@
                     "source.js": "javascript",
                     "source.ts": "typescript"
                 }
+            },
+            {
+              "scopeName": "markdown.svelte.codeblock",
+              "path": "./syntaxes/markdown-svelte.json",
+              "injectTo": [
+                "text.html.markdown"
+              ],
+              "embeddedLanguages": {
+                "meta.embedded.block.svelte": "svelte"
+              }
             }
         ],
         "commands": [
