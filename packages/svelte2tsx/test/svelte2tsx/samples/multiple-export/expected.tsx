@@ -5,9 +5,10 @@
 ;
 <>
 <h1>{number1} + {number2} = {number1 + number2}</h1></>
-return { props: {number1: number1 , number2: number2} as {number1: number, number2: number}, slots: {} }}
+return { props: {number1: number1 , number2: number2} as {number1: number, number2: number}, slots: {}, events: {} }}
 
 export default class Input__SvelteComponent_ {
     $$prop_def = __sveltets_partial(render().props)
     $$slot_def = render().slots
+    $on = __sveltets_eventDef(render().events).$on
 }

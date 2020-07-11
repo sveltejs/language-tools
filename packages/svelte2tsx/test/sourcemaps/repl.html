@@ -176,11 +176,12 @@ function render() {
 	</>}}}
 </div>
 </>
-return { props: {slug: slug , chapter: chapter}, slots: {} }}
+return { props: {slug: slug , chapter: chapter}, slots: {}, events: {} }}
 
 export default class {
     $$prop_def = __sveltets_partial(render().props)
     $$slot_def = render().slots
+    $on = __sveltets_eventDef(render().events).$on
 }
 !Expected
 <script context="module">

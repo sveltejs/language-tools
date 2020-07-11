@@ -834,10 +834,10 @@ function addComponentExport(
 
     const doc = formatComponentDocumentation(componentDocumentation);
 
-    // eslint-disable-next-line max-len
     const statement = `\n\n${doc}export default class ${
         className ? `${className} ` : ''
-    }{\n    $$prop_def = ${propDef}\n    $$slot_def = render().slots\n}`;
+    }{\n    $$prop_def = ${propDef}\n    $$slot_def = render().slots` +
+    `\n    $on = __sveltets_eventDef(render().events).$on\n}`;
 
     str.append(statement);
 }
@@ -939,7 +939,7 @@ function createRenderFunction(
 
     const returnString = `\nreturn { props: ${createPropsStr(
         exportedNames,
-    )}, slots: ${slotsAsDef} }}`;
+    )}, slots: ${slotsAsDef}, events: {} }}`;
     str.append(returnString);
 }
 

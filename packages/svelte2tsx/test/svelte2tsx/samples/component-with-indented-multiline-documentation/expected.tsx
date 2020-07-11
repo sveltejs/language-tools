@@ -2,7 +2,7 @@
 <>
 
 <main>At least I am documented</main></>
-return { props: {}, slots: {} }}
+return { props: {}, slots: {}, events: {} }}
 
 /**
  * This component has indented multiline documentation:
@@ -20,4 +20,5 @@ return { props: {}, slots: {} }}
 export default class Input__SvelteComponent_ {
     $$prop_def = __sveltets_partial(render().props)
     $$slot_def = render().slots
+    $on = __sveltets_eventDef(render().events).$on
 }
