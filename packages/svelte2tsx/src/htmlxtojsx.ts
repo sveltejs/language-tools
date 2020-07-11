@@ -501,7 +501,6 @@ export function convertHtmlxToJsx(
     // {() => {let _$$p = (somePromise);
     const handleAwait = (awaitBlock: Node) => {
         str.overwrite(awaitBlock.start, awaitBlock.expression.start, '{() => {let _$$p = (');
-        str.prependLeft(awaitBlock.expression.end, ');');
         // then value } | {:then value} ->
         // _$$p.then((value) => {<>
         let thenStart: number;
@@ -517,11 +516,16 @@ export function convertHtmlxToJsx(
             str.prependLeft(thenStart, '</>; ');
             // add the start tag too
             const awaitEnd = htmlx.indexOf('}', awaitBlock.expression.end);
-            str.remove(awaitEnd, awaitEnd + 1);
-            str.appendRight(awaitEnd, ' <>');
+
+            // somePromise} -> somePromise);
+            str.overwrite(awaitBlock.expression.end, awaitEnd + 1, ');');
+            str.appendRight(awaitEnd + 1, ' <>');
         } else {
             thenEnd = htmlx.lastIndexOf('}', awaitBlock.then.start) + 1;
             thenStart = htmlx.indexOf('then', awaitBlock.expression.end);
+
+            // somePromise then -> somePromise); then
+            str.overwrite(awaitBlock.expression.end, thenStart, '); ');
         }
         if (awaitBlock.value) {
             str.overwrite(
