@@ -164,10 +164,10 @@ function render() {
 				rollupUrl={rollupUrl}
 				orientation={mobile ? 'columns' : 'rows'}
 				fixed={mobile}
-				{...__sveltets_ensureFunction((handle_change))}
+				
 				injectedJS={mapbox_setup}
 				relaxed
-			/>
+			/>{__sveltets_instanceOf(Repl).$on('change', handle_change)}
 		</div>
 	</div>
 
