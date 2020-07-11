@@ -6,6 +6,7 @@ import { parseHtmlx } from './htmlxparser';
 import { convertHtmlxToJsx } from './htmlxtojsx';
 import { Node } from 'estree-walker';
 import * as ts from 'typescript';
+import { createEventHandlerTransformer } from './nodes/event-handler';
 
 function AttributeValueAsJsExpression(htmlx: string, attr: Node): string {
     if (attr.value.length == 0) return "''"; //wut?
@@ -41,6 +42,7 @@ type TemplateProcessResult = {
     moduleScriptTag: Node;
     /** To be added later as a comment on the default class export */
     componentDocumentation: string | null;
+    events: Map<string, string>;
 };
 
 class Scope {
@@ -278,6 +280,8 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
         str.remove(node.start, node.end);
     };
 
+    const { handleEventHandler, getEvents } = createEventHandlerTransformer();
+
     const onHtmlxWalk = (node: Node, parent: Node, prop: string) => {
         if (
             prop == 'params' &&
@@ -313,6 +317,9 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
                 break;
             case 'ArrowFunctionExpression':
                 enterArrowFunctionExpression();
+                break;
+            case 'EventHandler':
+                handleEventHandler(node, parent);
                 break;
             case 'VariableDeclarator':
                 isDeclaration = true;
@@ -358,6 +365,7 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
         moduleScriptTag,
         scriptTag,
         slots,
+        events: getEvents(),
         uses$$props,
         uses$$restProps,
         componentDocumentation,
@@ -897,6 +905,7 @@ function createRenderFunction(
     scriptTag: Node,
     scriptDestination: number,
     slots: Map<string, Map<string, string>>,
+    events: Map<string, string>,
     exportedNames: ExportedNames,
     uses$$props: boolean,
     uses$$restProps: boolean,
@@ -936,10 +945,13 @@ function createRenderFunction(
             })
             .join(', ') +
         '}';
+    const eventsDef = '{' + Array.from(events.entries())
+            .map(([evnetName, expression]) => `'${evnetName}':${expression}`)
+            .join(', ') + '}';
 
     const returnString = `\nreturn { props: ${createPropsStr(
         exportedNames,
-    )}, slots: ${slotsAsDef}, events: {} }}`;
+    )}, slots: ${slotsAsDef}, events: ${eventsDef} }}`;
     str.append(returnString);
 }
 
@@ -979,6 +991,7 @@ export function svelte2tsx(svelte: string, options?: { filename?: string; strict
         slots,
         uses$$props,
         uses$$restProps,
+        events,
         componentDocumentation,
     } = processSvelteTemplate(str);
 
@@ -1018,6 +1031,7 @@ export function svelte2tsx(svelte: string, options?: { filename?: string; strict
         scriptTag,
         instanceScriptTarget,
         slots,
+        events,
         exportedNames,
         uses$$props,
         uses$$restProps,

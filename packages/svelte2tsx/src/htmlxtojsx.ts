@@ -26,7 +26,6 @@ const stripDoctype = (str: MagicString) => {
     if (result) str.remove(result.index, result.index + result[0].length);
 };
 
-// eslint-disable-next-line max-len
 export function convertHtmlxToJsx(
     str: MagicString,
     ast: Node,
