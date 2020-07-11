@@ -83,11 +83,12 @@ export function convertHtmlxToJsx(
     };
 
     const handleClassDirective = (attr: Node) => {
-        const needCurly = attr.expression.start == attr.start + 'class:'.length;
         str.overwrite(attr.start, attr.expression.start, `{...__sveltets_ensureType(Boolean, !!(`);
-        str.appendLeft(attr.expression.end, `))${needCurly ? '}' : ''}`);
-        if (htmlx[attr.end - 1] == '"') {
-            str.remove(attr.end - 1, attr.end);
+        const endBrackets = `))}`;
+        if (attr.end !== attr.expression.end) {
+            str.overwrite(attr.expression.end, attr.end, endBrackets);
+        } else {
+            str.appendLeft(attr.end, endBrackets);
         }
     };
 
