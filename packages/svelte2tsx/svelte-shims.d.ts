@@ -62,9 +62,16 @@ declare function __sveltets_any(dummy: any): any;
 declare function __sveltets_componentType(): AConstructorTypeOf<SvelteComponent>
 declare function __sveltets_invalidate<T>(getValue: () => T): T
 declare function __sveltets_eventDef<T extends SvelteEventRecord>(def: T): SvelteEventHandling<T>
-declare function __sveltets_mapGlobalEvent<K extends keyof GlobalEventHandlersEventMap>(
+declare function __sveltets_mapWindowEvent<K extends keyof HTMLBodyElementEventMap>(
     event: K
-): GlobalEventHandlersEventMap[K];
+): HTMLBodyElementEventMap[K];
+declare function __sveltets_mapBodyEvent<K extends keyof WindowEventMap>(
+    event: K
+): WindowEventMap[K];
 declare function __sveltets_mapElementEvent<K extends keyof HTMLElementEventMap>(
     event: K
 ): HTMLElementEventMap[K];
+declare function __sveltets_bubbleEventDef<
+    T extends SvelteEventRecord,
+    K extends keyof T
+>(componentDef: SvelteEventHandling<T>, event: K): T[K]
