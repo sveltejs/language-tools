@@ -42,7 +42,7 @@ type TemplateProcessResult = {
     moduleScriptTag: Node;
     /** To be added later as a comment on the default class export */
     componentDocumentation: string | null;
-    events: Map<string, string>;
+    events: Map<string, string | string[]>;
 };
 
 class Scope {
@@ -542,7 +542,7 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
         if (
             (ts.isPrefixUnaryExpression(parent) || ts.isPostfixUnaryExpression(parent)) &&
             parent.operator !==
-                ts.SyntaxKind.ExclamationToken /* `!$store` does not need processing */
+            ts.SyntaxKind.ExclamationToken /* `!$store` does not need processing */
         ) {
             let simpleOperator: string;
             if (parent.operator === ts.SyntaxKind.PlusPlusToken) {
@@ -844,8 +844,8 @@ function addComponentExport(
 
     const statement = `\n\n${doc}export default class ${
         className ? `${className} ` : ''
-    }{\n    $$prop_def = ${propDef}\n    $$slot_def = render().slots` +
-    `\n    $on = __sveltets_eventDef(render().events).$on\n}`;
+        }{\n    $$prop_def = ${propDef}\n    $$slot_def = render().slots` +
+        `\n    $on = __sveltets_eventDef(render().events).$on\n}`;
 
     str.append(statement);
 }
@@ -905,7 +905,7 @@ function createRenderFunction(
     scriptTag: Node,
     scriptDestination: number,
     slots: Map<string, Map<string, string>>,
-    events: Map<string, string>,
+    events: Map<string, string | string[]>,
     exportedNames: ExportedNames,
     uses$$props: boolean,
     uses$$restProps: boolean,
@@ -945,9 +945,18 @@ function createRenderFunction(
             })
             .join(', ') +
         '}';
-    const eventsDef = '{' + Array.from(events.entries())
-            .map(([evnetName, expression]) => `'${evnetName}':${expression}`)
-            .join(', ') + '}';
+
+    const eventMapEntryToString = ([evnetName, expression]: [
+        string,
+        string | string[]
+    ]) =>
+        `'${evnetName}':${
+        Array.isArray(expression) ? `[${expression}]` : expression
+        }`;
+    const eventsDef =
+        "{" +
+        Array.from(events.entries()).map(eventMapEntryToString).join(", ") +
+        "}";
 
     const returnString = `\nreturn { props: ${createPropsStr(
         exportedNames,

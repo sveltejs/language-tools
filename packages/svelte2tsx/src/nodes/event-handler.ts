@@ -1,15 +1,23 @@
 import { Node } from "estree-walker";
 
 export function createEventHandlerTransformer() {
-    const events = new Map<string, string>();
+    const events = new Map<string, string | string[]>();
 
     const handleEventHandler = (node: Node, parent: Node) => {
         const eventName = node.name;
 
-        // pass-through
+        const handleEventHandlerBubble = () => {
+            const componentEventDef = `__sveltets_instanceOf(${parent.name})`;
+            const exp = `__sveltets_bubbleEventDef(${componentEventDef}, '${eventName}')`;
+
+            const exist = events.get(eventName);
+            events.set(eventName, exist ? [].concat(exist, exp) : exp);
+        };
+
+        // pass-through/ bubble
         if (!node.expression) {
             if (parent.type === "InlineComponent") {
-                // TODO: component
+                handleEventHandlerBubble();
             } else {
                 events.set(
                     eventName,
