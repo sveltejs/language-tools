@@ -24,7 +24,9 @@ If a svelte file contains some language other than `html`, `css` or `javascript`
 const sveltePreprocess = require('svelte-preprocess');
 
 module.exports = {
-    preprocess: sveltePreprocess(),
+    preprocess: sveltePreprocess({
+        scss: true,
+    }),
     // ...other svelte options
 };
 ```
