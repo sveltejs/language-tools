@@ -7,8 +7,8 @@ function render() {
     
      let world = "name"
 ;
-<><h1>hello {world}</h1>
-</>
+() => (<><h1>hello {world}</h1>
+</>);
 return { props: {world: world}, slots: {} }}
 
 export default class Input__SvelteComponent_ {

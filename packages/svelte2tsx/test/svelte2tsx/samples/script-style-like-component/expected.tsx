@@ -2,12 +2,12 @@
 
     let Script, Style;
 ;
-<>
+() => (<>
 
 <Script>
     <p></p>
 </Script>
-<Style /></>
+<Style /></>);
 return { props: {}, slots: {} }}
 
 export default class Input__SvelteComponent_ {

@@ -3,8 +3,8 @@ function render() {
 
      
 ;
-<><Test b="6" ></Test> 
-</>
+() => (<><Test b="6" ></Test> 
+</>);
 return { props: {}, slots: {} }}
 
 export default class Input__SvelteComponent_ {

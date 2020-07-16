@@ -2,7 +2,7 @@
 
      const name: string = "world";
 ;
-<></>
+() => (<></>);
 return { props: {name: name} as {name?: string}, slots: {} }}
 
 export default class Input__SvelteComponent_ {

@@ -3,7 +3,7 @@
 
 ;let b; $: b = __sveltets_invalidate(() => ({ a: 1 }));
 ;
-<></>
+() => (<></>);
 return { props: {}, slots: {} }}
 
 export default class Input__SvelteComponent_ {

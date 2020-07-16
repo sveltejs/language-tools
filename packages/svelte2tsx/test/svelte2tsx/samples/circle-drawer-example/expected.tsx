@@ -57,7 +57,7 @@
 		return circles.map(({ cx, cy, r }) => ({ cx, cy, r }));
 	}
 ;
-<>
+() => (<>
 
 
 
@@ -86,7 +86,7 @@
 		<p>adjust diameter of circle at {selected.cx}, {selected.cy}</p>
 		<input type="range" value={selected.r} oninput={adjust}/>
 	</div>
-</>}}}</>
+</>}}}</>);
 return { props: {}, slots: {} }}
 
 export default class Input__SvelteComponent_ {

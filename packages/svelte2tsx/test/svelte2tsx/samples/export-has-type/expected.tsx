@@ -4,7 +4,7 @@
      let a: A;
      let b: A = {};b = __sveltets_any(b);;
 ;
-<></>
+() => (<></>);
 return { props: {a: a , b: b} as {a: A, b?: A}, slots: {} }}
 
 export default class Input__SvelteComponent_ {

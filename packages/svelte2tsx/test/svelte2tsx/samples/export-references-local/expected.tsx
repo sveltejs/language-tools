@@ -3,7 +3,7 @@
     let world = "world";
      let name = world;
 ;
-<></>
+() => (<></>);
 return { props: {name: name}, slots: {} }}
 
 export default class Input__SvelteComponent_ {
