@@ -792,6 +792,13 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
         }
     }
 
+    const firstImport = tsAst.statements
+        .filter(ts.isImportDeclaration)
+        .sort((a, b) => a.end - b.end)[0];
+    if (firstImport) {
+        str.appendRight(firstImport.getStart() + astOffset, '\n');
+    }
+
     return {
         exportedNames,
         uses$$props,
