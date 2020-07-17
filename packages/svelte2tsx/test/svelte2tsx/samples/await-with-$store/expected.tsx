@@ -1,4 +1,5 @@
-<></>;import { readable } from 'svelte/store';
+<></>;
+import { readable } from 'svelte/store';
 function render() {
 
 	
