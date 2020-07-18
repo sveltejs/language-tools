@@ -3,6 +3,7 @@
     "scopeName": "source.svelte",
     "fileTypes": ["svelte"],
     "uuid": "7582b62f-51d9-4a84-8c8d-fc189530faf6",
+
     "patterns": [
         {
             "begin": "(<)(style)\\b(?=[^>]*(?:type=('text/sass'|\"text/sass\")|lang=(sass|'sass'|\"sass\")))(?![^/>]*/>\\s*$)",
@@ -540,7 +541,7 @@
             ]
         },
         {
-            "begin": "(</?)([a-zA-Z][a-zA-Z0-9:-]*)",
+            "begin": "(</?)([a-z][a-zA-Z0-9:-]*)",
             "beginCaptures": {
                 "1": {
                     "name": "punctuation.definition.tag.begin.html"
@@ -556,6 +557,32 @@
                 }
             },
             "name": "meta.tag.other.html",
+            "patterns": [
+                {
+                    "include": "#tag-stuff"
+                }
+            ]
+        },
+        {
+            "begin": "(</?)([A-Z][a-zA-Z0-9:-]*)",
+            "beginCaptures": {
+                "1": {
+                    "name": "punctuation.definition.tag.begin.html"
+                },
+                "2": {
+                    "name": "support.class.component.tsx"
+                }
+            },
+            "end": "(/?>)",
+            "endCaptures": {
+                "1": {
+                    "name": "punctuation.definition.tag.end.html"
+                },
+                "2": {
+                    "name": "support.class.component.tsx"
+                }
+            },
+            "name": "meta.tag.svelte",
             "patterns": [
                 {
                     "include": "#tag-stuff"
