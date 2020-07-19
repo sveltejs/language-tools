@@ -48,7 +48,7 @@
     "dependencies": {
         "cosmiconfig": "^6.0.0",
         "estree-walker": "^2.0.1",
-        "lodash": "^4.17.10",
+        "lodash": "^4.17.19",
         "magic-string": "^0.25.3",
         "prettier": "2.0.5",
         "prettier-plugin-svelte": "1.1.0",
