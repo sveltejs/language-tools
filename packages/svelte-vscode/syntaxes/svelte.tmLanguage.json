@@ -570,7 +570,7 @@
                     "name": "punctuation.definition.tag.begin.html"
                 },
                 "2": {
-                    "name": "support.class.component.tsx"
+                    "name": "support.class.component.svelte"
                 }
             },
             "end": "(/?>)",
@@ -579,7 +579,7 @@
                     "name": "punctuation.definition.tag.end.html"
                 },
                 "2": {
-                    "name": "support.class.component.tsx"
+                    "name": "support.class.component.svelte"
                 }
             },
             "name": "meta.tag.svelte",
