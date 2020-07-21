@@ -152,7 +152,7 @@ export class RenameProviderImpl implements RenameProvider {
         // First find out if it's really the "rename prop inside component with that prop" case
         // Use original document for that because only there the `export` is present.
         const regex = new RegExp(
-            `export\\s+(const|let)\\s+${this.getVariableAtPosition(
+            `export\\s+let\\s+${this.getVariableAtPosition(
                 tsDoc,
                 fragment,
                 lang,

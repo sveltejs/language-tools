@@ -1,6 +1,6 @@
 <></>;function render() {
 
-     const name: string = "world";
+     class Foo {};
 ;
 <></>
 return { props: {}, slots: {} }}

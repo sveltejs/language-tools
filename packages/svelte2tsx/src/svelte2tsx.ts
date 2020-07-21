@@ -6,6 +6,7 @@ import { parseHtmlx } from './htmlxparser';
 import { convertHtmlxToJsx } from './htmlxtojsx';
 import { Node } from 'estree-walker';
 import * as ts from 'typescript';
+import { findExortKeyword } from './utils/tsAst';
 
 function AttributeValueAsJsExpression(htmlx: string, attr: Node): string {
     if (attr.value.length == 0) return "''"; //wut?
@@ -439,10 +440,6 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
     };
 
     const propTypeAssertToUserDefined = (node: ts.VariableDeclarationList) => {
-        if (node.flags !== ts.NodeFlags.Let) {
-            return;
-        }
-
         const hasInitializers = node.declarations.filter((declaration) => declaration.initializer);
         const handleTypeAssertion = (declaration: ts.VariableDeclaration) => {
             const identifier = declaration.name;
@@ -669,21 +666,21 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
         const onLeaveCallbacks: onLeaveCallback[] = [];
 
         if (ts.isVariableStatement(node)) {
-            const exportModifier = node.modifiers
-                ? node.modifiers.find((x) => x.kind == ts.SyntaxKind.ExportKeyword)
-                : null;
+            const exportModifier = findExortKeyword(node);
             if (exportModifier) {
-                handleExportedVariableDeclarationList(node.declarationList);
-                propTypeAssertToUserDefined(node.declarationList);
+                const isLet = node.declarationList.flags === ts.NodeFlags.Let;
+
+                if (isLet) {
+                    handleExportedVariableDeclarationList(node.declarationList);
+                    propTypeAssertToUserDefined(node.declarationList);
+                }
                 removeExport(exportModifier.getStart(), exportModifier.end);
             }
         }
 
         if (ts.isFunctionDeclaration(node)) {
             if (node.modifiers) {
-                const exportModifier = node.modifiers.find(
-                    (x) => x.kind == ts.SyntaxKind.ExportKeyword,
-                );
+                const exportModifier = findExortKeyword(node);
                 if (exportModifier) {
                     addExport(node.name);
                     removeExport(exportModifier.getStart(), exportModifier.end);
@@ -692,6 +689,13 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
 
             pushScope();
             onLeaveCallbacks.push(() => popScope());
+        }
+
+        if (ts.isClassDeclaration(node)) {
+            const exportModifier = findExortKeyword(node);
+            if (exportModifier) {
+                removeExport(exportModifier.getStart(), exportModifier.end);
+            }
         }
 
         if (ts.isBlock(node)) {
