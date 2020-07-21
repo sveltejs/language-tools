@@ -7,6 +7,8 @@ import { convertHtmlxToJsx } from './htmlxtojsx';
 import { Node } from 'estree-walker';
 import * as ts from 'typescript';
 import { findExortKeyword } from './utils/tsAst';
+import { ExportedNames, InstanceScriptProcessResult, CreateRenderFunctionPara } from './interfaces';
+import { createRenderFunctionGetterStr, createClassGetters } from './nodes/exportgetters';
 
 function AttributeValueAsJsExpression(htmlx: string, attr: Node): string {
     if (attr.value.length == 0) return "''"; //wut?
@@ -365,20 +367,6 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
     };
 }
 
-type ExportedNames = Map<
-    string,
-    {
-        type?: string;
-        identifierText?: string;
-        required?: boolean;
-    }
->;
-
-type InstanceScriptProcessResult = {
-    exportedNames: ExportedNames;
-    uses$$props: boolean;
-    uses$$restProps: boolean;
-};
 
 function processInstanceScriptContent(str: MagicString, script: Node): InstanceScriptProcessResult {
     const htmlx = str.original;
@@ -392,6 +380,7 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
     );
     const astOffset = script.content.start;
     const exportedNames: ExportedNames = new Map();
+    const getters = new Set<string>();
 
     const implicitTopLevelNames: Map<string, number> = new Map();
     let uses$$props = false;
@@ -431,6 +420,12 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
         } else {
             exportedNames.set(name.text, {});
         }
+    };
+    const addGetter = (node: ts.Identifier) => {
+        if (!node) {
+            return;
+        }
+        getters.add(node.text);
     };
 
     const removeExport = (start: number, end: number) => {
@@ -669,10 +664,17 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
             const exportModifier = findExortKeyword(node);
             if (exportModifier) {
                 const isLet = node.declarationList.flags === ts.NodeFlags.Let;
+                const isConst = node.declarationList.flags === ts.NodeFlags.Const;
 
                 if (isLet) {
                     handleExportedVariableDeclarationList(node.declarationList);
                     propTypeAssertToUserDefined(node.declarationList);
+                } else if (isConst) {
+                    node.declarationList.forEachChild((n) => {
+                        if (ts.isVariableDeclaration(n) && ts.isIdentifier(n.name)) {
+                            addGetter(n.name);
+                        }
+                    });
                 }
                 removeExport(exportModifier.getStart(), exportModifier.end);
             }
@@ -682,8 +684,8 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
             if (node.modifiers) {
                 const exportModifier = findExortKeyword(node);
                 if (exportModifier) {
-                    addExport(node.name);
                     removeExport(exportModifier.getStart(), exportModifier.end);
+                    addGetter(node.name);
                 }
             }
 
@@ -695,6 +697,7 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
             const exportModifier = findExortKeyword(node);
             if (exportModifier) {
                 removeExport(exportModifier.getStart(), exportModifier.end);
+                addGetter(node.name);
             }
         }
 
@@ -807,6 +810,7 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
         exportedNames,
         uses$$props,
         uses$$restProps,
+        getters,
     };
 }
 
@@ -829,6 +833,7 @@ function addComponentExport(
     uses$$propsOr$$restProps: boolean,
     strictMode: boolean,
     isTsFile: boolean,
+    getters: Set<string>,
     /** A named export allows for TSDoc-compatible docstrings */
     className?: string,
     componentDocumentation?: string | null,
@@ -845,10 +850,12 @@ function addComponentExport(
 
     const doc = formatComponentDocumentation(componentDocumentation);
 
-    // eslint-disable-next-line max-len
-    const statement = `\n\n${doc}export default class ${
-        className ? `${className} ` : ''
-    }{\n    $$prop_def = ${propDef}\n    $$slot_def = render().slots\n}`;
+    const statement =
+        `\n\n${doc}export default class ${
+            className ? `${className} ` : ''
+        }{\n    $$prop_def = ${propDef}\n    $$slot_def = render().slots` +
+        createClassGetters(getters) +
+        '\n}';
 
     str.append(statement);
 }
@@ -903,15 +910,16 @@ function processModuleScriptTag(str: MagicString, script: Node) {
     str.overwrite(scriptEndTagStart, script.end, ';<>');
 }
 
-function createRenderFunction(
-    str: MagicString,
-    scriptTag: Node,
-    scriptDestination: number,
-    slots: Map<string, Map<string, string>>,
-    exportedNames: ExportedNames,
-    uses$$props: boolean,
-    uses$$restProps: boolean,
-) {
+function createRenderFunction({
+    str,
+    scriptTag,
+    scriptDestination,
+    slots,
+    getters,
+    exportedNames,
+    uses$$props,
+    uses$$restProps
+}: CreateRenderFunctionPara) {
     const htmlx = str.original;
     let propsDecl = '';
 
@@ -950,7 +958,7 @@ function createRenderFunction(
 
     const returnString = `\nreturn { props: ${createPropsStr(
         exportedNames,
-    )}, slots: ${slotsAsDef} }}`;
+    )}, slots: ${slotsAsDef}, getters: ${createRenderFunctionGetterStr(getters)} }}`;
     str.append(returnString);
 }
 
@@ -1012,27 +1020,30 @@ export function svelte2tsx(svelte: string, options?: { filename?: string; strict
 
     //move the instance script and process the content
     let exportedNames: ExportedNames = new Map();
+    let getters = new Set<string>();
     if (scriptTag) {
         //ensure it is between the module script and the rest of the template (the variables need to be declared before the jsx template)
         if (scriptTag.start != instanceScriptTarget) {
             str.move(scriptTag.start, scriptTag.end, instanceScriptTarget);
         }
         const res = processInstanceScriptContent(str, scriptTag);
-        exportedNames = res.exportedNames;
         uses$$props = uses$$props || res.uses$$props;
         uses$$restProps = uses$$restProps || res.uses$$restProps;
+
+        ({ exportedNames, getters } = res);
     }
 
     //wrap the script tag and template content in a function returning the slot and exports
-    createRenderFunction(
+    createRenderFunction({
         str,
         scriptTag,
-        instanceScriptTarget,
+        scriptDestination: instanceScriptTarget,
         slots,
+        getters,
         exportedNames,
         uses$$props,
         uses$$restProps,
-    );
+    });
 
     // we need to process the module script after the instance script has moved otherwise we get warnings about moving edited items
     if (moduleScriptTag) {
@@ -1046,6 +1057,7 @@ export function svelte2tsx(svelte: string, options?: { filename?: string; strict
         uses$$props || uses$$restProps,
         !!options?.strictMode,
         isTsFile(scriptTag, moduleScriptTag),
+        getters,
         className,
         componentDocumentation,
     );

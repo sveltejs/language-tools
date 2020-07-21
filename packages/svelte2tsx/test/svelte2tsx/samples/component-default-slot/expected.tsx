@@ -6,7 +6,7 @@
 <div>
     <slot a={b}>Hello</slot>
 </div></>
-return { props: {}, slots: {default: {a:b}} }}
+return { props: {}, slots: {default: {a:b}}, getters: {} }}
 
 export default class Input__SvelteComponent_ {
     $$prop_def = __sveltets_partial(render().props)

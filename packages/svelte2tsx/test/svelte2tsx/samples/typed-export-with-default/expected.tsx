@@ -3,7 +3,7 @@
      let name: string | number = "world";name = __sveltets_any(name);
 ;
 <></>
-return { props: {name: name} as {name?: string | number}, slots: {} }}
+return { props: {name: name} as {name?: string | number}, slots: {}, getters: {} }}
 
 export default class Input__SvelteComponent_ {
     $$prop_def = __sveltets_partial(render().props)
