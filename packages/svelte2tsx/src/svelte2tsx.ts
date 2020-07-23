@@ -392,7 +392,7 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
     const astOffset = script.content.start;
     const exportedNames: ExportedNames = new Map();
 
-    const implicitTopLevelNames: Map<string, number> = new Map();
+    const implicitTopLevelNames: Map<string, {pos: number; expr: ts.Expression}> = new Map();
     let uses$$props = false;
     let uses$$restProps = false;
 
@@ -760,7 +760,10 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
             ) {
                 const name = node.statement.expression.left.text;
                 if (!implicitTopLevelNames.has(name)) {
-                    implicitTopLevelNames.set(name, node.label.getStart());
+                    implicitTopLevelNames.set(name, {
+                        pos: node.label.getStart(),
+                        expr: node.statement.expression.right
+                    });
                 }
 
                 wrapExpressionWithInvalidate(node.statement.expression.right);
@@ -786,9 +789,10 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
     pendingStoreResolutions.map(resolveStore);
 
     // declare implicit reactive variables we found in the script
-    for (const [name, pos] of implicitTopLevelNames.entries()) {
+    for (const [name, {pos, expr}] of implicitTopLevelNames.entries()) {
         if (!rootScope.declared.has(name)) {
-            str.prependRight(pos + astOffset, `;let ${name}; `);
+            const exprStr = str.slice(astOffset + expr.getStart(), astOffset + expr.getEnd());
+            str.prependRight(pos + astOffset, `;let ${name} = ${exprStr}; `);
         }
     }
 

@@ -69,8 +69,8 @@ function render() {
 	//   here statically
 	const tutorial_repo_link = 'https://github.com/sveltejs/svelte/tree/master/site/content/tutorial';
 
-	;let selected; $: selected = __sveltets_invalidate(() => lookup.get(slug));
-	;let improve_link; $: improve_link = __sveltets_invalidate(() => `${tutorial_repo_link}/${selected.chapter.section_dir}/${selected.chapter.chapter_dir}`);
+	;let selected = lookup.get(slug); $: selected = __sveltets_invalidate(() => lookup.get(slug));
+	;let improve_link = `${tutorial_repo_link}/${selected.chapter.section_dir}/${selected.chapter.chapter_dir}`; $: improve_link = __sveltets_invalidate(() => `${tutorial_repo_link}/${selected.chapter.section_dir}/${selected.chapter.chapter_dir}`);
 
 	const clone = file => ({
 		name: file.name,
@@ -85,7 +85,7 @@ function render() {
 		});
     }}
 
-	;let mobile; $: mobile = __sveltets_invalidate(() => width < 768);
+	;let mobile = width < 768; $: mobile = __sveltets_invalidate(() => width < 768);
 
 	function reset() {
 		repl.update({
