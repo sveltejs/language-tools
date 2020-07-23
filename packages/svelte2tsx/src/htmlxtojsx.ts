@@ -350,6 +350,13 @@ export function convertHtmlxToJsx(
                 str.overwrite(attr.start, attr.start + attr.name.length, name);
             }
         }
+        
+        // support custom directives?
+        // hydrate:data={}
+        if (parent.type == 'InlineComponent' && attr.name.includes(':')) {
+            const colon = htmlx.indexOf(':', attr.start);
+            str.overwrite(colon, colon+1, "_");
+        }
 
         //we are a bare attribute
         if (attr.value === true) return;
