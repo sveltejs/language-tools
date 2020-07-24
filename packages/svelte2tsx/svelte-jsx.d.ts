@@ -2147,7 +2147,7 @@
       method?: string;
       min?: number | string;
       name?: string;
-      style?: CSSProperties;
+      style?: CSSProperties | string;
       target?: string;
       type?: string;
       width?: number | string;
