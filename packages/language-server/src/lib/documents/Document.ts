@@ -66,7 +66,17 @@ export class Document extends WritableDocument {
             return null;
         }
 
-        const defaultLang = this.config.preprocess?.defaultLanguages?.[tag];
+        let defaultLang: string | undefined;
+
+        if (Array.isArray(this.config.preprocess)) {
+            const groupWithConfig = this.config.preprocess.find(
+                (group) => group.defaultLanguages?.[tag],
+            );
+            defaultLang = groupWithConfig?.defaultLanguages?.[tag];
+        } else {
+            defaultLang = this.config.preprocess?.defaultLanguages?.[tag];
+        }
+
         if (!tagInfo.attributes.lang && !tagInfo.attributes.type && defaultLang) {
             tagInfo.attributes.lang = defaultLang;
         }

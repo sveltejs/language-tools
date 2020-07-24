@@ -1,5 +1,5 @@
+import { InternalPreprocessorGroup } from './../../lib/documents/configLoader';
 import { SourceMapConsumer } from 'source-map';
-import { PreprocessorGroup } from 'svelte/types/compiler/preprocess';
 import type { compile } from 'svelte/compiler';
 import { CompileOptions } from 'svelte/types/compiler/interfaces';
 import { Processed } from 'svelte/types/compiler/preprocess';
@@ -93,7 +93,10 @@ export class SvelteDocument {
 }
 
 export class TranspiledSvelteDocument implements Pick<DocumentMapper, 'getOriginalPosition'> {
-    static async create(document: Document, preprocessors: PreprocessorGroup = {}) {
+    static async create(
+        document: Document,
+        preprocessors: InternalPreprocessorGroup | InternalPreprocessorGroup[] = [],
+    ) {
         const { transpiled, processedScript, processedStyle } = await transpile(
             document,
             preprocessors,
@@ -262,46 +265,59 @@ export class SvelteFragmentMapper {
     }
 }
 
-async function transpile(document: Document, preprocessors: PreprocessorGroup = {}) {
-    const preprocessor: PreprocessorGroup = {};
+async function transpile(
+    document: Document,
+    preprocessors: InternalPreprocessorGroup | InternalPreprocessorGroup[] = [],
+) {
     let processedScript: Processed | undefined;
     let processedStyle: Processed | undefined;
 
-    preprocessor.markup = preprocessors.markup;
+    preprocessors = Array.isArray(preprocessors) ? preprocessors : [preprocessors];
 
-    if (preprocessors.script) {
-        preprocessor.script = async (args: any) => {
-            try {
-                const res = await preprocessors.script!(args);
-                if (res && res.map) {
-                    processedScript = res;
-                }
-                return res;
-            } catch (e) {
-                e.__source = TranspileErrorSource.Script;
-                throw e;
-            }
-        };
-    }
+    const wrappedPreprocessors: InternalPreprocessorGroup[] = preprocessors.map(
+        (originalPreprocessor) => {
+            // we don't want to modify the original preprocessor
+            const wrapperPreprocessor = { ...originalPreprocessor };
 
-    if (preprocessors.style) {
-        preprocessor.style = async (args: any) => {
-            try {
-                const res = await preprocessors.style!(args);
-                if (res && res.map) {
-                    processedStyle = res;
-                }
-                return res;
-            } catch (e) {
-                e.__source = TranspileErrorSource.Style;
-                throw e;
+            if (originalPreprocessor.script) {
+                wrapperPreprocessor.script = async (args: any) => {
+                    try {
+                        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                        const res = await originalPreprocessor.script!(args);
+                        if (res.map) {
+                            processedScript = res;
+                        }
+                        return res;
+                    } catch (e) {
+                        e.__source = TranspileErrorSource.Script;
+                        throw e;
+                    }
+                };
             }
-        };
-    }
+
+            if (originalPreprocessor.style) {
+                wrapperPreprocessor.style = async (args: any) => {
+                    try {
+                        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                        const res = await originalPreprocessor.style!(args);
+                        if (res.map) {
+                            processedStyle = res;
+                        }
+                        return res;
+                    } catch (e) {
+                        e.__source = TranspileErrorSource.Style;
+                        throw e;
+                    }
+                };
+            }
+
+            return wrapperPreprocessor;
+        },
+    );
 
     const svelte = importSvelte(document.getFilePath() || '');
     const transpiled = (
-        await svelte.preprocess(document.getText(), preprocessor, {
+        await svelte.preprocess(document.getText(), wrappedPreprocessors, {
             filename: document.getFilePath() || '',
         })
     ).toString();

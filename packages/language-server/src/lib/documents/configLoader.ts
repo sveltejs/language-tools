@@ -4,14 +4,16 @@ import { CompileOptions } from 'svelte/types/compiler/interfaces';
 import { PreprocessorGroup } from 'svelte/types/compiler/preprocess';
 import { importSveltePreprocess } from '../../importPackage';
 
+export type InternalPreprocessorGroup = PreprocessorGroup & {
+    /**
+     * svelte-preprocess has this since 4.x
+     */
+    defaultLanguages?: { markup?: string; script?: string; style?: string };
+};
+
 export interface SvelteConfig {
     compilerOptions?: CompileOptions;
-    preprocess?: PreprocessorGroup & {
-        /**
-         * svelte-preprocess has this since 4.x
-         */
-        defaultLanguages?: { markup?: string; script?: string; style?: string };
-    };
+    preprocess?: InternalPreprocessorGroup | InternalPreprocessorGroup[];
     loadConfigError?: any;
 }
 
