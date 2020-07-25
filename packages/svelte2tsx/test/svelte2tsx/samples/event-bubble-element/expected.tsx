@@ -1,6 +1,6 @@
 <></>;function render() {
 <><button onclick={undefined}></button></>
-return { props: {}, slots: {}, events: {'click':__sveltets_mapElementEvent('click')} }}
+return { props: {}, slots: {}, getters: {}, events: {'click':__sveltets_mapElementEvent('click')} }}
 
 export default class Input__SvelteComponent_ {
     $$prop_def = __sveltets_partial(render().props)

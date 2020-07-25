@@ -1,4 +1,5 @@
-<></>;import { readable } from 'svelte/store';
+<></>;
+import { readable } from 'svelte/store';
 function render() {
 
 	
@@ -11,7 +12,7 @@ function render() {
 </>; _$$p.then((data) => {<>
 	{data}
 </>})}}</>
-return { props: {}, slots: {}, events: {} }}
+return { props: {}, slots: {}, getters: {}, events: {} }}
 
 export default class Input__SvelteComponent_ {
     $$prop_def = __sveltets_partial(render().props)

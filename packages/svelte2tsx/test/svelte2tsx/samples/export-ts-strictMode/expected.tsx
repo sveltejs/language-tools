@@ -5,7 +5,7 @@
      let c: number = 123;c = __sveltets_any(c);;
 ;
 <></>
-return { props: {a: a , b: b , c: c} as {a: number, b: number | undefined, c?: number}, slots: {}, events: {} }}
+return { props: {a: a , b: b , c: c} as {a: number, b: number | undefined, c?: number}, slots: {}, getters: {}, events: {} }}
 
 export default class Input__SvelteComponent_ {
     $$prop_def = render().props

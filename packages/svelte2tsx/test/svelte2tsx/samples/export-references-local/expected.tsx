@@ -4,7 +4,7 @@
      let name = world;
 ;
 <></>
-return { props: {name: name}, slots: {}, events: {} }}
+return { props: {name: name}, slots: {}, getters: {}, events: {} }}
 
 export default class Input__SvelteComponent_ {
     $$prop_def = __sveltets_partial(render().props)

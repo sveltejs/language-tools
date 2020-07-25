@@ -93,11 +93,12 @@ export function convertHtmlxToJsx(
     };
 
     const handleClassDirective = (attr: Node) => {
-        const needCurly = attr.expression.start == attr.start + 'class:'.length;
         str.overwrite(attr.start, attr.expression.start, `{...__sveltets_ensureType(Boolean, !!(`);
-        str.appendLeft(attr.expression.end, `))${needCurly ? '}' : ''}`);
-        if (htmlx[attr.end - 1] == '"') {
-            str.remove(attr.end - 1, attr.end);
+        const endBrackets = `))}`;
+        if (attr.end !== attr.expression.end) {
+            str.overwrite(attr.expression.end, attr.end, endBrackets);
+        } else {
+            str.appendLeft(attr.end, endBrackets);
         }
     };
 
@@ -511,7 +512,6 @@ export function convertHtmlxToJsx(
     // {() => {let _$$p = (somePromise);
     const handleAwait = (awaitBlock: Node) => {
         str.overwrite(awaitBlock.start, awaitBlock.expression.start, '{() => {let _$$p = (');
-        str.prependLeft(awaitBlock.expression.end, ');');
         // then value } | {:then value} ->
         // _$$p.then((value) => {<>
         let thenStart: number;
@@ -527,11 +527,16 @@ export function convertHtmlxToJsx(
             str.prependLeft(thenStart, '</>; ');
             // add the start tag too
             const awaitEnd = htmlx.indexOf('}', awaitBlock.expression.end);
-            str.remove(awaitEnd, awaitEnd + 1);
-            str.appendRight(awaitEnd, ' <>');
+
+            // somePromise} -> somePromise);
+            str.overwrite(awaitBlock.expression.end, awaitEnd + 1, ');');
+            str.appendRight(awaitEnd + 1, ' <>');
         } else {
             thenEnd = htmlx.lastIndexOf('}', awaitBlock.then.start) + 1;
             thenStart = htmlx.indexOf('then', awaitBlock.expression.end);
+
+            // somePromise then -> somePromise); then
+            str.overwrite(awaitBlock.expression.end, thenStart, '); ');
         }
         if (awaitBlock.value) {
             str.overwrite(

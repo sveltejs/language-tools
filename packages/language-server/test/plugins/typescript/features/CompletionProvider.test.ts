@@ -258,7 +258,7 @@ describe('CompletionProviderImpl', () => {
 
         assert.deepEqual(
             additionalTextEdits![0]?.range,
-            Range.create(Position.create(0, 8), Position.create(0, 8)),
+            Range.create(Position.create(2, 0), Position.create(2, 0)),
         );
     });
 
@@ -285,7 +285,7 @@ describe('CompletionProviderImpl', () => {
 
         assert.strictEqual(
             harmonizeNewLines(additionalTextEdits![0]?.newText),
-            `import { blubb } from './definitions';${newLine}`,
+            `${newLine}import { blubb } from './definitions';${newLine}`,
         );
 
         assert.deepEqual(

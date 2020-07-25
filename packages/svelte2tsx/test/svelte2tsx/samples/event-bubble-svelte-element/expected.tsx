@@ -1,7 +1,7 @@
 <></>;function render() {
 <><sveltebody onclick={undefined}></sveltebody>
 <sveltewindow onresize={undefined}></sveltewindow></>
-return { props: {}, slots: {}, events: {'click':__sveltets_mapBodyEvent('click'), 'resize':__sveltets_mapWindowEvent('resize')} }}
+return { props: {}, slots: {}, getters: {}, events: {'click':__sveltets_mapBodyEvent('click'), 'resize':__sveltets_mapWindowEvent('resize')} }}
 
 export default class Input__SvelteComponent_ {
     $$prop_def = __sveltets_partial(render().props)

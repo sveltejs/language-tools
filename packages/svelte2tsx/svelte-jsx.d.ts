@@ -1951,6 +1951,7 @@
       // UI Events
       onscroll?: UIEventHandler<T>;
       onscrollcapture?: UIEventHandler<T>;
+      onresize?: UIEventHandler<T>;
 
       // Wheel Events
       onwheel?: WheelEventHandler<T>;

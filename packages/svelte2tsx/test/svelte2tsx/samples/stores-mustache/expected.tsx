@@ -1,6 +1,6 @@
 <></>;function render() {
 <><Me f={`${__sveltets_store_get(s)} `}/></>
-return { props: {}, slots: {}, events: {} }}
+return { props: {}, slots: {}, getters: {}, events: {} }}
 
 export default class Input__SvelteComponent_ {
     $$prop_def = __sveltets_partial(render().props)

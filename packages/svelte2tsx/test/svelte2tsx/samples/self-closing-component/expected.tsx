@@ -1,4 +1,5 @@
-<></>;import Test from './Test.svelte';
+<></>;
+import Test from './Test.svelte';
 function render() {
 
 
@@ -6,7 +7,7 @@ let a = 'b';
 ;
 <><Test b="6" />
 </>
-return { props: {}, slots: {}, events: {} }}
+return { props: {}, slots: {}, getters: {}, events: {} }}
 
 export default class Input__SvelteComponent_ {
     $$prop_def = __sveltets_partial(render().props)

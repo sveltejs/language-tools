@@ -22,7 +22,7 @@ const test4 = ({a,  b: { $top1: $top2 }}) => $top2 && __sveltets_store_get(top1)
 
 ;
 <></>
-return { props: {}, slots: {}, events: {} }}
+return { props: {}, slots: {}, getters: {}, events: {} }}
 
 export default class Input__SvelteComponent_ {
     $$prop_def = __sveltets_partial(render().props)

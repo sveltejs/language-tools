@@ -2,7 +2,7 @@
 b.set(__sveltets_store_get(b).concat(5));
 <>
 <h1 onclick={() => b.set(__sveltets_store_get(b).concat(5))}>{__sveltets_store_get(b)}</h1></>
-return { props: {}, slots: {}, events: {} }}
+return { props: {}, slots: {}, getters: {}, events: {} }}
 
 export default class Input__SvelteComponent_ {
     $$prop_def = __sveltets_partial(render().props)

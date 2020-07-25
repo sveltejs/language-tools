@@ -3,7 +3,7 @@
      let { name: rename } = { name: "world" };
 ;
 <></>
-return { props: {rename: rename}, slots: {}, events: {} }}
+return { props: {rename: rename}, slots: {}, getters: {}, events: {} }}
 
 export default class Input__SvelteComponent_ {
     $$prop_def = __sveltets_partial(render().props)

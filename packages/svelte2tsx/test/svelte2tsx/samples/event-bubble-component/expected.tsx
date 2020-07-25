@@ -1,6 +1,6 @@
 <></>;function render() {
 <><Button ></Button></>
-return { props: {}, slots: {}, events: {'click':__sveltets_bubbleEventDef(__sveltets_instanceOf(Button), 'click')} }}
+return { props: {}, slots: {}, getters: {}, events: {'click':__sveltets_bubbleEventDef(__sveltets_instanceOf(Button), 'click')} }}
 
 export default class Input__SvelteComponent_ {
     $$prop_def = __sveltets_partial(render().props)
