@@ -2,7 +2,7 @@
 <>
 
 <main>At least I am documented</main></>
-return { props: {}, slots: {} }}
+return { props: {}, slots: {}, getters: {} }}
 
 /** This component does nothing at all */
 export default class Input__SvelteComponent_ {
