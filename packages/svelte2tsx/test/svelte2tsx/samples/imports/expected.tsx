@@ -10,7 +10,7 @@ function render() {
 ;
 <><h1>hello {world}</h1>
 </>
-return { props: {world: world}, slots: {} }}
+return { props: {world: world}, slots: {}, getters: {} }}
 
 export default class Input__SvelteComponent_ {
     $$prop_def = __sveltets_partial(render().props)
