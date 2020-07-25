@@ -9,7 +9,7 @@
  */
 
 
- declare namespace JSX {
+ declare namespace svelte.JSX {
 
     /* svelte specific */
     interface ElementClass {
