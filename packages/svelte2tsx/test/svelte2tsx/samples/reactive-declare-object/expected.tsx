@@ -1,7 +1,7 @@
 <></>;function render() {
 
 
-;let b; $: b = __sveltets_invalidate(() => ({ a: 1 }));
+let b = __sveltets_invalidate(() => ({ a: 1 }));
 ;
 <></>
 return { props: {}, slots: {} }}

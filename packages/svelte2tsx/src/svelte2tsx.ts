@@ -788,7 +788,15 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
     // declare implicit reactive variables we found in the script
     for (const [name, pos] of implicitTopLevelNames.entries()) {
         if (!rootScope.declared.has(name)) {
-            str.prependRight(pos + astOffset, `;let ${name}; `);
+            // remove '$:' label
+            str.remove(pos + astOffset, pos + astOffset+2);
+            const followingChar = str.slice(pos + astOffset+2, pos + astOffset+3);
+            // if there exists whitespace after '$:', we do not insert more space.
+            if (followingChar === ' ' || followingChar === '\t' || followingChar === '\n') {
+                str.prependRight(pos + astOffset, `let`);
+            } else {
+                str.prependRight(pos + astOffset, `let `);
+            }
         }
     }
 
