@@ -1903,8 +1903,8 @@
       onclickcapture?: MouseEventHandler<T>;
       oncontextmenu?: MouseEventHandler<T>;
       oncontextmenucapture?: MouseEventHandler<T>;
-      ondoubleclick?: MouseEventHandler<T>;
-      ondoubleclickcapture?: MouseEventHandler<T>;
+      ondblclick?: MouseEventHandler<T>;
+      ondblclickcapture?: MouseEventHandler<T>;
       ondrag?: DragEventHandler<T>;
       ondragcapture?: DragEventHandler<T>;
       ondragend?: DragEventHandler<T>;
