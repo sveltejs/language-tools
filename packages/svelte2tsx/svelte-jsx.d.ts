@@ -2089,7 +2089,7 @@
       srcset?: string;
       start?: number;
       step?: number | string;
-      style?: string | CSSProperties;
+      style?: string;
       summary?: string;
       tabindex?: number;
       target?: string;
