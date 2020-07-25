@@ -191,8 +191,8 @@ describe('CodeActionsProvider', () => {
                             },
                         },
                         textRange: {
-                            pos: 129,
-                            end: 163,
+                            pos: 130,
+                            end: 164,
                         },
                     },
                 ],
@@ -281,8 +281,8 @@ describe('CodeActionsProvider', () => {
                             },
                         },
                         textRange: {
-                            pos: 129,
-                            end: 163,
+                            pos: 130,
+                            end: 164,
                         },
                     },
                 ],

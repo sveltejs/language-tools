@@ -41,7 +41,7 @@ declare var process: NodeJS.Process & { browser: boolean }
 declare function __sveltets_ensureAnimation<U extends any[]>(animation: SvelteAnimation<U>, ...args: U): {};
 declare function __sveltets_ensureAction<U extends any[]>(action: SvelteAction<U>, ...args: U): {};
 declare function __sveltets_ensureTransition<U extends any[]>(transition: SvelteTransition<U>, ...args: U): {};
-declare function __sveltets_ensureFunction(expression: (e: Event) => unknown ): {};
+declare function __sveltets_ensureFunction(expression: (e: Event & { detail?: any }) => unknown ): {};
 declare function __sveltets_ensureType<T>(type: AConstructorTypeOf<T>, el: T): {};
 declare function __sveltets_instanceOf<T>(type: AConstructorTypeOf<T>): T;
 declare function __sveltets_allPropsType(): SvelteAllProps

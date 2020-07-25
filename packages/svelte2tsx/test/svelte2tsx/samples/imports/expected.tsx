@@ -1,4 +1,5 @@
-<></>;import { a as b } from "./test.svelte"
+<></>;
+import { a as b } from "./test.svelte"
 import * as c from "b.ts"
 function render() {
 
