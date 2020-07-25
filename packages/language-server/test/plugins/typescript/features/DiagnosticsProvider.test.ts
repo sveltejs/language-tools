@@ -108,5 +108,5 @@ describe('TypescriptPlugin', () => {
         const { plugin, document } = setup('svelte-native/svelte-native.svelte');
         const diagnostics = await plugin.getDiagnostics(document);
         assert.deepStrictEqual(diagnostics, []);
-    })
+    });
 });

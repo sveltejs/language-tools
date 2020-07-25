@@ -9,6 +9,8 @@ declare namespace svelteNative.JSX {
         $$prop_def: any; // specify the property name to use
     }
 
+    // Add empty IntrinsicAttributes to prevent fallback to the one in the JSX namespace
+    // eslint-disable-next-line @typescript-eslint/no-empty-interface
     interface IntrinsicAttributes {
     }
 

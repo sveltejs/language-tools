@@ -184,7 +184,9 @@ describe('CompletionProviderImpl', () => {
         const ignores = ['tsconfig.json', sourceFile];
 
         const testfiles = readdirSync(testFilesDir, { withFileTypes: true })
-            .filter((f) => f.isDirectory() || (supportedExtensions.includes(extname(f.name)) && !ignores.includes(f.name)))
+            .filter((f) => f.isDirectory()
+                          || (supportedExtensions.includes(extname(f.name))
+                          && !ignores.includes(f.name)))
             .map(f => f.name);
 
         const completions = await completionProvider.getCompletions(
@@ -195,8 +197,11 @@ describe('CompletionProviderImpl', () => {
                 triggerCharacter: '/',
             },
         );
-                
-        assert.deepStrictEqual(sortBy(completions?.items.map(item => item.label), x => x) , sortBy(testfiles, x => x));
+
+        assert.deepStrictEqual(
+            sortBy(completions?.items.map(item => item.label), x => x),
+            sortBy(testfiles, x => x)
+        );
     });
 
     it('resolve auto import completion (is first import in file)', async () => {

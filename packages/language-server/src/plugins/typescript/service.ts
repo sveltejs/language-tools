@@ -205,14 +205,14 @@ export function createLanguageService(
         // detect which JSX namespace to use (svelte | svelteNative) if not specified or not compatible
         if (!compilerOptions.jsxFactory || !compilerOptions.jsxFactory.startsWith("svelte")) {
             //default to regular svelte, this causes the usage of the "svelte.JSX" namespace
-            compilerOptions.jsxFactory = "svelte.createElement"
+            compilerOptions.jsxFactory = "svelte.createElement";
 
             //override if we detect svelte-native
             if (workspacePath) {
                 try {
                     const svelteNativePkgInfo = getPackageInfo('svelte-native', workspacePath);
                     if (svelteNativePkgInfo.path) {
-                        compilerOptions.jsxFactory = "svelteNative.createElement"
+                        compilerOptions.jsxFactory = "svelteNative.createElement";
                     }
                 } catch (e) {
                     //we stay regular svelte
