@@ -1,7 +1,7 @@
 <></>;function render() {
 
 
-let b = __sveltets_invalidate(() => 7);
+let  b = __sveltets_invalidate(() => 7);
 
 let a;
 $: a = __sveltets_invalidate(() => 5);

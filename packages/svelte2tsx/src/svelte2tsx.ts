@@ -790,13 +790,7 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
         if (!rootScope.declared.has(name)) {
             // remove '$:' label
             str.remove(pos + astOffset, pos + astOffset+2);
-            const followingChar = str.slice(pos + astOffset+2, pos + astOffset+3);
-            // if there exists whitespace after '$:', we do not insert more space.
-            if (followingChar === ' ' || followingChar === '\t' || followingChar === '\n') {
-                str.prependRight(pos + astOffset, `let`);
-            } else {
-                str.prependRight(pos + astOffset, `let `);
-            }
+            str.prependRight(pos + astOffset, `let `);
         }
     }
 
