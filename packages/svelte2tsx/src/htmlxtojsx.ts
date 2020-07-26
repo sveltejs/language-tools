@@ -204,8 +204,12 @@ export function convertHtmlxToJsx(
 
             if (thisType) {
                 str.remove(attr.start, attr.expression.start);
-                str.appendLeft(attr.expression.start, `{...__sveltets_ensureType(${thisType}, `);
-                str.overwrite(attr.expression.end, attr.end, ')}');
+                str.appendLeft(attr.expression.start, '{...__sveltets_empty(');
+                str.overwrite(
+                    attr.expression.end,
+                    attr.end,
+                    `=__sveltets_instanceOf(${thisType}))}`
+                );
                 return;
             }
         }
