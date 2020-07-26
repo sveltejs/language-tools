@@ -38,11 +38,11 @@ type SvelteComponent = import('*.svelte').default
 
 declare var process: NodeJS.Process & { browser: boolean }
 
-declare function __sveltets_ensureAnimation<U extends any[]>(animation: SvelteAnimation<U>, ...args: U): any;
-declare function __sveltets_ensureAction<U extends any[]>(action: SvelteAction<U>, ...args: U): any;
-declare function __sveltets_ensureTransition<U extends any[]>(transition: SvelteTransition<U>, ...args: U): any;
-declare function __sveltets_ensureFunction(expression: (e: Event & { detail?: any }) => unknown ) : any;
-declare function __sveltets_ensureType<T>(type: AConstructorTypeOf<T>, el: T): any;
+declare function __sveltets_ensureAnimation<U extends any[]>(animation: SvelteAnimation<U>, ...args: U): {};
+declare function __sveltets_ensureAction<U extends any[]>(action: SvelteAction<U>, ...args: U): {};
+declare function __sveltets_ensureTransition<U extends any[]>(transition: SvelteTransition<U>, ...args: U): {};
+declare function __sveltets_ensureFunction(expression: (e: Event & { detail?: any }) => unknown ): {};
+declare function __sveltets_ensureType<T>(type: AConstructorTypeOf<T>, el: T): {};
 declare function __sveltets_instanceOf<T>(type: AConstructorTypeOf<T>): T;
 declare function __sveltets_allPropsType(): SvelteAllProps
 declare function __sveltets_restPropsType(): SvelteRestProps
@@ -51,5 +51,6 @@ declare function __sveltets_partial_with_any<T>(obj: T): Partial<T> & SvelteAllP
 declare function __sveltets_with_any<T>(obj: T): T & SvelteAllProps
 declare function __sveltets_store_get<T=any>(store: SvelteStore<T>): T
 declare function __sveltets_any(dummy: any): any;
+declare function __sveltets_empty(dummy: any): {};
 declare function __sveltets_componentType(): AConstructorTypeOf<SvelteComponent>
 declare function __sveltets_invalidate<T>(getValue: () => T): T
