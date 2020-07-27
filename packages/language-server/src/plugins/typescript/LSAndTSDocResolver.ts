@@ -34,10 +34,8 @@ export class LSAndTSDocResolver {
     private createDocument = (fileName: string, content: string) => {
         const uri = pathToUrl(fileName);
         const document = this.docManager.openDocument({
-            languageId: 'svelte',
             text: content,
             uri,
-            version: 0,
         });
         this.docManager.lockDocument(uri);
         return document;

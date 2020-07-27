@@ -3,6 +3,7 @@ import { LSConfigManager } from './ls-config';
 import { CSSPlugin, HTMLPlugin, PluginHost, SveltePlugin, TypeScriptPlugin } from './plugins';
 import { Diagnostic } from 'vscode-languageserver';
 import { Logger } from './logger';
+import { urlToPath } from './utils';
 
 /**
  * Small wrapper around PluginHost's Diagnostic Capabilities
@@ -30,17 +31,44 @@ export class SvelteCheck {
     }
 
     /**
-     * Gets diagnostics for a svelte file.
+     * Creates/updates given document
      *
-     * @param params Text and Uri of a svelte file
+     * @param doc Text and Uri of the document
      */
-    async getDiagnostics(params: { text: string; uri: string }): Promise<Diagnostic[]> {
+    upsertDocument(doc: { text: string; uri: string }) {
         this.docManager.openDocument({
-            languageId: 'svelte',
-            text: params.text,
-            uri: params.uri,
-            version: 1,
+            text: doc.text,
+            uri: doc.uri,
         });
-        return await this.pluginHost.getDiagnostics({ uri: params.uri });
+        this.docManager.markAsOpenedInClient(doc.uri);
+    }
+
+    /**
+     * Removes/closes document
+     *
+     * @param uri Uri of the document
+     */
+    removeDocument(uri: string) {
+        this.docManager.closeDocument(uri);
+        this.docManager.releaseDocument(uri);
+    }
+
+    /**
+     * Gets the diagnostics for all currently open files.
+     */
+    async getDiagnostics(): Promise<
+        { filePath: string; text: string; diagnostics: Diagnostic[] }[]
+    > {
+        return await Promise.all(
+            this.docManager.getAllOpenedByClient().map(async (doc) => {
+                const uri = doc[1].uri;
+                const diagnostics = await this.pluginHost.getDiagnostics({ uri });
+                return {
+                    filePath: urlToPath(uri) || '',
+                    text: this.docManager.documents.get(uri)?.getText() || '',
+                    diagnostics,
+                };
+            }),
+        );
     }
 }

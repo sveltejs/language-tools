@@ -18,9 +18,11 @@ export class DocumentManager {
     public locked = new Set<string>();
     public deleteCandidates = new Set<string>();
 
-    constructor(private createDocument: (textDocument: TextDocumentItem) => Document) {}
+    constructor(
+        private createDocument: (textDocument: Pick<TextDocumentItem, 'text' | 'uri'>) => Document,
+    ) {}
 
-    openDocument(textDocument: TextDocumentItem): Document {
+    openDocument(textDocument: Pick<TextDocumentItem, 'text' | 'uri'>): Document {
         let document: Document;
         if (this.documents.has(textDocument.uri)) {
             document = this.documents.get(textDocument.uri)!;
@@ -45,8 +47,9 @@ export class DocumentManager {
     }
 
     getAllOpenedByClient() {
-        return Array.from(this.documents.entries())
-            .filter((doc) => this.openedInClient.has(doc[0]));
+        return Array.from(this.documents.entries()).filter((doc) =>
+            this.openedInClient.has(doc[0]),
+        );
     }
 
     releaseDocument(uri: string): void {
@@ -57,7 +60,6 @@ export class DocumentManager {
             this.closeDocument(uri);
         }
     }
-
 
     closeDocument(uri: string) {
         const document = this.documents.get(uri);
