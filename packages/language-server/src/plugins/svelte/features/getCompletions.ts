@@ -58,8 +58,13 @@ function getCompletionsWithRegardToTriggerCharacter(
             { tag: 'each', label: 'each', insertText: 'each $1 as $2}\n\t$3\n{/each' },
             {
                 tag: 'await',
-                label: 'await',
+                label: 'await :then',
                 insertText: 'await $1}\n\t$2\n{:then $3} \n\t$4\n{/await',
+            },
+            {
+                tag: 'await',
+                label: 'await then',
+                insertText: 'await $1 then $2}\n\t\t$3\n{/await',
             },
         ]);
     }
