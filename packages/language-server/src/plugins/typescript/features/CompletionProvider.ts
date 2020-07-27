@@ -210,12 +210,9 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
 
             for (const action of actions) {
                 for (const change of action.changes) {
-                    edit.push(...this.codeActionChangesToTextEdit(
-                        document,
-                        fragment,
-                        change,
-                        isImport
-                    ));
+                    edit.push(
+                        ...this.codeActionChangesToTextEdit(document, fragment, change, isImport),
+                    );
                 }
             }
 
@@ -255,7 +252,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         );
     }
 
-    private codeActionChangeToTextEdit(
+    codeActionChangeToTextEdit(
         doc: Document,
         fragment: SvelteSnapshotFragment,
         change: ts.TextChange,
@@ -308,20 +305,16 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         return TextEdit.replace(range, change.newText);
     }
 
-    private mapRangeForNewImport(
-        fragment: SvelteSnapshotFragment,
-        virtualRange: Range
-    ) {
+    private mapRangeForNewImport(fragment: SvelteSnapshotFragment, virtualRange: Range) {
         const sourceMapableRange = this.offsetLinesAndMovetoStartOfLine(virtualRange, -1);
-        const mappableRange = mapRangeToOriginal(
-            fragment, sourceMapableRange);
+        const mappableRange = mapRangeToOriginal(fragment, sourceMapableRange);
         return this.offsetLinesAndMovetoStartOfLine(mappableRange, 1);
     }
 
     private offsetLinesAndMovetoStartOfLine({ start, end }: Range, offsetLines: number) {
         return Range.create(
             Position.create(start.line + offsetLines, 0),
-            Position.create(end.line + offsetLines, 0)
+            Position.create(end.line + offsetLines, 0),
         );
     }
 
