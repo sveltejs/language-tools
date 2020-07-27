@@ -8,7 +8,6 @@ import {
 } from 'vscode-languageserver';
 import { SvelteTag, documentation, getLatestOpeningTag } from './SvelteTags';
 import { isInTag } from '../../../lib/documents';
-import { SnippetString } from 'vscode';
 /**
  * Get completions for special svelte tags within moustache tags.
  */
