@@ -6,6 +6,10 @@ Provides syntax highlighting and rich intellisense for Svelte components in VS C
 
 If you added `"files.associations": {"*.svelte": "html" }` to your VSCode settings, remove it.
 
+If you have previously installed the old "Svelte" extension by James Birtles, uninstall it:
+- Through the UI: You can find it when searching for `@installed` in the extensions window (searching `Svelte` won't work).
+- Command line: `code --uninstall-extension JamesBirtles.svelte-vscode`
+
 Do you want to use TypeScript/SCSS/Less/..? [See the docs](/docs/README.md#language-specific-setup).
 
 More docs and troubleshooting: [See here](/docs/README.md).
