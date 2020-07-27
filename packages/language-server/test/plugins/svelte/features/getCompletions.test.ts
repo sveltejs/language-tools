@@ -49,7 +49,7 @@ describe('SveltePlugin#getCompletions', () => {
     });
 
     it('should return completions for #', () => {
-        expectCompletionsFor('{#').toEqual(['if', 'each', 'await']);
+        expectCompletionsFor('{#').toEqual(['if', 'each', 'await :then', 'await then']);
     });
 
     it('should return completions for @', () => {
