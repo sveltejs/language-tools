@@ -1,5 +1,5 @@
 <script>
-    export let a: number;
-    export let b: number | undefined;
-    export let c: number = 123;
+    export let a;
+    export let b;
+    export let c = 123;
 </script>

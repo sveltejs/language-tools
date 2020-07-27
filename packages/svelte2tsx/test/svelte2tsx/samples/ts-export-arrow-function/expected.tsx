@@ -1,11 +1,12 @@
 <></>;function render() {
 
-     let a;
-     let b;
-     let c = 123;
+     let f = (a: number, b: number) => {
+      let c = a + b;
+      return c;
+    }
 ;
 <></>
-return { props: {a: a , b: b , c: c}, slots: {}, getters: {} }}
+return { props: {f: f} as {f?: typeof f}, slots: {}, getters: {} }}
 
 export default class Input__SvelteComponent_ {
     $$prop_def = __sveltets_partial(render().props)

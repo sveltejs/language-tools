@@ -77,12 +77,19 @@ export namespace DocumentSnapshot {
      * @param options options that apply to the svelte document
      */
     export function fromDocument(document: Document, options: SvelteSnapshotOptions) {
-        const { tsxMap, text, parserError, nrPrependedLines } = preprocessSvelteFile(
+        const { tsxMap, text, parserError, nrPrependedLines, scriptKind } = preprocessSvelteFile(
             document,
             options,
         );
 
-        return new SvelteDocumentSnapshot(document, parserError, text, nrPrependedLines, tsxMap);
+        return new SvelteDocumentSnapshot(
+            document,
+            parserError,
+            scriptKind,
+            text,
+            nrPrependedLines,
+            tsxMap,
+        );
     }
 
     /**
@@ -110,10 +117,18 @@ function preprocessSvelteFile(document: Document, options: SvelteSnapshotOptions
     let nrPrependedLines = 0;
     let text = document.getText();
 
+    const scriptKind = [
+        getScriptKindFromAttributes(document.scriptInfo?.attributes ?? {}),
+        getScriptKindFromAttributes(document.moduleScriptInfo?.attributes ?? {}),
+    ].includes(ts.ScriptKind.TSX)
+        ? ts.ScriptKind.TSX
+        : ts.ScriptKind.JSX;
+
     try {
         const tsx = svelte2tsx(text, {
             strictMode: options.strictMode,
             filename: document.getFilePath() ?? undefined,
+            isTsFile: scriptKind === ts.ScriptKind.TSX,
         });
         text = tsx.code;
         tsxMap = tsx.map;
@@ -145,7 +160,7 @@ function preprocessSvelteFile(document: Document, options: SvelteSnapshotOptions
         text = document.scriptInfo ? document.scriptInfo.content : '';
     }
 
-    return { tsxMap, text, parserError, nrPrependedLines };
+    return { tsxMap, text, parserError, nrPrependedLines, scriptKind };
 }
 
 /**
@@ -153,13 +168,13 @@ function preprocessSvelteFile(document: Document, options: SvelteSnapshotOptions
  */
 export class SvelteDocumentSnapshot implements DocumentSnapshot {
     private fragment?: SvelteSnapshotFragment;
-    private _scriptKind?: ts.ScriptKind;
 
     version = this.parent.version;
 
     constructor(
         private readonly parent: Document,
         public readonly parserError: ParserError | null,
+        public readonly scriptKind: ts.ScriptKind,
         private readonly text: string,
         private readonly nrPrependedLines: number,
         private readonly tsxMap?: RawSourceMap,
@@ -167,21 +182,6 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
 
     get filePath() {
         return this.parent.getFilePath() || '';
-    }
-
-    get scriptKind() {
-        if (!this._scriptKind) {
-            const scriptKind = getScriptKindFromAttributes(
-                this.parent.scriptInfo?.attributes ?? {},
-            );
-            const moduleScriptKind = getScriptKindFromAttributes(
-                this.parent.moduleScriptInfo?.attributes ?? {},
-            );
-            this._scriptKind = [scriptKind, moduleScriptKind].includes(ts.ScriptKind.TSX)
-                ? ts.ScriptKind.TSX
-                : ts.ScriptKind.JSX;
-        }
-        return this._scriptKind;
     }
 
     getText(start: number, end: number) {
