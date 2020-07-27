@@ -11,11 +11,12 @@ import {
 import { Document, mapRangeToOriginal, isRangeInTag } from '../../../lib/documents';
 import { pathToUrl } from '../../../utils';
 import { CodeActionsProvider } from '../../interfaces';
-import { SnapshotFragment } from '../DocumentSnapshot';
+import { SnapshotFragment, SvelteSnapshotFragment } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { convertRange } from '../utils';
 import { flatten } from '../../../utils';
 import ts from 'typescript';
+import { CompletionsProviderImpl } from './CompletionProvider';
 
 interface RefactorArgs {
     type: 'refactor';
@@ -25,7 +26,10 @@ interface RefactorArgs {
 }
 
 export class CodeActionsProviderImpl implements CodeActionsProvider {
-    constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
+    constructor(
+        private readonly lsAndTsDocResolver: LSAndTSDocResolver,
+        private readonly completionProvider: CompletionsProviderImpl,
+    ) {}
 
     async getCodeActions(
         document: Document,
@@ -122,6 +126,17 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                                 null,
                             ),
                             change.textChanges.map((edit) => {
+                                if (
+                                    fix.fixName === 'import' &&
+                                    doc instanceof SvelteSnapshotFragment
+                                ) {
+                                    return this.completionProvider.codeActionChangeToTextEdit(
+                                        document,
+                                        doc,
+                                        edit,
+                                        true,
+                                    );
+                                }
                                 return TextEdit.replace(
                                     mapRangeToOriginal(doc!, convertRange(doc!, edit.span)),
                                     edit.newText,
