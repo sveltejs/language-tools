@@ -10,7 +10,7 @@ type AConstructorTypeOf<T> = new (...args:any[]) => T;
 type SvelteAction<U extends any[]> = (node: HTMLElement, ...args:U) => {
 	update?: (...args:U) => void,
 	destroy?: () => void
-}
+} | void
 
 
 type SvelteTransitionConfig = {
