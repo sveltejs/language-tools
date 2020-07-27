@@ -64,7 +64,7 @@ function getCompletionsWithRegardToTriggerCharacter(
             {
                 tag: 'await',
                 label: 'await then',
-                insertText: 'await $1 then $2}\n\t\t$3\n{/await',
+                insertText: 'await $1 then $2}\n\t$3\n{/await',
             },
         ]);
     }
