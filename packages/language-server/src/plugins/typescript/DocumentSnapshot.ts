@@ -14,7 +14,12 @@ import {
 } from '../../lib/documents';
 import { pathToUrl } from '../../utils';
 import { ConsumerDocumentMapper } from './DocumentMapper';
-import { getScriptKindFromAttributes, getScriptKindFromFileName, isSvelteFilePath } from './utils';
+import {
+    getScriptKindFromAttributes,
+    getScriptKindFromFileName,
+    isSvelteFilePath,
+    getTsCheckComment,
+} from './utils';
 
 /**
  * An error which occured while trying to parse/preprocess the svelte file contents.
@@ -120,10 +125,9 @@ function preprocessSvelteFile(document: Document, options: SvelteSnapshotOptions
         if (tsxMap) {
             tsxMap.sources = [document.uri];
 
-            const tsCheck = document.scriptInfo?.content.match(tsCheckRegex);
+            const tsCheck = getTsCheckComment(document.scriptInfo?.content);
             if (tsCheck) {
-                // second-last entry is the capturing group with the exact ts-check wording
-                text = `//${tsCheck[tsCheck.length - 3]}${ts.sys.newLine}` + text;
+                text = tsCheck + text;
                 nrPrependedLines = 1;
             }
         }
@@ -330,13 +334,3 @@ export class SvelteSnapshotFragment implements SnapshotFragment {
         }
     }
 }
-
-// The following regex matches @ts-check or @ts-nocheck if:
-// - it is before the first line of code (so other lines with comments before it are ok)
-// - must be @ts-(no)check
-// - the comment which has @ts-(no)check can have any type of whitespace before it, but not other characters
-// - what's coming after @ts-(no)check is irrelevant as long there is any kind of whitespace or line break, so this would be picked up, too: // @ts-check asdasd
-// [ \t\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff]
-// is just \s (a.k.a any whitespace character) without linebreak and vertical tab
-// eslint-disable-next-line
-const tsCheckRegex = /^(\s*(\/\/[ \t\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff\S]*)*\s*)*(\/\/[ \t\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff]*(@ts-(no)?check)($|\s))/;
