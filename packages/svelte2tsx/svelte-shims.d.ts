@@ -3,7 +3,7 @@ declare module '*.svelte' {
         $$prop_def: any;
         $$slot_def: any;
 
-        $on(event: string, handler: (e: Event) => any): void
+        $on(event: string, handler: (e: Event) => any): () => void
     }
 }
 
@@ -41,8 +41,8 @@ type SvelteExtractEvent<T> = T extends any[] ? T[number] : T;
 type SvelteEventOnEvent<T, K extends keyof T> = (
     event: K,
     handler: (e: SvelteExtractEvent<T[K]>) => any
-) => void;
-type SvelteAllEvent = (event: string, handler: (e: Event) => any) => void
+) => () => void;
+type SvelteAllEvent = (event: string, handler: (e: CustomEvent) => any) => () => void
 type SvelteOnEvent<T> = SvelteEventOnEvent<T, keyof T> & SvelteAllEvent
 
 declare var process: NodeJS.Process & { browser: boolean }
