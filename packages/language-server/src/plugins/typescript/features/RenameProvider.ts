@@ -58,7 +58,7 @@ export class RenameProviderImpl implements RenameProvider {
         const docs = new Map<string, SnapshotFragment>([[tsDoc.filePath, fragment]]);
         let convertedRenameLocations: (ts.RenameLocation & {
             range: Range;
-        })[] = await this.mapRenameLocationsToParent(renameLocations, docs);
+        })[] = await this.mapAndFilterRenameLocations(renameLocations, docs);
         // eslint-disable-next-line max-len
         const additionalRenameForPropRenameInsideComponentWithProp = await this.getAdditionLocationsForRenameOfPropInsideComponentWithProp(
             document,
@@ -127,7 +127,7 @@ export class RenameProviderImpl implements RenameProvider {
         if (
             !renameInfo.canRename ||
             renameInfo.kind === ts.ScriptElementKind.jsxAttribute ||
-            renameInfo.fullDisplayName?.includes("JSX.IntrinsicElements")
+            renameInfo.fullDisplayName?.includes('JSX.IntrinsicElements')
         ) {
             return null;
         }
@@ -189,7 +189,7 @@ export class RenameProviderImpl implements RenameProvider {
                 rename.fileName !== updatePropLocation.fileName ||
                 this.isInSvelte2TsxPropLine(fragment, rename),
         );
-        return await this.mapRenameLocationsToParent(replacementsForProp, fragments);
+        return await this.mapAndFilterRenameLocations(replacementsForProp, fragments);
     }
 
     /**
@@ -222,7 +222,7 @@ export class RenameProviderImpl implements RenameProvider {
         const idx = (match.index || 0) + match[0].lastIndexOf(match[1]);
         const replacementsForProp =
             lang.findRenameLocations(updatePropLocation.fileName, idx, false, false) || [];
-        return await this.mapRenameLocationsToParent(replacementsForProp, fragments);
+        return await this.mapAndFilterRenameLocations(replacementsForProp, fragments);
     }
 
     // --------> svelte2tsx?
@@ -278,12 +278,13 @@ export class RenameProviderImpl implements RenameProvider {
      * The rename locations the ts language services hands back are relative to the
      * svelte2tsx generated code -> map it back to the original document positions.
      * Some of those positions could be unmapped (line=-1), these are handled elsewhere.
+     * Also filter out wrong renames.
      */
-    private async mapRenameLocationsToParent(
+    private async mapAndFilterRenameLocations(
         renameLocations: readonly ts.RenameLocation[],
         fragments: Map<string, SnapshotFragment>,
     ): Promise<(ts.RenameLocation & { range: Range })[]> {
-        return Promise.all(
+        const mappedLocations = await Promise.all(
             renameLocations.map(async (loc) => {
                 let doc = fragments.get(loc.fileName);
                 if (!doc) {
@@ -297,6 +298,27 @@ export class RenameProviderImpl implements RenameProvider {
                 };
             }),
         );
+        return this.filterWrongRenameLocations(mappedLocations);
+    }
+
+    private filterWrongRenameLocations(
+        mappedLocations: (ts.RenameLocation & { range: Range })[],
+    ): (ts.RenameLocation & { range: Range })[] {
+        return mappedLocations.filter((loc) => {
+            const snapshot = this.getSnapshot(loc.fileName);
+            if (!(snapshot instanceof SvelteDocumentSnapshot)) {
+                return true;
+            }
+
+            const content = snapshot.getText(0, snapshot.getLength());
+            const svelteInstanceOfFn = '__sveltets_instanceOf(';
+            // When the user renames a Svelte component, ts will also want to rename
+            // `__sveltets_instanceOf(TheComponentToRename)`. Prevent that.
+            return (
+                content.lastIndexOf(svelteInstanceOfFn, loc.textSpan.start) !==
+                loc.textSpan.start - svelteInstanceOfFn.length
+            );
+        });
     }
 
     private mapRangeToOriginal(doc: SnapshotFragment, textSpan: ts.TextSpan): Range {
