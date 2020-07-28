@@ -9,9 +9,10 @@
     <slot a={b}>Hello</slot>
     <slot name="test" c={d} e={e}></slot>
 </div></>
-return { props: {}, slots: {default: {a:b}, test: {c:d, e:e}}, getters: {} }}
+return { props: {}, slots: {default: {a:b}, test: {c:d, e:e}}, getters: {}, events: {} }}
 
 export default class Input__SvelteComponent_ {
     $$prop_def = __sveltets_partial(render().props)
     $$slot_def = render().slots
+    $on = __sveltets_eventDef(render().events)
 }

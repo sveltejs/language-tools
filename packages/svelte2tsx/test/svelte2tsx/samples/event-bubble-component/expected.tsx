@@ -1,9 +1,6 @@
 <></>;function render() {
-
-     let { name: rename } = { name: "world" };
-;
-<></>
-return { props: {rename: rename}, slots: {}, getters: {}, events: {} }}
+<><Button ></Button></>
+return { props: {}, slots: {}, getters: {}, events: {'click':__sveltets_bubbleEventDef(__sveltets_instanceOf(Button).$on, 'click')} }}
 
 export default class Input__SvelteComponent_ {
     $$prop_def = __sveltets_partial(render().props)

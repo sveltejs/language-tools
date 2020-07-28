@@ -4,7 +4,7 @@
      const SOME = 1, CONSTANT = 2;
 ;
 <></>
-return { props: {}, slots: {}, getters: {name: name, SOME: SOME, CONSTANT: CONSTANT} }}
+return { props: {}, slots: {}, getters: {name: name, SOME: SOME, CONSTANT: CONSTANT}, events: {} }}
 
 export default class Input__SvelteComponent_ {
     $$prop_def = __sveltets_partial(render().props)
@@ -12,4 +12,5 @@ export default class Input__SvelteComponent_ {
     get name() { return render().getters.name }
     get SOME() { return render().getters.SOME }
     get CONSTANT() { return render().getters.CONSTANT }
+    $on = __sveltets_eventDef(render().events)
 }

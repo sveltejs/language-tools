@@ -14,5 +14,6 @@ export interface CreateRenderFunctionPara extends InstanceScriptProcessResult {
     scriptTag: Node;
     scriptDestination: number;
     slots: Map<string, Map<string, string>>;
+    events: Map<string, string | string[]>;
     isTsFile: boolean;
 }

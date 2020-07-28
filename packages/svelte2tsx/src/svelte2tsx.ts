@@ -6,6 +6,7 @@ import { parseHtmlx } from './htmlxparser';
 import { convertHtmlxToJsx } from './htmlxtojsx';
 import { Node } from 'estree-walker';
 import * as ts from 'typescript';
+import { createEventHandlerTransformer, eventMapToString } from './nodes/event-handler';
 import { findExortKeyword } from './utils/tsAst';
 import { InstanceScriptProcessResult, CreateRenderFunctionPara } from './interfaces';
 import { createRenderFunctionGetterStr, createClassGetters } from './nodes/exportgetters';
@@ -45,6 +46,7 @@ type TemplateProcessResult = {
     moduleScriptTag: Node;
     /** To be added later as a comment on the default class export */
     componentDocumentation: string | null;
+    events: Map<string, string | string[]>;
 };
 
 class Scope {
@@ -282,6 +284,8 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
         str.remove(node.start, node.end);
     };
 
+    const { handleEventHandler, getEvents } = createEventHandlerTransformer();
+
     const onHtmlxWalk = (node: Node, parent: Node, prop: string) => {
         if (
             prop == 'params' &&
@@ -317,6 +321,9 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
                 break;
             case 'ArrowFunctionExpression':
                 enterArrowFunctionExpression();
+                break;
+            case 'EventHandler':
+                handleEventHandler(node, parent);
                 break;
             case 'VariableDeclarator':
                 isDeclaration = true;
@@ -362,6 +369,7 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
         moduleScriptTag,
         scriptTag,
         slots,
+        events: getEvents(),
         uses$$props,
         uses$$restProps,
         componentDocumentation,
@@ -526,7 +534,7 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
         if (
             (ts.isPrefixUnaryExpression(parent) || ts.isPostfixUnaryExpression(parent)) &&
             parent.operator !==
-                ts.SyntaxKind.ExclamationToken /* `!$store` does not need processing */
+            ts.SyntaxKind.ExclamationToken /* `!$store` does not need processing */
         ) {
             let simpleOperator: string;
             if (parent.operator === ts.SyntaxKind.PlusPlusToken) {
@@ -853,6 +861,7 @@ function addComponentExport(
             className ? `${className} ` : ''
         }{\n    $$prop_def = ${propDef}\n    $$slot_def = render().slots` +
         createClassGetters(getters) +
+        `\n    $on = __sveltets_eventDef(render().events)` +
         '\n}';
 
     str.append(statement);
@@ -891,6 +900,7 @@ function createRenderFunction({
     scriptDestination,
     slots,
     getters,
+    events,
     exportedNames,
     isTsFile,
     uses$$props,
@@ -932,9 +942,11 @@ function createRenderFunction({
             .join(', ') +
         '}';
 
-    const returnString = `\nreturn { props: ${exportedNames.createPropsStr(
-        isTsFile,
-    )}, slots: ${slotsAsDef}, getters: ${createRenderFunctionGetterStr(getters)} }}`;
+    const returnString =
+        `\nreturn { props: ${exportedNames.createPropsStr(
+            isTsFile
+        )}, slots: ${slotsAsDef}, getters: ${createRenderFunctionGetterStr(getters)}` +
+        `, events: ${eventMapToString(events)} }}`;
     str.append(returnString);
 }
 
@@ -950,6 +962,7 @@ export function svelte2tsx(
         slots,
         uses$$props,
         uses$$restProps,
+        events,
         componentDocumentation,
     } = processSvelteTemplate(str);
 
@@ -991,6 +1004,7 @@ export function svelte2tsx(
         scriptTag,
         scriptDestination: instanceScriptTarget,
         slots,
+        events,
         getters,
         exportedNames,
         isTsFile: options?.isTsFile,

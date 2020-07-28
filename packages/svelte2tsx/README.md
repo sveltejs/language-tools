@@ -33,12 +33,13 @@ function render() {
     <>
         <h1>hello {world}</h1>
     </>;
-    return { props: { world }, slots: {} };
+    return { props: { world }, slots: {}, events: {} };
 }
 
 export default class {
     $$prop_def = __sveltets_partial(render().props);
-    $$slot_def = render().slots;
+    $$slot_def = render().slots
+    $on = __sveltets_eventDef(render().events).$on;
 }
 ```
 
