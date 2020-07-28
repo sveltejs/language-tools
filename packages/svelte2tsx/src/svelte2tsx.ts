@@ -803,7 +803,9 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
     // declare implicit reactive variables we found in the script
     for (const [name, pos] of implicitTopLevelNames.entries()) {
         if (!rootScope.declared.has(name)) {
-            str.prependRight(pos + astOffset, `;let ${name}; `);
+            // remove '$:' label
+            str.remove(pos + astOffset, pos + astOffset+2);
+            str.prependRight(pos + astOffset, `let `);
         }
     }
 

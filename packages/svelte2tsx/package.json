@@ -56,6 +56,7 @@
         "README.md",
         "LICENSE",
         "svelte-jsx.d.ts",
+        "svelte-native-jsx.d.ts",
         "svelte-shims.d.ts"
     ],
     "dependencies": {

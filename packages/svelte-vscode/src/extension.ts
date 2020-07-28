@@ -162,7 +162,7 @@ export function activate(context: ExtensionContext) {
         //    any of the following: `~!@$^&*()=+[{]}\|;:'",.<>/
         //
         // eslint-disable-next-line max-len, no-useless-escape
-        wordPattern: /(-?\d*\.\d\w*)|([^\`\~\!\@\$\^\&\*\(\)\=\+\[\{\]\}\\\|\;\:\'\"\,\.\<\>\/\s]+)/g,
+        wordPattern: /(-?\d*\.\d\w*)|([^\`\~\!\@\$\#\^\&\*\(\)\=\+\[\{\]\}\\\|\;\:\'\"\,\.\<\>\/\s]+)/g,
         onEnterRules: [
             {
                 // Matches an opening tag that:

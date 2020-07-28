@@ -127,7 +127,7 @@ export class RenameProviderImpl implements RenameProvider {
         if (
             !renameInfo.canRename ||
             renameInfo.kind === ts.ScriptElementKind.jsxAttribute ||
-            renameInfo.fullDisplayName?.startsWith('JSX.')
+            renameInfo.fullDisplayName?.includes("JSX.IntrinsicElements")
         ) {
             return null;
         }

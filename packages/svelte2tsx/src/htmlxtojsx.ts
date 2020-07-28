@@ -195,7 +195,7 @@ export function convertHtmlxToJsx(
         //bind group on input
         if (attr.name == 'group' && el.name == 'input') {
             str.remove(attr.start, attr.expression.start);
-            str.appendLeft(attr.expression.start, '{...__sveltets_any(');
+            str.appendLeft(attr.expression.start, '{...__sveltets_empty(');
 
             const endBrackets = ')}';
             if (isShortHandAttribute(attr)) {
@@ -214,8 +214,12 @@ export function convertHtmlxToJsx(
 
             if (thisType) {
                 str.remove(attr.start, attr.expression.start);
-                str.appendLeft(attr.expression.start, `{...__sveltets_ensureType(${thisType}, `);
-                str.overwrite(attr.expression.end, attr.end, ')}');
+                str.appendLeft(attr.expression.start, '{...__sveltets_empty(');
+                str.overwrite(
+                    attr.expression.end,
+                    attr.end,
+                    `=__sveltets_instanceOf(${thisType}))}`
+                );
                 return;
             }
         }
@@ -223,7 +227,7 @@ export function convertHtmlxToJsx(
         //one way binding
         if (oneWayBindingAttributes.has(attr.name) && el.type == 'Element') {
             str.remove(attr.start, attr.expression.start);
-            str.appendLeft(attr.expression.start, `{...__sveltets_any(`);
+            str.appendLeft(attr.expression.start, `{...__sveltets_empty(`);
             if (isShortHandAttribute(attr)) {
                 // eslint-disable-next-line max-len
                 str.appendLeft(

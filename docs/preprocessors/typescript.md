@@ -126,37 +126,3 @@ $: show = !!data.someKey; // <-- `show` now has type `boolean`
 ### Can I use TypeScript syntax inside the template/mustache tags?
 
 At the moment, you cannot. Only `script`/`style` tags are preprocessed/transpiled. See [this issue](https://github.com/sveltejs/svelte/issues/4701) for more info.
-
-### I get weird type errors on my html tags
-
-This may be due to some library you are using having installed typings for `react`. These are picked up by the TypeScript compiler. Because we internally transform svelte to jsx, there is a clash and said error occurs.
-
-![image](https://user-images.githubusercontent.com/374638/85633868-72697280-b67a-11ea-8f8c-7fe2b4702339.png)
-
-The underlying [issue in TypeScript](https://github.com/microsoft/TypeScript/issues/18588) is yet to be fixed but in the meantime, one way to work around it is as follows:
-
-1. Add a `sink.d.ts` with content `declare module 'react' {}`
-2. Go to your `tsconfig.json`
-3. If you do not have such a setting already, enhance `compilerOptions` with `"baseUrl": "."`
-4. Enhance `compilerOptions` with `"paths": { "react": ["<path to your sink.d.ts, relative to the baseUrl>"] }`
-
-`tsconfig.json`
-
-```json
-{
-    "compilerOptions": {
-        "baseUrl": ".",
-        "paths": {
-            "react": ["sink.d.ts"]
-        }
-    }
-}
-```
-
-`sink.d.ts:`
-
-```ts
-declare module 'react';
-```
-
-For more info see [this issue](https://github.com/sveltejs/language-tools/issues/228)
