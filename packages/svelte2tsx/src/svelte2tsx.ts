@@ -863,7 +863,7 @@ function addComponentExport(
             className ? `${className} ` : ''
         }{\n    $$prop_def = ${propDef}\n    $$slot_def = render().slots` +
         createClassGetters(getters) +
-        `\n    $on = __sveltets_eventDef(render().events).$on` +
+        `\n    $on = __sveltets_eventDef(render().events)` +
         '\n}';
 
     str.append(statement);

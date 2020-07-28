@@ -12,5 +12,5 @@ export default class Input__SvelteComponent_ {
     get name() { return render().getters.name }
     get SOME() { return render().getters.SOME }
     get CONSTANT() { return render().getters.CONSTANT }
-    $on = __sveltets_eventDef(render().events).$on
+    $on = __sveltets_eventDef(render().events)
 }

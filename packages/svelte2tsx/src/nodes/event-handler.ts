@@ -8,7 +8,7 @@ export function createEventHandlerTransformer() {
 
         const handleEventHandlerBubble = () => {
             const componentEventDef = `__sveltets_instanceOf(${parent.name})`;
-            const exp = `__sveltets_bubbleEventDef(${componentEventDef}, '${eventName}')`;
+            const exp = `__sveltets_bubbleEventDef(${componentEventDef}.$on, '${eventName}')`;
 
             const exist = events.get(eventName);
             events.set(eventName, exist ? [].concat(exist, exp) : exp);

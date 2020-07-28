@@ -11,5 +11,5 @@ return { props: {}, slots: {default: {a:b, b:b, c:"b", d:"__svelte_ts_string", e
 export default class Input__SvelteComponent_ {
     $$prop_def = __sveltets_partial(render().props)
     $$slot_def = render().slots
-    $on = __sveltets_eventDef(render().events).$on
+    $on = __sveltets_eventDef(render().events)
 }

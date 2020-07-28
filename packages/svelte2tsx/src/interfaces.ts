@@ -15,7 +15,6 @@ export interface InstanceScriptProcessResult {
     uses$$props: boolean;
     uses$$restProps: boolean;
     getters: Set<string>;
-    events: Map<string, string | string[]>;
 }
 
 export interface CreateRenderFunctionPara extends InstanceScriptProcessResult {
@@ -23,4 +22,5 @@ export interface CreateRenderFunctionPara extends InstanceScriptProcessResult {
     scriptTag: Node;
     scriptDestination: number;
     slots: Map<string, Map<string, string>>;
+    events: Map<string, string | string[]>;
 }
