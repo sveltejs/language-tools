@@ -27,7 +27,8 @@ describe('RenameProvider', () => {
         const renameDoc1 = await openDoc('rename.svelte');
         const renameDoc2 = await openDoc('rename2.svelte');
         const renameDoc3 = await openDoc('rename3.svelte');
-        return { provider, renameDoc1, renameDoc2, renameDoc3, docManager };
+        const renameDoc4 = await openDoc('rename4.svelte');
+        return { provider, renameDoc1, renameDoc2, renameDoc3, renameDoc4, docManager };
 
         async function openDoc(filename: string) {
             const filePath = getFullPath(filename);
@@ -226,6 +227,57 @@ describe('RenameProvider', () => {
                             end: {
                                 character: 27,
                                 line: 6,
+                            },
+                        },
+                    },
+                ],
+            },
+        });
+    });
+
+    it('should do rename of svelte component', async () => {
+        const { provider, renameDoc4 } = await setup();
+        const result = await provider.rename(renameDoc4, Position.create(1, 12), 'ChildNew');
+
+        assert.deepStrictEqual(result, {
+            changes: {
+                [getUri('rename4.svelte')]: [
+                    {
+                        newText: 'ChildNew',
+                        range: {
+                            start: {
+                                line: 1,
+                                character: 11,
+                            },
+                            end: {
+                                line: 1,
+                                character: 16,
+                            },
+                        },
+                    },
+                    {
+                        newText: 'ChildNew',
+                        range: {
+                            start: {
+                                line: 7,
+                                character: 5,
+                            },
+                            end: {
+                                line: 7,
+                                character: 10,
+                            },
+                        },
+                    },
+                    {
+                        newText: 'ChildNew',
+                        range: {
+                            start: {
+                                line: 8,
+                                character: 5,
+                            },
+                            end: {
+                                line: 8,
+                                character: 10,
                             },
                         },
                     },
