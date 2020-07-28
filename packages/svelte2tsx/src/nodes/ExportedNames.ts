@@ -1,3 +1,4 @@
+// eslint-disable-next-line @typescript-eslint/interface-name-prefix
 export interface IExportedNames {
     has(name: string): boolean;
 }
