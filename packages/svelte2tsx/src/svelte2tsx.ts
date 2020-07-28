@@ -6,7 +6,7 @@ import { parseHtmlx } from './htmlxparser';
 import { convertHtmlxToJsx } from './htmlxtojsx';
 import { Node } from 'estree-walker';
 import * as ts from 'typescript';
-import { createEventHandlerTransformer } from './nodes/event-handler';
+import { createEventHandlerTransformer, eventMapToString } from './nodes/event-handler';
 import { findExortKeyword } from './utils/tsAst';
 import { ExportedNames, InstanceScriptProcessResult, CreateRenderFunctionPara } from './interfaces';
 import { createRenderFunctionGetterStr, createClassGetters } from './nodes/exportgetters';
@@ -968,23 +968,13 @@ function createRenderFunction({
             .join(', ') +
         '}';
 
-    const eventMapEntryToString = ([evnetName, expression]: [
-        string,
-        string | string[]
-    ]) =>
-        `'${evnetName}':${
-        Array.isArray(expression) ? `[${expression}]` : expression
-        }`;
-    const eventsDef =
-        "{" +
-        Array.from(events.entries()).map(eventMapEntryToString).join(", ") +
-        "}";
+
 
     const returnString =
         `\nreturn { props: ${createPropsStr(
             exportedNames
         )}, slots: ${slotsAsDef}, getters: ${createRenderFunctionGetterStr(getters)}` +
-        `, events: ${eventsDef} }}`;
+        `, events: ${eventMapToString(events)} }}`;
     str.append(returnString);
 }
 

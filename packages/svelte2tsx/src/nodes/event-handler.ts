@@ -1,4 +1,4 @@
-import { Node } from "estree-walker";
+import { Node } from 'estree-walker';
 
 export function createEventHandlerTransformer() {
     const events = new Map<string, string | string[]>();
@@ -16,7 +16,7 @@ export function createEventHandlerTransformer() {
 
         // pass-through/ bubble
         if (!node.expression) {
-            if (parent.type === "InlineComponent") {
+            if (parent.type === 'InlineComponent') {
                 handleEventHandlerBubble();
             } else {
                 events.set(
@@ -35,13 +35,29 @@ export function createEventHandlerTransformer() {
 
 function getEventDefExpressionForNonCompoent(eventName: string, ele: Node) {
     switch (ele.type) {
-        case "Element":
+        case 'Element':
             return `__sveltets_mapElementEvent('${eventName}')`;
-        case "Body":
+        case 'Body':
             return `__sveltets_mapBodyEvent('${eventName}')`;
-        case "Window":
+        case 'Window':
             return `__sveltets_mapWindowEvent('${eventName}')`;
         default:
             break;
     }
+}
+
+export function eventMapToString(events: Map<string, string | string[]>) {
+    return '{' +
+        Array.from(events.entries()).map(eventMapEntryToString).join(', ') +
+        '}';
+
+}
+
+function eventMapEntryToString([eventName, expression]: [
+    string,
+    string | string[]
+]) {
+    return `'${eventName}':${
+        Array.isArray(expression) ? `[${expression}]` : expression
+        }`;
 }
