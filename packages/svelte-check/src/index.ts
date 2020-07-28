@@ -148,7 +148,7 @@ class DiagnosticsWatcher {
     }
 
     const svelteCheck = new SvelteCheck(workspaceUri.fsPath);
-    const filePathsToIgnore = myArgs['ignore'].split(' ') || [];
+    const filePathsToIgnore = myArgs['ignore']?.split(' ') || [];
 
     if (myArgs['watch']) {
         new DiagnosticsWatcher(workspaceUri, svelteCheck, writer, filePathsToIgnore);
