@@ -1,14 +1,6 @@
 import MagicString from 'magic-string';
 import { Node } from 'estree-walker';
-
-export type ExportedNames = Map<
-    string,
-    {
-        type?: string;
-        identifierText?: string;
-        required?: boolean;
-    }
->;
+import { ExportedNames } from './nodes/ExportedNames';
 
 export interface InstanceScriptProcessResult {
     exportedNames: ExportedNames;
@@ -23,4 +15,5 @@ export interface CreateRenderFunctionPara extends InstanceScriptProcessResult {
     scriptDestination: number;
     slots: Map<string, Map<string, string>>;
     events: Map<string, string | string[]>;
+    isTsFile: boolean;
 }

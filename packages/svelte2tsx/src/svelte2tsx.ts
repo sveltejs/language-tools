@@ -8,8 +8,9 @@ import { Node } from 'estree-walker';
 import * as ts from 'typescript';
 import { createEventHandlerTransformer, eventMapToString } from './nodes/event-handler';
 import { findExortKeyword } from './utils/tsAst';
-import { ExportedNames, InstanceScriptProcessResult, CreateRenderFunctionPara } from './interfaces';
+import { InstanceScriptProcessResult, CreateRenderFunctionPara } from './interfaces';
 import { createRenderFunctionGetterStr, createClassGetters } from './nodes/exportgetters';
+import { ExportedNames } from './nodes/ExportedNames';
 
 function AttributeValueAsJsExpression(htmlx: string, attr: Node): string {
     if (attr.value.length == 0) return "''"; //wut?
@@ -375,7 +376,6 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
     };
 }
 
-
 function processInstanceScriptContent(str: MagicString, script: Node): InstanceScriptProcessResult {
     const htmlx = str.original;
     const scriptContent = htmlx.substring(script.content.start, script.content.end);
@@ -387,7 +387,7 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
         ts.ScriptKind.TS,
     );
     const astOffset = script.content.start;
-    const exportedNames: ExportedNames = new Map();
+    const exportedNames = new ExportedNames();
     const getters = new Set<string>();
 
     const implicitTopLevelNames: Map<string, number> = new Map();
@@ -622,11 +622,7 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
         ts.forEachChild(list, (node) => {
             if (ts.isVariableDeclaration(node)) {
                 if (ts.isIdentifier(node.name)) {
-                    if (node.type) {
-                        addExport(node.name, node.name, node.type, !node.initializer);
-                    } else {
-                        addExport(node.name, null, null, !node.initializer);
-                    }
+                    addExport(node.name, node.name, node.type, !node.initializer);
                 } else if (
                     ts.isObjectBindingPattern(node.name) ||
                     ts.isArrayBindingPattern(node.name)
@@ -804,7 +800,7 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
     for (const [name, pos] of implicitTopLevelNames.entries()) {
         if (!rootScope.declared.has(name)) {
             // remove '$:' label
-            str.remove(pos + astOffset, pos + astOffset+2);
+            str.remove(pos + astOffset, pos + astOffset + 2);
             str.prependRight(pos + astOffset, `let `);
         }
     }
@@ -888,29 +884,6 @@ export function classNameFromFilename(filename: string): string | undefined {
     }
 }
 
-function isTsFile(scriptTag: Node | undefined, moduleScriptTag: Node | undefined) {
-    return tagIsLangTs(scriptTag) || tagIsLangTs(moduleScriptTag);
-
-    function tagIsLangTs(tag: Node | undefined) {
-        return tag?.attributes?.some((attr) => {
-            if (attr.name !== 'lang' && attr.name !== 'type') {
-                return false;
-            }
-
-            const type = attr.value[0]?.raw;
-            switch (type) {
-                case 'ts':
-                case 'typescript':
-                case 'text/ts':
-                case 'text/typescript':
-                    return true;
-                default:
-                    return false;
-            }
-        });
-    }
-}
-
 function processModuleScriptTag(str: MagicString, script: Node) {
     const htmlx = str.original;
 
@@ -929,8 +902,9 @@ function createRenderFunction({
     getters,
     events,
     exportedNames,
+    isTsFile,
     uses$$props,
-    uses$$restProps
+    uses$$restProps,
 }: CreateRenderFunctionPara) {
     const htmlx = str.original;
     let propsDecl = '';
@@ -968,44 +942,18 @@ function createRenderFunction({
             .join(', ') +
         '}';
 
-
-
     const returnString =
-        `\nreturn { props: ${createPropsStr(
-            exportedNames
+        `\nreturn { props: ${exportedNames.createPropsStr(
+            isTsFile
         )}, slots: ${slotsAsDef}, getters: ${createRenderFunctionGetterStr(getters)}` +
         `, events: ${eventMapToString(events)} }}`;
     str.append(returnString);
 }
 
-function createPropsStr(exportedNames: ExportedNames) {
-    const names = Array.from(exportedNames.entries());
-
-    const returnElements = names.map(([key, value]) => {
-        // Important to not use shorthand props for rename functionality
-        return `${value.identifierText || key}: ${key}`;
-    });
-
-    if (names.length === 0 || !names.some(([_, value]) => !!value.type)) {
-        // No exports or only `typeof` exports -> omit the `as {...}` completely
-        // -> 2nd case could be that it's because it's a js file without typing, so
-        // omit the types to not have a "cannot use types in jsx" error
-        return `{${returnElements.join(' , ')}}`;
-    }
-
-    const returnElementsType = names.map(([key, value]) => {
-        const identifier = value.identifierText || key;
-        if (!value.type) {
-            return `${identifier}: typeof ${key}`;
-        }
-
-        return `${identifier}${value.required ? '' : '?'}: ${value.type}`;
-    });
-
-    return `{${returnElements.join(' , ')}} as {${returnElementsType.join(', ')}}`;
-}
-
-export function svelte2tsx(svelte: string, options?: { filename?: string; strictMode?: boolean }) {
+export function svelte2tsx(
+    svelte: string,
+    options?: { filename?: string; strictMode?: boolean; isTsFile?: boolean },
+) {
     const str = new MagicString(svelte);
     // process the htmlx as a svelte template
     let {
@@ -1036,7 +984,7 @@ export function svelte2tsx(svelte: string, options?: { filename?: string; strict
     }
 
     //move the instance script and process the content
-    let exportedNames: ExportedNames = new Map();
+    let exportedNames = new ExportedNames();
     let getters = new Set<string>();
     if (scriptTag) {
         //ensure it is between the module script and the rest of the template (the variables need to be declared before the jsx template)
@@ -1059,6 +1007,7 @@ export function svelte2tsx(svelte: string, options?: { filename?: string; strict
         events,
         getters,
         exportedNames,
+        isTsFile: options?.isTsFile,
         uses$$props,
         uses$$restProps,
     });
@@ -1074,7 +1023,7 @@ export function svelte2tsx(svelte: string, options?: { filename?: string; strict
         str,
         uses$$props || uses$$restProps,
         !!options?.strictMode,
-        isTsFile(scriptTag, moduleScriptTag),
+        options?.isTsFile,
         getters,
         className,
         componentDocumentation,

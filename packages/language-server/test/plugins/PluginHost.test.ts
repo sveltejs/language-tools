@@ -13,10 +13,9 @@ describe('PluginHost', () => {
     };
 
     function setup<T>(pluginProviderStubs: T) {
-        const createTextDocument = (textDocument: TextDocumentItem) =>
-            new Document(textDocument.uri, textDocument.text);
-
-        const docManager = new DocumentManager(createTextDocument);
+        const docManager = new DocumentManager(
+            (textDocument) => new Document(textDocument.uri, textDocument.text),
+        );
 
         const pluginHost = new PluginHost(docManager, <any>{});
         const plugin = {

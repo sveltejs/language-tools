@@ -80,6 +80,18 @@ LSP-compatible editors, you can use an HTML comment with the `@component` tag:
 
 ### Using SCSS or Less? See [this section](./preprocessors/scss-less.md#troubleshooting--faq)
 
+#### If I update a TS/JS file, Svelte does not seem to recognize it
+
+You need to save the file to see the changes. If the problem persists after saving, check if you have something like this set in your settings:
+
+```json
+"files.watcherExclude": {
+  "**/*": true,
+}
+```
+
+If so, this will prevent the language server from getting noticed about updates, because it uses a file watcher for `js`/`ts` files.
+
 ## Internals
 
 -   [Notes about deployment](./internal/deployment.md)

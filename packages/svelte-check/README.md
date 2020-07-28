@@ -54,6 +54,12 @@ Usage:
 
 `--output <human|human-verbose|machine>`
 
+`--watch` Will not exit after one pass but keep watching files for changes and rerun diagnostics.
+
+`--ignore <files/folders to ignore, relative to workspace root, comma-separated. Example: --ignore dist,build>`
+
+`--fail-on-warnings` Will also exit with error code when there are warnings
+
 ### More docs, preprocessor setup and troubleshooting
 
 [See here](/docs/README.md).

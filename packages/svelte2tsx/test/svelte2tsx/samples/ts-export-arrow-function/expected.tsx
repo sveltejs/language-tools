@@ -6,7 +6,7 @@
     }
 ;
 <></>
-return { props: {f: f}, slots: {}, getters: {}, events: {} }}
+return { props: {f: f} as {f?: typeof f}, slots: {}, getters: {}, events: {} }}
 
 export default class Input__SvelteComponent_ {
     $$prop_def = __sveltets_partial(render().props)
