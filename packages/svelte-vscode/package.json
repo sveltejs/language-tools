@@ -228,6 +228,7 @@
                 "path": "./syntaxes/svelte.tmLanguage.json",
                 "embeddedLanguages": {
                     "text.html": "html",
+                    "text.pug": "jade",
                     "source.css": "css",
                     "source.css.scss": "scss",
                     "source.js": "javascript",
@@ -235,14 +236,14 @@
                 }
             },
             {
-              "scopeName": "markdown.svelte.codeblock",
-              "path": "./syntaxes/markdown-svelte.json",
-              "injectTo": [
-                "text.html.markdown"
-              ],
-              "embeddedLanguages": {
-                "meta.embedded.block.svelte": "svelte"
-              }
+                "scopeName": "markdown.svelte.codeblock",
+                "path": "./syntaxes/markdown-svelte.json",
+                "injectTo": [
+                    "text.html.markdown"
+                ],
+                "embeddedLanguages": {
+                    "meta.embedded.block.svelte": "svelte"
+                }
             }
         ],
         "commands": [

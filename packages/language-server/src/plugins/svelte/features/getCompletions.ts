@@ -4,10 +4,10 @@ import {
     CompletionList,
     CompletionItemKind,
     CompletionItem,
+    InsertTextFormat,
 } from 'vscode-languageserver';
 import { SvelteTag, documentation, getLatestOpeningTag } from './SvelteTags';
 import { isInTag } from '../../../lib/documents';
-
 /**
  * Get completions for special svelte tags within moustache tags.
  */
@@ -54,9 +54,18 @@ function getCompletionsWithRegardToTriggerCharacter(
 
     if (triggerCharacter === '#') {
         return createCompletionItems([
-            { tag: 'if', label: 'if' },
-            { tag: 'each', label: 'each' },
-            { tag: 'await', label: 'await' },
+            { tag: 'if', label: 'if', insertText: 'if $1}\n\t$2\n{/if' },
+            { tag: 'each', label: 'each', insertText: 'each $1 as $2}\n\t$3\n{/each' },
+            {
+                tag: 'await',
+                label: 'await :then',
+                insertText: 'await $1}\n\t$2\n{:then $3} \n\t$4\n{/await',
+            },
+            {
+                tag: 'await',
+                label: 'await then',
+                insertText: 'await $1 then $2}\n\t$3\n{/await',
+            },
         ]);
     }
 
@@ -133,12 +142,16 @@ function showCompletionWithRegardsToOpenedTags(
 /**
  * Create the completion items for given labels and tags.
  */
-function createCompletionItems(items: { label: string; tag: SvelteTag }[]): CompletionList {
+function createCompletionItems(
+    items: { label: string; tag: SvelteTag; insertText?: string }[],
+): CompletionList {
     return CompletionList.create(
         // add sortText/preselect so it is ranked higher than other completions and selected first
         items.map(
             (item) =>
                 <CompletionItem>{
+                    insertTextFormat: InsertTextFormat.Snippet,
+                    insertText: item.insertText,
                     label: item.label,
                     sortText: '-1',
                     kind: CompletionItemKind.Keyword,

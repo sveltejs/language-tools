@@ -1,14 +1,13 @@
 <></>;function render() {
 
-     let f = (a: number, b: number) => {
-      let c = a + b;
-      return c;
-    }
+     class Foo {};
 ;
 () => (<></>);
-return { props: {f: f}, slots: {} }}
+return { props: {}, slots: {}, getters: {Foo: Foo}, events: {} }}
 
 export default class Input__SvelteComponent_ {
     $$prop_def = __sveltets_partial(render().props)
     $$slot_def = render().slots
+    get Foo() { return render().getters.Foo }
+    $on = __sveltets_eventDef(render().events)
 }

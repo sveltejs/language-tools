@@ -14,6 +14,7 @@ import {
 } from 'vscode-languageserver';
 import { CompletionsProviderImpl, CompletionEntryWithIdentifer } from '../../../../src/plugins/typescript/features/CompletionProvider';
 import { LSAndTSDocResolver } from '../../../../src/plugins/typescript/LSAndTSDocResolver';
+import { sortBy } from 'lodash';
 
 const testDir = join(__dirname, '..');
 const testFilesDir = join(testDir, 'testfiles');
@@ -182,8 +183,11 @@ describe('CompletionProviderImpl', () => {
         ];
         const ignores = ['tsconfig.json', sourceFile];
 
-        const testfiles = readdirSync(testFilesDir)
-            .filter((f) => supportedExtensions.includes(extname(f)) && !ignores.includes(f));
+        const testfiles = readdirSync(testFilesDir, { withFileTypes: true })
+            .filter((f) => f.isDirectory()
+                          || (supportedExtensions.includes(extname(f.name))
+                          && !ignores.includes(f.name)))
+            .map(f => f.name);
 
         const completions = await completionProvider.getCompletions(
             document,
@@ -194,7 +198,10 @@ describe('CompletionProviderImpl', () => {
             },
         );
 
-        assert.deepStrictEqual(completions?.items.map(item => item.label), testfiles);
+        assert.deepStrictEqual(
+            sortBy(completions?.items.map(item => item.label), x => x),
+            sortBy(testfiles, x => x)
+        );
     });
 
     it('resolve auto import completion (is first import in file)', async () => {
@@ -258,7 +265,7 @@ describe('CompletionProviderImpl', () => {
 
         assert.deepEqual(
             additionalTextEdits![0]?.range,
-            Range.create(Position.create(0, 8), Position.create(0, 8)),
+            Range.create(Position.create(2, 0), Position.create(2, 0)),
         );
     });
 
@@ -285,7 +292,7 @@ describe('CompletionProviderImpl', () => {
 
         assert.strictEqual(
             harmonizeNewLines(additionalTextEdits![0]?.newText),
-            `import { blubb } from './definitions';${newLine}`,
+            `${newLine}import { blubb } from './definitions';${newLine}`,
         );
 
         assert.deepEqual(

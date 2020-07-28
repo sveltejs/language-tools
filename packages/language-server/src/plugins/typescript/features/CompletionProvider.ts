@@ -203,12 +203,16 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         }
 
         const actions = detail?.codeActions;
+        const isImport = !!detail?.source;
+
         if (actions) {
             const edit: TextEdit[] = [];
 
             for (const action of actions) {
                 for (const change of action.changes) {
-                    edit.push(...this.codeActionChangesToTextEdit(document, fragment, change));
+                    edit.push(
+                        ...this.codeActionChangesToTextEdit(document, fragment, change, isImport),
+                    );
                 }
             }
 
@@ -241,16 +245,18 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         doc: Document,
         fragment: SvelteSnapshotFragment,
         changes: ts.FileTextChanges,
+        isImport: boolean,
     ): TextEdit[] {
         return changes.textChanges.map((change) =>
-            this.codeActionChangeToTextEdit(doc, fragment, change),
+            this.codeActionChangeToTextEdit(doc, fragment, change, isImport),
         );
     }
 
-    private codeActionChangeToTextEdit(
+    codeActionChangeToTextEdit(
         doc: Document,
         fragment: SvelteSnapshotFragment,
         change: ts.TextChange,
+        isImport: boolean,
     ): TextEdit {
         change.newText = this.changeSvelteComponentName(change.newText);
 
@@ -264,26 +270,52 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         }
 
         const { span } = change;
-        // prevent newText from being placed like this: <script>import {} from ''
-        if (span.start === 0) {
-            change.newText = ts.sys.newLine + change.newText;
+
+        const virutalRange = convertRange(fragment, span);
+        let range: Range;
+        const isNewImport = isImport && virutalRange.start.character === 0;
+
+        // Since new import always can't be mapped, we'll have special treatment here
+        //  but only hack this when there is multiple line in script
+        if (isNewImport && virutalRange.start.line > 1) {
+            range = this.mapRangeForNewImport(fragment, virutalRange);
+        } else {
+            range = mapRangeToOriginal(fragment, virutalRange);
         }
 
-        let range = mapRangeToOriginal(fragment, convertRange(fragment, span));
-        // If range is somehow not mapped in parent or the import is mapped wrong,
+        // If range is somehow not mapped in parent,
+        // the import is mapped wrong or is outside script tag,
         // use script starting point instead.
         // This happens among other things if the completion is the first import of the file.
         if (
             range.start.line === -1 ||
-            (range.start.line === 0 && range.start.character <= 1 && span.length === 0)
+            (range.start.line === 0 && range.start.character <= 1 && span.length === 0) ||
+            doc.offsetAt(range.start) > scriptTagInfo.end
         ) {
             range = convertRange(doc, {
                 start: scriptTagInfo.start,
                 length: span.length,
             });
         }
+        // prevent newText from being placed like this: <script>import {} from ''
+        if (range.start.line === 0) {
+            change.newText = ts.sys.newLine + change.newText;
+        }
 
         return TextEdit.replace(range, change.newText);
+    }
+
+    private mapRangeForNewImport(fragment: SvelteSnapshotFragment, virtualRange: Range) {
+        const sourceMapableRange = this.offsetLinesAndMovetoStartOfLine(virtualRange, -1);
+        const mappableRange = mapRangeToOriginal(fragment, sourceMapableRange);
+        return this.offsetLinesAndMovetoStartOfLine(mappableRange, 1);
+    }
+
+    private offsetLinesAndMovetoStartOfLine({ start, end }: Range, offsetLines: number) {
+        return Range.create(
+            Position.create(start.line + offsetLines, 0),
+            Position.create(end.line + offsetLines, 0),
+        );
     }
 
     private isSvelteComponentImport(className: string) {

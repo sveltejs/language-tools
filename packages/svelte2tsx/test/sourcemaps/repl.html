@@ -11,7 +11,8 @@
 			chapter: await res.json()
 		};
 	}
-;<></>;import Repl from '@sveltejs/svelte-repl';
+;<></>;
+import Repl from '@sveltejs/svelte-repl';
 import { getContext } from 'svelte';
 import ScreenToggle from '../../../components/ScreenToggle.svelte';
 import TableOfContents from './_TableOfContents.svelte';
@@ -68,8 +69,8 @@ function render() {
 	//   here statically
 	const tutorial_repo_link = 'https://github.com/sveltejs/svelte/tree/master/site/content/tutorial';
 
-	;let selected; $: selected = __sveltets_invalidate(() => lookup.get(slug));
-	;let improve_link; $: improve_link = __sveltets_invalidate(() => `${tutorial_repo_link}/${selected.chapter.section_dir}/${selected.chapter.chapter_dir}`);
+	let  selected = __sveltets_invalidate(() => lookup.get(slug));
+	let  improve_link = __sveltets_invalidate(() => `${tutorial_repo_link}/${selected.chapter.section_dir}/${selected.chapter.chapter_dir}`);
 
 	const clone = file => ({
 		name: file.name,
@@ -84,7 +85,7 @@ function render() {
 		});
     }}
 
-	;let mobile; $: mobile = __sveltets_invalidate(() => width < 768);
+	let  mobile = __sveltets_invalidate(() => width < 768);
 
 	function reset() {
 		repl.update({
@@ -134,7 +135,7 @@ function render() {
 				<TableOfContents sections={sections} slug={slug} selected={selected}/>
 			</div>
 
-			<div class="chapter-markup" {...__sveltets_ensureType(HTMLElement, scrollable)}>
+			<div class="chapter-markup" {...__sveltets_empty(scrollable=__sveltets_instanceOf(HTMLElement))}>
 				{ chapter.html}
 
 				<div class="controls">
@@ -158,16 +159,16 @@ function render() {
 
 		<div class="tutorial-repl">
 			<Repl
-				{...__sveltets_ensureType(Repl, repl)}
+				{...__sveltets_empty(repl=__sveltets_instanceOf(Repl))}
 				workersUrl="workers"
 				svelteUrl={svelteUrl}
 				rollupUrl={rollupUrl}
 				orientation={mobile ? 'columns' : 'rows'}
 				fixed={mobile}
-				{...__sveltets_ensureFunction((handle_change))}
+				
 				injectedJS={mapbox_setup}
 				relaxed
-			/>
+			/>{__sveltets_instanceOf(Repl).$on('change', handle_change)}
 		</div>
 	</div>
 
@@ -176,11 +177,12 @@ function render() {
 	</>}}}
 </div>
 </>);
-return { props: {slug: slug , chapter: chapter}, slots: {} }}
+return { props: {slug: slug , chapter: chapter}, slots: {}, getters: {}, events: {} }}
 
 export default class {
     $$prop_def = __sveltets_partial(render().props)
     $$slot_def = render().slots
+    $on = __sveltets_eventDef(render().events)
 }
 !Expected
 <script context="module">

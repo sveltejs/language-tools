@@ -6,6 +6,11 @@ import { parseHtmlx } from './htmlxparser';
 import { convertHtmlxToJsx } from './htmlxtojsx';
 import { Node } from 'estree-walker';
 import * as ts from 'typescript';
+import { createEventHandlerTransformer, eventMapToString } from './nodes/event-handler';
+import { findExortKeyword } from './utils/tsAst';
+import { InstanceScriptProcessResult, CreateRenderFunctionPara } from './interfaces';
+import { createRenderFunctionGetterStr, createClassGetters } from './nodes/exportgetters';
+import { ExportedNames } from './nodes/ExportedNames';
 
 function AttributeValueAsJsExpression(htmlx: string, attr: Node): string {
     if (attr.value.length == 0) return "''"; //wut?
@@ -41,6 +46,7 @@ type TemplateProcessResult = {
     moduleScriptTag: Node;
     /** To be added later as a comment on the default class export */
     componentDocumentation: string | null;
+    events: Map<string, string | string[]>;
 };
 
 class Scope {
@@ -278,6 +284,8 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
         str.remove(node.start, node.end);
     };
 
+    const { handleEventHandler, getEvents } = createEventHandlerTransformer();
+
     const onHtmlxWalk = (node: Node, parent: Node, prop: string) => {
         if (
             prop == 'params' &&
@@ -313,6 +321,9 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
                 break;
             case 'ArrowFunctionExpression':
                 enterArrowFunctionExpression();
+                break;
+            case 'EventHandler':
+                handleEventHandler(node, parent);
                 break;
             case 'VariableDeclarator':
                 isDeclaration = true;
@@ -358,26 +369,12 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
         moduleScriptTag,
         scriptTag,
         slots,
+        events: getEvents(),
         uses$$props,
         uses$$restProps,
         componentDocumentation,
     };
 }
-
-type ExportedNames = Map<
-    string,
-    {
-        type?: string;
-        identifierText?: string;
-        required?: boolean;
-    }
->;
-
-type InstanceScriptProcessResult = {
-    exportedNames: ExportedNames;
-    uses$$props: boolean;
-    uses$$restProps: boolean;
-};
 
 function processInstanceScriptContent(str: MagicString, script: Node): InstanceScriptProcessResult {
     const htmlx = str.original;
@@ -390,7 +387,8 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
         ts.ScriptKind.TS,
     );
     const astOffset = script.content.start;
-    const exportedNames: ExportedNames = new Map();
+    const exportedNames = new ExportedNames();
+    const getters = new Set<string>();
 
     const implicitTopLevelNames: Map<string, number> = new Map();
     let uses$$props = false;
@@ -431,6 +429,12 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
             exportedNames.set(name.text, {});
         }
     };
+    const addGetter = (node: ts.Identifier) => {
+        if (!node) {
+            return;
+        }
+        getters.add(node.text);
+    };
 
     const removeExport = (start: number, end: number) => {
         const exportStart = str.original.indexOf('export', start + astOffset);
@@ -439,10 +443,6 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
     };
 
     const propTypeAssertToUserDefined = (node: ts.VariableDeclarationList) => {
-        if (node.flags !== ts.NodeFlags.Let) {
-            return;
-        }
-
         const hasInitializers = node.declarations.filter((declaration) => declaration.initializer);
         const handleTypeAssertion = (declaration: ts.VariableDeclaration) => {
             const identifier = declaration.name;
@@ -534,7 +534,7 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
         if (
             (ts.isPrefixUnaryExpression(parent) || ts.isPostfixUnaryExpression(parent)) &&
             parent.operator !==
-                ts.SyntaxKind.ExclamationToken /* `!$store` does not need processing */
+            ts.SyntaxKind.ExclamationToken /* `!$store` does not need processing */
         ) {
             let simpleOperator: string;
             if (parent.operator === ts.SyntaxKind.PlusPlusToken) {
@@ -622,11 +622,7 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
         ts.forEachChild(list, (node) => {
             if (ts.isVariableDeclaration(node)) {
                 if (ts.isIdentifier(node.name)) {
-                    if (node.type) {
-                        addExport(node.name, node.name, node.type, !node.initializer);
-                    } else {
-                        addExport(node.name, null, null, !node.initializer);
-                    }
+                    addExport(node.name, node.name, node.type, !node.initializer);
                 } else if (
                     ts.isObjectBindingPattern(node.name) ||
                     ts.isArrayBindingPattern(node.name)
@@ -669,29 +665,44 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
         const onLeaveCallbacks: onLeaveCallback[] = [];
 
         if (ts.isVariableStatement(node)) {
-            const exportModifier = node.modifiers
-                ? node.modifiers.find((x) => x.kind == ts.SyntaxKind.ExportKeyword)
-                : null;
+            const exportModifier = findExortKeyword(node);
             if (exportModifier) {
-                handleExportedVariableDeclarationList(node.declarationList);
-                propTypeAssertToUserDefined(node.declarationList);
+                const isLet = node.declarationList.flags === ts.NodeFlags.Let;
+                const isConst = node.declarationList.flags === ts.NodeFlags.Const;
+
+                if (isLet) {
+                    handleExportedVariableDeclarationList(node.declarationList);
+                    propTypeAssertToUserDefined(node.declarationList);
+                } else if (isConst) {
+                    node.declarationList.forEachChild((n) => {
+                        if (ts.isVariableDeclaration(n) && ts.isIdentifier(n.name)) {
+                            addGetter(n.name);
+                        }
+                    });
+                }
                 removeExport(exportModifier.getStart(), exportModifier.end);
             }
         }
 
         if (ts.isFunctionDeclaration(node)) {
             if (node.modifiers) {
-                const exportModifier = node.modifiers.find(
-                    (x) => x.kind == ts.SyntaxKind.ExportKeyword,
-                );
+                const exportModifier = findExortKeyword(node);
                 if (exportModifier) {
-                    addExport(node.name);
                     removeExport(exportModifier.getStart(), exportModifier.end);
+                    addGetter(node.name);
                 }
             }
 
             pushScope();
             onLeaveCallbacks.push(() => popScope());
+        }
+
+        if (ts.isClassDeclaration(node)) {
+            const exportModifier = findExortKeyword(node);
+            if (exportModifier) {
+                removeExport(exportModifier.getStart(), exportModifier.end);
+                addGetter(node.name);
+            }
         }
 
         if (ts.isBlock(node)) {
@@ -788,14 +799,24 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
     // declare implicit reactive variables we found in the script
     for (const [name, pos] of implicitTopLevelNames.entries()) {
         if (!rootScope.declared.has(name)) {
-            str.prependRight(pos + astOffset, `;let ${name}; `);
+            // remove '$:' label
+            str.remove(pos + astOffset, pos + astOffset + 2);
+            str.prependRight(pos + astOffset, `let `);
         }
+    }
+
+    const firstImport = tsAst.statements
+        .filter(ts.isImportDeclaration)
+        .sort((a, b) => a.end - b.end)[0];
+    if (firstImport) {
+        str.appendRight(firstImport.getStart() + astOffset, '\n');
     }
 
     return {
         exportedNames,
         uses$$props,
         uses$$restProps,
+        getters,
     };
 }
 
@@ -818,6 +839,7 @@ function addComponentExport(
     uses$$propsOr$$restProps: boolean,
     strictMode: boolean,
     isTsFile: boolean,
+    getters: Set<string>,
     /** A named export allows for TSDoc-compatible docstrings */
     className?: string,
     componentDocumentation?: string | null,
@@ -834,10 +856,13 @@ function addComponentExport(
 
     const doc = formatComponentDocumentation(componentDocumentation);
 
-    // eslint-disable-next-line max-len
-    const statement = `\n\n${doc}export default class ${
-        className ? `${className} ` : ''
-    }{\n    $$prop_def = ${propDef}\n    $$slot_def = render().slots\n}`;
+    const statement =
+        `\n\n${doc}export default class ${
+            className ? `${className} ` : ''
+        }{\n    $$prop_def = ${propDef}\n    $$slot_def = render().slots` +
+        createClassGetters(getters) +
+        `\n    $on = __sveltets_eventDef(render().events)` +
+        '\n}';
 
     str.append(statement);
 }
@@ -859,29 +884,6 @@ export function classNameFromFilename(filename: string): string | undefined {
     }
 }
 
-function isTsFile(scriptTag: Node | undefined, moduleScriptTag: Node | undefined) {
-    return tagIsLangTs(scriptTag) || tagIsLangTs(moduleScriptTag);
-
-    function tagIsLangTs(tag: Node | undefined) {
-        return tag?.attributes?.some((attr) => {
-            if (attr.name !== 'lang' && attr.name !== 'type') {
-                return false;
-            }
-
-            const type = attr.value[0]?.raw;
-            switch (type) {
-                case 'ts':
-                case 'typescript':
-                case 'text/ts':
-                case 'text/typescript':
-                    return true;
-                default:
-                    return false;
-            }
-        });
-    }
-}
-
 function processModuleScriptTag(str: MagicString, script: Node) {
     const htmlx = str.original;
 
@@ -892,15 +894,18 @@ function processModuleScriptTag(str: MagicString, script: Node) {
     str.overwrite(scriptEndTagStart, script.end, ';<>');
 }
 
-function createRenderFunction(
-    str: MagicString,
-    scriptTag: Node,
-    scriptDestination: number,
-    slots: Map<string, Map<string, string>>,
-    exportedNames: ExportedNames,
-    uses$$props: boolean,
-    uses$$restProps: boolean,
-) {
+function createRenderFunction({
+    str,
+    scriptTag,
+    scriptDestination,
+    slots,
+    getters,
+    events,
+    exportedNames,
+    isTsFile,
+    uses$$props,
+    uses$$restProps,
+}: CreateRenderFunctionPara) {
     const htmlx = str.original;
     let propsDecl = '';
 
@@ -938,9 +943,11 @@ function createRenderFunction(
             .join(', ') +
         '}';
 
-    const returnString = `\nreturn { props: ${createPropsStr(
-        exportedNames,
-    )}, slots: ${slotsAsDef} }}`;
+    const returnString =
+        `\nreturn { props: ${exportedNames.createPropsStr(
+            isTsFile
+        )}, slots: ${slotsAsDef}, getters: ${createRenderFunctionGetterStr(getters)}` +
+        `, events: ${eventMapToString(events)} }}`;
 
     // wrap template with callback
     if (scriptTag) {
@@ -950,34 +957,10 @@ function createRenderFunction(
     str.append(returnString);
 }
 
-function createPropsStr(exportedNames: ExportedNames) {
-    const names = Array.from(exportedNames.entries());
-
-    const returnElements = names.map(([key, value]) => {
-        // Important to not use shorthand props for rename functionality
-        return `${value.identifierText || key}: ${key}`;
-    });
-
-    if (names.length === 0 || !names.some(([_, value]) => !!value.type)) {
-        // No exports or only `typeof` exports -> omit the `as {...}` completely
-        // -> 2nd case could be that it's because it's a js file without typing, so
-        // omit the types to not have a "cannot use types in jsx" error
-        return `{${returnElements.join(' , ')}}`;
-    }
-
-    const returnElementsType = names.map(([key, value]) => {
-        const identifier = value.identifierText || key;
-        if (!value.type) {
-            return `${identifier}: typeof ${key}`;
-        }
-
-        return `${identifier}${value.required ? '' : '?'}: ${value.type}`;
-    });
-
-    return `{${returnElements.join(' , ')}} as {${returnElementsType.join(', ')}}`;
-}
-
-export function svelte2tsx(svelte: string, options?: { filename?: string; strictMode?: boolean }) {
+export function svelte2tsx(
+    svelte: string,
+    options?: { filename?: string; strictMode?: boolean; isTsFile?: boolean },
+) {
     const str = new MagicString(svelte);
     // process the htmlx as a svelte template
     let {
@@ -986,6 +969,7 @@ export function svelte2tsx(svelte: string, options?: { filename?: string; strict
         slots,
         uses$$props,
         uses$$restProps,
+        events,
         componentDocumentation,
     } = processSvelteTemplate(str);
 
@@ -1007,28 +991,33 @@ export function svelte2tsx(svelte: string, options?: { filename?: string; strict
     }
 
     //move the instance script and process the content
-    let exportedNames: ExportedNames = new Map();
+    let exportedNames = new ExportedNames();
+    let getters = new Set<string>();
     if (scriptTag) {
         //ensure it is between the module script and the rest of the template (the variables need to be declared before the jsx template)
         if (scriptTag.start != instanceScriptTarget) {
             str.move(scriptTag.start, scriptTag.end, instanceScriptTarget);
         }
         const res = processInstanceScriptContent(str, scriptTag);
-        exportedNames = res.exportedNames;
         uses$$props = uses$$props || res.uses$$props;
         uses$$restProps = uses$$restProps || res.uses$$restProps;
+
+        ({ exportedNames, getters } = res);
     }
 
     //wrap the script tag and template content in a function returning the slot and exports
-    createRenderFunction(
+    createRenderFunction({
         str,
         scriptTag,
-        instanceScriptTarget,
+        scriptDestination: instanceScriptTarget,
         slots,
+        events,
+        getters,
         exportedNames,
+        isTsFile: options?.isTsFile,
         uses$$props,
         uses$$restProps,
-    );
+    });
 
     // we need to process the module script after the instance script has moved otherwise we get warnings about moving edited items
     if (moduleScriptTag) {
@@ -1041,7 +1030,8 @@ export function svelte2tsx(svelte: string, options?: { filename?: string; strict
         str,
         uses$$props || uses$$restProps,
         !!options?.strictMode,
-        isTsFile(scriptTag, moduleScriptTag),
+        options?.isTsFile,
+        getters,
         className,
         componentDocumentation,
     );

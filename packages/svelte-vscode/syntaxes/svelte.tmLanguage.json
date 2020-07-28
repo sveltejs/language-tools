@@ -3,7 +3,51 @@
     "scopeName": "source.svelte",
     "fileTypes": ["svelte"],
     "uuid": "7582b62f-51d9-4a84-8c8d-fc189530faf6",
+
     "patterns": [
+        {
+            "begin": "(<)(template)\\b(?=[^>]*lang=('jade'|\"jade\"|'pug'|\"pug\"))(?![^/>]*/>\\s*$)",
+            "beginCaptures": {
+                "1": {
+                    "name": "punctuation.definition.tag.begin.html"
+                },
+                "2": {
+                    "name": "entity.name.tag.template.html"
+                }
+            },
+            "end": "(</)(template)(>)",
+            "endCaptures": {
+                "1": {
+                    "name": "punctuation.definition.tag.begin.html"
+                },
+                "2": {
+                    "name": "entity.name.tag.template.html"
+                },
+                "3": {
+                    "name": "punctuation.definition.tag.end.html"
+                }
+            },
+            "patterns": [
+                {
+                    "include": "#tag-stuff"
+                },
+                {
+                    "contentName": "text.pug",
+                    "begin": "(>)",
+                    "beginCaptures": {
+                        "1": {
+                            "name": "punctuation.definition.tag.end.html"
+                        }
+                    },
+                    "end": "(?=</template>)",
+                    "patterns": [
+                        {
+                            "include": "text.pug"
+                        }
+                    ]
+                }
+            ]
+        },
         {
             "begin": "(<)(style)\\b(?=[^>]*(?:type=('text/sass'|\"text/sass\")|lang=(sass|'sass'|\"sass\")))(?![^/>]*/>\\s*$)",
             "beginCaptures": {
@@ -540,7 +584,7 @@
             ]
         },
         {
-            "begin": "(</?)([a-zA-Z][a-zA-Z0-9:-]*)",
+            "begin": "(</?)([a-z][a-zA-Z0-9:-]*)",
             "beginCaptures": {
                 "1": {
                     "name": "punctuation.definition.tag.begin.html"
@@ -556,6 +600,32 @@
                 }
             },
             "name": "meta.tag.other.html",
+            "patterns": [
+                {
+                    "include": "#tag-stuff"
+                }
+            ]
+        },
+        {
+            "begin": "(</?)([A-Z][a-zA-Z0-9:-]*)",
+            "beginCaptures": {
+                "1": {
+                    "name": "punctuation.definition.tag.begin.html"
+                },
+                "2": {
+                    "name": "support.class.component.svelte"
+                }
+            },
+            "end": "(/?>)",
+            "endCaptures": {
+                "1": {
+                    "name": "punctuation.definition.tag.end.html"
+                },
+                "2": {
+                    "name": "support.class.component.svelte"
+                }
+            },
+            "name": "meta.tag.svelte",
             "patterns": [
                 {
                     "include": "#tag-stuff"

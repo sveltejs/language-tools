@@ -1,14 +1,15 @@
 <></>;function render() {
 
-    ;let selected; $: selected = __sveltets_invalidate(() => lookup.get(slug));
+    let  selected = __sveltets_invalidate(() => lookup.get(slug));
 ;
 () => (<>
 </>);
-return { props: {}, slots: {} }}
+return { props: {}, slots: {}, getters: {}, events: {} }}
 
 export default class {
     $$prop_def = __sveltets_partial(render().props)
     $$slot_def = render().slots
+    $on = __sveltets_eventDef(render().events)
 }
 !Expected
 <script>

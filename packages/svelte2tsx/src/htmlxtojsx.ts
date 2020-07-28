@@ -26,7 +26,6 @@ const stripDoctype = (str: MagicString) => {
     if (result) str.remove(result.index, result.index + result[0].length);
 };
 
-// eslint-disable-next-line max-len
 export function convertHtmlxToJsx(
     str: MagicString,
     ast: Node,
@@ -70,11 +69,22 @@ export function convertHtmlxToJsx(
                 );
             }
         } else {
-            //We don't know the type of the event handler
             if (attr.expression) {
+                const on = 'on';
                 //for handler assignment, we changeIt to call to our __sveltets_ensureFunction
-                str.overwrite(attr.start, attr.expression.start, '{...__sveltets_ensureFunction((');
-                str.overwrite(attr.expression.end, attr.end, '))}');
+                str.appendRight(
+                    attr.start, `{__sveltets_instanceOf(${parent.name}).$`
+                );
+                const eventNameIndex = htmlx.indexOf(':', attr.start) + 1;
+                str.overwrite(
+                    htmlx.indexOf(on, attr.start) + on.length,
+                    eventNameIndex,
+                    `('`
+                );
+                const eventEnd = htmlx.lastIndexOf('=', attr.expression.start);
+                str.overwrite(eventEnd, attr.expression.start, `', `);
+                str.overwrite(attr.expression.end, attr.end, ')}');
+                str.move(attr.start, attr.end, parent.end);
             } else {
                 //for passthrough handlers, we just remove
                 str.remove(attr.start, attr.end);
@@ -185,7 +195,7 @@ export function convertHtmlxToJsx(
         //bind group on input
         if (attr.name == 'group' && el.name == 'input') {
             str.remove(attr.start, attr.expression.start);
-            str.appendLeft(attr.expression.start, '{...__sveltets_any(');
+            str.appendLeft(attr.expression.start, '{...__sveltets_empty(');
 
             const endBrackets = ')}';
             if (isShortHandAttribute(attr)) {
@@ -204,8 +214,12 @@ export function convertHtmlxToJsx(
 
             if (thisType) {
                 str.remove(attr.start, attr.expression.start);
-                str.appendLeft(attr.expression.start, `{...__sveltets_ensureType(${thisType}, `);
-                str.overwrite(attr.expression.end, attr.end, ')}');
+                str.appendLeft(attr.expression.start, '{...__sveltets_empty(');
+                str.overwrite(
+                    attr.expression.end,
+                    attr.end,
+                    `=__sveltets_instanceOf(${thisType}))}`
+                );
                 return;
             }
         }
@@ -213,7 +227,7 @@ export function convertHtmlxToJsx(
         //one way binding
         if (oneWayBindingAttributes.has(attr.name) && el.type == 'Element') {
             str.remove(attr.start, attr.expression.start);
-            str.appendLeft(attr.expression.start, `{...__sveltets_any(`);
+            str.appendLeft(attr.expression.start, `{...__sveltets_empty(`);
             if (isShortHandAttribute(attr)) {
                 // eslint-disable-next-line max-len
                 str.appendLeft(

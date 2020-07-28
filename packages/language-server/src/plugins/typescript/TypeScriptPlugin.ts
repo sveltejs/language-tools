@@ -79,7 +79,10 @@ export class TypeScriptPlugin
         this.configManager = configManager;
         this.lsAndTsDocResolver = new LSAndTSDocResolver(docManager, workspacePath);
         this.completionProvider = new CompletionsProviderImpl(this.lsAndTsDocResolver);
-        this.codeActionsProvider = new CodeActionsProviderImpl(this.lsAndTsDocResolver);
+        this.codeActionsProvider = new CodeActionsProviderImpl(
+            this.lsAndTsDocResolver,
+            this.completionProvider,
+        );
         this.updateImportsProvider = new UpdateImportsProviderImpl(this.lsAndTsDocResolver);
         this.diagnosticsProvider = new DiagnosticsProviderImpl(this.lsAndTsDocResolver);
         this.renameProvider = new RenameProviderImpl(this.lsAndTsDocResolver);
@@ -108,9 +111,10 @@ export class TypeScriptPlugin
             return null;
         }
         const declaration = ts.displayPartsToString(info.displayParts);
-        const documentation = typeof info.documentation === 'string'
-            ? info.documentation
-            : ts.displayPartsToString(info.documentation);
+        const documentation =
+            typeof info.documentation === 'string'
+                ? info.documentation
+                : ts.displayPartsToString(info.documentation);
 
         // https://microsoft.github.io/language-server-protocol/specification#textDocument_hover
         const contents = ['```typescript', declaration, '```']
