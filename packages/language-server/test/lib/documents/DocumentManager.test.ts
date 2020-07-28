@@ -11,7 +11,7 @@ describe('Document Manager', () => {
         text: 'Hello, world!',
     };
 
-    const createTextDocument = (textDocument: TextDocumentItem) =>
+    const createTextDocument = (textDocument: Pick<TextDocumentItem, 'uri' | 'text'>) =>
         new Document(textDocument.uri, textDocument.text);
 
     it('opens documents', () => {
