@@ -4,6 +4,7 @@ import { Document, mapDiagnosticToOriginal, getTextInRange } from '../../../lib/
 import { DiagnosticsProvider } from '../../interfaces';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { convertRange, mapSeverity } from '../utils';
+import { SvelteDocumentSnapshot } from '../DocumentSnapshot';
 
 export class DiagnosticsProviderImpl implements DiagnosticsProvider {
     constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
@@ -43,7 +44,7 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
             }))
             .map((diagnostic) => mapDiagnosticToOriginal(fragment, diagnostic))
             .filter(hasNoNegativeLines)
-            .filter(isNoFalsePositive(document.getText()));
+            .filter(isNoFalsePositive(document.getText(), tsDoc));
     }
 
     private getLSAndTSDoc(document: Document) {
@@ -60,12 +61,12 @@ function hasNoNegativeLines(diagnostic: Diagnostic): boolean {
     return diagnostic.range.start.line >= 0 && diagnostic.range.end.line >= 0;
 }
 
-function isNoFalsePositive(text: string) {
+function isNoFalsePositive(text: string, tsDoc: SvelteDocumentSnapshot) {
     return (diagnostic: Diagnostic) => {
         return (
             isNoJsxCannotHaveMultipleAttrsError(diagnostic) &&
             isNoUnusedLabelWarningForReactiveStatement(diagnostic) &&
-            isNoUsedBeforeAssigned(diagnostic, text)
+            isNoUsedBeforeAssigned(diagnostic, text, tsDoc)
         );
     };
 }
@@ -75,13 +76,16 @@ function isNoFalsePositive(text: string) {
  * without assigning a value in strict mode. Should not throw an error here
  * but on the component-user-side ("you did not set a required prop").
  */
-function isNoUsedBeforeAssigned(diagnostic: Diagnostic, text: string): boolean {
+function isNoUsedBeforeAssigned(
+    diagnostic: Diagnostic,
+    text: string,
+    tsDoc: SvelteDocumentSnapshot,
+): boolean {
     if (diagnostic.code !== 2454) {
         return true;
     }
 
-    const exportLetRegex = new RegExp(`export\\s+let\\s+${getTextInRange(diagnostic.range, text)}`);
-    return !exportLetRegex.test(text);
+    return !tsDoc.hasProp(getTextInRange(diagnostic.range, text));
 }
 
 /**

@@ -1,11 +1,17 @@
-export class ExportedNames extends Map<
-    string,
-    {
-        type?: string;
-        identifierText?: string;
-        required?: boolean;
-    }
-> {
+export interface IExportedNames {
+    has(name: string): boolean;
+}
+
+export class ExportedNames
+    extends Map<
+        string,
+        {
+            type?: string;
+            identifierText?: string;
+            required?: boolean;
+        }
+    >
+    implements IExportedNames {
     /**
      * Creates a string from the collected props
      *

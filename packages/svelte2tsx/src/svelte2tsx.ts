@@ -1032,5 +1032,6 @@ export function svelte2tsx(
     return {
         code: str.toString(),
         map: str.generateMap({ hires: true, source: options?.filename }),
+        exportedNames
     };
 }
