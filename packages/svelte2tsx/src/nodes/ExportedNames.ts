@@ -1,11 +1,18 @@
-export class ExportedNames extends Map<
-    string,
-    {
-        type?: string;
-        identifierText?: string;
-        required?: boolean;
-    }
-> {
+// eslint-disable-next-line @typescript-eslint/interface-name-prefix
+export interface IExportedNames {
+    has(name: string): boolean;
+}
+
+export class ExportedNames
+    extends Map<
+        string,
+        {
+            type?: string;
+            identifierText?: string;
+            required?: boolean;
+        }
+    >
+    implements IExportedNames {
     /**
      * Creates a string from the collected props
      *
