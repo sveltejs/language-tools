@@ -2,7 +2,7 @@
 
   let b = 'top level';
 ;
-<><div>
+() => (<><div>
   
 </div>
 
@@ -11,7 +11,7 @@
 <sveltehead>
   <link rel="stylesheet" href="/lib/jodit.es2018.min.css" />
   
-</sveltehead></>
+</sveltehead></>);
 return { props: {}, slots: {}, getters: {}, events: {} }}
 
 export default class Input__SvelteComponent_ {

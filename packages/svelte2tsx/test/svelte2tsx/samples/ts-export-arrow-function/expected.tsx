@@ -5,7 +5,7 @@
       return c;
     }
 ;
-<></>
+() => (<></>);
 return { props: {f: f} as {f?: typeof f}, slots: {}, getters: {}, events: {} }}
 
 export default class Input__SvelteComponent_ {

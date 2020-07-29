@@ -3,7 +3,7 @@
      const name: string = "world";
      const SOME = 1, CONSTANT = 2;
 ;
-<></>
+() => (<></>);
 return { props: {}, slots: {}, getters: {name: name, SOME: SOME, CONSTANT: CONSTANT}, events: {} }}
 
 export default class Input__SvelteComponent_ {

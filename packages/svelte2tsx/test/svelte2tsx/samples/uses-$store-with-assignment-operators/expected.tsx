@@ -18,7 +18,7 @@ function render() {
   const handler11 = () => count.set( __sveltets_store_get(count) ^ myvar)
   const handler12 = () => count.set( __sveltets_store_get(count) | myvar)
 ;
-<>
+() => (<>
 
 <button onclick={() => count.set( __sveltets_store_get(count) + myvar)}>add</button>
 <button onclick={() => count.set( __sveltets_store_get(count) - myvar)}>subtract</button>
@@ -31,7 +31,7 @@ function render() {
 <button onclick={() => count.set( __sveltets_store_get(count) >>> myvar)}>unsigned rightshift</button>
 <button onclick={() => count.set( __sveltets_store_get(count) & myvar)}>AND</button>
 <button onclick={() => count.set( __sveltets_store_get(count) ^ myvar)}>XOR</button>
-<button onclick={() => count.set( __sveltets_store_get(count) | myvar)}>OR</button></>
+<button onclick={() => count.set( __sveltets_store_get(count) | myvar)}>OR</button></>);
 return { props: {}, slots: {}, getters: {}, events: {} }}
 
 export default class Input__SvelteComponent_ {

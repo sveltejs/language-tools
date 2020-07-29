@@ -923,7 +923,8 @@ function createRenderFunction({
         str.overwrite(scriptTag.start + 1, scriptTagEnd, `function render() {${propsDecl}\n`);
 
         const scriptEndTagStart = htmlx.lastIndexOf('<', scriptTag.end - 1);
-        str.overwrite(scriptEndTagStart, scriptTag.end, ';\n<>', {
+        // wrap template with callback
+        str.overwrite(scriptEndTagStart, scriptTag.end, ';\n() => (<>', {
             contentOnly: true,
         });
     } else {
@@ -947,6 +948,12 @@ function createRenderFunction({
             isTsFile
         )}, slots: ${slotsAsDef}, getters: ${createRenderFunctionGetterStr(getters)}` +
         `, events: ${eventMapToString(events)} }}`;
+
+    // wrap template with callback
+    if (scriptTag) {
+        str.append(');');
+    }
+
     str.append(returnString);
 }
 

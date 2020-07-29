@@ -4,7 +4,7 @@
      let name = "world";name = __sveltets_any(name);;let 
         world = '';
 ;
-<></>
+() => (<></>);
 return { props: {name: name , world: world}, slots: {}, getters: {}, events: {} }}
 
 export default class Input__SvelteComponent_ {

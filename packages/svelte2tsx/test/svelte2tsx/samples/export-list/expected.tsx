@@ -4,7 +4,7 @@
     let name2 = "world"
     
 ;
-<></>
+() => (<></>);
 return { props: {name: name , name2: name2}, slots: {}, getters: {}, events: {} }}
 
 export default class Input__SvelteComponent_ {

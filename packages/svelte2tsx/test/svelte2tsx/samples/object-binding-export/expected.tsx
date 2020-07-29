@@ -2,7 +2,7 @@
 
      let { name: rename } = { name: "world" };
 ;
-<></>
+() => (<></>);
 return { props: {rename: rename}, slots: {}, getters: {}, events: {} }}
 
 export default class Input__SvelteComponent_ {

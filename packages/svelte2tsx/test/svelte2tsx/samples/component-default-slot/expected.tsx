@@ -2,10 +2,10 @@
 
     let b = 7;
 ;
-<>
+() => (<>
 <div>
     <slot a={b}>Hello</slot>
-</div></>
+</div></>);
 return { props: {}, slots: {default: {a:b}}, getters: {}, events: {} }}
 
 export default class Input__SvelteComponent_ {

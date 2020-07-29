@@ -2,7 +2,7 @@
 
      class Foo {};
 ;
-<></>
+() => (<></>);
 return { props: {}, slots: {}, getters: {Foo: Foo}, events: {} }}
 
 export default class Input__SvelteComponent_ {
