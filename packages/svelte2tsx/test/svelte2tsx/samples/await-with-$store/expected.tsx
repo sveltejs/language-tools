@@ -9,7 +9,7 @@ function render() {
 
 {() => {let _$$p = (__sveltets_store_get(store)); <>
 	<p>loading</p>
-</>; _$$p.then((data) => {<>
+</>; __sveltets_awaitThen(_$$p, (data) => {<>
 	{data}
 </>})}}</>);
 return { props: {}, slots: {}, getters: {}, events: {} }}

@@ -1,7 +1,7 @@
 <>{() => {let _$$p = (thePromise); <>
     loading
-</>; _$$p.then(({ result, error }) => {<>
+</>; __sveltets_awaitThen(_$$p, ({ result, error }) => {<>
     then
-</>}).catch(({ error: { message, code } }) => {<>
+</>}, ({ error: { message, code } }) => {<>
     catch
 </>})}}</>

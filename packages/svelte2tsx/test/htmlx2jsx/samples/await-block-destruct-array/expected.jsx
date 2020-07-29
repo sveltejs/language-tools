@@ -1,7 +1,7 @@
 <>{() => {let _$$p = (thePromise); <>
     loading
-</>; _$$p.then(([ a, b ]) => {<>
+</>; __sveltets_awaitThen(_$$p, ([ a, b ]) => {<>
     then
-</>}).catch(([c, [d, e]]) => {<>
+</>}, ([c, [d, e]]) => {<>
     catch
 </>})}}</>

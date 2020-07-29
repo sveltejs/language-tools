@@ -517,7 +517,7 @@ export function convertHtmlxToJsx(
     const handleAwait = (awaitBlock: Node) => {
         str.overwrite(awaitBlock.start, awaitBlock.expression.start, '{() => {let _$$p = (');
         // then value } | {:then value} ->
-        // _$$p.then((value) => {<>
+        // __sveltets_awaitThen(_$$p, (value) => {<>
         let thenStart: number;
         let thenEnd: number;
         if (!awaitBlock.pending.skip) {
@@ -543,18 +543,13 @@ export function convertHtmlxToJsx(
             str.overwrite(awaitBlock.expression.end, thenStart, '); ');
         }
         if (awaitBlock.value) {
-            str.overwrite(
-                thenStart,
-                thenEnd,
-                '_$$p.then((' +
-                    htmlx.substring(awaitBlock.value.start, awaitBlock.value.end) +
-                    ') => {<>',
-            );
+            str.overwrite(thenStart, awaitBlock.value.start, '__sveltets_awaitThen(_$$p, (');
+            str.overwrite(awaitBlock.value.end, thenEnd, ') => {<>');
         } else {
-            str.overwrite(thenStart, thenEnd, '_$$p.then(() => {<>');
+            str.overwrite(thenStart, thenEnd, '__sveltets_awaitThen(_$$p, () => {<>');
         }
         //{:catch error} ->
-        //</>}).catch((error) => {<>
+        //</>}, (error) => {<>
         if (!awaitBlock.catch.skip) {
             //catch block includes the {:catch}
             const catchStart = awaitBlock.catch.start;
@@ -563,7 +558,7 @@ export function convertHtmlxToJsx(
             const errorStart = awaitBlock.error ? awaitBlock.error.start : catchSymbolEnd;
             const errorEnd = awaitBlock.error ? awaitBlock.error.end : errorStart;
             const catchEnd = htmlx.indexOf('}', errorEnd) + 1;
-            str.overwrite(catchStart, errorStart, '</>}).catch((');
+            str.overwrite(catchStart, errorStart, '</>}, (');
             str.overwrite(errorEnd, catchEnd, ') => {<>');
         }
         // {/await} ->
