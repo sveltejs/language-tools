@@ -770,7 +770,11 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
                 ts.isIdentifier(node.statement.expression.left)
             ) {
                 const name = node.statement.expression.left.text;
-                if (!implicitTopLevelNames.has(name)) {
+
+                // svelte won't let you create a variable with $ prefix anyway
+                const isPotentialStore = name.startsWith('$');
+
+                if (!implicitTopLevelNames.has(name) && !isPotentialStore) {
                     implicitTopLevelNames.set(name, node.label.getStart());
                 }
 
