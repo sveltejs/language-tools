@@ -1,19 +1,19 @@
-<>{() => {let _$$p = (object); _$$p.then(({ a = 3, b = 4, c }) => {<>
+<>{() => {let _$$p = (object); __sveltets_awaitThen(_$$p, ({ a = 3, b = 4, c }) => {<>
     then
 </>})}}
 
-{() => {let _$$p = (array); _$$p.then(([a, b, c = 3]) => {<>
+{() => {let _$$p = (array); __sveltets_awaitThen(_$$p, ([a, b, c = 3]) => {<>
     then
 </>})}}
 
-{() => {let _$$p = (objectReject); _$$p.then((value) => {<>
+{() => {let _$$p = (objectReject); __sveltets_awaitThen(_$$p, (value) => {<>
     then
-</>}).catch(({ a = 3, b = 4, c }) => {<>
+</>}, ({ a = 3, b = 4, c }) => {<>
     catch
 </>})}}
 
-{() => {let _$$p = (arrayReject); _$$p.then((value) => {<>
+{() => {let _$$p = (arrayReject); __sveltets_awaitThen(_$$p, (value) => {<>
     then
-</>}).catch(([a, b, c = 3]) => {<>
+</>}, ([a, b, c = 3]) => {<>
     catch
 </>})}}</>
