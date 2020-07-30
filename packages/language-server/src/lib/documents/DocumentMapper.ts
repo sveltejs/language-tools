@@ -82,9 +82,7 @@ export class IdentityMapper implements DocumentMapper {
     }
 
     destroy() {
-        if (this.parent?.destroy) {
-            this.parent.destroy();
-        }
+        this.parent?.destroy?.();
     }
 }
 
@@ -197,10 +195,7 @@ export class SourceMapDocumentMapper implements DocumentMapper {
      * Needs to be called when source mapper is no longer needed in order to prevent memory leaks.
      */
     destroy() {
-        if (this.parent?.destroy) {
-            this.parent.destroy();
-        }
-
+        this.parent?.destroy?.();
         this.consumer.destroy();
     }
 }
