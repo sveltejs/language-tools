@@ -245,6 +245,10 @@
       // Transition Events
       ontransitionend?: TransitionEventHandler<T>;
       ontransitionendcapture?: TransitionEventHandler<T>;
+
+      // Window Events
+      onbeforeunload?: EventHandler<BeforeUnloadEvent, T>;
+      onpopstate?: EventHandler<PopStateEvent, T>;
     }
 
     interface HTMLAttributes<T> extends DOMAttributes<T> {
