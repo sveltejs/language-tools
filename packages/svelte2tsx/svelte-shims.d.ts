@@ -3,7 +3,10 @@ declare module '*.svelte' {
         $$prop_def: any;
         $$slot_def: any;
 
+        // https://svelte.dev/docs#Client-side_component_API
         $on(event: string, handler: (e: Event) => any): () => void
+        $set(props: any): void;
+        $destroy(): void;
     }
 }
 
@@ -94,3 +97,14 @@ declare function __sveltets_each<T>(
     array: ArrayLike<T>,
     callbackfn: (value: T, index: number) => any
 ): any;
+
+declare class Svelte2TsxComponent<Props = {}, Slots = {}, Events = {}> {
+    $$prop_def: Props;
+    $$slot_def: Slots;
+    // https://svelte.dev/docs#Client-side_component_API
+    $on: SvelteOnAllEvent<Events>;
+    $destroy(): void;
+    $set(props: Partial<Props>): void;
+}
+declare type Constructor<T = {}> = new (...args: any[]) => T;
+declare function createSvelte2TsxComponent<Props = {}, Slots = {}, Events = {}>(render: () => {props?: Props, slots?: Slots, events?: Events }): Constructor<Svelte2TsxComponent<Props, Slots, Events>>;

@@ -534,7 +534,7 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
         if (
             (ts.isPrefixUnaryExpression(parent) || ts.isPostfixUnaryExpression(parent)) &&
             parent.operator !==
-            ts.SyntaxKind.ExclamationToken /* `!$store` does not need processing */
+                ts.SyntaxKind.ExclamationToken /* `!$store` does not need processing */
         ) {
             let simpleOperator: string;
             if (parent.operator === ts.SyntaxKind.PlusPlusToken) {
@@ -861,11 +861,10 @@ function addComponentExport(
     const doc = formatComponentDocumentation(componentDocumentation);
 
     const statement =
-        `\n\n${doc}export default class ${
+        `\nconst _${className} = createSvelte2TsxComponent(render);\n\n${doc}export default class ${
             className ? `${className} ` : ''
-        }{\n    $$prop_def = ${propDef}\n    $$slot_def = render().slots` +
+        } extends _${className} {` +
         createClassGetters(getters) +
-        `\n    $on = __sveltets_eventDef(render().events)` +
         '\n}';
 
     str.append(statement);
@@ -949,7 +948,7 @@ function createRenderFunction({
 
     const returnString =
         `\nreturn { props: ${exportedNames.createPropsStr(
-            isTsFile
+            isTsFile,
         )}, slots: ${slotsAsDef}, getters: ${createRenderFunctionGetterStr(getters)}` +
         `, events: ${eventMapToString(events)} }}`;
 
@@ -1043,6 +1042,6 @@ export function svelte2tsx(
     return {
         code: str.toString(),
         map: str.generateMap({ hires: true, source: options?.filename }),
-        exportedNames
+        exportedNames,
     };
 }
