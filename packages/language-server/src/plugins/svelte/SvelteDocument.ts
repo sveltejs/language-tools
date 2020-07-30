@@ -214,7 +214,7 @@ export class SvelteFragmentMapper {
     }
 
     private static async createSourceMapper(processed: Processed[], originalDoc: Document) {
-        return await processed.reduce(
+        return processed.reduce(
             async (parent, processedSingle) =>
                 processedSingle?.map
                     ? new SourceMapDocumentMapper(
