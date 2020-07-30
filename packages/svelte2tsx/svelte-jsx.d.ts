@@ -28,18 +28,12 @@
 
     type NativeElement = HTMLElement;
 
-    interface IntrinsicAttributes {
-      ref?: (instance: Element) => void;
-    }
+    interface IntrinsicAttributes {}
 
     // TypeScript SVGElement has no `dataset` (Chrome 55+, Firefox 51+).
     type Element = NativeElement & {
       dataset: DOMStringMap;
     };
-
-    interface Ref<T> {
-      current: null | T;
-    }
 
     //
     // Event Handler Types
