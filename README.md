@@ -12,6 +12,8 @@
   </a>
 </p>
 
+[IDE docs and troubleshooting](docs)
+
 ## What is Svelte Language Tools?
 
 Svelte Language Tools contains a library implementing the Language Server Protocol (LSP). LSP powers the [VSCode extension](https://marketplace.visualstudio.com/items?itemName=svelte.svelte-vscode), which is also hosted in this repository. Additionally, LSP is capable of powering plugins for [numerous other IDEs](https://microsoft.github.io/language-server-protocol/implementors/tools/).
