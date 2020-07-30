@@ -1,6 +1,11 @@
-type SvelteCompiledToTsx = {
-    code: string,
-    map: import("magic-string").SourceMap
+export interface SvelteCompiledToTsx {
+    code: string;
+    map: import("magic-string").SourceMap;
+    exportedNames: IExportedNames;
+}
+
+export interface IExportedNames {
+    has(name: string): boolean;
 }
 
 export default function svelte2tsx(

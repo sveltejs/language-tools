@@ -56,7 +56,7 @@ Usage:
 
 `--watch` Will not exit after one pass but keep watching files for changes and rerun diagnostics.
 
-`--ignore <files/folders to ignore, relative to workspace root, comma-separated. Example: --ignore dist,build>`
+`--ignore <files/folders to ignore, relative to workspace root, comma-separated, inside quotes. Example: --ignore "dist,build">`
 
 `--fail-on-warnings` Will also exit with error code when there are warnings
 
