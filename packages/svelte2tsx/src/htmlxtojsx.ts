@@ -484,9 +484,9 @@ export function convertHtmlxToJsx(
 
     const handleEach = (eachBlock: Node) => {
         // {#each items as item,i (key)} ->
-        // {(items).map((item,i) => (key) && <>
-        str.overwrite(eachBlock.start, eachBlock.expression.start, '{(');
-        str.overwrite(eachBlock.expression.end, eachBlock.context.start, ').map((');
+        // {__sveltets_each(items, (item,i) => (key) && <>
+        str.overwrite(eachBlock.start, eachBlock.expression.start, '{__sveltets_each(');
+        str.overwrite(eachBlock.expression.end, eachBlock.context.start, ', (');
         let contextEnd = eachBlock.context.end;
         if (eachBlock.index) {
             const idxLoc = htmlx.indexOf(eachBlock.index, contextEnd);
