@@ -28,6 +28,7 @@
 
     type NativeElement = HTMLElement;
 
+    // eslint-disable-next-line @typescript-eslint/no-empty-interface
     interface IntrinsicAttributes {}
 
     // TypeScript SVGElement has no `dataset` (Chrome 55+, Firefox 51+).
