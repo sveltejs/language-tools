@@ -1,3 +1,3 @@
-<>{(items ?? []).map((item) => <>
+<>{__sveltets_each(items ?? [], (item) => <>
     <div>{item}</div>
 </>)}</>

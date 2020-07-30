@@ -89,3 +89,8 @@ declare function __sveltets_awaitThen<T>(
     onfulfilled: (value: T) => any,
     onrejected?: (value: never) => any
 ): any;
+
+declare function __sveltets_each<T>(
+    array: ArrayLike<T>,
+    callbackfn: (value: T, index: number) => any
+): any;

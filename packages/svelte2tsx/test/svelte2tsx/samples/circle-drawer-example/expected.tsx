@@ -69,7 +69,7 @@
 </div>
 
 <svg onclick={handleClick} >
-	{(circles).map((circle) => <>
+	{__sveltets_each(circles, (circle) => <>
 		<circle cx={circle.cx} cy={circle.cy} r={circle.r}
 			onclick={event => select(circle, event)}
 			oncontextmenu={() => {
