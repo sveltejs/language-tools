@@ -311,13 +311,18 @@ export class RenameProviderImpl implements RenameProvider {
             }
 
             const content = snapshot.getText(0, snapshot.getLength());
-            const svelteInstanceOfFn = '__sveltets_instanceOf(';
             // When the user renames a Svelte component, ts will also want to rename
-            // `__sveltets_instanceOf(TheComponentToRename)`. Prevent that.
+            // `__sveltets_instanceOf(TheComponentToRename)` or
+            // `__sveltets_ensureType(TheComponentToRename,..`. Prevent that.
             return (
-                content.lastIndexOf(svelteInstanceOfFn, loc.textSpan.start) !==
-                loc.textSpan.start - svelteInstanceOfFn.length
+                notPrecededBy('__sveltets_instanceOf(') && notPrecededBy('__sveltets_ensureType(')
             );
+
+            function notPrecededBy(str: string) {
+                return (
+                    content.lastIndexOf(str, loc.textSpan.start) !== loc.textSpan.start - str.length
+                );
+            }
         });
     }
 
