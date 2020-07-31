@@ -1,5 +1,7 @@
 # TypeScript Support
 
+[Official blog post](https://svelte.dev/blog/svelte-and-typescript)
+
 ## Getting it to work in the editor
 
 To tell us to treat your script tags as typescript, add a `type` or `lang` attribute to your script tags like so:
@@ -58,7 +60,7 @@ import typescript from '@rollup/plugin-typescript';
 }
 ```
 
-And this should work to enable full TypeScript checking in your Svelte files. For further discussion and a clonable template [see this issue](https://github.com/sveltejs/language-tools/issues/161).
+And this should work to enable full TypeScript checking in your Svelte files. For further information and a clonable template [see the official announcement blog post](https://svelte.dev/blog/svelte-and-typescript).
 
 ## Example configuration for the editor
 
