@@ -54,6 +54,10 @@
     type WheelEventHandler<T> = EventHandler<WheelEvent, T>;
     type AnimationEventHandler<T> = EventHandler<AnimationEvent, T>;
     type TransitionEventHandler<T> = EventHandler<TransitionEvent, T>;
+    type MessageEventHandler<T> = EventHandler<MessageEvent, T>;
+    type PageTransitionEventHandler<T> = EventHandler<PageTransitionEvent, T>;
+    type PromiseRejectionEventHandler<T> = EventHandler<PromiseRejectionEvent, T>;
+    type GenericWindowEventHandler<T> = EventHandler<Event, T>;
 
     type ClassNameBase = boolean | string | number | void | null;
     type ClassName = string | (ClassNameBase | ClassNameBase[])[] | {
@@ -245,6 +249,24 @@
       // Transition Events
       ontransitionend?: TransitionEventHandler<T>;
       ontransitionendcapture?: TransitionEventHandler<T>;
+
+      // Window Events
+      onafterprint?: GenericWindowEventHandler<T>;
+      onbeforeprint?: GenericWindowEventHandler<T>;
+      onbeforeunload?: EventHandler<BeforeUnloadEvent, T>;
+      onhashchange?: EventHandler<HashChangeEvent, T>;
+      onlanguagechange?: GenericWindowEventHandler<T>;
+      onmessage?: MessageEventHandler<T>;
+      onmessageerror?: MessageEventHandler<T>;
+      onoffline?: GenericWindowEventHandler<T>;
+      ononline?: GenericWindowEventHandler<T>;
+      onpagehide?: PageTransitionEventHandler<T>;
+      onpageshow?: PageTransitionEventHandler<T>;
+      onpopstate?: EventHandler<PopStateEvent, T>;
+      onrejectionhandled?: PromiseRejectionEventHandler<T>;
+      onstorage?: EventHandler<StorageEvent, T>;
+      onunhandledrejection?: PromiseRejectionEventHandler<T>;
+      onunload?: GenericWindowEventHandler<T>;
     }
 
     interface HTMLAttributes<T> extends DOMAttributes<T> {
