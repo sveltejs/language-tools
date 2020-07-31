@@ -259,6 +259,9 @@ export function startServer(options?: LSOptions) {
         'documentChange',
         _.debounce(async (document: Document) => diagnosticsManager.update(document), 500),
     );
+    docManager.on('documentClose', (document: Document) =>
+        diagnosticsManager.removeDiagnostics(document),
+    );
 
     // The language server protocol does not have a specific "did rename/move files" event,
     // so we create our own in the extension client and handle it here
