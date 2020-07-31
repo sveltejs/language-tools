@@ -665,13 +665,13 @@
       readonly online?: Window['navigator']['onLine'];
 
 
-      onbeforeprint?: EventHandler<Window>;
-      onafterprint?: EventHandler<Window>;
-      onlanguagechange?: EventHandler<Window>;
-      onoffline?: EventHandler<Window>;
-      ononline?: EventHandler<Window>;
-      onbeforeunload?: EventHandler<Window>;
-      onunload?: EventHandler<Window>;
+      onbeforeprint?: EventHandler<Event, Window>;
+      onafterprint?: EventHandler<Event, Window>;
+      onlanguagechange?: EventHandler<Event, Window>;
+      onoffline?: EventHandler<Event, Window>;
+      ononline?: EventHandler<Event, Window>;
+      onbeforeunload?: EventHandler<Event, Window>;
+      onunload?: EventHandler<Event, Window>;
       onstorage?: EventHandler<StorageEvent, Window>;
       onhashchange?: EventHandler<HashChangeEvent, Window>;
       onpagehide?: EventHandler<PageTransitionEvent, Window>;
