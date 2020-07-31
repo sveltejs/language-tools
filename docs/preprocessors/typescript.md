@@ -128,3 +128,13 @@ $: show = !!data.someKey; // <-- `show` now has type `boolean`
 ### Can I use TypeScript syntax inside the template/mustache tags?
 
 At the moment, you cannot. Only `script`/`style` tags are preprocessed/transpiled. See [this issue](https://github.com/sveltejs/svelte/issues/4701) for more info.
+
+### Why is VSCode not finding absolute paths for type imports?
+
+You may need to set `baseUrl` in `tsconfig.json` at the project root to include (restart the language server to see this take effect):
+```
+"compilerOptions": {
+    "baseUrl": "."
+  }
+}
+```
