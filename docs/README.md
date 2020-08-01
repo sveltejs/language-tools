@@ -8,42 +8,12 @@ Do you want to use TypeScript/SCSS/Less/..? See [Using with preprocessors](#usin
 
 ### Using with preprocessors
 
+[Generic setup](./preprocessors/in-general.md)
+
 #### Language specific setup
 
 -   [SCSS/Less](./preprocessors/scss-less.md)
 -   [TypeScript](./preprocessors/typescript.md)
-
-#### Generic setup
-
-If a svelte file contains some language other than `html`, `css` or `javascript`, `svelte-vscode` needs to know how to [preprocess](https://svelte.dev/docs#svelte_preprocess) it. This can be achieved by creating a `svelte.config.js` file at the root of your project which exports a svelte options object (similar to `svelte-loader` and `rollup-plugin-svelte`). It's recommended to use the official [svelte-preprocess](https://github.com/sveltejs/svelte-preprocess) package which can handle many languages.
-
-**Note**: `svelte-preprocess` supports passing an array of preprocessors (e,g, `preprocess: [postcss(), typescript()]`), but this is **not** currently supported by the language server.
-
-```js
-// svelte.config.js - NOTE: you cannot use the new "import x from y" and "export const" syntax in here.
-const sveltePreprocess = require('svelte-preprocess');
-
-module.exports = {
-    preprocess: sveltePreprocess(),
-    // ...other svelte options
-};
-```
-
-It's also necessary to add a `type="text/language-name"` or `lang="language-name"` to your `style` and `script` tags, which defines how that code should be interpreted by the extension.
-
-```html
-<div>
-    <h1>Hello, world!</h1>
-</div>
-
-<style type="text/scss">
-    div {
-        h1 {
-            color: red;
-        }
-    }
-</style>
-```
 
 ## Documenting components
 
@@ -68,9 +38,9 @@ LSP-compatible editors, you can use an HTML comment with the `@component` tag:
 <!-- @component But only the last documentation comment will be used -->
 
 <main>
-  <h1>
-    Hello world
-  </h1>
+    <h1>
+        Hello world
+    </h1>
 </main>
 ```
 
