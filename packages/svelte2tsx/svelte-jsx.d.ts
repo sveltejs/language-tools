@@ -668,9 +668,11 @@
       onbeforeprint?: EventHandler<Event, Window>;
       onafterprint?: EventHandler<Event, Window>;
       onlanguagechange?: EventHandler<Event, Window>;
+      onmessage?: EventHandler<MessageEvent, Window>;
+      onmessageerror?: EventHandler<MessageEvent, Window>;
       onoffline?: EventHandler<Event, Window>;
       ononline?: EventHandler<Event, Window>;
-      onbeforeunload?: EventHandler<Event, Window>;
+      onbeforeunload?: EventHandler<BeforeUnloadEvent, Window>;
       onunload?: EventHandler<Event, Window>;
       onstorage?: EventHandler<StorageEvent, Window>;
       onhashchange?: EventHandler<HashChangeEvent, Window>;
