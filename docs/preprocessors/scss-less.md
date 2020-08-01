@@ -21,7 +21,7 @@ npm i -D svelte-preprocess sass
 
 #### 2. Setting up a svelte-config.js
 
-You need a `svelte.config.js`. [Read here on how to set it up and also how it related to your build config](./in-general.md). If you are using [svelte-preprocess](https://github.com/sveltejs/svelte-preprocess) (recommended), this is enough:
+You need a `svelte.config.js`. [Read here on how to set it up and also how it relates to your build config](./in-general.md). If you are using [svelte-preprocess](https://github.com/sveltejs/svelte-preprocess) (recommended), this is enough:
 
 ```js
 const sveltePreprocess = require('svelte-preprocess');
@@ -57,7 +57,7 @@ To gain syntax highlighing for your SCSS code and to make us understand the lang
 
 If you don't want to write these attributes each time, [look here](./in-general.md#using-language-defaults).
 
-##### 4. Restart the svelte language server
+#### 4. Restart the svelte language server
 
 You will need to tell svelte-vscode to restart the svelte language server in order to pick up the new configuration.
 

@@ -29,18 +29,23 @@ It's also necessary to add a `type="text/language-name"` or `lang="language-name
 </style>
 ```
 
+#### Language specific setup
+
+-   [SCSS/Less](./scss-less.md)
+-   [TypeScript](./typescript.md)
+
 #### Using language defaults
 
 If you use `svelte-preprocess` and define the defaults inside `svelte.config.js`, you can omit the `type`/`lang` attributes. These get picked up by the language server.
 
-```
+```js
 const sveltePreprocess = require('svelte-preprocess');
 
 module.exports = {
     preprocess: sveltePreprocess({
         defaults: {
-            script: 'typescript' // <-- now you can just write <script>let typingsAllowed: string;</script>
-        }
+            script: 'typescript', // <-- now you can just write <script>let typingsAllowed: string;</script>
+        },
     }),
 };
 ```
@@ -80,14 +85,7 @@ export default {
     plugins: [
         // ...
         svelte({
-            // enable run-time checks when not in production
-            dev: !production,
-
-            // we'll extract any component CSS out into
-            // a separate file - better for performance
-            css: (css) => {
-                css.write('public/build/bundle.css');
-            },
+            // ...
             preprocess: createPreprocessors(!production),
         }),
         // ...
