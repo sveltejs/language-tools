@@ -199,6 +199,12 @@
       // Transition Events
       ontransitionend?: TransitionEventHandler<T>;
 
+      // Svelte Transition Events
+      onoutrostart?: EventHandler<CustomEvent<null>, T>;
+      onoutroend?: EventHandler<CustomEvent<null>, T>;
+      onintrostart?: EventHandler<CustomEvent<null>, T>;
+      onintroend?: EventHandler<CustomEvent<null>, T>;
+
       // Message Events
       onmessage?: MessageEventHandler<T>;
       onmessageerror?: MessageEventHandler<T>;
