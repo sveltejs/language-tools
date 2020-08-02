@@ -198,10 +198,10 @@
 
       // Transition Events
       ontransitionend?: TransitionEventHandler<T>;
-      onoutrostart?: TransitionEventHandler<T>;
-      onoutroend?: TransitionEventHandler<T>;
-      onintrostart?: TransitionEventHandler<T>;
-      onintroend?: TransitionEventHandler<T>;
+      onoutrostart?: EventHandler<CustomEvent<null>, T>;
+      onoutroend?: EventHandler<CustomEvent<null>, T>;
+      onintrostart?: EventHandler<CustomEvent<null>, T>;
+      onintroend?: EventHandler<CustomEvent<null>, T>;
 
       // Message Events
       onmessage?: MessageEventHandler<T>;
