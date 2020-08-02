@@ -198,7 +198,7 @@
 
       // Transition Events
       ontransitionend?: TransitionEventHandler<T>;
-                      
+
       // Svelte Transition Events
       onoutrostart?: EventHandler<CustomEvent<null>, T>;
       onoutroend?: EventHandler<CustomEvent<null>, T>;
