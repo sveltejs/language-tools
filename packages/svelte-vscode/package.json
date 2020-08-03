@@ -230,7 +230,9 @@
                     "text.html": "html",
                     "text.pug": "jade",
                     "source.css": "css",
+                    "source.css.less": "less",
                     "source.css.scss": "scss",
+                    "source.sass": "sass",
                     "source.js": "javascript",
                     "source.ts": "typescript"
                 }
