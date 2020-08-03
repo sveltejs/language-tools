@@ -220,7 +220,7 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
                 if (parent.type == 'Property' && prop == 'key') return;
                 scope.declared.add(node.name);
             } else {
-                if (parent.type == 'MemberExpression' && prop == 'property') return;
+                if (parent.type == 'MemberExpression' && prop == 'property' && !parent.computed) return;
                 if (parent.type == 'Property' && prop == 'key') return;
                 pendingStoreResolutions.push({ node, parent, scope });
             }
