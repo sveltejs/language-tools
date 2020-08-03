@@ -124,7 +124,7 @@ export class CSSPlugin
         }
 
         if (isSASS(cssDocument)) {
-            // the css language service does not support scss, still we can use
+            // the css language service does not support sass, still we can use
             // the emmet helper directly to at least get emmet completions
             return doEmmetComplete(document, position, 'sass', {});
         }
