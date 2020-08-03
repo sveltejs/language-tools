@@ -36,7 +36,7 @@ It's also necessary to add a `type="text/language-name"` or `lang="language-name
 
 #### Using language defaults
 
-If you use `svelte-preprocess` and define the defaults inside `svelte.config.js`, you can omit the `type`/`lang` attributes. These get picked up by the language server.
+If you use `svelte-preprocess` and define the defaults inside `svelte.config.js`, you can in some cases omit the `type`/`lang` attributes. While these defaults get picked up by the language server, this may break your syntax highlighting and your code is no longer colored the right way, so use with caution - we recommend to always type the attributes. Reason: we have to tell VSCode which part of the Svelte file is written in which language through providing static regexes, which rely on the `type`/`lang` attribute.
 
 ```js
 const sveltePreprocess = require('svelte-preprocess');

@@ -55,8 +55,6 @@ To gain syntax highlighing for your SCSS code and to make us understand the lang
 </style>
 ```
 
-If you don't want to write these attributes each time, [look here](./in-general.md#using-language-defaults).
-
 #### 4. Restart the svelte language server
 
 You will need to tell svelte-vscode to restart the svelte language server in order to pick up the new configuration.
