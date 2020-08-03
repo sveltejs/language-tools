@@ -4,19 +4,48 @@ declare module '*.svelte' {
 
 declare class Svelte2TsxComponent<Props = any, Events = {}, Slots = any> {
     // svelte2tsx-specific
+    /**
+     * @internal This is for type checking capabilities only
+     * and does not exist at runtime. Don't use this property.
+     */
     $$prop_def: Props;
+    /**
+     * @internal This is for type checking capabilities only
+     * and does not exist at runtime. Don't use this property.
+     */
     $$slot_def: Slots;
     // https://svelte.dev/docs#Client-side_component_API
     constructor(options: {
+        /**
+         * An HTMLElement to render to. This option is required.
+         */
         target: Element;
+        /**
+         * A child of `target` to render the component immediately before.
+         */
         anchor?: Element;
+        /**
+         * An object of properties to supply to the component.
+         */
         props?: Props;
         hydrate?: boolean;
         intro?: boolean;
         $$inline?: boolean;
     });
+    /**
+     * Causes the callback function to be called whenever the component dispatches an event.
+     * A function is returned that will remove the event listener when called.
+     */
     $on: SvelteOnAllEvent<Events>;
+    /**
+     * Removes a component from the DOM and triggers any `onDestroy` handlers.
+     */
     $destroy(): void;
+    /**
+     * Programmatically sets props on an instance.
+     * `component.$set({ x: 1 })` is equivalent to `x = 1` inside the component's `<script>` block.
+     * Calling this method schedules an update for the next microtask — the DOM is __not__ updated synchronously.
+     */
     $set(props: Partial<Props>): void;
 }
 
