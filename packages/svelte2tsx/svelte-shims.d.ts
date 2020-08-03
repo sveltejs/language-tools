@@ -1,13 +1,23 @@
 declare module '*.svelte' {
-    export default class {
-        $$prop_def: any;
-        $$slot_def: any;
+    export default Svelte2TsxComponent
+}
 
-        // https://svelte.dev/docs#Client-side_component_API
-        $on(event: string, handler: (e: Event) => any): () => void
-        $set(props: any): void;
-        $destroy(): void;
-    }
+declare class Svelte2TsxComponent<Props = any, Events = {}, Slots = any> {
+    // svelte2tsx-specific
+    $$prop_def: Props;
+    $$slot_def: Slots;
+    // https://svelte.dev/docs#Client-side_component_API
+    constructor(options: {
+        target: Element;
+        anchor?: Element;
+        props?: Props;
+        hydrate?: boolean;
+        intro?: boolean;
+        $$inline?: boolean;
+    });
+    $on: SvelteOnAllEvent<Events>;
+    $destroy(): void;
+    $set(props: Partial<Props>): void;
 }
 
 type AConstructorTypeOf<T> = new (...args: any[]) => T;
@@ -38,7 +48,6 @@ type SvelteAnimation<U extends any[]> = (node: Element, move: { from: DOMRect, t
 type SvelteAllProps = { [index: string]: any }
 type SvelteRestProps = { [index: string]: any }
 type SvelteStore<T> = { subscribe: (run: (value: T) => any, invalidate?: any) => any }
-type SvelteComponent = import('*.svelte').default
 type SvelteEventRecord = Record<string, Event | Event[]>
 type SvelteExtractEvent<T> = T extends any[] ? T[number] : T;
 type SvelteOnEvent<T, K extends keyof T> = (
@@ -64,7 +73,7 @@ declare function __sveltets_with_any<T>(obj: T): T & SvelteAllProps
 declare function __sveltets_store_get<T = any>(store: SvelteStore<T>): T
 declare function __sveltets_any(dummy: any): any;
 declare function __sveltets_empty(dummy: any): {};
-declare function __sveltets_componentType(): AConstructorTypeOf<SvelteComponent>
+declare function __sveltets_componentType(): AConstructorTypeOf<Svelte2TsxComponent>
 declare function __sveltets_invalidate<T>(getValue: () => T): T
 declare function __sveltets_eventDef<T extends SvelteEventRecord>(def: T): SvelteOnAllEvent<T>
 declare function __sveltets_mapWindowEvent<K extends keyof HTMLBodyElementEventMap>(
@@ -98,13 +107,6 @@ declare function __sveltets_each<T>(
     callbackfn: (value: T, index: number) => any
 ): any;
 
-declare class Svelte2TsxComponent<Props = {}, Slots = {}, Events = {}> {
-    $$prop_def: Props;
-    $$slot_def: Slots;
-    // https://svelte.dev/docs#Client-side_component_API
-    $on: SvelteOnAllEvent<Events>;
-    $destroy(): void;
-    $set(props: Partial<Props>): void;
-}
-declare type Constructor<T = {}> = new (...args: any[]) => T;
-declare function createSvelte2TsxComponent<Props = {}, Slots = {}, Events = {}>(render: () => {props?: Props, slots?: Slots, events?: Events }): Constructor<Svelte2TsxComponent<Props, Slots, Events>>;
+declare function createSvelte2TsxComponent<Props = {}, Events = {}, Slots = {}>(
+    render: () => {props?: Props, events?: Events, slots?: Slots }
+): AConstructorTypeOf<Svelte2TsxComponent<Props, Events, Slots>>;
