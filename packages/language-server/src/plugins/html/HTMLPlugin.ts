@@ -1,6 +1,12 @@
 import { getEmmetCompletionParticipants } from 'vscode-emmet-helper';
 import { getLanguageService, HTMLDocument } from 'vscode-html-languageservice';
-import { CompletionList, Hover, Position, SymbolInformation } from 'vscode-languageserver';
+import {
+    CompletionList,
+    Hover,
+    Position,
+    SymbolInformation,
+    CompletionItem,
+} from 'vscode-languageserver';
 import { DocumentManager, Document, isInTag } from '../../lib/documents';
 import { LSConfigManager, LSHTMLConfig } from '../../ls-config';
 import { svelteHtmlDataProvider } from './dataProvider';
@@ -59,10 +65,44 @@ export class HTMLPlugin implements HoverProvider, CompletionsProvider {
         ]);
         const results = this.lang.doComplete(document, position, html);
         return CompletionList.create(
-            [...results.items, ...emmetResults.items],
+            [...results.items, ...this.getLangCompletions(results.items), ...emmetResults.items],
             // Emmet completions change on every keystroke, so they are never complete
             emmetResults.items.length > 0,
         );
+    }
+
+    private getLangCompletions(completions: CompletionItem[]): CompletionItem[] {
+        const styleScriptTemplateCompletions = completions.filter((completion) =>
+            ['template', 'style', 'script'].includes(completion.label),
+        );
+        const langCompletions: CompletionItem[] = [];
+        addLangCompletion('script', ['ts']);
+        addLangCompletion('style', ['less', 'scss']);
+        addLangCompletion('template', ['pug']);
+        return langCompletions;
+
+        function addLangCompletion(tag: string, languages: string[]) {
+            const existingCompletion = styleScriptTemplateCompletions.find(
+                (completion) => completion.label === tag,
+            );
+            if (!existingCompletion) {
+                return;
+            }
+
+            languages.forEach((lang) =>
+                langCompletions.push({
+                    ...existingCompletion,
+                    label: `${tag} (lang="${lang}")`,
+                    insertText:
+                        existingCompletion.insertText &&
+                        `${existingCompletion.insertText} lang="${lang}"`,
+                    textEdit: existingCompletion.textEdit && {
+                        range: existingCompletion.textEdit.range,
+                        newText: `${existingCompletion.textEdit.newText} lang="${lang}"`,
+                    },
+                }),
+            );
+        }
     }
 
     doTagComplete(document: Document, position: Position): string | null {
