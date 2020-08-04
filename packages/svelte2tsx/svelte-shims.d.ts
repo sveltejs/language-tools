@@ -9,7 +9,7 @@ declare module '*.svelte' {
 
 type AConstructorTypeOf<T> = new (...args: any[]) => T;
 
-type SvelteAction<U extends any[]> = (node: HTMLElement, ...args:U) => {
+type SvelteAction<U extends any[], El extends any> = (node: El, ...args:U) => {
 	update?: (...args:U) => void,
 	destroy?: () => void
 } | void
@@ -48,7 +48,11 @@ type SvelteOnAllEvent<T> = SvelteOnEvent<T, keyof T> & SvelteRestEvent
 declare var process: NodeJS.Process & { browser: boolean }
 
 declare function __sveltets_ensureAnimation<U extends any[]>(animation: SvelteAnimation<U>, ...args: U): {};
-declare function __sveltets_ensureAction<U extends any[]>(action: SvelteAction<U>, ...args: U): {};
+declare function __sveltets_ensureAction<U extends any[], El extends any>(
+    el: El,
+    action: SvelteAction<U, El>,
+    ...args: U
+): {};
 declare function __sveltets_ensureTransition<U extends any[]>(transition: SvelteTransition<U>, ...args: U): {};
 declare function __sveltets_ensureFunction(expression: (e: Event & { detail?: any }) => unknown ): {};
 declare function __sveltets_ensureType<T>(type: AConstructorTypeOf<T>, el: T): {};
@@ -73,6 +77,15 @@ declare function __sveltets_mapBodyEvent<K extends keyof WindowEventMap>(
 declare function __sveltets_mapElementEvent<K extends keyof HTMLElementEventMap>(
     event: K
 ): HTMLElementEventMap[K];
+declare function __sveltets_mapElementTag<K extends keyof ElementTagNameMap>(
+    tag: K
+): ElementTagNameMap[K];
+declare function __sveltets_mapElementTag<K extends keyof SVGElementTagNameMap>(
+    tag: K
+): SVGElementTagNameMap[K];
+declare function __sveltets_mapElementTag(
+    tag: any
+): HTMLElement;
 declare function __sveltets_bubbleEventDef<
     T extends SvelteEventRecord,
     TEvent,

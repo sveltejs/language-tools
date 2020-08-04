@@ -74,14 +74,11 @@ export function convertHtmlxToJsx(
                 const on = 'on';
                 //for handler assignment, we changeIt to call to our __sveltets_ensureFunction
                 str.appendRight(
-                    attr.start, `{__sveltets_instanceOf(${getTypeForComponent(parent)}).$`
+                    attr.start,
+                    `{__sveltets_instanceOf(${getTypeForComponent(parent)}).$`,
                 );
                 const eventNameIndex = htmlx.indexOf(':', attr.start) + 1;
-                str.overwrite(
-                    htmlx.indexOf(on, attr.start) + on.length,
-                    eventNameIndex,
-                    `('`
-                );
+                str.overwrite(htmlx.indexOf(on, attr.start) + on.length, eventNameIndex, `('`);
                 const eventEnd = htmlx.lastIndexOf('=', attr.expression.start);
                 str.overwrite(eventEnd, attr.expression.start, `', `);
                 str.overwrite(attr.expression.end, attr.end, ')}');
@@ -103,8 +100,12 @@ export function convertHtmlxToJsx(
         }
     };
 
-    const handleActionDirective = (attr: Node) => {
-        str.overwrite(attr.start, attr.start + 'use:'.length, '{...__sveltets_ensureAction(');
+    const handleActionDirective = (attr: Node, parent: Node) => {
+        str.overwrite(
+            attr.start,
+            attr.start + 'use:'.length,
+            `{...__sveltets_ensureAction(__sveltets_mapElementTag('${parent.name}'),`,
+        );
 
         if (!attr.expression) {
             str.appendLeft(attr.end, ')}');
@@ -173,7 +174,6 @@ export function convertHtmlxToJsx(
     };
 
     const handleBinding = (attr: Node, el: Node) => {
-
         const getThisType = (node: Node) => {
             switch (node.type) {
                 case 'InlineComponent':
@@ -224,7 +224,7 @@ export function convertHtmlxToJsx(
                 str.appendLeft(
                     attr.end,
                     `=__sveltets_instanceOf(${oneWayBindingAttributes.get(attr.name)}).${
-                    attr.name
+                        attr.name
                     })}`,
                 );
             } else {
@@ -233,7 +233,7 @@ export function convertHtmlxToJsx(
                     attr.expression.end,
                     attr.end,
                     `=__sveltets_instanceOf(${oneWayBindingAttributes.get(attr.name)}).${
-                    attr.name
+                        attr.name
                     })}`,
                 );
             }
@@ -611,7 +611,7 @@ export function convertHtmlxToJsx(
                         handleClassDirective(node);
                         break;
                     case 'Action':
-                        handleActionDirective(node);
+                        handleActionDirective(node, parent);
                         break;
                     case 'Transition':
                         handleTransitionDirective(node);
