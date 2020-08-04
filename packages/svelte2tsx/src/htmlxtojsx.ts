@@ -96,11 +96,11 @@ export function convertHtmlxToJsx(
         }
     };
 
-    const handleActionDirective = (attr: Node) => {
+    const handleActionDirective = (attr: Node, parent: Node) => {
         str.overwrite(
             attr.start,
             attr.start + 'use:'.length,
-            `{...__sveltets_ensureAction(__sveltets_mapElementTag('${currentElement}'),`,
+            `{...__sveltets_ensureAction(__sveltets_mapElementTag('${parent.name}'),`,
         );
 
         if (!attr.expression) {
@@ -429,9 +429,7 @@ export function convertHtmlxToJsx(
         }
     };
 
-    let currentElement: string;
     const handleElement = (node: Node) => {
-        currentElement = node.name;
         //we just have to self close void tags since jsx always wants the />
         const voidTags = 'area,base,br,col,embed,hr,img,input,link,meta,param,source,track,wbr'.split(
             ',',
@@ -616,7 +614,7 @@ export function convertHtmlxToJsx(
                         handleClassDirective(node);
                         break;
                     case 'Action':
-                        handleActionDirective(node);
+                        handleActionDirective(node, parent);
                         break;
                     case 'Transition':
                         handleTransitionDirective(node);
