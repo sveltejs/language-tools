@@ -61,7 +61,9 @@ export interface LSOptions {
 export function startServer(options?: LSOptions) {
     let connection = options?.connection;
     if (!connection) {
-        console.log = function() {};
+        console.log = (...args: any[]) => {
+            console.warn(...args);
+        };
         connection = process.argv.includes('--stdio')
             ? createConnection(process.stdin, process.stdout)
             : createConnection(new IPCMessageReader(process), new IPCMessageWriter(process));
