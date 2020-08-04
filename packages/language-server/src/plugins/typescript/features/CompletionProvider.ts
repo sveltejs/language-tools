@@ -7,6 +7,8 @@ import {
     Range,
     TextDocumentIdentifier,
     TextEdit,
+    MarkupContent,
+    MarkupKind,
 } from 'vscode-languageserver';
 import {
     Document,
@@ -231,8 +233,8 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             detail = `Auto import from ${importPath}\n${detail}`;
         }
 
-        const documentation = tsDocumentation
-            ? ts.displayPartsToString(tsDocumentation)
+        const documentation: MarkupContent | undefined = tsDocumentation
+            ? { value: ts.displayPartsToString(tsDocumentation), kind: MarkupKind.Markdown }
             : undefined;
 
         return {

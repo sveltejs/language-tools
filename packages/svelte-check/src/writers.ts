@@ -53,8 +53,10 @@ export class HumanFriendlyWriter implements Writer {
 
             if (diagnostic.severity === DiagnosticSeverity.Error) {
                 this.stream.write(`${chalk.red('Error')}: ${msg}\n`);
-            } else {
+            } else if (diagnostic.severity === DiagnosticSeverity.Warning) {
                 this.stream.write(`${chalk.yellow('Warn')}: ${msg}\n`);
+            } else {
+                this.stream.write(`${chalk.gray('Hint')}: ${msg}\n`);
             }
 
             this.stream.write('\n');

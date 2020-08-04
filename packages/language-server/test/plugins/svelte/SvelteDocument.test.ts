@@ -50,8 +50,9 @@ describe('Svelte Document', () => {
             // stub svelte preprocess and getOriginalPosition
             // to fake a source mapping process
             sinon.stub(importPackage, 'importSvelte').returns({
-                preprocess: (text, preprocessor: any) => {
-                    preprocessor.script();
+                preprocess: (text, preprocessor) => {
+                    preprocessor = Array.isArray(preprocessor) ? preprocessor : [preprocessor];
+                    preprocessor.forEach((p) => p.script?.(<any>{}));
                     return Promise.resolve({
                         code: getSourceCode(true),
                         dependencies: [],

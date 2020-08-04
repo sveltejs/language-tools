@@ -61,9 +61,15 @@ export interface LSOptions {
 export function startServer(options?: LSOptions) {
     let connection = options?.connection;
     if (!connection) {
-        connection = process.argv.includes('--stdio')
-            ? createConnection(process.stdin, process.stdout)
-            : createConnection(new IPCMessageReader(process), new IPCMessageWriter(process));
+        if (process.argv.includes('--stdio')) {
+            console.log = (...args: any[]) => {
+                console.warn(...args);
+            };
+            connection = createConnection(process.stdin, process.stdout);
+        } else {
+            connection = createConnection(
+                new IPCMessageReader(process), new IPCMessageWriter(process));
+        }
     }
 
     if (options?.logErrorsOnly !== undefined) {
@@ -84,7 +90,7 @@ export function startServer(options?: LSOptions) {
             Logger.error('No workspace path set');
         }
 
-        pluginHost.initialize(!!evt.initializationOptions.dontFilterIncompleteCompletions);
+        pluginHost.initialize(!!evt.initializationOptions?.dontFilterIncompleteCompletions);
         pluginHost.updateConfig(evt.initializationOptions?.config);
         pluginHost.register(
             (sveltePlugin = new SveltePlugin(
@@ -258,6 +264,9 @@ export function startServer(options?: LSOptions) {
     docManager.on(
         'documentChange',
         _.debounce(async (document: Document) => diagnosticsManager.update(document), 500),
+    );
+    docManager.on('documentClose', (document: Document) =>
+        diagnosticsManager.removeDiagnostics(document),
     );
 
     // The language server protocol does not have a specific "did rename/move files" event,

@@ -8,8 +8,8 @@ export class DiagnosticsManager {
     constructor(
         private sendDiagnostics: SendDiagnostics,
         private docManager: DocumentManager,
-        private getDiagnostics: GetDiagnostics
-    ) { }
+        private getDiagnostics: GetDiagnostics,
+    ) {}
 
     updateAll() {
         this.docManager.getAllOpenedByClient().forEach((doc) => {
@@ -22,6 +22,13 @@ export class DiagnosticsManager {
         this.sendDiagnostics({
             uri: document.getURL(),
             diagnostics,
+        });
+    }
+
+    removeDiagnostics(document: Document) {
+        this.sendDiagnostics({
+            uri: document.getURL(),
+            diagnostics: [],
         });
     }
 }

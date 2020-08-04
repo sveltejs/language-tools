@@ -28,18 +28,13 @@
 
     type NativeElement = HTMLElement;
 
-    interface IntrinsicAttributes {
-      ref?: (instance: Element) => void;
-    }
+    // eslint-disable-next-line @typescript-eslint/no-empty-interface
+    interface IntrinsicAttributes {}
 
     // TypeScript SVGElement has no `dataset` (Chrome 55+, Firefox 51+).
     type Element = NativeElement & {
       dataset: DOMStringMap;
     };
-
-    interface Ref<T> {
-      current: null | T;
-    }
 
     //
     // Event Handler Types
@@ -55,10 +50,12 @@
     type KeyboardEventHandler<T> = EventHandler<KeyboardEvent, T>;
     type MouseEventHandler<T> = EventHandler<MouseEvent, T>;
     type TouchEventHandler<T> = EventHandler<TouchEvent, T>;
+    type PointerEventHandler<T> = EventHandler<PointerEvent, T>;
     type UIEventHandler<T> = EventHandler<UIEvent, T>;
     type WheelEventHandler<T> = EventHandler<WheelEvent, T>;
     type AnimationEventHandler<T> = EventHandler<AnimationEvent, T>;
     type TransitionEventHandler<T> = EventHandler<TransitionEvent, T>;
+    type MessageEventHandler<T> = EventHandler<MessageEvent, T>;
 
     type ClassNameBase = boolean | string | number | void | null;
     type ClassName = string | (ClassNameBase | ClassNameBase[])[] | {
@@ -90,166 +87,133 @@
 
       // Clipboard Events
       oncopy?: ClipboardEventHandler<T>;
-      oncopycapture?: ClipboardEventHandler<T>;
       oncut?: ClipboardEventHandler<T>;
-      oncutcapture?: ClipboardEventHandler<T>;
       onpaste?: ClipboardEventHandler<T>;
-      onpastecapture?: ClipboardEventHandler<T>;
 
       // Composition Events
       oncompositionend?: CompositionEventHandler<T>;
-      oncompositionendcapture?: CompositionEventHandler<T>;
       oncompositionstart?: CompositionEventHandler<T>;
-      oncompositionstartcapture?: CompositionEventHandler<T>;
       oncompositionupdate?: CompositionEventHandler<T>;
-      oncompositionupdatecapture?: CompositionEventHandler<T>;
 
       // Focus Events
       onfocus?: FocusEventHandler<T>;
-      onfocuscapture?: FocusEventHandler<T>;
       onblur?: FocusEventHandler<T>;
-      onblurcapture?: FocusEventHandler<T>;
 
       // Form Events
       onchange?: FormEventHandler<T>;
-      onchangecapture?: FormEventHandler<T>;
       oninput?: FormEventHandler<T>;
-      oninputcapture?: FormEventHandler<T>;
       onreset?: FormEventHandler<T>;
-      onresetcapture?: FormEventHandler<T>;
       onsubmit?: FormEventHandler<T>;
-      onsubmitcapture?: FormEventHandler<T>;
+      oninvalid?: EventHandler<T>;
 
       // Image Events
       onload?: EventHandler;
-      onloadcapture?: EventHandler;
       onerror?: EventHandler; // also a Media Event
-      onerrorcapture?: EventHandler; // also a Media Event
 
       // Keyboard Events
       onkeydown?: KeyboardEventHandler<T>;
-      onkeydowncapture?: KeyboardEventHandler<T>;
       onkeypress?: KeyboardEventHandler<T>;
-      onkeypresscapture?: KeyboardEventHandler<T>;
       onkeyup?: KeyboardEventHandler<T>;
-      onkeyupcapture?: KeyboardEventHandler<T>;
 
       // Media Events
       onabort?: EventHandler<T>;
-      onabortcapture?: EventHandler<T>;
       oncanplay?: EventHandler<T>;
-      oncanplaycapture?: EventHandler<T>;
       oncanplaythrough?: EventHandler<T>;
-      oncanplaythroughcapture?: EventHandler<T>;
+      oncuechange?: EventHandler<T>;
       ondurationchange?: EventHandler<T>;
-      ondurationchangecapture?: EventHandler<T>;
       onemptied?: EventHandler<T>;
-      onemptiedcapture?: EventHandler<T>;
       onencrypted?: EventHandler<T>;
-      onencryptedcapture?: EventHandler<T>;
       onended?: EventHandler<T>;
-      onendedcapture?: EventHandler<T>;
       onloadeddata?: EventHandler<T>;
-      onloadeddatacapture?: EventHandler<T>;
       onloadedmetadata?: EventHandler<T>;
-      onloadedmetadatacapture?: EventHandler<T>;
       onloadstart?: EventHandler<T>;
-      onloadstartcapture?: EventHandler<T>;
       onpause?: EventHandler<T>;
-      onpausecapture?: EventHandler<T>;
       onplay?: EventHandler<T>;
-      onplaycapture?: EventHandler<T>;
       onplaying?: EventHandler<T>;
-      onplayingcapture?: EventHandler<T>;
       onprogress?: EventHandler<T>;
-      onprogresscapture?: EventHandler<T>;
       onratechange?: EventHandler<T>;
-      onratechangecapture?: EventHandler<T>;
       onseeked?: EventHandler<T>;
-      onseekedcapture?: EventHandler<T>;
       onseeking?: EventHandler<T>;
-      onseekingcapture?: EventHandler<T>;
       onstalled?: EventHandler<T>;
-      onstalledcapture?: EventHandler<T>;
       onsuspend?: EventHandler<T>;
-      onsuspendcapture?: EventHandler<T>;
       ontimeupdate?: EventHandler<T>;
-      ontimeupdatecapture?: EventHandler<T>;
       onvolumechange?: EventHandler<T>;
-      onvolumechangecapture?: EventHandler<T>;
       onwaiting?: EventHandler<T>;
-      onwaitingcapture?: EventHandler<T>;
 
       // MouseEvents
+      onauxclick?: MouseEventHandler<T>;
       onclick?: MouseEventHandler<T>;
-      onclickcapture?: MouseEventHandler<T>;
       oncontextmenu?: MouseEventHandler<T>;
-      oncontextmenucapture?: MouseEventHandler<T>;
       ondblclick?: MouseEventHandler<T>;
-      ondblclickcapture?: MouseEventHandler<T>;
       ondrag?: DragEventHandler<T>;
-      ondragcapture?: DragEventHandler<T>;
       ondragend?: DragEventHandler<T>;
-      ondragendcapture?: DragEventHandler<T>;
       ondragenter?: DragEventHandler<T>;
-      ondragentercapture?: DragEventHandler<T>;
       ondragexit?: DragEventHandler<T>;
-      ondragexitcapture?: DragEventHandler<T>;
       ondragleave?: DragEventHandler<T>;
-      ondragleavecapture?: DragEventHandler<T>;
       ondragover?: DragEventHandler<T>;
-      ondragovercapture?: DragEventHandler<T>;
       ondragstart?: DragEventHandler<T>;
-      ondragstartcapture?: DragEventHandler<T>;
       ondrop?: DragEventHandler<T>;
-      ondropcapture?: DragEventHandler<T>;
       onmousedown?: MouseEventHandler<T>;
-      onmousedowncapture?: MouseEventHandler<T>;
       onmouseenter?: MouseEventHandler<T>;
       onmouseleave?: MouseEventHandler<T>;
       onmousemove?: MouseEventHandler<T>;
-      onmousemovecapture?: MouseEventHandler<T>;
       onmouseout?: MouseEventHandler<T>;
-      onmouseoutcapture?: MouseEventHandler<T>;
       onmouseover?: MouseEventHandler<T>;
-      onmouseovercapture?: MouseEventHandler<T>;
       onmouseup?: MouseEventHandler<T>;
-      onmouseupcapture?: MouseEventHandler<T>;
 
       // Selection Events
       onselect?: EventHandler<T>;
-      onselectcapture?: EventHandler<T>;
+      onselectionchange?: EventHandler<T>;
+      onselectstart?: EventHandler<T>;
 
       // Touch Events
       ontouchcancel?: TouchEventHandler<T>;
-      ontouchcancelcapture?: TouchEventHandler<T>;
       ontouchend?: TouchEventHandler<T>;
-      ontouchendcapture?: TouchEventHandler<T>;
       ontouchmove?: TouchEventHandler<T>;
-      ontouchmovecapture?: TouchEventHandler<T>;
       ontouchstart?: TouchEventHandler<T>;
-      ontouchstartcapture?: TouchEventHandler<T>;
+
+      // Pointer Events
+      ongotpointercapture?: PointerEventHandler<T>;
+      onpointercancel?: PointerEventHandler<T>;
+      onpointerdown?: PointerEventHandler<T>;
+      onpointerenter?: PointerEventHandler<T>;
+      onpointerleave?: PointerEventHandler<T>;
+      onpointermove?: PointerEventHandler<T>;
+      onpointerout?: PointerEventHandler<T>;
+      onpointerover?: PointerEventHandler<T>;
+      onpointerup?: PointerEventHandler<T>;
+      onlostpointercapture?: PointerEventHandler<T>;
 
       // UI Events
       onscroll?: UIEventHandler<T>;
-      onscrollcapture?: UIEventHandler<T>;
       onresize?: UIEventHandler<T>;
 
       // Wheel Events
       onwheel?: WheelEventHandler<T>;
-      onwheelcapture?: WheelEventHandler<T>;
 
       // Animation Events
       onanimationstart?: AnimationEventHandler<T>;
-      onanimationstartcapture?: AnimationEventHandler<T>;
       onanimationend?: AnimationEventHandler<T>;
-      onanimationendcapture?: AnimationEventHandler<T>;
       onanimationiteration?: AnimationEventHandler<T>;
-      onanimationiterationcapture?: AnimationEventHandler<T>;
 
       // Transition Events
       ontransitionend?: TransitionEventHandler<T>;
-      ontransitionendcapture?: TransitionEventHandler<T>;
+
+      // Svelte Transition Events
+      onoutrostart?: EventHandler<CustomEvent<null>, T>;
+      onoutroend?: EventHandler<CustomEvent<null>, T>;
+      onintrostart?: EventHandler<CustomEvent<null>, T>;
+      onintroend?: EventHandler<CustomEvent<null>, T>;
+
+      // Message Events
+      onmessage?: MessageEventHandler<T>;
+      onmessageerror?: MessageEventHandler<T>;
+
+      // Global Events
+      oncancel?: EventHandler<T>;
+      onclose?: EventHandler<T>;
+      onfullscreenchange?: EventHandler<T>;
+      onfullscreenerror?: EventHandler<T>;
     }
 
     interface HTMLAttributes<T> extends DOMAttributes<T> {
@@ -705,6 +669,27 @@
       scrollX?: Window['scrollX'];
       scrollY?: Window['scrollY'];
       readonly online?: Window['navigator']['onLine'];
+
+
+      onbeforeprint?: EventHandler<Event, Window>;
+      onafterprint?: EventHandler<Event, Window>;
+      onlanguagechange?: EventHandler<Event, Window>;
+      onmessage?: EventHandler<MessageEvent, Window>;
+      onmessageerror?: EventHandler<MessageEvent, Window>;
+      onoffline?: EventHandler<Event, Window>;
+      ononline?: EventHandler<Event, Window>;
+      onbeforeunload?: EventHandler<BeforeUnloadEvent, Window>;
+      onunload?: EventHandler<Event, Window>;
+      onstorage?: EventHandler<StorageEvent, Window>;
+      onhashchange?: EventHandler<HashChangeEvent, Window>;
+      onpagehide?: EventHandler<PageTransitionEvent, Window>;
+      onpageshow?: EventHandler<PageTransitionEvent, Window>;
+      onpopstate?: EventHandler<PopStateEvent, Window>;
+      ondevicemotion?: EventHandler<DeviceMotionEvent>;
+      ondeviceorientation?: EventHandler<DeviceOrientationEvent, Window>;
+      ondeviceorientationabsolute?: EventHandler<DeviceOrientationEvent, Window>;
+      onunhandledrejection?: EventHandler<PromiseRejectionEvent, Window>;
+      onrejectionhandled?: EventHandler<PromiseRejectionEvent, Window>;
     }
 
     interface IntrinsicElements {

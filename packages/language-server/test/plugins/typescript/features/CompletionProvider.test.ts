@@ -11,8 +11,12 @@ import {
     Position,
     Range,
     CompletionTriggerKind,
+    MarkupKind,
 } from 'vscode-languageserver';
-import { CompletionsProviderImpl, CompletionEntryWithIdentifer } from '../../../../src/plugins/typescript/features/CompletionProvider';
+import {
+    CompletionsProviderImpl,
+    CompletionEntryWithIdentifer,
+} from '../../../../src/plugins/typescript/features/CompletionProvider';
 import { LSAndTSDocResolver } from '../../../../src/plugins/typescript/LSAndTSDocResolver';
 import { sortBy } from 'lodash';
 
@@ -114,7 +118,7 @@ describe('CompletionProviderImpl', () => {
             replacementSpan: undefined,
             sortText: '0',
             source: undefined,
-            uri: fileNameToAbosoluteUri(filename)
+            uri: fileNameToAbosoluteUri(filename),
         } as CompletionEntryWithIdentifer);
     });
 
@@ -135,7 +139,7 @@ describe('CompletionProviderImpl', () => {
         });
 
         assert.deepStrictEqual(detail, '(alias) function foo(): boolean\nimport foo');
-        assert.deepStrictEqual(documentation, 'bars');
+        assert.deepStrictEqual(documentation, { value: 'bars', kind: MarkupKind.Markdown });
     });
 
     it('provides import completions for directory', async () => {
@@ -179,15 +183,17 @@ describe('CompletionProviderImpl', () => {
             ts.Extension.Jsx,
             ts.Extension.Tsx,
             ts.Extension.Json,
-            '.svelte'
+            '.svelte',
         ];
         const ignores = ['tsconfig.json', sourceFile];
 
         const testfiles = readdirSync(testFilesDir, { withFileTypes: true })
-            .filter((f) => f.isDirectory()
-                          || (supportedExtensions.includes(extname(f.name))
-                          && !ignores.includes(f.name)))
-            .map(f => f.name);
+            .filter(
+                (f) =>
+                    f.isDirectory() ||
+                    (supportedExtensions.includes(extname(f.name)) && !ignores.includes(f.name)),
+            )
+            .map((f) => f.name);
 
         const completions = await completionProvider.getCompletions(
             document,
@@ -199,8 +205,11 @@ describe('CompletionProviderImpl', () => {
         );
 
         assert.deepStrictEqual(
-            sortBy(completions?.items.map(item => item.label), x => x),
-            sortBy(testfiles, x => x)
+            sortBy(
+                completions?.items.map((item) => item.label),
+                (x) => x,
+            ),
+            sortBy(testfiles, (x) => x),
         );
     });
 
@@ -375,7 +384,7 @@ describe('CompletionProviderImpl', () => {
             harmonizeNewLines(additionalTextEdits![0]?.newText),
             // " instead of ' because VSCode uses " by default when there are no other imports indicating otherwise
             `<script>${newLine}import ImportedFile from "./imported-file.svelte";` +
-            `${newLine}${newLine}</script>${newLine}`,
+                `${newLine}${newLine}</script>${newLine}`,
         );
 
         assert.deepEqual(

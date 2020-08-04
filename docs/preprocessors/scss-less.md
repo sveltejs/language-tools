@@ -1,10 +1,39 @@
 # SCSS/Less Support
 
-The following document talks about SCSS, but the same applies for Less.
+The following document mainly talks about SCSS, but the same applies for Less.
 
-## Syntax Highlighting
+## Setup
 
-To gain syntax highlighing for your SCSS code, add a `type` or `lang` attribute to your style tags like so:
+#### 1. Install the required npm packages
+
+You first need to install the npm package which can actually transpile the language to css.
+
+-   SCSS: `sass` / `node-sass`
+-   Less: `less`
+
+You also need a Svelte preprocessor which connects the preprocessing with SCSS/Less. We recommend using [svelte-preprocess](https://github.com/sveltejs/svelte-preprocess).
+
+> Example of installing both when using SCSS:
+
+```sh
+npm i -D svelte-preprocess sass
+```
+
+#### 2. Setting up a svelte-config.js
+
+You need a `svelte.config.js`. [Read here on how to set it up and also how it relates to your build config](./in-general.md). If you are using [svelte-preprocess](https://github.com/sveltejs/svelte-preprocess) (recommended), this is enough:
+
+```js
+const sveltePreprocess = require('svelte-preprocess');
+
+module.exports = {
+    preprocess: sveltePreprocess(),
+};
+```
+
+#### 3. Using the lang/type attributes to make us understand the language
+
+To gain syntax highlighing for your SCSS code and to make us understand the language you are using, add a `type` or `lang` attribute to your style tags like so:
 
 ```html
 <!-- Add type="text/scss" -->
@@ -26,45 +55,7 @@ To gain syntax highlighing for your SCSS code, add a `type` or `lang` attribute 
 </style>
 ```
 
-## Fix svelte errors
-
-The highlighter can now understand the syntax, but svelte still can't.
-For that you will need to add a `svelte.config.js` file at the root of your project to tell svelte how to convert your SCSS into CSS that it understands.
-
-You likely already have this configuration somewhere if you are/are planning to use SCSS with svelte, e.g. webpack config, rollup config, etc.
-
-_Tip: To avoid duplication of config, you can import the `svelte.config.js` file in your bundle configuration_
-
-### Example Configurations
-
-#### Using [svelte-preprocess](https://github.com/sveltejs/svelte-preprocess)
-
-##### Install
-
-```sh
-npm i -D svelte-preprocess node-sass
-```
-
-<details>
-<summary>Yarn</summary>
-
-```sh
-yarn add --dev svelte-preprocess node-sass
-```
-
-</details>
-
-##### Set up `svelte.config.js`
-
-```js
-const sveltePreprocess = require('svelte-preprocess');
-
-module.exports = {
-    preprocess: sveltePreprocess(),
-};
-```
-
-##### Restart the svelte language server
+#### 4. Restart the svelte language server
 
 You will need to tell svelte-vscode to restart the svelte language server in order to pick up the new configuration.
 
@@ -72,6 +63,6 @@ Hit `ctrl-shift-p` or `cmd-shift-p` on mac, type `svelte restart`, and select `S
 
 ## Troubleshooting / FAQ
 
-### SCSS: Still having errors?
+### SCSS: Using node-sass and having errors?
 
 The `node-sass` package is very sensitive to node versions. It may be possible that this plugin runs on a different version than your application. Then it is necessary to set the `svelte.language-server.runtime` setting to the path of your node runtime. E.g. `"svelte.language-server.runtime": "/<LOCAL_PATH>/bin/node"`.

@@ -1,4 +1,4 @@
-import { getEmmetCompletionParticipants } from 'vscode-emmet-helper';
+import { getEmmetCompletionParticipants, doComplete as doEmmetComplete } from 'vscode-emmet-helper';
 import {
     Color,
     ColorInformation,
@@ -119,8 +119,14 @@ export class CSSPlugin
         }
 
         const cssDocument = this.getCSSDoc(document);
-        if (!cssDocument.isInGenerated(position) || isSASS(cssDocument)) {
+        if (!cssDocument.isInGenerated(position)) {
             return null;
+        }
+
+        if (isSASS(cssDocument)) {
+            // the css language service does not support sass, still we can use
+            // the emmet helper directly to at least get emmet completions
+            return doEmmetComplete(document, position, 'sass', {});
         }
 
         const type = extractLanguage(cssDocument);

@@ -135,7 +135,7 @@ function render() {
 				<TableOfContents sections={sections} slug={slug} selected={selected}/>
 			</div>
 
-			<div class="chapter-markup" {...__sveltets_empty(scrollable=__sveltets_instanceOf(HTMLElement))}>
+			<div class="chapter-markup" {...__sveltets_ensureType(HTMLElement, scrollable)}>
 				{ chapter.html}
 
 				<div class="controls">
@@ -159,7 +159,7 @@ function render() {
 
 		<div class="tutorial-repl">
 			<Repl
-				{...__sveltets_empty(repl=__sveltets_instanceOf(Repl))}
+				{...__sveltets_ensureType(Repl, repl)}
 				workersUrl="workers"
 				svelteUrl={svelteUrl}
 				rollupUrl={rollupUrl}
