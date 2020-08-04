@@ -854,16 +854,16 @@ function addComponentExport(
         // the prop is optional
         strictMode && isTsFile
             ? uses$$propsOr$$restProps
-                ? '__sveltets_with_any(render().props)'
-                : 'render().props'
-            : `__sveltets_partial${uses$$propsOr$$restProps ? '_with_any' : ''}(render().props)`;
+                ? '__sveltets_with_any(render)'
+                : 'render'
+            : `__sveltets_partial${uses$$propsOr$$restProps ? '_with_any' : ''}(render)`;
 
     const doc = formatComponentDocumentation(componentDocumentation);
 
     const statement =
-        `\nconst _${className} = createSvelte2TsxComponent(render);\n\n${doc}export default class ${
-            className ? `${className} ` : ''
-        } extends _${className} {` +
+        `\n\n${doc}export default class${
+            className ? ` ${className}` : ''
+        } extends createSvelte2TsxComponent(${propDef}) {` +
         createClassGetters(getters) +
         '\n}';
 

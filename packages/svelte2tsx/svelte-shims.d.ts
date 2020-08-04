@@ -96,9 +96,15 @@ declare function __sveltets_ensureType<T>(type: AConstructorTypeOf<T>, el: T): {
 declare function __sveltets_instanceOf<T>(type: AConstructorTypeOf<T>): T;
 declare function __sveltets_allPropsType(): SvelteAllProps
 declare function __sveltets_restPropsType(): SvelteRestProps
-declare function __sveltets_partial<T>(obj: T): Partial<T>;
-declare function __sveltets_partial_with_any<T>(obj: T): Partial<T> & SvelteAllProps
-declare function __sveltets_with_any<T>(obj: T): T & SvelteAllProps
+declare function __sveltets_partial<Props = {}, Events = {}, Slots = {}>(
+    render: () => {props?: Props, events?: Events, slots?: Slots }
+): () => {props?: Partial<Props>, events?: Events, slots?: Slots }
+declare function __sveltets_partial_with_any<Props = {}, Events = {}, Slots = {}>(
+    render: () => {props?: Props, events?: Events, slots?: Slots }
+): () => {props?: Partial<Props> & SvelteAllProps, events?: Events, slots?: Slots }
+declare function __sveltets_with_any<Props = {}, Events = {}, Slots = {}>(
+    render: () => {props?: Props, events?: Events, slots?: Slots }
+): () => {props?: Props & SvelteAllProps, events?: Events, slots?: Slots }
 declare function __sveltets_store_get<T = any>(store: SvelteStore<T>): T
 declare function __sveltets_any(dummy: any): any;
 declare function __sveltets_empty(dummy: any): {};
@@ -136,6 +142,6 @@ declare function __sveltets_each<T>(
     callbackfn: (value: T, index: number) => any
 ): any;
 
-declare function createSvelte2TsxComponent<Props = {}, Events = {}, Slots = {}>(
+declare function createSvelte2TsxComponent<Props, Events, Slots>(
     render: () => {props?: Props, events?: Events, slots?: Slots }
 ): AConstructorTypeOf<Svelte2TsxComponent<Props, Events, Slots>>;
