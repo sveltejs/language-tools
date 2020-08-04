@@ -6,4 +6,4 @@ export function getTypeForComponent(node: Node) {
     } else {
         return node.name;
     }
-};
+}
