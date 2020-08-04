@@ -61,7 +61,7 @@ export interface LSOptions {
 export function startServer(options?: LSOptions) {
     let connection = options?.connection;
     if (!connection) {
-		if (process.argv.includes('--stdio')) {
+        if (process.argv.includes('--stdio')) {
             console.log = (...args: any[]) => {
                 console.warn(...args);
             };
