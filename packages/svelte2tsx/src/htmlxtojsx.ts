@@ -72,15 +72,9 @@ export function convertHtmlxToJsx(
             if (attr.expression) {
                 const on = 'on';
                 //for handler assignment, we changeIt to call to our __sveltets_ensureFunction
-                str.appendRight(
-                    attr.start, `{__sveltets_instanceOf(${parent.name}).$`
-                );
+                str.appendRight(attr.start, `{__sveltets_instanceOf(${parent.name}).$`);
                 const eventNameIndex = htmlx.indexOf(':', attr.start) + 1;
-                str.overwrite(
-                    htmlx.indexOf(on, attr.start) + on.length,
-                    eventNameIndex,
-                    `('`
-                );
+                str.overwrite(htmlx.indexOf(on, attr.start) + on.length, eventNameIndex, `('`);
                 const eventEnd = htmlx.lastIndexOf('=', attr.expression.start);
                 str.overwrite(eventEnd, attr.expression.start, `', `);
                 str.overwrite(attr.expression.end, attr.end, ')}');
@@ -103,7 +97,11 @@ export function convertHtmlxToJsx(
     };
 
     const handleActionDirective = (attr: Node) => {
-        str.overwrite(attr.start, attr.start + 'use:'.length, '{...__sveltets_ensureAction(');
+        str.overwrite(
+            attr.start,
+            attr.start + 'use:'.length,
+            `{...__sveltets_ensureAction(__sveltets_mapElementTag('${currentElement}'),`,
+        );
 
         if (!attr.expression) {
             str.appendLeft(attr.end, ')}');
@@ -431,7 +429,9 @@ export function convertHtmlxToJsx(
         }
     };
 
+    let currentElement: string;
     const handleElement = (node: Node) => {
+        currentElement = node.name;
         //we just have to self close void tags since jsx always wants the />
         const voidTags = 'area,base,br,col,embed,hr,img,input,link,meta,param,source,track,wbr'.split(
             ',',
