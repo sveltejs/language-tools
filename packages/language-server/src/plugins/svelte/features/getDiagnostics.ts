@@ -12,10 +12,14 @@ export async function getDiagnostics(
     document: Document,
     svelteDoc: SvelteDocument,
 ): Promise<Diagnostic[]> {
+    if (svelteDoc.config.loadConfigError) {
+        return getConfigLoadErrorDiagnostics(svelteDoc.config.loadConfigError);
+    }
+
     try {
         return await tryGetDiagnostics(document, svelteDoc);
     } catch (error) {
-        return getPreprocessErrorDiagnostics(document, svelteDoc, error);
+        return getPreprocessErrorDiagnostics(document, error);
     }
 }
 
@@ -91,17 +95,9 @@ async function createParserErrorDiagnostic(error: any, document: Document) {
 /**
  * Try to infer a nice diagnostic error message from the transpilation error.
  */
-function getPreprocessErrorDiagnostics(
-    document: Document,
-    svelteDoc: SvelteDocument,
-    error: any,
-): Diagnostic[] {
+function getPreprocessErrorDiagnostics(document: Document, error: any): Diagnostic[] {
     Logger.error('Preprocessing failed');
     Logger.error(error);
-
-    if (svelteDoc.config.loadConfigError) {
-        return getConfigLoadErrorDiagnostics(svelteDoc.config.loadConfigError);
-    }
 
     if (document.styleInfo && error.__source === TranspileErrorSource.Style) {
         return getStyleErrorDiagnostics(error, document);
