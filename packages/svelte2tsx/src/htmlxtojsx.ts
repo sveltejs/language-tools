@@ -3,6 +3,7 @@ import svelte from 'svelte/compiler';
 import { Node } from 'estree-walker';
 import { parseHtmlx } from './htmlxparser';
 import svgAttributes from './svgattributes';
+import { getTypeForComponent } from './nodes/component-type';
 
 type ElementType = string;
 const oneWayBindingAttributes: Map<string, ElementType> = new Map(
@@ -72,7 +73,10 @@ export function convertHtmlxToJsx(
             if (attr.expression) {
                 const on = 'on';
                 //for handler assignment, we changeIt to call to our __sveltets_ensureFunction
-                str.appendRight(attr.start, `{__sveltets_instanceOf(${parent.name}).$`);
+                str.appendRight(
+                    attr.start,
+                    `{__sveltets_instanceOf(${getTypeForComponent(parent)}).$`,
+                );
                 const eventNameIndex = htmlx.indexOf(':', attr.start) + 1;
                 str.overwrite(htmlx.indexOf(on, attr.start) + on.length, eventNameIndex, `('`);
                 const eventEnd = htmlx.lastIndexOf('=', attr.expression.start);
@@ -170,17 +174,10 @@ export function convertHtmlxToJsx(
     };
 
     const handleBinding = (attr: Node, el: Node) => {
-        const getThisTypeForComponent = (node: Node) => {
-            if (node.name === 'svelte:component' || node.name === 'svelte:self') {
-                return '__sveltets_componentType()';
-            } else {
-                return node.name;
-            }
-        };
         const getThisType = (node: Node) => {
             switch (node.type) {
                 case 'InlineComponent':
-                    return getThisTypeForComponent(node);
+                    return getTypeForComponent(node);
                 case 'Element':
                     return 'HTMLElement';
                 case 'Body':

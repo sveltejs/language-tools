@@ -67,6 +67,8 @@ The official vscode extension for Svelte. Built from [UnwrittenFun/svelte-vscode
 
 Converts a .svelte file into a legal TypeScript file. Built from [halfnelson/svelte2tsx](https://github.com/halfnelson/svelte2tsx) to provide the auto-complete and import mapping inside the language server.
 
+> Want to see how it's transformed? [Check out this REPL](https://embed.plnkr.co/plunk/JPye9tlsqwMrWHGv?show=preview&autoCloseSidebar)
+
 ## Development
 
 #### Setup
