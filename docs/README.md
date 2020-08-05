@@ -64,7 +64,7 @@ If so, this will prevent the language server from getting noticed about updates,
 
 #### Component syntax highlighting does not work
 
-If your syntax highlighting seems to be not working for Svelte components, it may be that your color theme either sets the component color to "white" or does not set this kind of token at all. To change this, you can add something like the following in your `settings.json`:
+If your syntax highlighting seems to be not working for Svelte components, it may be that your color theme either sets the component color to "white" or does not set this kind of token at all. To change this in VSCode, you can add something like the following to your `settings.json`:
 
 ```
 {
