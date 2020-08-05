@@ -8,6 +8,7 @@ assignees: ''
 ---
 
 <!-- Before you submit a bug, please make sure that:
+- you have searched and found no existing open issue with the problem in hand
 - you don't have   "files.associations": {"*.svelte": "html"  }   inside your VSCode settings (if you can't remember ever doing that, you don't have that)
 - you are using Svelte for Vscode (NOT the old "Svelte" by James Birtles) and have disabled all other Svelte-related extensions to reproduce the bug
 - if it's a preprocessor related bug like "can't use typescript", did you setup `svelte-preprocess` and/or `svelte.config.js`? See the docs for more info.
