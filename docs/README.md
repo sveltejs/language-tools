@@ -62,6 +62,27 @@ You need to save the file to see the changes. If the problem persists after savi
 
 If so, this will prevent the language server from getting noticed about updates, because it uses a file watcher for `js`/`ts` files.
 
+#### Component syntax highlighting does not work
+
+If your syntax highlighting seems to be not working for Svelte components, it may be that your color theme either sets the component color to "white" or does not set this kind of token at all. To change this, you can add something like the following in your `settings.json`:
+
+```
+{
+    "editor.tokenColorCustomizations": {
+        "[<Name of your theme>]": {
+            "textMateRules": [
+                {
+                    "settings": {
+                        "foreground": "#569CD6", // any color you like
+                    },
+                    "scope": "support.class.component.svelte"
+                }
+            ],
+        },
+    }
+}
+```
+
 ## Internals
 
 -   [Notes about deployment](./internal/deployment.md)
