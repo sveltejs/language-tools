@@ -17,6 +17,28 @@ const oneWayBindingAttributes: Map<string, ElementType> = new Map(
         ),
 );
 
+/**
+ * List taken from `svelte-jsx.d.ts` by searching for all attributes of type number
+ */
+const numberOnlyAttributes = new Set([
+    'cols',
+    'colspan',
+    'high',
+    'low',
+    'marginheight',
+    'marginwidth',
+    'minlength',
+    'maxlength',
+    'optimum',
+    'rows',
+    'rowspan',
+    'size',
+    'span',
+    'start',
+    'tabindex',
+    'results',
+]);
+
 const beforeStart = (start: number) => start - 1;
 
 type Walker = (node: Node, parent: Node, prop: string, index: number) => void;
@@ -74,14 +96,11 @@ export function convertHtmlxToJsx(
                 const on = 'on';
                 //for handler assignment, we changeIt to call to our __sveltets_ensureFunction
                 str.appendRight(
-                    attr.start, `{__sveltets_instanceOf(${getTypeForComponent(parent)}).$`
+                    attr.start,
+                    `{__sveltets_instanceOf(${getTypeForComponent(parent)}).$`,
                 );
                 const eventNameIndex = htmlx.indexOf(':', attr.start) + 1;
-                str.overwrite(
-                    htmlx.indexOf(on, attr.start) + on.length,
-                    eventNameIndex,
-                    `('`
-                );
+                str.overwrite(htmlx.indexOf(on, attr.start) + on.length, eventNameIndex, `('`);
                 const eventEnd = htmlx.lastIndexOf('=', attr.expression.start);
                 str.overwrite(eventEnd, attr.expression.start, `', `);
                 str.overwrite(attr.expression.end, attr.end, ')}');
@@ -173,7 +192,6 @@ export function convertHtmlxToJsx(
     };
 
     const handleBinding = (attr: Node, el: Node) => {
-
         const getThisType = (node: Node) => {
             switch (node.type) {
                 case 'InlineComponent':
@@ -224,7 +242,7 @@ export function convertHtmlxToJsx(
                 str.appendLeft(
                     attr.end,
                     `=__sveltets_instanceOf(${oneWayBindingAttributes.get(attr.name)}).${
-                    attr.name
+                        attr.name
                     })}`,
                 );
             } else {
@@ -233,7 +251,7 @@ export function convertHtmlxToJsx(
                     attr.expression.end,
                     attr.end,
                     `=__sveltets_instanceOf(${oneWayBindingAttributes.get(attr.name)}).${
-                    attr.name
+                        attr.name
                     })}`,
                 );
             }
@@ -387,8 +405,27 @@ export function convertHtmlxToJsx(
                 const endsWithQuote =
                     htmlx.lastIndexOf('"', attrVal.end) === attrVal.end - 1 ||
                     htmlx.lastIndexOf("'", attrVal.end) === attrVal.end - 1;
-                if (attrVal.end == attr.end && !endsWithQuote) {
-                    //we are not quoted. Add some
+                const needsQuotes = attrVal.end == attr.end && !endsWithQuote;
+
+                const hasBrackets =
+                    htmlx.lastIndexOf('}', attrVal.end) === attrVal.end - 1 ||
+                    htmlx.lastIndexOf('}"', attrVal.end) === attrVal.end - 1 ||
+                    htmlx.lastIndexOf("}'", attrVal.end) === attrVal.end - 1;
+                const needsNumberConversion =
+                    !hasBrackets &&
+                    parent.type === 'Element' &&
+                    numberOnlyAttributes.has(attr.name.toLowerCase()) &&
+                    !isNaN(attrVal.data);
+
+                if (needsNumberConversion) {
+                    if (needsQuotes) {
+                        str.prependRight(equals + 1, '{');
+                        str.appendLeft(attr.end, '}');
+                    } else {
+                        str.overwrite(equals + 1, equals + 2, '{');
+                        str.overwrite(attr.end - 1, attr.end, '}');
+                    }
+                } else if (needsQuotes) {
                     str.prependRight(equals + 1, '"');
                     str.appendLeft(attr.end, '"');
                 }
