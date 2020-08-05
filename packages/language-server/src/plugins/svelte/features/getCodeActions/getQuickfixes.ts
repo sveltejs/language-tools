@@ -67,10 +67,20 @@ function getCodeActionTitle(diagnostic: Diagnostic) {
     return `(svelte) Disable ${diagnostic.code} for this line`;
 }
 
+/**
+ * Whether or not the given diagnostic can be ignored via a
+ * <!-- svelte-ignore <code> -->
+ */
 export function isIgnorableSvelteDiagnostic(diagnostic: Diagnostic) {
     const { source, severity, code } = diagnostic;
-    return code && source === 'svelte' && severity !== DiagnosticSeverity.Error;
+    return (
+        code &&
+        !nonIgnorableWarnings.includes(<string>code) &&
+        source === 'svelte' &&
+        severity !== DiagnosticSeverity.Error
+    );
 }
+const nonIgnorableWarnings = ['missing-custom-element-compile-options'];
 
 async function getSvelteIgnoreEdit(svelteDoc: SvelteDocument, ast: Ast, diagnostic: Diagnostic) {
     const {
