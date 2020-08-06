@@ -2,7 +2,12 @@ declare module '*.svelte' {
     export default Svelte2TsxComponent
 }
 
-declare class Svelte2TsxComponent<Props = any, Events = {}, Slots = any, StrictEvents extends boolean = false> {
+declare class Svelte2TsxComponent<
+    Props extends {} = {},
+    Events extends {} = {},
+    Slots extends {} = {},
+    StrictEvents extends boolean = true
+> {
     // svelte2tsx-specific
     /**
      * @internal This is for type checking capabilities only
@@ -149,4 +154,4 @@ declare function __sveltets_each<T>(
 
 declare function createSvelte2TsxComponent<Props, Events, Slots>(
     render: () => {props?: Props, events?: Events, slots?: Slots }
-): AConstructorTypeOf<Svelte2TsxComponent<Props, Events, Slots>>;
+): AConstructorTypeOf<Svelte2TsxComponent<Props, Events, Slots, false>>;
