@@ -1,10 +1,62 @@
 declare module '*.svelte' {
-    export default class {
-        $$prop_def: any;
-        $$slot_def: any;
+    export default Svelte2TsxComponent
+}
 
-        $on(event: string, handler: (e: Event) => any): () => void
-    }
+declare class Svelte2TsxComponent<
+    Props extends {} = {},
+    Events extends {} = {},
+    Slots extends {} = {},
+    StrictEvents extends boolean = true
+> {
+    // svelte2tsx-specific
+    /**
+     * @internal This is for type checking capabilities only
+     * and does not exist at runtime. Don't use this property.
+     */
+    $$prop_def: Props;
+    /**
+     * @internal This is for type checking capabilities only
+     * and does not exist at runtime. Don't use this property.
+     */
+    $$slot_def: Slots;
+    // https://svelte.dev/docs#Client-side_component_API
+    constructor(options: {
+        /**
+         * An HTMLElement to render to. This option is required.
+         */
+        target: Element;
+        /**
+         * A child of `target` to render the component immediately before.
+         */
+        anchor?: Element;
+        /**
+         * An object of properties to supply to the component.
+         */
+        props?: Props;
+        hydrate?: boolean;
+        intro?: boolean;
+        $$inline?: boolean;
+    });
+    /**
+     * Causes the callback function to be called whenever the component dispatches an event.
+     * A function is returned that will remove the event listener when called.
+     */
+    $on<K extends keyof Events>(event: K, handler: (e: SvelteExtractEvent<Events[K]>) => any): void;
+    /**
+     * Causes the callback function to be called whenever the component dispatches an event.
+     * A function is returned that will remove the event listener when called.
+     */
+    $on(event: StrictEvents extends true ? never : string, handler: (e: CustomEvent) => any): void;
+    /**
+     * Removes a component from the DOM and triggers any `onDestroy` handlers.
+     */
+    $destroy(): void;
+    /**
+     * Programmatically sets props on an instance.
+     * `component.$set({ x: 1 })` is equivalent to `x = 1` inside the component's `<script>` block.
+     * Calling this method schedules an update for the next microtask — the DOM is __not__ updated synchronously.
+     */
+    $set(props: Partial<Props>): void;
 }
 
 type AConstructorTypeOf<T> = new (...args: any[]) => T;
@@ -35,7 +87,6 @@ type SvelteAnimation<U extends any[]> = (node: Element, move: { from: DOMRect, t
 type SvelteAllProps = { [index: string]: any }
 type SvelteRestProps = { [index: string]: any }
 type SvelteStore<T> = { subscribe: (run: (value: T) => any, invalidate?: any) => any }
-type SvelteComponent = import('*.svelte').default
 type SvelteEventRecord = Record<string, Event | Event[]>
 type SvelteExtractEvent<T> = T extends any[] ? T[number] : T;
 type SvelteOnEvent<T, K extends keyof T> = (
@@ -59,13 +110,19 @@ declare function __sveltets_ensureType<T>(type: AConstructorTypeOf<T>, el: T): {
 declare function __sveltets_instanceOf<T>(type: AConstructorTypeOf<T>): T;
 declare function __sveltets_allPropsType(): SvelteAllProps
 declare function __sveltets_restPropsType(): SvelteRestProps
-declare function __sveltets_partial<T>(obj: T): Partial<T>;
-declare function __sveltets_partial_with_any<T>(obj: T): Partial<T> & SvelteAllProps
-declare function __sveltets_with_any<T>(obj: T): T & SvelteAllProps
+declare function __sveltets_partial<Props = {}, Events = {}, Slots = {}>(
+    render: () => {props?: Props, events?: Events, slots?: Slots }
+): () => {props?: Partial<Props>, events?: Events, slots?: Slots }
+declare function __sveltets_partial_with_any<Props = {}, Events = {}, Slots = {}>(
+    render: () => {props?: Props, events?: Events, slots?: Slots }
+): () => {props?: Partial<Props> & SvelteAllProps, events?: Events, slots?: Slots }
+declare function __sveltets_with_any<Props = {}, Events = {}, Slots = {}>(
+    render: () => {props?: Props, events?: Events, slots?: Slots }
+): () => {props?: Props & SvelteAllProps, events?: Events, slots?: Slots }
 declare function __sveltets_store_get<T = any>(store: SvelteStore<T>): T
 declare function __sveltets_any(dummy: any): any;
 declare function __sveltets_empty(dummy: any): {};
-declare function __sveltets_componentType(): AConstructorTypeOf<SvelteComponent>
+declare function __sveltets_componentType(): AConstructorTypeOf<Svelte2TsxComponent>
 declare function __sveltets_invalidate<T>(getValue: () => T): T
 declare function __sveltets_eventDef<T extends SvelteEventRecord>(def: T): SvelteOnAllEvent<T>
 declare function __sveltets_mapWindowEvent<K extends keyof HTMLBodyElementEventMap>(
@@ -107,3 +164,7 @@ declare function __sveltets_each<T>(
     array: ArrayLike<T>,
     callbackfn: (value: T, index: number) => any
 ): any;
+
+declare function createSvelte2TsxComponent<Props, Events, Slots>(
+    render: () => {props?: Props, events?: Events, slots?: Slots }
+): AConstructorTypeOf<Svelte2TsxComponent<Props, Events, Slots, false>>;

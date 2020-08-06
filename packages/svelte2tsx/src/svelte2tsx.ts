@@ -534,7 +534,7 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
         if (
             (ts.isPrefixUnaryExpression(parent) || ts.isPostfixUnaryExpression(parent)) &&
             parent.operator !==
-            ts.SyntaxKind.ExclamationToken /* `!$store` does not need processing */
+                ts.SyntaxKind.ExclamationToken /* `!$store` does not need processing */
         ) {
             let simpleOperator: string;
             if (parent.operator === ts.SyntaxKind.PlusPlusToken) {
@@ -854,18 +854,17 @@ function addComponentExport(
         // the prop is optional
         strictMode && isTsFile
             ? uses$$propsOr$$restProps
-                ? '__sveltets_with_any(render().props)'
-                : 'render().props'
-            : `__sveltets_partial${uses$$propsOr$$restProps ? '_with_any' : ''}(render().props)`;
+                ? '__sveltets_with_any(render)'
+                : 'render'
+            : `__sveltets_partial${uses$$propsOr$$restProps ? '_with_any' : ''}(render)`;
 
     const doc = formatComponentDocumentation(componentDocumentation);
 
     const statement =
-        `\n\n${doc}export default class ${
-            className ? `${className} ` : ''
-        }{\n    $$prop_def = ${propDef}\n    $$slot_def = render().slots` +
+        `\n\n${doc}export default class${
+            className ? ` ${className}` : ''
+        } extends createSvelte2TsxComponent(${propDef}) {` +
         createClassGetters(getters) +
-        `\n    $on = __sveltets_eventDef(render().events)` +
         '\n}';
 
     str.append(statement);
@@ -949,7 +948,7 @@ function createRenderFunction({
 
     const returnString =
         `\nreturn { props: ${exportedNames.createPropsStr(
-            isTsFile
+            isTsFile,
         )}, slots: ${slotsAsDef}, getters: ${createRenderFunctionGetterStr(getters)}` +
         `, events: ${eventMapToString(events)} }}`;
 
@@ -1043,6 +1042,6 @@ export function svelte2tsx(
     return {
         code: str.toString(),
         map: str.generateMap({ hires: true, source: options?.filename }),
-        exportedNames
+        exportedNames,
     };
 }

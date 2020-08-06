@@ -6,11 +6,8 @@
 () => (<></>);
 return { props: {}, slots: {}, getters: {name: name, SOME: SOME, CONSTANT: CONSTANT}, events: {} }}
 
-export default class Input__SvelteComponent_ {
-    $$prop_def = __sveltets_partial(render().props)
-    $$slot_def = render().slots
+export default class Input__SvelteComponent_ extends createSvelte2TsxComponent(__sveltets_partial(render)) {
     get name() { return render().getters.name }
     get SOME() { return render().getters.SOME }
     get CONSTANT() { return render().getters.CONSTANT }
-    $on = __sveltets_eventDef(render().events)
 }
