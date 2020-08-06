@@ -1,9 +1,10 @@
 import MagicString from 'magic-string';
 import svelte from 'svelte/compiler';
 import { Node } from 'estree-walker';
-import { parseHtmlx } from './htmlxparser';
+import { parseHtmlx } from '../htmlxparser';
 import svgAttributes from './svgattributes';
 import { getTypeForComponent } from './nodes/component-type';
+import { handleAwait } from './nodes/await-block';
 
 type ElementType = string;
 const oneWayBindingAttributes: Map<string, ElementType> = new Map(
@@ -544,61 +545,6 @@ export function convertHtmlxToJsx(
         }
     };
 
-    // {#await somePromise then value} ->
-    // {() => {let _$$p = (somePromise);
-    const handleAwait = (awaitBlock: Node) => {
-        str.overwrite(awaitBlock.start, awaitBlock.expression.start, '{() => {let _$$p = (');
-        // then value } | {:then value} ->
-        // __sveltets_awaitThen(_$$p, (value) => {<>
-        let thenStart: number;
-        let thenEnd: number;
-        if (!awaitBlock.pending.skip) {
-            //thenBlock includes the {:then}
-            thenStart = awaitBlock.then.start;
-            if (awaitBlock.value) {
-                thenEnd = htmlx.indexOf('}', awaitBlock.value.end) + 1;
-            } else {
-                thenEnd = htmlx.indexOf('}', awaitBlock.then.start) + 1;
-            }
-            str.prependLeft(thenStart, '</>; ');
-            // add the start tag too
-            const awaitEnd = htmlx.indexOf('}', awaitBlock.expression.end);
-
-            // somePromise} -> somePromise);
-            str.overwrite(awaitBlock.expression.end, awaitEnd + 1, ');');
-            str.appendRight(awaitEnd + 1, ' <>');
-        } else {
-            thenEnd = htmlx.lastIndexOf('}', awaitBlock.then.start) + 1;
-            thenStart = htmlx.indexOf('then', awaitBlock.expression.end);
-
-            // somePromise then -> somePromise); then
-            str.overwrite(awaitBlock.expression.end, thenStart, '); ');
-        }
-        if (awaitBlock.value) {
-            str.overwrite(thenStart, awaitBlock.value.start, '__sveltets_awaitThen(_$$p, (');
-            str.overwrite(awaitBlock.value.end, thenEnd, ') => {<>');
-        } else {
-            str.overwrite(thenStart, thenEnd, '__sveltets_awaitThen(_$$p, () => {<>');
-        }
-        //{:catch error} ->
-        //</>}, (error) => {<>
-        if (!awaitBlock.catch.skip) {
-            //catch block includes the {:catch}
-            const catchStart = awaitBlock.catch.start;
-            const catchSymbolEnd = htmlx.indexOf(':catch', catchStart) + ':catch'.length;
-
-            const errorStart = awaitBlock.error ? awaitBlock.error.start : catchSymbolEnd;
-            const errorEnd = awaitBlock.error ? awaitBlock.error.end : errorStart;
-            const catchEnd = htmlx.indexOf('}', errorEnd) + 1;
-            str.overwrite(catchStart, errorStart, '</>}, (');
-            str.overwrite(errorEnd, catchEnd, ') => {<>');
-        }
-        // {/await} ->
-        // <>})}
-        const awaitEndStart = htmlx.lastIndexOf('{', awaitBlock.end);
-        str.overwrite(awaitEndStart, awaitBlock.end, '</>})}}');
-    };
-
     const handleComment = (node: Node) => {
         str.remove(node.start, node.end);
     };
@@ -628,7 +574,7 @@ export function convertHtmlxToJsx(
                         handleElse(node, parent);
                         break;
                     case 'AwaitBlock':
-                        handleAwait(node);
+                        handleAwait(htmlx, str, node);
                         break;
                     case 'RawMustacheTag':
                         handleRaw(node);
