@@ -548,38 +548,61 @@ export function convertHtmlxToJsx(
     // {() => {let _$$p = (somePromise);
     const handleAwait = (awaitBlock: Node) => {
         str.overwrite(awaitBlock.start, awaitBlock.expression.start, '{() => {let _$$p = (');
-        // then value } | {:then value} ->
+
+        // then value } | {:then value} | {await ..} .. {/await} ->
         // __sveltets_awaitThen(_$$p, (value) => {<>
         let thenStart: number;
         let thenEnd: number;
-        if (!awaitBlock.pending.skip) {
-            //thenBlock includes the {:then}
-            thenStart = awaitBlock.then.start;
-            if (awaitBlock.value) {
-                thenEnd = htmlx.indexOf('}', awaitBlock.value.end) + 1;
-            } else {
-                thenEnd = htmlx.indexOf('}', awaitBlock.then.start) + 1;
-            }
-            str.prependLeft(thenStart, '</>; ');
-            // add the start tag too
-            const awaitEnd = htmlx.indexOf('}', awaitBlock.expression.end);
+        if (!awaitBlock.then.skip) {
+            // then value } | {:then value}
+            if (!awaitBlock.pending.skip) {
+                // {await ...} ... {:then ...}
+                // thenBlock includes the {:then}
+                thenStart = awaitBlock.then.start;
+                if (awaitBlock.value) {
+                    thenEnd = htmlx.indexOf('}', awaitBlock.value.end) + 1;
+                } else {
+                    thenEnd = htmlx.indexOf('}', awaitBlock.then.start) + 1;
+                }
+                str.prependLeft(thenStart, '</>; ');
+                // add the start tag too
+                const awaitEnd = htmlx.indexOf('}', awaitBlock.expression.end);
 
-            // somePromise} -> somePromise);
+                // somePromise} -> somePromise);
+                str.overwrite(awaitBlock.expression.end, awaitEnd + 1, ');');
+                str.appendRight(awaitEnd + 1, ' <>');
+            } else {
+                // {await ... then ...}
+                thenStart = htmlx.indexOf('then', awaitBlock.expression.end);
+                thenEnd = htmlx.lastIndexOf('}', awaitBlock.then.start) + 1;
+                // somePromise then -> somePromise); then
+                str.overwrite(awaitBlock.expression.end, thenStart, '); ');
+            }
+        } else {
+            // {await ..} ... ({:catch ..}) {/await} -> no then block, no value, but always a pending block
+            thenEnd = awaitBlock.catch.skip
+                ? htmlx.lastIndexOf('{', awaitBlock.end)
+                : awaitBlock.catch.start;
+            thenStart = Math.min(awaitBlock.pending.end + 1, thenEnd);
+
+            const awaitEnd = htmlx.indexOf('}', awaitBlock.expression.end);
             str.overwrite(awaitBlock.expression.end, awaitEnd + 1, ');');
             str.appendRight(awaitEnd + 1, ' <>');
-        } else {
-            thenEnd = htmlx.lastIndexOf('}', awaitBlock.then.start) + 1;
-            thenStart = htmlx.indexOf('then', awaitBlock.expression.end);
-
-            // somePromise then -> somePromise); then
-            str.overwrite(awaitBlock.expression.end, thenStart, '); ');
+            str.appendLeft(thenEnd, '</>; ');
         }
+
         if (awaitBlock.value) {
             str.overwrite(thenStart, awaitBlock.value.start, '__sveltets_awaitThen(_$$p, (');
             str.overwrite(awaitBlock.value.end, thenEnd, ') => {<>');
         } else {
-            str.overwrite(thenStart, thenEnd, '__sveltets_awaitThen(_$$p, () => {<>');
+            const awaitThenFn = '__sveltets_awaitThen(_$$p, () => {<>';
+            if (thenStart === thenEnd) {
+                str.appendLeft(thenStart, awaitThenFn);
+            } else {
+                str.overwrite(thenStart, thenEnd, awaitThenFn);
+            }
         }
+
         //{:catch error} ->
         //</>}, (error) => {<>
         if (!awaitBlock.catch.skip) {
