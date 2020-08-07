@@ -8,7 +8,8 @@ export function createEventHandlerTransformer() {
 
         const handleEventHandlerBubble = () => {
             const componentEventDef = `__sveltets_instanceOf(${parent.name})`;
-            const exp = `__sveltets_bubbleEventDef(${componentEventDef}.$on, '${eventName}')`;
+            // eslint-disable-next-line max-len
+            const exp = `__sveltets_bubbleEventDef(${componentEventDef}.$$events_def, '${eventName}')`;
 
             const exist = events.get(eventName);
             events.set(eventName, exist ? [].concat(exist, exp) : exp);
@@ -19,10 +20,7 @@ export function createEventHandlerTransformer() {
             if (parent.type === 'InlineComponent') {
                 handleEventHandlerBubble();
             } else {
-                events.set(
-                    eventName,
-                    getEventDefExpressionForNonCompoent(eventName, parent)
-                );
+                events.set(eventName, getEventDefExpressionForNonCompoent(eventName, parent));
             }
         }
     };
@@ -47,17 +45,9 @@ function getEventDefExpressionForNonCompoent(eventName: string, ele: Node) {
 }
 
 export function eventMapToString(events: Map<string, string | string[]>) {
-    return '{' +
-        Array.from(events.entries()).map(eventMapEntryToString).join(', ') +
-        '}';
-
+    return '{' + Array.from(events.entries()).map(eventMapEntryToString).join(', ') + '}';
 }
 
-function eventMapEntryToString([eventName, expression]: [
-    string,
-    string | string[]
-]) {
-    return `'${eventName}':${
-        Array.isArray(expression) ? `[${expression}]` : expression
-        }`;
+function eventMapEntryToString([eventName, expression]: [string, string | string[]]) {
+    return `'${eventName}':${Array.isArray(expression) ? `[${expression}]` : expression}`;
 }

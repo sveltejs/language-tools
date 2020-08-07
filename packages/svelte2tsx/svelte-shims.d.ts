@@ -18,6 +18,11 @@ declare class Svelte2TsxComponent<
      * @internal This is for type checking capabilities only
      * and does not exist at runtime. Don't use this property.
      */
+    $$events_def: Events;
+    /**
+     * @internal This is for type checking capabilities only
+     * and does not exist at runtime. Don't use this property.
+     */
     $$slot_def: Slots;
     // https://svelte.dev/docs#Client-side_component_API
     constructor(options: {
@@ -41,7 +46,7 @@ declare class Svelte2TsxComponent<
      * Causes the callback function to be called whenever the component dispatches an event.
      * A function is returned that will remove the event listener when called.
      */
-    $on<K extends keyof Events>(event: K, handler: (e: SvelteExtractEvent<Events[K]>) => any): void;
+    $on<K extends keyof Events>(event: K, handler: (e: Events[K]) => any): void;
     /**
      * Causes the callback function to be called whenever the component dispatches an event.
      * A function is returned that will remove the event listener when called.
@@ -87,14 +92,7 @@ type SvelteAnimation<U extends any[]> = (node: Element, move: { from: DOMRect, t
 type SvelteAllProps = { [index: string]: any }
 type SvelteRestProps = { [index: string]: any }
 type SvelteStore<T> = { subscribe: (run: (value: T) => any, invalidate?: any) => any }
-type SvelteEventRecord = Record<string, Event | Event[]>
-type SvelteExtractEvent<T> = T extends any[] ? T[number] : T;
-type SvelteOnEvent<T, K extends keyof T> = (
-    event: K,
-    handler: (e: SvelteExtractEvent<T[K]>) => any
-) => () => void;
-type SvelteRestEvent = (event: string, handler: (e: CustomEvent) => any) => () => void
-type SvelteOnAllEvent<T> = SvelteOnEvent<T, keyof T> & SvelteRestEvent
+
 
 declare var process: NodeJS.Process & { browser: boolean }
 
@@ -124,7 +122,7 @@ declare function __sveltets_any(dummy: any): any;
 declare function __sveltets_empty(dummy: any): {};
 declare function __sveltets_componentType(): AConstructorTypeOf<Svelte2TsxComponent>
 declare function __sveltets_invalidate<T>(getValue: () => T): T
-declare function __sveltets_eventDef<T extends SvelteEventRecord>(def: T): SvelteOnAllEvent<T>
+
 declare function __sveltets_mapWindowEvent<K extends keyof HTMLBodyElementEventMap>(
     event: K
 ): HTMLBodyElementEventMap[K];
@@ -143,11 +141,13 @@ declare function __sveltets_mapElementTag<K extends keyof SVGElementTagNameMap>(
 declare function __sveltets_mapElementTag(
     tag: any
 ): HTMLElement;
-declare function __sveltets_bubbleEventDef<
-    T extends SvelteEventRecord,
-    TEvent,
-    TKey extends keyof T = TEvent extends keyof T ? TEvent : string
->(on: SvelteOnAllEvent<T>, event: TEvent): T[TKey];
+
+declare function __sveltets_bubbleEventDef<Events, K extends keyof Events>(
+    events: Events, eventKey: K
+): Events[K];
+declare function __sveltets_bubbleEventDef(
+    events: any, eventKey: string
+): any;
 
 declare function __sveltets_awaitThen<T>(
     promise: PromiseLike<T>,
