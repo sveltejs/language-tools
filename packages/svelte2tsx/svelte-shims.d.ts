@@ -122,7 +122,7 @@ declare function __sveltets_with_any<Props = {}, Events = {}, Slots = {}>(
 declare function __sveltets_store_get<T = any>(store: SvelteStore<T>): T
 declare function __sveltets_any(dummy: any): any;
 declare function __sveltets_empty(dummy: any): {};
-declare function __sveltets_componentType(): AConstructorTypeOf<Svelte2TsxComponent>
+declare function __sveltets_componentType(): AConstructorTypeOf<Svelte2TsxComponent<any, any, any, false>>
 declare function __sveltets_invalidate<T>(getValue: () => T): T
 declare function __sveltets_eventDef<T extends SvelteEventRecord>(def: T): SvelteOnAllEvent<T>
 declare function __sveltets_mapWindowEvent<K extends keyof HTMLBodyElementEventMap>(
