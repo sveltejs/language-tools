@@ -49,5 +49,7 @@ export function eventMapToString(events: Map<string, string | string[]>) {
 }
 
 function eventMapEntryToString([eventName, expression]: [string, string | string[]]) {
-    return `'${eventName}':${Array.isArray(expression) ? `[${expression}]` : expression}`;
+    return `'${eventName}':${
+        Array.isArray(expression) ? `__sveltets_unionType(${expression.join(',')})` : expression
+    }`;
 }
