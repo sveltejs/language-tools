@@ -1,6 +1,8 @@
 import { URI } from 'vscode-uri';
 import { Position, Range } from 'vscode-languageserver';
 
+const isWindows = process.platform === 'win32';
+
 export function clamp(num: number, min: number, max: number): number {
     return Math.max(min, Math.min(max, num));
 }
@@ -14,7 +16,15 @@ export function urlToPath(stringUrl: string): string | null {
 }
 
 export function pathToUrl(path: string) {
-    return URI.file(path).toString();
+    const url = URI.file(path).toString();
+    // On Windows, first %3A should be part of drive name.
+    return isWindows ? url.replace(/%3A/, ':') : url;
+}
+
+export function normalizeUrl(stringUrl: string) {
+    // vscode-uri use lower-case drive letter
+    // https://github.com/microsoft/vscode-uri/blob/95e03c06f87d38f25eda1ae3c343fe5b7eec3f52/src/index.ts#L1017
+    return isWindows ? stringUrl.replace(/file:\/\/\/[A-Z]:/, (s) => s.toLowerCase()) : stringUrl;
 }
 
 export function flatten<T>(arr: T[][]): T[] {

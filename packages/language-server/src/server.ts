@@ -29,7 +29,7 @@ import {
     SveltePlugin,
     TypeScriptPlugin,
 } from './plugins';
-import { urlToPath } from './utils';
+import { urlToPath, normalizeUrl } from './utils';
 
 namespace TagCloseRequest {
     export const type: RequestType<
@@ -77,7 +77,7 @@ export function startServer(options?: LSOptions) {
     }
 
     const docManager = new DocumentManager(
-        (textDocument) => new Document(textDocument.uri, textDocument.text),
+        (textDocument) => new Document(normalizeUrl(textDocument.uri), textDocument.text),
     );
     const configManager = new LSConfigManager();
     const pluginHost = new PluginHost(docManager, configManager);
@@ -191,10 +191,10 @@ export function startServer(options?: LSOptions) {
 
     connection.onDidOpenTextDocument((evt) => {
         docManager.openDocument(evt.textDocument);
-        docManager.markAsOpenedInClient(evt.textDocument.uri);
+        docManager.markAsOpenedInClient(normalizeUrl(evt.textDocument.uri));
     });
 
-    connection.onDidCloseTextDocument((evt) => docManager.closeDocument(evt.textDocument.uri));
+    connection.onDidCloseTextDocument((evt) => docManager.closeDocument(normalizeUrl(evt.textDocument.uri)));
     connection.onDidChangeTextDocument((evt) =>
         docManager.updateDocument(evt.textDocument, evt.contentChanges),
     );
