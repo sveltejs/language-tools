@@ -355,13 +355,14 @@ export function convertHtmlxToJsx(
         //if we are on an "element" we are case insensitive, lowercase to match our JSX
         if (parent.type == 'Element') {
             //skip Attribute shorthand, that is handled below
+            const sapperNosSroll = attr.name === 'sapper:noscroll';
             if (
                 attr.value !== true &&
                 !(
                     attr.value.length &&
                     attr.value.length == 1 &&
                     attr.value[0].type == 'AttributeShorthand'
-                )
+                ) || sapperNosSroll
             ) {
                 let name = attr.name;
                 if (!svgAttributes.find((x) => x == name)) {
