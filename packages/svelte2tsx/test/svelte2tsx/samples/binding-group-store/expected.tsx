@@ -1,3 +1,4 @@
+///<reference types="svelte" />
 <></>;function render() {
 <><input id="dom-input" type="radio" {...__sveltets_empty(__sveltets_store_get(compile_options).generate)} value="dom"/></>
 return { props: {}, slots: {}, getters: {}, events: {} }}

@@ -1,3 +1,4 @@
+///<reference types="svelte" />
 <></>;function render() {
 <><h1 onclick={ () => {
 

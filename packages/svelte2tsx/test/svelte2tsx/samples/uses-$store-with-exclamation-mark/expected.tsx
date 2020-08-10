@@ -1,3 +1,4 @@
+///<reference types="svelte" />
 <></>;
 import { writable } from 'svelte/store';
 function render() {

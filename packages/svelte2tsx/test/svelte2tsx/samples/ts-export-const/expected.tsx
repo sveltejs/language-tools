@@ -1,3 +1,4 @@
+///<reference types="svelte" />
 <></>;function render() {
 
      const name: string = "world";
