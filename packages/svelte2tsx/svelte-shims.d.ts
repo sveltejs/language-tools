@@ -155,14 +155,9 @@ declare function __sveltets_unionType<T1, T2, T3, T4>(t1: T1, t2: T2, t3: T3, t4
 declare function __sveltets_unionType(...types: any[]): any;
 
 declare function __sveltets_awaitThen<T>(
-    promise: PromiseLike<T>,
-    onfulfilled: (value: T) => any,
-    onrejected?: (value: any) => any
-): any;
-declare function __sveltets_awaitThen<T>(
     promise: T,
-    onfulfilled: (value: T) => any,
-    onrejected?: (value: never) => any
+    onfulfilled: (value: T extends PromiseLike<infer U> ? U : T) => any,
+    onrejected?: (value: T extends PromiseLike<any> ? any : never) => any
 ): any;
 
 declare function __sveltets_each<T>(
