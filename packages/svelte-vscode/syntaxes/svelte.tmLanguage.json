@@ -705,7 +705,7 @@
         },
         "tag-generic-attribute": {
             "name": "entity.other.attribute-name.html",
-            "match": "\\b([a-zA-Z\\-:]+)"
+            "match": "\\b([a-zA-Z\\-_:]+)"
         },
         "tag-id-attribute": {
             "name": "meta.attribute-with-value.id.html",
@@ -790,7 +790,7 @@
             ]
         },
         "tag-moustaches": {
-            "begin": "\\b([a-zA-Z\\-:]+)=(\"|')(?=.*{)",
+            "begin": "\\b([a-zA-Z\\-_:]+)=(\"|')(?=.*{)",
             "beginCaptures": {
                 "1": {
                     "name": "entity.other.attribute-name.html"
@@ -832,7 +832,7 @@
             ]
         },
         "tag-moustaches-raw": {
-            "begin": "\\b([a-zA-Z\\-:]+)=({)",
+            "begin": "\\b([a-zA-Z\\-_:]+)=({)",
             "beginCaptures": {
                 "1": {
                     "name": "entity.other.attribute-name.html"
