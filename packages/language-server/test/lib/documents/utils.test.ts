@@ -174,7 +174,6 @@ describe('document/utils', () => {
                 <scrit>blah</scrit>
                 <script>top level script</script>
             `;
-            // Note: cannot test <scrit>blah</scriPt> as that breaks parse5 parsing for top level script!
 
             assert.deepStrictEqual(extractScriptTags(text)?.script, {
                 content: 'top level script',
