@@ -68,7 +68,9 @@ export function startServer(options?: LSOptions) {
             connection = createConnection(process.stdin, process.stdout);
         } else {
             connection = createConnection(
-                new IPCMessageReader(process), new IPCMessageWriter(process));
+                new IPCMessageReader(process),
+                new IPCMessageWriter(process),
+            );
         }
     }
 
@@ -276,7 +278,7 @@ export function startServer(options?: LSOptions) {
     );
 
     connection.onRequest('$/getCompiledCode', async (uri: DocumentUri) => {
-        const doc = docManager.documents.get(uri);
+        const doc = docManager.get(uri);
         if (!doc) return null;
 
         if (doc) {

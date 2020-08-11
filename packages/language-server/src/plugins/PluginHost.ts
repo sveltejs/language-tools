@@ -314,7 +314,7 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
     }
 
     private getDocument(uri: string) {
-        return this.documentsManager.documents.get(uri);
+        return this.documentsManager.get(uri);
     }
 
     private execute<T>(
