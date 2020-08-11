@@ -697,9 +697,13 @@
       onrejectionhandled?: EventHandler<PromiseRejectionEvent, Window>;
     }
 
+    interface SapperAnchorProps {
+        sapperNoscroll?: true;
+    }
+
     interface IntrinsicElements {
       // HTML
-      a: HTMLProps<HTMLAnchorElement>;
+      a: HTMLProps<HTMLAnchorElement> & SapperAnchorProps;
       abbr: HTMLProps<HTMLElement>;
       address: HTMLProps<HTMLElement>;
       area: HTMLProps<HTMLAreaElement>;
