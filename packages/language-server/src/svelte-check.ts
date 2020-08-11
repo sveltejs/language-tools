@@ -65,7 +65,7 @@ export class SvelteCheck {
                 const diagnostics = await this.pluginHost.getDiagnostics({ uri });
                 return {
                     filePath: urlToPath(uri) || '',
-                    text: this.docManager.documents.get(uri)?.getText() || '',
+                    text: this.docManager.get(uri)?.getText() || '',
                     diagnostics,
                 };
             }),

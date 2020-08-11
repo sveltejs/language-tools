@@ -5,6 +5,7 @@ import {
     VersionedTextDocumentIdentifier,
 } from 'vscode-languageserver';
 import { Document } from './Document';
+import { normalizeUri } from '../../utils';
 
 export type DocumentEvent = 'documentOpen' | 'documentChange' | 'documentClose';
 
@@ -14,15 +15,17 @@ export type DocumentEvent = 'documentOpen' | 'documentChange' | 'documentClose';
 export class DocumentManager {
     private emitter = new EventEmitter();
     private openedInClient = new Set<string>();
-    public documents: Map<string, Document> = new Map();
-    public locked = new Set<string>();
-    public deleteCandidates = new Set<string>();
+    private documents: Map<string, Document> = new Map();
+    private locked = new Set<string>();
+    private deleteCandidates = new Set<string>();
 
     constructor(
         private createDocument: (textDocument: Pick<TextDocumentItem, 'text' | 'uri'>) => Document,
     ) {}
 
     openDocument(textDocument: Pick<TextDocumentItem, 'text' | 'uri'>): Document {
+        textDocument = { ...textDocument, uri: normalizeUri(textDocument.uri) };
+
         let document: Document;
         if (this.documents.has(textDocument.uri)) {
             document = this.documents.get(textDocument.uri)!;
@@ -39,11 +42,11 @@ export class DocumentManager {
     }
 
     lockDocument(uri: string): void {
-        this.locked.add(uri);
+        this.locked.add(normalizeUri(uri));
     }
 
     markAsOpenedInClient(uri: string): void {
-        this.openedInClient.add(uri);
+        this.openedInClient.add(normalizeUri(uri));
     }
 
     getAllOpenedByClient() {
@@ -53,6 +56,8 @@ export class DocumentManager {
     }
 
     releaseDocument(uri: string): void {
+        uri = normalizeUri(uri);
+
         this.locked.delete(uri);
         this.openedInClient.delete(uri);
         if (this.deleteCandidates.has(uri)) {
@@ -62,6 +67,8 @@ export class DocumentManager {
     }
 
     closeDocument(uri: string) {
+        uri = normalizeUri(uri);
+
         const document = this.documents.get(uri);
         if (!document) {
             throw new Error('Cannot call methods on an unopened document');
@@ -83,7 +90,7 @@ export class DocumentManager {
         textDocument: VersionedTextDocumentIdentifier,
         changes: TextDocumentContentChangeEvent[],
     ) {
-        const document = this.documents.get(textDocument.uri);
+        const document = this.documents.get(normalizeUri(textDocument.uri));
         if (!document) {
             throw new Error('Cannot call methods on an unopened document');
         }
@@ -106,6 +113,10 @@ export class DocumentManager {
 
     on(name: DocumentEvent, listener: (document: Document) => void) {
         this.emitter.on(name, listener);
+    }
+
+    get(uri: string) {
+        return this.documents.get(normalizeUri(uri));
     }
 
     private notify(name: DocumentEvent, document: Document) {
