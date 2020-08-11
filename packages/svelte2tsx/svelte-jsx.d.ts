@@ -250,9 +250,12 @@
       controls?: boolean;
       coords?: string;
       crossorigin?: string;
+      currenttime?: number;
       data?: string;
       datetime?: string;
       default?: boolean;
+      defaultmuted?: boolean;
+      defaultplaybackrate?: number;
       defer?: boolean;
       dir?: string;
       disabled?: boolean;
@@ -344,6 +347,7 @@
       type?: string;
       usemap?: string;
       value?: string | string[] | number;
+      volume?: number;
       width?: number | string;
       wmode?: string;
       wrap?: string;
