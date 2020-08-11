@@ -300,7 +300,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             });
         }
         // prevent newText from being placed like this: <script>import {} from ''
-        if (range.start.line === 0) {
+        if (range.start.line === 0 && !change.newText.startsWith(ts.sys.newLine)) {
             change.newText = ts.sys.newLine + change.newText;
         }
 
