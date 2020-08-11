@@ -769,13 +769,13 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
         ) {
             const binaryExpression = getBinaryAssignmentExpr(node);
             if (binaryExpression) {
-                if (ts.isIdentifier(binaryExpression.left)) {
-                    implicitTopLevelNames.add(binaryExpression.left, node, astOffset, str);
-                } else if (ts.isObjectLiteralExpression(binaryExpression.left)) {
-                    binaryExpression.left.properties
-                        .filter(ts.isShorthandPropertyAssignment)
-                        .map((prop) => implicitTopLevelNames.add(prop.name, node, astOffset, str));
-                }
+                implicitTopLevelNames.add(
+                    binaryExpression,
+                    node,
+                    rootScope.declared,
+                    astOffset,
+                    str,
+                );
 
                 wrapExpressionWithInvalidate(binaryExpression.right);
             } else {
