@@ -405,8 +405,8 @@
 
       // Other HTML properties supported by SVG elements in browsers
       role?: string;
-      tabIndex?: number;
-      crossOrigin?: "anonymous" | "use-credentials" | "";
+      tabindex?: number;
+      crossorigin?: "anonymous" | "use-credentials" | "";
 
       // SVG Specific attributes
       "accent-height"?: number | string;
@@ -469,8 +469,8 @@
       filter?: string;
       filterRes?: number | string;
       filterUnits?: number | string;
-      floodColor?: number | string;
-      floodOpacity?: number | string;
+      "flood-color"?: number | string;
+      "flood-opacity"?: number | string;
       focusable?: number | string;
       "font-family"?: string;
       "font-size"?: number | string;
