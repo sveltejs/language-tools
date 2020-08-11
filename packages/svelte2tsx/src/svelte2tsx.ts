@@ -639,7 +639,6 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
         });
     };
 
-    const semiRegex = /^\s*;/;
     const wrapExpressionWithInvalidate = (expression: ts.Expression | undefined) => {
         if (!expression) {
             return;
@@ -656,10 +655,8 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
 
         str.prependLeft(start, '__sveltets_invalidate(() => ');
         str.appendRight(end, ')');
-
-        if (!semiRegex.test(htmlx.substring(end))) {
-            str.appendRight(end, ';');
-        }
+        // Not adding ';' at the end because right now this function is only invoked
+        // in situations where there is a line break of ; guaranteed to be present (else the code is invalid)
     };
 
     const walk = (node: ts.Node, parent: ts.Node) => {
