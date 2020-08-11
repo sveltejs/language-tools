@@ -205,7 +205,7 @@ export function convertHtmlxToJsx(
                 case 'InlineComponent':
                     return getTypeForComponent(node);
                 case 'Element':
-                    return 'HTMLElement';
+                    return `__sveltets_ctorOf(__sveltets_mapElementTag('${node.name}'))`;
                 case 'Body':
                     return 'HTMLBodyElement';
                 default:
@@ -360,12 +360,13 @@ export function convertHtmlxToJsx(
             //skip Attribute shorthand, that is handled below
             const sapperNoScroll = attr.name === 'sapper:noscroll';
             if (
-                attr.value !== true &&
-                !(
-                    attr.value.length &&
-                    attr.value.length == 1 &&
-                    attr.value[0].type == 'AttributeShorthand'
-                ) || sapperNoScroll
+                (attr.value !== true &&
+                    !(
+                        attr.value.length &&
+                        attr.value.length == 1 &&
+                        attr.value[0].type == 'AttributeShorthand'
+                    )) ||
+                sapperNoScroll
             ) {
                 let name = attr.name;
                 if (!svgAttributes.find((x) => x == name)) {
