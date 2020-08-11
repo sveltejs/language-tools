@@ -24,6 +24,8 @@ const oneWayBindingAttributes: Map<string, ElementType> = new Map(
 const numberOnlyAttributes = new Set([
     'cols',
     'colspan',
+    'currenttime',
+    'defaultplaybackrate',
     'high',
     'low',
     'marginheight',
@@ -38,6 +40,7 @@ const numberOnlyAttributes = new Set([
     'start',
     'tabindex',
     'results',
+    'volume',
 ]);
 
 const beforeStart = (start: number) => start - 1;
