@@ -7,10 +7,11 @@ import { convertHtmlxToJsx } from './htmlxtojsx';
 import { Node } from 'estree-walker';
 import * as ts from 'typescript';
 import { createEventHandlerTransformer, eventMapToString } from './nodes/event-handler';
-import { findExortKeyword } from './utils/tsAst';
+import { findExortKeyword, getBinaryAssignmentExpr } from './utils/tsAst';
 import { InstanceScriptProcessResult, CreateRenderFunctionPara } from './interfaces';
 import { createRenderFunctionGetterStr, createClassGetters } from './nodes/exportgetters';
 import { ExportedNames } from './nodes/ExportedNames';
+import { ImplicitTopLevelNames } from './nodes/ImplicitTopLevelNames';
 
 function AttributeValueAsJsExpression(htmlx: string, attr: Node): string {
     if (attr.value.length == 0) return "''"; //wut?
@@ -220,7 +221,8 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
                 if (parent.type == 'Property' && prop == 'key') return;
                 scope.declared.add(node.name);
             } else {
-                if (parent.type == 'MemberExpression' && prop == 'property' && !parent.computed) return;
+                if (parent.type == 'MemberExpression' && prop == 'property' && !parent.computed)
+                    return;
                 if (parent.type == 'Property' && prop == 'key') return;
                 pendingStoreResolutions.push({ node, parent, scope });
             }
@@ -390,7 +392,7 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
     const exportedNames = new ExportedNames();
     const getters = new Set<string>();
 
-    const implicitTopLevelNames: Map<string, number> = new Map();
+    const implicitTopLevelNames = new ImplicitTopLevelNames();
     let uses$$props = false;
     let uses$$restProps = false;
 
@@ -754,7 +756,9 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
         }
 
         //handle stores etc
-        if (ts.isIdentifier(node)) handleIdentifier(node, parent);
+        if (ts.isIdentifier(node)) {
+            handleIdentifier(node, parent);
+        }
 
         //track implicit declarations in reactive blocks at the top level
         if (
@@ -763,22 +767,17 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
             node.label.text == '$' &&
             node.statement
         ) {
-            if (
-                ts.isExpressionStatement(node.statement) &&
-                ts.isBinaryExpression(node.statement.expression) &&
-                node.statement.expression.operatorToken.kind == ts.SyntaxKind.EqualsToken &&
-                ts.isIdentifier(node.statement.expression.left)
-            ) {
-                const name = node.statement.expression.left.text;
-
-                // svelte won't let you create a variable with $ prefix anyway
-                const isPotentialStore = name.startsWith('$');
-
-                if (!implicitTopLevelNames.has(name) && !isPotentialStore) {
-                    implicitTopLevelNames.set(name, node.label.getStart());
+            const binaryExpression = getBinaryAssignmentExpr(node);
+            if (binaryExpression) {
+                if (ts.isIdentifier(binaryExpression.left)) {
+                    implicitTopLevelNames.add(binaryExpression.left, node, astOffset, str);
+                } else if (ts.isObjectLiteralExpression(binaryExpression.left)) {
+                    binaryExpression.left.properties
+                        .filter(ts.isShorthandPropertyAssignment)
+                        .map((prop) => implicitTopLevelNames.add(prop.name, node, astOffset, str));
                 }
 
-                wrapExpressionWithInvalidate(node.statement.expression.right);
+                wrapExpressionWithInvalidate(binaryExpression.right);
             } else {
                 const start = node.getStart() + astOffset;
                 const end = node.getEnd() + astOffset;
@@ -801,13 +800,7 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
     pendingStoreResolutions.map(resolveStore);
 
     // declare implicit reactive variables we found in the script
-    for (const [name, pos] of implicitTopLevelNames.entries()) {
-        if (!rootScope.declared.has(name)) {
-            // remove '$:' label
-            str.remove(pos + astOffset, pos + astOffset + 2);
-            str.prependRight(pos + astOffset, `let `);
-        }
-    }
+    implicitTopLevelNames.modifyCode(rootScope.declared, astOffset, str);
 
     const firstImport = tsAst.statements
         .filter(ts.isImportDeclaration)
