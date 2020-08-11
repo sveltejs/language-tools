@@ -1,3 +1,4 @@
+///<reference types="svelte" />
 <></>;function render() {
 
     interface A {}

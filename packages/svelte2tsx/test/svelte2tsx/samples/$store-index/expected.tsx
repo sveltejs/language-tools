@@ -1,3 +1,4 @@
+///<reference types="svelte" />
 <></>;function render() {
 <>{someRecordOrArr[__sveltets_store_get(store)]}
 {someObject['$store']}

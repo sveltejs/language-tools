@@ -1,3 +1,4 @@
+///<reference types="svelte" />
 <></>;function render() {
 <><button onclick={undefined}></button></>
 return { props: {}, slots: {}, getters: {}, events: {'click':__sveltets_mapElementEvent('click')} }}

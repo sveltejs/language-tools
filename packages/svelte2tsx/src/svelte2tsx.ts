@@ -220,7 +220,8 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
                 if (parent.type == 'Property' && prop == 'key') return;
                 scope.declared.add(node.name);
             } else {
-                if (parent.type == 'MemberExpression' && prop == 'property' && !parent.computed) return;
+                if (parent.type == 'MemberExpression' && prop == 'property' && !parent.computed)
+                    return;
                 if (parent.type == 'Property' && prop == 'key') return;
                 pendingStoreResolutions.push({ node, parent, scope });
             }
@@ -1038,6 +1039,8 @@ export function svelte2tsx(
         className,
         componentDocumentation,
     );
+
+    str.prepend('///<reference types="svelte" />\n');
 
     return {
         code: str.toString(),

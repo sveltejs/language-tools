@@ -1,3 +1,4 @@
+///<reference types="svelte" />
 <></>;function render() {
 
      let name: string | number = "world";name = __sveltets_any(name);

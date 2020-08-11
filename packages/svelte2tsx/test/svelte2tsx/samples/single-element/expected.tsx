@@ -1,3 +1,4 @@
+///<reference types="svelte" />
 <></>;function render() {
 <><h1>hello</h1></>
 return { props: {}, slots: {}, getters: {}, events: {} }}

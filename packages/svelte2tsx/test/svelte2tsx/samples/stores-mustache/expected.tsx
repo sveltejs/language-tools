@@ -1,3 +1,4 @@
+///<reference types="svelte" />
 <></>;function render() {
 <><Me f={`${__sveltets_store_get(s)} `}/></>
 return { props: {}, slots: {}, getters: {}, events: {} }}

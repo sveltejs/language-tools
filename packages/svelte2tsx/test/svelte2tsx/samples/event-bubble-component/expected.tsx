@@ -1,3 +1,4 @@
+///<reference types="svelte" />
 <></>;function render() {
 <><Button ></Button></>
 return { props: {}, slots: {}, getters: {}, events: {'click':__sveltets_bubbleEventDef(__sveltets_instanceOf(Button).$$events_def, 'click')} }}

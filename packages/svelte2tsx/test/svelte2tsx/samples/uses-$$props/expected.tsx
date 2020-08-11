@@ -1,3 +1,4 @@
+///<reference types="svelte" />
 <></>;function render() { let $$props = __sveltets_allPropsType();
 <><h1>{$$props['name']}</h1></>
 return { props: {}, slots: {}, getters: {}, events: {} }}

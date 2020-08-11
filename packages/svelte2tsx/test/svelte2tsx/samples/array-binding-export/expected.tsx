@@ -1,3 +1,4 @@
+///<reference types="svelte" />
 <></>;function render() {
 
      let [a,b,c] = [1,2,3];

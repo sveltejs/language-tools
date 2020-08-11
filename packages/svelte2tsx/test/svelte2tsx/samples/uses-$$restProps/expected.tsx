@@ -1,3 +1,4 @@
+///<reference types="svelte" />
 <></>;function render() { let $$restProps = __sveltets_restPropsType();
 <><h1>{$$restProps['name']}</h1></>
 return { props: {}, slots: {}, getters: {}, events: {} }}

@@ -1,3 +1,4 @@
+///<reference types="svelte" />
 <></>;function render() {
 <>{() => {if (true){<>
 <svelteself prop1={1} />

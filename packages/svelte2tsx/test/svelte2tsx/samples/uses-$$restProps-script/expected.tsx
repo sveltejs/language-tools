@@ -1,3 +1,4 @@
+///<reference types="svelte" />
 <></>;function render() { let $$restProps = __sveltets_restPropsType();
 
     let name = $$restProps['name'];
