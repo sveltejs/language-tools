@@ -226,6 +226,7 @@
       acceptcharset?: string;
       accesskey?: string;
       action?: string;
+      allow?: string;
       allowfullscreen?: boolean;
       allowtransparency?: boolean;
       alt?: string;
