@@ -257,6 +257,35 @@ describe('document/utils', () => {
                 },
             });
         });
+
+        it('extract tag correctly with #if and < operator', () => {
+            const text = `
+            {#if value < 3}
+              <div>
+                bla
+              </div>
+            {:else if value < 4}
+            {/if}
+          <script>let value = 2</script>
+
+          <div>
+            {#if value < 3}
+              <div>
+                bla
+              </div>
+            {:else if value < 4}
+            {/if}
+          </div>`;
+            assert.deepStrictEqual(extractScriptTags(text)?.script, {
+                content: 'let value = 2',
+                attributes: {},
+                start: 159,
+                end: 172,
+                startPos: Position.create(7, 18),
+                endPos: Position.create(7, 31),
+                container: { start: 151, end: 181 },
+            });
+        });
     });
 
     describe('#getLineAtPosition', () => {
