@@ -44,13 +44,31 @@ function parseHtml(text: string) {
     return parser.parseHTMLDocument(<any>{ getText: () => text });
 }
 
-const regexIf = new RegExp('{#if\\s.*?}', 'igms');
-const regexIfEnd = new RegExp('{/if}', 'igms');
-const regexEach = new RegExp('{#each\\s.*?}', 'igms');
-const regexEachEnd = new RegExp('{/each}', 'igms');
-const regexAwait = new RegExp('{#await\\s.*?}', 'igms');
-const regexAwaitEnd = new RegExp('{/await}', 'igms');
-const regexHtml = new RegExp('{@html\\s.*?', 'igms');
+const regexIf = new RegExp('{#if\\s.*?}', 'gms');
+const regexIfElseIf = new RegExp('{:else if\\s.*?}', 'gms');
+const regexIfEnd = new RegExp('{/if}', 'gms');
+const regexEach = new RegExp('{#each\\s.*?}', 'gms');
+const regexEachEnd = new RegExp('{/each}', 'gms');
+const regexAwait = new RegExp('{#await\\s.*?}', 'gms');
+const regexAwaitEnd = new RegExp('{/await}', 'gms');
+const regexHtml = new RegExp('{@html\\s.*?', 'gms');
+
+/**
+ * if-blocks can contain the `<` operator, which mistakingly is
+ * parsed as a "open tag" character by the html parser.
+ * To prevent this, just replace the whole content inside the if with whitespace.
+ */
+function blankIfBlocks(text: string): string {
+    return text
+        .replace(regexIf, (substr) => {
+            return '{#if' + substr.replace(/[^\n]/g, ' ').substring(4, substr.length - 1) + '}';
+        })
+        .replace(regexIfElseIf, (substr) => {
+            return (
+                '{:else if' + substr.replace(/[^\n]/g, ' ').substring(9, substr.length - 1) + '}'
+            );
+        });
+}
 
 /**
  * Extracts a tag (style or script) from the given text
@@ -60,6 +78,7 @@ const regexHtml = new RegExp('{@html\\s.*?', 'igms');
  * @param tag the tag to extract
  */
 function extractTags(text: string, tag: 'script' | 'style'): TagInformation[] {
+    text = blankIfBlocks(text);
     const rootNodes = parseHtml(text).roots;
     const matchedNodes = rootNodes
         .filter((node) => node.tag === tag)
