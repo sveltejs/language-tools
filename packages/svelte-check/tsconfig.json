@@ -5,6 +5,7 @@
         "strict": true,
         "declaration": true,
         "outDir": "dist",
-        "composite": true
+        "composite": true,
+        "esModuleInterop": false
     }
 }
