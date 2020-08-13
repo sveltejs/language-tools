@@ -83,6 +83,16 @@ If your syntax highlighting seems to be not working for Svelte components, it ma
 }
 ```
 
+#### My Code does not get formatted
+
+Your default formatter for Svelte files may be wrong. Either it's set to the old Svelte extension, or you set all files to be formatted by the prettier extension. To fix this, you need to explicitly tell VSCode to format the code with the `Svelte for VSCode extension`:
+
+```json
+  "[svelte]": {
+    "editor.defaultFormatter": "svelte.svelte-vscode"
+  },
+```
+
 ## Internals
 
 -   [Notes about deployment](./internal/deployment.md)
