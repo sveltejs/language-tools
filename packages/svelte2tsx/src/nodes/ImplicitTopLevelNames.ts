@@ -17,8 +17,9 @@ export class ImplicitTopLevelNames {
         if (
             ts.isExpressionStatement(node.statement) &&
             ts.isParenthesizedExpression(node.statement.expression) &&
-            ts.isObjectLiteralExpression(binaryExpr.left) &&
-            this.objectLiteralContainsNoTopLevelNames(binaryExpr.left, rootVariables)
+            (ts.isObjectLiteralExpression(binaryExpr.left) ||
+                ts.isArrayLiteralExpression(binaryExpr.left)) &&
+            this.containsNoTopLevelNames(binaryExpr.left, rootVariables)
         ) {
             // Expression is of type `$: ({a} = b);`
             // Remove the surrounding braces so that later the the transformation
@@ -69,21 +70,10 @@ export class ImplicitTopLevelNames {
         );
     }
 
-    private objectLiteralContainsNoTopLevelNames(
-        node: ts.ObjectLiteralExpression,
+    private containsNoTopLevelNames(
+        node: ts.ObjectLiteralExpression | ts.ArrayLiteralExpression,
         rootVariables: Set<string>,
     ) {
-        return this.getPropsOfObjectLiteral(node).every(
-            (prop) => !rootVariables.has(prop.name.text),
-        );
-    }
-
-    private getPropsOfObjectLiteral(node: ts.ObjectLiteralExpression) {
-        return (
-            node.properties
-                // TODO could also be a property assignment,
-                // fix if it ever occurs in the wild.
-                .filter(ts.isShorthandPropertyAssignment)
-        );
+        return extractIdentifiers(node).every((prop) => !rootVariables.has(prop.text));
     }
 }

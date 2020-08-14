@@ -5,18 +5,20 @@ export function findExortKeyword(node: ts.Node) {
 }
 
 /**
- * Node is like `bla = ...` or `{bla} = ...`
+ * Node is like `bla = ...` or `{bla} = ...` or `[bla] = ...`
  */
 function isAssignmentBinaryExpr(node: ts.Expression): node is ts.BinaryExpression {
     return (
         ts.isBinaryExpression(node) &&
         node.operatorToken.kind == ts.SyntaxKind.EqualsToken &&
-        (ts.isIdentifier(node.left) || ts.isObjectLiteralExpression(node.left))
+        (ts.isIdentifier(node.left) ||
+            ts.isObjectLiteralExpression(node.left) ||
+            ts.isArrayLiteralExpression(node.left))
     );
 }
 
 /**
- * Returns if node is like `$: bla = ...` or `$: ({bla} = ...)`
+ * Returns if node is like `$: bla = ...` or `$: ({bla} = ...)` or `$: [bla] = ...=`
  */
 export function getBinaryAssignmentExpr(
     node: ts.LabeledStatement,
