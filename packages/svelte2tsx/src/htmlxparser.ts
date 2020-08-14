@@ -53,6 +53,7 @@ function extractTag(htmlx: string, tag: 'script' | 'style') {
         matches.push({
             start: containerStart,
             end: containerEnd,
+            name: tag,
             type: tag === 'style' ? 'Style' : 'Script',
             attributes: parseAttributes(match[2], containerStart + `<${tag}`.length),
             content: {
