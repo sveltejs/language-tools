@@ -45,7 +45,7 @@ To get that holistic view, we need `svelte2tsx`.
 
 To get a holistic view of Svelte files, we have two options:
 
-1. Write a language service ourselves who is capable of doing things like auto complete, go to definition, rename etc.
+1. Write a language service ourselves which is capable of doing things like auto complete, go to definition, rename etc.
 2. Convert the Svelte code to something an existing language service can process which then does auto complete, go to defintion, rename etc for us.
 
 We chose the second option because TypeScript provides a language service which can do all the heavy lifting for us: We give it some files and then invoke methods like `getQuickInfoAtPosition` for hover info. These files need to be in a format the language service can understand: A form of JavaScript or TypeScript. `svelte2tsx` is the package which does this transformation: Pass in Svelte code and get back JSX or TSX code, depending on whether or not you use TS in Svelte. This code is not runnable in any way and does not actually exist at runtime when you run your app, it purely exists for the intellisense. The code also returns source mappings so we know which position in the original code corresponds to which generated position.
