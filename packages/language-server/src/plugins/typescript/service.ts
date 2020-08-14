@@ -66,9 +66,11 @@ export function createLanguageService(
     const svelteModuleLoader = createSvelteModuleLoader(getSnapshot, compilerOptions);
 
     const svelteTsPath = dirname(require.resolve('svelte2tsx'));
-    const svelteTsxFiles = ['./svelte-shims.d.ts', './svelte-jsx.d.ts', './svelte-native-jsx.d.ts'].map((f) =>
-        ts.sys.resolvePath(resolve(svelteTsPath, f)),
-    );
+    const svelteTsxFiles = [
+        './svelte-shims.d.ts',
+        './svelte-jsx.d.ts',
+        './svelte-native-jsx.d.ts',
+    ].map((f) => ts.sys.resolvePath(resolve(svelteTsPath, f)));
 
     const host: ts.LanguageServiceHost = {
         getCompilationSettings: () => compilerOptions,
@@ -162,7 +164,7 @@ export function createLanguageService(
             declaration: false,
             skipLibCheck: true,
             // these are needed to handle the results of svelte2tsx preprocessing:
-            jsx: ts.JsxEmit.Preserve
+            jsx: ts.JsxEmit.Preserve,
         };
 
         // always let ts parse config to get default compilerOption
@@ -191,28 +193,22 @@ export function createLanguageService(
         );
 
         const files = parsedConfig.fileNames;
-
-        const sveltePkgInfo = getPackageInfo('svelte', workspacePath || process.cwd());
-        const types = (parsedConfig.options?.types ?? []).concat(
-            resolve(sveltePkgInfo.path, 'types', 'runtime'),
-        );
         const compilerOptions: ts.CompilerOptions = {
             ...parsedConfig.options,
-            types,
             ...forcedCompilerOptions,
         };
 
         // detect which JSX namespace to use (svelte | svelteNative) if not specified or not compatible
-        if (!compilerOptions.jsxFactory || !compilerOptions.jsxFactory.startsWith("svelte")) {
+        if (!compilerOptions.jsxFactory || !compilerOptions.jsxFactory.startsWith('svelte')) {
             //default to regular svelte, this causes the usage of the "svelte.JSX" namespace
-            compilerOptions.jsxFactory = "svelte.createElement";
+            compilerOptions.jsxFactory = 'svelte.createElement';
 
             //override if we detect svelte-native
             if (workspacePath) {
                 try {
                     const svelteNativePkgInfo = getPackageInfo('svelte-native', workspacePath);
                     if (svelteNativePkgInfo.path) {
-                        compilerOptions.jsxFactory = "svelteNative.createElement";
+                        compilerOptions.jsxFactory = 'svelteNative.createElement';
                     }
                 } catch (e) {
                     //we stay regular svelte

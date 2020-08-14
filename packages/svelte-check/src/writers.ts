@@ -37,14 +37,12 @@ export class HumanFriendlyWriter implements Writer {
             );
 
             // Show some context around diagnostic range
-            const startOffset = offsetAt(diagnostic.range.start, text);
-            const endOffset = offsetAt(diagnostic.range.end, text);
-            const codePrev = chalk.cyan(text.substring(Math.max(startOffset - 10, 0), startOffset));
-            const codeHighlight = chalk.magenta(text.substring(startOffset, endOffset));
-            const codePost = chalk.cyan(text.substring(endOffset, endOffset + 10));
-            const code = codePrev + codeHighlight + codePost;
-            let msg;
+            const codePrevLine = this.getLine(diagnostic.range.start.line - 1, text);
+            const codeLine = this.getCodeLine(diagnostic, text);
+            const codeNextLine = this.getLine(diagnostic.range.end.line + 1, text);
+            const code = codePrevLine + codeLine + codeNextLine;
 
+            let msg;
             if (this.isVerbose) {
                 msg = `${diagnostic.message} ${source}\n${chalk.cyan(code)}`;
             } else {
@@ -61,6 +59,28 @@ export class HumanFriendlyWriter implements Writer {
 
             this.stream.write('\n');
         });
+    }
+
+    private getCodeLine(diagnostic: Diagnostic, text: string) {
+        const startOffset = offsetAt(diagnostic.range.start, text);
+        const endOffset = offsetAt(diagnostic.range.end, text);
+        const codePrev = text.substring(
+            offsetAt({ line: diagnostic.range.start.line, character: 0 }, text),
+            startOffset,
+        );
+        const codeHighlight = chalk.magenta(text.substring(startOffset, endOffset));
+        const codePost = text.substring(
+            endOffset,
+            offsetAt({ line: diagnostic.range.end.line, character: Number.MAX_SAFE_INTEGER }, text),
+        );
+        return codePrev + codeHighlight + codePost;
+    }
+
+    private getLine(line: number, text: string): string {
+        return text.substring(
+            offsetAt({ line, character: 0 }, text),
+            offsetAt({ line, character: Number.MAX_SAFE_INTEGER }, text),
+        );
     }
 
     completion(_f: number, errorCount: number, warningCount: number) {

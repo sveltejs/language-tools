@@ -1,3 +1,4 @@
+///<reference types="svelte" />
 <></>;
 import Test from './Test.svelte';
 function render() {

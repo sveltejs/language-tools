@@ -226,6 +226,7 @@
       acceptcharset?: string;
       accesskey?: string;
       action?: string;
+      allow?: string;
       allowfullscreen?: boolean;
       allowtransparency?: boolean;
       alt?: string;
@@ -250,9 +251,12 @@
       controls?: boolean;
       coords?: string;
       crossorigin?: string;
+      currenttime?: number;
       data?: string;
       datetime?: string;
       default?: boolean;
+      defaultmuted?: boolean;
+      defaultplaybackrate?: number;
       defer?: boolean;
       dir?: string;
       disabled?: boolean;
@@ -344,6 +348,7 @@
       type?: string;
       usemap?: string;
       value?: string | string[] | number;
+      volume?: number;
       width?: number | string;
       wmode?: string;
       wrap?: string;
@@ -401,8 +406,8 @@
 
       // Other HTML properties supported by SVG elements in browsers
       role?: string;
-      tabIndex?: number;
-      crossOrigin?: "anonymous" | "use-credentials" | "";
+      tabindex?: number;
+      crossorigin?: "anonymous" | "use-credentials" | "";
 
       // SVG Specific attributes
       "accent-height"?: number | string;
@@ -465,8 +470,8 @@
       filter?: string;
       filterRes?: number | string;
       filterUnits?: number | string;
-      floodColor?: number | string;
-      floodOpacity?: number | string;
+      "flood-color"?: number | string;
+      "flood-opacity"?: number | string;
       focusable?: number | string;
       "font-family"?: string;
       "font-size"?: number | string;
@@ -697,9 +702,13 @@
       onrejectionhandled?: EventHandler<PromiseRejectionEvent, Window>;
     }
 
+    interface SapperAnchorProps {
+        sapperNoscroll?: true;
+    }
+
     interface IntrinsicElements {
       // HTML
-      a: HTMLProps<HTMLAnchorElement>;
+      a: HTMLProps<HTMLAnchorElement> & SapperAnchorProps;
       abbr: HTMLProps<HTMLElement>;
       address: HTMLProps<HTMLElement>;
       area: HTMLProps<HTMLAreaElement>;

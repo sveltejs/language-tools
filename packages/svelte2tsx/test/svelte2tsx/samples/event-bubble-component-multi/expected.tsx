@@ -1,3 +1,4 @@
+///<reference types="svelte" />
 <></>;function render() {
 <><Button ></Button>
 <Radio ></Radio></>

@@ -1,3 +1,4 @@
+///<reference types="svelte" />
 <></>;function render() {
 
      let number1: number

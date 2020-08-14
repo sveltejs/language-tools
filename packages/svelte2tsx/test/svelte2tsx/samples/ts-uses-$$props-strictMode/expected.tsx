@@ -1,3 +1,4 @@
+///<reference types="svelte" />
 <></>;function render() { let $$props = __sveltets_allPropsType();
  ;
 () => (<>

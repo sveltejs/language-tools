@@ -1,3 +1,4 @@
+///<reference types="svelte" />
 <></>;function render() {
 b.set(__sveltets_store_get(b).concat(5));
 () => (<>

@@ -1,3 +1,4 @@
+///<reference types="svelte" />
 <></>;
     export function preload() {}
     let b = 5;

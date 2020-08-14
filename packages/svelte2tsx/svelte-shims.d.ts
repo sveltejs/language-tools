@@ -5,8 +5,7 @@ declare module '*.svelte' {
 declare class Svelte2TsxComponent<
     Props extends {} = {},
     Events extends {} = {},
-    Slots extends {} = {},
-    StrictEvents extends boolean = true
+    Slots extends {} = {}
 > {
     // svelte2tsx-specific
     /**
@@ -47,11 +46,6 @@ declare class Svelte2TsxComponent<
      * A function is returned that will remove the event listener when called.
      */
     $on<K extends keyof Events>(event: K, handler: (e: Events[K]) => any): void;
-    /**
-     * Causes the callback function to be called whenever the component dispatches an event.
-     * A function is returned that will remove the event listener when called.
-     */
-    $on(event: StrictEvents extends true ? never : string, handler: (e: CustomEvent) => any): void;
     /**
      * Removes a component from the DOM and triggers any `onDestroy` handlers.
      */
@@ -105,6 +99,7 @@ declare function __sveltets_ensureAction<U extends any[], El extends any>(
 declare function __sveltets_ensureTransition<U extends any[]>(transition: SvelteTransition<U>, ...args: U): {};
 declare function __sveltets_ensureFunction(expression: (e: Event & { detail?: any }) => unknown ): {};
 declare function __sveltets_ensureType<T>(type: AConstructorTypeOf<T>, el: T): {};
+declare function __sveltets_ctorOf<T>(type: T): AConstructorTypeOf<T>;
 declare function __sveltets_instanceOf<T>(type: AConstructorTypeOf<T>): T;
 declare function __sveltets_allPropsType(): SvelteAllProps
 declare function __sveltets_restPropsType(): SvelteRestProps
@@ -120,7 +115,7 @@ declare function __sveltets_with_any<Props = {}, Events = {}, Slots = {}>(
 declare function __sveltets_store_get<T = any>(store: SvelteStore<T>): T
 declare function __sveltets_any(dummy: any): any;
 declare function __sveltets_empty(dummy: any): {};
-declare function __sveltets_componentType(): AConstructorTypeOf<Svelte2TsxComponent<any, any, any, false>>
+declare function __sveltets_componentType(): AConstructorTypeOf<Svelte2TsxComponent<any, any, any>>
 declare function __sveltets_invalidate<T>(getValue: () => T): T
 
 declare function __sveltets_mapWindowEvent<K extends keyof HTMLBodyElementEventMap>(
@@ -167,4 +162,4 @@ declare function __sveltets_each<T>(
 
 declare function createSvelte2TsxComponent<Props, Events, Slots>(
     render: () => {props?: Props, events?: Events, slots?: Slots }
-): AConstructorTypeOf<Svelte2TsxComponent<Props, Events, Slots, false>>;
+): AConstructorTypeOf<Svelte2TsxComponent<Props, Events & {[evt: string]: CustomEvent<any>;}, Slots>>;

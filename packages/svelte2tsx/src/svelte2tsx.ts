@@ -1029,6 +1029,8 @@ export function svelte2tsx(
         componentDocumentation,
     );
 
+    str.prepend('///<reference types="svelte" />\n');
+
     return {
         code: str.toString(),
         map: str.generateMap({ hires: true, source: options?.filename }),

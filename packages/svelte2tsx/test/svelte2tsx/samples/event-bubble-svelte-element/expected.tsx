@@ -1,3 +1,4 @@
+///<reference types="svelte" />
 <></>;function render() {
 <><sveltebody onclick={undefined}></sveltebody>
 <sveltewindow onresize={undefined}></sveltewindow></>

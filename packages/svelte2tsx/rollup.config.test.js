@@ -20,14 +20,7 @@ export default [
             json(),
             typescript(),
         ],
-        external: [
-            ...builtins,
-            'typescript',
-            'svelte',
-            'svelte/compiler',
-            'parse5',
-            'magic-string',
-        ],
+        external: [...builtins, 'typescript', 'svelte', 'svelte/compiler', 'magic-string'],
     },
     {
         input: ['src/htmlxtojsx/index.ts'],
@@ -43,13 +36,6 @@ export default [
             json(),
             typescript(),
         ],
-        external: [
-            ...builtins,
-            'typescript',
-            'svelte',
-            'svelte/compiler',
-            'parse5',
-            'magic-string',
-        ],
+        external: [...builtins, 'typescript', 'svelte', 'svelte/compiler', 'magic-string'],
     },
 ];

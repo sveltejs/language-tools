@@ -1,3 +1,4 @@
+///<reference types="svelte" />
 <></>;function render() {
 
     $: store.set( __sveltets_invalidate(() => __sveltets_store_get(store) + 1));

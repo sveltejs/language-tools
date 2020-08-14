@@ -1,95 +1,78 @@
-import parse5, {
-    DefaultTreeDocumentFragment,
-    DefaultTreeElement,
-    DefaultTreeTextNode,
-} from 'parse5';
 import compiler from 'svelte/compiler';
 import { Node } from 'estree-walker';
 
-function walkAst(doc: DefaultTreeElement, action: (c: DefaultTreeElement) => void) {
-    action(doc);
-    if (!doc.childNodes) return;
-    for (let i = 0; i < doc.childNodes.length; i++) {
-        walkAst(doc.childNodes[i] as DefaultTreeElement, action);
-    }
+function parseAttributeValue(value: string): string {
+    return /^['"]/.test(value) ? value.slice(1, -1) : value;
 }
 
-export function findVerbatimElements(htmlx: string) {
-    const elements: Node[] = [];
-    const tagNames = ['script', 'style'];
-
-    const parseOpts = { sourceCodeLocationInfo: true };
-    const doc = parse5.parseFragment(htmlx, parseOpts) as DefaultTreeDocumentFragment;
-
-    const checkCase = (content: DefaultTreeTextNode, el: parse5.DefaultTreeElement) => {
-        const orgStart = el.sourceCodeLocation.startOffset || 0;
-        const orgEnd = el.sourceCodeLocation.endOffset || 0;
-        const outerHtml = htmlx.substring(orgStart, orgEnd);
-        const onlyTag = content ? outerHtml.replace(content.value, '') : outerHtml;
-
-        return tagNames.some((tag) => onlyTag.match(tag));
-    };
-
-    walkAst(doc as DefaultTreeElement, (el) => {
-        const parseValue = (attr: parse5.Attribute) => {
-            const sourceCodeLocation = el.sourceCodeLocation.attrs[attr.name];
-            const { startOffset, endOffset } = sourceCodeLocation;
-            const beforeAttrEnd = htmlx.substring(0, endOffset);
-            const valueStartIndex = beforeAttrEnd.indexOf('=', startOffset);
-            const isBare = valueStartIndex === -1;
-
-            return {
+function parseAttributes(str: string, start: number) {
+    const attrs: Node[] = [];
+    str.split(/\s+/)
+        .filter(Boolean)
+        .forEach((attr) => {
+            const attrStart = start + str.indexOf(attr);
+            const [name, value] = attr.split('=');
+            attrs[name] = value ? parseAttributeValue(value) : name;
+            attrs.push({
                 type: 'Attribute',
-                name: attr.name,
-                value: isBare || [
+                name,
+                value: !value || [
                     {
                         type: 'Text',
-                        start: valueStartIndex + 1,
-                        end: endOffset,
-                        raw: attr.value,
+                        start: attrStart + attr.indexOf('=') + 1,
+                        end: attrStart + attr.length,
+                        raw: parseAttributeValue(value),
                     },
                 ],
-                start: startOffset,
-                end: endOffset,
-            };
-        };
-
-        if (tagNames.includes(el.nodeName)) {
-            const hasNodes = el.childNodes && el.childNodes.length > 0;
-            const content = hasNodes ? (el.childNodes[0] as DefaultTreeTextNode) : null;
-            if (!checkCase(content, el)) {
-                return;
-            }
-
-            elements.push({
-                start: el.sourceCodeLocation.startOffset,
-                end: el.sourceCodeLocation.endOffset,
-                type: el.nodeName[0].toUpperCase() + el.nodeName.substr(1),
-                attributes: !el.attrs ? [] : el.attrs.map((a) => parseValue(a)),
-                content:
-                    content === null
-                        ? {
-                              type: 'Text',
-                              start: el.sourceCodeLocation.startTag.endCol,
-                              end: el.sourceCodeLocation.endTag.startCol,
-                              value: '',
-                              raw: '',
-                          }
-                        : {
-                              type: 'Text',
-                              start: content.sourceCodeLocation.startOffset,
-                              end: content.sourceCodeLocation.endOffset,
-                              value: content.value,
-                              raw: content.value,
-                          },
+                start: attrStart,
+                end: attrStart + attr.length,
             });
-        }
-    });
+        });
 
-    return elements;
+    return attrs;
 }
 
-export function blankVerbatimContent(htmlx: string, verbatimElements: Node[]) {
+function extractTag(htmlx: string, tag: 'script' | 'style') {
+    const exp = new RegExp(`(<${tag}([\\S\\s]*?)>)([\\S\\s]*?)<\\/${tag}>`, 'g');
+    const matches: Node[] = [];
+
+    let match: RegExpExecArray | null = null;
+    while ((match = exp.exec(htmlx)) != null) {
+        const content = match[3];
+
+        if (!content) {
+            // Self-closing/empty tags don't need replacement
+            continue;
+        }
+
+        const start = match.index + match[1].length;
+        const end = start + content.length;
+        const containerStart = match.index;
+        const containerEnd = match.index + match[0].length;
+
+        matches.push({
+            start: containerStart,
+            end: containerEnd,
+            type: tag === 'style' ? 'Style' : 'Script',
+            attributes: parseAttributes(match[2], containerStart + `<${tag}`.length),
+            content: {
+                type: 'Text',
+                start,
+                end,
+                value: content,
+                raw: content,
+            },
+        });
+    }
+
+    return matches;
+}
+
+function findVerbatimElements(htmlx: string) {
+    return [...extractTag(htmlx, 'script'), ...extractTag(htmlx, 'style')];
+}
+
+function blankVerbatimContent(htmlx: string, verbatimElements: Node[]) {
     let output = htmlx;
     for (const node of verbatimElements) {
         const content = node.content;

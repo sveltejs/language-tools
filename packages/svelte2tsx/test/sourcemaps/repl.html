@@ -1,3 +1,4 @@
+///<reference types="svelte" />
 <></>;
 	export async function preload({ params }) {
 		const res = await this.fetch(`tutorial/${params.slug}.json`);
@@ -135,7 +136,7 @@ function render() {
 				<TableOfContents sections={sections} slug={slug} selected={selected}/>
 			</div>
 
-			<div class="chapter-markup" {...__sveltets_ensureType(HTMLElement, scrollable)}>
+			<div class="chapter-markup" {...__sveltets_ensureType(__sveltets_ctorOf(__sveltets_mapElementTag('div')), scrollable)}>
 				{ chapter.html}
 
 				<div class="controls">

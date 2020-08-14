@@ -1,3 +1,4 @@
+///<reference types="svelte" />
 <></>;function render() {
 
 let a: 1 | 2 = 1;
