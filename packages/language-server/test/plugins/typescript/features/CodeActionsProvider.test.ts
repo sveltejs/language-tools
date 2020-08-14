@@ -165,6 +165,81 @@ describe('CodeActionsProvider', () => {
         ]);
     });
 
+    it('organizes imports with module script', async () => {
+        const { provider, document } = setup('organize-imports-with-module.svelte');
+
+        const codeActions = await provider.getCodeActions(
+            document,
+            Range.create(Position.create(1, 4), Position.create(1, 5)), // irrelevant
+            {
+                diagnostics: [],
+                only: [CodeActionKind.SourceOrganizeImports],
+            },
+        );
+        (<TextDocumentEdit>codeActions[0]?.edit?.documentChanges?.[0])?.edits.forEach(
+            (edit) => (edit.newText = harmonizeNewLines(edit.newText)),
+        );
+
+        assert.deepStrictEqual(codeActions, [
+            {
+                edit: {
+                    documentChanges: [
+                        {
+                            edits: [
+                                {
+                                    // eslint-disable-next-line max-len
+                                    newText: "import A from './A';\nimport { c } from './c';\n",
+                                    range: {
+                                        start: {
+                                            line: 1,
+                                            character: 2,
+                                        },
+                                        end: {
+                                            line: 2,
+                                            character: 0,
+                                        },
+                                    },
+                                },
+                                {
+                                    newText: '',
+                                    range: {
+                                        start: {
+                                            line: 6,
+                                            character: 2,
+                                        },
+                                        end: {
+                                            line: 7,
+                                            character: 2,
+                                        },
+                                    },
+                                },
+                                {
+                                    newText: '',
+                                    range: {
+                                        start: {
+                                            line: 7,
+                                            character: 2,
+                                        },
+                                        end: {
+                                            line: 7,
+                                            character: 22,
+                                        },
+                                    },
+                                },
+                            ],
+                            textDocument: {
+                                uri: getUri('organize-imports-with-module.svelte'),
+                                version: null,
+                            },
+                        },
+                    ],
+                },
+                kind: CodeActionKind.SourceOrganizeImports,
+                title: 'Organize Imports',
+            },
+        ]);
+    });
+
     it('should do extract into const refactor', async () => {
         const { provider, document } = setup('codeactions.svelte');
 
