@@ -33,3 +33,53 @@ export function getBinaryAssignmentExpr(
         }
     }
 }
+
+/**
+ *
+ * Adapted from https://github.com/Rich-Harris/periscopic/blob/d7a820b04e1f88b452313ab3e54771b352f0defb/src/index.ts#L150
+ */
+export function extractIdentifiers(
+    node: ts.Node,
+    identifiers: ts.Identifier[] = [],
+): ts.Identifier[] {
+    if (ts.isIdentifier(node)) {
+        identifiers.push(node);
+    } else if (isMember(node)) {
+        let object: ts.Node = node;
+        while (isMember(object)) {
+            object = object.expression;
+        }
+        if (ts.isIdentifier(object)) {
+            identifiers.push(object);
+        }
+    } else if (ts.isArrayBindingPattern(node) || ts.isObjectBindingPattern(node)) {
+        node.elements.forEach((element) => {
+            extractIdentifiers(element);
+        });
+    } else if (ts.isObjectLiteralExpression(node)) {
+        node.properties.forEach((child) => {
+            if (ts.isSpreadAssignment(child)) {
+                extractIdentifiers(child.expression, identifiers);
+            } else if (ts.isShorthandPropertyAssignment(child)) {
+                // in ts Ast { a = 1 } and { a } are both ShorthandPropertyAssignment
+                extractIdentifiers(child.name, identifiers);
+            }
+        });
+    } else if (ts.isArrayLiteralExpression(node)) {
+        node.elements.forEach((element) => {
+            if (ts.isSpreadElement(element)) {
+                extractIdentifiers(element, identifiers);
+            } else {
+                extractIdentifiers(element, identifiers);
+            }
+        });
+    }
+
+    return identifiers;
+}
+
+export function isMember(
+    node: ts.Node,
+): node is ts.ElementAccessExpression | ts.PropertyAccessExpression {
+    return ts.isElementAccessExpression(node) || ts.isPropertyAccessExpression(node);
+}

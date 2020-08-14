@@ -1,6 +1,6 @@
 import ts from 'typescript';
 import MagicString from 'magic-string';
-import { getBinaryAssignmentExpr } from '../utils/tsAst';
+import { getBinaryAssignmentExpr, extractIdentifiers } from '../utils/tsAst';
 
 export class ImplicitTopLevelNames {
     private map = new Set<ts.LabeledStatement>();
@@ -61,14 +61,12 @@ export class ImplicitTopLevelNames {
             return [];
         }
 
-        // svelte won't let you create a variable with $ prefix (reserved for stores)
-        if (ts.isIdentifier(leftHandSide) && !leftHandSide.text.startsWith('$')) {
-            return [leftHandSide.text];
-        }
-
-        if (ts.isObjectLiteralExpression(leftHandSide)) {
-            return this.getPropsOfObjectLiteral(leftHandSide).map((prop) => prop.name.text);
-        }
+        return (
+            extractIdentifiers(leftHandSide)
+                .map((id) => id.text)
+                // svelte won't let you create a variable with $ prefix (reserved for stores)
+                .filter((name) => !name.startsWith('$'))
+        );
     }
 
     private objectLiteralContainsNoTopLevelNames(
