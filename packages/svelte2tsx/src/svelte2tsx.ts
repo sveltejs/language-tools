@@ -7,7 +7,12 @@ import { convertHtmlxToJsx } from './htmlxtojsx';
 import { Node } from 'estree-walker';
 import * as ts from 'typescript';
 import { createEventHandlerTransformer, eventMapToString } from './nodes/event-handler';
-import { findExortKeyword } from './utils/tsAst';
+import {
+    findExportKeyword,
+    getGenericsDefinitionString,
+    getGenericsUsageString,
+    getComponentClassUsingInterfaceString,
+} from './utils/tsAst';
 import { InstanceScriptProcessResult, CreateRenderFunctionPara } from './interfaces';
 import { createRenderFunctionGetterStr, createClassGetters } from './nodes/exportgetters';
 import { ExportedNames } from './nodes/ExportedNames';
@@ -661,12 +666,18 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
         }
     };
 
+    let componentDef: ts.InterfaceDeclaration | undefined;
+
     const walk = (node: ts.Node, parent: ts.Node) => {
         type onLeaveCallback = () => void;
         const onLeaveCallbacks: onLeaveCallback[] = [];
 
+        if (ts.isInterfaceDeclaration(node) && node.name.text === 'ComponentDef') {
+            componentDef = node;
+        }
+
         if (ts.isVariableStatement(node)) {
-            const exportModifier = findExortKeyword(node);
+            const exportModifier = findExportKeyword(node);
             if (exportModifier) {
                 const isLet = node.declarationList.flags === ts.NodeFlags.Let;
                 const isConst = node.declarationList.flags === ts.NodeFlags.Const;
@@ -687,7 +698,7 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
 
         if (ts.isFunctionDeclaration(node)) {
             if (node.modifiers) {
-                const exportModifier = findExortKeyword(node);
+                const exportModifier = findExportKeyword(node);
                 if (exportModifier) {
                     removeExport(exportModifier.getStart(), exportModifier.end);
                     addGetter(node.name);
@@ -699,7 +710,7 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
         }
 
         if (ts.isClassDeclaration(node)) {
-            const exportModifier = findExortKeyword(node);
+            const exportModifier = findExportKeyword(node);
             if (exportModifier) {
                 removeExport(exportModifier.getStart(), exportModifier.end);
                 addGetter(node.name);
@@ -822,6 +833,7 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
         uses$$props,
         uses$$restProps,
         getters,
+        componentDef,
     };
 }
 
@@ -845,6 +857,7 @@ function addComponentExport(
     strictMode: boolean,
     isTsFile: boolean,
     getters: Set<string>,
+    componentDef?: ts.InterfaceDeclaration,
     /** A named export allows for TSDoc-compatible docstrings */
     className?: string,
     componentDocumentation?: string | null,
@@ -862,9 +875,16 @@ function addComponentExport(
     const doc = formatComponentDocumentation(componentDocumentation);
 
     const statement =
-        `\n\n${doc}export default class${
+        `\n` +
+        // Call function to prevent "unused function" info
+        `${componentDef ? 'render();' : ''}` +
+        `\n${doc}export default class${
             className ? ` ${className}` : ''
-        } extends createSvelte2TsxComponent(${propDef}) {` +
+        }${getGenericsDefinitionString(componentDef)} extends ${
+            componentDef
+                ? getComponentClassUsingInterfaceString(componentDef)
+                : `createSvelte2TsxComponent(${propDef})`
+        } {` +
         createClassGetters(getters) +
         '\n}';
 
@@ -906,6 +926,7 @@ function createRenderFunction({
     getters,
     events,
     exportedNames,
+    componentDef,
     isTsFile,
     uses$$props,
     uses$$restProps,
@@ -920,11 +941,16 @@ function createRenderFunction({
         propsDecl += ' let $$restProps = __sveltets_restPropsType();';
     }
 
+    const componentDefString = componentDef ? `\n${componentDef.getText()}\n` : '';
     if (scriptTag) {
         //I couldn't get magicstring to let me put the script before the <> we prepend during conversion of the template to jsx, so we just close it instead
         const scriptTagEnd = htmlx.lastIndexOf('>', scriptTag.content.start) + 1;
         str.overwrite(scriptTag.start, scriptTag.start + 1, '</>;');
-        str.overwrite(scriptTag.start + 1, scriptTagEnd, `function render() {${propsDecl}\n`);
+        str.overwrite(
+            scriptTag.start + 1,
+            scriptTagEnd,
+            `${componentDefString}function render() {${propsDecl}\n`,
+        );
 
         const scriptEndTagStart = htmlx.lastIndexOf('<', scriptTag.end - 1);
         // wrap template with callback
@@ -932,7 +958,10 @@ function createRenderFunction({
             contentOnly: true,
         });
     } else {
-        str.prependRight(scriptDestination, `</>;function render() {${propsDecl}\n<>`);
+        str.prependRight(
+            scriptDestination,
+            `</>;${componentDefString}function render() {${propsDecl}\n<>`,
+        );
     }
 
     const slotsAsDef =
@@ -997,6 +1026,7 @@ export function svelte2tsx(
     //move the instance script and process the content
     let exportedNames = new ExportedNames();
     let getters = new Set<string>();
+    let componentDef: ts.InterfaceDeclaration | undefined;
     if (scriptTag) {
         //ensure it is between the module script and the rest of the template (the variables need to be declared before the jsx template)
         if (scriptTag.start != instanceScriptTarget) {
@@ -1006,7 +1036,7 @@ export function svelte2tsx(
         uses$$props = uses$$props || res.uses$$props;
         uses$$restProps = uses$$restProps || res.uses$$restProps;
 
-        ({ exportedNames, getters } = res);
+        ({ exportedNames, getters, componentDef } = res);
     }
 
     //wrap the script tag and template content in a function returning the slot and exports
@@ -1018,6 +1048,7 @@ export function svelte2tsx(
         events,
         getters,
         exportedNames,
+        componentDef,
         isTsFile: options?.isTsFile,
         uses$$props,
         uses$$restProps,
@@ -1036,6 +1067,7 @@ export function svelte2tsx(
         !!options?.strictMode,
         options?.isTsFile,
         getters,
+        componentDef,
         className,
         componentDocumentation,
     );
