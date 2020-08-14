@@ -23,6 +23,11 @@ export class ImplicitTopLevelNames {
                 ts.isParenthesizedExpression(node.statement.expression) &&
                 this.objectLiteralContainsNoTopLevelNames(binaryExpr.left, rootVariables)
             ) {
+                // Expression is of type `$: ({a} = b);`
+                // Remove the surrounding braces so that later the the transformation
+                // to `let {a} = b;` produces valid code.
+                // Do this now, not later, because we use `remove` which would
+                // remove everything that we appended/prepended previously.
                 const start = node.statement.expression.getStart() + astOffset;
                 str.remove(start, start + 1);
                 const end = node.statement.expression.getEnd() + astOffset - 1;
