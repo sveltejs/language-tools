@@ -11,32 +11,9 @@ import { findExortKeyword } from './utils/tsAst';
 import { InstanceScriptProcessResult, CreateRenderFunctionPara } from './interfaces';
 import { createRenderFunctionGetterStr, createClassGetters } from './nodes/exportgetters';
 import { ExportedNames } from './nodes/ExportedNames';
-
-function AttributeValueAsJsExpression(htmlx: string, attr: Node): string {
-    if (attr.value.length == 0) return "''"; //wut?
-
-    //handle single value
-    if (attr.value.length == 1) {
-        const attrVal = attr.value[0];
-
-        if (attrVal.type == 'AttributeShorthand') {
-            return attrVal.expression.name;
-        }
-
-        if (attrVal.type == 'Text') {
-            return '"' + attrVal.raw + '"';
-        }
-
-        if (attrVal.type == 'MustacheTag') {
-            return htmlx.substring(attrVal.expression.start, attrVal.expression.end);
-        }
-        throw Error('Unknown attribute value type:' + attrVal.type);
-    }
-
-    // we have multiple attribute values, so we know we are building a string out of them.
-    // so return a dummy string, it will typecheck the same :)
-    return '"__svelte_ts_string"';
-}
+import * as astUtil from './utils/svelteAst';
+import { SlotHandler } from './nodes/slot';
+import TemplateScope from './nodes/TemplateScope';
 
 type TemplateProcessResult = {
     uses$$props: boolean;
@@ -217,12 +194,12 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
         //handle potential store
         if (node.name[0] == '$') {
             if (isDeclaration) {
-                if (parent.type == 'Property' && prop == 'key') return;
+                if (astUtil.isObjectKey(parent, prop)) return;
                 scope.declared.add(node.name);
             } else {
-                if (parent.type == 'MemberExpression' && prop == 'property' && !parent.computed)
+                if (astUtil.isMember(parent, prop) && !parent.computed)
                     return;
-                if (parent.type == 'Property' && prop == 'key') return;
+                if (astUtil.isObjectKey(parent, prop)) return;
                 pendingStoreResolutions.push({ node, parent, scope });
             }
             return;
@@ -267,25 +244,32 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
             });
     };
 
-    const slots = new Map<string, Map<string, string>>();
-    const handleSlot = (node: Node) => {
-        const nameAttr = node.attributes.find((a) => a.name == 'name');
-        const slotName = nameAttr ? nameAttr.value[0].raw : 'default';
-        //collect attributes
-        const attributes = new Map<string, string>();
-        for (const attr of node.attributes) {
-            if (attr.name == 'name') continue;
-            if (!attr.value.length) continue;
-            attributes.set(attr.name, AttributeValueAsJsExpression(str.original, attr));
-        }
-        slots.set(slotName, attributes);
-    };
 
     const handleStyleTag = (node: Node) => {
         str.remove(node.start, node.end);
     };
 
+    const slotHandler = new SlotHandler(str, str.original);
+    let templateScope = new TemplateScope();
+
     const { handleEventHandler, getEvents } = createEventHandlerTransformer();
+    const handleEachScope = (node: Node) => {
+        templateScope = templateScope.child();
+
+        if (node.context) {
+            templateScope.add(node.context, node);
+        }
+    };
+
+    const handleAwaitScope = (node: Node) => {
+        templateScope = templateScope.child();
+        if (node.value) {
+            templateScope.add(node.value, node.then);
+        }
+        if (node.error) {
+            templateScope.add(node.error, node.catch);
+        }
+    };
 
     const onHtmlxWalk = (node: Node, parent: Node, prop: string) => {
         if (
@@ -306,7 +290,7 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
                 handleIdentifier(node, parent, prop);
                 break;
             case 'Slot':
-                handleSlot(node);
+                slotHandler.handleSlot(node, templateScope);
                 break;
             case 'Style':
                 handleStyleTag(node);
@@ -328,6 +312,14 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
                 break;
             case 'VariableDeclarator':
                 isDeclaration = true;
+                break;
+            case 'EachBlock':
+                handleEachScope(node);
+                slotHandler.reslove(node.context, node.expression, templateScope);
+                break;
+            case 'AwaitBlock':
+                handleAwaitScope(node);
+                slotHandler.reslove(node.value, node.expression, templateScope);
                 break;
         }
     };
@@ -354,6 +346,12 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
             case 'ArrowFunctionExpression':
                 leaveArrowFunctionExpression();
                 break;
+            case 'EachBlock':
+                templateScope = templateScope.parent;
+                break;
+            case 'AwaitBlock':
+                templateScope = templateScope.parent;
+                break;
         }
     };
 
@@ -369,7 +367,7 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
     return {
         moduleScriptTag,
         scriptTag,
-        slots,
+        slots: slotHandler.getSlotDef(),
         events: getEvents(),
         uses$$props,
         uses$$restProps,
