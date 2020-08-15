@@ -766,14 +766,7 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
         ) {
             const binaryExpression = getBinaryAssignmentExpr(node);
             if (binaryExpression) {
-                implicitTopLevelNames.add(
-                    binaryExpression,
-                    node,
-                    rootScope.declared,
-                    astOffset,
-                    str,
-                );
-
+                implicitTopLevelNames.add(node);
                 wrapExpressionWithInvalidate(binaryExpression.right);
             } else {
                 const start = node.getStart() + astOffset;

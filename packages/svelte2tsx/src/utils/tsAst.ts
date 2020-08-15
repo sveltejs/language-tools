@@ -37,6 +37,20 @@ export function getBinaryAssignmentExpr(
 }
 
 /**
+ * Returns true if node is like `({bla} ..)` or `([bla] ...)`
+ */
+export function isParenthesizedObjectOrArrayLiteralExpression(
+    node: ts.Expression,
+): node is ts.ParenthesizedExpression {
+    return (
+        ts.isParenthesizedExpression(node) &&
+        ts.isBinaryExpression(node.expression) &&
+        (ts.isObjectLiteralExpression(node.expression.left) ||
+            ts.isArrayLiteralExpression(node.expression.left))
+    );
+}
+
+/**
  *
  * Adapted from https://github.com/Rich-Harris/periscopic/blob/d7a820b04e1f88b452313ab3e54771b352f0defb/src/index.ts#L150
  */
