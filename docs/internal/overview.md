@@ -24,7 +24,7 @@ Our `language-server` can roughly be splitted into four areas:
 
 -   CSS: Provides intellisense for the things inside `<style>`. Internally it mostly forwards stuff to the `vscode-css-languageservice`.
 -   HTML: Provides intellisense for basic HTML tags like `div`, `a` etc. Internally it mostly forwards stuff to the `vscode-html-languageservice`.
--   Svelte: Provides the diagnostics of the Svelte compiler, does the formatting through `prettier-plugin-svelte` and other cross-cutting concerns like the "Extract Component" refactoring.
+-   Svelte: Provides the diagnostics of the Svelte compiler. If you use preprocessors, those are invoked beforehand - that's why we need the `svelte.config.js` to know how to preprocess your files. It also does the formatting through `prettier-plugin-svelte` and other cross-cutting concerns like the "Extract Component" refactoring.
 -   TypeScript/JavaScript: Provides intellisense for all JS/TS related stuff. This not only includes code inside `<script>` but also inside the template the moment you use any of the Svelte specifics like bindings or template syntax.
 
 The last area, TS/JS, is where most of the work is done. Svelte is a mix of JavaScript/TypeScript inside `script` and more of it within Svelte's template syntax. To get a holistic view of the file, we need to account for both.
