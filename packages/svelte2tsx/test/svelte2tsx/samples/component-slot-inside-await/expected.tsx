@@ -1,14 +1,12 @@
 ///<reference types="svelte" />
 <></>;function render() {
-
-    const promise = Promise.resolve();
-;
-() => (<>
-
-{() => {let _$$p = (promise); __sveltets_awaitThen(_$$p, (value) => {<>
+<>{() => {let _$$p = (promise); __sveltets_awaitThen(_$$p, (value) => {<>
     <slot a={value}>Hello</slot>
-</>})}}</>);
-return { props: {}, slots: {default: {a:__sveltets_unwrapPromiseLike(promise)}}, getters: {}, events: {} }}
+</>})}}
+{() => {let _$$p = (promise2); __sveltets_awaitThen(_$$p, ({ b }) => {<>
+    <slot name="second" a={b}>Hello</slot>
+</>})}}</>
+return { props: {}, slots: {default: {a:__sveltets_unwrapPromiseLike(promise)}, second: {a:(({ b }) => b)(__sveltets_unwrapPromiseLike(promise2))}}, getters: {}, events: {} }}
 
 export default class Input__SvelteComponent_ extends createSvelte2TsxComponent(__sveltets_partial(render)) {
 }

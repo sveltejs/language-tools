@@ -8,12 +8,13 @@ import { Node } from 'estree-walker';
 import * as ts from 'typescript';
 import { createEventHandlerTransformer, eventMapToString } from './nodes/event-handler';
 import { findExortKeyword } from './utils/tsAst';
-import { InstanceScriptProcessResult, CreateRenderFunctionPara } from './interfaces';
+import { InstanceScriptProcessResult, CreateRenderFunctionPara, Identifier, BaseNode } from './interfaces';
 import { createRenderFunctionGetterStr, createClassGetters } from './nodes/exportgetters';
 import { ExportedNames } from './nodes/ExportedNames';
 import * as astUtil from './utils/svelteAst';
 import { SlotHandler } from './nodes/slot';
 import TemplateScope from './nodes/TemplateScope';
+import { extract_identifiers as extractIdentifiers } from 'periscopic';
 
 type TemplateProcessResult = {
     uses$$props: boolean;
@@ -253,21 +254,44 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
     let templateScope = new TemplateScope();
 
     const { handleEventHandler, getEvents } = createEventHandlerTransformer();
-    const handleEachScope = (node: Node) => {
+    const handleEach = (node: Node) => {
         templateScope = templateScope.child();
 
         if (node.context) {
-            templateScope.add(node.context, node);
+            handleScopeAndResolveForSlot(node.context, node.expression, node);
         }
     };
 
-    const handleAwaitScope = (node: Node) => {
+    const handleAwait = (node: Node) => {
         templateScope = templateScope.child();
         if (node.value) {
-            templateScope.add(node.value, node.then);
+            handleScopeAndResolveForSlot(node.value, node.expression, node.then);
         }
         if (node.error) {
             templateScope.add(node.error, node.catch);
+        }
+    };
+
+    const handleScopeAndResolveForSlot = (
+        identifierDef: BaseNode,
+        initExpression: Node,
+        owner: Node
+    ) => {
+        if (astUtil.isIdentifier(identifierDef)) {
+            templateScope.add(identifierDef, owner);
+
+            slotHandler.reslove(identifierDef, initExpression, templateScope);
+        }
+        if (astUtil.isDestructuringPatterns(identifierDef)) {
+            const identifiers = extractIdentifiers(identifierDef as any);
+            templateScope.addMany(identifiers, owner);
+
+            slotHandler.resloveDestructuringAssigment(
+                identifierDef,
+                identifiers,
+                initExpression,
+                templateScope
+            );
         }
     };
 
@@ -314,12 +338,10 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
                 isDeclaration = true;
                 break;
             case 'EachBlock':
-                handleEachScope(node);
-                slotHandler.reslove(node.context, node.expression, templateScope);
+                handleEach(node);
                 break;
             case 'AwaitBlock':
-                handleAwaitScope(node);
-                slotHandler.reslove(node.value, node.expression, templateScope);
+                handleAwait(node);
                 break;
         }
     };

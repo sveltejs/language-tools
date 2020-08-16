@@ -1,4 +1,5 @@
 import { Node } from 'estree-walker';
+import { Identifier } from '../interfaces';
 
 /**
  * adopted from https://github.com/sveltejs/svelte/blob/master/src/compiler/compile/nodes/Slot.ts
@@ -6,15 +7,20 @@ import { Node } from 'estree-walker';
 export default class TemplateScope {
 	names: Set<string>;
     owners: Map<string, Node> = new Map();
-    inits: Map<string, Node> = new Map();
+    inits: Map<string, Identifier> = new Map();
 	parent?: TemplateScope;
 
 	constructor(parent?: TemplateScope) {
 		this.parent = parent;
 		this.names = new Set(parent ? parent.names : []);
-	}
+    }
 
-	add(init: Node, owner: Node) {
+    addMany(inits: Identifier[], owner: Node) {
+        inits.forEach((item) => this.add(item, owner));
+        return this;
+    }
+
+	add(init: Identifier, owner: Node) {
         const { name } = init;
 		this.names.add(name);
         this.inits.set(name, init);
@@ -31,7 +37,7 @@ export default class TemplateScope {
 		return this.owners.get(name) || (this.parent && this.parent.getOwner(name));
     }
 
-    getInit(name: string): Node {
+    getInit(name: string): Identifier {
         return this.inits.get(name) || this.parent?.getInit(name);
     }
 

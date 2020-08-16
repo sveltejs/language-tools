@@ -17,3 +17,24 @@ export interface CreateRenderFunctionPara extends InstanceScriptProcessResult {
     events: Map<string, string | string[]>;
     isTsFile: boolean;
 }
+
+export interface Identifier {
+    name: string;
+    type: 'Identifier';
+}
+
+export interface ArrayPattern {
+    type: 'ArrayPattern';
+    start: number;
+    end: number;
+}
+
+export interface ObjectPattern {
+    type: 'ArrayPattern';
+    start: number;
+    end: number;
+}
+
+export interface BaseNode {
+    type: string;
+}

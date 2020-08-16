@@ -1,14 +1,12 @@
 ///<reference types="svelte" />
 <></>;function render() {
-
-    const items = [];
-;
-() => (<>
-
-{__sveltets_each(items, (item) => <>
+<>{__sveltets_each(items, (item) => <>
     <slot a={item}>Hello</slot>
-</>)}</>);
-return { props: {}, slots: {default: {a:_sveltets_unwrapArr(items)}}, getters: {}, events: {} }}
+</>)}
+{__sveltets_each(items2, ({ a }) => <>
+    <slot name="second" a={a}>Hello</slot>
+</>)}</>
+return { props: {}, slots: {default: {a:__sveltets_unwrapArr(items)}, second: {a:(({ a }) => a)(__sveltets_unwrapArr(items2))}}, getters: {}, events: {} }}
 
 export default class Input__SvelteComponent_ extends createSvelte2TsxComponent(__sveltets_partial(render)) {
 }
