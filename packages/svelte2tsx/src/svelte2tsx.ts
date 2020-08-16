@@ -7,7 +7,7 @@ import { convertHtmlxToJsx } from './htmlxtojsx';
 import { Node } from 'estree-walker';
 import * as ts from 'typescript';
 import { createEventHandlerTransformer, eventMapToString } from './nodes/event-handler';
-import { findExortKeyword } from './utils/tsAst';
+import { findExportKeyword } from './utils/tsAst';
 import { InstanceScriptProcessResult, CreateRenderFunctionPara, Identifier, BaseNode } from './interfaces';
 import { createRenderFunctionGetterStr, createClassGetters } from './nodes/exportgetters';
 import { ExportedNames } from './nodes/ExportedNames';
@@ -280,13 +280,13 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
         if (astUtil.isIdentifier(identifierDef)) {
             templateScope.add(identifierDef, owner);
 
-            slotHandler.reslove(identifierDef, initExpression, templateScope);
+            slotHandler.resolve(identifierDef, initExpression, templateScope);
         }
         if (astUtil.isDestructuringPatterns(identifierDef)) {
             const identifiers = extractIdentifiers(identifierDef as any);
             templateScope.addMany(identifiers, owner);
 
-            slotHandler.resloveDestructuringAssigment(
+            slotHandler.resolveDestructuringAssignment(
                 identifierDef,
                 identifiers,
                 initExpression,
@@ -686,7 +686,7 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
         const onLeaveCallbacks: onLeaveCallback[] = [];
 
         if (ts.isVariableStatement(node)) {
-            const exportModifier = findExortKeyword(node);
+            const exportModifier = findExportKeyword(node);
             if (exportModifier) {
                 const isLet = node.declarationList.flags === ts.NodeFlags.Let;
                 const isConst = node.declarationList.flags === ts.NodeFlags.Const;
@@ -707,7 +707,7 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
 
         if (ts.isFunctionDeclaration(node)) {
             if (node.modifiers) {
-                const exportModifier = findExortKeyword(node);
+                const exportModifier = findExportKeyword(node);
                 if (exportModifier) {
                     removeExport(exportModifier.getStart(), exportModifier.end);
                     addGetter(node.name);
@@ -719,7 +719,7 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
         }
 
         if (ts.isClassDeclaration(node)) {
-            const exportModifier = findExortKeyword(node);
+            const exportModifier = findExportKeyword(node);
             if (exportModifier) {
                 removeExport(exportModifier.getStart(), exportModifier.end);
                 addGetter(node.name);

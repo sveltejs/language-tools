@@ -26,23 +26,23 @@ export class SlotHandler {
     constructor(private readonly str: MagicString, private readonly htmlx: string) { }
 
     slots = new Map<string, Map<string, string>>();
-    resloved = new Map<Identifier, string>();
-    reslovedExpression = new Map<Node, string>();
+    resolved = new Map<Identifier, string>();
+    resolvedExpression = new Map<Node, string>();
 
-    reslove(identifierDef: Identifier, initExpression: Node, scope: TemplateScope) {
-        let resloved = this.resloved.get(identifierDef);
-        if (resloved) {
-            return resloved;
+    resolve(identifierDef: Identifier, initExpression: Node, scope: TemplateScope) {
+        let resolved = this.resolved.get(identifierDef);
+        if (resolved) {
+            return resolved;
         }
 
-        resloved = this.getResloveExpressionStr(identifierDef, scope, initExpression);
+        resolved = this.getResolveExpressionStr(identifierDef, scope, initExpression);
 
-        this.resloved.set(identifierDef, resloved);
+        this.resolved.set(identifierDef, resolved);
 
-        return resloved;
+        return resolved;
     }
 
-    private getResloveExpressionStr(
+    private getResolveExpressionStr(
         identifierDef: Identifier,
         scope: TemplateScope,
         initExpression: Node
@@ -55,19 +55,19 @@ export class SlotHandler {
             return '__sveltets_any({})';
         }
         else if (owner.type === 'ThenBlock') {
-            const reslovedExpression = this.resolveExpression(initExpression, scope);
+            const resolvedExpression = this.resolveExpression(initExpression, scope);
 
-            return `__sveltets_unwrapPromiseLike(${reslovedExpression})`;
+            return `__sveltets_unwrapPromiseLike(${resolvedExpression})`;
         }
         else if (owner.type === 'EachBlock') {
-            const reslovedExpression = this.resolveExpression(initExpression, scope);
+            const resolvedExpression = this.resolveExpression(initExpression, scope);
 
-            return `__sveltets_unwrapArr(${reslovedExpression})`;
+            return `__sveltets_unwrapArr(${resolvedExpression})`;
         }
         return null;
     }
 
-    resloveDestructuringAssigment(
+    resolveDestructuringAssignment(
         destructuringNode: Node,
         identifiers: Identifier[],
         initExpression: Node,
@@ -75,16 +75,16 @@ export class SlotHandler {
     ) {
         const destructuring = this.htmlx.slice(destructuringNode.start, destructuringNode.end);
         identifiers.forEach((identifier) => {
-            const resloved = this.getResloveExpressionStr(identifier, scope, initExpression);
-            this.resloved.set(
+            const resolved = this.getResolveExpressionStr(identifier, scope, initExpression);
+            this.resolved.set(
                 identifier,
-                `((${destructuring}) => ${identifier.name})(${resloved})`
+                `((${destructuring}) => ${identifier.name})(${resolved})`
             );
         });
     }
 
     private resolveExpression(expression: Node, scope: TemplateScope) {
-        let resolved = this.reslovedExpression.get(expression);
+        let resolved = this.resolvedExpression.get(expression);
         if (resolved) {
             return resolved;
         }
@@ -104,12 +104,12 @@ export class SlotHandler {
         for (const identifier of identifiers) {
             const { start, end, name } = identifier;
             const init = scope.getInit(name);
-            const value = init ? this.resloved.get(init) : name;
+            const value = init ? this.resolved.get(init) : name;
             strForExpression.overwrite(start, end, value);
         }
 
         resolved = strForExpression.slice(expression.start, expression.end);
-        this.reslovedExpression.set(expression, resolved);
+        this.resolvedExpression.set(expression, resolved);
 
         return resolved;
     }
@@ -127,7 +127,7 @@ export class SlotHandler {
                 attributes.set(attr.name, AttributeStrValueAsJsExpression(attr));
                 continue;
             }
-            attributes.set(attr.name, this.resloveAttr(attr, scope));
+            attributes.set(attr.name, this.resolveAttr(attr, scope));
         }
         this.slots.set(slotName, attributes);
     }
@@ -136,7 +136,7 @@ export class SlotHandler {
         return this.slots;
     }
 
-    resloveAttr(attr: Node, scope: TemplateScope): string {
+    resolveAttr(attr: Node, scope: TemplateScope): string {
         const attrVal = attr.value[0];
         if (!attrVal) {
             return null;
@@ -145,7 +145,7 @@ export class SlotHandler {
         if (attrVal.type == 'AttributeShorthand') {
             const { name } = attrVal.expression;
             const init = scope.getInit(name);
-            const resolved = this.resloved.get(init);
+            const resolved = this.resolved.get(init);
 
             return resolved ?? name;
         }
