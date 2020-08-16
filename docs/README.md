@@ -83,6 +83,10 @@ If your syntax highlighting seems to be not working for Svelte components, it ma
 }
 ```
 
+#### `export let ...` breaks my syntax highlighting
+
+If you have the `Babel Javascript` plugin installed, this may be the cause. Disable it for Svelte files.
+
 #### My Code does not get formatted
 
 Your default formatter for Svelte files may be wrong. Either it's set to the old Svelte extension, or you set all files to be formatted by the prettier extension. To fix this, you need to explicitly tell VSCode to format the code with the `Svelte for VSCode extension`:
