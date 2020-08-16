@@ -4,7 +4,7 @@ import { attributeValueIsString, isMember } from '../utils/svelteAst';
 import TemplateScope from './TemplateScope';
 import { Identifier } from '../interfaces';
 
-function AttributeStrValueAsJsExpression(attr: Node): string {
+function attributeStrValueAsJsExpression(attr: Node): string {
     if (attr.value.length == 0) return "''"; //wut?
 
     //handle single value
@@ -124,7 +124,7 @@ export class SlotHandler {
             if (!attr.value.length) continue;
 
             if (attributeValueIsString(attr)) {
-                attributes.set(attr.name, AttributeStrValueAsJsExpression(attr));
+                attributes.set(attr.name, attributeStrValueAsJsExpression(attr));
                 continue;
             }
             attributes.set(attr.name, this.resolveAttr(attr, scope));
