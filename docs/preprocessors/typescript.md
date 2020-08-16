@@ -44,6 +44,10 @@ Hit `ctrl-shift-p` or `cmd-shift-p` on mac, type `svelte restart`, and select `S
 
 ## Troubleshooting / FAQ
 
+### I cannot use TS inside my script even when `lang="ts"` is present
+
+Make sure to follow the [setup instructions](/packages/svelte-vscode#setup)
+
 ### How do I type reactive assignments? / I get an "implicitly has type 'any' error"
 
 The following code may throw an error like `Variable 'show' implicitly has type 'any' in some locations where its type cannot be determined.`, if you have stricter type settings:
