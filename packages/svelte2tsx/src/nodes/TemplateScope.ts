@@ -2,7 +2,7 @@ import { Node } from 'estree-walker';
 import { Identifier } from '../interfaces';
 
 /**
- * adopted from https://github.com/sveltejs/svelte/blob/master/src/compiler/compile/nodes/Slot.ts
+ * adopted from https://github.com/sveltejs/svelte/blob/master/src/compiler/compile/nodes/shared/TemplateScope.ts
  */
 export default class TemplateScope {
 	names: Set<string>;
