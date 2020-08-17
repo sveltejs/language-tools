@@ -74,7 +74,10 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                         // Handle svelte2tsx wrong import mapping:
                         // The character after the last import maps to the start of the script
                         // TODO find a way to fix this in svelte2tsx and then remove this
-                        if (range.end.line === 0 && range.end.character === 1) {
+                        if (
+                            (range.end.line === 0 && range.end.character === 1) ||
+                            range.end.line < range.start.line
+                        ) {
                             edit.span.length -= 1;
                             range = mapRangeToOriginal(fragment, convertRange(fragment, edit.span));
                             range.end.character += 1;

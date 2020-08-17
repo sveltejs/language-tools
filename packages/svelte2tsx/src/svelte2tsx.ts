@@ -6,15 +6,16 @@ import { parseHtmlx } from './htmlxparser';
 import { convertHtmlxToJsx } from './htmlxtojsx';
 import { Node } from 'estree-walker';
 import * as ts from 'typescript';
+import { extract_identifiers as extractIdentifiers } from 'periscopic';
 import { createEventHandlerTransformer, eventMapToString } from './nodes/event-handler';
-import { findExportKeyword } from './utils/tsAst';
+import { findExportKeyword, getBinaryAssignmentExpr } from './utils/tsAst';
 import { InstanceScriptProcessResult, CreateRenderFunctionPara, Identifier, BaseNode } from './interfaces';
 import { createRenderFunctionGetterStr, createClassGetters } from './nodes/exportgetters';
 import { ExportedNames } from './nodes/ExportedNames';
 import * as astUtil from './utils/svelteAst';
 import { SlotHandler } from './nodes/slot';
 import TemplateScope from './nodes/TemplateScope';
-import { extract_identifiers as extractIdentifiers } from 'periscopic';
+import { ImplicitTopLevelNames } from './nodes/ImplicitTopLevelNames';
 
 type TemplateProcessResult = {
     uses$$props: boolean;
@@ -411,7 +412,7 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
     const exportedNames = new ExportedNames();
     const getters = new Set<string>();
 
-    const implicitTopLevelNames: Map<string, number> = new Map();
+    const implicitTopLevelNames = new ImplicitTopLevelNames();
     let uses$$props = false;
     let uses$$restProps = false;
 
@@ -658,7 +659,6 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
         });
     };
 
-    const semiRegex = /^\s*;/;
     const wrapExpressionWithInvalidate = (expression: ts.Expression | undefined) => {
         if (!expression) {
             return;
@@ -675,10 +675,8 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
 
         str.prependLeft(start, '__sveltets_invalidate(() => ');
         str.appendRight(end, ')');
-
-        if (!semiRegex.test(htmlx.substring(end))) {
-            str.appendRight(end, ';');
-        }
+        // Not adding ';' at the end because right now this function is only invoked
+        // in situations where there is a line break of ; guaranteed to be present (else the code is invalid)
     };
 
     const walk = (node: ts.Node, parent: ts.Node) => {
@@ -775,7 +773,9 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
         }
 
         //handle stores etc
-        if (ts.isIdentifier(node)) handleIdentifier(node, parent);
+        if (ts.isIdentifier(node)) {
+            handleIdentifier(node, parent);
+        }
 
         //track implicit declarations in reactive blocks at the top level
         if (
@@ -784,22 +784,10 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
             node.label.text == '$' &&
             node.statement
         ) {
-            if (
-                ts.isExpressionStatement(node.statement) &&
-                ts.isBinaryExpression(node.statement.expression) &&
-                node.statement.expression.operatorToken.kind == ts.SyntaxKind.EqualsToken &&
-                ts.isIdentifier(node.statement.expression.left)
-            ) {
-                const name = node.statement.expression.left.text;
-
-                // svelte won't let you create a variable with $ prefix anyway
-                const isPotentialStore = name.startsWith('$');
-
-                if (!implicitTopLevelNames.has(name) && !isPotentialStore) {
-                    implicitTopLevelNames.set(name, node.label.getStart());
-                }
-
-                wrapExpressionWithInvalidate(node.statement.expression.right);
+            const binaryExpression = getBinaryAssignmentExpr(node);
+            if (binaryExpression) {
+                implicitTopLevelNames.add(node);
+                wrapExpressionWithInvalidate(binaryExpression.right);
             } else {
                 const start = node.getStart() + astOffset;
                 const end = node.getEnd() + astOffset;
@@ -822,13 +810,7 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
     pendingStoreResolutions.map(resolveStore);
 
     // declare implicit reactive variables we found in the script
-    for (const [name, pos] of implicitTopLevelNames.entries()) {
-        if (!rootScope.declared.has(name)) {
-            // remove '$:' label
-            str.remove(pos + astOffset, pos + astOffset + 2);
-            str.prependRight(pos + astOffset, `let `);
-        }
-    }
+    implicitTopLevelNames.modifyCode(rootScope.declared, astOffset, str);
 
     const firstImport = tsAst.statements
         .filter(ts.isImportDeclaration)

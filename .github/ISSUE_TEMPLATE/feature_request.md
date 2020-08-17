@@ -18,3 +18,7 @@ A clear and concise description of any alternative solutions or features you've 
 
 **Additional context**
 Add any other context or screenshots about the feature request here.
+
+<!-- Want to help us out? Read this to get started:
+https://github.com/sveltejs/language-tools#development
+-->

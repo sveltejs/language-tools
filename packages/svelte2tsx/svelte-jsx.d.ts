@@ -97,6 +97,8 @@
 
       // Focus Events
       onfocus?: FocusEventHandler<T>;
+      onfocusin?: FocusEventHandler<T>;
+      onfocusout?: FocusEventHandler<T>;
       onblur?: FocusEventHandler<T>;
 
       // Form Events
