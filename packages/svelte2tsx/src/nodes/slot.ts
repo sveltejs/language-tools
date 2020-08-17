@@ -54,13 +54,16 @@ export class SlotHandler {
         if (owner.type === 'CatchBlock') {
             return '__sveltets_any({})';
         }
+
+        // list.map(list => list.someProperty)
+        // initExpression's scope should the parent scope of identifier scope
         else if (owner.type === 'ThenBlock') {
-            const resolvedExpression = this.resolveExpression(initExpression, scope);
+            const resolvedExpression = this.resolveExpression(initExpression, scope.parent);
 
             return `__sveltets_unwrapPromiseLike(${resolvedExpression})`;
         }
         else if (owner.type === 'EachBlock') {
-            const resolvedExpression = this.resolveExpression(initExpression, scope);
+            const resolvedExpression = this.resolveExpression(initExpression, scope.parent);
 
             return `__sveltets_unwrapArr(${resolvedExpression})`;
         }
