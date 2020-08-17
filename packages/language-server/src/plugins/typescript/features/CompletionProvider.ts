@@ -91,7 +91,13 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
                 includeCompletionsForModuleExports: true,
                 triggerCharacter: validTriggerCharacter,
             })?.entries || [];
-        const eventCompletions = this.getEventCompletions(lang, document, tsDoc, position);
+        const eventCompletions = this.getEventCompletions(
+            lang,
+            document,
+            tsDoc,
+            fragment,
+            position,
+        );
 
         if (completions.length === 0 && eventCompletions.length === 0) {
             return tsDoc.parserError ? CompletionList.create([], true) : null;
@@ -112,6 +118,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         lang: ts.LanguageService,
         doc: Document,
         tsDoc: SvelteDocumentSnapshot,
+        fragment: SvelteSnapshotFragment,
         originalPosition: Position,
     ): AppCompletionItem<CompletionEntryWithIdentifer>[] {
         if (tsDoc.parserError) {
@@ -122,7 +129,11 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             // TODO performance: this is done already in Document and HTMLPlugin. Consolidate somehow.
             .parseHTMLDocument(doc)
             .findNodeAt(doc.offsetAt(originalPosition));
-        const def = lang.getDefinitionAtPosition(tsDoc.filePath, node.start + 1)?.[0];
+        const generatedPosition = fragment.getGeneratedPosition(doc.positionAt(node.start + 1));
+        const def = lang.getDefinitionAtPosition(
+            tsDoc.filePath,
+            fragment.offsetAt(generatedPosition),
+        )?.[0];
         if (!def) {
             return [];
         }
