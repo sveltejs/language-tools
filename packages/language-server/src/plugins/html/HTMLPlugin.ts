@@ -63,12 +63,22 @@ export class HTMLPlugin implements HoverProvider, CompletionsProvider {
         this.lang.setCompletionParticipants([
             getEmmetCompletionParticipants(document, position, 'html', {}, emmetResults),
         ]);
-        const results = this.lang.doComplete(document, position, html);
+        const results = this.isInComponentTag(html, document, position)
+            ? // Only allow emmet inside component element tags.
+              // Other attributes/events would be false positives.
+              CompletionList.create([])
+            : this.lang.doComplete(document, position, html);
         return CompletionList.create(
             [...results.items, ...this.getLangCompletions(results.items), ...emmetResults.items],
             // Emmet completions change on every keystroke, so they are never complete
             emmetResults.items.length > 0,
         );
+    }
+
+    private isInComponentTag(html: HTMLDocument, document: Document, position: Position) {
+        const offset = document.offsetAt(position);
+        const node = html.findNodeAt(offset);
+        return !!node.tag && node.tag[0] === node.tag[0].toUpperCase();
     }
 
     private getLangCompletions(completions: CompletionItem[]): CompletionItem[] {

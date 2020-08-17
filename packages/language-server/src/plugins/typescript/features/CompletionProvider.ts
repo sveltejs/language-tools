@@ -18,13 +18,14 @@ import {
 } from '../../../lib/documents';
 import { isNotNullOrUndefined, pathToUrl } from '../../../utils';
 import { AppCompletionItem, AppCompletionList, CompletionsProvider } from '../../interfaces';
-import { SvelteSnapshotFragment } from '../DocumentSnapshot';
+import { SvelteSnapshotFragment, SvelteDocumentSnapshot } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import {
     convertRange,
     getCommitCharactersForScriptElement,
     scriptElementKindToCompletionItemKind,
 } from '../utils';
+import { getLanguageService } from 'vscode-html-languageservice';
 
 export interface CompletionEntryWithIdentifer extends ts.CompletionEntry, TextDocumentIdentifier {
     position: Position;
@@ -71,10 +72,11 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             ? triggerCharacter
             : undefined;
         const isCustomTriggerCharacter = triggerKind === CompletionTriggerKind.TriggerCharacter;
+        const isInvoked = triggerKind === CompletionTriggerKind.Invoked;
 
         // ignore any custom trigger character specified in server capabilities
         //  and is not allow by ts
-        if (isCustomTriggerCharacter && !validTriggerCharacter) {
+        if (isCustomTriggerCharacter && !validTriggerCharacter && !isInvoked) {
             return null;
         }
 
@@ -84,23 +86,58 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         }
 
         const offset = fragment.offsetAt(fragment.getGeneratedPosition(position));
-        const completions = lang.getCompletionsAtPosition(filePath, offset, {
-            includeCompletionsForModuleExports: true,
-            triggerCharacter: validTriggerCharacter,
-        });
+        const completions =
+            lang.getCompletionsAtPosition(filePath, offset, {
+                includeCompletionsForModuleExports: true,
+                triggerCharacter: validTriggerCharacter,
+            })?.entries || [];
+        const eventCompletions = this.getEventCompletions(lang, document, tsDoc, position);
 
-        if (!completions) {
+        if (completions.length === 0 && eventCompletions.length === 0) {
             return tsDoc.parserError ? CompletionList.create([], true) : null;
         }
 
-        const completionItems = completions.entries
+        const completionItems = completions
             .map((comp) =>
                 this.toCompletionItem(fragment, comp, pathToUrl(tsDoc.filePath), position),
             )
             .filter(isNotNullOrUndefined)
-            .map((comp) => mapCompletionItemToOriginal(fragment, comp));
+            .map((comp) => mapCompletionItemToOriginal(fragment, comp))
+            .concat(eventCompletions);
 
         return CompletionList.create(completionItems, !!tsDoc.parserError);
+    }
+
+    private getEventCompletions(
+        lang: ts.LanguageService,
+        doc: Document,
+        tsDoc: SvelteDocumentSnapshot,
+        originalPosition: Position,
+    ): AppCompletionItem<CompletionEntryWithIdentifer>[] {
+        if (tsDoc.parserError) {
+            return [];
+        }
+
+        const node = getLanguageService()
+            // TODO performance: this is done already in Document and HTMLPlugin. Consolidate somehow.
+            .parseHTMLDocument(doc)
+            .findNodeAt(doc.offsetAt(originalPosition));
+        const def = lang.getDefinitionAtPosition(tsDoc.filePath, node.start + 1)?.[0];
+        if (!def) {
+            return [];
+        }
+
+        const snapshot = this.lsAndTsDocResovler.getSnapshot(def.fileName);
+        if (!(snapshot instanceof SvelteDocumentSnapshot)) {
+            return [];
+        }
+
+        return snapshot.getEvents().map((event) => ({
+            label: 'on:' + event.name,
+            sortText: '-1',
+            detail: event.name + ': ' + event.type,
+            documentation: event.doc && { kind: MarkupKind.Markdown, value: event.doc },
+        }));
     }
 
     private toCompletionItem(

@@ -2,10 +2,16 @@ export interface SvelteCompiledToTsx {
     code: string;
     map: import("magic-string").SourceMap;
     exportedNames: IExportedNames;
+    events: ComponentEvents;
 }
 
 export interface IExportedNames {
     has(name: string): boolean;
+}
+
+export interface ComponentEvents {
+    getAll(): { name: string; type: string; doc?: string }[];
+    get(name: string): { type: string; doc?: string } | undefined;
 }
 
 export default function svelte2tsx(
