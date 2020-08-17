@@ -129,6 +129,11 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             // TODO performance: this is done already in Document and HTMLPlugin. Consolidate somehow.
             .parseHTMLDocument(doc)
             .findNodeAt(doc.offsetAt(originalPosition));
+        if (!!node.tag && node.tag[0] !== node.tag[0].toUpperCase()) {
+            // First letter of tag not upper case -> not a component
+            return [];
+        }
+
         const generatedPosition = fragment.getGeneratedPosition(doc.positionAt(node.start + 1));
         const def = lang.getDefinitionAtPosition(
             tsDoc.filePath,
