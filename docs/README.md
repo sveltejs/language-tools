@@ -100,3 +100,4 @@ Your default formatter for Svelte files may be wrong. Either it's set to the old
 ## Internals
 
 -   [Notes about deployment](./internal/deployment.md)
+-   [Overview of the language-tools and how things work together](./internal/overview.md)
