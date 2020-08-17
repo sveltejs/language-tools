@@ -839,21 +839,23 @@ function addComponentExport(
     str: MagicString,
     uses$$propsOr$$restProps: boolean,
     strictMode: boolean,
+    strictEvents: boolean,
     isTsFile: boolean,
     getters: Set<string>,
     /** A named export allows for TSDoc-compatible docstrings */
     className?: string,
     componentDocumentation?: string | null,
 ) {
+    const eventsDef = strictEvents ? 'render' : '__sveltets_with_any_event(render)';
     const propDef =
         // Omit partial-wrapper only if both strict mode and ts file, because
         // in a js file the user has no way of telling the language that
         // the prop is optional
         strictMode && isTsFile
             ? uses$$propsOr$$restProps
-                ? '__sveltets_with_any(render)'
-                : 'render'
-            : `__sveltets_partial${uses$$propsOr$$restProps ? '_with_any' : ''}(render)`;
+                ? `__sveltets_with_any(${eventsDef})`
+                : eventsDef
+            : `__sveltets_partial${uses$$propsOr$$restProps ? '_with_any' : ''}(${eventsDef})`;
 
     const doc = formatComponentDocumentation(componentDocumentation);
 
@@ -1030,6 +1032,7 @@ export function svelte2tsx(
         str,
         uses$$props || uses$$restProps,
         !!options?.strictMode,
+        events instanceof ComponentEventsFromInterface,
         options?.isTsFile,
         getters,
         className,
