@@ -33,19 +33,23 @@ function parseAttributes(str: string, start: number) {
 }
 
 function extractTag(htmlx: string, tag: 'script' | 'style') {
-    const exp = new RegExp(`(<${tag}([\\S\\s]*?)>)([\\S\\s]*?)<\\/${tag}>`, 'g');
+    const exp = new RegExp(`(<!--[^]*?-->)|(<${tag}([\\S\\s]*?)>)([\\S\\s]*?)<\\/${tag}>`, 'g');
     const matches: Node[] = [];
 
     let match: RegExpExecArray | null = null;
     while ((match = exp.exec(htmlx)) != null) {
-        const content = match[3];
+        if (match[0].startsWith('<!--')) {
+            // Tag is inside comment
+            continue;
+        }
 
+        const content = match[4];
         if (!content) {
             // Self-closing/empty tags don't need replacement
             continue;
         }
 
-        const start = match.index + match[1].length;
+        const start = match.index + match[2].length;
         const end = start + content.length;
         const containerStart = match.index;
         const containerEnd = match.index + match[0].length;
@@ -55,7 +59,7 @@ function extractTag(htmlx: string, tag: 'script' | 'style') {
             end: containerEnd,
             name: tag,
             type: tag === 'style' ? 'Style' : 'Script',
-            attributes: parseAttributes(match[2], containerStart + `<${tag}`.length),
+            attributes: parseAttributes(match[3], containerStart + `<${tag}`.length),
             content: {
                 type: 'Text',
                 start,
