@@ -7,7 +7,12 @@ import {
     SymbolInformation,
     CompletionItem,
 } from 'vscode-languageserver';
-import { DocumentManager, Document, isInTag } from '../../lib/documents';
+import {
+    DocumentManager,
+    Document,
+    isInTag,
+    getNodeIfIsInComponentStartTag,
+} from '../../lib/documents';
 import { LSConfigManager, LSHTMLConfig } from '../../ls-config';
 import { svelteHtmlDataProvider } from './dataProvider';
 import { HoverProvider, CompletionsProvider } from '../interfaces';
@@ -75,9 +80,7 @@ export class HTMLPlugin implements HoverProvider, CompletionsProvider {
     }
 
     private isInComponentTag(html: HTMLDocument, document: Document, position: Position) {
-        const offset = document.offsetAt(position);
-        const node = html.findNodeAt(offset);
-        return !!node.tag && node.tag[0] === node.tag[0].toUpperCase();
+        return !!getNodeIfIsInComponentStartTag(html, document.offsetAt(position));
     }
 
     private getLangCompletions(completions: CompletionItem[]): CompletionItem[] {

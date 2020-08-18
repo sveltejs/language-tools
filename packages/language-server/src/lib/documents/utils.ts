@@ -296,3 +296,20 @@ export function updateRelativeImport(oldPath: string, newPath: string, relativeI
     }
     return newImportPath;
 }
+
+/**
+ * Returns the node if offset is inside a node's starttag
+ */
+export function getNodeIfIsInComponentStartTag(
+    html: HTMLDocument,
+    offset: number,
+): Node | undefined {
+    const node = html.findNodeAt(offset);
+    if (
+        !!node.tag &&
+        node.tag[0] === node.tag[0].toUpperCase() &&
+        (!node.startTagEnd || offset < node.startTagEnd)
+    ) {
+        return node;
+    }
+}

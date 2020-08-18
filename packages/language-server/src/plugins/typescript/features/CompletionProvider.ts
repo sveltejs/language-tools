@@ -15,6 +15,7 @@ import {
     isInTag,
     mapCompletionItemToOriginal,
     mapRangeToOriginal,
+    getNodeIfIsInComponentStartTag,
 } from '../../../lib/documents';
 import { isNotNullOrUndefined, pathToUrl } from '../../../utils';
 import { AppCompletionItem, AppCompletionList, CompletionsProvider } from '../../interfaces';
@@ -25,7 +26,6 @@ import {
     getCommitCharactersForScriptElement,
     scriptElementKindToCompletionItemKind,
 } from '../utils';
-import { getLanguageService } from 'vscode-html-languageservice';
 
 export interface CompletionEntryWithIdentifer extends ts.CompletionEntry, TextDocumentIdentifier {
     position: Position;
@@ -157,8 +157,8 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             return null;
         }
 
-        const node = doc.html.findNodeAt(doc.offsetAt(originalPosition));
-        if (!!node.tag && node.tag[0] !== node.tag[0].toUpperCase()) {
+        const node = getNodeIfIsInComponentStartTag(doc.html, doc.offsetAt(originalPosition));
+        if (!node) {
             // First letter of tag not upper case -> not a component
             return null;
         }
