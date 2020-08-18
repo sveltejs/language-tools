@@ -121,30 +121,8 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         fragment: SvelteSnapshotFragment,
         originalPosition: Position,
     ): AppCompletionItem<CompletionEntryWithIdentifer>[] {
-        if (tsDoc.parserError) {
-            return [];
-        }
-
-        const node = getLanguageService()
-            // TODO performance: this is done already in Document and HTMLPlugin. Consolidate somehow.
-            .parseHTMLDocument(doc)
-            .findNodeAt(doc.offsetAt(originalPosition));
-        if (!!node.tag && node.tag[0] !== node.tag[0].toUpperCase()) {
-            // First letter of tag not upper case -> not a component
-            return [];
-        }
-
-        const generatedPosition = fragment.getGeneratedPosition(doc.positionAt(node.start + 1));
-        const def = lang.getDefinitionAtPosition(
-            tsDoc.filePath,
-            fragment.offsetAt(generatedPosition),
-        )?.[0];
-        if (!def) {
-            return [];
-        }
-
-        const snapshot = this.lsAndTsDocResovler.getSnapshot(def.fileName);
-        if (!(snapshot instanceof SvelteDocumentSnapshot)) {
+        const snapshot = this.getComponentAtPosition(lang, doc, tsDoc, fragment, originalPosition);
+        if (!snapshot) {
             return [];
         }
 
@@ -154,6 +132,54 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             detail: event.name + ': ' + event.type,
             documentation: event.doc && { kind: MarkupKind.Markdown, value: event.doc },
         }));
+    }
+
+    /**
+     * If the completion happens inside the template and within the
+     * tag of a Svelte component, then retrieve its snapshot.
+     */
+    private getComponentAtPosition(
+        lang: ts.LanguageService,
+        doc: Document,
+        tsDoc: SvelteDocumentSnapshot,
+        fragment: SvelteSnapshotFragment,
+        originalPosition: Position,
+    ): SvelteDocumentSnapshot | null {
+        if (tsDoc.parserError) {
+            return null;
+        }
+
+        if (
+            isInTag(originalPosition, doc.scriptInfo) ||
+            isInTag(originalPosition, doc.moduleScriptInfo)
+        ) {
+            // Inside script tags -> not a component
+            return null;
+        }
+
+        const node = getLanguageService()
+            // TODO performance: this is done already in Document and HTMLPlugin. Consolidate somehow.
+            .parseHTMLDocument(doc)
+            .findNodeAt(doc.offsetAt(originalPosition));
+        if (!!node.tag && node.tag[0] !== node.tag[0].toUpperCase()) {
+            // First letter of tag not upper case -> not a component
+            return null;
+        }
+
+        const generatedPosition = fragment.getGeneratedPosition(doc.positionAt(node.start + 1));
+        const def = lang.getDefinitionAtPosition(
+            tsDoc.filePath,
+            fragment.offsetAt(generatedPosition),
+        )?.[0];
+        if (!def) {
+            return null;
+        }
+
+        const snapshot = this.lsAndTsDocResovler.getSnapshot(def.fileName);
+        if (!(snapshot instanceof SvelteDocumentSnapshot)) {
+            return null;
+        }
+        return snapshot;
     }
 
     private toCompletionItem(
