@@ -1,5 +1,5 @@
 import ts from 'typescript';
-import { eventMapToString } from './event-handler';
+import { EventHandler } from './event-handler';
 
 export abstract class ComponentEvents {
     protected events = new Map<string, { type: string; doc?: string }>();
@@ -67,18 +67,18 @@ export class ComponentEventsFromInterface extends ComponentEvents {
 }
 
 export class ComponentEventsFromEventsMap extends ComponentEvents {
-    constructor(private eventsMap: Map<string, string | string[]>) {
+    constructor(private eventHandler: EventHandler) {
         super();
-        this.events = this.extractEvents(eventsMap);
+        this.events = this.extractEvents(eventHandler);
     }
 
     toDefString() {
-        return eventMapToString(this.eventsMap);
+        return this.eventHandler.eventMapToString();
     }
 
-    private extractEvents(eventsMap: Map<string, string | string[]>) {
+    private extractEvents(eventHandler: EventHandler) {
         const map = new Map();
-        for (const name of eventsMap.keys()) {
+        for (const name of eventHandler.getEvents().keys()) {
             map.set(name, { type: 'Event' });
         }
         return map;

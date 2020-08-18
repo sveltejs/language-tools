@@ -6,7 +6,7 @@ import { parseHtmlx } from './htmlxparser';
 import { convertHtmlxToJsx } from './htmlxtojsx';
 import { Node } from 'estree-walker';
 import * as ts from 'typescript';
-import { createEventHandlerTransformer } from './nodes/event-handler';
+import { EventHandler } from './nodes/event-handler';
 import { findExortKeyword, getBinaryAssignmentExpr } from './utils/tsAst';
 import { InstanceScriptProcessResult, CreateRenderFunctionPara } from './interfaces';
 import { createRenderFunctionGetterStr, createClassGetters } from './nodes/exportgetters';
@@ -291,7 +291,7 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
         str.remove(node.start, node.end);
     };
 
-    const { handleEventHandler, getEvents } = createEventHandlerTransformer();
+    const eventHandler = new EventHandler();
 
     const onHtmlxWalk = (node: Node, parent: Node, prop: string) => {
         if (
@@ -330,7 +330,7 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
                 enterArrowFunctionExpression();
                 break;
             case 'EventHandler':
-                handleEventHandler(node, parent);
+                eventHandler.handleEventHandler(node, parent);
                 break;
             case 'VariableDeclarator':
                 isDeclaration = true;
@@ -376,7 +376,7 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
         moduleScriptTag,
         scriptTag,
         slots,
-        events: new ComponentEventsFromEventsMap(getEvents()),
+        events: new ComponentEventsFromEventsMap(eventHandler),
         uses$$props,
         uses$$restProps,
         componentDocumentation,
