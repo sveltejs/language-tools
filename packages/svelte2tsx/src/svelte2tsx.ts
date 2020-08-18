@@ -269,7 +269,7 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
             handleScopeAndResolveForSlot(node.value, node.expression, node.then);
         }
         if (node.error) {
-            templateScope.add(node.error, node.catch);
+            handleScopeAndResolveForSlot(node.error, node.expression, node.catch);
         }
     };
 
