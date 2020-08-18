@@ -1,7 +1,8 @@
 import { urlToPath } from '../../utils';
 import { WritableDocument } from './DocumentBase';
-import { extractScriptTags, extractStyleTag, TagInformation } from './utils';
+import { extractScriptTags, extractStyleTag, TagInformation, parseHtml } from './utils';
 import { SvelteConfig, loadConfig } from './configLoader';
+import { HTMLDocument } from 'vscode-html-languageservice';
 
 /**
  * Represents a text document contains a svelte component.
@@ -12,6 +13,7 @@ export class Document extends WritableDocument {
     moduleScriptInfo: TagInformation | null = null;
     styleInfo: TagInformation | null = null;
     config!: SvelteConfig;
+    html!: HTMLDocument;
 
     constructor(public url: string, public content: string) {
         super();
@@ -22,10 +24,11 @@ export class Document extends WritableDocument {
         if (!this.config || this.config.loadConfigError) {
             this.config = loadConfig(this.getFilePath() || '');
         }
-        const scriptTags = extractScriptTags(this.content);
+        this.html = parseHtml(this.content);
+        const scriptTags = extractScriptTags(this.content, this.html);
         this.scriptInfo = this.addDefaultLanguage(scriptTags?.script || null, 'script');
         this.moduleScriptInfo = this.addDefaultLanguage(scriptTags?.moduleScript || null, 'script');
-        this.styleInfo = this.addDefaultLanguage(extractStyleTag(this.content), 'style');
+        this.styleInfo = this.addDefaultLanguage(extractStyleTag(this.content, this.html), 'style');
     }
 
     /**

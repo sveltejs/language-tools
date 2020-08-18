@@ -20,8 +20,7 @@ export class HTMLPlugin implements HoverProvider, CompletionsProvider {
     constructor(docManager: DocumentManager, configManager: LSConfigManager) {
         this.configManager = configManager;
         docManager.on('documentChange', (document) => {
-            const html = this.lang.parseHTMLDocument(document);
-            this.documents.set(document, html);
+            this.documents.set(document, document.html);
         });
     }
 

@@ -1,6 +1,6 @@
 import { clamp, isInRange, regexLastIndexOf } from '../../utils';
 import { Position, Range } from 'vscode-languageserver';
-import { Node, getLanguageService } from 'vscode-html-languageservice';
+import { Node, getLanguageService, HTMLDocument } from 'vscode-html-languageservice';
 import * as path from 'path';
 
 export interface TagInformation {
@@ -39,7 +39,11 @@ function parseAttributes(
 }
 
 const parser = getLanguageService();
-function parseHtml(text: string) {
+
+/**
+ * Parses text as HTML
+ */
+export function parseHtml(text: string): HTMLDocument {
     // We can safely only set getText because only this is used for parsing
     return parser.parseHTMLDocument(<any>{ getText: () => text });
 }
@@ -77,9 +81,9 @@ function blankIfBlocks(text: string): string {
  * @param source text content to extract tag from
  * @param tag the tag to extract
  */
-function extractTags(text: string, tag: 'script' | 'style'): TagInformation[] {
+function extractTags(text: string, tag: 'script' | 'style', html?: HTMLDocument): TagInformation[] {
     text = blankIfBlocks(text);
-    const rootNodes = parseHtml(text).roots;
+    const rootNodes = html?.roots || parseHtml(text).roots;
     const matchedNodes = rootNodes
         .filter((node) => node.tag === tag)
         .filter((tag) => {
@@ -155,8 +159,9 @@ function extractTags(text: string, tag: 'script' | 'style'): TagInformation[] {
 
 export function extractScriptTags(
     source: string,
+    html?: HTMLDocument,
 ): { script?: TagInformation; moduleScript?: TagInformation } | null {
-    const scripts = extractTags(source, 'script');
+    const scripts = extractTags(source, 'script', html);
     if (!scripts.length) {
         return null;
     }
@@ -166,8 +171,8 @@ export function extractScriptTags(
     return { script, moduleScript };
 }
 
-export function extractStyleTag(source: string): TagInformation | null {
-    const styles = extractTags(source, 'style');
+export function extractStyleTag(source: string, html?: HTMLDocument): TagInformation | null {
+    const styles = extractTags(source, 'style', html);
     if (!styles.length) {
         return null;
     }
