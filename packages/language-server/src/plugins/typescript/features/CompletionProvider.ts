@@ -335,7 +335,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         change: ts.TextChange,
         isImport: boolean,
     ): TextEdit {
-        change.newText = this.changeSvelteComponentName(change.newText);
+        change.newText = this.changeSvelteComponentImport(change.newText);
 
         const scriptTagInfo = fragment.scriptInfo;
         if (!scriptTagInfo) {
@@ -405,6 +405,16 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
 
     private changeSvelteComponentName(name: string) {
         return name.replace(/(\w+)__SvelteComponent_/, '$1');
+    }
+
+    private changeSvelteComponentImport(importText: string) {
+        const changedName = this.changeSvelteComponentName(importText);
+        if (importText !== changedName) {
+            // For some reason, TS sometimes adds the `type` modifier. Remove it.
+            return changedName.replace(' type ', ' ');
+        }
+
+        return importText;
     }
 }
 
