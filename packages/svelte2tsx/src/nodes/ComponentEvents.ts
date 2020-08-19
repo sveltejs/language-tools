@@ -15,10 +15,6 @@ export abstract class ComponentEvents {
         return entries;
     }
 
-    get(name: string): { type: string; doc?: string } | undefined {
-        return this.events.get(name);
-    }
-
     abstract toDefString(): string;
 }
 

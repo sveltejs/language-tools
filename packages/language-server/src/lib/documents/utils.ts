@@ -298,7 +298,7 @@ export function updateRelativeImport(oldPath: string, newPath: string, relativeI
 }
 
 /**
- * Returns the node if offset is inside a node's starttag
+ * Returns the node if offset is inside a component's starttag
  */
 export function getNodeIfIsInComponentStartTag(
     html: HTMLDocument,

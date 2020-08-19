@@ -159,7 +159,6 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
 
         const node = getNodeIfIsInComponentStartTag(doc.html, doc.offsetAt(originalPosition));
         if (!node) {
-            // First letter of tag not upper case -> not a component
             return null;
         }
 

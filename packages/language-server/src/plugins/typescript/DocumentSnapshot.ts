@@ -233,10 +233,6 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
         return this.componentEvents?.getAll() || [];
     }
 
-    getEvent(name: string) {
-        return this.componentEvents?.get(name);
-    }
-
     async getFragment() {
         if (!this.fragment) {
             const uri = pathToUrl(this.filePath);

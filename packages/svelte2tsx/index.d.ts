@@ -11,7 +11,6 @@ export interface IExportedNames {
 
 export interface ComponentEvents {
     getAll(): { name: string; type: string; doc?: string }[];
-    get(name: string): { type: string; doc?: string } | undefined;
 }
 
 export default function svelte2tsx(
