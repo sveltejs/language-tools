@@ -105,7 +105,7 @@ describe('CompletionProviderImpl', () => {
                 detail: 'b: MouseEvent',
                 documentation: {
                     kind: 'markdown',
-                    value: ' TEST',
+                    value: '\nTEST\n',
                 },
                 label: 'on:b',
                 sortText: '-1',
