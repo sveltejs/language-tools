@@ -19,3 +19,19 @@ export interface CreateRenderFunctionPara extends InstanceScriptProcessResult {
     events: ComponentEvents;
     isTsFile: boolean;
 }
+
+export interface AddComponentExportPara {
+    str: MagicString;
+    uses$$propsOr$$restProps: boolean;
+    strictMode: boolean;
+    /**
+     * If true, not fallback to `CustomEvent<any>`
+     * -> all unknown events will throw a type error
+     * */
+    strictEvents: boolean;
+    isTsFile: boolean;
+    getters: Set<string>;
+    /** A named export allows for TSDoc-compatible docstrings */
+    className?: string;
+    componentDocumentation?: string | null;
+}

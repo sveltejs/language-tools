@@ -8,7 +8,11 @@ import { Node } from 'estree-walker';
 import * as ts from 'typescript';
 import { EventHandler } from './nodes/event-handler';
 import { findExortKeyword, getBinaryAssignmentExpr } from './utils/tsAst';
-import { InstanceScriptProcessResult, CreateRenderFunctionPara } from './interfaces';
+import {
+    InstanceScriptProcessResult,
+    CreateRenderFunctionPara,
+    AddComponentExportPara,
+} from './interfaces';
 import { createRenderFunctionGetterStr, createClassGetters } from './nodes/exportgetters';
 import { ExportedNames } from './nodes/ExportedNames';
 import { ImplicitTopLevelNames } from './nodes/ImplicitTopLevelNames';
@@ -835,17 +839,16 @@ function formatComponentDocumentation(contents?: string | null) {
     return `/**\n${lines}\n */\n`;
 }
 
-function addComponentExport(
-    str: MagicString,
-    uses$$propsOr$$restProps: boolean,
-    strictMode: boolean,
-    strictEvents: boolean,
-    isTsFile: boolean,
-    getters: Set<string>,
-    /** A named export allows for TSDoc-compatible docstrings */
-    className?: string,
-    componentDocumentation?: string | null,
-) {
+function addComponentExport({
+    str,
+    uses$$propsOr$$restProps,
+    strictMode,
+    strictEvents,
+    isTsFile,
+    getters,
+    className,
+    componentDocumentation,
+}: AddComponentExportPara) {
     const eventsDef = strictEvents ? 'render' : '__sveltets_with_any_event(render)';
     const propDef =
         // Omit partial-wrapper only if both strict mode and ts file, because
@@ -1028,16 +1031,16 @@ export function svelte2tsx(
 
     const className = options?.filename && classNameFromFilename(options?.filename);
 
-    addComponentExport(
+    addComponentExport({
         str,
-        uses$$props || uses$$restProps,
-        !!options?.strictMode,
-        events instanceof ComponentEventsFromInterface,
-        options?.isTsFile,
+        uses$$propsOr$$restProps: uses$$props || uses$$restProps,
+        strictMode: !!options?.strictMode,
+        strictEvents: events instanceof ComponentEventsFromInterface,
+        isTsFile: options?.isTsFile,
         getters,
         className,
         componentDocumentation,
-    );
+    });
 
     str.prepend('///<reference types="svelte" />\n');
 
