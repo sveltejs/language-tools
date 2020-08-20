@@ -57,9 +57,22 @@ When you are using TypeScript, you can type which events your component has by d
 </script>
 ```
 
-Doing this will give you autocompletion for these events as well as type safety when using the component in other components.
+Doing this will give you autocompletion for these events as well as type safety when listening to the events in other components.
 
-> In case you ask why this cannot be infered: Due to Svelte's dynamic nature, component events could be fired not only from a dispatcher created directly in the component, but from a dispatcher which is created as part of a mixin. This is almost impossible to infer, so we need you to tell us which events are possible.
+If you want to be sure that the interface definition names correspond to your dispatched events, you can use computed property names:
+
+```html
+<script lang="ts">
+    const hello = 'hello';
+    interface ComponentEvents {
+        [hello]: CustomEvent<boolean>;
+    }
+    // ...
+    dispatch(hello, true);
+</script>
+```
+
+> In case you ask why the events cannot be infered: Due to Svelte's dynamic nature, component events could be fired not only from a dispatcher created directly in the component, but from a dispatcher which is created as part of a mixin. This is almost impossible to infer, so we need you to tell us which events are possible.
 
 ## Troubleshooting / FAQ
 
