@@ -8,5 +8,5 @@
 () => (<></>);
 return { props: {a: a , b: b , c: c} as {a: number, b: number | undefined, c?: number}, slots: {}, getters: {}, events: {} }}
 
-export default class Input__SvelteComponent_ extends createSvelte2TsxComponent(render) {
+export default class Input__SvelteComponent_ extends createSvelte2TsxComponent(__sveltets_with_any_event(render)) {
 }

@@ -42,6 +42,38 @@ You will need to tell svelte-vscode to restart the svelte language server in ord
 
 Hit `ctrl-shift-p` or `cmd-shift-p` on mac, type `svelte restart`, and select `Svelte: Restart Language Server`. Any errors you were seeing should now go away and you're now all set up!
 
+## Typing component events
+
+When you are using TypeScript, you can type which events your component has by defining a reserved `interface` (_NOT_ `type`) called `ComponentEvents`:
+
+```html
+<script lang="ts">
+    interface ComponentEvents {
+        click: MouseEvent;
+        hello: CustomEvent<boolean>;
+    }
+
+    // ...
+</script>
+```
+
+Doing this will give you autocompletion for these events as well as type safety when listening to the events in other components.
+
+If you want to be sure that the interface definition names correspond to your dispatched events, you can use computed property names:
+
+```html
+<script lang="ts">
+    const hello = 'hello';
+    interface ComponentEvents {
+        [hello]: CustomEvent<boolean>;
+    }
+    // ...
+    dispatch(hello, true);
+</script>
+```
+
+> In case you ask why the events cannot be infered: Due to Svelte's dynamic nature, component events could be fired not only from a dispatcher created directly in the component, but from a dispatcher which is created as part of a mixin. This is almost impossible to infer, so we need you to tell us which events are possible.
+
 ## Troubleshooting / FAQ
 
 ### I cannot use TS inside my script even when `lang="ts"` is present
@@ -81,6 +113,7 @@ At the moment, you cannot. Only `script`/`style` tags are preprocessed/transpile
 ### Why is VSCode not finding absolute paths for type imports?
 
 You may need to set `baseUrl` in `tsconfig.json` at the project root to include (restart the language server to see this take effect):
+
 ```
 "compilerOptions": {
     "baseUrl": "."

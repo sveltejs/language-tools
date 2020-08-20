@@ -1,9 +1,9 @@
 import { Node } from 'estree-walker';
 
-export function createEventHandlerTransformer() {
-    const events = new Map<string, string | string[]>();
+export class EventHandler {
+    events = new Map<string, string | string[]>();
 
-    const handleEventHandler = (node: Node, parent: Node) => {
+    handleEventHandler = (node: Node, parent: Node) => {
         const eventName = node.name;
 
         const handleEventHandlerBubble = () => {
@@ -11,8 +11,8 @@ export function createEventHandlerTransformer() {
             // eslint-disable-next-line max-len
             const exp = `__sveltets_bubbleEventDef(${componentEventDef}.$$events_def, '${eventName}')`;
 
-            const exist = events.get(eventName);
-            events.set(eventName, exist ? [].concat(exist, exp) : exp);
+            const exist = this.events.get(eventName);
+            this.events.set(eventName, exist ? [].concat(exist, exp) : exp);
         };
 
         // pass-through/ bubble
@@ -20,15 +20,18 @@ export function createEventHandlerTransformer() {
             if (parent.type === 'InlineComponent') {
                 handleEventHandlerBubble();
             } else {
-                events.set(eventName, getEventDefExpressionForNonCompoent(eventName, parent));
+                this.events.set(eventName, getEventDefExpressionForNonCompoent(eventName, parent));
             }
         }
     };
 
-    return {
-        handleEventHandler,
-        getEvents: () => events,
-    };
+    getEvents() {
+        return this.events;
+    }
+
+    eventMapToString() {
+        return '{' + Array.from(this.events.entries()).map(eventMapEntryToString).join(', ') + '}';
+    }
 }
 
 function getEventDefExpressionForNonCompoent(eventName: string, ele: Node) {
@@ -42,10 +45,6 @@ function getEventDefExpressionForNonCompoent(eventName: string, ele: Node) {
         default:
             break;
     }
-}
-
-export function eventMapToString(events: Map<string, string | string[]>) {
-    return '{' + Array.from(events.entries()).map(eventMapEntryToString).join(', ') + '}';
 }
 
 function eventMapEntryToString([eventName, expression]: [string, string | string[]]) {

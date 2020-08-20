@@ -180,7 +180,7 @@ function render() {
 </>);
 return { props: {slug: slug , chapter: chapter}, slots: {}, getters: {}, events: {} }}
 
-export default class extends createSvelte2TsxComponent(__sveltets_partial(render)) {
+export default class extends createSvelte2TsxComponent(__sveltets_partial(__sveltets_with_any_event(render))) {
 }
 !Expected
 <script context="module">

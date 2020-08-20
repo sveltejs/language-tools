@@ -6,12 +6,21 @@ import { parseHtmlx } from './htmlxparser';
 import { convertHtmlxToJsx } from './htmlxtojsx';
 import { Node } from 'estree-walker';
 import * as ts from 'typescript';
-import { createEventHandlerTransformer, eventMapToString } from './nodes/event-handler';
+import { EventHandler } from './nodes/event-handler';
 import { findExortKeyword, getBinaryAssignmentExpr } from './utils/tsAst';
-import { InstanceScriptProcessResult, CreateRenderFunctionPara } from './interfaces';
+import {
+    InstanceScriptProcessResult,
+    CreateRenderFunctionPara,
+    AddComponentExportPara,
+} from './interfaces';
 import { createRenderFunctionGetterStr, createClassGetters } from './nodes/exportgetters';
 import { ExportedNames } from './nodes/ExportedNames';
 import { ImplicitTopLevelNames } from './nodes/ImplicitTopLevelNames';
+import {
+    ComponentEvents,
+    ComponentEventsFromInterface,
+    ComponentEventsFromEventsMap,
+} from './nodes/ComponentEvents';
 
 function AttributeValueAsJsExpression(htmlx: string, attr: Node): string {
     if (attr.value.length == 0) return "''"; //wut?
@@ -47,7 +56,7 @@ type TemplateProcessResult = {
     moduleScriptTag: Node;
     /** To be added later as a comment on the default class export */
     componentDocumentation: string | null;
-    events: Map<string, string | string[]>;
+    events: ComponentEvents;
 };
 
 class Scope {
@@ -286,7 +295,7 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
         str.remove(node.start, node.end);
     };
 
-    const { handleEventHandler, getEvents } = createEventHandlerTransformer();
+    const eventHandler = new EventHandler();
 
     const onHtmlxWalk = (node: Node, parent: Node, prop: string) => {
         if (
@@ -325,7 +334,7 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
                 enterArrowFunctionExpression();
                 break;
             case 'EventHandler':
-                handleEventHandler(node, parent);
+                eventHandler.handleEventHandler(node, parent);
                 break;
             case 'VariableDeclarator':
                 isDeclaration = true;
@@ -371,14 +380,18 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
         moduleScriptTag,
         scriptTag,
         slots,
-        events: getEvents(),
+        events: new ComponentEventsFromEventsMap(eventHandler),
         uses$$props,
         uses$$restProps,
         componentDocumentation,
     };
 }
 
-function processInstanceScriptContent(str: MagicString, script: Node): InstanceScriptProcessResult {
+function processInstanceScriptContent(
+    str: MagicString,
+    script: Node,
+    events: ComponentEvents,
+): InstanceScriptProcessResult {
     const htmlx = str.original;
     const scriptContent = htmlx.substring(script.content.start, script.content.end);
     const tsAst = ts.createSourceFile(
@@ -663,6 +676,10 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
         type onLeaveCallback = () => void;
         const onLeaveCallbacks: onLeaveCallback[] = [];
 
+        if (ts.isInterfaceDeclaration(node) && node.name.text === 'ComponentEvents') {
+            events = new ComponentEventsFromInterface(node);
+        }
+
         if (ts.isVariableStatement(node)) {
             const exportModifier = findExortKeyword(node);
             if (exportModifier) {
@@ -801,6 +818,7 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
 
     return {
         exportedNames,
+        events,
         uses$$props,
         uses$$restProps,
         getters,
@@ -821,25 +839,26 @@ function formatComponentDocumentation(contents?: string | null) {
     return `/**\n${lines}\n */\n`;
 }
 
-function addComponentExport(
-    str: MagicString,
-    uses$$propsOr$$restProps: boolean,
-    strictMode: boolean,
-    isTsFile: boolean,
-    getters: Set<string>,
-    /** A named export allows for TSDoc-compatible docstrings */
-    className?: string,
-    componentDocumentation?: string | null,
-) {
+function addComponentExport({
+    str,
+    uses$$propsOr$$restProps,
+    strictMode,
+    strictEvents,
+    isTsFile,
+    getters,
+    className,
+    componentDocumentation,
+}: AddComponentExportPara) {
+    const eventsDef = strictEvents ? 'render' : '__sveltets_with_any_event(render)';
     const propDef =
         // Omit partial-wrapper only if both strict mode and ts file, because
         // in a js file the user has no way of telling the language that
         // the prop is optional
         strictMode && isTsFile
             ? uses$$propsOr$$restProps
-                ? '__sveltets_with_any(render)'
-                : 'render'
-            : `__sveltets_partial${uses$$propsOr$$restProps ? '_with_any' : ''}(render)`;
+                ? `__sveltets_with_any(${eventsDef})`
+                : eventsDef
+            : `__sveltets_partial${uses$$propsOr$$restProps ? '_with_any' : ''}(${eventsDef})`;
 
     const doc = formatComponentDocumentation(componentDocumentation);
 
@@ -933,7 +952,7 @@ function createRenderFunction({
         `\nreturn { props: ${exportedNames.createPropsStr(
             isTsFile,
         )}, slots: ${slotsAsDef}, getters: ${createRenderFunctionGetterStr(getters)}` +
-        `, events: ${eventMapToString(events)} }}`;
+        `, events: ${events.toDefString()} }}`;
 
     // wrap template with callback
     if (scriptTag) {
@@ -984,11 +1003,11 @@ export function svelte2tsx(
         if (scriptTag.start != instanceScriptTarget) {
             str.move(scriptTag.start, scriptTag.end, instanceScriptTarget);
         }
-        const res = processInstanceScriptContent(str, scriptTag);
+        const res = processInstanceScriptContent(str, scriptTag, events);
         uses$$props = uses$$props || res.uses$$props;
         uses$$restProps = uses$$restProps || res.uses$$restProps;
 
-        ({ exportedNames, getters } = res);
+        ({ exportedNames, events, getters } = res);
     }
 
     //wrap the script tag and template content in a function returning the slot and exports
@@ -1012,15 +1031,16 @@ export function svelte2tsx(
 
     const className = options?.filename && classNameFromFilename(options?.filename);
 
-    addComponentExport(
+    addComponentExport({
         str,
-        uses$$props || uses$$restProps,
-        !!options?.strictMode,
-        options?.isTsFile,
+        uses$$propsOr$$restProps: uses$$props || uses$$restProps,
+        strictMode: !!options?.strictMode,
+        strictEvents: events instanceof ComponentEventsFromInterface,
+        isTsFile: options?.isTsFile,
         getters,
         className,
         componentDocumentation,
-    );
+    });
 
     str.prepend('///<reference types="svelte" />\n');
 
@@ -1028,5 +1048,6 @@ export function svelte2tsx(
         code: str.toString(),
         map: str.generateMap({ hires: true, source: options?.filename }),
         exportedNames,
+        events,
     };
 }

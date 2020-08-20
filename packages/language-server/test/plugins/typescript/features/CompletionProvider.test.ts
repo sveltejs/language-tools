@@ -21,7 +21,7 @@ import { LSAndTSDocResolver } from '../../../../src/plugins/typescript/LSAndTSDo
 import { sortBy } from 'lodash';
 
 const testDir = join(__dirname, '..');
-const testFilesDir = join(testDir, 'testfiles');
+const testFilesDir = join(testDir, 'testfiles', 'completions');
 const newLine = ts.sys.newLine;
 
 const fileNameToAbosoluteUri = (file: string) => {
@@ -74,6 +74,51 @@ describe('CompletionProviderImpl', () => {
         });
     });
 
+    it('provides event completions', async () => {
+        const { completionProvider, document } = setup('component-events-completion.svelte');
+
+        const completions = await completionProvider.getCompletions(
+            document,
+            Position.create(4, 5),
+            {
+                triggerKind: CompletionTriggerKind.Invoked,
+            },
+        );
+
+        assert.ok(
+            Array.isArray(completions && completions.items),
+            'Expected completion items to be an array',
+        );
+        assert.ok(completions!.items.length > 0, 'Expected completions to have length');
+
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const eventCompletions = completions!.items.filter((item) => item.label.startsWith('on:'));
+
+        assert.deepStrictEqual(eventCompletions, <CompletionItem[]>[
+            {
+                detail: 'a: CustomEvent<boolean>',
+                documentation: undefined,
+                label: 'on:a',
+                sortText: '-1',
+            },
+            {
+                detail: 'b: MouseEvent',
+                documentation: {
+                    kind: 'markdown',
+                    value: '\nTEST\n',
+                },
+                label: 'on:b',
+                sortText: '-1',
+            },
+            {
+                detail: 'c: Event',
+                documentation: undefined,
+                label: 'on:c',
+                sortText: '-1',
+            },
+        ]);
+    });
+
     it('does not provide completions inside style tag', async () => {
         const { completionProvider, document } = setup('completionsstyle.svelte');
 
@@ -123,7 +168,7 @@ describe('CompletionProviderImpl', () => {
     });
 
     it('resolve completion and provide documentation', async () => {
-        const { completionProvider, document } = setup('documentation.svelte');
+        const { completionProvider, document } = setup('../documentation.svelte');
 
         const { documentation, detail } = await completionProvider.resolveCompletion(document, {
             label: 'foo',
@@ -232,12 +277,12 @@ describe('CompletionProviderImpl', () => {
             item!,
         );
 
-        assert.strictEqual(detail, 'Auto import from ./definitions\nfunction blubb(): boolean');
+        assert.strictEqual(detail, 'Auto import from ../definitions\nfunction blubb(): boolean');
 
         assert.strictEqual(
             harmonizeNewLines(additionalTextEdits![0]?.newText),
             // " instead of ' because VSCode uses " by default when there are no other imports indicating otherwise
-            `${newLine}import { blubb } from "./definitions";${newLine}${newLine}`,
+            `${newLine}import { blubb } from "../definitions";${newLine}${newLine}`,
         );
 
         assert.deepEqual(
@@ -265,11 +310,11 @@ describe('CompletionProviderImpl', () => {
             item!,
         );
 
-        assert.strictEqual(detail, 'Auto import from ./definitions\nfunction blubb(): boolean');
+        assert.strictEqual(detail, 'Auto import from ../definitions\nfunction blubb(): boolean');
 
         assert.strictEqual(
             harmonizeNewLines(additionalTextEdits![0]?.newText),
-            `import { blubb } from './definitions';${newLine}`,
+            `import { blubb } from '../definitions';${newLine}`,
         );
 
         assert.deepEqual(
@@ -297,11 +342,11 @@ describe('CompletionProviderImpl', () => {
             item!,
         );
 
-        assert.strictEqual(detail, 'Auto import from ./definitions\nfunction blubb(): boolean');
+        assert.strictEqual(detail, 'Auto import from ../definitions\nfunction blubb(): boolean');
 
         assert.strictEqual(
             harmonizeNewLines(additionalTextEdits![0]?.newText),
-            `${newLine}import { blubb } from './definitions';${newLine}`,
+            `${newLine}import { blubb } from '../definitions';${newLine}`,
         );
 
         assert.deepEqual(

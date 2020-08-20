@@ -7,7 +7,12 @@ import {
     SymbolInformation,
     CompletionItem,
 } from 'vscode-languageserver';
-import { DocumentManager, Document, isInTag } from '../../lib/documents';
+import {
+    DocumentManager,
+    Document,
+    isInTag,
+    getNodeIfIsInComponentStartTag,
+} from '../../lib/documents';
 import { LSConfigManager, LSHTMLConfig } from '../../ls-config';
 import { svelteHtmlDataProvider } from './dataProvider';
 import { HoverProvider, CompletionsProvider } from '../interfaces';
@@ -20,8 +25,7 @@ export class HTMLPlugin implements HoverProvider, CompletionsProvider {
     constructor(docManager: DocumentManager, configManager: LSConfigManager) {
         this.configManager = configManager;
         docManager.on('documentChange', (document) => {
-            const html = this.lang.parseHTMLDocument(document);
-            this.documents.set(document, html);
+            this.documents.set(document, document.html);
         });
     }
 
@@ -63,12 +67,20 @@ export class HTMLPlugin implements HoverProvider, CompletionsProvider {
         this.lang.setCompletionParticipants([
             getEmmetCompletionParticipants(document, position, 'html', {}, emmetResults),
         ]);
-        const results = this.lang.doComplete(document, position, html);
+        const results = this.isInComponentTag(html, document, position)
+            ? // Only allow emmet inside component element tags.
+              // Other attributes/events would be false positives.
+              CompletionList.create([])
+            : this.lang.doComplete(document, position, html);
         return CompletionList.create(
             [...results.items, ...this.getLangCompletions(results.items), ...emmetResults.items],
             // Emmet completions change on every keystroke, so they are never complete
             emmetResults.items.length > 0,
         );
+    }
+
+    private isInComponentTag(html: HTMLDocument, document: Document, position: Position) {
+        return !!getNodeIfIsInComponentStartTag(html, document.offsetAt(position));
     }
 
     private getLangCompletions(completions: CompletionItem[]): CompletionItem[] {

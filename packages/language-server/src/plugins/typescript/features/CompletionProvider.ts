@@ -15,10 +15,11 @@ import {
     isInTag,
     mapCompletionItemToOriginal,
     mapRangeToOriginal,
+    getNodeIfIsInComponentStartTag,
 } from '../../../lib/documents';
 import { isNotNullOrUndefined, pathToUrl } from '../../../utils';
 import { AppCompletionItem, AppCompletionList, CompletionsProvider } from '../../interfaces';
-import { SvelteSnapshotFragment } from '../DocumentSnapshot';
+import { SvelteSnapshotFragment, SvelteDocumentSnapshot } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import {
     convertRange,
@@ -84,23 +85,96 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         }
 
         const offset = fragment.offsetAt(fragment.getGeneratedPosition(position));
-        const completions = lang.getCompletionsAtPosition(filePath, offset, {
-            includeCompletionsForModuleExports: true,
-            triggerCharacter: validTriggerCharacter,
-        });
+        const completions =
+            lang.getCompletionsAtPosition(filePath, offset, {
+                includeCompletionsForModuleExports: true,
+                triggerCharacter: validTriggerCharacter,
+            })?.entries || [];
+        const eventCompletions = this.getEventCompletions(
+            lang,
+            document,
+            tsDoc,
+            fragment,
+            position,
+        );
 
-        if (!completions) {
+        if (completions.length === 0 && eventCompletions.length === 0) {
             return tsDoc.parserError ? CompletionList.create([], true) : null;
         }
 
-        const completionItems = completions.entries
+        const completionItems = completions
             .map((comp) =>
                 this.toCompletionItem(fragment, comp, pathToUrl(tsDoc.filePath), position),
             )
             .filter(isNotNullOrUndefined)
-            .map((comp) => mapCompletionItemToOriginal(fragment, comp));
+            .map((comp) => mapCompletionItemToOriginal(fragment, comp))
+            .concat(eventCompletions);
 
         return CompletionList.create(completionItems, !!tsDoc.parserError);
+    }
+
+    private getEventCompletions(
+        lang: ts.LanguageService,
+        doc: Document,
+        tsDoc: SvelteDocumentSnapshot,
+        fragment: SvelteSnapshotFragment,
+        originalPosition: Position,
+    ): AppCompletionItem<CompletionEntryWithIdentifer>[] {
+        const snapshot = this.getComponentAtPosition(lang, doc, tsDoc, fragment, originalPosition);
+        if (!snapshot) {
+            return [];
+        }
+
+        return snapshot.getEvents().map((event) => ({
+            label: 'on:' + event.name,
+            sortText: '-1',
+            detail: event.name + ': ' + event.type,
+            documentation: event.doc && { kind: MarkupKind.Markdown, value: event.doc },
+        }));
+    }
+
+    /**
+     * If the completion happens inside the template and within the
+     * tag of a Svelte component, then retrieve its snapshot.
+     */
+    private getComponentAtPosition(
+        lang: ts.LanguageService,
+        doc: Document,
+        tsDoc: SvelteDocumentSnapshot,
+        fragment: SvelteSnapshotFragment,
+        originalPosition: Position,
+    ): SvelteDocumentSnapshot | null {
+        if (tsDoc.parserError) {
+            return null;
+        }
+
+        if (
+            isInTag(originalPosition, doc.scriptInfo) ||
+            isInTag(originalPosition, doc.moduleScriptInfo)
+        ) {
+            // Inside script tags -> not a component
+            return null;
+        }
+
+        const node = getNodeIfIsInComponentStartTag(doc.html, doc.offsetAt(originalPosition));
+        if (!node) {
+            return null;
+        }
+
+        const generatedPosition = fragment.getGeneratedPosition(doc.positionAt(node.start + 1));
+        const def = lang.getDefinitionAtPosition(
+            tsDoc.filePath,
+            fragment.offsetAt(generatedPosition),
+        )?.[0];
+        if (!def) {
+            return null;
+        }
+
+        const snapshot = this.lsAndTsDocResovler.getSnapshot(def.fileName);
+        if (!(snapshot instanceof SvelteDocumentSnapshot)) {
+            return null;
+        }
+        return snapshot;
     }
 
     private toCompletionItem(
@@ -260,7 +334,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         change: ts.TextChange,
         isImport: boolean,
     ): TextEdit {
-        change.newText = this.changeSvelteComponentName(change.newText);
+        change.newText = this.changeSvelteComponentImport(change.newText);
 
         const scriptTagInfo = fragment.scriptInfo;
         if (!scriptTagInfo) {
@@ -330,6 +404,16 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
 
     private changeSvelteComponentName(name: string) {
         return name.replace(/(\w+)__SvelteComponent_/, '$1');
+    }
+
+    private changeSvelteComponentImport(importText: string) {
+        const changedName = this.changeSvelteComponentName(importText);
+        if (importText !== changedName) {
+            // For some reason, TS sometimes adds the `type` modifier. Remove it.
+            return changedName.replace(' type ', ' ');
+        }
+
+        return importText;
     }
 }
 
