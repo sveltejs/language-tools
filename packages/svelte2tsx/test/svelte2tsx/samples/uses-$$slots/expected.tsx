@@ -1,5 +1,5 @@
 ///<reference types="svelte" />
-<></>;function render() { let $$slots: { foo: any, default: any } = __sveltets_slotsType();
+<></>;function render() { let $$slots = __sveltets_slotsType({foo: '', default: ''});
 <><h1>{$$slots['name']}</h1>
 
 <slot name="foo" />

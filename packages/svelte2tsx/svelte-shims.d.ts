@@ -104,7 +104,7 @@ declare function __sveltets_ctorOf<T>(type: T): AConstructorTypeOf<T>;
 declare function __sveltets_instanceOf<T>(type: AConstructorTypeOf<T>): T;
 declare function __sveltets_allPropsType(): SvelteAllProps
 declare function __sveltets_restPropsType(): SvelteRestProps
-declare function __sveltets_slotsType(): SvelteSlots
+declare function __sveltets_slotsType<Slots, Key extends keyof Slots>(slots: Slots): Record<Key, boolean>;
 declare function __sveltets_partial<Props = {}, Events = {}, Slots = {}>(
     render: () => {props?: Props, events?: Events, slots?: Slots }
 ): () => {props?: Partial<Props>, events?: Events, slots?: Slots }

@@ -938,11 +938,11 @@ function createRenderFunction({
 
     if (uses$$slots) {
         propsDecl +=
-            ' let $$slots: { ' +
+            ' let $$slots = __sveltets_slotsType({' +
             Array.from(slots.keys())
-                .map((name) => `${name}: any`)
+                .map((name) => `${name}: ''`)
                 .join(', ') +
-            ' } = __sveltets_slotsType();';
+            '});';
     }
 
     if (scriptTag) {
