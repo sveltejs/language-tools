@@ -1,7 +1,7 @@
 <script lang="ts">
     interface ComponentEvents {
         /**
-         * Some doc
+         * Some *doc*
          */
         a: boolean;
         b: string;

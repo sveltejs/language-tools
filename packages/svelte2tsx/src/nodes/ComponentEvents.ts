@@ -99,10 +99,16 @@ export class ComponentEventsFromInterface extends ComponentEvents {
             doc = node
                 .getText()
                 .substring(comment[0].pos, comment[0].end)
-                // Remove /** */
-                .replace(/\s*\/\*\*/, '')
-                .replace(/\s*\*\//, '')
-                .replace(/\s*\*/g, '');
+                .split('\n')
+                .map((line) =>
+                    // Remove /** */
+                    line
+                        .replace(/\s*\/\*\*/, '')
+                        .replace(/\s*\*\//, '')
+                        .replace(/\s*\*/, '')
+                        .trim(),
+                )
+                .join('\n');
         }
 
         return doc;
