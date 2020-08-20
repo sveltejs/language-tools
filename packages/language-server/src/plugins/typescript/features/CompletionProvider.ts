@@ -17,7 +17,7 @@ import {
     mapRangeToOriginal,
     getNodeIfIsInComponentStartTag,
 } from '../../../lib/documents';
-import { isNotNullOrUndefined, pathToUrl } from '../../../utils';
+import { isNotNullOrUndefined, pathToUrl, getRegExpMatches, flatten } from '../../../utils';
 import { AppCompletionItem, AppCompletionList, CompletionsProvider } from '../../interfaces';
 import { SvelteSnapshotFragment, SvelteDocumentSnapshot } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
@@ -102,15 +102,30 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             return tsDoc.parserError ? CompletionList.create([], true) : null;
         }
 
+        const existingImports = this.getExistingImports(document);
         const completionItems = completions
             .map((comp) =>
-                this.toCompletionItem(fragment, comp, pathToUrl(tsDoc.filePath), position),
+                this.toCompletionItem(
+                    fragment,
+                    comp,
+                    pathToUrl(tsDoc.filePath),
+                    position,
+                    existingImports,
+                ),
             )
             .filter(isNotNullOrUndefined)
             .map((comp) => mapCompletionItemToOriginal(fragment, comp))
             .concat(eventCompletions);
 
         return CompletionList.create(completionItems, !!tsDoc.parserError);
+    }
+
+    private getExistingImports(document: Document) {
+        const rawImports = getRegExpMatches(scriptImportRegex, document.getText()).map((match) =>
+            (match[1] ?? match[2]).split(','),
+        );
+        const tidiedImports = flatten(rawImports).map((match) => match.trim());
+        return new Set(tidiedImports);
     }
 
     private getEventCompletions(
@@ -182,6 +197,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         comp: ts.CompletionEntry,
         uri: string,
         position: Position,
+        existingImports: Set<string>,
     ): AppCompletionItem<CompletionEntryWithIdentifer> | null {
         const completionLabelAndInsert = this.getCompletionLabelAndInsert(fragment, comp);
         if (!completionLabelAndInsert) {
@@ -189,6 +205,13 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         }
 
         const { label, insertText, isSvelteComp } = completionLabelAndInsert;
+        // TS may suggest another Svelte component even if there already exists an import
+        // with the same name, because under the hood every Svelte component is postfixed
+        // with `__SvelteComponent`. In this case, filter out this completion by returning null.
+        if (isSvelteComp && existingImports.has(label)) {
+            return null;
+        }
+
         return {
             label,
             insertText,
@@ -418,3 +441,8 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
 }
 
 const beginOfDocumentRange = Range.create(Position.create(0, 0), Position.create(0, 0));
+
+// `import {...} from '..'` or `import ... from '..'`
+// Note: Does not take into account if import is within a comment.
+// eslint-disable-next-line max-len
+const scriptImportRegex = /\bimport\s+{([^}]*?)}\s+?from\s+['"`].+?['"`]|\bimport\s+(\w+?)\s+from\s+['"`].+?['"`]/g;
