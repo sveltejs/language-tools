@@ -100,7 +100,7 @@ export function regexLastIndexOf(text: string, regex: RegExp, endPos?: number) {
  * Get all matches of a regexp.
  */
 export function getRegExpMatches(regex: RegExp, str: string) {
-    let matches: RegExpExecArray[] = [];
+    const matches: RegExpExecArray[] = [];
     let match: RegExpExecArray | null;
     while ((match = regex.exec(str))) {
         matches.push(match);
