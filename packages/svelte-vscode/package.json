@@ -49,17 +49,17 @@
                 "svelte.language-server.runtime": {
                     "type": "string",
                     "title": "Language Server Runtime",
-                    "description": "Path to the node executable to use to spawn the language server"
+                    "description": "- You normally don't need this - Path to the node executable to use to spawn the language server. This is useful when you depend on native modules such as node-sass as without this they will run in the context of vscode, meaning node version mismatch is likely."
                 },
                 "svelte.language-server.ls-path": {
                     "type": "string",
                     "title": "Language Server Path",
-                    "description": "Path to the langauge server file (either a relative path from the workspace root or an absolute path). Can be used to use a custom variant of the language server."
+                    "description": "- You normally don't set this - Path to the language server executable. If you installed the \"svelte-language-server\" npm package, it's within there at \"bin/server.js\". Path can be either relative to your workspace root or absolute. Set this only if you want to use a custom version of the language server."
                 },
                 "svelte.language-server.port": {
                     "type": "number",
                     "title": "Language Server Port",
-                    "description": "At which port to spawn the language server. Can be used for attaching to the process for debugging / profiling. If you experience crashes due to \"port already in use\", try setting the port. -1 = default port is used.",
+                    "description": "- You normally don't set this - At which port to spawn the language server. Can be used for attaching to the process for debugging / profiling. If you experience crashes due to \"port already in use\", try setting the port. -1 = default port is used.",
                     "default": -1
                 },
                 "svelte.plugin.typescript.enable": {
