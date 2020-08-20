@@ -1,13 +1,15 @@
 ///<reference types="svelte" />
 <></>;function render() {
 
+    const A = 'a';
+    const B = 'b', C = 'c';
     interface ComponentEvents {
         /**
          * Some doc
          */
-        a: boolean;
-        b: string;
-        c;
+        [A]: boolean;
+        [B]: string;
+        [C];
     }
 ;
 () => (<></>);

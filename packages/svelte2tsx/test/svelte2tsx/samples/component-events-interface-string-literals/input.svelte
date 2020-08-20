@@ -3,8 +3,8 @@
         /**
          * Some doc
          */
-        a: boolean;
-        b: string;
-        c;
+        'a-b': boolean;
+        'b': string;
+        'c';
     }
 </script>

@@ -1,5 +1,6 @@
 import ts from 'typescript';
 import { EventHandler } from './event-handler';
+import { getVariableAtTopLevel } from '../utils/tsAst';
 
 export abstract class ComponentEvents {
     protected events = new Map<string, { type: string; doc?: string }>();
@@ -32,13 +33,59 @@ export class ComponentEventsFromInterface extends ComponentEvents {
         const map = new Map<string, { type: string; doc?: string }>();
 
         node.members.filter(ts.isPropertySignature).forEach((member) => {
-            map.set(member.name.getText(), {
+            map.set(this.getName(member.name), {
                 type: member.type?.getText() || 'Event',
                 doc: this.getDoc(node, member),
             });
         });
 
         return map;
+    }
+
+    private getName(prop: ts.PropertyName) {
+        if (ts.isIdentifier(prop) || ts.isStringLiteral(prop)) {
+            return prop.text;
+        }
+
+        if (ts.isComputedPropertyName(prop)) {
+            if (ts.isIdentifier(prop.expression)) {
+                const identifierName = prop.expression.text;
+                const identifierValue = this.getIdentifierValue(prop, identifierName);
+                if (!identifierValue) {
+                    this.throwError(prop);
+                }
+                return identifierValue;
+            }
+        }
+
+        this.throwError(prop);
+    }
+
+    private getIdentifierValue(prop: ts.ComputedPropertyName, identifierName: string) {
+        const variable = getVariableAtTopLevel(prop.getSourceFile(), identifierName);
+        if (variable && ts.isStringLiteral(variable.initializer)) {
+            return variable.initializer.text;
+        }
+    }
+
+    private throwError(prop: ts.PropertyName) {
+        const error: any = new Error(
+            'The ComponentEvents interface can only have properties of type ' +
+                'Identifier, StringLiteral or ComputedPropertyName. ' +
+                'In case of ComputedPropertyName, ' +
+                'it must be a const declared within the component and initialized with a string.',
+        );
+        error.start = toLineColumn(prop.getStart());
+        error.end = toLineColumn(prop.getEnd());
+        throw error;
+
+        function toLineColumn(pos: number) {
+            const lineChar = prop.getSourceFile().getLineAndCharacterOfPosition(pos);
+            return {
+                line: lineChar.line + 1,
+                column: lineChar.character,
+            };
+        }
     }
 
     private getDoc(node: ts.InterfaceDeclaration, member: ts.PropertySignature) {

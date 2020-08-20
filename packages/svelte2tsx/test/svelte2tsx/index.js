@@ -16,15 +16,20 @@ describe('svelte2tsx', () => {
 		}
 
 		(solo ? it.only : it)(dir, () => {
-            const input = fs.readFileSync(`${__dirname}/samples/${dir}/input.svelte`, 'utf-8').replace(/\s+$/, '').replace(/\r\n/g, "\n");
-            const expectedOutput = fs.readFileSync(`${__dirname}/samples/${dir}/expected.tsx`, 'utf-8').replace(/\s+$/, '').replace(/\r\n/g, "\n");
+			const path = `${__dirname}/samples/${dir}`;
+            const input = fs.readFileSync(`${path}/input.svelte`, 'utf-8').replace(/\s+$/, '').replace(/\r\n/g, "\n");
+			const expectedOutput = fs.readFileSync(`${path}/expected.tsx`, 'utf-8').replace(/\s+$/, '').replace(/\r\n/g, "\n");
+			const expecterOtherOutput = fs.existsSync(`${path}/expected.js`) && require(`${path}/expected`);
 
-            const { map, code} = svelte2tsx(input, {
+            const output = svelte2tsx(input, {
 				strictMode: dir.includes('strictMode'),
 				isTsFile: dir.startsWith('ts-'),
 				filename: 'input.svelte'
 			});
-            assert.equal(code, expectedOutput);
+			assert.equal(output.code, expectedOutput);
+			if (expecterOtherOutput) {
+				expecterOtherOutput(output);
+			}
 		});
 	});
 });
