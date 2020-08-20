@@ -72,11 +72,10 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             ? triggerCharacter
             : undefined;
         const isCustomTriggerCharacter = triggerKind === CompletionTriggerKind.TriggerCharacter;
-        const isInvoked = triggerKind === CompletionTriggerKind.Invoked;
 
         // ignore any custom trigger character specified in server capabilities
         //  and is not allow by ts
-        if (isCustomTriggerCharacter && !validTriggerCharacter && !isInvoked) {
+        if (isCustomTriggerCharacter && !validTriggerCharacter) {
             return null;
         }
 
