@@ -51,6 +51,7 @@ function AttributeValueAsJsExpression(htmlx: string, attr: Node): string {
 type TemplateProcessResult = {
     uses$$props: boolean;
     uses$$restProps: boolean;
+    uses$$slots: boolean;
     slots: Map<string, Map<string, string>>;
     scriptTag: Node;
     moduleScriptTag: Node;
@@ -91,6 +92,7 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
 
     let uses$$props = false;
     let uses$$restProps = false;
+    let uses$$slots = false;
 
     let componentDocumentation = null;
 
@@ -221,6 +223,11 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
         }
         if (node.name === '$$restProps') {
             uses$$restProps = true;
+            return;
+        }
+
+        if (node.name === '$$slots') {
+            uses$$slots = true;
             return;
         }
 
@@ -383,6 +390,7 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
         events: new ComponentEventsFromEventsMap(eventHandler),
         uses$$props,
         uses$$restProps,
+        uses$$slots,
         componentDocumentation,
     };
 }
@@ -408,6 +416,7 @@ function processInstanceScriptContent(
     const implicitTopLevelNames = new ImplicitTopLevelNames();
     let uses$$props = false;
     let uses$$restProps = false;
+    let uses$$slots = false;
 
     //track if we are in a declaration scope
     let isDeclaration = false;
@@ -605,6 +614,10 @@ function processInstanceScriptContent(
         }
         if (ident.text === '$$restProps') {
             uses$$restProps = true;
+            return;
+        }
+        if (ident.text === '$$slots') {
+            uses$$slots = true;
             return;
         }
 
@@ -821,6 +834,7 @@ function processInstanceScriptContent(
         events,
         uses$$props,
         uses$$restProps,
+        uses$$slots,
         getters,
     };
 }
@@ -910,6 +924,7 @@ function createRenderFunction({
     isTsFile,
     uses$$props,
     uses$$restProps,
+    uses$$slots,
 }: CreateRenderFunctionPara) {
     const htmlx = str.original;
     let propsDecl = '';
@@ -919,6 +934,15 @@ function createRenderFunction({
     }
     if (uses$$restProps) {
         propsDecl += ' let $$restProps = __sveltets_restPropsType();';
+    }
+
+    if (uses$$slots) {
+        propsDecl +=
+            'let $$slots: { ' +
+            Array.from(slots.keys())
+                .map((name) => `${name}: any`)
+                .join(', ') +
+            ' = __sveltets_slotsType();';
     }
 
     if (scriptTag) {
@@ -973,6 +997,7 @@ export function svelte2tsx(
         scriptTag,
         slots,
         uses$$props,
+        uses$$slots,
         uses$$restProps,
         events,
         componentDocumentation,
@@ -1006,6 +1031,7 @@ export function svelte2tsx(
         const res = processInstanceScriptContent(str, scriptTag, events);
         uses$$props = uses$$props || res.uses$$props;
         uses$$restProps = uses$$restProps || res.uses$$restProps;
+        uses$$slots = uses$$slots || res.uses$$slots;
 
         ({ exportedNames, events, getters } = res);
     }
@@ -1022,6 +1048,7 @@ export function svelte2tsx(
         isTsFile: options?.isTsFile,
         uses$$props,
         uses$$restProps,
+        uses$$slots,
     });
 
     // we need to process the module script after the instance script has moved otherwise we get warnings about moving edited items

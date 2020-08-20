@@ -85,6 +85,7 @@ type SvelteAnimation<U extends any[]> = (node: Element, move: { from: DOMRect, t
 
 type SvelteAllProps = { [index: string]: any }
 type SvelteRestProps = { [index: string]: any }
+type SvelteSlots = { [index: string]: any }
 type SvelteStore<T> = { subscribe: (run: (value: T) => any, invalidate?: any) => any }
 
 
@@ -103,6 +104,7 @@ declare function __sveltets_ctorOf<T>(type: T): AConstructorTypeOf<T>;
 declare function __sveltets_instanceOf<T>(type: AConstructorTypeOf<T>): T;
 declare function __sveltets_allPropsType(): SvelteAllProps
 declare function __sveltets_restPropsType(): SvelteRestProps
+declare function __sveltets_slotsType(): SvelteSlots
 declare function __sveltets_partial<Props = {}, Events = {}, Slots = {}>(
     render: () => {props?: Props, events?: Events, slots?: Slots }
 ): () => {props?: Partial<Props>, events?: Events, slots?: Slots }

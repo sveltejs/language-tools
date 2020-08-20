@@ -8,6 +8,7 @@ export interface InstanceScriptProcessResult {
     events: ComponentEvents;
     uses$$props: boolean;
     uses$$restProps: boolean;
+    uses$$slots: boolean;
     getters: Set<string>;
 }
 
