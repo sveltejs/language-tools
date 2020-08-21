@@ -1,1 +1,1 @@
-export class ImportedFile {}
+export class ScndImport {}

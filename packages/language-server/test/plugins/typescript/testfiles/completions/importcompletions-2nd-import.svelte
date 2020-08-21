@@ -1,4 +1,4 @@
 <script lang="ts">
-    import { ImportedFile } from "./to-import";
-    ImportedF
+    import { ScndImport } from "./to-import";
+    ScndImpor
 </script>
