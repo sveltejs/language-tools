@@ -152,6 +152,7 @@ describe('CompletionProviderImpl', () => {
         assert.deepStrictEqual(data, {
             hasAction: undefined,
             insertText: undefined,
+            isPackageJsonImport: undefined,
             isRecommended: undefined,
             kind: 'method',
             kindModifiers: '',
