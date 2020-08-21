@@ -50,13 +50,13 @@ Usage:
 
 ### Args:
 
-`--workspace <path to your workspace, where checking starts>`
+`--workspace <path>` Path to your workspace. All subdirectories except node_modules and those listed in --ignore are checked
 
 `--output <human|human-verbose|machine>`
 
-`--watch` Will not exit after one pass but keep watching files for changes and rerun diagnostics.
+`--watch` Will not exit after one pass but keep watching files for changes and rerun diagnostics
 
-`--ignore <files/folders to ignore, relative to workspace root, comma-separated, inside quotes. Example: --ignore "dist,build">`
+`--ignore <path1,path2>` Files/folders to ignore - relative to workspace root, comma-separated, inside quotes. Example: --ignore "dist,build"
 
 `--fail-on-warnings` Will also exit with error code when there are warnings
 
