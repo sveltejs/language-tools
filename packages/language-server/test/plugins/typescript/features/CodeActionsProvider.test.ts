@@ -248,7 +248,7 @@ describe('CodeActionsProvider', () => {
             Range.create(Position.create(7, 8), Position.create(7, 42)),
             { diagnostics: [], only: [CodeActionKind.Refactor] },
         );
-        const action = actions[0];
+        const action = actions[1];
 
         assert.deepStrictEqual(action, {
             command: {
@@ -338,7 +338,7 @@ describe('CodeActionsProvider', () => {
             Range.create(Position.create(7, 8), Position.create(7, 42)),
             { diagnostics: [], only: [CodeActionKind.Refactor] },
         );
-        const action = actions[1];
+        const action = actions[0];
 
         assert.deepStrictEqual(action, {
             command: {

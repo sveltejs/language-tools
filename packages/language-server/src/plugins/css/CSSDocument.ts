@@ -5,7 +5,7 @@ import { Document, DocumentMapper, ReadableDocument, TagInformation } from '../.
 
 export class CSSDocument extends ReadableDocument implements DocumentMapper {
     private styleInfo: Pick<TagInformation, 'attributes' | 'start' | 'end'>;
-    private _version = this.parent.version;
+    readonly version = this.parent.version;
 
     public stylesheet: Stylesheet;
     public languageId: string;
@@ -81,14 +81,6 @@ export class CSSDocument extends ReadableDocument implements DocumentMapper {
 
     getAttributes() {
         return this.styleInfo.attributes;
-    }
-
-    get version(): number {
-        return this._version;
-    }
-
-    set version(version: number) {
-        // ignore
     }
 
     private get language() {

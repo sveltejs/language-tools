@@ -221,7 +221,7 @@
     interface HTMLAttributes<T> extends DOMAttributes<T> {
       // jsx-dom-specific Attributes
       class?: ClassName;
-      dataset?: object;
+      dataset?: object; // eslint-disable-line
 
       // Standard HTML Attributes
       accept?: string;
