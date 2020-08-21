@@ -67,6 +67,7 @@ export function createSvelteModuleLoader(
 ) {
     const svelteSys = createSvelteSys(getSnapshot);
     const moduleCache = new ModuleResolutionCache();
+    const pathAliases = getPathAliases(compilerOptions.paths);
 
     return {
         fileExists: svelteSys.fileExists,
@@ -98,7 +99,7 @@ export function createSvelteModuleLoader(
     ): ts.ResolvedModule | undefined {
         // In the normal case, delegate to ts.resolveModuleName.
         // In the relative-imported.svelte case, delegate to our own svelte module loader.
-        if (isAbsolute(name) || !isSvelteFilePath(name)) {
+        if (isAbsolutePath(name) || !isSvelteFilePath(name)) {
             return ts.resolveModuleName(name, containingFile, compilerOptions, ts.sys)
                 .resolvedModule;
         }
@@ -121,5 +122,18 @@ export function createSvelteModuleLoader(
             resolvedFileName,
         };
         return resolvedSvelteModule;
+    }
+
+    function isAbsolutePath(path: string) {
+        return isAbsolute(path) && !pathAliases.some((p) => path.startsWith(p));
+    }
+
+    function getPathAliases(paths: ts.MapLike<string[]> | undefined) {
+        return Object.keys(paths || {}).map((key) => {
+            if (key.endsWith('*')) {
+                key = key.substr(0, key.length - 1);
+            }
+            return key;
+        });
     }
 }
