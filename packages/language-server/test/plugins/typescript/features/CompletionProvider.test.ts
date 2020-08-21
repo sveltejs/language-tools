@@ -458,6 +458,32 @@ describe('CompletionProviderImpl', () => {
 
         assert.strictEqual(additionalTextEdits, undefined);
     });
+
+    it('doesnt suggest svelte auto import when already other import with same name present', async () => {
+        const { completionProvider, document, docManager } = setup(
+            'importcompletions-2nd-import.svelte',
+        );
+        // make sure that the ts language service does know about the imported-file file
+        await openFileToBeImported(docManager, completionProvider);
+
+        const completions = await completionProvider.getCompletions(
+            document,
+            Position.create(2, 13),
+        );
+        document.version++;
+
+        const items = completions?.items.filter((item) => item.label === 'ImportedFile');
+        assert.equal(items?.length, 1);
+
+        const item = items?.[0];
+        assert.equal(item?.additionalTextEdits, undefined);
+        assert.equal(item?.detail, undefined);
+        assert.equal(item?.kind, CompletionItemKind.Variable);
+
+        const { additionalTextEdits } = await completionProvider.resolveCompletion(document, item!);
+
+        assert.strictEqual(additionalTextEdits, undefined);
+    });
 });
 
 function harmonizeNewLines(input?: string) {
