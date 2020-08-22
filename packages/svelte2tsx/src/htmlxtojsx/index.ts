@@ -358,7 +358,7 @@ export function convertHtmlxToJsx(
         //if we are on an "element" we are case insensitive, lowercase to match our JSX
         if (parent.type == 'Element') {
             //skip Attribute shorthand, that is handled below
-            const sapperLinkActions = ['sapper:external', 'sapper:prefetch', 'sapper:noscroll']
+            const sapperLinkActions = ['sapper:external', 'sapper:prefetch', 'sapper:noscroll'];
             if (
                 (attr.value !== true &&
                     !(
