@@ -706,6 +706,8 @@
 
     interface SapperAnchorProps {
         sapperNoscroll?: true;
+        sapperPrefetch?: true;
+        sapperExternal?: true;
     }
 
     interface IntrinsicElements {
