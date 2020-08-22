@@ -6,6 +6,7 @@ import {
     Position,
     SymbolInformation,
     CompletionItem,
+    CompletionItemKind,
 } from 'vscode-languageserver';
 import {
     DocumentManager,
@@ -21,6 +22,7 @@ export class HTMLPlugin implements HoverProvider, CompletionsProvider {
     private configManager: LSConfigManager;
     private lang = getLanguageService({ customDataProviders: [svelteHtmlDataProvider] });
     private documents = new WeakMap<Document, HTMLDocument>();
+    private styleScriptTemplate = new Set(['template', 'style', 'script']);
 
     constructor(docManager: DocumentManager, configManager: LSConfigManager) {
         this.configManager = configManager;
@@ -84,8 +86,10 @@ export class HTMLPlugin implements HoverProvider, CompletionsProvider {
     }
 
     private getLangCompletions(completions: CompletionItem[]): CompletionItem[] {
-        const styleScriptTemplateCompletions = completions.filter((completion) =>
-            ['template', 'style', 'script'].includes(completion.label),
+        const styleScriptTemplateCompletions = completions.filter(
+            (completion) =>
+                completion.kind === CompletionItemKind.Property &&
+                this.styleScriptTemplate.has(completion.label),
         );
         const langCompletions: CompletionItem[] = [];
         addLangCompletion('script', ['ts']);

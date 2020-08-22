@@ -91,4 +91,23 @@ describe('HTML Plugin', () => {
         const tagCompletion = plugin.doTagComplete(document, Position.create(0, 21));
         assert.strictEqual(tagCompletion, '$0</div>');
     });
+
+    it('does provide lang in completions', async () => {
+        const { plugin, document } = setup('<sty');
+
+        const completions = plugin.getCompletions(document, Position.create(0, 4));
+        assert.ok(Array.isArray(completions && completions.items));
+        assert.ok(completions!.items.find((item) => item.label === 'style (lang="less")'));
+    });
+
+    it('does not provide lang in completions for attributes', async () => {
+        const { plugin, document } = setup('<div sty');
+
+        const completions = plugin.getCompletions(document, Position.create(0, 8));
+        assert.ok(Array.isArray(completions && completions.items));
+        assert.strictEqual(
+            completions!.items.find((item) => item.label === 'style (lang="less")'),
+            undefined,
+        );
+    });
 });
