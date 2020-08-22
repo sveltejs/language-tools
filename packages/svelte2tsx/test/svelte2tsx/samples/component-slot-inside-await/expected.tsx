@@ -10,5 +10,5 @@
 </>})}}</>
 return { props: {}, slots: {default: {a:__sveltets_unwrapPromiseLike(promise)}, err: {err:__sveltets_any({})}, second: {a:(({ b }) => b)(__sveltets_unwrapPromiseLike(promise2))}}, getters: {}, events: {} }}
 
-export default class Input__SvelteComponent_ extends createSvelte2TsxComponent(__sveltets_partial(render)) {
+export default class Input__SvelteComponent_ extends createSvelte2TsxComponent(__sveltets_partial(__sveltets_with_any_event(render))) {
 }

@@ -8,5 +8,5 @@
 </>)}</>
 return { props: {}, slots: {default: {a:__sveltets_unwrapArr(items)}, second: {a:(({ a }) => a)(__sveltets_unwrapArr(items2))}}, getters: {}, events: {} }}
 
-export default class Input__SvelteComponent_ extends createSvelte2TsxComponent(__sveltets_partial(render)) {
+export default class Input__SvelteComponent_ extends createSvelte2TsxComponent(__sveltets_partial(__sveltets_with_any_event(render))) {
 }
