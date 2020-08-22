@@ -85,6 +85,7 @@ type SvelteAnimation<U extends any[]> = (node: Element, move: { from: DOMRect, t
 
 type SvelteAllProps = { [index: string]: any }
 type SvelteRestProps = { [index: string]: any }
+type SvelteSlots = { [index: string]: any }
 type SvelteStore<T> = { subscribe: (run: (value: T) => any, invalidate?: any) => any }
 
 
@@ -103,6 +104,7 @@ declare function __sveltets_ctorOf<T>(type: T): AConstructorTypeOf<T>;
 declare function __sveltets_instanceOf<T>(type: AConstructorTypeOf<T>): T;
 declare function __sveltets_allPropsType(): SvelteAllProps
 declare function __sveltets_restPropsType(): SvelteRestProps
+declare function __sveltets_slotsType<Slots, Key extends keyof Slots>(slots: Slots): Record<Key, boolean>;
 declare function __sveltets_partial<Props = {}, Events = {}, Slots = {}>(
     render: () => {props?: Props, events?: Events, slots?: Slots }
 ): () => {props?: Partial<Props>, events?: Events, slots?: Slots }
@@ -112,6 +114,9 @@ declare function __sveltets_partial_with_any<Props = {}, Events = {}, Slots = {}
 declare function __sveltets_with_any<Props = {}, Events = {}, Slots = {}>(
     render: () => {props?: Props, events?: Events, slots?: Slots }
 ): () => {props?: Props & SvelteAllProps, events?: Events, slots?: Slots }
+declare function __sveltets_with_any_event<Props = {}, Events = {}, Slots = {}>(
+    render: () => {props?: Props, events?: Events, slots?: Slots }
+): () => {props?: Props, events?: Events & {[evt: string]: CustomEvent<any>;}, slots?: Slots }
 declare function __sveltets_store_get<T = any>(store: SvelteStore<T>): T
 declare function __sveltets_any(dummy: any): any;
 declare function __sveltets_empty(dummy: any): {};
@@ -162,7 +167,7 @@ declare function __sveltets_each<T>(
 
 declare function createSvelte2TsxComponent<Props, Events, Slots>(
     render: () => {props?: Props, events?: Events, slots?: Slots }
-): AConstructorTypeOf<Svelte2TsxComponent<Props, Events & {[evt: string]: CustomEvent<any>;}, Slots>>;
+): AConstructorTypeOf<Svelte2TsxComponent<Props, Events, Slots>>;
 
 declare function __sveltets_unwrapArr<T>(arr: ArrayLike<T>): T
 declare function __sveltets_unwrapPromiseLike<T>(promise: PromiseLike<T> | T): T

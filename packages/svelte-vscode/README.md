@@ -7,8 +7,9 @@ Provides syntax highlighting and rich intellisense for Svelte components in VS C
 If you added `"files.associations": {"*.svelte": "html" }` to your VSCode settings, remove it.
 
 If you have previously installed the old "Svelte" extension by James Birtles, uninstall it:
-- Through the UI: You can find it when searching for `@installed` in the extensions window (searching `Svelte` won't work).
-- Command line: `code --uninstall-extension JamesBirtles.svelte-vscode`
+
+-   Through the UI: You can find it when searching for `@installed` in the extensions window (searching `Svelte` won't work).
+-   Command line: `code --uninstall-extension JamesBirtles.svelte-vscode`
 
 Do you want to use TypeScript/SCSS/Less/..? [See the docs](/docs/README.md#language-specific-setup).
 
@@ -50,16 +51,15 @@ More docs and troubleshooting: [See here](/docs/README.md).
 
 Path to the node executable you would like to use to run the language server.
 This is useful when you depend on native modules such as node-sass as without
-this they will run in the context of vscode, meaning v8 version mismatch is likely.
+this they will run in the context of vscode, meaning node version mismatch is likely.
 
 ##### `svelte.language-server.ls-path`
 
-Path to the langauge server file (either a relative path from the workspace root or an absolute path).
-Can be used to use a custom variant of the language server.
+You normally don't set this. Path to the language server executable. If you installed the \"svelte-language-server\" npm package, it's within there at \"bin/server.js\". Path can be either relative to your workspace root or absolute. Set this only if you want to use a custom version of the language server.
 
 ##### `svelte.language-server.port`
 
-At which port to spawn the language server.
+You normally don't set this. At which port to spawn the language server.
 Can be used for attaching to the process for debugging / profiling.
 If you experience crashes due to "port already in use", try setting the port.
 -1 = default port is used.

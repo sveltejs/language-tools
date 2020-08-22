@@ -99,3 +99,24 @@ export function isMember(
 ): node is ts.ElementAccessExpression | ts.PropertyAccessExpression {
     return ts.isElementAccessExpression(node) || ts.isPropertyAccessExpression(node);
 }
+
+/**
+ * Returns variable at given level with given name,
+ * if it is a variable declaration in the form of `const/let a = ..`
+ */
+export function getVariableAtTopLevel(
+    node: ts.SourceFile,
+    identifierName: string,
+): ts.VariableDeclaration | undefined {
+    for (const child of node.statements) {
+        if (ts.isVariableStatement(child)) {
+            const variable = child.declarationList.declarations.find(
+                (declaration) =>
+                    ts.isIdentifier(declaration.name) && declaration.name.text === identifierName,
+            );
+            if (variable) {
+                return variable;
+            }
+        }
+    }
+}

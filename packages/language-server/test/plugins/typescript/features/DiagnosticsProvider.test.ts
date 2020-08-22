@@ -6,7 +6,7 @@ import { LSConfigManager } from '../../../../src/ls-config';
 import { TypeScriptPlugin } from '../../../../src/plugins';
 import { pathToUrl } from '../../../../src/utils';
 
-describe('TypescriptPlugin', () => {
+describe('DiagnosticsProvider', () => {
     function setup(filename: string) {
         const docManager = new DocumentManager(() => document);
         const testDir = path.join(__dirname, '..');
@@ -25,7 +25,7 @@ describe('TypescriptPlugin', () => {
         assert.deepStrictEqual(diagnostics, [
             {
                 code: 2322,
-                message: "Type 'true' is not assignable to type 'string'.",
+                message: "Type 'boolean' is not assignable to type 'string'.",
                 range: {
                     start: {
                         character: 32,
