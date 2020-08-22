@@ -13,10 +13,10 @@ export function isObjectValue(parent: Node, prop: string) {
     return parent.type == 'Property' && prop == 'value';
 }
 
-export function isObjectValueShortHand(parent: Node, node: Node) {
-    const { value } = parent;
+export function isObjectValueShortHand(property: Node) {
+    const { value, key } = property;
     return value && isIdentifierWithRange(value)
-        && node.start === value.start && node.end == value.end;
+        && key.start === value.start && key.end == value.end;
 }
 
 export function isText(node: Node) {

@@ -110,8 +110,8 @@ export class SlotHandler {
                             if (isObjectValueShortHand(parent, node)) {
                                 this.skip();
                                 objectShortHands.push(node);
+                                return;
                             }
-                            return;
                         }
                     }
 
