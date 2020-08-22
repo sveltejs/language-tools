@@ -1,6 +1,6 @@
 import { Node, walk } from 'estree-walker';
 import MagicString from 'magic-string';
-import { attributeValueIsString, isMember } from '../utils/svelteAst';
+import { attributeValueIsString, isMember, isObjectKey, isObjectValueShortHand, isObjectValue } from '../utils/svelteAst';
 import TemplateScope from './TemplateScope';
 import { Identifier } from '../interfaces';
 
@@ -95,19 +95,44 @@ export class SlotHandler {
         const strForExpression = new MagicString(this.htmlx);
 
         const identifiers: Node[] = [];
+        const objectShortHands: Node[] = [];
         walk(expression, {
             enter(node, parent, prop) {
-                if (node.type === 'Identifier' && (!parent || !isMember(parent, prop))) {
+                if (node.type === 'Identifier') {
+                    if (parent) {
+                        if (isMember(parent, prop))
+                            return;
+                        if (isObjectKey(parent, prop)) {
+                            return;
+                        }
+                        if (isObjectValue(parent, prop)) {
+                            // { value }
+                            if (isObjectValueShortHand(parent, node)) {
+                                this.skip();
+                                objectShortHands.push(node);
+                            }
+                            return;
+                        }
+                    }
+
                     this.skip();
                     identifiers.push(node);
                 }
             }
         });
 
+        const getOverwrite = (name: string) => {
+            const init = scope.getInit(name);
+            return init ? this.resolved.get(init) : name;
+        };
+        for (const identifier of objectShortHands) {
+            const { end, name } = identifier;
+            const value = getOverwrite(name);
+            strForExpression.appendLeft(end, `:${value}`);
+        }
         for (const identifier of identifiers) {
             const { start, end, name } = identifier;
-            const init = scope.getInit(name);
-            const value = init ? this.resolved.get(init) : name;
+            const value = getOverwrite(name);
             strForExpression.overwrite(start, end, value);
         }
 

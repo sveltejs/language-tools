@@ -26,6 +26,10 @@ export interface Identifier {
     type: 'Identifier';
 }
 
+export interface IdentifierWithRange extends Identifier, Node {
+    type: 'Identifier';
+}
+
 export interface ArrayPattern {
     type: 'ArrayPattern';
     start: number;
