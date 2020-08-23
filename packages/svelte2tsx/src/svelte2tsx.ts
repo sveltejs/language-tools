@@ -418,6 +418,9 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
         if (prop == 'id' && parent.type == 'VariableDeclarator') {
             isDeclaration = false;
         }
+        const onTemplateScopeLeave = () => {
+            templateScope = templateScope.parent;
+        };
 
         switch (node.type) {
             case 'BlockStatement':
@@ -430,10 +433,13 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
                 leaveArrowFunctionExpression();
                 break;
             case 'EachBlock':
-                templateScope = templateScope.parent;
+                onTemplateScopeLeave();
                 break;
             case 'AwaitBlock':
-                templateScope = templateScope.parent;
+                onTemplateScopeLeave();
+                break;
+            case 'InlineComponent':
+                onTemplateScopeLeave();
                 break;
         }
     };
