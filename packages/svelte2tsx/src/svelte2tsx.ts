@@ -4,7 +4,7 @@ import MagicString from 'magic-string';
 import path from 'path';
 import { parseHtmlx } from './htmlxparser';
 import { convertHtmlxToJsx } from './htmlxtojsx';
-import { Node } from 'estree-walker';
+import { Node, walk } from 'estree-walker';
 import * as ts from 'typescript';
 import { extract_identifiers as extractIdentifiers } from 'periscopic';
 import { findExportKeyword, getBinaryAssignmentExpr } from './utils/tsAst';
@@ -14,7 +14,9 @@ import {
     CreateRenderFunctionPara,
     AddComponentExportPara,
     Identifier,
-    BaseNode
+    BaseNode,
+    WithName,
+    Let
 } from './interfaces';
 import { createRenderFunctionGetterStr, createClassGetters } from './nodes/exportgetters';
 import { ExportedNames } from './nodes/ExportedNames';
@@ -290,6 +292,46 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
         }
     };
 
+    const handleComponentLet = (component: Node) => {
+        templateScope = templateScope.child();
+        const lets = slotHandler.getSlotConsumerOfComponent(component);
+
+        for (const { letNode, slotName } of lets) {
+            const { expression } = letNode;
+            // <Component let:a>
+            if (!expression) {
+                templateScope.add(letNode, component);
+                slotHandler.resolveLet(letNode, letNode, component, slotName);
+            } else {
+                if (astUtil.isIdentifier(expression)) {
+                    templateScope.add(expression, component);
+                    slotHandler.resolveLet(letNode, expression, component, slotName);
+                }
+                const expForExtract = {...expression};
+
+                // https://github.com/sveltejs/svelte/blob/3a37de364bfbe75202d8e9fcef9e76b9ce6faaa2/src/compiler/compile/nodes/Let.ts#L37
+                if (expression.type === 'ArrayExpression') {
+                    expForExtract.type = 'ArrayPattern';
+                }
+                if (expression.type === 'ObjectExpression') {
+                    expForExtract.type = 'ObjectPattern';
+                }
+                if (astUtil.isDestructuringPatterns(expForExtract)) {
+                    const identifiers = extractIdentifiers(expForExtract as any);
+                    templateScope.addMany(identifiers, component);
+
+                    slotHandler.resolveDestructuringAssignmentForLet(
+                        expForExtract,
+                        identifiers,
+                        letNode,
+                        component,
+                        slotName
+                    );
+                }
+            }
+        }
+    };
+
     const handleScopeAndResolveForSlot = (
         identifierDef: BaseNode,
         initExpression: Node,
@@ -361,6 +403,9 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
                 break;
             case 'AwaitBlock':
                 handleAwait(node);
+                break;
+            case 'InlineComponent':
+                handleComponentLet(node);
                 break;
         }
     };

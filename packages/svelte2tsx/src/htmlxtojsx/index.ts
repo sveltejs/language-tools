@@ -5,6 +5,7 @@ import { parseHtmlx } from '../htmlxparser';
 import svgAttributes from './svgattributes';
 import { getTypeForComponent } from './nodes/component-type';
 import { handleAwait } from './nodes/await-block';
+import { getSlotName } from '../utils/svelteAst';
 
 type ElementType = string;
 const oneWayBindingAttributes: Map<string, ElementType> = new Map(
@@ -344,12 +345,9 @@ export function convertHtmlxToJsx(
         //we could lean on leave/enter, but I am lazy
         if (!el.children) return;
         for (const child of el.children) {
-            if (!child.attributes) continue;
-            const slot = child.attributes.find((a) => a.name == 'slot');
-            if (slot) {
-                if (slot.value && slot.value.length) {
-                    handleSlot(child, el.name, slot.value[0].raw);
-                }
+            const slotName = getSlotName(child);
+            if (slotName) {
+                handleSlot(child, el.name, slotName);
             }
         }
     };

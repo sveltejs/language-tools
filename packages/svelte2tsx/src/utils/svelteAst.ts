@@ -38,3 +38,9 @@ export function isIdentifier(node: any): node is Identifier {
 export function isIdentifierWithRange(node: any): node is IdentifierWithRange {
     return node.type === 'Identifier' && 'start' in node && 'end' in node;
 }
+
+export function getSlotName(child: Node): string | undefined {
+    const slot = (child.attributes as Node[])?.find((a) => a.name == 'slot');
+
+    return slot?.value?.[0].raw;
+}

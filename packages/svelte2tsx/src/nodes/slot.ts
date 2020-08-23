@@ -1,8 +1,15 @@
 import { Node, walk } from 'estree-walker';
 import MagicString from 'magic-string';
-import { attributeValueIsString, isMember, isObjectKey, isObjectValueShortHand, isObjectValue } from '../utils/svelteAst';
+import {
+    attributeValueIsString,
+    isMember,
+    isObjectKey,
+    isObjectValueShortHand,
+    isObjectValue,
+    getSlotName,
+} from '../utils/svelteAst';
 import TemplateScope from './TemplateScope';
-import { Identifier } from '../interfaces';
+import { Identifier, WithName, Let } from '../interfaces';
 
 function attributeStrValueAsJsExpression(attr: Node): string {
     if (attr.value.length == 0) return "''"; //wut?
@@ -26,7 +33,7 @@ export class SlotHandler {
     constructor(private readonly str: MagicString, private readonly htmlx: string) { }
 
     slots = new Map<string, Map<string, string>>();
-    resolved = new Map<Identifier, string>();
+    resolved = new Map<WithName, string>();
     resolvedExpression = new Map<Node, string>();
 
     resolve(identifierDef: Identifier, initExpression: Node, scope: TemplateScope) {
@@ -86,6 +93,70 @@ export class SlotHandler {
         });
     }
 
+    resolveDestructuringAssignmentForLet(
+        destructuringNode: Node,
+        identifiers: Identifier[],
+        letNode: Let,
+        component: Node,
+        slotName: string,
+    ) {
+        const destructuring = this.htmlx.slice(destructuringNode.start, destructuringNode.end);
+        identifiers.forEach((identifier) => {
+            const resolved = this.getResolveExpressionStrForLet(letNode, component, slotName);
+            this.resolved.set(
+                identifier,
+                `((${destructuring}) => ${identifier.name})(${resolved})`
+            );
+        });
+    }
+
+    private getResolveExpressionStrForLet(letNode: Let, component: Node, slotName: string) {
+        const componentTypeStr = `__sveltets_instanceOf(${component.name})`;
+
+        return `${componentTypeStr}.$$slot_def.${slotName}.${letNode.name}`;
+    }
+
+    resolveLet(letNode: Let, identifierDef: WithName, component: Node, slotName: string) {
+        let resolved = this.resolved.get(identifierDef);
+        if (resolved) {
+            return resolved;
+        }
+
+        resolved = this.getResolveExpressionStrForLet(letNode, component, slotName);
+
+        this.resolved.set(identifierDef, resolved);
+
+        return resolved;
+    }
+
+    getSlotConsumerOfComponent(component: Node) {
+        let result = this.getLetNodes(component, 'default') ?? [];
+        for (const child of component.children) {
+            const slotName = getSlotName(child);
+
+            if (slotName) {
+                const letNodes = this.getLetNodes(child, slotName);
+
+                if (letNodes?.length) {
+                    result = result.concat(letNodes);
+                }
+            }
+        }
+
+        return result;
+    }
+
+    private getLetNodes(child: Node, slotName: string) {
+        const letNodes = (child?.attributes as Node[] ?? []).filter(
+            (attr) => attr.type === 'Let'
+        ) as unknown as Let[];
+
+        return letNodes?.map((letNode) => ({
+            letNode,
+            slotName
+        }));
+    }
+
     private resolveExpression(expression: Node, scope: TemplateScope) {
         let resolved = this.resolvedExpression.get(expression);
         if (resolved) {
@@ -107,7 +178,7 @@ export class SlotHandler {
                         }
                         if (isObjectValue(parent, prop)) {
                             // { value }
-                            if (isObjectValueShortHand(parent, node)) {
+                            if (isObjectValueShortHand(parent)) {
                                 this.skip();
                                 objectShortHands.push(node);
                                 return;

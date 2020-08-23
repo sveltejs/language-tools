@@ -45,6 +45,18 @@ export interface ObjectPattern {
 export interface BaseNode {
     type: string;
 }
+
+export interface WithName {
+    type: string;
+    name: string;
+}
+
+export interface Let {
+    type: 'Let';
+    name: string;
+    expression: Node | null;
+}
+
 export interface AddComponentExportPara {
     str: MagicString;
     uses$$propsOr$$restProps: boolean;
