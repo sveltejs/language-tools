@@ -20,7 +20,7 @@ import {
 import { DiagnosticsManager } from './lib/DiagnosticsManager';
 import { Document, DocumentManager } from './lib/documents';
 import { Logger } from './logger';
-import { LSConfigManager } from './ls-config';
+import { LSConfigManager, parseRawConfig } from './ls-config';
 import {
     AppCompletionItem,
     CSSPlugin,
@@ -93,7 +93,7 @@ export function startServer(options?: LSOptions) {
         }
 
         pluginHost.initialize(!!evt.initializationOptions?.dontFilterIncompleteCompletions);
-        pluginHost.updateConfig(evt.initializationOptions?.config);
+        pluginHost.updateConfig(parseRawConfig(evt.initializationOptions?.config));
         pluginHost.register(
             (sveltePlugin = new SveltePlugin(
                 configManager,
@@ -188,7 +188,7 @@ export function startServer(options?: LSOptions) {
     connection.onPrepareRename((req) => pluginHost.prepareRename(req.textDocument, req.position));
 
     connection.onDidChangeConfiguration(({ settings }) => {
-        pluginHost.updateConfig(settings.svelte?.plugin);
+        pluginHost.updateConfig(parseRawConfig(settings.svelte?.plugin));
     });
 
     connection.onDidOpenTextDocument((evt) => {

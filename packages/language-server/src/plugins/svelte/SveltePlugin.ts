@@ -46,7 +46,11 @@ export class SveltePlugin
             return [];
         }
 
-        return getDiagnostics(document, await this.getSvelteDoc(document));
+        return getDiagnostics(
+            document,
+            await this.getSvelteDoc(document),
+            this.configManager.getConfig().svelte,
+        );
     }
 
     async getCompiledResult(document: Document): Promise<SvelteCompileResult | null> {

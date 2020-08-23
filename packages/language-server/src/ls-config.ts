@@ -32,6 +32,8 @@ const defaultLSConfig: LSConfig = {
     },
     svelte: {
         enable: true,
+        ignoredCompilerWarnings: [],
+        compilerWarningsAsErrors: [],
         diagnostics: { enable: true },
         format: { enable: true },
         completions: { enable: true },
@@ -116,6 +118,8 @@ export interface LSHTMLConfig {
 
 export interface LSSvelteConfig {
     enable: boolean;
+    ignoredCompilerWarnings: string[];
+    compilerWarningsAsErrors: string[];
     diagnostics: {
         enable: boolean;
     };
@@ -133,17 +137,31 @@ export interface LSSvelteConfig {
     };
 }
 
+type DeepPartial<T> = T extends any[]
+    ? T
+    : {
+          [P in keyof T]?: DeepPartial<T[P]>;
+      };
+
 export class LSConfigManager {
     private config: LSConfig = defaultLSConfig;
 
     /**
      * Updates config.
      */
-    update(config: LSConfig): void {
+    update(config: DeepPartial<LSConfig>): void {
         // Ideally we shouldn't need the merge here because all updates should be valid and complete configs.
         // But since those configs come from the client they might be out of synch with the valid config:
         // We might at some point in the future forget to synch config settings in all packages after updating the config.
         this.config = merge({}, defaultLSConfig, this.config, config);
+        // Merge will keep arrays if the new one is empty/has less entries,
+        // therefore we need some extra checks if there are new settings
+        if (config.svelte?.ignoredCompilerWarnings) {
+            this.config.svelte.ignoredCompilerWarnings = config.svelte.ignoredCompilerWarnings;
+        }
+        if (config.svelte?.compilerWarningsAsErrors) {
+            this.config.svelte.compilerWarningsAsErrors = config.svelte.compilerWarningsAsErrors;
+        }
     }
 
     /**
@@ -151,8 +169,49 @@ export class LSConfigManager {
      * @param key a string which is a path. Example: 'svelte.diagnostics.enable'.
      */
     enabled(key: string): boolean {
-        return !!get(this.config, key);
+        return !!this.get(key);
+    }
+
+    /**
+     * Get specific config
+     * @param key a string which is a path. Example: 'svelte.diagnostics.enable'.
+     */
+    get<T>(key: string): T {
+        return get(this.config, key);
+    }
+
+    /**
+     * Get the whole config
+     */
+    getConfig(): Readonly<LSConfig> {
+        return this.config;
     }
 }
 
 export const lsConfig = new LSConfigManager();
+
+/**
+ * Parses a raw incoming config.
+ * Some options may come in a raw form (string with commas instead of string array)
+ * and need to be transformed accordingly.
+ */
+export function parseRawConfig(config: any): LSConfig {
+    return {
+        ...config,
+        svelte: {
+            ...config?.svelte,
+            ignoredCompilerWarnings: stringToArray(config?.svelte?.ignoredCompilerWarnings),
+            compilerWarningsAsErrors: stringToArray(config?.svelte?.compilerWarningsAsErrors),
+        },
+    };
+
+    function stringToArray(str: string | string[] = ''): string[] {
+        if (Array.isArray(str)) {
+            return str;
+        }
+        return str
+            .split(',')
+            .map((s) => s.trim())
+            .filter((s) => !!s);
+    }
+}

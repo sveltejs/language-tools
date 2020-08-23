@@ -188,6 +188,18 @@
                     "title": "Svelte: Diagnostics",
                     "description": "Enable diagnostic messages for Svelte"
                 },
+                "svelte.plugin.svelte.ignoredCompilerWarnings": {
+                    "type": "string",
+                    "default": "",
+                    "title": "Svelte: Ignored Compiler Warnings",
+                    "description": "Svelte compiler warning codes to ignore, comma-separated. Example: `css-unused-selector,unused-export-let`"
+                },
+                "svelte.plugin.svelte.compilerWarningsAsErrors": {
+                    "type": "string",
+                    "default": "",
+                    "title": "Svelte: Compiler Warnings to treat as Errors",
+                    "description": "Svelte compiler warning codes wich should be treated as errors, comma-separated. Example: `css-unused-selector,unused-export-let`"
+                },
                 "svelte.plugin.svelte.format.enable": {
                     "type": "boolean",
                     "default": true,

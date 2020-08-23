@@ -7,16 +7,21 @@ import {
     TranspileErrorSource,
 } from '../../../../src/plugins/svelte/SvelteDocument';
 import { SvelteConfig } from '../../../../src/lib/documents/configLoader';
+import { LSSvelteConfig } from '../../../../src/ls-config';
 
 describe('SveltePlugin#getDiagnostics', () => {
     async function expectDiagnosticsFor(
         getTranspiled: any,
         getCompiled: any,
         config: Partial<SvelteConfig>,
+        settings: Pick<LSSvelteConfig, 'compilerWarningsAsErrors' | 'ignoredCompilerWarnings'> = {
+            compilerWarningsAsErrors: [],
+            ignoredCompilerWarnings: [],
+        },
     ) {
         const document = new Document('', '<script></script>\n<style></style>');
         const svelteDoc: SvelteDocument = <any>{ getTranspiled, getCompiled, config };
-        const result = await getDiagnostics(document, svelteDoc);
+        const result = await getDiagnostics(document, svelteDoc, settings);
         return {
             toEqual: (expected: Diagnostic[]) => assert.deepStrictEqual(result, expected),
         };
@@ -255,6 +260,79 @@ describe('SveltePlugin#getDiagnostics', () => {
                     },
                 },
                 severity: DiagnosticSeverity.Warning,
+                source: 'svelte',
+            },
+        ]);
+    });
+
+    it('filter out warnings', async () => {
+        (
+            await expectDiagnosticsFor(
+                () => ({
+                    getOriginalPosition: (pos: Position) => {
+                        pos.line - 1;
+                        return pos;
+                    },
+                }),
+                () =>
+                    Promise.resolve({
+                        stats: {
+                            warnings: [
+                                {
+                                    start: { line: 1, column: 0 },
+                                    end: { line: 1, column: 0 },
+                                    message: 'warning',
+                                    code: '123',
+                                },
+                            ],
+                        },
+                    }),
+                {},
+                { compilerWarningsAsErrors: [], ignoredCompilerWarnings: ['123'] },
+            )
+        ).toEqual([]);
+    });
+
+    it('treat warnings as error', async () => {
+        (
+            await expectDiagnosticsFor(
+                () => ({
+                    getOriginalPosition: (pos: Position) => {
+                        pos.line - 1;
+                        return pos;
+                    },
+                }),
+                () =>
+                    Promise.resolve({
+                        stats: {
+                            warnings: [
+                                {
+                                    start: { line: 1, column: 0 },
+                                    end: { line: 1, column: 0 },
+                                    message: 'warning',
+                                    code: '123',
+                                },
+                            ],
+                        },
+                    }),
+                {},
+                { compilerWarningsAsErrors: ['123'], ignoredCompilerWarnings: [] },
+            )
+        ).toEqual([
+            {
+                code: '123',
+                message: 'warning',
+                range: {
+                    start: {
+                        character: 0,
+                        line: 0,
+                    },
+                    end: {
+                        character: 0,
+                        line: 0,
+                    },
+                },
+                severity: DiagnosticSeverity.Error,
                 source: 'svelte',
             },
         ]);
