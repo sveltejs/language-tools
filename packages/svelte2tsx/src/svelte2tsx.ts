@@ -4,7 +4,7 @@ import MagicString from 'magic-string';
 import path from 'path';
 import { parseHtmlx } from './htmlxparser';
 import { convertHtmlxToJsx } from './htmlxtojsx';
-import { Node, walk } from 'estree-walker';
+import { Node } from 'estree-walker';
 import * as ts from 'typescript';
 import { extract_identifiers as extractIdentifiers } from 'periscopic';
 import { findExportKeyword, getBinaryAssignmentExpr } from './utils/tsAst';
@@ -13,10 +13,7 @@ import {
     InstanceScriptProcessResult,
     CreateRenderFunctionPara,
     AddComponentExportPara,
-    Identifier,
     BaseNode,
-    WithName,
-    Let
 } from './interfaces';
 import { createRenderFunctionGetterStr, createClassGetters } from './nodes/exportgetters';
 import { ExportedNames } from './nodes/ExportedNames';
