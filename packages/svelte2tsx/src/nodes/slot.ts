@@ -43,8 +43,9 @@ export class SlotHandler {
         }
 
         resolved = this.getResolveExpressionStr(identifierDef, scope, initExpression);
-
-        this.resolved.set(identifierDef, resolved);
+        if (resolved) {
+            this.resolved.set(identifierDef, resolved);
+        }
 
         return resolved;
     }
@@ -58,18 +59,17 @@ export class SlotHandler {
 
         const owner = scope.getOwner(name);
 
-        if (owner.type === 'CatchBlock') {
+        if (owner?.type === 'CatchBlock') {
             return '__sveltets_any({})';
         }
 
         // list.map(list => list.someProperty)
         // initExpression's scope should the parent scope of identifier scope
-        else if (owner.type === 'ThenBlock') {
+        else if (owner?.type === 'ThenBlock') {
             const resolvedExpression = this.resolveExpression(initExpression, scope.parent);
 
             return `__sveltets_unwrapPromiseLike(${resolvedExpression})`;
-        }
-        else if (owner.type === 'EachBlock') {
+        } else if (owner?.type === 'EachBlock') {
             const resolvedExpression = this.resolveExpression(initExpression, scope.parent);
 
             return `__sveltets_unwrapArr(${resolvedExpression})`;
@@ -86,10 +86,12 @@ export class SlotHandler {
         const destructuring = this.htmlx.slice(destructuringNode.start, destructuringNode.end);
         identifiers.forEach((identifier) => {
             const resolved = this.getResolveExpressionStr(identifier, scope, initExpression);
-            this.resolved.set(
-                identifier,
-                `((${destructuring}) => ${identifier.name})(${resolved})`
-            );
+            if (resolved) {
+                this.resolved.set(
+                    identifier,
+                    `((${destructuring}) => ${identifier.name})(${resolved})`,
+                );
+            }
         });
     }
 
