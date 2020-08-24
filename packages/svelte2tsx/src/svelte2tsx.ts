@@ -6,14 +6,12 @@ import { parseHtmlx } from './htmlxparser';
 import { convertHtmlxToJsx } from './htmlxtojsx';
 import { Node } from 'estree-walker';
 import * as ts from 'typescript';
-import { extract_identifiers as extractIdentifiers } from 'periscopic';
 import { findExportKeyword, getBinaryAssignmentExpr } from './utils/tsAst';
 import { EventHandler } from './nodes/event-handler';
 import {
     InstanceScriptProcessResult,
     CreateRenderFunctionPara,
     AddComponentExportPara,
-    SvelteIdentifier,
 } from './interfaces';
 import { createRenderFunctionGetterStr, createClassGetters } from './nodes/exportgetters';
 import { ExportedNames } from './nodes/ExportedNames';
@@ -26,6 +24,10 @@ import {
     ComponentEventsFromInterface,
     ComponentEventsFromEventsMap,
 } from './nodes/ComponentEvents';
+import {
+    handleScopeAndResolveLetVarForSlotFor as handleScopeAndResolveLetVarForSlot,
+    handleScopeAndResolveForSlot
+} from './nodes/handleScopeAndResolveForSlot';
 
 type TemplateProcessResult = {
     uses$$props: boolean;
@@ -275,17 +277,17 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
         templateScope = templateScope.child();
 
         if (node.context) {
-            handleScopeAndResolveForSlot(node.context, node.expression, node);
+            handleScopeAndResolveForSlotInner(node.context, node.expression, node);
         }
     };
 
     const handleAwait = (node: Node) => {
         templateScope = templateScope.child();
         if (node.value) {
-            handleScopeAndResolveForSlot(node.value, node.expression, node.then);
+            handleScopeAndResolveForSlotInner(node.value, node.expression, node.then);
         }
         if (node.error) {
-            handleScopeAndResolveForSlot(node.error, node.expression, node.catch);
+            handleScopeAndResolveForSlotInner(node.error, node.expression, node.catch);
         }
     };
 
@@ -294,64 +296,30 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
         const lets = slotHandler.getSlotConsumerOfComponent(component);
 
         for (const { letNode, slotName } of lets) {
-            const { expression } = letNode;
-            // <Component let:a>
-            if (!expression) {
-                templateScope.add(letNode, component);
-                slotHandler.resolveLet(letNode, letNode, component, slotName);
-            } else {
-                if (astUtil.isIdentifier(expression)) {
-                    templateScope.add(expression, component);
-                    slotHandler.resolveLet(letNode, expression, component, slotName);
-                }
-                const expForExtract = {...expression};
-
-                // https://github.com/sveltejs/svelte/blob/3a37de364bfbe75202d8e9fcef9e76b9ce6faaa2/src/compiler/compile/nodes/Let.ts#L37
-                if (expression.type === 'ArrayExpression') {
-                    expForExtract.type = 'ArrayPattern';
-                }
-                if (expression.type === 'ObjectExpression') {
-                    expForExtract.type = 'ObjectPattern';
-                }
-                if (astUtil.isDestructuringPatterns(expForExtract)) {
-                    // the node object is returned as-it no mutation
-                    const identifiers = extractIdentifiers(expForExtract) as SvelteIdentifier[];
-                    templateScope.addMany(identifiers, component);
-
-                    slotHandler.resolveDestructuringAssignmentForLet(
-                        expForExtract,
-                        identifiers,
-                        letNode,
-                        component,
-                        slotName
-                    );
-                }
-            }
+            handleScopeAndResolveLetVarForSlot({
+                letNode,
+                slotName,
+                slotHandler,
+                templateScope,
+                component
+            });
         }
     };
 
-    const handleScopeAndResolveForSlot = (
+    const handleScopeAndResolveForSlotInner = (
         identifierDef: Node,
         initExpression: Node,
         owner: Node
     ) => {
-        if (astUtil.isIdentifier(identifierDef)) {
-            templateScope.add(identifierDef, owner);
-
-            slotHandler.resolve(identifierDef, initExpression, templateScope);
-        }
-        if (astUtil.isDestructuringPatterns(identifierDef)) {
-            const identifiers = extractIdentifiers(identifierDef) as SvelteIdentifier[];
-            templateScope.addMany(identifiers, owner);
-
-            slotHandler.resolveDestructuringAssignment(
-                identifierDef,
-                identifiers,
-                initExpression,
-                templateScope
-            );
-        }
+        handleScopeAndResolveForSlot({
+            identifierDef,
+            initExpression,
+            slotHandler,
+            templateScope,
+            owner,
+        });
     };
+
     const eventHandler = new EventHandler();
 
     const onHtmlxWalk = (node: Node, parent: Node, prop: string) => {
