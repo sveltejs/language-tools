@@ -1,5 +1,6 @@
 import MagicString from 'magic-string';
 import { Node } from 'estree-walker';
+import { ArrayPattern, ObjectPattern, Identifier } from 'estree';
 import { ExportedNames } from './nodes/ExportedNames';
 import { ComponentEvents } from './nodes/ComponentEvents';
 
@@ -21,40 +22,37 @@ export interface CreateRenderFunctionPara extends InstanceScriptProcessResult {
     isTsFile: boolean;
 }
 
-export interface Identifier {
-    name: string;
-    type: 'Identifier';
-}
-
-export interface IdentifierWithRange extends Identifier, Node {
-    type: 'Identifier';
-}
-
-export interface ArrayPattern {
-    type: 'ArrayPattern';
+export interface NodeRange {
     start: number;
     end: number;
 }
 
-export interface ObjectPattern {
-    type: 'ArrayPattern';
-    start: number;
-    end: number;
-}
+export interface SvelteIdentifier extends Identifier, NodeRange {}
 
-export interface BaseNode {
-    type: string;
-}
+export interface SvelteArrayPattern extends ArrayPattern, NodeRange {}
+
+export interface SvelteObjectPattern extends ObjectPattern, NodeRange {}
 
 export interface WithName {
     type: string;
     name: string;
 }
 
-export interface Let {
-    type: 'Let';
+export type DirectiveType =
+    | 'Action'
+    | 'Animation'
+    | 'Binding'
+    | 'Class'
+    | 'EventHandler'
+    | 'Let'
+    | 'Ref'
+    | 'Transition';
+
+export interface BaseDirective extends Node {
+    type: DirectiveType;
+    expression: null | Node;
     name: string;
-    expression: Node | null;
+    modifiers: string[];
 }
 
 export interface AddComponentExportPara {

@@ -9,7 +9,7 @@ import {
     getSlotName,
 } from '../utils/svelteAst';
 import TemplateScope from './TemplateScope';
-import { Identifier, WithName, Let } from '../interfaces';
+import { SvelteIdentifier, WithName, BaseDirective } from '../interfaces';
 
 function attributeStrValueAsJsExpression(attr: Node): string {
     if (attr.value.length == 0) return "''"; //wut?
@@ -29,14 +29,13 @@ function attributeStrValueAsJsExpression(attr: Node): string {
 }
 
 export class SlotHandler {
-
-    constructor(private readonly str: MagicString, private readonly htmlx: string) { }
+    constructor(private readonly htmlx: string) {}
 
     slots = new Map<string, Map<string, string>>();
     resolved = new Map<WithName, string>();
     resolvedExpression = new Map<Node, string>();
 
-    resolve(identifierDef: Identifier, initExpression: Node, scope: TemplateScope) {
+    resolve(identifierDef: SvelteIdentifier, initExpression: Node, scope: TemplateScope) {
         let resolved = this.resolved.get(identifierDef);
         if (resolved) {
             return resolved;
@@ -51,9 +50,9 @@ export class SlotHandler {
     }
 
     private getResolveExpressionStr(
-        identifierDef: Identifier,
+        identifierDef: SvelteIdentifier,
         scope: TemplateScope,
-        initExpression: Node
+        initExpression: Node,
     ) {
         const { name } = identifierDef;
 
@@ -79,7 +78,7 @@ export class SlotHandler {
 
     resolveDestructuringAssignment(
         destructuringNode: Node,
-        identifiers: Identifier[],
+        identifiers: SvelteIdentifier[],
         initExpression: Node,
         scope: TemplateScope,
     ) {
@@ -97,8 +96,8 @@ export class SlotHandler {
 
     resolveDestructuringAssignmentForLet(
         destructuringNode: Node,
-        identifiers: Identifier[],
-        letNode: Let,
+        identifiers: SvelteIdentifier[],
+        letNode: BaseDirective,
         component: Node,
         slotName: string,
     ) {
@@ -107,18 +106,22 @@ export class SlotHandler {
             const resolved = this.getResolveExpressionStrForLet(letNode, component, slotName);
             this.resolved.set(
                 identifier,
-                `((${destructuring}) => ${identifier.name})(${resolved})`
+                `((${destructuring}) => ${identifier.name})(${resolved})`,
             );
         });
     }
 
-    private getResolveExpressionStrForLet(letNode: Let, component: Node, slotName: string) {
+    private getResolveExpressionStrForLet(
+        letNode: BaseDirective,
+        component: Node,
+        slotName: string,
+    ) {
         const componentTypeStr = `__sveltets_instanceOf(${component.name})`;
 
         return `${componentTypeStr}.$$slot_def.${slotName}.${letNode.name}`;
     }
 
-    resolveLet(letNode: Let, identifierDef: WithName, component: Node, slotName: string) {
+    resolveLet(letNode: BaseDirective, identifierDef: WithName, component: Node, slotName: string) {
         let resolved = this.resolved.get(identifierDef);
         if (resolved) {
             return resolved;
@@ -149,13 +152,13 @@ export class SlotHandler {
     }
 
     private getLetNodes(child: Node, slotName: string) {
-        const letNodes = (child?.attributes as Node[] ?? []).filter(
-            (attr) => attr.type === 'Let'
-        ) as unknown as Let[];
+        const letNodes = ((child?.attributes as Node[]) ?? []).filter(
+            (attr) => attr.type === 'Let',
+        ) as BaseDirective[];
 
         return letNodes?.map((letNode) => ({
             letNode,
-            slotName
+            slotName,
         }));
     }
 
@@ -173,8 +176,7 @@ export class SlotHandler {
             enter(node, parent, prop) {
                 if (node.type === 'Identifier') {
                     if (parent) {
-                        if (isMember(parent, prop))
-                            return;
+                        if (isMember(parent, prop)) return;
                         if (isObjectKey(parent, prop)) {
                             return;
                         }
@@ -191,7 +193,7 @@ export class SlotHandler {
                     this.skip();
                     identifiers.push(node);
                 }
-            }
+            },
         });
 
         const getOverwrite = (name: string) => {

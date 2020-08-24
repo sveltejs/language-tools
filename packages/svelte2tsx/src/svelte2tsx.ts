@@ -13,7 +13,7 @@ import {
     InstanceScriptProcessResult,
     CreateRenderFunctionPara,
     AddComponentExportPara,
-    BaseNode,
+    SvelteIdentifier,
 } from './interfaces';
 import { createRenderFunctionGetterStr, createClassGetters } from './nodes/exportgetters';
 import { ExportedNames } from './nodes/ExportedNames';
@@ -268,7 +268,7 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
         str.remove(node.start, node.end);
     };
 
-    const slotHandler = new SlotHandler(str, str.original);
+    const slotHandler = new SlotHandler(str.original);
     let templateScope = new TemplateScope();
 
     const handleEach = (node: Node) => {
@@ -314,7 +314,8 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
                     expForExtract.type = 'ObjectPattern';
                 }
                 if (astUtil.isDestructuringPatterns(expForExtract)) {
-                    const identifiers = extractIdentifiers(expForExtract as any);
+                    // the node object is returned as-it no mutation
+                    const identifiers = extractIdentifiers(expForExtract) as SvelteIdentifier[];
                     templateScope.addMany(identifiers, component);
 
                     slotHandler.resolveDestructuringAssignmentForLet(
@@ -330,7 +331,7 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
     };
 
     const handleScopeAndResolveForSlot = (
-        identifierDef: BaseNode,
+        identifierDef: Node,
         initExpression: Node,
         owner: Node
     ) => {
@@ -340,7 +341,7 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
             slotHandler.resolve(identifierDef, initExpression, templateScope);
         }
         if (astUtil.isDestructuringPatterns(identifierDef)) {
-            const identifiers = extractIdentifiers(identifierDef as any);
+            const identifiers = extractIdentifiers(identifierDef) as SvelteIdentifier[];
             templateScope.addMany(identifiers, owner);
 
             slotHandler.resolveDestructuringAssignment(

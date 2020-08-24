@@ -1,5 +1,9 @@
 import { Node } from 'estree-walker';
-import { Identifier, BaseNode, ArrayPattern, ObjectPattern, IdentifierWithRange } from '../interfaces';
+import {
+    SvelteIdentifier,
+    SvelteArrayPattern,
+    SvelteObjectPattern,
+} from '../interfaces';
 
 export function isMember(parent: Node, prop: string) {
     return parent.type == 'MemberExpression' && prop == 'property';
@@ -15,8 +19,9 @@ export function isObjectValue(parent: Node, prop: string) {
 
 export function isObjectValueShortHand(property: Node) {
     const { value, key } = property;
-    return value && isIdentifierWithRange(value)
-        && key.start === value.start && key.end == value.end;
+    return (
+        value && isIdentifier(value) && key.start === value.start && key.end == value.end
+    );
 }
 
 export function isText(node: Node) {
@@ -27,16 +32,14 @@ export function attributeValueIsString(attr: Node) {
     return attr.value.length !== 1 || attr.value[0]?.type === 'Text';
 }
 
-export function isDestructuringPatterns(node: BaseNode): node is ArrayPattern | ObjectPattern {
+export function isDestructuringPatterns(
+    node: Node,
+): node is SvelteArrayPattern | SvelteObjectPattern {
     return node.type === 'ArrayPattern' || node.type === 'ObjectPattern';
 }
 
-export function isIdentifier(node: any): node is Identifier {
+export function isIdentifier(node: Node): node is SvelteIdentifier {
     return node.type === 'Identifier';
-}
-
-export function isIdentifierWithRange(node: any): node is IdentifierWithRange {
-    return node.type === 'Identifier' && 'start' in node && 'end' in node;
 }
 
 export function getSlotName(child: Node): string | undefined {
