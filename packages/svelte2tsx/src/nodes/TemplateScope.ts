@@ -34,7 +34,7 @@ export default class TemplateScope {
     }
 
     getOwner(name: string): Node {
-        return this.owners.get(name) || (this.parent && this.parent.getOwner(name));
+        return this.owners.get(name) || this.parent?.getOwner(name);
     }
 
     getInit(name: string): WithName {
