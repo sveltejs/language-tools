@@ -136,15 +136,21 @@ function instantiateWriter(myArgs: argv.ParsedArgs): Writer {
 
 function getOptions(myArgs: argv.ParsedArgs): SvelteCheckOptions {
     return {
-        ignoredCompilerWarnings: stringToArray(myArgs['ignored-compiler-warnings']),
-        compilerWarningsAsErrors: stringToArray(myArgs['compiler-warnings-as-errors']),
+        compilerWarnings: stringToObj(myArgs['compiler-warnings']),
     };
 
-    function stringToArray(str = ''): string[] {
+    function stringToObj(str = '') {
         return str
             .split(',')
             .map((s) => s.trim())
-            .filter((s) => !!s);
+            .filter((s) => !!s)
+            .reduce((settings, setting) => {
+                const [name, val] = setting.split(':');
+                if (val === 'error' || val === 'ignore') {
+                    settings[name] = val;
+                }
+                return settings;
+            }, <Record<string, 'error' | 'ignore'>>{});
     }
 }
 

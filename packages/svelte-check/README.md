@@ -60,9 +60,7 @@ Usage:
 
 `--fail-on-warnings` Will also exit with error code when there are warnings
 
-`--ignored-compiler-warnings <code1,code2>` Svelte compiler warning codes to ignore, comma-separated, inside quotes. Example: --ignored-compiler-warnings "css-unused-selector,unused-export-let"
-
-`--compiler-warnings-as-errors <code1,code2>` Svelte compiler warning codes wich should be treated as errors, comma-separated, inside quotes. Example: --compiler-warnings-as-errors "css-unused-selector,unused-export-let"
+`--compiler-warnings <code1:error|ignore,code2:error|ignore>` A list of Svelte compiler warning codes. Each entry defines whether that warning should be ignored or treated as an error. Warnings are comma-separated, between warning code and error level is a colon; all inside quotes. Example: --compiler-warnings "css-unused-selector:ignore,unused-export-let:error"
 
 ### More docs, preprocessor setup and troubleshooting
 

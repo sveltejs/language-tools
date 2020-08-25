@@ -6,8 +6,7 @@ import { Logger } from './logger';
 import { urlToPath } from './utils';
 
 export interface SvelteCheckOptions {
-    ignoredCompilerWarnings?: string[];
-    compilerWarningsAsErrors?: string[];
+    compilerWarnings?: Record<string, 'ignore' | 'error'>;
 }
 
 /**
@@ -29,8 +28,7 @@ export class SvelteCheck {
     private initialize(workspacePath: string, options: SvelteCheckOptions) {
         this.configManager.update({
             svelte: {
-                ignoredCompilerWarnings: options.ignoredCompilerWarnings,
-                compilerWarningsAsErrors: options.compilerWarningsAsErrors,
+                compilerWarnings: options.compilerWarnings,
             },
         });
         this.pluginHost.register(new SveltePlugin(this.configManager, {}));

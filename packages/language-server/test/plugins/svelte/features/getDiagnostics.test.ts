@@ -7,17 +7,14 @@ import {
     TranspileErrorSource,
 } from '../../../../src/plugins/svelte/SvelteDocument';
 import { SvelteConfig } from '../../../../src/lib/documents/configLoader';
-import { LSSvelteConfig } from '../../../../src/ls-config';
+import { CompilerWarningsSettings } from '../../../../src/ls-config';
 
 describe('SveltePlugin#getDiagnostics', () => {
     async function expectDiagnosticsFor(
         getTranspiled: any,
         getCompiled: any,
         config: Partial<SvelteConfig>,
-        settings: Pick<LSSvelteConfig, 'compilerWarningsAsErrors' | 'ignoredCompilerWarnings'> = {
-            compilerWarningsAsErrors: [],
-            ignoredCompilerWarnings: [],
-        },
+        settings: CompilerWarningsSettings = {},
     ) {
         const document = new Document('', '<script></script>\n<style></style>');
         const svelteDoc: SvelteDocument = <any>{ getTranspiled, getCompiled, config };
@@ -288,7 +285,7 @@ describe('SveltePlugin#getDiagnostics', () => {
                         },
                     }),
                 {},
-                { compilerWarningsAsErrors: [], ignoredCompilerWarnings: ['123'] },
+                { '123': 'ignore' },
             )
         ).toEqual([]);
     });
@@ -316,7 +313,7 @@ describe('SveltePlugin#getDiagnostics', () => {
                         },
                     }),
                 {},
-                { compilerWarningsAsErrors: ['123'], ignoredCompilerWarnings: [] },
+                { '123': 'error' },
             )
         ).toEqual([
             {
