@@ -13,6 +13,7 @@ Do you want to use TypeScript/SCSS/Less/..? See [Using with preprocessors](#usin
 #### Language specific setup
 
 -   [SCSS/Less](./preprocessors/scss-less.md)
+-   [Other CSS languages, TailwindCSS](./preprocessors/other-css-preprocessors.md)
 -   [TypeScript](./preprocessors/typescript.md)
 
 ## Documenting components
