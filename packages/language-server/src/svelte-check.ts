@@ -5,6 +5,10 @@ import { Diagnostic } from 'vscode-languageserver';
 import { Logger } from './logger';
 import { urlToPath } from './utils';
 
+export interface SvelteCheckOptions {
+    compilerWarnings?: Record<string, 'ignore' | 'error'>;
+}
+
 /**
  * Small wrapper around PluginHost's Diagnostic Capabilities
  * for svelte-check, without the overhead of the lsp.
@@ -16,12 +20,17 @@ export class SvelteCheck {
     private configManager = new LSConfigManager();
     private pluginHost = new PluginHost(this.docManager, this.configManager);
 
-    constructor(workspacePath: string) {
+    constructor(workspacePath: string, options: SvelteCheckOptions = {}) {
         Logger.setLogErrorsOnly(true);
-        this.initialize(workspacePath);
+        this.initialize(workspacePath, options);
     }
 
-    private initialize(workspacePath: string) {
+    private initialize(workspacePath: string, options: SvelteCheckOptions) {
+        this.configManager.update({
+            svelte: {
+                compilerWarnings: options.compilerWarnings,
+            },
+        });
         this.pluginHost.register(new SveltePlugin(this.configManager, {}));
         this.pluginHost.register(new HTMLPlugin(this.docManager, this.configManager));
         this.pluginHost.register(new CSSPlugin(this.docManager, this.configManager));

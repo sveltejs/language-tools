@@ -6,7 +6,7 @@ import * as fs from 'fs';
 import * as glob from 'glob';
 import * as argv from 'minimist';
 import * as path from 'path';
-import { SvelteCheck } from 'svelte-language-server';
+import { SvelteCheck, SvelteCheckOptions } from 'svelte-language-server';
 import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver-protocol';
 import { URI } from 'vscode-uri';
 import { HumanFriendlyWriter, MachineFriendlyWriter, Writer } from './writers';
@@ -122,6 +122,38 @@ class DiagnosticsWatcher {
     }
 }
 
+function instantiateWriter(myArgs: argv.ParsedArgs): Writer {
+    const outputFormat: OutputFormat = outputFormats.includes(myArgs['output'])
+        ? myArgs['output']
+        : 'human-verbose';
+
+    if (outputFormat === 'human-verbose' || outputFormat === 'human') {
+        return new HumanFriendlyWriter(process.stdout, outputFormat === 'human-verbose');
+    } else {
+        return new MachineFriendlyWriter(process.stdout);
+    }
+}
+
+function getOptions(myArgs: argv.ParsedArgs): SvelteCheckOptions {
+    return {
+        compilerWarnings: stringToObj(myArgs['compiler-warnings']),
+    };
+
+    function stringToObj(str = '') {
+        return str
+            .split(',')
+            .map((s) => s.trim())
+            .filter((s) => !!s)
+            .reduce((settings, setting) => {
+                const [name, val] = setting.split(':');
+                if (val === 'error' || val === 'ignore') {
+                    settings[name] = val;
+                }
+                return settings;
+            }, <Record<string, 'error' | 'ignore'>>{});
+    }
+}
+
 (async () => {
     const myArgs = argv(process.argv.slice(1));
     let workspaceUri;
@@ -136,18 +168,9 @@ class DiagnosticsWatcher {
         workspaceUri = URI.file(process.cwd());
     }
 
-    const outputFormat: OutputFormat = outputFormats.includes(myArgs['output'])
-        ? myArgs['output']
-        : 'human-verbose';
-    let writer: Writer;
+    const writer = instantiateWriter(myArgs);
 
-    if (outputFormat === 'human-verbose' || outputFormat === 'human') {
-        writer = new HumanFriendlyWriter(process.stdout, outputFormat === 'human-verbose');
-    } else {
-        writer = new MachineFriendlyWriter(process.stdout);
-    }
-
-    const svelteCheck = new SvelteCheck(workspaceUri.fsPath);
+    const svelteCheck = new SvelteCheck(workspaceUri.fsPath, getOptions(myArgs));
     const filePathsToIgnore = myArgs['ignore']?.split(',') || [];
 
     if (myArgs['watch']) {

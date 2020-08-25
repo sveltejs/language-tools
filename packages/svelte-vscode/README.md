@@ -148,6 +148,10 @@ Enable the Svelte plugin. _Default_: `true`
 
 Enable diagnostic messages for Svelte. _Default_: `true`
 
+##### `svelte.plugin.svelte.compilerWarnings`
+
+Svelte compiler warning codes to ignore or to treat as errors. Example: { 'css-unused-selector': 'ignore', 'unused-export-let': 'error'}
+
 ##### `svelte.plugin.svelte.format.enable`
 
 Enable formatting for Svelte (includes css & js). _Default_: `true`

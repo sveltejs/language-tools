@@ -32,6 +32,7 @@ const defaultLSConfig: LSConfig = {
     },
     svelte: {
         enable: true,
+        compilerWarnings: {},
         diagnostics: { enable: true },
         format: { enable: true },
         completions: { enable: true },
@@ -114,8 +115,11 @@ export interface LSHTMLConfig {
     };
 }
 
+export type CompilerWarningsSettings = Record<string, 'ignore' | 'error'>;
+
 export interface LSSvelteConfig {
     enable: boolean;
+    compilerWarnings: CompilerWarningsSettings;
     diagnostics: {
         enable: boolean;
     };
@@ -133,17 +137,28 @@ export interface LSSvelteConfig {
     };
 }
 
+type DeepPartial<T> = T extends CompilerWarningsSettings
+    ? T
+    : {
+          [P in keyof T]?: DeepPartial<T[P]>;
+      };
+
 export class LSConfigManager {
     private config: LSConfig = defaultLSConfig;
 
     /**
      * Updates config.
      */
-    update(config: LSConfig): void {
+    update(config: DeepPartial<LSConfig>): void {
         // Ideally we shouldn't need the merge here because all updates should be valid and complete configs.
         // But since those configs come from the client they might be out of synch with the valid config:
         // We might at some point in the future forget to synch config settings in all packages after updating the config.
         this.config = merge({}, defaultLSConfig, this.config, config);
+        // Merge will keep arrays/objects if the new one is empty/has less entries,
+        // therefore we need some extra checks if there are new settings
+        if (config.svelte?.compilerWarnings) {
+            this.config.svelte.compilerWarnings = config.svelte.compilerWarnings;
+        }
     }
 
     /**
@@ -151,7 +166,22 @@ export class LSConfigManager {
      * @param key a string which is a path. Example: 'svelte.diagnostics.enable'.
      */
     enabled(key: string): boolean {
-        return !!get(this.config, key);
+        return !!this.get(key);
+    }
+
+    /**
+     * Get specific config
+     * @param key a string which is a path. Example: 'svelte.diagnostics.enable'.
+     */
+    get<T>(key: string): T {
+        return get(this.config, key);
+    }
+
+    /**
+     * Get the whole config
+     */
+    getConfig(): Readonly<LSConfig> {
+        return this.config;
     }
 }
 

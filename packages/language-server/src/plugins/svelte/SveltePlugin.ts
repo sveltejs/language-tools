@@ -1,4 +1,3 @@
-import { cosmiconfig } from 'cosmiconfig';
 import {
     CodeAction,
     CodeActionContext,
@@ -34,10 +33,6 @@ export class SveltePlugin
         HoverProvider,
         CodeActionsProvider {
     private docManager = new Map<Document, SvelteDocument>();
-    private cosmiConfigExplorer = cosmiconfig('svelte', {
-        packageProp: 'svelte-ls',
-        cache: true,
-    });
 
     constructor(private configManager: LSConfigManager, private prettierConfig: any) {}
 
@@ -46,7 +41,11 @@ export class SveltePlugin
             return [];
         }
 
-        return getDiagnostics(document, await this.getSvelteDoc(document));
+        return getDiagnostics(
+            document,
+            await this.getSvelteDoc(document),
+            this.configManager.getConfig().svelte.compilerWarnings,
+        );
     }
 
     async getCompiledResult(document: Document): Promise<SvelteCompileResult | null> {

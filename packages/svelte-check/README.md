@@ -60,6 +60,8 @@ Usage:
 
 `--fail-on-warnings` Will also exit with error code when there are warnings
 
+`--compiler-warnings <code1:error|ignore,code2:error|ignore>` A list of Svelte compiler warning codes. Each entry defines whether that warning should be ignored or treated as an error. Warnings are comma-separated, between warning code and error level is a colon; all inside quotes. Example: --compiler-warnings "css-unused-selector:ignore,unused-export-let:error"
+
 ### More docs, preprocessor setup and troubleshooting
 
 [See here](/docs/README.md).

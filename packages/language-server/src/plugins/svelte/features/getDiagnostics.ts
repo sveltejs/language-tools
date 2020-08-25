@@ -3,6 +3,7 @@ import { Diagnostic, DiagnosticSeverity, Position, Range } from 'vscode-language
 import { Document, isInTag, mapDiagnosticToOriginal } from '../../../lib/documents';
 import { Logger } from '../../../logger';
 import { SvelteDocument, TranspileErrorSource } from '../SvelteDocument';
+import { CompilerWarningsSettings } from '../../../ls-config';
 
 /**
  * Returns diagnostics from the svelte compiler.
@@ -11,13 +12,14 @@ import { SvelteDocument, TranspileErrorSource } from '../SvelteDocument';
 export async function getDiagnostics(
     document: Document,
     svelteDoc: SvelteDocument,
+    settings: CompilerWarningsSettings,
 ): Promise<Diagnostic[]> {
     if (svelteDoc.config.loadConfigError) {
         return getConfigLoadErrorDiagnostics(svelteDoc.config.loadConfigError);
     }
 
     try {
-        return await tryGetDiagnostics(document, svelteDoc);
+        return await tryGetDiagnostics(document, svelteDoc, settings);
     } catch (error) {
         return getPreprocessErrorDiagnostics(document, error);
     }
@@ -29,19 +31,24 @@ export async function getDiagnostics(
 async function tryGetDiagnostics(
     document: Document,
     svelteDoc: SvelteDocument,
+    settings: CompilerWarningsSettings,
 ): Promise<Diagnostic[]> {
     const transpiled = await svelteDoc.getTranspiled();
 
     try {
         const res = await svelteDoc.getCompiled();
         return (((res.stats as any).warnings || res.warnings || []) as Warning[])
+            .filter((warning) => settings[warning.code] !== 'ignore')
             .map((warning) => {
                 const start = warning.start || { line: 1, column: 0 };
                 const end = warning.end || start;
                 return {
                     range: Range.create(start.line - 1, start.column, end.line - 1, end.column),
                     message: warning.message,
-                    severity: DiagnosticSeverity.Warning,
+                    severity:
+                        settings[warning.code] === 'error'
+                            ? DiagnosticSeverity.Error
+                            : DiagnosticSeverity.Warning,
                     source: 'svelte',
                     code: warning.code,
                 };
