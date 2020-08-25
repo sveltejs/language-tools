@@ -25,7 +25,7 @@ import {
     ComponentEventsFromEventsMap,
 } from './nodes/ComponentEvents';
 import {
-    handleScopeAndResolveLetVarForSlotFor as handleScopeAndResolveLetVarForSlot,
+    handleScopeAndResolveLetVarForSlot,
     handleScopeAndResolveForSlot
 } from './nodes/handleScopeAndResolveForSlot';
 
