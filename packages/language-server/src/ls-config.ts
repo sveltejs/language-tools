@@ -186,29 +186,3 @@ export class LSConfigManager {
 }
 
 export const lsConfig = new LSConfigManager();
-
-/**
- * Parses a raw incoming config.
- * Some options may come in a raw form (string with commas instead of string array)
- * and need to be transformed accordingly.
- */
-export function parseRawConfig(config: any): LSConfig {
-    return {
-        ...config,
-        svelte: {
-            ...config?.svelte,
-            ignoredCompilerWarnings: stringToArray(config?.svelte?.ignoredCompilerWarnings),
-            compilerWarningsAsErrors: stringToArray(config?.svelte?.compilerWarningsAsErrors),
-        },
-    };
-
-    function stringToArray(str: string | string[] = ''): string[] {
-        if (Array.isArray(str)) {
-            return str;
-        }
-        return str
-            .split(',')
-            .map((s) => s.trim())
-            .filter((s) => !!s);
-    }
-}
