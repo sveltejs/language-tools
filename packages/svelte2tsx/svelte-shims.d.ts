@@ -168,3 +168,6 @@ declare function __sveltets_each<T>(
 declare function createSvelte2TsxComponent<Props, Events, Slots>(
     render: () => {props?: Props, events?: Events, slots?: Slots }
 ): AConstructorTypeOf<Svelte2TsxComponent<Props, Events, Slots>>;
+
+declare function __sveltets_unwrapArr<T>(arr: ArrayLike<T>): T
+declare function __sveltets_unwrapPromiseLike<T>(promise: PromiseLike<T> | T): T

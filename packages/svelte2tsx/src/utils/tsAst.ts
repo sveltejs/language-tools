@@ -1,6 +1,6 @@
 import ts from 'typescript';
 
-export function findExortKeyword(node: ts.Node) {
+export function findExportKeyword(node: ts.Node) {
     return node.modifiers?.find((x) => x.kind == ts.SyntaxKind.ExportKeyword);
 }
 

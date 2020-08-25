@@ -6,8 +6,8 @@ import { parseHtmlx } from './htmlxparser';
 import { convertHtmlxToJsx } from './htmlxtojsx';
 import { Node } from 'estree-walker';
 import * as ts from 'typescript';
+import { findExportKeyword, getBinaryAssignmentExpr } from './utils/tsAst';
 import { EventHandler } from './nodes/event-handler';
-import { findExortKeyword, getBinaryAssignmentExpr } from './utils/tsAst';
 import {
     InstanceScriptProcessResult,
     CreateRenderFunctionPara,
@@ -15,38 +15,19 @@ import {
 } from './interfaces';
 import { createRenderFunctionGetterStr, createClassGetters } from './nodes/exportgetters';
 import { ExportedNames } from './nodes/ExportedNames';
+import * as astUtil from './utils/svelteAst';
+import { SlotHandler } from './nodes/slot';
+import TemplateScope from './nodes/TemplateScope';
 import { ImplicitTopLevelNames } from './nodes/ImplicitTopLevelNames';
 import {
     ComponentEvents,
     ComponentEventsFromInterface,
     ComponentEventsFromEventsMap,
 } from './nodes/ComponentEvents';
-
-function AttributeValueAsJsExpression(htmlx: string, attr: Node): string {
-    if (attr.value.length == 0) return "''"; //wut?
-
-    //handle single value
-    if (attr.value.length == 1) {
-        const attrVal = attr.value[0];
-
-        if (attrVal.type == 'AttributeShorthand') {
-            return attrVal.expression.name;
-        }
-
-        if (attrVal.type == 'Text') {
-            return '"' + attrVal.raw + '"';
-        }
-
-        if (attrVal.type == 'MustacheTag') {
-            return htmlx.substring(attrVal.expression.start, attrVal.expression.end);
-        }
-        throw Error('Unknown attribute value type:' + attrVal.type);
-    }
-
-    // we have multiple attribute values, so we know we are building a string out of them.
-    // so return a dummy string, it will typecheck the same :)
-    return '"__svelte_ts_string"';
-}
+import {
+    handleScopeAndResolveLetVarForSlot,
+    handleScopeAndResolveForSlot
+} from './nodes/handleScopeAndResolveForSlot';
 
 type TemplateProcessResult = {
     uses$$props: boolean;
@@ -234,12 +215,12 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
         //handle potential store
         if (node.name[0] == '$') {
             if (isDeclaration) {
-                if (parent.type == 'Property' && prop == 'key') return;
+                if (astUtil.isObjectKey(parent, prop)) return;
                 scope.declared.add(node.name);
             } else {
-                if (parent.type == 'MemberExpression' && prop == 'property' && !parent.computed)
+                if (astUtil.isMember(parent, prop) && !parent.computed)
                     return;
-                if (parent.type == 'Property' && prop == 'key') return;
+                if (astUtil.isObjectKey(parent, prop)) return;
                 pendingStoreResolutions.push({ node, parent, scope });
             }
             return;
@@ -284,22 +265,59 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
             });
     };
 
-    const slots = new Map<string, Map<string, string>>();
-    const handleSlot = (node: Node) => {
-        const nameAttr = node.attributes.find((a) => a.name == 'name');
-        const slotName = nameAttr ? nameAttr.value[0].raw : 'default';
-        //collect attributes
-        const attributes = new Map<string, string>();
-        for (const attr of node.attributes) {
-            if (attr.name == 'name') continue;
-            if (!attr.value.length) continue;
-            attributes.set(attr.name, AttributeValueAsJsExpression(str.original, attr));
-        }
-        slots.set(slotName, attributes);
-    };
 
     const handleStyleTag = (node: Node) => {
         str.remove(node.start, node.end);
+    };
+
+    const slotHandler = new SlotHandler(str.original);
+    let templateScope = new TemplateScope();
+
+    const handleEach = (node: Node) => {
+        templateScope = templateScope.child();
+
+        if (node.context) {
+            handleScopeAndResolveForSlotInner(node.context, node.expression, node);
+        }
+    };
+
+    const handleAwait = (node: Node) => {
+        templateScope = templateScope.child();
+        if (node.value) {
+            handleScopeAndResolveForSlotInner(node.value, node.expression, node.then);
+        }
+        if (node.error) {
+            handleScopeAndResolveForSlotInner(node.error, node.expression, node.catch);
+        }
+    };
+
+    const handleComponentLet = (component: Node) => {
+        templateScope = templateScope.child();
+        const lets = slotHandler.getSlotConsumerOfComponent(component);
+
+        for (const { letNode, slotName } of lets) {
+            handleScopeAndResolveLetVarForSlot({
+                letNode,
+                slotName,
+                slotHandler,
+                templateScope,
+                component
+            });
+        }
+    };
+
+    const handleScopeAndResolveForSlotInner = (
+        identifierDef: Node,
+        initExpression: Node,
+        owner: Node
+    ) => {
+        handleScopeAndResolveForSlot({
+            identifierDef,
+            initExpression,
+            slotHandler,
+            templateScope,
+            owner,
+        });
     };
 
     const eventHandler = new EventHandler();
@@ -323,7 +341,7 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
                 handleIdentifier(node, parent, prop);
                 break;
             case 'Slot':
-                handleSlot(node);
+                slotHandler.handleSlot(node, templateScope);
                 break;
             case 'Style':
                 handleStyleTag(node);
@@ -346,6 +364,15 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
             case 'VariableDeclarator':
                 isDeclaration = true;
                 break;
+            case 'EachBlock':
+                handleEach(node);
+                break;
+            case 'AwaitBlock':
+                handleAwait(node);
+                break;
+            case 'InlineComponent':
+                handleComponentLet(node);
+                break;
         }
     };
 
@@ -360,6 +387,9 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
         if (prop == 'id' && parent.type == 'VariableDeclarator') {
             isDeclaration = false;
         }
+        const onTemplateScopeLeave = () => {
+            templateScope = templateScope.parent;
+        };
 
         switch (node.type) {
             case 'BlockStatement':
@@ -370,6 +400,15 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
                 break;
             case 'ArrowFunctionExpression':
                 leaveArrowFunctionExpression();
+                break;
+            case 'EachBlock':
+                onTemplateScopeLeave();
+                break;
+            case 'AwaitBlock':
+                onTemplateScopeLeave();
+                break;
+            case 'InlineComponent':
+                onTemplateScopeLeave();
                 break;
         }
     };
@@ -386,7 +425,7 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
     return {
         moduleScriptTag,
         scriptTag,
-        slots,
+        slots: slotHandler.getSlotDef(),
         events: new ComponentEventsFromEventsMap(eventHandler),
         uses$$props,
         uses$$restProps,
@@ -694,7 +733,7 @@ function processInstanceScriptContent(
         }
 
         if (ts.isVariableStatement(node)) {
-            const exportModifier = findExortKeyword(node);
+            const exportModifier = findExportKeyword(node);
             if (exportModifier) {
                 const isLet = node.declarationList.flags === ts.NodeFlags.Let;
                 const isConst = node.declarationList.flags === ts.NodeFlags.Const;
@@ -715,7 +754,7 @@ function processInstanceScriptContent(
 
         if (ts.isFunctionDeclaration(node)) {
             if (node.modifiers) {
-                const exportModifier = findExortKeyword(node);
+                const exportModifier = findExportKeyword(node);
                 if (exportModifier) {
                     removeExport(exportModifier.getStart(), exportModifier.end);
                     addGetter(node.name);
@@ -727,7 +766,7 @@ function processInstanceScriptContent(
         }
 
         if (ts.isClassDeclaration(node)) {
-            const exportModifier = findExortKeyword(node);
+            const exportModifier = findExportKeyword(node);
             if (exportModifier) {
                 removeExport(exportModifier.getStart(), exportModifier.end);
                 addGetter(node.name);
