@@ -4,6 +4,7 @@ import {
     extractStyleTag,
     extractScriptTags,
     updateRelativeImport,
+    getWordAt,
 } from '../../../src/lib/documents/utils';
 import { Position } from 'vscode-languageserver';
 
@@ -326,6 +327,31 @@ describe('document/utils', () => {
                 './someTsFile',
             );
             assert.deepStrictEqual(newPath, './oldPath/someTsFile');
+        });
+    });
+
+    describe('#getWordAt', () => {
+        it('returns word between whitespaces', () => {
+            assert.equal(getWordAt('qwd asd qwd', 5), 'asd');
+        });
+
+        it('returns word between whitespace and end of string', () => {
+            assert.equal(getWordAt('qwd asd', 5), 'asd');
+        });
+
+        it('returns word between start of string and whitespace', () => {
+            assert.equal(getWordAt('asd qwd', 2), 'asd');
+        });
+
+        it('returns word between start of string and end of string', () => {
+            assert.equal(getWordAt('asd', 2), 'asd');
+        });
+
+        it('returns word with custom delimiters', () => {
+            assert.equal(
+                getWordAt('asd on:asd-qwd="asd" ', 10, { left: /\S+$/, right: /[\s=]/ }),
+                'on:asd-qwd',
+            );
         });
     });
 });

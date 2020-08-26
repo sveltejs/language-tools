@@ -313,3 +313,22 @@ export function getNodeIfIsInComponentStartTag(
         return node;
     }
 }
+
+/**
+ * Gets word at position.
+ * Delimiter is by default a whitespace, but can be adjusted.
+ */
+export function getWordAt(
+    str: string,
+    pos: number,
+    delimiterRegex = { left: /\S+$/, right: /\s/ },
+): string {
+    const left = str.slice(0, pos + 1).search(delimiterRegex.left);
+    const right = str.slice(pos).search(delimiterRegex.right);
+
+    if (right < 0) {
+        return str.slice(left);
+    }
+
+    return str.slice(left, right + pos);
+}

@@ -3,29 +3,29 @@ import {
     CompletionContext,
     CompletionList,
     CompletionTriggerKind,
+    MarkupContent,
+    MarkupKind,
     Position,
     Range,
     TextDocumentIdentifier,
     TextEdit,
-    MarkupContent,
-    MarkupKind,
 } from 'vscode-languageserver';
 import {
     Document,
     isInTag,
     mapCompletionItemToOriginal,
     mapRangeToOriginal,
-    getNodeIfIsInComponentStartTag,
 } from '../../../lib/documents';
-import { isNotNullOrUndefined, pathToUrl, getRegExpMatches, flatten } from '../../../utils';
+import { flatten, getRegExpMatches, isNotNullOrUndefined, pathToUrl } from '../../../utils';
 import { AppCompletionItem, AppCompletionList, CompletionsProvider } from '../../interfaces';
-import { SvelteSnapshotFragment, SvelteDocumentSnapshot } from '../DocumentSnapshot';
+import { SvelteDocumentSnapshot, SvelteSnapshotFragment } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import {
     convertRange,
     getCommitCharactersForScriptElement,
     scriptElementKindToCompletionItemKind,
 } from '../utils';
+import { getComponentAtPosition } from './utils';
 
 export interface CompletionEntryWithIdentifer extends ts.CompletionEntry, TextDocumentIdentifier {
     position: Position;
@@ -135,7 +135,14 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         fragment: SvelteSnapshotFragment,
         originalPosition: Position,
     ): AppCompletionItem<CompletionEntryWithIdentifer>[] {
-        const snapshot = this.getComponentAtPosition(lang, doc, tsDoc, fragment, originalPosition);
+        const snapshot = getComponentAtPosition(
+            this.lsAndTsDocResovler,
+            lang,
+            doc,
+            tsDoc,
+            fragment,
+            originalPosition,
+        );
         if (!snapshot) {
             return [];
         }
@@ -146,50 +153,6 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             detail: event.name + ': ' + event.type,
             documentation: event.doc && { kind: MarkupKind.Markdown, value: event.doc },
         }));
-    }
-
-    /**
-     * If the completion happens inside the template and within the
-     * tag of a Svelte component, then retrieve its snapshot.
-     */
-    private getComponentAtPosition(
-        lang: ts.LanguageService,
-        doc: Document,
-        tsDoc: SvelteDocumentSnapshot,
-        fragment: SvelteSnapshotFragment,
-        originalPosition: Position,
-    ): SvelteDocumentSnapshot | null {
-        if (tsDoc.parserError) {
-            return null;
-        }
-
-        if (
-            isInTag(originalPosition, doc.scriptInfo) ||
-            isInTag(originalPosition, doc.moduleScriptInfo)
-        ) {
-            // Inside script tags -> not a component
-            return null;
-        }
-
-        const node = getNodeIfIsInComponentStartTag(doc.html, doc.offsetAt(originalPosition));
-        if (!node) {
-            return null;
-        }
-
-        const generatedPosition = fragment.getGeneratedPosition(doc.positionAt(node.start + 1));
-        const def = lang.getDefinitionAtPosition(
-            tsDoc.filePath,
-            fragment.offsetAt(generatedPosition),
-        )?.[0];
-        if (!def) {
-            return null;
-        }
-
-        const snapshot = this.lsAndTsDocResovler.getSnapshot(def.fileName);
-        if (!(snapshot instanceof SvelteDocumentSnapshot)) {
-            return null;
-        }
-        return snapshot;
     }
 
     private toCompletionItem(
