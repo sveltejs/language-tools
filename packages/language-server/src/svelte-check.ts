@@ -3,7 +3,7 @@ import { LSConfigManager } from './ls-config';
 import { CSSPlugin, HTMLPlugin, PluginHost, SveltePlugin, TypeScriptPlugin } from './plugins';
 import { Diagnostic } from 'vscode-languageserver';
 import { Logger } from './logger';
-import { urlToPath } from './utils';
+import { urlToPath, pathToUrl } from './utils';
 
 export interface SvelteCheckOptions {
     compilerWarnings?: Record<string, 'ignore' | 'error'>;
@@ -35,7 +35,7 @@ export class SvelteCheck {
         this.pluginHost.register(new HTMLPlugin(this.docManager, this.configManager));
         this.pluginHost.register(new CSSPlugin(this.docManager, this.configManager));
         this.pluginHost.register(
-            new TypeScriptPlugin(this.docManager, this.configManager, workspacePath),
+            new TypeScriptPlugin(this.docManager, this.configManager, [pathToUrl(workspacePath)]),
         );
     }
 

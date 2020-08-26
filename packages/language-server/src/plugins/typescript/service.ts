@@ -23,24 +23,24 @@ export type CreateDocument = (fileName: string, content: string) => Document;
 
 export function getLanguageServiceForPath(
     path: string,
-    workspacePath: string,
+    workspaceUris: string[],
     createDocument: CreateDocument,
 ): ts.LanguageService {
-    return getService(path, workspacePath, createDocument).getService();
+    return getService(path, workspaceUris, createDocument).getService();
 }
 
 export function getLanguageServiceForDocument(
     document: Document,
-    workspacePath: string,
+    workspaceUris: string[],
     createDocument: CreateDocument,
 ): ts.LanguageService {
-    return getService(document.getFilePath() || '', workspacePath, createDocument).updateDocument(
+    return getService(document.getFilePath() || '', workspaceUris, createDocument).updateDocument(
         document,
     );
 }
 
-export function getService(path: string, workspacePath: string, createDocument: CreateDocument) {
-    const tsconfigPath = findTsConfigPath(path, workspacePath);
+export function getService(path: string, workspaceUris: string[], createDocument: CreateDocument) {
+    const tsconfigPath = findTsConfigPath(path, workspaceUris);
 
     let service: LanguageServiceContainer;
     if (services.has(tsconfigPath)) {
