@@ -86,7 +86,8 @@ export function startServer(options?: LSOptions) {
     let sveltePlugin: SveltePlugin = undefined as any;
 
     connection.onInitialize((evt) => {
-        const workspacePaths = evt.workspaceFolders?.map(folder => folder.uri.toString()) ?? [];
+        const workspacePaths = evt.workspaceFolders?.map(folder => folder.uri.toString())
+            ?? [evt.rootUri ?? ''];
         Logger.log('Initialize language server at ', workspacePaths.join(', '));
         if (workspacePaths.length === 0) {
             Logger.error('No workspace path set');
