@@ -74,10 +74,10 @@ export class TypeScriptPlugin
     constructor(
         docManager: DocumentManager,
         configManager: LSConfigManager,
-        workspacePath: string,
+        workspaceUris: string[],
     ) {
         this.configManager = configManager;
-        this.lsAndTsDocResolver = new LSAndTSDocResolver(docManager, workspacePath);
+        this.lsAndTsDocResolver = new LSAndTSDocResolver(docManager, workspaceUris);
         this.completionProvider = new CompletionsProviderImpl(this.lsAndTsDocResolver);
         this.codeActionsProvider = new CodeActionsProviderImpl(
             this.lsAndTsDocResolver,

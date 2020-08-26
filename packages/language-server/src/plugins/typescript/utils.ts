@@ -1,4 +1,4 @@
-import { dirname, relative, isAbsolute } from 'path';
+import { dirname } from 'path';
 import ts from 'typescript';
 import {
     CompletionItemKind,
@@ -8,6 +8,7 @@ import {
     SymbolKind,
 } from 'vscode-languageserver';
 import { mapRangeToOriginal } from '../../lib/documents';
+import { pathToUrl } from '../../utils';
 import { SnapshotFragment } from './DocumentSnapshot';
 
 export function getScriptKindFromFileName(fileName: string): ts.ScriptKind {
@@ -102,7 +103,7 @@ export function convertToLocationRange(defDoc: SnapshotFragment, textSpan: ts.Te
     return range;
 }
 
-export function findTsConfigPath(fileName: string, rootPath: string) {
+export function findTsConfigPath(fileName: string, rootUris: string[]) {
     const searchDir = dirname(fileName);
 
     const path =
@@ -110,12 +111,11 @@ export function findTsConfigPath(fileName: string, rootPath: string) {
         ts.findConfigFile(searchDir, ts.sys.fileExists, 'jsconfig.json') ||
         '';
     // Don't return config files that exceed the current workspace context.
-    return !!path && isSubPath(rootPath, path) ? path : '';
+    return !!path && rootUris.some(rootUri => isSubPath(rootUri, path)) ? path : '';
 }
 
-export function isSubPath(path: string, possibleSubPath: string): boolean {
-    const relativePath = relative(path, possibleSubPath);
-    return !!relativePath && !relativePath.startsWith('..') && !isAbsolute(relativePath);
+export function isSubPath(uri: string, possibleSubPath: string): boolean {
+    return pathToUrl(possibleSubPath).startsWith(uri);
 }
 
 export function symbolKindFromString(kind: string): SymbolKind {
