@@ -20,7 +20,7 @@ svelte-check  |
 As briefly touched already, this is a language-server adhering to the [Language Server Protocol (LSP)](https://microsoft.github.io/language-server-protocol).
 The protocol defines the communication between an editor or IDE and a language server that provides language features like auto complete, go to definition, find all references etc.
 
-Our `language-server` can roughly be splitted into [four areas](/packages/language-server/src/plugins):
+Our `language-server` can roughly be split into [four areas](/packages/language-server/src/plugins):
 
 -   CSS: Provides intellisense for the things inside `<style>`. Internally it mostly forwards stuff to the `vscode-css-languageservice`.
 -   HTML: Provides intellisense for basic HTML tags like `div`, `a` etc. Internally it mostly forwards stuff to the `vscode-html-languageservice`. Svelte-specific template syntax is _NOT_ handled here.
