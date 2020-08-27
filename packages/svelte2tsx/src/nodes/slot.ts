@@ -116,9 +116,7 @@ export class SlotHandler {
         component: Node,
         slotName: string,
     ) {
-        const componentTypeStr = `__sveltets_instanceOf(${component.name})`;
-
-        return `${componentTypeStr}.$$slot_def.${slotName}.${letNode.name}`;
+        return `${getSingleSlotDef(component.name, slotName)}.${letNode.name}`;
     }
 
     resolveLet(letNode: BaseDirective, identifierDef: WithName, component: Node, slotName: string) {
@@ -258,4 +256,8 @@ export class SlotHandler {
         }
         throw Error('Unknown attribute value type:' + attrVal.type);
     }
+}
+
+export function getSingleSlotDef(componentName: string, slotName: string) {
+    return `__sveltets_instanceOf(${componentName}).$$slot_def['${slotName}']`;
 }

@@ -6,6 +6,7 @@ import svgAttributes from './svgattributes';
 import { getTypeForComponent } from './nodes/component-type';
 import { handleAwait } from './nodes/await-block';
 import { getSlotName } from '../utils/svelteAst';
+import { getSingleSlotDef } from '../nodes/slot';
 
 type ElementType = string;
 const oneWayBindingAttributes: Map<string, ElementType> = new Map(
@@ -318,7 +319,7 @@ export function convertHtmlxToJsx(
         str.appendLeft(afterTag, '{() => { let {');
         str.appendRight(
             afterTag,
-            '} = __sveltets_instanceOf(' + componentName + ').$$slot_def.' + slotName + ';<>',
+            `} = ${getSingleSlotDef(componentName, slotName)}`+ ';<>',
         );
 
         const closeTagStart = htmlx.lastIndexOf('<', slotEl.end);

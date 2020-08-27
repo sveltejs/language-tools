@@ -1006,7 +1006,7 @@ function createRenderFunction({
                 const attrsAsString = Array.from(attrs.entries())
                     .map(([exportName, expr]) => `${exportName}:${expr}`)
                     .join(', ');
-                return `${name}: {${attrsAsString}}`;
+                return `'${name}': {${attrsAsString}}`;
             })
             .join(', ') +
         '}';
