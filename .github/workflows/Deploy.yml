@@ -6,7 +6,7 @@ name: Daily builds of the Svelte Language Tools Beta
 # For production
 on:
   schedule:
-    - cron: "0 4 * * *"
+    - cron: "22 8 * * *"
 
 jobs:
   deploy:
