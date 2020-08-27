@@ -54,10 +54,9 @@ describe('CSS Plugin', () => {
             documentation: {
                 kind: 'markdown',
                 value:
-                    'Defines character set of the document.\n\n[MDN Reference](https://developer.mozilla.org/docs/Web/CSS/@charset)',
+                    'Defines character set of the document\\.\n\n[MDN Reference](https://developer.mozilla.org/docs/Web/CSS/@charset)',
             },
             textEdit: TextEdit.insert(Position.create(0, 7), '@charset'),
-            sortText: 'd_0000',
             tags: [],
         });
     });
