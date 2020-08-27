@@ -9,7 +9,7 @@ We assume you already have setup TailwindCSS within your Svelte project. If not,
 To use TailwindCSS with the VSCode extension:
 
 1. Install the [Tailwind CSS VSCode extension](https://marketplace.visualstudio.com/items?itemName=bradlc.vscode-tailwindcss)
-2. Either add `lang="postcss"` to each of your `<style>` tags where you plan on using the Tailwind CSS directives such as `@apply`, or disable CSS diagnostics completely by adding `"svelte.plugin.css.diagnostics.enable": false` within your settings. If you still want diagnostics, install the [Stylelint VSCode extension](https://marketplace.visualstudio.com/items?itemName=stylelint.vscode-stylelint) and [configure it accordingly](https://andrich.me/vscode-stylelint-tailwind-css-are-love)
+2. Either add `lang="postcss"` to each of your `<style>` tags where you plan on using the Tailwind CSS directives such as `@apply`, or disable CSS diagnostics completely by adding `"svelte.plugin.css.diagnostics.enable": false` within your settings. If you still want diagnostics, install the [Stylelint VSCode extension](https://marketplace.visualstudio.com/items?itemName=stylelint.vscode-stylelint) and [configure it accordingly](https://andrich.me/vscode-stylelint-tailwind-css-are-love). Note that within your config files you can only use node-syntax, things like `import ...` or `export const ...` are not allowed.
 
 ## SASS
 
