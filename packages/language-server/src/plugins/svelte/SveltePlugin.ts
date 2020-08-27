@@ -69,7 +69,7 @@ export class SveltePlugin
             (await prettier.resolveConfig(filePath, { editorconfig: true })) || this.prettierConfig;
         const formattedCode = prettier.format(document.getText(), {
             ...config,
-            plugins: [require.resolve('prettier-plugin-svelte')],
+            plugins: getSveltePlugin(),
             parser: 'svelte' as any,
         });
 
@@ -79,6 +79,17 @@ export class SveltePlugin
                 formattedCode,
             ),
         ];
+
+        function getSveltePlugin() {
+            // Only provide our version of the svelte plugin if the user doesn't have one in
+            // the workspace already. If we did it, Prettier would - for some reason - use
+            // the workspace version for parsing and the extension version for printing,
+            // which could crash if the contract of the parser output changed.
+            const hasPluginLoadedAlready = prettier
+                .getSupportInfo()
+                .languages.some((l) => l.name === 'svelte');
+            return hasPluginLoadedAlready ? [] : [require.resolve('prettier-plugin-svelte')];
+        }
     }
 
     async getCompletions(document: Document, position: Position): Promise<CompletionList | null> {
