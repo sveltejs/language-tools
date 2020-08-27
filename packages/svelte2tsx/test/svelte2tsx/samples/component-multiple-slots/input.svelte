@@ -6,4 +6,5 @@
 <div>
     <slot a={b}>Hello</slot>
     <slot name="test" c={d} {e}></slot>
+    <slot name="abc-cde.113"></slot>
 </div>
