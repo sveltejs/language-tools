@@ -18,7 +18,7 @@ describe('HoverProvider', () => {
         const docManager = new DocumentManager(
             (textDocument) => new Document(textDocument.uri, textDocument.text),
         );
-        const lsAndTsDocResolver = new LSAndTSDocResolver(docManager, testDir);
+        const lsAndTsDocResolver = new LSAndTSDocResolver(docManager, [testDir]);
         const provider = new HoverProviderImpl(lsAndTsDocResolver);
         const document = openDoc(filename);
         return { provider, document };
