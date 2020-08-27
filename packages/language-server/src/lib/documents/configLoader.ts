@@ -74,7 +74,9 @@ function useFallbackPreprocessor(path: string, foundConfig: boolean): SvelteConf
     );
     return {
         preprocess: importSveltePreprocess(path)({
-            typescript: { transpileOnly: true },
+            // 4.x does not have transpileOnly anymore, but if the user has version 3.x
+            // in his repo, that one is loaded instead, for which we still need this.
+            typescript: <any>{ transpileOnly: true },
         }),
     };
 }

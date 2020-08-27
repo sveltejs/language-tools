@@ -53,7 +53,7 @@
         "prettier-plugin-svelte": "~1.1.1",
         "source-map": "^0.7.3",
         "svelte": "3.24.1",
-        "svelte-preprocess": "~3.9.11",
+        "svelte-preprocess": "~4.1.1",
         "svelte2tsx": "*",
         "typescript": "*",
         "vscode-css-languageservice": "4.1.0",
