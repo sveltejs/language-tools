@@ -80,7 +80,11 @@ export function isIgnorableSvelteDiagnostic(diagnostic: Diagnostic) {
         severity !== DiagnosticSeverity.Error
     );
 }
-const nonIgnorableWarnings = ['missing-custom-element-compile-options'];
+const nonIgnorableWarnings = [
+    'missing-custom-element-compile-options',
+    'unused-export-let',
+    'css-unused-selector'
+];
 
 async function getSvelteIgnoreEdit(svelteDoc: SvelteDocument, ast: Ast, diagnostic: Diagnostic) {
     const {

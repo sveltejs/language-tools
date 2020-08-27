@@ -51,7 +51,7 @@
         "lodash": "^4.17.19",
         "magic-string": "^0.25.3",
         "prettier": "2.0.5",
-        "prettier-plugin-svelte": "1.1.0",
+        "prettier-plugin-svelte": "~1.1.1",
         "source-map": "^0.7.3",
         "svelte": "3.24.0",
         "svelte-preprocess": "~3.9.11",

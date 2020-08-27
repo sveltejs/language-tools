@@ -263,7 +263,7 @@
       dir?: string;
       disabled?: boolean;
       download?: any;
-      draggable?: boolean;
+      draggable?: boolean | "true" | "false";
       enctype?: string;
       for?: string;
       form?: string;
