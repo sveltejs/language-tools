@@ -74,7 +74,7 @@ function useFallbackPreprocessor(path: string, foundConfig: boolean): SvelteConf
     );
     return {
         preprocess: importSveltePreprocess(path)({
-            typescript: { transpileOnly: true },
+            typescript: { transpileOnly: true, compilerOptions: { sourceMap: true } },
         }),
     };
 }
