@@ -249,6 +249,16 @@
       colspan?: number;
       content?: string;
       contenteditable?: "true" | "false" | boolean;
+
+      /**
+       * Elements with the contenteditable attribute support innerHTML and textContent bindings.
+       */
+      innerHTML?: string;
+      /**
+       * Elements with the contenteditable attribute support innerHTML and textContent bindings.
+       */
+      textContent?: string;
+
       contextmenu?: string;
       controls?: boolean;
       coords?: string;
