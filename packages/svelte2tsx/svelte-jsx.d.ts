@@ -251,11 +251,11 @@
       /**
        * Elements with the contenteditable attribute support innerHTML and textContent bindings.
        */
-      innerHTML?: string;
+      innerhtml?: string;
       /**
        * Elements with the contenteditable attribute support innerHTML and textContent bindings.
        */
-      textContent?: string;
+      textcontent?: string;
 
       contextmenu?: string;
       controls?: boolean;
