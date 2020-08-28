@@ -79,9 +79,7 @@
     interface DOMAttributes<T> {
       // jsx-dom specific
      /* children?: Children;
-      innerHTML?: string;
       innerText?: string;
-      textContent?: string;
       namespaceURI?: string;
       ref?: ((e: T) => void) | Ref<T>; */
 
@@ -249,6 +247,16 @@
       colspan?: number;
       content?: string;
       contenteditable?: "true" | "false" | boolean;
+
+      /**
+       * Elements with the contenteditable attribute support innerHTML and textContent bindings.
+       */
+      innerhtml?: string;
+      /**
+       * Elements with the contenteditable attribute support innerHTML and textContent bindings.
+       */
+      textcontent?: string;
+
       contextmenu?: string;
       controls?: boolean;
       coords?: string;
