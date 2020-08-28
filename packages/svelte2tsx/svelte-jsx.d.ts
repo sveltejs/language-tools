@@ -79,9 +79,7 @@
     interface DOMAttributes<T> {
       // jsx-dom specific
      /* children?: Children;
-      innerHTML?: string;
       innerText?: string;
-      textContent?: string;
       namespaceURI?: string;
       ref?: ((e: T) => void) | Ref<T>; */
 
