@@ -1,4 +1,6 @@
-<></>;import { writable } from 'svelte/store';
+///<reference types="svelte" />
+<></>;
+import { writable } from 'svelte/store';
 function render() {
 
   
@@ -17,7 +19,7 @@ function render() {
   const handler11 = () => count.set( __sveltets_store_get(count) ^ myvar)
   const handler12 = () => count.set( __sveltets_store_get(count) | myvar)
 ;
-<>
+() => (<>
 
 <button onclick={() => count.set( __sveltets_store_get(count) + myvar)}>add</button>
 <button onclick={() => count.set( __sveltets_store_get(count) - myvar)}>subtract</button>
@@ -30,10 +32,8 @@ function render() {
 <button onclick={() => count.set( __sveltets_store_get(count) >>> myvar)}>unsigned rightshift</button>
 <button onclick={() => count.set( __sveltets_store_get(count) & myvar)}>AND</button>
 <button onclick={() => count.set( __sveltets_store_get(count) ^ myvar)}>XOR</button>
-<button onclick={() => count.set( __sveltets_store_get(count) | myvar)}>OR</button></>
-return { props: {}, slots: {} }}
+<button onclick={() => count.set( __sveltets_store_get(count) | myvar)}>OR</button></>);
+return { props: {}, slots: {}, getters: {}, events: {} }}
 
-export default class {
-    $$prop_def = __sveltets_partial(render().props)
-    $$slot_def = render().slots
+export default class Input__SvelteComponent_ extends createSvelte2TsxComponent(__sveltets_partial(__sveltets_with_any_event(render))) {
 }

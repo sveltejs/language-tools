@@ -9,7 +9,7 @@ describe('SveltePlugin#getCompletions', () => {
         content: string,
         position: Position = Position.create(0, content.length),
     ) {
-        const svelteDoc = new SvelteDocument(new Document('url', content), {});
+        const svelteDoc = new SvelteDocument(new Document('url', content));
         const completions = getCompletions(svelteDoc, position);
         return {
             toEqual: (expectedLabels: string[] | null) =>
@@ -49,7 +49,7 @@ describe('SveltePlugin#getCompletions', () => {
     });
 
     it('should return completions for #', () => {
-        expectCompletionsFor('{#').toEqual(['if', 'each', 'await']);
+        expectCompletionsFor('{#').toEqual(['if', 'each', 'await :then', 'await then']);
     });
 
     it('should return completions for @', () => {

@@ -13,12 +13,7 @@ import {
     SymbolInformation,
     WorkspaceEdit,
 } from 'vscode-languageserver';
-import {
-    Document,
-    DocumentManager,
-    mapHoverToParent,
-    mapSymbolInformationToOriginal,
-} from '../../lib/documents';
+import { Document, DocumentManager, mapSymbolInformationToOriginal } from '../../lib/documents';
 import { LSConfigManager, LSTypescriptConfig } from '../../ls-config';
 import { pathToUrl } from '../../utils';
 import {
@@ -42,15 +37,11 @@ import {
     CompletionsProviderImpl,
 } from './features/CompletionProvider';
 import { DiagnosticsProviderImpl } from './features/DiagnosticsProvider';
+import { HoverProviderImpl } from './features/HoverProvider';
+import { RenameProviderImpl } from './features/RenameProvider';
 import { UpdateImportsProviderImpl } from './features/UpdateImportsProvider';
 import { LSAndTSDocResolver } from './LSAndTSDocResolver';
-import {
-    convertRange,
-    convertToLocationRange,
-    getScriptKindFromFileName,
-    symbolKindFromString,
-} from './utils';
-import { RenameProviderImpl } from './features/RenameProvider';
+import { convertToLocationRange, getScriptKindFromFileName, symbolKindFromString } from './utils';
 
 export class TypeScriptPlugin
     implements
@@ -70,19 +61,24 @@ export class TypeScriptPlugin
     private readonly updateImportsProvider: UpdateImportsProviderImpl;
     private readonly diagnosticsProvider: DiagnosticsProviderImpl;
     private readonly renameProvider: RenameProviderImpl;
+    private readonly hoverProvider: HoverProviderImpl;
 
     constructor(
         docManager: DocumentManager,
         configManager: LSConfigManager,
-        workspacePath: string,
+        workspaceUris: string[],
     ) {
         this.configManager = configManager;
-        this.lsAndTsDocResolver = new LSAndTSDocResolver(docManager, workspacePath);
+        this.lsAndTsDocResolver = new LSAndTSDocResolver(docManager, workspaceUris);
         this.completionProvider = new CompletionsProviderImpl(this.lsAndTsDocResolver);
-        this.codeActionsProvider = new CodeActionsProviderImpl(this.lsAndTsDocResolver);
+        this.codeActionsProvider = new CodeActionsProviderImpl(
+            this.lsAndTsDocResolver,
+            this.completionProvider,
+        );
         this.updateImportsProvider = new UpdateImportsProviderImpl(this.lsAndTsDocResolver);
         this.diagnosticsProvider = new DiagnosticsProviderImpl(this.lsAndTsDocResolver);
         this.renameProvider = new RenameProviderImpl(this.lsAndTsDocResolver);
+        this.hoverProvider = new HoverProviderImpl(this.lsAndTsDocResolver);
     }
 
     async getDiagnostics(document: Document): Promise<Diagnostic[]> {
@@ -98,20 +94,7 @@ export class TypeScriptPlugin
             return null;
         }
 
-        const { lang, tsDoc } = this.getLSAndTSDoc(document);
-        const fragment = await tsDoc.getFragment();
-        const info = lang.getQuickInfoAtPosition(
-            tsDoc.filePath,
-            fragment.offsetAt(fragment.getGeneratedPosition(position)),
-        );
-        if (!info) {
-            return null;
-        }
-        const contents = ts.displayPartsToString(info.displayParts);
-        return mapHoverToParent(fragment, {
-            range: convertRange(fragment, info.textSpan),
-            contents: { language: 'ts', value: contents },
-        });
+        return this.hoverProvider.doHover(document, position);
     }
 
     async getDocumentSymbols(document: Document): Promise<SymbolInformation[]> {

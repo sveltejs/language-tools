@@ -3,6 +3,8 @@ import {
     getLineAtPosition,
     extractStyleTag,
     extractScriptTags,
+    updateRelativeImport,
+    getWordAt,
 } from '../../../src/lib/documents/utils';
 import { Position } from 'vscode-languageserver';
 
@@ -68,6 +70,28 @@ describe('document/utils', () => {
             assert.deepStrictEqual(attributes, { type: 'typescript' });
         });
 
+        it('can extract with self-closing component before it', () => {
+            const extracted = extractStyleTag('<SelfClosing /><style></style>');
+            assert.deepStrictEqual(extracted, {
+                start: 22,
+                end: 22,
+                startPos: {
+                    character: 22,
+                    line: 0,
+                },
+                endPos: {
+                    character: 22,
+                    line: 0,
+                },
+                attributes: {},
+                content: '',
+                container: {
+                    end: 30,
+                    start: 15,
+                },
+            });
+        });
+
         it('extracts style tag', () => {
             const text = `
                 <p>bla</p>
@@ -118,30 +142,30 @@ describe('document/utils', () => {
             const text = `
                 {#if name}
                     <script>
-                        console.log('not top level')
+                        console.log('if not top level')
                     </script>
                 {/if}
                 <ul>
                     {#each cats as cat}
                         <script>
-                            console.log('not top level')
+                            console.log('each not top level')
                         </script>
                     {/each}
                 </ul>
                 {#await promise}
                     <script>
-                        console.log('not top level')
+                        console.log('await not top level')
                     </script>
                 {:then number}
                     <script>
-                        console.log('not top level')
+                        console.log('then not top level')
                     </script>
                 {:catch error}
                     <script>
-                        console.log('not top level')
+                        console.log('catch not top level')
                     </script>
                 {/await}
-                <p>{@html <script> consolelog('not top level')</script>}</p>
+                <p>{@html <script> console.log('html not top level')</script>}</p>
                 {@html mycontent}
                 {@debug myvar}
                 <!-- p{ color: blue; }</script> -->
@@ -151,16 +175,15 @@ describe('document/utils', () => {
                 <scrit>blah</scrit>
                 <script>top level script</script>
             `;
-            // Note: cannot test <scrit>blah</scriPt> as that breaks parse5 parsing for top level script!
 
             assert.deepStrictEqual(extractScriptTags(text)?.script, {
                 content: 'top level script',
                 attributes: {},
-                start: 1212,
-                end: 1228,
+                start: 1243,
+                end: 1259,
                 startPos: Position.create(34, 24),
                 endPos: Position.create(34, 40),
-                container: { start: 1204, end: 1237 },
+                container: { start: 1235, end: 1268 },
             });
         });
 
@@ -234,6 +257,35 @@ describe('document/utils', () => {
                 },
             });
         });
+
+        it('extract tag correctly with #if and < operator', () => {
+            const text = `
+            {#if value < 3}
+              <div>
+                bla
+              </div>
+            {:else if value < 4}
+            {/if}
+          <script>let value = 2</script>
+
+          <div>
+            {#if value < 3}
+              <div>
+                bla
+              </div>
+            {:else if value < 4}
+            {/if}
+          </div>`;
+            assert.deepStrictEqual(extractScriptTags(text)?.script, {
+                content: 'let value = 2',
+                attributes: {},
+                start: 159,
+                end: 172,
+                startPos: Position.create(7, 18),
+                endPos: Position.create(7, 31),
+                container: { start: 151, end: 181 },
+            });
+        });
     });
 
     describe('#getLineAtPosition', () => {
@@ -245,6 +297,60 @@ describe('document/utils', () => {
             assert.deepStrictEqual(
                 getLineAtPosition(Position.create(1, 1), 'ABC\nDEF\nGHI'),
                 'DEF\n',
+            );
+        });
+    });
+
+    describe('#updateRelativeImport', () => {
+        it('should update path of component with ending', () => {
+            const newPath = updateRelativeImport(
+                'C:/absolute/path/oldPath',
+                'C:/absolute/newPath',
+                './Component.svelte',
+            );
+            assert.deepStrictEqual(newPath, '../path/oldPath/Component.svelte');
+        });
+
+        it('should update path of file without ending', () => {
+            const newPath = updateRelativeImport(
+                'C:/absolute/path/oldPath',
+                'C:/absolute/newPath',
+                './someTsFile',
+            );
+            assert.deepStrictEqual(newPath, '../path/oldPath/someTsFile');
+        });
+
+        it('should update path of file going one up', () => {
+            const newPath = updateRelativeImport(
+                'C:/absolute/path/oldPath',
+                'C:/absolute/path',
+                './someTsFile',
+            );
+            assert.deepStrictEqual(newPath, './oldPath/someTsFile');
+        });
+    });
+
+    describe('#getWordAt', () => {
+        it('returns word between whitespaces', () => {
+            assert.equal(getWordAt('qwd asd qwd', 5), 'asd');
+        });
+
+        it('returns word between whitespace and end of string', () => {
+            assert.equal(getWordAt('qwd asd', 5), 'asd');
+        });
+
+        it('returns word between start of string and whitespace', () => {
+            assert.equal(getWordAt('asd qwd', 2), 'asd');
+        });
+
+        it('returns word between start of string and end of string', () => {
+            assert.equal(getWordAt('asd', 2), 'asd');
+        });
+
+        it('returns word with custom delimiters', () => {
+            assert.equal(
+                getWordAt('asd on:asd-qwd="asd" ', 10, { left: /\S+$/, right: /[\s=]/ }),
+                'on:asd-qwd',
             );
         });
     });

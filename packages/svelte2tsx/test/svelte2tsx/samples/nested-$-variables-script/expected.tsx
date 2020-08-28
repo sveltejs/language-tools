@@ -1,3 +1,4 @@
+///<reference types="svelte" />
 <></>;function render() {
 
 let top1 = someStore()
@@ -21,10 +22,8 @@ function test3() {
 const test4 = ({a,  b: { $top1: $top2 }}) => $top2 && __sveltets_store_get(top1)
 
 ;
-<></>
-return { props: {}, slots: {} }}
+() => (<></>);
+return { props: {}, slots: {}, getters: {}, events: {} }}
 
-export default class {
-    $$prop_def = __sveltets_partial(render().props)
-    $$slot_def = render().slots
+export default class Input__SvelteComponent_ extends createSvelte2TsxComponent(__sveltets_partial(__sveltets_with_any_event(render))) {
 }

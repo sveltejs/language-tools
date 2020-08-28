@@ -33,13 +33,12 @@ function render() {
     <>
         <h1>hello {world}</h1>
     </>;
-    return { props: { world }, slots: {} };
+    return { props: { world }, slots: {}, events: {} };
 }
 
-export default class {
-    $$prop_def = __sveltets_partial(render().props);
-    $$slot_def = render().slots;
-}
+export default class _World_ extends createSvelte2TsxComponent(
+    __sveltets_partial(__sveltets_with_any_event(render)),
+) {}
 ```
 
 with a v3 SourceMap back to the original source.

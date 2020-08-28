@@ -1,9 +1,7 @@
 module.exports = {
     root: true,
     parser: '@typescript-eslint/parser',
-    plugins: [
-        '@typescript-eslint',
-    ],
+    plugins: ['@typescript-eslint'],
     extends: [
         'eslint:recommended',
         'plugin:@typescript-eslint/eslint-recommended',
@@ -17,10 +15,7 @@ module.exports = {
         'keyword-spacing': ['error', { before: true, after: true }],
         'space-before-blocks': ['error', 'always'],
         'arrow-spacing': 'error',
-        'max-len': [
-            'error',
-            { code: 100, ignoreComments: true, ignoreStrings: true }
-        ],
+        'max-len': ['error', { code: 100, ignoreComments: true, ignoreStrings: true }],
         'no-trailing-spaces': 'error',
 
         'no-const-assign': 'error',
@@ -38,11 +33,12 @@ module.exports = {
         '@typescript-eslint/no-unused-vars': [
             'error',
             {
-                argsIgnorePattern: '^_'
-            }
+                argsIgnorePattern: '^_',
+            },
         ],
         '@typescript-eslint/consistent-type-assertions': 'off',
         // might wanted to migrate to module only
-        '@typescript-eslint/no-namespace': 'off'
-    }
+        '@typescript-eslint/no-namespace': 'off',
+        '@typescript-eslint/explicit-module-boundary-types': 'off',
+    },
 };

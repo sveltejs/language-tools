@@ -1,25 +1,14 @@
 # Check your code with svelte-check
 
-Provides diagnostics for things such as
+Provides CLI diagnostics checks for:
 
--   unused css
+-   Unused CSS
 -   Svelte A11y hints
--   JavaScript/TypeScript diagnostics
+-   JavaScript/TypeScript compiler errors
 
 Requires Node 12 or later.
 
 ### Usage:
-
-#### Global
-
-Installation:
-
-`npm i svelte-check -g`
-
-Usage:
-
-1. Go to folder where to start checking
-2. `svelte-check`
 
 #### Local / in your project
 
@@ -48,11 +37,34 @@ Usage:
 
 `npm run svelte-check`
 
+#### Global (not recommended)
+
+Installation:
+
+`npm i svelte-check -g`
+
+Usage:
+
+1. Go to folder where to start checking
+2. `svelte-check`
+
 ### Args:
 
-`--workspace <path to your workspace, where checking starts>`
+`--workspace <path>` Path to your workspace. All subdirectories except node_modules and those listed in --ignore are checked
 
 `--output <human|human-verbose|machine>`
+
+`--watch` Will not exit after one pass but keep watching files for changes and rerun diagnostics
+
+`--ignore <path1,path2>` Files/folders to ignore - relative to workspace root, comma-separated, inside quotes. Example: --ignore "dist,build"
+
+`--fail-on-warnings` Will also exit with error code when there are warnings
+
+`--compiler-warnings <code1:error|ignore,code2:error|ignore>` A list of Svelte compiler warning codes. Each entry defines whether that warning should be ignored or treated as an error. Warnings are comma-separated, between warning code and error level is a colon; all inside quotes. Example: --compiler-warnings "css-unused-selector:ignore,unused-export-let:error"
+
+### More docs, preprocessor setup and troubleshooting
+
+[See here](/docs/README.md).
 
 ### Machine-Readable Output
 
@@ -66,7 +78,7 @@ on which the number and types of subsequent columns may differ.
 
 The first row is of type `START` and contains the workspace folder (wrapped in quotes).
 
-Example:
+###### Example:
 
 ```
 1590680325583 START "/home/user/language-tools/packages/language-server/test/plugins/typescript/testfiles"
@@ -76,7 +88,7 @@ Any number of `ERROR` or `WARNING` records may follow. Their structure is identi
 us the filename, the line and column numbers, and the error message. The filename is relative
 to the workspace directory. The filename and the message are both wrapped in quotes.
 
-Example:
+###### Example:
 
 ```
 1590680326283 ERROR "codeactions.svelte" 1:16 "Cannot find module 'blubb' or its corresponding type declarations."
@@ -86,7 +98,7 @@ Example:
 The output concludes with a `COMPLETED` message that summarizes total numbers of files, errors,
 and warnings that were encountered during the check.
 
-Example:
+###### Example:
 
 ```
 1590680326807 COMPLETED 20 FILES 21 ERRORS 1 WARNINGS
@@ -94,7 +106,7 @@ Example:
 
 If the application experiences a runtime error, this error will appear as a `FAILURE` record.
 
-Example:
+###### Example:
 
 ```
 1590680328921 FAILURE "Connection closed"

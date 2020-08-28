@@ -22,7 +22,7 @@ describe('UpdateImportsProviderImpl', () => {
         const docManager = new DocumentManager(
             (textDocument) => new Document(textDocument.uri, textDocument.text),
         );
-        const lsAndTsDocResolver = new LSAndTSDocResolver(docManager, testDir);
+        const lsAndTsDocResolver = new LSAndTSDocResolver(docManager, [pathToUrl(testDir)]);
         const updateImportsProvider = new UpdateImportsProviderImpl(lsAndTsDocResolver);
         const filePath = join(testFilesDir, filename);
         const fileUri = pathToUrl(filePath);

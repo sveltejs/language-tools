@@ -1,2 +1,3 @@
 packages/svelte2tsx/*.d.ts
 packages/svelte2tsx/test/**
+.github/**

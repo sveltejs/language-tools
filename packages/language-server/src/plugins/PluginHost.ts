@@ -253,7 +253,7 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         textDocument: TextDocumentIdentifier,
         command: string,
         args?: any[],
-    ): Promise<WorkspaceEdit | null> {
+    ): Promise<WorkspaceEdit | string | null> {
         const document = this.getDocument(textDocument.uri);
         if (!document) {
             throw new Error('Cannot call methods on an unopened document');
@@ -314,7 +314,7 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
     }
 
     private getDocument(uri: string) {
-        return this.documentsManager.documents.get(uri);
+        return this.documentsManager.get(uri);
     }
 
     private execute<T>(

@@ -51,22 +51,38 @@ export interface DocumentMapper {
  * Does not map, returns positions as is.
  */
 export class IdentityMapper implements DocumentMapper {
-    constructor(private url: string) {}
+    constructor(private url: string, private parent?: DocumentMapper) {}
 
     getOriginalPosition(generatedPosition: Position): Position {
+        if (this.parent) {
+            generatedPosition = this.getOriginalPosition(generatedPosition);
+        }
+
         return generatedPosition;
     }
 
     getGeneratedPosition(originalPosition: Position): Position {
+        if (this.parent) {
+            originalPosition = this.getGeneratedPosition(originalPosition);
+        }
+
         return originalPosition;
     }
 
-    isInGenerated(): boolean {
+    isInGenerated(position: Position): boolean {
+        if (this.parent && !this.parent.isInGenerated(position)) {
+            return false;
+        }
+
         return true;
     }
 
     getURL(): string {
         return this.url;
+    }
+
+    destroy() {
+        this.parent?.destroy?.();
     }
 }
 
@@ -105,9 +121,17 @@ export class FragmentMapper implements DocumentMapper {
 }
 
 export class SourceMapDocumentMapper implements DocumentMapper {
-    constructor(protected consumer: SourceMapConsumer, protected sourceUri: string) {}
+    constructor(
+        protected consumer: SourceMapConsumer,
+        protected sourceUri: string,
+        private parent?: DocumentMapper,
+    ) {}
 
     getOriginalPosition(generatedPosition: Position): Position {
+        if (this.parent) {
+            generatedPosition = this.parent.getOriginalPosition(generatedPosition);
+        }
+
         const mapped = this.consumer.originalPositionFor({
             line: generatedPosition.line + 1,
             column: generatedPosition.character,
@@ -128,6 +152,10 @@ export class SourceMapDocumentMapper implements DocumentMapper {
     }
 
     getGeneratedPosition(originalPosition: Position): Position {
+        if (this.parent) {
+            originalPosition = this.parent.getGeneratedPosition(originalPosition);
+        }
+
         const mapped = this.consumer.generatedPositionFor({
             line: originalPosition.line + 1,
             column: originalPosition.character,
@@ -151,6 +179,10 @@ export class SourceMapDocumentMapper implements DocumentMapper {
     }
 
     isInGenerated(position: Position): boolean {
+        if (this.parent && !this.isInGenerated(position)) {
+            return false;
+        }
+
         const generated = this.getGeneratedPosition(position);
         return generated.line >= 0;
     }
@@ -163,6 +195,7 @@ export class SourceMapDocumentMapper implements DocumentMapper {
      * Needs to be called when source mapper is no longer needed in order to prevent memory leaks.
      */
     destroy() {
+        this.parent?.destroy?.();
         this.consumer.destroy();
     }
 }

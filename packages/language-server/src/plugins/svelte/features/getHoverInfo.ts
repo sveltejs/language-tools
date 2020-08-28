@@ -11,7 +11,9 @@ export function getHoverInfo(svelteDoc: SvelteDocument, position: Position): Hov
     const offset = svelteDoc.offsetAt(position);
 
     const isInStyleOrScript =
-        isInTag(position, svelteDoc.style) || isInTag(position, svelteDoc.script);
+        isInTag(position, svelteDoc.style) ||
+        isInTag(position, svelteDoc.script) ||
+        isInTag(position, svelteDoc.moduleScript);
 
     const offsetStart = Math.max(offset - 10, 0);
     const charactersAroundOffset = svelteDoc

@@ -1,0 +1,4 @@
+[test/**/*.{tsx,jsx,html}]
+trim_trailing_whitespace = false
+[test/**/*.html]
+insert_final_newline = false

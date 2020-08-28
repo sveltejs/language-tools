@@ -1,3 +1,4 @@
+///<reference types="svelte" />
 <></>;function render() {
 
 	let i = 0;
@@ -57,7 +58,7 @@
 		return circles.map(({ cx, cy, r }) => ({ cx, cy, r }));
 	}
 ;
-<>
+() => (<>
 
 
 
@@ -69,7 +70,7 @@
 </div>
 
 <svg onclick={handleClick} >
-	{(circles).map((circle) => <>
+	{__sveltets_each(circles, (circle) => <>
 		<circle cx={circle.cx} cy={circle.cy} r={circle.r}
 			onclick={event => select(circle, event)}
 			oncontextmenu={() => {
@@ -86,10 +87,8 @@
 		<p>adjust diameter of circle at {selected.cx}, {selected.cy}</p>
 		<input type="range" value={selected.r} oninput={adjust}/>
 	</div>
-</>}}}</>
-return { props: {}, slots: {} }}
+</>}}}</>);
+return { props: {}, slots: {}, getters: {}, events: {} }}
 
-export default class {
-    $$prop_def = __sveltets_partial(render().props)
-    $$slot_def = render().slots
+export default class Input__SvelteComponent_ extends createSvelte2TsxComponent(__sveltets_partial(__sveltets_with_any_event(render))) {
 }

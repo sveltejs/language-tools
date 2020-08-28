@@ -1,12 +1,12 @@
+///<reference types="svelte" />
 <></>;function render() {
 
-     let a: number;
-     let b: number | undefined;
+     let a;
+     let b;
+     let c = 123;
 ;
-<></>
-return { props: {a: a , b: b} as {a: number, b?: number | undefined}, slots: {} }}
+() => (<></>);
+return { props: {a: a , b: b , c: c}, slots: {}, getters: {}, events: {} }}
 
-export default class {
-    $$prop_def = __sveltets_partial(render().props)
-    $$slot_def = render().slots
+export default class Input__SvelteComponent_ extends createSvelte2TsxComponent(__sveltets_partial(__sveltets_with_any_event(render))) {
 }

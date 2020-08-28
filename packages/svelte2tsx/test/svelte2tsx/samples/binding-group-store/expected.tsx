@@ -1,8 +1,7 @@
+///<reference types="svelte" />
 <></>;function render() {
-<><input id="dom-input" type="radio" {...__sveltets_any(__sveltets_store_get(compile_options).generate)} value="dom"/></>
-return { props: {}, slots: {} }}
+<><input id="dom-input" type="radio" {...__sveltets_empty(__sveltets_store_get(compile_options).generate)} value="dom"/></>
+return { props: {}, slots: {}, getters: {}, events: {} }}
 
-export default class {
-    $$prop_def = __sveltets_partial(render().props)
-    $$slot_def = render().slots
+export default class Input__SvelteComponent_ extends createSvelte2TsxComponent(__sveltets_partial(__sveltets_with_any_event(render))) {
 }

@@ -1,6 +1,7 @@
-import { clamp, isInRange } from '../../utils';
+import { clamp, isInRange, regexLastIndexOf } from '../../utils';
 import { Position, Range } from 'vscode-languageserver';
-import parse5, { Location } from 'parse5';
+import { Node, getLanguageService, HTMLDocument } from 'vscode-html-languageservice';
+import * as path from 'path';
 
 export interface TagInformation {
     content: string;
@@ -12,43 +13,66 @@ export interface TagInformation {
     container: { start: number; end: number };
 }
 
-function parseAttributes(attrlist: { name: string; value: string }[]): Record<string, string> {
+function parseAttributes(
+    rawAttrs: Record<string, string | null> | undefined,
+): Record<string, string> {
     const attrs: Record<string, string> = {};
-    attrlist.forEach((attr) => {
-        attrs[attr.name] = attr.value === '' ? attr.name : attr.value; // in order to support boolean attributes (see utils.test.ts)
-    });
-    return attrs;
-}
-
-function isMatchingTag(source: string, node: ParsedNode, tag: string): boolean {
-    if (node.nodeName !== tag) {
-        return false;
+    if (!rawAttrs) {
+        return attrs;
     }
 
-    // node name equals tag, but we still have to check for case sensitivity
-    const orgStart = node.sourceCodeLocation?.startTag.startOffset || 0;
-    const orgEnd = node.sourceCodeLocation?.startTag.endOffset || 0;
-    const tagHtml = source.substring(orgStart, orgEnd);
-    return tagHtml.startsWith(`<${tag}`);
+    Object.keys(rawAttrs).forEach((attrName) => {
+        const attrValue = rawAttrs[attrName];
+        attrs[attrName] = attrValue === null ? attrName : removeOuterQuotes(attrValue);
+    });
+    return attrs;
+
+    function removeOuterQuotes(attrValue: string) {
+        if (
+            (attrValue.startsWith('"') && attrValue.endsWith('"')) ||
+            (attrValue.startsWith("'") && attrValue.endsWith("'"))
+        ) {
+            return attrValue.slice(1, attrValue.length - 1);
+        }
+        return attrValue;
+    }
 }
 
-// parse5's DefaultTreeNode type is insufficient; make our own type to make TS happy
-type ParsedNode = {
-    nodeName: string;
-    tagName: string;
-    value?: string;
-    attrs: { name: string; value: string }[];
-    childNodes: ParsedNode[];
-    parentNode: ParsedNode;
-    sourceCodeLocation: Location & { startTag: Location; endTag: Location };
-};
+const parser = getLanguageService();
 
-const regexIf = new RegExp('{#if\\s(.*?)*}', 'igms');
-const regexIfEnd = new RegExp('{/if}', 'igms');
-const regexEach = new RegExp('{#each\\s(.*?)*}', 'igms');
-const regexEachEnd = new RegExp('{/each}', 'igms');
-const regexAwait = new RegExp('{#await\\s(.*?)*}', 'igms');
-const regexAwaitEnd = new RegExp('{/await}', 'igms');
+/**
+ * Parses text as HTML
+ */
+export function parseHtml(text: string): HTMLDocument {
+    // We can safely only set getText because only this is used for parsing
+    return parser.parseHTMLDocument(<any>{ getText: () => text });
+}
+
+const regexIf = new RegExp('{#if\\s.*?}', 'gms');
+const regexIfElseIf = new RegExp('{:else if\\s.*?}', 'gms');
+const regexIfEnd = new RegExp('{/if}', 'gms');
+const regexEach = new RegExp('{#each\\s.*?}', 'gms');
+const regexEachEnd = new RegExp('{/each}', 'gms');
+const regexAwait = new RegExp('{#await\\s.*?}', 'gms');
+const regexAwaitEnd = new RegExp('{/await}', 'gms');
+const regexHtml = new RegExp('{@html\\s.*?', 'gms');
+
+/**
+ * if-blocks can contain the `<` operator, which mistakingly is
+ * parsed as a "open tag" character by the html parser.
+ * To prevent this, just replace the whole content inside the if with whitespace.
+ */
+function blankIfBlocks(text: string): string {
+    return text
+        .replace(regexIf, (substr) => {
+            return '{#if' + substr.replace(/[^\n]/g, ' ').substring(4, substr.length - 1) + '}';
+        })
+        .replace(regexIfElseIf, (substr) => {
+            return (
+                '{:else if' + substr.replace(/[^\n]/g, ' ').substring(9, substr.length - 1) + '}'
+            );
+        });
+}
 
 /**
  * Extracts a tag (style or script) from the given text
@@ -57,76 +81,73 @@ const regexAwaitEnd = new RegExp('{/await}', 'igms');
  * @param source text content to extract tag from
  * @param tag the tag to extract
  */
-function extractTags(source: string, tag: 'script' | 'style'): TagInformation[] {
-    const { childNodes } = parse5.parseFragment(source, {
-        sourceCodeLocationInfo: true,
-    }) as { childNodes: ParsedNode[] };
-
-    const matchedNodes: ParsedNode[] = [];
-    let currentSvelteDirective;
-    for (const node of childNodes) {
-        /**
-         * skip matching tags if we are inside a directive
-         *
-         * extractTag's goal is solely to identify the top level <script> or <style>.
-         *
-         * therefore only iterating through top level childNodes is a feature we want!
-         *
-         * however, we cannot do a naive childNodes.find() because context matters.
-         * if we have a <script> tag inside an {#if}, we want to skip that until the {/if}.
-         * if we have a <script> tag inside an {#each}, we want to skip that until the {/each}.
-         * if we have a <script> tag inside an {#await}, we want to skip that until the {/await}.
-         *
-         * and so on. So we use a tiny inSvelteDirective 'state machine' to track this
-         * and use regex to detect the svelte directives.
-         * We might need to improve this regex in future.
-         */
-        if (currentSvelteDirective) {
-            if (node.value && node.nodeName === '#text') {
-                if (
-                    (currentSvelteDirective === 'if' && regexIfEnd.exec(node.value)) ||
-                    (currentSvelteDirective === 'each' && regexEachEnd.exec(node.value)) ||
-                    (currentSvelteDirective === 'await' && regexAwaitEnd.exec(node.value))
-                ) {
-                    currentSvelteDirective = undefined;
-                }
-            }
-        } else {
-            if (node.value && node.nodeName === '#text') {
-                // potentially a svelte directive
-                if (regexIf.exec(node.value)) currentSvelteDirective = 'if';
-                else if (regexEach.exec(node.value)) currentSvelteDirective = 'each';
-                else if (regexAwait.exec(node.value)) currentSvelteDirective = 'await';
-            } else if (isMatchingTag(source, node, tag)) {
-                matchedNodes.push(node);
-            }
-        }
-    }
-
+function extractTags(text: string, tag: 'script' | 'style', html?: HTMLDocument): TagInformation[] {
+    text = blankIfBlocks(text);
+    const rootNodes = html?.roots || parseHtml(text).roots;
+    const matchedNodes = rootNodes
+        .filter((node) => node.tag === tag)
+        .filter((tag) => {
+            return isNotInsideControlFlowTag(tag) && isNotInsideHtmlTag(tag);
+        });
     return matchedNodes.map(transformToTagInfo);
 
-    function transformToTagInfo(matchedNode: ParsedNode) {
-        const SCL = matchedNode.sourceCodeLocation; // shorthand
-        const attributes = parseAttributes(matchedNode.attrs);
-        /**
-         * Note: `content` will only show top level child node content.
-         * This is ok given that extractTag is only meant to extract top level
-         * <style> and <script> tags. But if that ever changes we may have to make this
-         * recurse and concat all childnodes.
-         */
-        const content = matchedNode.childNodes[0]?.value || '';
-        const start = SCL.startTag.endOffset;
-        const end = SCL.endTag.startOffset;
-        const startPos = positionAt(start, source);
-        const endPos = positionAt(end, source);
+    /**
+     * For every match AFTER the tag do a search for `{/X`.
+     * If that is BEFORE `{#X`, we are inside a moustache tag.
+     */
+    function isNotInsideControlFlowTag(tag: Node) {
+        const nodes = rootNodes.slice(rootNodes.indexOf(tag));
+        const rootContentAfterTag = nodes
+            .map((node, idx) => {
+                return text.substring(node.end, nodes[idx + 1]?.start);
+            })
+            .join('');
+
+        return ![
+            [regexIf, regexIfEnd],
+            [regexEach, regexEachEnd],
+            [regexAwait, regexAwaitEnd],
+        ].some((pair) => {
+            pair[0].lastIndex = 0;
+            pair[1].lastIndex = 0;
+            const start = pair[0].exec(rootContentAfterTag);
+            const end = pair[1].exec(rootContentAfterTag);
+            return (end?.index ?? text.length) < (start?.index ?? text.length);
+        });
+    }
+
+    /**
+     * For every match BEFORE the tag do a search for `{@html`.
+     * If that is BEFORE `}`, we are inside a moustache tag.
+     */
+    function isNotInsideHtmlTag(tag: Node) {
+        const nodes = rootNodes.slice(0, rootNodes.indexOf(tag));
+        const rootContentBeforeTag = [{ start: 0, end: 0 }, ...nodes]
+            .map((node, idx) => {
+                return text.substring(node.end, nodes[idx]?.start);
+            })
+            .join('');
+
+        return !(
+            regexLastIndexOf(rootContentBeforeTag, regexHtml) >
+            rootContentBeforeTag.lastIndexOf('}')
+        );
+    }
+
+    function transformToTagInfo(matchedNode: Node) {
+        const start = matchedNode.startTagEnd ?? matchedNode.start;
+        const end = matchedNode.endTagStart ?? matchedNode.end;
+        const startPos = positionAt(start, text);
+        const endPos = positionAt(end, text);
         const container = {
-            start: SCL.startTag.startOffset,
-            end: SCL.endTag.endOffset,
+            start: matchedNode.start,
+            end: matchedNode.end,
         };
+        const content = text.substring(start, end);
 
         return {
             content,
-            attributes,
+            attributes: parseAttributes(matchedNode.attributes),
             start,
             end,
             startPos,
@@ -138,8 +159,9 @@ function extractTags(source: string, tag: 'script' | 'style'): TagInformation[] 
 
 export function extractScriptTags(
     source: string,
+    html?: HTMLDocument,
 ): { script?: TagInformation; moduleScript?: TagInformation } | null {
-    const scripts = extractTags(source, 'script');
+    const scripts = extractTags(source, 'script', html);
     if (!scripts.length) {
         return null;
     }
@@ -149,8 +171,8 @@ export function extractScriptTags(
     return { script, moduleScript };
 }
 
-export function extractStyleTag(source: string): TagInformation | null {
-    const styles = extractTags(source, 'style');
+export function extractStyleTag(source: string, html?: HTMLDocument): TagInformation | null {
+    const styles = extractTags(source, 'style', html);
     if (!styles.length) {
         return null;
     }
@@ -256,4 +278,57 @@ export function getLineAtPosition(position: Position, text: string) {
         offsetAt({ line: position.line, character: 0 }, text),
         offsetAt({ line: position.line, character: Number.MAX_VALUE }, text),
     );
+}
+
+/**
+ * Updates a relative import
+ *
+ * @param oldPath Old absolute path
+ * @param newPath New absolute path
+ * @param relativeImportPath Import relative to the old path
+ */
+export function updateRelativeImport(oldPath: string, newPath: string, relativeImportPath: string) {
+    let newImportPath = path
+        .join(path.relative(newPath, oldPath), relativeImportPath)
+        .replace(/\\/g, '/');
+    if (!newImportPath.startsWith('.')) {
+        newImportPath = './' + newImportPath;
+    }
+    return newImportPath;
+}
+
+/**
+ * Returns the node if offset is inside a component's starttag
+ */
+export function getNodeIfIsInComponentStartTag(
+    html: HTMLDocument,
+    offset: number,
+): Node | undefined {
+    const node = html.findNodeAt(offset);
+    if (
+        !!node.tag &&
+        node.tag[0] === node.tag[0].toUpperCase() &&
+        (!node.startTagEnd || offset < node.startTagEnd)
+    ) {
+        return node;
+    }
+}
+
+/**
+ * Gets word at position.
+ * Delimiter is by default a whitespace, but can be adjusted.
+ */
+export function getWordAt(
+    str: string,
+    pos: number,
+    delimiterRegex = { left: /\S+$/, right: /\s/ },
+): string {
+    const left = str.slice(0, pos + 1).search(delimiterRegex.left);
+    const right = str.slice(pos).search(delimiterRegex.right);
+
+    if (right < 0) {
+        return str.slice(left);
+    }
+
+    return str.slice(left, right + pos);
 }

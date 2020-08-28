@@ -24,8 +24,8 @@ jobs:
       - run: "npm install -g json"
 
       # Setup the environment
-      - run: 'json -I -f packages/svelte-vscode/package.json -e "this.version=\`${{ github.ref }}\`"'
-      - run: 'json -I -f packages/svelte-atom/package.json -e "this.version=\`${{ github.ref }}\`"'
+      - run: 'json -I -f packages/svelte-vscode/package.json -e "this.version=\`${{ github.ref }}\`.split(\`/\`).pop()"'
+      - run: 'json -I -f packages/svelte-atom/package.json -e "this.version=\`${{ github.ref }}\`.split(\`/\`).pop()"'
 
       # To deploy we need isolated node_modules folders which yarn won't do because it is a workspace
       # So, remove the workspace
@@ -40,13 +40,17 @@ jobs:
 
          # Ship it
          npx vsce publish --yarn -p $VSCE_TOKEN
+         npx ovsx publish --yarn -p $OVSX_TOKEN
         env:
+          OVSX_TOKEN: ${{ secrets.OVSX_TOKEN }}
           VSCE_TOKEN: ${{ secrets.AZURE_PAN_TOKEN }}
 
       - uses: UziTech/action-setup-atom@v1
       - run: |
-         cd ../packages/svelte-atom
+         cd ../svelte-atom
          yarn install
 
          echo "This will probably fail, this is OK, it's not 100% set up yet"
          apm publish
+        env:
+          APM_TOKEN: ${{ secrets.APM_TOKEN }}

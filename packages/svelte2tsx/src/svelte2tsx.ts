@@ -1,41 +1,44 @@
+import dedent from 'dedent-js';
+import { pascalCase } from 'pascal-case';
 import MagicString from 'magic-string';
+import path from 'path';
 import { parseHtmlx } from './htmlxparser';
 import { convertHtmlxToJsx } from './htmlxtojsx';
 import { Node } from 'estree-walker';
 import * as ts from 'typescript';
-
-function AttributeValueAsJsExpression(htmlx: string, attr: Node): string {
-    if (attr.value.length == 0) return "''"; //wut?
-
-    //handle single value
-    if (attr.value.length == 1) {
-        const attrVal = attr.value[0];
-
-        if (attrVal.type == 'AttributeShorthand') {
-            return attrVal.expression.name;
-        }
-
-        if (attrVal.type == 'Text') {
-            return '"' + attrVal.raw + '"';
-        }
-
-        if (attrVal.type == 'MustacheTag') {
-            return htmlx.substring(attrVal.expression.start, attrVal.expression.end);
-        }
-        throw Error('Unknown attribute value type:' + attrVal.type);
-    }
-
-    // we have multiple attribute values, so we know we are building a string out of them.
-    // so return a dummy string, it will typecheck the same :)
-    return '"__svelte_ts_string"';
-}
+import { findExportKeyword, getBinaryAssignmentExpr } from './utils/tsAst';
+import { EventHandler } from './nodes/event-handler';
+import {
+    InstanceScriptProcessResult,
+    CreateRenderFunctionPara,
+    AddComponentExportPara,
+} from './interfaces';
+import { createRenderFunctionGetterStr, createClassGetters } from './nodes/exportgetters';
+import { ExportedNames } from './nodes/ExportedNames';
+import * as astUtil from './utils/svelteAst';
+import { SlotHandler } from './nodes/slot';
+import TemplateScope from './nodes/TemplateScope';
+import { ImplicitTopLevelNames } from './nodes/ImplicitTopLevelNames';
+import {
+    ComponentEvents,
+    ComponentEventsFromInterface,
+    ComponentEventsFromEventsMap,
+} from './nodes/ComponentEvents';
+import {
+    handleScopeAndResolveLetVarForSlot,
+    handleScopeAndResolveForSlot
+} from './nodes/handleScopeAndResolveForSlot';
 
 type TemplateProcessResult = {
     uses$$props: boolean;
     uses$$restProps: boolean;
+    uses$$slots: boolean;
     slots: Map<string, Map<string, string>>;
     scriptTag: Node;
     moduleScriptTag: Node;
+    /** To be added later as a comment on the default class export */
+    componentDocumentation: string | null;
+    events: ComponentEvents;
 };
 
 class Scope {
@@ -53,11 +56,26 @@ type pendingStoreResolution<T> = {
     scope: Scope;
 };
 
+/**
+ * Add this tag to a HTML comment in a Svelte component and its contents will
+ * be added as a docstring in the resulting JSX for the component class.
+ */
+const COMPONENT_DOCUMENTATION_HTML_COMMENT_TAG = '@component';
+
+/**
+ * A component class name suffix is necessary to prevent class name clashes
+ * like reported in https://github.com/sveltejs/language-tools/issues/294
+ */
+const COMPONENT_SUFFIX = '__SvelteComponent_';
+
 function processSvelteTemplate(str: MagicString): TemplateProcessResult {
     const htmlxAst = parseHtmlx(str.original);
 
     let uses$$props = false;
     let uses$$restProps = false;
+    let uses$$slots = false;
+
+    let componentDocumentation = null;
 
     //track if we are in a declaration scope
     let isDeclaration = false;
@@ -128,7 +146,7 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
                 );
             } else {
                 console.warn(
-                    `Warning - unrecognized UpdateExpression operator ${parent.operator}! 
+                    `Warning - unrecognized UpdateExpression operator ${parent.operator}!
                 This is an edge case unaccounted for in svelte2tsx, please file an issue:
                 https://github.com/sveltejs/language-tools/issues/new/choose
                 `,
@@ -167,6 +185,18 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
     const enterArrowFunctionExpression = () => pushScope();
     const leaveArrowFunctionExpression = () => popScope();
 
+    const handleComment = (node: Node) => {
+        if (
+            'data' in node &&
+            typeof node.data === 'string' &&
+            node.data.includes(COMPONENT_DOCUMENTATION_HTML_COMMENT_TAG)
+        ) {
+            componentDocumentation = node.data
+                .replace(COMPONENT_DOCUMENTATION_HTML_COMMENT_TAG, '')
+                .trim();
+        }
+    };
+
     const handleIdentifier = (node: Node, parent: Node, prop: string) => {
         if (node.name === '$$props') {
             uses$$props = true;
@@ -177,14 +207,20 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
             return;
         }
 
+        if (node.name === '$$slots') {
+            uses$$slots = true;
+            return;
+        }
+
         //handle potential store
         if (node.name[0] == '$') {
             if (isDeclaration) {
-                if (parent.type == 'Property' && prop == 'key') return;
+                if (astUtil.isObjectKey(parent, prop)) return;
                 scope.declared.add(node.name);
             } else {
-                if (parent.type == 'MemberExpression' && prop == 'property') return;
-                if (parent.type == 'Property' && prop == 'key') return;
+                if (astUtil.isMember(parent, prop) && !parent.computed)
+                    return;
+                if (astUtil.isObjectKey(parent, prop)) return;
                 pendingStoreResolutions.push({ node, parent, scope });
             }
             return;
@@ -229,23 +265,62 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
             });
     };
 
-    const slots = new Map<string, Map<string, string>>();
-    const handleSlot = (node: Node) => {
-        const nameAttr = node.attributes.find((a) => a.name == 'name');
-        const slotName = nameAttr ? nameAttr.value[0].raw : 'default';
-        //collect attributes
-        const attributes = new Map<string, string>();
-        for (const attr of node.attributes) {
-            if (attr.name == 'name') continue;
-            if (!attr.value.length) continue;
-            attributes.set(attr.name, AttributeValueAsJsExpression(str.original, attr));
-        }
-        slots.set(slotName, attributes);
-    };
 
     const handleStyleTag = (node: Node) => {
         str.remove(node.start, node.end);
     };
+
+    const slotHandler = new SlotHandler(str.original);
+    let templateScope = new TemplateScope();
+
+    const handleEach = (node: Node) => {
+        templateScope = templateScope.child();
+
+        if (node.context) {
+            handleScopeAndResolveForSlotInner(node.context, node.expression, node);
+        }
+    };
+
+    const handleAwait = (node: Node) => {
+        templateScope = templateScope.child();
+        if (node.value) {
+            handleScopeAndResolveForSlotInner(node.value, node.expression, node.then);
+        }
+        if (node.error) {
+            handleScopeAndResolveForSlotInner(node.error, node.expression, node.catch);
+        }
+    };
+
+    const handleComponentLet = (component: Node) => {
+        templateScope = templateScope.child();
+        const lets = slotHandler.getSlotConsumerOfComponent(component);
+
+        for (const { letNode, slotName } of lets) {
+            handleScopeAndResolveLetVarForSlot({
+                letNode,
+                slotName,
+                slotHandler,
+                templateScope,
+                component
+            });
+        }
+    };
+
+    const handleScopeAndResolveForSlotInner = (
+        identifierDef: Node,
+        initExpression: Node,
+        owner: Node
+    ) => {
+        handleScopeAndResolveForSlot({
+            identifierDef,
+            initExpression,
+            slotHandler,
+            templateScope,
+            owner,
+        });
+    };
+
+    const eventHandler = new EventHandler();
 
     const onHtmlxWalk = (node: Node, parent: Node, prop: string) => {
         if (
@@ -259,11 +334,14 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
         }
 
         switch (node.type) {
+            case 'Comment':
+                handleComment(node);
+                break;
             case 'Identifier':
                 handleIdentifier(node, parent, prop);
                 break;
             case 'Slot':
-                handleSlot(node);
+                slotHandler.handleSlot(node, templateScope);
                 break;
             case 'Style':
                 handleStyleTag(node);
@@ -280,8 +358,20 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
             case 'ArrowFunctionExpression':
                 enterArrowFunctionExpression();
                 break;
+            case 'EventHandler':
+                eventHandler.handleEventHandler(node, parent);
+                break;
             case 'VariableDeclarator':
                 isDeclaration = true;
+                break;
+            case 'EachBlock':
+                handleEach(node);
+                break;
+            case 'AwaitBlock':
+                handleAwait(node);
+                break;
+            case 'InlineComponent':
+                handleComponentLet(node);
                 break;
         }
     };
@@ -297,6 +387,9 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
         if (prop == 'id' && parent.type == 'VariableDeclarator') {
             isDeclaration = false;
         }
+        const onTemplateScopeLeave = () => {
+            templateScope = templateScope.parent;
+        };
 
         switch (node.type) {
             case 'BlockStatement':
@@ -307,6 +400,15 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
                 break;
             case 'ArrowFunctionExpression':
                 leaveArrowFunctionExpression();
+                break;
+            case 'EachBlock':
+                onTemplateScopeLeave();
+                break;
+            case 'AwaitBlock':
+                onTemplateScopeLeave();
+                break;
+            case 'InlineComponent':
+                onTemplateScopeLeave();
                 break;
         }
     };
@@ -323,27 +425,20 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
     return {
         moduleScriptTag,
         scriptTag,
-        slots,
+        slots: slotHandler.getSlotDef(),
+        events: new ComponentEventsFromEventsMap(eventHandler),
         uses$$props,
         uses$$restProps,
+        uses$$slots,
+        componentDocumentation,
     };
 }
 
-type ExportedNames = Map<
-    string,
-    {
-        type?: string;
-        identifierText?: string;
-    }
->;
-
-type InstanceScriptProcessResult = {
-    exportedNames: ExportedNames;
-    uses$$props: boolean;
-    uses$$restProps: boolean;
-};
-
-function processInstanceScriptContent(str: MagicString, script: Node): InstanceScriptProcessResult {
+function processInstanceScriptContent(
+    str: MagicString,
+    script: Node,
+    events: ComponentEvents,
+): InstanceScriptProcessResult {
     const htmlx = str.original;
     const scriptContent = htmlx.substring(script.content.start, script.content.end);
     const tsAst = ts.createSourceFile(
@@ -354,11 +449,13 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
         ts.ScriptKind.TS,
     );
     const astOffset = script.content.start;
-    const exportedNames = new Map<string, { type?: string; identifierText?: string }>();
+    const exportedNames = new ExportedNames();
+    const getters = new Set<string>();
 
-    const implicitTopLevelNames: Map<string, number> = new Map();
+    const implicitTopLevelNames = new ImplicitTopLevelNames();
     let uses$$props = false;
     let uses$$restProps = false;
+    let uses$$slots = false;
 
     //track if we are in a declaration scope
     let isDeclaration = false;
@@ -373,11 +470,11 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
     const pushScope = () => (scope = new Scope(scope));
     const popScope = () => (scope = scope.parent);
 
-    // eslint-disable-next-line max-len
     const addExport = (
         name: ts.BindingName,
         target: ts.BindingName = null,
         type: ts.TypeNode = null,
+        required = false,
     ) => {
         if (name.kind != ts.SyntaxKind.Identifier) {
             throw Error('export source kind not supported ' + name);
@@ -389,16 +486,62 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
             exportedNames.set(name.text, {
                 type: type?.getText(),
                 identifierText: (target as ts.Identifier).text,
+                required,
             });
         } else {
             exportedNames.set(name.text, {});
         }
+    };
+    const addGetter = (node: ts.Identifier) => {
+        if (!node) {
+            return;
+        }
+        getters.add(node.text);
     };
 
     const removeExport = (start: number, end: number) => {
         const exportStart = str.original.indexOf('export', start + astOffset);
         const exportEnd = exportStart + (end - start);
         str.remove(exportStart, exportEnd);
+    };
+
+    const propTypeAssertToUserDefined = (node: ts.VariableDeclarationList) => {
+        const hasInitializers = node.declarations.filter((declaration) => declaration.initializer);
+        const handleTypeAssertion = (declaration: ts.VariableDeclaration) => {
+            const identifier = declaration.name;
+            const tsType = declaration.type;
+            const jsDocType = ts.getJSDocType(declaration);
+            const type = tsType || jsDocType;
+
+            if (!ts.isIdentifier(identifier) || !type) {
+                return;
+            }
+            const name = identifier.getText();
+            const end = declaration.end + astOffset;
+
+            str.appendLeft(end, `;${name} = __sveltets_any(${name});`);
+        };
+
+        const findComma = (target: ts.Node) =>
+            target.getChildren().filter((child) => child.kind === ts.SyntaxKind.CommaToken);
+        const splitDeclaration = () => {
+            const commas = node
+                .getChildren()
+                .filter((child) => child.kind === ts.SyntaxKind.SyntaxList)
+                .map(findComma)
+                .reduce((current, previous) => [...current, ...previous], []);
+
+            commas.forEach((comma) => {
+                const start = comma.getStart() + astOffset;
+                const end = comma.getEnd() + astOffset;
+                str.overwrite(start, end, ';let ', { contentOnly: true });
+            });
+        };
+        splitDeclaration();
+
+        for (const declaration of hasInitializers) {
+            handleTypeAssertion(declaration);
+        }
     };
 
     const handleStore = (ident: ts.Node, parent: ts.Node) => {
@@ -451,10 +594,19 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
             return;
         }
         // handle $store++, $store--, ++$store, --$store
-        if (ts.isPrefixUnaryExpression(parent) || ts.isPostfixUnaryExpression(parent)) {
-            let simpleOperator;
-            if (parent.operator === 45) simpleOperator = '+';
-            if (parent.operator === 46) simpleOperator = '-';
+        if (
+            (ts.isPrefixUnaryExpression(parent) || ts.isPostfixUnaryExpression(parent)) &&
+            parent.operator !==
+                ts.SyntaxKind.ExclamationToken /* `!$store` does not need processing */
+        ) {
+            let simpleOperator: string;
+            if (parent.operator === ts.SyntaxKind.PlusPlusToken) {
+                simpleOperator = '+';
+            }
+            if (parent.operator === ts.SyntaxKind.MinusMinusToken) {
+                simpleOperator = '-';
+            }
+
             if (simpleOperator) {
                 const storename = ident.getText().slice(1); // drop the $
                 str.overwrite(
@@ -465,7 +617,7 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
                 return;
             } else {
                 console.warn(
-                    `Warning - unrecognized UnaryExpression operator ${parent.operator}! 
+                    `Warning - unrecognized UnaryExpression operator ${parent.operator}!
                 This is an edge case unaccounted for in svelte2tsx, please file an issue:
                 https://github.com/sveltejs/language-tools/issues/new/choose
                 `,
@@ -503,6 +655,10 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
             uses$$restProps = true;
             return;
         }
+        if (ident.text === '$$slots') {
+            uses$$slots = true;
+            return;
+        }
 
         if (ts.isLabeledStatement(parent) && parent.label == ident) {
             return;
@@ -533,11 +689,7 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
         ts.forEachChild(list, (node) => {
             if (ts.isVariableDeclaration(node)) {
                 if (ts.isIdentifier(node.name)) {
-                    if (node.type) {
-                        addExport(node.name, node.name, node.type);
-                    } else {
-                        addExport(node.name);
-                    }
+                    addExport(node.name, node.name, node.type, !node.initializer);
                 } else if (
                     ts.isObjectBindingPattern(node.name) ||
                     ts.isArrayBindingPattern(node.name)
@@ -552,35 +704,73 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
         });
     };
 
+    const wrapExpressionWithInvalidate = (expression: ts.Expression | undefined) => {
+        if (!expression) {
+            return;
+        }
+
+        const start = expression.getStart() + astOffset;
+        const end = expression.getEnd() + astOffset;
+
+        // () => ({})
+        if (ts.isObjectLiteralExpression(expression)) {
+            str.appendLeft(start, '(');
+            str.appendRight(end, ')');
+        }
+
+        str.prependLeft(start, '__sveltets_invalidate(() => ');
+        str.appendRight(end, ')');
+        // Not adding ';' at the end because right now this function is only invoked
+        // in situations where there is a line break of ; guaranteed to be present (else the code is invalid)
+    };
+
     const walk = (node: ts.Node, parent: ts.Node) => {
         type onLeaveCallback = () => void;
         const onLeaveCallbacks: onLeaveCallback[] = [];
 
+        if (ts.isInterfaceDeclaration(node) && node.name.text === 'ComponentEvents') {
+            events = new ComponentEventsFromInterface(node);
+        }
+
         if (ts.isVariableStatement(node)) {
-            // eslint-disable-next-line max-len
-            const exportModifier = node.modifiers
-                ? node.modifiers.find((x) => x.kind == ts.SyntaxKind.ExportKeyword)
-                : null;
+            const exportModifier = findExportKeyword(node);
             if (exportModifier) {
-                handleExportedVariableDeclarationList(node.declarationList);
+                const isLet = node.declarationList.flags === ts.NodeFlags.Let;
+                const isConst = node.declarationList.flags === ts.NodeFlags.Const;
+
+                if (isLet) {
+                    handleExportedVariableDeclarationList(node.declarationList);
+                    propTypeAssertToUserDefined(node.declarationList);
+                } else if (isConst) {
+                    node.declarationList.forEachChild((n) => {
+                        if (ts.isVariableDeclaration(n) && ts.isIdentifier(n.name)) {
+                            addGetter(n.name);
+                        }
+                    });
+                }
                 removeExport(exportModifier.getStart(), exportModifier.end);
             }
         }
 
         if (ts.isFunctionDeclaration(node)) {
             if (node.modifiers) {
-                // eslint-disable-next-line max-len
-                const exportModifier = node.modifiers.find(
-                    (x) => x.kind == ts.SyntaxKind.ExportKeyword,
-                );
+                const exportModifier = findExportKeyword(node);
                 if (exportModifier) {
-                    addExport(node.name);
                     removeExport(exportModifier.getStart(), exportModifier.end);
+                    addGetter(node.name);
                 }
             }
 
             pushScope();
             onLeaveCallbacks.push(() => popScope());
+        }
+
+        if (ts.isClassDeclaration(node)) {
+            const exportModifier = findExportKeyword(node);
+            if (exportModifier) {
+                removeExport(exportModifier.getStart(), exportModifier.end);
+                addGetter(node.name);
+            }
         }
 
         if (ts.isBlock(node)) {
@@ -632,20 +822,28 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
         }
 
         //handle stores etc
-        if (ts.isIdentifier(node)) handleIdentifier(node, parent);
+        if (ts.isIdentifier(node)) {
+            handleIdentifier(node, parent);
+        }
 
         //track implicit declarations in reactive blocks at the top level
         if (
             ts.isLabeledStatement(node) &&
             parent == tsAst && //top level
             node.label.text == '$' &&
-            node.statement &&
-            ts.isExpressionStatement(node.statement) &&
-            ts.isBinaryExpression(node.statement.expression) &&
-            node.statement.expression.operatorToken.kind == ts.SyntaxKind.EqualsToken &&
-            ts.isIdentifier(node.statement.expression.left)
+            node.statement
         ) {
-            implicitTopLevelNames.set(node.statement.expression.left.text, node.label.getStart());
+            const binaryExpression = getBinaryAssignmentExpr(node);
+            if (binaryExpression) {
+                implicitTopLevelNames.add(node);
+                wrapExpressionWithInvalidate(binaryExpression.right);
+            } else {
+                const start = node.getStart() + astOffset;
+                const end = node.getEnd() + astOffset;
+
+                str.prependLeft(start, ';() => {');
+                str.prependRight(end, '}');
+            }
         }
 
         //to save a bunch of condition checks on each node, we recurse into processChild which skips all the checks for top level items
@@ -661,61 +859,86 @@ function processInstanceScriptContent(str: MagicString, script: Node): InstanceS
     pendingStoreResolutions.map(resolveStore);
 
     // declare implicit reactive variables we found in the script
-    for (const [name, pos] of implicitTopLevelNames.entries()) {
-        if (!rootScope.declared.has(name)) {
-            //add a declaration
-            str.prependRight(pos + astOffset, `;let ${name}; `);
-        }
+    implicitTopLevelNames.modifyCode(rootScope.declared, astOffset, str);
+
+    const firstImport = tsAst.statements
+        .filter(ts.isImportDeclaration)
+        .sort((a, b) => a.end - b.end)[0];
+    if (firstImport) {
+        str.appendRight(firstImport.getStart() + astOffset, '\n');
     }
 
     return {
         exportedNames,
+        events,
         uses$$props,
         uses$$restProps,
+        uses$$slots,
+        getters,
     };
 }
 
-function addComponentExport(
-    str: MagicString,
-    uses$$propsOr$$restProps: boolean,
-    strictMode: boolean,
-    isTsFile: boolean,
-) {
+function formatComponentDocumentation(contents?: string | null) {
+    if (!contents) return '';
+    if (!contents.includes('\n')) {
+        return `/** ${contents} */\n`;
+    }
+
+    const lines = dedent(contents)
+        .split('\n')
+        .map((line) => ` *${line ? ` ${line}` : ''}`)
+        .join('\n');
+
+    return `/**\n${lines}\n */\n`;
+}
+
+function addComponentExport({
+    str,
+    uses$$propsOr$$restProps,
+    strictMode,
+    strictEvents,
+    isTsFile,
+    getters,
+    className,
+    componentDocumentation,
+}: AddComponentExportPara) {
+    const eventsDef = strictEvents ? 'render' : '__sveltets_with_any_event(render)';
     const propDef =
         // Omit partial-wrapper only if both strict mode and ts file, because
         // in a js file the user has no way of telling the language that
         // the prop is optional
         strictMode && isTsFile
             ? uses$$propsOr$$restProps
-                ? '__sveltets_with_any(render().props)'
-                : 'render().props'
-            : `__sveltets_partial${uses$$propsOr$$restProps ? '_with_any' : ''}(render().props)`;
-    str.append(
-        // eslint-disable-next-line max-len
-        `\n\nexport default class {\n    $$prop_def = ${propDef}\n    $$slot_def = render().slots\n}`,
-    );
+                ? `__sveltets_with_any(${eventsDef})`
+                : eventsDef
+            : `__sveltets_partial${uses$$propsOr$$restProps ? '_with_any' : ''}(${eventsDef})`;
+
+    const doc = formatComponentDocumentation(componentDocumentation);
+
+    const statement =
+        `\n\n${doc}export default class${
+            className ? ` ${className}` : ''
+        } extends createSvelte2TsxComponent(${propDef}) {` +
+        createClassGetters(getters) +
+        '\n}';
+
+    str.append(statement);
 }
 
-function isTsFile(scriptTag: Node | undefined, moduleScriptTag: Node | undefined) {
-    return tagIsLangTs(scriptTag) || tagIsLangTs(moduleScriptTag);
-
-    function tagIsLangTs(tag: Node | undefined) {
-        return tag?.attributes?.some((attr) => {
-            if (attr.name !== 'lang' && attr.name !== 'type') {
-                return false;
-            }
-
-            const type = attr.value[0]?.raw;
-            switch (type) {
-                case 'ts':
-                case 'typescript':
-                case 'text/ts':
-                case 'text/typescript':
-                    return true;
-                default:
-                    return false;
-            }
-        });
+/**
+ * Returns a Svelte-compatible component name from a filename. Svelte
+ * components must use capitalized tags, so we try to transform the filename.
+ *
+ * https://svelte.dev/docs#Tags
+ */
+export function classNameFromFilename(filename: string): string | undefined {
+    try {
+        const withoutExtensions = path.parse(filename).name?.split('.')[0];
+        const inPascalCase = pascalCase(withoutExtensions);
+        return `${inPascalCase}${COMPONENT_SUFFIX}`;
+    } catch (error) {
+        console.warn(`Failed to create a name for the component class from filename ${filename}`);
+        return undefined;
     }
 }
 
@@ -729,15 +952,19 @@ function processModuleScriptTag(str: MagicString, script: Node) {
     str.overwrite(scriptEndTagStart, script.end, ';<>');
 }
 
-function createRenderFunction(
-    str: MagicString,
-    scriptTag: Node,
-    scriptDestination: number,
-    slots: Map<string, Map<string, string>>,
-    exportedNames: ExportedNames,
-    uses$$props: boolean,
-    uses$$restProps: boolean,
-) {
+function createRenderFunction({
+    str,
+    scriptTag,
+    scriptDestination,
+    slots,
+    getters,
+    events,
+    exportedNames,
+    isTsFile,
+    uses$$props,
+    uses$$restProps,
+    uses$$slots,
+}: CreateRenderFunctionPara) {
     const htmlx = str.original;
     let propsDecl = '';
 
@@ -748,6 +975,15 @@ function createRenderFunction(
         propsDecl += ' let $$restProps = __sveltets_restPropsType();';
     }
 
+    if (uses$$slots) {
+        propsDecl +=
+            ' let $$slots = __sveltets_slotsType({' +
+            Array.from(slots.keys())
+                .map((name) => `${name}: ''`)
+                .join(', ') +
+            '});';
+    }
+
     if (scriptTag) {
         //I couldn't get magicstring to let me put the script before the <> we prepend during conversion of the template to jsx, so we just close it instead
         const scriptTagEnd = htmlx.lastIndexOf('>', scriptTag.content.start) + 1;
@@ -755,7 +991,10 @@ function createRenderFunction(
         str.overwrite(scriptTag.start + 1, scriptTagEnd, `function render() {${propsDecl}\n`);
 
         const scriptEndTagStart = htmlx.lastIndexOf('<', scriptTag.end - 1);
-        str.overwrite(scriptEndTagStart, scriptTag.end, ';\n<>');
+        // wrap template with callback
+        str.overwrite(scriptEndTagStart, scriptTag.end, ';\n() => (<>', {
+            contentOnly: true,
+        });
     } else {
         str.prependRight(scriptDestination, `</>;function render() {${propsDecl}\n<>`);
     }
@@ -767,51 +1006,41 @@ function createRenderFunction(
                 const attrsAsString = Array.from(attrs.entries())
                     .map(([exportName, expr]) => `${exportName}:${expr}`)
                     .join(', ');
-                return `${name}: {${attrsAsString}}`;
+                return `'${name}': {${attrsAsString}}`;
             })
             .join(', ') +
         '}';
 
-    const returnString = `\nreturn { props: ${createPropsStr(
-        exportedNames,
-    )}, slots: ${slotsAsDef} }}`;
+    const returnString =
+        `\nreturn { props: ${exportedNames.createPropsStr(
+            isTsFile,
+        )}, slots: ${slotsAsDef}, getters: ${createRenderFunctionGetterStr(getters)}` +
+        `, events: ${events.toDefString()} }}`;
+
+    // wrap template with callback
+    if (scriptTag) {
+        str.append(');');
+    }
+
     str.append(returnString);
 }
 
-function createPropsStr(exportedNames: ExportedNames) {
-    const names = Array.from(exportedNames.entries());
-
-    const returnElements = names.map(([key, value]) => {
-        // Important to not use shorthand props for rename functionality
-        return `${value.identifierText || key}: ${key}`;
-    });
-
-    if (names.length === 0 || !names.some(([_, value]) => !!value.type)) {
-        // No exports or only `typeof` exports -> omit the `as {...}` completely
-        // -> 2nd case could be that it's because it's a js file without typing, so
-        // omit the types to not have a "cannot use types in jsx" error
-        return `{${returnElements.join(' , ')}}`;
-    }
-
-    const returnElementsType = names.map(([key, value]) => {
-        const identifier = value.identifierText || key;
-        if (!value.type) {
-            return `${identifier}: typeof ${key}`;
-        }
-
-        const containsUndefined = /(^|\s+)undefined(\s+|$)/.test(value.type);
-        return `${identifier}${containsUndefined ? '?' : ''}: ${value.type}`;
-    });
-
-    return `{${returnElements.join(' , ')}} as {${returnElementsType.join(', ')}}`;
-}
-
-export function svelte2tsx(svelte: string, options?: { filename?: string; strictMode?: boolean }) {
+export function svelte2tsx(
+    svelte: string,
+    options?: { filename?: string; strictMode?: boolean; isTsFile?: boolean },
+) {
     const str = new MagicString(svelte);
     // process the htmlx as a svelte template
-    let { moduleScriptTag, scriptTag, slots, uses$$props, uses$$restProps } = processSvelteTemplate(
-        str,
-    );
+    let {
+        moduleScriptTag,
+        scriptTag,
+        slots,
+        uses$$props,
+        uses$$slots,
+        uses$$restProps,
+        events,
+        componentDocumentation,
+    } = processSvelteTemplate(str);
 
     /* Rearrange the script tags so that module is first, and instance second followed finally by the template
      * This is a bit convoluted due to some trouble I had with magic string. A simple str.move(start,end,0) for each script wasn't enough
@@ -831,43 +1060,60 @@ export function svelte2tsx(svelte: string, options?: { filename?: string; strict
     }
 
     //move the instance script and process the content
-    let exportedNames = new Map<string, { type?: string; identifierText?: string }>();
+    let exportedNames = new ExportedNames();
+    let getters = new Set<string>();
     if (scriptTag) {
         //ensure it is between the module script and the rest of the template (the variables need to be declared before the jsx template)
         if (scriptTag.start != instanceScriptTarget) {
             str.move(scriptTag.start, scriptTag.end, instanceScriptTarget);
         }
-        const res = processInstanceScriptContent(str, scriptTag);
-        exportedNames = res.exportedNames;
+        const res = processInstanceScriptContent(str, scriptTag, events);
         uses$$props = uses$$props || res.uses$$props;
         uses$$restProps = uses$$restProps || res.uses$$restProps;
+        uses$$slots = uses$$slots || res.uses$$slots;
+
+        ({ exportedNames, events, getters } = res);
     }
 
     //wrap the script tag and template content in a function returning the slot and exports
-    createRenderFunction(
+    createRenderFunction({
         str,
         scriptTag,
-        instanceScriptTarget,
+        scriptDestination: instanceScriptTarget,
         slots,
+        events,
+        getters,
         exportedNames,
+        isTsFile: options?.isTsFile,
         uses$$props,
         uses$$restProps,
-    );
+        uses$$slots,
+    });
 
     // we need to process the module script after the instance script has moved otherwise we get warnings about moving edited items
     if (moduleScriptTag) {
         processModuleScriptTag(str, moduleScriptTag);
     }
 
-    addComponentExport(
+    const className = options?.filename && classNameFromFilename(options?.filename);
+
+    addComponentExport({
         str,
-        uses$$props || uses$$restProps,
-        !!options?.strictMode,
-        isTsFile(scriptTag, moduleScriptTag),
-    );
+        uses$$propsOr$$restProps: uses$$props || uses$$restProps,
+        strictMode: !!options?.strictMode,
+        strictEvents: events instanceof ComponentEventsFromInterface,
+        isTsFile: options?.isTsFile,
+        getters,
+        className,
+        componentDocumentation,
+    });
+
+    str.prepend('///<reference types="svelte" />\n');
 
     return {
         code: str.toString(),
         map: str.generateMap({ hires: true, source: options?.filename }),
+        exportedNames,
+        events,
     };
 }

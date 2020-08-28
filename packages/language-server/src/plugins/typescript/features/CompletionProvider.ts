@@ -3,6 +3,8 @@ import {
     CompletionContext,
     CompletionList,
     CompletionTriggerKind,
+    MarkupContent,
+    MarkupKind,
     Position,
     Range,
     TextDocumentIdentifier,
@@ -14,15 +16,16 @@ import {
     mapCompletionItemToOriginal,
     mapRangeToOriginal,
 } from '../../../lib/documents';
-import { isNotNullOrUndefined, pathToUrl } from '../../../utils';
+import { flatten, getRegExpMatches, isNotNullOrUndefined, pathToUrl } from '../../../utils';
 import { AppCompletionItem, AppCompletionList, CompletionsProvider } from '../../interfaces';
-import { SvelteSnapshotFragment } from '../DocumentSnapshot';
+import { SvelteDocumentSnapshot, SvelteSnapshotFragment } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import {
     convertRange,
     getCommitCharactersForScriptElement,
     scriptElementKindToCompletionItemKind,
 } from '../utils';
+import { getComponentAtPosition } from './utils';
 
 export interface CompletionEntryWithIdentifer extends ts.CompletionEntry, TextDocumentIdentifier {
     position: Position;
@@ -82,23 +85,74 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         }
 
         const offset = fragment.offsetAt(fragment.getGeneratedPosition(position));
-        const completions = lang.getCompletionsAtPosition(filePath, offset, {
-            includeCompletionsForModuleExports: true,
-            triggerCharacter: validTriggerCharacter,
-        });
+        const completions =
+            lang.getCompletionsAtPosition(filePath, offset, {
+                includeCompletionsForModuleExports: true,
+                triggerCharacter: validTriggerCharacter,
+            })?.entries || [];
+        const eventCompletions = this.getEventCompletions(
+            lang,
+            document,
+            tsDoc,
+            fragment,
+            position,
+        );
 
-        if (!completions) {
+        if (completions.length === 0 && eventCompletions.length === 0) {
             return tsDoc.parserError ? CompletionList.create([], true) : null;
         }
 
-        const completionItems = completions.entries
+        const existingImports = this.getExistingImports(document);
+        const completionItems = completions
             .map((comp) =>
-                this.toCompletionItem(fragment, comp, pathToUrl(tsDoc.filePath), position),
+                this.toCompletionItem(
+                    fragment,
+                    comp,
+                    pathToUrl(tsDoc.filePath),
+                    position,
+                    existingImports,
+                ),
             )
             .filter(isNotNullOrUndefined)
-            .map((comp) => mapCompletionItemToOriginal(fragment, comp));
+            .map((comp) => mapCompletionItemToOriginal(fragment, comp))
+            .concat(eventCompletions);
 
         return CompletionList.create(completionItems, !!tsDoc.parserError);
+    }
+
+    private getExistingImports(document: Document) {
+        const rawImports = getRegExpMatches(scriptImportRegex, document.getText()).map((match) =>
+            (match[1] ?? match[2]).split(','),
+        );
+        const tidiedImports = flatten(rawImports).map((match) => match.trim());
+        return new Set(tidiedImports);
+    }
+
+    private getEventCompletions(
+        lang: ts.LanguageService,
+        doc: Document,
+        tsDoc: SvelteDocumentSnapshot,
+        fragment: SvelteSnapshotFragment,
+        originalPosition: Position,
+    ): AppCompletionItem<CompletionEntryWithIdentifer>[] {
+        const snapshot = getComponentAtPosition(
+            this.lsAndTsDocResovler,
+            lang,
+            doc,
+            tsDoc,
+            fragment,
+            originalPosition,
+        );
+        if (!snapshot) {
+            return [];
+        }
+
+        return snapshot.getEvents().map((event) => ({
+            label: 'on:' + event.name,
+            sortText: '-1',
+            detail: event.name + ': ' + event.type,
+            documentation: event.doc && { kind: MarkupKind.Markdown, value: event.doc },
+        }));
     }
 
     private toCompletionItem(
@@ -106,13 +160,20 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         comp: ts.CompletionEntry,
         uri: string,
         position: Position,
+        existingImports: Set<string>,
     ): AppCompletionItem<CompletionEntryWithIdentifer> | null {
-        const result = this.getCompletionLabelAndInsert(fragment, comp);
-        if (!result) {
+        const completionLabelAndInsert = this.getCompletionLabelAndInsert(fragment, comp);
+        if (!completionLabelAndInsert) {
             return null;
         }
 
-        const { label, insertText, isSvelteComp } = result;
+        const { label, insertText, isSvelteComp } = completionLabelAndInsert;
+        // TS may suggest another Svelte component even if there already exists an import
+        // with the same name, because under the hood every Svelte component is postfixed
+        // with `__SvelteComponent`. In this case, filter out this completion by returning null.
+        if (isSvelteComp && existingImports.has(label)) {
+            return null;
+        }
 
         return {
             label,
@@ -138,8 +199,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         let { kind, kindModifiers, name, source } = comp;
         const isScriptElement = kind === ts.ScriptElementKind.scriptElement;
         const hasModifier = Boolean(comp.kindModifiers);
-
-        const isSvelteComp = this.isSvelteComponentImport(`import ${name} from ${source}`);
+        const isSvelteComp = this.isSvelteComponentImport(name);
         if (isSvelteComp) {
             name = this.changeSvelteComponentName(name);
 
@@ -155,13 +215,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
                 isSvelteComp,
             };
         }
-        if (isSvelteComp && kind === ts.ScriptElementKind.classElement) {
-            return {
-                insertText: name,
-                label: name,
-                isSvelteComp,
-            };
-        }
+
         return {
             label: name,
             isSvelteComp,
@@ -211,12 +265,16 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         }
 
         const actions = detail?.codeActions;
+        const isImport = !!detail?.source;
+
         if (actions) {
             const edit: TextEdit[] = [];
 
             for (const action of actions) {
                 for (const change of action.changes) {
-                    edit.push(...this.codeActionChangesToTextEdit(document, fragment, change));
+                    edit.push(
+                        ...this.codeActionChangesToTextEdit(document, fragment, change, isImport),
+                    );
                 }
             }
 
@@ -228,15 +286,15 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
 
     private getCompletionDocument(compDetail: ts.CompletionEntryDetails) {
         const { source, documentation: tsDocumentation, displayParts } = compDetail;
-        let detail: string = ts.displayPartsToString(displayParts);
+        let detail: string = this.changeSvelteComponentName(ts.displayPartsToString(displayParts));
 
         if (source) {
             const importPath = ts.displayPartsToString(source);
             detail = `Auto import from ${importPath}\n${detail}`;
         }
 
-        const documentation = tsDocumentation
-            ? ts.displayPartsToString(tsDocumentation)
+        const documentation: MarkupContent | undefined = tsDocumentation
+            ? { value: ts.displayPartsToString(tsDocumentation), kind: MarkupKind.Markdown }
             : undefined;
 
         return {
@@ -249,20 +307,20 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         doc: Document,
         fragment: SvelteSnapshotFragment,
         changes: ts.FileTextChanges,
+        isImport: boolean,
     ): TextEdit[] {
         return changes.textChanges.map((change) =>
-            this.codeActionChangeToTextEdit(doc, fragment, change),
+            this.codeActionChangeToTextEdit(doc, fragment, change, isImport),
         );
     }
 
-    private codeActionChangeToTextEdit(
+    codeActionChangeToTextEdit(
         doc: Document,
         fragment: SvelteSnapshotFragment,
         change: ts.TextChange,
+        isImport: boolean,
     ): TextEdit {
-        if (this.isSvelteComponentImport(change.newText)) {
-            change.newText = this.changeSvelteComponentImportName(change.newText);
-        }
+        change.newText = this.changeSvelteComponentImport(change.newText);
 
         const scriptTagInfo = fragment.scriptInfo;
         if (!scriptTagInfo) {
@@ -274,44 +332,80 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         }
 
         const { span } = change;
-        // prevent newText from being placed like this: <script>import {} from ''
-        if (span.start === 0) {
-            change.newText = ts.sys.newLine + change.newText;
+
+        const virutalRange = convertRange(fragment, span);
+        let range: Range;
+        const isNewImport = isImport && virutalRange.start.character === 0;
+
+        // Since new import always can't be mapped, we'll have special treatment here
+        //  but only hack this when there is multiple line in script
+        if (isNewImport && virutalRange.start.line > 1) {
+            range = this.mapRangeForNewImport(fragment, virutalRange);
+        } else {
+            range = mapRangeToOriginal(fragment, virutalRange);
         }
 
-        let range = mapRangeToOriginal(fragment, convertRange(fragment, span));
-        // If range is somehow not mapped in parent or the import is mapped wrong,
+        // If range is somehow not mapped in parent,
+        // the import is mapped wrong or is outside script tag,
         // use script starting point instead.
         // This happens among other things if the completion is the first import of the file.
         if (
             range.start.line === -1 ||
-            (range.start.line === 0 && range.start.character <= 1 && span.length === 0)
+            (range.start.line === 0 && range.start.character <= 1 && span.length === 0) ||
+            doc.offsetAt(range.start) > scriptTagInfo.end
         ) {
             range = convertRange(doc, {
                 start: scriptTagInfo.start,
                 length: span.length,
             });
         }
+        // prevent newText from being placed like this: <script>import {} from ''
+        if (
+            range.start.line === 0 &&
+            !change.newText.startsWith('\r\n') &&
+            !change.newText.startsWith('\n')
+        ) {
+            change.newText = ts.sys.newLine + change.newText;
+        }
 
         return TextEdit.replace(range, change.newText);
     }
 
-    private isSvelteComponentImport(text: string) {
-        return /import \w+ from [\s\S]*.svelte($|"|'| )/.test(text);
+    private mapRangeForNewImport(fragment: SvelteSnapshotFragment, virtualRange: Range) {
+        const sourceMapableRange = this.offsetLinesAndMovetoStartOfLine(virtualRange, -1);
+        const mappableRange = mapRangeToOriginal(fragment, sourceMapableRange);
+        return this.offsetLinesAndMovetoStartOfLine(mappableRange, 1);
     }
 
-    private changeSvelteComponentImportName(text: string) {
-        return text.replace(
-            /import (\w+) from /,
-            (_, componentMatch) => `import ${this.changeSvelteComponentName(componentMatch)} from `,
+    private offsetLinesAndMovetoStartOfLine({ start, end }: Range, offsetLines: number) {
+        return Range.create(
+            Position.create(start.line + offsetLines, 0),
+            Position.create(end.line + offsetLines, 0),
         );
     }
 
+    private isSvelteComponentImport(className: string) {
+        return className.endsWith('__SvelteComponent_');
+    }
+
     private changeSvelteComponentName(name: string) {
-        const newName = name.replace(/(\w+)Svelte$/, '$1');
-        // make sure first letter is uppercase
-        return newName[0].toUpperCase() + newName.substr(1);
+        return name.replace(/(\w+)__SvelteComponent_/, '$1');
+    }
+
+    private changeSvelteComponentImport(importText: string) {
+        const changedName = this.changeSvelteComponentName(importText);
+        if (importText !== changedName) {
+            // For some reason, TS sometimes adds the `type` modifier. Remove it.
+            return changedName.replace(' type ', ' ');
+        }
+
+        return importText;
     }
 }
 
 const beginOfDocumentRange = Range.create(Position.create(0, 0), Position.create(0, 0));
+
+// `import {...} from '..'` or `import ... from '..'`
+// Note: Does not take into account if import is within a comment.
+// eslint-disable-next-line max-len
+const scriptImportRegex = /\bimport\s+{([^}]*?)}\s+?from\s+['"`].+?['"`]|\bimport\s+(\w+?)\s+from\s+['"`].+?['"`]/g;

@@ -1,4 +1,4 @@
-import { dirname, relative, isAbsolute } from 'path';
+import { dirname } from 'path';
 import ts from 'typescript';
 import {
     CompletionItemKind,
@@ -8,6 +8,7 @@ import {
     SymbolKind,
 } from 'vscode-languageserver';
 import { mapRangeToOriginal } from '../../lib/documents';
+import { pathToUrl } from '../../utils';
 import { SnapshotFragment } from './DocumentSnapshot';
 
 export function getScriptKindFromFileName(fileName: string): ts.ScriptKind {
@@ -102,7 +103,7 @@ export function convertToLocationRange(defDoc: SnapshotFragment, textSpan: ts.Te
     return range;
 }
 
-export function findTsConfigPath(fileName: string, rootPath: string) {
+export function findTsConfigPath(fileName: string, rootUris: string[]) {
     const searchDir = dirname(fileName);
 
     const path =
@@ -110,12 +111,11 @@ export function findTsConfigPath(fileName: string, rootPath: string) {
         ts.findConfigFile(searchDir, ts.sys.fileExists, 'jsconfig.json') ||
         '';
     // Don't return config files that exceed the current workspace context.
-    return !!path && isSubPath(rootPath, path) ? path : '';
+    return !!path && rootUris.some(rootUri => isSubPath(rootUri, path)) ? path : '';
 }
 
-export function isSubPath(path: string, possibleSubPath: string): boolean {
-    const relativePath = relative(path, possibleSubPath);
-    return !!relativePath && !relativePath.startsWith('..') && !isAbsolute(relativePath);
+export function isSubPath(uri: string, possibleSubPath: string): boolean {
+    return pathToUrl(possibleSubPath).startsWith(uri);
 }
 
 export function symbolKindFromString(kind: string): SymbolKind {
@@ -259,4 +259,30 @@ export function mapSeverity(category: ts.DiagnosticCategory): DiagnosticSeverity
     }
 
     return DiagnosticSeverity.Error;
+}
+
+// Matches comments that come before any non-comment content
+const commentsRegex = /^(\s*\/\/.*\s*)*/;
+// The following regex matches @ts-check or @ts-nocheck if:
+// - must be @ts-(no)check
+// - the comment which has @ts-(no)check can have any type of whitespace before it, but not other characters
+// - what's coming after @ts-(no)check is irrelevant as long there is any kind of whitespace or line break, so this would be picked up, too: // @ts-check asdasd
+// [ \t\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff]
+// is just \s (a.k.a any whitespace character) without linebreak and vertical tab
+// eslint-disable-next-line max-len
+const tsCheckRegex = /\/\/[ \t\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff]*(@ts-(no)?check)($|\s)/;
+
+/**
+ * Returns `// @ts-check` or `// @ts-nocheck` if content starts with comments and has one of these
+ * in its comments.
+ */
+export function getTsCheckComment(str = ''): string | undefined {
+    const comments = str.match(commentsRegex)?.[0];
+    if (comments) {
+        const tsCheck = comments.match(tsCheckRegex);
+        if (tsCheck) {
+            // second-last entry is the capturing group with the exact ts-check wording
+            return `// ${tsCheck[tsCheck.length - 3]}${ts.sys.newLine}`;
+        }
+    }
 }

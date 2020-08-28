@@ -11,12 +11,17 @@ import {
     Position,
     Range,
     CompletionTriggerKind,
+    MarkupKind,
 } from 'vscode-languageserver';
-import { CompletionsProviderImpl, CompletionEntryWithIdentifer } from '../../../../src/plugins/typescript/features/CompletionProvider';
+import {
+    CompletionsProviderImpl,
+    CompletionEntryWithIdentifer,
+} from '../../../../src/plugins/typescript/features/CompletionProvider';
 import { LSAndTSDocResolver } from '../../../../src/plugins/typescript/LSAndTSDocResolver';
+import { sortBy } from 'lodash';
 
 const testDir = join(__dirname, '..');
-const testFilesDir = join(testDir, 'testfiles');
+const testFilesDir = join(testDir, 'testfiles', 'completions');
 const newLine = ts.sys.newLine;
 
 const fileNameToAbosoluteUri = (file: string) => {
@@ -28,7 +33,7 @@ describe('CompletionProviderImpl', () => {
         const docManager = new DocumentManager(
             (textDocument) => new Document(textDocument.uri, textDocument.text),
         );
-        const lsAndTsDocResolver = new LSAndTSDocResolver(docManager, testDir);
+        const lsAndTsDocResolver = new LSAndTSDocResolver(docManager, [pathToUrl(testDir)]);
         const completionProvider = new CompletionsProviderImpl(lsAndTsDocResolver);
         const filePath = join(testFilesDir, filename);
         const document = docManager.openDocument(<any>{
@@ -69,6 +74,51 @@ describe('CompletionProviderImpl', () => {
         });
     });
 
+    it('provides event completions', async () => {
+        const { completionProvider, document } = setup('component-events-completion.svelte');
+
+        const completions = await completionProvider.getCompletions(
+            document,
+            Position.create(4, 5),
+            {
+                triggerKind: CompletionTriggerKind.Invoked,
+            },
+        );
+
+        assert.ok(
+            Array.isArray(completions && completions.items),
+            'Expected completion items to be an array',
+        );
+        assert.ok(completions!.items.length > 0, 'Expected completions to have length');
+
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const eventCompletions = completions!.items.filter((item) => item.label.startsWith('on:'));
+
+        assert.deepStrictEqual(eventCompletions, <CompletionItem[]>[
+            {
+                detail: 'a: CustomEvent<boolean>',
+                documentation: undefined,
+                label: 'on:a',
+                sortText: '-1',
+            },
+            {
+                detail: 'b: MouseEvent',
+                documentation: {
+                    kind: 'markdown',
+                    value: '\nTEST\n',
+                },
+                label: 'on:b',
+                sortText: '-1',
+            },
+            {
+                detail: 'c: Event',
+                documentation: undefined,
+                label: 'on:c',
+                sortText: '-1',
+            },
+        ]);
+    });
+
     it('does not provide completions inside style tag', async () => {
         const { completionProvider, document } = setup('completionsstyle.svelte');
 
@@ -102,6 +152,7 @@ describe('CompletionProviderImpl', () => {
         assert.deepStrictEqual(data, {
             hasAction: undefined,
             insertText: undefined,
+            isPackageJsonImport: undefined,
             isRecommended: undefined,
             kind: 'method',
             kindModifiers: '',
@@ -113,12 +164,12 @@ describe('CompletionProviderImpl', () => {
             replacementSpan: undefined,
             sortText: '0',
             source: undefined,
-            uri: fileNameToAbosoluteUri(filename)
+            uri: fileNameToAbosoluteUri(filename),
         } as CompletionEntryWithIdentifer);
     });
 
     it('resolve completion and provide documentation', async () => {
-        const { completionProvider, document } = setup('documentation.svelte');
+        const { completionProvider, document } = setup('../documentation.svelte');
 
         const { documentation, detail } = await completionProvider.resolveCompletion(document, {
             label: 'foo',
@@ -134,7 +185,7 @@ describe('CompletionProviderImpl', () => {
         });
 
         assert.deepStrictEqual(detail, '(alias) function foo(): boolean\nimport foo');
-        assert.deepStrictEqual(documentation, 'bars');
+        assert.deepStrictEqual(documentation, { value: 'bars', kind: MarkupKind.Markdown });
     });
 
     it('provides import completions for directory', async () => {
@@ -178,12 +229,17 @@ describe('CompletionProviderImpl', () => {
             ts.Extension.Jsx,
             ts.Extension.Tsx,
             ts.Extension.Json,
-            '.svelte'
+            '.svelte',
         ];
         const ignores = ['tsconfig.json', sourceFile];
 
-        const testfiles = readdirSync(testFilesDir)
-            .filter((f) => supportedExtensions.includes(extname(f)) && !ignores.includes(f));
+        const testfiles = readdirSync(testFilesDir, { withFileTypes: true })
+            .filter(
+                (f) =>
+                    f.isDirectory() ||
+                    (supportedExtensions.includes(extname(f.name)) && !ignores.includes(f.name)),
+            )
+            .map((f) => f.name);
 
         const completions = await completionProvider.getCompletions(
             document,
@@ -194,7 +250,13 @@ describe('CompletionProviderImpl', () => {
             },
         );
 
-        assert.deepStrictEqual(completions?.items.map(item => item.label), testfiles);
+        assert.deepStrictEqual(
+            sortBy(
+                completions?.items.map((item) => item.label),
+                (x) => x,
+            ),
+            sortBy(testfiles, (x) => x),
+        );
     });
 
     it('resolve auto import completion (is first import in file)', async () => {
@@ -216,12 +278,12 @@ describe('CompletionProviderImpl', () => {
             item!,
         );
 
-        assert.strictEqual(detail, 'Auto import from ./definitions\nfunction blubb(): boolean');
+        assert.strictEqual(detail, 'Auto import from ../definitions\nfunction blubb(): boolean');
 
         assert.strictEqual(
             harmonizeNewLines(additionalTextEdits![0]?.newText),
             // " instead of ' because VSCode uses " by default when there are no other imports indicating otherwise
-            `${newLine}import { blubb } from "./definitions";${newLine}${newLine}`,
+            `${newLine}import { blubb } from "../definitions";${newLine}${newLine}`,
         );
 
         assert.deepEqual(
@@ -249,16 +311,16 @@ describe('CompletionProviderImpl', () => {
             item!,
         );
 
-        assert.strictEqual(detail, 'Auto import from ./definitions\nfunction blubb(): boolean');
+        assert.strictEqual(detail, 'Auto import from ../definitions\nfunction blubb(): boolean');
 
         assert.strictEqual(
             harmonizeNewLines(additionalTextEdits![0]?.newText),
-            `import { blubb } from './definitions';${newLine}`,
+            `import { blubb } from '../definitions';${newLine}`,
         );
 
         assert.deepEqual(
             additionalTextEdits![0]?.range,
-            Range.create(Position.create(0, 8), Position.create(0, 8)),
+            Range.create(Position.create(2, 0), Position.create(2, 0)),
         );
     });
 
@@ -281,11 +343,11 @@ describe('CompletionProviderImpl', () => {
             item!,
         );
 
-        assert.strictEqual(detail, 'Auto import from ./definitions\nfunction blubb(): boolean');
+        assert.strictEqual(detail, 'Auto import from ../definitions\nfunction blubb(): boolean');
 
         assert.strictEqual(
             harmonizeNewLines(additionalTextEdits![0]?.newText),
-            `import { blubb } from './definitions';${newLine}`,
+            `${newLine}import { blubb } from '../definitions';${newLine}`,
         );
 
         assert.deepEqual(
@@ -297,8 +359,9 @@ describe('CompletionProviderImpl', () => {
     async function openFileToBeImported(
         docManager: DocumentManager,
         completionProvider: CompletionsProviderImpl,
+        name = 'imported-file.svelte',
     ) {
-        const filePath = join(testFilesDir, 'imported-file.svelte');
+        const filePath = join(testFilesDir, name);
         const hoverinfoDoc = docManager.openDocument(<any>{
             uri: pathToUrl(filePath),
             text: ts.sys.readFile(filePath) || '',
@@ -327,7 +390,7 @@ describe('CompletionProviderImpl', () => {
             item!,
         );
 
-        assert.strictEqual(detail, 'Auto import from ./imported-file.svelte\nclass default');
+        assert.strictEqual(detail, 'Auto import from ./imported-file.svelte\nclass ImportedFile');
 
         assert.strictEqual(
             harmonizeNewLines(additionalTextEdits![0]?.newText),
@@ -362,13 +425,13 @@ describe('CompletionProviderImpl', () => {
             item!,
         );
 
-        assert.strictEqual(detail, 'Auto import from ./imported-file.svelte\nclass default');
+        assert.strictEqual(detail, 'Auto import from ./imported-file.svelte\nclass ImportedFile');
 
         assert.strictEqual(
             harmonizeNewLines(additionalTextEdits![0]?.newText),
             // " instead of ' because VSCode uses " by default when there are no other imports indicating otherwise
             `<script>${newLine}import ImportedFile from "./imported-file.svelte";` +
-            `${newLine}${newLine}</script>${newLine}`,
+                `${newLine}${newLine}</script>${newLine}`,
         );
 
         assert.deepEqual(
@@ -392,6 +455,32 @@ describe('CompletionProviderImpl', () => {
 
         assert.equal(item?.additionalTextEdits, undefined);
         assert.equal(item?.detail, undefined);
+
+        const { additionalTextEdits } = await completionProvider.resolveCompletion(document, item!);
+
+        assert.strictEqual(additionalTextEdits, undefined);
+    });
+
+    it('doesnt suggest svelte auto import when already other import with same name present', async () => {
+        const { completionProvider, document, docManager } = setup(
+            'importcompletions-2nd-import.svelte',
+        );
+        // make sure that the ts language service does know about the imported-file file
+        await openFileToBeImported(docManager, completionProvider, 'ScndImport.svelte');
+
+        const completions = await completionProvider.getCompletions(
+            document,
+            Position.create(2, 13),
+        );
+        document.version++;
+
+        const items = completions?.items.filter((item) => item.label === 'ScndImport');
+        assert.equal(items?.length, 1);
+
+        const item = items?.[0];
+        assert.equal(item?.additionalTextEdits, undefined);
+        assert.equal(item?.detail, undefined);
+        assert.equal(item?.kind, CompletionItemKind.Variable);
 
         const { additionalTextEdits } = await completionProvider.resolveCompletion(document, item!);
 

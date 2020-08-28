@@ -6,14 +6,14 @@ import { LSConfigManager } from '../../../../src/ls-config';
 import { TypeScriptPlugin } from '../../../../src/plugins';
 import { pathToUrl } from '../../../../src/utils';
 
-describe('TypescriptPlugin', () => {
+describe('DiagnosticsProvider', () => {
     function setup(filename: string) {
         const docManager = new DocumentManager(() => document);
         const testDir = path.join(__dirname, '..');
         const filePath = path.join(testDir, 'testfiles', filename);
         const document = new Document(pathToUrl(filePath), ts.sys.readFile(filePath)!);
         const pluginManager = new LSConfigManager();
-        const plugin = new TypeScriptPlugin(docManager, pluginManager, testDir);
+        const plugin = new TypeScriptPlugin(docManager, pluginManager, [pathToUrl(testDir)]);
         docManager.openDocument(<any>'some doc');
         return { plugin, document };
     }
@@ -25,7 +25,7 @@ describe('TypescriptPlugin', () => {
         assert.deepStrictEqual(diagnostics, [
             {
                 code: 2322,
-                message: "Type 'true' is not assignable to type 'string'.",
+                message: "Type 'boolean' is not assignable to type 'string'.",
                 range: {
                     start: {
                         character: 32,
@@ -101,6 +101,12 @@ describe('TypescriptPlugin', () => {
         const { plugin, document } = setup('diagnostics-falsepositives.svelte');
         const diagnostics = await plugin.getDiagnostics(document);
 
+        assert.deepStrictEqual(diagnostics, []);
+    });
+
+    it('handles svelte native syntax', async () => {
+        const { plugin, document } = setup('svelte-native/svelte-native.svelte');
+        const diagnostics = await plugin.getDiagnostics(document);
         assert.deepStrictEqual(diagnostics, []);
     });
 });

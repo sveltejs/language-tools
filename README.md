@@ -12,6 +12,8 @@
   </a>
 </p>
 
+[IDE docs and troubleshooting](docs)
+
 ## What is Svelte Language Tools?
 
 Svelte Language Tools contains a library implementing the Language Server Protocol (LSP). LSP powers the [VSCode extension](https://marketplace.visualstudio.com/items?itemName=svelte.svelte-vscode), which is also hosted in this repository. Additionally, LSP is capable of powering plugins for [numerous other IDEs](https://microsoft.github.io/language-server-protocol/implementors/tools/).
@@ -65,13 +67,19 @@ The official vscode extension for Svelte. Built from [UnwrittenFun/svelte-vscode
 
 Converts a .svelte file into a legal TypeScript file. Built from [halfnelson/svelte2tsx](https://github.com/halfnelson/svelte2tsx) to provide the auto-complete and import mapping inside the language server.
 
+> Want to see how it's transformed? [Check out this REPL](https://embed.plnkr.co/plunk/JPye9tlsqwMrWHGv?show=preview&autoCloseSidebar)
+
 ## Development
 
 #### Setup
 
 Pull requests are encouraged and always welcome. [Pick an issue](https://github.com/sveltejs/language-tools/issues?q=is%3Aissue+is%3Aopen+sort%3Aupdated-desc) and help us out!
 
+To get an overview of the internals, [read here](./docs/internal/overview.md).
+
 To install and work on these tools locally:
+
+> Make sure to uninstall the extension from the marketplace to not have it clash with the local one.
 
 ```bash
 git clone https://github.com/sveltejs/language-tools.git svelte-language-tools
@@ -102,7 +110,7 @@ To run the developer version of both the language server and the VSCode extensio
 -   Go to the debugging panel
 -   Make sure "Run VSCode Extension" is selected, and hit run
 
-This launches a new VSCode window and a watcher for your changes. In this dev window you can choose an existing Svelte project to work against. If you don't use pure Javascript and CSS, but languages like TypeScript or SCSS, your project will need a [Svelte preprocessor setup](packages/svelte-vscode#using-with-preprocessors). When you make changes to the extension or language server you can use the command "Reload Window" in the VSCode command palette to see your changes.
+This launches a new VSCode window and a watcher for your changes. In this dev window you can choose an existing Svelte project to work against. If you don't use pure Javascript and CSS, but languages like Typescript or SCSS, your project will need a [Svelte preprocessor setup](packages/svelte-vscode#using-with-preprocessors). When you make changes to the extension or language server you can use the command "Reload Window" in the VSCode command palette to see your changes. When you make changes to `svelte2tsx`, you first need to run `yarn build` within its folder.
 
 ### Running Tests
 

@@ -1,10 +1,7 @@
 import * as chalk from 'chalk';
 import { sep } from 'path';
-import { Writable } from "stream";
-import {
-    Diagnostic,
-    DiagnosticSeverity,
-} from 'vscode-languageserver-protocol';
+import { Writable } from 'stream';
+import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver-protocol';
 import { offsetAt } from 'svelte-language-server';
 
 export interface Writer {
@@ -15,8 +12,7 @@ export interface Writer {
 }
 
 export class HumanFriendlyWriter implements Writer {
-    constructor(private stream: Writable, private isVerbose = true) {
-    }
+    constructor(private stream: Writable, private isVerbose = true) {}
 
     start(workspaceDir: string) {
         if (this.isVerbose) {
@@ -36,44 +32,78 @@ export class HumanFriendlyWriter implements Writer {
             // Display location in a format that IDEs will turn into file links
             const { line, character } = diagnostic.range.start;
             // eslint-disable-next-line max-len
-            this.stream.write(`${workspaceDir}${sep}${chalk.green(filename)}:${line + 1}:${character + 1}\n`);
+            this.stream.write(
+                `${workspaceDir}${sep}${chalk.green(filename)}:${line + 1}:${character + 1}\n`,
+            );
 
             // Show some context around diagnostic range
-            const startOffset = offsetAt(diagnostic.range.start, text);
-            const endOffset = offsetAt(diagnostic.range.end, text);
-            const codePrev = chalk.cyan(
-                text.substring(Math.max(startOffset - 10, 0), startOffset)
-            );
-            const codeHighlight = chalk.magenta(text.substring(startOffset, endOffset));
-            const codePost = chalk.cyan(text.substring(endOffset, endOffset + 10));
-            const code = codePrev + codeHighlight + codePost;
-            let msg;
+            const codePrevLine = this.getLine(diagnostic.range.start.line - 1, text);
+            const codeLine = this.getCodeLine(diagnostic, text);
+            const codeNextLine = this.getLine(diagnostic.range.end.line + 1, text);
+            const code = codePrevLine + codeLine + codeNextLine;
 
+            let msg;
             if (this.isVerbose) {
                 msg = `${diagnostic.message} ${source}\n${chalk.cyan(code)}`;
-            }
-            else {
+            } else {
                 msg = `${diagnostic.message} ${source}`;
             }
 
             if (diagnostic.severity === DiagnosticSeverity.Error) {
                 this.stream.write(`${chalk.red('Error')}: ${msg}\n`);
-            }
-            else {
+            } else if (diagnostic.severity === DiagnosticSeverity.Warning) {
                 this.stream.write(`${chalk.yellow('Warn')}: ${msg}\n`);
+            } else {
+                this.stream.write(`${chalk.gray('Hint')}: ${msg}\n`);
             }
 
-            this.stream.write("\n");
+            this.stream.write('\n');
         });
     }
 
-    completion(_f: number, err: number, _w: number) {
+    private getCodeLine(diagnostic: Diagnostic, text: string) {
+        const startOffset = offsetAt(diagnostic.range.start, text);
+        const endOffset = offsetAt(diagnostic.range.end, text);
+        const codePrev = text.substring(
+            offsetAt({ line: diagnostic.range.start.line, character: 0 }, text),
+            startOffset,
+        );
+        const codeHighlight = chalk.magenta(text.substring(startOffset, endOffset));
+        const codePost = text.substring(
+            endOffset,
+            offsetAt({ line: diagnostic.range.end.line, character: Number.MAX_SAFE_INTEGER }, text),
+        );
+        return codePrev + codeHighlight + codePost;
+    }
+
+    private getLine(line: number, text: string): string {
+        return text.substring(
+            offsetAt({ line, character: 0 }, text),
+            offsetAt({ line, character: Number.MAX_SAFE_INTEGER }, text),
+        );
+    }
+
+    completion(_f: number, errorCount: number, warningCount: number) {
         this.stream.write('====================================\n');
 
-        if (err === 0) {
-            this.stream.write(chalk.green(`svelte-check found no errors\n`));
+        if (errorCount === 0 && warningCount === 0) {
+            this.stream.write(chalk.green(`svelte-check found no errors and no warnings\n`));
+        } else if (errorCount === 0) {
+            this.stream.write(
+                chalk.yellow(
+                    `svelte-check found ${warningCount} ${
+                        warningCount === 1 ? 'warning' : 'warnings'
+                    }\n`,
+                ),
+            );
         } else {
-            this.stream.write(chalk.red(`svelte-check found ${err} ${err === 1 ? 'error' : 'errors'}\n`));
+            this.stream.write(
+                chalk.red(
+                    `svelte-check found ${errorCount} ${
+                        errorCount === 1 ? 'error' : 'errors'
+                    } and ${warningCount} ${warningCount === 1 ? 'warning' : 'warnings'}\n`,
+                ),
+            );
         }
     }
 
@@ -83,8 +113,7 @@ export class HumanFriendlyWriter implements Writer {
 }
 
 export class MachineFriendlyWriter implements Writer {
-    constructor(private stream: Writable) {
-    }
+    constructor(private stream: Writable) {}
 
     private log(msg: string) {
         this.stream.write(`${new Date().getTime()} ${msg}\n`);
@@ -98,9 +127,11 @@ export class MachineFriendlyWriter implements Writer {
         diagnostics.forEach((d) => {
             const { message, severity, range } = d;
             const type =
-              severity === DiagnosticSeverity.Error ? "ERROR" :
-              severity === DiagnosticSeverity.Warning ? "WARNING" :
-              null;
+                severity === DiagnosticSeverity.Error
+                    ? 'ERROR'
+                    : severity === DiagnosticSeverity.Warning
+                    ? 'WARNING'
+                    : null;
 
             if (type) {
                 const { line, character } = range.start;

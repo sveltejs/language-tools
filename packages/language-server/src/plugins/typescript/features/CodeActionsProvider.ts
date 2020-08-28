@@ -11,11 +11,12 @@ import {
 import { Document, mapRangeToOriginal, isRangeInTag } from '../../../lib/documents';
 import { pathToUrl } from '../../../utils';
 import { CodeActionsProvider } from '../../interfaces';
-import { SnapshotFragment } from '../DocumentSnapshot';
+import { SnapshotFragment, SvelteSnapshotFragment } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { convertRange } from '../utils';
 import { flatten } from '../../../utils';
 import ts from 'typescript';
+import { CompletionsProviderImpl } from './CompletionProvider';
 
 interface RefactorArgs {
     type: 'refactor';
@@ -25,7 +26,10 @@ interface RefactorArgs {
 }
 
 export class CodeActionsProviderImpl implements CodeActionsProvider {
-    constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
+    constructor(
+        private readonly lsAndTsDocResolver: LSAndTSDocResolver,
+        private readonly completionProvider: CompletionsProviderImpl,
+    ) {}
 
     async getCodeActions(
         document: Document,
@@ -70,7 +74,10 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                         // Handle svelte2tsx wrong import mapping:
                         // The character after the last import maps to the start of the script
                         // TODO find a way to fix this in svelte2tsx and then remove this
-                        if (range.end.line === 0 && range.end.character === 1) {
+                        if (
+                            (range.end.line === 0 && range.end.character === 1) ||
+                            range.end.line < range.start.line
+                        ) {
                             edit.span.length -= 1;
                             range = mapRangeToOriginal(fragment, convertRange(fragment, edit.span));
                             range.end.character += 1;
@@ -122,6 +129,17 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                                 null,
                             ),
                             change.textChanges.map((edit) => {
+                                if (
+                                    fix.fixName === 'import' &&
+                                    doc instanceof SvelteSnapshotFragment
+                                ) {
+                                    return this.completionProvider.codeActionChangeToTextEdit(
+                                        document,
+                                        doc,
+                                        edit,
+                                        true,
+                                    );
+                                }
                                 return TextEdit.replace(
                                     mapRangeToOriginal(doc!, convertRange(doc!, edit.span)),
                                     edit.newText,
@@ -146,6 +164,17 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             !isRangeInTag(range, document.scriptInfo) &&
             !isRangeInTag(range, document.moduleScriptInfo)
         ) {
+            return [];
+        }
+
+        // Don't allow refactorings when there is likely a store subscription.
+        // Reason: Extracting that would lead to svelte2tsx' transformed store representation
+        // showing up, which will confuse the user. In the long run, we maybe have to
+        // setup a separate ts language service which only knows of the original script.
+        const textInRange = document
+            .getText()
+            .substring(document.offsetAt(range.start), document.offsetAt(range.end));
+        if (textInRange.includes('$')) {
             return [];
         }
 

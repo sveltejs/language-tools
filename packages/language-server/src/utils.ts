@@ -17,6 +17,15 @@ export function pathToUrl(path: string) {
     return URI.file(path).toString();
 }
 
+/**
+ * URIs coming from the client could be encoded in a different
+ * way than expected / than the internal services create them.
+ * This normalizes them to be the same as the internally generated ones.
+ */
+export function normalizeUri(uri: string): string {
+    return URI.parse(uri).toString();
+}
+
 export function flatten<T>(arr: T[][]): T[] {
     return arr.reduce((all, item) => [...all, ...item], []);
 }
@@ -85,4 +94,16 @@ export function regexLastIndexOf(text: string, regex: RegExp, endPos?: number) {
         lastIndexOf = result.index;
     }
     return lastIndexOf;
+}
+
+/**
+ * Get all matches of a regexp.
+ */
+export function getRegExpMatches(regex: RegExp, str: string) {
+    const matches: RegExpExecArray[] = [];
+    let match: RegExpExecArray | null;
+    while ((match = regex.exec(str))) {
+        matches.push(match);
+    }
+    return matches;
 }

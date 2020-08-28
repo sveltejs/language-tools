@@ -2,8 +2,9 @@ import * as assert from 'assert';
 import sinon from 'sinon';
 import { Position } from 'vscode-languageserver';
 import { Document } from '../../../src/lib/documents';
-import * as importPackage from '../../../src/plugins/importPackage';
-import { SvelteDocument, SvelteConfig } from '../../../src/plugins/svelte/SvelteDocument';
+import * as importPackage from '../../../src/importPackage';
+import { SvelteDocument } from '../../../src/plugins/svelte/SvelteDocument';
+import * as configLoader from '../../../src/lib/documents/configLoader';
 
 describe('Svelte Document', () => {
     function getSourceCode(transpiled: boolean): string {
@@ -15,9 +16,11 @@ describe('Svelte Document', () => {
         `;
     }
 
-    function setup(config: SvelteConfig = {}) {
+    function setup(config: configLoader.SvelteConfig = {}) {
+        sinon.stub(configLoader, 'loadConfig').returns(config);
         const parent = new Document('file:///hello.svelte', getSourceCode(false));
-        const svelteDoc = new SvelteDocument(parent, config);
+        sinon.restore();
+        const svelteDoc = new SvelteDocument(parent);
         return { parent, svelteDoc };
     }
 
@@ -47,8 +50,9 @@ describe('Svelte Document', () => {
             // stub svelte preprocess and getOriginalPosition
             // to fake a source mapping process
             sinon.stub(importPackage, 'importSvelte').returns({
-                preprocess: (text, preprocessor: any) => {
-                    preprocessor.script();
+                preprocess: (text, preprocessor) => {
+                    preprocessor = Array.isArray(preprocessor) ? preprocessor : [preprocessor];
+                    preprocessor.forEach((p) => p.script?.(<any>{}));
                     return Promise.resolve({
                         code: getSourceCode(true),
                         dependencies: [],

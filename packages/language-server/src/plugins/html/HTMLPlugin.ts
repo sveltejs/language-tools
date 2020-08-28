@@ -1,7 +1,19 @@
 import { getEmmetCompletionParticipants } from 'vscode-emmet-helper';
 import { getLanguageService, HTMLDocument } from 'vscode-html-languageservice';
-import { CompletionList, Hover, Position, SymbolInformation } from 'vscode-languageserver';
-import { DocumentManager, Document, isInTag } from '../../lib/documents';
+import {
+    CompletionList,
+    Hover,
+    Position,
+    SymbolInformation,
+    CompletionItem,
+    CompletionItemKind,
+} from 'vscode-languageserver';
+import {
+    DocumentManager,
+    Document,
+    isInTag,
+    getNodeIfIsInComponentStartTag,
+} from '../../lib/documents';
 import { LSConfigManager, LSHTMLConfig } from '../../ls-config';
 import { svelteHtmlDataProvider } from './dataProvider';
 import { HoverProvider, CompletionsProvider } from '../interfaces';
@@ -10,12 +22,12 @@ export class HTMLPlugin implements HoverProvider, CompletionsProvider {
     private configManager: LSConfigManager;
     private lang = getLanguageService({ customDataProviders: [svelteHtmlDataProvider] });
     private documents = new WeakMap<Document, HTMLDocument>();
+    private styleScriptTemplate = new Set(['template', 'style', 'script']);
 
     constructor(docManager: DocumentManager, configManager: LSConfigManager) {
         this.configManager = configManager;
         docManager.on('documentChange', (document) => {
-            const html = this.lang.parseHTMLDocument(document);
-            this.documents.set(document, html);
+            this.documents.set(document, document.html);
         });
     }
 
@@ -57,12 +69,56 @@ export class HTMLPlugin implements HoverProvider, CompletionsProvider {
         this.lang.setCompletionParticipants([
             getEmmetCompletionParticipants(document, position, 'html', {}, emmetResults),
         ]);
-        const results = this.lang.doComplete(document, position, html);
+        const results = this.isInComponentTag(html, document, position)
+            ? // Only allow emmet inside component element tags.
+              // Other attributes/events would be false positives.
+              CompletionList.create([])
+            : this.lang.doComplete(document, position, html);
         return CompletionList.create(
-            [...results.items, ...emmetResults.items],
+            [...results.items, ...this.getLangCompletions(results.items), ...emmetResults.items],
             // Emmet completions change on every keystroke, so they are never complete
             emmetResults.items.length > 0,
         );
+    }
+
+    private isInComponentTag(html: HTMLDocument, document: Document, position: Position) {
+        return !!getNodeIfIsInComponentStartTag(html, document.offsetAt(position));
+    }
+
+    private getLangCompletions(completions: CompletionItem[]): CompletionItem[] {
+        const styleScriptTemplateCompletions = completions.filter(
+            (completion) =>
+                completion.kind === CompletionItemKind.Property &&
+                this.styleScriptTemplate.has(completion.label),
+        );
+        const langCompletions: CompletionItem[] = [];
+        addLangCompletion('script', ['ts']);
+        addLangCompletion('style', ['less', 'scss']);
+        addLangCompletion('template', ['pug']);
+        return langCompletions;
+
+        function addLangCompletion(tag: string, languages: string[]) {
+            const existingCompletion = styleScriptTemplateCompletions.find(
+                (completion) => completion.label === tag,
+            );
+            if (!existingCompletion) {
+                return;
+            }
+
+            languages.forEach((lang) =>
+                langCompletions.push({
+                    ...existingCompletion,
+                    label: `${tag} (lang="${lang}")`,
+                    insertText:
+                        existingCompletion.insertText &&
+                        `${existingCompletion.insertText} lang="${lang}"`,
+                    textEdit: existingCompletion.textEdit && {
+                        range: existingCompletion.textEdit.range,
+                        newText: `${existingCompletion.textEdit.newText} lang="${lang}"`,
+                    },
+                }),
+            );
+        }
     }
 
     doTagComplete(document: Document, position: Position): string | null {

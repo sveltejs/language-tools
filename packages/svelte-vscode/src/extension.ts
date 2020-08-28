@@ -10,6 +10,8 @@ import {
     Uri,
     ProgressLocation,
     ViewColumn,
+    languages,
+    IndentAction,
 } from 'vscode';
 import {
     LanguageClient,
@@ -21,8 +23,10 @@ import {
     RevealOutputChannelOn,
     WorkspaceEdit as LSWorkspaceEdit,
     TextDocumentEdit,
+    ExecuteCommandRequest,
 } from 'vscode-languageclient';
 import { activateTagClosing } from './html/autoClose';
+import { EMPTY_ELEMENTS } from './html/htmlEmptyTagsShared';
 import CompiledCodeContentProvider from './CompiledCodeContentProvider';
 import * as path from 'path';
 
@@ -127,6 +131,75 @@ export function activate(context: ExtensionContext) {
     addRenameFileListener(getLS);
 
     addCompilePreviewCommand(getLS, context);
+
+    addExtracComponentCommand(getLS, context);
+
+    languages.setLanguageConfiguration('svelte', {
+        indentationRules: {
+            // Matches a valid opening tag that is:
+            //  - Not a doctype
+            //  - Not a void element
+            //  - Not a closing tag
+            //  - Not followed by a closing tag of the same element
+            // Or matches `<!--`
+            // Or matches open curly brace
+            //
+            // eslint-disable-next-line max-len, no-useless-escape
+            increaseIndentPattern: /<(?!\?|(?:area|base|br|col|frame|hr|html|img|input|link|meta|param)\b|[^>]*\/>)([-_\.A-Za-z0-9]+)(?=\s|>)\b[^>]*>(?!.*<\/\1>)|<!--(?!.*-->)|\{[^}"']*$/,
+            // Matches a closing tag that:
+            //  - Follows optional whitespace
+            //  - Is not `</html>`
+            // Or matches `-->`
+            // Or closing curly brace
+            //
+            // eslint-disable-next-line no-useless-escape
+            decreaseIndentPattern: /^\s*(<\/(?!html)[-_\.A-Za-z0-9]+\b[^>]*>|-->|\})/,
+        },
+        // Matches a number or word that either:
+        //  - Is a number with an optional negative sign and optional full number
+        //    with numbers following the decimal point. e.g `-1.1px`, `.5`, `-.42rem`, etc
+        //  - Is a sequence of characters without spaces and not containing
+        //    any of the following: `~!@$^&*()=+[{]}\|;:'",.<>/
+        //
+        // eslint-disable-next-line max-len, no-useless-escape
+        wordPattern: /(-?\d*\.\d\w*)|([^\`\~\!\@\$\#\^\&\*\(\)\=\+\[\{\]\}\\\|\;\:\'\"\,\.\<\>\/\s]+)/g,
+        onEnterRules: [
+            {
+                // Matches an opening tag that:
+                //  - Isn't an empty element
+                //  - Is possibly namespaced
+                //  - Isn't a void element
+                //  - Isn't followed by another tag on the same line
+                //
+                // eslint-disable-next-line no-useless-escape
+                beforeText: new RegExp(
+                    `<(?!(?:${EMPTY_ELEMENTS.join(
+                        '|',
+                    )}))([_:\\w][_:\\w-.\\d]*)([^/>]*(?!/)>)[^<]*$`,
+                    'i',
+                ),
+                // Matches a closing tag that:
+                //  - Is possibly namespaced
+                //  - Possibly has excess whitespace following tagname
+                afterText: /^<\/([_:\w][_:\w-.\d]*)\s*>/i,
+                action: { indentAction: IndentAction.IndentOutdent },
+            },
+            {
+                // Matches an opening tag that:
+                //  - Isn't an empty element
+                //  - Isn't namespaced
+                //  - Isn't a void element
+                //  - Isn't followed by another tag on the same line
+                //
+                // eslint-disable-next-line no-useless-escape
+                beforeText: new RegExp(
+                    `<(?!(?:${EMPTY_ELEMENTS.join('|')}))(\\w[\\w\\d]*)([^/>]*(?!/)>)[^<]*$`,
+                    'i',
+                ),
+                action: { indentAction: IndentAction.Indent },
+            },
+        ],
+    });
 }
 
 function addRenameFileListener(getLS: () => LanguageClient) {
@@ -198,6 +271,35 @@ function addCompilePreviewCommand(getLS: () => LanguageClient, context: Extensio
                     });
                 },
             );
+        }),
+    );
+}
+
+function addExtracComponentCommand(getLS: () => LanguageClient, context: ExtensionContext) {
+    context.subscriptions.push(
+        commands.registerTextEditorCommand('svelte.extractComponent', async (editor) => {
+            if (editor?.document?.languageId !== 'svelte') {
+                return;
+            }
+
+            // Prompt for new component name
+            const options = {
+                prompt: 'Component Name: ',
+                placeHolder: 'NewComponent',
+            };
+
+            window.showInputBox(options).then(async (filePath) => {
+                if (!filePath) {
+                    return window.showErrorMessage('No component name');
+                }
+
+                const uri = editor.document.uri.toString();
+                const range = editor.selection;
+                getLS().sendRequest(ExecuteCommandRequest.type, {
+                    command: 'extract_to_svelte_component',
+                    arguments: [uri, { uri, range, filePath }],
+                });
+            });
         }),
     );
 }

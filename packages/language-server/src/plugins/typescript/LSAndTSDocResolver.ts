@@ -13,7 +13,7 @@ import { SnapshotManager } from './SnapshotManager';
 export class LSAndTSDocResolver {
     constructor(
         private readonly docManager: DocumentManager,
-        private readonly workspacePath: string,
+        private readonly workspaceUris: string[],
     ) {
         docManager.on(
             'documentChange',
@@ -34,17 +34,15 @@ export class LSAndTSDocResolver {
     private createDocument = (fileName: string, content: string) => {
         const uri = pathToUrl(fileName);
         const document = this.docManager.openDocument({
-            languageId: 'svelte',
             text: content,
             uri,
-            version: 0,
         });
         this.docManager.lockDocument(uri);
         return document;
     };
 
     getLSForPath(path: string) {
-        return getLanguageServiceForPath(path, this.workspacePath, this.createDocument);
+        return getLanguageServiceForPath(path, this.workspaceUris, this.createDocument);
     }
 
     getLSAndTSDoc(
@@ -55,7 +53,7 @@ export class LSAndTSDocResolver {
     } {
         const lang = getLanguageServiceForDocument(
             document,
-            this.workspacePath,
+            this.workspaceUris,
             this.createDocument,
         );
         const filePath = document.getFilePath()!;
@@ -97,6 +95,6 @@ export class LSAndTSDocResolver {
     }
 
     private getTSService(filePath: string): LanguageServiceContainer {
-        return getService(filePath, this.workspacePath, this.createDocument);
+        return getService(filePath, this.workspaceUris, this.createDocument);
     }
 }

@@ -2,7 +2,7 @@ import { dirname, resolve } from 'path';
 import ts from 'typescript';
 import { Document } from '../../lib/documents';
 import { Logger } from '../../logger';
-import { getPackageInfo } from '../importPackage';
+import { getPackageInfo } from '../../importPackage';
 import { DocumentSnapshot } from './DocumentSnapshot';
 import { createSvelteModuleLoader } from './module-loader';
 import { SnapshotManager } from './SnapshotManager';
@@ -23,24 +23,24 @@ export type CreateDocument = (fileName: string, content: string) => Document;
 
 export function getLanguageServiceForPath(
     path: string,
-    workspacePath: string,
+    workspaceUris: string[],
     createDocument: CreateDocument,
 ): ts.LanguageService {
-    return getService(path, workspacePath, createDocument).getService();
+    return getService(path, workspaceUris, createDocument).getService();
 }
 
 export function getLanguageServiceForDocument(
     document: Document,
-    workspacePath: string,
+    workspaceUris: string[],
     createDocument: CreateDocument,
 ): ts.LanguageService {
-    return getService(document.getFilePath() || '', workspacePath, createDocument).updateDocument(
+    return getService(document.getFilePath() || '', workspaceUris, createDocument).updateDocument(
         document,
     );
 }
 
-export function getService(path: string, workspacePath: string, createDocument: CreateDocument) {
-    const tsconfigPath = findTsConfigPath(path, workspacePath);
+export function getService(path: string, workspaceUris: string[], createDocument: CreateDocument) {
+    const tsconfigPath = findTsConfigPath(path, workspaceUris);
 
     let service: LanguageServiceContainer;
     if (services.has(tsconfigPath)) {
@@ -66,9 +66,11 @@ export function createLanguageService(
     const svelteModuleLoader = createSvelteModuleLoader(getSnapshot, compilerOptions);
 
     const svelteTsPath = dirname(require.resolve('svelte2tsx'));
-    const svelteTsxFiles = ['./svelte-shims.d.ts', './svelte-jsx.d.ts'].map((f) =>
-        ts.sys.resolvePath(resolve(svelteTsPath, f)),
-    );
+    const svelteTsxFiles = [
+        './svelte-shims.d.ts',
+        './svelte-jsx.d.ts',
+        './svelte-native-jsx.d.ts',
+    ].map((f) => ts.sys.resolvePath(resolve(svelteTsPath, f)));
 
     const host: ts.LanguageServiceHost = {
         getCompilationSettings: () => compilerOptions,
@@ -163,7 +165,6 @@ export function createLanguageService(
             skipLibCheck: true,
             // these are needed to handle the results of svelte2tsx preprocessing:
             jsx: ts.JsxEmit.Preserve,
-            jsxFactory: 'h',
         };
 
         // always let ts parse config to get default compilerOption
@@ -192,15 +193,28 @@ export function createLanguageService(
         );
 
         const files = parsedConfig.fileNames;
-
-        const sveltePkgInfo = getPackageInfo('svelte', workspacePath || process.cwd());
-        const types = (parsedConfig.options?.types ?? [])
-            .concat(resolve(sveltePkgInfo.path, 'types', 'runtime'));
         const compilerOptions: ts.CompilerOptions = {
             ...parsedConfig.options,
-            types,
             ...forcedCompilerOptions,
         };
+
+        // detect which JSX namespace to use (svelte | svelteNative) if not specified or not compatible
+        if (!compilerOptions.jsxFactory || !compilerOptions.jsxFactory.startsWith('svelte')) {
+            //default to regular svelte, this causes the usage of the "svelte.JSX" namespace
+            compilerOptions.jsxFactory = 'svelte.createElement';
+
+            //override if we detect svelte-native
+            if (workspacePath) {
+                try {
+                    const svelteNativePkgInfo = getPackageInfo('svelte-native', workspacePath);
+                    if (svelteNativePkgInfo.path) {
+                        compilerOptions.jsxFactory = 'svelteNative.createElement';
+                    }
+                } catch (e) {
+                    //we stay regular svelte
+                }
+            }
+        }
 
         return { compilerOptions, files };
     }

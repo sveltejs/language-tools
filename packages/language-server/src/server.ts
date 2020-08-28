@@ -1,31 +1,35 @@
+import _ from 'lodash';
 import {
+    ApplyWorkspaceEditParams,
+    ApplyWorkspaceEditRequest,
+    CodeActionKind,
     createConnection,
+    DocumentUri,
+    IConnection,
     IPCMessageReader,
     IPCMessageWriter,
-    TextDocumentSyncKind,
-    RequestType,
-    TextDocumentPositionParams,
-    TextDocumentIdentifier,
-    IConnection,
-    CodeActionKind,
+    MessageType,
     RenameFile,
-    DocumentUri,
-    ApplyWorkspaceEditRequest,
-    ApplyWorkspaceEditParams,
+    RequestType,
+    ShowMessageNotification,
+    TextDocumentIdentifier,
+    TextDocumentPositionParams,
+    TextDocumentSyncKind,
+    WorkspaceEdit,
 } from 'vscode-languageserver';
-import { DocumentManager, Document } from './lib/documents';
-import {
-    SveltePlugin,
-    HTMLPlugin,
-    CSSPlugin,
-    TypeScriptPlugin,
-    PluginHost,
-    AppCompletionItem,
-} from './plugins';
-import _ from 'lodash';
-import { LSConfigManager } from './ls-config';
-import { urlToPath } from './utils';
+import { DiagnosticsManager } from './lib/DiagnosticsManager';
+import { Document, DocumentManager } from './lib/documents';
 import { Logger } from './logger';
+import { LSConfigManager } from './ls-config';
+import {
+    AppCompletionItem,
+    CSSPlugin,
+    HTMLPlugin,
+    PluginHost,
+    SveltePlugin,
+    TypeScriptPlugin,
+} from './plugins';
+import { urlToPath } from './utils';
 
 namespace TagCloseRequest {
     export const type: RequestType<
@@ -57,9 +61,17 @@ export interface LSOptions {
 export function startServer(options?: LSOptions) {
     let connection = options?.connection;
     if (!connection) {
-        connection = process.argv.includes('--stdio')
-            ? createConnection(process.stdin, process.stdout)
-            : createConnection(new IPCMessageReader(process), new IPCMessageWriter(process));
+        if (process.argv.includes('--stdio')) {
+            console.log = (...args: any[]) => {
+                console.warn(...args);
+            };
+            connection = createConnection(process.stdin, process.stdout);
+        } else {
+            connection = createConnection(
+                new IPCMessageReader(process),
+                new IPCMessageWriter(process),
+            );
+        }
     }
 
     if (options?.logErrorsOnly !== undefined) {
@@ -74,13 +86,14 @@ export function startServer(options?: LSOptions) {
     let sveltePlugin: SveltePlugin = undefined as any;
 
     connection.onInitialize((evt) => {
-        const workspacePath = urlToPath(evt.rootUri || '') || '';
-        Logger.log('Initialize language server at ', workspacePath);
-        if (!workspacePath) {
+        const workspaceUris = evt.workspaceFolders?.map(folder => folder.uri.toString())
+            ?? [evt.rootUri ?? ''];
+        Logger.log('Initialize language server at ', workspaceUris.join(', '));
+        if (workspaceUris.length === 0) {
             Logger.error('No workspace path set');
         }
 
-        pluginHost.initialize(!!evt.initializationOptions.dontFilterIncompleteCompletions);
+        pluginHost.initialize(!!evt.initializationOptions?.dontFilterIncompleteCompletions);
         pluginHost.updateConfig(evt.initializationOptions?.config);
         pluginHost.register(
             (sveltePlugin = new SveltePlugin(
@@ -90,7 +103,7 @@ export function startServer(options?: LSOptions) {
         );
         pluginHost.register(new HTMLPlugin(docManager, configManager));
         pluginHost.register(new CSSPlugin(docManager, configManager));
-        pluginHost.register(new TypeScriptPlugin(docManager, configManager, workspacePath));
+        pluginHost.register(new TypeScriptPlugin(docManager, configManager, workspaceUris));
 
         const clientSupportApplyEditCommand = !!evt.capabilities.workspace?.applyEdit;
 
@@ -99,6 +112,9 @@ export function startServer(options?: LSOptions) {
                 textDocumentSync: {
                     openClose: true,
                     change: TextDocumentSyncKind.Incremental,
+                    save: {
+                        includeText: false,
+                    },
                 },
                 hoverProvider: true,
                 completionProvider: {
@@ -156,6 +172,7 @@ export function startServer(options?: LSOptions) {
                               'constant_scope_1',
                               'constant_scope_2',
                               'constant_scope_3',
+                              'extract_to_svelte_component',
                           ],
                       }
                     : undefined,
@@ -175,7 +192,11 @@ export function startServer(options?: LSOptions) {
         pluginHost.updateConfig(settings.svelte?.plugin);
     });
 
-    connection.onDidOpenTextDocument((evt) => docManager.openDocument(evt.textDocument));
+    connection.onDidOpenTextDocument((evt) => {
+        docManager.openDocument(evt.textDocument);
+        docManager.markAsOpenedInClient(evt.textDocument.uri);
+    });
+
     connection.onDidCloseTextDocument((evt) => docManager.closeDocument(evt.textDocument.uri));
     connection.onDidChangeTextDocument((evt) =>
         docManager.updateDocument(evt.textDocument, evt.contentChanges),
@@ -204,9 +225,14 @@ export function startServer(options?: LSOptions) {
             evt.command,
             evt.arguments,
         );
-        if (result) {
+        if (WorkspaceEdit.is(result)) {
             const edit: ApplyWorkspaceEditParams = { edit: result };
             connection?.sendRequest(ApplyWorkspaceEditRequest.type.method, edit);
+        } else if (result) {
+            connection?.sendNotification(ShowMessageNotification.type.method, {
+                message: result,
+                type: MessageType.Error,
+            });
         }
     });
 
@@ -219,6 +245,13 @@ export function startServer(options?: LSOptions) {
 
         return pluginHost.resolveCompletion(data, completionItem);
     });
+
+    const diagnosticsManager = new DiagnosticsManager(
+        connection.sendDiagnostics,
+        docManager,
+        pluginHost.getDiagnostics.bind(pluginHost),
+    );
+
     connection.onDidChangeWatchedFiles((para) => {
         for (const change of para.changes) {
             const filename = urlToPath(change.uri);
@@ -226,17 +259,17 @@ export function startServer(options?: LSOptions) {
                 pluginHost.onWatchFileChanges(filename, change.type);
             }
         }
+
+        diagnosticsManager.updateAll();
     });
+    connection.onDidSaveTextDocument(() => diagnosticsManager.updateAll());
 
     docManager.on(
         'documentChange',
-        _.debounce(async (document: Document) => {
-            const diagnostics = await pluginHost.getDiagnostics({ uri: document.getURL() });
-            connection!.sendDiagnostics({
-                uri: document.getURL(),
-                diagnostics,
-            });
-        }, 500),
+        _.debounce(async (document: Document) => diagnosticsManager.update(document), 500),
+    );
+    docManager.on('documentClose', (document: Document) =>
+        diagnosticsManager.removeDiagnostics(document),
     );
 
     // The language server protocol does not have a specific "did rename/move files" event,
@@ -246,7 +279,7 @@ export function startServer(options?: LSOptions) {
     );
 
     connection.onRequest('$/getCompiledCode', async (uri: DocumentUri) => {
-        const doc = docManager.documents.get(uri);
+        const doc = docManager.get(uri);
         if (!doc) return null;
 
         if (doc) {

@@ -1,5 +1,5 @@
 import { RawSourceMap, SourceMapConsumer } from 'source-map';
-import svelte2tsx from 'svelte2tsx';
+import svelte2tsx, { IExportedNames, ComponentEvents } from 'svelte2tsx';
 import ts from 'typescript';
 import { Position, Range } from 'vscode-languageserver';
 import {
@@ -11,11 +11,15 @@ import {
     positionAt,
     TagInformation,
     isInTag,
-    extractScriptTags,
 } from '../../lib/documents';
 import { pathToUrl } from '../../utils';
 import { ConsumerDocumentMapper } from './DocumentMapper';
-import { getScriptKindFromAttributes, getScriptKindFromFileName, isSvelteFilePath } from './utils';
+import {
+    getScriptKindFromAttributes,
+    getScriptKindFromFileName,
+    isSvelteFilePath,
+    getTsCheckComment,
+} from './utils';
 
 /**
  * An error which occured while trying to parse/preprocess the svelte file contents.
@@ -78,12 +82,26 @@ export namespace DocumentSnapshot {
      * @param options options that apply to the svelte document
      */
     export function fromDocument(document: Document, options: SvelteSnapshotOptions) {
-        const { tsxMap, text, parserError, nrPrependedLines } = preprocessSvelteFile(
-            document,
-            options,
-        );
+        const {
+            tsxMap,
+            text,
+            exportedNames,
+            componentEvents,
+            parserError,
+            nrPrependedLines,
+            scriptKind,
+        } = preprocessSvelteFile(document, options);
 
-        return new SvelteDocumentSnapshot(document, parserError, text, nrPrependedLines, tsxMap);
+        return new SvelteDocumentSnapshot(
+            document,
+            parserError,
+            scriptKind,
+            text,
+            nrPrependedLines,
+            exportedNames,
+            componentEvents,
+            tsxMap,
+        );
     }
 
     /**
@@ -110,18 +128,32 @@ function preprocessSvelteFile(document: Document, options: SvelteSnapshotOptions
     let parserError: ParserError | null = null;
     let nrPrependedLines = 0;
     let text = document.getText();
+    let exportedNames: IExportedNames = { has: () => false };
+    let componentEvents: ComponentEvents | undefined = undefined;
+
+    const scriptKind = [
+        getScriptKindFromAttributes(document.scriptInfo?.attributes ?? {}),
+        getScriptKindFromAttributes(document.moduleScriptInfo?.attributes ?? {}),
+    ].includes(ts.ScriptKind.TSX)
+        ? ts.ScriptKind.TSX
+        : ts.ScriptKind.JSX;
 
     try {
-        const tsx = svelte2tsx(text, { strictMode: options.strictMode });
+        const tsx = svelte2tsx(text, {
+            strictMode: options.strictMode,
+            filename: document.getFilePath() ?? undefined,
+            isTsFile: scriptKind === ts.ScriptKind.TSX,
+        });
         text = tsx.code;
         tsxMap = tsx.map;
+        exportedNames = tsx.exportedNames;
+        componentEvents = tsx.events;
         if (tsxMap) {
             tsxMap.sources = [document.uri];
 
-            const tsCheck = document.scriptInfo?.content.match(tsCheckRegex);
+            const tsCheck = getTsCheckComment(document.scriptInfo?.content);
             if (tsCheck) {
-                // second-last entry is the capturing group with the exact ts-check wording
-                text = `//${tsCheck[tsCheck.length - 3]}${ts.sys.newLine}` + text;
+                text = tsCheck + text;
                 nrPrependedLines = 1;
             }
         }
@@ -143,7 +175,15 @@ function preprocessSvelteFile(document: Document, options: SvelteSnapshotOptions
         text = document.scriptInfo ? document.scriptInfo.content : '';
     }
 
-    return { tsxMap, text, parserError, nrPrependedLines };
+    return {
+        tsxMap,
+        text,
+        exportedNames,
+        componentEvents,
+        parserError,
+        nrPrependedLines,
+        scriptKind,
+    };
 }
 
 /**
@@ -151,34 +191,22 @@ function preprocessSvelteFile(document: Document, options: SvelteSnapshotOptions
  */
 export class SvelteDocumentSnapshot implements DocumentSnapshot {
     private fragment?: SvelteSnapshotFragment;
-    private _scriptKind?: ts.ScriptKind;
 
     version = this.parent.version;
 
     constructor(
         private readonly parent: Document,
         public readonly parserError: ParserError | null,
+        public readonly scriptKind: ts.ScriptKind,
         private readonly text: string,
         private readonly nrPrependedLines: number,
+        private readonly exportedNames: IExportedNames,
+        private readonly componentEvents?: ComponentEvents,
         private readonly tsxMap?: RawSourceMap,
     ) {}
 
     get filePath() {
         return this.parent.getFilePath() || '';
-    }
-
-    get scriptKind() {
-        if (!this._scriptKind) {
-            const scriptTags = extractScriptTags(this.parent.getText());
-            const scriptKind = getScriptKindFromAttributes(scriptTags?.script?.attributes ?? {});
-            const moduleScriptKind = getScriptKindFromAttributes(
-                scriptTags?.moduleScript?.attributes ?? {},
-            );
-            this._scriptKind = [scriptKind, moduleScriptKind].includes(ts.ScriptKind.TSX)
-                ? ts.ScriptKind.TSX
-                : ts.ScriptKind.JSX;
-        }
-        return this._scriptKind;
     }
 
     getText(start: number, end: number) {
@@ -195,6 +223,14 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
 
     positionAt(offset: number) {
         return positionAt(offset, this.text);
+    }
+
+    hasProp(name: string): boolean {
+        return this.exportedNames.has(name);
+    }
+
+    getEvents() {
+        return this.componentEvents?.getAll() || [];
     }
 
     async getFragment() {
@@ -327,13 +363,3 @@ export class SvelteSnapshotFragment implements SnapshotFragment {
         }
     }
 }
-
-// The following regex matches @ts-check or @ts-nocheck if:
-// - it is before the first line of code (so other lines with comments before it are ok)
-// - must be @ts-(no)check
-// - the comment which has @ts-(no)check can have any type of whitespace before it, but not other characters
-// - what's coming after @ts-(no)check is irrelevant as long there is any kind of whitespace or line break, so this would be picked up, too: // @ts-check asdasd
-// [ \t\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff]
-// is just \s (a.k.a any whitespace character) without linebreak and vertical tab
-// eslint-disable-next-line
-const tsCheckRegex = /^(\s*(\/\/[ \t\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff\S]*)*\s*)*(\/\/[ \t\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff]*(@ts-(no)?check)($|\s))/;
