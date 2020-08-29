@@ -216,17 +216,12 @@ export function createLanguageService(
 
     function getSvelte2TsxFiles() {
         const svelteTsPath = dirname(require.resolve('svelte2tsx'));
-        let svelteTsxFiles = [
+        return [
             './svelte-shims.d.ts',
             './svelte-jsx.d.ts',
             './svelte-native-jsx.d.ts',
-        ];
-        try {
-            if (workspacePath && getPackageInfo('sapper', workspacePath).path) {
-                svelteTsxFiles.push('./sapper-shims.d.ts');
-            }
-        } catch (e) {}
-        return svelteTsxFiles.map((f) => ts.sys.resolvePath(resolve(svelteTsPath, f)));
+            './sapper-shims.d.ts',
+        ].map((f) => ts.sys.resolvePath(resolve(svelteTsPath, f)));
     }
 
     /**
