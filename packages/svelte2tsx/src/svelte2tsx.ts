@@ -51,7 +51,7 @@ class Scope {
     }
 
     isInsideFunction(name: string) {
-        return this.functionName === name || this.parent.isInsideFunction(name);
+        return this.functionName === name || !!this.parent?.isInsideFunction(name);
     }
 }
 
