@@ -65,12 +65,7 @@ export function createLanguageService(
 
     const svelteModuleLoader = createSvelteModuleLoader(getSnapshot, compilerOptions);
 
-    const svelteTsPath = dirname(require.resolve('svelte2tsx'));
-    const svelteTsxFiles = [
-        './svelte-shims.d.ts',
-        './svelte-jsx.d.ts',
-        './svelte-native-jsx.d.ts',
-    ].map((f) => ts.sys.resolvePath(resolve(svelteTsPath, f)));
+    const svelte2TsxFiles = getSvelte2TsxFiles();
 
     const host: ts.LanguageServiceHost = {
         getCompilationSettings: () => compilerOptions,
@@ -79,7 +74,7 @@ export function createLanguageService(
                 new Set([
                     ...snapshotManager.getProjectFileNames(),
                     ...snapshotManager.getFileNames(),
-                    ...svelteTsxFiles,
+                    ...svelte2TsxFiles,
                 ]),
             ),
         getScriptVersion: (fileName: string) => getSnapshot(fileName).version.toString(),
@@ -217,6 +212,21 @@ export function createLanguageService(
         }
 
         return { compilerOptions, files };
+    }
+
+    function getSvelte2TsxFiles() {
+        const svelteTsPath = dirname(require.resolve('svelte2tsx'));
+        let svelteTsxFiles = [
+            './svelte-shims.d.ts',
+            './svelte-jsx.d.ts',
+            './svelte-native-jsx.d.ts',
+        ];
+        try {
+            if (workspacePath && getPackageInfo('sapper', workspacePath).path) {
+                svelteTsxFiles.push('./sapper-shims.d.ts');
+            }
+        } catch (e) {}
+        return svelteTsxFiles.map((f) => ts.sys.resolvePath(resolve(svelteTsPath, f)));
     }
 
     /**

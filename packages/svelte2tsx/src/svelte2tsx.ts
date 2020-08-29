@@ -26,7 +26,7 @@ import {
 } from './nodes/ComponentEvents';
 import {
     handleScopeAndResolveLetVarForSlot,
-    handleScopeAndResolveForSlot
+    handleScopeAndResolveForSlot,
 } from './nodes/handleScopeAndResolveForSlot';
 
 type TemplateProcessResult = {
@@ -43,10 +43,15 @@ type TemplateProcessResult = {
 
 class Scope {
     declared: Set<string> = new Set();
+    functionName?: string;
     parent: Scope;
 
     constructor(parent?: Scope) {
         this.parent = parent;
+    }
+
+    isInsideFunction(name: string) {
+        return this.functionName === name || this.parent.isInsideFunction(name);
     }
 }
 
@@ -218,8 +223,7 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
                 if (astUtil.isObjectKey(parent, prop)) return;
                 scope.declared.add(node.name);
             } else {
-                if (astUtil.isMember(parent, prop) && !parent.computed)
-                    return;
+                if (astUtil.isMember(parent, prop) && !parent.computed) return;
                 if (astUtil.isObjectKey(parent, prop)) return;
                 pendingStoreResolutions.push({ node, parent, scope });
             }
@@ -265,7 +269,6 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
             });
     };
 
-
     const handleStyleTag = (node: Node) => {
         str.remove(node.start, node.end);
     };
@@ -301,7 +304,7 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
                 slotName,
                 slotHandler,
                 templateScope,
-                component
+                component,
             });
         }
     };
@@ -309,7 +312,7 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
     const handleScopeAndResolveForSlotInner = (
         identifierDef: Node,
         initExpression: Node,
-        owner: Node
+        owner: Node,
     ) => {
         handleScopeAndResolveForSlot({
             identifierDef,
@@ -878,6 +881,58 @@ function processInstanceScriptContent(
     };
 }
 
+function processModuleScriptContent(str: MagicString, script: Node): void {
+    const htmlx = str.original;
+    const scriptContent = htmlx.substring(script.content.start, script.content.end);
+    const tsAst = ts.createSourceFile(
+        'component.ts.svelte',
+        scriptContent,
+        ts.ScriptTarget.Latest,
+        true,
+        ts.ScriptKind.TS,
+    );
+    const astOffset = script.content.start;
+
+    let scope = new Scope();
+
+    const pushScope = () => (scope = new Scope(scope));
+    const popScope = () => (scope = scope.parent);
+
+    const walk = (node: ts.Node, parent: ts.Node) => {
+        type onLeaveCallback = () => void;
+        const onLeaveCallbacks: onLeaveCallback[] = [];
+
+        if (ts.isFunctionDeclaration(node)) {
+            pushScope();
+            scope.functionName = node.name?.text;
+            onLeaveCallbacks.push(() => popScope());
+        }
+
+        if (node.kind === ts.SyntaxKind.ThisKeyword && scope.isInsideFunction('preload')) {
+            str.overwrite(
+                astOffset + node.getStart(),
+                astOffset + node.getEnd(),
+                '__sapperPreloadGlobals',
+            );
+        }
+
+        if (ts.isArrowFunction(node)) {
+            pushScope();
+            if (ts.isVariableDeclaration(parent) && ts.isIdentifier(parent.name)) {
+                scope.functionName = parent.name.text;
+            }
+            onLeaveCallbacks.push(() => popScope());
+        }
+
+        ts.forEachChild(node, (n) => walk(n, node));
+        //fire off the on leave callbacks
+        onLeaveCallbacks.map((c) => c());
+    };
+
+    //walk the ast and convert to tsx as we go
+    tsAst.forEachChild((n) => walk(n, tsAst));
+}
+
 function formatComponentDocumentation(contents?: string | null) {
     if (!contents) return '';
     if (!contents.includes('\n')) {
@@ -1073,6 +1128,9 @@ export function svelte2tsx(
         uses$$slots = uses$$slots || res.uses$$slots;
 
         ({ exportedNames, events, getters } = res);
+    }
+    if (moduleScriptTag) {
+        processModuleScriptContent(str, moduleScriptTag);
     }
 
     //wrap the script tag and template content in a function returning the slot and exports
