@@ -94,7 +94,7 @@ export function startServer(options?: LSOptions) {
         }
 
         pluginHost.initialize(!!evt.initializationOptions?.dontFilterIncompleteCompletions);
-        pluginHost.updateConfig(evt.initializationOptions?.config);
+        pluginHost.updateConfig(evt.initializationOptions?.config || {});
         pluginHost.register(
             (sveltePlugin = new SveltePlugin(
                 configManager,
