@@ -15,13 +15,12 @@ import {
 import {
     Document,
     DocumentManager,
-    mapColorInformationToOriginal,
     mapColorPresentationToOriginal,
     mapCompletionItemToOriginal,
-    mapDiagnosticToOriginal,
-    mapHoverToParent,
     mapRangeToGenerated,
     mapSymbolInformationToOriginal,
+    mapObjWithRangeToOriginal,
+    mapHoverToParent,
 } from '../../lib/documents';
 import { LSConfigManager, LSCSSConfig } from '../../ls-config';
 import {
@@ -76,7 +75,7 @@ export class CSSPlugin
         return getLanguageService(kind)
             .doValidation(cssDocument, cssDocument.stylesheet)
             .map((diagnostic) => ({ ...diagnostic, source: getLanguage(kind) }))
-            .map((diagnostic) => mapDiagnosticToOriginal(cssDocument, diagnostic));
+            .map((diagnostic) => mapObjWithRangeToOriginal(cssDocument, diagnostic));
     }
 
     doHover(document: Document, position: Position): Hover | null {
@@ -171,7 +170,7 @@ export class CSSPlugin
 
         return getLanguageService(extractLanguage(cssDocument))
             .findDocumentColors(cssDocument, cssDocument.stylesheet)
-            .map((colorInfo) => mapColorInformationToOriginal(cssDocument, colorInfo));
+            .map((colorInfo) => mapObjWithRangeToOriginal(cssDocument, colorInfo));
     }
 
     getColorPresentations(document: Document, range: Range, color: Color): ColorPresentation[] {

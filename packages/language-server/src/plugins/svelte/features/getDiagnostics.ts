@@ -1,6 +1,6 @@
 import { Warning } from 'svelte/types/compiler/interfaces';
 import { Diagnostic, DiagnosticSeverity, Position, Range } from 'vscode-languageserver';
-import { Document, isInTag, mapDiagnosticToOriginal } from '../../../lib/documents';
+import { Document, isInTag, mapObjWithRangeToOriginal } from '../../../lib/documents';
 import { Logger } from '../../../logger';
 import { SvelteDocument, TranspileErrorSource } from '../SvelteDocument';
 import { CompilerWarningsSettings } from '../../../ls-config';
@@ -53,10 +53,10 @@ async function tryGetDiagnostics(
                     code: warning.code,
                 };
             })
-            .map((diag) => mapDiagnosticToOriginal(transpiled, diag));
+            .map((diag) => mapObjWithRangeToOriginal(transpiled, diag));
     } catch (err) {
         return (await createParserErrorDiagnostic(err, document)).map((diag) =>
-            mapDiagnosticToOriginal(transpiled, diag),
+            mapObjWithRangeToOriginal(transpiled, diag),
         );
     }
 }

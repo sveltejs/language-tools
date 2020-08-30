@@ -11,7 +11,7 @@ import {
     TextEdit,
     VersionedTextDocumentIdentifier,
 } from 'vscode-languageserver';
-import { mapTextEditToOriginal, offsetAt, positionAt } from '../../../../lib/documents';
+import { mapObjWithRangeToOriginal, offsetAt, positionAt } from '../../../../lib/documents';
 import { pathToUrl } from '../../../../utils';
 import { SvelteDocument } from '../../SvelteDocument';
 import ts from 'typescript';
@@ -119,7 +119,7 @@ async function getSvelteIgnoreEdit(svelteDoc: SvelteDocument, ast: Ast, diagnost
     const ignore = `${indent}<!-- svelte-ignore ${code} -->${EOL}`;
     const position = Position.create(nodeStartPosition.line, 0);
 
-    return mapTextEditToOriginal(transpiled, TextEdit.insert(position, ignore));
+    return mapObjWithRangeToOriginal(transpiled, TextEdit.insert(position, ignore));
 }
 
 const elementOrComponent = ['Component', 'Element', 'InlineComponent'];

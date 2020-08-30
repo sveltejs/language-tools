@@ -1,12 +1,9 @@
 import {
     Position,
     Range,
-    TextEdit,
-    Location,
     CompletionItem,
     Hover,
     Diagnostic,
-    ColorInformation,
     ColorPresentation,
     SymbolInformation,
     LocationLink,
@@ -217,20 +214,6 @@ export function mapRangeToGenerated(fragment: DocumentMapper, range: Range): Ran
     );
 }
 
-export function mapTextEditToOriginal(
-    fragment: Pick<DocumentMapper, 'getOriginalPosition'>,
-    edit: TextEdit,
-): TextEdit {
-    return { ...edit, range: mapRangeToOriginal(fragment, edit.range) };
-}
-
-export function mapLocationToOriginal(
-    fragment: Pick<DocumentMapper, 'getOriginalPosition'>,
-    loc: Location,
-): Location {
-    return { ...loc, range: mapRangeToOriginal(fragment, loc.range) };
-}
-
 export function mapCompletionItemToOriginal(
     fragment: Pick<DocumentMapper, 'getOriginalPosition'>,
     item: CompletionItem,
@@ -239,7 +222,7 @@ export function mapCompletionItemToOriginal(
         return item;
     }
 
-    return { ...item, textEdit: mapTextEditToOriginal(fragment, item.textEdit) };
+    return { ...item, textEdit: mapObjWithRangeToOriginal(fragment, item.textEdit) };
 }
 
 export function mapHoverToParent(
@@ -253,11 +236,11 @@ export function mapHoverToParent(
     return { ...hover, range: mapRangeToOriginal(fragment, hover.range) };
 }
 
-export function mapDiagnosticToOriginal(
+export function mapObjWithRangeToOriginal<T extends {range: Range}>(
     fragment: Pick<DocumentMapper, 'getOriginalPosition'>,
-    diagnostic: Diagnostic,
-): Diagnostic {
-    return { ...diagnostic, range: mapRangeToOriginal(fragment, diagnostic.range) };
+    objWithRange: T,
+): T {
+    return { ...objWithRange, range: mapRangeToOriginal(fragment, objWithRange.range) };
 }
 
 export function mapDiagnosticToGenerated(
@@ -267,12 +250,6 @@ export function mapDiagnosticToGenerated(
     return { ...diagnostic, range: mapRangeToGenerated(fragment, diagnostic.range) };
 }
 
-export function mapColorInformationToOriginal(
-    fragment: Pick<DocumentMapper, 'getOriginalPosition'>,
-    info: ColorInformation,
-): ColorInformation {
-    return { ...info, range: mapRangeToOriginal(fragment, info.range) };
-}
 
 export function mapColorPresentationToOriginal(
     fragment: Pick<DocumentMapper, 'getOriginalPosition'>,
@@ -283,12 +260,12 @@ export function mapColorPresentationToOriginal(
     };
 
     if (item.textEdit) {
-        item.textEdit = mapTextEditToOriginal(fragment, item.textEdit);
+        item.textEdit = mapObjWithRangeToOriginal(fragment, item.textEdit);
     }
 
     if (item.additionalTextEdits) {
         item.additionalTextEdits = item.additionalTextEdits.map((edit) =>
-            mapTextEditToOriginal(fragment, edit),
+        mapObjWithRangeToOriginal(fragment, edit),
         );
     }
 
@@ -299,7 +276,7 @@ export function mapSymbolInformationToOriginal(
     fragment: Pick<DocumentMapper, 'getOriginalPosition'>,
     info: SymbolInformation,
 ): SymbolInformation {
-    return { ...info, location: mapLocationToOriginal(fragment, info.location) };
+    return { ...info, location: mapObjWithRangeToOriginal(fragment, info.location) };
 }
 
 export function mapLocationLinkToOriginal(
@@ -327,7 +304,7 @@ export function mapTextDocumentEditToOriginal(fragment: DocumentMapper, edit: Te
 
     return TextDocumentEdit.create(
         edit.textDocument,
-        edit.edits.map((textEdit) => mapTextEditToOriginal(fragment, textEdit)),
+        edit.edits.map((textEdit) => mapObjWithRangeToOriginal(fragment, textEdit)),
     );
 }
 
