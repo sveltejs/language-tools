@@ -1,6 +1,6 @@
 import ts from 'typescript';
 import { Hover, Position } from 'vscode-languageserver';
-import { Document, getWordAt, mapHoverToParent } from '../../../lib/documents';
+import { Document, getWordAt, mapObjWithRangeToOriginal } from '../../../lib/documents';
 import { HoverProvider } from '../../interfaces';
 import { SvelteDocumentSnapshot, SvelteSnapshotFragment } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
@@ -38,7 +38,7 @@ export class HoverProviderImpl implements HoverProvider {
             .concat(documentation ? ['---', documentation] : [])
             .join('\n');
 
-        return mapHoverToParent(fragment, {
+        return mapObjWithRangeToOriginal(fragment, {
             range: convertRange(fragment, info.textSpan),
             contents,
         });

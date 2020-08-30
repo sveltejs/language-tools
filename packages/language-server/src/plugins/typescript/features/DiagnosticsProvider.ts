@@ -1,6 +1,6 @@
 import ts from 'typescript';
 import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver';
-import { Document, mapDiagnosticToOriginal, getTextInRange } from '../../../lib/documents';
+import { Document, mapObjWithRangeToOriginal, getTextInRange } from '../../../lib/documents';
 import { DiagnosticsProvider } from '../../interfaces';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { convertRange, mapSeverity } from '../utils';
@@ -42,7 +42,7 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
                 message: ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n'),
                 code: diagnostic.code,
             }))
-            .map((diagnostic) => mapDiagnosticToOriginal(fragment, diagnostic))
+            .map((diagnostic) => mapObjWithRangeToOriginal(fragment, diagnostic))
             .filter(hasNoNegativeLines)
             .filter(isNoFalsePositive(document.getText(), tsDoc));
     }
