@@ -45,7 +45,7 @@ declare class Svelte2TsxComponent<
      * Causes the callback function to be called whenever the component dispatches an event.
      * A function is returned that will remove the event listener when called.
      */
-    $on<K extends keyof Events>(event: K, handler: (e: Events[K]) => any): void;
+    $on<K extends keyof Events>(event: K, handler: (e: Events[K]) => any): () => void;
     /**
      * Removes a component from the DOM and triggers any `onDestroy` handlers.
      */
@@ -56,6 +56,10 @@ declare class Svelte2TsxComponent<
      * Calling this method schedules an update for the next microtask — the DOM is __not__ updated synchronously.
      */
     $set(props: Partial<Props>): void;
+    // From SvelteComponent(Dev) definition
+    $$: any;
+    $capture_state(): void;
+    $inject_state(): void;
 }
 
 type AConstructorTypeOf<T> = new (...args: any[]) => T;

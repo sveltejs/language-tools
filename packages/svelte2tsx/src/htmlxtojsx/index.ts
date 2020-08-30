@@ -524,6 +524,13 @@ export function convertHtmlxToJsx(
         // {__sveltets_each(items, (item,i) => (key) && <>
         str.overwrite(eachBlock.start, eachBlock.expression.start, '{__sveltets_each(');
         str.overwrite(eachBlock.expression.end, eachBlock.context.start, ', (');
+
+        // {#each true, items as item}
+        if (eachBlock.expression.type === 'SequenceExpression') {
+            str.appendRight(eachBlock.expression.start, '(');
+            str.appendLeft(eachBlock.expression.end, ')');
+        }
+
         let contextEnd = eachBlock.context.end;
         if (eachBlock.index) {
             const idxLoc = htmlx.indexOf(eachBlock.index, contextEnd);

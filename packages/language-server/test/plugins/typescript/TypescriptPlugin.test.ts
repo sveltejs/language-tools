@@ -1,8 +1,8 @@
 import * as assert from 'assert';
 import * as path from 'path';
 import ts from 'typescript';
-import { FileChangeType, Hover, Position } from 'vscode-languageserver';
-import { DocumentManager, Document } from '../../../src/lib/documents';
+import { FileChangeType, Position } from 'vscode-languageserver';
+import { Document, DocumentManager } from '../../../src/lib/documents';
 import { LSConfigManager } from '../../../src/ls-config';
 import { TypeScriptPlugin } from '../../../src/plugins';
 import { INITIAL_VERSION } from '../../../src/plugins/typescript/DocumentSnapshot';
@@ -24,42 +24,6 @@ describe('TypescriptPlugin', () => {
         docManager.openDocument(<any>'some doc');
         return { plugin, document };
     }
-
-    it('provides basic hover info when no docstring exists', async () => {
-        const { plugin, document } = setup('hoverinfo.svelte');
-
-        assert.deepStrictEqual(await plugin.doHover(document, Position.create(4, 10)), <Hover>{
-            contents: '```typescript\nconst withoutDocs: true\n```',
-            range: {
-                start: {
-                    character: 10,
-                    line: 4,
-                },
-                end: {
-                    character: 21,
-                    line: 4,
-                },
-            },
-        });
-    });
-
-    it('provides formatted hover info when a docstring exists', async () => {
-        const { plugin, document } = setup('hoverinfo.svelte');
-
-        assert.deepStrictEqual(await plugin.doHover(document, Position.create(2, 10)), <Hover>{
-            contents: '```typescript\nconst withDocs: true\n```\n---\nDocumentation string',
-            range: {
-                start: {
-                    character: 10,
-                    line: 2,
-                },
-                end: {
-                    character: 18,
-                    line: 2,
-                },
-            },
-        });
-    });
 
     it('provides document symbols', async () => {
         const { plugin, document } = setup('documentsymbols.svelte');
