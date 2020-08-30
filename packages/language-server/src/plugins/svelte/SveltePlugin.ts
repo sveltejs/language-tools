@@ -69,7 +69,9 @@ export class SveltePlugin
         const config =
             (await prettier.resolveConfig(filePath, { editorconfig: true })) || this.prettierConfig;
         // Take .prettierignore into account
-        const fileInfo = await prettier.getFileInfo(filePath, {ignorePath: this.prettierConfig?.ignorePath})
+        const fileInfo = await prettier.getFileInfo(filePath, {
+            ignorePath: this.prettierConfig?.ignorePath,
+        });
         if (fileInfo.ignored) {
             Logger.log('File is ignored, formatting skipped');
             return [];
