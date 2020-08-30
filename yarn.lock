@@ -1632,15 +1632,15 @@ prelude-ls@^1.2.1:
   resolved "https://registry.yarnpkg.com/prelude-ls/-/prelude-ls-1.2.1.tgz#debc6489d7a6e6b0e7611888cec880337d316396"
   integrity sha512-vkcDPrRZo1QZLbn5RLGPpg/WmIQ65qoWWhcGKf/b5eplkkarX0m9z8ppCat4mlOqUsWpyNuYgO3VRyrYHSzX5g==
 
-prettier-plugin-svelte@~1.1.1:
-  version "1.1.1"
-  resolved "https://registry.yarnpkg.com/prettier-plugin-svelte/-/prettier-plugin-svelte-1.1.1.tgz#610f5a0e2b59d1a9b7bbf7625560ed7609d078f9"
-  integrity sha512-Us0mEQh/Gl4FdHbdkBgY24a3zydQXzbRRdaiFTLzKR4bHmRDiqadoBFM+XJYVv1u5rySGtYQt0wU9ZxLh85c/Q==
+prettier-plugin-svelte@~1.2.0:
+  version "1.2.0"
+  resolved "https://registry.yarnpkg.com/prettier-plugin-svelte/-/prettier-plugin-svelte-1.2.0.tgz#64088163656470e7d5c83106aea804a1c2c71efb"
+  integrity sha512-D6Yh8WIk/8BDtJ6BN5vFMylCcdbiQbB2px5UPIiBCp1MbEqpEbVfWyOJPKnVc0xkvlr2CoCRXJcNbHtnh0JM9w==
 
-prettier@2.0.5:
-  version "2.0.5"
-  resolved "https://registry.yarnpkg.com/prettier/-/prettier-2.0.5.tgz#d6d56282455243f2f92cc1716692c08aa31522d4"
-  integrity sha512-7PtVymN48hGcO4fGjybyBSIWDsLU4H4XlvOHfq91pz9kkGlonzwTfYkaIEwiRg/dAJF9YlbsduBAgtYLi+8cFg==
+prettier@2.1.1:
+  version "2.1.1"
+  resolved "https://registry.yarnpkg.com/prettier/-/prettier-2.1.1.tgz#d9485dd5e499daa6cb547023b87a6cf51bee37d6"
+  integrity sha512-9bY+5ZWCfqj3ghYBLxApy2zf6m+NJo5GzmLTpr9FsApsfjriNnS2dahWReHMi7qNPhhHl9SYHJs2cHZLgexNIw==
 
 progress@^2.0.0:
   version "2.0.3"
