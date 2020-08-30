@@ -716,6 +716,40 @@
         sapperNoscroll?: true;
     }
 
+    interface SvelteMediaTimeRange {
+        start: number;
+        end: number;
+    }
+
+    interface SvelteMediaProps {
+        readonly duration?: number;
+        readonly buffered?: SvelteMediaTimeRange[];
+        readonly played?: SvelteMediaTimeRange[];
+        readonly seekable?: SvelteMediaTimeRange[];
+        readonly seeking?: boolean;
+        readonly ended?: boolean;
+
+        /**
+         * the current playback time in the video, in seconds
+         */
+        currentTime?: number;
+        /**
+         * how fast or slow to play the video, where 1 is 'normal'
+         */
+        playbackRate?: number;
+        paused?: boolean;
+        /**
+         * a value between 0 and 1
+         */
+        volume?: number;
+        muted?: boolean;
+    }
+
+    interface SvelteVideoProps extends SvelteMediaProps {
+        readonly videoWidth?: number;
+        readonly videoHeight?: number;
+    }
+
     interface IntrinsicElements {
       // HTML
       a: HTMLProps<HTMLAnchorElement> & SapperAnchorProps;
@@ -724,7 +758,7 @@
       area: HTMLProps<HTMLAreaElement>;
       article: HTMLProps<HTMLElement>;
       aside: HTMLProps<HTMLElement>;
-      audio: HTMLProps<HTMLAudioElement>;
+      audio: HTMLProps<HTMLAudioElement> & SvelteMediaProps;
       b: HTMLProps<HTMLElement>;
       base: HTMLProps<HTMLBaseElement>;
       bdi: HTMLProps<HTMLElement>;
@@ -830,7 +864,7 @@
       u: HTMLProps<HTMLElement>;
       ul: HTMLProps<HTMLUListElement>;
       var: HTMLProps<HTMLElement>;
-      video: HTMLProps<HTMLVideoElement>;
+      video: HTMLProps<HTMLVideoElement> & SvelteVideoProps;
       wbr: HTMLProps<HTMLElement>;
 
       svg: SVGProps<SVGSVGElement>;
