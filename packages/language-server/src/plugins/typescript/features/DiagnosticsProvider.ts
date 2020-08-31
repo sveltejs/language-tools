@@ -117,7 +117,9 @@ function enhanceIfNecessary(diagnostic: Diagnostic): Diagnostic {
             message:
                 `Type definitions are missing for this Svelte Component. ` +
                 // eslint-disable-next-line max-len
-                `It needs a class definition with at least the property '$$prop_def' which should contain a map of input property definitions.\n\n` +
+                `It needs a class definition with at least the property '$$prop_def' which should contain a map of input property definitions.\n` +
+                `Example:\n` +
+                `class ComponentName { $$prop_def: { propertyName: string; } }\n\n` +
                 diagnostic.message,
         };
     }
