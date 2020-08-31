@@ -11,6 +11,8 @@ If you have previously installed the old "Svelte" extension by James Birtles, un
 -   Through the UI: You can find it when searching for `@installed` in the extensions window (searching `Svelte` won't work).
 -   Command line: `code --uninstall-extension JamesBirtles.svelte-vscode`
 
+You need at least VSCode version `1.41.0`.
+
 Do you want to use TypeScript/SCSS/Less/..? [See the docs](/docs/README.md#language-specific-setup).
 
 More docs and troubleshooting: [See here](/docs/README.md).
