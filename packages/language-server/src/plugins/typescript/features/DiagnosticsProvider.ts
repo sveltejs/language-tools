@@ -44,7 +44,8 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
             }))
             .map((diagnostic) => mapObjWithRangeToOriginal(fragment, diagnostic))
             .filter(hasNoNegativeLines)
-            .filter(isNoFalsePositive(document.getText(), tsDoc));
+            .filter(isNoFalsePositive(document.getText(), tsDoc))
+            .map(enhanceIfNecessary);
     }
 
     private getLSAndTSDoc(document: Document) {
@@ -104,4 +105,22 @@ function isNoUnusedLabelWarningForReactiveStatement(diagnostic: Diagnostic) {
  */
 function isNoJsxCannotHaveMultipleAttrsError(diagnostic: Diagnostic) {
     return diagnostic.code !== 17001;
+}
+
+/**
+ * Some diagnostics have JSX-specific nomenclature. Enhance them for more clarity.
+ */
+function enhanceIfNecessary(diagnostic: Diagnostic): Diagnostic {
+    if (diagnostic.code === 2786) {
+        return {
+            ...diagnostic,
+            message:
+                `Type definitions are missing for this Svelte Component. ` +
+                // eslint-disable-next-line max-len
+                `It needs a class definition with at least the property '$$prop_def' which should contain a map of input property definitions.\n\n` +
+                diagnostic.message,
+        };
+    }
+
+    return diagnostic;
 }
