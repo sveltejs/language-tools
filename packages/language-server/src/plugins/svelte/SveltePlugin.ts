@@ -24,6 +24,7 @@ import { getCompletions } from './features/getCompletions';
 import { getDiagnostics } from './features/getDiagnostics';
 import { getHoverInfo } from './features/getHoverInfo';
 import { SvelteCompileResult, SvelteDocument } from './SvelteDocument';
+import { Logger } from '../../logger';
 
 export class SveltePlugin
     implements
@@ -67,6 +68,15 @@ export class SveltePlugin
         // Try resolving the config through prettier and fall back to possible editor config
         const config =
             (await prettier.resolveConfig(filePath, { editorconfig: true })) || this.prettierConfig;
+        // Take .prettierignore into account
+        const fileInfo = await prettier.getFileInfo(filePath, {
+            ignorePath: this.prettierConfig?.ignorePath ?? '.prettierignore',
+        });
+        if (fileInfo.ignored) {
+            Logger.log('File is ignored, formatting skipped');
+            return [];
+        }
+
         const formattedCode = prettier.format(document.getText(), {
             ...config,
             plugins: getSveltePlugin(),
