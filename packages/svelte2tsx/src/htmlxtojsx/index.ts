@@ -354,10 +354,10 @@ export function convertHtmlxToJsx(
     };
 
     const handleAttribute = (attr: Node, parent: Node) => {
+        const sapperNoScroll = attr.name === 'sapper:noscroll';
         //if we are on an "element" we are case insensitive, lowercase to match our JSX
         if (parent.type == 'Element') {
             //skip Attribute shorthand, that is handled below
-            const sapperNoScroll = attr.name === 'sapper:noscroll';
             if (
                 (attr.value !== true &&
                     !(
@@ -384,7 +384,12 @@ export function convertHtmlxToJsx(
         }
 
         //we are a bare attribute
-        if (attr.value === true) return;
+        if (attr.value === true) {
+            if (parent.type === 'Element' && !sapperNoScroll && parent.name !== '!DOCTYPE') {
+                str.overwrite(attr.start, attr.end, attr.name.toLowerCase());
+            }
+            return;
+        }
 
         if (attr.value.length == 0) return; //wut?
         //handle single value
