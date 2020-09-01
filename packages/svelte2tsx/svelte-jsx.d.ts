@@ -248,14 +248,17 @@
       content?: string;
       contenteditable?: "true" | "false" | boolean;
 
+      // Doesn't work when used as HTML attribute
       /**
        * Elements with the contenteditable attribute support innerHTML and textContent bindings.
        */
-      innerhtml?: string;
+      innerHTML?: string;
+      // Doesn't work when used as HTML attribute
       /**
        * Elements with the contenteditable attribute support innerHTML and textContent bindings.
        */
-      textcontent?: string;
+
+      textContent?: string;
 
       contextmenu?: string;
       controls?: boolean;
@@ -358,6 +361,9 @@
       type?: string;
       usemap?: string;
       value?: string | string[] | number;
+      /**
+       * a value between 0 and 1
+      */
       volume?: number;
       width?: number | string;
       wmode?: string;
@@ -713,7 +719,44 @@
     }
 
     interface SapperAnchorProps {
+        // transformed from sapper:noscroll so it should be camel case
         sapperNoscroll?: true;
+    }
+
+    interface SvelteMediaTimeRange {
+        start: number;
+        end: number;
+    }
+
+    interface SvelteMediaProps {
+        readonly duration?: number;
+        readonly buffered?: SvelteMediaTimeRange[];
+        readonly played?: SvelteMediaTimeRange[];
+        readonly seekable?: SvelteMediaTimeRange[];
+        readonly seeking?: boolean;
+        readonly ended?: boolean;
+
+        /**
+         * the current playback time in the video, in seconds
+         */
+        currentTime?: number;
+        /**
+         * the current playback time in the video, in seconds
+         */
+        currenttime?: number;
+        // Doesn't work when used as HTML Attribute
+        /**
+         * how fast or slow to play the video, where 1 is 'normal'
+         */
+        playbackRate?: number;
+
+        paused?: boolean;
+    }
+
+    interface SvelteVideoProps extends SvelteMediaProps {
+        // Binding only, don't need lowercase variant
+        readonly videoWidth?: number;
+        readonly videoHeight?: number;
     }
 
     interface IntrinsicElements {
@@ -724,7 +767,7 @@
       area: HTMLProps<HTMLAreaElement>;
       article: HTMLProps<HTMLElement>;
       aside: HTMLProps<HTMLElement>;
-      audio: HTMLProps<HTMLAudioElement>;
+      audio: HTMLProps<HTMLAudioElement> & SvelteMediaProps;
       b: HTMLProps<HTMLElement>;
       base: HTMLProps<HTMLBaseElement>;
       bdi: HTMLProps<HTMLElement>;
@@ -830,7 +873,7 @@
       u: HTMLProps<HTMLElement>;
       ul: HTMLProps<HTMLUListElement>;
       var: HTMLProps<HTMLElement>;
-      video: HTMLProps<HTMLVideoElement>;
+      video: HTMLProps<HTMLVideoElement> & SvelteVideoProps;
       wbr: HTMLProps<HTMLElement>;
 
       svg: SVGProps<SVGSVGElement>;

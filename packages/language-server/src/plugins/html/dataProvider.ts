@@ -196,8 +196,20 @@ const mediaAttributes: IAttributeData[] = [
         description: 'An array of {start, end} objects. (readonly)',
     },
     {
+        name: 'bind:seeking',
+        description: 'boolean. (readonly)'
+    },
+    {
+        name: 'bind:ended',
+        description: 'boolean. (readonly)'
+    },
+    {
         name: 'bind:currentTime',
         description: 'The current point in the video, in seconds.',
+    },
+    {
+        name: 'bind:playbackRate',
+        description: `how fast or slow to play the video, where 1 is 'normal'`
     },
     {
         name: 'bind:paused',
@@ -206,6 +218,19 @@ const mediaAttributes: IAttributeData[] = [
         name: 'bind:volume',
         description: 'A value between 0 and 1',
     },
+    {
+        name: 'bind:muted',
+    },
+];
+const videoAttributes: IAttributeData[] = [
+    {
+        name: 'bind:videoWidth',
+        description: 'readonly'
+    },
+    {
+        name: 'bind:videoHeight',
+        description: 'readonly'
+    }
 ];
 
 const addAttributes: Record<string, IAttributeData[]> = {
@@ -215,7 +240,7 @@ const addAttributes: Record<string, IAttributeData[]> = {
         { name: 'bind:group', description: 'Available for type="radio" and type="checkbox"' },
     ],
     textarea: [{ name: 'bind:value' }],
-    video: [...mediaAttributes],
+    video: [...mediaAttributes, ...videoAttributes],
     audio: [...mediaAttributes],
 };
 
