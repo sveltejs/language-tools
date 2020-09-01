@@ -248,22 +248,17 @@
       content?: string;
       contenteditable?: "true" | "false" | boolean;
 
+      // Doesn't work when used as HTML attribute
       /**
        * Elements with the contenteditable attribute support innerHTML and textContent bindings.
        */
       innerHTML?: string;
+      // Doesn't work when used as HTML attribute
       /**
        * Elements with the contenteditable attribute support innerHTML and textContent bindings.
        */
+
       textContent?: string;
-            /**
-       * Elements with the contenteditable attribute support innerHTML and textContent bindings.
-       */
-      innerhtml?: string;
-      /**
-       * Elements with the contenteditable attribute support innerHTML and textContent bindings.
-       */
-      textcontent?: string;
 
       contextmenu?: string;
       controls?: boolean;
@@ -724,7 +719,8 @@
     }
 
     interface SapperAnchorProps {
-        sappernoscroll?: true;
+        // transformed from sapper:noscroll so it should be camel case
+        sapperNoscroll?: true;
     }
 
     interface SvelteMediaTimeRange {
@@ -748,14 +744,12 @@
          * the current playback time in the video, in seconds
          */
         currenttime?: number;
+        // Doesn't work when used as HTML Attribute
         /**
          * how fast or slow to play the video, where 1 is 'normal'
          */
         playbackRate?: number;
-        /**
-         * how fast or slow to play the video, where 1 is 'normal'
-         */
-        playbackrate?: number;
+
         paused?: boolean;
     }
 
