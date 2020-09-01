@@ -354,9 +354,11 @@ export function convertHtmlxToJsx(
     };
 
     const handleAttribute = (attr: Node, parent: Node) => {
-        const sapperNoScroll = attr.name === 'sapper:noscroll';
+        let transformedFromDirectiveOrNamespace = false;
+
         //if we are on an "element" we are case insensitive, lowercase to match our JSX
         if (parent.type == 'Element') {
+            const sapperNoScroll = attr.name === 'sapper:noscroll';
             //skip Attribute shorthand, that is handled below
             if (
                 (attr.value !== true &&
@@ -380,12 +382,18 @@ export function convertHtmlxToJsx(
                 }
 
                 str.overwrite(attr.start, attr.start + attr.name.length, name);
+
+                transformedFromDirectiveOrNamespace = true;
             }
         }
 
         //we are a bare attribute
         if (attr.value === true) {
-            if (parent.type === 'Element' && !sapperNoScroll && parent.name !== '!DOCTYPE') {
+            if (
+                parent.type === 'Element' &&
+                !transformedFromDirectiveOrNamespace &&
+                parent.name !== '!DOCTYPE'
+            ) {
                 str.overwrite(attr.start, attr.end, attr.name.toLowerCase());
             }
             return;
