@@ -251,6 +251,14 @@
       /**
        * Elements with the contenteditable attribute support innerHTML and textContent bindings.
        */
+      innerHTML?: string;
+      /**
+       * Elements with the contenteditable attribute support innerHTML and textContent bindings.
+       */
+      textContent?: string;
+            /**
+       * Elements with the contenteditable attribute support innerHTML and textContent bindings.
+       */
       innerhtml?: string;
       /**
        * Elements with the contenteditable attribute support innerHTML and textContent bindings.
@@ -358,6 +366,9 @@
       type?: string;
       usemap?: string;
       value?: string | string[] | number;
+      /**
+       * a value between 0 and 1
+      */
       volume?: number;
       width?: number | string;
       wmode?: string;
@@ -713,7 +724,7 @@
     }
 
     interface SapperAnchorProps {
-        sapperNoscroll?: true;
+        sappernoscroll?: true;
     }
 
     interface SvelteMediaTimeRange {
@@ -734,18 +745,22 @@
          */
         currentTime?: number;
         /**
+         * the current playback time in the video, in seconds
+         */
+        currenttime?: number;
+        /**
          * how fast or slow to play the video, where 1 is 'normal'
          */
         playbackRate?: number;
-        paused?: boolean;
         /**
-         * a value between 0 and 1
+         * how fast or slow to play the video, where 1 is 'normal'
          */
-        volume?: number;
-        muted?: boolean;
+        playbackrate?: number;
+        paused?: boolean;
     }
 
     interface SvelteVideoProps extends SvelteMediaProps {
+        // Binding only, don't need lowercase variant
         readonly videoWidth?: number;
         readonly videoHeight?: number;
     }
