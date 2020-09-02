@@ -283,7 +283,7 @@ export function convertHtmlxToJsx(
         }
     };
 
-    const handleSlot = (slotEl: Node, componentName: string, slotName: string) => {
+    const handleSlot = (slotEl: Node, component: Node, slotName: string) => {
         //collect "let" definitions
         let hasMoved = false;
         let afterTag: number;
@@ -319,7 +319,7 @@ export function convertHtmlxToJsx(
         str.appendLeft(afterTag, '{() => { let {');
         str.appendRight(
             afterTag,
-            `} = ${getSingleSlotDef(componentName, slotName)}`+ ';<>',
+            `} = ${getSingleSlotDef(component, slotName)}`+ ';<>',
         );
 
         const closeTagStart = htmlx.lastIndexOf('<', slotEl.end);
@@ -340,7 +340,7 @@ export function convertHtmlxToJsx(
         }
 
         //we only need to do something if there is a let or slot
-        handleSlot(el, el.name, 'default');
+        handleSlot(el, el, 'default');
 
         //walk the direct children looking for slots. We do this here because we need the name of our component for handleSlot
         //we could lean on leave/enter, but I am lazy
@@ -348,7 +348,7 @@ export function convertHtmlxToJsx(
         for (const child of el.children) {
             const slotName = getSlotName(child);
             if (slotName) {
-                handleSlot(child, el.name, slotName);
+                handleSlot(child, el, slotName);
             }
         }
     };
