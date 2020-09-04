@@ -16,6 +16,7 @@ const defaultLSConfig: LSConfig = {
     },
     css: {
         enable: true,
+        globals: '',
         diagnostics: { enable: true },
         hover: { enable: true },
         completions: { enable: true },
@@ -79,6 +80,7 @@ export interface LSTypescriptConfig {
 
 export interface LSCSSConfig {
     enable: boolean;
+    globals: string;
     diagnostics: {
         enable: boolean;
     };
