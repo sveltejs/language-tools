@@ -66,3 +66,16 @@ Hit `ctrl-shift-p` or `cmd-shift-p` on mac, type `svelte restart`, and select `S
 ### SCSS: Using node-sass and having errors?
 
 The `node-sass` package is very sensitive to node versions. It may be possible that this plugin runs on a different version than your application. Then it is necessary to set the `svelte.language-server.runtime` setting to the path of your node runtime. E.g. `"svelte.language-server.runtime": "/<LOCAL_PATH>/bin/node"`.
+
+### SCSS: Using `includePaths` does not work
+
+If you use `includePaths` with relative paths, those paths will be resolved relative to the node process, not relative to the config file. So if you `svelte.config.js` is within `frontend`, the path `theme` will _NOT_ resolve to `frontend/theme` but to `<node process root>/theme` (which might be the same as `frontend`). To ensure it always resolves relative to the config file, do this:
+
+```js
+const sveltePreprocess = require('svelte-preprocess');
+const path = require('path');
+
+module.exports = {
+   preprocess: sveltePreprocess({ includePaths: [path.join(__dirname, 'relative/path')] })
+};
+```
