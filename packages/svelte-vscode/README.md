@@ -98,6 +98,10 @@ Enable code actions for TypeScript. _Default_: `true`
 
 Enable the CSS plugin. _Default_: `true`
 
+##### `svelte.plugin.css.globals`
+
+Which css files should be checked for global variables (`--global-var: value;`). These variables are added to the css completions. String of comma-separated file paths or globs relative to workspace root.
+
 ##### `svelte.plugin.css.diagnostics`
 
 Enable diagnostic messages for CSS. _Default_: `true`

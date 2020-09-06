@@ -16,6 +16,7 @@ const defaultLSConfig: LSConfig = {
     },
     css: {
         enable: true,
+        globals: '',
         diagnostics: { enable: true },
         hover: { enable: true },
         completions: { enable: true },
@@ -79,6 +80,7 @@ export interface LSTypescriptConfig {
 
 export interface LSCSSConfig {
     enable: boolean;
+    globals: string;
     diagnostics: {
         enable: boolean;
     };
@@ -145,6 +147,7 @@ type DeepPartial<T> = T extends CompilerWarningsSettings
 
 export class LSConfigManager {
     private config: LSConfig = defaultLSConfig;
+    private listeners: ((config: LSConfigManager) => void)[] = [];
 
     /**
      * Updates config.
@@ -159,6 +162,8 @@ export class LSConfigManager {
         if (config.svelte?.compilerWarnings) {
             this.config.svelte.compilerWarnings = config.svelte.compilerWarnings;
         }
+
+        this.listeners.forEach((listener) => listener(this));
     }
 
     /**
@@ -182,6 +187,13 @@ export class LSConfigManager {
      */
     getConfig(): Readonly<LSConfig> {
         return this.config;
+    }
+
+    /**
+     * Register a listener which is invoked when the config changed.
+     */
+    onChange(callback: (config: LSConfigManager) => void): void {
+        this.listeners.push(callback);
     }
 }
 

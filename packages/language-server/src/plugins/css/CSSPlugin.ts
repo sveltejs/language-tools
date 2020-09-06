@@ -11,6 +11,8 @@ import {
     Position,
     Range,
     SymbolInformation,
+    CompletionItem,
+    CompletionItemKind,
 } from 'vscode-languageserver';
 import {
     Document,
@@ -33,6 +35,7 @@ import {
 } from '../interfaces';
 import { CSSDocument } from './CSSDocument';
 import { getLanguage, getLanguageService } from './service';
+import { GlobalVars } from './global-vars';
 
 export class CSSPlugin
     implements
@@ -45,9 +48,15 @@ export class CSSPlugin
     private configManager: LSConfigManager;
     private cssDocuments = new WeakMap<Document, CSSDocument>();
     private triggerCharacters = ['.', ':', '-', '/'];
+    private globalVars = new GlobalVars();
 
     constructor(docManager: DocumentManager, configManager: LSConfigManager) {
         this.configManager = configManager;
+
+        this.globalVars.watchFiles(this.configManager.get('css.globals'));
+        this.configManager.onChange((config) =>
+            this.globalVars.watchFiles(config.get('css.globals')),
+        );
 
         docManager.on('documentChange', (document) =>
             this.cssDocuments.set(document, new CSSDocument(document)),
@@ -149,12 +158,35 @@ export class CSSPlugin
             cssDocument.stylesheet,
         );
         return CompletionList.create(
-            [...(results ? results.items : []), ...emmetResults.items].map((completionItem) =>
-                mapCompletionItemToOriginal(cssDocument, completionItem),
+            this.appendGlobalVars(
+                [...(results ? results.items : []), ...emmetResults.items].map((completionItem) =>
+                    mapCompletionItemToOriginal(cssDocument, completionItem),
+                ),
             ),
             // Emmet completions change on every keystroke, so they are never complete
             emmetResults.items.length > 0,
         );
+    }
+
+    private appendGlobalVars(items: CompletionItem[]): CompletionItem[] {
+        // Finding one value with that item kind means we are in a value completion scenario
+        const value = items.find((item) => item.kind === CompletionItemKind.Value);
+        if (!value) {
+            return items;
+        }
+
+        const additionalItems: CompletionItem[] = this.globalVars
+            .getGlobalVars()
+            .map((globalVar) => ({
+                label: globalVar.name,
+                detail: `${globalVar.filename}\n\n${globalVar.name}: ${globalVar.value}`,
+                textEdit: value.textEdit && {
+                    ...value.textEdit,
+                    newText: `var(${globalVar.name})`,
+                },
+                kind: CompletionItemKind.Value,
+            }));
+        return [...items, ...additionalItems];
     }
 
     getDocumentColors(document: Document): ColorInformation[] {
