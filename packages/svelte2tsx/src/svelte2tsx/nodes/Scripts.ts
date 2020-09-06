@@ -5,7 +5,7 @@ export class Scripts {
     // All script tags, no matter at what level, are listed within the root children.
     // To get the top level scripts, filter out all those that are part of children's children.
     // Those have another type ('Element' with name 'script').
-    private scriptTags = (<Node[]>this.htmlxAst.children).filter(
+    private scriptTags = (this.htmlxAst.children as Node[]).filter(
         (child) => child.type === 'Script',
     );
     private topLevelScripts = this.scriptTags;
