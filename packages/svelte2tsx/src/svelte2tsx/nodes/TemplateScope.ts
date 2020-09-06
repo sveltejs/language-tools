@@ -1,5 +1,5 @@
 import { Node } from 'estree-walker';
-import { WithName } from '../interfaces';
+import { WithName } from '../../interfaces';
 
 /**
  * adopted from https://github.com/sveltejs/svelte/blob/master/src/compiler/compile/nodes/shared/TemplateScope.ts
