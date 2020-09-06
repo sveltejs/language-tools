@@ -21,7 +21,9 @@ export class GlobalVars {
 
         if (this.fsWatcher) {
             this.fsWatcher.close();
+            this.globalVars.clear();
         }
+
         this.fsWatcher = watch(filesToWatch.split(','))
             .addListener('add', (file) => this.updateForFile(file))
             .addListener('change', (file) => {

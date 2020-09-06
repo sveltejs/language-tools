@@ -52,7 +52,11 @@ export class CSSPlugin
 
     constructor(docManager: DocumentManager, configManager: LSConfigManager) {
         this.configManager = configManager;
+
         this.globalVars.watchFiles(this.configManager.get('css.globals'));
+        this.configManager.onChange((config) =>
+            this.globalVars.watchFiles(config.get('css.globals')),
+        );
 
         docManager.on('documentChange', (document) =>
             this.cssDocuments.set(document, new CSSDocument(document)),

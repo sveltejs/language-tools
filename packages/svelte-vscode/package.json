@@ -114,7 +114,7 @@
                     "type": "string",
                     "default": "",
                     "title": "CSS: Global Files",
-                    "description": "Which css files should be checked for global variables (`--global-var: value;`). These variables are added to the css completions. String of comma-separated file paths or globs relative to workspace root. You need to reload for the changes to take effect."
+                    "description": "Which css files should be checked for global variables (`--global-var: value;`). These variables are added to the css completions. String of comma-separated file paths or globs relative to workspace root."
                 },
                 "svelte.plugin.css.diagnostics.enable": {
                     "type": "boolean",

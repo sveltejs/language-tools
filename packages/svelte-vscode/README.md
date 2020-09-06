@@ -100,7 +100,7 @@ Enable the CSS plugin. _Default_: `true`
 
 ##### `svelte.plugin.css.globals`
 
-Which css files should be checked for global variables (`--global-var: value;`). These variables are added to the css completions. String of comma-separated file paths or globs relative to workspace root. You need to reload for the changes to take effect.
+Which css files should be checked for global variables (`--global-var: value;`). These variables are added to the css completions. String of comma-separated file paths or globs relative to workspace root.
 
 ##### `svelte.plugin.css.diagnostics`
 
