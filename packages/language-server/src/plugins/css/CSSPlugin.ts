@@ -175,7 +175,7 @@ export class CSSPlugin
             .getGlobalVars()
             .map((globalVar) => ({
                 label: globalVar.name,
-                detail: globalVar.value,
+                detail: `${globalVar.filename}\n\n${globalVar.name}: ${globalVar.value}`,
                 textEdit: value.textEdit && {
                     ...value.textEdit,
                     newText: `var(${globalVar.name})`,

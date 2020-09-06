@@ -6,6 +6,7 @@ const varRegex = /^\s*(--\w+.*?):\s*?([^;]*)/;
 
 export interface GlobalVar {
     name: string;
+    filename: string;
     value: string;
 }
 
@@ -29,11 +30,11 @@ export class GlobalVars {
             .addListener('unlink', (file) => this.globalVars.delete(file));
     }
 
-    private updateForFile(file: string) {
+    private updateForFile(filename: string) {
         // Inside a small timeout because it seems chikidar is "too fast"
         // and reading the file will then return empty content
         setTimeout(() => {
-            readFile(file, 'utf-8', (error, contents) => {
+            readFile(filename, 'utf-8', (error, contents) => {
                 if (error) {
                     return;
                 }
@@ -42,8 +43,8 @@ export class GlobalVars {
                     .split('\n')
                     .map((line) => line.match(varRegex))
                     .filter(isNotNullOrUndefined)
-                    .map((line) => ({ name: line[1], value: line[2] }));
-                this.globalVars.set(file, globalVarsForFile);
+                    .map((line) => ({ filename, name: line[1], value: line[2] }));
+                this.globalVars.set(filename, globalVarsForFile);
             });
         }, 1000);
     }
