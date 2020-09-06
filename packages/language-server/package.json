@@ -46,6 +46,7 @@
         "ts-node": "^8.6.2"
     },
     "dependencies": {
+        "chokidar": "^3.4.1",
         "cosmiconfig": "^6.0.0",
         "estree-walker": "^2.0.1",
         "lodash": "^4.17.19",
