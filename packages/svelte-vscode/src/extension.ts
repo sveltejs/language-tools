@@ -12,6 +12,7 @@ import {
     ViewColumn,
     languages,
     IndentAction,
+    extensions,
 } from 'vscode';
 import {
     LanguageClient,
@@ -37,6 +38,8 @@ namespace TagCloseRequest {
 }
 
 export function activate(context: ExtensionContext) {
+    warnIfOldExtensionInstalled();
+
     const runtimeConfig = workspace.getConfiguration('svelte.language-server');
 
     const { workspaceFolders } = workspace;
@@ -306,4 +309,14 @@ function addExtracComponentCommand(getLS: () => LanguageClient, context: Extensi
 
 function createLanguageServer(serverOptions: ServerOptions, clientOptions: LanguageClientOptions) {
     return new LanguageClient('svelte', 'Svelte', serverOptions, clientOptions);
+}
+
+function warnIfOldExtensionInstalled() {
+    if (extensions.getExtension('JamesBirtles.svelte-vscode')) {
+        window.showWarningMessage(
+            'It seems you have the old and deprecated Svelte extension installed. Please remove it. ' +
+                'Through the UI: You can find it when searching for "@installed" in the extensions window (searching "Svelte" won\'t work). ' +
+                'Command line: "code --uninstall-extension JamesBirtles.svelte-vscode"',
+        );
+    }
 }
