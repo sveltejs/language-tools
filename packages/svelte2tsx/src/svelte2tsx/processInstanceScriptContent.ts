@@ -58,28 +58,6 @@ export function processInstanceScriptContent(
     const pushScope = () => (scope = new Scope(scope));
     const popScope = () => (scope = scope.parent);
 
-    const addExport = (
-        name: ts.BindingName,
-        target: ts.BindingName = null,
-        type: ts.TypeNode = null,
-        required = false,
-    ) => {
-        if (name.kind != ts.SyntaxKind.Identifier) {
-            throw Error('export source kind not supported ' + name);
-        }
-        if (target && target.kind != ts.SyntaxKind.Identifier) {
-            throw Error('export target kind not supported ' + target);
-        }
-        if (target) {
-            exportedNames.set(name.text, {
-                type: type?.getText(),
-                identifierText: (target as ts.Identifier).text,
-                required,
-            });
-        } else {
-            exportedNames.set(name.text, {});
-        }
-    };
     const addGetter = (node: ts.Identifier) => {
         if (!node) {
             return;
@@ -277,14 +255,14 @@ export function processInstanceScriptContent(
         ts.forEachChild(list, (node) => {
             if (ts.isVariableDeclaration(node)) {
                 if (ts.isIdentifier(node.name)) {
-                    addExport(node.name, node.name, node.type, !node.initializer);
+                    exportedNames.addExport(node.name, node.name, node.type, !node.initializer);
                 } else if (
                     ts.isObjectBindingPattern(node.name) ||
                     ts.isArrayBindingPattern(node.name)
                 ) {
                     ts.forEachChild(node.name, (element) => {
                         if (ts.isBindingElement(element)) {
-                            addExport(element.name);
+                            exportedNames.addExport(element.name);
                         }
                     });
                 }
@@ -376,9 +354,9 @@ export function processInstanceScriptContent(
             if (ts.isNamedExports(exportClause)) {
                 for (const ne of exportClause.elements) {
                     if (ne.propertyName) {
-                        addExport(ne.propertyName, ne.name);
+                        exportedNames.addExport(ne.propertyName, ne.name);
                     } else {
-                        addExport(ne.name);
+                        exportedNames.addExport(ne.name);
                     }
                 }
                 //we can remove entire statement
