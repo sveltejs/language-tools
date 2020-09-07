@@ -2,7 +2,7 @@ import MagicString from 'magic-string';
 import { Node } from 'estree-walker';
 import { getSlotName } from '../../utils/svelteAst';
 import { beforeStart } from '../utils/node-utils';
-import { getSingleSlotDef } from '../../nodes/slot';
+import { getSingleSlotDef } from '../../svelte2tsx/nodes/slot';
 
 /**
  * Handle `<svelte:self>` and slot-specific transformations.

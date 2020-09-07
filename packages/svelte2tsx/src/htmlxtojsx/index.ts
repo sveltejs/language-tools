@@ -1,7 +1,7 @@
 import { Node } from 'estree-walker';
 import MagicString from 'magic-string';
 import svelte from 'svelte/compiler';
-import { parseHtmlx } from '../htmlxparser';
+import { parseHtmlx } from '../utils/htmlxparser';
 import { handleActionDirective } from './nodes/action-directive';
 import { handleAnimateDirective } from './nodes/animation-directive';
 import { handleAttribute } from './nodes/attribute';

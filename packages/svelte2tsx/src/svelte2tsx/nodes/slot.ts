@@ -7,10 +7,10 @@ import {
     isObjectValueShortHand,
     isObjectValue,
     getSlotName,
-} from '../utils/svelteAst';
+} from '../../utils/svelteAst';
 import TemplateScope from './TemplateScope';
-import { SvelteIdentifier, WithName, BaseDirective } from '../interfaces';
-import { getTypeForComponent } from '../htmlxtojsx/utils/node-utils';
+import { SvelteIdentifier, WithName, BaseDirective } from '../../interfaces';
+import { getTypeForComponent } from '../../htmlxtojsx/utils/node-utils';
 
 function attributeStrValueAsJsExpression(attr: Node): string {
     if (attr.value.length == 0) return "''"; //wut?
