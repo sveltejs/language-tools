@@ -53,7 +53,10 @@ export class ExportedNames
             const comment = ts.getLeadingCommentRanges(fileText, exportExpr.getFullStart());
 
             if (comment) {
-                doc = fileText.substring(comment[0].pos, comment[0].end);
+                const [first] = comment;
+                if (first?.kind === ts.SyntaxKind.MultiLineCommentTrivia) {
+                    doc = fileText.substring(first.pos, first.end);
+                }
             }
         }
 
