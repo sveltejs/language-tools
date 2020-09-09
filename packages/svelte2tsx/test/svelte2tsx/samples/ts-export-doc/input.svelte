@@ -8,4 +8,7 @@
      */
     export let b = 1;
     export let c;
+
+    // not this one
+    export let d;
 </script>
