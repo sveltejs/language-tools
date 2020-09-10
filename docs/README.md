@@ -90,7 +90,9 @@ If you have the `Babel Javascript` plugin installed, this may be the cause. Disa
 
 #### My Code does not get formatted
 
-Your default formatter for Svelte files may be wrong. Either it's set to the old Svelte extension, or you set all files to be formatted by the prettier extension. To fix this, you need to explicitly tell VSCode to format the code with the `Svelte for VSCode extension`:
+Your default formatter for Svelte files may be wrong.
+- Mabye it's set to the old Svelte extension, if so, remove the setting
+- Maybe you set all files to be formatted by the prettier extension. Then you have two options: Either install `prettier-plugin-svelte` from npm, or tell VSCode to format the code with the `Svelte for VSCode extension`:
 
 ```json
   "[svelte]": {
