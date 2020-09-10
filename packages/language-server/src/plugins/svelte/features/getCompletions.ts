@@ -1,3 +1,4 @@
+import { EOL } from 'os';
 import { SvelteDocument } from '../SvelteDocument';
 import {
     Position,
@@ -8,9 +9,20 @@ import {
 } from 'vscode-languageserver';
 import { SvelteTag, documentation, getLatestOpeningTag } from './SvelteTags';
 import { isInTag } from '../../../lib/documents';
-/**
- * Get completions for special svelte tags within moustache tags.
- */
+
+const HTML_COMMENT_START = '<!--';
+
+const componentCompletion = <CompletionItem>{
+    label: '@component',
+    insertText: `component${EOL}$1${EOL}`,
+    documentation: 'documentation for this component. ' +
+        'It will show up on hover. You can use markdown or code block here',
+    insertTextFormat: InsertTextFormat.Snippet,
+    kind: CompletionItemKind.Snippet,
+    sortText: '-1',
+    preselect: true,
+};
+
 export function getCompletions(
     svelteDoc: SvelteDocument,
     position: Position,
@@ -28,13 +40,40 @@ export function getCompletions(
     const notPreceededByOpeningBracket = !/[\s\S]*{\s*[#:/@]\w*$/.test(
         lastCharactersBeforePosition,
     );
-    if (isInStyleOrScript || notPreceededByOpeningBracket) {
+    if (isInStyleOrScript) {
         return null;
     }
 
-    const triggerCharacter = getTriggerCharacter(lastCharactersBeforePosition);
-    // return all, filtering with regards to user input will be done client side
-    return getCompletionsWithRegardToTriggerCharacter(triggerCharacter, svelteDoc, offset);
+    if (notPreceededByOpeningBracket) {
+        return getComponentDocumentationCompletions();
+    }
+
+    return getTagCompletionsWithinMoustache();
+
+    /**
+     * Get completions for special svelte tags within moustache tags.
+     */
+    function getTagCompletionsWithinMoustache() {
+        const triggerCharacter = getTriggerCharacter(lastCharactersBeforePosition);
+        // return all, filtering with regards to user input will be done client side
+        return getCompletionsWithRegardToTriggerCharacter(triggerCharacter, svelteDoc, offset);
+    }
+
+    function getComponentDocumentationCompletions() {
+        if (!lastCharactersBeforePosition.includes(HTML_COMMENT_START)) {
+            return null;
+        }
+
+        const commentStartIndex = lastCharactersBeforePosition.lastIndexOf(HTML_COMMENT_START);
+        const text = lastCharactersBeforePosition.substring(
+            commentStartIndex + HTML_COMMENT_START.length
+        ).trimLeft();
+
+        if (componentCompletion.label.includes(text)) {
+            return CompletionList.create([componentCompletion]);
+        }
+        return null;
+    }
 }
 
 /**
