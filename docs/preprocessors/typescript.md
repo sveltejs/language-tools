@@ -120,3 +120,24 @@ You may need to set `baseUrl` in `tsconfig.json` at the project root to include 
   }
 }
 ```
+
+### I'm using an attribute/event on a DOM element and it throws a type error
+
+If it's a non-experimental standard attribute/event, this may very well be a missing typing from our [JSX typings](https://github.com/sveltejs/language-tools/blob/master/packages/svelte2tsx/svelte-jsx.d.ts). In that case, you are welcome to open an issue and/or a PR fixing it.
+
+In case this is a custom or experimental attribute/event, you can enhance the typings like this:
+Create a `additional-svelte-jsx.d.ts` file:
+
+```ts
+declare namespace svelte.JSX {
+  interface HTMLAttributes<T> {
+    // If you want to use on:beforeinstallprompt
+    onbeforeinstallprompt?: (event: any) => any;
+    // If you want to use myCustomAttribute={..} (note: all lowercase)
+    mycustomattribute?: any;
+    // You can replace any with something more specific if you like
+  }
+}
+```
+
+Then make sure that `d.ts` file is referenced in your `tsconfig.json`. If it reads something like `"include": ["src/**/*"]` and your `d.ts` file is inside `src`, it should work. You may need to reload for the changes to take effect.
