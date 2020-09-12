@@ -30,7 +30,7 @@ export class EventHandler {
     }
 
     eventMapToString() {
-        return '{' + Array.from(this.events.entries()).map(eventMapEntryToString).join(', ') + '}';
+        return Array.from(this.events.entries()).map(eventMapEntryToString).join(', ');
     }
 }
 

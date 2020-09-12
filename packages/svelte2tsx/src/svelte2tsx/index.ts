@@ -5,11 +5,7 @@ import path from 'path';
 import { convertHtmlxToJsx } from '../htmlxtojsx';
 import { parseHtmlx } from '../utils/htmlxparser';
 import { ComponentDocumentation } from './nodes/ComponentDocumentation';
-import {
-    ComponentEvents,
-    ComponentEventsFromEventsMap,
-    ComponentEventsFromInterface,
-} from './nodes/ComponentEvents';
+import { ComponentEvents } from './nodes/ComponentEvents';
 import { EventHandler } from './nodes/event-handler';
 import { ExportedNames } from './nodes/ExportedNames';
 import { createClassGetters, createRenderFunctionGetterStr } from './nodes/exportgetters';
@@ -262,11 +258,14 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
     //resolve stores
     stores.resolveStores();
 
+    const events = new ComponentEvents();
+    events.setEventHandler(eventHandler);
+
     return {
         moduleScriptTag,
         scriptTag,
         slots: slotHandler.getSlotDef(),
-        events: new ComponentEventsFromEventsMap(eventHandler),
+        events,
         uses$$props,
         uses$$restProps,
         uses$$slots,
@@ -472,7 +471,7 @@ export function svelte2tsx(
         str,
         uses$$propsOr$$restProps: uses$$props || uses$$restProps,
         strictMode: !!options?.strictMode,
-        strictEvents: events instanceof ComponentEventsFromInterface,
+        strictEvents: events.hasInterface(),
         isTsFile: options?.isTsFile,
         getters,
         fileName: options?.filename,

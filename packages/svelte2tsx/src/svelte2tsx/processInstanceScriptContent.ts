@@ -4,7 +4,7 @@ import * as ts from 'typescript';
 import { findExportKeyword, getBinaryAssignmentExpr } from './utils/tsAst';
 import { ExportedNames } from './nodes/ExportedNames';
 import { ImplicitTopLevelNames } from './nodes/ImplicitTopLevelNames';
-import { ComponentEvents, ComponentEventsFromInterface } from './nodes/ComponentEvents';
+import { ComponentEvents } from './nodes/ComponentEvents';
 import { Scope } from './utils/Scope';
 
 export interface InstanceScriptProcessResult {
@@ -295,7 +295,7 @@ export function processInstanceScriptContent(
         const onLeaveCallbacks: onLeaveCallback[] = [];
 
         if (ts.isInterfaceDeclaration(node) && node.name.text === 'ComponentEvents') {
-            events = new ComponentEventsFromInterface(node);
+            events.setComponentEventsInterface(node);
         }
 
         if (ts.isVariableStatement(node)) {
@@ -364,12 +364,22 @@ export function processInstanceScriptContent(
             }
         }
 
-        //move imports to top of script so they appear outside our render function
         if (ts.isImportDeclaration(node)) {
+            //move imports to top of script so they appear outside our render function
             str.move(node.getStart() + astOffset, node.end + astOffset, script.start + 1);
             //add in a \n
             const originalEndChar = str.original[node.end + astOffset - 1];
             str.overwrite(node.end + astOffset - 1, node.end + astOffset, originalEndChar + '\n');
+            // Check if import is the event dispatcher
+            events.checkIfImportIsEventDispatcher(node);
+        }
+
+        if (ts.isVariableDeclaration(node)) {
+            events.checkIfDeclarationInstantiatedEventDispatcher(node);
+        }
+
+        if (ts.isCallExpression(node)) {
+            events.checkIfCallExpressionIsDispatch(node);
         }
 
         if (ts.isVariableDeclaration(parent) && parent.name == node) {
