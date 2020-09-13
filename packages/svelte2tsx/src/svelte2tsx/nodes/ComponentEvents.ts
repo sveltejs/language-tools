@@ -26,7 +26,11 @@ export class ComponentEvents {
         return this.componentEventsInterface || this.componentEventsFromEventsMap;
     }
 
-    getAll(): { name: string; type?: string; doc?: string }[] {
+    /**
+     * Collect state and create the API which will be part
+     * of the return object of the `svelte2tsx` function.
+     */
+    createAPI() {
         const entries: { name: string; type: string; doc?: string }[] = [];
 
         const iterableEntries = this.eventsClass.events.entries();
@@ -34,7 +38,11 @@ export class ComponentEvents {
             entries.push({ name: entry[0], ...entry[1] });
         }
 
-        return entries;
+        return {
+            getAll(): { name: string; type?: string; doc?: string }[] {
+                return entries;
+            },
+        };
     }
 
     setEventHandler(eventHandler: EventHandler): void {

@@ -485,6 +485,6 @@ export function svelte2tsx(
         code: str.toString(),
         map: str.generateMap({ hires: true, source: options?.filename }),
         exportedNames,
-        events,
+        events: events.createAPI(),
     };
 }
