@@ -29,27 +29,62 @@ describe('TypescriptPlugin', () => {
         const { plugin, document } = setup('documentsymbols.svelte');
         const symbols = await plugin.getDocumentSymbols(document);
 
-        assert.deepStrictEqual(
-            symbols.find((symbol) => symbol.name === 'bla'),
+        assert.deepStrictEqual(symbols, [
             {
                 containerName: 'render',
                 kind: 12,
                 location: {
                     range: {
                         start: {
-                            character: 8,
-                            line: 0,
+                            line: 6,
+                            character: 3,
                         },
                         end: {
-                            character: 37,
-                            line: 0,
+                            line: 8,
+                            character: 5,
+                        },
+                    },
+                    uri: getUri('documentsymbols.svelte'),
+                },
+                name: "$: if (hello) {\r\n        console.log('hi');\r\n    }",
+            },
+            {
+                containerName: 'render',
+                kind: 12,
+                location: {
+                    range: {
+                        start: {
+                            line: 1,
+                            character: 4,
+                        },
+                        end: {
+                            line: 3,
+                            character: 5,
                         },
                     },
                     uri: getUri('documentsymbols.svelte'),
                 },
                 name: 'bla',
             },
-        );
+            {
+                containerName: 'render',
+                kind: 13,
+                location: {
+                    range: {
+                        start: {
+                            line: 5,
+                            character: 7,
+                        },
+                        end: {
+                            line: 5,
+                            character: 16,
+                        },
+                    },
+                    uri: getUri('documentsymbols.svelte'),
+                },
+                name: 'hello',
+            },
+        ]);
     });
 
     it('provides definitions within svelte doc', async () => {
