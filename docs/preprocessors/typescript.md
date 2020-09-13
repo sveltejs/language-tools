@@ -44,7 +44,31 @@ Hit `ctrl-shift-p` or `cmd-shift-p` on mac, type `svelte restart`, and select `S
 
 ## Typing component events
 
-When you are using TypeScript, you can type which events your component has by defining a reserved `interface` (_NOT_ `type`) called `ComponentEvents`:
+When you are using TypeScript, you can type which events your component has in two ways:
+
+The first and possibly most often used way is to type the `createEventDispatcher` invocation like this:
+
+```html
+<script lang="ts">
+    import { createEventDispatcher } from 'svelte';
+
+    const dispatch = createEventDispatcher<{
+        /**
+         * you can also add docs
+         */
+        checked: boolean; // Will translate to `CustomEvent<boolean>`
+        hello: string;
+    }>();
+
+    // ...
+</script>
+```
+
+This will make sure that if you use `dispatch` that you can only invoke it with the specified names and its types.
+
+Note though that this will _NOT_ make the events strict so that you get type errors when trying to listen to other events when using the component. Due to Svelte's dynamic events creation, component events could be fired not only from a dispatcher created directly in the component, but from a dispatcher which is created as part of another import. This is almost impossible to infer.
+
+If you want strict events, you can do so by defining a reserved `interface` (_NOT_ `type`) called `ComponentEvents`:
 
 ```html
 <script lang="ts">
@@ -71,8 +95,6 @@ If you want to be sure that the interface definition names correspond to your di
     dispatch(hello, true);
 </script>
 ```
-
-> In case you ask why the events cannot be infered: Due to Svelte's dynamic nature, component events could be fired not only from a dispatcher created directly in the component, but from a dispatcher which is created as part of a mixin. This is almost impossible to infer, so we need you to tell us which events are possible.
 
 ## Troubleshooting / FAQ
 
@@ -130,13 +152,13 @@ Create a `additional-svelte-jsx.d.ts` file:
 
 ```ts
 declare namespace svelte.JSX {
-  interface HTMLAttributes<T> {
-    // If you want to use on:beforeinstallprompt
-    onbeforeinstallprompt?: (event: any) => any;
-    // If you want to use myCustomAttribute={..} (note: all lowercase)
-    mycustomattribute?: any;
-    // You can replace any with something more specific if you like
-  }
+    interface HTMLAttributes<T> {
+        // If you want to use on:beforeinstallprompt
+        onbeforeinstallprompt?: (event: any) => any;
+        // If you want to use myCustomAttribute={..} (note: all lowercase)
+        mycustomattribute?: any;
+        // You can replace any with something more specific if you like
+    }
 }
 ```
 
