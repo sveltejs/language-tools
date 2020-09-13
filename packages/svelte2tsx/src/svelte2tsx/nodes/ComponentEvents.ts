@@ -65,85 +65,13 @@ class ComponentEventsFromInterface {
         const map = new Map<string, { type: string; doc?: string }>();
 
         node.members.filter(ts.isPropertySignature).forEach((member) => {
-            map.set(this.getName(member.name), {
+            map.set(getName(member.name), {
                 type: member.type?.getText() || 'Event',
-                doc: this.getDoc(node, member),
+                doc: getDoc(member),
             });
         });
 
         return map;
-    }
-
-    private getName(prop: ts.PropertyName) {
-        if (ts.isIdentifier(prop) || ts.isStringLiteral(prop)) {
-            return prop.text;
-        }
-
-        if (ts.isComputedPropertyName(prop)) {
-            if (ts.isIdentifier(prop.expression)) {
-                const identifierName = prop.expression.text;
-                const identifierValue = this.getIdentifierValue(prop, identifierName);
-                if (!identifierValue) {
-                    this.throwError(prop);
-                }
-                return identifierValue;
-            }
-        }
-
-        this.throwError(prop);
-    }
-
-    private getIdentifierValue(prop: ts.ComputedPropertyName, identifierName: string) {
-        const variable = getVariableAtTopLevel(prop.getSourceFile(), identifierName);
-        if (variable && ts.isStringLiteral(variable.initializer)) {
-            return variable.initializer.text;
-        }
-    }
-
-    private throwError(prop: ts.PropertyName) {
-        const error: any = new Error(
-            'The ComponentEvents interface can only have properties of type ' +
-                'Identifier, StringLiteral or ComputedPropertyName. ' +
-                'In case of ComputedPropertyName, ' +
-                'it must be a const declared within the component and initialized with a string.',
-        );
-        error.start = toLineColumn(prop.getStart());
-        error.end = toLineColumn(prop.getEnd());
-        throw error;
-
-        function toLineColumn(pos: number) {
-            const lineChar = prop.getSourceFile().getLineAndCharacterOfPosition(pos);
-            return {
-                line: lineChar.line + 1,
-                column: lineChar.character,
-            };
-        }
-    }
-
-    private getDoc(node: ts.InterfaceDeclaration, member: ts.PropertySignature) {
-        let doc = undefined;
-        const comment = ts.getLeadingCommentRanges(
-            node.getText(),
-            member.getFullStart() - node.getStart(),
-        );
-
-        if (comment) {
-            doc = node
-                .getText()
-                .substring(comment[0].pos, comment[0].end)
-                .split('\n')
-                .map((line) =>
-                    // Remove /** */
-                    line
-                        .replace(/\s*\/\*\*/, '')
-                        .replace(/\s*\*\//, '')
-                        .replace(/\s*\*/, '')
-                        .trim(),
-                )
-                .join('\n');
-        }
-
-        return doc;
     }
 }
 
@@ -205,7 +133,7 @@ class ComponentEventsFromEventsMap {
     }
 
     checkIfDeclarationInstantiatedEventDispatcher(node: ts.VariableDeclaration) {
-        if (!ts.isIdentifier(node.name)) {
+        if (!ts.isIdentifier(node.name) || !node.initializer) {
             return;
         }
 
@@ -224,9 +152,9 @@ class ComponentEventsFromEventsMap {
             if (dispatcherTyping && ts.isTypeLiteralNode(dispatcherTyping)) {
                 this.eventDispatcherTyping = dispatcherTyping.getText();
                 dispatcherTyping.members.filter(ts.isPropertySignature).forEach((member) => {
-                    this.addToEvents(this.getName(member.name), {
+                    this.addToEvents(getName(member.name), {
                         type: `CustomEvent<${member.type?.getText() || 'any'}>`,
-                        doc: this.getDoc(member),
+                        doc: getDoc(member),
                     });
                 });
             }
@@ -280,71 +208,71 @@ class ComponentEventsFromEventsMap {
         }
         return map;
     }
+}
 
-    private getName(prop: ts.PropertyName) {
-        if (ts.isIdentifier(prop) || ts.isStringLiteral(prop)) {
-            return prop.text;
-        }
+function getName(prop: ts.PropertyName) {
+    if (ts.isIdentifier(prop) || ts.isStringLiteral(prop)) {
+        return prop.text;
+    }
 
-        if (ts.isComputedPropertyName(prop)) {
-            if (ts.isIdentifier(prop.expression)) {
-                const identifierName = prop.expression.text;
-                const identifierValue = this.getIdentifierValue(prop, identifierName);
-                if (!identifierValue) {
-                    this.throwError(prop);
-                }
-                return identifierValue;
+    if (ts.isComputedPropertyName(prop)) {
+        if (ts.isIdentifier(prop.expression)) {
+            const identifierName = prop.expression.text;
+            const identifierValue = getIdentifierValue(prop, identifierName);
+            if (!identifierValue) {
+                throwError(prop);
             }
-        }
-
-        this.throwError(prop);
-    }
-
-    private getIdentifierValue(prop: ts.ComputedPropertyName, identifierName: string) {
-        const variable = getVariableAtTopLevel(prop.getSourceFile(), identifierName);
-        if (variable && ts.isStringLiteral(variable.initializer)) {
-            return variable.initializer.text;
+            return identifierValue;
         }
     }
 
-    private throwError(prop: ts.PropertyName) {
-        const error: any = new Error(
-            'The ComponentEvents interface can only have properties of type ' +
-                'Identifier, StringLiteral or ComputedPropertyName. ' +
-                'In case of ComputedPropertyName, ' +
-                'it must be a const declared within the component and initialized with a string.',
-        );
-        error.start = toLineColumn(prop.getStart());
-        error.end = toLineColumn(prop.getEnd());
-        throw error;
+    throwError(prop);
+}
 
-        function toLineColumn(pos: number) {
-            const lineChar = prop.getSourceFile().getLineAndCharacterOfPosition(pos);
-            return {
-                line: lineChar.line + 1,
-                column: lineChar.character,
-            };
-        }
+function getIdentifierValue(prop: ts.ComputedPropertyName, identifierName: string) {
+    const variable = getVariableAtTopLevel(prop.getSourceFile(), identifierName);
+    if (variable && ts.isStringLiteral(variable.initializer)) {
+        return variable.initializer.text;
+    }
+}
+
+function throwError(prop: ts.PropertyName) {
+    const error: any = new Error(
+        'The ComponentEvents interface can only have properties of type ' +
+            'Identifier, StringLiteral or ComputedPropertyName. ' +
+            'In case of ComputedPropertyName, ' +
+            'it must be a const declared within the component and initialized with a string.',
+    );
+    error.start = toLineColumn(prop.getStart());
+    error.end = toLineColumn(prop.getEnd());
+    throw error;
+
+    function toLineColumn(pos: number) {
+        const lineChar = prop.getSourceFile().getLineAndCharacterOfPosition(pos);
+        return {
+            line: lineChar.line + 1,
+            column: lineChar.character,
+        };
+    }
+}
+
+function getDoc(member: ts.PropertySignature) {
+    let doc = undefined;
+    const comment = getLeadingDoc(member);
+
+    if (comment) {
+        doc = comment
+            .split('\n')
+            .map((line) =>
+                // Remove /** */
+                line
+                    .replace(/\s*\/\*\*/, '')
+                    .replace(/\s*\*\//, '')
+                    .replace(/\s*\*/, '')
+                    .trim(),
+            )
+            .join('\n');
     }
 
-    private getDoc(member: ts.PropertySignature) {
-        let doc = undefined;
-        const comment = getLeadingDoc(member);
-
-        if (comment) {
-            doc = comment
-                .split('\n')
-                .map((line) =>
-                    // Remove /** */
-                    line
-                        .replace(/\s*\/\*\*/, '')
-                        .replace(/\s*\*\//, '')
-                        .replace(/\s*\*/, '')
-                        .trim(),
-                )
-                .join('\n');
-        }
-
-        return doc;
-    }
+    return doc;
 }
