@@ -2,6 +2,22 @@ import ts from 'typescript';
 import { EventHandler } from './event-handler';
 import { getVariableAtTopLevel, getLeadingDoc } from '../utils/tsAst';
 
+/**
+ * This class accumulates all events that are dispatched from the component.
+ * It also tracks bubbled/forwarded events.
+ *
+ * It can not track events which are not fired through a variable
+ * which was not instantiated within the component with `createEventDispatcher`.
+ * This means that event dispatchers which are defined outside of the component and then imported do not get picked up.
+ *
+ * The logic is as follows:
+ * - If there exists a ComponentEvents interface definition, use that and skip the rest
+ * - Else first try to find the `createEventDispatcher` import
+ * - If it exists, try to find the variable where `createEventDispatcher()` is assigned to
+ * - If that variable is found, try to find out if it's typed.
+ *   - If yes, extract the event names and the event types from it
+ *   - If no, track all invocations of it to get the event names
+ */
 export class ComponentEvents {
     private componentEventsInterface?: ComponentEventsFromInterface;
     private componentEventsFromEventsMap?: ComponentEventsFromEventsMap;
@@ -75,35 +91,6 @@ class ComponentEventsFromInterface {
     }
 }
 
-/**
-Alles in einer Klasse tracken
-
-Für Template:
-
-case "Identifier":
-          if (node.name === "createEventDispatcher") {
-            hasDispatchedEvents = true;
-          }
-
-          if (prop === "callee") {
-            callee.push({ name: node.name, parent });
-          }
-          break;
-
-
-Für Script:
-
-- alle const/let initialisierungen tracken (const a = ''; let a = '')
-- alle callExpressions tracken und deren erstes argument
-- createEventDispatcher tracken, zu welcher const/let es initialisiert wird
-
-
-Am Ende:
-1. name von createEventDispatcher rausfinden
-2. alle calle aus Template iterieren, und die behalten, die dispatch sind.
-3. alle callExpressions aus script iterieren, und die behalten, die dispatch sind
--- für 2 und 3 :  Für jede gucken, ob man Name bekommt. Entweder eine variable, dann aus const/let initialisierungen finden, oder ein StringLiteral.
- */
 class ComponentEventsFromEventsMap {
     events = new Map<string, { type: string; doc?: string }>();
     private dispatchedEvents = new Set();
@@ -149,6 +136,7 @@ class ComponentEventsFromEventsMap {
         ) {
             this.dispatcherName = node.name.text;
             const dispatcherTyping = node.initializer.typeArguments?.[0];
+
             if (dispatcherTyping && ts.isTypeLiteralNode(dispatcherTyping)) {
                 this.eventDispatcherTyping = dispatcherTyping.getText();
                 dispatcherTyping.members.filter(ts.isPropertySignature).forEach((member) => {
@@ -157,6 +145,10 @@ class ComponentEventsFromEventsMap {
                         doc: getDoc(member),
                     });
                 });
+            } else {
+                this.eventHandler
+                    .getDispatchedEventsForIdentifier(this.dispatcherName)
+                    .forEach((evtName) => this.addToEvents(evtName));
             }
         }
     }
@@ -193,7 +185,7 @@ class ComponentEventsFromEventsMap {
         }
         return (
             '{' +
-            this.eventHandler.eventMapToString() +
+            this.eventHandler.bubbledEventsMapToString() +
             [...this.dispatchedEvents.keys()]
                 .map((e) => `'${e}': __sveltets_customEvent`)
                 .join(', ') +
@@ -203,7 +195,7 @@ class ComponentEventsFromEventsMap {
 
     private extractEvents(eventHandler: EventHandler) {
         const map = new Map();
-        for (const name of eventHandler.getEvents().keys()) {
+        for (const name of eventHandler.getBubbledEvents().keys()) {
             map.set(name, { type: 'Event' });
         }
         return map;

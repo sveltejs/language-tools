@@ -175,6 +175,7 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
             case 'Identifier':
                 handleIdentifier(node);
                 stores.handleIdentifier(node, parent, prop);
+                eventHandler.handleIdentifier(node, parent, prop);
                 break;
             case 'Slot':
                 slotHandler.handleSlot(node, templateScope);
