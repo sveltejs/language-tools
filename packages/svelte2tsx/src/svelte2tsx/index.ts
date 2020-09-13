@@ -259,14 +259,11 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
     //resolve stores
     stores.resolveStores();
 
-    const events = new ComponentEvents();
-    events.setEventHandler(eventHandler);
-
     return {
         moduleScriptTag,
         scriptTag,
         slots: slotHandler.getSlotDef(),
-        events,
+        events: new ComponentEvents(eventHandler),
         uses$$props,
         uses$$restProps,
         uses$$slots,

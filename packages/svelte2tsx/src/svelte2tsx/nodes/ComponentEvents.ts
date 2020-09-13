@@ -20,10 +20,14 @@ import { getVariableAtTopLevel, getLeadingDoc } from '../utils/tsAst';
  */
 export class ComponentEvents {
     private componentEventsInterface?: ComponentEventsFromInterface;
-    private componentEventsFromEventsMap?: ComponentEventsFromEventsMap;
+    private componentEventsFromEventsMap: ComponentEventsFromEventsMap;
 
     private get eventsClass() {
         return this.componentEventsInterface || this.componentEventsFromEventsMap;
+    }
+
+    constructor(eventHandler: EventHandler) {
+        this.componentEventsFromEventsMap = new ComponentEventsFromEventsMap(eventHandler);
     }
 
     /**
@@ -43,10 +47,6 @@ export class ComponentEvents {
                 return entries;
             },
         };
-    }
-
-    setEventHandler(eventHandler: EventHandler): void {
-        this.componentEventsFromEventsMap = new ComponentEventsFromEventsMap(eventHandler);
     }
 
     setComponentEventsInterface(node: ts.InterfaceDeclaration): void {
