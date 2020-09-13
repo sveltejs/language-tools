@@ -1,6 +1,6 @@
 import ts from 'typescript';
 import { EventHandler } from './event-handler';
-import { getVariableAtTopLevel } from '../utils/tsAst';
+import { getVariableAtTopLevel, getLeadingDoc } from '../utils/tsAst';
 
 export class ComponentEvents {
     private componentEventsInterface?: ComponentEventsFromInterface;
@@ -226,7 +226,7 @@ class ComponentEventsFromEventsMap {
                 dispatcherTyping.members.filter(ts.isPropertySignature).forEach((member) => {
                     this.addToEvents(this.getName(member.name), {
                         type: `CustomEvent<${member.type?.getText() || 'any'}>`,
-                        doc: undefined, // TODO
+                        doc: this.getDoc(member),
                     });
                 });
             }
@@ -325,5 +325,26 @@ class ComponentEventsFromEventsMap {
                 column: lineChar.character,
             };
         }
+    }
+
+    private getDoc(member: ts.PropertySignature) {
+        let doc = undefined;
+        const comment = getLeadingDoc(member);
+
+        if (comment) {
+            doc = comment
+                .split('\n')
+                .map((line) =>
+                    // Remove /** */
+                    line
+                        .replace(/\s*\/\*\*/, '')
+                        .replace(/\s*\*\//, '')
+                        .replace(/\s*\*/, '')
+                        .trim(),
+                )
+                .join('\n');
+        }
+
+        return doc;
     }
 }

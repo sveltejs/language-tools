@@ -3,7 +3,17 @@
 
     const notDispatch = abc();
     const bla = 'bye';
-    const dispatch = createEventDispatcher<{hi: boolean; [bla]: boolean; btn: string;}>();
+    const dispatch = createEventDispatcher<{
+    /**
+     * A DOC
+     */
+    hi: boolean; 
+    /**
+     * ANOTHER DOC
+     */
+    [bla]: boolean;
+    // not this
+    btn: string;}>();
 
     dispatch('hi', true);
 

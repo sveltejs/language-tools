@@ -120,3 +120,17 @@ export function getVariableAtTopLevel(
         }
     }
 }
+
+/**
+ * Get the leading multiline trivia doc of the node.
+ */
+export function getLeadingDoc(node: ts.Node): string | undefined {
+    const nodeText = node.getFullText();
+    const comment = ts
+        .getLeadingCommentRanges(nodeText, 0)
+        ?.find((c) => c.kind === ts.SyntaxKind.MultiLineCommentTrivia);
+
+    if (comment) {
+        return nodeText.substring(comment.pos, comment.end);
+    }
+}
