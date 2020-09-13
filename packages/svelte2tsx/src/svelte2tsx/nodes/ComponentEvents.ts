@@ -147,6 +147,35 @@ class ComponentEventsFromInterface {
     }
 }
 
+/**
+Alles in einer Klasse tracken
+
+Für Template:
+
+case "Identifier":
+          if (node.name === "createEventDispatcher") {
+            hasDispatchedEvents = true;
+          }
+
+          if (prop === "callee") {
+            callee.push({ name: node.name, parent });
+          }
+          break;
+
+
+Für Script:
+
+- alle const/let initialisierungen tracken (const a = ''; let a = '')
+- alle callExpressions tracken und deren erstes argument
+- createEventDispatcher tracken, zu welcher const/let es initialisiert wird
+
+
+Am Ende:
+1. name von createEventDispatcher rausfinden
+2. alle calle aus Template iterieren, und die behalten, die dispatch sind.
+3. alle callExpressions aus script iterieren, und die behalten, die dispatch sind
+-- für 2 und 3 :  Für jede gucken, ob man Name bekommt. Entweder eine variable, dann aus const/let initialisierungen finden, oder ein StringLiteral.
+ */
 class ComponentEventsFromEventsMap {
     events = new Map<string, { type: string; doc?: string }>();
     private dispatchedEvents = new Set();
@@ -196,7 +225,7 @@ class ComponentEventsFromEventsMap {
                 this.eventDispatcherTyping = dispatcherTyping.getText();
                 dispatcherTyping.members.filter(ts.isPropertySignature).forEach((member) => {
                     this.addToEvents(this.getName(member.name), {
-                        type: member.type?.getText() || 'Event',
+                        type: `CustomEvent<${member.type?.getText() || 'any'}>`,
                         doc: undefined, // TODO
                     });
                 });
@@ -205,7 +234,11 @@ class ComponentEventsFromEventsMap {
     }
 
     checkIfCallExpressionIsDispatch(node: ts.CallExpression) {
-        if (ts.isIdentifier(node.expression) && node.expression.text === this.dispatcherName) {
+        if (
+            !this.eventDispatcherTyping &&
+            ts.isIdentifier(node.expression) &&
+            node.expression.text === this.dispatcherName
+        ) {
             const firstArg = node.arguments[0];
             if (ts.isStringLiteral(firstArg)) {
                 this.addToEvents(firstArg.text);
@@ -228,7 +261,7 @@ class ComponentEventsFromEventsMap {
 
     toDefString() {
         if (this.eventDispatcherTyping) {
-            return `{} as unknown as __sveltets_toEventTypings<${this.eventDispatcherTyping}>()`;
+            return `__sveltets_toEventTypings<${this.eventDispatcherTyping}>()`;
         }
         return (
             '{' +
