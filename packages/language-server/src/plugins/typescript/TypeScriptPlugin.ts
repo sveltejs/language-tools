@@ -13,7 +13,12 @@ import {
     SymbolInformation,
     WorkspaceEdit,
 } from 'vscode-languageserver';
-import { Document, DocumentManager, mapSymbolInformationToOriginal } from '../../lib/documents';
+import {
+    Document,
+    DocumentManager,
+    mapSymbolInformationToOriginal,
+    getTextInRange,
+} from '../../lib/documents';
 import { LSConfigManager, LSTypescriptConfig } from '../../ls-config';
 import { pathToUrl } from '../../utils';
 import {
@@ -122,12 +127,28 @@ export class TypeScriptPlugin
                 })
                 .map((symbol) => mapSymbolInformationToOriginal(fragment, symbol))
                 // Due to svelte2tsx, there will also be some symbols that are unmapped.
-                // Filter those out to keep the lsp from throwing errors
+                // Filter those out to keep the lsp from throwing errors.
+                // Also filter out transformation artifacts
                 .filter(
                     (symbol) =>
                         symbol.location.range.start.line >= 0 &&
-                        symbol.location.range.end.line >= 0,
+                        symbol.location.range.end.line >= 0 &&
+                        !symbol.name.startsWith('__sveltets_'),
                 )
+                .map((symbol) => {
+                    if (symbol.name !== '<function>') {
+                        return symbol;
+                    }
+
+                    let name = getTextInRange(symbol.location.range, document.getText()).trimLeft();
+                    if (name.length > 50) {
+                        name = name.substring(0, 50) + '...';
+                    }
+                    return {
+                        ...symbol,
+                        name,
+                    };
+                })
         );
 
         function collectSymbols(

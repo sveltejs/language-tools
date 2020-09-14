@@ -14,6 +14,10 @@ describe('TypescriptPlugin', () => {
         return pathToUrl(filePath);
     }
 
+    function harmonizeNewLines(input: string) {
+        return input.replace(/\r\n/g, '~:~').replace(/\n/g, '~:~').replace(/~:~/g, '\n');
+    }
+
     function setup(filename: string) {
         const docManager = new DocumentManager(() => document);
         const testDir = path.join(__dirname, 'testfiles');
@@ -30,25 +34,63 @@ describe('TypescriptPlugin', () => {
         const symbols = await plugin.getDocumentSymbols(document);
 
         assert.deepStrictEqual(
-            symbols.find((symbol) => symbol.name === 'bla'),
-            {
-                containerName: 'render',
-                kind: 12,
-                location: {
-                    range: {
-                        start: {
-                            character: 8,
-                            line: 0,
+            symbols.map((s) => ({ ...s, name: harmonizeNewLines(s.name) })),
+            [
+                {
+                    containerName: 'render',
+                    kind: 12,
+                    location: {
+                        range: {
+                            start: {
+                                line: 6,
+                                character: 3,
+                            },
+                            end: {
+                                line: 8,
+                                character: 5,
+                            },
                         },
-                        end: {
-                            character: 37,
-                            line: 0,
-                        },
+                        uri: getUri('documentsymbols.svelte'),
                     },
-                    uri: getUri('documentsymbols.svelte'),
+                    name: "$: if (hello) {\n        console.log('hi');\n    }",
                 },
-                name: 'bla',
-            },
+                {
+                    containerName: 'render',
+                    kind: 12,
+                    location: {
+                        range: {
+                            start: {
+                                line: 1,
+                                character: 4,
+                            },
+                            end: {
+                                line: 3,
+                                character: 5,
+                            },
+                        },
+                        uri: getUri('documentsymbols.svelte'),
+                    },
+                    name: 'bla',
+                },
+                {
+                    containerName: 'render',
+                    kind: 13,
+                    location: {
+                        range: {
+                            start: {
+                                line: 5,
+                                character: 7,
+                            },
+                            end: {
+                                line: 5,
+                                character: 16,
+                            },
+                        },
+                        uri: getUri('documentsymbols.svelte'),
+                    },
+                    name: 'hello',
+                },
+            ],
         );
     });
 
