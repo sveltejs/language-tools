@@ -34,7 +34,7 @@ export interface CompletionEntryWithIdentifer extends ts.CompletionEntry, TextDo
 type validTriggerCharacter = '.' | '"' | "'" | '`' | '/' | '@' | '<' | '#';
 
 export class CompletionsProviderImpl implements CompletionsProvider<CompletionEntryWithIdentifer> {
-    constructor(private readonly lsAndTsDocResovler: LSAndTSDocResolver) {}
+    constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) { }
 
     /**
      * The language service throws an error if the character is not a valid trigger character.
@@ -58,7 +58,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             return null;
         }
 
-        const { lang, tsDoc } = this.lsAndTsDocResovler.getLSAndTSDoc(document);
+        const { lang, tsDoc } = this.lsAndTsDocResolver.getLSAndTSDoc(document);
 
         const filePath = tsDoc.filePath;
         if (!filePath) {
@@ -136,7 +136,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         originalPosition: Position,
     ): AppCompletionItem<CompletionEntryWithIdentifer>[] {
         const snapshot = getComponentAtPosition(
-            this.lsAndTsDocResovler,
+            this.lsAndTsDocResolver,
             lang,
             doc,
             tsDoc,
@@ -236,7 +236,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         completionItem: AppCompletionItem<CompletionEntryWithIdentifer>,
     ): Promise<AppCompletionItem<CompletionEntryWithIdentifer>> {
         const { data: comp } = completionItem;
-        const { tsDoc, lang } = this.lsAndTsDocResovler.getLSAndTSDoc(document);
+        const { tsDoc, lang } = this.lsAndTsDocResolver.getLSAndTSDoc(document);
 
         const filePath = tsDoc.filePath;
 
@@ -333,16 +333,16 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
 
         const { span } = change;
 
-        const virutalRange = convertRange(fragment, span);
+        const virtualRange = convertRange(fragment, span);
         let range: Range;
-        const isNewImport = isImport && virutalRange.start.character === 0;
+        const isNewImport = isImport && virtualRange.start.character === 0;
 
         // Since new import always can't be mapped, we'll have special treatment here
         //  but only hack this when there is multiple line in script
-        if (isNewImport && virutalRange.start.line > 1) {
-            range = this.mapRangeForNewImport(fragment, virutalRange);
+        if (isNewImport && virtualRange.start.line > 1) {
+            range = this.mapRangeForNewImport(fragment, virtualRange);
         } else {
-            range = mapRangeToOriginal(fragment, virutalRange);
+            range = mapRangeToOriginal(fragment, virtualRange);
         }
 
         // If range is somehow not mapped in parent,
@@ -372,8 +372,8 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
     }
 
     private mapRangeForNewImport(fragment: SvelteSnapshotFragment, virtualRange: Range) {
-        const sourceMapableRange = this.offsetLinesAndMovetoStartOfLine(virtualRange, -1);
-        const mappableRange = mapRangeToOriginal(fragment, sourceMapableRange);
+        const sourceMappableRange = this.offsetLinesAndMovetoStartOfLine(virtualRange, -1);
+        const mappableRange = mapRangeToOriginal(fragment, sourceMappableRange);
         return this.offsetLinesAndMovetoStartOfLine(mappableRange, 1);
     }
 
