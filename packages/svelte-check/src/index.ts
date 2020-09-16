@@ -137,6 +137,9 @@ function instantiateWriter(myArgs: argv.ParsedArgs): Writer {
 function getOptions(myArgs: argv.ParsedArgs): SvelteCheckOptions {
     return {
         compilerWarnings: stringToObj(myArgs['compiler-warnings']),
+        diagnosticSources: <any>(
+            myArgs['diagnostic-sources']?.split(',')?.map((s: string) => s.trim())
+        ),
     };
 
     function stringToObj(str = '') {

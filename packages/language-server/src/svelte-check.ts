@@ -1,12 +1,15 @@
 import { Document, DocumentManager } from './lib/documents';
 import { LSConfigManager } from './ls-config';
-import { CSSPlugin, HTMLPlugin, PluginHost, SveltePlugin, TypeScriptPlugin } from './plugins';
+import { CSSPlugin, PluginHost, SveltePlugin, TypeScriptPlugin } from './plugins';
 import { Diagnostic } from 'vscode-languageserver';
 import { Logger } from './logger';
 import { urlToPath, pathToUrl } from './utils';
 
+export type SvelteCheckDiagnosticSource = 'js' | 'css' | 'svelte';
+
 export interface SvelteCheckOptions {
     compilerWarnings?: Record<string, 'ignore' | 'error'>;
+    diagnosticSources?: SvelteCheckDiagnosticSource[];
 }
 
 /**
@@ -31,12 +34,24 @@ export class SvelteCheck {
                 compilerWarnings: options.compilerWarnings,
             },
         });
-        this.pluginHost.register(new SveltePlugin(this.configManager, {}));
-        this.pluginHost.register(new HTMLPlugin(this.docManager, this.configManager));
-        this.pluginHost.register(new CSSPlugin(this.docManager, this.configManager));
-        this.pluginHost.register(
-            new TypeScriptPlugin(this.docManager, this.configManager, [pathToUrl(workspacePath)]),
-        );
+        // No HTMLPlugin, it does not provide diagnostics
+        if (shouldRegister('svelte')) {
+            this.pluginHost.register(new SveltePlugin(this.configManager, {}));
+        }
+        if (shouldRegister('css')) {
+            this.pluginHost.register(new CSSPlugin(this.docManager, this.configManager));
+        }
+        if (shouldRegister('js')) {
+            this.pluginHost.register(
+                new TypeScriptPlugin(this.docManager, this.configManager, [
+                    pathToUrl(workspacePath),
+                ]),
+            );
+        }
+
+        function shouldRegister(source: SvelteCheckDiagnosticSource) {
+            return !options.diagnosticSources || options.diagnosticSources.includes(source);
+        }
     }
 
     /**
