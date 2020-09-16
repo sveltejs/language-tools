@@ -12,7 +12,7 @@ import { isInTag } from '../../../lib/documents';
 
 const HTML_COMMENT_START = '<!--';
 
-const componentCompletion = <CompletionItem>{
+const componentDocumentationCompletion: CompletionItem = {
     label: '@component',
     insertText: `component${EOL}$1${EOL}`,
     documentation: 'documentation for this component. ' +
@@ -20,6 +20,7 @@ const componentCompletion = <CompletionItem>{
     insertTextFormat: InsertTextFormat.Snippet,
     kind: CompletionItemKind.Snippet,
     sortText: '-1',
+    filterText: 'component',
     preselect: true,
 };
 
@@ -69,8 +70,8 @@ export function getCompletions(
             commentStartIndex + HTML_COMMENT_START.length
         ).trimLeft();
 
-        if (componentCompletion.label.includes(text)) {
-            return CompletionList.create([componentCompletion]);
+        if (componentDocumentationCompletion.label.includes(text)) {
+            return CompletionList.create([componentDocumentationCompletion], true);
         }
         return null;
     }
