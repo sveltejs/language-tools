@@ -1,5 +1,5 @@
 import ts from 'typescript';
-import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver';
+import { Diagnostic, DiagnosticSeverity, DiagnosticTag } from 'vscode-languageserver';
 import { Document, mapObjWithRangeToOriginal, getTextInRange } from '../../../lib/documents';
 import { DiagnosticsProvider } from '../../interfaces';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
@@ -35,17 +35,29 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
         const fragment = await tsDoc.getFragment();
 
         return diagnostics
-            .map((diagnostic) => ({
+            .map<Diagnostic>((diagnostic) => ({
                 range: convertRange(tsDoc, diagnostic),
                 severity: mapSeverity(diagnostic.category),
                 source: isTypescript ? 'ts' : 'js',
                 message: ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n'),
                 code: diagnostic.code,
+                tags: this.getDiagnosticTag(diagnostic)
             }))
             .map((diagnostic) => mapObjWithRangeToOriginal(fragment, diagnostic))
             .filter(hasNoNegativeLines)
             .filter(isNoFalsePositive(document.getText(), tsDoc))
             .map(enhanceIfNecessary);
+    }
+
+    private getDiagnosticTag(diagnostic: ts.Diagnostic) {
+        const tags: DiagnosticTag[] = [];
+        if (diagnostic.reportsUnnecessary) {
+            tags.push(DiagnosticTag.Unnecessary);
+        }
+        if (diagnostic.reportsDeprecated) {
+            tags.push(DiagnosticTag.Deprecated);
+        }
+        return tags;
     }
 
     private getLSAndTSDoc(document: Document) {
