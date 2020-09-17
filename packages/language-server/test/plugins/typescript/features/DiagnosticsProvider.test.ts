@@ -38,6 +38,7 @@ describe('DiagnosticsProvider', () => {
                 },
                 severity: 1,
                 source: 'ts',
+                tags: [],
             },
         ]);
     });
@@ -62,6 +63,7 @@ describe('DiagnosticsProvider', () => {
                 },
                 severity: 1,
                 source: 'js',
+                tags: [],
             },
         ]);
     });
@@ -108,5 +110,47 @@ describe('DiagnosticsProvider', () => {
         const { plugin, document } = setup('svelte-native/svelte-native.svelte');
         const diagnostics = await plugin.getDiagnostics(document);
         assert.deepStrictEqual(diagnostics, []);
+    });
+
+    it('provide diagnostics tags', async () => {
+        const { plugin, document } = setup('diagnostics-tag.svelte');
+        const diagnostics = await plugin.getDiagnostics(document);
+
+        assert.deepStrictEqual(diagnostics, [
+            {
+                code: 6385,
+                message: "'a' is deprecated",
+                range: {
+                    end: {
+                        character: 5,
+                        line: 3,
+                    },
+                    start: {
+                        character: 4,
+                        line: 3,
+                    },
+                },
+                severity: 4,
+                source: 'ts',
+                tags: [2],
+            },
+            {
+                code: 6133,
+                message: "'c' is declared but its value is never read.",
+                range: {
+                    end: {
+                        character: 9,
+                        line: 4,
+                    },
+                    start: {
+                        character: 8,
+                        line: 4,
+                    },
+                },
+                severity: 4,
+                source: 'ts',
+                tags: [1],
+            },
+        ]);
     });
 });
