@@ -61,6 +61,10 @@ export class ComponentEvents {
         this.componentEventsFromEventsMap.checkIfImportIsEventDispatcher(node);
     }
 
+    checkIfIsStringLiteralDeclaration(node: ts.VariableDeclaration): void {
+        this.componentEventsFromEventsMap.checkIfIsStringLiteralDeclaration(node);
+    }
+
     checkIfDeclarationInstantiatedEventDispatcher(node: ts.VariableDeclaration): void {
         this.componentEventsFromEventsMap.checkIfDeclarationInstantiatedEventDispatcher(node);
     }
@@ -131,13 +135,19 @@ class ComponentEventsFromEventsMap {
         }
     }
 
+    checkIfIsStringLiteralDeclaration(node: ts.VariableDeclaration) {
+        if (
+            ts.isIdentifier(node.name) &&
+            node.initializer &&
+            ts.isStringLiteral(node.initializer)
+        ) {
+            this.stringVars.set(node.name.text, node.initializer.text);
+        }
+    }
+
     checkIfDeclarationInstantiatedEventDispatcher(node: ts.VariableDeclaration) {
         if (!ts.isIdentifier(node.name) || !node.initializer) {
             return;
-        }
-
-        if (ts.isStringLiteral(node.initializer)) {
-            this.stringVars.set(node.name.text, node.initializer.text);
         }
 
         if (

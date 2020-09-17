@@ -375,6 +375,7 @@ export function processInstanceScriptContent(
         }
 
         if (ts.isVariableDeclaration(node)) {
+            events.checkIfIsStringLiteralDeclaration(node);
             events.checkIfDeclarationInstantiatedEventDispatcher(node);
         }
 
