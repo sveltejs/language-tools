@@ -1,4 +1,5 @@
 import ts from 'typescript';
+import { getLeadingDoc } from '../utils/tsAst';
 
 export interface IExportedNames {
     has(name: string): boolean;
@@ -49,15 +50,7 @@ export class ExportedNames
         const exportExpr = target?.parent?.parent?.parent;
 
         if (exportExpr) {
-            const fileText = exportExpr.getSourceFile().getFullText();
-            const comment = ts.getLeadingCommentRanges(fileText, exportExpr.getFullStart());
-
-            if (comment) {
-                const [first] = comment;
-                if (first?.kind === ts.SyntaxKind.MultiLineCommentTrivia) {
-                    doc = fileText.substring(first.pos, first.end);
-                }
-            }
+            doc = getLeadingDoc(exportExpr);
         }
 
         return doc;

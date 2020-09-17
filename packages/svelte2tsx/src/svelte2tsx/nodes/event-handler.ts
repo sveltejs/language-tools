@@ -1,36 +1,60 @@
 import { Node } from 'estree-walker';
 
 export class EventHandler {
-    events = new Map<string, string | string[]>();
+    private bubbledEvents = new Map<string, string | string[]>();
+    private callees: { name: string; parent: Node }[] = [];
 
-    handleEventHandler = (node: Node, parent: Node) => {
+    handleEventHandler(node: Node, parent: Node): void {
         const eventName = node.name;
-
-        const handleEventHandlerBubble = () => {
-            const componentEventDef = `__sveltets_instanceOf(${parent.name})`;
-            // eslint-disable-next-line max-len
-            const exp = `__sveltets_bubbleEventDef(${componentEventDef}.$$events_def, '${eventName}')`;
-
-            const exist = this.events.get(eventName);
-            this.events.set(eventName, exist ? [].concat(exist, exp) : exp);
-        };
 
         // pass-through/ bubble
         if (!node.expression) {
             if (parent.type === 'InlineComponent') {
-                handleEventHandlerBubble();
+                this.handleEventHandlerBubble(parent, eventName);
             } else {
-                this.events.set(eventName, getEventDefExpressionForNonCompoent(eventName, parent));
+                this.bubbledEvents.set(
+                    eventName,
+                    getEventDefExpressionForNonCompoent(eventName, parent),
+                );
             }
         }
-    };
-
-    getEvents() {
-        return this.events;
     }
 
-    eventMapToString() {
-        return '{' + Array.from(this.events.entries()).map(eventMapEntryToString).join(', ') + '}';
+    handleIdentifier(node: Node, parent: Node, prop: string): void {
+        if (prop === 'callee') {
+            this.callees.push({ name: node.name, parent });
+        }
+    }
+
+    getBubbledEvents() {
+        return this.bubbledEvents;
+    }
+
+    getDispatchedEventsForIdentifier(name: string) {
+        const eventNames = new Set<string>();
+
+        this.callees.forEach((callee) => {
+            if (callee.name === name) {
+                const [name] = callee.parent.arguments;
+
+                if (name.value !== undefined) {
+                    eventNames.add(name.value);
+                }
+            }
+        });
+
+        return eventNames;
+    }
+
+    bubbledEventsMapToString() {
+        return Array.from(this.bubbledEvents.entries()).map(eventMapEntryToString).join(', ');
+    }
+
+    private handleEventHandlerBubble(parent: Node, eventName: string): void {
+        const componentEventDef = `__sveltets_instanceOf(${parent.name})`;
+        const exp = `__sveltets_bubbleEventDef(${componentEventDef}.$$events_def, '${eventName}')`;
+        const exist = this.bubbledEvents.get(eventName);
+        this.bubbledEvents.set(eventName, exist ? [].concat(exist, exp) : exp);
     }
 }
 
