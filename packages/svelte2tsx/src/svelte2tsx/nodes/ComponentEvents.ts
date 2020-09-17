@@ -103,7 +103,7 @@ class ComponentEventsFromEventsMap {
     events = new Map<string, { type: string; doc?: string }>();
     private dispatchedEvents = new Set();
     private stringVars = new Map<string, string>();
-    private hasEventDispatcherImport = false;
+    private eventDispatcherImport = '';
     private eventDispatcherTyping?: string;
     private dispatcherName = '';
 
@@ -112,7 +112,7 @@ class ComponentEventsFromEventsMap {
     }
 
     checkIfImportIsEventDispatcher(node: ts.ImportDeclaration) {
-        if (this.hasEventDispatcherImport) {
+        if (this.eventDispatcherImport) {
             return;
         }
         if (ts.isStringLiteral(node.moduleSpecifier) && node.moduleSpecifier.text !== 'svelte') {
@@ -121,9 +121,13 @@ class ComponentEventsFromEventsMap {
 
         const namedImports = node.importClause?.namedBindings;
         if (ts.isNamedImports(namedImports)) {
-            this.hasEventDispatcherImport = namedImports.elements.some(
-                (el) => el.name.text === 'createEventDispatcher',
+            const eventDispatcherImport = namedImports.elements.find(
+                // If it's an aliased import, propertyName is set
+                (el) => (el.propertyName || el.name).text === 'createEventDispatcher',
             );
+            if (eventDispatcherImport) {
+                this.eventDispatcherImport = eventDispatcherImport.name.text;
+            }
         }
     }
 
@@ -137,10 +141,9 @@ class ComponentEventsFromEventsMap {
         }
 
         if (
-            this.hasEventDispatcherImport &&
             ts.isCallExpression(node.initializer) &&
             ts.isIdentifier(node.initializer.expression) &&
-            node.initializer.expression.text === 'createEventDispatcher'
+            node.initializer.expression.text === this.eventDispatcherImport
         ) {
             this.dispatcherName = node.name.text;
             const dispatcherTyping = node.initializer.typeArguments?.[0];
