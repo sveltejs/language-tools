@@ -1,7 +1,11 @@
 import MagicString from 'magic-string';
 import { Node } from 'estree-walker';
 import * as ts from 'typescript';
-import { findExportKeyword, getBinaryAssignmentExpr } from './utils/tsAst';
+import {
+    findExportKeyword,
+    getBinaryAssignmentExpr,
+    isNotPropertyNameOfImport,
+} from './utils/tsAst';
 import { ExportedNames } from './nodes/ExportedNames';
 import { ImplicitTopLevelNames } from './nodes/ImplicitTopLevelNames';
 import { ComponentEvents } from './nodes/ComponentEvents';
@@ -231,7 +235,10 @@ export function processInstanceScriptContent(
         }
 
         if (isDeclaration || ts.isParameter(parent)) {
-            if (!ts.isBindingElement(ident.parent) || ident.parent.name == ident) {
+            if (
+                isNotPropertyNameOfImport(ident) &&
+                (!ts.isBindingElement(ident.parent) || ident.parent.name == ident)
+            ) {
                 // we are a key, not a name, so don't care
                 if (ident.text.startsWith('$') || scope == rootScope) {
                     // track all top level declared identifiers and all $ prefixed identifiers

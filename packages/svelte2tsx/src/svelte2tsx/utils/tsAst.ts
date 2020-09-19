@@ -134,3 +134,13 @@ export function getLeadingDoc(node: ts.Node): string | undefined {
         return nodeText.substring(comment.pos, comment.end);
     }
 }
+
+/**
+ * Returns true if given identifier is not the property name of an aliased import.
+ * In other words: It is not `a` in `import {a as b} from ..`
+ */
+export function isNotPropertyNameOfImport(identifier: ts.Identifier): boolean {
+    return (
+        !ts.isImportSpecifier(identifier.parent) || identifier.parent.propertyName !== identifier
+    );
+}
