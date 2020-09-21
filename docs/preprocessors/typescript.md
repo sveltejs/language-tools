@@ -68,34 +68,6 @@ This will make sure that if you use `dispatch` that you can only invoke it with 
 
 Note though that this will _NOT_ make the events strict so that you get type errors when trying to listen to other events when using the component. Due to Svelte's dynamic events creation, component events could be fired not only from a dispatcher created directly in the component, but from a dispatcher which is created as part of another import. This is almost impossible to infer.
 
-If you want strict events, you can do so by defining a reserved `interface` (_NOT_ `type`) called `ComponentEvents`:
-
-```html
-<script lang="ts">
-    interface ComponentEvents {
-        click: MouseEvent;
-        hello: CustomEvent<boolean>;
-    }
-
-    // ...
-</script>
-```
-
-Doing this will give you autocompletion for these events as well as type safety when listening to the events in other components.
-
-If you want to be sure that the interface definition names correspond to your dispatched events, you can use computed property names:
-
-```html
-<script lang="ts">
-    const hello = 'hello';
-    interface ComponentEvents {
-        [hello]: CustomEvent<boolean>;
-    }
-    // ...
-    dispatch(hello, true);
-</script>
-```
-
 ## Troubleshooting / FAQ
 
 ### I cannot use TS inside my script even when `lang="ts"` is present
