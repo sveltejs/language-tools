@@ -35,7 +35,11 @@ export class SveltePlugin
         CodeActionsProvider {
     private docManager = new Map<Document, SvelteDocument>();
 
-    constructor(private configManager: LSConfigManager, private prettierConfig: any) {}
+    constructor(
+        private configManager: LSConfigManager,
+        private prettierConfig: any,
+        private editorConfig?: any,
+    ) {}
 
     async getDiagnostics(document: Document): Promise<Diagnostic[]> {
         if (!this.featureEnabled('diagnostics')) {
@@ -67,7 +71,13 @@ export class SveltePlugin
         const prettier = importPrettier(filePath);
         // Try resolving the config through prettier and fall back to possible editor config
         const config =
-            (await prettier.resolveConfig(filePath, { editorconfig: true })) || this.prettierConfig;
+            (await prettier.resolveConfig(filePath, { editorconfig: true })) ||
+            this.prettierConfig ||
+            // Be defensive here because IDEs other than VSCode might not have these settings
+            (this.editorConfig && this.editorConfig.tabSize && {
+                tabWidth: this.editorConfig.tabSize,
+                useTabs: !this.editorConfig.insertSpaces,
+            });
         // Take .prettierignore into account
         const fileInfo = await prettier.getFileInfo(filePath, {
             ignorePath: this.prettierConfig?.ignorePath ?? '.prettierignore',
