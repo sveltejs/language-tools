@@ -9,6 +9,7 @@ import {
     CompletionList,
     DefinitionLink,
     Diagnostic,
+    FormattingOptions,
     Hover,
     Position,
     Range,
@@ -51,7 +52,7 @@ export interface CompletionsProvider<T extends TextDocumentIdentifier = any> {
 }
 
 export interface FormattingProvider {
-    formatDocument(document: Document): Resolvable<TextEdit[]>;
+    formatDocument(document: Document, options: FormattingOptions): Resolvable<TextEdit[]>;
 }
 
 export interface TagCompleteProvider {
