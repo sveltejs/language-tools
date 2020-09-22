@@ -3,13 +3,15 @@ import { SveltePlugin } from '../../../src/plugins';
 import { DocumentManager, Document } from '../../../src/lib/documents';
 import { Diagnostic, Range, DiagnosticSeverity } from 'vscode-languageserver';
 import { LSConfigManager } from '../../../src/ls-config';
+import * as importPackage from '../../../src/importPackage';
+import sinon from 'sinon';
 
 describe('Svelte Plugin', () => {
-    function setup(content: string) {
+    function setup(content: string, prettierConfig?: any) {
         const document = new Document('file:///hello.svelte', content);
         const docManager = new DocumentManager(() => document);
         const pluginManager = new LSConfigManager();
-        const plugin = new SveltePlugin(pluginManager, {});
+        const plugin = new SveltePlugin(pluginManager, prettierConfig);
         docManager.openDocument(<any>'some doc');
         return { plugin, document };
     }
@@ -42,5 +44,82 @@ describe('Svelte Plugin', () => {
         );
 
         assert.deepStrictEqual(diagnostics, [diagnostic]);
+    });
+
+    describe('#formatDocument', () => {
+        function stubPrettier(configExists: boolean) {
+            const formatStub = sinon.stub().returns('formatted');
+
+            sinon.stub(importPackage, 'importPrettier').returns(<any>{
+                resolveConfig: () => Promise.resolve(configExists && { fromConfig: true }),
+                getFileInfo: () => ({ ignored: false }),
+                format: formatStub,
+                getSupportInfo: () => ({ languages: [{ name: 'svelte' }] }),
+            });
+
+            return formatStub;
+        }
+
+        async function testFormat(configExists: boolean, fallbackPrettierConfigExists: boolean) {
+            const { plugin, document } = setup(
+                'unformatted',
+                fallbackPrettierConfigExists ? { fallbackConfig: true } : undefined,
+            );
+            const formatStub = stubPrettier(configExists);
+
+            const formatted = await plugin.formatDocument(document, {
+                insertSpaces: true,
+                tabSize: 4,
+            });
+            assert.deepStrictEqual(formatted, [
+                {
+                    newText: 'formatted',
+                    range: {
+                        end: {
+                            character: 11,
+                            line: 0,
+                        },
+                        start: {
+                            character: 0,
+                            line: 0,
+                        },
+                    },
+                },
+            ]);
+
+            return formatStub;
+        }
+
+        afterEach(() => {
+            sinon.restore();
+        });
+
+        it('should use config for formatting', async () => {
+            const formatStub = await testFormat(true, true);
+            sinon.assert.calledOnceWithExactly(formatStub, 'unformatted', {
+                fromConfig: true,
+                plugins: [],
+                parser: 'svelte',
+            });
+        });
+
+        it('should use prettier fallback config for formatting', async () => {
+            const formatStub = await testFormat(false, true);
+            sinon.assert.calledOnceWithExactly(formatStub, 'unformatted', {
+                fallbackConfig: true,
+                plugins: [],
+                parser: 'svelte',
+            });
+        });
+
+        it('should use FormattingOptions for formatting', async () => {
+            const formatStub = await testFormat(false, false);
+            sinon.assert.calledOnceWithExactly(formatStub, 'unformatted', {
+                tabWidth: 4,
+                useTabs: false,
+                plugins: [],
+                parser: 'svelte',
+            });
+        });
     });
 });

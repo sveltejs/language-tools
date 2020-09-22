@@ -36,7 +36,7 @@ export class SveltePlugin
         CodeActionsProvider {
     private docManager = new Map<Document, SvelteDocument>();
 
-    constructor(private configManager: LSConfigManager, private prettierConfig: any) {}
+    constructor(private configManager: LSConfigManager, private prettierConfig?: any) {}
 
     async getDiagnostics(document: Document): Promise<Diagnostic[]> {
         if (!this.featureEnabled('diagnostics')) {

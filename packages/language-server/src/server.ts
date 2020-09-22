@@ -99,7 +99,7 @@ export function startServer(options?: LSOptions) {
         pluginHost.register(
             (sveltePlugin = new SveltePlugin(
                 configManager,
-                evt.initializationOptions?.prettierConfig || {},
+                evt.initializationOptions?.prettierConfig,
             )),
         );
         pluginHost.register(new HTMLPlugin(docManager, configManager));
