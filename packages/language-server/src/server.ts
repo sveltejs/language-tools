@@ -86,8 +86,9 @@ export function startServer(options?: LSOptions) {
     let sveltePlugin: SveltePlugin = undefined as any;
 
     connection.onInitialize((evt) => {
-        const workspaceUris = evt.workspaceFolders?.map(folder => folder.uri.toString())
-            ?? [evt.rootUri ?? ''];
+        const workspaceUris = evt.workspaceFolders?.map((folder) => folder.uri.toString()) ?? [
+            evt.rootUri ?? '',
+        ];
         Logger.log('Initialize language server at ', workspaceUris.join(', '));
         if (workspaceUris.length === 0) {
             Logger.error('No workspace path set');
@@ -98,8 +99,7 @@ export function startServer(options?: LSOptions) {
         pluginHost.register(
             (sveltePlugin = new SveltePlugin(
                 configManager,
-                evt.initializationOptions?.prettierConfig || {},
-                evt.initializationOptions?.editorConfig, // deliberatly don't fall back to empty object
+                evt.initializationOptions?.prettierConfig,
             )),
         );
         pluginHost.register(new HTMLPlugin(docManager, configManager));
@@ -206,7 +206,9 @@ export function startServer(options?: LSOptions) {
     connection.onCompletion((evt) =>
         pluginHost.getCompletions(evt.textDocument, evt.position, evt.context),
     );
-    connection.onDocumentFormatting((evt) => pluginHost.formatDocument(evt.textDocument));
+    connection.onDocumentFormatting((evt) =>
+        pluginHost.formatDocument(evt.textDocument, evt.options),
+    );
     connection.onRequest(TagCloseRequest.type, (evt) =>
         pluginHost.doTagComplete(evt.textDocument, evt.position),
     );

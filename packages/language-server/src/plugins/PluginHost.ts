@@ -18,6 +18,7 @@ import {
     CompletionItem,
     CompletionContext,
     WorkspaceEdit,
+    FormattingOptions,
 } from 'vscode-languageserver';
 import { LSConfig, LSConfigManager } from '../ls-config';
 import { DocumentManager } from '../lib/documents';
@@ -136,14 +137,21 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         return result ?? completionItem;
     }
 
-    async formatDocument(textDocument: TextDocumentIdentifier): Promise<TextEdit[]> {
+    async formatDocument(
+        textDocument: TextDocumentIdentifier,
+        options: FormattingOptions,
+    ): Promise<TextEdit[]> {
         const document = this.getDocument(textDocument.uri);
         if (!document) {
             throw new Error('Cannot call methods on an unopened document');
         }
 
         return flatten(
-            await this.execute<TextEdit[]>('formatDocument', [document], ExecuteMode.Collect),
+            await this.execute<TextEdit[]>(
+                'formatDocument',
+                [document, options],
+                ExecuteMode.Collect,
+            ),
         );
     }
 
