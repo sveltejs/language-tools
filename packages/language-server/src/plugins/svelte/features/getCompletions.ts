@@ -71,7 +71,7 @@ export function getCompletions(
         ).trimLeft();
 
         if (componentDocumentationCompletion.label.includes(text)) {
-            return CompletionList.create([componentDocumentationCompletion], true);
+            return CompletionList.create([componentDocumentationCompletion], false);
         }
         return null;
     }
