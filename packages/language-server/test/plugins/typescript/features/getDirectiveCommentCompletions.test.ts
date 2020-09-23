@@ -7,8 +7,6 @@ import {
     Position,
     CompletionContext,
     CompletionTriggerKind,
-    CompletionList,
-    TextEdit,
 } from 'vscode-languageserver';
 import { getDirectiveCommentCompletions } from '../../../../src/plugins/typescript/features/getDirectiveCommentCompletions';
 
@@ -126,7 +124,7 @@ describe('can get typescript directive comment completions', () => {
     });
 
     it(`don't provide in markup`, () => {
-        const result = setup(Position.create(8, 3));
+        const result = setup(Position.create(7, 3));
         assert.deepStrictEqual(result, null);
     });
 });
