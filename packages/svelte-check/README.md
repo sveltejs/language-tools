@@ -64,6 +64,8 @@ Usage:
 
 `--diagnostic-sources <js,svelte,css>` A list of diagnostic sources which should run diagnostics on your code. Possible values are `js` (includes TS), `svelte`, `css`. Comma-separated, inside quotes. By default all are active. Example: --diagnostic-sources "js,svelte"
 
+`--threshold <error|warning>` Filters the diagnostics to display. `error` will output only errors while `warning` will output warnings and errors.
+
 ### More docs, preprocessor setup and troubleshooting
 
 [See here](/docs/README.md).

@@ -9,7 +9,7 @@ import * as path from 'path';
 import { SvelteCheck, SvelteCheckOptions } from 'svelte-language-server';
 import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver-protocol';
 import { URI } from 'vscode-uri';
-import { HumanFriendlyWriter, MachineFriendlyWriter, Writer } from './writers';
+import { HumanFriendlyWriter, MachineFriendlyWriter, Writer, DiagnosticFilter, DEFAULT_FILTER } from './writers';
 import { watch } from 'chokidar';
 
 const outputFormats = ['human', 'human-verbose', 'machine'] as const;
@@ -122,15 +122,29 @@ class DiagnosticsWatcher {
     }
 }
 
+function createFilter(myArgs: argv.ParsedArgs): DiagnosticFilter {
+    switch (myArgs['threshold']) {
+        case 'error':
+            return (d) => d.severity === DiagnosticSeverity.Error;
+        case 'warning':
+            return (d) => d.severity === DiagnosticSeverity.Error
+                        || d.severity === DiagnosticSeverity.Warning;
+        default:
+            return DEFAULT_FILTER;
+    }
+}
+
 function instantiateWriter(myArgs: argv.ParsedArgs): Writer {
     const outputFormat: OutputFormat = outputFormats.includes(myArgs['output'])
         ? myArgs['output']
         : 'human-verbose';
 
+    const filter = createFilter(myArgs);
+
     if (outputFormat === 'human-verbose' || outputFormat === 'human') {
-        return new HumanFriendlyWriter(process.stdout, outputFormat === 'human-verbose');
+        return new HumanFriendlyWriter(process.stdout, outputFormat === 'human-verbose', filter);
     } else {
-        return new MachineFriendlyWriter(process.stdout);
+        return new MachineFriendlyWriter(process.stdout, filter);
     }
 }
 
