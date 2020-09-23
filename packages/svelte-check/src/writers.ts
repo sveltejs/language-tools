@@ -11,8 +11,12 @@ export interface Writer {
     failure: (err: Error) => void;
 }
 
+export type DiagnosticFilter = (diagnostic: Diagnostic) => boolean
+export const DEFAULT_FILTER: DiagnosticFilter = () => true;
+
 export class HumanFriendlyWriter implements Writer {
-    constructor(private stream: Writable, private isVerbose = true) {}
+    constructor(private stream: Writable, private isVerbose = true,
+        private diagnosticFilter: DiagnosticFilter = DEFAULT_FILTER) {}
 
     start(workspaceDir: string) {
         if (this.isVerbose) {
@@ -26,7 +30,7 @@ export class HumanFriendlyWriter implements Writer {
     }
 
     file(diagnostics: Diagnostic[], workspaceDir: string, filename: string, text: string): void {
-        diagnostics.forEach((diagnostic) => {
+        diagnostics.filter(this.diagnosticFilter).forEach((diagnostic) => {
             const source = diagnostic.source ? `(${diagnostic.source})` : '';
 
             // Display location in a format that IDEs will turn into file links
@@ -113,7 +117,7 @@ export class HumanFriendlyWriter implements Writer {
 }
 
 export class MachineFriendlyWriter implements Writer {
-    constructor(private stream: Writable) {}
+    constructor(private stream: Writable, private diagnosticFilter = DEFAULT_FILTER) {}
 
     private log(msg: string) {
         this.stream.write(`${new Date().getTime()} ${msg}\n`);
@@ -124,7 +128,7 @@ export class MachineFriendlyWriter implements Writer {
     }
 
     file(diagnostics: Diagnostic[], workspaceDir: string, filename: string, _text: string) {
-        diagnostics.forEach((d) => {
+        diagnostics.filter(this.diagnosticFilter).forEach((d) => {
             const { message, severity, range } = d;
             const type =
                 severity === DiagnosticSeverity.Error
