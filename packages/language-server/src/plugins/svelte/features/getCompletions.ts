@@ -15,8 +15,8 @@ const HTML_COMMENT_START = '<!--';
 const componentDocumentationCompletion: CompletionItem = {
     label: '@component',
     insertText: `component${EOL}$1${EOL}`,
-    documentation: 'documentation for this component. ' +
-        'It will show up on hover. You can use markdown or code block here',
+    documentation: 'Documentation for this component. ' +
+        'It will show up on hover. You can use markdown and code blocks here',
     insertTextFormat: InsertTextFormat.Snippet,
     kind: CompletionItemKind.Snippet,
     sortText: '-1',
