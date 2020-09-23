@@ -80,6 +80,6 @@ function handleSlot(
     str.appendLeft(afterTag, '{() => { let {');
     str.appendRight(afterTag, `} = ${getSingleSlotDef(component, slotName)}` + ';<>');
 
-    const closeTagStart = htmlx.lastIndexOf('<', slotEl.end);
+    const closeTagStart = htmlx.lastIndexOf('<', slotEl.end - 1);
     str.appendLeft(closeTagStart, '</>}}');
 }
