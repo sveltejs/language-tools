@@ -132,6 +132,10 @@ export function processInstanceScriptContent(
             str.appendLeft(parent.end + astOffset, ')');
             return;
         }
+        // ignore break
+        if (parent && parent.kind === ts.SyntaxKind.BreakStatement) {
+            return;
+        }
         // handle Assignment operators ($store +=, -=, *=, /=, %=, **=, etc.)
         // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Expressions_and_Operators#Assignment
         const operators = {
