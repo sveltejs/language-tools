@@ -58,22 +58,21 @@ export function getDirectiveCommentCompletions(
     const prefix = document.getText().slice(lineStart, offset);
     const match = prefix.match(/^\s*\/\/+\s?(@[a-zA-Z-]*)?$/);
 
-    if (match) {
-        const startCharacter = Math.max(0, position.character - (match[1]?.length ?? 0));
-        const start = Position.create(position.line, startCharacter);
-
-        const items = tsDirectives.map<CompletionItem>(({ value, description }) => ({
-            detail: description,
-            label: value,
-            kind: CompletionItemKind.Snippet,
-            textEdit: TextEdit.replace(
-                Range.create(start, Position.create(start.line, start.character + value.length)),
-                value,
-            ),
-        }));
-
-        return CompletionList.create(items, false);
+    if (!match) {
+        return null;
     }
+    const startCharacter = Math.max(0, position.character - (match[1]?.length ?? 0));
+    const start = Position.create(position.line, startCharacter);
 
-    return null;
+    const items = tsDirectives.map<CompletionItem>(({ value, description }) => ({
+        detail: description,
+        label: value,
+        kind: CompletionItemKind.Snippet,
+        textEdit: TextEdit.replace(
+            Range.create(start, Position.create(start.line, start.character + value.length)),
+            value,
+        ),
+    }));
+
+    return CompletionList.create(items, false);
 }
