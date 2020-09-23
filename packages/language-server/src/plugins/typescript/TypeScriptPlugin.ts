@@ -12,6 +12,7 @@ import {
     Range,
     SymbolInformation,
     WorkspaceEdit,
+    CompletionList,
 } from 'vscode-languageserver';
 import {
     Document,
@@ -47,6 +48,7 @@ import { RenameProviderImpl } from './features/RenameProvider';
 import { UpdateImportsProviderImpl } from './features/UpdateImportsProvider';
 import { LSAndTSDocResolver } from './LSAndTSDocResolver';
 import { convertToLocationRange, getScriptKindFromFileName, symbolKindFromString } from './utils';
+import { getDirectiveCommentCompletions } from './features/getDirectiveCommentCompletions';
 
 export class TypeScriptPlugin
     implements
@@ -189,7 +191,26 @@ export class TypeScriptPlugin
             return null;
         }
 
-        return this.completionProvider.getCompletions(document, position, completionContext);
+        const tsDirectiveCommentCompletions = getDirectiveCommentCompletions(
+            position,
+            document,
+            completionContext
+        );
+
+        const completions = await this.completionProvider.getCompletions(
+            document,
+            position,
+            completionContext
+        );
+
+        if (completions && tsDirectiveCommentCompletions) {
+            return CompletionList.create(
+                completions.items.concat(tsDirectiveCommentCompletions.items),
+                completions.isIncomplete
+            );
+        }
+
+        return completions ?? tsDirectiveCommentCompletions;
     }
 
     async resolveCompletion(

@@ -1,4 +1,5 @@
 import * as assert from 'assert';
+import { EOL } from 'os';
 import { Position } from 'vscode-languageserver';
 import { getCompletions } from '../../../../src/plugins/svelte/features/getCompletions';
 import { SvelteDocument } from '../../../../src/plugins/svelte/SvelteDocument';
@@ -114,5 +115,18 @@ describe('SveltePlugin#getCompletions', () => {
         it('for last open tag', () => {
             expectCompletionsFor('{#if}{/if}{#if}{#await}{/').toEqual(['await']);
         });
+    });
+
+    it('should return completion for component documentation comment', () => {
+        const content = '<!--@';
+        const svelteDoc = new SvelteDocument(new Document('url', content));
+        const completions = getCompletions(
+            svelteDoc,
+            Position.create(0, content.length)
+        );
+        assert.deepStrictEqual(
+            completions?.items?.[0].insertText,
+            `component${EOL}$1${EOL}`
+        );
     });
 });
