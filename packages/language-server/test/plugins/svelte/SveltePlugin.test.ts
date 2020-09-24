@@ -47,11 +47,11 @@ describe('Svelte Plugin', () => {
     });
 
     describe('#formatDocument', () => {
-        function stubPrettier(configExists: boolean) {
+        function stubPrettier(config: any) {
             const formatStub = sinon.stub().returns('formatted');
 
             sinon.stub(importPackage, 'importPrettier').returns(<any>{
-                resolveConfig: () => Promise.resolve(configExists && { fromConfig: true }),
+                resolveConfig: () => Promise.resolve(config),
                 getFileInfo: () => ({ ignored: false }),
                 format: formatStub,
                 getSupportInfo: () => ({ languages: [{ name: 'svelte' }] }),
@@ -60,12 +60,9 @@ describe('Svelte Plugin', () => {
             return formatStub;
         }
 
-        async function testFormat(configExists: boolean, fallbackPrettierConfigExists: boolean) {
-            const { plugin, document } = setup(
-                'unformatted',
-                fallbackPrettierConfigExists ? { fallbackConfig: true } : undefined,
-            );
-            const formatStub = stubPrettier(configExists);
+        async function testFormat(config: any, fallbackPrettierConfig: any) {
+            const { plugin, document } = setup('unformatted', fallbackPrettierConfig);
+            const formatStub = stubPrettier(config);
 
             const formatted = await plugin.formatDocument(document, {
                 insertSpaces: true,
@@ -95,7 +92,7 @@ describe('Svelte Plugin', () => {
         });
 
         it('should use config for formatting', async () => {
-            const formatStub = await testFormat(true, true);
+            const formatStub = await testFormat({ fromConfig: true }, { fallbackConfig: true });
             sinon.assert.calledOnceWithExactly(formatStub, 'unformatted', {
                 fromConfig: true,
                 plugins: [],
@@ -104,7 +101,7 @@ describe('Svelte Plugin', () => {
         });
 
         it('should use prettier fallback config for formatting', async () => {
-            const formatStub = await testFormat(false, true);
+            const formatStub = await testFormat(undefined, { fallbackConfig: true });
             sinon.assert.calledOnceWithExactly(formatStub, 'unformatted', {
                 fallbackConfig: true,
                 plugins: [],
@@ -113,7 +110,17 @@ describe('Svelte Plugin', () => {
         });
 
         it('should use FormattingOptions for formatting', async () => {
-            const formatStub = await testFormat(false, false);
+            const formatStub = await testFormat(undefined, undefined);
+            sinon.assert.calledOnceWithExactly(formatStub, 'unformatted', {
+                tabWidth: 4,
+                useTabs: false,
+                plugins: [],
+                parser: 'svelte',
+            });
+        });
+
+        it('should use FormattingOptions for formatting when configs are empty objects', async () => {
+            const formatStub = await testFormat({}, {});
             sinon.assert.calledOnceWithExactly(formatStub, 'unformatted', {
                 tabWidth: 4,
                 useTabs: false,
