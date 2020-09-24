@@ -68,8 +68,8 @@ export class SveltePlugin
         const prettier = importPrettier(filePath);
         // Try resolving the config through prettier and fall back to possible editor config
         const config =
-            (await prettier.resolveConfig(filePath, { editorconfig: true })) ||
-            this.prettierConfig ||
+            returnObjectIfHasKeys(await prettier.resolveConfig(filePath, { editorconfig: true })) ||
+            returnObjectIfHasKeys(this.prettierConfig) ||
             // Be defensive here because IDEs other than VSCode might not have these settings
             (options && {
                 tabWidth: options.tabSize,
@@ -106,6 +106,12 @@ export class SveltePlugin
                 .getSupportInfo()
                 .languages.some((l) => l.name === 'svelte');
             return hasPluginLoadedAlready ? [] : [require.resolve('prettier-plugin-svelte')];
+        }
+
+        function returnObjectIfHasKeys<T>(obj: T | undefined): T | undefined {
+            if (Object.keys(obj || {}).length > 0) {
+                return obj;
+            }
         }
     }
 
