@@ -92,6 +92,12 @@
                     "title": "TypeScript: Completions",
                     "description": "Enable completions for TypeScript"
                 },
+                "svelte.plugin.typescript.findReferences.enable": {
+                    "type": "boolean",
+                    "default": true,
+                    "title": "TypeScript: Find References",
+                    "description": "Enable find-references for TypeScript"
+                },
                 "svelte.plugin.typescript.definitions.enable": {
                     "type": "boolean",
                     "default": true,

@@ -10,6 +10,7 @@ const defaultLSConfig: LSConfig = {
         hover: { enable: true },
         completions: { enable: true },
         definitions: { enable: true },
+        findReferences: { enable: true },
         documentSymbols: { enable: true },
         codeActions: { enable: true },
         rename: { enable: true },
@@ -65,6 +66,9 @@ export interface LSTypescriptConfig {
         enable: boolean;
     };
     completions: {
+        enable: boolean;
+    };
+    findReferences: {
         enable: boolean;
     };
     definitions: {

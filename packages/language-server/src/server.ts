@@ -180,6 +180,7 @@ export function startServer(options?: LSOptions) {
                 renameProvider: evt.capabilities.textDocument?.rename?.prepareSupport
                     ? { prepareProvider: true }
                     : true,
+                referencesProvider: true,
             },
         };
     });
@@ -218,6 +219,9 @@ export function startServer(options?: LSOptions) {
     );
     connection.onDocumentSymbol((evt) => pluginHost.getDocumentSymbols(evt.textDocument));
     connection.onDefinition((evt) => pluginHost.getDefinitions(evt.textDocument, evt.position));
+    connection.onReferences((evt) =>
+        pluginHost.findReferences(evt.textDocument, evt.position, evt.context),
+    );
 
     connection.onCodeAction((evt) =>
         pluginHost.getCodeActions(evt.textDocument, evt.range, evt.context),

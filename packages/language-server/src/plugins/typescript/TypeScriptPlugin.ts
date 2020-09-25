@@ -7,9 +7,11 @@ import {
     Diagnostic,
     FileChangeType,
     Hover,
+    Location,
     LocationLink,
     Position,
     Range,
+    ReferenceContext,
     SymbolInformation,
     WorkspaceEdit,
     CompletionList,
@@ -31,6 +33,7 @@ import {
     DiagnosticsProvider,
     DocumentSymbolsProvider,
     FileRename,
+    FindReferencesProvider,
     HoverProvider,
     OnWatchFileChanges,
     RenameProvider,
@@ -49,6 +52,7 @@ import { UpdateImportsProviderImpl } from './features/UpdateImportsProvider';
 import { LSAndTSDocResolver } from './LSAndTSDocResolver';
 import { convertToLocationRange, getScriptKindFromFileName, symbolKindFromString } from './utils';
 import { getDirectiveCommentCompletions } from './features/getDirectiveCommentCompletions';
+import { FindReferencesProviderImpl } from './features/FindReferencesProvider';
 
 export class TypeScriptPlugin
     implements
@@ -59,6 +63,7 @@ export class TypeScriptPlugin
         CodeActionsProvider,
         UpdateImportsProvider,
         RenameProvider,
+        FindReferencesProvider,
         OnWatchFileChanges,
         CompletionsProvider<CompletionEntryWithIdentifer> {
     private readonly configManager: LSConfigManager;
@@ -69,6 +74,7 @@ export class TypeScriptPlugin
     private readonly diagnosticsProvider: DiagnosticsProviderImpl;
     private readonly renameProvider: RenameProviderImpl;
     private readonly hoverProvider: HoverProviderImpl;
+    private readonly findReferencesProvider: FindReferencesProviderImpl;
 
     constructor(
         docManager: DocumentManager,
@@ -86,6 +92,7 @@ export class TypeScriptPlugin
         this.diagnosticsProvider = new DiagnosticsProviderImpl(this.lsAndTsDocResolver);
         this.renameProvider = new RenameProviderImpl(this.lsAndTsDocResolver);
         this.hoverProvider = new HoverProviderImpl(this.lsAndTsDocResolver);
+        this.findReferencesProvider = new FindReferencesProviderImpl(this.lsAndTsDocResolver);
     }
 
     async getDiagnostics(document: Document): Promise<Diagnostic[]> {
@@ -194,19 +201,19 @@ export class TypeScriptPlugin
         const tsDirectiveCommentCompletions = getDirectiveCommentCompletions(
             position,
             document,
-            completionContext
+            completionContext,
         );
 
         const completions = await this.completionProvider.getCompletions(
             document,
             position,
-            completionContext
+            completionContext,
         );
 
         if (completions && tsDirectiveCommentCompletions) {
             return CompletionList.create(
                 completions.items.concat(tsDirectiveCommentCompletions.items),
-                completions.isIncomplete
+                completions.isIncomplete,
             );
         }
 
@@ -307,6 +314,18 @@ export class TypeScriptPlugin
         }
 
         return this.updateImportsProvider.updateImports(fileRename);
+    }
+
+    async findReferences(
+        document: Document,
+        position: Position,
+        context: ReferenceContext,
+    ): Promise<Location[] | null> {
+        if (!this.featureEnabled('findReferences')) {
+            return null;
+        }
+
+        return this.findReferencesProvider.findReferences(document, position, context);
     }
 
     onWatchFileChanges(fileName: string, changeType: FileChangeType) {
