@@ -29,7 +29,7 @@ export function handleEach(htmlx: string, str: MagicString, eachBlock: Node): vo
         const endEachStart = htmlx.indexOf('}', contextEnd);
         str.overwrite(endEachStart, endEachStart + 1, ' <>');
     }
-    const endEach = htmlx.lastIndexOf('{', eachBlock.end);
+    const endEach = htmlx.lastIndexOf('{', eachBlock.end - 1);
     // {/each} -> </>)} or {:else} -> </>)}
     if (eachBlock.else) {
         const elseEnd = htmlx.lastIndexOf('}', eachBlock.else.start);

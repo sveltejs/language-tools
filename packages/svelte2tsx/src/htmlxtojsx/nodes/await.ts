@@ -78,6 +78,6 @@ export function handleAwait(htmlx: string, str: MagicString, awaitBlock: Node): 
     }
     // {/await} ->
     // <>})}
-    const awaitEndStart = htmlx.lastIndexOf('{', awaitBlock.end);
+    const awaitEndStart = htmlx.lastIndexOf('{', awaitBlock.end - 1);
     str.overwrite(awaitEndStart, awaitBlock.end, '</>})}}');
 }
