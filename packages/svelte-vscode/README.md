@@ -86,6 +86,10 @@ Enable document symbols for TypeScript. _Default_: `true`
 
 Enable completions for TypeScript. _Default_: `true`
 
+##### `svelte.plugin.typescript.findReferences`
+
+Enable find-references for TypeScript. _Default_: `true`
+
 ##### `svelte.plugin.typescript.definitions`
 
 Enable go to definition for TypeScript. _Default_: `true`

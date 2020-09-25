@@ -11,8 +11,10 @@ import {
     Diagnostic,
     FormattingOptions,
     Hover,
+    Location,
     Position,
     Range,
+    ReferenceContext,
     SymbolInformation,
     TextDocumentIdentifier,
     TextEdit,
@@ -110,6 +112,14 @@ export interface RenameProvider {
     prepareRename(document: Document, position: Position): Resolvable<Range | null>;
 }
 
+export interface FindReferencesProvider {
+    findReferences(
+        document: Document,
+        position: Position,
+        context: ReferenceContext,
+    ): Promise<Location[] | null>;
+}
+
 export interface OnWatchFileChanges {
     onWatchFileChanges(fileName: string, changeType: FileChangeType): void;
 }
@@ -125,6 +135,7 @@ export type LSProvider = DiagnosticsProvider &
     DefinitionsProvider &
     UpdateImportsProvider &
     CodeActionsProvider &
+    FindReferencesProvider &
     RenameProvider;
 
 export type Plugin = Partial<LSProvider & OnWatchFileChanges>;
