@@ -6,6 +6,7 @@ import { handleActionDirective } from './nodes/action-directive';
 import { handleAnimateDirective } from './nodes/animation-directive';
 import { handleAttribute } from './nodes/attribute';
 import { handleAwait } from './nodes/await';
+import { handleKey } from './nodes/key';
 import { handleBinding } from './nodes/binding';
 import { handleClassDirective } from './nodes/class-directive';
 import { handleComment } from './nodes/comment';
@@ -59,6 +60,9 @@ export function convertHtmlxToJsx(
                         break;
                     case 'AwaitBlock':
                         handleAwait(htmlx, str, node);
+                        break;
+                    case 'KeyBlock':
+                        handleKey(htmlx, str, node);
                         break;
                     case 'RawMustacheTag':
                         handleRawHtml(htmlx, str, node);
