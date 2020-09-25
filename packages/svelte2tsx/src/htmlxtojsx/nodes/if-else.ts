@@ -18,7 +18,7 @@ export function handleIf(htmlx: string, str: MagicString, ifBlock: Node): void {
     str.overwrite(ifBlock.expression.end, end + 1, '){<>');
 
     // {/if} -> </>}}}</>
-    const endif = htmlx.lastIndexOf('{', ifBlock.end);
+    const endif = htmlx.lastIndexOf('{', ifBlock.end - 1);
     str.overwrite(endif, ifBlock.end, '</>}}}');
 }
 
