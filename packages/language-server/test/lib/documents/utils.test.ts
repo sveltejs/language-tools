@@ -286,6 +286,21 @@ describe('document/utils', () => {
                 container: { start: 151, end: 181 },
             });
         });
+
+        it('extract script when unclosed tag preceeding', () => {
+            const text = `
+          <Unclosed-Tag
+          <script>let value = 2</script>`;
+            assert.deepStrictEqual(extractScriptTags(text)?.script, {
+                content: 'let value = 2',
+                attributes: {},
+                start: 43,
+                end: 56,
+                startPos: Position.create(2, 18),
+                endPos: Position.create(2, 31),
+                container: { start: 35, end: 65 },
+            });
+        });
     });
 
     describe('#getLineAtPosition', () => {

@@ -44,6 +44,46 @@ const parser = getLanguageService();
  * Parses text as HTML
  */
 export function parseHtml(text: string): HTMLDocument {
+    const html = parseHTMLDocument(text);
+    return tryParse(text, html, 0) || html;
+}
+
+/**
+ * Tries to parse the HTML document and work around the limitations of the underlying
+ * parsers which will trip up when there's a non-closed tag and treat everything afterwards as its child.
+ */
+function tryParse(text: string, html: HTMLDocument, run: number): HTMLDocument | null {
+    if (run > 5) {
+        // Stop before doing too much work, possibly having an endless loop
+        return null;
+    }
+
+    let sanitizedText = text;
+    html.roots.forEach((node) => {
+        if (
+            !(<any>node).closed &&
+            // This indicates a child tag falsely identified as an attribute
+            Object.keys(node.attributes || {}).some((key) => key.startsWith('<')) &&
+            node.tag
+        ) {
+            // Replace <some-unclosed-tag with whitespaces of same length
+            sanitizedText = replaceRangeWithStr(
+                sanitizedText,
+                node.start,
+                node.start + node.tag.length + 1,
+                ' '.repeat(node.tag.length + 1),
+            );
+        }
+    });
+
+    if (sanitizedText !== text) {
+        return tryParse(sanitizedText, parseHTMLDocument(sanitizedText), run + 1);
+    } else {
+        return html;
+    }
+}
+
+function parseHTMLDocument(text: string) {
     // We can safely only set getText because only this is used for parsing
     return parser.parseHTMLDocument(<any>{ getText: () => text });
 }
@@ -331,4 +371,13 @@ export function getWordAt(
     }
 
     return str.slice(left, right + pos);
+}
+
+export function replaceRangeWithStr(
+    text: string,
+    start: number,
+    end: number,
+    replacement: string,
+): string {
+    return text.substring(0, start) + replacement + text.substring(end);
 }
