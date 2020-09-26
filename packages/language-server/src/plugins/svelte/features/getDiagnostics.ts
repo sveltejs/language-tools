@@ -2,8 +2,8 @@ import { Warning } from 'svelte/types/compiler/interfaces';
 import { Diagnostic, DiagnosticSeverity, Position, Range } from 'vscode-languageserver';
 import { Document, isInTag, mapObjWithRangeToOriginal } from '../../../lib/documents';
 import { Logger } from '../../../logger';
-import { SvelteDocument, TranspileErrorSource } from '../SvelteDocument';
 import { CompilerWarningsSettings } from '../../../ls-config';
+import { SvelteDocument, TranspileErrorSource } from '../SvelteDocument';
 
 /**
  * Returns diagnostics from the svelte compiler.
@@ -53,7 +53,8 @@ async function tryGetDiagnostics(
                     code: warning.code,
                 };
             })
-            .map((diag) => mapObjWithRangeToOriginal(transpiled, diag));
+            .map((diag) => mapObjWithRangeToOriginal(transpiled, diag))
+            .filter((diag) => isNoFalsePositive(diag, document));
     } catch (err) {
         return (await createParserErrorDiagnostic(err, document)).map((diag) =>
             mapObjWithRangeToOriginal(transpiled, diag),
@@ -239,6 +240,24 @@ function getErrorMessage(error: any, source: string, hint = '') {
         hint +
         '\n\nSee https://github.com/sveltejs/language-tools/tree/master/packages/svelte-vscode#using-with-preprocessors for more info.'
     );
+}
+
+function isNoFalsePositive(diag: Diagnostic, doc: Document): boolean {
+    if (diag.code !== 'unused-export-let') {
+        return true;
+    }
+
+    // TypeScript transpiles `export enum A` to `export var A`, which the compiler will warn about.
+    // Silence this edge case. We extract the property from the message and don't use the position
+    // because that position could be wrong when source mapping trips up.
+    const unusedExportName = diag.message.substring(
+        diag.message.indexOf("'") + 1,
+        diag.message.lastIndexOf("'"),
+    );
+    const hasExportedEnumWithThatName = new RegExp(
+        `\\bexport\\s+?enum\\s+?${unusedExportName}\\b`,
+    ).test(doc.getText());
+    return !hasExportedEnumWithThatName;
 }
 
 const scssNodeRuntimeHint =
