@@ -10,13 +10,20 @@ import { SvelteConfig } from '../../../../src/lib/documents/configLoader';
 import { CompilerWarningsSettings } from '../../../../src/ls-config';
 
 describe('SveltePlugin#getDiagnostics', () => {
-    async function expectDiagnosticsFor(
-        getTranspiled: any,
-        getCompiled: any,
-        config: Partial<SvelteConfig>,
-        settings: CompilerWarningsSettings = {},
-    ) {
-        const document = new Document('', '<script></script>\n<style></style>');
+    async function expectDiagnosticsFor({
+        getTranspiled,
+        getCompiled,
+        config,
+        settings = {},
+        docText = '<script></script>\n<style></style>',
+    }: {
+        getTranspiled: any;
+        getCompiled: any;
+        config: Partial<SvelteConfig>;
+        settings?: CompilerWarningsSettings;
+        docText?: string;
+    }) {
+        const document = new Document('', docText);
         const svelteDoc: SvelteDocument = <any>{ getTranspiled, getCompiled, config };
         const result = await getDiagnostics(document, svelteDoc, settings);
         return {
@@ -26,13 +33,13 @@ describe('SveltePlugin#getDiagnostics', () => {
 
     it('expect svelte.config.js error', async () => {
         (
-            await expectDiagnosticsFor(
-                () => {
+            await expectDiagnosticsFor({
+                getTranspiled: () => {
                     throw new Error();
                 },
-                () => '',
-                { loadConfigError: new Error('svelte.config.js') },
-            )
+                getCompiled: () => '',
+                config: { loadConfigError: new Error('svelte.config.js') },
+            })
         ).toEqual([
             {
                 message: 'Error in svelte.config.js\n\nError: svelte.config.js',
@@ -54,15 +61,15 @@ describe('SveltePlugin#getDiagnostics', () => {
 
     it('expect script transpilation error', async () => {
         (
-            await expectDiagnosticsFor(
-                () => {
+            await expectDiagnosticsFor({
+                getTranspiled: () => {
                     const e: any = new Error('Script');
                     e.__source = TranspileErrorSource.Script;
                     throw e;
                 },
-                () => '',
-                {},
-            )
+                getCompiled: () => '',
+                config: {},
+            })
         ).toEqual([
             {
                 message: 'Script',
@@ -84,15 +91,15 @@ describe('SveltePlugin#getDiagnostics', () => {
 
     it('expect style transpilation error', async () => {
         (
-            await expectDiagnosticsFor(
-                () => {
+            await expectDiagnosticsFor({
+                getTranspiled: () => {
                     const e: any = new Error('Style');
                     e.__source = TranspileErrorSource.Style;
                     throw e;
                 },
-                () => '',
-                {},
-            )
+                getCompiled: () => '',
+                config: {},
+            })
         ).toEqual([
             {
                 message: 'Style',
@@ -114,17 +121,17 @@ describe('SveltePlugin#getDiagnostics', () => {
 
     it('expect style transpilation error with line/columns', async () => {
         (
-            await expectDiagnosticsFor(
-                () => {
+            await expectDiagnosticsFor({
+                getTranspiled: () => {
                     const e: any = new Error('Style');
                     e.line = 1;
                     e.column = 0;
                     e.__source = TranspileErrorSource.Style;
                     throw e;
                 },
-                () => '',
-                {},
-            )
+                getCompiled: () => '',
+                config: {},
+            })
         ).toEqual([
             {
                 message: 'Style',
@@ -146,18 +153,18 @@ describe('SveltePlugin#getDiagnostics', () => {
 
     it('expect compilation error', async () => {
         (
-            await expectDiagnosticsFor(
-                () => ({
+            await expectDiagnosticsFor({
+                getTranspiled: () => ({
                     getOriginalPosition: () => Position.create(0, 0),
                 }),
-                () => {
+                getCompiled: () => {
                     const e: any = new Error('Compilation');
                     e.message = 'ERROR';
                     e.code = 123;
                     throw e;
                 },
-                {},
-            )
+                config: {},
+            })
         ).toEqual([
             {
                 code: 123,
@@ -180,19 +187,19 @@ describe('SveltePlugin#getDiagnostics', () => {
 
     it('expect compilation error with expected', async () => {
         (
-            await expectDiagnosticsFor(
-                () => ({
+            await expectDiagnosticsFor({
+                getTranspiled: () => ({
                     getOriginalPosition: () => Position.create(0, 8),
                 }),
-                () => {
+                getCompiled: () => {
                     const e: any = new Error('Compilation');
                     e.message = 'expected x to not be here';
                     e.code = 123;
                     e.start = { line: 1, column: 8 };
                     throw e;
                 },
-                {},
-            )
+                config: {},
+            })
         ).toEqual([
             {
                 code: 123,
@@ -220,14 +227,14 @@ describe('SveltePlugin#getDiagnostics', () => {
 
     it('expect warnings', async () => {
         (
-            await expectDiagnosticsFor(
-                () => ({
+            await expectDiagnosticsFor({
+                getTranspiled: () => ({
                     getOriginalPosition: (pos: Position) => {
                         pos.line - 1;
                         return pos;
                     },
                 }),
-                () =>
+                getCompiled: () =>
                     Promise.resolve({
                         stats: {
                             warnings: [
@@ -240,8 +247,8 @@ describe('SveltePlugin#getDiagnostics', () => {
                             ],
                         },
                     }),
-                {},
-            )
+                config: {},
+            })
         ).toEqual([
             {
                 code: 123,
@@ -262,16 +269,44 @@ describe('SveltePlugin#getDiagnostics', () => {
         ]);
     });
 
+    it('filter out false positive warning (export enum)', async () => {
+        (
+            await expectDiagnosticsFor({
+                docText: '<script context="module">export enum A { B }</script>',
+                getTranspiled: () => ({
+                    getOriginalPosition: (pos: Position) => {
+                        return pos;
+                    },
+                }),
+                getCompiled: () =>
+                    Promise.resolve({
+                        stats: {
+                            warnings: [
+                                {
+                                    start: { line: 0, column: 32 },
+                                    end: { line: 0, column: 33 },
+                                    message:
+                                        "Component has unused export property 'A'. If it is for external reference only, please consider using `export const A`",
+                                    code: 'unused-export-let',
+                                },
+                            ],
+                        },
+                    }),
+                config: {},
+            })
+        ).toEqual([]);
+    });
+
     it('filter out warnings', async () => {
         (
-            await expectDiagnosticsFor(
-                () => ({
+            await expectDiagnosticsFor({
+                getTranspiled: () => ({
                     getOriginalPosition: (pos: Position) => {
                         pos.line - 1;
                         return pos;
                     },
                 }),
-                () =>
+                getCompiled: () =>
                     Promise.resolve({
                         stats: {
                             warnings: [
@@ -284,22 +319,22 @@ describe('SveltePlugin#getDiagnostics', () => {
                             ],
                         },
                     }),
-                {},
-                { '123': 'ignore' },
-            )
+                config: {},
+                settings: { '123': 'ignore' },
+            })
         ).toEqual([]);
     });
 
     it('treat warnings as error', async () => {
         (
-            await expectDiagnosticsFor(
-                () => ({
+            await expectDiagnosticsFor({
+                getTranspiled: () => ({
                     getOriginalPosition: (pos: Position) => {
                         pos.line - 1;
                         return pos;
                     },
                 }),
-                () =>
+                getCompiled: () =>
                     Promise.resolve({
                         stats: {
                             warnings: [
@@ -312,9 +347,9 @@ describe('SveltePlugin#getDiagnostics', () => {
                             ],
                         },
                     }),
-                {},
-                { '123': 'error' },
-            )
+                config: {},
+                settings: { '123': 'error' },
+            })
         ).toEqual([
             {
                 code: '123',
