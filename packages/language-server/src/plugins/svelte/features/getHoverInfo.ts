@@ -79,6 +79,8 @@ const tagPossibilities: { tag: SvelteTag | ':else'; values: string[] }[] = [
     { tag: 'each' as const, values: ['#each', '/each'] },
     // await
     { tag: 'await' as const, values: ['#await', '/await', ':then', ':catch'] },
+    // key
+    { tag: 'key' as const, values: ['#key', '/key'] },
     // @
     { tag: 'html' as const, values: ['@html'] },
     { tag: 'debug' as const, values: ['@debug'] },
