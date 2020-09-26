@@ -2,15 +2,15 @@ import MagicString from 'magic-string';
 import { Node } from 'estree-walker';
 
 /**
- * {#key expr}content{/key}   --->   {expr || <>...</>}
+ * {#key expr}content{/key}   --->   {expr} content
  */
 export function handleKey(htmlx: string, str: MagicString, keyBlock: Node): void {
-    // {#key expr}   ->   {expr || <>
+    // {#key expr}   ->   {expr}
     str.overwrite(keyBlock.start, keyBlock.expression.start, '{');
     const end = htmlx.indexOf('}', keyBlock.expression.end);
-    str.overwrite(keyBlock.expression.end, end + 1, ' || <>');
+    str.overwrite(keyBlock.expression.end, end + 1, '} ');
 
-    // {/key}   ->   </>}
+    // {/key}   ->
     const endKey = htmlx.lastIndexOf('{', keyBlock.end - 1);
-    str.overwrite(endKey, keyBlock.end, '</>}');
+    str.remove(endKey, keyBlock.end);
 }

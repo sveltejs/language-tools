@@ -1,9 +1,9 @@
-<>{value || <>
+<>{value} 
     <p>hello</p>
-</>}
-{$store || <>
+
+{$store} 
     <p>hello</p>
-</>}
-{expr.obj || <>
+
+{expr.obj} 
     <p>hello</p>
-</>}</>
+</>

@@ -3,7 +3,7 @@ import { SvelteDocument } from '../SvelteDocument';
 /**
  * Special svelte syntax tags that do template logic.
  */
-export type SvelteLogicTag = 'each' | 'if' | 'await';
+export type SvelteLogicTag = 'each' | 'if' | 'await' | 'key';
 
 /**
  * Special svelte syntax tags.
@@ -43,6 +43,15 @@ Content that is conditionally rendered can be wrapped in an if block.
 \`{#if expression}...{:else}...{/if}\`\\
 \\
 https://svelte.dev/docs#if
+`,
+    key: `\`{#key expression}...{/key}\`\\
+Key blocks destroy and recreate their contents when the value of an expression changes.\\
+This is useful if you want an element to play its transition whenever a value changes.\\
+When used around components, this will cause them to be reinstantiated and reinitialised.
+#### Usage:
+\`{#key expression}...{/key}\`\\
+\\
+https://svelte.dev/docs#key
 `,
     html:
         `\`{@html ...}\`\\
@@ -88,6 +97,7 @@ export function getLatestOpeningTag(
         idxOfLastOpeningTag(content, 'each'),
         idxOfLastOpeningTag(content, 'if'),
         idxOfLastOpeningTag(content, 'await'),
+        idxOfLastOpeningTag(content, 'key'),
     ];
     const lastIdx = lastIdxs.sort((i1, i2) => i2.lastIdx - i1.lastIdx);
     return lastIdx[0].lastIdx === -1 ? null : lastIdx[0].tag;

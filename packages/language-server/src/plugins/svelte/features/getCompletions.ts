@@ -15,7 +15,8 @@ const HTML_COMMENT_START = '<!--';
 const componentDocumentationCompletion: CompletionItem = {
     label: '@component',
     insertText: `component${EOL}$1${EOL}`,
-    documentation: 'Documentation for this component. ' +
+    documentation:
+        'Documentation for this component. ' +
         'It will show up on hover. You can use markdown and code blocks here',
     insertTextFormat: InsertTextFormat.Snippet,
     kind: CompletionItemKind.Snippet,
@@ -66,9 +67,9 @@ export function getCompletions(
         }
 
         const commentStartIndex = lastCharactersBeforePosition.lastIndexOf(HTML_COMMENT_START);
-        const text = lastCharactersBeforePosition.substring(
-            commentStartIndex + HTML_COMMENT_START.length
-        ).trimLeft();
+        const text = lastCharactersBeforePosition
+            .substring(commentStartIndex + HTML_COMMENT_START.length)
+            .trimLeft();
 
         if (componentDocumentationCompletion.label.includes(text)) {
             return CompletionList.create([componentDocumentationCompletion], false);
@@ -106,6 +107,7 @@ function getCompletionsWithRegardToTriggerCharacter(
                 label: 'await then',
                 insertText: 'await $1 then $2}\n\t$3\n{/await',
             },
+            { tag: 'key', label: 'key', insertText: 'key $1}\n\t$2\n{/key' },
         ]);
     }
 
@@ -133,6 +135,7 @@ function getCompletionsWithRegardToTriggerCharacter(
                 awaitOpen: createCompletionItems([{ tag: 'await', label: 'await' }]),
                 eachOpen: createCompletionItems([{ tag: 'each', label: 'each' }]),
                 ifOpen: createCompletionItems([{ tag: 'if', label: 'if' }]),
+                keyOpen: createCompletionItems([{ tag: 'key', label: 'key' }]),
             },
             svelteDoc,
             offset,
@@ -163,7 +166,12 @@ function getTriggerCharacter(content: string) {
  * Return completions with regards to last opened tag.
  */
 function showCompletionWithRegardsToOpenedTags(
-    on: { eachOpen: CompletionList; ifOpen: CompletionList; awaitOpen: CompletionList },
+    on: {
+        eachOpen: CompletionList;
+        ifOpen: CompletionList;
+        awaitOpen: CompletionList;
+        keyOpen?: CompletionList;
+    },
     svelteDoc: SvelteDocument,
     offset: number,
 ) {
@@ -174,6 +182,8 @@ function showCompletionWithRegardsToOpenedTags(
             return on.ifOpen;
         case 'await':
             return on.awaitOpen;
+        case 'key':
+            return on?.keyOpen ?? null;
         default:
             return null;
     }
