@@ -60,6 +60,8 @@ Usage:
 
 `--fail-on-warnings` Will also exit with error code when there are warnings
 
+`--fail-on-hints` Will also exit with error code when there are hints
+
 `--compiler-warnings <code1:error|ignore,code2:error|ignore>` A list of Svelte compiler warning codes. Each entry defines whether that warning should be ignored or treated as an error. Warnings are comma-separated, between warning code and error level is a colon; all inside quotes. Example: --compiler-warnings "css-unused-selector:ignore,unused-export-let:error"
 
 `--diagnostic-sources <js,svelte,css>` A list of diagnostic sources which should run diagnostics on your code. Possible values are `js` (includes TS), `svelte`, `css`. Comma-separated, inside quotes. By default all are active. Example: --diagnostic-sources "js,svelte"
