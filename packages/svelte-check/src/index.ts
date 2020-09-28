@@ -79,7 +79,12 @@ async function getDiagnostics(
             });
         }
 
-        writer.completion(result.fileCount, result.errorCount, result.warningCount);
+        writer.completion(
+            result.fileCount,
+            result.errorCount,
+            result.warningCount,
+            result.hintCount,
+        );
         return result;
     } catch (err) {
         writer.failure(err);

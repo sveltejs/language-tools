@@ -7,7 +7,12 @@ import { offsetAt } from 'svelte-language-server';
 export interface Writer {
     start: (workspaceDir: string) => void;
     file: (d: Diagnostic[], workspaceDir: string, filename: string, text: string) => void;
-    completion: (fileCount: number, errorCount: number, warningCount: number) => void;
+    completion: (
+        fileCount: number,
+        errorCount: number,
+        warningCount: number,
+        hintCount: number,
+    ) => void;
     failure: (err: Error) => void;
 }
 
@@ -87,27 +92,22 @@ export class HumanFriendlyWriter implements Writer {
         );
     }
 
-    completion(_f: number, errorCount: number, warningCount: number) {
+    completion(_f: number, errorCount: number, warningCount: number, hintCount: number) {
         this.stream.write('====================================\n');
-
-        if (errorCount === 0 && warningCount === 0) {
-            this.stream.write(chalk.green(`svelte-check found no errors and no warnings\n`));
-        } else if (errorCount === 0) {
-            this.stream.write(
-                chalk.yellow(
-                    `svelte-check found ${warningCount} ${
-                        warningCount === 1 ? 'warning' : 'warnings'
-                    }\n`,
-                ),
-            );
+        const message = [
+            'svelte-check found ',
+            `${errorCount} ${errorCount === 1 ? 'error' : 'errors'}, `,
+            `${warningCount} ${warningCount === 1 ? 'warning' : 'warnings'} and `,
+            `${hintCount} ${hintCount === 1 ? 'hint' : 'hints'}\n`,
+        ].join('');
+        if (errorCount !== 0) {
+            this.stream.write(chalk.red(message));
+        } else if (warningCount !== 0) {
+            this.stream.write(chalk.yellow(message));
+        } else if (hintCount !== 0) {
+            this.stream.write(chalk.grey(message));
         } else {
-            this.stream.write(
-                chalk.red(
-                    `svelte-check found ${errorCount} ${
-                        errorCount === 1 ? 'error' : 'errors'
-                    } and ${warningCount} ${warningCount === 1 ? 'warning' : 'warnings'}\n`,
-                ),
-            );
+            this.stream.write(chalk.green(message));
         }
     }
 
@@ -146,8 +146,16 @@ export class MachineFriendlyWriter implements Writer {
         });
     }
 
-    completion(fileCount: number, errorCount: number, warningCount: number) {
-        this.log(`COMPLETED ${fileCount} FILES ${errorCount} ERRORS ${warningCount} WARNINGS`);
+    completion(fileCount: number, errorCount: number, warningCount: number, hintCount: number) {
+        this.log(
+            [
+                'COMPLETED',
+                `${fileCount} FILES`,
+                `${errorCount} ERRORS`,
+                `${warningCount} WARNINGS`,
+                `${hintCount} HINTS`,
+            ].join(' '),
+        );
     }
 
     failure(err: Error) {
