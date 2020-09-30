@@ -1,6 +1,8 @@
 import ts from 'typescript';
 import {
     CompletionContext,
+    CompletionItem,
+    CompletionItemKind,
     CompletionList,
     CompletionTriggerKind,
     MarkupContent,
@@ -72,10 +74,11 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             ? triggerCharacter
             : undefined;
         const isCustomTriggerCharacter = triggerKind === CompletionTriggerKind.TriggerCharacter;
+        const isJsDocTriggerCharacter = triggerCharacter === '*';
 
         // ignore any custom trigger character specified in server capabilities
         //  and is not allow by ts
-        if (isCustomTriggerCharacter && !validTriggerCharacter) {
+        if (isCustomTriggerCharacter && !validTriggerCharacter && !isJsDocTriggerCharacter) {
             return null;
         }
 
@@ -85,11 +88,17 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         }
 
         const offset = fragment.offsetAt(fragment.getGeneratedPosition(position));
+
+        if (isJsDocTriggerCharacter) {
+            return this.getJsDocTemplateCompletion(fragment, lang, filePath, offset);
+        }
+
         const completions =
             lang.getCompletionsAtPosition(filePath, offset, {
                 includeCompletionsForModuleExports: true,
                 triggerCharacter: validTriggerCharacter,
             })?.entries || [];
+
         const eventCompletions = this.getEventCompletions(
             lang,
             document,
@@ -118,6 +127,50 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             .concat(eventCompletions);
 
         return CompletionList.create(completionItems, !!tsDoc.parserError);
+    }
+
+    private getJsDocTemplateCompletion(
+        fragment: SvelteSnapshotFragment,
+        lang: ts.LanguageService,
+        filePath: string,
+        offset: number,
+    ): CompletionList | null {
+        const template = lang.getDocCommentTemplateAtPosition(filePath, offset);
+
+        if (!template) {
+            return null;
+        }
+        const { text } = fragment;
+        const lineStart = text.lastIndexOf('\n', offset);
+        const lineEnd = text.indexOf('\n', offset);
+        const isLastLine = lineEnd === -1;
+
+        const line = text.substring(lineStart, isLastLine ? undefined : lineEnd);
+        const character = offset - lineStart;
+
+        const start = line.lastIndexOf('/**', character) + lineStart;
+        const suffix = line.slice(character).match(/^\s*\**\//);
+        const textEditRange = mapRangeToOriginal(
+            fragment,
+            Range.create(
+                fragment.positionAt(start),
+                fragment.positionAt(offset + (suffix?.[0]?.length ?? 0)),
+            ),
+        );
+
+        const item: CompletionItem = {
+            label: '/** */',
+            detail: 'JSDoc comment',
+            sortText: '\0',
+            kind: CompletionItemKind.Snippet,
+            textEdit: TextEdit.replace(
+                textEditRange,
+                // for indent
+                template.newText.replace(/^\s*(?=(\/|[ ]\*))/gm, '')
+            ),
+        };
+
+        return CompletionList.create([item]);
     }
 
     private getExistingImports(document: Document) {
