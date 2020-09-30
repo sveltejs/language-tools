@@ -19,6 +19,7 @@ type Result = {
     fileCount: number;
     errorCount: number;
     warningCount: number;
+    hintCount: number;
 };
 
 function openAllDocuments(
@@ -56,6 +57,7 @@ async function getDiagnostics(
             fileCount: diagnostics.length,
             errorCount: 0,
             warningCount: 0,
+            hintCount: 0,
         };
 
         for (const diagnostic of diagnostics) {
@@ -71,11 +73,18 @@ async function getDiagnostics(
                     result.errorCount += 1;
                 } else if (d.severity === DiagnosticSeverity.Warning) {
                     result.warningCount += 1;
+                } else if (d.severity === DiagnosticSeverity.Hint) {
+                    result.hintCount += 1;
                 }
             });
         }
 
-        writer.completion(result.fileCount, result.errorCount, result.warningCount);
+        writer.completion(
+            result.fileCount,
+            result.errorCount,
+            result.warningCount,
+            result.hintCount,
+        );
         return result;
     } catch (err) {
         writer.failure(err);
@@ -198,7 +207,8 @@ function getOptions(myArgs: argv.ParsedArgs): SvelteCheckOptions {
         if (
             result &&
             result.errorCount === 0 &&
-            (!myArgs['fail-on-warnings'] || result.warningCount === 0)
+            (!myArgs['fail-on-warnings'] || result.warningCount === 0) &&
+            (!myArgs['fail-on-hints'] || result.hintCount === 0)
         ) {
             process.exit(0);
         } else {

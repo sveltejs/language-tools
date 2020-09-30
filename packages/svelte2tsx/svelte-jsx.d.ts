@@ -39,7 +39,8 @@
     //
     // Event Handler Types
     // ----------------------------------------------------------------------
-    type EventHandler<E = Event, T = HTMLElement> = (event: E & { currentTarget: EventTarget & T}) => any;
+    type EventHandler<E = Event, T = HTMLElement> =
+      (event: E & { currentTarget: EventTarget & T}) => any;
 
     type ClipboardEventHandler<T> = EventHandler<ClipboardEvent, T>;
     type CompositionEventHandler<T> = EventHandler<CompositionEvent, T>;
