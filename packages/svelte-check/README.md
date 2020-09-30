@@ -101,13 +101,12 @@ to the workspace directory. The filename and the message are both wrapped in quo
 1590680326778 WARNING "imported-file.svelte" 0:37 "Component has unused export property 'prop'. If it is for external reference only, please consider using `export const prop`"
 ```
 
-The output concludes with a `COMPLETED` message that summarizes total numbers of files, errors,
-and warnings that were encountered during the check.
+The output concludes with a `COMPLETED` message that summarizes total numbers of files, errors, warnings and hints that were encountered during the check.
 
 ###### Example:
 
 ```
-1590680326807 COMPLETED 20 FILES 21 ERRORS 1 WARNINGS
+1590680326807 COMPLETED 20 FILES 21 ERRORS 1 WARNINGS 0 HINTS
 ```
 
 If the application experiences a runtime error, this error will appear as a `FAILURE` record.
