@@ -29,7 +29,7 @@ export async function getSelectionRange(
     }
 
     let nearest: OffsetRange = html;
-    let result = createSelectionRange(html);
+    let result: SelectionRange | undefined;
 
     walk(html, {
         enter(node, parent) {
@@ -58,7 +58,7 @@ export async function getSelectionRange(
         },
     });
 
-    return result;
+    return result ?? null;
 
     function createSelectionRange(node: OffsetRange, parent?: SelectionRange) {
         const range = Range.create(positionAt(node.start, content), positionAt(node.end, content));

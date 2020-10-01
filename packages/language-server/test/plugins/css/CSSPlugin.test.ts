@@ -7,6 +7,7 @@ import {
     CompletionItemKind,
     TextEdit,
     CompletionContext,
+    SelectionRange,
 } from 'vscode-languageserver';
 import { DocumentManager, Document } from '../../../src/lib/documents';
 import { CSSPlugin } from '../../../src/plugins';
@@ -196,5 +197,50 @@ describe('CSS Plugin', () => {
                 name: 'h1',
             },
         ]);
+    });
+
+    it('provides selection range', () => {
+        const { plugin, document } = setup('<style>h1 {}</style>');
+
+        const selectionRange = plugin.getSelectionRange(document, Position.create(0, 11));
+
+        assert.deepStrictEqual(selectionRange, <SelectionRange>{
+            parent: {
+                parent: {
+                    parent: undefined,
+                    range: {
+                        end: {
+                            character: 12,
+                            line: 0
+                        },
+                        start: {
+                            character: 7,
+                            line: 0
+                        }
+                    }
+                },
+                range: {
+                    end: {
+                        character: 12,
+                        line: 0
+                    },
+                    start: {
+                        character: 10,
+                        line: 0
+                    }
+                }
+            },
+            range: {
+                end: {
+                    character: 11,
+                    line: 0
+                },
+                start: {
+                    character: 11,
+                    line: 0
+                }
+            }
+
+        });
     });
 });
