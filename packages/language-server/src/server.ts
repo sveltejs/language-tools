@@ -181,6 +181,7 @@ export function startServer(options?: LSOptions) {
                     ? { prepareProvider: true }
                     : true,
                 referencesProvider: true,
+                selectionRangeProvider: true,
             },
         };
     });
@@ -252,6 +253,10 @@ export function startServer(options?: LSOptions) {
 
         return pluginHost.resolveCompletion(data, completionItem);
     });
+
+    connection.onSelectionRanges((evt) =>
+        pluginHost.getSelectionRanges(evt.textDocument, evt.positions)
+    );
 
     const diagnosticsManager = new DiagnosticsManager(
         connection.sendDiagnostics,

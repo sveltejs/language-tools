@@ -21,6 +21,7 @@ import {
     FormattingOptions,
     ReferenceContext,
     Location,
+    SelectionRange,
 } from 'vscode-languageserver';
 import { LSConfig, LSConfigManager } from '../ls-config';
 import { DocumentManager } from '../lib/documents';
@@ -332,6 +333,32 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
             [document, position, context],
             ExecuteMode.FirstNonNull,
         );
+    }
+
+    async getSelectionRanges(
+        textDocument: TextDocumentIdentifier,
+        positions: Position[]
+    ): Promise<SelectionRange[] | null> {
+        const document = this.getDocument(textDocument.uri);
+        if (!document) {
+            throw new Error('Cannot call methods on an unopened document');
+        }
+
+        try {
+            return Promise.all(positions.map(async (position) => {
+                for (const plugin of this.plugins) {
+                    const range = await plugin.getSelectionRange?.(document, position);
+
+                    if (range) {
+                        return range;
+                    }
+                }
+                return SelectionRange.create(Range.create(position, position));
+            }));
+        } catch (error) {
+            Logger.error(error);
+            return null;
+        }
     }
 
     onWatchFileChanges(fileName: string, changeType: FileChangeType): void {

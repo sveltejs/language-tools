@@ -19,6 +19,7 @@ import {
     TextDocumentIdentifier,
     TextEdit,
     WorkspaceEdit,
+    SelectionRange,
 } from 'vscode-languageserver-types';
 import { Document } from '../lib/documents';
 
@@ -58,7 +59,7 @@ export interface FormattingProvider {
 }
 
 export interface TagCompleteProvider {
-    doTagComplete(document: Document, positon: Position): Resolvable<string | null>;
+    doTagComplete(document: Document, position: Position): Resolvable<string | null>;
 }
 
 export interface DocumentColorsProvider {
@@ -120,6 +121,13 @@ export interface FindReferencesProvider {
     ): Promise<Location[] | null>;
 }
 
+export interface SelectionRangeProvider {
+    getSelectionRange(
+        document: Document,
+        positions: Position
+    ): Resolvable<SelectionRange | null>;
+}
+
 export interface OnWatchFileChanges {
     onWatchFileChanges(fileName: string, changeType: FileChangeType): void;
 }
@@ -138,4 +146,4 @@ export type LSProvider = DiagnosticsProvider &
     FindReferencesProvider &
     RenameProvider;
 
-export type Plugin = Partial<LSProvider & OnWatchFileChanges>;
+export type Plugin = Partial<LSProvider & OnWatchFileChanges & SelectionRangeProvider>;

@@ -9,6 +9,7 @@ import {
     LocationLink,
     TextDocumentEdit,
     CodeAction,
+    SelectionRange,
 } from 'vscode-languageserver';
 import { TagInformation, offsetAt, positionAt } from './utils';
 import { SourceMapConsumer } from 'source-map';
@@ -236,7 +237,7 @@ export function mapHoverToParent(
     return { ...hover, range: mapRangeToOriginal(fragment, hover.range) };
 }
 
-export function mapObjWithRangeToOriginal<T extends {range: Range}>(
+export function mapObjWithRangeToOriginal<T extends { range: Range }>(
     fragment: Pick<DocumentMapper, 'getOriginalPosition'>,
     objWithRange: T,
 ): T {
@@ -249,7 +250,6 @@ export function mapDiagnosticToGenerated(
 ): Diagnostic {
     return { ...diagnostic, range: mapRangeToGenerated(fragment, diagnostic.range) };
 }
-
 
 export function mapColorPresentationToOriginal(
     fragment: Pick<DocumentMapper, 'getOriginalPosition'>,
@@ -265,7 +265,7 @@ export function mapColorPresentationToOriginal(
 
     if (item.additionalTextEdits) {
         item.additionalTextEdits = item.additionalTextEdits.map((edit) =>
-        mapObjWithRangeToOriginal(fragment, edit),
+            mapObjWithRangeToOriginal(fragment, edit),
         );
     }
 
@@ -317,5 +317,17 @@ export function mapCodeActionToOriginal(fragment: DocumentMapper, codeAction: Co
             ),
         },
         codeAction.kind,
+    );
+}
+
+export function mapSelectionRangeToParent(
+    fragement: DocumentMapper,
+    selectionRange: SelectionRange,
+): SelectionRange {
+    const { range, parent } = selectionRange;
+
+    return SelectionRange.create(
+        mapRangeToOriginal(fragement, range),
+        parent && mapSelectionRangeToParent(fragement, parent)
     );
 }
