@@ -43,6 +43,31 @@ describe('DiagnosticsProvider', () => {
         ]);
     });
 
+    it('provides diagnostics for context="module"', async () => {
+        const { plugin, document } = setup('diagnostics-module.svelte');
+        const diagnostics = await plugin.getDiagnostics(document);
+
+        assert.deepStrictEqual(diagnostics, [
+            {
+                code: 2322,
+                message: "Type 'boolean' is not assignable to type 'string'.",
+                range: {
+                    start: {
+                        character: 49,
+                        line: 0,
+                    },
+                    end: {
+                        character: 52,
+                        line: 0,
+                    },
+                },
+                severity: 1,
+                source: 'ts',
+                tags: [],
+            },
+        ]);
+    });
+
     it('provides typecheck diagnostics for js file when //@ts-check at top of script', async () => {
         const { plugin, document } = setup('diagnostics-js-typecheck.svelte');
         const diagnostics = await plugin.getDiagnostics(document);
