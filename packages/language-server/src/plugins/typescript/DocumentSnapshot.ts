@@ -254,11 +254,13 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
     }
 
     private async getMapper(uri: string) {
-        if (!this.parent.scriptInfo) {
+        const scriptInfo = this.parent.scriptInfo || this.parent.moduleScriptInfo;
+
+        if (!scriptInfo) {
             return new IdentityMapper(uri);
         }
         if (!this.tsxMap) {
-            return new FragmentMapper(this.parent.getText(), this.parent.scriptInfo, uri);
+            return new FragmentMapper(this.parent.getText(), scriptInfo, uri);
         }
         return new ConsumerDocumentMapper(
             await new SourceMapConsumer(this.tsxMap),
@@ -272,7 +274,8 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
  * A js/ts document snapshot suitable for the ts language service and the plugin.
  * Since no mapping has to be done here, it also implements the mapper interface.
  */
-export class JSOrTSDocumentSnapshot extends IdentityMapper
+export class JSOrTSDocumentSnapshot
+    extends IdentityMapper
     implements DocumentSnapshot, SnapshotFragment {
     scriptKind = getScriptKindFromFileName(this.filePath);
     scriptInfo = null;
