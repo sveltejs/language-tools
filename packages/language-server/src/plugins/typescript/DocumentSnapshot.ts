@@ -151,7 +151,8 @@ function preprocessSvelteFile(document: Document, options: SvelteSnapshotOptions
         if (tsxMap) {
             tsxMap.sources = [document.uri];
 
-            const tsCheck = getTsCheckComment(document.scriptInfo?.content);
+            const scriptInfo = document.scriptInfo || document.moduleScriptInfo;
+            const tsCheck = getTsCheckComment(scriptInfo?.content);
             if (tsCheck) {
                 text = tsCheck + text;
                 nrPrependedLines = 1;
@@ -172,7 +173,8 @@ function preprocessSvelteFile(document: Document, options: SvelteSnapshotOptions
         };
 
         // fall back to extracted script, if any
-        text = document.scriptInfo ? document.scriptInfo.content : '';
+        const scriptInfo = document.scriptInfo || document.moduleScriptInfo;
+        text = scriptInfo ? scriptInfo.content : '';
     }
 
     return {
@@ -330,7 +332,7 @@ export class SvelteSnapshotFragment implements SnapshotFragment {
     ) {}
 
     get scriptInfo() {
-        return this.parent.scriptInfo;
+        return this.parent.scriptInfo || this.parent.moduleScriptInfo;
     }
 
     getOriginalPosition(pos: Position): Position {

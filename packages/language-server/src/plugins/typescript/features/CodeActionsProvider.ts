@@ -55,7 +55,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
     }
 
     private async organizeImports(document: Document): Promise<CodeAction[]> {
-        if (!document.scriptInfo) {
+        if (!document.scriptInfo && !document.moduleScriptInfo) {
             return [];
         }
 
