@@ -175,11 +175,16 @@ export class SvelteFragmentMapper {
     }
 
     static async createScript(originalDoc: Document, transpiled: string, processed: Processed[]) {
+        const scriptInfo = originalDoc.scriptInfo || originalDoc.moduleScriptInfo;
+        const maybeScriptTag = extractScriptTags(transpiled);
+        const maybeScriptTagInfo =
+            maybeScriptTag && (maybeScriptTag.script || maybeScriptTag.moduleScript);
+
         return SvelteFragmentMapper.create(
             originalDoc,
             transpiled,
-            originalDoc.scriptInfo,
-            extractScriptTags(transpiled)?.script || null,
+            scriptInfo,
+            maybeScriptTagInfo || null,
             processed,
         );
     }
