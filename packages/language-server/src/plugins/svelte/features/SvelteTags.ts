@@ -78,7 +78,7 @@ It accepts a comma-separated list of variable names (not arbitrary expressions).
 \`{@debug var1, var2, ..., varN}\`\\
 \\
 https://svelte.dev/docs#debug
-`,
+`
 };
 
 /**
@@ -86,7 +86,7 @@ https://svelte.dev/docs#debug
  */
 export function getLatestOpeningTag(
     svelteDoc: SvelteDocument,
-    offset: number,
+    offset: number
 ): SvelteLogicTag | null {
     // Only use content up to the position and strip out html comments
     const content = svelteDoc
@@ -97,7 +97,7 @@ export function getLatestOpeningTag(
         idxOfLastOpeningTag(content, 'each'),
         idxOfLastOpeningTag(content, 'if'),
         idxOfLastOpeningTag(content, 'await'),
-        idxOfLastOpeningTag(content, 'key'),
+        idxOfLastOpeningTag(content, 'key')
     ];
     const lastIdx = lastIdxs.sort((i1, i2) => i2.lastIdx - i1.lastIdx);
     return lastIdx[0].lastIdx === -1 ? null : lastIdx[0].tag;

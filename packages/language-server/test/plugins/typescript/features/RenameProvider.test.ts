@@ -20,7 +20,7 @@ describe('RenameProvider', () => {
 
     async function setup() {
         const docManager = new DocumentManager(
-            (textDocument) => new Document(textDocument.uri, textDocument.text),
+            (textDocument) => new Document(textDocument.uri, textDocument.text)
         );
         const lsAndTsDocResolver = new LSAndTSDocResolver(docManager, [pathToUrl(testDir)]);
         const provider = new RenameProviderImpl(lsAndTsDocResolver);
@@ -34,7 +34,7 @@ describe('RenameProvider', () => {
             const filePath = getFullPath(filename);
             const doc = docManager.openDocument(<any>{
                 uri: pathToUrl(filePath),
-                text: ts.sys.readFile(filePath) || '',
+                text: ts.sys.readFile(filePath) || ''
             });
             // Do this to make the file known to the ts language service
             await provider.rename(doc, Position.create(0, 0), '');
@@ -54,81 +54,81 @@ describe('RenameProvider', () => {
                         range: {
                             start: {
                                 character: 8,
-                                line: 2,
+                                line: 2
                             },
                             end: {
                                 character: 17,
-                                line: 2,
-                            },
-                        },
+                                line: 2
+                            }
+                        }
                     },
                     {
                         newText: 'newName',
                         range: {
                             start: {
                                 character: 1,
-                                line: 5,
+                                line: 5
                             },
                             end: {
                                 character: 10,
-                                line: 5,
-                            },
-                        },
+                                line: 5
+                            }
+                        }
                     },
                     {
                         newText: 'newName',
                         range: {
                             start: {
                                 character: 5,
-                                line: 6,
+                                line: 6
                             },
                             end: {
                                 character: 14,
-                                line: 6,
-                            },
-                        },
+                                line: 6
+                            }
+                        }
                     },
                     {
                         newText: 'newName',
                         range: {
                             start: {
                                 character: 8,
-                                line: 8,
+                                line: 8
                             },
                             end: {
                                 character: 17,
-                                line: 8,
-                            },
-                        },
+                                line: 8
+                            }
+                        }
                     },
                     {
                         newText: 'newName',
                         range: {
                             start: {
                                 character: 7,
-                                line: 10,
+                                line: 10
                             },
                             end: {
                                 character: 16,
-                                line: 10,
-                            },
-                        },
+                                line: 10
+                            }
+                        }
                     },
                     {
                         newText: 'newName',
                         range: {
                             start: {
                                 character: 15,
-                                line: 12,
+                                line: 12
                             },
                             end: {
                                 character: 24,
-                                line: 12,
-                            },
-                        },
-                    },
-                ],
-            },
+                                line: 12
+                            }
+                        }
+                    }
+                ]
+            }
         });
     });
 
@@ -140,27 +140,27 @@ describe('RenameProvider', () => {
                     range: {
                         start: {
                             character: 15,
-                            line: 1,
+                            line: 1
                         },
                         end: {
                             character: 27,
-                            line: 1,
-                        },
-                    },
+                            line: 1
+                        }
+                    }
                 },
                 {
                     newText: 'newName',
                     range: {
                         start: {
                             character: 1,
-                            line: 14,
+                            line: 14
                         },
                         end: {
                             character: 13,
-                            line: 14,
-                        },
-                    },
-                },
+                            line: 14
+                        }
+                    }
+                }
             ],
             [getUri('rename2.svelte')]: [
                 {
@@ -168,16 +168,16 @@ describe('RenameProvider', () => {
                     range: {
                         start: {
                             character: 8,
-                            line: 5,
+                            line: 5
                         },
                         end: {
                             character: 20,
-                            line: 5,
-                        },
-                    },
-                },
-            ],
-        },
+                            line: 5
+                        }
+                    }
+                }
+            ]
+        }
     };
 
     it('should do rename of prop of component A in component A', async () => {
@@ -207,14 +207,14 @@ describe('RenameProvider', () => {
                         range: {
                             start: {
                                 character: 15,
-                                line: 1,
+                                line: 1
                             },
                             end: {
                                 character: 33,
-                                line: 1,
-                            },
-                        },
-                    },
+                                line: 1
+                            }
+                        }
+                    }
                 ],
                 [getUri('rename2.svelte')]: [
                     {
@@ -222,16 +222,16 @@ describe('RenameProvider', () => {
                         range: {
                             start: {
                                 character: 9,
-                                line: 6,
+                                line: 6
                             },
                             end: {
                                 character: 27,
-                                line: 6,
-                            },
-                        },
-                    },
-                ],
-            },
+                                line: 6
+                            }
+                        }
+                    }
+                ]
+            }
         });
     });
 
@@ -247,42 +247,42 @@ describe('RenameProvider', () => {
                         range: {
                             start: {
                                 line: 1,
-                                character: 11,
+                                character: 11
                             },
                             end: {
                                 line: 1,
-                                character: 16,
-                            },
-                        },
+                                character: 16
+                            }
+                        }
                     },
                     {
                         newText: 'ChildNew',
                         range: {
                             start: {
                                 line: 7,
-                                character: 5,
+                                character: 5
                             },
                             end: {
                                 line: 7,
-                                character: 10,
-                            },
-                        },
+                                character: 10
+                            }
+                        }
                     },
                     {
                         newText: 'ChildNew',
                         range: {
                             start: {
                                 line: 8,
-                                character: 5,
+                                character: 5
                             },
                             end: {
                                 line: 8,
-                                character: 10,
-                            },
-                        },
-                    },
-                ],
-            },
+                                character: 10
+                            }
+                        }
+                    }
+                ]
+            }
         });
     });
 
@@ -293,12 +293,12 @@ describe('RenameProvider', () => {
         assert.deepStrictEqual(result, {
             start: {
                 character: 15,
-                line: 1,
+                line: 1
             },
             end: {
                 character: 27,
-                line: 1,
-            },
+                line: 1
+            }
         });
     });
 

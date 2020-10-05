@@ -24,7 +24,7 @@ const numberOnlyAttributes = new Set([
     'start',
     'tabindex',
     'results',
-    'volume',
+    'volume'
 ]);
 
 /**

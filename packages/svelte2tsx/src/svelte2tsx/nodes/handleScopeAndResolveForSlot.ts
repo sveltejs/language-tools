@@ -10,7 +10,7 @@ export function handleScopeAndResolveForSlot({
     initExpression,
     owner,
     slotHandler,
-    templateScope,
+    templateScope
 }: {
     identifierDef: Node;
     initExpression: Node;
@@ -32,7 +32,7 @@ export function handleScopeAndResolveForSlot({
             identifierDef,
             identifiers,
             initExpression,
-            templateScope,
+            templateScope
         );
     }
 }
@@ -42,7 +42,7 @@ export function handleScopeAndResolveLetVarForSlot({
     component,
     slotName,
     templateScope,
-    slotHandler,
+    slotHandler
 }: {
     letNode: BaseDirective;
     slotName: string;
@@ -77,7 +77,7 @@ export function handleScopeAndResolveLetVarForSlot({
                 identifiers,
                 letNode,
                 component,
-                slotName,
+                slotName
             );
         }
     }

@@ -11,7 +11,7 @@ describe('TypeScriptPlugin utils', () => {
             assert.deepStrictEqual(
                 getTsCheckComment(`qwd
             // @ts-check`),
-                undefined,
+                undefined
             );
         });
 
@@ -19,7 +19,7 @@ describe('TypeScriptPlugin utils', () => {
             assert.deepStrictEqual(
                 getTsCheckComment(`
             // @ts-check`),
-                tsCheckComment,
+                tsCheckComment
             );
         });
 
@@ -27,7 +27,7 @@ describe('TypeScriptPlugin utils', () => {
             assert.deepStrictEqual(
                 getTsCheckComment(`
             // @ts-nocheck`),
-                tsNocheckComment,
+                tsNocheckComment
             );
         });
 
@@ -38,7 +38,7 @@ describe('TypeScriptPlugin utils', () => {
             
             ///
             // @ts-check`),
-                tsCheckComment,
+                tsCheckComment
             );
         });
 
@@ -50,7 +50,7 @@ describe('TypeScriptPlugin utils', () => {
             // @ts-almostcheck
             ///
             `),
-                undefined,
+                undefined
             );
         });
     });

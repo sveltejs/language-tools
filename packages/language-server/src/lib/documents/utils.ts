@@ -14,7 +14,7 @@ export interface TagInformation {
 }
 
 function parseAttributes(
-    rawAttrs: Record<string, string | null> | undefined,
+    rawAttrs: Record<string, string | null> | undefined
 ): Record<string, string> {
     const attrs: Record<string, string> = {};
     if (!rawAttrs) {
@@ -106,7 +106,7 @@ function extractTags(text: string, tag: 'script' | 'style', html?: HTMLDocument)
         return ![
             [regexIf, regexIfEnd],
             [regexEach, regexEachEnd],
-            [regexAwait, regexAwaitEnd],
+            [regexAwait, regexAwaitEnd]
         ].some((pair) => {
             pair[0].lastIndex = 0;
             pair[1].lastIndex = 0;
@@ -141,7 +141,7 @@ function extractTags(text: string, tag: 'script' | 'style', html?: HTMLDocument)
         const endPos = positionAt(end, text);
         const container = {
             start: matchedNode.start,
-            end: matchedNode.end,
+            end: matchedNode.end
         };
         const content = text.substring(start, end);
 
@@ -152,14 +152,14 @@ function extractTags(text: string, tag: 'script' | 'style', html?: HTMLDocument)
             end,
             startPos,
             endPos,
-            container,
+            container
         };
     }
 }
 
 export function extractScriptTags(
     source: string,
-    html?: HTMLDocument,
+    html?: HTMLDocument
 ): { script?: TagInformation; moduleScript?: TagInformation } | null {
     const scripts = extractTags(source, 'script', html);
     if (!scripts.length) {
@@ -257,14 +257,14 @@ function getLineOffsets(text: string) {
 
 export function isInTag(
     position: Position,
-    tagInfo: TagInformation | null,
+    tagInfo: TagInformation | null
 ): tagInfo is TagInformation {
     return !!tagInfo && isInRange(Range.create(tagInfo.startPos, tagInfo.endPos), position);
 }
 
 export function isRangeInTag(
     range: Range,
-    tagInfo: TagInformation | null,
+    tagInfo: TagInformation | null
 ): tagInfo is TagInformation {
     return isInTag(range.start, tagInfo) && isInTag(range.end, tagInfo);
 }
@@ -276,7 +276,7 @@ export function getTextInRange(range: Range, text: string) {
 export function getLineAtPosition(position: Position, text: string) {
     return text.substring(
         offsetAt({ line: position.line, character: 0 }, text),
-        offsetAt({ line: position.line, character: Number.MAX_VALUE }, text),
+        offsetAt({ line: position.line, character: Number.MAX_VALUE }, text)
     );
 }
 
@@ -302,7 +302,7 @@ export function updateRelativeImport(oldPath: string, newPath: string, relativeI
  */
 export function getNodeIfIsInComponentStartTag(
     html: HTMLDocument,
-    offset: number,
+    offset: number
 ): Node | undefined {
     const node = html.findNodeAt(offset);
     if (
@@ -321,7 +321,7 @@ export function getNodeIfIsInComponentStartTag(
 export function getWordAt(
     str: string,
     pos: number,
-    delimiterRegex = { left: /\S+$/, right: /\s/ },
+    delimiterRegex = { left: /\S+$/, right: /\s/ }
 ): string {
     const left = str.slice(0, pos + 1).search(delimiterRegex.left);
     const right = str.slice(pos).search(delimiterRegex.right);

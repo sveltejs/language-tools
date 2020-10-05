@@ -29,37 +29,37 @@ describe('Document', () => {
         assert.deepEqual(document.scriptInfo, {
             content: 'a',
             attributes: {
-                lang: 'javascript',
+                lang: 'javascript'
             },
             start: 8,
             end: 9,
             startPos: Position.create(0, 8),
             endPos: Position.create(0, 9),
-            container: { start: 0, end: 18 },
+            container: { start: 0, end: 18 }
         });
         assert.deepEqual(document.styleInfo, {
             content: 'b',
             attributes: {
-                lang: 'css',
+                lang: 'css'
             },
             start: 25,
             end: 26,
             startPos: Position.create(0, 25),
             endPos: Position.create(0, 26),
-            container: { start: 18, end: 34 },
+            container: { start: 18, end: 34 }
         });
 
         document.setText('<script>b</script>');
         assert.deepEqual(document.scriptInfo, {
             content: 'b',
             attributes: {
-                lang: 'javascript',
+                lang: 'javascript'
             },
             start: 8,
             end: 9,
             startPos: Position.create(0, 8),
             endPos: Position.create(0, 9),
-            container: { start: 0, end: 18 },
+            container: { start: 0, end: 18 }
         });
         assert.strictEqual(document.styleInfo, null);
     });

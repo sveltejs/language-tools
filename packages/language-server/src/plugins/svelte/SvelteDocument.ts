@@ -1,8 +1,8 @@
 import { SourceMapConsumer } from 'source-map';
-import { PreprocessorGroup } from 'svelte/types/compiler/preprocess';
+import { PreprocessorGroup , Processed } from 'svelte/types/compiler/preprocess';
 import type { compile } from 'svelte/compiler';
 import { CompileOptions } from 'svelte/types/compiler/interfaces';
-import { Processed } from 'svelte/types/compiler/preprocess';
+
 import { Position } from 'vscode-languageserver';
 import {
     Document,
@@ -13,7 +13,7 @@ import {
     IdentityMapper,
     offsetAt,
     SourceMapDocumentMapper,
-    TagInformation,
+    TagInformation
 } from '../../lib/documents';
 import { importSvelte } from '../../importPackage';
 import { isNotNullOrUndefined } from '../../utils';
@@ -63,7 +63,7 @@ export class SvelteDocument {
         if (!this.transpiledDoc) {
             this.transpiledDoc = await TranspiledSvelteDocument.create(
                 this.parent,
-                this.parent.config.preprocess,
+                this.parent.config.preprocess
             );
         }
         return this.transpiledDoc;
@@ -96,21 +96,21 @@ export class SvelteDocument {
 export class TranspiledSvelteDocument implements Pick<DocumentMapper, 'getOriginalPosition'> {
     static async create(
         document: Document,
-        preprocessors: PreprocessorGroup | PreprocessorGroup[] = [],
+        preprocessors: PreprocessorGroup | PreprocessorGroup[] = []
     ) {
         const { transpiled, processedScripts, processedStyles } = await transpile(
             document,
-            preprocessors,
+            preprocessors
         );
         const scriptMapper = await SvelteFragmentMapper.createScript(
             document,
             transpiled,
-            processedScripts,
+            processedScripts
         );
         const styleMapper = await SvelteFragmentMapper.createStyle(
             document,
             transpiled,
-            processedStyles,
+            processedStyles
         );
 
         return new TranspiledSvelteDocument(document, transpiled, scriptMapper, styleMapper);
@@ -124,7 +124,7 @@ export class TranspiledSvelteDocument implements Pick<DocumentMapper, 'getOrigin
         private parent: Document,
         private transpiled: string,
         public scriptMapper: SvelteFragmentMapper | null,
-        public styleMapper: SvelteFragmentMapper | null,
+        public styleMapper: SvelteFragmentMapper | null
     ) {}
 
     getOriginalPosition(generatedPosition: Position): Position {
@@ -170,7 +170,7 @@ export class SvelteFragmentMapper {
             transpiled,
             originalDoc.styleInfo,
             extractStyleTag(transpiled),
-            processed,
+            processed
         );
     }
 
@@ -185,7 +185,7 @@ export class SvelteFragmentMapper {
             transpiled,
             scriptInfo,
             maybeScriptTagInfo || null,
-            processed,
+            processed
         );
     }
 
@@ -194,7 +194,7 @@ export class SvelteFragmentMapper {
         transpiled: string,
         originalTagInfo: TagInformation | null,
         transpiledTagInfo: TagInformation | null,
-        processed: Processed[],
+        processed: Processed[]
     ) {
         const sourceMapper =
             processed.length > 0
@@ -211,7 +211,7 @@ export class SvelteFragmentMapper {
                 { end: transpiledTagInfo.container.end, diff },
                 new FragmentMapper(originalDoc.getText(), originalTagInfo, originalDoc.uri),
                 new FragmentMapper(transpiled, transpiledTagInfo, originalDoc.uri),
-                sourceMapper,
+                sourceMapper
             );
         }
 
@@ -225,10 +225,10 @@ export class SvelteFragmentMapper {
                     ? new SourceMapDocumentMapper(
                           await new SourceMapConsumer(processedSingle.map.toString()),
                           originalDoc.uri,
-                          await parent,
+                          await parent
                       )
                     : new IdentityMapper(originalDoc.uri, await parent),
-            Promise.resolve<DocumentMapper>(<any>undefined),
+            Promise.resolve<DocumentMapper>(<any>undefined)
         );
     }
 
@@ -248,7 +248,7 @@ export class SvelteFragmentMapper {
         /**
          * Maps between original and transpiled, within fragment.
          */
-        private sourceMapper: DocumentMapper,
+        private sourceMapper: DocumentMapper
     ) {}
 
     isInTranspiledFragment(generatedPosition: Position): boolean {
@@ -258,11 +258,11 @@ export class SvelteFragmentMapper {
     getOriginalPosition(generatedPosition: Position): Position {
         // Map the position to be relative to the transpiled fragment
         const positionInTranspiledFragment = this.transpiledFragmentMapper.getGeneratedPosition(
-            generatedPosition,
+            generatedPosition
         );
         // Map the position, using the sourcemap, to the original position in the source fragment
         const positionInOriginalFragment = this.sourceMapper.getOriginalPosition(
-            positionInTranspiledFragment,
+            positionInTranspiledFragment
         );
         // Map the position to be in the original fragment's parent
         return this.originalFragmentMapper.getOriginalPosition(positionInOriginalFragment);
@@ -280,7 +280,7 @@ export class SvelteFragmentMapper {
 
 async function transpile(
     document: Document,
-    preprocessors: PreprocessorGroup | PreprocessorGroup[] = [],
+    preprocessors: PreprocessorGroup | PreprocessorGroup[] = []
 ) {
     preprocessors = Array.isArray(preprocessors) ? preprocessors : [preprocessors];
     const processedScripts: Processed[] = [];
@@ -325,7 +325,7 @@ async function transpile(
     const svelte = importSvelte(document.getFilePath() || '');
     const transpiled = (
         await svelte.preprocess(document.getText(), wrappedPreprocessors, {
-            filename: document.getFilePath() || '',
+            filename: document.getFilePath() || ''
         })
     ).toString();
 

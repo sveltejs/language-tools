@@ -6,7 +6,7 @@ import { Logger } from './logger';
 
 export function getPackageInfo(packageName: string, fromPath: string) {
     const packageJSONPath = require.resolve(`${packageName}/package.json`, {
-        paths: [fromPath, __dirname],
+        paths: [fromPath, __dirname]
     });
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { version } = require(packageJSONPath);
@@ -18,8 +18,8 @@ export function getPackageInfo(packageName: string, fromPath: string) {
             full: version,
             major,
             minor,
-            patch,
-        },
+            patch
+        }
     };
 }
 

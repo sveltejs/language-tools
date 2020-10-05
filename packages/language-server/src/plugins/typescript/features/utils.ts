@@ -14,7 +14,7 @@ export function getComponentAtPosition(
     doc: Document,
     tsDoc: SvelteDocumentSnapshot,
     fragment: SvelteSnapshotFragment,
-    originalPosition: Position,
+    originalPosition: Position
 ): SvelteDocumentSnapshot | null {
     if (tsDoc.parserError) {
         return null;
@@ -36,7 +36,7 @@ export function getComponentAtPosition(
     const generatedPosition = fragment.getGeneratedPosition(doc.positionAt(node.start + 1));
     const def = lang.getDefinitionAtPosition(
         tsDoc.filePath,
-        fragment.offsetAt(generatedPosition),
+        fragment.offsetAt(generatedPosition)
     )?.[0];
     if (!def) {
         return null;

@@ -42,7 +42,7 @@ export class HumanFriendlyWriter implements Writer {
             const { line, character } = diagnostic.range.start;
             // eslint-disable-next-line max-len
             this.stream.write(
-                `${workspaceDir}${sep}${chalk.green(filename)}:${line + 1}:${character + 1}\n`,
+                `${workspaceDir}${sep}${chalk.green(filename)}:${line + 1}:${character + 1}\n`
             );
 
             // Show some context around diagnostic range
@@ -75,12 +75,12 @@ export class HumanFriendlyWriter implements Writer {
         const endOffset = offsetAt(diagnostic.range.end, text);
         const codePrev = text.substring(
             offsetAt({ line: diagnostic.range.start.line, character: 0 }, text),
-            startOffset,
+            startOffset
         );
         const codeHighlight = chalk.magenta(text.substring(startOffset, endOffset));
         const codePost = text.substring(
             endOffset,
-            offsetAt({ line: diagnostic.range.end.line, character: Number.MAX_SAFE_INTEGER }, text),
+            offsetAt({ line: diagnostic.range.end.line, character: Number.MAX_SAFE_INTEGER }, text)
         );
         return codePrev + codeHighlight + codePost;
     }
@@ -88,7 +88,7 @@ export class HumanFriendlyWriter implements Writer {
     private getLine(line: number, text: string): string {
         return text.substring(
             offsetAt({ line, character: 0 }, text),
-            offsetAt({ line, character: Number.MAX_SAFE_INTEGER }, text),
+            offsetAt({ line, character: Number.MAX_SAFE_INTEGER }, text)
         );
     }
 
@@ -98,7 +98,7 @@ export class HumanFriendlyWriter implements Writer {
             'svelte-check found ',
             `${errorCount} ${errorCount === 1 ? 'error' : 'errors'}, `,
             `${warningCount} ${warningCount === 1 ? 'warning' : 'warnings'} and `,
-            `${hintCount} ${hintCount === 1 ? 'hint' : 'hints'}\n`,
+            `${hintCount} ${hintCount === 1 ? 'hint' : 'hints'}\n`
         ].join('');
         if (errorCount !== 0) {
             this.stream.write(chalk.red(message));
@@ -153,8 +153,8 @@ export class MachineFriendlyWriter implements Writer {
                 `${fileCount} FILES`,
                 `${errorCount} ERRORS`,
                 `${warningCount} WARNINGS`,
-                `${hintCount} HINTS`,
-            ].join(' '),
+                `${hintCount} HINTS`
+            ].join(' ')
         );
     }
 
