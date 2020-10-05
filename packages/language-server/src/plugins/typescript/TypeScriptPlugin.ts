@@ -15,6 +15,7 @@ import {
     SymbolInformation,
     WorkspaceEdit,
     CompletionList,
+    SelectionRange,
 } from 'vscode-languageserver';
 import {
     Document,
@@ -37,6 +38,7 @@ import {
     HoverProvider,
     OnWatchFileChanges,
     RenameProvider,
+    SelectionRangeProvider,
     UpdateImportsProvider,
 } from '../interfaces';
 import { SnapshotFragment } from './DocumentSnapshot';
@@ -53,6 +55,7 @@ import { LSAndTSDocResolver } from './LSAndTSDocResolver';
 import { convertToLocationRange, getScriptKindFromFileName, symbolKindFromString } from './utils';
 import { getDirectiveCommentCompletions } from './features/getDirectiveCommentCompletions';
 import { FindReferencesProviderImpl } from './features/FindReferencesProvider';
+import { SelectionRangeProviderImpl } from './features/SelectionRangeProvider';
 
 export class TypeScriptPlugin
     implements
@@ -64,6 +67,7 @@ export class TypeScriptPlugin
         UpdateImportsProvider,
         RenameProvider,
         FindReferencesProvider,
+        SelectionRangeProvider,
         OnWatchFileChanges,
         CompletionsProvider<CompletionEntryWithIdentifer> {
     private readonly configManager: LSConfigManager;
@@ -75,6 +79,7 @@ export class TypeScriptPlugin
     private readonly renameProvider: RenameProviderImpl;
     private readonly hoverProvider: HoverProviderImpl;
     private readonly findReferencesProvider: FindReferencesProviderImpl;
+    private readonly selectionRangeProvider: SelectionRangeProviderImpl;
 
     constructor(
         docManager: DocumentManager,
@@ -93,6 +98,7 @@ export class TypeScriptPlugin
         this.renameProvider = new RenameProviderImpl(this.lsAndTsDocResolver);
         this.hoverProvider = new HoverProviderImpl(this.lsAndTsDocResolver);
         this.findReferencesProvider = new FindReferencesProviderImpl(this.lsAndTsDocResolver);
+        this.selectionRangeProvider = new SelectionRangeProviderImpl(this.lsAndTsDocResolver);
     }
 
     async getDiagnostics(document: Document): Promise<Diagnostic[]> {
@@ -346,6 +352,13 @@ export class TypeScriptPlugin
         // Since the options parameter only applies to svelte snapshots, and this is not
         // a svelte file, we can just set it to false without having any effect.
         snapshotManager.updateByFileName(fileName, { strictMode: false });
+    }
+
+    async getSelectionRange(
+        document: Document,
+        position: Position,
+    ): Promise<SelectionRange | null> {
+        return this.selectionRangeProvider.getSelectionRange(document, position);
     }
 
     private getLSAndTSDoc(document: Document) {

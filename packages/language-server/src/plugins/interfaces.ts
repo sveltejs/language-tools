@@ -124,7 +124,7 @@ export interface FindReferencesProvider {
 export interface SelectionRangeProvider {
     getSelectionRange(
         document: Document,
-        positions: Position
+        position: Position
     ): Resolvable<SelectionRange | null>;
 }
 

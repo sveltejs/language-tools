@@ -243,4 +243,12 @@ describe('CSS Plugin', () => {
 
         });
     });
+
+    it('return null for selection range when not in style', () => {
+        const { plugin, document } = setup('<script></script>');
+
+        const selectionRange = plugin.getSelectionRange(document, Position.create(0, 10));
+
+        assert.equal(selectionRange, null);
+    });
 });

@@ -24,7 +24,7 @@ import {
     mapSymbolInformationToOriginal,
     mapObjWithRangeToOriginal,
     mapHoverToParent,
-    mapSelectionRangeToParent
+    mapSelectionRangeToParent, isInTag
 } from '../../lib/documents';
 import { LSConfigManager, LSCSSConfig } from '../../ls-config';
 import {
@@ -68,8 +68,11 @@ export class CSSPlugin
         docManager.on('documentClose', (document) => this.cssDocuments.delete(document));
     }
     getSelectionRange(document: Document, position: Position): SelectionRange | null {
-        const cssDocument = this.getCSSDoc(document);
+        if (!isInTag(position, document.styleInfo)) {
+            return null;
+        }
 
+        const cssDocument = this.getCSSDoc(document);
         const [range] = getLanguageService(extractLanguage(cssDocument))
             .getSelectionRanges(
                 cssDocument,

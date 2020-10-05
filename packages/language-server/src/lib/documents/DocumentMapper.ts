@@ -321,13 +321,13 @@ export function mapCodeActionToOriginal(fragment: DocumentMapper, codeAction: Co
 }
 
 export function mapSelectionRangeToParent(
-    fragement: DocumentMapper,
+    fragment: DocumentMapper,
     selectionRange: SelectionRange,
 ): SelectionRange {
     const { range, parent } = selectionRange;
 
     return SelectionRange.create(
-        mapRangeToOriginal(fragement, range),
-        parent && mapSelectionRangeToParent(fragement, parent)
+        mapRangeToOriginal(fragment, range),
+        parent && mapSelectionRangeToParent(fragment, parent)
     );
 }
