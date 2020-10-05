@@ -22,5 +22,7 @@ module.exports = {
         'no-trailing-spaces': 'error',
         'one-var': ['error', 'never'],
         '@typescript-eslint/no-unused-vars': ['error', { args: 'none' }],
+        '@typescript-eslint/no-namespace': 'off',
+        '@typescript-eslint/no-non-null-assertion': 'off'
     }
 };

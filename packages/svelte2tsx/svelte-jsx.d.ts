@@ -1,3 +1,4 @@
+/* eslint @typescript-eslint/no-unused-vars: off */
 /**
  * Adapted from jsx-dom
  * @see https://github.com/proteriax/jsx-dom/blob/be06937ba16908d87bf8aa4372a3583133e02b8a/index.d.ts
@@ -7,9 +8,7 @@
  * Adapted from React’s TypeScript definition from DefinitelyTyped.
  * @see https://github.com/DefinitelyTyped/DefinitelyTyped/blob/master/types/react/index.d.ts
  */
-
-
- declare namespace svelte.JSX {
+declare namespace svelte.JSX {
 
     /* svelte specific */
     interface ElementClass {

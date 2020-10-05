@@ -354,7 +354,7 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         args: any[],
         mode: ExecuteMode.Collect,
     ): Promise<T[]>;
-    private execute<T>(name: keyof LSProvider, args: any[], mode: ExecuteMode.None): Promise<void>;
+    private execute(name: keyof LSProvider, args: any[], mode: ExecuteMode.None): Promise<void>;
     private async execute<T>(
         name: keyof LSProvider,
         args: any[],
