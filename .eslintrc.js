@@ -2,7 +2,6 @@ module.exports = {
     root: true,
     extends: '@sveltejs',
     plugins: ['import'],
-    settings: {},
     env: {
         node: true
     },
@@ -18,6 +17,7 @@ module.exports = {
         'import/no-cycle': 'off',
         'import/no-unused-modules': 'off',
         'import/no-deprecated': 'off',
+        // project-specific settings
         'max-len': ['error', { code: 100, ignoreComments: true, ignoreStrings: true }],
         'no-trailing-spaces': 'error',
         'one-var': ['error', 'never'],
