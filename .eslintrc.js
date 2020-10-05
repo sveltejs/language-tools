@@ -23,6 +23,8 @@ module.exports = {
         'one-var': ['error', 'never'],
         '@typescript-eslint/no-unused-vars': ['error', { args: 'none' }],
         '@typescript-eslint/no-namespace': 'off',
-        '@typescript-eslint/no-non-null-assertion': 'off'
+        '@typescript-eslint/no-non-null-assertion': 'off',
+        // exclude workspace dependencies
+        'import/no-unresolved': [2, { ignore: ['svelte-language-server'] }]
     }
 };
