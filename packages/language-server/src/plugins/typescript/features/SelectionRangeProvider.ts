@@ -45,7 +45,7 @@ export class SelectionRangeProviderImpl implements SelectionRangeProvider {
             return null;
         }
 
-        let result: SelectionRange | undefined = undefined;
+        let result: SelectionRange | undefined;
 
         for (const selectionRange of filtered) {
             result = SelectionRange.create(selectionRange, result);
