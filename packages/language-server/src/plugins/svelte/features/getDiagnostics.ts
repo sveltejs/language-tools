@@ -78,7 +78,10 @@ async function createParserErrorDiagnostic(error: any, document: Document) {
 
     if (diagnostic.message.includes('expected')) {
         const isInStyle = isInTag(diagnostic.range.start, document.styleInfo);
-        const isInScript = isInTag(diagnostic.range.start, document.scriptInfo);
+        const isInScript = isInTag(
+            diagnostic.range.start,
+            document.scriptInfo || document.moduleScriptInfo,
+        );
 
         if (isInStyle || isInScript) {
             diagnostic.message +=

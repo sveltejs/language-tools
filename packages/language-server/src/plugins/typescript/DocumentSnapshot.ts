@@ -151,7 +151,8 @@ function preprocessSvelteFile(document: Document, options: SvelteSnapshotOptions
         if (tsxMap) {
             tsxMap.sources = [document.uri];
 
-            const tsCheck = getTsCheckComment(document.scriptInfo?.content);
+            const scriptInfo = document.scriptInfo || document.moduleScriptInfo;
+            const tsCheck = getTsCheckComment(scriptInfo?.content);
             if (tsCheck) {
                 text = tsCheck + text;
                 nrPrependedLines = 1;
@@ -172,7 +173,8 @@ function preprocessSvelteFile(document: Document, options: SvelteSnapshotOptions
         };
 
         // fall back to extracted script, if any
-        text = document.scriptInfo ? document.scriptInfo.content : '';
+        const scriptInfo = document.scriptInfo || document.moduleScriptInfo;
+        text = scriptInfo ? scriptInfo.content : '';
     }
 
     return {
@@ -254,11 +256,13 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
     }
 
     private async getMapper(uri: string) {
-        if (!this.parent.scriptInfo) {
+        const scriptInfo = this.parent.scriptInfo || this.parent.moduleScriptInfo;
+
+        if (!scriptInfo) {
             return new IdentityMapper(uri);
         }
         if (!this.tsxMap) {
-            return new FragmentMapper(this.parent.getText(), this.parent.scriptInfo, uri);
+            return new FragmentMapper(this.parent.getText(), scriptInfo, uri);
         }
         return new ConsumerDocumentMapper(
             await new SourceMapConsumer(this.tsxMap),
@@ -272,7 +276,8 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
  * A js/ts document snapshot suitable for the ts language service and the plugin.
  * Since no mapping has to be done here, it also implements the mapper interface.
  */
-export class JSOrTSDocumentSnapshot extends IdentityMapper
+export class JSOrTSDocumentSnapshot
+    extends IdentityMapper
     implements DocumentSnapshot, SnapshotFragment {
     scriptKind = getScriptKindFromFileName(this.filePath);
     scriptInfo = null;
@@ -327,7 +332,7 @@ export class SvelteSnapshotFragment implements SnapshotFragment {
     ) {}
 
     get scriptInfo() {
-        return this.parent.scriptInfo;
+        return this.parent.scriptInfo || this.parent.moduleScriptInfo;
     }
 
     getOriginalPosition(pos: Position): Position {

@@ -36,7 +36,7 @@ export interface CompletionEntryWithIdentifer extends ts.CompletionEntry, TextDo
 type validTriggerCharacter = '.' | '"' | "'" | '`' | '/' | '@' | '<' | '#';
 
 export class CompletionsProviderImpl implements CompletionsProvider<CompletionEntryWithIdentifer> {
-    constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) { }
+    constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
 
     /**
      * The language service throws an error if the character is not a valid trigger character.

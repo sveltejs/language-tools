@@ -83,7 +83,15 @@ export function processInstanceScriptContent(
             const jsDocType = ts.getJSDocType(declaration);
             const type = tsType || jsDocType;
 
-            if (!ts.isIdentifier(identifier) || !type) {
+            if (
+                !ts.isIdentifier(identifier) ||
+                (!type &&
+                    // Edge case: TS infers `export let bla = false` to type `false`.
+                    // prevent that by adding the any-wrap in this case, too.
+                    ![ts.SyntaxKind.FalseKeyword, ts.SyntaxKind.TrueKeyword].includes(
+                        declaration.initializer?.kind,
+                    ))
+            ) {
                 return;
             }
             const name = identifier.getText();

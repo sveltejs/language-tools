@@ -1,4 +1,6 @@
 import * as assert from 'assert';
+import * as path from 'path';
+import * as fs from 'fs';
 import { Diagnostic, DiagnosticSeverity, Position } from 'vscode-languageserver';
 import { Document } from '../../../../src/lib/documents';
 import { getDiagnostics } from '../../../../src/plugins/svelte/features/getDiagnostics';
@@ -7,7 +9,9 @@ import {
     TranspileErrorSource,
 } from '../../../../src/plugins/svelte/SvelteDocument';
 import { SvelteConfig } from '../../../../src/lib/documents/configLoader';
-import { CompilerWarningsSettings } from '../../../../src/ls-config';
+import { CompilerWarningsSettings, LSConfigManager } from '../../../../src/ls-config';
+import { pathToUrl } from '../../../../src/utils';
+import { SveltePlugin } from '../../../../src/plugins';
 
 describe('SveltePlugin#getDiagnostics', () => {
     async function expectDiagnosticsFor({
@@ -29,6 +33,15 @@ describe('SveltePlugin#getDiagnostics', () => {
         return {
             toEqual: (expected: Diagnostic[]) => assert.deepStrictEqual(result, expected),
         };
+    }
+
+    function setupFromFile(filename: string) {
+        const testDir = path.join(__dirname, '..');
+        const filePath = path.join(testDir, 'testfiles', filename);
+        const document = new Document(pathToUrl(filePath), fs.readFileSync(filePath, 'utf-8'));
+        const pluginManager = new LSConfigManager();
+        const plugin = new SveltePlugin(pluginManager);
+        return { plugin, document };
     }
 
     it('expect svelte.config.js error', async () => {
@@ -366,6 +379,38 @@ describe('SveltePlugin#getDiagnostics', () => {
                 },
                 severity: DiagnosticSeverity.Error,
                 source: 'svelte',
+            },
+        ]);
+    });
+
+    it('should correctly determine diagnostic position', async () => {
+        const { plugin, document } = setupFromFile('diagnostics.svelte');
+        const diagnostics = await plugin.getDiagnostics(document);
+
+        assert.deepStrictEqual(diagnostics, [
+            {
+                range: { start: { line: 1, character: 15 }, end: { line: 1, character: 27 } },
+                message:
+                    "Component has unused export property 'name'. If it is for external reference only, please consider using `export const name`",
+                severity: 2,
+                source: 'svelte',
+                code: 'unused-export-let',
+            },
+        ]);
+    });
+
+    it('should correctly determine diagnostic position for context="module"', async () => {
+        const { plugin, document } = setupFromFile('diagnostics-module.svelte');
+        const diagnostics = await plugin.getDiagnostics(document);
+
+        assert.deepStrictEqual(diagnostics, [
+            {
+                range: { start: { line: 1, character: 15 }, end: { line: 1, character: 27 } },
+                message:
+                    "Component has unused export property 'name'. If it is for external reference only, please consider using `export const name`",
+                severity: 2,
+                source: 'svelte',
+                code: 'unused-export-let',
             },
         ]);
     });
