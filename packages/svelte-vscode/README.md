@@ -98,6 +98,10 @@ Enable go to definition for TypeScript. _Default_: `true`
 
 Enable code actions for TypeScript. _Default_: `true`
 
+##### `svelte.plugin.typescript.codeActions`
+
+Enable selection range for TypeScript. _Default_: `true`
+
 ##### `svelte.plugin.css.enable`
 
 Enable the CSS plugin. _Default_: `true`
@@ -129,6 +133,10 @@ Enable color picker for CSS. _Default_: `true`
 ##### `svelte.plugin.css.documentSymbols`
 
 Enable document symbols for CSS. _Default_: `true`
+
+##### `svelte.plugin.css.selectionRange`
+
+Enable selection range for CSS. _Default_: `true`
 
 ##### `svelte.plugin.html.enable`
 
@@ -181,3 +189,7 @@ Enable rename functionality (rename svelte files or variables inside svelte file
 ##### `svelte.plugin.svelte.codeActions.enable`
 
 Enable code actions for Svelte. _Default_: `true`
+
+##### `svelte.plugin.svelte.selectionRange.enable`
+
+Enable selection range for Svelte. _Default_: `true`

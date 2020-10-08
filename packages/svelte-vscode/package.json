@@ -110,6 +110,12 @@
                     "title": "TypeScript: Code Actions",
                     "description": "Enable code actions for TypeScript"
                 },
+                "svelte.plugin.typescript.selectionRange.enable": {
+                    "type": "boolean",
+                    "default": true,
+                    "title": "TypeScript: SelectionRange",
+                    "description": "Enable selection range for TypeScript"
+                },
                 "svelte.plugin.css.enable": {
                     "type": "boolean",
                     "default": true,
@@ -157,6 +163,12 @@
                     "default": true,
                     "title": "CSS: Symbols in Outline",
                     "description": "Enable document symbols for CSS"
+                },
+                "svelte.plugin.css.selectionRange.enable": {
+                    "type": "boolean",
+                    "default": true,
+                    "title": "CSS: SelectionRange",
+                    "description": "Enable selection range for CSS"
                 },
                 "svelte.plugin.html.enable": {
                     "type": "boolean",
@@ -230,6 +242,18 @@
                     "default": true,
                     "title": "Svelte: Hover",
                     "description": "Enable hover information for Svelte"
+                },
+                "svelte.plugin.svelte.codeActions.enable": {
+                    "type": "boolean",
+                    "default": true,
+                    "title": "Svelte: Code Actions",
+                    "description": "Enable Code Actions for Svelte"
+                },
+                "svelte.plugin.svelte.selectionRange.enable": {
+                    "type": "boolean",
+                    "default": true,
+                    "title": "Svelte: Selection Range",
+                    "description": "Enable selection range for Svelte"
                 }
             }
         },

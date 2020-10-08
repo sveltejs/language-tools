@@ -68,7 +68,7 @@ export class CSSPlugin
         docManager.on('documentClose', (document) => this.cssDocuments.delete(document));
     }
     getSelectionRange(document: Document, position: Position): SelectionRange | null {
-        if (!isInTag(position, document.styleInfo)) {
+        if (!this.featureEnabled('selectionRange') || !isInTag(position, document.styleInfo)) {
             return null;
         }
 

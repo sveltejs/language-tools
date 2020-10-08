@@ -173,6 +173,10 @@ export class SveltePlugin
         document: Document,
         position: Position
     ): Promise<SelectionRange | null> {
+        if (!this.featureEnabled('selectionRange')) {
+            return null;
+        }
+
         const svelteDoc = await this.getSvelteDoc(document);
 
         return getSelectionRange(svelteDoc, position);
