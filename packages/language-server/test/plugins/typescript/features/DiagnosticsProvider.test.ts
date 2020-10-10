@@ -178,4 +178,11 @@ describe('DiagnosticsProvider', () => {
             },
         ]);
     });
+
+    it('treats svelte {#if ...} as typescript flow control', async () => {
+        const { plugin, document } = setup('ts-template-flow-control.svelte');
+        const diagnostics = await plugin.getDiagnostics(document);
+
+        assert.deepStrictEqual(diagnostics, []);
+    });
 });
