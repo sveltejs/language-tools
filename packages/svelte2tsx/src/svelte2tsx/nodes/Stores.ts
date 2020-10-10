@@ -2,8 +2,21 @@ import MagicString from 'magic-string';
 import { Node } from 'estree-walker';
 import { ScopeStack, Scope } from '../utils/Scope';
 import { isObjectKey, isMember } from '../../utils/svelteAst';
+import { uniq } from '../../utils/uniq';
 
-export function handleStore(node: Node, parent: Node, str: MagicString): void {
+export function handleStore(
+    node: Node,
+    parent: Node,
+    str: MagicString,
+    canBeHoisted: boolean,
+): void {
+    const storeName = node.name.slice(1); // drop the $
+    const storeGetterPrefix = canBeHoisted
+        ? `__svelte_store_get_values__['`
+        : '__sveltets_store_get(';
+    const storeGetterPostfix = canBeHoisted ? `']` : ')';
+    const storeGetter = `${storeGetterPrefix}${storeName}${storeGetterPostfix}`;
+
     //handle assign to
     if (parent.type == 'AssignmentExpression' && parent.left == node && parent.operator == '=') {
         const dollar = str.original.indexOf('$', node.start);
@@ -20,12 +33,11 @@ export function handleStore(node: Node, parent: Node, str: MagicString): void {
         parent.left == node &&
         operators.includes(parent.operator)
     ) {
-        const storename = node.name.slice(1); // drop the $
         const operator = parent.operator.substring(0, parent.operator.length - 1); // drop the = sign
         str.overwrite(
             parent.start,
             str.original.indexOf('=', node.end) + 1,
-            `${storename}.set( __sveltets_store_get(${storename}) ${operator}`,
+            `${storeName}.set( ${storeGetter} ${operator}`,
         );
         str.appendLeft(parent.end, ')');
         return;
@@ -36,11 +48,10 @@ export function handleStore(node: Node, parent: Node, str: MagicString): void {
         if (parent.operator === '++') simpleOperator = '+';
         if (parent.operator === '--') simpleOperator = '-';
         if (simpleOperator) {
-            const storename = node.name.slice(1); // drop the $
             str.overwrite(
                 parent.start,
                 parent.end,
-                `${storename}.set( __sveltets_store_get(${storename}) ${simpleOperator} 1)`,
+                `${storeName}.set( ${storeGetter} ${simpleOperator} 1)`,
             );
         } else {
             console.warn(
@@ -55,15 +66,17 @@ export function handleStore(node: Node, parent: Node, str: MagicString): void {
     }
 
     //rewrite get
+    // remove dollar and wrap with accessor to store value
     const dollar = str.original.indexOf('$', node.start);
-    str.overwrite(dollar, dollar + 1, '__sveltets_store_get(');
-    str.prependLeft(node.end, ')');
+    str.overwrite(dollar, dollar + 1, storeGetterPrefix);
+    str.prependLeft(node.end, storeGetterPostfix);
 }
 
 type PendingStoreResolution<T> = {
     node: T;
     parent: T;
     scope: Scope;
+    canBeHoisted: boolean;
 };
 
 const reservedNames = new Set(['$$props', '$$restProps', '$$slots']);
@@ -77,7 +90,7 @@ export class Stores {
         private isDeclaration: { value: boolean },
     ) {}
 
-    handleIdentifier(node: Node, parent: Node, prop: string): void {
+    handleIdentifier(node: Node, parent: Node, prop: string, canBeHoisted: boolean): void {
         if (node.name[0] !== '$' || reservedNames.has(node.name)) {
             return;
         }
@@ -95,13 +108,22 @@ export class Stores {
             if (isObjectKey(parent, prop)) {
                 return;
             }
-            this.pendingStoreResolutions.push({ node, parent, scope: this.scope.current });
+            this.pendingStoreResolutions.push({
+                node,
+                parent,
+                scope: this.scope.current,
+                canBeHoisted,
+            });
         }
     }
 
-    resolveStores(): void {
+    resolveStores(): string[] {
+        const topLevelStores = this.pendingStoreResolutions
+            .filter(({ canBeHoisted }) => canBeHoisted)
+            .map(({ node: { name } }) => name.replace(/^\$/, ''));
+
         this.pendingStoreResolutions.forEach((pending) => {
-            let { node, parent, scope } = pending;
+            let { node, parent, scope, canBeHoisted } = pending;
             const name = node.name;
             while (scope) {
                 if (scope.declared.has(name)) {
@@ -111,7 +133,9 @@ export class Stores {
                 scope = scope.parent;
             }
             //We haven't been resolved, we must be a store read/write, handle it.
-            handleStore(node, parent, this.str);
+            handleStore(node, parent, this.str, canBeHoisted);
         });
+
+        return uniq(topLevelStores);
     }
 }

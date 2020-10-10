@@ -26,6 +26,7 @@ describe('svelte2tsx', () => {
 				isTsFile: dir.startsWith('ts-'),
 				filename: 'input.svelte'
 			});
+
 			assert.equal(output.code, expectedOutput);
 			if (expecterOtherOutput) {
 				expecterOtherOutput(output);

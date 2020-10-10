@@ -31,6 +31,7 @@ interface CreateRenderFunctionPara extends InstanceScriptProcessResult {
     slots: Map<string, Map<string, string>>;
     events: ComponentEvents;
     isTsFile: boolean;
+    hoistedStoreDeclarations: string[];
 }
 
 interface AddComponentExportPara {
@@ -58,6 +59,7 @@ type TemplateProcessResult = {
     /** To be added later as a comment on the default class export */
     componentDocumentation: ComponentDocumentation;
     events: ComponentEvents;
+    hoistedStoreDeclarations: string[];
 };
 
 /**
@@ -77,6 +79,11 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
 
     //track if we are in a declaration scope
     const isDeclaration = { value: false };
+
+    // track if we are inside block statement inside template
+    // for example in multiline event handler
+    // required for determining if getting store value can be hoisted
+    let isInBlockStatementContext = 0;
 
     //track $store variables since we are only supposed to give top level scopes special treatment, and users can declare $blah variables at higher scopes
     //which prevents us just changing all instances of Identity that start with $
@@ -174,7 +181,7 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
                 break;
             case 'Identifier':
                 handleIdentifier(node);
-                stores.handleIdentifier(node, parent, prop);
+                stores.handleIdentifier(node, parent, prop, !isInBlockStatementContext);
                 eventHandler.handleIdentifier(node, parent, prop);
                 break;
             case 'Slot':
@@ -187,6 +194,7 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
                 scripts.handleScriptTag(node, parent);
                 break;
             case 'BlockStatement':
+                isInBlockStatementContext++;
                 scopeStack.push();
                 break;
             case 'FunctionDeclaration':
@@ -230,6 +238,7 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
 
         switch (node.type) {
             case 'BlockStatement':
+                isInBlockStatementContext--;
                 scopeStack.pop();
                 break;
             case 'FunctionDeclaration':
@@ -257,7 +266,7 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
     scripts.blankOtherScriptTags(str);
 
     //resolve stores
-    stores.resolveStores();
+    const hoistedStoreDeclarations = stores.resolveStores();
 
     return {
         moduleScriptTag,
@@ -268,6 +277,7 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
         uses$$restProps,
         uses$$slots,
         componentDocumentation,
+        hoistedStoreDeclarations,
     };
 }
 
@@ -334,6 +344,7 @@ function createRenderFunction({
     uses$$props,
     uses$$restProps,
     uses$$slots,
+    hoistedStoreDeclarations,
 }: CreateRenderFunctionPara) {
     const htmlx = str.original;
     let propsDecl = '';
@@ -354,6 +365,14 @@ function createRenderFunction({
             '});';
     }
 
+    const hoistedStoreDefinitions = hoistedStoreDeclarations
+        .map((storeName) => `${storeName}:__sveltets_store_get(${storeName}),`)
+        .join('');
+
+    const templateStoreDeclarations = hoistedStoreDefinitions
+        ? `const __svelte_store_get_values__ = {${hoistedStoreDefinitions}};\n`
+        : '';
+
     if (scriptTag) {
         //I couldn't get magicstring to let me put the script before the <> we prepend during conversion of the template to jsx, so we just close it instead
         const scriptTagEnd = htmlx.lastIndexOf('>', scriptTag.content.start) + 1;
@@ -362,11 +381,17 @@ function createRenderFunction({
 
         const scriptEndTagStart = htmlx.lastIndexOf('<', scriptTag.end - 1);
         // wrap template with callback
-        str.overwrite(scriptEndTagStart, scriptTag.end, ';\n() => (<>', {
-            contentOnly: true,
-        });
+        str.overwrite(
+            scriptEndTagStart,
+            scriptTag.end,
+            `;${templateStoreDeclarations}\n() => (<>`,
+            { contentOnly: true },
+        );
     } else {
-        str.prependRight(scriptDestination, `</>;function render() {${propsDecl}\n<>`);
+        str.prependRight(
+            scriptDestination,
+            `</>;function render() {${propsDecl}\n${templateStoreDeclarations}<>`,
+        );
     }
 
     const slotsAsDef =
@@ -410,6 +435,7 @@ export function svelte2tsx(
         uses$$restProps,
         events,
         componentDocumentation,
+        hoistedStoreDeclarations,
     } = processSvelteTemplate(str);
 
     /* Rearrange the script tags so that module is first, and instance second followed finally by the template
@@ -458,6 +484,7 @@ export function svelte2tsx(
         uses$$props,
         uses$$restProps,
         uses$$slots,
+        hoistedStoreDeclarations,
     });
 
     // we need to process the module script after the instance script has moved otherwise we get warnings about moving edited items

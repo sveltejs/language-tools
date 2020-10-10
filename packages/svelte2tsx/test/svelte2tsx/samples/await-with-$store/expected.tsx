@@ -5,10 +5,11 @@ function render() {
 
 	
 	const store = readable(Promise.resolve('test'), () => {});
-;
+;const __svelte_store_get_values__ = {store:__sveltets_store_get(store),};
+
 () => (<>
 
-{() => {let _$$p = (__sveltets_store_get(store)); <>
+{() => {let _$$p = (__svelte_store_get_values__['store']); <>
 	<p>loading</p>
 </>; __sveltets_awaitThen(_$$p, (data) => {<>
 	{data}
