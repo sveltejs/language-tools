@@ -12,14 +12,14 @@ export class FindReferencesProviderImpl implements FindReferencesProvider {
     async findReferences(
         document: Document,
         position: Position,
-        context: ReferenceContext,
+        context: ReferenceContext
     ): Promise<Location[] | null> {
         const { lang, tsDoc } = this.getLSAndTSDoc(document);
         const fragment = await tsDoc.getFragment();
 
         const references = lang.getReferencesAtPosition(
             tsDoc.filePath,
-            fragment.offsetAt(fragment.getGeneratedPosition(position)),
+            fragment.offsetAt(fragment.getGeneratedPosition(position))
         );
         if (!references) {
             return null;
@@ -39,9 +39,9 @@ export class FindReferencesProviderImpl implements FindReferencesProvider {
 
                     return Location.create(
                         pathToUrl(ref.fileName),
-                        convertToLocationRange(defDoc, ref.textSpan),
+                        convertToLocationRange(defDoc, ref.textSpan)
                     );
-                }),
+                })
         );
     }
 

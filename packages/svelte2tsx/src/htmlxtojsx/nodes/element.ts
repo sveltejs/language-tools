@@ -7,7 +7,7 @@ import { Node } from 'estree-walker';
 export function handleElement(htmlx: string, str: MagicString, node: Node): void {
     //we just have to self close void tags since jsx always wants the />
     const voidTags = 'area,base,br,col,embed,hr,img,input,link,meta,param,source,track,wbr'.split(
-        ',',
+        ','
     );
     if (voidTags.find((x) => x == node.name)) {
         if (htmlx[node.end - 2] != '/') {

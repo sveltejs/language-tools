@@ -63,7 +63,7 @@ export class Document extends WritableDocument {
 
     private addDefaultLanguage(
         tagInfo: TagInformation | null,
-        tag: 'style' | 'script',
+        tag: 'style' | 'script'
     ): TagInformation | null {
         if (!tagInfo) {
             return null;

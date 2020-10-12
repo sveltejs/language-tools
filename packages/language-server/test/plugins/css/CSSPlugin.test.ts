@@ -6,7 +6,7 @@ import {
     CompletionItem,
     CompletionItemKind,
     TextEdit,
-    CompletionContext,
+    CompletionContext
 } from 'vscode-languageserver';
 import { DocumentManager, Document } from '../../../src/lib/documents';
 import { CSSPlugin } from '../../../src/plugins';
@@ -28,9 +28,9 @@ describe('CSS Plugin', () => {
         assert.deepStrictEqual(plugin.doHover(document, Position.create(0, 8)), <Hover>{
             contents: [
                 { language: 'html', value: '<h1>' },
-                '[Selector Specificity](https://developer.mozilla.org/en-US/docs/Web/CSS/Specificity): (0, 0, 1)',
+                '[Selector Specificity](https://developer.mozilla.org/en-US/docs/Web/CSS/Specificity): (0, 0, 1)'
             ],
-            range: Range.create(0, 7, 0, 9),
+            range: Range.create(0, 7, 0, 9)
         });
 
         assert.strictEqual(plugin.doHover(document, Position.create(0, 10)), null);
@@ -40,11 +40,11 @@ describe('CSS Plugin', () => {
         const { plugin, document } = setup('<style></style>');
 
         const completions = plugin.getCompletions(document, Position.create(0, 7), {
-            triggerCharacter: '.',
+            triggerCharacter: '.'
         } as CompletionContext);
         assert.ok(
             Array.isArray(completions && completions.items),
-            'Expected completion items to be an array',
+            'Expected completion items to be an array'
         );
         assert.ok(completions!.items.length > 0, 'Expected completions to have length');
 
@@ -54,11 +54,11 @@ describe('CSS Plugin', () => {
             documentation: {
                 kind: 'markdown',
                 value:
-                    'Defines character set of the document.\n\n[MDN Reference](https://developer.mozilla.org/docs/Web/CSS/@charset)',
+                    'Defines character set of the document.\n\n[MDN Reference](https://developer.mozilla.org/docs/Web/CSS/@charset)'
             },
-            sortText: "d_0000",
+            sortText: 'd_0000',
             textEdit: TextEdit.insert(Position.create(0, 7), '@charset'),
-            tags: [],
+            tags: []
         });
     });
 
@@ -66,7 +66,7 @@ describe('CSS Plugin', () => {
         const { plugin, document } = setup('<style>:g</style>');
 
         const completions = plugin.getCompletions(document, Position.create(0, 9), {
-            triggerCharacter: ':',
+            triggerCharacter: ':'
         } as CompletionContext);
         const globalCompletion = completions?.items.find((item) => item.label === ':global()');
         assert.ok(globalCompletion);
@@ -93,16 +93,16 @@ describe('CSS Plugin', () => {
                     range: {
                         end: {
                             character: 28,
-                            line: 0,
+                            line: 0
                         },
                         start: {
                             character: 11,
-                            line: 0,
-                        },
+                            line: 0
+                        }
                     },
                     severity: 2,
-                    source: 'css',
-                },
+                    source: 'css'
+                }
             ]);
         });
     });
@@ -114,9 +114,9 @@ describe('CSS Plugin', () => {
             document,
             {
                 start: { line: 0, character: 17 },
-                end: { line: 0, character: 21 },
+                end: { line: 0, character: 21 }
             },
-            { alpha: 1, blue: 255, green: 0, red: 0 },
+            { alpha: 1, blue: 255, green: 0, red: 0 }
         );
 
         assert.deepStrictEqual(colors, [
@@ -126,15 +126,15 @@ describe('CSS Plugin', () => {
                     range: {
                         end: {
                             character: 21,
-                            line: 0,
+                            line: 0
                         },
                         start: {
                             character: 17,
-                            line: 0,
-                        },
+                            line: 0
+                        }
                     },
-                    newText: 'rgb(0, 0, 65025)',
-                },
+                    newText: 'rgb(0, 0, 65025)'
+                }
             },
             {
                 label: '#00000fe01',
@@ -142,15 +142,15 @@ describe('CSS Plugin', () => {
                     range: {
                         end: {
                             character: 21,
-                            line: 0,
+                            line: 0
                         },
                         start: {
                             character: 17,
-                            line: 0,
-                        },
+                            line: 0
+                        }
                     },
-                    newText: '#00000fe01',
-                },
+                    newText: '#00000fe01'
+                }
             },
             {
                 label: 'hsl(240, -101%, 12750%)',
@@ -158,16 +158,16 @@ describe('CSS Plugin', () => {
                     range: {
                         end: {
                             character: 21,
-                            line: 0,
+                            line: 0
                         },
                         start: {
                             character: 17,
-                            line: 0,
-                        },
+                            line: 0
+                        }
                     },
-                    newText: 'hsl(240, -101%, 12750%)',
-                },
-            },
+                    newText: 'hsl(240, -101%, 12750%)'
+                }
+            }
         ]);
     });
 
@@ -184,17 +184,17 @@ describe('CSS Plugin', () => {
                     range: {
                         end: {
                             character: 23,
-                            line: 0,
+                            line: 0
                         },
                         start: {
                             character: 7,
-                            line: 0,
-                        },
+                            line: 0
+                        }
                     },
-                    uri: 'file:///hello.svelte',
+                    uri: 'file:///hello.svelte'
                 },
-                name: 'h1',
-            },
+                name: 'h1'
+            }
         ]);
     });
 });

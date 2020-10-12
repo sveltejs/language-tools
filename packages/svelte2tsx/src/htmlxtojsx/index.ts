@@ -38,7 +38,7 @@ export function convertHtmlxToJsx(
     str: MagicString,
     ast: Node,
     onWalk: Walker = null,
-    onLeave: Walker = null,
+    onLeave: Walker = null
 ): void {
     const htmlx = str.original;
     stripDoctype(str);
@@ -131,7 +131,7 @@ export function convertHtmlxToJsx(
                 console.error('Error leaving node ', node);
                 throw e;
             }
-        },
+        }
     });
 }
 
@@ -146,6 +146,6 @@ export function htmlx2jsx(htmlx: string) {
 
     return {
         map: str.generateMap({ hires: true }),
-        code: str.toString(),
+        code: str.toString()
     };
 }

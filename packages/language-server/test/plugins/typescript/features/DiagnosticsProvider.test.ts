@@ -29,17 +29,17 @@ describe('DiagnosticsProvider', () => {
                 range: {
                     start: {
                         character: 32,
-                        line: 0,
+                        line: 0
                     },
                     end: {
                         character: 35,
-                        line: 0,
-                    },
+                        line: 0
+                    }
                 },
                 severity: 1,
                 source: 'ts',
-                tags: [],
-            },
+                tags: []
+            }
         ]);
     });
 
@@ -54,17 +54,17 @@ describe('DiagnosticsProvider', () => {
                 range: {
                     start: {
                         character: 49,
-                        line: 0,
+                        line: 0
                     },
                     end: {
                         character: 52,
-                        line: 0,
-                    },
+                        line: 0
+                    }
                 },
                 severity: 1,
                 source: 'ts',
-                tags: [],
-            },
+                tags: []
+            }
         ]);
     });
 
@@ -79,17 +79,17 @@ describe('DiagnosticsProvider', () => {
                 range: {
                     start: {
                         character: 4,
-                        line: 3,
+                        line: 3
                     },
                     end: {
                         character: 7,
-                        line: 3,
-                    },
+                        line: 3
+                    }
                 },
                 severity: 1,
                 source: 'js',
-                tags: [],
-            },
+                tags: []
+            }
         ]);
     });
 
@@ -111,16 +111,16 @@ describe('DiagnosticsProvider', () => {
                 range: {
                     start: {
                         character: 0,
-                        line: 1,
+                        line: 1
                     },
                     end: {
                         character: 0,
-                        line: 1,
-                    },
+                        line: 1
+                    }
                 },
                 severity: 1,
-                source: 'js',
-            },
+                source: 'js'
+            }
         ]);
     });
 
@@ -148,16 +148,16 @@ describe('DiagnosticsProvider', () => {
                 range: {
                     end: {
                         character: 5,
-                        line: 3,
+                        line: 3
                     },
                     start: {
                         character: 4,
-                        line: 3,
-                    },
+                        line: 3
+                    }
                 },
                 severity: 4,
                 source: 'ts',
-                tags: [2],
+                tags: [2]
             },
             {
                 code: 6133,
@@ -165,17 +165,17 @@ describe('DiagnosticsProvider', () => {
                 range: {
                     end: {
                         character: 9,
-                        line: 4,
+                        line: 4
                     },
                     start: {
                         character: 8,
-                        line: 4,
-                    },
+                        line: 4
+                    }
                 },
                 severity: 4,
                 source: 'ts',
-                tags: [1],
-            },
+                tags: [1]
+            }
         ]);
     });
 });

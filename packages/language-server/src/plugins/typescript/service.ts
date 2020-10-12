@@ -24,7 +24,7 @@ export type CreateDocument = (fileName: string, content: string) => Document;
 export function getLanguageServiceForPath(
     path: string,
     workspaceUris: string[],
-    createDocument: CreateDocument,
+    createDocument: CreateDocument
 ): ts.LanguageService {
     return getService(path, workspaceUris, createDocument).getService();
 }
@@ -32,10 +32,10 @@ export function getLanguageServiceForPath(
 export function getLanguageServiceForDocument(
     document: Document,
     workspaceUris: string[],
-    createDocument: CreateDocument,
+    createDocument: CreateDocument
 ): ts.LanguageService {
     return getService(document.getFilePath() || '', workspaceUris, createDocument).updateDocument(
-        document,
+        document
     );
 }
 
@@ -56,7 +56,7 @@ export function getService(path: string, workspaceUris: string[], createDocument
 
 export function createLanguageService(
     tsconfigPath: string,
-    createDocument: CreateDocument,
+    createDocument: CreateDocument
 ): LanguageServiceContainer {
     const workspacePath = tsconfigPath ? dirname(tsconfigPath) : '';
 
@@ -69,7 +69,7 @@ export function createLanguageService(
     const svelteTsxFiles = [
         './svelte-shims.d.ts',
         './svelte-jsx.d.ts',
-        './svelte-native-jsx.d.ts',
+        './svelte-native-jsx.d.ts'
     ].map((f) => ts.sys.resolvePath(resolve(svelteTsPath, f)));
 
     const host: ts.LanguageServiceHost = {
@@ -79,8 +79,8 @@ export function createLanguageService(
                 new Set([
                     ...snapshotManager.getProjectFileNames(),
                     ...snapshotManager.getFileNames(),
-                    ...svelteTsxFiles,
-                ]),
+                    ...svelteTsxFiles
+                ])
             ),
         getScriptVersion: (fileName: string) => getSnapshot(fileName).version.toString(),
         getScriptSnapshot: getSnapshot,
@@ -93,7 +93,7 @@ export function createLanguageService(
         getDirectories: ts.sys.getDirectories,
         // vscode's uri is all lowercase
         useCaseSensitiveFileNames: () => false,
-        getScriptKind: (fileName: string) => getSnapshot(fileName).scriptKind,
+        getScriptKind: (fileName: string) => getSnapshot(fileName).scriptKind
     };
     let languageService = ts.createLanguageService(host);
 
@@ -103,7 +103,7 @@ export function createLanguageService(
         getService: () => languageService,
         updateDocument,
         deleteDocument,
-        snapshotManager,
+        snapshotManager
     };
 
     function deleteDocument(filePath: string): void {
@@ -120,7 +120,7 @@ export function createLanguageService(
         }
 
         const newSnapshot = DocumentSnapshot.fromDocument(document, {
-            strictMode: !!compilerOptions.strict,
+            strictMode: !!compilerOptions.strict
         });
         if (preSnapshot && preSnapshot.scriptKind !== newSnapshot.scriptKind) {
             // Restart language service as it doesn't handle script kind changes.
@@ -143,7 +143,7 @@ export function createLanguageService(
         if (isSvelteFilePath(fileName)) {
             const file = ts.sys.readFile(fileName) || '';
             doc = DocumentSnapshot.fromDocument(createDocument(fileName, file), {
-                strictMode: !!compilerOptions.strict,
+                strictMode: !!compilerOptions.strict
             });
         } else {
             doc = DocumentSnapshot.fromFilePath(fileName, { strictMode: !!compilerOptions.strict });
@@ -164,7 +164,7 @@ export function createLanguageService(
             declaration: false,
             skipLibCheck: true,
             // these are needed to handle the results of svelte2tsx preprocessing:
-            jsx: ts.JsxEmit.Preserve,
+            jsx: ts.JsxEmit.Preserve
         };
 
         // always let ts parse config to get default compilerOption
@@ -176,9 +176,9 @@ export function createLanguageService(
         if (!configJson.extends) {
             configJson = Object.assign(
                 {
-                    exclude: getDefaultExclude(),
+                    exclude: getDefaultExclude()
                 },
-                configJson,
+                configJson
             );
         }
 
@@ -189,13 +189,13 @@ export function createLanguageService(
             forcedCompilerOptions,
             tsconfigPath,
             undefined,
-            [{ extension: 'svelte', isMixedContent: false, scriptKind: ts.ScriptKind.TSX }],
+            [{ extension: 'svelte', isMixedContent: false, scriptKind: ts.ScriptKind.TSX }]
         );
 
         const files = parsedConfig.fileNames;
         const compilerOptions: ts.CompilerOptions = {
             ...parsedConfig.options,
-            ...forcedCompilerOptions,
+            ...forcedCompilerOptions
         };
 
         // detect which JSX namespace to use (svelte | svelteNative) if not specified or not compatible
@@ -229,11 +229,11 @@ export function createLanguageService(
         return {
             compilerOptions: {
                 maxNodeModuleJsDepth: 2,
-                allowSyntheticDefaultImports: true,
+                allowSyntheticDefaultImports: true
             },
             // Necessary to not flood the initial files
             // with potentially completely unrelated .ts/.js files:
-            include: [],
+            include: []
         };
     }
 

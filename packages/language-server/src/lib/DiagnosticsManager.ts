@@ -8,7 +8,7 @@ export class DiagnosticsManager {
     constructor(
         private sendDiagnostics: SendDiagnostics,
         private docManager: DocumentManager,
-        private getDiagnostics: GetDiagnostics,
+        private getDiagnostics: GetDiagnostics
     ) {}
 
     updateAll() {
@@ -21,14 +21,14 @@ export class DiagnosticsManager {
         const diagnostics = await this.getDiagnostics({ uri: document.getURL() });
         this.sendDiagnostics({
             uri: document.getURL(),
-            diagnostics,
+            diagnostics
         });
     }
 
     removeDiagnostics(document: Document) {
         this.sendDiagnostics({
             uri: document.getURL(),
-            diagnostics: [],
+            diagnostics: []
         });
     }
 }

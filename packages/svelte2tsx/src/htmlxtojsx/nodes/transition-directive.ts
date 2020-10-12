@@ -8,7 +8,7 @@ export function handleTransitionDirective(htmlx: string, str: MagicString, attr:
     str.overwrite(
         attr.start,
         htmlx.indexOf(':', attr.start) + 1,
-        '{...__sveltets_ensureTransition(',
+        '{...__sveltets_ensureTransition('
     );
 
     if (attr.modifiers.length) {
@@ -24,7 +24,7 @@ export function handleTransitionDirective(htmlx: string, str: MagicString, attr:
     str.overwrite(
         htmlx.indexOf(':', attr.start) + 1 + `${attr.name}`.length,
         attr.expression.start,
-        ', ',
+        ', '
     );
     str.appendLeft(attr.expression.end, ')');
     if (htmlx[attr.end - 1] == '"') {

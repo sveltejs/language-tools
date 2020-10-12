@@ -67,7 +67,7 @@ export class SnapshotManager {
             const projectFiles = this.getProjectFileNames();
             const allFiles = Array.from(new Set([...projectFiles, ...this.getFileNames()]));
             Logger.log(
-                `SnapshotManager File Statistics:\n` +
+                'SnapshotManager File Statistics:\n' +
                     `Project files: ${projectFiles.length}\n` +
                     `Svelte files: ${
                         allFiles.filter((name) => name.endsWith('.svelte')).length
@@ -75,7 +75,7 @@ export class SnapshotManager {
                     `From node_modules: ${
                         allFiles.filter((name) => name.includes('node_modules')).length
                     }\n` +
-                    `Total: ${allFiles.length}`,
+                    `Total: ${allFiles.length}`
             );
         }
     }

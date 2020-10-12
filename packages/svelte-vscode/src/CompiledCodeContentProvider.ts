@@ -5,7 +5,7 @@ import {
     EventEmitter,
     workspace,
     window,
-    Disposable,
+    Disposable
 } from 'vscode';
 import { atob, btoa } from './utils';
 import { debounce } from 'lodash';
@@ -19,21 +19,21 @@ const SVELTE_URI_SCHEME = 'svelte-compiled';
 
 function toSvelteSchemeUri<B extends boolean = false>(
     srcUri: string | Uri,
-    asString?: B,
+    asString?: B
 ): B extends true ? string : Uri {
     srcUri = typeof srcUri == 'string' ? Uri.parse(srcUri) : srcUri;
     const src = btoa(srcUri.toString());
     const destUri = srcUri.with({
         scheme: SVELTE_URI_SCHEME,
         fragment: src,
-        path: srcUri.path + '.js',
+        path: srcUri.path + '.js'
     });
     return (asString ? destUri.toString() : destUri) as any;
 }
 
 function fromSvelteSchemeUri<B extends boolean = false>(
     destUri: string | Uri,
-    asString?: B,
+    asString?: B
 ): B extends true ? string : Uri {
     destUri = typeof destUri == 'string' ? Uri.parse(destUri) : destUri;
     const src = atob(destUri.fragment);
@@ -66,16 +66,16 @@ export default class CompiledCodeContentProvider implements TextDocumentContentP
                     if (this.watchedSourceUri.has(srcUri)) {
                         this.didChangeEmitter.fire(toSvelteSchemeUri(srcUri));
                     }
-                }, 500),
-            ),
+                }, 500)
+            )
         );
 
         window.onDidChangeVisibleTextEditors((editors) => {
             const previewEditors = editors.filter(
-                (editor) => editor?.document?.uri?.scheme === SVELTE_URI_SCHEME,
+                (editor) => editor?.document?.uri?.scheme === SVELTE_URI_SCHEME
             );
             this.watchedSourceUri = new Set(
-                previewEditors.map((editor) => fromSvelteSchemeUri(editor.document.uri, true)),
+                previewEditors.map((editor) => fromSvelteSchemeUri(editor.document.uri, true))
             );
         });
     }
@@ -86,7 +86,7 @@ export default class CompiledCodeContentProvider implements TextDocumentContentP
 
         const resp = await this.getLanguageClient().sendRequest<CompiledCodeResp>(
             '$/getCompiledCode',
-            srcUriStr,
+            srcUriStr
         );
         if (resp?.js?.code) {
             return resp.js.code;

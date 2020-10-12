@@ -21,11 +21,11 @@ function parseAttributes(str: string, start: number) {
                         type: 'Text',
                         start: attrStart + attr.indexOf('=') + 1,
                         end: attrStart + attr.length,
-                        raw: parseAttributeValue(value),
-                    },
+                        raw: parseAttributeValue(value)
+                    }
                 ],
                 start: attrStart,
-                end: attrStart + attr.length,
+                end: attrStart + attr.length
             });
         });
 
@@ -65,8 +65,8 @@ function extractTag(htmlx: string, tag: 'script' | 'style') {
                 start,
                 end,
                 value: content,
-                raw: content,
-            },
+                raw: content
+            }
         });
     }
 

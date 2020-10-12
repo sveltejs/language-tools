@@ -21,7 +21,7 @@ function isAssignmentBinaryExpr(node: ts.Expression): node is ts.BinaryExpressio
  * Returns if node is like `$: bla = ...` or `$: ({bla} = ...)` or `$: [bla] = ...=`
  */
 export function getBinaryAssignmentExpr(
-    node: ts.LabeledStatement,
+    node: ts.LabeledStatement
 ): ts.BinaryExpression | undefined {
     if (ts.isExpressionStatement(node.statement)) {
         if (isAssignmentBinaryExpr(node.statement.expression)) {
@@ -40,7 +40,7 @@ export function getBinaryAssignmentExpr(
  * Returns true if node is like `({bla} ..)` or `([bla] ...)`
  */
 export function isParenthesizedObjectOrArrayLiteralExpression(
-    node: ts.Expression,
+    node: ts.Expression
 ): node is ts.ParenthesizedExpression {
     return (
         ts.isParenthesizedExpression(node) &&
@@ -56,7 +56,7 @@ export function isParenthesizedObjectOrArrayLiteralExpression(
  */
 export function extractIdentifiers(
     node: ts.Node,
-    identifiers: ts.Identifier[] = [],
+    identifiers: ts.Identifier[] = []
 ): ts.Identifier[] {
     if (ts.isIdentifier(node)) {
         identifiers.push(node);
@@ -95,7 +95,7 @@ export function extractIdentifiers(
 }
 
 export function isMember(
-    node: ts.Node,
+    node: ts.Node
 ): node is ts.ElementAccessExpression | ts.PropertyAccessExpression {
     return ts.isElementAccessExpression(node) || ts.isPropertyAccessExpression(node);
 }
@@ -106,13 +106,13 @@ export function isMember(
  */
 export function getVariableAtTopLevel(
     node: ts.SourceFile,
-    identifierName: string,
+    identifierName: string
 ): ts.VariableDeclaration | undefined {
     for (const child of node.statements) {
         if (ts.isVariableStatement(child)) {
             const variable = child.declarationList.declarations.find(
                 (declaration) =>
-                    ts.isIdentifier(declaration.name) && declaration.name.text === identifierName,
+                    ts.isIdentifier(declaration.name) && declaration.name.text === identifierName
             );
             if (variable) {
                 return variable;

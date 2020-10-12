@@ -41,10 +41,10 @@ describe('Svelte Document', () => {
                             names: [],
                             sources: [],
                             sourceRoot: '',
-                            mappings: '',
-                        }),
-                    }),
-                },
+                            mappings: ''
+                        })
+                    })
+                }
             });
 
             // stub svelte preprocess and getOriginalPosition
@@ -56,12 +56,12 @@ describe('Svelte Document', () => {
                     return Promise.resolve({
                         code: getSourceCode(true),
                         dependencies: [],
-                        toString: () => getSourceCode(true),
+                        toString: () => getSourceCode(true)
                     });
                 },
                 VERSION: <any>'',
                 compile: <any>null,
-                parse: <any>null,
+                parse: <any>null
             });
             const transpiled = await svelteDoc.getTranspiled();
             // hacky reset of method because mocking the SourceMap constructor is an impossible task
@@ -78,7 +78,7 @@ describe('Svelte Document', () => {
             const { transpiled } = await setupTranspiled();
             assert.deepStrictEqual(
                 transpiled.getOriginalPosition(Position.create(3, 2)),
-                Position.create(2, 18),
+                Position.create(2, 18)
             );
         });
 
@@ -86,7 +86,7 @@ describe('Svelte Document', () => {
             const { transpiled } = await setupTranspiled();
             assert.deepStrictEqual(
                 transpiled.getOriginalPosition(Position.create(1, 1)),
-                Position.create(1, 1),
+                Position.create(1, 1)
             );
         });
 
@@ -94,7 +94,7 @@ describe('Svelte Document', () => {
             const { transpiled } = await setupTranspiled();
             assert.deepStrictEqual(
                 transpiled.getOriginalPosition(Position.create(4, 1)),
-                Position.create(3, 1),
+                Position.create(3, 1)
             );
         });
 
@@ -102,7 +102,7 @@ describe('Svelte Document', () => {
             const { transpiled } = await setupTranspiled();
             assert.deepStrictEqual(
                 transpiled.getOriginalPosition(Position.create(5, 18)),
-                Position.create(4, 18),
+                Position.create(4, 18)
             );
         });
     });

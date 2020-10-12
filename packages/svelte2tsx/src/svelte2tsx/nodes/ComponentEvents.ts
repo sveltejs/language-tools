@@ -35,7 +35,7 @@ export class ComponentEvents {
      * of the return object of the `svelte2tsx` function.
      */
     createAPI() {
-        const entries: { name: string; type: string; doc?: string }[] = [];
+        const entries: Array<{ name: string; type: string; doc?: string }> = [];
 
         const iterableEntries = this.eventsClass.events.entries();
         for (const entry of iterableEntries) {
@@ -43,9 +43,9 @@ export class ComponentEvents {
         }
 
         return {
-            getAll(): { name: string; type?: string; doc?: string }[] {
+            getAll(): Array<{ name: string; type?: string; doc?: string }> {
                 return entries;
-            },
+            }
         };
     }
 
@@ -95,7 +95,7 @@ class ComponentEventsFromInterface {
         node.members.filter(ts.isPropertySignature).forEach((member) => {
             map.set(getName(member.name), {
                 type: member.type?.getText() || 'Event',
-                doc: getDoc(member),
+                doc: getDoc(member)
             });
         });
 
@@ -127,7 +127,7 @@ class ComponentEventsFromEventsMap {
         if (ts.isNamedImports(namedImports)) {
             const eventDispatcherImport = namedImports.elements.find(
                 // If it's an aliased import, propertyName is set
-                (el) => (el.propertyName || el.name).text === 'createEventDispatcher',
+                (el) => (el.propertyName || el.name).text === 'createEventDispatcher'
             );
             if (eventDispatcherImport) {
                 this.eventDispatcherImport = eventDispatcherImport.name.text;
@@ -163,7 +163,7 @@ class ComponentEventsFromEventsMap {
                 dispatcherTyping.members.filter(ts.isPropertySignature).forEach((member) => {
                     this.addToEvents(getName(member.name), {
                         type: `CustomEvent<${member.type?.getText() || 'any'}>`,
-                        doc: getDoc(member),
+                        doc: getDoc(member)
                     });
                 });
             } else {
@@ -194,7 +194,7 @@ class ComponentEventsFromEventsMap {
 
     private addToEvents(
         eventName: string,
-        info: { type: string; doc?: string } = { type: 'CustomEvent<any>' },
+        info: { type: string; doc?: string } = { type: 'CustomEvent<any>' }
     ) {
         this.events.set(eventName, info);
         this.dispatchedEvents.add(eventName);
@@ -254,7 +254,7 @@ function throwError(prop: ts.PropertyName) {
         'The ComponentEvents interface can only have properties of type ' +
             'Identifier, StringLiteral or ComputedPropertyName. ' +
             'In case of ComputedPropertyName, ' +
-            'it must be a const declared within the component and initialized with a string.',
+            'it must be a const declared within the component and initialized with a string.'
     );
     error.start = toLineColumn(prop.getStart());
     error.end = toLineColumn(prop.getEnd());
@@ -264,7 +264,7 @@ function throwError(prop: ts.PropertyName) {
         const lineChar = prop.getSourceFile().getLineAndCharacterOfPosition(pos);
         return {
             line: lineChar.line + 1,
-            column: lineChar.character,
+            column: lineChar.character
         };
     }
 }
@@ -282,7 +282,7 @@ function getDoc(member: ts.PropertySignature) {
                     .replace(/\s*\/\*\*/, '')
                     .replace(/\s*\*\//, '')
                     .replace(/\s*\*/, '')
-                    .trim(),
+                    .trim()
             )
             .join('\n');
     }

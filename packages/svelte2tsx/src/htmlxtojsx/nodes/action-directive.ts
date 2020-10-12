@@ -8,12 +8,12 @@ export function handleActionDirective(
     htmlx: string,
     str: MagicString,
     attr: Node,
-    parent: Node,
+    parent: Node
 ): void {
     str.overwrite(
         attr.start,
         attr.start + 'use:'.length,
-        `{...__sveltets_ensureAction(__sveltets_mapElementTag('${parent.name}'),`,
+        `{...__sveltets_ensureAction(__sveltets_mapElementTag('${parent.name}'),`
     );
 
     if (!attr.expression) {

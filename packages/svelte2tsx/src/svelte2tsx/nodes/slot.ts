@@ -6,7 +6,7 @@ import {
     isObjectKey,
     isObjectValueShortHand,
     isObjectValue,
-    getSlotName,
+    getSlotName
 } from '../../utils/svelteAst';
 import TemplateScope from './TemplateScope';
 import { SvelteIdentifier, WithName, BaseDirective } from '../../interfaces';
@@ -53,7 +53,7 @@ export class SlotHandler {
     private getResolveExpressionStr(
         identifierDef: SvelteIdentifier,
         scope: TemplateScope,
-        initExpression: Node,
+        initExpression: Node
     ) {
         const { name } = identifierDef;
 
@@ -81,7 +81,7 @@ export class SlotHandler {
         destructuringNode: Node,
         identifiers: SvelteIdentifier[],
         initExpression: Node,
-        scope: TemplateScope,
+        scope: TemplateScope
     ) {
         const destructuring = this.htmlx.slice(destructuringNode.start, destructuringNode.end);
         identifiers.forEach((identifier) => {
@@ -89,7 +89,7 @@ export class SlotHandler {
             if (resolved) {
                 this.resolved.set(
                     identifier,
-                    `((${destructuring}) => ${identifier.name})(${resolved})`,
+                    `((${destructuring}) => ${identifier.name})(${resolved})`
                 );
             }
         });
@@ -100,14 +100,14 @@ export class SlotHandler {
         identifiers: SvelteIdentifier[],
         letNode: BaseDirective,
         component: Node,
-        slotName: string,
+        slotName: string
     ) {
         const destructuring = this.htmlx.slice(destructuringNode.start, destructuringNode.end);
         identifiers.forEach((identifier) => {
             const resolved = this.getResolveExpressionStrForLet(letNode, component, slotName);
             this.resolved.set(
                 identifier,
-                `((${destructuring}) => ${identifier.name})(${resolved})`,
+                `((${destructuring}) => ${identifier.name})(${resolved})`
             );
         });
     }
@@ -115,7 +115,7 @@ export class SlotHandler {
     private getResolveExpressionStrForLet(
         letNode: BaseDirective,
         component: Node,
-        slotName: string,
+        slotName: string
     ) {
         return `${getSingleSlotDef(component, slotName)}.${letNode.name}`;
     }
@@ -152,12 +152,12 @@ export class SlotHandler {
 
     private getLetNodes(child: Node, slotName: string) {
         const letNodes = ((child?.attributes as Node[]) ?? []).filter(
-            (attr) => attr.type === 'Let',
+            (attr) => attr.type === 'Let'
         ) as BaseDirective[];
 
         return letNodes?.map((letNode) => ({
             letNode,
-            slotName,
+            slotName
         }));
     }
 
@@ -192,7 +192,7 @@ export class SlotHandler {
                     this.skip();
                     identifiers.push(node);
                 }
-            },
+            }
         });
 
         const getOverwrite = (name: string) => {

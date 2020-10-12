@@ -8,7 +8,7 @@ import {
     SymbolInformation,
     LocationLink,
     TextDocumentEdit,
-    CodeAction,
+    CodeAction
 } from 'vscode-languageserver';
 import { TagInformation, offsetAt, positionAt } from './utils';
 import { SourceMapConsumer } from 'source-map';
@@ -90,7 +90,7 @@ export class FragmentMapper implements DocumentMapper {
     constructor(
         private originalText: string,
         private tagInfo: TagInformation,
-        private url: string,
+        private url: string
     ) {}
 
     getOriginalPosition(generatedPosition: Position): Position {
@@ -121,7 +121,7 @@ export class SourceMapDocumentMapper implements DocumentMapper {
     constructor(
         protected consumer: SourceMapConsumer,
         protected sourceUri: string,
-        private parent?: DocumentMapper,
+        private parent?: DocumentMapper
     ) {}
 
     getOriginalPosition(generatedPosition: Position): Position {
@@ -131,7 +131,7 @@ export class SourceMapDocumentMapper implements DocumentMapper {
 
         const mapped = this.consumer.originalPositionFor({
             line: generatedPosition.line + 1,
-            column: generatedPosition.character,
+            column: generatedPosition.character
         });
 
         if (!mapped) {
@@ -144,7 +144,7 @@ export class SourceMapDocumentMapper implements DocumentMapper {
 
         return {
             line: (mapped.line || 0) - 1,
-            character: mapped.column || 0,
+            character: mapped.column || 0
         };
     }
 
@@ -156,7 +156,7 @@ export class SourceMapDocumentMapper implements DocumentMapper {
         const mapped = this.consumer.generatedPositionFor({
             line: originalPosition.line + 1,
             column: originalPosition.character,
-            source: this.sourceUri,
+            source: this.sourceUri
         });
 
         if (!mapped) {
@@ -165,7 +165,7 @@ export class SourceMapDocumentMapper implements DocumentMapper {
 
         const result = {
             line: (mapped.line || 0) - 1,
-            character: mapped.column || 0,
+            character: mapped.column || 0
         };
 
         if (result.line < 0) {
@@ -199,24 +199,24 @@ export class SourceMapDocumentMapper implements DocumentMapper {
 
 export function mapRangeToOriginal(
     fragment: Pick<DocumentMapper, 'getOriginalPosition'>,
-    range: Range,
+    range: Range
 ): Range {
     return Range.create(
         fragment.getOriginalPosition(range.start),
-        fragment.getOriginalPosition(range.end),
+        fragment.getOriginalPosition(range.end)
     );
 }
 
 export function mapRangeToGenerated(fragment: DocumentMapper, range: Range): Range {
     return Range.create(
         fragment.getGeneratedPosition(range.start),
-        fragment.getGeneratedPosition(range.end),
+        fragment.getGeneratedPosition(range.end)
     );
 }
 
 export function mapCompletionItemToOriginal(
     fragment: Pick<DocumentMapper, 'getOriginalPosition'>,
-    item: CompletionItem,
+    item: CompletionItem
 ): CompletionItem {
     if (!item.textEdit) {
         return item;
@@ -227,7 +227,7 @@ export function mapCompletionItemToOriginal(
 
 export function mapHoverToParent(
     fragment: Pick<DocumentMapper, 'getOriginalPosition'>,
-    hover: Hover,
+    hover: Hover
 ): Hover {
     if (!hover.range) {
         return hover;
@@ -238,14 +238,14 @@ export function mapHoverToParent(
 
 export function mapObjWithRangeToOriginal<T extends {range: Range}>(
     fragment: Pick<DocumentMapper, 'getOriginalPosition'>,
-    objWithRange: T,
+    objWithRange: T
 ): T {
     return { ...objWithRange, range: mapRangeToOriginal(fragment, objWithRange.range) };
 }
 
 export function mapDiagnosticToGenerated(
     fragment: DocumentMapper,
-    diagnostic: Diagnostic,
+    diagnostic: Diagnostic
 ): Diagnostic {
     return { ...diagnostic, range: mapRangeToGenerated(fragment, diagnostic.range) };
 }
@@ -253,10 +253,10 @@ export function mapDiagnosticToGenerated(
 
 export function mapColorPresentationToOriginal(
     fragment: Pick<DocumentMapper, 'getOriginalPosition'>,
-    presentation: ColorPresentation,
+    presentation: ColorPresentation
 ): ColorPresentation {
     const item = {
-        ...presentation,
+        ...presentation
     };
 
     if (item.textEdit) {
@@ -265,7 +265,7 @@ export function mapColorPresentationToOriginal(
 
     if (item.additionalTextEdits) {
         item.additionalTextEdits = item.additionalTextEdits.map((edit) =>
-        mapObjWithRangeToOriginal(fragment, edit),
+        mapObjWithRangeToOriginal(fragment, edit)
         );
     }
 
@@ -274,14 +274,14 @@ export function mapColorPresentationToOriginal(
 
 export function mapSymbolInformationToOriginal(
     fragment: Pick<DocumentMapper, 'getOriginalPosition'>,
-    info: SymbolInformation,
+    info: SymbolInformation
 ): SymbolInformation {
     return { ...info, location: mapObjWithRangeToOriginal(fragment, info.location) };
 }
 
 export function mapLocationLinkToOriginal(
     fragment: DocumentMapper,
-    def: LocationLink,
+    def: LocationLink
 ): LocationLink {
     return LocationLink.create(
         def.targetUri,
@@ -293,7 +293,7 @@ export function mapLocationLinkToOriginal(
             : def.targetSelectionRange,
         def.originSelectionRange
             ? mapRangeToOriginal(fragment, def.originSelectionRange)
-            : undefined,
+            : undefined
     );
 }
 
@@ -304,7 +304,7 @@ export function mapTextDocumentEditToOriginal(fragment: DocumentMapper, edit: Te
 
     return TextDocumentEdit.create(
         edit.textDocument,
-        edit.edits.map((textEdit) => mapObjWithRangeToOriginal(fragment, textEdit)),
+        edit.edits.map((textEdit) => mapObjWithRangeToOriginal(fragment, textEdit))
     );
 }
 
@@ -313,9 +313,9 @@ export function mapCodeActionToOriginal(fragment: DocumentMapper, codeAction: Co
         codeAction.title,
         {
             documentChanges: codeAction.edit!.documentChanges!.map((edit) =>
-                mapTextDocumentEditToOriginal(fragment, edit as TextDocumentEdit),
-            ),
+                mapTextDocumentEditToOriginal(fragment, edit as TextDocumentEdit)
+            )
         },
-        codeAction.kind,
+        codeAction.kind
     );
 }

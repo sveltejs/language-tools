@@ -3,7 +3,7 @@ import {
     isVirtualSvelteFilePath,
     ensureRealSvelteFilePath,
     isSvelteFilePath,
-    getExtensionFromScriptKind,
+    getExtensionFromScriptKind
 } from './utils';
 import { isAbsolute } from 'path';
 import { DocumentSnapshot } from './DocumentSnapshot';
@@ -63,7 +63,7 @@ class ModuleResolutionCache {
  */
 export function createSvelteModuleLoader(
     getSnapshot: (fileName: string) => DocumentSnapshot,
-    compilerOptions: ts.CompilerOptions,
+    compilerOptions: ts.CompilerOptions
 ) {
     const svelteSys = createSvelteSys(getSnapshot);
     const moduleCache = new ModuleResolutionCache();
@@ -74,13 +74,13 @@ export function createSvelteModuleLoader(
         readFile: svelteSys.readFile,
         readDirectory: svelteSys.readDirectory,
         deleteFromModuleCache: (path: string) => moduleCache.delete(path),
-        resolveModuleNames,
+        resolveModuleNames
     };
 
     function resolveModuleNames(
         moduleNames: string[],
-        containingFile: string,
-    ): (ts.ResolvedModule | undefined)[] {
+        containingFile: string
+    ): Array<ts.ResolvedModule | undefined> {
         return moduleNames.map((moduleName) => {
             const cachedModule = moduleCache.get(moduleName, containingFile);
             if (cachedModule) {
@@ -95,7 +95,7 @@ export function createSvelteModuleLoader(
 
     function resolveModuleName(
         name: string,
-        containingFile: string,
+        containingFile: string
     ): ts.ResolvedModule | undefined {
         // In the normal case, delegate to ts.resolveModuleName.
         // In the relative-imported.svelte case, delegate to our own svelte module loader.
@@ -108,7 +108,7 @@ export function createSvelteModuleLoader(
             name,
             containingFile,
             compilerOptions,
-            svelteSys,
+            svelteSys
         ).resolvedModule;
         if (!tsResolvedModule || !isVirtualSvelteFilePath(tsResolvedModule.resolvedFileName)) {
             return tsResolvedModule;
@@ -119,7 +119,7 @@ export function createSvelteModuleLoader(
 
         const resolvedSvelteModule: ts.ResolvedModuleFull = {
             extension: getExtensionFromScriptKind(snapshot && snapshot.scriptKind),
-            resolvedFileName,
+            resolvedFileName
         };
         return resolvedSvelteModule;
     }

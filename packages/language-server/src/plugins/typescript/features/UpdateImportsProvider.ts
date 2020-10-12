@@ -2,7 +2,7 @@ import {
     TextDocumentEdit,
     TextEdit,
     VersionedTextDocumentIdentifier,
-    WorkspaceEdit,
+    WorkspaceEdit
 } from 'vscode-languageserver';
 import { Document, mapRangeToOriginal } from '../../../lib/documents';
 import { urlToPath } from '../../../utils';
@@ -51,12 +51,12 @@ export class UpdateImportsProviderImpl implements UpdateImportsProvider {
                     change.textChanges.map((edit) => {
                         const range = mapRangeToOriginal(
                             fragment!,
-                            convertRange(fragment!, edit.span),
+                            convertRange(fragment!, edit.span)
                         );
                         return TextEdit.replace(range, edit.newText);
-                    }),
+                    })
                 );
-            }),
+            })
         );
 
         return { documentChanges };

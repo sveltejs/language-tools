@@ -13,5 +13,5 @@ Applying styles to a selector globally`,
                 url: 'https://svelte.dev/docs#style'
             }
         ]
-    },
+    }
 ];

@@ -6,7 +6,7 @@ import {
     TextDocumentEdit,
     TextEdit,
     VersionedTextDocumentIdentifier,
-    WorkspaceEdit,
+    WorkspaceEdit
 } from 'vscode-languageserver';
 import { isRangeInTag, TagInformation, updateRelativeImport } from '../../../../lib/documents';
 import { pathToUrl } from '../../../../utils';
@@ -23,7 +23,7 @@ export const extractComponentCommand = 'extract_to_svelte_component';
 export async function executeRefactoringCommand(
     svelteDoc: SvelteDocument,
     command: string,
-    args?: any[],
+    args?: any[]
 ): Promise<WorkspaceEdit | string | null> {
     if (command === extractComponentCommand && args) {
         return executeExtractComponentCommand(svelteDoc, args[1]);
@@ -34,7 +34,7 @@ export async function executeRefactoringCommand(
 
 async function executeExtractComponentCommand(
     svelteDoc: SvelteDocument,
-    refactorArgs: ExtractComponentArgs,
+    refactorArgs: ExtractComponentArgs
 ): Promise<WorkspaceEdit | string | null> {
     const { range } = refactorArgs;
 
@@ -56,11 +56,11 @@ async function executeExtractComponentCommand(
         documentChanges: [
             TextDocumentEdit.create(VersionedTextDocumentIdentifier.create(svelteDoc.uri, null), [
                 TextEdit.replace(range, `<${componentName}></${componentName}>`),
-                createComponentImportTextEdit(),
+                createComponentImportTextEdit()
             ]),
             CreateFile.create(newFileUri, { overwrite: true }),
-            createNewFileEdit(),
-        ],
+            createNewFileEdit()
+        ]
     };
 
     function isInvalidSelectionRange() {
@@ -84,7 +84,7 @@ async function executeExtractComponentCommand(
             getTemplate(),
             getTag(svelteDoc.script, false),
             getTag(svelteDoc.moduleScript, false),
-            getTag(svelteDoc.style, true),
+            getTag(svelteDoc.style, true)
         ]
             .filter((tag) => tag.start >= 0)
             .sort((a, b) => a.start - b.start)
@@ -92,14 +92,14 @@ async function executeExtractComponentCommand(
             .join('');
 
         return TextDocumentEdit.create(VersionedTextDocumentIdentifier.create(newFileUri, null), [
-            TextEdit.insert(Position.create(0, 0), newText),
+            TextEdit.insert(Position.create(0, 0), newText)
         ]);
 
         function getTemplate() {
             const startOffset = svelteDoc.offsetAt(range.start);
             return {
                 text: text.substring(startOffset, svelteDoc.offsetAt(range.end)) + '\n\n',
-                start: startOffset,
+                start: startOffset
             };
         }
 
@@ -112,11 +112,11 @@ async function executeExtractComponentCommand(
                 svelteDoc,
                 text.substring(tag.container.start, tag.container.end),
                 filePath,
-                isStyleTag,
+                isStyleTag
             );
             return {
                 text: `${tagText}\n\n`,
-                start: tag.container.start,
+                start: tag.container.start
             };
         }
     }
@@ -126,7 +126,7 @@ async function executeExtractComponentCommand(
         const importText = `\n  import ${componentName} from '${filePath}';\n`;
         return TextEdit.insert(
             startPos || Position.create(0, 0),
-            startPos ? importText : `<script>\n${importText}</script>`,
+            startPos ? importText : `<script>\n${importText}</script>`
         );
     }
 }
@@ -141,7 +141,7 @@ function updateRelativeImports(
     svelteDoc: SvelteDocument,
     tagText: string,
     newComponentRelativePath: string,
-    isStyleTag: boolean,
+    isStyleTag: boolean
 ) {
     const oldPath = path.dirname(svelteDoc.getFilePath());
     const newPath = path.dirname(path.join(oldPath, newComponentRelativePath));

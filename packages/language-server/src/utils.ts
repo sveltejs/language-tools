@@ -59,7 +59,7 @@ export function isNotNullOrUndefined<T>(val: T | undefined | null): val is T {
 export function debounceSameArg<T>(
     fn: (arg: T) => void,
     shouldCancelPrevious: (newArg: T, prevArg?: T) => boolean,
-    miliseconds: number,
+    miliseconds: number
 ): (arg: T) => void {
     let timeout: any;
     let prevArg: T | undefined;

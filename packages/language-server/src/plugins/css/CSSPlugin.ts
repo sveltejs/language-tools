@@ -12,7 +12,7 @@ import {
     Range,
     SymbolInformation,
     CompletionItem,
-    CompletionItemKind,
+    CompletionItemKind
 } from 'vscode-languageserver';
 import {
     Document,
@@ -22,7 +22,7 @@ import {
     mapRangeToGenerated,
     mapSymbolInformationToOriginal,
     mapObjWithRangeToOriginal,
-    mapHoverToParent,
+    mapHoverToParent
 } from '../../lib/documents';
 import { LSConfigManager, LSCSSConfig } from '../../ls-config';
 import {
@@ -31,7 +31,7 @@ import {
     DiagnosticsProvider,
     DocumentColorsProvider,
     DocumentSymbolsProvider,
-    HoverProvider,
+    HoverProvider
 } from '../interfaces';
 import { CSSDocument } from './CSSDocument';
 import { getLanguage, getLanguageService } from './service';
@@ -55,11 +55,11 @@ export class CSSPlugin
 
         this.globalVars.watchFiles(this.configManager.get('css.globals'));
         this.configManager.onChange((config) =>
-            this.globalVars.watchFiles(config.get('css.globals')),
+            this.globalVars.watchFiles(config.get('css.globals'))
         );
 
         docManager.on('documentChange', (document) =>
-            this.cssDocuments.set(document, new CSSDocument(document)),
+            this.cssDocuments.set(document, new CSSDocument(document))
         );
         docManager.on('documentClose', (document) => this.cssDocuments.delete(document));
     }
@@ -100,7 +100,7 @@ export class CSSPlugin
         const hoverInfo = getLanguageService(extractLanguage(cssDocument)).doHover(
             cssDocument,
             cssDocument.getGeneratedPosition(position),
-            cssDocument.stylesheet,
+            cssDocument.stylesheet
         );
         return hoverInfo ? mapHoverToParent(cssDocument, hoverInfo) : hoverInfo;
     }
@@ -108,7 +108,7 @@ export class CSSPlugin
     getCompletions(
         document: Document,
         position: Position,
-        completionContext?: CompletionContext,
+        completionContext?: CompletionContext
     ): CompletionList | null {
         const triggerCharacter = completionContext?.triggerCharacter;
         const triggerKind = completionContext?.triggerKind;
@@ -141,7 +141,7 @@ export class CSSPlugin
         const lang = getLanguageService(type);
         const emmetResults: CompletionList = {
             isIncomplete: true,
-            items: [],
+            items: []
         };
         lang.setCompletionParticipants([
             getEmmetCompletionParticipants(
@@ -149,22 +149,22 @@ export class CSSPlugin
                 cssDocument.getGeneratedPosition(position),
                 getLanguage(type),
                 {},
-                emmetResults,
-            ),
+                emmetResults
+            )
         ]);
         const results = lang.doComplete(
             cssDocument,
             cssDocument.getGeneratedPosition(position),
-            cssDocument.stylesheet,
+            cssDocument.stylesheet
         );
         return CompletionList.create(
             this.appendGlobalVars(
                 [...(results ? results.items : []), ...emmetResults.items].map((completionItem) =>
-                    mapCompletionItemToOriginal(cssDocument, completionItem),
-                ),
+                    mapCompletionItemToOriginal(cssDocument, completionItem)
+                )
             ),
             // Emmet completions change on every keystroke, so they are never complete
-            emmetResults.items.length > 0,
+            emmetResults.items.length > 0
         );
     }
 
@@ -182,9 +182,9 @@ export class CSSPlugin
                 detail: `${globalVar.filename}\n\n${globalVar.name}: ${globalVar.value}`,
                 textEdit: value.textEdit && {
                     ...value.textEdit,
-                    newText: `var(${globalVar.name})`,
+                    newText: `var(${globalVar.name})`
                 },
-                kind: CompletionItemKind.Value,
+                kind: CompletionItemKind.Value
             }));
         return [...items, ...additionalItems];
     }
@@ -223,7 +223,7 @@ export class CSSPlugin
                 cssDocument,
                 cssDocument.stylesheet,
                 color,
-                mapRangeToGenerated(cssDocument, range),
+                mapRangeToGenerated(cssDocument, range)
             )
             .map((colorPres) => mapColorPresentationToOriginal(cssDocument, colorPres));
     }
@@ -246,7 +246,7 @@ export class CSSPlugin
                     return {
                         ...symbol,
                         // TODO: this could contain other things, e.g. style.myclass
-                        containerName: 'style',
+                        containerName: 'style'
                     };
                 }
 

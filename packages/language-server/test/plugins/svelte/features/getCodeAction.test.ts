@@ -12,14 +12,14 @@ import {
     TextDocumentEdit,
     TextEdit,
     VersionedTextDocumentIdentifier,
-    WorkspaceEdit,
+    WorkspaceEdit
 } from 'vscode-languageserver';
 import { Document } from '../../../../src/lib/documents';
 import { getCodeActions } from '../../../../src/plugins/svelte/features/getCodeActions';
 import {
     executeRefactoringCommand,
     ExtractComponentArgs,
-    extractComponentCommand,
+    extractComponentCommand
 } from '../../../../src/plugins/svelte/features/getCodeActions/getRefactorings';
 import { SvelteDocument } from '../../../../src/plugins/svelte/SvelteDocument';
 import { pathToUrl } from '../../../../src/utils';
@@ -39,23 +39,23 @@ describe('SveltePlugin#getCodeAction', () => {
         const filePath = path.join(testDir, filename);
         const document = new Document(
             pathToUrl(filePath),
-            filename ? fs.readFileSync(filePath)?.toString() : '',
+            filename ? fs.readFileSync(filePath)?.toString() : ''
         );
         const svelteDoc = new SvelteDocument(document);
         const codeAction = await getCodeActions(
             svelteDoc,
             Range.create(Position.create(0, 0), Position.create(0, 0)),
-            context,
+            context
         );
         return {
-            toEqual: (expected: CodeAction[]) => assert.deepStrictEqual(codeAction, expected),
+            toEqual: (expected: CodeAction[]) => assert.deepStrictEqual(codeAction, expected)
         };
     }
 
     describe('It should not provide svelte ignore code actions', () => {
         const startRange: Range = Range.create(
             { line: 0, character: 0 },
-            { line: 0, character: 1 },
+            { line: 0, character: 1 }
         );
         it('if no svelte diagnostic', async () => {
             (
@@ -65,9 +65,9 @@ describe('SveltePlugin#getCodeAction', () => {
                             code: 'whatever',
                             source: 'eslint',
                             range: startRange,
-                            message: '',
-                        },
-                    ],
+                            message: ''
+                        }
+                    ]
                 })
             ).toEqual([]);
         });
@@ -79,9 +79,9 @@ describe('SveltePlugin#getCodeAction', () => {
                         {
                             source: 'svelte',
                             range: startRange,
-                            message: '',
-                        },
-                    ],
+                            message: ''
+                        }
+                    ]
                 })
             ).toEqual([]);
         });
@@ -94,9 +94,9 @@ describe('SveltePlugin#getCodeAction', () => {
                             source: 'svelte',
                             range: startRange,
                             message: '',
-                            severity: DiagnosticSeverity.Error,
-                        },
-                    ],
+                            severity: DiagnosticSeverity.Error
+                        }
+                    ]
                 })
             ).toEqual([]);
         });
@@ -114,12 +114,12 @@ describe('SveltePlugin#getCodeAction', () => {
                             code: 'a11y-missing-attribute',
                             range: Range.create(
                                 { line: 0, character: 0 },
-                                { line: 0, character: 6 },
+                                { line: 0, character: 6 }
                             ),
                             message: '',
-                            source: 'svelte',
-                        },
-                    ],
+                            source: 'svelte'
+                        }
+                    ]
                 })
             ).toEqual([
                 {
@@ -133,25 +133,25 @@ describe('SveltePlugin#getCodeAction', () => {
                                         range: {
                                             end: {
                                                 character: 0,
-                                                line: 0,
+                                                line: 0
                                             },
                                             start: {
                                                 character: 0,
-                                                line: 0,
-                                            },
-                                        },
-                                    },
+                                                line: 0
+                                            }
+                                        }
+                                    }
                                 ],
                                 textDocument: {
                                     uri: getUri(svelteIgnoreCodeAction),
-                                    version: 0,
-                                },
-                            },
-                        ],
+                                    version: 0
+                                }
+                            }
+                        ]
                     },
                     title: '(svelte) Disable a11y-missing-attribute for this line',
-                    kind: 'quickfix',
-                },
+                    kind: 'quickfix'
+                }
             ]);
         });
 
@@ -164,12 +164,12 @@ describe('SveltePlugin#getCodeAction', () => {
                             code: 'a11y-missing-attribute',
                             range: Range.create(
                                 { line: 3, character: 4 },
-                                { line: 3, character: 11 },
+                                { line: 3, character: 11 }
                             ),
                             message: '',
-                            source: 'svelte',
-                        },
-                    ],
+                            source: 'svelte'
+                        }
+                    ]
                 })
             ).toEqual([
                 {
@@ -179,30 +179,30 @@ describe('SveltePlugin#getCodeAction', () => {
                                 edits: [
                                     {
                                         newText: `${' '.repeat(
-                                            4,
+                                            4
                                         )}<!-- svelte-ignore a11y-missing-attribute -->${EOL}`,
                                         range: {
                                             end: {
                                                 character: 0,
-                                                line: 3,
+                                                line: 3
                                             },
                                             start: {
                                                 character: 0,
-                                                line: 3,
-                                            },
-                                        },
-                                    },
+                                                line: 3
+                                            }
+                                        }
+                                    }
                                 ],
                                 textDocument: {
                                     uri: getUri(svelteIgnoreCodeAction),
-                                    version: 0,
-                                },
-                            },
-                        ],
+                                    version: 0
+                                }
+                            }
+                        ]
                     },
                     title: '(svelte) Disable a11y-missing-attribute for this line',
-                    kind: 'quickfix',
-                },
+                    kind: 'quickfix'
+                }
             ]);
         });
 
@@ -215,12 +215,12 @@ describe('SveltePlugin#getCodeAction', () => {
                             code: 'a11y-invalid-attribute',
                             range: Range.create(
                                 { line: 6, character: 8 },
-                                { line: 6, character: 15 },
+                                { line: 6, character: 15 }
                             ),
                             message: '',
-                            source: 'svelte',
-                        },
-                    ],
+                            source: 'svelte'
+                        }
+                    ]
                 })
             ).toEqual([
                 {
@@ -230,30 +230,30 @@ describe('SveltePlugin#getCodeAction', () => {
                                 edits: [
                                     {
                                         newText: `${' '.repeat(
-                                            4,
+                                            4
                                         )}<!-- svelte-ignore a11y-invalid-attribute -->${EOL}`,
                                         range: {
                                             end: {
                                                 character: 0,
-                                                line: 5,
+                                                line: 5
                                             },
                                             start: {
                                                 character: 0,
-                                                line: 5,
-                                            },
-                                        },
-                                    },
+                                                line: 5
+                                            }
+                                        }
+                                    }
                                 ],
                                 textDocument: {
                                     uri: getUri(svelteIgnoreCodeAction),
-                                    version: 0,
-                                },
-                            },
-                        ],
+                                    version: 0
+                                }
+                            }
+                        ]
                     },
                     title: '(svelte) Disable a11y-invalid-attribute for this line',
-                    kind: 'quickfix',
-                },
+                    kind: 'quickfix'
+                }
             ]);
         });
     });
@@ -262,7 +262,7 @@ describe('SveltePlugin#getCodeAction', () => {
         const scriptContent = `<script>
         const bla = true;
         </script>`;
-        const styleContent = `<style>p{color: blue}</style>`;
+        const styleContent = '<style>p{color: blue}</style>';
         const content = `
         ${scriptContent}
         <p>something else</p>
@@ -277,13 +277,13 @@ describe('SveltePlugin#getCodeAction', () => {
                 <ExtractComponentArgs>{
                     filePath,
                     range,
-                    uri: '',
-                },
+                    uri: ''
+                }
             ]);
         }
 
         async function shouldExtractComponent(
-            path: 'NewComp' | 'NewComp.svelte' | './NewComp' | './NewComp.svelte',
+            path: 'NewComp' | 'NewComp.svelte' | './NewComp' | './NewComp.svelte'
         ) {
             const range = Range.create(Position.create(5, 8), Position.create(5, 25));
             const result = await extractComponent(path, range);
@@ -295,9 +295,9 @@ describe('SveltePlugin#getCodeAction', () => {
                             TextEdit.replace(range, '<NewComp></NewComp>'),
                             TextEdit.insert(
                                 doc.script?.startPos || Position.create(0, 0),
-                                `\n  import NewComp from './NewComp.svelte';\n`,
-                            ),
-                        ],
+                                '\n  import NewComp from \'./NewComp.svelte\';\n'
+                            )
+                        ]
                     ),
                     CreateFile.create('file:///NewComp.svelte', { overwrite: true }),
                     TextDocumentEdit.create(
@@ -305,11 +305,11 @@ describe('SveltePlugin#getCodeAction', () => {
                         [
                             TextEdit.insert(
                                 Position.create(0, 0),
-                                `${scriptContent}\n\n<p>extract me</p>\n\n${styleContent}\n\n`,
-                            ),
-                        ],
-                    ),
-                ],
+                                `${scriptContent}\n\n<p>extract me</p>\n\n${styleContent}\n\n`
+                            )
+                        ]
+                    )
+                ]
             });
         }
 
@@ -352,8 +352,8 @@ describe('SveltePlugin#getCodeAction', () => {
                 <ExtractComponentArgs>{
                     filePath: '../NewComp',
                     range,
-                    uri: '',
-                },
+                    uri: ''
+                }
             ]);
 
             const newFileUri = pathToUrl('C:/NewComp.svelte');
@@ -365,9 +365,9 @@ describe('SveltePlugin#getCodeAction', () => {
                             TextEdit.replace(range, '<NewComp></NewComp>'),
                             TextEdit.insert(
                                 doc.script?.startPos || Position.create(0, 0),
-                                `\n  import NewComp from '../NewComp.svelte';\n`,
-                            ),
-                        ],
+                                '\n  import NewComp from \'../NewComp.svelte\';\n'
+                            )
+                        ]
                     ),
                     CreateFile.create(newFileUri, { overwrite: true }),
                     TextDocumentEdit.create(
@@ -380,11 +380,11 @@ describe('SveltePlugin#getCodeAction', () => {
             import {test} from './test';
             </script>\n\ntoExtract\n\n<style>
             @import './path/style.css';
-            </style>\n\n`,
-                            ),
-                        ],
-                    ),
-                ],
+            </style>\n\n`
+                            )
+                        ]
+                    )
+                ]
             });
         });
     });

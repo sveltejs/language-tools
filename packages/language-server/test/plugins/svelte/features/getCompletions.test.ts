@@ -8,7 +8,7 @@ import { Document } from '../../../../src/lib/documents';
 describe('SveltePlugin#getCompletions', () => {
     function expectCompletionsFor(
         content: string,
-        position: Position = Position.create(0, content.length),
+        position: Position = Position.create(0, content.length)
     ) {
         const svelteDoc = new SvelteDocument(new Document('url', content));
         const completions = getCompletions(svelteDoc, position);
@@ -16,8 +16,8 @@ describe('SveltePlugin#getCompletions', () => {
             toEqual: (expectedLabels: string[] | null) =>
                 assert.deepStrictEqual(
                     completions?.items.map((item) => item.label) ?? null,
-                    expectedLabels,
-                ),
+                    expectedLabels
+                )
         };
     }
 
@@ -25,14 +25,14 @@ describe('SveltePlugin#getCompletions', () => {
         it('if position inside style', () => {
             expectCompletionsFor(
                 '<style>h1{color:blue;}</style><p>test</p>',
-                Position.create(0, 10),
+                Position.create(0, 10)
             ).toEqual(null);
         });
 
         it('if position inside script', () => {
             expectCompletionsFor(
                 '<script>const a = true</script><p>test</p>',
-                Position.create(0, 10),
+                Position.create(0, 10)
             ).toEqual(null);
         });
 
