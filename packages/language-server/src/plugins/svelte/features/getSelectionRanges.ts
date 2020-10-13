@@ -23,7 +23,7 @@ export async function getSelectionRange(
     const embedded = [script, style, moduleScript];
     for (const info of embedded) {
         if (isInTag(position, info)) {
-            // let other plugin done it
+            // let other plugins do it
             return null;
         }
     }
