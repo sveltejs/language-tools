@@ -322,7 +322,7 @@ export function mapCodeActionToOriginal(fragment: DocumentMapper, codeAction: Co
 
 export function mapSelectionRangeToParent(
     fragment: DocumentMapper,
-    selectionRange: SelectionRange,
+    selectionRange: SelectionRange
 ): SelectionRange {
     const { range, parent } = selectionRange;
 

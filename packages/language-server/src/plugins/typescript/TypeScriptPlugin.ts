@@ -356,7 +356,7 @@ export class TypeScriptPlugin
 
     async getSelectionRange(
         document: Document,
-        position: Position,
+        position: Position
     ): Promise<SelectionRange | null> {
         if (!this.featureEnabled('selectionRange')) {
             return null;

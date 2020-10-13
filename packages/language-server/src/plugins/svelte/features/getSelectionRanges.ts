@@ -11,7 +11,7 @@ type OffsetRange = {
 
 export async function getSelectionRange(
     svelteDoc: SvelteDocument,
-    position: Position,
+    position: Position
 ) {
     const { script, style, moduleScript } = svelteDoc;
     const { ast: { html } } = await svelteDoc.getCompiled();
@@ -55,7 +55,7 @@ export async function getSelectionRange(
                 nearest = node;
                 result = createSelectionRange(node, result);
             }
-        },
+        }
     });
 
     return result ?? null;

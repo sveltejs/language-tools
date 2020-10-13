@@ -12,19 +12,19 @@ const testDir = path.join(__dirname, '..');
 describe('SelectionRangeProvider', () => {
     function setup() {
         const docManager = new DocumentManager(
-            (textDocument) => new Document(textDocument.uri, textDocument.text),
+            (textDocument) => new Document(textDocument.uri, textDocument.text)
         );
         const filePath = path.join(
             testDir,
             'testfiles',
             'selection-range',
-            'selection-range.svelte',
+            'selection-range.svelte'
         );
         const lsAndTsDocResolver = new LSAndTSDocResolver(docManager, [pathToUrl(testDir)]);
         const provider = new SelectionRangeProviderImpl(lsAndTsDocResolver);
         const document = docManager.openDocument(<any>{
             uri: pathToUrl(filePath),
-            text: ts.sys.readFile(filePath),
+            text: ts.sys.readFile(filePath)
         });
         return { provider, document };
     }

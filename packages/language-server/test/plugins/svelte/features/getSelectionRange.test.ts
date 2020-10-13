@@ -11,12 +11,12 @@ describe('SveltePlugin#getSelectionRange', () => {
         expected: SelectionRange | null
     ) {
         const svelteDoc = new SvelteDocument(
-            new Document('url', contentWithCursor.replace(CURSOR, '')),
+            new Document('url', contentWithCursor.replace(CURSOR, ''))
         );
 
         const selectionRange = await getSelectionRange(
             svelteDoc,
-            Position.create(0, contentWithCursor.indexOf(CURSOR)),
+            Position.create(0, contentWithCursor.indexOf(CURSOR))
         );
 
         assert.deepStrictEqual(selectionRange, expected);
@@ -62,7 +62,7 @@ describe('SveltePlugin#getSelectionRange', () => {
                 end: {
                     line: 0,
                     character: 14
-                },
+                }
             }
         });
     });
@@ -89,7 +89,7 @@ describe('SveltePlugin#getSelectionRange', () => {
             range: {
                 start: {
                     line: 0,
-                    character: 11,
+                    character: 11
                 },
                 end: {
                     line: 0,

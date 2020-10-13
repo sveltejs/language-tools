@@ -182,7 +182,7 @@ export function startServer(options?: LSOptions) {
                     : true,
                 referencesProvider: true,
                 selectionRangeProvider: true
-            },
+            }
         };
     });
 

@@ -43,7 +43,7 @@ const defaultLSConfig: LSConfig = {
         hover: { enable: true },
         codeActions: { enable: true },
         selectionRange: { enable: true }
-    },
+    }
 };
 
 /**

@@ -11,14 +11,14 @@ export class SelectionRangeProviderImpl implements SelectionRangeProvider {
 
     async getSelectionRange(
         document: Document,
-        position: Position,
+        position: Position
     ): Promise<SelectionRange | null> {
         const { tsDoc, lang } = this.lsAndTsDocResolver.getLSAndTSDoc(document);
         const fragment = await tsDoc.getFragment();
 
         const tsSelectionRange = lang.getSmartSelectionRange(
             tsDoc.filePath,
-            fragment.offsetAt(fragment.getGeneratedPosition(position)),
+            fragment.offsetAt(fragment.getGeneratedPosition(position))
         );
         const selectionRange = this.toSelectionRange(fragment, tsSelectionRange);
         const mappedRange = mapSelectionRangeToParent(fragment, selectionRange);
@@ -28,16 +28,16 @@ export class SelectionRangeProviderImpl implements SelectionRangeProvider {
 
     private toSelectionRange(
         fragment: SvelteSnapshotFragment,
-        { textSpan, parent }: ts.SelectionRange,
+        { textSpan, parent }: ts.SelectionRange
     ): SelectionRange {
         return {
             range: convertRange(fragment, textSpan),
-            parent: parent && this.toSelectionRange(fragment, parent),
+            parent: parent && this.toSelectionRange(fragment, parent)
         };
     }
 
     private filterOutUnmappedRange(
-        selectionRange: SelectionRange,
+        selectionRange: SelectionRange
     ): SelectionRange | null {
         const flattened = this.flattenAndReverseSelectionRange(selectionRange);
         const filtered = flattened.filter((range) => range.start.line > 0 && range.end.line > 0);
