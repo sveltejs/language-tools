@@ -44,12 +44,12 @@ export interface CompletionsProvider<T extends TextDocumentIdentifier = any> {
     getCompletions(
         document: Document,
         position: Position,
-        completionContext?: CompletionContext,
+        completionContext?: CompletionContext
     ): Resolvable<AppCompletionList<T> | null>;
 
     resolveCompletion?(
         document: Document,
-        completionItem: AppCompletionItem<T>,
+        completionItem: AppCompletionItem<T>
     ): Resolvable<AppCompletionItem<T>>;
 }
 
@@ -69,7 +69,7 @@ export interface ColorPresentationsProvider {
     getColorPresentations(
         document: Document,
         range: Range,
-        color: Color,
+        color: Color
     ): Resolvable<ColorPresentation[]>;
 }
 
@@ -81,16 +81,23 @@ export interface DefinitionsProvider {
     getDefinitions(document: Document, position: Position): Resolvable<DefinitionLink[]>;
 }
 
+export interface BackwardsCompatibleDefinitionsProvider {
+    getDefinitions(
+        document: Document,
+        position: Position
+    ): Resolvable<DefinitionLink[] | Location[]>;
+}
+
 export interface CodeActionsProvider {
     getCodeActions(
         document: Document,
         range: Range,
-        context: CodeActionContext,
+        context: CodeActionContext
     ): Resolvable<CodeAction[]>;
     executeCommand?(
         document: Document,
         command: string,
-        args?: any[],
+        args?: any[]
     ): Resolvable<WorkspaceEdit | string | null>;
 }
 
@@ -107,7 +114,7 @@ export interface RenameProvider {
     rename(
         document: Document,
         position: Position,
-        newName: string,
+        newName: string
     ): Resolvable<WorkspaceEdit | null>;
     prepareRename(document: Document, position: Position): Resolvable<Range | null>;
 }
@@ -116,7 +123,7 @@ export interface FindReferencesProvider {
     findReferences(
         document: Document,
         position: Position,
-        context: ReferenceContext,
+        context: ReferenceContext
     ): Promise<Location[] | null>;
 }
 
@@ -124,7 +131,7 @@ export interface OnWatchFileChanges {
     onWatchFileChanges(fileName: string, changeType: FileChangeType): void;
 }
 
-export type LSProvider = DiagnosticsProvider &
+type ProviderBase = DiagnosticsProvider &
     HoverProvider &
     CompletionsProvider &
     FormattingProvider &
@@ -132,10 +139,23 @@ export type LSProvider = DiagnosticsProvider &
     DocumentColorsProvider &
     ColorPresentationsProvider &
     DocumentSymbolsProvider &
-    DefinitionsProvider &
     UpdateImportsProvider &
     CodeActionsProvider &
     FindReferencesProvider &
     RenameProvider;
 
-export type Plugin = Partial<LSProvider & OnWatchFileChanges>;
+export type LSProvider = ProviderBase & BackwardsCompatibleDefinitionsProvider;
+
+export interface LSPProviderConfig {
+    /**
+     * Whether or not completion lists that are marked as imcomplete
+     * should be filtered server side.
+     */
+    filterIncompleteCompletions: boolean;
+    /**
+     * Whether or not getDefinitions supports the LocationLink interface.
+     */
+    definitionLinkSupport: boolean;
+}
+
+export type Plugin = Partial<ProviderBase & DefinitionsProvider & OnWatchFileChanges>;

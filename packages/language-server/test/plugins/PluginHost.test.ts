@@ -1,8 +1,16 @@
 import sinon from 'sinon';
-import { Position, TextDocumentItem } from 'vscode-languageserver-types';
+import {
+    CompletionItem,
+    Location,
+    LocationLink,
+    Position,
+    Range,
+    TextDocumentItem
+} from 'vscode-languageserver-types';
 import { DocumentManager, Document } from '../../src/lib/documents';
-import { PluginHost } from '../../src/plugins';
+import { LSPProviderConfig, PluginHost } from '../../src/plugins';
 import { CompletionTriggerKind } from 'vscode-languageserver';
+import assert from 'assert';
 
 describe('PluginHost', () => {
     const textDocument: TextDocumentItem = {
@@ -12,7 +20,13 @@ describe('PluginHost', () => {
         text: 'Hello, world!'
     };
 
-    function setup<T>(pluginProviderStubs: T) {
+    function setup<T>(
+        pluginProviderStubs: T,
+        config: LSPProviderConfig = {
+            definitionLinkSupport: true,
+            filterIncompleteCompletions: false
+        }
+    ) {
         const docManager = new DocumentManager(
             (textDocument) => new Document(textDocument.uri, textDocument.text)
         );
@@ -22,6 +36,7 @@ describe('PluginHost', () => {
             ...pluginProviderStubs
         };
 
+        pluginHost.initialize(config);
         pluginHost.register(plugin);
 
         return { docManager, pluginHost, plugin };
@@ -68,6 +83,101 @@ describe('PluginHost', () => {
         sinon.assert.calledWithExactly(plugin.getCompletions, document, pos, {
             triggerKind: CompletionTriggerKind.TriggerCharacter,
             triggerCharacter: '.'
+        });
+    });
+
+    describe('getCompletions (incomplete)', () => {
+        function setupGetIncompleteCompletions(filterServerSide: boolean) {
+            const { docManager, pluginHost } = setup(
+                {
+                    getCompletions: sinon.stub().returns({
+                        isIncomplete: true,
+                        items: <CompletionItem[]>[{ label: 'Hello' }, { label: 'foo' }]
+                    })
+                },
+                { definitionLinkSupport: true, filterIncompleteCompletions: filterServerSide }
+            );
+            docManager.openDocument(textDocument);
+            return pluginHost;
+        }
+
+        it('filters client side', async () => {
+            const pluginHost = setupGetIncompleteCompletions(false);
+            const completions = await pluginHost.getCompletions(
+                textDocument,
+                Position.create(0, 2)
+            );
+
+            assert.deepStrictEqual(completions.items, <CompletionItem[]>[
+                { label: 'Hello' },
+                { label: 'foo' }
+            ]);
+        });
+
+        it('filters server side', async () => {
+            const pluginHost = setupGetIncompleteCompletions(true);
+            const completions = await pluginHost.getCompletions(
+                textDocument,
+                Position.create(0, 2)
+            );
+
+            assert.deepStrictEqual(completions.items, <CompletionItem[]>[{ label: 'Hello' }]);
+        });
+    });
+
+    describe('getDefinitions', () => {
+        function setupGetDefinitions(linkSupport: boolean) {
+            const { pluginHost, docManager } = setup(
+                {
+                    getDefinitions: sinon.stub().returns([
+                        <LocationLink>{
+                            targetRange: Range.create(Position.create(0, 0), Position.create(0, 2)),
+                            targetSelectionRange: Range.create(
+                                Position.create(0, 0),
+                                Position.create(0, 1)
+                            ),
+                            targetUri: 'uri'
+                        }
+                    ])
+                },
+                { definitionLinkSupport: linkSupport, filterIncompleteCompletions: false }
+            );
+            docManager.openDocument(textDocument);
+            return pluginHost;
+        }
+
+        it('uses LocationLink', async () => {
+            const pluginHost = setupGetDefinitions(true);
+            const definitions = await pluginHost.getDefinitions(
+                textDocument,
+                Position.create(0, 0)
+            );
+
+            assert.deepStrictEqual(definitions, [
+                <LocationLink>{
+                    targetRange: Range.create(Position.create(0, 0), Position.create(0, 2)),
+                    targetSelectionRange: Range.create(
+                        Position.create(0, 0),
+                        Position.create(0, 1)
+                    ),
+                    targetUri: 'uri'
+                }
+            ]);
+        });
+
+        it('uses Location', async () => {
+            const pluginHost = setupGetDefinitions(false);
+            const definitions = await pluginHost.getDefinitions(
+                textDocument,
+                Position.create(0, 0)
+            );
+
+            assert.deepStrictEqual(definitions, [
+                <Location>{
+                    range: Range.create(Position.create(0, 0), Position.create(0, 1)),
+                    uri: 'uri'
+                }
+            ]);
         });
     });
 });
