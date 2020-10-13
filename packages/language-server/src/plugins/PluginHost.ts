@@ -335,6 +335,17 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         );
     }
 
+    /**
+     * The selection range supports multiple cursors,
+     * each position should return its own selection range tree like `Array.map`.
+     * Quote the LSP spec
+     * > A selection range in the return array is for the position in the provided parameters at the same index. Therefore positions[i] must be contained in result[i].range.
+     * @see https://microsoft.github.io/language-server-protocol/specifications/specification-current/#textDocument_selectionRange
+     *
+     * Making PluginHost implement the same interface would make it quite hard to get
+     * the corresponding selection range of each position from different plugins.
+     * Therefore the special treatment here.
+     */
     async getSelectionRanges(
         textDocument: TextDocumentIdentifier,
         positions: Position[]
