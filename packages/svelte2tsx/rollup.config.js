@@ -11,21 +11,21 @@ export default [
             {
                 sourcemap: true,
                 format: 'commonjs',
-                file: 'index.js',
+                file: 'index.js'
             },
             {
                 file: 'index.mjs',
-                format: 'esm',
-            },
+                format: 'esm'
+            }
         ],
         plugins: [
             resolve({ browser: false, preferBuiltins: true }),
             commonjs(),
             json(),
-            typescript(),
+            typescript()
         ],
         watch: {
-            clearScreen: false,
+            clearScreen: false
         },
         external: [
             ...builtins,
@@ -33,7 +33,7 @@ export default [
             'svelte',
             'svelte/compiler',
             'dedent-js',
-            'pascal-case',
-        ],
-    },
+            'pascal-case'
+        ]
+    }
 ];

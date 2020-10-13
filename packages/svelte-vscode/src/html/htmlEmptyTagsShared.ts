@@ -21,6 +21,6 @@ export const EMPTY_ELEMENTS: string[] = [
     'param',
     'source',
     'track',
-    'wbr',
+    'wbr'
 ];
 

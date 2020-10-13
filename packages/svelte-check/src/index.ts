@@ -19,16 +19,17 @@ type Result = {
     fileCount: number;
     errorCount: number;
     warningCount: number;
+    hintCount: number;
 };
 
 function openAllDocuments(
     workspaceUri: URI,
     filePathsToIgnore: string[],
-    svelteCheck: SvelteCheck,
+    svelteCheck: SvelteCheck
 ) {
     const files = glob.sync('**/*.svelte', {
         cwd: workspaceUri.fsPath,
-        ignore: ['node_modules/**'].concat(filePathsToIgnore.map((ignore) => `${ignore}/**`)),
+        ignore: ['node_modules/**'].concat(filePathsToIgnore.map((ignore) => `${ignore}/**`))
     });
 
     const absFilePaths = files.map((f) => path.resolve(workspaceUri.fsPath, f));
@@ -37,7 +38,7 @@ function openAllDocuments(
         const text = fs.readFileSync(absFilePath, 'utf-8');
         svelteCheck.upsertDocument({
             uri: URI.file(absFilePath).toString(),
-            text,
+            text
         });
     }
 }
@@ -45,7 +46,7 @@ function openAllDocuments(
 async function getDiagnostics(
     workspaceUri: URI,
     writer: Writer,
-    svelteCheck: SvelteCheck,
+    svelteCheck: SvelteCheck
 ): Promise<Result | null> {
     writer.start(workspaceUri.fsPath);
 
@@ -56,6 +57,7 @@ async function getDiagnostics(
             fileCount: diagnostics.length,
             errorCount: 0,
             warningCount: 0,
+            hintCount: 0
         };
 
         for (const diagnostic of diagnostics) {
@@ -63,7 +65,7 @@ async function getDiagnostics(
                 diagnostic.diagnostics,
                 workspaceUri.fsPath,
                 path.relative(workspaceUri.fsPath, diagnostic.filePath),
-                diagnostic.text,
+                diagnostic.text
             );
 
             diagnostic.diagnostics.forEach((d: Diagnostic) => {
@@ -71,11 +73,18 @@ async function getDiagnostics(
                     result.errorCount += 1;
                 } else if (d.severity === DiagnosticSeverity.Warning) {
                     result.warningCount += 1;
+                } else if (d.severity === DiagnosticSeverity.Hint) {
+                    result.hintCount += 1;
                 }
             });
         }
 
-        writer.completion(result.fileCount, result.errorCount, result.warningCount);
+        writer.completion(
+            result.fileCount,
+            result.errorCount,
+            result.warningCount,
+            result.hintCount
+        );
         return result;
     } catch (err) {
         writer.failure(err);
@@ -90,12 +99,12 @@ class DiagnosticsWatcher {
         private workspaceUri: URI,
         private svelteCheck: SvelteCheck,
         private writer: Writer,
-        filePathsToIgnore: string[],
+        filePathsToIgnore: string[]
     ) {
         watch(`${workspaceUri.fsPath}/**/*.svelte`, {
             ignored: ['node_modules']
                 .concat(filePathsToIgnore)
-                .map((ignore) => path.join(workspaceUri.fsPath, ignore)),
+                .map((ignore) => path.join(workspaceUri.fsPath, ignore))
         })
             .on('add', (path) => this.updateDocument(path))
             .on('unlink', (path) => this.removeDocument(path))
@@ -117,7 +126,7 @@ class DiagnosticsWatcher {
         clearTimeout(this.updateDiagnostics);
         this.updateDiagnostics = setTimeout(
             () => getDiagnostics(this.workspaceUri, this.writer, this.svelteCheck),
-            1000,
+            1000
         );
     }
 }
@@ -153,7 +162,7 @@ function getOptions(myArgs: argv.ParsedArgs): SvelteCheckOptions {
         compilerWarnings: stringToObj(myArgs['compiler-warnings']),
         diagnosticSources: <any>(
             myArgs['diagnostic-sources']?.split(',')?.map((s: string) => s.trim())
-        ),
+        )
     };
 
     function stringToObj(str = '') {
@@ -198,7 +207,8 @@ function getOptions(myArgs: argv.ParsedArgs): SvelteCheckOptions {
         if (
             result &&
             result.errorCount === 0 &&
-            (!myArgs['fail-on-warnings'] || result.warningCount === 0)
+            (!myArgs['fail-on-warnings'] || result.warningCount === 0) &&
+            (!myArgs['fail-on-hints'] || result.hintCount === 0)
         ) {
             process.exit(0);
         } else {

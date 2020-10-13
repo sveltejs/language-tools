@@ -18,7 +18,7 @@ export interface SvelteCheckOptions {
  */
 export class SvelteCheck {
     private docManager = new DocumentManager(
-        (textDocument) => new Document(textDocument.uri, textDocument.text),
+        (textDocument) => new Document(textDocument.uri, textDocument.text)
     );
     private configManager = new LSConfigManager();
     private pluginHost = new PluginHost(this.docManager, this.configManager);
@@ -31,8 +31,8 @@ export class SvelteCheck {
     private initialize(workspacePath: string, options: SvelteCheckOptions) {
         this.configManager.update({
             svelte: {
-                compilerWarnings: options.compilerWarnings,
-            },
+                compilerWarnings: options.compilerWarnings
+            }
         });
         // No HTMLPlugin, it does not provide diagnostics
         if (shouldRegister('svelte')) {
@@ -44,8 +44,8 @@ export class SvelteCheck {
         if (shouldRegister('js')) {
             this.pluginHost.register(
                 new TypeScriptPlugin(this.docManager, this.configManager, [
-                    pathToUrl(workspacePath),
-                ]),
+                    pathToUrl(workspacePath)
+                ])
             );
         }
 
@@ -62,7 +62,7 @@ export class SvelteCheck {
     upsertDocument(doc: { text: string; uri: string }) {
         this.docManager.openDocument({
             text: doc.text,
-            uri: doc.uri,
+            uri: doc.uri
         });
         this.docManager.markAsOpenedInClient(doc.uri);
     }
@@ -81,7 +81,7 @@ export class SvelteCheck {
      * Gets the diagnostics for all currently open files.
      */
     async getDiagnostics(): Promise<
-        { filePath: string; text: string; diagnostics: Diagnostic[] }[]
+        Array<{ filePath: string; text: string; diagnostics: Diagnostic[] }>
     > {
         return await Promise.all(
             this.docManager.getAllOpenedByClient().map(async (doc) => {
@@ -90,9 +90,9 @@ export class SvelteCheck {
                 return {
                     filePath: urlToPath(uri) || '',
                     text: this.docManager.get(uri)?.getText() || '',
-                    diagnostics,
+                    diagnostics
                 };
-            }),
+            })
         );
     }
 }

@@ -19,8 +19,8 @@ describe('Svelte Sys', () => {
                 <Partial<DocumentSnapshot>>{
                     getText: () => (path.endsWith('.svelte.ts') ? svelteFile : tsFile),
                     getLength: () =>
-                        path.endsWith('.svelte.ts') ? svelteFile.length : tsFile.length,
-                },
+                        path.endsWith('.svelte.ts') ? svelteFile.length : tsFile.length
+                }
         );
 
         sinon.replace(ts.sys, 'fileExists', fileExistsStub);
@@ -31,7 +31,7 @@ describe('Svelte Sys', () => {
             svelteFile,
             fileExistsStub,
             getSnapshotStub,
-            loader,
+            loader
         };
     }
 

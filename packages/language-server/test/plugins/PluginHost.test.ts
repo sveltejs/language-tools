@@ -9,17 +9,17 @@ describe('PluginHost', () => {
         uri: 'file:///hello.svelte',
         version: 0,
         languageId: 'svelte',
-        text: 'Hello, world!',
+        text: 'Hello, world!'
     };
 
     function setup<T>(pluginProviderStubs: T) {
         const docManager = new DocumentManager(
-            (textDocument) => new Document(textDocument.uri, textDocument.text),
+            (textDocument) => new Document(textDocument.uri, textDocument.text)
         );
 
         const pluginHost = new PluginHost(docManager, <any>{});
         const plugin = {
-            ...pluginProviderStubs,
+            ...pluginProviderStubs
         };
 
         pluginHost.register(plugin);
@@ -29,7 +29,7 @@ describe('PluginHost', () => {
 
     it('executes getDiagnostics on plugins', async () => {
         const { docManager, pluginHost, plugin } = setup({
-            getDiagnostics: sinon.stub().returns([]),
+            getDiagnostics: sinon.stub().returns([])
         });
         const document = docManager.openDocument(textDocument);
 
@@ -41,7 +41,7 @@ describe('PluginHost', () => {
 
     it('executes doHover on plugins', async () => {
         const { docManager, pluginHost, plugin } = setup({
-            doHover: sinon.stub().returns(null),
+            doHover: sinon.stub().returns(null)
         });
         const document = docManager.openDocument(textDocument);
         const pos = Position.create(0, 0);
@@ -54,20 +54,20 @@ describe('PluginHost', () => {
 
     it('executes getCompletions on plugins', async () => {
         const { docManager, pluginHost, plugin } = setup({
-            getCompletions: sinon.stub().returns({ items: [] }),
+            getCompletions: sinon.stub().returns({ items: [] })
         });
         const document = docManager.openDocument(textDocument);
         const pos = Position.create(0, 0);
 
         await pluginHost.getCompletions(textDocument, pos, {
             triggerKind: CompletionTriggerKind.TriggerCharacter,
-            triggerCharacter: '.',
+            triggerCharacter: '.'
         });
 
         sinon.assert.calledOnce(plugin.getCompletions);
         sinon.assert.calledWithExactly(plugin.getCompletions, document, pos, {
             triggerKind: CompletionTriggerKind.TriggerCharacter,
-            triggerCharacter: '.',
+            triggerCharacter: '.'
         });
     });
 });

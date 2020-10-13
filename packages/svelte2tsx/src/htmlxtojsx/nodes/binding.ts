@@ -8,9 +8,9 @@ const oneWayBindingAttributes: Map<string, string> = new Map(
         .concat(
             ['duration', 'buffered', 'seekable', 'seeking', 'played', 'ended'].map((e) => [
                 e,
-                'HTMLMediaElement',
-            ]),
-        ),
+                'HTMLMediaElement'
+            ])
+        )
 );
 
 /**
@@ -48,19 +48,19 @@ export function handleBinding(htmlx: string, str: MagicString, attr: Node, el: N
     //one way binding
     if (oneWayBindingAttributes.has(attr.name) && el.type === 'Element') {
         str.remove(attr.start, attr.expression.start);
-        str.appendLeft(attr.expression.start, `{...__sveltets_empty(`);
+        str.appendLeft(attr.expression.start, '{...__sveltets_empty(');
         if (isShortHandAttribute(attr)) {
             // eslint-disable-next-line max-len
             str.appendLeft(
                 attr.end,
-                `=__sveltets_instanceOf(${oneWayBindingAttributes.get(attr.name)}).${attr.name})}`,
+                `=__sveltets_instanceOf(${oneWayBindingAttributes.get(attr.name)}).${attr.name})}`
             );
         } else {
             // eslint-disable-next-line max-len
             str.overwrite(
                 attr.expression.end,
                 attr.end,
-                `=__sveltets_instanceOf(${oneWayBindingAttributes.get(attr.name)}).${attr.name})}`,
+                `=__sveltets_instanceOf(${oneWayBindingAttributes.get(attr.name)}).${attr.name})}`
             );
         }
         return;
@@ -69,7 +69,7 @@ export function handleBinding(htmlx: string, str: MagicString, attr: Node, el: N
     str.remove(attr.start, attr.start + 'bind:'.length);
     if (attr.expression.start === attr.start + 'bind:'.length) {
         str.prependLeft(attr.expression.start, `${attr.name}={`);
-        str.appendLeft(attr.end, `}`);
+        str.appendLeft(attr.end, '}');
         return;
     }
 

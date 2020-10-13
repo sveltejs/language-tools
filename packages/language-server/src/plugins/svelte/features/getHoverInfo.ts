@@ -41,12 +41,12 @@ function getTagAtOffset(
     svelteDoc: SvelteDocument,
     charactersOffset: number,
     charactersAroundOffset: string,
-    offset: number,
+    offset: number
 ): SvelteTag | null {
     const foundTag = tagPossibilities.find((tagAndValues) =>
         tagAndValues.values.find((value) =>
-            isAroundOffset(charactersOffset, charactersAroundOffset, value, offset),
-        ),
+            isAroundOffset(charactersOffset, charactersAroundOffset, value, offset)
+        )
     );
 
     if (!foundTag) {
@@ -63,7 +63,7 @@ function isAroundOffset(
     charactersOffset: number,
     charactersAroundOffset: string,
     toFind: string,
-    offset: number,
+    offset: number
 ) {
     const match = charactersAroundOffset.match(toFind);
     if (!match || match.index === undefined) {
@@ -73,7 +73,7 @@ function isAroundOffset(
     return idx <= offset && idx + toFind.length >= offset;
 }
 
-const tagPossibilities: { tag: SvelteTag | ':else'; values: string[] }[] = [
+const tagPossibilities: Array<{ tag: SvelteTag | ':else'; values: string[] }> = [
     { tag: 'if' as const, values: ['#if', '/if', ':else if'] },
     // each
     { tag: 'each' as const, values: ['#each', '/each'] },
@@ -85,9 +85,9 @@ const tagPossibilities: { tag: SvelteTag | ':else'; values: string[] }[] = [
     { tag: 'html' as const, values: ['@html'] },
     { tag: 'debug' as const, values: ['@debug'] },
     // this tag has multiple possibilities
-    { tag: ':else' as const, values: [':else'] },
+    { tag: ':else' as const, values: [':else'] }
 ];
 
 const tagRegexp = new RegExp(
-    `[\\s\\S]*{\\s*(${flatten(tagPossibilities.map((p) => p.values)).join('|')})(\\s|})`,
+    `[\\s\\S]*{\\s*(${flatten(tagPossibilities.map((p) => p.values)).join('|')})(\\s|})`
 );

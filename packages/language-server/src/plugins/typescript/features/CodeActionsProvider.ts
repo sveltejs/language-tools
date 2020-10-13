@@ -6,15 +6,15 @@ import {
     TextDocumentEdit,
     TextEdit,
     VersionedTextDocumentIdentifier,
-    WorkspaceEdit,
+    WorkspaceEdit
 } from 'vscode-languageserver';
 import { Document, mapRangeToOriginal, isRangeInTag } from '../../../lib/documents';
-import { pathToUrl } from '../../../utils';
+import { pathToUrl , flatten } from '../../../utils';
 import { CodeActionsProvider } from '../../interfaces';
 import { SnapshotFragment, SvelteSnapshotFragment } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { convertRange } from '../utils';
-import { flatten } from '../../../utils';
+
 import ts from 'typescript';
 import { CompletionsProviderImpl } from './CompletionProvider';
 
@@ -28,13 +28,13 @@ interface RefactorArgs {
 export class CodeActionsProviderImpl implements CodeActionsProvider {
     constructor(
         private readonly lsAndTsDocResolver: LSAndTSDocResolver,
-        private readonly completionProvider: CompletionsProviderImpl,
+        private readonly completionProvider: CompletionsProviderImpl
     ) {}
 
     async getCodeActions(
         document: Document,
         range: Range,
-        context: CodeActionContext,
+        context: CodeActionContext
     ): Promise<CodeAction[]> {
         if (context.only?.[0] === CodeActionKind.SourceOrganizeImports) {
             return await this.organizeImports(document);
@@ -55,7 +55,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
     }
 
     private async organizeImports(document: Document): Promise<CodeAction[]> {
-        if (!document.scriptInfo) {
+        if (!document.scriptInfo && !document.moduleScriptInfo) {
             return [];
         }
 
@@ -83,17 +83,17 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                             range.end.character += 1;
                         }
                         return TextEdit.replace(range, edit.newText);
-                    }),
+                    })
                 );
-            }),
+            })
         );
 
         return [
             CodeAction.create(
                 'Organize Imports',
                 { documentChanges },
-                CodeActionKind.SourceOrganizeImports,
-            ),
+                CodeActionKind.SourceOrganizeImports
+            )
         ];
     }
 
@@ -110,7 +110,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             end,
             errorCodes,
             {},
-            {},
+            {}
         );
 
         const docs = new Map<string, SnapshotFragment>([[tsDoc.filePath, fragment]]);
@@ -126,7 +126,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                         return TextDocumentEdit.create(
                             VersionedTextDocumentIdentifier.create(
                                 pathToUrl(change.fileName),
-                                null,
+                                null
                             ),
                             change.textChanges.map((edit) => {
                                 if (
@@ -137,25 +137,25 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                                         document,
                                         doc,
                                         edit,
-                                        true,
+                                        true
                                     );
                                 }
                                 return TextEdit.replace(
                                     mapRangeToOriginal(doc!, convertRange(doc!, edit.span)),
-                                    edit.newText,
+                                    edit.newText
                                 );
-                            }),
+                            })
                         );
-                    }),
+                    })
                 );
                 return CodeAction.create(
                     fix.description,
                     {
-                        documentChanges,
+                        documentChanges
                     },
-                    CodeActionKind.QuickFix,
+                    CodeActionKind.QuickFix
                 );
-            }),
+            })
         );
     }
 
@@ -182,12 +182,12 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         const fragment = await tsDoc.getFragment();
         const textRange = {
             pos: fragment.offsetAt(fragment.getGeneratedPosition(range.start)),
-            end: fragment.offsetAt(fragment.getGeneratedPosition(range.end)),
+            end: fragment.offsetAt(fragment.getGeneratedPosition(range.end))
         };
         const applicableRefactors = lang.getApplicableRefactors(
             document.getFilePath() || '',
             textRange,
-            undefined,
+            undefined
         );
 
         return (
@@ -196,7 +196,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                 .filter(
                     (refactor) =>
                         refactor.command?.command.includes('function_scope') ||
-                        refactor.command?.command.includes('constant_scope'),
+                        refactor.command?.command.includes('constant_scope')
                 )
                 // The language server also proposes extraction into const/function in module scope,
                 // which is outside of the render function, which is svelte2tsx-specific and unmapped,
@@ -207,10 +207,10 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                     ...refactor,
                     title: refactor.title
                         .replace(
-                            `Extract to inner function in function 'render'`,
-                            'Extract to function',
+                            'Extract to inner function in function \'render\'',
+                            'Extract to function'
                         )
-                        .replace(`Extract to constant in function 'render'`, 'Extract to constant'),
+                        .replace('Extract to constant in function \'render\'', 'Extract to constant')
                 }))
         );
     }
@@ -219,7 +219,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         applicableRefactors: ts.ApplicableRefactorInfo[],
         document: Document,
         originalRange: Range,
-        textRange: { pos: number; end: number },
+        textRange: { pos: number; end: number }
     ) {
         return flatten(
             applicableRefactors.map((applicableRefactor) => {
@@ -234,10 +234,10 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                                     type: 'refactor',
                                     textRange,
                                     originalRange,
-                                    refactorName: 'Extract Symbol',
-                                },
-                            ],
-                        }),
+                                    refactorName: 'Extract Symbol'
+                                }
+                            ]
+                        })
                     ];
                 }
 
@@ -251,19 +251,19 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                                 type: 'refactor',
                                 textRange,
                                 originalRange,
-                                refactorName: applicableRefactor.name,
-                            },
-                        ],
+                                refactorName: applicableRefactor.name
+                            }
+                        ]
                     });
                 });
-            }),
+            })
         );
     }
 
     async executeCommand(
         document: Document,
         command: string,
-        args?: any[],
+        args?: any[]
     ): Promise<WorkspaceEdit | null> {
         if (!(args?.[1]?.type === 'refactor')) {
             return null;
@@ -280,7 +280,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             textRange,
             refactorName,
             command,
-            undefined,
+            undefined
         );
         if (!edits || edits.edits.length === 0) {
             return null;
@@ -297,18 +297,18 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                         if (isRangeInTag(originalRange, document.scriptInfo)) {
                             range = Range.create(
                                 document.scriptInfo.endPos,
-                                document.scriptInfo.endPos,
+                                document.scriptInfo.endPos
                             );
                         } else if (isRangeInTag(originalRange, document.moduleScriptInfo)) {
                             range = Range.create(
                                 document.moduleScriptInfo.endPos,
-                                document.moduleScriptInfo.endPos,
+                                document.moduleScriptInfo.endPos
                             );
                         }
                     }
                     return TextEdit.replace(range, edit.newText);
-                }),
-            ),
+                })
+            )
         );
 
         return { documentChanges };

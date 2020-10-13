@@ -25,7 +25,7 @@ export function handleStore(node: Node, parent: Node, str: MagicString): void {
         str.overwrite(
             parent.start,
             str.original.indexOf('=', node.end) + 1,
-            `${storename}.set( __sveltets_store_get(${storename}) ${operator}`,
+            `${storename}.set( __sveltets_store_get(${storename}) ${operator}`
         );
         str.appendLeft(parent.end, ')');
         return;
@@ -40,7 +40,7 @@ export function handleStore(node: Node, parent: Node, str: MagicString): void {
             str.overwrite(
                 parent.start,
                 parent.end,
-                `${storename}.set( __sveltets_store_get(${storename}) ${simpleOperator} 1)`,
+                `${storename}.set( __sveltets_store_get(${storename}) ${simpleOperator} 1)`
             );
         } else {
             console.warn(
@@ -48,7 +48,7 @@ export function handleStore(node: Node, parent: Node, str: MagicString): void {
                 This is an edge case unaccounted for in svelte2tsx, please file an issue:
                 https://github.com/sveltejs/language-tools/issues/new/choose
                 `,
-                str.original.slice(parent.start, parent.end),
+                str.original.slice(parent.start, parent.end)
             );
         }
         return;
@@ -69,12 +69,12 @@ type PendingStoreResolution<T> = {
 const reservedNames = new Set(['$$props', '$$restProps', '$$slots']);
 
 export class Stores {
-    pendingStoreResolutions: PendingStoreResolution<Node>[] = [];
+    pendingStoreResolutions: Array<PendingStoreResolution<Node>> = [];
 
     constructor(
         private scope: ScopeStack,
         private str: MagicString,
-        private isDeclaration: { value: boolean },
+        private isDeclaration: { value: boolean }
     ) {}
 
     handleIdentifier(node: Node, parent: Node, prop: string): void {

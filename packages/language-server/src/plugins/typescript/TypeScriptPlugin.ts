@@ -15,13 +15,13 @@ import {
     SymbolInformation,
     WorkspaceEdit,
     CompletionList,
-    SelectionRange,
+    SelectionRange
 } from 'vscode-languageserver';
 import {
     Document,
     DocumentManager,
     mapSymbolInformationToOriginal,
-    getTextInRange,
+    getTextInRange
 } from '../../lib/documents';
 import { LSConfigManager, LSTypescriptConfig } from '../../ls-config';
 import { pathToUrl } from '../../utils';
@@ -39,13 +39,13 @@ import {
     OnWatchFileChanges,
     RenameProvider,
     SelectionRangeProvider,
-    UpdateImportsProvider,
+    UpdateImportsProvider
 } from '../interfaces';
 import { SnapshotFragment } from './DocumentSnapshot';
 import { CodeActionsProviderImpl } from './features/CodeActionsProvider';
 import {
     CompletionEntryWithIdentifer,
-    CompletionsProviderImpl,
+    CompletionsProviderImpl
 } from './features/CompletionProvider';
 import { DiagnosticsProviderImpl } from './features/DiagnosticsProvider';
 import { HoverProviderImpl } from './features/HoverProvider';
@@ -84,14 +84,14 @@ export class TypeScriptPlugin
     constructor(
         docManager: DocumentManager,
         configManager: LSConfigManager,
-        workspaceUris: string[],
+        workspaceUris: string[]
     ) {
         this.configManager = configManager;
         this.lsAndTsDocResolver = new LSAndTSDocResolver(docManager, workspaceUris);
         this.completionProvider = new CompletionsProviderImpl(this.lsAndTsDocResolver);
         this.codeActionsProvider = new CodeActionsProviderImpl(
             this.lsAndTsDocResolver,
-            this.completionProvider,
+            this.completionProvider
         );
         this.updateImportsProvider = new UpdateImportsProviderImpl(this.lsAndTsDocResolver);
         this.diagnosticsProvider = new DiagnosticsProviderImpl(this.lsAndTsDocResolver);
@@ -148,7 +148,7 @@ export class TypeScriptPlugin
                     (symbol) =>
                         symbol.location.range.start.line >= 0 &&
                         symbol.location.range.end.line >= 0 &&
-                        !symbol.name.startsWith('__sveltets_'),
+                        !symbol.name.startsWith('__sveltets_')
                 )
                 .map((symbol) => {
                     if (symbol.name !== '<function>') {
@@ -161,7 +161,7 @@ export class TypeScriptPlugin
                     }
                     return {
                         ...symbol,
-                        name,
+                        name
                     };
                 })
         );
@@ -169,7 +169,7 @@ export class TypeScriptPlugin
         function collectSymbols(
             tree: NavigationTree,
             container: string | undefined,
-            cb: (symbol: SymbolInformation) => void,
+            cb: (symbol: SymbolInformation) => void
         ) {
             const start = tree.spans[0];
             const end = tree.spans[tree.spans.length - 1];
@@ -180,11 +180,11 @@ export class TypeScriptPlugin
                         symbolKindFromString(tree.kind),
                         Range.create(
                             fragment.positionAt(start.start),
-                            fragment.positionAt(end.start + end.length),
+                            fragment.positionAt(end.start + end.length)
                         ),
                         fragment.getURL(),
-                        container,
-                    ),
+                        container
+                    )
                 );
             }
             if (tree.childItems) {
@@ -198,7 +198,7 @@ export class TypeScriptPlugin
     async getCompletions(
         document: Document,
         position: Position,
-        completionContext?: CompletionContext,
+        completionContext?: CompletionContext
     ): Promise<AppCompletionList<CompletionEntryWithIdentifer> | null> {
         if (!this.featureEnabled('completions')) {
             return null;
@@ -207,19 +207,19 @@ export class TypeScriptPlugin
         const tsDirectiveCommentCompletions = getDirectiveCommentCompletions(
             position,
             document,
-            completionContext,
+            completionContext
         );
 
         const completions = await this.completionProvider.getCompletions(
             document,
             position,
-            completionContext,
+            completionContext
         );
 
         if (completions && tsDirectiveCommentCompletions) {
             return CompletionList.create(
                 completions.items.concat(tsDirectiveCommentCompletions.items),
-                completions.isIncomplete,
+                completions.isIncomplete
             );
         }
 
@@ -228,7 +228,7 @@ export class TypeScriptPlugin
 
     async resolveCompletion(
         document: Document,
-        completionItem: AppCompletionItem<CompletionEntryWithIdentifer>,
+        completionItem: AppCompletionItem<CompletionEntryWithIdentifer>
     ): Promise<AppCompletionItem<CompletionEntryWithIdentifer>> {
         return this.completionProvider.resolveCompletion(document, completionItem);
     }
@@ -243,7 +243,7 @@ export class TypeScriptPlugin
 
         const defs = lang.getDefinitionAndBoundSpan(
             tsDoc.filePath,
-            fragment.offsetAt(fragment.getGeneratedPosition(position)),
+            fragment.offsetAt(fragment.getGeneratedPosition(position))
         );
 
         if (!defs || !defs.definitions) {
@@ -264,9 +264,9 @@ export class TypeScriptPlugin
                     pathToUrl(def.fileName),
                     convertToLocationRange(defDoc, def.textSpan),
                     convertToLocationRange(defDoc, def.textSpan),
-                    convertToLocationRange(fragment, defs.textSpan),
+                    convertToLocationRange(fragment, defs.textSpan)
                 );
-            }),
+            })
         );
     }
 
@@ -281,7 +281,7 @@ export class TypeScriptPlugin
     async rename(
         document: Document,
         position: Position,
-        newName: string,
+        newName: string
     ): Promise<WorkspaceEdit | null> {
         if (!this.featureEnabled('rename')) {
             return null;
@@ -293,7 +293,7 @@ export class TypeScriptPlugin
     async getCodeActions(
         document: Document,
         range: Range,
-        context: CodeActionContext,
+        context: CodeActionContext
     ): Promise<CodeAction[]> {
         if (!this.featureEnabled('codeActions')) {
             return [];
@@ -305,7 +305,7 @@ export class TypeScriptPlugin
     async executeCommand(
         document: Document,
         command: string,
-        args?: any[],
+        args?: any[]
     ): Promise<WorkspaceEdit | null> {
         if (!this.featureEnabled('codeActions')) {
             return null;
@@ -325,7 +325,7 @@ export class TypeScriptPlugin
     async findReferences(
         document: Document,
         position: Position,
-        context: ReferenceContext,
+        context: ReferenceContext
     ): Promise<Location[] | null> {
         if (!this.featureEnabled('findReferences')) {
             return null;

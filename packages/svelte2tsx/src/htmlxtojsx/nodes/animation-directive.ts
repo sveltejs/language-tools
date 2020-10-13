@@ -8,7 +8,7 @@ export function handleAnimateDirective(htmlx: string, str: MagicString, attr: No
     str.overwrite(
         attr.start,
         htmlx.indexOf(':', attr.start) + 1,
-        '{...__sveltets_ensureAnimation(',
+        '{...__sveltets_ensureAnimation('
     );
 
     if (!attr.expression) {
@@ -18,7 +18,7 @@ export function handleAnimateDirective(htmlx: string, str: MagicString, attr: No
     str.overwrite(
         htmlx.indexOf(':', attr.start) + 1 + `${attr.name}`.length,
         attr.expression.start,
-        ', ',
+        ', '
     );
     str.appendLeft(attr.expression.end, ')');
     if (htmlx[attr.end - 1] == '"') {

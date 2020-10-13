@@ -23,7 +23,7 @@ export class ExportedNames
         name: ts.BindingName,
         target: ts.BindingName = null,
         type: ts.TypeNode = null,
-        required = false,
+        required = false
     ): void {
         if (name.kind != ts.SyntaxKind.Identifier) {
             throw Error('export source kind not supported ' + name);
@@ -37,7 +37,7 @@ export class ExportedNames
                 type: type?.getText(),
                 identifierText: (target as ts.Identifier).text,
                 required,
-                doc: this.getDoc(target),
+                doc: this.getDoc(target)
             });
         } else {
             this.set(name.text, {});

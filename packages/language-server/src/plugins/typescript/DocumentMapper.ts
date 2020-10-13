@@ -11,8 +11,8 @@ export class ConsumerDocumentMapper extends SourceMapDocumentMapper {
         return super.getOriginalPosition(
             Position.create(
                 generatedPosition.line - this.nrPrependesLines,
-                generatedPosition.character,
-            ),
+                generatedPosition.character
+            )
         );
     }
 

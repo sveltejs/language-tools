@@ -4,7 +4,7 @@ import * as ts from 'typescript';
 import {
     findExportKeyword,
     getBinaryAssignmentExpr,
-    isNotPropertyNameOfImport,
+    isNotPropertyNameOfImport
 } from './utils/tsAst';
 import { ExportedNames } from './nodes/ExportedNames';
 import { ImplicitTopLevelNames } from './nodes/ImplicitTopLevelNames';
@@ -29,7 +29,7 @@ type PendingStoreResolution<T> = {
 export function processInstanceScriptContent(
     str: MagicString,
     script: Node,
-    events: ComponentEvents,
+    events: ComponentEvents
 ): InstanceScriptProcessResult {
     const htmlx = str.original;
     const scriptContent = htmlx.substring(script.content.start, script.content.end);
@@ -38,7 +38,7 @@ export function processInstanceScriptContent(
         scriptContent,
         ts.ScriptTarget.Latest,
         true,
-        ts.ScriptKind.TS,
+        ts.ScriptKind.TS
     );
     const astOffset = script.content.start;
     const exportedNames = new ExportedNames();
@@ -54,7 +54,7 @@ export function processInstanceScriptContent(
 
     //track $store variables since we are only supposed to give top level scopes special treatment, and users can declare $blah variables at higher scopes
     //which prevents us just changing all instances of Identity that start with $
-    const pendingStoreResolutions: PendingStoreResolution<ts.Node>[] = [];
+    const pendingStoreResolutions: Array<PendingStoreResolution<ts.Node>> = [];
 
     let scope = new Scope();
     const rootScope = scope;
@@ -83,7 +83,15 @@ export function processInstanceScriptContent(
             const jsDocType = ts.getJSDocType(declaration);
             const type = tsType || jsDocType;
 
-            if (!ts.isIdentifier(identifier) || !type) {
+            if (
+                !ts.isIdentifier(identifier) ||
+                (!type &&
+                    // Edge case: TS infers `export let bla = false` to type `false`.
+                    // prevent that by adding the any-wrap in this case, too.
+                    ![ts.SyntaxKind.FalseKeyword, ts.SyntaxKind.TrueKeyword].includes(
+                        declaration.initializer?.kind
+                    ))
+            ) {
                 return;
             }
             const name = identifier.getText();
@@ -150,7 +158,7 @@ export function processInstanceScriptContent(
             [ts.SyntaxKind.GreaterThanGreaterThanGreaterThanEqualsToken]: '>>>',
             [ts.SyntaxKind.AmpersandEqualsToken]: '&',
             [ts.SyntaxKind.CaretEqualsToken]: '^',
-            [ts.SyntaxKind.BarEqualsToken]: '|',
+            [ts.SyntaxKind.BarEqualsToken]: '|'
         };
         if (
             ts.isBinaryExpression(parent) &&
@@ -162,7 +170,7 @@ export function processInstanceScriptContent(
             str.overwrite(
                 parent.getStart() + astOffset,
                 str.original.indexOf('=', ident.end + astOffset) + 1,
-                `${storename}.set( __sveltets_store_get(${storename}) ${operator}`,
+                `${storename}.set( __sveltets_store_get(${storename}) ${operator}`
             );
             str.appendLeft(parent.end + astOffset, ')');
             return;
@@ -186,7 +194,7 @@ export function processInstanceScriptContent(
                 str.overwrite(
                     parent.getStart() + astOffset,
                     parent.end + astOffset,
-                    `${storename}.set( __sveltets_store_get(${storename}) ${simpleOperator} 1)`,
+                    `${storename}.set( __sveltets_store_get(${storename}) ${simpleOperator} 1)`
                 );
                 return;
             } else {
@@ -195,7 +203,7 @@ export function processInstanceScriptContent(
                 This is an edge case unaccounted for in svelte2tsx, please file an issue:
                 https://github.com/sveltejs/language-tools/issues/new/choose
                 `,
-                    parent.getText(),
+                    parent.getText()
                 );
             }
         }
@@ -462,6 +470,6 @@ export function processInstanceScriptContent(
         uses$$props,
         uses$$restProps,
         uses$$slots,
-        getters,
+        getters
     };
 }

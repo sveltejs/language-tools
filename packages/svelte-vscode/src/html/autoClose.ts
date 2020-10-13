@@ -12,21 +12,21 @@ import {
     Disposable,
     TextDocument,
     Position,
-    SnippetString,
+    SnippetString
 } from 'vscode';
 
-import { TextDocumentContentChangeEvent } from "vscode-languageserver-protocol";
+import { TextDocumentContentChangeEvent } from 'vscode-languageserver-protocol';
 
 export function activateTagClosing(
     tagProvider: (document: TextDocument, position: Position) => Thenable<string>,
     supportedLanguages: { [id: string]: boolean },
-    configName: string,
+    configName: string
 ): Disposable {
     const disposables: Disposable[] = [];
     workspace.onDidChangeTextDocument(
         event => onDidChangeTextDocument(event.document, event.contentChanges),
         null,
-        disposables,
+        disposables
     );
 
     let isEnabled = false;
@@ -53,7 +53,7 @@ export function activateTagClosing(
 
     function onDidChangeTextDocument(
         document: TextDocument,
-        changes: readonly TextDocumentContentChangeEvent[],
+        changes: readonly TextDocumentContentChangeEvent[]
     ) {
         if (!isEnabled) {
             return;
@@ -67,15 +67,15 @@ export function activateTagClosing(
         }
         const lastChange = changes[changes.length - 1];
         const lastCharacter = lastChange.text[lastChange.text.length - 1];
-        if ("range" in lastChange && (lastChange.rangeLength ?? 0) > 0 || (lastCharacter !== '>' && lastCharacter !== '/')) {
+        if ('range' in lastChange && (lastChange.rangeLength ?? 0) > 0 || (lastCharacter !== '>' && lastCharacter !== '/')) {
             return;
         }
-        const rangeStart = "range" in lastChange ? lastChange.range.start : new Position(0, document.getText().length);
+        const rangeStart = 'range' in lastChange ? lastChange.range.start : new Position(0, document.getText().length);
         const version = document.version;
         timeout = setTimeout(() => {
             const position = new Position(
                 rangeStart.line,
-                rangeStart.character + lastChange.text.length,
+                rangeStart.character + lastChange.text.length
             );
             tagProvider(document, position).then(text => {
                 if (text && isEnabled) {
@@ -90,7 +90,7 @@ export function activateTagClosing(
                             ) {
                                 activeEditor.insertSnippet(
                                     new SnippetString(text),
-                                    selections.map(s => s.active),
+                                    selections.map(s => s.active)
                                 );
                             } else {
                                 activeEditor.insertSnippet(new SnippetString(text), position);

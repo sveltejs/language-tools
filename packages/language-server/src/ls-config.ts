@@ -14,7 +14,7 @@ const defaultLSConfig: LSConfig = {
         documentSymbols: { enable: true },
         codeActions: { enable: true },
         rename: { enable: true },
-        selectionRange: { enable: true },
+        selectionRange: { enable: true }
     },
     css: {
         enable: true,
@@ -32,7 +32,7 @@ const defaultLSConfig: LSConfig = {
         hover: { enable: true },
         completions: { enable: true },
         tagComplete: { enable: true },
-        documentSymbols: { enable: true },
+        documentSymbols: { enable: true }
     },
     svelte: {
         enable: true,
@@ -42,7 +42,7 @@ const defaultLSConfig: LSConfig = {
         completions: { enable: true },
         hover: { enable: true },
         codeActions: { enable: true },
-        selectionRange: { enable: true },
+        selectionRange: { enable: true }
     },
 };
 
@@ -163,7 +163,7 @@ type DeepPartial<T> = T extends CompilerWarningsSettings
 
 export class LSConfigManager {
     private config: LSConfig = defaultLSConfig;
-    private listeners: ((config: LSConfigManager) => void)[] = [];
+    private listeners: Array<(config: LSConfigManager) => void> = [];
 
     /**
      * Updates config.

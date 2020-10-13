@@ -20,7 +20,7 @@ describe('FindReferencesProvider', () => {
 
     function setup(filename: string) {
         const docManager = new DocumentManager(
-            (textDocument) => new Document(textDocument.uri, textDocument.text),
+            (textDocument) => new Document(textDocument.uri, textDocument.text)
         );
         const lsAndTsDocResolver = new LSAndTSDocResolver(docManager, [testDir]);
         const provider = new FindReferencesProviderImpl(lsAndTsDocResolver);
@@ -31,7 +31,7 @@ describe('FindReferencesProvider', () => {
             const filePath = getFullPath(filename);
             const doc = docManager.openDocument(<any>{
                 uri: pathToUrl(filePath),
-                text: ts.sys.readFile(filePath) || '',
+                text: ts.sys.readFile(filePath) || ''
             });
             return doc;
         }
@@ -45,19 +45,19 @@ describe('FindReferencesProvider', () => {
         let expectedResults = [
             Location.create(
                 getUri('find-references.svelte'),
-                Range.create(Position.create(2, 8), Position.create(2, 14)),
+                Range.create(Position.create(2, 8), Position.create(2, 14))
             ),
             Location.create(
                 getUri('find-references.svelte'),
-                Range.create(Position.create(3, 8), Position.create(3, 14)),
-            ),
+                Range.create(Position.create(3, 8), Position.create(3, 14))
+            )
         ];
         if (includeDeclaration) {
             expectedResults = [
                 Location.create(
                     getUri('find-references.svelte'),
-                    Range.create(Position.create(1, 10), Position.create(1, 16)),
-                ),
+                    Range.create(Position.create(1, 10), Position.create(1, 16))
+                )
             ].concat(expectedResults);
         }
 

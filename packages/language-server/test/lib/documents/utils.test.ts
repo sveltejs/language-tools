@@ -4,7 +4,7 @@ import {
     extractStyleTag,
     extractScriptTags,
     updateRelativeImport,
-    getWordAt,
+    getWordAt
 } from '../../../src/lib/documents/utils';
 import { Position } from 'vscode-languageserver';
 
@@ -18,7 +18,7 @@ describe('document/utils', () => {
         it('supports unquoted attributes', () => {
             const extracted = extractStyleTag('<style type=text/css></style>');
             assert.deepStrictEqual(extracted?.attributes, {
-                type: 'text/css',
+                type: 'text/css'
             });
         });
 
@@ -35,7 +35,7 @@ describe('document/utils', () => {
                 end: 125,
                 startPos: Position.create(3, 23),
                 endPos: Position.create(3, 40),
-                container: { start: 101, end: 133 },
+                container: { start: 101, end: 133 }
             });
         });
 
@@ -77,18 +77,18 @@ describe('document/utils', () => {
                 end: 22,
                 startPos: {
                     character: 22,
-                    line: 0,
+                    line: 0
                 },
                 endPos: {
                     character: 22,
-                    line: 0,
+                    line: 0
                 },
                 attributes: {},
                 content: '',
                 container: {
                     end: 30,
-                    start: 15,
-                },
+                    start: 15
+                }
             });
         });
 
@@ -104,7 +104,7 @@ describe('document/utils', () => {
                 end: 68,
                 startPos: Position.create(2, 23),
                 endPos: Position.create(2, 40),
-                container: { start: 44, end: 76 },
+                container: { start: 44, end: 76 }
             });
         });
 
@@ -119,7 +119,7 @@ describe('document/utils', () => {
                 end: 53,
                 startPos: Position.create(1, 35),
                 endPos: Position.create(1, 52),
-                container: { start: 17, end: 61 },
+                container: { start: 17, end: 61 }
             });
         });
 
@@ -134,7 +134,7 @@ describe('document/utils', () => {
                 end: 65,
                 startPos: Position.create(1, 43),
                 endPos: Position.create(1, 64),
-                container: { start: 17, end: 73 },
+                container: { start: 17, end: 73 }
             });
         });
 
@@ -183,7 +183,7 @@ describe('document/utils', () => {
                 end: 1259,
                 startPos: Position.create(34, 24),
                 endPos: Position.create(34, 40),
-                container: { start: 1235, end: 1268 },
+                container: { start: 1235, end: 1268 }
             });
         });
 
@@ -207,7 +207,7 @@ describe('document/utils', () => {
                 end: 270,
                 startPos: Position.create(7, 20),
                 endPos: Position.create(7, 36),
-                container: { start: 246, end: 279 },
+                container: { start: 246, end: 279 }
             });
         });
 
@@ -219,42 +219,42 @@ describe('document/utils', () => {
             assert.deepStrictEqual(extractScriptTags(text), {
                 moduleScript: {
                     attributes: {
-                        context: 'module',
+                        context: 'module'
                     },
                     container: {
                         end: 48,
-                        start: 13,
+                        start: 13
                     },
                     content: 'a',
                     start: 38,
                     end: 39,
                     startPos: {
                         character: 37,
-                        line: 1,
+                        line: 1
                     },
                     endPos: {
                         character: 38,
-                        line: 1,
-                    },
+                        line: 1
+                    }
                 },
                 script: {
                     attributes: {},
                     container: {
                         end: 79,
-                        start: 61,
+                        start: 61
                     },
                     content: 'b',
                     start: 69,
                     end: 70,
                     startPos: {
                         character: 20,
-                        line: 2,
+                        line: 2
                     },
                     endPos: {
                         character: 21,
-                        line: 2,
-                    },
-                },
+                        line: 2
+                    }
+                }
             });
         });
 
@@ -283,7 +283,7 @@ describe('document/utils', () => {
                 end: 172,
                 startPos: Position.create(7, 18),
                 endPos: Position.create(7, 31),
-                container: { start: 151, end: 181 },
+                container: { start: 151, end: 181 }
             });
         });
     });
@@ -296,7 +296,7 @@ describe('document/utils', () => {
         it('should return line at position (multiple lines)', () => {
             assert.deepStrictEqual(
                 getLineAtPosition(Position.create(1, 1), 'ABC\nDEF\nGHI'),
-                'DEF\n',
+                'DEF\n'
             );
         });
     });
@@ -306,7 +306,7 @@ describe('document/utils', () => {
             const newPath = updateRelativeImport(
                 'C:/absolute/path/oldPath',
                 'C:/absolute/newPath',
-                './Component.svelte',
+                './Component.svelte'
             );
             assert.deepStrictEqual(newPath, '../path/oldPath/Component.svelte');
         });
@@ -315,7 +315,7 @@ describe('document/utils', () => {
             const newPath = updateRelativeImport(
                 'C:/absolute/path/oldPath',
                 'C:/absolute/newPath',
-                './someTsFile',
+                './someTsFile'
             );
             assert.deepStrictEqual(newPath, '../path/oldPath/someTsFile');
         });
@@ -324,7 +324,7 @@ describe('document/utils', () => {
             const newPath = updateRelativeImport(
                 'C:/absolute/path/oldPath',
                 'C:/absolute/path',
-                './someTsFile',
+                './someTsFile'
             );
             assert.deepStrictEqual(newPath, './oldPath/someTsFile');
         });
@@ -350,7 +350,7 @@ describe('document/utils', () => {
         it('returns word with custom delimiters', () => {
             assert.equal(
                 getWordAt('asd on:asd-qwd="asd" ', 10, { left: /\S+$/, right: /[\s=]/ }),
-                'on:asd-qwd',
+                'on:asd-qwd'
             );
         });
     });

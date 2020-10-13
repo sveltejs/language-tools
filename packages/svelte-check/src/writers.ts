@@ -7,7 +7,12 @@ import { offsetAt } from 'svelte-language-server';
 export interface Writer {
     start: (workspaceDir: string) => void;
     file: (d: Diagnostic[], workspaceDir: string, filename: string, text: string) => void;
-    completion: (fileCount: number, errorCount: number, warningCount: number) => void;
+    completion: (
+        fileCount: number,
+        errorCount: number,
+        warningCount: number,
+        hintCount: number,
+    ) => void;
     failure: (err: Error) => void;
 }
 
@@ -37,7 +42,7 @@ export class HumanFriendlyWriter implements Writer {
             const { line, character } = diagnostic.range.start;
             // eslint-disable-next-line max-len
             this.stream.write(
-                `${workspaceDir}${sep}${chalk.green(filename)}:${line + 1}:${character + 1}\n`,
+                `${workspaceDir}${sep}${chalk.green(filename)}:${line + 1}:${character + 1}\n`
             );
 
             // Show some context around diagnostic range
@@ -70,12 +75,12 @@ export class HumanFriendlyWriter implements Writer {
         const endOffset = offsetAt(diagnostic.range.end, text);
         const codePrev = text.substring(
             offsetAt({ line: diagnostic.range.start.line, character: 0 }, text),
-            startOffset,
+            startOffset
         );
         const codeHighlight = chalk.magenta(text.substring(startOffset, endOffset));
         const codePost = text.substring(
             endOffset,
-            offsetAt({ line: diagnostic.range.end.line, character: Number.MAX_SAFE_INTEGER }, text),
+            offsetAt({ line: diagnostic.range.end.line, character: Number.MAX_SAFE_INTEGER }, text)
         );
         return codePrev + codeHighlight + codePost;
     }
@@ -83,31 +88,26 @@ export class HumanFriendlyWriter implements Writer {
     private getLine(line: number, text: string): string {
         return text.substring(
             offsetAt({ line, character: 0 }, text),
-            offsetAt({ line, character: Number.MAX_SAFE_INTEGER }, text),
+            offsetAt({ line, character: Number.MAX_SAFE_INTEGER }, text)
         );
     }
 
-    completion(_f: number, errorCount: number, warningCount: number) {
+    completion(_f: number, errorCount: number, warningCount: number, hintCount: number) {
         this.stream.write('====================================\n');
-
-        if (errorCount === 0 && warningCount === 0) {
-            this.stream.write(chalk.green(`svelte-check found no errors and no warnings\n`));
-        } else if (errorCount === 0) {
-            this.stream.write(
-                chalk.yellow(
-                    `svelte-check found ${warningCount} ${
-                        warningCount === 1 ? 'warning' : 'warnings'
-                    }\n`,
-                ),
-            );
+        const message = [
+            'svelte-check found ',
+            `${errorCount} ${errorCount === 1 ? 'error' : 'errors'}, `,
+            `${warningCount} ${warningCount === 1 ? 'warning' : 'warnings'} and `,
+            `${hintCount} ${hintCount === 1 ? 'hint' : 'hints'}\n`
+        ].join('');
+        if (errorCount !== 0) {
+            this.stream.write(chalk.red(message));
+        } else if (warningCount !== 0) {
+            this.stream.write(chalk.yellow(message));
+        } else if (hintCount !== 0) {
+            this.stream.write(chalk.grey(message));
         } else {
-            this.stream.write(
-                chalk.red(
-                    `svelte-check found ${errorCount} ${
-                        errorCount === 1 ? 'error' : 'errors'
-                    } and ${warningCount} ${warningCount === 1 ? 'warning' : 'warnings'}\n`,
-                ),
-            );
+            this.stream.write(chalk.green(message));
         }
     }
 
@@ -146,8 +146,16 @@ export class MachineFriendlyWriter implements Writer {
         });
     }
 
-    completion(fileCount: number, errorCount: number, warningCount: number) {
-        this.log(`COMPLETED ${fileCount} FILES ${errorCount} ERRORS ${warningCount} WARNINGS`);
+    completion(fileCount: number, errorCount: number, warningCount: number, hintCount: number) {
+        this.log(
+            [
+                'COMPLETED',
+                `${fileCount} FILES`,
+                `${errorCount} ERRORS`,
+                `${warningCount} WARNINGS`,
+                `${hintCount} HINTS`
+            ].join(' ')
+        );
     }
 
     failure(err: Error) {

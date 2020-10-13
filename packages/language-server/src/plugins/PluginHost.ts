@@ -21,7 +21,7 @@ import {
     FormattingOptions,
     ReferenceContext,
     Location,
-    SelectionRange,
+    SelectionRange
 } from 'vscode-languageserver';
 import { LSConfig, LSConfigManager } from '../ls-config';
 import { DocumentManager } from '../lib/documents';
@@ -30,7 +30,7 @@ import {
     Plugin,
     OnWatchFileChanges,
     AppCompletionItem,
-    FileRename,
+    FileRename
 } from './interfaces';
 import { Logger } from '../logger';
 import { regexLastIndexOf } from '../utils';
@@ -66,7 +66,7 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         }
 
         return flatten(
-            await this.execute<Diagnostic[]>('getDiagnostics', [document], ExecuteMode.Collect),
+            await this.execute<Diagnostic[]>('getDiagnostics', [document], ExecuteMode.Collect)
         );
     }
 
@@ -82,7 +82,7 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
     async getCompletions(
         textDocument: TextDocumentIdentifier,
         position: Position,
-        completionContext?: CompletionContext,
+        completionContext?: CompletionContext
     ): Promise<CompletionList> {
         const document = this.getDocument(textDocument.uri);
         if (!document) {
@@ -93,14 +93,14 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
             await this.execute<CompletionList>(
                 'getCompletions',
                 [document, position, completionContext],
-                ExecuteMode.Collect,
+                ExecuteMode.Collect
             )
         ).filter((completion) => completion != null);
 
         let flattenedCompletions = flatten(completions.map((completion) => completion.items));
         const isIncomplete = completions.reduce(
             (incomplete, completion) => incomplete || completion.isIncomplete,
-            false as boolean,
+            false as boolean
         );
 
         // If the result is incomplete, we need to filter the results ourselves
@@ -114,7 +114,7 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
             const start = regexLastIndexOf(text, /[\W\s]/g) + 1;
             const filterValue = text.substring(start).toLowerCase();
             flattenedCompletions = flattenedCompletions.filter((comp) =>
-                comp.label.toLowerCase().includes(filterValue),
+                comp.label.toLowerCase().includes(filterValue)
             );
         }
 
@@ -123,7 +123,7 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
 
     async resolveCompletion(
         textDocument: TextDocumentIdentifier,
-        completionItem: AppCompletionItem,
+        completionItem: AppCompletionItem
     ): Promise<CompletionItem> {
         const document = this.getDocument(textDocument.uri);
 
@@ -134,7 +134,7 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         const result = await this.execute<CompletionItem>(
             'resolveCompletion',
             [document, completionItem],
-            ExecuteMode.FirstNonNull,
+            ExecuteMode.FirstNonNull
         );
 
         return result ?? completionItem;
@@ -142,7 +142,7 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
 
     async formatDocument(
         textDocument: TextDocumentIdentifier,
-        options: FormattingOptions,
+        options: FormattingOptions
     ): Promise<TextEdit[]> {
         const document = this.getDocument(textDocument.uri);
         if (!document) {
@@ -153,14 +153,14 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
             await this.execute<TextEdit[]>(
                 'formatDocument',
                 [document, options],
-                ExecuteMode.Collect,
-            ),
+                ExecuteMode.Collect
+            )
         );
     }
 
     async doTagComplete(
         textDocument: TextDocumentIdentifier,
-        position: Position,
+        position: Position
     ): Promise<string | null> {
         const document = this.getDocument(textDocument.uri);
         if (!document) {
@@ -170,7 +170,7 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         return this.execute<string | null>(
             'doTagComplete',
             [document, position],
-            ExecuteMode.FirstNonNull,
+            ExecuteMode.FirstNonNull
         );
     }
 
@@ -184,15 +184,15 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
             await this.execute<ColorInformation[]>(
                 'getDocumentColors',
                 [document],
-                ExecuteMode.Collect,
-            ),
+                ExecuteMode.Collect
+            )
         );
     }
 
     async getColorPresentations(
         textDocument: TextDocumentIdentifier,
         range: Range,
-        color: Color,
+        color: Color
     ): Promise<ColorPresentation[]> {
         const document = this.getDocument(textDocument.uri);
         if (!document) {
@@ -203,8 +203,8 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
             await this.execute<ColorPresentation[]>(
                 'getColorPresentations',
                 [document, range, color],
-                ExecuteMode.Collect,
-            ),
+                ExecuteMode.Collect
+            )
         );
     }
 
@@ -218,14 +218,14 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
             await this.execute<SymbolInformation[]>(
                 'getDocumentSymbols',
                 [document],
-                ExecuteMode.Collect,
-            ),
+                ExecuteMode.Collect
+            )
         );
     }
 
     async getDefinitions(
         textDocument: TextDocumentIdentifier,
-        position: Position,
+        position: Position
     ): Promise<DefinitionLink[]> {
         const document = this.getDocument(textDocument.uri);
         if (!document) {
@@ -236,15 +236,15 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
             await this.execute<DefinitionLink[]>(
                 'getDefinitions',
                 [document, position],
-                ExecuteMode.Collect,
-            ),
+                ExecuteMode.Collect
+            )
         );
     }
 
     async getCodeActions(
         textDocument: TextDocumentIdentifier,
         range: Range,
-        context: CodeActionContext,
+        context: CodeActionContext
     ): Promise<CodeAction[]> {
         const document = this.getDocument(textDocument.uri);
         if (!document) {
@@ -255,15 +255,15 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
             await this.execute<CodeAction[]>(
                 'getCodeActions',
                 [document, range, context],
-                ExecuteMode.Collect,
-            ),
+                ExecuteMode.Collect
+            )
         );
     }
 
     async executeCommand(
         textDocument: TextDocumentIdentifier,
         command: string,
-        args?: any[],
+        args?: any[]
     ): Promise<WorkspaceEdit | string | null> {
         const document = this.getDocument(textDocument.uri);
         if (!document) {
@@ -273,7 +273,7 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         return await this.execute<WorkspaceEdit>(
             'executeCommand',
             [document, command, args],
-            ExecuteMode.FirstNonNull,
+            ExecuteMode.FirstNonNull
         );
     }
 
@@ -281,13 +281,13 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         return await this.execute<WorkspaceEdit>(
             'updateImports',
             [fileRename],
-            ExecuteMode.FirstNonNull,
+            ExecuteMode.FirstNonNull
         );
     }
 
     async prepareRename(
         textDocument: TextDocumentIdentifier,
-        position: Position,
+        position: Position
     ): Promise<Range | null> {
         const document = this.getDocument(textDocument.uri);
         if (!document) {
@@ -297,14 +297,14 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         return await this.execute<any>(
             'prepareRename',
             [document, position],
-            ExecuteMode.FirstNonNull,
+            ExecuteMode.FirstNonNull
         );
     }
 
     async rename(
         textDocument: TextDocumentIdentifier,
         position: Position,
-        newName: string,
+        newName: string
     ): Promise<WorkspaceEdit | null> {
         const document = this.getDocument(textDocument.uri);
         if (!document) {
@@ -314,14 +314,14 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         return await this.execute<any>(
             'rename',
             [document, position, newName],
-            ExecuteMode.FirstNonNull,
+            ExecuteMode.FirstNonNull
         );
     }
 
     async findReferences(
         textDocument: TextDocumentIdentifier,
         position: Position,
-        context: ReferenceContext,
+        context: ReferenceContext
     ): Promise<Location[] | null> {
         const document = this.getDocument(textDocument.uri);
         if (!document) {
@@ -331,7 +331,7 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         return await this.execute<any>(
             'findReferences',
             [document, position, context],
-            ExecuteMode.FirstNonNull,
+            ExecuteMode.FirstNonNull
         );
     }
 
@@ -381,11 +381,11 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         args: any[],
         mode: ExecuteMode.Collect,
     ): Promise<T[]>;
-    private execute<T>(name: keyof LSProvider, args: any[], mode: ExecuteMode.None): Promise<void>;
+    private execute(name: keyof LSProvider, args: any[], mode: ExecuteMode.None): Promise<void>;
     private async execute<T>(
         name: keyof LSProvider,
         args: any[],
-        mode: ExecuteMode,
+        mode: ExecuteMode
     ): Promise<(T | null) | T[] | void> {
         const plugins = this.plugins.filter((plugin) => typeof plugin[name] === 'function');
 
@@ -400,11 +400,11 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
                 return null;
             case ExecuteMode.Collect:
                 return Promise.all(
-                    plugins.map((plugin) => this.tryExecutePlugin(plugin, name, args, [])),
+                    plugins.map((plugin) => this.tryExecutePlugin(plugin, name, args, []))
                 );
             case ExecuteMode.None:
                 await Promise.all(
-                    plugins.map((plugin) => this.tryExecutePlugin(plugin, name, args, null)),
+                    plugins.map((plugin) => this.tryExecutePlugin(plugin, name, args, null))
                 );
                 return;
         }

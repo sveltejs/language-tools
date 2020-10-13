@@ -2,7 +2,7 @@ import { Node } from 'estree-walker';
 
 export class EventHandler {
     private bubbledEvents = new Map<string, string | string[]>();
-    private callees: { name: string; parent: Node }[] = [];
+    private callees: Array<{ name: string; parent: Node }> = [];
 
     handleEventHandler(node: Node, parent: Node): void {
         const eventName = node.name;
@@ -14,7 +14,7 @@ export class EventHandler {
             } else {
                 this.bubbledEvents.set(
                     eventName,
-                    getEventDefExpressionForNonCompoent(eventName, parent),
+                    getEventDefExpressionForNonCompoent(eventName, parent)
                 );
             }
         }

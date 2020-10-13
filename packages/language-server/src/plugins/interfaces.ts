@@ -19,7 +19,7 @@ import {
     TextDocumentIdentifier,
     TextEdit,
     WorkspaceEdit,
-    SelectionRange,
+    SelectionRange
 } from 'vscode-languageserver-types';
 import { Document } from '../lib/documents';
 
@@ -30,7 +30,7 @@ export interface AppCompletionItem<T extends TextDocumentIdentifier = any> exten
 }
 
 export interface AppCompletionList<T extends TextDocumentIdentifier = any> extends CompletionList {
-    items: AppCompletionItem<T>[];
+    items: Array<AppCompletionItem<T>>;
 }
 
 export interface DiagnosticsProvider {

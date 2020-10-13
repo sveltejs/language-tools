@@ -6,7 +6,7 @@ import {
     TextEdit,
     Range,
     CompletionList,
-    CompletionContext,
+    CompletionContext
 } from 'vscode-languageserver';
 
 /**
@@ -16,22 +16,22 @@ export const tsDirectives = [
     {
         value: '@ts-check',
         description:
-            'Enables semantic checking in a JavaScript file. Must be at the top of a file.',
+            'Enables semantic checking in a JavaScript file. Must be at the top of a file.'
     },
     {
         value: '@ts-nocheck',
         description:
-            'Disables semantic checking in a JavaScript file. Must be at the top of a file.',
+            'Disables semantic checking in a JavaScript file. Must be at the top of a file.'
     },
     {
         value: '@ts-ignore',
-        description: 'Suppresses @ts-check errors on the next line of a file.',
+        description: 'Suppresses @ts-check errors on the next line of a file.'
     },
     {
         value: '@ts-expect-error',
         description:
-            'Suppresses @ts-check errors on the next line of a file, expecting at least one to exist.',
-    },
+            'Suppresses @ts-check errors on the next line of a file, expecting at least one to exist.'
+    }
 ];
 
 /**
@@ -40,7 +40,7 @@ export const tsDirectives = [
 export function getDirectiveCommentCompletions(
     position: Position,
     document: Document,
-    completionContext: CompletionContext | undefined,
+    completionContext: CompletionContext | undefined
 ) {
     // don't trigger until // @
     if (completionContext?.triggerCharacter === '/') {
@@ -70,8 +70,8 @@ export function getDirectiveCommentCompletions(
         kind: CompletionItemKind.Snippet,
         textEdit: TextEdit.replace(
             Range.create(start, Position.create(start.line, start.character + value.length)),
-            value,
-        ),
+            value
+        )
     }));
 
     return CompletionList.create(items, false);

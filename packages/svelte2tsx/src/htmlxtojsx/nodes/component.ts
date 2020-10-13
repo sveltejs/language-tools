@@ -39,7 +39,7 @@ function handleSlot(
     str: MagicString,
     slotEl: Node,
     component: Node,
-    slotName: string,
+    slotName: string
 ): void {
     //collect "let" definitions
     let hasMoved = false;

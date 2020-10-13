@@ -114,5 +114,5 @@ export default [
     // global events
     'oncancel',
     'onmessage',
-    'onmessageerror',
+    'onmessageerror'
 ];

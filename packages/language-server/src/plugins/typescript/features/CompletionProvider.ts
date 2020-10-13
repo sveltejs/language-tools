@@ -8,13 +8,13 @@ import {
     Position,
     Range,
     TextDocumentIdentifier,
-    TextEdit,
+    TextEdit
 } from 'vscode-languageserver';
 import {
     Document,
     isInTag,
     mapCompletionItemToOriginal,
-    mapRangeToOriginal,
+    mapRangeToOriginal
 } from '../../../lib/documents';
 import { flatten, getRegExpMatches, isNotNullOrUndefined, pathToUrl } from '../../../utils';
 import { AppCompletionItem, AppCompletionList, CompletionsProvider } from '../../interfaces';
@@ -23,7 +23,7 @@ import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import {
     convertRange,
     getCommitCharactersForScriptElement,
-    scriptElementKindToCompletionItemKind,
+    scriptElementKindToCompletionItemKind
 } from '../utils';
 import { getComponentAtPosition } from './utils';
 
@@ -34,7 +34,7 @@ export interface CompletionEntryWithIdentifer extends ts.CompletionEntry, TextDo
 type validTriggerCharacter = '.' | '"' | "'" | '`' | '/' | '@' | '<' | '#';
 
 export class CompletionsProviderImpl implements CompletionsProvider<CompletionEntryWithIdentifer> {
-    constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) { }
+    constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
 
     /**
      * The language service throws an error if the character is not a valid trigger character.
@@ -44,7 +44,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
     private readonly validTriggerCharacters = ['.', '"', "'", '`', '/', '@', '<', '#'] as const;
 
     private isValidTriggerCharacter(
-        character: string | undefined,
+        character: string | undefined
     ): character is validTriggerCharacter {
         return this.validTriggerCharacters.includes(character as validTriggerCharacter);
     }
@@ -52,7 +52,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
     async getCompletions(
         document: Document,
         position: Position,
-        completionContext?: CompletionContext,
+        completionContext?: CompletionContext
     ): Promise<AppCompletionList<CompletionEntryWithIdentifer> | null> {
         if (isInTag(position, document.styleInfo)) {
             return null;
@@ -88,14 +88,14 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         const completions =
             lang.getCompletionsAtPosition(filePath, offset, {
                 includeCompletionsForModuleExports: true,
-                triggerCharacter: validTriggerCharacter,
+                triggerCharacter: validTriggerCharacter
             })?.entries || [];
         const eventCompletions = this.getEventCompletions(
             lang,
             document,
             tsDoc,
             fragment,
-            position,
+            position
         );
 
         if (completions.length === 0 && eventCompletions.length === 0) {
@@ -110,8 +110,8 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
                     comp,
                     pathToUrl(tsDoc.filePath),
                     position,
-                    existingImports,
-                ),
+                    existingImports
+                )
             )
             .filter(isNotNullOrUndefined)
             .map((comp) => mapCompletionItemToOriginal(fragment, comp))
@@ -122,7 +122,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
 
     private getExistingImports(document: Document) {
         const rawImports = getRegExpMatches(scriptImportRegex, document.getText()).map((match) =>
-            (match[1] ?? match[2]).split(','),
+            (match[1] ?? match[2]).split(',')
         );
         const tidiedImports = flatten(rawImports).map((match) => match.trim());
         return new Set(tidiedImports);
@@ -133,15 +133,15 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         doc: Document,
         tsDoc: SvelteDocumentSnapshot,
         fragment: SvelteSnapshotFragment,
-        originalPosition: Position,
-    ): AppCompletionItem<CompletionEntryWithIdentifer>[] {
+        originalPosition: Position
+    ): Array<AppCompletionItem<CompletionEntryWithIdentifer>> {
         const snapshot = getComponentAtPosition(
             this.lsAndTsDocResolver,
             lang,
             doc,
             tsDoc,
             fragment,
-            originalPosition,
+            originalPosition
         );
         if (!snapshot) {
             return [];
@@ -151,7 +151,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             label: 'on:' + event.name,
             sortText: '-1',
             detail: event.name + ': ' + event.type,
-            documentation: event.doc && { kind: MarkupKind.Markdown, value: event.doc },
+            documentation: event.doc && { kind: MarkupKind.Markdown, value: event.doc }
         }));
     }
 
@@ -160,7 +160,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         comp: ts.CompletionEntry,
         uri: string,
         position: Position,
-        existingImports: Set<string>,
+        existingImports: Set<string>
     ): AppCompletionItem<CompletionEntryWithIdentifer> | null {
         const completionLabelAndInsert = this.getCompletionLabelAndInsert(fragment, comp);
         if (!completionLabelAndInsert) {
@@ -187,14 +187,14 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             data: {
                 ...comp,
                 uri,
-                position,
-            },
+                position
+            }
         };
     }
 
     private getCompletionLabelAndInsert(
         fragment: SvelteSnapshotFragment,
-        comp: ts.CompletionEntry,
+        comp: ts.CompletionEntry
     ) {
         let { kind, kindModifiers, name, source } = comp;
         const isScriptElement = kind === ts.ScriptElementKind.scriptElement;
@@ -212,20 +212,20 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             return {
                 insertText: name,
                 label: name + kindModifiers,
-                isSvelteComp,
+                isSvelteComp
             };
         }
 
         return {
             label: name,
-            isSvelteComp,
+            isSvelteComp
         };
     }
 
     private isExistingSvelteComponentImport(
         fragment: SvelteSnapshotFragment,
         name: string,
-        source?: string,
+        source?: string
     ): boolean {
         const importStatement = new RegExp(`import ${name} from ["'\`][\\s\\S]+\\.svelte["'\`]`);
         return !!source && !!fragment.text.match(importStatement);
@@ -233,7 +233,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
 
     async resolveCompletion(
         document: Document,
-        completionItem: AppCompletionItem<CompletionEntryWithIdentifer>,
+        completionItem: AppCompletionItem<CompletionEntryWithIdentifer>
     ): Promise<AppCompletionItem<CompletionEntryWithIdentifer>> {
         const { data: comp } = completionItem;
         const { tsDoc, lang } = this.lsAndTsDocResolver.getLSAndTSDoc(document);
@@ -251,13 +251,13 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             comp.name,
             {},
             comp.source,
-            {},
+            {}
         );
 
         if (detail) {
             const {
                 detail: itemDetail,
-                documentation: itemDocumentation,
+                documentation: itemDocumentation
             } = this.getCompletionDocument(detail);
 
             completionItem.detail = itemDetail;
@@ -273,7 +273,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             for (const action of actions) {
                 for (const change of action.changes) {
                     edit.push(
-                        ...this.codeActionChangesToTextEdit(document, fragment, change, isImport),
+                        ...this.codeActionChangesToTextEdit(document, fragment, change, isImport)
                     );
                 }
             }
@@ -299,7 +299,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
 
         return {
             documentation,
-            detail,
+            detail
         };
     }
 
@@ -307,10 +307,10 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         doc: Document,
         fragment: SvelteSnapshotFragment,
         changes: ts.FileTextChanges,
-        isImport: boolean,
+        isImport: boolean
     ): TextEdit[] {
         return changes.textChanges.map((change) =>
-            this.codeActionChangeToTextEdit(doc, fragment, change, isImport),
+            this.codeActionChangeToTextEdit(doc, fragment, change, isImport)
         );
     }
 
@@ -318,7 +318,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         doc: Document,
         fragment: SvelteSnapshotFragment,
         change: ts.TextChange,
-        isImport: boolean,
+        isImport: boolean
     ): TextEdit {
         change.newText = this.changeSvelteComponentImport(change.newText);
 
@@ -327,7 +327,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             // no script tag defined yet, add it.
             return TextEdit.replace(
                 beginOfDocumentRange,
-                `<script>${ts.sys.newLine}${change.newText}</script>${ts.sys.newLine}`,
+                `<script>${ts.sys.newLine}${change.newText}</script>${ts.sys.newLine}`
             );
         }
 
@@ -356,7 +356,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         ) {
             range = convertRange(doc, {
                 start: scriptTagInfo.start,
-                length: span.length,
+                length: span.length
             });
         }
         // prevent newText from being placed like this: <script>import {} from ''
@@ -380,7 +380,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
     private offsetLinesAndMovetoStartOfLine({ start, end }: Range, offsetLines: number) {
         return Range.create(
             Position.create(start.line + offsetLines, 0),
-            Position.create(end.line + offsetLines, 0),
+            Position.create(end.line + offsetLines, 0)
         );
     }
 

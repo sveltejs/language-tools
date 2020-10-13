@@ -11,11 +11,11 @@ import {
     Position,
     Range,
     CompletionTriggerKind,
-    MarkupKind,
+    MarkupKind
 } from 'vscode-languageserver';
 import {
     CompletionsProviderImpl,
-    CompletionEntryWithIdentifer,
+    CompletionEntryWithIdentifer
 } from '../../../../src/plugins/typescript/features/CompletionProvider';
 import { LSAndTSDocResolver } from '../../../../src/plugins/typescript/LSAndTSDocResolver';
 import { sortBy } from 'lodash';
@@ -31,14 +31,14 @@ const fileNameToAbsoluteUri = (file: string) => {
 describe('CompletionProviderImpl', () => {
     function setup(filename: string) {
         const docManager = new DocumentManager(
-            (textDocument) => new Document(textDocument.uri, textDocument.text),
+            (textDocument) => new Document(textDocument.uri, textDocument.text)
         );
         const lsAndTsDocResolver = new LSAndTSDocResolver(docManager, [pathToUrl(testDir)]);
         const completionProvider = new CompletionsProviderImpl(lsAndTsDocResolver);
         const filePath = join(testFilesDir, filename);
         const document = docManager.openDocument(<any>{
             uri: pathToUrl(filePath),
-            text: ts.sys.readFile(filePath) || '',
+            text: ts.sys.readFile(filePath) || ''
         });
         return { completionProvider, document, docManager };
     }
@@ -51,13 +51,13 @@ describe('CompletionProviderImpl', () => {
             Position.create(0, 49),
             {
                 triggerKind: CompletionTriggerKind.TriggerCharacter,
-                triggerCharacter: '.',
-            },
+                triggerCharacter: '.'
+            }
         );
 
         assert.ok(
             Array.isArray(completions && completions.items),
-            'Expected completion items to be an array',
+            'Expected completion items to be an array'
         );
         assert.ok(completions!.items.length > 0, 'Expected completions to have length');
 
@@ -70,7 +70,7 @@ describe('CompletionProviderImpl', () => {
             kind: CompletionItemKind.Method,
             sortText: '0',
             commitCharacters: ['.', ',', '('],
-            preselect: undefined,
+            preselect: undefined
         });
     });
 
@@ -81,13 +81,13 @@ describe('CompletionProviderImpl', () => {
             document,
             Position.create(4, 5),
             {
-                triggerKind: CompletionTriggerKind.Invoked,
-            },
+                triggerKind: CompletionTriggerKind.Invoked
+            }
         );
 
         assert.ok(
             Array.isArray(completions && completions.items),
-            'Expected completion items to be an array',
+            'Expected completion items to be an array'
         );
         assert.ok(completions!.items.length > 0, 'Expected completions to have length');
 
@@ -99,23 +99,23 @@ describe('CompletionProviderImpl', () => {
                 detail: 'a: CustomEvent<boolean>',
                 documentation: undefined,
                 label: 'on:a',
-                sortText: '-1',
+                sortText: '-1'
             },
             {
                 detail: 'b: MouseEvent',
                 documentation: {
                     kind: 'markdown',
-                    value: '\nTEST\n',
+                    value: '\nTEST\n'
                 },
                 label: 'on:b',
-                sortText: '-1',
+                sortText: '-1'
             },
             {
                 detail: 'c: Event',
                 documentation: undefined,
                 label: 'on:c',
-                sortText: '-1',
-            },
+                sortText: '-1'
+            }
         ]);
     });
 
@@ -127,8 +127,8 @@ describe('CompletionProviderImpl', () => {
             Position.create(4, 1),
             {
                 triggerKind: CompletionTriggerKind.Invoked,
-                triggerCharacter: 'a',
-            },
+                triggerCharacter: 'a'
+            }
         );
 
         assert.ok(completions === null, 'Expected completion to be null');
@@ -143,8 +143,8 @@ describe('CompletionProviderImpl', () => {
             Position.create(0, 49),
             {
                 triggerKind: CompletionTriggerKind.TriggerCharacter,
-                triggerCharacter: '.',
-            },
+                triggerCharacter: '.'
+            }
         );
 
         const { data } = completions!.items[0];
@@ -159,12 +159,12 @@ describe('CompletionProviderImpl', () => {
             name: 'b',
             position: {
                 character: 49,
-                line: 0,
+                line: 0
             },
             replacementSpan: undefined,
             sortText: '0',
             source: undefined,
-            uri: fileNameToAbsoluteUri(filename),
+            uri: fileNameToAbsoluteUri(filename)
         } as CompletionEntryWithIdentifer);
     });
 
@@ -180,8 +180,8 @@ describe('CompletionProviderImpl', () => {
                 kind: ts.ScriptElementKind.alias,
                 sortText: '0',
                 uri: '',
-                position: Position.create(3, 7),
-            },
+                position: Position.create(3, 7)
+            }
         });
 
         assert.deepStrictEqual(detail, '(alias) function foo(): boolean\nimport foo');
@@ -201,17 +201,17 @@ describe('CompletionProviderImpl', () => {
                 Position.create(0, 27),
                 {
                     triggerKind: CompletionTriggerKind.TriggerCharacter,
-                    triggerCharacter: '/',
-                },
+                    triggerCharacter: '/'
+                }
             );
             const mockedDirImportCompletion = completions?.items.find(
-                (item) => item.label === mockDirName,
+                (item) => item.label === mockDirName
             );
 
             assert.notEqual(
                 mockedDirImportCompletion,
                 undefined,
-                `can't provide completions on directory`,
+                'can\'t provide completions on directory'
             );
             assert.equal(mockedDirImportCompletion?.kind, CompletionItemKind.Folder);
         } finally {
@@ -229,7 +229,7 @@ describe('CompletionProviderImpl', () => {
             ts.Extension.Jsx,
             ts.Extension.Tsx,
             ts.Extension.Json,
-            '.svelte',
+            '.svelte'
         ];
         const ignores = ['tsconfig.json', sourceFile];
 
@@ -237,7 +237,7 @@ describe('CompletionProviderImpl', () => {
             .filter(
                 (f) =>
                     f.isDirectory() ||
-                    (supportedExtensions.includes(extname(f.name)) && !ignores.includes(f.name)),
+                    (supportedExtensions.includes(extname(f.name)) && !ignores.includes(f.name))
             )
             .map((f) => f.name);
 
@@ -246,16 +246,16 @@ describe('CompletionProviderImpl', () => {
             Position.create(0, 27),
             {
                 triggerKind: CompletionTriggerKind.TriggerCharacter,
-                triggerCharacter: '/',
-            },
+                triggerCharacter: '/'
+            }
         );
 
         assert.deepStrictEqual(
             sortBy(
                 completions?.items.map((item) => item.label),
-                (x) => x,
+                (x) => x
             ),
-            sortBy(testfiles, (x) => x),
+            sortBy(testfiles, (x) => x)
         );
     });
 
@@ -264,7 +264,7 @@ describe('CompletionProviderImpl', () => {
 
         const completions = await completionProvider.getCompletions(
             document,
-            Position.create(1, 3),
+            Position.create(1, 3)
         );
         document.version++;
 
@@ -275,7 +275,7 @@ describe('CompletionProviderImpl', () => {
 
         const { additionalTextEdits, detail } = await completionProvider.resolveCompletion(
             document,
-            item!,
+            item!
         );
 
         assert.strictEqual(detail, 'Auto import from ../definitions\nfunction blubb(): boolean');
@@ -283,12 +283,12 @@ describe('CompletionProviderImpl', () => {
         assert.strictEqual(
             harmonizeNewLines(additionalTextEdits![0]?.newText),
             // " instead of ' because VSCode uses " by default when there are no other imports indicating otherwise
-            `${newLine}import { blubb } from "../definitions";${newLine}${newLine}`,
+            `${newLine}import { blubb } from "../definitions";${newLine}${newLine}`
         );
 
         assert.deepEqual(
             additionalTextEdits![0]?.range,
-            Range.create(Position.create(0, 8), Position.create(0, 8)),
+            Range.create(Position.create(0, 8), Position.create(0, 8))
         );
     });
 
@@ -297,7 +297,7 @@ describe('CompletionProviderImpl', () => {
 
         const completions = await completionProvider.getCompletions(
             document,
-            Position.create(2, 3),
+            Position.create(2, 3)
         );
         document.version++;
 
@@ -308,19 +308,19 @@ describe('CompletionProviderImpl', () => {
 
         const { additionalTextEdits, detail } = await completionProvider.resolveCompletion(
             document,
-            item!,
+            item!
         );
 
         assert.strictEqual(detail, 'Auto import from ../definitions\nfunction blubb(): boolean');
 
         assert.strictEqual(
             harmonizeNewLines(additionalTextEdits![0]?.newText),
-            `import { blubb } from '../definitions';${newLine}`,
+            `import { blubb } from '../definitions';${newLine}`
         );
 
         assert.deepEqual(
             additionalTextEdits![0]?.range,
-            Range.create(Position.create(2, 0), Position.create(2, 0)),
+            Range.create(Position.create(2, 0), Position.create(2, 0))
         );
     });
 
@@ -329,7 +329,7 @@ describe('CompletionProviderImpl', () => {
 
         const completions = await completionProvider.getCompletions(
             document,
-            Position.create(0, 42),
+            Position.create(0, 42)
         );
         document.version++;
 
@@ -340,31 +340,31 @@ describe('CompletionProviderImpl', () => {
 
         const { additionalTextEdits, detail } = await completionProvider.resolveCompletion(
             document,
-            item!,
+            item!
         );
 
         assert.strictEqual(detail, 'Auto import from ../definitions\nfunction blubb(): boolean');
 
         assert.strictEqual(
             harmonizeNewLines(additionalTextEdits![0]?.newText),
-            `${newLine}import { blubb } from '../definitions';${newLine}`,
+            `${newLine}import { blubb } from '../definitions';${newLine}`
         );
 
         assert.deepEqual(
             additionalTextEdits![0]?.range,
-            Range.create(Position.create(0, 8), Position.create(0, 8)),
+            Range.create(Position.create(0, 8), Position.create(0, 8))
         );
     });
 
     async function openFileToBeImported(
         docManager: DocumentManager,
         completionProvider: CompletionsProviderImpl,
-        name = 'imported-file.svelte',
+        name = 'imported-file.svelte'
     ) {
         const filePath = join(testFilesDir, name);
         const hoverinfoDoc = docManager.openDocument(<any>{
             uri: pathToUrl(filePath),
-            text: ts.sys.readFile(filePath) || '',
+            text: ts.sys.readFile(filePath) || ''
         });
         await completionProvider.getCompletions(hoverinfoDoc, Position.create(1, 1));
     }
@@ -376,7 +376,7 @@ describe('CompletionProviderImpl', () => {
 
         const completions = await completionProvider.getCompletions(
             document,
-            Position.create(2, 7),
+            Position.create(2, 7)
         );
         document.version++;
 
@@ -387,7 +387,7 @@ describe('CompletionProviderImpl', () => {
 
         const { additionalTextEdits, detail } = await completionProvider.resolveCompletion(
             document,
-            item!,
+            item!
         );
 
         assert.strictEqual(detail, 'Auto import from ./imported-file.svelte\nclass ImportedFile');
@@ -395,12 +395,12 @@ describe('CompletionProviderImpl', () => {
         assert.strictEqual(
             harmonizeNewLines(additionalTextEdits![0]?.newText),
             // " instead of ' because VSCode uses " by default when there are no other imports indicating otherwise
-            `${newLine}import ImportedFile from "./imported-file.svelte";${newLine}`,
+            `${newLine}import ImportedFile from "./imported-file.svelte";${newLine}`
         );
 
         assert.deepEqual(
             additionalTextEdits![0]?.range,
-            Range.create(Position.create(0, 8), Position.create(0, 8)),
+            Range.create(Position.create(0, 8), Position.create(0, 8))
         );
     });
 
@@ -411,7 +411,7 @@ describe('CompletionProviderImpl', () => {
 
         const completions = await completionProvider.getCompletions(
             document,
-            Position.create(0, 7),
+            Position.create(0, 7)
         );
         document.version++;
 
@@ -422,7 +422,7 @@ describe('CompletionProviderImpl', () => {
 
         const { additionalTextEdits, detail } = await completionProvider.resolveCompletion(
             document,
-            item!,
+            item!
         );
 
         assert.strictEqual(detail, 'Auto import from ./imported-file.svelte\nclass ImportedFile');
@@ -431,12 +431,12 @@ describe('CompletionProviderImpl', () => {
             harmonizeNewLines(additionalTextEdits![0]?.newText),
             // " instead of ' because VSCode uses " by default when there are no other imports indicating otherwise
             `<script>${newLine}import ImportedFile from "./imported-file.svelte";` +
-                `${newLine}${newLine}</script>${newLine}`,
+                `${newLine}${newLine}</script>${newLine}`
         );
 
         assert.deepEqual(
             additionalTextEdits![0]?.range,
-            Range.create(Position.create(0, 0), Position.create(0, 0)),
+            Range.create(Position.create(0, 0), Position.create(0, 0))
         );
     });
 
@@ -447,7 +447,7 @@ describe('CompletionProviderImpl', () => {
 
         const completions = await completionProvider.getCompletions(
             document,
-            Position.create(3, 7),
+            Position.create(3, 7)
         );
         document.version++;
 
@@ -463,14 +463,14 @@ describe('CompletionProviderImpl', () => {
 
     it('doesnt suggest svelte auto import when already other import with same name present', async () => {
         const { completionProvider, document, docManager } = setup(
-            'importcompletions-2nd-import.svelte',
+            'importcompletions-2nd-import.svelte'
         );
         // make sure that the ts language service does know about the imported-file file
         await openFileToBeImported(docManager, completionProvider, 'ScndImport.svelte');
 
         const completions = await completionProvider.getCompletions(
             document,
-            Position.create(2, 13),
+            Position.create(2, 13)
         );
         document.version++;
 

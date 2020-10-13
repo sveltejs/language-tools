@@ -2,7 +2,7 @@ import { EventEmitter } from 'events';
 import {
     TextDocumentContentChangeEvent,
     TextDocumentItem,
-    VersionedTextDocumentIdentifier,
+    VersionedTextDocumentIdentifier
 } from 'vscode-languageserver';
 import { Document } from './Document';
 import { normalizeUri } from '../../utils';
@@ -20,7 +20,7 @@ export class DocumentManager {
     private deleteCandidates = new Set<string>();
 
     constructor(
-        private createDocument: (textDocument: Pick<TextDocumentItem, 'text' | 'uri'>) => Document,
+        private createDocument: (textDocument: Pick<TextDocumentItem, 'text' | 'uri'>) => Document
     ) {}
 
     openDocument(textDocument: Pick<TextDocumentItem, 'text' | 'uri'>): Document {
@@ -51,7 +51,7 @@ export class DocumentManager {
 
     getAllOpenedByClient() {
         return Array.from(this.documents.entries()).filter((doc) =>
-            this.openedInClient.has(doc[0]),
+            this.openedInClient.has(doc[0])
         );
     }
 
@@ -88,7 +88,7 @@ export class DocumentManager {
 
     updateDocument(
         textDocument: VersionedTextDocumentIdentifier,
-        changes: TextDocumentContentChangeEvent[],
+        changes: TextDocumentContentChangeEvent[]
     ) {
         const document = this.documents.get(normalizeUri(textDocument.uri));
         if (!document) {

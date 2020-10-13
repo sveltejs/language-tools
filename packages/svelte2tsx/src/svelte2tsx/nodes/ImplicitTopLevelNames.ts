@@ -3,7 +3,7 @@ import MagicString from 'magic-string';
 import {
     getBinaryAssignmentExpr,
     extractIdentifiers,
-    isParenthesizedObjectOrArrayLiteralExpression,
+    isParenthesizedObjectOrArrayLiteralExpression
 } from '../utils/tsAst';
 
 export class ImplicitTopLevelNames {
@@ -26,7 +26,7 @@ export class ImplicitTopLevelNames {
             if (this.hasOnlyImplicitTopLevelNames(names, implicitTopLevelNames)) {
                 // remove '$:' label
                 str.remove(pos + astOffset, pos + astOffset + 2);
-                str.prependRight(pos + astOffset, `let `);
+                str.prependRight(pos + astOffset, 'let ');
 
                 this.removeBracesFromParenthizedExpression(node, astOffset, str);
             } else {
@@ -58,7 +58,7 @@ export class ImplicitTopLevelNames {
     private removeBracesFromParenthizedExpression(
         node: ts.LabeledStatement,
         astOffset: number,
-        str: MagicString,
+        str: MagicString
     ) {
         // If expression is of type `$: ({a} = b);`,
         // remove the surrounding braces so that the transformation

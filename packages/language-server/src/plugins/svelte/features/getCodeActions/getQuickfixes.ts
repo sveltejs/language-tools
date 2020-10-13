@@ -9,7 +9,7 @@ import {
     Position,
     TextDocumentEdit,
     TextEdit,
-    VersionedTextDocumentIdentifier,
+    VersionedTextDocumentIdentifier
 } from 'vscode-languageserver';
 import { mapObjWithRangeToOriginal, offsetAt, positionAt } from '../../../../lib/documents';
 import { pathToUrl } from '../../../../utils';
@@ -28,25 +28,25 @@ type Node = any;
  */
 export async function getQuickfixActions(
     svelteDoc: SvelteDocument,
-    svelteDiagnostics: Diagnostic[],
+    svelteDiagnostics: Diagnostic[]
 ) {
     const { ast } = await svelteDoc.getCompiled();
 
     return Promise.all(
         svelteDiagnostics.map(
-            async (diagnostic) => await createQuickfixAction(diagnostic, svelteDoc, ast),
-        ),
+            async (diagnostic) => await createQuickfixAction(diagnostic, svelteDoc, ast)
+        )
     );
 }
 
 async function createQuickfixAction(
     diagnostic: Diagnostic,
     svelteDoc: SvelteDocument,
-    ast: Ast,
+    ast: Ast
 ): Promise<CodeAction> {
     const textDocument = VersionedTextDocumentIdentifier.create(
         pathToUrl(svelteDoc.getFilePath()),
-        svelteDoc.version,
+        svelteDoc.version
     );
 
     return CodeAction.create(
@@ -54,11 +54,11 @@ async function createQuickfixAction(
         {
             documentChanges: [
                 TextDocumentEdit.create(textDocument, [
-                    await getSvelteIgnoreEdit(svelteDoc, ast, diagnostic),
-                ]),
-            ],
+                    await getSvelteIgnoreEdit(svelteDoc, ast, diagnostic)
+                ])
+            ]
         },
-        CodeActionKind.QuickFix,
+        CodeActionKind.QuickFix
     );
 }
 
@@ -89,7 +89,7 @@ const nonIgnorableWarnings = [
 async function getSvelteIgnoreEdit(svelteDoc: SvelteDocument, ast: Ast, diagnostic: Diagnostic) {
     const {
         code,
-        range: { start, end },
+        range: { start, end }
     } = diagnostic;
     const transpiled = await svelteDoc.getTranspiled();
     const content = transpiled.getText();
@@ -99,7 +99,7 @@ async function getSvelteIgnoreEdit(svelteDoc: SvelteDocument, ast: Ast, diagnost
     const diagnosticEndOffset = offsetAt(end, transpiled.getText());
     const offsetRange: ts.TextRange = {
         pos: diagnosticStartOffset,
-        end: diagnosticEndOffset,
+        end: diagnosticEndOffset
     };
 
     const node = findTagForRange(html, offsetRange);
@@ -108,9 +108,9 @@ async function getSvelteIgnoreEdit(svelteDoc: SvelteDocument, ast: Ast, diagnost
     const nodeLineStart = offsetAt(
         {
             line: nodeStartPosition.line,
-            character: 0,
+            character: 0
         },
-        transpiled.getText(),
+        transpiled.getText()
     );
     const afterStartLineStart = content.slice(nodeLineStart);
     const indent = /^[ |\t]+/.exec(afterStartLineStart)?.[0] ?? '';
@@ -141,7 +141,7 @@ function findTagForRange(html: Node, range: ts.TextRange) {
             if (within(node, range) && parent === nearest) {
                 nearest = node;
             }
-        },
+        }
     });
 
     return nearest;

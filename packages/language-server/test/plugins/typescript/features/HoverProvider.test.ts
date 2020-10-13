@@ -16,7 +16,7 @@ describe('HoverProvider', () => {
 
     function setup(filename: string) {
         const docManager = new DocumentManager(
-            (textDocument) => new Document(textDocument.uri, textDocument.text),
+            (textDocument) => new Document(textDocument.uri, textDocument.text)
         );
         const lsAndTsDocResolver = new LSAndTSDocResolver(docManager, [testDir]);
         const provider = new HoverProviderImpl(lsAndTsDocResolver);
@@ -27,7 +27,7 @@ describe('HoverProvider', () => {
             const filePath = getFullPath(filename);
             const doc = docManager.openDocument(<any>{
                 uri: pathToUrl(filePath),
-                text: ts.sys.readFile(filePath) || '',
+                text: ts.sys.readFile(filePath) || ''
             });
             return doc;
         }
@@ -41,13 +41,13 @@ describe('HoverProvider', () => {
             range: {
                 start: {
                     character: 10,
-                    line: 6,
+                    line: 6
                 },
                 end: {
                     character: 21,
-                    line: 6,
-                },
-            },
+                    line: 6
+                }
+            }
         });
     });
 
@@ -59,13 +59,13 @@ describe('HoverProvider', () => {
             range: {
                 start: {
                     character: 10,
-                    line: 4,
+                    line: 4
                 },
                 end: {
                     character: 18,
-                    line: 4,
-                },
-            },
+                    line: 4
+                }
+            }
         });
     });
 
@@ -74,7 +74,7 @@ describe('HoverProvider', () => {
 
         assert.deepStrictEqual(await provider.doHover(document, Position.create(9, 26)), <Hover>{
             contents:
-                '```typescript\nabc: MouseEvent\n```\n\nTEST\n```ts\nconst abc: boolean = true;\n```\n',
+                '```typescript\nabc: MouseEvent\n```\n\nTEST\n```ts\nconst abc: boolean = true;\n```\n'
         });
     });
 });

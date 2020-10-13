@@ -10,7 +10,7 @@ import {
     offsetAt,
     positionAt,
     TagInformation,
-    isInTag,
+    isInTag
 } from '../../lib/documents';
 import { pathToUrl } from '../../utils';
 import { ConsumerDocumentMapper } from './DocumentMapper';
@@ -18,7 +18,7 @@ import {
     getScriptKindFromAttributes,
     getScriptKindFromFileName,
     isSvelteFilePath,
-    getTsCheckComment,
+    getTsCheckComment
 } from './utils';
 
 /**
@@ -89,7 +89,7 @@ export namespace DocumentSnapshot {
             componentEvents,
             parserError,
             nrPrependedLines,
-            scriptKind,
+            scriptKind
         } = preprocessSvelteFile(document, options);
 
         return new SvelteDocumentSnapshot(
@@ -100,7 +100,7 @@ export namespace DocumentSnapshot {
             nrPrependedLines,
             exportedNames,
             componentEvents,
-            tsxMap,
+            tsxMap
         );
     }
 
@@ -133,7 +133,7 @@ function preprocessSvelteFile(document: Document, options: SvelteSnapshotOptions
 
     const scriptKind = [
         getScriptKindFromAttributes(document.scriptInfo?.attributes ?? {}),
-        getScriptKindFromAttributes(document.moduleScriptInfo?.attributes ?? {}),
+        getScriptKindFromAttributes(document.moduleScriptInfo?.attributes ?? {})
     ].includes(ts.ScriptKind.TSX)
         ? ts.ScriptKind.TSX
         : ts.ScriptKind.JSX;
@@ -142,7 +142,7 @@ function preprocessSvelteFile(document: Document, options: SvelteSnapshotOptions
         const tsx = svelte2tsx(text, {
             strictMode: options.strictMode,
             filename: document.getFilePath() ?? undefined,
-            isTsFile: scriptKind === ts.ScriptKind.TSX,
+            isTsFile: scriptKind === ts.ScriptKind.TSX
         });
         text = tsx.code;
         tsxMap = tsx.map;
@@ -151,7 +151,8 @@ function preprocessSvelteFile(document: Document, options: SvelteSnapshotOptions
         if (tsxMap) {
             tsxMap.sources = [document.uri];
 
-            const tsCheck = getTsCheckComment(document.scriptInfo?.content);
+            const scriptInfo = document.scriptInfo || document.moduleScriptInfo;
+            const tsCheck = getTsCheckComment(scriptInfo?.content);
             if (tsCheck) {
                 text = tsCheck + text;
                 nrPrependedLines = 1;
@@ -161,18 +162,19 @@ function preprocessSvelteFile(document: Document, options: SvelteSnapshotOptions
         // Error start/end logic is different and has different offsets for line, so we need to convert that
         const start: Position = {
             line: e.start?.line - 1 ?? 0,
-            character: e.start?.column ?? 0,
+            character: e.start?.column ?? 0
         };
         const end: Position = e.end ? { line: e.end.line - 1, character: e.end.column } : start;
 
         parserError = {
             range: { start, end },
             message: e.message,
-            code: -1,
+            code: -1
         };
 
         // fall back to extracted script, if any
-        text = document.scriptInfo ? document.scriptInfo.content : '';
+        const scriptInfo = document.scriptInfo || document.moduleScriptInfo;
+        text = scriptInfo ? scriptInfo.content : '';
     }
 
     return {
@@ -182,7 +184,7 @@ function preprocessSvelteFile(document: Document, options: SvelteSnapshotOptions
         componentEvents,
         parserError,
         nrPrependedLines,
-        scriptKind,
+        scriptKind
     };
 }
 
@@ -202,7 +204,7 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
         private readonly nrPrependedLines: number,
         private readonly exportedNames: IExportedNames,
         private readonly componentEvents?: ComponentEvents,
-        private readonly tsxMap?: RawSourceMap,
+        private readonly tsxMap?: RawSourceMap
     ) {}
 
     get filePath() {
@@ -240,7 +242,7 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
                 await this.getMapper(uri),
                 this.text,
                 this.parent,
-                uri,
+                uri
             );
         }
         return this.fragment;
@@ -254,16 +256,18 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
     }
 
     private async getMapper(uri: string) {
-        if (!this.parent.scriptInfo) {
+        const scriptInfo = this.parent.scriptInfo || this.parent.moduleScriptInfo;
+
+        if (!scriptInfo) {
             return new IdentityMapper(uri);
         }
         if (!this.tsxMap) {
-            return new FragmentMapper(this.parent.getText(), this.parent.scriptInfo, uri);
+            return new FragmentMapper(this.parent.getText(), scriptInfo, uri);
         }
         return new ConsumerDocumentMapper(
             await new SourceMapConsumer(this.tsxMap),
             uri,
-            this.nrPrependedLines,
+            this.nrPrependedLines
         );
     }
 }
@@ -272,7 +276,8 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
  * A js/ts document snapshot suitable for the ts language service and the plugin.
  * Since no mapping has to be done here, it also implements the mapper interface.
  */
-export class JSOrTSDocumentSnapshot extends IdentityMapper
+export class JSOrTSDocumentSnapshot
+    extends IdentityMapper
     implements DocumentSnapshot, SnapshotFragment {
     scriptKind = getScriptKindFromFileName(this.filePath);
     scriptInfo = null;
@@ -280,7 +285,7 @@ export class JSOrTSDocumentSnapshot extends IdentityMapper
     constructor(
         public version: number,
         public readonly filePath: string,
-        private readonly text: string,
+        private readonly text: string
     ) {
         super(pathToUrl(filePath));
     }
@@ -323,11 +328,11 @@ export class SvelteSnapshotFragment implements SnapshotFragment {
         private readonly mapper: DocumentMapper,
         public readonly text: string,
         private readonly parent: Document,
-        private readonly url: string,
+        private readonly url: string
     ) {}
 
     get scriptInfo() {
-        return this.parent.scriptInfo;
+        return this.parent.scriptInfo || this.parent.moduleScriptInfo;
     }
 
     getOriginalPosition(pos: Position): Position {

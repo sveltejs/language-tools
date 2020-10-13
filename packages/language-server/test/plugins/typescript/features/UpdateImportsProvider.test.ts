@@ -7,7 +7,7 @@ import {
     Range,
     TextDocumentEdit,
     TextEdit,
-    VersionedTextDocumentIdentifier,
+    VersionedTextDocumentIdentifier
 } from 'vscode-languageserver';
 import { Document, DocumentManager } from '../../../../src/lib/documents';
 import { UpdateImportsProviderImpl } from '../../../../src/plugins/typescript/features/UpdateImportsProvider';
@@ -20,7 +20,7 @@ const testFilesDir = join(testDir, 'testfiles');
 describe('UpdateImportsProviderImpl', () => {
     function setup(filename: string) {
         const docManager = new DocumentManager(
-            (textDocument) => new Document(textDocument.uri, textDocument.text),
+            (textDocument) => new Document(textDocument.uri, textDocument.text)
         );
         const lsAndTsDocResolver = new LSAndTSDocResolver(docManager, [pathToUrl(testDir)]);
         const updateImportsProvider = new UpdateImportsProviderImpl(lsAndTsDocResolver);
@@ -28,7 +28,7 @@ describe('UpdateImportsProviderImpl', () => {
         const fileUri = pathToUrl(filePath);
         const document = docManager.openDocument(<any>{
             uri: fileUri,
-            text: ts.sys.readFile(filePath) || '',
+            text: ts.sys.readFile(filePath) || ''
         });
         lsAndTsDocResolver.getLSAndTSDoc(document); // this makes sure ts ls knows the file
         return { updateImportsProvider, fileUri };
@@ -42,16 +42,16 @@ describe('UpdateImportsProviderImpl', () => {
         const workspaceEdit = await updateImportsProvider.updateImports({
             // imported files both old and new have to actually exist, so we just use some other test files
             oldUri: pathToUrl(join(testFilesDir, 'diagnostics.svelte')),
-            newUri: pathToUrl(join(testFilesDir, 'documentation.svelte')),
+            newUri: pathToUrl(join(testFilesDir, 'documentation.svelte'))
         });
 
         assert.deepStrictEqual(workspaceEdit?.documentChanges, [
             TextDocumentEdit.create(VersionedTextDocumentIdentifier.create(fileUri, null), [
                 TextEdit.replace(
                     Range.create(Position.create(1, 17), Position.create(1, 37)),
-                    './documentation.svelte',
-                ),
-            ]),
+                    './documentation.svelte'
+                )
+            ])
         ]);
     });
 });

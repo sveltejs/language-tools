@@ -9,7 +9,7 @@ import {
     Range,
     TextEdit,
     WorkspaceEdit,
-    SelectionRange,
+    SelectionRange
 } from 'vscode-languageserver';
 import { Document } from '../../lib/documents';
 import { LSConfigManager, LSSvelteConfig } from '../../ls-config';
@@ -20,7 +20,7 @@ import {
     DiagnosticsProvider,
     FormattingProvider,
     HoverProvider,
-    SelectionRangeProvider,
+    SelectionRangeProvider
 } from '../interfaces';
 import { executeCommand, getCodeActions } from './features/getCodeActions';
 import { getCompletions } from './features/getCompletions';
@@ -50,7 +50,7 @@ export class SveltePlugin
         return getDiagnostics(
             document,
             await this.getSvelteDoc(document),
-            this.configManager.getConfig().svelte.compilerWarnings,
+            this.configManager.getConfig().svelte.compilerWarnings
         );
     }
 
@@ -77,11 +77,11 @@ export class SveltePlugin
             // Be defensive here because IDEs other than VSCode might not have these settings
             (options && {
                 tabWidth: options.tabSize,
-                useTabs: !options.insertSpaces,
+                useTabs: !options.insertSpaces
             });
         // Take .prettierignore into account
         const fileInfo = await prettier.getFileInfo(filePath, {
-            ignorePath: this.prettierConfig?.ignorePath ?? '.prettierignore',
+            ignorePath: this.prettierConfig?.ignorePath ?? '.prettierignore'
         });
         if (fileInfo.ignored) {
             Logger.log('File is ignored, formatting skipped');
@@ -91,14 +91,14 @@ export class SveltePlugin
         const formattedCode = prettier.format(document.getText(), {
             ...config,
             plugins: getSveltePlugin(),
-            parser: 'svelte' as any,
+            parser: 'svelte' as any
         });
 
         return [
             TextEdit.replace(
                 Range.create(document.positionAt(0), document.positionAt(document.getTextLength())),
-                formattedCode,
-            ),
+                formattedCode
+            )
         ];
 
         function getSveltePlugin() {
@@ -138,7 +138,7 @@ export class SveltePlugin
     async getCodeActions(
         document: Document,
         range: Range,
-        context: CodeActionContext,
+        context: CodeActionContext
     ): Promise<CodeAction[]> {
         if (!this.featureEnabled('codeActions')) {
             return [];
@@ -155,7 +155,7 @@ export class SveltePlugin
     async executeCommand(
         document: Document,
         command: string,
-        args?: any[],
+        args?: any[]
     ): Promise<WorkspaceEdit | string | null> {
         if (!this.featureEnabled('codeActions')) {
             return null;
