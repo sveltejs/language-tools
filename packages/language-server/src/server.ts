@@ -94,7 +94,11 @@ export function startServer(options?: LSOptions) {
             Logger.error('No workspace path set');
         }
 
-        pluginHost.initialize(!!evt.initializationOptions?.dontFilterIncompleteCompletions);
+        pluginHost.initialize({
+            filterIncompleteCompletions: !evt.initializationOptions
+                ?.dontFilterIncompleteCompletions,
+            definitionLinkSupport: !!evt.capabilities.textDocument?.definition?.linkSupport
+        });
         pluginHost.updateConfig(evt.initializationOptions?.config || {});
         pluginHost.register(
             (sveltePlugin = new SveltePlugin(
