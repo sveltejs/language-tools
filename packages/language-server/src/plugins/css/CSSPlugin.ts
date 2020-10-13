@@ -1,4 +1,8 @@
-import { getEmmetCompletionParticipants, doComplete as doEmmetComplete } from 'vscode-emmet-helper';
+import {
+    getEmmetCompletionParticipants,
+    doComplete as doEmmetComplete,
+    EmmetConfiguration
+} from 'vscode-emmet-helper';
 import {
     Color,
     ColorInformation,
@@ -50,7 +54,11 @@ export class CSSPlugin
     private triggerCharacters = ['.', ':', '-', '/'];
     private globalVars = new GlobalVars();
 
-    constructor(docManager: DocumentManager, configManager: LSConfigManager) {
+    constructor(
+        docManager: DocumentManager,
+        configManager: LSConfigManager,
+        private emmetConfig?: EmmetConfiguration
+    ) {
         this.configManager = configManager;
 
         this.globalVars.watchFiles(this.configManager.get('css.globals'));
@@ -129,7 +137,7 @@ export class CSSPlugin
         if (isSASS(cssDocument)) {
             // the css language service does not support sass, still we can use
             // the emmet helper directly to at least get emmet completions
-            return doEmmetComplete(document, position, 'sass', {});
+            return doEmmetComplete(document, position, 'sass', this.emmetConfig || {});
         }
 
         const type = extractLanguage(cssDocument);
@@ -147,7 +155,7 @@ export class CSSPlugin
                 cssDocument,
                 cssDocument.getGeneratedPosition(position),
                 getLanguage(type),
-                {},
+                this.emmetConfig || {},
                 emmetResults
             )
         ]);

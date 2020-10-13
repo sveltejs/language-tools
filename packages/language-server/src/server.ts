@@ -102,8 +102,12 @@ export function startServer(options?: LSOptions) {
                 evt.initializationOptions?.prettierConfig
             ))
         );
-        pluginHost.register(new HTMLPlugin(docManager, configManager));
-        pluginHost.register(new CSSPlugin(docManager, configManager));
+        pluginHost.register(
+            new HTMLPlugin(docManager, configManager, evt.initializationOptions?.emmetConfig)
+        );
+        pluginHost.register(
+            new CSSPlugin(docManager, configManager, evt.initializationOptions?.emmetConfig)
+        );
         pluginHost.register(new TypeScriptPlugin(docManager, configManager, workspaceUris));
 
         const clientSupportApplyEditCommand = !!evt.capabilities.workspace?.applyEdit;
