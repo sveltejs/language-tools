@@ -25,7 +25,7 @@ describe('Svelte Plugin', () => {
             'A11y: <img> element should have an alt attribute',
             DiagnosticSeverity.Warning,
             'a11y-missing-attribute',
-            'svelte',
+            'svelte'
         );
 
         assert.deepStrictEqual(diagnostics, [diagnostic]);
@@ -40,7 +40,7 @@ describe('Svelte Plugin', () => {
             'whatever is not declared',
             DiagnosticSeverity.Error,
             'binding-undeclared',
-            'svelte',
+            'svelte'
         );
 
         assert.deepStrictEqual(diagnostics, [diagnostic]);
@@ -54,7 +54,7 @@ describe('Svelte Plugin', () => {
                 resolveConfig: () => Promise.resolve(config),
                 getFileInfo: () => ({ ignored: false }),
                 format: formatStub,
-                getSupportInfo: () => ({ languages: [{ name: 'svelte' }] }),
+                getSupportInfo: () => ({ languages: [{ name: 'svelte' }] })
             });
 
             return formatStub;
@@ -66,7 +66,7 @@ describe('Svelte Plugin', () => {
 
             const formatted = await plugin.formatDocument(document, {
                 insertSpaces: true,
-                tabSize: 4,
+                tabSize: 4
             });
             assert.deepStrictEqual(formatted, [
                 {
@@ -74,14 +74,14 @@ describe('Svelte Plugin', () => {
                     range: {
                         end: {
                             character: 11,
-                            line: 0,
+                            line: 0
                         },
                         start: {
                             character: 0,
-                            line: 0,
-                        },
-                    },
-                },
+                            line: 0
+                        }
+                    }
+                }
             ]);
 
             return formatStub;
@@ -96,7 +96,7 @@ describe('Svelte Plugin', () => {
             sinon.assert.calledOnceWithExactly(formatStub, 'unformatted', {
                 fromConfig: true,
                 plugins: [],
-                parser: 'svelte',
+                parser: 'svelte'
             });
         });
 
@@ -105,7 +105,7 @@ describe('Svelte Plugin', () => {
             sinon.assert.calledOnceWithExactly(formatStub, 'unformatted', {
                 fallbackConfig: true,
                 plugins: [],
-                parser: 'svelte',
+                parser: 'svelte'
             });
         });
 
@@ -115,7 +115,7 @@ describe('Svelte Plugin', () => {
                 tabWidth: 4,
                 useTabs: false,
                 plugins: [],
-                parser: 'svelte',
+                parser: 'svelte'
             });
         });
 
@@ -125,7 +125,7 @@ describe('Svelte Plugin', () => {
                 tabWidth: 4,
                 useTabs: false,
                 plugins: [],
-                parser: 'svelte',
+                parser: 'svelte'
             });
         });
     });

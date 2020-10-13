@@ -22,16 +22,16 @@ export interface SvelteConfig {
 }
 
 const DEFAULT_OPTIONS: CompileOptions = {
-    dev: true,
+    dev: true
 };
 
 const NO_GENERATE: CompileOptions = {
-    generate: false,
+    generate: false
 };
 
 const svelteConfigExplorer = cosmiconfigSync('svelte', {
     packageProp: 'svelte-ls',
-    cache: true,
+    cache: true
 });
 
 /**
@@ -49,7 +49,7 @@ export function loadConfig(path: string): SvelteConfig {
         }
         return {
             ...config,
-            compilerOptions: { ...DEFAULT_OPTIONS, ...config.compilerOptions, ...NO_GENERATE },
+            compilerOptions: { ...DEFAULT_OPTIONS, ...config.compilerOptions, ...NO_GENERATE }
         };
     } catch (err) {
         Logger.error('Error while loading config');
@@ -58,9 +58,9 @@ export function loadConfig(path: string): SvelteConfig {
             ...useFallbackPreprocessor(path, true),
             compilerOptions: {
                 ...DEFAULT_OPTIONS,
-                ...NO_GENERATE,
+                ...NO_GENERATE
             },
-            loadConfigError: err,
+            loadConfigError: err
         };
     }
 }
@@ -70,13 +70,13 @@ function useFallbackPreprocessor(path: string, foundConfig: boolean): SvelteConf
         (foundConfig
             ? 'Found svelte.config.js but there was an error loading it. '
             : 'No svelte.config.js found. ') +
-            'Using https://github.com/sveltejs/svelte-preprocess as fallback',
+            'Using https://github.com/sveltejs/svelte-preprocess as fallback'
     );
     return {
         preprocess: importSveltePreprocess(path)({
             // 4.x does not have transpileOnly anymore, but if the user has version 3.x
             // in his repo, that one is loaded instead, for which we still need this.
-            typescript: <any>{ transpileOnly: true, compilerOptions: { sourceMap: true } },
-        }),
+            typescript: <any>{ transpileOnly: true, compilerOptions: { sourceMap: true } }
+        })
     };
 }

@@ -12,7 +12,7 @@ import { SvelteDocument, TranspileErrorSource } from '../SvelteDocument';
 export async function getDiagnostics(
     document: Document,
     svelteDoc: SvelteDocument,
-    settings: CompilerWarningsSettings,
+    settings: CompilerWarningsSettings
 ): Promise<Diagnostic[]> {
     if (svelteDoc.config.loadConfigError) {
         return getConfigLoadErrorDiagnostics(svelteDoc.config.loadConfigError);
@@ -31,7 +31,7 @@ export async function getDiagnostics(
 async function tryGetDiagnostics(
     document: Document,
     svelteDoc: SvelteDocument,
-    settings: CompilerWarningsSettings,
+    settings: CompilerWarningsSettings
 ): Promise<Diagnostic[]> {
     const transpiled = await svelteDoc.getTranspiled();
 
@@ -50,14 +50,14 @@ async function tryGetDiagnostics(
                             ? DiagnosticSeverity.Error
                             : DiagnosticSeverity.Warning,
                     source: 'svelte',
-                    code: warning.code,
+                    code: warning.code
                 };
             })
             .map((diag) => mapObjWithRangeToOriginal(transpiled, diag))
             .filter((diag) => isNoFalsePositive(diag, document));
     } catch (err) {
         return (await createParserErrorDiagnostic(err, document)).map((diag) =>
-            mapObjWithRangeToOriginal(transpiled, diag),
+            mapObjWithRangeToOriginal(transpiled, diag)
         );
     }
 }
@@ -73,14 +73,14 @@ async function createParserErrorDiagnostic(error: any, document: Document) {
         message: error.message,
         severity: DiagnosticSeverity.Error,
         source: 'svelte',
-        code: error.code,
+        code: error.code
     };
 
     if (diagnostic.message.includes('expected')) {
         const isInStyle = isInTag(diagnostic.range.start, document.styleInfo);
         const isInScript = isInTag(
             diagnostic.range.start,
-            document.scriptInfo || document.moduleScriptInfo,
+            document.scriptInfo || document.moduleScriptInfo
         );
 
         if (isInStyle || isInScript) {
@@ -130,8 +130,8 @@ function getConfigLoadErrorDiagnostics(error: any): Diagnostic[] {
             message: 'Error in svelte.config.js\n\n' + error,
             range: Range.create(Position.create(0, 0), Position.create(0, 5)),
             severity: DiagnosticSeverity.Error,
-            source: 'svelte',
-        },
+            source: 'svelte'
+        }
     ];
 }
 
@@ -144,8 +144,8 @@ function getStyleErrorDiagnostics(error: any, document: Document): Diagnostic[] 
             message: getStyleErrorMessage(),
             range: getStyleErrorRange(),
             severity: DiagnosticSeverity.Error,
-            source: 'svelte(style)',
-        },
+            source: 'svelte(style)'
+        }
     ];
 
     function getStyleErrorMessage() {
@@ -182,8 +182,8 @@ function getScriptErrorDiagnostics(error: any, document: Document): Diagnostic[]
             message: getScriptErrorMessage(),
             range: getScriptErrorRange(),
             severity: DiagnosticSeverity.Error,
-            source: 'svelte(script)',
-        },
+            source: 'svelte(script)'
+        }
     ];
 
     function getScriptErrorMessage() {
@@ -212,8 +212,8 @@ function getOtherErrorDiagnostics(error: any): Diagnostic[] {
             message: getOtherErrorMessage(),
             range: Range.create(Position.create(0, 0), Position.create(0, 5)),
             severity: DiagnosticSeverity.Warning,
-            source: 'svelte',
-        },
+            source: 'svelte'
+        }
     ];
 
     function getOtherErrorMessage() {
@@ -255,10 +255,10 @@ function isNoFalsePositive(diag: Diagnostic, doc: Document): boolean {
     // because that position could be wrong when source mapping trips up.
     const unusedExportName = diag.message.substring(
         diag.message.indexOf("'") + 1,
-        diag.message.lastIndexOf("'"),
+        diag.message.lastIndexOf("'")
     );
     const hasExportedEnumWithThatName = new RegExp(
-        `\\bexport\\s+?enum\\s+?${unusedExportName}\\b`,
+        `\\bexport\\s+?enum\\s+?${unusedExportName}\\b`
     ).test(doc.getText());
     return !hasExportedEnumWithThatName;
 }

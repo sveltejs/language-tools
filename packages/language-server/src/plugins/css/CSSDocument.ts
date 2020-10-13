@@ -19,7 +19,7 @@ export class CSSDocument extends ReadableDocument implements DocumentMapper {
             this.styleInfo = {
                 attributes: {},
                 start: -1,
-                end: -1,
+                end: -1
             };
         }
 

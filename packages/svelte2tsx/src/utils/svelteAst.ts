@@ -2,7 +2,7 @@ import { Node } from 'estree-walker';
 import {
     SvelteIdentifier,
     SvelteArrayPattern,
-    SvelteObjectPattern,
+    SvelteObjectPattern
 } from '../interfaces';
 
 export function isMember(parent: Node, prop: string) {
@@ -33,7 +33,7 @@ export function attributeValueIsString(attr: Node) {
 }
 
 export function isDestructuringPatterns(
-    node: Node,
+    node: Node
 ): node is SvelteArrayPattern | SvelteObjectPattern {
     return node.type === 'ArrayPattern' || node.type === 'ObjectPattern';
 }

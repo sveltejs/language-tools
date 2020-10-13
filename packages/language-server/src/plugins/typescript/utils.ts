@@ -5,7 +5,7 @@ import {
     DiagnosticSeverity,
     Position,
     Range,
-    SymbolKind,
+    SymbolKind
 } from 'vscode-languageserver';
 import { mapRangeToOriginal } from '../../lib/documents';
 import { pathToUrl } from '../../utils';
@@ -46,7 +46,7 @@ export function getExtensionFromScriptKind(kind: ts.ScriptKind | undefined): ts.
 }
 
 export function getScriptKindFromAttributes(
-    attrs: Record<string, string>,
+    attrs: Record<string, string>
 ): ts.ScriptKind.TSX | ts.ScriptKind.JSX {
     const type = attrs.lang || attrs.type;
 
@@ -81,11 +81,11 @@ export function ensureRealSvelteFilePath(filePath: string) {
 
 export function convertRange(
     document: { positionAt: (offset: number) => Position },
-    range: { start?: number; length?: number },
+    range: { start?: number; length?: number }
 ): Range {
     return Range.create(
         document.positionAt(range.start || 0),
-        document.positionAt((range.start || 0) + (range.length || 0)),
+        document.positionAt((range.start || 0) + (range.length || 0))
     );
 }
 
@@ -168,7 +168,7 @@ export function symbolKindFromString(kind: string): SymbolKind {
 }
 
 export function scriptElementKindToCompletionItemKind(
-    kind: ts.ScriptElementKind,
+    kind: ts.ScriptElementKind
 ): CompletionItemKind {
     switch (kind) {
         case ts.ScriptElementKind.primitiveType:
@@ -214,7 +214,7 @@ export function scriptElementKindToCompletionItemKind(
 }
 
 export function getCommitCharactersForScriptElement(
-    kind: ts.ScriptElementKind,
+    kind: ts.ScriptElementKind
 ): string[] | undefined {
     const commitCharacters: string[] = [];
     switch (kind) {

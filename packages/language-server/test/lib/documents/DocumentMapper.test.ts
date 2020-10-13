@@ -10,9 +10,9 @@ describe('DocumentMapper', () => {
                     start,
                     end,
                     endPos: positionAt(end, content),
-                    content: content.substring(start, end),
+                    content: content.substring(start, end)
                 },
-                'file:///hello.svelte',
+                'file:///hello.svelte'
             );
         }
 
@@ -30,7 +30,7 @@ describe('DocumentMapper', () => {
 
             assert.deepStrictEqual(fragment.getOriginalPosition({ line: 0, character: 2 }), {
                 line: 1,
-                character: 2,
+                character: 2
             });
         });
 
@@ -39,7 +39,7 @@ describe('DocumentMapper', () => {
 
             assert.deepStrictEqual(fragment.getGeneratedPosition({ line: 1, character: 2 }), {
                 line: 0,
-                character: 2,
+                character: 2
             });
         });
     });

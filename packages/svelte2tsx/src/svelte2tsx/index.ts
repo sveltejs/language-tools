@@ -11,7 +11,7 @@ import { ExportedNames } from './nodes/ExportedNames';
 import { createClassGetters, createRenderFunctionGetterStr } from './nodes/exportgetters';
 import {
     handleScopeAndResolveForSlot,
-    handleScopeAndResolveLetVarForSlot,
+    handleScopeAndResolveLetVarForSlot
 } from './nodes/handleScopeAndResolveForSlot';
 import { Scripts } from './nodes/Scripts';
 import { SlotHandler } from './nodes/slot';
@@ -19,7 +19,7 @@ import { Stores } from './nodes/Stores';
 import TemplateScope from './nodes/TemplateScope';
 import {
     InstanceScriptProcessResult,
-    processInstanceScriptContent,
+    processInstanceScriptContent
 } from './processInstanceScriptContent';
 import { processModuleScriptTag } from './processModuleScriptTag';
 import { ScopeStack } from './utils/Scope';
@@ -136,7 +136,7 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
                 slotName,
                 slotHandler,
                 templateScope,
-                component,
+                component
             });
         }
     };
@@ -144,14 +144,14 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
     const handleScopeAndResolveForSlotInner = (
         identifierDef: Node,
         initExpression: Node,
-        owner: Node,
+        owner: Node
     ) => {
         handleScopeAndResolveForSlot({
             identifierDef,
             initExpression,
             slotHandler,
             templateScope,
-            owner,
+            owner
         });
     };
 
@@ -267,7 +267,7 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
         uses$$props,
         uses$$restProps,
         uses$$slots,
-        componentDocumentation,
+        componentDocumentation
     };
 }
 
@@ -279,7 +279,7 @@ function addComponentExport({
     isTsFile,
     getters,
     fileName,
-    componentDocumentation,
+    componentDocumentation
 }: AddComponentExportPara) {
     const eventsDef = strictEvents ? 'render' : '__sveltets_with_any_event(render)';
     const propDef =
@@ -333,7 +333,7 @@ function createRenderFunction({
     isTsFile,
     uses$$props,
     uses$$restProps,
-    uses$$slots,
+    uses$$slots
 }: CreateRenderFunctionPara) {
     const htmlx = str.original;
     let propsDecl = '';
@@ -363,7 +363,7 @@ function createRenderFunction({
         const scriptEndTagStart = htmlx.lastIndexOf('<', scriptTag.end - 1);
         // wrap template with callback
         str.overwrite(scriptEndTagStart, scriptTag.end, ';\n() => (<>', {
-            contentOnly: true,
+            contentOnly: true
         });
     } else {
         str.prependRight(scriptDestination, `</>;function render() {${propsDecl}\n<>`);
@@ -383,7 +383,7 @@ function createRenderFunction({
 
     const returnString =
         `\nreturn { props: ${exportedNames.createPropsStr(
-            isTsFile,
+            isTsFile
         )}, slots: ${slotsAsDef}, getters: ${createRenderFunctionGetterStr(getters)}` +
         `, events: ${events.toDefString()} }}`;
 
@@ -397,7 +397,7 @@ function createRenderFunction({
 
 export function svelte2tsx(
     svelte: string,
-    options?: { filename?: string; strictMode?: boolean; isTsFile?: boolean },
+    options?: { filename?: string; strictMode?: boolean; isTsFile?: boolean }
 ) {
     const str = new MagicString(svelte);
     // process the htmlx as a svelte template
@@ -409,7 +409,7 @@ export function svelte2tsx(
         uses$$slots,
         uses$$restProps,
         events,
-        componentDocumentation,
+        componentDocumentation
     } = processSvelteTemplate(str);
 
     /* Rearrange the script tags so that module is first, and instance second followed finally by the template
@@ -457,7 +457,7 @@ export function svelte2tsx(
         isTsFile: options?.isTsFile,
         uses$$props,
         uses$$restProps,
-        uses$$slots,
+        uses$$slots
     });
 
     // we need to process the module script after the instance script has moved otherwise we get warnings about moving edited items
@@ -473,7 +473,7 @@ export function svelte2tsx(
         isTsFile: options?.isTsFile,
         getters,
         fileName: options?.filename,
-        componentDocumentation,
+        componentDocumentation
     });
 
     str.prepend('///<reference types="svelte" />\n');
@@ -482,6 +482,6 @@ export function svelte2tsx(
         code: str.toString(),
         map: str.generateMap({ hires: true, source: options?.filename }),
         exportedNames,
-        events: events.createAPI(),
+        events: events.createAPI()
     };
 }

@@ -5,7 +5,7 @@ import {
     CompletionList,
     CompletionItemKind,
     CompletionItem,
-    InsertTextFormat,
+    InsertTextFormat
 } from 'vscode-languageserver';
 import { SvelteTag, documentation, getLatestOpeningTag } from './SvelteTags';
 import { isInTag } from '../../../lib/documents';
@@ -22,12 +22,12 @@ const componentDocumentationCompletion: CompletionItem = {
     kind: CompletionItemKind.Snippet,
     sortText: '-1',
     filterText: 'component',
-    preselect: true,
+    preselect: true
 };
 
 export function getCompletions(
     svelteDoc: SvelteDocument,
-    position: Position,
+    position: Position
 ): CompletionList | null {
     const offset = svelteDoc.offsetAt(position);
 
@@ -40,7 +40,7 @@ export function getCompletions(
         // use last 10 characters, should cover 99% of all cases
         .substr(Math.max(offset - 10, 0), Math.min(offset, 10));
     const notPreceededByOpeningBracket = !/[\s\S]*{\s*[#:/@]\w*$/.test(
-        lastCharactersBeforePosition,
+        lastCharactersBeforePosition
     );
     if (isInStyleOrScript) {
         return null;
@@ -84,12 +84,12 @@ export function getCompletions(
 function getCompletionsWithRegardToTriggerCharacter(
     triggerCharacter: string,
     svelteDoc: SvelteDocument,
-    offset: number,
+    offset: number
 ) {
     if (triggerCharacter === '@') {
         return createCompletionItems([
             { tag: 'html', label: 'html' },
-            { tag: 'debug', label: 'debug' },
+            { tag: 'debug', label: 'debug' }
         ]);
     }
 
@@ -100,14 +100,14 @@ function getCompletionsWithRegardToTriggerCharacter(
             {
                 tag: 'await',
                 label: 'await :then',
-                insertText: 'await $1}\n\t$2\n{:then $3} \n\t$4\n{/await',
+                insertText: 'await $1}\n\t$2\n{:then $3} \n\t$4\n{/await'
             },
             {
                 tag: 'await',
                 label: 'await then',
-                insertText: 'await $1 then $2}\n\t$3\n{/await',
+                insertText: 'await $1 then $2}\n\t$3\n{/await'
             },
-            { tag: 'key', label: 'key', insertText: 'key $1}\n\t$2\n{/key' },
+            { tag: 'key', label: 'key', insertText: 'key $1}\n\t$2\n{/key' }
         ]);
     }
 
@@ -116,16 +116,16 @@ function getCompletionsWithRegardToTriggerCharacter(
             {
                 awaitOpen: createCompletionItems([
                     { tag: 'await', label: 'then' },
-                    { tag: 'await', label: 'catch' },
+                    { tag: 'await', label: 'catch' }
                 ]),
                 eachOpen: createCompletionItems([{ tag: 'each', label: 'else' }]),
                 ifOpen: createCompletionItems([
                     { tag: 'if', label: 'else' },
-                    { tag: 'if', label: 'else if' },
-                ]),
+                    { tag: 'if', label: 'else if' }
+                ])
             },
             svelteDoc,
-            offset,
+            offset
         );
     }
 
@@ -135,10 +135,10 @@ function getCompletionsWithRegardToTriggerCharacter(
                 awaitOpen: createCompletionItems([{ tag: 'await', label: 'await' }]),
                 eachOpen: createCompletionItems([{ tag: 'each', label: 'each' }]),
                 ifOpen: createCompletionItems([{ tag: 'if', label: 'if' }]),
-                keyOpen: createCompletionItems([{ tag: 'key', label: 'key' }]),
+                keyOpen: createCompletionItems([{ tag: 'key', label: 'key' }])
             },
             svelteDoc,
-            offset,
+            offset
         );
     }
 
@@ -153,7 +153,7 @@ function getTriggerCharacter(content: string) {
         getLastIndexOf('#'),
         getLastIndexOf('/'),
         getLastIndexOf(':'),
-        getLastIndexOf('@'),
+        getLastIndexOf('@')
     ];
     return chars.sort((c1, c2) => c2.idx - c1.idx)[0].char;
 
@@ -173,7 +173,7 @@ function showCompletionWithRegardsToOpenedTags(
         keyOpen?: CompletionList;
     },
     svelteDoc: SvelteDocument,
-    offset: number,
+    offset: number
 ) {
     switch (getLatestOpeningTag(svelteDoc, offset)) {
         case 'each':
@@ -193,7 +193,7 @@ function showCompletionWithRegardsToOpenedTags(
  * Create the completion items for given labels and tags.
  */
 function createCompletionItems(
-    items: { label: string; tag: SvelteTag; insertText?: string }[],
+    items: Array<{ label: string; tag: SvelteTag; insertText?: string }>
 ): CompletionList {
     return CompletionList.create(
         // add sortText/preselect so it is ranked higher than other completions and selected first
@@ -208,9 +208,9 @@ function createCompletionItems(
                     preselect: true,
                     documentation: {
                         kind: 'markdown',
-                        value: documentation[item.tag],
-                    },
-                },
-        ),
+                        value: documentation[item.tag]
+                    }
+                }
+        )
     );
 }

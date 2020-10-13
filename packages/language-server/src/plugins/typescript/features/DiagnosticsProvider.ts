@@ -21,15 +21,15 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
                     severity: DiagnosticSeverity.Error,
                     source: isTypescript ? 'ts' : 'js',
                     message: tsDoc.parserError.message,
-                    code: tsDoc.parserError.code,
-                },
+                    code: tsDoc.parserError.code
+                }
             ];
         }
 
         const diagnostics: ts.Diagnostic[] = [
             ...lang.getSyntacticDiagnostics(tsDoc.filePath),
             ...lang.getSuggestionDiagnostics(tsDoc.filePath),
-            ...lang.getSemanticDiagnostics(tsDoc.filePath),
+            ...lang.getSemanticDiagnostics(tsDoc.filePath)
         ];
 
         const fragment = await tsDoc.getFragment();
@@ -92,7 +92,7 @@ function isNoFalsePositive(text: string, tsDoc: SvelteDocumentSnapshot) {
 function isNoUsedBeforeAssigned(
     diagnostic: Diagnostic,
     text: string,
-    tsDoc: SvelteDocumentSnapshot,
+    tsDoc: SvelteDocumentSnapshot
 ): boolean {
     if (diagnostic.code !== 2454) {
         return true;
@@ -127,12 +127,12 @@ function enhanceIfNecessary(diagnostic: Diagnostic): Diagnostic {
         return {
             ...diagnostic,
             message:
-                `Type definitions are missing for this Svelte Component. ` +
+                'Type definitions are missing for this Svelte Component. ' +
                 // eslint-disable-next-line max-len
-                `It needs a class definition with at least the property '$$prop_def' which should contain a map of input property definitions.\n` +
-                `Example:\n` +
-                `class ComponentName { $$prop_def: { propertyName: string; } }\n\n` +
-                diagnostic.message,
+                'It needs a class definition with at least the property \'$$prop_def\' which should contain a map of input property definitions.\n' +
+                'Example:\n' +
+                'class ComponentName { $$prop_def: { propertyName: string; } }\n\n' +
+                diagnostic.message
         };
     }
 

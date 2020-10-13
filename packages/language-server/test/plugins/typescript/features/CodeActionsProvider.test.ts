@@ -25,7 +25,7 @@ describe('CodeActionsProvider', () => {
 
     function setup(filename: string) {
         const docManager = new DocumentManager(
-            (textDocument) => new Document(textDocument.uri, textDocument.text),
+            (textDocument) => new Document(textDocument.uri, textDocument.text)
         );
         const lsAndTsDocResolver = new LSAndTSDocResolver(docManager, [pathToUrl(testDir)]);
         const completionProvider = new CompletionsProviderImpl(lsAndTsDocResolver);
@@ -33,7 +33,7 @@ describe('CodeActionsProvider', () => {
         const filePath = getFullPath(filename);
         const document = docManager.openDocument(<any>{
             uri: pathToUrl(filePath),
-            text: harmonizeNewLines(ts.sys.readFile(filePath) || ''),
+            text: harmonizeNewLines(ts.sys.readFile(filePath) || '')
         });
         return { provider, document, docManager };
     }
@@ -50,11 +50,11 @@ describe('CodeActionsProvider', () => {
                         code: 6133,
                         message: "'a' is declared but its value is never read.",
                         range: Range.create(Position.create(5, 4), Position.create(5, 5)),
-                        source: 'ts',
-                    },
+                        source: 'ts'
+                    }
                 ],
-                only: [CodeActionKind.QuickFix],
-            },
+                only: [CodeActionKind.QuickFix]
+            }
         );
 
         assert.deepStrictEqual(codeActions, [
@@ -68,25 +68,25 @@ describe('CodeActionsProvider', () => {
                                     range: {
                                         start: {
                                             character: 0,
-                                            line: 5,
+                                            line: 5
                                         },
                                         end: {
                                             character: 0,
-                                            line: 6,
-                                        },
-                                    },
-                                },
+                                            line: 6
+                                        }
+                                    }
+                                }
                             ],
                             textDocument: {
                                 uri: getUri('codeactions.svelte'),
-                                version: null,
-                            },
-                        },
-                    ],
+                                version: null
+                            }
+                        }
+                    ]
                 },
                 kind: CodeActionKind.QuickFix,
-                title: "Remove unused declaration for: 'a'",
-            },
+                title: "Remove unused declaration for: 'a'"
+            }
         ]);
     });
 
@@ -98,11 +98,11 @@ describe('CodeActionsProvider', () => {
             Range.create(Position.create(1, 4), Position.create(1, 5)), // irrelevant
             {
                 diagnostics: [],
-                only: [CodeActionKind.SourceOrganizeImports],
-            },
+                only: [CodeActionKind.SourceOrganizeImports]
+            }
         );
         (<TextDocumentEdit>codeActions[0]?.edit?.documentChanges?.[0])?.edits.forEach(
-            (edit) => (edit.newText = harmonizeNewLines(edit.newText)),
+            (edit) => (edit.newText = harmonizeNewLines(edit.newText))
         );
 
         assert.deepStrictEqual(codeActions, [
@@ -113,55 +113,55 @@ describe('CodeActionsProvider', () => {
                             edits: [
                                 {
                                     // eslint-disable-next-line max-len
-                                    newText: `import { A } from 'bla';\nimport { C } from 'blubb';\n`,
+                                    newText: 'import { A } from \'bla\';\nimport { C } from \'blubb\';\n',
                                     range: {
                                         start: {
                                             character: 0,
-                                            line: 1,
+                                            line: 1
                                         },
                                         end: {
                                             character: 0,
-                                            line: 2,
-                                        },
-                                    },
+                                            line: 2
+                                        }
+                                    }
                                 },
                                 {
                                     newText: '',
                                     range: {
                                         start: {
                                             character: 0,
-                                            line: 2,
+                                            line: 2
                                         },
                                         end: {
                                             character: 0,
-                                            line: 3,
-                                        },
-                                    },
+                                            line: 3
+                                        }
+                                    }
                                 },
                                 {
                                     newText: '',
                                     range: {
                                         start: {
                                             character: 0,
-                                            line: 3,
+                                            line: 3
                                         },
                                         end: {
                                             character: 22,
-                                            line: 3,
-                                        },
-                                    },
-                                },
+                                            line: 3
+                                        }
+                                    }
+                                }
                             ],
                             textDocument: {
                                 uri: getUri('codeactions.svelte'),
-                                version: null,
-                            },
-                        },
-                    ],
+                                version: null
+                            }
+                        }
+                    ]
                 },
                 kind: CodeActionKind.SourceOrganizeImports,
-                title: 'Organize Imports',
-            },
+                title: 'Organize Imports'
+            }
         ]);
     });
 
@@ -173,11 +173,11 @@ describe('CodeActionsProvider', () => {
             Range.create(Position.create(1, 4), Position.create(1, 5)), // irrelevant
             {
                 diagnostics: [],
-                only: [CodeActionKind.SourceOrganizeImports],
-            },
+                only: [CodeActionKind.SourceOrganizeImports]
+            }
         );
         (<TextDocumentEdit>codeActions[0]?.edit?.documentChanges?.[0])?.edits.forEach(
-            (edit) => (edit.newText = harmonizeNewLines(edit.newText)),
+            (edit) => (edit.newText = harmonizeNewLines(edit.newText))
         );
 
         assert.deepStrictEqual(codeActions, [
@@ -192,51 +192,51 @@ describe('CodeActionsProvider', () => {
                                     range: {
                                         start: {
                                             line: 1,
-                                            character: 2,
+                                            character: 2
                                         },
                                         end: {
                                             line: 2,
-                                            character: 0,
-                                        },
-                                    },
+                                            character: 0
+                                        }
+                                    }
                                 },
                                 {
                                     newText: '',
                                     range: {
                                         start: {
                                             line: 6,
-                                            character: 2,
+                                            character: 2
                                         },
                                         end: {
                                             line: 7,
-                                            character: 2,
-                                        },
-                                    },
+                                            character: 2
+                                        }
+                                    }
                                 },
                                 {
                                     newText: '',
                                     range: {
                                         start: {
                                             line: 7,
-                                            character: 2,
+                                            character: 2
                                         },
                                         end: {
                                             line: 7,
-                                            character: 22,
-                                        },
-                                    },
-                                },
+                                            character: 22
+                                        }
+                                    }
+                                }
                             ],
                             textDocument: {
                                 uri: getUri('organize-imports-with-module.svelte'),
-                                version: null,
-                            },
-                        },
-                    ],
+                                version: null
+                            }
+                        }
+                    ]
                 },
                 kind: CodeActionKind.SourceOrganizeImports,
-                title: 'Organize Imports',
-            },
+                title: 'Organize Imports'
+            }
         ]);
     });
 
@@ -246,7 +246,7 @@ describe('CodeActionsProvider', () => {
         const actions = await provider.getCodeActions(
             document,
             Range.create(Position.create(7, 8), Position.create(7, 42)),
-            { diagnostics: [], only: [CodeActionKind.Refactor] },
+            { diagnostics: [], only: [CodeActionKind.Refactor] }
         );
         const action = actions[1];
 
@@ -260,33 +260,33 @@ describe('CodeActionsProvider', () => {
                         originalRange: {
                             start: {
                                 character: 8,
-                                line: 7,
+                                line: 7
                             },
                             end: {
                                 character: 42,
-                                line: 7,
-                            },
+                                line: 7
+                            }
                         },
                         textRange: {
                             pos: 162,
-                            end: 196,
-                        },
-                    },
+                            end: 196
+                        }
+                    }
                 ],
                 command: 'constant_scope_0',
-                title: 'Extract to constant in enclosing scope',
+                title: 'Extract to constant in enclosing scope'
             },
-            title: 'Extract to constant in enclosing scope',
+            title: 'Extract to constant in enclosing scope'
         });
 
         const edit = await provider.executeCommand(
             document,
             action.command?.command || '',
-            action.command?.arguments,
+            action.command?.arguments
         );
 
         (<TextDocumentEdit>edit?.documentChanges?.[0])?.edits.forEach(
-            (edit) => (edit.newText = harmonizeNewLines(edit.newText)),
+            (edit) => (edit.newText = harmonizeNewLines(edit.newText))
         );
 
         assert.deepStrictEqual(edit, {
@@ -295,38 +295,38 @@ describe('CodeActionsProvider', () => {
                     edits: [
                         {
                             // eslint-disable-next-line max-len
-                            newText: `const newLocal=Math.random()>0.5? true:false;\n`,
+                            newText: 'const newLocal=Math.random()>0.5? true:false;\n',
                             range: {
                                 start: {
                                     character: 0,
-                                    line: 7,
+                                    line: 7
                                 },
                                 end: {
                                     character: 0,
-                                    line: 7,
-                                },
-                            },
+                                    line: 7
+                                }
+                            }
                         },
                         {
                             newText: 'newLocal',
                             range: {
                                 start: {
                                     character: 8,
-                                    line: 7,
+                                    line: 7
                                 },
                                 end: {
                                     character: 42,
-                                    line: 7,
-                                },
-                            },
-                        },
+                                    line: 7
+                                }
+                            }
+                        }
                     ],
                     textDocument: {
                         uri: getUri('codeactions.svelte'),
-                        version: null,
-                    },
-                },
-            ],
+                        version: null
+                    }
+                }
+            ]
         });
     });
 
@@ -336,7 +336,7 @@ describe('CodeActionsProvider', () => {
         const actions = await provider.getCodeActions(
             document,
             Range.create(Position.create(7, 8), Position.create(7, 42)),
-            { diagnostics: [], only: [CodeActionKind.Refactor] },
+            { diagnostics: [], only: [CodeActionKind.Refactor] }
         );
         const action = actions[0];
 
@@ -350,33 +350,33 @@ describe('CodeActionsProvider', () => {
                         originalRange: {
                             start: {
                                 character: 8,
-                                line: 7,
+                                line: 7
                             },
                             end: {
                                 character: 42,
-                                line: 7,
-                            },
+                                line: 7
+                            }
                         },
                         textRange: {
                             pos: 162,
-                            end: 196,
-                        },
-                    },
+                            end: 196
+                        }
+                    }
                 ],
                 command: 'function_scope_0',
-                title: `Extract to inner function in function 'render'`,
+                title: 'Extract to inner function in function \'render\''
             },
-            title: 'Extract to function',
+            title: 'Extract to function'
         });
 
         const edit = await provider.executeCommand(
             document,
             action.command?.command || '',
-            action.command?.arguments,
+            action.command?.arguments
         );
 
         (<TextDocumentEdit>edit?.documentChanges?.[0])?.edits.forEach(
-            (edit) => (edit.newText = harmonizeNewLines(edit.newText)),
+            (edit) => (edit.newText = harmonizeNewLines(edit.newText))
         );
 
         assert.deepStrictEqual(edit, {
@@ -388,13 +388,13 @@ describe('CodeActionsProvider', () => {
                             range: {
                                 start: {
                                     character: 8,
-                                    line: 7,
+                                    line: 7
                                 },
                                 end: {
                                     character: 42,
-                                    line: 7,
-                                },
-                            },
+                                    line: 7
+                                }
+                            }
                         },
                         {
                             newText:
@@ -409,21 +409,21 @@ describe('CodeActionsProvider', () => {
                             range: {
                                 start: {
                                     character: 0,
-                                    line: 8,
+                                    line: 8
                                 },
                                 end: {
                                     character: 0,
-                                    line: 8,
-                                },
-                            },
-                        },
+                                    line: 8
+                                }
+                            }
+                        }
                     ],
                     textDocument: {
                         uri: getUri('codeactions.svelte'),
-                        version: null,
-                    },
-                },
-            ],
+                        version: null
+                    }
+                }
+            ]
         });
     });
 });

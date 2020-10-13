@@ -6,7 +6,7 @@ import { Document } from '../../../../src/lib/documents';
 import { getDiagnostics } from '../../../../src/plugins/svelte/features/getDiagnostics';
 import {
     SvelteDocument,
-    TranspileErrorSource,
+    TranspileErrorSource
 } from '../../../../src/plugins/svelte/SvelteDocument';
 import { SvelteConfig } from '../../../../src/lib/documents/configLoader';
 import { CompilerWarningsSettings, LSConfigManager } from '../../../../src/ls-config';
@@ -19,7 +19,7 @@ describe('SveltePlugin#getDiagnostics', () => {
         getCompiled,
         config,
         settings = {},
-        docText = '<script></script>\n<style></style>',
+        docText = '<script></script>\n<style></style>'
     }: {
         getTranspiled: any;
         getCompiled: any;
@@ -31,7 +31,7 @@ describe('SveltePlugin#getDiagnostics', () => {
         const svelteDoc: SvelteDocument = <any>{ getTranspiled, getCompiled, config };
         const result = await getDiagnostics(document, svelteDoc, settings);
         return {
-            toEqual: (expected: Diagnostic[]) => assert.deepStrictEqual(result, expected),
+            toEqual: (expected: Diagnostic[]) => assert.deepStrictEqual(result, expected)
         };
     }
 
@@ -51,7 +51,7 @@ describe('SveltePlugin#getDiagnostics', () => {
                     throw new Error();
                 },
                 getCompiled: () => '',
-                config: { loadConfigError: new Error('svelte.config.js') },
+                config: { loadConfigError: new Error('svelte.config.js') }
             })
         ).toEqual([
             {
@@ -59,16 +59,16 @@ describe('SveltePlugin#getDiagnostics', () => {
                 range: {
                     start: {
                         character: 0,
-                        line: 0,
+                        line: 0
                     },
                     end: {
                         character: 5,
-                        line: 0,
-                    },
+                        line: 0
+                    }
                 },
                 severity: DiagnosticSeverity.Error,
-                source: 'svelte',
-            },
+                source: 'svelte'
+            }
         ]);
     });
 
@@ -81,7 +81,7 @@ describe('SveltePlugin#getDiagnostics', () => {
                     throw e;
                 },
                 getCompiled: () => '',
-                config: {},
+                config: {}
             })
         ).toEqual([
             {
@@ -89,16 +89,16 @@ describe('SveltePlugin#getDiagnostics', () => {
                 range: {
                     start: {
                         character: 8,
-                        line: 0,
+                        line: 0
                     },
                     end: {
                         character: 8,
-                        line: 0,
-                    },
+                        line: 0
+                    }
                 },
                 severity: DiagnosticSeverity.Error,
-                source: 'svelte(script)',
-            },
+                source: 'svelte(script)'
+            }
         ]);
     });
 
@@ -111,7 +111,7 @@ describe('SveltePlugin#getDiagnostics', () => {
                     throw e;
                 },
                 getCompiled: () => '',
-                config: {},
+                config: {}
             })
         ).toEqual([
             {
@@ -119,16 +119,16 @@ describe('SveltePlugin#getDiagnostics', () => {
                 range: {
                     start: {
                         character: 7,
-                        line: 1,
+                        line: 1
                     },
                     end: {
                         character: 7,
-                        line: 1,
-                    },
+                        line: 1
+                    }
                 },
                 severity: DiagnosticSeverity.Error,
-                source: 'svelte(style)',
-            },
+                source: 'svelte(style)'
+            }
         ]);
     });
 
@@ -143,7 +143,7 @@ describe('SveltePlugin#getDiagnostics', () => {
                     throw e;
                 },
                 getCompiled: () => '',
-                config: {},
+                config: {}
             })
         ).toEqual([
             {
@@ -151,16 +151,16 @@ describe('SveltePlugin#getDiagnostics', () => {
                 range: {
                     start: {
                         character: 0,
-                        line: 1,
+                        line: 1
                     },
                     end: {
                         character: 0,
-                        line: 1,
-                    },
+                        line: 1
+                    }
                 },
                 severity: DiagnosticSeverity.Error,
-                source: 'svelte(style)',
-            },
+                source: 'svelte(style)'
+            }
         ]);
     });
 
@@ -168,7 +168,7 @@ describe('SveltePlugin#getDiagnostics', () => {
         (
             await expectDiagnosticsFor({
                 getTranspiled: () => ({
-                    getOriginalPosition: () => Position.create(0, 0),
+                    getOriginalPosition: () => Position.create(0, 0)
                 }),
                 getCompiled: () => {
                     const e: any = new Error('Compilation');
@@ -176,7 +176,7 @@ describe('SveltePlugin#getDiagnostics', () => {
                     e.code = 123;
                     throw e;
                 },
-                config: {},
+                config: {}
             })
         ).toEqual([
             {
@@ -185,16 +185,16 @@ describe('SveltePlugin#getDiagnostics', () => {
                 range: {
                     start: {
                         character: 0,
-                        line: 0,
+                        line: 0
                     },
                     end: {
                         character: 0,
-                        line: 0,
-                    },
+                        line: 0
+                    }
                 },
                 severity: DiagnosticSeverity.Error,
-                source: 'svelte',
-            },
+                source: 'svelte'
+            }
         ]);
     });
 
@@ -202,7 +202,7 @@ describe('SveltePlugin#getDiagnostics', () => {
         (
             await expectDiagnosticsFor({
                 getTranspiled: () => ({
-                    getOriginalPosition: () => Position.create(0, 8),
+                    getOriginalPosition: () => Position.create(0, 8)
                 }),
                 getCompiled: () => {
                     const e: any = new Error('Compilation');
@@ -211,7 +211,7 @@ describe('SveltePlugin#getDiagnostics', () => {
                     e.start = { line: 1, column: 8 };
                     throw e;
                 },
-                config: {},
+                config: {}
             })
         ).toEqual([
             {
@@ -225,16 +225,16 @@ describe('SveltePlugin#getDiagnostics', () => {
                 range: {
                     start: {
                         character: 8,
-                        line: 0,
+                        line: 0
                     },
                     end: {
                         character: 8,
-                        line: 0,
-                    },
+                        line: 0
+                    }
                 },
                 severity: DiagnosticSeverity.Error,
-                source: 'svelte',
-            },
+                source: 'svelte'
+            }
         ]);
     });
 
@@ -245,7 +245,7 @@ describe('SveltePlugin#getDiagnostics', () => {
                     getOriginalPosition: (pos: Position) => {
                         pos.line - 1;
                         return pos;
-                    },
+                    }
                 }),
                 getCompiled: () =>
                     Promise.resolve({
@@ -255,12 +255,12 @@ describe('SveltePlugin#getDiagnostics', () => {
                                     start: { line: 1, column: 0 },
                                     end: { line: 1, column: 0 },
                                     message: 'warning',
-                                    code: 123,
-                                },
-                            ],
-                        },
+                                    code: 123
+                                }
+                            ]
+                        }
                     }),
-                config: {},
+                config: {}
             })
         ).toEqual([
             {
@@ -269,16 +269,16 @@ describe('SveltePlugin#getDiagnostics', () => {
                 range: {
                     start: {
                         character: 0,
-                        line: 0,
+                        line: 0
                     },
                     end: {
                         character: 0,
-                        line: 0,
-                    },
+                        line: 0
+                    }
                 },
                 severity: DiagnosticSeverity.Warning,
-                source: 'svelte',
-            },
+                source: 'svelte'
+            }
         ]);
     });
 
@@ -289,7 +289,7 @@ describe('SveltePlugin#getDiagnostics', () => {
                 getTranspiled: () => ({
                     getOriginalPosition: (pos: Position) => {
                         return pos;
-                    },
+                    }
                 }),
                 getCompiled: () =>
                     Promise.resolve({
@@ -300,12 +300,12 @@ describe('SveltePlugin#getDiagnostics', () => {
                                     end: { line: 0, column: 33 },
                                     message:
                                         "Component has unused export property 'A'. If it is for external reference only, please consider using `export const A`",
-                                    code: 'unused-export-let',
-                                },
-                            ],
-                        },
+                                    code: 'unused-export-let'
+                                }
+                            ]
+                        }
                     }),
-                config: {},
+                config: {}
             })
         ).toEqual([]);
     });
@@ -317,7 +317,7 @@ describe('SveltePlugin#getDiagnostics', () => {
                     getOriginalPosition: (pos: Position) => {
                         pos.line - 1;
                         return pos;
-                    },
+                    }
                 }),
                 getCompiled: () =>
                     Promise.resolve({
@@ -327,13 +327,13 @@ describe('SveltePlugin#getDiagnostics', () => {
                                     start: { line: 1, column: 0 },
                                     end: { line: 1, column: 0 },
                                     message: 'warning',
-                                    code: '123',
-                                },
-                            ],
-                        },
+                                    code: '123'
+                                }
+                            ]
+                        }
                     }),
                 config: {},
-                settings: { '123': 'ignore' },
+                settings: { 123: 'ignore' }
             })
         ).toEqual([]);
     });
@@ -345,7 +345,7 @@ describe('SveltePlugin#getDiagnostics', () => {
                     getOriginalPosition: (pos: Position) => {
                         pos.line - 1;
                         return pos;
-                    },
+                    }
                 }),
                 getCompiled: () =>
                     Promise.resolve({
@@ -355,13 +355,13 @@ describe('SveltePlugin#getDiagnostics', () => {
                                     start: { line: 1, column: 0 },
                                     end: { line: 1, column: 0 },
                                     message: 'warning',
-                                    code: '123',
-                                },
-                            ],
-                        },
+                                    code: '123'
+                                }
+                            ]
+                        }
                     }),
                 config: {},
-                settings: { '123': 'error' },
+                settings: { 123: 'error' }
             })
         ).toEqual([
             {
@@ -370,16 +370,16 @@ describe('SveltePlugin#getDiagnostics', () => {
                 range: {
                     start: {
                         character: 0,
-                        line: 0,
+                        line: 0
                     },
                     end: {
                         character: 0,
-                        line: 0,
-                    },
+                        line: 0
+                    }
                 },
                 severity: DiagnosticSeverity.Error,
-                source: 'svelte',
-            },
+                source: 'svelte'
+            }
         ]);
     });
 
@@ -394,8 +394,8 @@ describe('SveltePlugin#getDiagnostics', () => {
                     "Component has unused export property 'name'. If it is for external reference only, please consider using `export const name`",
                 severity: 2,
                 source: 'svelte',
-                code: 'unused-export-let',
-            },
+                code: 'unused-export-let'
+            }
         ]);
     });
 
@@ -410,8 +410,8 @@ describe('SveltePlugin#getDiagnostics', () => {
                     "Component has unused export property 'name'. If it is for external reference only, please consider using `export const name`",
                 severity: 2,
                 source: 'svelte',
-                code: 'unused-export-let',
-            },
+                code: 'unused-export-let'
+            }
         ]);
     });
 });

@@ -15,7 +15,7 @@ import {
     TextDocumentIdentifier,
     TextDocumentPositionParams,
     TextDocumentSyncKind,
-    WorkspaceEdit,
+    WorkspaceEdit
 } from 'vscode-languageserver';
 import { DiagnosticsManager } from './lib/DiagnosticsManager';
 import { Document, DocumentManager } from './lib/documents';
@@ -27,7 +27,7 @@ import {
     HTMLPlugin,
     PluginHost,
     SveltePlugin,
-    TypeScriptPlugin,
+    TypeScriptPlugin
 } from './plugins';
 import { urlToPath } from './utils';
 
@@ -69,7 +69,7 @@ export function startServer(options?: LSOptions) {
         } else {
             connection = createConnection(
                 new IPCMessageReader(process),
-                new IPCMessageWriter(process),
+                new IPCMessageWriter(process)
             );
         }
     }
@@ -79,7 +79,7 @@ export function startServer(options?: LSOptions) {
     }
 
     const docManager = new DocumentManager(
-        (textDocument) => new Document(textDocument.uri, textDocument.text),
+        (textDocument) => new Document(textDocument.uri, textDocument.text)
     );
     const configManager = new LSConfigManager();
     const pluginHost = new PluginHost(docManager, configManager);
@@ -87,7 +87,7 @@ export function startServer(options?: LSOptions) {
 
     connection.onInitialize((evt) => {
         const workspaceUris = evt.workspaceFolders?.map((folder) => folder.uri.toString()) ?? [
-            evt.rootUri ?? '',
+            evt.rootUri ?? ''
         ];
         Logger.log('Initialize language server at ', workspaceUris.join(', '));
         if (workspaceUris.length === 0) {
@@ -99,8 +99,8 @@ export function startServer(options?: LSOptions) {
         pluginHost.register(
             (sveltePlugin = new SveltePlugin(
                 configManager,
-                evt.initializationOptions?.prettierConfig,
-            )),
+                evt.initializationOptions?.prettierConfig
+            ))
         );
         pluginHost.register(new HTMLPlugin(docManager, configManager));
         pluginHost.register(new CSSPlugin(docManager, configManager));
@@ -114,8 +114,8 @@ export function startServer(options?: LSOptions) {
                     openClose: true,
                     change: TextDocumentSyncKind.Incremental,
                     save: {
-                        includeText: false,
-                    },
+                        includeText: false
+                    }
                 },
                 hoverProvider: true,
                 completionProvider: {
@@ -145,8 +145,8 @@ export function startServer(options?: LSOptions) {
                         // of other completion providers
 
                         // Svelte
-                        ':',
-                    ],
+                        ':'
+                    ]
                 },
                 documentFormattingProvider: true,
                 colorProvider: true,
@@ -158,8 +158,8 @@ export function startServer(options?: LSOptions) {
                           codeActionKinds: [
                               CodeActionKind.QuickFix,
                               CodeActionKind.SourceOrganizeImports,
-                              ...(clientSupportApplyEditCommand ? [CodeActionKind.Refactor] : []),
-                          ],
+                              ...(clientSupportApplyEditCommand ? [CodeActionKind.Refactor] : [])
+                          ]
                       }
                     : true,
                 executeCommandProvider: clientSupportApplyEditCommand
@@ -173,20 +173,20 @@ export function startServer(options?: LSOptions) {
                               'constant_scope_1',
                               'constant_scope_2',
                               'constant_scope_3',
-                              'extract_to_svelte_component',
-                          ],
+                              'extract_to_svelte_component'
+                          ]
                       }
                     : undefined,
                 renameProvider: evt.capabilities.textDocument?.rename?.prepareSupport
                     ? { prepareProvider: true }
                     : true,
-                referencesProvider: true,
-            },
+                referencesProvider: true
+            }
         };
     });
 
     connection.onRenameRequest((req) =>
-        pluginHost.rename(req.textDocument, req.position, req.newName),
+        pluginHost.rename(req.textDocument, req.position, req.newName)
     );
     connection.onPrepareRename((req) => pluginHost.prepareRename(req.textDocument, req.position));
 
@@ -201,36 +201,36 @@ export function startServer(options?: LSOptions) {
 
     connection.onDidCloseTextDocument((evt) => docManager.closeDocument(evt.textDocument.uri));
     connection.onDidChangeTextDocument((evt) =>
-        docManager.updateDocument(evt.textDocument, evt.contentChanges),
+        docManager.updateDocument(evt.textDocument, evt.contentChanges)
     );
     connection.onHover((evt) => pluginHost.doHover(evt.textDocument, evt.position));
     connection.onCompletion((evt) =>
-        pluginHost.getCompletions(evt.textDocument, evt.position, evt.context),
+        pluginHost.getCompletions(evt.textDocument, evt.position, evt.context)
     );
     connection.onDocumentFormatting((evt) =>
-        pluginHost.formatDocument(evt.textDocument, evt.options),
+        pluginHost.formatDocument(evt.textDocument, evt.options)
     );
     connection.onRequest(TagCloseRequest.type, (evt) =>
-        pluginHost.doTagComplete(evt.textDocument, evt.position),
+        pluginHost.doTagComplete(evt.textDocument, evt.position)
     );
     connection.onDocumentColor((evt) => pluginHost.getDocumentColors(evt.textDocument));
     connection.onColorPresentation((evt) =>
-        pluginHost.getColorPresentations(evt.textDocument, evt.range, evt.color),
+        pluginHost.getColorPresentations(evt.textDocument, evt.range, evt.color)
     );
     connection.onDocumentSymbol((evt) => pluginHost.getDocumentSymbols(evt.textDocument));
     connection.onDefinition((evt) => pluginHost.getDefinitions(evt.textDocument, evt.position));
     connection.onReferences((evt) =>
-        pluginHost.findReferences(evt.textDocument, evt.position, evt.context),
+        pluginHost.findReferences(evt.textDocument, evt.position, evt.context)
     );
 
     connection.onCodeAction((evt) =>
-        pluginHost.getCodeActions(evt.textDocument, evt.range, evt.context),
+        pluginHost.getCodeActions(evt.textDocument, evt.range, evt.context)
     );
     connection.onExecuteCommand(async (evt) => {
         const result = await pluginHost.executeCommand(
             { uri: evt.arguments?.[0] },
             evt.command,
-            evt.arguments,
+            evt.arguments
         );
         if (WorkspaceEdit.is(result)) {
             const edit: ApplyWorkspaceEditParams = { edit: result };
@@ -238,7 +238,7 @@ export function startServer(options?: LSOptions) {
         } else if (result) {
             connection?.sendNotification(ShowMessageNotification.type.method, {
                 message: result,
-                type: MessageType.Error,
+                type: MessageType.Error
             });
         }
     });
@@ -256,7 +256,7 @@ export function startServer(options?: LSOptions) {
     const diagnosticsManager = new DiagnosticsManager(
         connection.sendDiagnostics,
         docManager,
-        pluginHost.getDiagnostics.bind(pluginHost),
+        pluginHost.getDiagnostics.bind(pluginHost)
     );
 
     connection.onDidChangeWatchedFiles((para) => {
@@ -273,16 +273,16 @@ export function startServer(options?: LSOptions) {
 
     docManager.on(
         'documentChange',
-        _.debounce(async (document: Document) => diagnosticsManager.update(document), 500),
+        _.debounce(async (document: Document) => diagnosticsManager.update(document), 500)
     );
     docManager.on('documentClose', (document: Document) =>
-        diagnosticsManager.removeDiagnostics(document),
+        diagnosticsManager.removeDiagnostics(document)
     );
 
     // The language server protocol does not have a specific "did rename/move files" event,
     // so we create our own in the extension client and handle it here
     connection.onRequest('$/getEditsForFileRename', async (fileRename: RenameFile) =>
-        pluginHost.updateImports(fileRename),
+        pluginHost.updateImports(fileRename)
     );
 
     connection.onRequest('$/getCompiledCode', async (uri: DocumentUri) => {

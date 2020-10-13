@@ -6,7 +6,7 @@ export class Scripts {
     // To get the top level scripts, filter out all those that are part of children's children.
     // Those have another type ('Element' with name 'script').
     private scriptTags = (this.htmlxAst.children as Node[]).filter(
-        (child) => child.type === 'Script',
+        (child) => child.type === 'Script'
     );
     private topLevelScripts = this.scriptTags;
 
@@ -15,7 +15,7 @@ export class Scripts {
     handleScriptTag = (node: Node, parent: Node) => {
         if (parent !== this.htmlxAst && node.name === 'script') {
             this.topLevelScripts = this.topLevelScripts.filter(
-                (tag) => tag.start !== node.start || tag.end !== node.end,
+                (tag) => tag.start !== node.start || tag.end !== node.end
             );
         }
     };
@@ -28,7 +28,7 @@ export class Scripts {
             if (
                 tag.attributes &&
                 tag.attributes.find(
-                    (a) => a.name == 'context' && a.value.length == 1 && a.value[0].raw == 'module',
+                    (a) => a.name == 'context' && a.value.length == 1 && a.value[0].raw == 'module'
                 )
             ) {
                 moduleScriptTag = tag;

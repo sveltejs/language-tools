@@ -21,7 +21,7 @@ export class HoverProviderImpl implements HoverProvider {
 
         const info = lang.getQuickInfoAtPosition(
             tsDoc.filePath,
-            fragment.offsetAt(fragment.getGeneratedPosition(position)),
+            fragment.offsetAt(fragment.getGeneratedPosition(position))
         );
         if (!info) {
             return null;
@@ -40,7 +40,7 @@ export class HoverProviderImpl implements HoverProvider {
 
         return mapObjWithRangeToOriginal(fragment, {
             range: convertRange(fragment, info.textSpan),
-            contents,
+            contents
         });
     }
 
@@ -49,11 +49,11 @@ export class HoverProviderImpl implements HoverProvider {
         doc: Document,
         tsDoc: SvelteDocumentSnapshot,
         fragment: SvelteSnapshotFragment,
-        originalPosition: Position,
+        originalPosition: Position
     ): Hover | null {
         const possibleEventName = getWordAt(doc.getText(), doc.offsetAt(originalPosition), {
             left: /\S+$/,
-            right: /[\s=]/,
+            right: /[\s=]/
         });
         if (!possibleEventName.startsWith('on:')) {
             return null;
@@ -65,7 +65,7 @@ export class HoverProviderImpl implements HoverProvider {
             doc,
             tsDoc,
             fragment,
-            originalPosition,
+            originalPosition
         );
         if (!component) {
             return null;
@@ -82,8 +82,8 @@ export class HoverProviderImpl implements HoverProvider {
                 '```typescript',
                 `${event.name}: ${event.type}`,
                 '```',
-                event.doc || '',
-            ].join('\n'),
+                event.doc || ''
+            ].join('\n')
         };
     }
 

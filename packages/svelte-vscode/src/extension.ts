@@ -12,7 +12,7 @@ import {
     ViewColumn,
     languages,
     IndentAction,
-    extensions,
+    extensions
 } from 'vscode';
 import {
     LanguageClient,
@@ -24,7 +24,7 @@ import {
     RevealOutputChannelOn,
     WorkspaceEdit as LSWorkspaceEdit,
     TextDocumentEdit,
-    ExecuteCommandRequest,
+    ExecuteCommandRequest
 } from 'vscode-languageclient';
 import { activateTagClosing } from './html/autoClose';
 import { EMPTY_ELEMENTS } from './html/htmlEmptyTagsShared';
@@ -33,7 +33,7 @@ import * as path from 'path';
 
 namespace TagCloseRequest {
     export const type: RequestType<TextDocumentPositionParams, string, any, any> = new RequestType(
-        'html/tag',
+        'html/tag'
     );
 }
 
@@ -72,9 +72,9 @@ export function activate(context: ExtensionContext) {
         run: {
             module: serverModule,
             transport: TransportKind.ipc,
-            options: { execArgv: runExecArgv },
+            options: { execArgv: runExecArgv }
         },
-        debug: { module: serverModule, transport: TransportKind.ipc, options: debugOptions },
+        debug: { module: serverModule, transport: TransportKind.ipc, options: debugOptions }
     };
 
     const serverRuntime = runtimeConfig.get<string>('runtime');
@@ -89,13 +89,13 @@ export function activate(context: ExtensionContext) {
         revealOutputChannelOn: RevealOutputChannelOn.Never,
         synchronize: {
             configurationSection: ['svelte'],
-            fileEvents: workspace.createFileSystemWatcher('{**/*.js,**/*.ts}', false, false, false),
+            fileEvents: workspace.createFileSystemWatcher('{**/*.js,**/*.ts}', false, false, false)
         },
         initializationOptions: {
             config: workspace.getConfiguration('svelte.plugin'),
             prettierConfig: workspace.getConfiguration('prettier'),
-            dontFilterIncompleteCompletions: true, // VSCode filters client side and is smarter at it than us
-        },
+            dontFilterIncompleteCompletions: true // VSCode filters client side and is smarter at it than us
+        }
     };
 
     let ls = createLanguageServer(serverOptions, clientOptions);
@@ -105,14 +105,14 @@ export function activate(context: ExtensionContext) {
         const tagRequestor = (document: TextDocument, position: Position) => {
             const param = ls.code2ProtocolConverter.asTextDocumentPositionParams(
                 document,
-                position,
+                position
             );
             return ls.sendRequest(TagCloseRequest.type, param);
         };
         const disposable = activateTagClosing(
             tagRequestor,
             { svelte: true },
-            'html.autoClosingTags',
+            'html.autoClosingTags'
         );
         context.subscriptions.push(disposable);
     });
@@ -124,7 +124,7 @@ export function activate(context: ExtensionContext) {
             context.subscriptions.push(ls.start());
             await ls.onReady();
             window.showInformationMessage('Svelte language server restarted.');
-        }),
+        })
     );
 
     function getLS() {
@@ -156,7 +156,7 @@ export function activate(context: ExtensionContext) {
             // Or closing curly brace
             //
             // eslint-disable-next-line no-useless-escape
-            decreaseIndentPattern: /^\s*(<\/(?!html)[-_\.A-Za-z0-9]+\b[^>]*>|-->|\})/,
+            decreaseIndentPattern: /^\s*(<\/(?!html)[-_\.A-Za-z0-9]+\b[^>]*>|-->|\})/
         },
         // Matches a number or word that either:
         //  - Is a number with an optional negative sign and optional full number
@@ -177,15 +177,15 @@ export function activate(context: ExtensionContext) {
                 // eslint-disable-next-line no-useless-escape
                 beforeText: new RegExp(
                     `<(?!(?:${EMPTY_ELEMENTS.join(
-                        '|',
+                        '|'
                     )}))([_:\\w][_:\\w-.\\d]*)([^/>]*(?!/)>)[^<]*$`,
-                    'i',
+                    'i'
                 ),
                 // Matches a closing tag that:
                 //  - Is possibly namespaced
                 //  - Possibly has excess whitespace following tagname
                 afterText: /^<\/([_:\w][_:\w-.\d]*)\s*>/i,
-                action: { indentAction: IndentAction.IndentOutdent },
+                action: { indentAction: IndentAction.IndentOutdent }
             },
             {
                 // Matches an opening tag that:
@@ -197,11 +197,11 @@ export function activate(context: ExtensionContext) {
                 // eslint-disable-next-line no-useless-escape
                 beforeText: new RegExp(
                     `<(?!(?:${EMPTY_ELEMENTS.join('|')}))(\\w[\\w\\d]*)([^/>]*(?!/)>)[^<]*$`,
-                    'i',
+                    'i'
                 ),
-                action: { indentAction: IndentAction.Indent },
-            },
-        ],
+                action: { indentAction: IndentAction.Indent }
+            }
+        ]
     });
 }
 
@@ -219,8 +219,8 @@ function addRenameFileListener(getLS: () => LanguageClient) {
                     // rest of the logic that way.
                     {
                         oldUri: evt.files[0].oldUri.toString(true),
-                        newUri: evt.files[0].newUri.toString(true),
-                    },
+                        newUri: evt.files[0].newUri.toString(true)
+                    }
                 );
                 if (!editsForFileRename) {
                     return;
@@ -234,14 +234,14 @@ function addRenameFileListener(getLS: () => LanguageClient) {
                             Uri.parse(change.textDocument.uri),
                             new Range(
                                 new Position(edit.range.start.line, edit.range.start.character),
-                                new Position(edit.range.end.line, edit.range.end.character),
+                                new Position(edit.range.end.line, edit.range.end.character)
                             ),
-                            edit.newText,
+                            edit.newText
                         );
-                    }),
+                    })
                 );
                 workspace.applyEdit(workspaceEdit);
-            },
+            }
         );
     });
 }
@@ -252,9 +252,9 @@ function addCompilePreviewCommand(getLS: () => LanguageClient, context: Extensio
     context.subscriptions.push(
         workspace.registerTextDocumentContentProvider(
             CompiledCodeContentProvider.scheme,
-            compiledCodeContentProvider,
+            compiledCodeContentProvider
         ),
-        compiledCodeContentProvider,
+        compiledCodeContentProvider
     );
 
     context.subscriptions.push(
@@ -270,11 +270,11 @@ function addCompilePreviewCommand(getLS: () => LanguageClient, context: Extensio
                 async () => {
                     return await window.showTextDocument(svelteUri, {
                         preview: true,
-                        viewColumn: ViewColumn.Beside,
+                        viewColumn: ViewColumn.Beside
                     });
-                },
+                }
             );
-        }),
+        })
     );
 }
 
@@ -288,7 +288,7 @@ function addExtracComponentCommand(getLS: () => LanguageClient, context: Extensi
             // Prompt for new component name
             const options = {
                 prompt: 'Component Name: ',
-                placeHolder: 'NewComponent',
+                placeHolder: 'NewComponent'
             };
 
             window.showInputBox(options).then(async (filePath) => {
@@ -300,10 +300,10 @@ function addExtracComponentCommand(getLS: () => LanguageClient, context: Extensi
                 const range = editor.selection;
                 getLS().sendRequest(ExecuteCommandRequest.type, {
                     command: 'extract_to_svelte_component',
-                    arguments: [uri, { uri, range, filePath }],
+                    arguments: [uri, { uri, range, filePath }]
                 });
             });
-        }),
+        })
     );
 }
 
@@ -316,7 +316,7 @@ function warnIfOldExtensionInstalled() {
         window.showWarningMessage(
             'It seems you have the old and deprecated extension named "Svelte" installed. Please remove it. ' +
                 'Through the UI: You can find it when searching for "@installed" in the extensions window (searching "Svelte" won\'t work). ' +
-                'Command line: "code --uninstall-extension JamesBirtles.svelte-vscode"',
+                'Command line: "code --uninstall-extension JamesBirtles.svelte-vscode"'
         );
     }
 }

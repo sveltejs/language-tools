@@ -43,16 +43,16 @@ describe('TypescriptPlugin', () => {
                         range: {
                             start: {
                                 line: 6,
-                                character: 3,
+                                character: 3
                             },
                             end: {
                                 line: 8,
-                                character: 5,
-                            },
+                                character: 5
+                            }
                         },
-                        uri: getUri('documentsymbols.svelte'),
+                        uri: getUri('documentsymbols.svelte')
                     },
-                    name: "$: if (hello) {\n        console.log('hi');\n    }",
+                    name: "$: if (hello) {\n        console.log('hi');\n    }"
                 },
                 {
                     containerName: 'render',
@@ -61,16 +61,16 @@ describe('TypescriptPlugin', () => {
                         range: {
                             start: {
                                 line: 1,
-                                character: 4,
+                                character: 4
                             },
                             end: {
                                 line: 3,
-                                character: 5,
-                            },
+                                character: 5
+                            }
                         },
-                        uri: getUri('documentsymbols.svelte'),
+                        uri: getUri('documentsymbols.svelte')
                     },
-                    name: 'bla',
+                    name: 'bla'
                 },
                 {
                     containerName: 'render',
@@ -79,18 +79,18 @@ describe('TypescriptPlugin', () => {
                         range: {
                             start: {
                                 line: 5,
-                                character: 7,
+                                character: 7
                             },
                             end: {
                                 line: 5,
-                                character: 16,
-                            },
+                                character: 16
+                            }
                         },
-                        uri: getUri('documentsymbols.svelte'),
+                        uri: getUri('documentsymbols.svelte')
                     },
-                    name: 'hello',
-                },
-            ],
+                    name: 'hello'
+                }
+            ]
         );
     });
 
@@ -104,35 +104,35 @@ describe('TypescriptPlugin', () => {
                 originSelectionRange: {
                     start: {
                         character: 0,
-                        line: 4,
+                        line: 4
                     },
                     end: {
                         character: 3,
-                        line: 4,
-                    },
+                        line: 4
+                    }
                 },
                 targetRange: {
                     start: {
                         character: 9,
-                        line: 3,
+                        line: 3
                     },
                     end: {
                         character: 12,
-                        line: 3,
-                    },
+                        line: 3
+                    }
                 },
                 targetSelectionRange: {
                     start: {
                         character: 9,
-                        line: 3,
+                        line: 3
                     },
                     end: {
                         character: 12,
-                        line: 3,
-                    },
+                        line: 3
+                    }
                 },
-                targetUri: getUri('definitions.svelte'),
-            },
+                targetUri: getUri('definitions.svelte')
+            }
         ]);
     });
 
@@ -146,35 +146,35 @@ describe('TypescriptPlugin', () => {
                 originSelectionRange: {
                     start: {
                         character: 0,
-                        line: 5,
+                        line: 5
                     },
                     end: {
                         character: 5,
-                        line: 5,
-                    },
+                        line: 5
+                    }
                 },
                 targetRange: {
                     start: {
                         character: 16,
-                        line: 0,
+                        line: 0
                     },
                     end: {
                         character: 21,
-                        line: 0,
-                    },
+                        line: 0
+                    }
                 },
                 targetSelectionRange: {
                     start: {
                         character: 16,
-                        line: 0,
+                        line: 0
                     },
                     end: {
                         character: 21,
-                        line: 0,
-                    },
+                        line: 0
+                    }
                 },
-                targetUri: getUri('definitions.ts'),
-            },
+                targetUri: getUri('definitions.ts')
+            }
         ]);
     });
 
@@ -188,35 +188,35 @@ describe('TypescriptPlugin', () => {
                 originSelectionRange: {
                     start: {
                         character: 1,
-                        line: 7,
+                        line: 7
                     },
                     end: {
                         character: 13,
-                        line: 7,
-                    },
+                        line: 7
+                    }
                 },
                 targetRange: {
                     start: {
                         character: 1,
-                        line: 0,
+                        line: 0
                     },
                     end: {
                         character: 1,
-                        line: 0,
-                    },
+                        line: 0
+                    }
                 },
                 targetSelectionRange: {
                     start: {
                         character: 1,
-                        line: 0,
+                        line: 0
                     },
                     end: {
                         character: 1,
-                        line: 0,
-                    },
+                        line: 0
+                    }
                 },
-                targetUri: getUri('imported-file.svelte'),
-            },
+                targetUri: getUri('imported-file.svelte')
+            }
         ]);
     });
 
@@ -234,7 +234,7 @@ describe('TypescriptPlugin', () => {
         return {
             snapshotManager,
             plugin,
-            projectJsFile,
+            projectJsFile
         };
     };
 

@@ -19,7 +19,7 @@ const customDataProvider: ICSSDataProvider = {
     },
     providePseudoElements() {
         return [];
-    },
+    }
 };
 
 const [css, scss, less] = [getCSSLanguageService, getSCSSLanguageService, getLESSLanguageService]
@@ -30,7 +30,7 @@ const [css, scss, less] = [getCSSLanguageService, getSCSSLanguageService, getLES
 const langs = {
     css,
     scss,
-    less,
+    less
 };
 
 export function getLanguage(kind?: string) {

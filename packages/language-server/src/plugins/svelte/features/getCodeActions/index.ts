@@ -3,7 +3,7 @@ import {
     CodeActionContext,
     CodeActionKind,
     Range,
-    WorkspaceEdit,
+    WorkspaceEdit
 } from 'vscode-languageserver';
 import { SvelteDocument } from '../../SvelteDocument';
 import { getQuickfixActions, isIgnorableSvelteDiagnostic } from './getQuickfixes';
@@ -12,7 +12,7 @@ import { executeRefactoringCommand } from './getRefactorings';
 export async function getCodeActions(
     svelteDoc: SvelteDocument,
     range: Range,
-    context: CodeActionContext,
+    context: CodeActionContext
 ): Promise<CodeAction[]> {
     const svelteDiagnostics = context.diagnostics.filter(isIgnorableSvelteDiagnostic);
     if (
@@ -28,7 +28,7 @@ export async function getCodeActions(
 export async function executeCommand(
     svelteDoc: SvelteDocument,
     command: string,
-    args?: any[],
+    args?: any[]
 ): Promise<WorkspaceEdit | string | null> {
     return await executeRefactoringCommand(svelteDoc, command, args);
 }

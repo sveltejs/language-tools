@@ -3,7 +3,7 @@ module.exports = function(_w) {
         files: ['src/**/*.ts'],
         tests: ['test/**/*.ts'],
         env: {
-            type: 'node',
-        },
+            type: 'node'
+        }
     };
 };

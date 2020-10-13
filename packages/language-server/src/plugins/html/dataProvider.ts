@@ -5,51 +5,51 @@ const svelteEvents = [
     ...htmlData.globalAttributes!.map(mapToSvelteEvent),
     {
         name: 'on:introstart',
-        description: 'Available when element has transition',
+        description: 'Available when element has transition'
     },
     {
         name: 'on:introend',
-        description: 'Available when element has transition',
+        description: 'Available when element has transition'
     },
     {
         name: 'on:outrostart',
-        description: 'Available when element has transition',
+        description: 'Available when element has transition'
     },
     {
         name: 'on:outroend',
-        description: 'Available when element has transition',
-    },
+        description: 'Available when element has transition'
+    }
 ];
 const svelteAttributes: IAttributeData[] = [
     {
         name: 'bind:innerHTML',
-        description: 'Available when contenteditable=true',
+        description: 'Available when contenteditable=true'
     },
     {
         name: 'bind:textContent',
-        description: 'Available when contenteditable=true',
+        description: 'Available when contenteditable=true'
     },
     {
         name: 'bind:clientWidth',
-        description: 'Available for block level elements. (read-only)',
+        description: 'Available for block level elements. (read-only)'
     },
     {
         name: 'bind:clientHeight',
-        description: 'Available for block level elements. (read-only)',
+        description: 'Available for block level elements. (read-only)'
     },
     {
         name: 'bind:offsetWidth',
-        description: 'Available for block level elements. (read-only)',
+        description: 'Available for block level elements. (read-only)'
     },
     {
         name: 'bind:offsetHeight',
-        description: 'Available for block level elements. (read-only)',
+        description: 'Available for block level elements. (read-only)'
     },
     {
         name: 'bind:this',
         description:
-            'To get a reference to a DOM node, use bind:this. If used on a component, gets a reference to that component instance.',
-    },
+            'To get a reference to a DOM node, use bind:this. If used on a component, gets a reference to that component instance.'
+    }
 ];
 
 const svelteTags: ITagData[] = [
@@ -57,7 +57,7 @@ const svelteTags: ITagData[] = [
         name: 'svelte:self',
         description:
             'Allows a component to include itself, recursively.\n\nIt cannot appear at the top level of your markup; it must be inside an if or each block to prevent an infinite loop.',
-        attributes: [],
+        attributes: []
     },
     {
         name: 'svelte:component',
@@ -67,9 +67,9 @@ const svelteTags: ITagData[] = [
             {
                 name: 'this',
                 description:
-                    'Component to render.\n\nWhen this property changes, the component is destroyed and recreated.\nIf this is falsy, no component is rendered.',
-            },
-        ],
+                    'Component to render.\n\nWhen this property changes, the component is destroyed and recreated.\nIf this is falsy, no component is rendered.'
+            }
+        ]
     },
     {
         name: 'svelte:window',
@@ -78,45 +78,45 @@ const svelteTags: ITagData[] = [
         attributes: [
             {
                 name: 'bind:innerWidth',
-                description: 'Bind to the inner width of the window. (read-only)',
+                description: 'Bind to the inner width of the window. (read-only)'
             },
             {
                 name: 'bind:innerHeight',
-                description: 'Bind to the inner height of the window. (read-only)',
+                description: 'Bind to the inner height of the window. (read-only)'
             },
             {
                 name: 'bind:outerWidth',
-                description: 'Bind to the outer width of the window. (read-only)',
+                description: 'Bind to the outer width of the window. (read-only)'
             },
             {
                 name: 'bind:outerHeight',
-                description: 'Bind to the outer height of the window. (read-only)',
+                description: 'Bind to the outer height of the window. (read-only)'
             },
             {
                 name: 'bind:scrollX',
-                description: 'Bind to the scroll x position of the window.',
+                description: 'Bind to the scroll x position of the window.'
             },
             {
                 name: 'bind:scrollY',
-                description: 'Bind to the scroll y position of the window.',
+                description: 'Bind to the scroll y position of the window.'
             },
             {
                 name: 'bind:online',
-                description: 'An alias for window.navigator.onLine',
-            },
-        ],
+                description: 'An alias for window.navigator.onLine'
+            }
+        ]
     },
     {
         name: 'svelte:body',
         description:
             "As with <svelte:window>, this element allows you to add listeners to events on document.body, such as mouseenter and mouseleave which don't fire on window.",
-        attributes: [],
+        attributes: []
     },
     {
         name: 'svelte:head',
         description:
             'This element makes it possible to insert elements into document.head. During server-side rendering, head content exposed separately to the main html content.',
-        attributes: [],
+        attributes: []
     },
     {
         name: 'svelte:options',
@@ -130,14 +130,14 @@ const svelteTags: ITagData[] = [
                     {
                         name: '{true}',
                         description:
-                            'You never use mutable data, so the compiler can do simple referential equality checks to determine if values have changed',
+                            'You never use mutable data, so the compiler can do simple referential equality checks to determine if values have changed'
                     },
                     {
                         name: '{false}',
                         description:
-                            'The default. Svelte will be more conservative about whether or not mutable objects have changed',
-                    },
-                ],
+                            'The default. Svelte will be more conservative about whether or not mutable objects have changed'
+                    }
+                ]
             },
             {
                 name: 'accessors',
@@ -146,23 +146,23 @@ const svelteTags: ITagData[] = [
                 values: [
                     {
                         name: '{true}',
-                        description: "Adds getters and setters for the component's props",
+                        description: "Adds getters and setters for the component's props"
                     },
                     {
                         name: '{false}',
-                        description: 'The default.',
-                    },
-                ],
+                        description: 'The default.'
+                    }
+                ]
             },
             {
                 name: 'namespace',
-                description: 'The namespace where this component will be used, most commonly "svg"',
+                description: 'The namespace where this component will be used, most commonly "svg"'
             },
             {
                 name: 'tag',
-                description: 'The name to use when compiling this component as a custom element',
-            },
-        ],
+                description: 'The name to use when compiling this component as a custom element'
+            }
+        ]
     },
     {
         name: 'slot',
@@ -172,28 +172,28 @@ const svelteTags: ITagData[] = [
             {
                 name: 'name',
                 description:
-                    'Named slots allow consumers to target specific areas. They can also have fallback content.',
-            },
-        ],
-    },
+                    'Named slots allow consumers to target specific areas. They can also have fallback content.'
+            }
+        ]
+    }
 ];
 
 const mediaAttributes: IAttributeData[] = [
     {
         name: 'bind:duration',
-        description: 'The total duration of the video, in seconds. (readonly)',
+        description: 'The total duration of the video, in seconds. (readonly)'
     },
     {
         name: 'bind:buffered',
-        description: 'An array of {start, end} objects. (readonly)',
+        description: 'An array of {start, end} objects. (readonly)'
     },
     {
         name: 'bind:seekable',
-        description: 'An array of {start, end} objects. (readonly)',
+        description: 'An array of {start, end} objects. (readonly)'
     },
     {
         name: 'bind:played',
-        description: 'An array of {start, end} objects. (readonly)',
+        description: 'An array of {start, end} objects. (readonly)'
     },
     {
         name: 'bind:seeking',
@@ -205,22 +205,22 @@ const mediaAttributes: IAttributeData[] = [
     },
     {
         name: 'bind:currentTime',
-        description: 'The current point in the video, in seconds.',
+        description: 'The current point in the video, in seconds.'
     },
     {
         name: 'bind:playbackRate',
-        description: `how fast or slow to play the video, where 1 is 'normal'`
+        description: 'how fast or slow to play the video, where 1 is \'normal\''
     },
     {
-        name: 'bind:paused',
+        name: 'bind:paused'
     },
     {
         name: 'bind:volume',
-        description: 'A value between 0 and 1',
+        description: 'A value between 0 and 1'
     },
     {
-        name: 'bind:muted',
-    },
+        name: 'bind:muted'
+    }
 ];
 const videoAttributes: IAttributeData[] = [
     {
@@ -237,11 +237,11 @@ const addAttributes: Record<string, IAttributeData[]> = {
     select: [{ name: 'bind:value' }],
     input: [
         { name: 'bind:value' },
-        { name: 'bind:group', description: 'Available for type="radio" and type="checkbox"' },
+        { name: 'bind:group', description: 'Available for type="radio" and type="checkbox"' }
     ],
     textarea: [{ name: 'bind:value' }],
     video: [...mediaAttributes, ...videoAttributes],
-    audio: [...mediaAttributes],
+    audio: [...mediaAttributes]
 };
 
 const html5Tags = htmlData.tags!.map(tag => {
@@ -251,7 +251,7 @@ const html5Tags = htmlData.tags!.map(tag => {
     }
     return {
         ...tag,
-        attributes,
+        attributes
     };
 });
 
@@ -259,12 +259,12 @@ export const svelteHtmlDataProvider = newHTMLDataProvider('svelte-builtin', {
     version: 1,
     globalAttributes: [...htmlData.globalAttributes!, ...svelteEvents, ...svelteAttributes],
     tags: [...html5Tags, ...svelteTags],
-    valueSets: htmlData.valueSets,
+    valueSets: htmlData.valueSets
 });
 
 function mapToSvelteEvent(attr: IAttributeData) {
     return {
         ...attr,
-        name: attr.name.replace(/^on/, 'on:'),
+        name: attr.name.replace(/^on/, 'on:')
     };
 }

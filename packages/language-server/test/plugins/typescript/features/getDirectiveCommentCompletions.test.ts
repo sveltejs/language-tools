@@ -6,21 +6,21 @@ import { pathToUrl } from '../../../../src/utils';
 import {
     Position,
     CompletionContext,
-    CompletionTriggerKind,
+    CompletionTriggerKind
 } from 'vscode-languageserver';
 import { getDirectiveCommentCompletions } from '../../../../src/plugins/typescript/features/getDirectiveCommentCompletions';
 
 describe('can get typescript directive comment completions', () => {
     function setup(
         position: Position,
-        context: CompletionContext = { triggerKind: CompletionTriggerKind.Invoked },
+        context: CompletionContext = { triggerKind: CompletionTriggerKind.Invoked }
     ) {
         const testDir = path.join(__dirname, '..');
         const filePath = path.join(
             testDir,
             'testfiles',
             'completions',
-            'ts-directive-comment.svelte',
+            'ts-directive-comment.svelte'
         );
         const document = new Document(pathToUrl(filePath), ts.sys.readFile(filePath)!);
         const result = getDirectiveCommentCompletions(position, document, context);
@@ -45,14 +45,14 @@ describe('can get typescript directive comment completions', () => {
                             range: {
                                 end: {
                                     character: 11,
-                                    line: position.line,
+                                    line: position.line
                                 },
                                 start: {
                                     character: 2,
-                                    line: position.line,
-                                },
-                            },
-                        },
+                                    line: position.line
+                                }
+                            }
+                        }
                     },
                     {
                         detail:
@@ -64,14 +64,14 @@ describe('can get typescript directive comment completions', () => {
                             range: {
                                 end: {
                                     character: 13,
-                                    line: position.line,
+                                    line: position.line
                                 },
                                 start: {
                                     character: 2,
-                                    line: position.line,
-                                },
-                            },
-                        },
+                                    line: position.line
+                                }
+                            }
+                        }
                     },
                     {
                         detail: 'Suppresses @ts-check errors on the next line of a file.',
@@ -82,14 +82,14 @@ describe('can get typescript directive comment completions', () => {
                             range: {
                                 end: {
                                     character: 12,
-                                    line: position.line,
+                                    line: position.line
                                 },
                                 start: {
                                     character: 2,
-                                    line: position.line,
-                                },
-                            },
-                        },
+                                    line: position.line
+                                }
+                            }
+                        }
                     },
                     {
                         detail:
@@ -101,17 +101,17 @@ describe('can get typescript directive comment completions', () => {
                             range: {
                                 end: {
                                     character: 18,
-                                    line: position.line,
+                                    line: position.line
                                 },
                                 start: {
                                     character: 2,
-                                    line: position.line,
-                                },
-                            },
-                        },
-                    },
-                ],
-            },
+                                    line: position.line
+                                }
+                            }
+                        }
+                    }
+                ]
+            }
         );
     }
 
@@ -123,7 +123,7 @@ describe('can get typescript directive comment completions', () => {
         testForScript(Position.create(5, 3));
     });
 
-    it(`don't provide in markup`, () => {
+    it('don\'t provide in markup', () => {
         const result = setup(Position.create(7, 3));
         assert.deepStrictEqual(result, null);
     });

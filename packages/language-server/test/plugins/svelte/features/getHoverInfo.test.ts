@@ -11,7 +11,7 @@ describe('SveltePlugin#getHoverInfo', () => {
         const hover = getHoverInfo(svelteDoc, position);
         return {
             toEqual: (tag: SvelteTag | null) =>
-                assert.deepStrictEqual(hover, tag ? { contents: documentation[tag] } : null),
+                assert.deepStrictEqual(hover, tag ? { contents: documentation[tag] } : null)
         };
     }
 
@@ -19,14 +19,14 @@ describe('SveltePlugin#getHoverInfo', () => {
         it('if position inside style', () => {
             expectHoverInfoFor(
                 '<style>h1{color:blue;}</style><p>test</p>',
-                Position.create(0, 10),
+                Position.create(0, 10)
             ).toEqual(null);
         });
 
         it('if position inside script', () => {
             expectHoverInfoFor(
                 '<script>const a = true</script><p>test</p>',
-                Position.create(0, 10),
+                Position.create(0, 10)
             ).toEqual(null);
         });
 
@@ -87,7 +87,7 @@ describe('SveltePlugin#getHoverInfo', () => {
         ([
             ['if', 'else if'],
             ['await', 'then'],
-            ['await', 'catch'],
+            ['await', 'catch']
         ] as const).forEach((tag) => {
             it(`(:${tag[1]})`, () => {
                 expectHoverInfoFor(`{:${tag[1]}}`, Position.create(0, 3)).toEqual(tag[0]);

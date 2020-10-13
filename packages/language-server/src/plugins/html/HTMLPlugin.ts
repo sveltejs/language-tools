@@ -6,13 +6,13 @@ import {
     Position,
     SymbolInformation,
     CompletionItem,
-    CompletionItemKind,
+    CompletionItemKind
 } from 'vscode-languageserver';
 import {
     DocumentManager,
     Document,
     isInTag,
-    getNodeIfIsInComponentStartTag,
+    getNodeIfIsInComponentStartTag
 } from '../../lib/documents';
 import { LSConfigManager, LSHTMLConfig } from '../../ls-config';
 import { svelteHtmlDataProvider } from './dataProvider';
@@ -64,10 +64,10 @@ export class HTMLPlugin implements HoverProvider, CompletionsProvider {
 
         const emmetResults: CompletionList = {
             isIncomplete: true,
-            items: [],
+            items: []
         };
         this.lang.setCompletionParticipants([
-            getEmmetCompletionParticipants(document, position, 'html', {}, emmetResults),
+            getEmmetCompletionParticipants(document, position, 'html', {}, emmetResults)
         ]);
         const results = this.isInComponentTag(html, document, position)
             ? // Only allow emmet inside component element tags.
@@ -77,7 +77,7 @@ export class HTMLPlugin implements HoverProvider, CompletionsProvider {
         return CompletionList.create(
             [...results.items, ...this.getLangCompletions(results.items), ...emmetResults.items],
             // Emmet completions change on every keystroke, so they are never complete
-            emmetResults.items.length > 0,
+            emmetResults.items.length > 0
         );
     }
 
@@ -89,7 +89,7 @@ export class HTMLPlugin implements HoverProvider, CompletionsProvider {
         const styleScriptTemplateCompletions = completions.filter(
             (completion) =>
                 completion.kind === CompletionItemKind.Property &&
-                this.styleScriptTemplate.has(completion.label),
+                this.styleScriptTemplate.has(completion.label)
         );
         const langCompletions: CompletionItem[] = [];
         addLangCompletion('script', ['ts']);
@@ -99,7 +99,7 @@ export class HTMLPlugin implements HoverProvider, CompletionsProvider {
 
         function addLangCompletion(tag: string, languages: string[]) {
             const existingCompletion = styleScriptTemplateCompletions.find(
-                (completion) => completion.label === tag,
+                (completion) => completion.label === tag
             );
             if (!existingCompletion) {
                 return;
@@ -114,9 +114,9 @@ export class HTMLPlugin implements HoverProvider, CompletionsProvider {
                         `${existingCompletion.insertText} lang="${lang}"`,
                     textEdit: existingCompletion.textEdit && {
                         range: existingCompletion.textEdit.range,
-                        newText: `${existingCompletion.textEdit.newText} lang="${lang}"`,
-                    },
-                }),
+                        newText: `${existingCompletion.textEdit.newText} lang="${lang}"`
+                    }
+                })
             );
         }
     }

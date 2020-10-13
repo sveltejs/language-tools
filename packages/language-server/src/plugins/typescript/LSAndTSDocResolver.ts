@@ -6,14 +6,14 @@ import {
     getLanguageServiceForDocument,
     getLanguageServiceForPath,
     getService,
-    LanguageServiceContainer,
+    LanguageServiceContainer
 } from './service';
 import { SnapshotManager } from './SnapshotManager';
 
 export class LSAndTSDocResolver {
     constructor(
         private readonly docManager: DocumentManager,
-        private readonly workspaceUris: string[],
+        private readonly workspaceUris: string[]
     ) {
         docManager.on(
             'documentChange',
@@ -23,8 +23,8 @@ export class LSAndTSDocResolver {
                     this.getLSAndTSDoc(document);
                 },
                 (newDoc, prevDoc) => newDoc.uri === prevDoc?.uri,
-                1000,
-            ),
+                1000
+            )
         );
     }
 
@@ -35,7 +35,7 @@ export class LSAndTSDocResolver {
         const uri = pathToUrl(fileName);
         const document = this.docManager.openDocument({
             text: content,
-            uri,
+            uri
         });
         this.docManager.lockDocument(uri);
         return document;
@@ -46,7 +46,7 @@ export class LSAndTSDocResolver {
     }
 
     getLSAndTSDoc(
-        document: Document,
+        document: Document
     ): {
         tsDoc: SvelteDocumentSnapshot;
         lang: ts.LanguageService;
@@ -54,7 +54,7 @@ export class LSAndTSDocResolver {
         const lang = getLanguageServiceForDocument(
             document,
             this.workspaceUris,
-            this.createDocument,
+            this.createDocument
         );
         const filePath = document.getFilePath()!;
         const tsDoc = this.getSnapshot(filePath, document);
