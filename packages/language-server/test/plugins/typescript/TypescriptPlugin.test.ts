@@ -1,7 +1,7 @@
 import * as assert from 'assert';
 import * as path from 'path';
 import ts from 'typescript';
-import { FileChangeType, Position } from 'vscode-languageserver';
+import { FileChangeType, Position, Range } from 'vscode-languageserver';
 import { Document, DocumentManager } from '../../../src/lib/documents';
 import { LSConfigManager } from '../../../src/ls-config';
 import { TypeScriptPlugin } from '../../../src/plugins';
@@ -181,18 +181,18 @@ describe('TypescriptPlugin', () => {
     it('provides definitions from svelte to svelte doc', async () => {
         const { plugin, document } = setup('definitions.svelte');
 
-        const definitions = await plugin.getDefinitions(document, Position.create(7, 3));
+        const definitions = await plugin.getDefinitions(document, Position.create(12, 3));
 
         assert.deepStrictEqual(definitions, [
             {
                 originSelectionRange: {
                     start: {
                         character: 1,
-                        line: 7
+                        line: 12
                     },
                     end: {
                         character: 13,
-                        line: 7
+                        line: 12
                     }
                 },
                 targetRange: {
@@ -218,6 +218,132 @@ describe('TypescriptPlugin', () => {
                 targetUri: getUri('imported-file.svelte')
             }
         ]);
+    });
+
+    describe('provides definitions for $store within svelte file', () => {
+        async function test$StoreDef(pos: Position, originSelectionRange: Range) {
+            const { plugin, document } = setup('definitions.svelte');
+
+            const definitions = await plugin.getDefinitions(document, pos);
+
+            assert.deepStrictEqual(definitions, [
+                {
+                    originSelectionRange,
+                    targetRange: {
+                        start: {
+                            character: 4,
+                            line: 6
+                        },
+                        end: {
+                            character: 9,
+                            line: 6
+                        }
+                    },
+                    targetSelectionRange: {
+                        start: {
+                            character: 4,
+                            line: 6
+                        },
+                        end: {
+                            character: 9,
+                            line: 6
+                        }
+                    },
+                    targetUri: getUri('definitions.svelte')
+                }
+            ]);
+        }
+
+        it('(within script simple)', async () => {
+            await test$StoreDef(
+                Position.create(7, 1),
+                Range.create(Position.create(7, 1), Position.create(7, 5))
+            );
+        });
+
+        it('(within script if)', async () => {
+            await test$StoreDef(
+                Position.create(8, 7),
+                Range.create(Position.create(8, 5), Position.create(8, 9))
+            );
+        });
+
+        it('(within template simple)', async () => {
+            await test$StoreDef(
+                Position.create(13, 3),
+                Range.create(Position.create(13, 2), Position.create(13, 6))
+            );
+        });
+
+        it('(within template if)', async () => {
+            await test$StoreDef(
+                Position.create(14, 7),
+                Range.create(Position.create(14, 6), Position.create(14, 10))
+            );
+        });
+    });
+
+    describe('provides definitions for $store from svelte file to ts file', () => {
+        async function test$StoreDef(pos: Position, originSelectionRange: Range) {
+            const { plugin, document } = setup('definitions.svelte');
+
+            const definitions = await plugin.getDefinitions(document, pos);
+
+            assert.deepStrictEqual(definitions, [
+                {
+                    originSelectionRange,
+                    targetRange: {
+                        start: {
+                            character: 16,
+                            line: 0
+                        },
+                        end: {
+                            character: 21,
+                            line: 0
+                        }
+                    },
+                    targetSelectionRange: {
+                        start: {
+                            character: 16,
+                            line: 0
+                        },
+                        end: {
+                            character: 21,
+                            line: 0
+                        }
+                    },
+                    targetUri: getUri('definitions.ts')
+                }
+            ]);
+        }
+
+        it('(within script simple)', async () => {
+            await test$StoreDef(
+                Position.create(9, 1),
+                Range.create(Position.create(9, 1), Position.create(9, 5))
+            );
+        });
+
+        it('(within script if)', async () => {
+            await test$StoreDef(
+                Position.create(10, 7),
+                Range.create(Position.create(10, 5), Position.create(10, 9))
+            );
+        });
+
+        it('(within template simple)', async () => {
+            await test$StoreDef(
+                Position.create(16, 3),
+                Range.create(Position.create(16, 2), Position.create(16, 6))
+            );
+        });
+
+        it('(within template if)', async () => {
+            await test$StoreDef(
+                Position.create(17, 7),
+                Range.create(Position.create(17, 6), Position.create(17, 10))
+            );
+        });
     });
 
     const setupForOnWatchedFileChanges = () => {

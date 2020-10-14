@@ -93,6 +93,86 @@ describe('DiagnosticsProvider', () => {
         ]);
     });
 
+    it('provides diagnostics for wrong $store usage', async () => {
+        const { plugin, document } = setup('diagnostics-$store.svelte');
+        const diagnostics = await plugin.getDiagnostics(document);
+
+        assert.deepStrictEqual(diagnostics, [
+            {
+                code: 2345,
+                message:
+                    "Argument of type 'string' is not assignable to parameter of type 'SvelteStore<any>'.",
+                range: {
+                    end: {
+                        character: 5,
+                        line: 2
+                    },
+                    start: {
+                        character: 1,
+                        line: 2
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            },
+            {
+                code: 2345,
+                message:
+                    "Argument of type 'string' is not assignable to parameter of type 'SvelteStore<any>'.",
+                range: {
+                    end: {
+                        character: 8,
+                        line: 3
+                    },
+                    start: {
+                        character: 4,
+                        line: 3
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            },
+            {
+                code: 2345,
+                message:
+                    "Argument of type 'string' is not assignable to parameter of type 'SvelteStore<any>'.",
+                range: {
+                    end: {
+                        character: 6,
+                        line: 6
+                    },
+                    start: {
+                        character: 2,
+                        line: 6
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            },
+            {
+                code: 2345,
+                message:
+                    "Argument of type 'string' is not assignable to parameter of type 'SvelteStore<any>'.",
+                range: {
+                    end: {
+                        character: 10,
+                        line: 7
+                    },
+                    start: {
+                        character: 6,
+                        line: 7
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            }
+        ]);
+    });
+
     it('provides no typecheck diagnostics for js file', async () => {
         const { plugin, document } = setup('diagnostics-js-notypecheck.svelte');
         const diagnostics = await plugin.getDiagnostics(document);
