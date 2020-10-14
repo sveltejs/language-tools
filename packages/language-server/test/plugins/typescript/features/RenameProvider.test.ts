@@ -28,7 +28,8 @@ describe('RenameProvider', () => {
         const renameDoc2 = await openDoc('rename2.svelte');
         const renameDoc3 = await openDoc('rename3.svelte');
         const renameDoc4 = await openDoc('rename4.svelte');
-        return { provider, renameDoc1, renameDoc2, renameDoc3, renameDoc4, docManager };
+        const renameDoc5 = await openDoc('rename5.svelte');
+        return { provider, renameDoc1, renameDoc2, renameDoc3, renameDoc4, renameDoc5, docManager };
 
         async function openDoc(filename: string) {
             const filePath = getFullPath(filename);
@@ -283,6 +284,93 @@ describe('RenameProvider', () => {
                     }
                 ]
             }
+        });
+    });
+
+    describe('should allow rename of $store', () => {
+        async function do$storeRename(pos: Position) {
+            const { provider, renameDoc5 } = await setup();
+            const result = await provider.rename(renameDoc5, pos, 'store1');
+
+            assert.deepStrictEqual(result, {
+                changes: {
+                    [getUri('rename5.svelte')]: [
+                        {
+                            newText: 'store1',
+                            range: {
+                                start: {
+                                    line: 1,
+                                    character: 8
+                                },
+                                end: {
+                                    line: 1,
+                                    character: 13
+                                }
+                            }
+                        },
+                        {
+                            newText: 'store1',
+                            range: {
+                                start: {
+                                    line: 2,
+                                    character: 5
+                                },
+                                end: {
+                                    line: 2,
+                                    character: 10
+                                }
+                            }
+                        },
+                        {
+                            newText: 'store1',
+                            range: {
+                                start: {
+                                    line: 3,
+                                    character: 8
+                                },
+                                end: {
+                                    line: 3,
+                                    character: 13
+                                }
+                            }
+                        },
+                        {
+                            newText: 'store1',
+                            range: {
+                                start: {
+                                    line: 6,
+                                    character: 2
+                                },
+                                end: {
+                                    line: 6,
+                                    character: 7
+                                }
+                            }
+                        },
+                        {
+                            newText: 'store1',
+                            range: {
+                                start: {
+                                    line: 7,
+                                    character: 6
+                                },
+                                end: {
+                                    line: 7,
+                                    character: 11
+                                }
+                            }
+                        }
+                    ]
+                }
+            });
+        }
+
+        it('from definition', async () => {
+            await do$storeRename(Position.create(1, 10));
+        });
+
+        it('from usage within script', async () => {
+            await do$storeRename(Position.create(3, 10));
         });
     });
 
