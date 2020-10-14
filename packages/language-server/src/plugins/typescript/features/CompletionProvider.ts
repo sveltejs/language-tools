@@ -1,8 +1,6 @@
 import ts from 'typescript';
 import {
     CompletionContext,
-    CompletionItem,
-    CompletionItemKind,
     CompletionList,
     CompletionTriggerKind,
     MarkupContent,
@@ -27,6 +25,7 @@ import {
     getCommitCharactersForScriptElement,
     scriptElementKindToCompletionItemKind
 } from '../utils';
+import { getJsDocTemplateCompletion } from './getJsDocTemplateComletion';
 import { getComponentAtPosition } from './utils';
 
 export interface CompletionEntryWithIdentifer extends ts.CompletionEntry, TextDocumentIdentifier {
@@ -90,7 +89,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         const offset = fragment.offsetAt(fragment.getGeneratedPosition(position));
 
         if (isJsDocTriggerCharacter) {
-            return this.getJsDocTemplateCompletion(fragment, lang, filePath, offset);
+            return getJsDocTemplateCompletion(fragment, lang, filePath, offset);
         }
 
         const completions =
@@ -127,50 +126,6 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             .concat(eventCompletions);
 
         return CompletionList.create(completionItems, !!tsDoc.parserError);
-    }
-
-    private getJsDocTemplateCompletion(
-        fragment: SvelteSnapshotFragment,
-        lang: ts.LanguageService,
-        filePath: string,
-        offset: number,
-    ): CompletionList | null {
-        const template = lang.getDocCommentTemplateAtPosition(filePath, offset);
-
-        if (!template) {
-            return null;
-        }
-        const { text } = fragment;
-        const lineStart = text.lastIndexOf('\n', offset);
-        const lineEnd = text.indexOf('\n', offset);
-        const isLastLine = lineEnd === -1;
-
-        const line = text.substring(lineStart, isLastLine ? undefined : lineEnd);
-        const character = offset - lineStart;
-
-        const start = line.lastIndexOf('/**', character) + lineStart;
-        const suffix = line.slice(character).match(/^\s*\**\//);
-        const textEditRange = mapRangeToOriginal(
-            fragment,
-            Range.create(
-                fragment.positionAt(start),
-                fragment.positionAt(offset + (suffix?.[0]?.length ?? 0)),
-            ),
-        );
-
-        const item: CompletionItem = {
-            label: '/** */',
-            detail: 'JSDoc comment',
-            sortText: '\0',
-            kind: CompletionItemKind.Snippet,
-            textEdit: TextEdit.replace(
-                textEditRange,
-                // for indent
-                template.newText.replace(/^\s*(?=(\/|[ ]\*))/gm, '')
-            ),
-        };
-
-        return CompletionList.create([item]);
     }
 
     private getExistingImports(document: Document) {
