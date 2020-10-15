@@ -96,7 +96,7 @@ async function createParserErrorDiagnostic(error: any, document: Document) {
             }
             diagnostic.message +=
                 '\nDid you setup a `svelte.config.js`? ' +
-                '\nSee https://github.com/sveltejs/language-tools/tree/master/packages/svelte-vscode#using-with-preprocessors for more info.';
+                '\nSee https://github.com/sveltejs/language-tools/tree/master/docs#using-with-preprocessors for more info.';
         }
     }
 
@@ -241,7 +241,7 @@ function getErrorMessage(error: any, source: string, hint = '') {
         " requires a preprocessor that doesn't seem to be setup or failed during setup. " +
         'Did you setup a `svelte.config.js`? ' +
         hint +
-        '\n\nSee https://github.com/sveltejs/language-tools/tree/master/packages/svelte-vscode#using-with-preprocessors for more info.'
+        '\n\nSee https://github.com/sveltejs/language-tools/tree/master/docs#using-with-preprocessors for more info.'
     );
 }
 
