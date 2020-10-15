@@ -66,7 +66,8 @@ export function getJsDocTemplateCompletion(
 
 /**
  * adopted from https://github.com/microsoft/vscode/blob/a4b011697892ab656e1071b42c8af4b192078f28/extensions/typescript-language-features/src/languageFeatures/jsDocCompletions.ts#L94
- * Currently typescript won't return `@param` type template for files other than `.js` and `.jsx`
+ * Currently typescript won't return `@param` type template for files
+ * that has extension other than `.js` and `.jsx`
  * So we don't need to insert snippet-tab-stop for it
  */
 function templateToSnippet(text: string) {
@@ -74,8 +75,10 @@ function templateToSnippet(text: string) {
         text
             // $ is for snippet tab stop
             .replace(/\$/g, '\\$')
-            // remove indent and let client handle it
-            .replace(/^\s*(?=(\/|[ ]\*))/gm, '')
+            .split('\n')
+            // remove indent but not line break and let client handle it
+            .map((part) => part.replace(/^\s*(?=(\/|[ ]\*))/g, ''))
+            .join('\n')
             .replace(/^(\/\*\*\s*\*[ ]*)$/m, (x) => x + '$0')
     );
 }

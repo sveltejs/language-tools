@@ -11,7 +11,9 @@ import {
     Position,
     Range,
     CompletionTriggerKind,
-    MarkupKind
+    MarkupKind,
+    TextEdit,
+    InsertTextFormat
 } from 'vscode-languageserver';
 import {
     CompletionsProviderImpl,
@@ -485,6 +487,42 @@ describe('CompletionProviderImpl', () => {
         const { additionalTextEdits } = await completionProvider.resolveCompletion(document, item!);
 
         assert.strictEqual(additionalTextEdits, undefined);
+    });
+
+    const testForJsDocTemplateCompletion = async (position: Position, newText: string) => {
+        const { completionProvider, document } = setup('jsdoc-completions.svelte');
+
+        const completions = await completionProvider.getCompletions(document, position, {
+            triggerKind: CompletionTriggerKind.TriggerCharacter,
+            triggerCharacter: '*'
+        });
+
+        const item = completions?.items?.[0];
+        const { line, character } = position;
+        const start = Position.create(line, character - '/**'.length);
+        const end = Position.create(line, character + '*/'.length);
+        assert.deepStrictEqual(item, <CompletionItem>{
+            detail: 'JSDoc comment',
+            insertTextFormat: InsertTextFormat.Snippet,
+            kind: CompletionItemKind.Snippet,
+            label: '/** */',
+            sortText: '\0',
+            textEdit: TextEdit.replace(Range.create(start, end), newText)
+        });
+    };
+
+    it('show jsDoc template completion', async () => {
+        await testForJsDocTemplateCompletion(
+            Position.create(1, 7),
+            harmonizeNewLines('/**\n * $0\n */')!
+        );
+    });
+
+    it('show jsDoc template completion on function', async () => {
+        await testForJsDocTemplateCompletion(
+            Position.create(4, 7),
+            harmonizeNewLines('/**\n * $0\n * @param parameter1\n */')!
+        );
     });
 });
 
