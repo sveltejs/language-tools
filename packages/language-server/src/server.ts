@@ -94,7 +94,11 @@ export function startServer(options?: LSOptions) {
             Logger.error('No workspace path set');
         }
 
-        pluginHost.initialize(!!evt.initializationOptions?.dontFilterIncompleteCompletions);
+        pluginHost.initialize({
+            filterIncompleteCompletions: !evt.initializationOptions
+                ?.dontFilterIncompleteCompletions,
+            definitionLinkSupport: !!evt.capabilities.textDocument?.definition?.linkSupport
+        });
         pluginHost.updateConfig(evt.initializationOptions?.config || {});
         pluginHost.register(
             (sveltePlugin = new SveltePlugin(
@@ -102,8 +106,12 @@ export function startServer(options?: LSOptions) {
                 evt.initializationOptions?.prettierConfig
             ))
         );
-        pluginHost.register(new HTMLPlugin(docManager, configManager));
-        pluginHost.register(new CSSPlugin(docManager, configManager));
+        pluginHost.register(
+            new HTMLPlugin(docManager, configManager, evt.initializationOptions?.emmetConfig)
+        );
+        pluginHost.register(
+            new CSSPlugin(docManager, configManager, evt.initializationOptions?.emmetConfig)
+        );
         pluginHost.register(new TypeScriptPlugin(docManager, configManager, workspaceUris));
 
         const clientSupportApplyEditCommand = !!evt.capabilities.workspace?.applyEdit;

@@ -29,7 +29,8 @@ import {
     Plugin,
     OnWatchFileChanges,
     AppCompletionItem,
-    FileRename
+    FileRename,
+    LSPProviderConfig
 } from './interfaces';
 import { Logger } from '../logger';
 import { regexLastIndexOf } from '../utils';
@@ -37,17 +38,20 @@ import { regexLastIndexOf } from '../utils';
 enum ExecuteMode {
     None,
     FirstNonNull,
-    Collect,
+    Collect
 }
 
 export class PluginHost implements LSProvider, OnWatchFileChanges {
-    private filterIncompleteCompletions = false;
     private plugins: Plugin[] = [];
+    private pluginHostConfig: LSPProviderConfig = {
+        filterIncompleteCompletions: true,
+        definitionLinkSupport: false
+    };
 
     constructor(private documentsManager: DocumentManager, private config: LSConfigManager) {}
 
-    initialize(dontFilterIncompleteCompletions: boolean) {
-        this.filterIncompleteCompletions = !dontFilterIncompleteCompletions;
+    initialize(pluginHostConfig: LSPProviderConfig) {
+        this.pluginHostConfig = pluginHostConfig;
     }
 
     register(plugin: Plugin) {
@@ -105,7 +109,7 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         // If the result is incomplete, we need to filter the results ourselves
         // to throw out non-matching results. VSCode does filter client-side,
         // but other IDEs might not.
-        if (isIncomplete && this.filterIncompleteCompletions) {
+        if (isIncomplete && this.pluginHostConfig.filterIncompleteCompletions) {
             const offset = document.offsetAt(position);
             // Assumption for performance reasons:
             // Noone types import names longer than 20 characters and still expects perfect autocompletion.
@@ -225,19 +229,27 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
     async getDefinitions(
         textDocument: TextDocumentIdentifier,
         position: Position
-    ): Promise<DefinitionLink[]> {
+    ): Promise<DefinitionLink[] | Location[]> {
         const document = this.getDocument(textDocument.uri);
         if (!document) {
             throw new Error('Cannot call methods on an unopened document');
         }
 
-        return flatten(
+        const definitions = flatten(
             await this.execute<DefinitionLink[]>(
                 'getDefinitions',
                 [document, position],
                 ExecuteMode.Collect
             )
         );
+
+        if (this.pluginHostConfig.definitionLinkSupport) {
+            return definitions;
+        } else {
+            return definitions.map(
+                (def) => <Location>{ range: def.targetSelectionRange, uri: def.targetUri }
+            );
+        }
     }
 
     async getCodeActions(
@@ -347,12 +359,12 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
     private execute<T>(
         name: keyof LSProvider,
         args: any[],
-        mode: ExecuteMode.FirstNonNull,
+        mode: ExecuteMode.FirstNonNull
     ): Promise<T | null>;
     private execute<T>(
         name: keyof LSProvider,
         args: any[],
-        mode: ExecuteMode.Collect,
+        mode: ExecuteMode.Collect
     ): Promise<T[]>;
     private execute(name: keyof LSProvider, args: any[], mode: ExecuteMode.None): Promise<void>;
     private async execute<T>(

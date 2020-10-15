@@ -1,4 +1,8 @@
-import { getEmmetCompletionParticipants, doComplete as doEmmetComplete } from 'vscode-emmet-helper';
+import {
+    getEmmetCompletionParticipants,
+    doComplete as doEmmetComplete,
+    EmmetConfiguration
+} from 'vscode-emmet-helper';
 import {
     Color,
     ColorInformation,
@@ -50,7 +54,11 @@ export class CSSPlugin
     private triggerCharacters = ['.', ':', '-', '/'];
     private globalVars = new GlobalVars();
 
-    constructor(docManager: DocumentManager, configManager: LSConfigManager) {
+    constructor(
+        docManager: DocumentManager,
+        configManager: LSConfigManager,
+        private emmetConfig?: EmmetConfiguration
+    ) {
         this.configManager = configManager;
 
         this.globalVars.watchFiles(this.configManager.get('css.globals'));
@@ -70,11 +78,6 @@ export class CSSPlugin
         }
 
         const cssDocument = this.getCSSDoc(document);
-
-        if (isSASS(cssDocument)) {
-            return [];
-        }
-
         const kind = extractLanguage(cssDocument);
 
         if (shouldExcludeValidation(kind)) {
@@ -93,7 +96,7 @@ export class CSSPlugin
         }
 
         const cssDocument = this.getCSSDoc(document);
-        if (!cssDocument.isInGenerated(position) || isSASS(cssDocument)) {
+        if (!cssDocument.isInGenerated(position) || shouldExcludeHover(cssDocument)) {
             return null;
         }
 
@@ -134,10 +137,14 @@ export class CSSPlugin
         if (isSASS(cssDocument)) {
             // the css language service does not support sass, still we can use
             // the emmet helper directly to at least get emmet completions
-            return doEmmetComplete(document, position, 'sass', {});
+            return doEmmetComplete(document, position, 'sass', this.emmetConfig || {});
         }
 
         const type = extractLanguage(cssDocument);
+        if (shouldExcludeCompletion(type)) {
+            return null;
+        }
+
         const lang = getLanguageService(type);
         const emmetResults: CompletionList = {
             isIncomplete: true,
@@ -148,7 +155,7 @@ export class CSSPlugin
                 cssDocument,
                 cssDocument.getGeneratedPosition(position),
                 getLanguage(type),
-                {},
+                this.emmetConfig || {},
                 emmetResults
             )
         ]);
@@ -196,7 +203,7 @@ export class CSSPlugin
 
         const cssDocument = this.getCSSDoc(document);
 
-        if (isSASS(cssDocument)) {
+        if (shouldExcludeColor(cssDocument)) {
             return [];
         }
 
@@ -213,7 +220,7 @@ export class CSSPlugin
         const cssDocument = this.getCSSDoc(document);
         if (
             (!cssDocument.isInGenerated(range.start) && !cssDocument.isInGenerated(range.end)) ||
-            isSASS(cssDocument)
+            shouldExcludeColor(cssDocument)
         ) {
             return [];
         }
@@ -235,7 +242,7 @@ export class CSSPlugin
 
         const cssDocument = this.getCSSDoc(document);
 
-        if (isSASS(cssDocument)) {
+        if (shouldExcludeDocumentSymbols(cssDocument)) {
             return [];
         }
 
@@ -275,7 +282,52 @@ export class CSSPlugin
 function shouldExcludeValidation(kind?: string) {
     switch (kind) {
         case 'postcss':
-        case 'text/postcss':
+        case 'sass':
+        case 'stylus':
+        case 'styl':
+            return true;
+        default:
+            return false;
+    }
+}
+
+function shouldExcludeCompletion(kind?: string) {
+    switch (kind) {
+        case 'stylus':
+        case 'styl':
+            return true;
+        default:
+            return false;
+    }
+}
+
+function shouldExcludeDocumentSymbols(document: CSSDocument) {
+    switch (extractLanguage(document)) {
+        case 'sass':
+        case 'stylus':
+        case 'styl':
+            return true;
+        default:
+            return false;
+    }
+}
+
+function shouldExcludeHover(document: CSSDocument) {
+    switch (extractLanguage(document)) {
+        case 'sass':
+        case 'stylus':
+        case 'styl':
+            return true;
+        default:
+            return false;
+    }
+}
+
+function shouldExcludeColor(document: CSSDocument) {
+    switch (extractLanguage(document)) {
+        case 'sass':
+        case 'stylus':
+        case 'styl':
             return true;
         default:
             return false;
@@ -285,7 +337,6 @@ function shouldExcludeValidation(kind?: string) {
 function isSASS(document: CSSDocument) {
     switch (extractLanguage(document)) {
         case 'sass':
-        case 'text/sass':
             return true;
         default:
             return false;
@@ -294,5 +345,6 @@ function isSASS(document: CSSDocument) {
 
 function extractLanguage(document: CSSDocument): string {
     const attrs = document.getAttributes();
-    return attrs.lang || attrs.type;
+    const lang = attrs.lang || attrs.type || '';
+    return lang.replace(/^text\//, '');
 }
