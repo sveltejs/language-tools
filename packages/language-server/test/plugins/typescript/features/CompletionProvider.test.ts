@@ -11,9 +11,7 @@ import {
     Position,
     Range,
     CompletionTriggerKind,
-    MarkupKind,
-    TextEdit,
-    InsertTextFormat
+    MarkupKind
 } from 'vscode-languageserver';
 import {
     CompletionsProviderImpl,
@@ -501,27 +499,22 @@ describe('CompletionProviderImpl', () => {
         const { line, character } = position;
         const start = Position.create(line, character - '/**'.length);
         const end = Position.create(line, character + '*/'.length);
-        assert.deepStrictEqual(item, <CompletionItem>{
-            detail: 'JSDoc comment',
-            insertTextFormat: InsertTextFormat.Snippet,
-            kind: CompletionItemKind.Snippet,
-            label: '/** */',
-            sortText: '\0',
-            textEdit: TextEdit.replace(Range.create(start, end), newText)
-        });
+
+        assert.strictEqual(harmonizeNewLines(item?.textEdit?.newText), newText);
+        assert.deepStrictEqual(item?.textEdit?.range, Range.create(start, end));
     };
 
     it('show jsDoc template completion', async () => {
         await testForJsDocTemplateCompletion(
             Position.create(1, 7),
-            harmonizeNewLines('/**\n * $0\n */')!
+            `/**${newLine} * $0${newLine} */`
         );
     });
 
     it('show jsDoc template completion on function', async () => {
         await testForJsDocTemplateCompletion(
             Position.create(4, 7),
-            harmonizeNewLines('/**\n * $0\n * @param parameter1\n */')!
+            `/**${newLine} * $0${newLine} * @param parameter1${newLine} */`
         );
     });
 });
