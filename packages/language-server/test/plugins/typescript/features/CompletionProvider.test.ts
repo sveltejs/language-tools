@@ -486,6 +486,37 @@ describe('CompletionProviderImpl', () => {
 
         assert.strictEqual(additionalTextEdits, undefined);
     });
+
+    const testForJsDocTemplateCompletion = async (position: Position, newText: string) => {
+        const { completionProvider, document } = setup('jsdoc-completions.svelte');
+
+        const completions = await completionProvider.getCompletions(document, position, {
+            triggerKind: CompletionTriggerKind.TriggerCharacter,
+            triggerCharacter: '*'
+        });
+
+        const item = completions?.items?.[0];
+        const { line, character } = position;
+        const start = Position.create(line, character - '/**'.length);
+        const end = Position.create(line, character + '*/'.length);
+
+        assert.strictEqual(harmonizeNewLines(item?.textEdit?.newText), newText);
+        assert.deepStrictEqual(item?.textEdit?.range, Range.create(start, end));
+    };
+
+    it('show jsDoc template completion', async () => {
+        await testForJsDocTemplateCompletion(
+            Position.create(1, 7),
+            `/**${newLine} * $0${newLine} */`
+        );
+    });
+
+    it('show jsDoc template completion on function', async () => {
+        await testForJsDocTemplateCompletion(
+            Position.create(4, 7),
+            `/**${newLine} * $0${newLine} * @param parameter1${newLine} */`
+        );
+    });
 });
 
 function harmonizeNewLines(input?: string) {

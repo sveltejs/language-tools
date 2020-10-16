@@ -25,6 +25,7 @@ import {
     getCommitCharactersForScriptElement,
     scriptElementKindToCompletionItemKind
 } from '../utils';
+import { getJsDocTemplateCompletion } from './getJsDocTemplateComletion';
 import { getComponentAtPosition } from './utils';
 
 export interface CompletionEntryWithIdentifer extends ts.CompletionEntry, TextDocumentIdentifier {
@@ -72,10 +73,11 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             ? triggerCharacter
             : undefined;
         const isCustomTriggerCharacter = triggerKind === CompletionTriggerKind.TriggerCharacter;
+        const isJsDocTriggerCharacter = triggerCharacter === '*';
 
         // ignore any custom trigger character specified in server capabilities
         //  and is not allow by ts
-        if (isCustomTriggerCharacter && !validTriggerCharacter) {
+        if (isCustomTriggerCharacter && !validTriggerCharacter && !isJsDocTriggerCharacter) {
             return null;
         }
 
@@ -85,11 +87,17 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         }
 
         const offset = fragment.offsetAt(fragment.getGeneratedPosition(position));
+
+        if (isJsDocTriggerCharacter) {
+            return getJsDocTemplateCompletion(fragment, lang, filePath, offset);
+        }
+
         const completions =
             lang.getCompletionsAtPosition(filePath, offset, {
                 includeCompletionsForModuleExports: true,
                 triggerCharacter: validTriggerCharacter
             })?.entries || [];
+
         const eventCompletions = this.getEventCompletions(
             lang,
             document,
