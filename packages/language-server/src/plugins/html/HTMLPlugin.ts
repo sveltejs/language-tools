@@ -1,4 +1,4 @@
-import { getEmmetCompletionParticipants } from 'vscode-emmet-helper';
+import { EmmetConfiguration, getEmmetCompletionParticipants } from 'vscode-emmet-helper';
 import { getLanguageService, HTMLDocument } from 'vscode-html-languageservice';
 import {
     CompletionList,
@@ -24,7 +24,11 @@ export class HTMLPlugin implements HoverProvider, CompletionsProvider {
     private documents = new WeakMap<Document, HTMLDocument>();
     private styleScriptTemplate = new Set(['template', 'style', 'script']);
 
-    constructor(docManager: DocumentManager, configManager: LSConfigManager) {
+    constructor(
+        docManager: DocumentManager,
+        configManager: LSConfigManager,
+        private emmetConfig?: EmmetConfiguration
+    ) {
         this.configManager = configManager;
         docManager.on('documentChange', (document) => {
             this.documents.set(document, document.html);
@@ -67,7 +71,13 @@ export class HTMLPlugin implements HoverProvider, CompletionsProvider {
             items: []
         };
         this.lang.setCompletionParticipants([
-            getEmmetCompletionParticipants(document, position, 'html', {}, emmetResults)
+            getEmmetCompletionParticipants(
+                document,
+                position,
+                'html',
+                this.emmetConfig || {},
+                emmetResults
+            )
         ]);
         const results = this.isInComponentTag(html, document, position)
             ? // Only allow emmet inside component element tags.

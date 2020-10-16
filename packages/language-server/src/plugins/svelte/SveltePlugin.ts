@@ -81,7 +81,9 @@ export class SveltePlugin
             });
         // Take .prettierignore into account
         const fileInfo = await prettier.getFileInfo(filePath, {
-            ignorePath: this.prettierConfig?.ignorePath ?? '.prettierignore'
+            ignorePath: this.prettierConfig?.ignorePath ?? '.prettierignore',
+            // Sapper places stuff within src/node_modules, we want to format that, too
+            withNodeModules: true
         });
         if (fileInfo.ignored) {
             Logger.log('File is ignored, formatting skipped');

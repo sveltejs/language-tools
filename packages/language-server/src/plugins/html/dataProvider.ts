@@ -18,7 +18,19 @@ const svelteEvents = [
     {
         name: 'on:outroend',
         description: 'Available when element has transition'
-    }
+    },
+    // Pointer events
+    { name: 'on:pointercancel' },
+    { name: 'on:pointerdown' },
+    { name: 'on:pointerenter' },
+    { name: 'on:pointerleave' },
+    { name: 'on:pointermove' },
+    { name: 'on:pointerout' },
+    { name: 'on:pointerover' },
+    { name: 'on:pointerup' },
+    // Mouse events
+    { name: 'on:mouseenter' },
+    { name: 'on:mouseleave' }
 ];
 const svelteAttributes: IAttributeData[] = [
     {
