@@ -1,6 +1,6 @@
 import { walk } from 'estree-walker';
 import { Position, Range, SelectionRange } from 'vscode-languageserver';
-import { isInTag, positionAt } from '../../../lib/documents';
+import { isInTag, mapSelectionRangeToParent, offsetAt, positionAt } from '../../../lib/documents';
 import { SvelteDocument } from '../SvelteDocument';
 
 
@@ -17,8 +17,7 @@ export async function getSelectionRange(
     const { ast: { html } } = await svelteDoc.getCompiled();
     const transpiled = await svelteDoc.getTranspiled();
     const content = transpiled.getText();
-    const offset = svelteDoc.offsetAt(position);
-
+    const offset = offsetAt(transpiled.getGeneratedPosition(position), content);
 
     const embedded = [script, style, moduleScript];
     for (const info of embedded) {
@@ -58,7 +57,7 @@ export async function getSelectionRange(
         }
     });
 
-    return result ?? null;
+    return result ? mapSelectionRangeToParent(transpiled, result) : null;
 
     function createSelectionRange(node: OffsetRange, parent?: SelectionRange) {
         const range = Range.create(positionAt(node.start, content), positionAt(node.end, content));

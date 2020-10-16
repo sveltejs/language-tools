@@ -3,7 +3,7 @@ import sinon from 'sinon';
 import { Position } from 'vscode-languageserver';
 import { Document } from '../../../src/lib/documents';
 import * as importPackage from '../../../src/importPackage';
-import { SvelteDocument } from '../../../src/plugins/svelte/SvelteDocument';
+import { SvelteDocument, TranspiledSvelteDocument } from '../../../src/plugins/svelte/SvelteDocument';
 import * as configLoader from '../../../src/lib/documents/configLoader';
 
 describe('Svelte Document', () => {
@@ -74,36 +74,46 @@ describe('Svelte Document', () => {
             return { parent, svelteDoc, transpiled };
         }
 
+        function assertCanMapBackAndForth (
+            transpiled: TranspiledSvelteDocument,
+            generatedPosition: Position,
+            originalPosition: Position
+        ) {
+            assert.deepStrictEqual(
+                transpiled.getOriginalPosition(generatedPosition),
+                originalPosition,
+                'error mapping to original position'
+            );
+
+            assert.deepStrictEqual(
+                transpiled.getGeneratedPosition(originalPosition),
+                generatedPosition,
+                'error mapping to generated position'
+            );
+        }
+
         it('should map correctly within sourcemapped script', async () => {
             const { transpiled } = await setupTranspiled();
-            assert.deepStrictEqual(
-                transpiled.getOriginalPosition(Position.create(3, 2)),
-                Position.create(2, 18)
-            );
+
+            assertCanMapBackAndForth(transpiled, Position.create(3, 2), Position.create(2, 18));
         });
 
         it('should map correctly in template before script', async () => {
             const { transpiled } = await setupTranspiled();
-            assert.deepStrictEqual(
-                transpiled.getOriginalPosition(Position.create(1, 1)),
-                Position.create(1, 1)
-            );
+
+            assertCanMapBackAndForth(transpiled, Position.create(1, 1), Position.create(1, 1));
         });
 
         it('should map correctly in template after script', async () => {
             const { transpiled } = await setupTranspiled();
-            assert.deepStrictEqual(
-                transpiled.getOriginalPosition(Position.create(4, 1)),
-                Position.create(3, 1)
-            );
+
+            assertCanMapBackAndForth(transpiled, Position.create(4, 1), Position.create(3, 1));
         });
 
         it('should map correctly in style', async () => {
             const { transpiled } = await setupTranspiled();
-            assert.deepStrictEqual(
-                transpiled.getOriginalPosition(Position.create(5, 18)),
-                Position.create(4, 18)
-            );
+
+            assertCanMapBackAndForth(transpiled, Position.create(5, 18), Position.create(4, 18));
         });
     });
 });

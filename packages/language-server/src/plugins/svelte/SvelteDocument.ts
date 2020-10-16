@@ -12,6 +12,7 @@ import {
     FragmentMapper,
     IdentityMapper,
     offsetAt,
+    positionAt,
     SourceMapDocumentMapper,
     TagInformation
 } from '../../lib/documents';
@@ -93,7 +94,7 @@ export class SvelteDocument {
     }
 }
 
-export class TranspiledSvelteDocument implements Pick<DocumentMapper, 'getOriginalPosition'> {
+export class TranspiledSvelteDocument implements DocumentMapper {
     static async create(
         document: Document,
         preprocessors: PreprocessorGroup | PreprocessorGroup[] = []
@@ -152,6 +153,24 @@ export class TranspiledSvelteDocument implements Pick<DocumentMapper, 'getOrigin
 
     getText() {
         return this.transpiled;
+    }
+
+    getGeneratedPosition(originalPosition: Position): Position {
+        // TODO: What if it's in script and style?
+
+        // Add length difference of each fragment
+        let offset = offsetAt(originalPosition, this.parent.getText());
+        for (const fragmentInfo of this.fragmentInfos) {
+            if (offset > fragmentInfo.end) {
+                offset -= fragmentInfo.diff;
+            }
+        }
+
+        return positionAt(offset, this.getText());
+    }
+
+    isInGenerated(pos: Position): boolean {
+        throw new Error('Method not implemented.');
     }
 
     /**
