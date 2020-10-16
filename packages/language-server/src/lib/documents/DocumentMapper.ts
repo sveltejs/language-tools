@@ -321,7 +321,7 @@ export function mapCodeActionToOriginal(fragment: DocumentMapper, codeAction: Co
 }
 
 export function mapSelectionRangeToParent(
-    fragment: DocumentMapper,
+    fragment: Pick<DocumentMapper, 'getOriginalPosition'>,
     selectionRange: SelectionRange
 ): SelectionRange {
     const { range, parent } = selectionRange;
