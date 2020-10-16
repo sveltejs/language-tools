@@ -41,16 +41,11 @@ export function getJsDocTemplateCompletion(
         )
     );
     const { newText } = template;
-    let snippet: string;
-
-    // When typescript return a empty single line template
-    // return the default multi-lines snippet,
-    // making it consistent with VSCode typescript
-    if (newText === '/** */') {
-        snippet = DEFAULT_SNIPPET;
-    } else {
-        snippet = templateToSnippet(newText);
-    }
+    const snippet =
+        // When typescript returns an empty single line template
+        // return the default multi-lines snippet,
+        // making it consistent with VSCode typescript
+        newText === '/** */' ? DEFAULT_SNIPPET : templateToSnippet(newText);
 
     const item: CompletionItem = {
         label: '/** */',
