@@ -314,7 +314,15 @@ function addComponentExport({
 function classNameFromFilename(filename: string): string | undefined {
     try {
         const withoutExtensions = path.parse(filename).name?.split('.')[0];
-        const inPascalCase = pascalCase(withoutExtensions);
+        const withoutInvalidCharacters = withoutExtensions
+            .split('')
+            // Although "-" is invalid, we leave it in, pascal-case-handling will throw it out later
+            .filter((char) => /[A-Za-z$_\d-]/.test(char))
+            .join('');
+        const withoutLeadingInvalidCharacters = withoutInvalidCharacters.substr(
+            withoutInvalidCharacters.split('').findIndex((char) => /[A-Za-z_$]/.test(char))
+        );
+        const inPascalCase = pascalCase(withoutLeadingInvalidCharacters);
         return `${inPascalCase}${COMPONENT_SUFFIX}`;
     } catch (error) {
         console.warn(`Failed to create a name for the component class from filename ${filename}`);
