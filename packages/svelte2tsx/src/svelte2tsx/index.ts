@@ -316,7 +316,8 @@ function classNameFromFilename(filename: string): string | undefined {
         const withoutExtensions = path.parse(filename).name?.split('.')[0];
         const withoutInvalidCharacters = withoutExtensions
             .split('')
-            .filter((char) => /[A-Za-z_$\d]/.test(char))
+            // Although "-" is invalid, we leave it in, pascal-case-handling will throw it out later
+            .filter((char) => /[A-Za-z$_\d-]/.test(char))
             .join('');
         const withoutLeadingInvalidCharacters = withoutInvalidCharacters.substr(
             withoutInvalidCharacters.split('').findIndex((char) => /[A-Za-z_$]/.test(char))
