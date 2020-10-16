@@ -64,17 +64,22 @@ describe('Svelte Document', () => {
                 parse: <any>null
             });
             const transpiled = await svelteDoc.getTranspiled();
+            const scriptSourceMapper = (<any>transpiled.scriptMapper).sourceMapper;
             // hacky reset of method because mocking the SourceMap constructor is an impossible task
-            (<any>transpiled.scriptMapper).sourceMapper.getOriginalPosition = (pos: any) => {
-                pos.line--;
-                return pos;
-            };
+            scriptSourceMapper.getOriginalPosition = ({ line, character }: Position) => ({
+                line: line - 1,
+                character
+            });
+            scriptSourceMapper.getGeneratedPosition = ({ line, character }: Position) => ({
+                line: line + 1,
+                character
+            });
             sinon.restore();
 
             return { parent, svelteDoc, transpiled };
         }
 
-        function assertCanMapBackAndForth (
+        function assertCanMapBackAndForth(
             transpiled: TranspiledSvelteDocument,
             generatedPosition: Position,
             originalPosition: Position
