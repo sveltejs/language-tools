@@ -1,5 +1,5 @@
 import { SourceMapConsumer } from 'source-map';
-import { PreprocessorGroup , Processed } from 'svelte/types/compiler/preprocess';
+import { PreprocessorGroup, Processed } from 'svelte/types/compiler/preprocess';
 import type { compile } from 'svelte/compiler';
 import { CompileOptions } from 'svelte/types/compiler/interfaces';
 
@@ -11,7 +11,9 @@ import {
     extractStyleTag,
     FragmentMapper,
     IdentityMapper,
+    isInTag,
     offsetAt,
+    positionAt,
     SourceMapDocumentMapper,
     TagInformation
 } from '../../lib/documents';
@@ -22,8 +24,10 @@ export type SvelteCompileResult = ReturnType<typeof compile>;
 
 export enum TranspileErrorSource {
     Script = 'Script',
-    Style = 'Style',
+    Style = 'Style'
 }
+
+type PositionMapper = Pick<DocumentMapper, 'getGeneratedPosition' | 'getOriginalPosition'>;
 
 /**
  * Represents a text document that contains a svelte component.
@@ -93,7 +97,7 @@ export class SvelteDocument {
     }
 }
 
-export class TranspiledSvelteDocument implements Pick<DocumentMapper, 'getOriginalPosition'> {
+export class TranspiledSvelteDocument implements PositionMapper {
     static async create(
         document: Document,
         preprocessors: PreprocessorGroup | PreprocessorGroup[] = []
@@ -154,6 +158,27 @@ export class TranspiledSvelteDocument implements Pick<DocumentMapper, 'getOrigin
         return this.transpiled;
     }
 
+    getGeneratedPosition(originalPosition: Position): Position {
+        const { styleInfo, scriptInfo } = this.parent;
+
+        if (isInTag(originalPosition, scriptInfo) && this.scriptMapper) {
+            return this.scriptMapper.getGeneratedPosition(originalPosition);
+        }
+        if (isInTag(originalPosition, styleInfo) && this.styleMapper) {
+            return this.styleMapper.getGeneratedPosition(originalPosition);
+        }
+
+        // Add length difference of each fragment
+        let offset = offsetAt(originalPosition, this.parent.getText());
+        for (const fragmentInfo of this.fragmentInfos) {
+            if (offset > fragmentInfo.end) {
+                offset -= fragmentInfo.diff;
+            }
+        }
+
+        return positionAt(offset, this.getText());
+    }
+
     /**
      * Needs to be called before cleanup to prevent source map memory leaks.
      */
@@ -163,7 +188,7 @@ export class TranspiledSvelteDocument implements Pick<DocumentMapper, 'getOrigin
     }
 }
 
-export class SvelteFragmentMapper {
+export class SvelteFragmentMapper implements PositionMapper {
     static async createStyle(originalDoc: Document, transpiled: string, processed: Processed[]) {
         return SvelteFragmentMapper.create(
             originalDoc,
@@ -266,6 +291,19 @@ export class SvelteFragmentMapper {
         );
         // Map the position to be in the original fragment's parent
         return this.originalFragmentMapper.getOriginalPosition(positionInOriginalFragment);
+    }
+
+    /**
+     * Reversing `getOriginalPosition`
+     */
+    getGeneratedPosition(originalPosition: Position): Position {
+        const positionInOriginalFragment = this.originalFragmentMapper.getGeneratedPosition(
+            originalPosition
+        );
+        const positionInTranspiledFragment = this.sourceMapper.getGeneratedPosition(
+            positionInOriginalFragment
+        );
+        return this.transpiledFragmentMapper.getOriginalPosition(positionInTranspiledFragment);
     }
 
     /**

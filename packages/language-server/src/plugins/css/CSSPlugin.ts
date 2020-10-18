@@ -16,7 +16,8 @@ import {
     Range,
     SymbolInformation,
     CompletionItem,
-    CompletionItemKind
+    CompletionItemKind,
+    SelectionRange
 } from 'vscode-languageserver';
 import {
     Document,
@@ -26,7 +27,8 @@ import {
     mapRangeToGenerated,
     mapSymbolInformationToOriginal,
     mapObjWithRangeToOriginal,
-    mapHoverToParent
+    mapHoverToParent,
+    mapSelectionRangeToParent, isInTag
 } from '../../lib/documents';
 import { LSConfigManager, LSCSSConfig } from '../../ls-config';
 import {
@@ -35,7 +37,8 @@ import {
     DiagnosticsProvider,
     DocumentColorsProvider,
     DocumentSymbolsProvider,
-    HoverProvider
+    HoverProvider,
+    SelectionRangeProvider
 } from '../interfaces';
 import { CSSDocument } from './CSSDocument';
 import { getLanguage, getLanguageService } from './service';
@@ -48,7 +51,8 @@ export class CSSPlugin
         DiagnosticsProvider,
         DocumentColorsProvider,
         ColorPresentationsProvider,
-        DocumentSymbolsProvider {
+        DocumentSymbolsProvider,
+        SelectionRangeProvider {
     private configManager: LSConfigManager;
     private cssDocuments = new WeakMap<Document, CSSDocument>();
     private triggerCharacters = ['.', ':', '-', '/'];
@@ -70,6 +74,25 @@ export class CSSPlugin
             this.cssDocuments.set(document, new CSSDocument(document))
         );
         docManager.on('documentClose', (document) => this.cssDocuments.delete(document));
+    }
+    getSelectionRange(document: Document, position: Position): SelectionRange | null {
+        if (!this.featureEnabled('selectionRange') || !isInTag(position, document.styleInfo)) {
+            return null;
+        }
+
+        const cssDocument = this.getCSSDoc(document);
+        const [range] = getLanguageService(extractLanguage(cssDocument))
+            .getSelectionRanges(
+                cssDocument,
+                [cssDocument.getGeneratedPosition(position)],
+                cssDocument.stylesheet
+            );
+
+        if (!range) {
+            return null;
+        }
+
+        return mapSelectionRangeToParent(cssDocument, range);
     }
 
     getDiagnostics(document: Document): Diagnostic[] {

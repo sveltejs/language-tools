@@ -24,7 +24,7 @@ const testDir = join(__dirname, '..');
 const testFilesDir = join(testDir, 'testfiles', 'completions');
 const newLine = ts.sys.newLine;
 
-const fileNameToAbosoluteUri = (file: string) => {
+const fileNameToAbsoluteUri = (file: string) => {
     return pathToUrl(join(testFilesDir, file));
 };
 
@@ -164,7 +164,7 @@ describe('CompletionProviderImpl', () => {
             replacementSpan: undefined,
             sortText: '0',
             source: undefined,
-            uri: fileNameToAbosoluteUri(filename)
+            uri: fileNameToAbsoluteUri(filename)
         } as CompletionEntryWithIdentifer);
     });
 

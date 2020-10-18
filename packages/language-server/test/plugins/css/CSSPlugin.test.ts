@@ -6,7 +6,8 @@ import {
     CompletionItem,
     CompletionItemKind,
     TextEdit,
-    CompletionContext
+    CompletionContext,
+    SelectionRange
 } from 'vscode-languageserver';
 import { DocumentManager, Document } from '../../../src/lib/documents';
 import { CSSPlugin } from '../../../src/plugins';
@@ -294,5 +295,58 @@ describe('CSS Plugin', () => {
             const { plugin, document } = setup('<style lang="stylus">h1 {color:blue;}</style>');
             assert.deepStrictEqual(plugin.getDocumentSymbols(document), []);
         });
+    });
+
+    it('provides selection range', () => {
+        const { plugin, document } = setup('<style>h1 {}</style>');
+
+        const selectionRange = plugin.getSelectionRange(document, Position.create(0, 11));
+
+        assert.deepStrictEqual(selectionRange, <SelectionRange>{
+            parent: {
+                parent: {
+                    parent: undefined,
+                    range: {
+                        end: {
+                            character: 12,
+                            line: 0
+                        },
+                        start: {
+                            character: 7,
+                            line: 0
+                        }
+                    }
+                },
+                range: {
+                    end: {
+                        character: 12,
+                        line: 0
+                    },
+                    start: {
+                        character: 10,
+                        line: 0
+                    }
+                }
+            },
+            range: {
+                end: {
+                    character: 11,
+                    line: 0
+                },
+                start: {
+                    character: 11,
+                    line: 0
+                }
+            }
+
+        });
+    });
+
+    it('return null for selection range when not in style', () => {
+        const { plugin, document } = setup('<script></script>');
+
+        const selectionRange = plugin.getSelectionRange(document, Position.create(0, 10));
+
+        assert.equal(selectionRange, null);
     });
 });

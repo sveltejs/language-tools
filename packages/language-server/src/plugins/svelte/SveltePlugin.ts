@@ -8,7 +8,8 @@ import {
     Position,
     Range,
     TextEdit,
-    WorkspaceEdit
+    WorkspaceEdit,
+    SelectionRange
 } from 'vscode-languageserver';
 import { Document } from '../../lib/documents';
 import { LSConfigManager, LSSvelteConfig } from '../../ls-config';
@@ -18,7 +19,8 @@ import {
     CompletionsProvider,
     DiagnosticsProvider,
     FormattingProvider,
-    HoverProvider
+    HoverProvider,
+    SelectionRangeProvider
 } from '../interfaces';
 import { executeCommand, getCodeActions } from './features/getCodeActions';
 import { getCompletions } from './features/getCompletions';
@@ -26,6 +28,7 @@ import { getDiagnostics } from './features/getDiagnostics';
 import { getHoverInfo } from './features/getHoverInfo';
 import { SvelteCompileResult, SvelteDocument } from './SvelteDocument';
 import { Logger } from '../../logger';
+import { getSelectionRange } from './features/getSelectionRanges';
 
 export class SveltePlugin
     implements
@@ -33,7 +36,8 @@ export class SveltePlugin
         FormattingProvider,
         CompletionsProvider,
         HoverProvider,
-        CodeActionsProvider {
+        CodeActionsProvider,
+        SelectionRangeProvider {
     private docManager = new Map<Document, SvelteDocument>();
 
     constructor(private configManager: LSConfigManager, private prettierConfig?: any) {}
@@ -165,6 +169,19 @@ export class SveltePlugin
         } catch (error) {
             return null;
         }
+    }
+
+    async getSelectionRange(
+        document: Document,
+        position: Position
+    ): Promise<SelectionRange | null> {
+        if (!this.featureEnabled('selectionRange')) {
+            return null;
+        }
+
+        const svelteDoc = await this.getSvelteDoc(document);
+
+        return getSelectionRange(svelteDoc, position);
     }
 
     private featureEnabled(feature: keyof LSSvelteConfig) {

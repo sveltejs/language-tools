@@ -94,9 +94,11 @@ async function getSvelteIgnoreEdit(svelteDoc: SvelteDocument, ast: Ast, diagnost
     const transpiled = await svelteDoc.getTranspiled();
     const content = transpiled.getText();
     const { html } = ast;
+    const generatedStart = transpiled.getGeneratedPosition(start);
+    const generatedEnd = transpiled.getGeneratedPosition(end);
 
-    const diagnosticStartOffset = offsetAt(start, transpiled.getText());
-    const diagnosticEndOffset = offsetAt(end, transpiled.getText());
+    const diagnosticStartOffset = offsetAt(generatedStart, transpiled.getText());
+    const diagnosticEndOffset = offsetAt(generatedEnd, transpiled.getText());
     const offsetRange: ts.TextRange = {
         pos: diagnosticStartOffset,
         end: diagnosticEndOffset

@@ -3,7 +3,7 @@ import sinon from 'sinon';
 import { Position } from 'vscode-languageserver';
 import { Document } from '../../../src/lib/documents';
 import * as importPackage from '../../../src/importPackage';
-import { SvelteDocument } from '../../../src/plugins/svelte/SvelteDocument';
+import { SvelteDocument, TranspiledSvelteDocument } from '../../../src/plugins/svelte/SvelteDocument';
 import * as configLoader from '../../../src/lib/documents/configLoader';
 
 describe('Svelte Document', () => {
@@ -64,46 +64,61 @@ describe('Svelte Document', () => {
                 parse: <any>null
             });
             const transpiled = await svelteDoc.getTranspiled();
+            const scriptSourceMapper = (<any>transpiled.scriptMapper).sourceMapper;
             // hacky reset of method because mocking the SourceMap constructor is an impossible task
-            (<any>transpiled.scriptMapper).sourceMapper.getOriginalPosition = (pos: any) => {
-                pos.line--;
-                return pos;
-            };
+            scriptSourceMapper.getOriginalPosition = ({ line, character }: Position) => ({
+                line: line - 1,
+                character
+            });
+            scriptSourceMapper.getGeneratedPosition = ({ line, character }: Position) => ({
+                line: line + 1,
+                character
+            });
             sinon.restore();
 
             return { parent, svelteDoc, transpiled };
         }
 
+        function assertCanMapBackAndForth(
+            transpiled: TranspiledSvelteDocument,
+            generatedPosition: Position,
+            originalPosition: Position
+        ) {
+            assert.deepStrictEqual(
+                transpiled.getOriginalPosition(generatedPosition),
+                originalPosition,
+                'error mapping to original position'
+            );
+
+            assert.deepStrictEqual(
+                transpiled.getGeneratedPosition(originalPosition),
+                generatedPosition,
+                'error mapping to generated position'
+            );
+        }
+
         it('should map correctly within sourcemapped script', async () => {
             const { transpiled } = await setupTranspiled();
-            assert.deepStrictEqual(
-                transpiled.getOriginalPosition(Position.create(3, 2)),
-                Position.create(2, 18)
-            );
+
+            assertCanMapBackAndForth(transpiled, Position.create(3, 2), Position.create(2, 18));
         });
 
         it('should map correctly in template before script', async () => {
             const { transpiled } = await setupTranspiled();
-            assert.deepStrictEqual(
-                transpiled.getOriginalPosition(Position.create(1, 1)),
-                Position.create(1, 1)
-            );
+
+            assertCanMapBackAndForth(transpiled, Position.create(1, 1), Position.create(1, 1));
         });
 
         it('should map correctly in template after script', async () => {
             const { transpiled } = await setupTranspiled();
-            assert.deepStrictEqual(
-                transpiled.getOriginalPosition(Position.create(4, 1)),
-                Position.create(3, 1)
-            );
+
+            assertCanMapBackAndForth(transpiled, Position.create(4, 1), Position.create(3, 1));
         });
 
         it('should map correctly in style', async () => {
             const { transpiled } = await setupTranspiled();
-            assert.deepStrictEqual(
-                transpiled.getOriginalPosition(Position.create(5, 18)),
-                Position.create(4, 18)
-            );
+
+            assertCanMapBackAndForth(transpiled, Position.create(5, 18), Position.create(4, 18));
         });
     });
 });

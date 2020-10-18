@@ -20,7 +20,8 @@ import {
     WorkspaceEdit,
     FormattingOptions,
     ReferenceContext,
-    Location
+    Location,
+    SelectionRange
 } from 'vscode-languageserver';
 import { LSConfig, LSConfigManager } from '../ls-config';
 import { DocumentManager } from '../lib/documents';
@@ -344,6 +345,43 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
             [document, position, context],
             ExecuteMode.FirstNonNull
         );
+    }
+
+    /**
+     * The selection range supports multiple cursors,
+     * each position should return its own selection range tree like `Array.map`.
+     * Quote the LSP spec
+     * > A selection range in the return array is for the position in the provided parameters at the same index. Therefore positions[i] must be contained in result[i].range.
+     * @see https://microsoft.github.io/language-server-protocol/specifications/specification-current/#textDocument_selectionRange
+     *
+     * Making PluginHost implement the same interface would make it quite hard to get
+     * the corresponding selection range of each position from different plugins.
+     * Therefore the special treatment here.
+     */
+    async getSelectionRanges(
+        textDocument: TextDocumentIdentifier,
+        positions: Position[]
+    ): Promise<SelectionRange[] | null> {
+        const document = this.getDocument(textDocument.uri);
+        if (!document) {
+            throw new Error('Cannot call methods on an unopened document');
+        }
+
+        try {
+            return Promise.all(positions.map(async (position) => {
+                for (const plugin of this.plugins) {
+                    const range = await plugin.getSelectionRange?.(document, position);
+
+                    if (range) {
+                        return range;
+                    }
+                }
+                return SelectionRange.create(Range.create(position, position));
+            }));
+        } catch (error) {
+            Logger.error(error);
+            return null;
+        }
     }
 
     onWatchFileChanges(fileName: string, changeType: FileChangeType): void {
