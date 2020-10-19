@@ -357,7 +357,7 @@ function createRenderFunction({
         propsDecl +=
             ' let $$slots = __sveltets_slotsType({' +
             Array.from(slots.keys())
-                .map((name) => `${name}: ''`)
+                .map((name) => `'${name}': ''`)
                 .join(', ') +
             '});';
     }
