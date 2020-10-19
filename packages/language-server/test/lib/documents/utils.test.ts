@@ -353,5 +353,21 @@ describe('document/utils', () => {
                 'on:asd-qwd'
             );
         });
+
+        function testEvent(str: string, pos: number, expected: string) {
+            assert.equal(getWordAt(str, pos, { left: /\S+$/, right: /[^\w$:]/ }), expected);
+        }
+
+        it('returns event #1', () => {
+            testEvent('<div on:>', 8, 'on:');
+        });
+
+        it('returns event #2', () => {
+            testEvent('<div on: >', 8, 'on:');
+        });
+
+        it('returns empty string when only whitespace', () => {
+            assert.equal(getWordAt('a  a', 2), '');
+        });
     });
 });

@@ -2,4 +2,4 @@
     import CEI from './component-events-interface.svelte';
 </script>
 
-<CEI  />
+<CEI   on: />
