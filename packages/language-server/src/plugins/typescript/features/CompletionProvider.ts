@@ -12,9 +12,11 @@ import {
 } from 'vscode-languageserver';
 import {
     Document,
+    getWordRangeAt,
     isInTag,
     mapCompletionItemToOriginal,
-    mapRangeToOriginal
+    mapRangeToOriginal,
+    toRange
 } from '../../../lib/documents';
 import { flatten, getRegExpMatches, isNotNullOrUndefined, pathToUrl } from '../../../utils';
 import { AppCompletionItem, AppCompletionList, CompletionsProvider } from '../../interfaces';
@@ -74,10 +76,16 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             : undefined;
         const isCustomTriggerCharacter = triggerKind === CompletionTriggerKind.TriggerCharacter;
         const isJsDocTriggerCharacter = triggerCharacter === '*';
+        const isEventTriggerCharacter = triggerCharacter === ':';
 
         // ignore any custom trigger character specified in server capabilities
         //  and is not allow by ts
-        if (isCustomTriggerCharacter && !validTriggerCharacter && !isJsDocTriggerCharacter) {
+        if (
+            isCustomTriggerCharacter &&
+            !validTriggerCharacter &&
+            !isJsDocTriggerCharacter &&
+            !isEventTriggerCharacter
+        ) {
             return null;
         }
 
@@ -92,12 +100,6 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             return getJsDocTemplateCompletion(fragment, lang, filePath, offset);
         }
 
-        const completions =
-            lang.getCompletionsAtPosition(filePath, offset, {
-                includeCompletionsForModuleExports: true,
-                triggerCharacter: validTriggerCharacter
-            })?.entries || [];
-
         const eventCompletions = this.getEventCompletions(
             lang,
             document,
@@ -105,6 +107,16 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             fragment,
             position
         );
+
+        if (isEventTriggerCharacter) {
+            return CompletionList.create(eventCompletions, !!tsDoc.parserError);
+        }
+
+        const completions =
+            lang.getCompletionsAtPosition(filePath, offset, {
+                includeCompletionsForModuleExports: true,
+                triggerCharacter: validTriggerCharacter
+            })?.entries || [];
 
         if (completions.length === 0 && eventCompletions.length === 0) {
             return tsDoc.parserError ? CompletionList.create([], true) : null;
@@ -155,12 +167,25 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             return [];
         }
 
-        return snapshot.getEvents().map((event) => ({
-            label: 'on:' + event.name,
-            sortText: '-1',
-            detail: event.name + ': ' + event.type,
-            documentation: event.doc && { kind: MarkupKind.Markdown, value: event.doc }
-        }));
+        const offset = doc.offsetAt(originalPosition);
+        const { start, end } = getWordRangeAt(doc.getText(), offset, {
+            left: /\S+$/,
+            right: /[^\w$:]/
+        });
+
+        return snapshot.getEvents().map((event) => {
+            const eventName = 'on:' + event.name;
+            return {
+                label: eventName,
+                sortText: '-1',
+                detail: event.name + ': ' + event.type,
+                documentation: event.doc && { kind: MarkupKind.Markdown, value: event.doc },
+                textEdit:
+                    start !== end
+                        ? TextEdit.replace(toRange(doc.getText(), start, end), eventName)
+                        : undefined
+            };
+        });
     }
 
     private toCompletionItem(

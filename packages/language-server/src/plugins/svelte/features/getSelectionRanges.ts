@@ -1,20 +1,18 @@
 import { walk } from 'estree-walker';
-import { Position, Range, SelectionRange } from 'vscode-languageserver';
-import { isInTag, mapSelectionRangeToParent, offsetAt, positionAt } from '../../../lib/documents';
+import { Position, SelectionRange } from 'vscode-languageserver';
+import { isInTag, mapSelectionRangeToParent, offsetAt, toRange } from '../../../lib/documents';
 import { SvelteDocument } from '../SvelteDocument';
-
 
 type OffsetRange = {
     start: number;
     end: number;
 };
 
-export async function getSelectionRange(
-    svelteDoc: SvelteDocument,
-    position: Position
-) {
+export async function getSelectionRange(svelteDoc: SvelteDocument, position: Position) {
     const { script, style, moduleScript } = svelteDoc;
-    const { ast: { html } } = await svelteDoc.getCompiled();
+    const {
+        ast: { html }
+    } = await svelteDoc.getCompiled();
     const transpiled = await svelteDoc.getTranspiled();
     const content = transpiled.getText();
     const offset = offsetAt(transpiled.getGeneratedPosition(position), content);
@@ -60,8 +58,7 @@ export async function getSelectionRange(
     return result ? mapSelectionRangeToParent(transpiled, result) : null;
 
     function createSelectionRange(node: OffsetRange, parent?: SelectionRange) {
-        const range = Range.create(positionAt(node.start, content), positionAt(node.end, content));
-
+        const range = toRange(content, node.start, node.end);
         return SelectionRange.create(range, parent);
     }
 }

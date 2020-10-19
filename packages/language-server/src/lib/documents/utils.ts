@@ -315,6 +315,30 @@ export function getNodeIfIsInComponentStartTag(
 }
 
 /**
+ * Gets word range at position.
+ * Delimiter is by default a whitespace, but can be adjusted.
+ */
+export function getWordRangeAt(
+    str: string,
+    pos: number,
+    delimiterRegex = { left: /\S+$/, right: /\s/ }
+): { start: number; end: number } {
+    let start = str.slice(0, pos).search(delimiterRegex.left);
+    if (start < 0) {
+        start = pos;
+    }
+
+    let end = str.slice(pos).search(delimiterRegex.right);
+    if (end < 0) {
+        end = str.length;
+    } else {
+        end = end + pos;
+    }
+
+    return { start, end };
+}
+
+/**
  * Gets word at position.
  * Delimiter is by default a whitespace, but can be adjusted.
  */
@@ -323,12 +347,31 @@ export function getWordAt(
     pos: number,
     delimiterRegex = { left: /\S+$/, right: /\s/ }
 ): string {
-    const left = str.slice(0, pos + 1).search(delimiterRegex.left);
-    const right = str.slice(pos).search(delimiterRegex.right);
+    const { start, end } = getWordRangeAt(str, pos, delimiterRegex);
+    return str.slice(start, end);
+}
 
-    if (right < 0) {
-        return str.slice(left);
+/**
+ * Returns start/end offset of a text into a range
+ */
+export function toRange(str: string, start: number, end: number): Range {
+    return Range.create(positionAt(start, str), positionAt(end, str));
+}
+
+/**
+ * Returns the language from the given tags, return the first from which a language is found.
+ * Searches inside lang and type and removes leading 'text/'
+ */
+export function getLangAttribute(...tags: Array<TagInformation | null>): string | null {
+    const tag = tags.find((tag) => tag?.attributes.lang || tag?.attributes.type);
+    if (!tag) {
+        return null;
     }
 
-    return str.slice(left, right + pos);
+    const attribute = tag.attributes.lang || tag.attributes.type;
+    if (!attribute) {
+        return null;
+    }
+
+    return attribute.replace(/^text\//, '');
 }

@@ -99,7 +99,8 @@ describe('CompletionProviderImpl', () => {
                 detail: 'a: CustomEvent<boolean>',
                 documentation: undefined,
                 label: 'on:a',
-                sortText: '-1'
+                sortText: '-1',
+                textEdit: undefined
             },
             {
                 detail: 'b: MouseEvent',
@@ -108,13 +109,99 @@ describe('CompletionProviderImpl', () => {
                     value: '\nTEST\n'
                 },
                 label: 'on:b',
-                sortText: '-1'
+                sortText: '-1',
+                textEdit: undefined
             },
             {
                 detail: 'c: Event',
                 documentation: undefined,
                 label: 'on:c',
-                sortText: '-1'
+                sortText: '-1',
+                textEdit: undefined
+            }
+        ]);
+    });
+
+    it('provides event completions with correct text replacement span', async () => {
+        const { completionProvider, document } = setup('component-events-completion.svelte');
+
+        const completions = await completionProvider.getCompletions(
+            document,
+            Position.create(4, 10),
+            {
+                triggerKind: CompletionTriggerKind.Invoked
+            }
+        );
+
+        assert.ok(
+            Array.isArray(completions && completions.items),
+            'Expected completion items to be an array'
+        );
+        assert.ok(completions!.items.length > 0, 'Expected completions to have length');
+
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const eventCompletions = completions!.items.filter((item) => item.label.startsWith('on:'));
+
+        assert.deepStrictEqual(eventCompletions, <CompletionItem[]>[
+            {
+                detail: 'a: CustomEvent<boolean>',
+                documentation: undefined,
+                label: 'on:a',
+                sortText: '-1',
+                textEdit: {
+                    newText: 'on:a',
+                    range: {
+                        start: {
+                            line: 4,
+                            character: 7
+                        },
+                        end: {
+                            line: 4,
+                            character: 10
+                        }
+                    }
+                }
+            },
+            {
+                detail: 'b: MouseEvent',
+                documentation: {
+                    kind: 'markdown',
+                    value: '\nTEST\n'
+                },
+                label: 'on:b',
+                sortText: '-1',
+                textEdit: {
+                    newText: 'on:b',
+                    range: {
+                        start: {
+                            line: 4,
+                            character: 7
+                        },
+                        end: {
+                            line: 4,
+                            character: 10
+                        }
+                    }
+                }
+            },
+            {
+                detail: 'c: Event',
+                documentation: undefined,
+                label: 'on:c',
+                sortText: '-1',
+                textEdit: {
+                    newText: 'on:c',
+                    range: {
+                        start: {
+                            line: 4,
+                            character: 7
+                        },
+                        end: {
+                            line: 4,
+                            character: 10
+                        }
+                    }
+                }
             }
         ]);
     });
@@ -211,7 +298,7 @@ describe('CompletionProviderImpl', () => {
             assert.notEqual(
                 mockedDirImportCompletion,
                 undefined,
-                'can\'t provide completions on directory'
+                "can't provide completions on directory"
             );
             assert.equal(mockedDirImportCompletion?.kind, CompletionItemKind.Folder);
         } finally {
