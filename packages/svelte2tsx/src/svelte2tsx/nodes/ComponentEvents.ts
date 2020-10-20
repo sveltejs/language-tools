@@ -1,6 +1,6 @@
 import ts from 'typescript';
 import { EventHandler } from './event-handler';
-import { getVariableAtTopLevel, getLeadingDoc } from '../utils/tsAst';
+import { getVariableAtTopLevel, getLastLeadingDoc } from '../utils/tsAst';
 
 /**
  * This class accumulates all events that are dispatched from the component.
@@ -271,7 +271,7 @@ function throwError(prop: ts.PropertyName) {
 
 function getDoc(member: ts.PropertySignature) {
     let doc = undefined;
-    const comment = getLeadingDoc(member);
+    const comment = getLastLeadingDoc(member);
 
     if (comment) {
         doc = comment
