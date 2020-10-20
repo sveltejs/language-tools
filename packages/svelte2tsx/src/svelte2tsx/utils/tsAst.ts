@@ -126,12 +126,24 @@ export function getVariableAtTopLevel(
  */
 export function getLeadingDoc(node: ts.Node): string | undefined {
     const nodeText = node.getFullText();
-    const comment = ts
+    const comments = ts
         .getLeadingCommentRanges(nodeText, 0)
-        ?.find((c) => c.kind === ts.SyntaxKind.MultiLineCommentTrivia);
+        ?.filter((c) => c.kind === ts.SyntaxKind.MultiLineCommentTrivia);
+    const closestComment = comments && comments[comments.length - 1];
 
-    if (comment) {
-        return nodeText.substring(comment.pos, comment.end);
+    if (closestComment) {
+        let commentText = nodeText.substring(closestComment.pos, closestComment.end);
+
+        const typedefTags = ts.getAllJSDocTagsOfKind(
+            node, ts.SyntaxKind.JSDocTypedefTag);
+        typedefTags
+            .filter((tag) => tag.pos >= closestComment.pos)
+            .map((tag) => nodeText.substring(tag.pos, tag.end))
+            .forEach((comment) => {
+                commentText = commentText.replace(comment, '');
+            });
+
+        return commentText;
     }
 }
 
