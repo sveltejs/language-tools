@@ -132,7 +132,18 @@ export function getLastLeadingDoc(node: ts.Node): string | undefined {
     const comment = comments?.[comments?.length - 1];
 
     if (comment) {
-        return nodeText.substring(comment.pos, comment.end);
+        let commentText = nodeText.substring(comment.pos, comment.end);
+
+        const typedefTags = ts.getAllJSDocTagsOfKind(
+            node, ts.SyntaxKind.JSDocTypedefTag);
+        typedefTags
+            .filter((tag) => tag.pos >= comment.pos)
+            .map((tag) => nodeText.substring(tag.pos, tag.end))
+            .forEach((comment) => {
+                commentText = commentText.replace(comment, '');
+            });
+
+        return commentText;
     }
 }
 
