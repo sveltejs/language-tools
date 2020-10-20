@@ -124,20 +124,20 @@ export function getVariableAtTopLevel(
 /**
  * Get the leading multiline trivia doc of the node.
  */
-export function getLeadingDoc(node: ts.Node): string | undefined {
+export function getLastLeadingDoc(node: ts.Node): string | undefined {
     const nodeText = node.getFullText();
     const comments = ts
         .getLeadingCommentRanges(nodeText, 0)
         ?.filter((c) => c.kind === ts.SyntaxKind.MultiLineCommentTrivia);
-    const closestComment = comments && comments[comments.length - 1];
+    const comment = comments?.[comments?.length - 1];
 
-    if (closestComment) {
-        let commentText = nodeText.substring(closestComment.pos, closestComment.end);
+    if (comment) {
+        let commentText = nodeText.substring(comment.pos, comment.end);
 
         const typedefTags = ts.getAllJSDocTagsOfKind(
             node, ts.SyntaxKind.JSDocTypedefTag);
         typedefTags
-            .filter((tag) => tag.pos >= closestComment.pos)
+            .filter((tag) => tag.pos >= comment.pos)
             .map((tag) => nodeText.substring(tag.pos, tag.end))
             .forEach((comment) => {
                 commentText = commentText.replace(comment, '');

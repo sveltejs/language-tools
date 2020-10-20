@@ -1,5 +1,5 @@
 import ts from 'typescript';
-import { getLeadingDoc } from '../utils/tsAst';
+import { getLastLeadingDoc } from '../utils/tsAst';
 
 export interface IExportedNames {
     has(name: string): boolean;
@@ -50,7 +50,7 @@ export class ExportedNames
         const exportExpr = target?.parent?.parent?.parent;
 
         if (exportExpr) {
-            doc = getLeadingDoc(exportExpr);
+            doc = getLastLeadingDoc(exportExpr);
         }
 
         return doc;
