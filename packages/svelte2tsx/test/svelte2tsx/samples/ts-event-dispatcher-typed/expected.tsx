@@ -13,6 +13,9 @@ function render() {
      */
     hi: boolean; 
     /**
+     * not this
+     */
+    /**
      * ANOTHER DOC
      */
     [bla]: boolean;
@@ -33,6 +36,9 @@ return { props: {}, slots: {}, getters: {}, events: __sveltets_toEventTypings<{
      * A DOC
      */
     hi: boolean; 
+    /**
+     * not this
+     */
     /**
      * ANOTHER DOC
      */

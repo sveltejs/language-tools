@@ -6,6 +6,9 @@
      */
      let a;
     /**
+     * not this
+     */
+    /**
      * MORE DOCS!
      */
      let b;

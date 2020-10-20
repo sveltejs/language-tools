@@ -4,6 +4,9 @@
      */
     export let a;
     /**
+     * not this
+     */
+    /**
      * MORE DOCS!
      */
     export let b;

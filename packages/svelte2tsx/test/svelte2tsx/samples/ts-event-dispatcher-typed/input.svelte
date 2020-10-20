@@ -9,6 +9,9 @@
      */
     hi: boolean; 
     /**
+     * not this
+     */
+    /**
      * ANOTHER DOC
      */
     [bla]: boolean;

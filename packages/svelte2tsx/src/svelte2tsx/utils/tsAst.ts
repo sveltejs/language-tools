@@ -124,11 +124,12 @@ export function getVariableAtTopLevel(
 /**
  * Get the leading multiline trivia doc of the node.
  */
-export function getLeadingDoc(node: ts.Node): string | undefined {
+export function getLastLeadingDoc(node: ts.Node): string | undefined {
     const nodeText = node.getFullText();
-    const comment = ts
+    const comments = ts
         .getLeadingCommentRanges(nodeText, 0)
-        ?.find((c) => c.kind === ts.SyntaxKind.MultiLineCommentTrivia);
+        ?.filter((c) => c.kind === ts.SyntaxKind.MultiLineCommentTrivia);
+    const comment = comments?.[comments?.length - 1];
 
     if (comment) {
         return nodeText.substring(comment.pos, comment.end);
