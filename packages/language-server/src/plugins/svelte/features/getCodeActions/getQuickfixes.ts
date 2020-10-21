@@ -15,12 +15,8 @@ import { mapObjWithRangeToOriginal, offsetAt, positionAt } from '../../../../lib
 import { pathToUrl } from '../../../../utils';
 import { SvelteDocument } from '../../SvelteDocument';
 import ts from 'typescript';
-// There are multiple estree-walker versions in the monorepo.
-// The newer versions don't have start/end in their public interface,
-// but the AST returned by svelte/compiler does.
-// To get the Node type right in both dev and prod environment,
-// declaring the Node type like this is necessary. Once
-// all depend on the same estree(-walker) version, this should be revisited.
+// estree does not have start/end in their public Node interface,
+// but the AST returned by svelte/compiler does. Type as any as a workaround.
 type Node = any;
 
 /**

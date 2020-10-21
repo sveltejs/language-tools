@@ -3,6 +3,10 @@ import { Position, SelectionRange } from 'vscode-languageserver';
 import { isInTag, mapSelectionRangeToParent, offsetAt, toRange } from '../../../lib/documents';
 import { SvelteDocument } from '../SvelteDocument';
 
+// estree does not have start/end in their public Node interface,
+// but the AST returned by svelte/compiler does. Type as any as a workaround.
+type Node = any;
+
 type OffsetRange = {
     start: number;
     end: number;
@@ -29,7 +33,7 @@ export async function getSelectionRange(svelteDoc: SvelteDocument, position: Pos
     let result: SelectionRange | undefined;
 
     walk(html, {
-        enter(node, parent) {
+        enter(node: Node, parent: Node) {
             if (!parent) {
                 // keep looking
                 return;
