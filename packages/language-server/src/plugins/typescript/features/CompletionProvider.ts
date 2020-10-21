@@ -27,7 +27,7 @@ import {
     getCommitCharactersForScriptElement,
     scriptElementKindToCompletionItemKind
 } from '../utils';
-import { getJsDocTemplateCompletion } from './getJsDocTemplateComletion';
+import { getJsDocTemplateCompletion } from './getJsDocTemplateCompletion';
 import { getComponentAtPosition } from './utils';
 
 export interface CompletionEntryWithIdentifer extends ts.CompletionEntry, TextDocumentIdentifier {
