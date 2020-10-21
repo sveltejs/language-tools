@@ -229,6 +229,7 @@ declare namespace svelte.JSX {
       allow?: string;
       allowfullscreen?: boolean;
       allowtransparency?: boolean;
+      allowpaymentrequest?: boolean;
       alt?: string;
       async?: boolean;
       autocomplete?: string;
