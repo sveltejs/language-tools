@@ -685,6 +685,7 @@ declare namespace svelte.JSX {
     interface SvelteInputProps extends HTMLProps<HTMLInputElement> {
       group?: any;
       files?: FileList | null;
+      indeterminate?: boolean;
     }
 
     interface SvelteWindowProps  {

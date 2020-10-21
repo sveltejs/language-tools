@@ -245,11 +245,18 @@ const videoAttributes: IAttributeData[] = [
     }
 ];
 
+const indeterminateAttribute: IAttributeData = {
+    name: 'indeterminate',
+    description: 'Available for type="checkbox"'
+};
+
 const addAttributes: Record<string, IAttributeData[]> = {
     select: [{ name: 'bind:value' }],
     input: [
         { name: 'bind:value' },
-        { name: 'bind:group', description: 'Available for type="radio" and type="checkbox"' }
+        { name: 'bind:group', description: 'Available for type="radio" and type="checkbox"' },
+        indeterminateAttribute,
+        {...indeterminateAttribute, name: 'bind:indeterminate'}
     ],
     textarea: [{ name: 'bind:value' }],
     video: [...mediaAttributes, ...videoAttributes],
