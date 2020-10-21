@@ -229,6 +229,7 @@ declare namespace svelte.JSX {
       allow?: string;
       allowfullscreen?: boolean;
       allowtransparency?: boolean;
+      allowpaymentrequest?: boolean;
       alt?: string;
       async?: boolean;
       autocomplete?: string;
@@ -296,6 +297,7 @@ declare namespace svelte.JSX {
       inputmode?: string;
       integrity?: string;
       is?: string;
+      ismap?: boolean;
       keyparams?: string;
       keytype?: string;
       kind?: string;
@@ -685,6 +687,7 @@ declare namespace svelte.JSX {
     interface SvelteInputProps extends HTMLProps<HTMLInputElement> {
       group?: any;
       files?: FileList | null;
+      indeterminate?: boolean;
     }
 
     interface SvelteWindowProps  {
