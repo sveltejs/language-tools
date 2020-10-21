@@ -22,6 +22,6 @@
     "paths": {
         "@/*": ["src/*"]
     },
-    "include": [],
+    // "include" is set in rollup.config(.test).js
     "exclude": ["node_modules"]
 }
