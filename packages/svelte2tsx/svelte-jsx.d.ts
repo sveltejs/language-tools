@@ -296,6 +296,7 @@ declare namespace svelte.JSX {
       inputmode?: string;
       integrity?: string;
       is?: string;
+      ismap?: boolean;
       keyparams?: string;
       keytype?: string;
       kind?: string;
