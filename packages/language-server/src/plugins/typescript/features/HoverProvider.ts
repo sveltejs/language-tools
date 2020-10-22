@@ -1,9 +1,11 @@
 import ts from 'typescript';
 import { Hover, Position } from 'vscode-languageserver';
 import { Document, getWordAt, mapObjWithRangeToOriginal } from '../../../lib/documents';
+import { isNotNullOrUndefined } from '../../../utils';
 import { HoverProvider } from '../../interfaces';
 import { SvelteDocumentSnapshot, SvelteSnapshotFragment } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
+import { getTagDocumentation } from '../previewer';
 import { convertRange } from '../utils';
 import { getComponentAtPosition } from './utils';
 
@@ -37,10 +39,13 @@ export class HoverProviderImpl implements HoverProvider {
         const contents = ['```typescript', declaration, '```']
             .concat(documentation ? ['---', documentation] : [])
             .join('\n');
+        const tags = info.tags?.map((tag) => getTagDocumentation(tag))
+            .filter(isNotNullOrUndefined)
+            .join('\n\n');
 
         return mapObjWithRangeToOriginal(fragment, {
             range: convertRange(fragment, info.textSpan),
-            contents
+            contents: contents + (tags ? '\n\n' + tags : '')
         });
     }
 
