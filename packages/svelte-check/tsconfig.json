@@ -3,9 +3,7 @@
     "compilerOptions": {
         "moduleResolution": "node",
         "strict": true,
-        "declaration": true,
-        "outDir": "dist",
-        "composite": true,
-        "esModuleInterop": false
-    }
+        "esModuleInterop": true
+    },
+    "include": ["src/**/*"]
 }

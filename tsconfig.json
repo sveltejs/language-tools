@@ -1,8 +1,7 @@
 {
     "references": [
         { "path": "./packages/language-server" },
-        { "path": "./packages/svelte-vscode" },
-        { "path": "./packages/svelte-check" }
+        { "path": "./packages/svelte-vscode" }
     ],
     "files": [],
     "include": [],
