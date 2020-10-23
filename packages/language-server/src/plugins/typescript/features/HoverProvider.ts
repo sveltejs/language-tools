@@ -40,12 +40,13 @@ export class HoverProviderImpl implements HoverProvider {
             .concat(documentation ? ['---', documentation] : [])
             .join('\n');
         const tags = info.tags?.map((tag) => getTagDocumentation(tag))
-            .filter(isNotNullOrUndefined)
-            .join('\n\n');
+            .filter(isNotNullOrUndefined);
 
         return mapObjWithRangeToOriginal(fragment, {
             range: convertRange(fragment, info.textSpan),
-            contents: contents + (tags ? '\n\n' + tags : '')
+            contents: tags ?
+                [contents].concat(tags).join('\n\n') :
+                contents
         });
     }
 

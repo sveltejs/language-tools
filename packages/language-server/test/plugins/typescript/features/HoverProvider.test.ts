@@ -72,9 +72,28 @@ describe('HoverProvider', () => {
     it('provides formatted hover info for component events', async () => {
         const { provider, document } = setup('hoverinfo.svelte');
 
-        assert.deepStrictEqual(await provider.doHover(document, Position.create(9, 26)), <Hover>{
+        assert.deepStrictEqual(await provider.doHover(document, Position.create(12, 26)), <Hover>{
             contents:
                 '```typescript\nabc: MouseEvent\n```\n\nTEST\n```ts\nconst abc: boolean = true;\n```\n'
+        });
+    });
+
+    it('provides formatted hover info for jsDoc tags', async () => {
+        const { provider, document } = setup('hoverinfo.svelte');
+
+        assert.deepStrictEqual(await provider.doHover(document, Position.create(9, 10)), <Hover>{
+            contents:
+                '```typescript\nconst withJsDocTag: true\n```\n\n*@author* — foo',
+            range: {
+                start: {
+                    character: 10,
+                    line: 9
+                },
+                end: {
+                    character: 22,
+                    line: 9
+                }
+            }
         });
     });
 });
