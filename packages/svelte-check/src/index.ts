@@ -3,13 +3,19 @@
  */
 
 import * as fs from 'fs';
-import * as glob from 'glob';
-import * as argv from 'minimist';
+import glob from 'glob';
+import argv from 'minimist';
 import * as path from 'path';
 import { SvelteCheck, SvelteCheckOptions } from 'svelte-language-server';
 import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver-protocol';
 import { URI } from 'vscode-uri';
-import { HumanFriendlyWriter, MachineFriendlyWriter, Writer, DiagnosticFilter, DEFAULT_FILTER } from './writers';
+import {
+    HumanFriendlyWriter,
+    MachineFriendlyWriter,
+    Writer,
+    DiagnosticFilter,
+    DEFAULT_FILTER
+} from './writers';
 import { watch } from 'chokidar';
 
 const outputFormats = ['human', 'human-verbose', 'machine'] as const;
@@ -22,25 +28,39 @@ type Result = {
     hintCount: number;
 };
 
-function openAllDocuments(
+async function openAllDocuments(
     workspaceUri: URI,
     filePathsToIgnore: string[],
     svelteCheck: SvelteCheck
 ) {
-    const files = glob.sync('**/*.svelte', {
-        cwd: workspaceUri.fsPath,
-        ignore: ['node_modules/**'].concat(filePathsToIgnore.map((ignore) => `${ignore}/**`))
+    return new Promise((resolve, reject) => {
+        glob(
+            '**/*.svelte',
+            {
+                cwd: workspaceUri.fsPath,
+                ignore: ['node_modules/**'].concat(
+                    filePathsToIgnore.map((ignore) => `${ignore}/**`)
+                )
+            },
+            (err, files) => {
+                if (err) {
+                    reject(err);
+                    return;
+                }
+
+                const absFilePaths = files.map((f) => path.resolve(workspaceUri.fsPath, f));
+
+                for (const absFilePath of absFilePaths) {
+                    const text = fs.readFileSync(absFilePath, 'utf-8');
+                    svelteCheck.upsertDocument({
+                        uri: URI.file(absFilePath).toString(),
+                        text
+                    });
+                }
+                resolve();
+            }
+        );
     });
-
-    const absFilePaths = files.map((f) => path.resolve(workspaceUri.fsPath, f));
-
-    for (const absFilePath of absFilePaths) {
-        const text = fs.readFileSync(absFilePath, 'utf-8');
-        svelteCheck.upsertDocument({
-            uri: URI.file(absFilePath).toString(),
-            text
-        });
-    }
 }
 
 async function getDiagnostics(
@@ -136,8 +156,9 @@ function createFilter(myArgs: argv.ParsedArgs): DiagnosticFilter {
         case 'error':
             return (d) => d.severity === DiagnosticSeverity.Error;
         case 'warning':
-            return (d) => d.severity === DiagnosticSeverity.Error
-                        || d.severity === DiagnosticSeverity.Warning;
+            return (d) =>
+                d.severity === DiagnosticSeverity.Error ||
+                d.severity === DiagnosticSeverity.Warning;
         default:
             return DEFAULT_FILTER;
     }
@@ -202,7 +223,7 @@ function getOptions(myArgs: argv.ParsedArgs): SvelteCheckOptions {
     if (myArgs['watch']) {
         new DiagnosticsWatcher(workspaceUri, svelteCheck, writer, filePathsToIgnore);
     } else {
-        openAllDocuments(workspaceUri, filePathsToIgnore, svelteCheck);
+        await openAllDocuments(workspaceUri, filePathsToIgnore, svelteCheck);
         const result = await getDiagnostics(workspaceUri, writer, svelteCheck);
         if (
             result &&

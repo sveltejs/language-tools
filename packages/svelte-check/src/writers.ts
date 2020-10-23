@@ -1,4 +1,4 @@
-import * as chalk from 'chalk';
+import chalk from 'chalk';
 import { sep } from 'path';
 import { Writable } from 'stream';
 import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver-protocol';
@@ -11,17 +11,20 @@ export interface Writer {
         fileCount: number,
         errorCount: number,
         warningCount: number,
-        hintCount: number,
+        hintCount: number
     ) => void;
     failure: (err: Error) => void;
 }
 
-export type DiagnosticFilter = (diagnostic: Diagnostic) => boolean
+export type DiagnosticFilter = (diagnostic: Diagnostic) => boolean;
 export const DEFAULT_FILTER: DiagnosticFilter = () => true;
 
 export class HumanFriendlyWriter implements Writer {
-    constructor(private stream: Writable, private isVerbose = true,
-        private diagnosticFilter: DiagnosticFilter = DEFAULT_FILTER) {}
+    constructor(
+        private stream: Writable,
+        private isVerbose = true,
+        private diagnosticFilter: DiagnosticFilter = DEFAULT_FILTER
+    ) {}
 
     start(workspaceDir: string) {
         if (this.isVerbose) {
