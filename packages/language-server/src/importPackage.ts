@@ -10,6 +10,7 @@ import { Logger } from './logger';
  * so it's not transformed.
  */
 function dynamicRequire(dynamicFileToRequire: string): any {
+    // prettier-ignore
     return require(dynamicFileToRequire);
 }
 

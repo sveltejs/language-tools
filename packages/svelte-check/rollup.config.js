@@ -4,6 +4,7 @@ import resolve from '@rollup/plugin-node-resolve';
 import json from '@rollup/plugin-json';
 import replace from '@rollup/plugin-replace';
 import cleanup from 'rollup-plugin-cleanup';
+import copy from 'rollup-plugin-copy';
 import builtins from 'builtin-modules';
 
 export default [
@@ -17,9 +18,9 @@ export default [
             }
         ],
         plugins: [
-            // The replace-steps are a hacky workaround to not transform the dynamic
-            // requires inside importPackage.ts of svelte-language-server in any way
             replace({
+                // This replace-step is a hacky workaround to not transform the dynamic
+                // requires inside importPackage.ts of svelte-language-server in any way
                 'return require(dynamicFileToRequire);': 'return "XXXXXXXXXXXXXXXXXXXXX";',
                 delimiters: ['', '']
             }),
@@ -28,10 +29,26 @@ export default [
             json(),
             typescript(),
             replace({
+                // This replace-step is a hacky workaround to not transform the dynamic
+                // requires inside importPackage.ts of svelte-language-server in any way
                 'return "XXXXXXXXXXXXXXXXXXXXX";': 'return require(dynamicFileToRequire);',
                 delimiters: ['', '']
             }),
-            cleanup({ comments: ['some', 'ts', 'ts3s'] })
+            cleanup({ comments: ['some', 'ts', 'ts3s'] }),
+            copy({
+                targets: [
+                    // copy over d.ts files of svelte2tsx
+                    {
+                        src: [
+                            // workspace
+                            '../../node_modules/svelte2tsx/svelte*.d.ts',
+                            // standalone
+                            'node_modules/svelte2tsx/svelte*.d.ts'
+                        ],
+                        dest: 'dist/src'
+                    }
+                ]
+            })
         ],
         watch: {
             clearScreen: false

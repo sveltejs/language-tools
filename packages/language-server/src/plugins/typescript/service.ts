@@ -65,7 +65,14 @@ export function createLanguageService(
 
     const svelteModuleLoader = createSvelteModuleLoader(getSnapshot, compilerOptions);
 
-    const svelteTsPath = dirname(require.resolve('svelte2tsx'));
+    let svelteTsPath: string;
+    try {
+        // For when svelte2tsx is part of node_modules, for example VS Code extension
+        svelteTsPath = dirname(require.resolve('svelte2tsx'));
+    } catch (e) {
+        // Fall back to dirname, for example for svelte-check
+        svelteTsPath = __dirname;
+    }
     const svelteTsxFiles = [
         './svelte-shims.d.ts',
         './svelte-jsx.d.ts',
