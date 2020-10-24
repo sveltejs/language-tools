@@ -189,7 +189,11 @@ export function startServer(options?: LSOptions) {
                     ? { prepareProvider: true }
                     : true,
                 referencesProvider: true,
-                selectionRangeProvider: true
+                selectionRangeProvider: true,
+                signatureHelpProvider: {
+                    triggerCharacters: ['(', ',', '<'],
+                    retriggerCharacters: [')']
+                }
             }
         };
     });
@@ -261,6 +265,10 @@ export function startServer(options?: LSOptions) {
 
         return pluginHost.resolveCompletion(data, completionItem);
     });
+
+    connection.onSignatureHelp((evt) =>
+        pluginHost.getSignatureHelp(evt.textDocument, evt.position, evt.context)
+    );
 
     connection.onSelectionRanges((evt) =>
         pluginHost.getSelectionRanges(evt.textDocument, evt.positions)
