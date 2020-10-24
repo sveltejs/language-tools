@@ -8,6 +8,7 @@
  */
 
 import ts from 'typescript';
+import { isNotNullOrUndefined } from '../../utils';
 
 function replaceLinks(text: string): string {
     return (
@@ -116,4 +117,24 @@ export function getTagDocumentation(tag: ts.JSDocTagInfo): string | undefined {
         return label;
     }
     return label + (text.match(/\r\n|\n/g) ? '  \n' + text : ` — ${text}`);
+}
+
+export function plain(parts: ts.SymbolDisplayPart[] | string): string {
+    return processInlineTags(typeof parts === 'string' ? parts : ts.displayPartsToString(parts));
+}
+
+export function getMarkdownDocumentation(
+    documentation: ts.SymbolDisplayPart[] | undefined,
+    tags: ts.JSDocTagInfo[] | undefined
+) {
+    let result: Array<string | undefined> = [];
+    if (documentation) {
+        result.push(plain(documentation));
+    }
+
+    if (tags) {
+        result = result.concat(tags.map(getTagDocumentation));
+    }
+
+    return result.filter(isNotNullOrUndefined).join('\n\n');
 }

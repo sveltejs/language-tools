@@ -22,6 +22,7 @@ import { flatten, getRegExpMatches, isNotNullOrUndefined, pathToUrl } from '../.
 import { AppCompletionItem, AppCompletionList, CompletionsProvider } from '../../interfaces';
 import { SvelteDocumentSnapshot, SvelteSnapshotFragment } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
+import { getMarkdownDocumentation } from '../previewer';
 import {
     convertRange,
     getCommitCharactersForScriptElement,
@@ -318,7 +319,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
     }
 
     private getCompletionDocument(compDetail: ts.CompletionEntryDetails) {
-        const { source, documentation: tsDocumentation, displayParts } = compDetail;
+        const { source, documentation: tsDocumentation, displayParts, tags } = compDetail;
         let detail: string = this.changeSvelteComponentName(ts.displayPartsToString(displayParts));
 
         if (source) {
@@ -326,8 +327,9 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             detail = `Auto import from ${importPath}\n${detail}`;
         }
 
-        const documentation: MarkupContent | undefined = tsDocumentation
-            ? { value: ts.displayPartsToString(tsDocumentation), kind: MarkupKind.Markdown }
+        const markdownDoc = getMarkdownDocumentation(tsDocumentation, tags);
+        const documentation: MarkupContent | undefined = markdownDoc
+            ? { value: markdownDoc, kind: MarkupKind.Markdown }
             : undefined;
 
         return {

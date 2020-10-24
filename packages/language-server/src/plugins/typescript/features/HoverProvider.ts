@@ -1,11 +1,10 @@
 import ts from 'typescript';
 import { Hover, Position } from 'vscode-languageserver';
 import { Document, getWordAt, mapObjWithRangeToOriginal } from '../../../lib/documents';
-import { isNotNullOrUndefined } from '../../../utils';
 import { HoverProvider } from '../../interfaces';
 import { SvelteDocumentSnapshot, SvelteSnapshotFragment } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
-import { getTagDocumentation } from '../previewer';
+import { getMarkdownDocumentation } from '../previewer';
 import { convertRange } from '../utils';
 import { getComponentAtPosition } from './utils';
 
@@ -30,23 +29,16 @@ export class HoverProviderImpl implements HoverProvider {
         }
 
         const declaration = ts.displayPartsToString(info.displayParts);
-        const documentation =
-            typeof info.documentation === 'string'
-                ? info.documentation
-                : ts.displayPartsToString(info.documentation);
+        const documentation = getMarkdownDocumentation(info.documentation, info.tags);
 
         // https://microsoft.github.io/language-server-protocol/specification#textDocument_hover
         const contents = ['```typescript', declaration, '```']
             .concat(documentation ? ['---', documentation] : [])
             .join('\n');
-        const tags = info.tags?.map((tag) => getTagDocumentation(tag))
-            .filter(isNotNullOrUndefined);
 
         return mapObjWithRangeToOriginal(fragment, {
             range: convertRange(fragment, info.textSpan),
-            contents: tags ?
-                [contents].concat(tags).join('\n\n') :
-                contents
+            contents
         });
     }
 

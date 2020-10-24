@@ -83,7 +83,7 @@ describe('HoverProvider', () => {
 
         assert.deepStrictEqual(await provider.doHover(document, Position.create(9, 10)), <Hover>{
             contents:
-                '```typescript\nconst withJsDocTag: true\n```\n\n*@author* — foo',
+                '```typescript\nconst withJsDocTag: true\n```\n---\n\n\n*@author* — foo',
             range: {
                 start: {
                     character: 10,
