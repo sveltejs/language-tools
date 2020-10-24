@@ -4,6 +4,7 @@ import { Document, getWordAt, mapObjWithRangeToOriginal } from '../../../lib/doc
 import { HoverProvider } from '../../interfaces';
 import { SvelteDocumentSnapshot, SvelteSnapshotFragment } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
+import { getMarkdownDocumentation } from '../previewer';
 import { convertRange } from '../utils';
 import { getComponentAtPosition } from './utils';
 
@@ -28,10 +29,7 @@ export class HoverProviderImpl implements HoverProvider {
         }
 
         const declaration = ts.displayPartsToString(info.displayParts);
-        const documentation =
-            typeof info.documentation === 'string'
-                ? info.documentation
-                : ts.displayPartsToString(info.documentation);
+        const documentation = getMarkdownDocumentation(info.documentation, info.tags);
 
         // https://microsoft.github.io/language-server-protocol/specification#textDocument_hover
         const contents = ['```typescript', declaration, '```']

@@ -272,7 +272,7 @@ describe('CompletionProviderImpl', () => {
         });
 
         assert.deepStrictEqual(detail, '(alias) function foo(): boolean\nimport foo');
-        assert.deepStrictEqual(documentation, { value: 'bars', kind: MarkupKind.Markdown });
+        assert.deepStrictEqual(documentation, { value: 'bars\n\n*@author* — John', kind: MarkupKind.Markdown });
     });
 
     it('provides import completions for directory', async () => {
