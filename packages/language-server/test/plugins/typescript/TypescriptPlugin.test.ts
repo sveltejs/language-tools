@@ -355,7 +355,10 @@ describe('TypescriptPlugin', () => {
         const projectJsFile =
             urlToPath(pathToUrl(path.join(path.dirname(filePath), 'documentation.ts'))) ?? '';
 
-        plugin.onWatchFileChanges(projectJsFile, FileChangeType.Changed);
+        plugin.onWatchFileChanges([{
+            fileName: projectJsFile,
+            changeType: FileChangeType.Changed
+        }]);
 
         return {
             snapshotManager,
@@ -372,7 +375,10 @@ describe('TypescriptPlugin', () => {
 
         assert.notEqual(firstVersion, INITIAL_VERSION);
 
-        plugin.onWatchFileChanges(projectJsFile, FileChangeType.Changed);
+        plugin.onWatchFileChanges([{
+            fileName: projectJsFile,
+            changeType: FileChangeType.Changed
+        }]);
         const secondSnapshot = snapshotManager.get(projectJsFile);
 
         assert.notEqual(secondSnapshot?.version, firstVersion);
@@ -384,7 +390,10 @@ describe('TypescriptPlugin', () => {
         const firstSnapshot = snapshotManager.get(projectJsFile);
         assert.notEqual(firstSnapshot, undefined);
 
-        plugin.onWatchFileChanges(projectJsFile, FileChangeType.Deleted);
+        plugin.onWatchFileChanges([{
+            fileName: projectJsFile,
+            changeType: FileChangeType.Changed
+        }]);
         const secondSnapshot = snapshotManager.get(projectJsFile);
 
         assert.equal(secondSnapshot, undefined);
