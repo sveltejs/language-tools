@@ -61,7 +61,7 @@ export function createLanguageService(
     const workspacePath = tsconfigPath ? dirname(tsconfigPath) : '';
 
     const { options: compilerOptions, fileNames: files, raw } = getParsedConfig();
-    const snapshotManager = new SnapshotManager(files, raw, tsconfigPath || process.cwd());
+    const snapshotManager = new SnapshotManager(files, raw, workspacePath || process.cwd());
 
     const svelteModuleLoader = createSvelteModuleLoader(getSnapshot, compilerOptions);
 

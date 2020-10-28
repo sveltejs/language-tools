@@ -1,4 +1,3 @@
-import { resolve, dirname } from 'path';
 import ts from 'typescript';
 import { DocumentSnapshot, SvelteSnapshotOptions } from './DocumentSnapshot';
 import { Logger } from '../../logger';
@@ -12,28 +11,22 @@ export class SnapshotManager {
     private documents: Map<string, DocumentSnapshot> = new Map();
     private lastLogged = new Date(new Date().getTime() - 60_001);
 
+    private readonly watchExtensions = [
+        ts.Extension.Dts,
+        ts.Extension.Js,
+        ts.Extension.Jsx,
+        ts.Extension.Ts,
+        ts.Extension.Tsx,
+        ts.Extension.Json
+    ];
+
     constructor(
         private projectFiles: string[],
-        fileSpec: TsFilesSpec,
-        tsConfigPath: string,
-    ) {
-        this.fileSpec = this.resloveFileSpecs(fileSpec, tsConfigPath);
-    }
+        private fileSpec: TsFilesSpec,
+        private workspaceRoot: string
+    ) { }
 
-    private readonly fileSpec: TsFilesSpec;
-
-    private resloveFileSpecs(fileSpec: TsFilesSpec, tsConfigPath: string): TsFilesSpec {
-        const basePath = dirname(tsConfigPath);
-        const resolveToBase = (path: string) => resolve(basePath, path);
-
-        return {
-            exclude: fileSpec.exclude?.map(resolveToBase),
-            include: fileSpec.include?.map(resolveToBase)
-        };
-    }
-    updateProjectFilesByDirname(
-        path: string,
-        readDirCache: Map<string, string[]>) {
+    updateProjectFiles() {
         const { include, exclude } = this.fileSpec;
 
         // Since we default to not include anything,
@@ -42,32 +35,14 @@ export class SnapshotManager {
             return;
         }
 
-        let projectFilesInDir = readDirCache.get(path);
+        const projectFiles = ts.sys.readDirectory(
+            this.workspaceRoot,
+            this.watchExtensions,
+            exclude,
+            include
+        );
 
-        if (!projectFilesInDir) {
-            projectFilesInDir = ts.sys.readDirectory(
-                path,
-                this.getExtensions(),
-                include,
-                exclude,
-                undefined
-            );
-
-            readDirCache.set(path, projectFilesInDir);
-        }
-
-        this.projectFiles = Array.from(new Set([...this.projectFiles, ...projectFilesInDir]));
-    }
-
-    private getExtensions() {
-        return [
-            ts.Extension.Dts,
-            ts.Extension.Js,
-            ts.Extension.Jsx,
-            ts.Extension.Ts,
-            ts.Extension.Tsx,
-            ts.Extension.Json
-        ];
+        this.projectFiles = Array.from(new Set([...this.projectFiles, ...projectFiles]));
     }
 
     updateByFileName(fileName: string, options: SvelteSnapshotOptions) {

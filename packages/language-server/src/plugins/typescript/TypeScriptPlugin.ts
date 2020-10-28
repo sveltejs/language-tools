@@ -58,6 +58,7 @@ import { convertToLocationRange, getScriptKindFromFileName, symbolKindFromString
 import { getDirectiveCommentCompletions } from './features/getDirectiveCommentCompletions';
 import { FindReferencesProviderImpl } from './features/FindReferencesProvider';
 import { SelectionRangeProviderImpl } from './features/SelectionRangeProvider';
+import { SnapshotManager } from './SnapshotManager';
 
 export class TypeScriptPlugin
     implements
@@ -337,7 +338,7 @@ export class TypeScriptPlugin
     }
 
     onWatchFileChanges(onWatchFileChangesParas: OnWatchFileChangesPara[]) {
-        const readDirCache = new Map<string, string[]>();
+        const doneUpdateProjectFiles = new Set<SnapshotManager>();
 
         for (const { fileName, changeType } of onWatchFileChangesParas) {
             const scriptKind = getScriptKindFromFileName(fileName);
@@ -349,7 +350,10 @@ export class TypeScriptPlugin
 
             const snapshotManager = this.getSnapshotManager(fileName);
             if (changeType === FileChangeType.Created) {
-                snapshotManager.updateProjectFilesByDirname(path.dirname(fileName), readDirCache);
+                if (!doneUpdateProjectFiles.has(snapshotManager)) {
+                    snapshotManager.updateProjectFiles();
+                    doneUpdateProjectFiles.add(snapshotManager);
+                }
             } else if (changeType === FileChangeType.Deleted) {
                 snapshotManager.delete(fileName);
                 return;
