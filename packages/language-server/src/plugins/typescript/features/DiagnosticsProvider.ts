@@ -46,7 +46,8 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
             .map((diagnostic) => mapObjWithRangeToOriginal(fragment, diagnostic))
             .filter(hasNoNegativeLines)
             .filter(isNoFalsePositive(document.getText(), tsDoc))
-            .map(enhanceIfNecessary);
+            .map(enhanceIfNecessary)
+            .map(swapRangeStartEndIfNecessary);
     }
 
     private getDiagnosticTag(diagnostic: ts.Diagnostic) {
@@ -137,4 +138,20 @@ function enhanceIfNecessary(diagnostic: Diagnostic): Diagnostic {
     }
 
     return diagnostic;
+}
+
+/**
+ * Due to source mapping, some ranges may be swapped: Start is end. Swap back in this case.
+ */
+function swapRangeStartEndIfNecessary(diag: Diagnostic): Diagnostic {
+    if (
+        diag.range.end.line < diag.range.start.line ||
+        (diag.range.end.line === diag.range.start.line &&
+            diag.range.end.character < diag.range.start.character)
+    ) {
+        const start = diag.range.start;
+        diag.range.start = diag.range.end;
+        diag.range.end = start;
+    }
+    return diag;
 }
