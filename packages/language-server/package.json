@@ -59,9 +59,12 @@
         "typescript": "*",
         "vscode-css-languageservice": "4.2.0",
         "vscode-emmet-helper": "1.2.17",
-        "vscode-html-languageservice": "3.0.4-next.15",
+        "vscode-html-languageservice": "3.1.4",
         "vscode-languageserver": "6.1.1",
         "vscode-languageserver-types": "3.15.1",
         "vscode-uri": "2.1.2"
+    },
+    "resolutions": {
+        "vscode-languageserver-types": "3.15.1"
     }
 }
