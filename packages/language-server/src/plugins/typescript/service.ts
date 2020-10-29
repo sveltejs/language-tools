@@ -60,8 +60,10 @@ export function createLanguageService(
 ): LanguageServiceContainer {
     const workspacePath = tsconfigPath ? dirname(tsconfigPath) : '';
 
-    const { compilerOptions, files } = getCompilerOptionsAndProjectFiles();
-    const snapshotManager = new SnapshotManager(files);
+    const { options: compilerOptions, fileNames: files, raw } = getParsedConfig();
+    // raw is the tsconfig merged with extending config
+    // see: https://github.com/microsoft/TypeScript/blob/08e4f369fbb2a5f0c30dee973618d65e6f7f09f8/src/compiler/commandLineParser.ts#L2537
+    const snapshotManager = new SnapshotManager(files, raw, workspacePath || process.cwd());
 
     const svelteModuleLoader = createSvelteModuleLoader(getSnapshot, compilerOptions);
 
@@ -160,7 +162,7 @@ export function createLanguageService(
         return doc;
     }
 
-    function getCompilerOptionsAndProjectFiles() {
+    function getParsedConfig() {
         const forcedCompilerOptions: ts.CompilerOptions = {
             allowNonTsExtensions: true,
             target: ts.ScriptTarget.Latest,
@@ -199,7 +201,6 @@ export function createLanguageService(
             [{ extension: 'svelte', isMixedContent: false, scriptKind: ts.ScriptKind.TSX }]
         );
 
-        const files = parsedConfig.fileNames;
         const compilerOptions: ts.CompilerOptions = {
             ...parsedConfig.options,
             ...forcedCompilerOptions
@@ -223,7 +224,10 @@ export function createLanguageService(
             }
         }
 
-        return { compilerOptions, files };
+        return {
+            ...parsedConfig,
+            options: compilerOptions
+        };
     }
 
     /**

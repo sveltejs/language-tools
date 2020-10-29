@@ -39,7 +39,8 @@ import {
     OnWatchFileChanges,
     RenameProvider,
     SelectionRangeProvider,
-    UpdateImportsProvider
+    UpdateImportsProvider,
+    OnWatchFileChangesPara
 } from '../interfaces';
 import { SnapshotFragment } from './DocumentSnapshot';
 import { CodeActionsProviderImpl } from './features/CodeActionsProvider';
@@ -56,6 +57,7 @@ import { convertToLocationRange, getScriptKindFromFileName, symbolKindFromString
 import { getDirectiveCommentCompletions } from './features/getDirectiveCommentCompletions';
 import { FindReferencesProviderImpl } from './features/FindReferencesProvider';
 import { SelectionRangeProviderImpl } from './features/SelectionRangeProvider';
+import { SnapshotManager } from './SnapshotManager';
 
 export class TypeScriptPlugin
     implements
@@ -334,24 +336,32 @@ export class TypeScriptPlugin
         return this.findReferencesProvider.findReferences(document, position, context);
     }
 
-    onWatchFileChanges(fileName: string, changeType: FileChangeType) {
-        const scriptKind = getScriptKindFromFileName(fileName);
+    onWatchFileChanges(onWatchFileChangesParas: OnWatchFileChangesPara[]) {
+        const doneUpdateProjectFiles = new Set<SnapshotManager>();
 
-        if (scriptKind === ts.ScriptKind.Unknown) {
-            // We don't deal with svelte files here
-            return;
+        for (const { fileName, changeType } of onWatchFileChangesParas) {
+            const scriptKind = getScriptKindFromFileName(fileName);
+
+            if (scriptKind === ts.ScriptKind.Unknown) {
+                // We don't deal with svelte files here
+                continue;
+            }
+
+            const snapshotManager = this.getSnapshotManager(fileName);
+            if (changeType === FileChangeType.Created) {
+                if (!doneUpdateProjectFiles.has(snapshotManager)) {
+                    snapshotManager.updateProjectFiles();
+                    doneUpdateProjectFiles.add(snapshotManager);
+                }
+            } else if (changeType === FileChangeType.Deleted) {
+                snapshotManager.delete(fileName);
+                return;
+            }
+
+            // Since the options parameter only applies to svelte snapshots, and this is not
+            // a svelte file, we can just set it to false without having any effect.
+            snapshotManager.updateByFileName(fileName, { strictMode: false });
         }
-
-        const snapshotManager = this.getSnapshotManager(fileName);
-
-        if (changeType === FileChangeType.Deleted) {
-            snapshotManager.delete(fileName);
-            return;
-        }
-
-        // Since the options parameter only applies to svelte snapshots, and this is not
-        // a svelte file, we can just set it to false without having any effect.
-        snapshotManager.updateByFileName(fileName, { strictMode: false });
     }
 
     async getSelectionRange(

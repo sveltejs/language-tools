@@ -1,11 +1,49 @@
+import ts from 'typescript';
 import { DocumentSnapshot, SvelteSnapshotOptions } from './DocumentSnapshot';
 import { Logger } from '../../logger';
+
+export interface TsFilesSpec {
+    include?: readonly string[];
+    exclude?: readonly string[];
+}
 
 export class SnapshotManager {
     private documents: Map<string, DocumentSnapshot> = new Map();
     private lastLogged = new Date(new Date().getTime() - 60_001);
 
-    constructor(private projectFiles: string[]) {}
+    private readonly watchExtensions = [
+        ts.Extension.Dts,
+        ts.Extension.Js,
+        ts.Extension.Jsx,
+        ts.Extension.Ts,
+        ts.Extension.Tsx,
+        ts.Extension.Json
+    ];
+
+    constructor(
+        private projectFiles: string[],
+        private fileSpec: TsFilesSpec,
+        private workspaceRoot: string
+    ) {}
+
+    updateProjectFiles() {
+        const { include, exclude } = this.fileSpec;
+
+        // Since we default to not include anything,
+        //  just don't waste time on this
+        if (include?.length === 0) {
+            return;
+        }
+
+        const projectFiles = ts.sys.readDirectory(
+            this.workspaceRoot,
+            this.watchExtensions,
+            exclude,
+            include
+        );
+
+        this.projectFiles = Array.from(new Set([...this.projectFiles, ...projectFiles]));
+    }
 
     updateByFileName(fileName: string, options: SvelteSnapshotOptions) {
         if (!this.has(fileName)) {

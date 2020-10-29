@@ -1,6 +1,7 @@
 import * as assert from 'assert';
 import * as path from 'path';
 import ts from 'typescript';
+import fs from 'fs';
 import { FileChangeType, Position, Range } from 'vscode-languageserver';
 import { Document, DocumentManager } from '../../../src/lib/documents';
 import { LSConfigManager } from '../../../src/ls-config';
@@ -348,14 +349,36 @@ describe('TypescriptPlugin', () => {
 
     const setupForOnWatchedFileChanges = () => {
         const { plugin, document } = setup('empty.svelte');
-        const filePath = document.getFilePath()!;
-        const snapshotManager = plugin.getSnapshotManager(filePath);
+        const targetSvelteFile = document.getFilePath()!;
+        const snapshotManager = plugin.getSnapshotManager(targetSvelteFile);
 
-        // make it the same style of path delimiter as vscode's request
-        const projectJsFile =
-            urlToPath(pathToUrl(path.join(path.dirname(filePath), 'documentation.ts'))) ?? '';
+        return {
+            snapshotManager,
+            plugin,
+            targetSvelteFile
+        };
+    };
 
-        plugin.onWatchFileChanges(projectJsFile, FileChangeType.Changed);
+    /**
+     *  make it the same style of path delimiter as vscode's request
+     */
+    const normalizeWatchFilePath = (path: string) => {
+        return urlToPath(pathToUrl(path)) ?? '';
+    };
+
+    const setupForOnWatchedFileUpdateOrDelete = () => {
+        const { plugin, snapshotManager, targetSvelteFile } = setupForOnWatchedFileChanges();
+
+        const projectJsFile = normalizeWatchFilePath(
+            path.join(path.dirname(targetSvelteFile), 'documentation.ts')
+        );
+
+        plugin.onWatchFileChanges([
+            {
+                fileName: projectJsFile,
+                changeType: FileChangeType.Changed
+            }
+        ]);
 
         return {
             snapshotManager,
@@ -365,28 +388,60 @@ describe('TypescriptPlugin', () => {
     };
 
     it('bumps snapshot version when watched file changes', () => {
-        const { snapshotManager, projectJsFile, plugin } = setupForOnWatchedFileChanges();
+        const { snapshotManager, projectJsFile, plugin } = setupForOnWatchedFileUpdateOrDelete();
 
         const firstSnapshot = snapshotManager.get(projectJsFile);
         const firstVersion = firstSnapshot?.version;
 
         assert.notEqual(firstVersion, INITIAL_VERSION);
 
-        plugin.onWatchFileChanges(projectJsFile, FileChangeType.Changed);
+        plugin.onWatchFileChanges([
+            {
+                fileName: projectJsFile,
+                changeType: FileChangeType.Changed
+            }
+        ]);
         const secondSnapshot = snapshotManager.get(projectJsFile);
 
         assert.notEqual(secondSnapshot?.version, firstVersion);
     });
 
     it('should delete snapshot cache when file delete', () => {
-        const { snapshotManager, projectJsFile, plugin } = setupForOnWatchedFileChanges();
+        const { snapshotManager, projectJsFile, plugin } = setupForOnWatchedFileUpdateOrDelete();
 
         const firstSnapshot = snapshotManager.get(projectJsFile);
         assert.notEqual(firstSnapshot, undefined);
 
-        plugin.onWatchFileChanges(projectJsFile, FileChangeType.Deleted);
+        plugin.onWatchFileChanges([
+            {
+                fileName: projectJsFile,
+                changeType: FileChangeType.Deleted
+            }
+        ]);
         const secondSnapshot = snapshotManager.get(projectJsFile);
 
         assert.equal(secondSnapshot, undefined);
+    });
+
+    it('should add snapshot when project file added', () => {
+        const { snapshotManager, plugin, targetSvelteFile } = setupForOnWatchedFileChanges();
+        const addFile = path.join(path.dirname(targetSvelteFile), 'foo.ts');
+        const normalizedAddFilePath = normalizeWatchFilePath(addFile);
+
+        try {
+            fs.writeFileSync(addFile, 'export function abc() {}');
+            assert.equal(snapshotManager.has(normalizedAddFilePath), false);
+
+            plugin.onWatchFileChanges([
+                {
+                    fileName: normalizedAddFilePath,
+                    changeType: FileChangeType.Created
+                }
+            ]);
+
+            assert.equal(snapshotManager.has(normalizedAddFilePath), true);
+        } finally {
+            fs.unlinkSync(addFile);
+        }
     });
 });
