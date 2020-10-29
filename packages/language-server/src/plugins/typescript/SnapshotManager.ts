@@ -24,7 +24,7 @@ export class SnapshotManager {
         private projectFiles: string[],
         private fileSpec: TsFilesSpec,
         private workspaceRoot: string
-    ) { }
+    ) {}
 
     updateProjectFiles() {
         const { include, exclude } = this.fileSpec;

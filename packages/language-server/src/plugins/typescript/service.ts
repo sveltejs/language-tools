@@ -61,6 +61,8 @@ export function createLanguageService(
     const workspacePath = tsconfigPath ? dirname(tsconfigPath) : '';
 
     const { options: compilerOptions, fileNames: files, raw } = getParsedConfig();
+    // raw is the tsconfig merged with extending config
+    // see: https://github.com/microsoft/TypeScript/blob/08e4f369fbb2a5f0c30dee973618d65e6f7f09f8/src/compiler/commandLineParser.ts#L2537
     const snapshotManager = new SnapshotManager(files, raw, workspacePath || process.cwd());
 
     const svelteModuleLoader = createSvelteModuleLoader(getSnapshot, compilerOptions);

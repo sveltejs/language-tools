@@ -1,5 +1,4 @@
 import ts, { NavigationTree } from 'typescript';
-import path from 'path';
 import {
     CodeAction,
     CodeActionContext,
