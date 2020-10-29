@@ -102,6 +102,10 @@ Enable code actions for TypeScript. _Default_: `true`
 
 Enable selection range for TypeScript. _Default_: `true`
 
+##### `svelte.plugin.typescript.rename.enable`
+
+Enable rename functionality for JS/TS variables inside Svelte files. _Default_: `true`
+
 ##### `svelte.plugin.css.enable`
 
 Enable the CSS plugin. _Default_: `true`
@@ -184,7 +188,7 @@ Enable autocompletion for Svelte (for tags like #if/#each). _Default_: `true`
 
 ##### `svelte.plugin.svelte.rename.enable`
 
-Enable rename functionality (rename svelte files or variables inside svelte files). _Default_: `true`
+Enable rename/move Svelte files functionality. _Default_: `true`
 
 ##### `svelte.plugin.svelte.codeActions.enable`
 
