@@ -29,7 +29,7 @@ describe('HTML Plugin', () => {
             contents: {
                 kind: 'markdown',
                 value:
-                    '```html\n<h1>\n```\nThe h1 element represents a section heading.\n\n[MDN Reference](https://developer.mozilla.org/docs/Web/HTML/Element/Heading_Elements)'
+                    'The h1 element represents a section heading.\n\n[MDN Reference](https://developer.mozilla.org/docs/Web/HTML/Element/Heading_Elements)'
             },
 
             range: Range.create(0, 1, 0, 3)

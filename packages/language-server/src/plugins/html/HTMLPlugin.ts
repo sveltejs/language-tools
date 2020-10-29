@@ -1,5 +1,9 @@
 import { EmmetConfiguration, getEmmetCompletionParticipants } from 'vscode-emmet-helper';
-import { getLanguageService, HTMLDocument } from 'vscode-html-languageservice';
+import {
+    getLanguageService,
+    HTMLDocument,
+    CompletionItem as HtmlCompletionItem
+} from 'vscode-html-languageservice';
 import {
     CompletionList,
     Hover,
@@ -104,9 +108,7 @@ export class HTMLPlugin implements HoverProvider, CompletionsProvider {
      * The HTML language service uses newer types which clash
      * without the stable ones. Transform to the stable types.
      */
-    private toCompletionItems(
-        items: import('vscode-html-languageservice').CompletionItem[]
-    ): CompletionItem[] {
+    private toCompletionItems(items: HtmlCompletionItem[]): CompletionItem[] {
         return items.map((item) => {
             if (!item.textEdit || TextEdit.is(item.textEdit)) {
                 return <CompletionItem>item;
