@@ -1,12 +1,17 @@
 import { EmmetConfiguration, getEmmetCompletionParticipants } from 'vscode-emmet-helper';
-import { getLanguageService, HTMLDocument } from 'vscode-html-languageservice';
+import {
+    getLanguageService,
+    HTMLDocument,
+    CompletionItem as HtmlCompletionItem
+} from 'vscode-html-languageservice';
 import {
     CompletionList,
     Hover,
     Position,
     SymbolInformation,
     CompletionItem,
-    CompletionItemKind
+    CompletionItemKind,
+    TextEdit
 } from 'vscode-languageserver';
 import {
     DocumentManager,
@@ -20,7 +25,10 @@ import { HoverProvider, CompletionsProvider } from '../interfaces';
 
 export class HTMLPlugin implements HoverProvider, CompletionsProvider {
     private configManager: LSConfigManager;
-    private lang = getLanguageService({ customDataProviders: [svelteHtmlDataProvider] });
+    private lang = getLanguageService({
+        customDataProviders: [svelteHtmlDataProvider],
+        useDefaultDataProvider: false
+    });
     private documents = new WeakMap<Document, HTMLDocument>();
     private styleScriptTemplate = new Set(['template', 'style', 'script']);
 
@@ -84,11 +92,32 @@ export class HTMLPlugin implements HoverProvider, CompletionsProvider {
               // Other attributes/events would be false positives.
               CompletionList.create([])
             : this.lang.doComplete(document, position, html);
+        const items = this.toCompletionItems(results.items);
         return CompletionList.create(
-            [...results.items, ...this.getLangCompletions(results.items), ...emmetResults.items],
+            [
+                ...this.toCompletionItems(items),
+                ...this.getLangCompletions(items),
+                ...emmetResults.items
+            ],
             // Emmet completions change on every keystroke, so they are never complete
             emmetResults.items.length > 0
         );
+    }
+
+    /**
+     * The HTML language service uses newer types which clash
+     * without the stable ones. Transform to the stable types.
+     */
+    private toCompletionItems(items: HtmlCompletionItem[]): CompletionItem[] {
+        return items.map((item) => {
+            if (!item.textEdit || TextEdit.is(item.textEdit)) {
+                return <CompletionItem>item;
+            }
+            return {
+                ...item,
+                textEdit: TextEdit.replace(item.textEdit.replace, item.textEdit.newText)
+            };
+        });
     }
 
     private isInComponentTag(html: HTMLDocument, document: Document, position: Position) {
