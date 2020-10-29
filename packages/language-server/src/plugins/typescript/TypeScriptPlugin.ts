@@ -317,7 +317,12 @@ export class TypeScriptPlugin
     }
 
     async updateImports(fileRename: FileRename): Promise<WorkspaceEdit | null> {
-        if (!this.featureEnabled('rename')) {
+        if (
+            !(
+                this.configManager.enabled('svelte.enable') &&
+                this.configManager.enabled('svelte.rename.enable')
+            )
+        ) {
             return null;
         }
 
