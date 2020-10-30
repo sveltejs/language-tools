@@ -438,7 +438,7 @@ export function processInstanceScriptContent(
                 const end = node.getEnd() + astOffset;
 
                 str.prependLeft(start, ';() => {');
-                str.prependRight(end, '}');
+                str.appendRight(end, '}');
             }
         }
 
