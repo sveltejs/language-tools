@@ -298,6 +298,38 @@
                     "source.ts": "typescript"
                 }
             },
+						{
+							"scopeName": "svelte.pug",
+							"path": "./syntaxes/pug-svelte.json",
+							"injectTo": [
+								"source.svelte"
+							],
+							"embeddedLanguages": {
+								"source.ts": "typescript",
+								"text.pug": "jade"
+							}
+						},			
+						{
+							"scopeName": "svelte.pug.tags",
+							"path": "./syntaxes/pug-svelte-tags.json",
+							"injectTo": [
+								"source.svelte"
+							],
+							"embeddedLanguages": {
+								"source.ts": "typescript",
+								"text.pug": "jade"
+							}
+						},			
+						{
+							"scopeName": "svelte.pug.dotblock",
+							"path": "./syntaxes/pug-svelte-dotblock.json",
+							"injectTo": [
+								"source.svelte"
+							],
+							"embeddedLanguages": {
+								"source.ts": "typescript"
+							}
+						},
             {
                 "scopeName": "markdown.svelte.codeblock",
                 "path": "./syntaxes/markdown-svelte.json",
