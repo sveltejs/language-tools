@@ -65,7 +65,7 @@
     },
     "tag-component": {
       "name": "meta.tag.svelte",
-      "begin": "(?<=^\\s*?|#\\[\\s*?|:\\s*?)([A-Z][a-zA-Z0-9_]*)\\s*?(?=\\()",
+      "begin": "(?<=^\\s*?|#\\[\\s*?|:\\s+?)([A-Z][a-zA-Z0-9_]*)\\s*?(?=\\()",
       "beginCaptures": {
         "0": {
           "name": "support.class.component.svelte"
@@ -85,7 +85,7 @@
     },
     "tag-component-no-params": {
       "name": "meta.tag.svelte",
-      "match": "(?<=^\\s*?|#\\[\\s*?|:\\s*?)([A-Z][a-zA-Z0-9_]*)",
+      "match": "(?<=^\\s*?|#\\[\\s*?|:\\s+?)([A-Z][a-zA-Z0-9_]*)",
       "captures": {
         "0": {
           "name": "support.class.component.svelte"
@@ -93,7 +93,7 @@
       }
     },
     "mixin-svelte": {
-      "match": "(?<=^\\s*?|#\\[\\s*?|:\\s*?)(\\+)(debug|if|elseif|then|catch|each|await|html|key)\\s*?(\\()\\s*?([`'\"])(.*?)(\\k<4>)\\s*?(\\))",
+      "match": "(?<=^\\s*?|#\\[\\s*?|:\\s+?)(\\+)(debug|if|elseif|then|catch|each|await|html|key)\\s*?(\\()\\s*?([`'\"])(.*?)(\\k<4>)\\s*?(\\))",
       "captures": {
         "1": {
           "name": "punctuation.definition.keyword"
@@ -279,7 +279,7 @@
       }
     },
     "mixin-else": {
-      "match": "(?<=^\\s*?|#\\[\\s*?|:\\s*?)(\\+)(else)",
+      "match": "(?<=^\\s*?|#\\[\\s*?|:\\s+?)(\\+)(else)",
       "captures": {
         "1": {
           "name": "punctuation.definition.keyword"
