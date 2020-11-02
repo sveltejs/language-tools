@@ -122,6 +122,21 @@ export function processInstanceScriptContent(
         }
     };
 
+    const handleExportFunctionOrClass = (node: ts.ClassDeclaration | ts.FunctionDeclaration) => {
+        const exportModifier = findExportKeyword(node);
+        if (!exportModifier) {
+            return;
+        }
+
+        removeExport(exportModifier.getStart(), exportModifier.end);
+        addGetter(node.name);
+
+        // Can't export default here
+        if (node.name) {
+            exportedNames.addExport(node.name);
+        }
+    };
+
     const handleStore = (ident: ts.Node, parent: ts.Node) => {
         // handle assign to
         // eslint-disable-next-line max-len
@@ -323,8 +338,8 @@ export function processInstanceScriptContent(
                 const isLet = node.declarationList.flags === ts.NodeFlags.Let;
                 const isConst = node.declarationList.flags === ts.NodeFlags.Const;
 
+                handleExportedVariableDeclarationList(node.declarationList);
                 if (isLet) {
-                    handleExportedVariableDeclarationList(node.declarationList);
                     propTypeAssertToUserDefined(node.declarationList);
                 } else if (isConst) {
                     node.declarationList.forEachChild((n) => {
@@ -338,24 +353,14 @@ export function processInstanceScriptContent(
         }
 
         if (ts.isFunctionDeclaration(node)) {
-            if (node.modifiers) {
-                const exportModifier = findExportKeyword(node);
-                if (exportModifier) {
-                    removeExport(exportModifier.getStart(), exportModifier.end);
-                    addGetter(node.name);
-                }
-            }
+            handleExportFunctionOrClass(node);
 
             pushScope();
             onLeaveCallbacks.push(() => popScope());
         }
 
         if (ts.isClassDeclaration(node)) {
-            const exportModifier = findExportKeyword(node);
-            if (exportModifier) {
-                removeExport(exportModifier.getStart(), exportModifier.end);
-                addGetter(node.name);
-            }
+            handleExportFunctionOrClass(node);
         }
 
         if (ts.isBlock(node)) {
