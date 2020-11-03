@@ -351,7 +351,7 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
 
     async getSignatureHelp(
         textDocument: TextDocumentIdentifier,
-    position: Position,
+        position: Position,
         context: SignatureHelpContext | undefined
     ): Promise<SignatureHelp | null> {
         const document = this.getDocument(textDocument.uri);

@@ -5,15 +5,16 @@ import {
     SignatureHelp,
     SignatureHelpTriggerKind,
     SignatureInformation,
-    ParameterInformation
+    ParameterInformation,
+    MarkupKind
 } from 'vscode-languageserver';
 import { SignatureHelpProvider } from '../..';
 import { Document } from '../../../lib/documents';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
-import { getMarkdownDocumentation, plain } from '../previewer';
+import { getMarkdownDocumentation } from '../previewer';
 
 export class SignatureHelpProviderImpl implements SignatureHelpProvider {
-    constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
+    constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) { }
 
     private static readonly triggerCharacters = ['(', ',', '<'];
     private static readonly retriggerCharacters = [')'];
@@ -41,7 +42,7 @@ export class SignatureHelpProviderImpl implements SignatureHelpProvider {
         }
 
         const signatures = info.items
-            .map(this.toSignatureHelpInfomation);
+            .map(this.toSignatureHelpInformation);
 
         return {
             signatures,
@@ -50,7 +51,7 @@ export class SignatureHelpProviderImpl implements SignatureHelpProvider {
         };
     }
 
-    isReTrigger(
+    private isReTrigger(
         isRetrigger: boolean,
         triggerCharacter: string
     ): triggerCharacter is ts.SignatureHelpRetriggerCharacter {
@@ -61,7 +62,7 @@ export class SignatureHelpProviderImpl implements SignatureHelpProvider {
         );
     }
 
-    isTriggerCharacter(
+    private isTriggerCharacter(
         triggerCharacter: string
     ): triggerCharacter is ts.SignatureHelpTriggerCharacter {
         return SignatureHelpProviderImpl.triggerCharacters.includes(triggerCharacter);
@@ -93,8 +94,8 @@ export class SignatureHelpProviderImpl implements SignatureHelpProvider {
         }
     }
 
-    private toSignatureHelpInfomation(item: ts.SignatureHelpItem): SignatureInformation {
-        const [prefixLabel, seperatorLabel, suffixLabel] = [
+    private toSignatureHelpInformation(item: ts.SignatureHelpItem): SignatureInformation {
+        const [prefixLabel, separatorLabel, suffixLabel] = [
             item.prefixDisplayParts,
             item.separatorDisplayParts,
             item.suffixDisplayParts
@@ -110,14 +111,14 @@ export class SignatureHelpProviderImpl implements SignatureHelpProvider {
 
             const startIndex = textIndex;
             const endIndex = textIndex + label.length;
-            const doc = plain(parameter.documentation);
+            const doc = ts.displayPartsToString(parameter.documentation);
 
             signatureLabel += label;
             parameters.push(ParameterInformation.create([startIndex, endIndex], doc));
 
             if (index < lastIndex) {
-                textIndex = endIndex + seperatorLabel.length;
-                signatureLabel += signatureLabel;
+                textIndex = endIndex + separatorLabel.length;
+                signatureLabel += separatorLabel;
             }
         });
         const signatureDocumentation = getMarkdownDocumentation(
@@ -125,17 +126,20 @@ export class SignatureHelpProviderImpl implements SignatureHelpProvider {
             item.tags.filter((tag) => tag.name !== 'param')
         );
 
-        return SignatureInformation.create(
-            prefixLabel + signatureLabel + suffixLabel,
-            signatureDocumentation,
-            ...parameters
-        );
+        return {
+            label: prefixLabel + signatureLabel + suffixLabel,
+            documentation: signatureDocumentation ? {
+                value: signatureDocumentation,
+                kind: MarkupKind.Markdown
+            } : undefined,
+            parameters
+        };
     }
 
     private isInSvelte2tsxGeneratedFunction(
         signatureHelpItem: ts.SignatureHelpItem
     ) {
-        return ts.displayPartsToString(signatureHelpItem.prefixDisplayParts)
-            .includes('__sveltets');
+        return signatureHelpItem.prefixDisplayParts
+            .some((part) => part.text.includes('__sveltets'));
     }
 }
