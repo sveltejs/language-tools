@@ -116,6 +116,12 @@
                     "title": "TypeScript: SelectionRange",
                     "description": "Enable selection range for TypeScript"
                 },
+                "svelte.plugin.typescript.rename.enable": {
+                    "type": "boolean",
+                    "default": true,
+                    "title": "TypeScript: Rename",
+                    "description": "Enable rename functionality for JS/TS variables inside Svelte files"
+                },
                 "svelte.plugin.css.enable": {
                     "type": "boolean",
                     "default": true,
@@ -254,6 +260,12 @@
                     "default": true,
                     "title": "Svelte: Selection Range",
                     "description": "Enable selection range for Svelte"
+                },
+                "svelte.plugin.svelte.rename.enable": {
+                    "type": "boolean",
+                    "default": true,
+                    "title": "Svelte: Rename",
+                    "description": "Enable rename/move Svelte files functionality"
                 }
             }
         },
@@ -286,6 +298,38 @@
                     "source.ts": "typescript"
                 }
             },
+						{
+							"scopeName": "svelte.pug",
+							"path": "./syntaxes/pug-svelte.json",
+							"injectTo": [
+								"source.svelte"
+							],
+							"embeddedLanguages": {
+								"source.ts": "typescript",
+								"text.pug": "jade"
+							}
+						},			
+						{
+							"scopeName": "svelte.pug.tags",
+							"path": "./syntaxes/pug-svelte-tags.json",
+							"injectTo": [
+								"source.svelte"
+							],
+							"embeddedLanguages": {
+								"source.ts": "typescript",
+								"text.pug": "jade"
+							}
+						},			
+						{
+							"scopeName": "svelte.pug.dotblock",
+							"path": "./syntaxes/pug-svelte-dotblock.json",
+							"injectTo": [
+								"source.svelte"
+							],
+							"embeddedLanguages": {
+								"source.ts": "typescript"
+							}
+						},
             {
                 "scopeName": "markdown.svelte.codeblock",
                 "path": "./syntaxes/markdown-svelte.json",

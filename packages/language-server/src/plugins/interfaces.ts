@@ -141,8 +141,13 @@ export interface SelectionRangeProvider {
     getSelectionRange(document: Document, position: Position): Resolvable<SelectionRange | null>;
 }
 
+export interface OnWatchFileChangesPara {
+    fileName: string;
+    changeType: FileChangeType;
+}
+
 export interface OnWatchFileChanges {
-    onWatchFileChanges(fileName: string, changeType: FileChangeType): void;
+    onWatchFileChanges(onWatchFileChangesParas: OnWatchFileChangesPara[]): void;
 }
 
 type ProviderBase = DiagnosticsProvider &

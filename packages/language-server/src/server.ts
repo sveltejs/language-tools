@@ -27,7 +27,8 @@ import {
     HTMLPlugin,
     PluginHost,
     SveltePlugin,
-    TypeScriptPlugin
+    TypeScriptPlugin,
+    OnWatchFileChangesPara
 } from './plugins';
 import { urlToPath } from './utils';
 
@@ -281,12 +282,12 @@ export function startServer(options?: LSOptions) {
     );
 
     connection.onDidChangeWatchedFiles((para) => {
-        for (const change of para.changes) {
-            const filename = urlToPath(change.uri);
-            if (filename) {
-                pluginHost.onWatchFileChanges(filename, change.type);
-            }
-        }
+        const onWatchFileChangesParas = para.changes.map((change) => ({
+            fileName: urlToPath(change.uri),
+            changeType: change.type
+        })).filter((change): change is OnWatchFileChangesPara => !!change.fileName);
+
+        pluginHost.onWatchFileChanges(onWatchFileChangesParas);
 
         diagnosticsManager.updateAll();
     });

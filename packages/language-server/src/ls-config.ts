@@ -38,6 +38,7 @@ const defaultLSConfig: LSConfig = {
         enable: true,
         compilerWarnings: {},
         diagnostics: { enable: true },
+        rename: { enable: true },
         format: { enable: true },
         completions: { enable: true },
         hover: { enable: true },
@@ -84,7 +85,7 @@ export interface LSTypescriptConfig {
         enable: boolean;
     };
     selectionRange: {
-        enable: boolean
+        enable: boolean;
     };
 }
 
@@ -110,7 +111,7 @@ export interface LSCSSConfig {
         enable: boolean;
     };
     selectionRange: {
-        enable: boolean
+        enable: boolean;
     };
 }
 
@@ -141,6 +142,9 @@ export interface LSSvelteConfig {
     format: {
         enable: boolean;
     };
+    rename: {
+        enable: boolean;
+    };
     completions: {
         enable: boolean;
     };
@@ -151,7 +155,7 @@ export interface LSSvelteConfig {
         enable: boolean;
     };
     selectionRange: {
-        enable: boolean
+        enable: boolean;
     };
 }
 
