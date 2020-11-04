@@ -68,6 +68,9 @@ export class SignatureHelpProviderImpl implements SignatureHelpProvider {
         return SignatureHelpProviderImpl.triggerCharacters.includes(triggerCharacter);
     }
 
+    /**
+     * adopted from https://github.com/microsoft/vscode/blob/265a2f6424dfbd3a9788652c7d376a7991d049a3/extensions/typescript-language-features/src/languageFeatures/signatureHelp.ts#L103
+     */
     private toTsTriggerReason(
         context: SignatureHelpContext | undefined
     ): ts.SignatureHelpTriggerReason {
@@ -94,6 +97,9 @@ export class SignatureHelpProviderImpl implements SignatureHelpProvider {
         }
     }
 
+    /**
+     * adopted from https://github.com/microsoft/vscode/blob/265a2f6424dfbd3a9788652c7d376a7991d049a3/extensions/typescript-language-features/src/languageFeatures/signatureHelp.ts#L73
+     */
     private toSignatureHelpInformation(item: ts.SignatureHelpItem): SignatureInformation {
         const [prefixLabel, separatorLabel, suffixLabel] = [
             item.prefixDisplayParts,
