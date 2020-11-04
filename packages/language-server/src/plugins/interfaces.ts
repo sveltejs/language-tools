@@ -1,4 +1,4 @@
-import { CompletionContext, FileChangeType } from 'vscode-languageserver';
+import { CompletionContext, FileChangeType, SignatureHelpContext } from 'vscode-languageserver';
 import {
     CodeAction,
     CodeActionContext,
@@ -19,7 +19,8 @@ import {
     TextDocumentIdentifier,
     TextEdit,
     WorkspaceEdit,
-    SelectionRange
+    SelectionRange,
+    SignatureHelp
 } from 'vscode-languageserver-types';
 import { Document } from '../lib/documents';
 
@@ -128,6 +129,14 @@ export interface FindReferencesProvider {
     ): Promise<Location[] | null>;
 }
 
+export interface SignatureHelpProvider {
+    getSignatureHelp(
+        document: Document,
+        position: Position,
+        context: SignatureHelpContext | undefined
+    ): Resolvable<SignatureHelp | null>
+}
+
 export interface SelectionRangeProvider {
     getSelectionRange(document: Document, position: Position): Resolvable<SelectionRange | null>;
 }
@@ -152,7 +161,8 @@ type ProviderBase = DiagnosticsProvider &
     UpdateImportsProvider &
     CodeActionsProvider &
     FindReferencesProvider &
-    RenameProvider;
+    RenameProvider &
+    SignatureHelpProvider;
 
 export type LSProvider = ProviderBase & BackwardsCompatibleDefinitionsProvider;
 

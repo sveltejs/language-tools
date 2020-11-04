@@ -20,7 +20,9 @@ import {
     FormattingOptions,
     ReferenceContext,
     Location,
-    SelectionRange
+    SelectionRange,
+    SignatureHelp,
+    SignatureHelpContext
 } from 'vscode-languageserver';
 import { LSConfig, LSConfigManager } from '../ls-config';
 import { DocumentManager } from '../lib/documents';
@@ -342,6 +344,23 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
 
         return await this.execute<any>(
             'findReferences',
+            [document, position, context],
+            ExecuteMode.FirstNonNull
+        );
+    }
+
+    async getSignatureHelp(
+        textDocument: TextDocumentIdentifier,
+        position: Position,
+        context: SignatureHelpContext | undefined
+    ): Promise<SignatureHelp | null> {
+        const document = this.getDocument(textDocument.uri);
+        if (!document) {
+            throw new Error('Cannot call methods on an unopened document');
+        }
+
+        return await this.execute<any>(
+            'getSignatureHelp',
             [document, position, context],
             ExecuteMode.FirstNonNull
         );

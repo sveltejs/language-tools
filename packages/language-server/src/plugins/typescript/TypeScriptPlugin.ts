@@ -15,7 +15,9 @@ import {
     SymbolInformation,
     WorkspaceEdit,
     CompletionList,
-    SelectionRange
+    SelectionRange,
+    SignatureHelp,
+    SignatureHelpContext
 } from 'vscode-languageserver';
 import {
     Document,
@@ -39,6 +41,7 @@ import {
     OnWatchFileChanges,
     RenameProvider,
     SelectionRangeProvider,
+    SignatureHelpProvider,
     UpdateImportsProvider,
     OnWatchFileChangesPara
 } from '../interfaces';
@@ -57,6 +60,7 @@ import { convertToLocationRange, getScriptKindFromFileName, symbolKindFromString
 import { getDirectiveCommentCompletions } from './features/getDirectiveCommentCompletions';
 import { FindReferencesProviderImpl } from './features/FindReferencesProvider';
 import { SelectionRangeProviderImpl } from './features/SelectionRangeProvider';
+import { SignatureHelpProviderImpl } from './features/SignatureHelpProvider';
 import { SnapshotManager } from './SnapshotManager';
 
 export class TypeScriptPlugin
@@ -70,6 +74,7 @@ export class TypeScriptPlugin
         RenameProvider,
         FindReferencesProvider,
         SelectionRangeProvider,
+        SignatureHelpProvider,
         OnWatchFileChanges,
         CompletionsProvider<CompletionEntryWithIdentifer> {
     private readonly configManager: LSConfigManager;
@@ -82,6 +87,7 @@ export class TypeScriptPlugin
     private readonly hoverProvider: HoverProviderImpl;
     private readonly findReferencesProvider: FindReferencesProviderImpl;
     private readonly selectionRangeProvider: SelectionRangeProviderImpl;
+    private readonly signatureHelpProvider: SignatureHelpProviderImpl;
 
     constructor(
         docManager: DocumentManager,
@@ -101,6 +107,7 @@ export class TypeScriptPlugin
         this.hoverProvider = new HoverProviderImpl(this.lsAndTsDocResolver);
         this.findReferencesProvider = new FindReferencesProviderImpl(this.lsAndTsDocResolver);
         this.selectionRangeProvider = new SelectionRangeProviderImpl(this.lsAndTsDocResolver);
+        this.signatureHelpProvider = new SignatureHelpProviderImpl(this.lsAndTsDocResolver);
     }
 
     async getDiagnostics(document: Document): Promise<Diagnostic[]> {
@@ -378,6 +385,16 @@ export class TypeScriptPlugin
         }
 
         return this.selectionRangeProvider.getSelectionRange(document, position);
+    }
+
+    async getSignatureHelp(
+        document: Document, position: Position, context: SignatureHelpContext | undefined
+    ): Promise<SignatureHelp | null> {
+        if (!this.featureEnabled('signatureHelp')) {
+            return null;
+        }
+
+        return this.signatureHelpProvider.getSignatureHelp(document, position, context);
     }
 
     private getLSAndTSDoc(document: Document) {
