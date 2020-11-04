@@ -40,7 +40,6 @@ import {
     HoverProvider,
     OnWatchFileChanges,
     RenameProvider,
-    Resolvable,
     SelectionRangeProvider,
     SignatureHelpProvider,
     UpdateImportsProvider,
@@ -388,9 +387,9 @@ export class TypeScriptPlugin
         return this.selectionRangeProvider.getSelectionRange(document, position);
     }
 
-    getSignatureHelp(
+    async getSignatureHelp(
         document: Document, position: Position, context: SignatureHelpContext | undefined
-    ): Resolvable<SignatureHelp | null> {
+    ): Promise<SignatureHelp | null> {
         if (!this.featureEnabled('signatureHelp')) {
             return null;
         }
