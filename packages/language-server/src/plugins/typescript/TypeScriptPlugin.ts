@@ -391,6 +391,10 @@ export class TypeScriptPlugin
     getSignatureHelp(
         document: Document, position: Position, context: SignatureHelpContext | undefined
     ): Resolvable<SignatureHelp | null> {
+        if (!this.featureEnabled('signatureHelp')) {
+            return null;
+        }
+
         return this.signatureHelpProvider.getSignatureHelp(document, position, context);
     }
 

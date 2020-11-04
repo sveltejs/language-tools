@@ -14,7 +14,8 @@ const defaultLSConfig: LSConfig = {
         documentSymbols: { enable: true },
         codeActions: { enable: true },
         rename: { enable: true },
-        selectionRange: { enable: true }
+        selectionRange: { enable: true },
+        signatureHelp: { enable: true }
     },
     css: {
         enable: true,
@@ -87,6 +88,9 @@ export interface LSTypescriptConfig {
     selectionRange: {
         enable: boolean;
     };
+    signatureHelp: {
+        enable: boolean;
+    }
 }
 
 export interface LSCSSConfig {

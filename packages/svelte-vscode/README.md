@@ -98,13 +98,17 @@ Enable go to definition for TypeScript. _Default_: `true`
 
 Enable code actions for TypeScript. _Default_: `true`
 
-##### `svelte.plugin.typescript.codeActions`
+##### `svelte.plugin.typescript.selectionRange`
 
 Enable selection range for TypeScript. _Default_: `true`
 
 ##### `svelte.plugin.typescript.rename.enable`
 
 Enable rename functionality for JS/TS variables inside Svelte files. _Default_: `true`
+
+##### `svelte.plugin.typescript.signatureHelp.enable`
+
+Enable signature help (parameter hints) for JS/TS. _Default_: `true`
 
 ##### `svelte.plugin.css.enable`
 
