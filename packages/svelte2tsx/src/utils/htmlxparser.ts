@@ -82,10 +82,13 @@ function blankVerbatimContent(htmlx: string, verbatimElements: Node[]) {
     for (const node of verbatimElements) {
         const content = node.content;
         if (content) {
-            output =
-                output.substring(0, content.start) +
-                output.substring(content.start, content.end).replace(/[^\n]/g, ' ') +
-                output.substring(content.end);
+            output = htmlx.substring(0, content.start) +
+            htmlx.substring(content.start, content.end)
+                // blank out the content
+                .replace(/[^\n]/g, ' ')
+                // excess blank space can make the svelte parser very slow (sec->min). break it up with comments (works in style/script)
+                .replace(/[^\n][^\n][^\n][^\n]\n/g, '/**/\n') +
+            htmlx.substring(content.end);
         }
     }
     return output;
