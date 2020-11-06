@@ -109,7 +109,7 @@ injections:
   'L:meta.attribute.style.html meta.embedded.line.css source.css':
     patterns:
     - include: '#interpolation'
-    - match: \G(.+)(?=['"])
+    - match: \G(.+?)(?=['"])
       captures: { 1: { patterns: [ include: source.css#rule-list-innards ] } }
 
   # - PUG -

@@ -226,7 +226,7 @@
           "include": "#interpolation"
         },
         {
-          "match": "\\G(.+)(?=['\"])",
+          "match": "\\G(.+?)(?=['\"])",
           "captures": {
             "1": {
               "patterns": [
