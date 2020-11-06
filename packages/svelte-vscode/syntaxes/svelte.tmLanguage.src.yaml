@@ -348,7 +348,7 @@ repository:
         patterns: [ include: source.ts#object-literal ]
       - include: source.ts
     # Handling quotes.
-    - begin: (['"])\s*(?={)
+    - begin: (?<!}\s*)(['"])\s*(?={)
       end: (?<=})\s*\1
       beginCaptures: { 0: { name: punctuation.section.embedded.begin.svelte } }
       endCaptures:   { 0: { name: punctuation.section.embedded.end.svelte } }
