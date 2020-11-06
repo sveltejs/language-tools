@@ -113,8 +113,14 @@
                 "svelte.plugin.typescript.selectionRange.enable": {
                     "type": "boolean",
                     "default": true,
-                    "title": "TypeScript: SelectionRange",
+                    "title": "TypeScript: Selection Range",
                     "description": "Enable selection range for TypeScript"
+                },
+                "svelte.plugin.typescript.signatureHelp.enable": {
+                  "type": "boolean",
+                  "default": true,
+                  "title": "TypeScript: Signature Help",
+                  "description": "Enable signature help (parameter hints) for TypeScript"
                 },
                 "svelte.plugin.typescript.rename.enable": {
                     "type": "boolean",
@@ -301,38 +307,38 @@
                     "source.ts": "typescript"
                 }
             },
-            {
-                "scopeName": "svelte.pug",
-                "path": "./syntaxes/pug-svelte.json",
-                "injectTo": [
-                    "source.svelte"
-                ],
-                "embeddedLanguages": {
-                    "source.ts": "typescript",
-                    "text.pug": "jade"
-                }
-            },
-            {
-                "scopeName": "svelte.pug.tags",
-                "path": "./syntaxes/pug-svelte-tags.json",
-                "injectTo": [
-                    "source.svelte"
-                ],
-                "embeddedLanguages": {
-                    "source.ts": "typescript",
-                    "text.pug": "jade"
-                }
-            },
-            {
-                "scopeName": "svelte.pug.dotblock",
-                "path": "./syntaxes/pug-svelte-dotblock.json",
-                "injectTo": [
-                    "source.svelte"
-                ],
-                "embeddedLanguages": {
-                    "source.ts": "typescript"
-                }
-            },
+						{
+							"scopeName": "svelte.pug",
+							"path": "./syntaxes/pug-svelte.json",
+							"injectTo": [
+								"source.svelte"
+							],
+							"embeddedLanguages": {
+								"source.ts": "typescript",
+								"text.pug": "jade"
+							}
+						},
+						{
+							"scopeName": "svelte.pug.tags",
+							"path": "./syntaxes/pug-svelte-tags.json",
+							"injectTo": [
+								"source.svelte"
+							],
+							"embeddedLanguages": {
+								"source.ts": "typescript",
+								"text.pug": "jade"
+							}
+						},
+						{
+							"scopeName": "svelte.pug.dotblock",
+							"path": "./syntaxes/pug-svelte-dotblock.json",
+							"injectTo": [
+								"source.svelte"
+							],
+							"embeddedLanguages": {
+								"source.ts": "typescript"
+							}
+						},
             {
                 "scopeName": "markdown.svelte.codeblock",
                 "path": "./syntaxes/markdown-svelte.json",
