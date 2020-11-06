@@ -942,12 +942,12 @@
     },
     "tags-lang": {
       "begin": "(?=<(script|style|template))",
-      "end": "(?<=</\\1\\s*>)",
+      "end": "(?<=</\\1\\s*>)|(?<=/\\s*>)",
       "name": "meta.$1.svelte",
       "patterns": [
         {
           "begin": "\\G(?=<\\w*\\s+(type|lang)\\s*=\\s*(['\"]|)(?:text/)?(\\w+)\\2)",
-          "end": "(?<=</.*?>)",
+          "end": "(?<=</.*?>)|(?<=/\\s*>)",
           "name": "meta.lang.$3.svelte",
           "patterns": [
             {

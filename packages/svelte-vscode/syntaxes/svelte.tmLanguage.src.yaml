@@ -507,12 +507,12 @@ repository:
   # due to the fact we are using scope names like this.
   tags-lang:
     begin: (?=<(script|style|template))
-    end: (?<=</\1\s*>)
+    end: (?<=</\1\s*>)|(?<=/\s*>)
     name: meta.$1.svelte
     patterns:
     # Tags with a language specified.
     - begin: \G(?=<\w*\s+(type|lang)\s*=\s*(['"]|)(?:text/)?(\w+)\2)
-      end: (?<=</.*?>)
+      end: (?<=</.*?>)|(?<=/\s*>)
       name: meta.lang.$3.svelte
       patterns: [ include: '#tags-custom-nodes' ]
     # Fallback to default lang.
