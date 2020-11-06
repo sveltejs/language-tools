@@ -10,8 +10,8 @@ injections:
 
   # Format:
   #  'R:meta.<script|style|template>.svelte (meta.lang.<lang> | meta.lang.<langalternative> | ...) - (meta source)'
-  #     patterns: [{begin: '(?<=>)', end: '(?=</)', contentName: meta.embedded.block.svelte,
-  #     name: source.<lang>, patterns: [{ include: source.<lang> }]}]
+  #     patterns: [{begin: '(?<=>)', end: '(?=</)', name: meta.embedded.block.svelte,
+  #     contentName: source.<lang>, patterns: [{ include: source.<lang> }]}]
 
   # Script Languages
   # JavaScript | 'javascript' | 'source.js'
@@ -84,7 +84,7 @@ injections:
   'R:meta.template.svelte - meta.lang - (meta source)':
     patterns: [{begin: '(?<=>)', end: '(?=</)', patterns: [{ include: '#scope' }]}]
 
-  # ---- LANGAUGE EXTENSIONS
+  # ---- LANGUAGE EXTENSIONS
 
   # - HTML -
   # This injection is for the inside of tag start/void nodes.
@@ -121,8 +121,8 @@ injections:
 #
 # special tags: [#@/:][a-z]*
 # HTML valid tag names: [a-z][\w0-9:-]*
-# TS variables: [_$[:alpha:]][_\-$[:alnum:]]*
-# element directives: [a-z]:[_$[:alpha:]][_$[:alnum:]]*(\|\w*)*
+# TS variables: [_$[:alpha:]][_$[:alnum:]]*
+# element directives: [a-z]:[_$[:alpha:]][_\-$[:alnum:]]*(\|\w*)*
 
 patterns:
 - include: '#scope'
