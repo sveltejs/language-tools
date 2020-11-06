@@ -104,6 +104,13 @@ injections:
       name: punctuation.definition.tag.end.html
     - include: '#attributes-interpolated'
 
+  # For some reason, the HTML grammar assigns the `source.css` scope to `style` tags.
+  # But then doesn't actually include the grammar. This causes a bunch of problems!
+  # For right now, there is probably going to be some theme conflicts just because of the weird scoping.
+  'L:meta.attribute.style.html meta.embedded.line.css source.css':
+    patterns:
+    - include: '#interpolation'
+
   # - PUG -
   # TODO: Pug language injections
 
