@@ -754,7 +754,7 @@
         }
       ]
     },
-    "attributes-custom": {
+    "attributes-svelte": {
       "patterns": [
         {
           "include": "#attributes-directives"
@@ -817,7 +817,7 @@
         }
       ]
     },
-    "tags-custom-name": {
+    "tags-svelte-name": {
       "patterns": [
         {
           "match": "(svelte)(:)([a-z][\\w0-9:-]*)",
@@ -847,7 +847,7 @@
         }
       ]
     },
-    "tags-custom-nodes": {
+    "tags-svelte-nodes": {
       "patterns": [
         {
           "begin": "\\G(<)(.*?)(?=\\s|/?>)",
@@ -858,7 +858,7 @@
             "2": {
               "patterns": [
                 {
-                  "include": "#tags-custom-name"
+                  "include": "#tags-svelte-name"
                 }
               ]
             }
@@ -872,7 +872,7 @@
           "name": "meta.tag.start.svelte",
           "patterns": [
             {
-              "include": "#attributes-custom"
+              "include": "#attributes-svelte"
             }
           ]
         },
@@ -886,7 +886,7 @@
             "2": {
               "patterns": [
                 {
-                  "include": "#tags-custom-name"
+                  "include": "#tags-svelte-name"
                 }
               ]
             },
@@ -900,7 +900,7 @@
     "tags-svelte-innards": {
       "patterns": [
         {
-          "include": "#tags-custom-nodes"
+          "include": "#tags-svelte-nodes"
         },
         {
           "include": "#tags-block-content"
@@ -952,12 +952,12 @@
           "name": "meta.lang.$3.svelte",
           "patterns": [
             {
-              "include": "#tags-custom-nodes"
+              "include": "#tags-svelte-nodes"
             }
           ]
         },
         {
-          "include": "#tags-custom-nodes"
+          "include": "#tags-svelte-nodes"
         }
       ]
     },

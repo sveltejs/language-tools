@@ -393,8 +393,8 @@ repository:
     - include: '#attributes-interpolation'
     - include: text.html.basic#attribute-interior
 
-  # Attributes for special/custom elements, like components or the `slot` tag.
-  attributes-custom:
+  # Attributes for Svelte elements, like components or the `slot` tag.
+  attributes-svelte:
     patterns:
     - include: '#attributes-directives'
     # Attributes themselves.
@@ -443,7 +443,7 @@ repository:
     end: (?=</)
     patterns: [ include: '#scope' ]
 
-  tags-custom-name:
+  tags-svelte-name:
     patterns:
     # `<svelte:[...]/>`
     - match: '(svelte)(:)([a-z][\w0-9:-]*)'
@@ -458,30 +458,30 @@ repository:
     # Normal tag names.
     - { match: '[a-z][\w0-9:-]*', name: entity.name.tag.html }
 
-  # Custom node pattern, independent from the HTML grammar.
+  # Svelte node pattern, independent from the HTML grammar.
   # Handles `svelte:[...]`, `slot`, etc.
-  tags-custom-nodes:
+  tags-svelte-nodes:
     patterns:
     # Start node.
     - begin: \G(<)(.*?)(?=\s|/?>)
       beginCaptures:
         1: { name: punctuation.definition.tag.begin.html }
-        2: { patterns: [ include: '#tags-custom-name' ] }
+        2: { patterns: [ include: '#tags-svelte-name' ] }
       end: /?>
       endCaptures: { 0: { name: punctuation.definition.tag.end.html } }
       name: meta.tag.start.svelte
-      patterns: [ include: '#attributes-custom' ]
+      patterns: [ include: '#attributes-svelte' ]
     # End node.
     - match: (</)(.*?)(>)
       name: meta.tag.end.svelte
       captures:
         1: { name: punctuation.definition.tag.begin.html }
-        2: { patterns: [ include: '#tags-custom-name' ] }
+        2: { patterns: [ include: '#tags-svelte-name' ] }
         3: { name: punctuation.definition.tag.end.html }
 
   tags-svelte-innards:
     patterns:
-    - include: '#tags-custom-nodes'
+    - include: '#tags-svelte-nodes'
     - include: '#tags-block-content'
 
   # Matches against components, 'slot', or `<svelte:[...]/>` tags.
@@ -516,9 +516,9 @@ repository:
     - begin: \G(?=<\w*\s+(type|lang)\s*=\s*(['"]|)(?:text/)?(\w+)\2)
       end: (?<=</.*?>)|(?<=/\s*>)
       name: meta.lang.$3.svelte
-      patterns: [ include: '#tags-custom-nodes' ]
+      patterns: [ include: '#tags-svelte-nodes' ]
     # Fallback to default lang.
-    - include: '#tags-custom-nodes'
+    - include: '#tags-svelte-nodes'
 
   # Matches all non-Svelteish tags. AKA, normal HTML tags.
   # Handles both `<div></div>` and `<div/>` tags.
