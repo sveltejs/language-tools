@@ -763,7 +763,7 @@
           "begin": "[_$[:alpha:]][_$[:alnum:]]*",
           "captures": {
             "0": {
-              "name": "support.variable.property.svelte"
+              "name": "entity.other.attribute-name.svelte"
             }
           },
           "end": "(?=\\s*+[^=\\s])",
