@@ -347,12 +347,6 @@ repository:
         end: (?<=})
         patterns: [ include: source.ts#object-literal ]
       - include: source.ts
-    # Handling quotes.
-    - begin: (?<!}\s*)(['"])\s*(?={)
-      end: (?<=})\s*\1
-      beginCaptures: { 0: { name: punctuation.section.embedded.begin.svelte } }
-      endCaptures:   { 0: { name: punctuation.section.embedded.end.svelte } }
-      patterns: [ include: '#attributes-interpolation' ]
 
   # Interpolated shorthand attributes, like `{variable}` sitting by itself.
   attributes-interpolated:

@@ -652,25 +652,6 @@
               "include": "source.ts"
             }
           ]
-        },
-        {
-          "begin": "(?<!}\\s*)(['\"])\\s*(?={)",
-          "end": "(?<=})\\s*\\1",
-          "beginCaptures": {
-            "0": {
-              "name": "punctuation.section.embedded.begin.svelte"
-            }
-          },
-          "endCaptures": {
-            "0": {
-              "name": "punctuation.section.embedded.end.svelte"
-            }
-          },
-          "patterns": [
-            {
-              "include": "#attributes-interpolation"
-            }
-          ]
         }
       ]
     },
