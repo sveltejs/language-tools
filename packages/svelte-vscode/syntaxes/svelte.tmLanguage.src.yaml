@@ -121,7 +121,7 @@ injections:
 #
 # special tags: [#@/:][a-z]*
 # HTML valid tag names: [a-z][\w0-9:-]*
-# TS variables: [_$[:alpha:]][_$[:alnum:]]*
+# TS variables: [_$[:alpha:]][_\-$[:alnum:]]*
 # element directives: [a-z]:[_$[:alpha:]][_$[:alnum:]]*(\|\w*)*
 
 patterns:
@@ -385,7 +385,7 @@ repository:
 
   # Matches Svelte element directives, e.g. `on:click|preventDefault={var}`
   attributes-directives:
-    begin: (?<!<)(\w+)(:)([_$[:alpha:]][_$[:alnum:]]*)((?:\|.*)?\|\w*)?
+    begin: (?<!<)(\w+)(:)([_$[:alpha:]][_\-$[:alnum:]]*)((?:\|.*)?\|\w*)?
     beginCaptures:
       1: { patterns: [ include: '#attributes-directives-keywords' ] }
       2: { name: punctuation.definition.keyword.svelte }
