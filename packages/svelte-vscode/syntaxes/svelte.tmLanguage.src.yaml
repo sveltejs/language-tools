@@ -399,9 +399,10 @@ repository:
     - include: '#attributes-directives'
     # Attributes themselves.
     # HTML won't usually recognize these so they should treated by only by this grammar.
-    - begin: '[_$[:alpha:]][_$[:alnum:]]*'
-      captures: { 0: { name: entity.other.attribute-name.svelte } }
+    - begin: ([_$[:alpha:]][_$[:alnum:]]*)
+      beginCaptures: { 1: { name: entity.other.attribute-name.svelte } }
       end: (?=\s*+[^=\s])
+      name: 'meta.attribute.$1.svelte'
       patterns:
       - include: '#attributes-interpolation'
       - include: text.html.basic#attribute-interior

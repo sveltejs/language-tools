@@ -760,13 +760,14 @@
           "include": "#attributes-directives"
         },
         {
-          "begin": "[_$[:alpha:]][_$[:alnum:]]*",
-          "captures": {
-            "0": {
+          "begin": "([_$[:alpha:]][_$[:alnum:]]*)",
+          "beginCaptures": {
+            "1": {
               "name": "entity.other.attribute-name.svelte"
             }
           },
           "end": "(?=\\s*+[^=\\s])",
+          "name": "meta.attribute.$1.svelte",
           "patterns": [
             {
               "include": "#attributes-interpolation"
