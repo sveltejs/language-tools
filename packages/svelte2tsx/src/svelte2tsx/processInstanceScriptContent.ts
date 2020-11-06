@@ -10,6 +10,7 @@ import { ExportedNames } from './nodes/ExportedNames';
 import { ImplicitTopLevelNames } from './nodes/ImplicitTopLevelNames';
 import { ComponentEvents } from './nodes/ComponentEvents';
 import { Scope } from './utils/Scope';
+import { handleTypeAssertion } from './nodes/handleTypeAssertion';
 
 export interface InstanceScriptProcessResult {
     exportedNames: ExportedNames;
@@ -445,6 +446,10 @@ export function processInstanceScriptContent(
                 str.prependLeft(start, ';() => {');
                 str.appendRight(end, '}');
             }
+        }
+
+        if (ts.isTypeAssertionExpression(node)) {
+            handleTypeAssertion(str, node, astOffset);
         }
 
         //to save a bunch of condition checks on each node, we recurse into processChild which skips all the checks for top level items
