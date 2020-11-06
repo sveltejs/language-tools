@@ -104,14 +104,6 @@ injections:
       name: punctuation.definition.tag.end.html
     - include: '#attributes-interpolated'
 
-  # Shows actual embedded CSS inside style attributes.
-  # Experimental - feel free to remove.
-  'L:meta.attribute.style.html meta.embedded.line.css source.css':
-    patterns:
-    - include: '#interpolation'
-    - match: \G(.+?)(?=['"])
-      captures: { 1: { patterns: [ include: source.css#rule-list-innards ] } }
-
   # - PUG -
   # TODO: Pug language injections
 
