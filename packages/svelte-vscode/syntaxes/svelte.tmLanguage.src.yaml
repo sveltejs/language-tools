@@ -531,8 +531,7 @@ repository:
     # \G in this context means we're only searching at the very beginning, and nowhere else.
     # We won't match any other start tags because of this.
     - begin: \G
-      # Do not question why the '(?!<)' bit is there. It is required.
-      end: (?!<)(?<=/?>)
+      end: (?<=/?>)
       name: meta.tag.start.svelte
       patterns: [ include: text.html.basic#tags-valid ]
     # End node.
