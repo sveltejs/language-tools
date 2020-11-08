@@ -8,7 +8,7 @@
         "build:ts": "tsc -p ./",
         "build": "npm run build:ts && npm run build:grammar",
         "vscode:prepublish": "npm run build && npm prune --production",
-        "watch": "tsc -w -p ./",
+        "watch": "npm run build:grammar && tsc -w -p ./",
         "test": "echo 'NOOP'"
     },
     "repository": {
