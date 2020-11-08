@@ -123,9 +123,11 @@ injections:
 # TS variables: [_$[:alpha:]][_$[:alnum:]]*
 # element directives: [a-z]:[_$[:alpha:]][_\-$[:alnum:]]*(\|\w*)*
 
+# Start of grammar.
 patterns:
 - include: '#scope'
 
+# Contains all of our patterns.
 repository:
   # -------
   #  SCOPE
@@ -146,6 +148,7 @@ repository:
   # ----------
   #  COMMENTS
 
+  # Basic HTML comments.
   comments:
     begin: <!--
     end: -->
@@ -370,6 +373,7 @@ repository:
     patterns:
     # If other keywords are patched in in the future, they can easily be added here.
     # Special Cases
+    # Makes 'bind:this' display like `this` would in JS.
     - { match: '(?<=(bind):)this$', name: variable.language.svelte }
     # Generic
     - { match: '(?<=(on|bind):).*$',                       name: entity.name.type.svelte   }
@@ -442,6 +446,7 @@ repository:
     end: (?=</)
     patterns: [ include: '#scope' ]
 
+  # The 'name' part in `<name />`, but only for special elemements.
   tags-svelte-name:
     patterns:
     # `<svelte:[...]/>`
@@ -478,6 +483,7 @@ repository:
         2: { patterns: [ include: '#tags-svelte-name' ] }
         3: { name: punctuation.definition.tag.end.html }
 
+  # Inside content and start/end nodes of special components. (see below)
   tags-svelte-innards:
     patterns:
     - include: '#tags-svelte-nodes'
@@ -540,6 +546,7 @@ repository:
       name: meta.tag.end.svelte
       captures:
         0: { patterns: [ include: text.html.basic#tags-valid ] }
+    # Content between the start and end nodes.
     - include: '#tags-block-content'
 
 ...
