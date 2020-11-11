@@ -86,31 +86,6 @@ injections:
 
   # ---- LANGUAGE EXTENSIONS
 
-  # - HTML -
-  # This injection is for the inside of tag start/void nodes.
-  # Where relevant, the `meta.tag.(start|end|void).svelte` tag is applied within this grammar.
-  # Through that scope, we inject into nodes reliably.
-  'L:(meta.tag.start.svelte | meta.tag.void.svelte) - (meta source)':
-    patterns:
-    # Attribute extensions, such as element directives.
-    - include: '#attributes-directives'
-    - include: '#attributes-interpolation'
-
-  # Same as before, but we don't want these patterns to affect anything inside attributes.
-  'L:(meta.tag.start.svelte | meta.tag.void.svelte) - meta.attribute - (meta source)':
-    patterns:
-    # Fixes the default HTML grammar from seeing a `/>` closing symbol as invalid.
-    - match: /(?=>)
-      name: punctuation.definition.tag.end.html
-    - include: '#attributes-interpolated'
-
-  # For some reason, the HTML grammar assigns the `source.css` scope to `style` tags.
-  # But then doesn't actually include the grammar. This causes a bunch of problems!
-  # For right now, there is probably going to be some theme conflicts just because of the weird scoping.
-  'L:meta.attribute.style.html meta.embedded.line.css source.css':
-    patterns:
-    - include: '#interpolation'
-
   # - PUG -
   # TODO: Pug language injections
 
@@ -143,7 +118,7 @@ repository:
     # This matches only inbetween all the nodes - nothing inside of them. 
     - begin: (?<=>|})
       end: (?=<|{)
-      name: text.html.svelte
+      name: text.svelte
 
   # ----------
   #  COMMENTS
@@ -178,7 +153,7 @@ repository:
   # ------
   #  MISC
 
-  # Destructuring {} and [] JS syntax.
+  # Destructuring {} and [] JS syntax. Currently only used in some special tags.
   destructuring:
     patterns:
     # {...}
@@ -198,7 +173,12 @@ repository:
       beginCaptures: { 0: { name: punctuation.section.embedded.begin.svelte } }
       endCaptures:   { 0: { name: punctuation.section.embedded.end.svelte } }
       contentName: meta.embedded.expression.svelte source.ts
-      patterns: [ include: source.ts ]
+      patterns:
+      # Object literals - usually used within attributes.
+      - begin: \G\s*(?={)
+        end: (?<=})
+        patterns: [ include: source.ts#object-literal ]
+      - include: source.ts
 
   # --------------
   #  SPECIAL TAGS
@@ -334,29 +314,52 @@ repository:
   # ------------
   #  ATTRIBUTES
 
-  # Attribute interpolation. Supports quoted interpolation and object literals.
-  attributes-interpolation:
+  attributes:
     patterns:
-    # {...} block
-    - begin: \{
-      end: \}
-      beginCaptures: { 0: { name: punctuation.section.embedded.begin.svelte } }
-      endCaptures:   { 0: { name: punctuation.section.embedded.end.svelte } }
-      contentName: meta.embedded.expression.svelte source.ts
-      patterns: 
-      # Object literals.
-      - begin: \G\s*(?={)
-        end: (?<=})
-        patterns: [ include: source.ts#object-literal ]
-      - include: source.ts
+    - include: '#attributes-directives'
+    - include: '#attributes-keyvalue'
+    - include: '#attributes-interpolated'
 
   # Interpolated shorthand attributes, like `{variable}` sitting by itself.
   attributes-interpolated:
     begin: (?<!:|=)\s*({)
     end: (\})
-    captures: { 1: { name: entity.other.attribute-name.html } }
+    captures: { 1: { name: entity.other.attribute-name.svelte } }
     contentName: meta.embedded.expression.svelte source.ts
     patterns: [ include: source.ts ]
+
+  # Matches attribute keyvalues. (and boolean attributes as well)
+  # e.g. `class="my-class"`
+  attributes-keyvalue:
+    begin: ([_$[:alpha:]][_\-$[:alnum:]]*)
+    beginCaptures: { 1: { name: entity.other.attribute-name.svelte } }
+    end: (?=\s*+[^=\s])
+    name: 'meta.attribute.$1.svelte'
+    patterns: [ include: '#attributes-value' ]
+
+  # The value part of attribute keyvalues. e.g. `="my-class"` in `class="my-class"`
+  attributes-value:
+    begin: '='
+    beginCaptures: { 0: { name: punctuation.separator.key-value.svelte } }
+    end: (?<=[^\s=])(?!\s*=)|(?=/?>)
+    patterns:
+    # No quotes - just an interpolation expression.
+    - include: '#interpolation'
+    # Pure digits / numbers.
+    - match: ([0-9._]|/(?!>))+
+      name: constant.numeric.decimal.svelte
+      patterns: [ include: '#interpolation' ]
+    # Unquoted strings.
+    - match: ([^\s"'=<>`/]|/(?!>))+
+      name: string.unquoted.svelte
+      patterns: [ include: '#interpolation' ]
+    # Quoted strings.
+    - begin: (['"])
+      end: \1
+      beginCaptures: { 0: { name: punctuation.definition.string.begin.svelte } }
+      endCaptures: { 0: { name: punctuation.definition.string.end.svelte } }
+      name: string.quoted.svelte
+      patterns: [ include: '#interpolation' ]
 
   # For Svelte element directives. Scopes the 'on' part in `on:click`.
   attributes-directives-keywords:
@@ -365,7 +368,7 @@ repository:
     - { match: on|use|bind,               name: keyword.control.svelte           }
     - { match: transition|in|out|animate, name: keyword.other.animation.svelte   }
     - { match: let,                       name: storage.type.svelte              }
-    - { match: class,                     name: entity.other.attribute-name.html }
+    - { match: class,                     name: entity.other.attribute-name.svelte }
 
   # For Svelte element directives. Scopes the 'click' part in `on:click`.
   # The scope of the variable should represent what data type it generally is.
@@ -393,24 +396,7 @@ repository:
     end: (?=\s*+[^=\s])
     name: meta.directive.$1.svelte
     patterns:
-    - include: '#attributes-interpolation'
-    - include: text.html.basic#attribute-interior
-
-  # Attributes for Svelte elements, like components or the `slot` tag.
-  attributes-svelte:
-    patterns:
-    - include: '#attributes-directives'
-    # Attributes themselves.
-    # HTML won't usually recognize these so they should treated by only by this grammar.
-    - begin: ([_$[:alpha:]][_$[:alnum:]]*)
-      beginCaptures: { 1: { name: entity.other.attribute-name.svelte } }
-      end: (?=\s*+[^=\s])
-      name: 'meta.attribute.$1.svelte'
-      patterns:
-      - include: '#attributes-interpolation'
-      - include: text.html.basic#attribute-interior
-    # Interpolated in-place variables.
-    - include: '#attributes-interpolated'
+    - include: '#attributes-value'
 
   # ------
   #  TAGS
@@ -419,134 +405,102 @@ repository:
   tags:
     patterns:
     # The order is important here - void tags need to matched before block tags.
-    - include: '#tags-void'
     - include: '#tags-lang'
-    - include: '#tags-svelte'
-    - include: '#tags-html'
+    - include: '#tags-void'
+    - include: '#tags-general'
 
-  # Void tags - tags that do not have a self closing (`/>`) bit but do not have an end node either.
-  # They must be treated separately, for technical reasons.
-  # There is no way of telling whether or not a void tag is either:
-  # 1. a single node
-  # 2. a start-with-end block
-  # - without looking at the tag name.
-  # There is a strict list of void tags in HTML5, no others are allowed, which is very fortunate.
-  # We can use that list to scope these before the '#tags-html' pattern reaches them, and be sure it's safe to do so.
-  # Also, a void tag also isn't allowed to have content,
-  # so there is no need for checking whether or not it contains any.
-  tags-void:
-    begin: (?=<(area|base|br|col|embed|hr|img|input|link|meta|param|source|track|wbr)\b)
-    name: meta.tag.void.svelte
-    end: (?!<)(?<=/?>)
-    patterns: [ include: text.html.basic#tags-valid ]
+  # -- TAG COMPONENTS
 
-  # Tag content. (inbetween start and end nodes)
-  tags-block-content:
-    begin: (?<=>)
-    end: (?=</)
-    patterns: [ include: '#scope' ]
-
-  # The 'name' part in `<name />`, but only for special elemements.
-  tags-svelte-name:
+  # Scopes the `name` part in `<name>`.
+  tags-name:
     patterns:
-    # `<svelte:[...]/>`
+    # Svelte (`svelte:<type>`) elements.
     - match: '(svelte)(:)([a-z][\w0-9:-]*)'
       captures:
         1: { name: keyword.control.svelte }
         2: { name: punctuation.definition.keyword.svelte }
-        3: { name: entity.name.tag.html }
+        3: { name: entity.name.tag.svelte }
     # Slot.
     - { match: 'slot', name: keyword.control.svelte }
     # Components.
     - { match: '[A-Z][a-zA-Z0-9_]*', name: support.class.component.svelte }
-    # Normal tag names.
-    - { match: '[a-z][\w0-9:-]*', name: entity.name.tag.html }
+    # Custom elements. (has a dash, but otherwise is a valid HTML element)
+    - { match: '[a-z][\w0-9:]*-[\w0-9:-]*', name: meta.tag.custom.svelte entity.name.tag.svelte }
+    # HTML elements.
+    - { match: '[a-z][\w0-9:-]*', name: entity.name.tag.svelte }
 
-  # Svelte node pattern, independent from the HTML grammar.
-  # Handles `svelte:[...]`, `slot`, etc.
-  tags-svelte-nodes:
-    patterns:
-    # Start node.
-    - begin: \G(<)(.*?)(?=\s|/?>)
-      beginCaptures:
-        1: { name: punctuation.definition.tag.begin.html }
-        2: { patterns: [ include: '#tags-svelte-name' ] }
-      end: /?>
-      endCaptures: { 0: { name: punctuation.definition.tag.end.html } }
-      name: meta.tag.start.svelte
-      patterns: [ include: '#attributes-svelte' ]
-    # End node.
-    - match: (</)(.*?)(>)
-      name: meta.tag.end.svelte
-      captures:
-        1: { name: punctuation.definition.tag.begin.html }
-        2: { patterns: [ include: '#tags-svelte-name' ] }
-        3: { name: punctuation.definition.tag.end.html }
+  # Attributes for tag start nodes. Meant to start immediately after the `<name` section.
+  tags-start-attributes:
+    begin: \G
+    end: (?=/>)|>
+    endCaptures: { 0: { name: punctuation.definition.tag.end.svelte } }
+    name: meta.tag.start.svelte
+    patterns: [ include: '#attributes' ]
 
-  # Inside content and start/end nodes of special components. (see below)
-  tags-svelte-innards:
-    patterns:
-    - include: '#tags-svelte-nodes'
-    - include: '#tags-block-content'
+  # Matches the beginning (`<name`) section of a tag start node.
+  tags-start-node:
+    match: (<)([^/\s>]*)
+    captures:
+      1: { name: punctuation.definition.tag.begin.svelte }
+      2: { patterns: [ include: '#tags-name' ] }
+    name: meta.tag.start.svelte
 
-  # Matches against components, 'slot', or `<svelte:[...]/>` tags.
-  tags-svelte:
-    patterns:
-    # `<svelte:[...]/>`
-    - begin: (?=<svelte:([a-z][\w0-9:-]*))
-      end: (?<=</svelte:\1\s*>)|(?<=/\s*>)
-      name: meta.scope.special.$1.svelte
-      patterns: [ include: '#tags-svelte-innards' ]
-    # Components.
-    - begin: (?=<([A-Z][a-zA-Z0-9_]*))
-      end: (?<=</\1\s*>)|(?<=/\s*>)
-      name: meta.scope.component.svelte
-      patterns: [ include: '#tags-svelte-innards' ]
-    # Slot.
-    - begin: (?=<slot)
-      end: (?<=</slot\s*>)|(?<=/\s*>)
-      name: meta.scope.component.slot.svelte
-      patterns: [ include: '#tags-svelte-innards' ]
+  # Matches tag end nodes.
+  tags-end-node:
+    match: (</)(.*?)\s*(>)|(/>)
+    captures:
+      1: { name: meta.tag.end.svelte punctuation.definition.tag.begin.svelte }
+      2: { name: meta.tag.end.svelte, patterns: [ include: '#tags-name' ] }
+      3: { name: meta.tag.end.svelte punctuation.definition.tag.end.svelte }
+      4: { name: meta.tag.start.svelte punctuation.definition.tag.end.svelte }
 
-  # For script, style, and template tags.
-  # The scoping of this element determines how the specified language is injected.
-  # Additionally, an injection could be added by another extension if so desired,
-  # due to the fact we are using scope names like this.
+  # Content of an element - inbetween the start and end nodes.
+  tags-block-content:
+    begin: (?<!/>)(?<=>)
+    end: (?=</)
+    patterns: [ include: '#scope' ]
+
+  # -- TAG TYPES
+
+  # Language tags - they are handled differently for the purposes of language injection.
   tags-lang:
-    begin: (?=<(script|style|template))
-    end: (?<=</\1\s*>)|(?<=/\s*>)
+    begin: <(script|style|template)
+    end: </\1\s*>|/>
+    beginCaptures: { 0: { patterns: [ include: '#tags-start-node' ] } }
+    endCaptures: { 0: { patterns: [ include: '#tags-end-node' ] } }
     name: meta.$1.svelte
     patterns:
     # Tags with a language specified.
-    - begin: \G(?=<\w*\s+(type|lang)\s*=\s*(['"]|)(?:text/)?(\w+)\2)
-      end: (?<=</.*?>)|(?<=/\s*>)
+    - begin: \G(?=\s*(type|lang)\s*=\s*(['"]|)(?:text/)?(\w+)\2)
+      end: (?=</|/>)
       name: meta.lang.$3.svelte
-      patterns: [ include: '#tags-svelte-nodes' ]
-    # Fallback to default lang.
-    - include: '#tags-svelte-nodes'
+      patterns: [ include: '#tags-start-attributes' ]
+    # Fallback to default language.
+    - include: '#tags-start-attributes'
 
-  # Matches all non-Svelteish tags. AKA, normal HTML tags.
-  # Handles both `<div></div>` and `<div/>` tags.
-  # Notice that we're not matching the start and end nodes, we're matching _around_ them.
-  tags-html:
-    begin: (?=<([a-z][\w0-9:-]*))
-    end: (?<=</\1\s*>)|(?<=/\s*>)
+  # Void element tags. They must be treated separately due to their lack of end nodes.
+  # A void element cannot be differentiated from other tags, unless you look at their name.
+  # This is because there is a specific list of void elements in HTML5. We use that to scope void elements.
+  # If we didn't, a void element would appear as an unclosed element to the grammar.
+  tags-void:
+    begin: (<)(area|base|br|col|embed|hr|img|input|link|meta|param|source|track|wbr)(?=\s|/?>)
+    beginCaptures:
+      1: { name: punctuation.definition.tag.begin.svelte }
+      2: { name: entity.name.tag.svelte }
+    end: /?>
+    endCaptures: { 0: { name: punctuation.definition.tag.begin.svelte } }
+    name: meta.tag.void.svelte
+    patterns: [ include: '#attributes' ]
+
+  # All other tags, including custom/special Svelte tags.
+  tags-general:
+    begin: <([^/\s>]*)
+    end: </\1\s*>|/>
+    beginCaptures: { 0: { patterns: [ include: '#tags-start-node' ] } }
+    endCaptures: { 0: { patterns: [ include: '#tags-end-node' ] } }
     name: meta.scope.tag.$1.svelte
     patterns:
-    # Start node.
-    # \G in this context means we're only searching at the very beginning, and nowhere else.
-    # We won't match any other start tags because of this.
-    - begin: \G
-      end: (?<=/?>)
-      name: meta.tag.start.svelte
-      patterns: [ include: text.html.basic#tags-valid ]
-    # End node.
-    # Also, due to the HTML5 spec, this all must be on the same line, which is handy as we can just use 'match'.
-    - match: </[a-z][\w0-9:-]*>
-      name: meta.tag.end.svelte
-      captures:
-        0: { patterns: [ include: text.html.basic#tags-valid ] }
-    # Content between the start and end nodes.
+    - include: '#tags-start-attributes'
     - include: '#tags-block-content'
 
 ...
