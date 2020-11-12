@@ -159,11 +159,11 @@ repository:
     # {...}
     - { begin: '(?={)', end: '(?<=})',
         name: meta.embedded.expression.svelte source.ts,
-        patterns: [include: source.ts#destructuring-variable] }
+        patterns: [include: source.ts#object-binding-pattern] }
     # [...]
     - { begin: '(?=\[)', end: '(?<=\])',
         name: meta.embedded.expression.svelte source.ts,
-        patterns: [include: source.ts#destructuring-variable] }
+        patterns: [include: source.ts#array-binding-pattern] }
 
   # Plain old interpolation between `{...}` blocks.
   interpolation:
