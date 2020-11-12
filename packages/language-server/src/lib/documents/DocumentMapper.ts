@@ -130,6 +130,10 @@ export class SourceMapDocumentMapper implements DocumentMapper {
             generatedPosition = this.parent.getOriginalPosition(generatedPosition);
         }
 
+        if (generatedPosition.line < 0) {
+            return { line: -1, character: -1 };
+        }
+
         const mapped = this.consumer.originalPositionFor({
             line: generatedPosition.line + 1,
             column: generatedPosition.character
