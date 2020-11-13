@@ -191,7 +191,7 @@ repository:
 
   # Special tag keywords, like `#if` and `/await`.
   special-tags-keywords:
-    match: ([#@/:])([a-z]*|else\s+if)
+    match: ([#@/:])(else\s+if|[a-z]*)
     captures:
       1: { name: punctuation.definition.keyword.svelte }
       # The keyword itself. If others are patched in in the future, they can easily be added here.
@@ -267,7 +267,7 @@ repository:
 
   # Special void tags like `{:else}` and `{@html}`.
   special-tags-void:
-    begin: ({)\s*((?:[@:])([a-z]*|else\s+if))
+    begin: ({)\s*((?:[@:])(else\s+if|[a-z]*))
     beginCaptures: 
       1: { name: punctuation.definition.block.begin.svelte }
       2: { patterns: [ include: '#special-tags-keywords' ] }
