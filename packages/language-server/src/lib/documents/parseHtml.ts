@@ -1,4 +1,10 @@
-import { getLanguageService, HTMLDocument, TokenType } from 'vscode-html-languageservice';
+import {
+    getLanguageService,
+    HTMLDocument,
+    TokenType,
+    ScannerState,
+    Scanner
+} from 'vscode-html-languageservice';
 import { isInsideMoustacheTag } from './utils';
 
 const parser = getLanguageService();
@@ -15,22 +21,22 @@ export function parseHtml(text: string): HTMLDocument {
     return parsedDoc;
 }
 
-const OPEN_TAG_SELF_CLOSE = '/>';
-const blankRegex = /(=>|>=)/g;
+const createScanner = parser.createScanner as (
+    input: string,
+    initialOffset?: number,
+    initialState?: ScannerState
+) => Scanner;
 
 function preprocess(text: string) {
-    const scanner = parser.createScanner(text);
+    let scanner = createScanner(text);
     let result = text;
     let token = scanner.scan();
     let currentStartTagStart: number | null = null;
-    let currentStartTagEndShort = false;
 
     while (token !== TokenType.EOS) {
         const offset = scanner.getTokenOffset();
 
         if (token === TokenType.StartTagOpen) {
-            removeEnd(offset);
-            currentStartTagEndShort = false;
             currentStartTagStart = offset;
         }
 
@@ -39,14 +45,10 @@ function preprocess(text: string) {
                 currentStartTagStart !== null &&
                 isInsideMoustacheTag(text, currentStartTagStart, offset)
             ) {
-                currentStartTagEndShort = true;
+                removeTagEndLike(offset);
+                scanner = createScanner(text, offset, ScannerState.AfterAttributeName);
+                scanner.scan();
             }
-        }
-
-        if (token === TokenType.EndTagOpen) {
-            removeEnd(offset);
-            currentStartTagStart = null;
-            currentStartTagEndShort = false;
         }
 
         token = scanner.scan();
@@ -54,17 +56,11 @@ function preprocess(text: string) {
 
     return result;
 
-    function removeEnd(offset: number) {
+    function removeTagEndLike(offset: number) {
         if (currentStartTagStart === null) {
             return;
         }
 
-        const contentWithin = text.substring(currentStartTagStart, offset);
-        if (currentStartTagEndShort && contentWithin.includes(OPEN_TAG_SELF_CLOSE)) {
-            result =
-                result.substring(0, currentStartTagStart) +
-                contentWithin.replace(blankRegex, '  ') +
-                result.substring(offset);
-        }
+        result = result.substring(0, offset) + ' ' + result.substring(offset + 1);
     }
 }
