@@ -45,6 +45,31 @@ LSP-compatible editors, you can use an HTML comment with the `@component` tag:
 </main>
 ```
 
+## Adjust syntax highlighting of Svelte files
+
+The VS Code extension comes with its own syntax highlighting grammar which defines special scopes. If your syntax highlighting seems to be not working for Svelte components or you feel that some colors are wrong, you can add something like the following to your `settings.json`:
+
+```
+{
+    "editor.tokenColorCustomizations": {
+        "[<Name of your theme>]": {
+            "textMateRules": [
+                {
+                    "settings": {
+                        "foreground": "#569CD6", // any color you like
+                    },
+                    "scope": "support.class.component.svelte" // scope name you want to adjust highlighting for
+                }
+            ],
+        },
+    }
+}
+```
+
+To find out the scope of the things you want to highlight differently, you can use the scope inspector by entering the command "Developer: Inspect Editor Tokens and Scopes". The scope at the top of the section "textmate scopes" is what you are looking for. The current color is in the section "foreground" - you can use this to look up colors of other scopes if you want them to be the same color but don't know the color-code. 
+
+For more info on customizing your theme, [see the VS Code docs](https://code.visualstudio.com/docs/getstarted/themes#_customizing-a-color-theme).
+
 ## Troubleshooting / FAQ
 
 ### Using TypeScript? See [this section](./preprocessors/typescript.md#troubleshooting--faq)
@@ -62,27 +87,6 @@ You need to save the file to see the changes. If the problem persists after savi
 ```
 
 If so, this will prevent the language server from getting noticed about updates, because it uses a file watcher for `js`/`ts` files.
-
-#### Component syntax highlighting does not work
-
-If your syntax highlighting seems to be not working for Svelte components, it may be that your color theme either sets the component color to "white" or does not set this kind of token at all. To change this in VSCode, you can add something like the following to your `settings.json`:
-
-```
-{
-    "editor.tokenColorCustomizations": {
-        "[<Name of your theme>]": {
-            "textMateRules": [
-                {
-                    "settings": {
-                        "foreground": "#569CD6", // any color you like
-                    },
-                    "scope": "support.class.component.svelte"
-                }
-            ],
-        },
-    }
-}
-```
 
 #### `export let ...` breaks my syntax highlighting
 
