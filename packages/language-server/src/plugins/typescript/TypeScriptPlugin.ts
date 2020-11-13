@@ -96,12 +96,20 @@ export class TypeScriptPlugin
     ) {
         this.configManager = configManager;
         this.lsAndTsDocResolver = new LSAndTSDocResolver(docManager, workspaceUris);
-        this.completionProvider = new CompletionsProviderImpl(this.lsAndTsDocResolver);
+        this.getUserPreferences = this.getUserPreferences.bind(this);
+        this.completionProvider = new CompletionsProviderImpl(
+            this.lsAndTsDocResolver,
+            this.getUserPreferences
+        );
         this.codeActionsProvider = new CodeActionsProviderImpl(
             this.lsAndTsDocResolver,
-            this.completionProvider
+            this.completionProvider,
+            this.getUserPreferences
         );
-        this.updateImportsProvider = new UpdateImportsProviderImpl(this.lsAndTsDocResolver);
+        this.updateImportsProvider = new UpdateImportsProviderImpl(
+            this.lsAndTsDocResolver,
+            this.getUserPreferences
+        );
         this.diagnosticsProvider = new DiagnosticsProviderImpl(this.lsAndTsDocResolver);
         this.renameProvider = new RenameProviderImpl(this.lsAndTsDocResolver);
         this.hoverProvider = new HoverProviderImpl(this.lsAndTsDocResolver);
@@ -418,5 +426,19 @@ export class TypeScriptPlugin
             this.configManager.enabled('typescript.enable') &&
             this.configManager.enabled(`typescript.${feature}.enable`)
         );
+    }
+
+    private getUserPreferences(): ts.UserPreferences {
+        const [
+            importModuleSpecifierPreference,
+            importModuleSpecifierEnding
+        ] = ['importModuleSpecifier', 'importModuleSpecifierEnding'].map((key) =>
+            this.configManager.get(`typescript.preferences.${key}`)
+        );
+
+        return {
+            importModuleSpecifierPreference,
+            importModuleSpecifierEnding
+        };
     }
 }

@@ -1,4 +1,5 @@
 import { merge, get } from 'lodash';
+import { UserPreferences } from 'typescript';
 
 /**
  * Default config for the language server.
@@ -15,7 +16,8 @@ const defaultLSConfig: LSConfig = {
         codeActions: { enable: true },
         rename: { enable: true },
         selectionRange: { enable: true },
-        signatureHelp: { enable: true }
+        signatureHelp: { enable: true },
+        preferences: {}
     },
     css: {
         enable: true,
@@ -90,6 +92,10 @@ export interface LSTypescriptConfig {
     };
     signatureHelp: {
         enable: boolean;
+    },
+    preferences: {
+        importModuleSpecifier?: UserPreferences['importModuleSpecifierPreference'];
+        importModuleSpecifierEnding?: UserPreferences['importModuleSpecifierEnding'];
     }
 }
 

@@ -1,3 +1,4 @@
+import ts from 'typescript';
 import {
     TextDocumentEdit,
     TextEdit,
@@ -12,7 +13,10 @@ import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { convertRange } from '../utils';
 
 export class UpdateImportsProviderImpl implements UpdateImportsProvider {
-    constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
+    constructor(
+        private readonly lsAndTsDocResolver: LSAndTSDocResolver,
+        private readonly getUserPreferences: () => ts.UserPreferences
+    ) { }
 
     async updateImports(fileRename: FileRename): Promise<WorkspaceEdit | null> {
         const oldPath = urlToPath(fileRename.oldUri);
@@ -23,7 +27,12 @@ export class UpdateImportsProviderImpl implements UpdateImportsProvider {
 
         const ls = this.getLSForPath(newPath);
         // `getEditsForFileRename` might take a while
-        const fileChanges = ls.getEditsForFileRename(oldPath, newPath, {}, {});
+        const fileChanges = ls.getEditsForFileRename(
+            oldPath,
+            newPath,
+            {},
+            this.getUserPreferences()
+        );
 
         this.lsAndTsDocResolver.updateSnapshotPath(oldPath, newPath);
         const updateImportsChanges = fileChanges

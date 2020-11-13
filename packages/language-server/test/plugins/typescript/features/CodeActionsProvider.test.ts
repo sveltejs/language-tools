@@ -28,8 +28,11 @@ describe('CodeActionsProvider', () => {
             (textDocument) => new Document(textDocument.uri, textDocument.text)
         );
         const lsAndTsDocResolver = new LSAndTSDocResolver(docManager, [pathToUrl(testDir)]);
-        const completionProvider = new CompletionsProviderImpl(lsAndTsDocResolver);
-        const provider = new CodeActionsProviderImpl(lsAndTsDocResolver, completionProvider);
+        const completionProvider = new CompletionsProviderImpl(lsAndTsDocResolver, () => ({}));
+        const provider = new CodeActionsProviderImpl(
+            lsAndTsDocResolver, completionProvider,
+            () => ({})
+        );
         const filePath = getFullPath(filename);
         const document = docManager.openDocument(<any>{
             uri: pathToUrl(filePath),

@@ -34,7 +34,7 @@ describe('CompletionProviderImpl', () => {
             (textDocument) => new Document(textDocument.uri, textDocument.text)
         );
         const lsAndTsDocResolver = new LSAndTSDocResolver(docManager, [pathToUrl(testDir)]);
-        const completionProvider = new CompletionsProviderImpl(lsAndTsDocResolver);
+        const completionProvider = new CompletionsProviderImpl(lsAndTsDocResolver, () => ({}));
         const filePath = join(testFilesDir, filename);
         const document = docManager.openDocument(<any>{
             uri: pathToUrl(filePath),

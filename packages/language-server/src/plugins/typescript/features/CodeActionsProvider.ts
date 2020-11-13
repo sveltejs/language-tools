@@ -9,7 +9,7 @@ import {
     WorkspaceEdit
 } from 'vscode-languageserver';
 import { Document, mapRangeToOriginal, isRangeInTag } from '../../../lib/documents';
-import { pathToUrl , flatten } from '../../../utils';
+import { pathToUrl, flatten } from '../../../utils';
 import { CodeActionsProvider } from '../../interfaces';
 import { SnapshotFragment, SvelteSnapshotFragment } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
@@ -28,7 +28,8 @@ interface RefactorArgs {
 export class CodeActionsProviderImpl implements CodeActionsProvider {
     constructor(
         private readonly lsAndTsDocResolver: LSAndTSDocResolver,
-        private readonly completionProvider: CompletionsProviderImpl
+        private readonly completionProvider: CompletionsProviderImpl,
+        private readonly getUserPreferences: () => ts.UserPreferences
     ) {}
 
     async getCodeActions(
@@ -62,7 +63,14 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         const { lang, tsDoc } = this.getLSAndTSDoc(document);
         const fragment = await tsDoc.getFragment();
 
-        const changes = lang.organizeImports({ fileName: tsDoc.filePath, type: 'file' }, {}, {});
+        const changes = lang.organizeImports(
+            {
+                fileName: tsDoc.filePath,
+                type: 'file'
+            },
+            {},
+            this.getUserPreferences()
+        );
 
         const documentChanges = await Promise.all(
             changes.map(async (change) => {
@@ -187,7 +195,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         const applicableRefactors = lang.getApplicableRefactors(
             document.getFilePath() || '',
             textRange,
-            undefined
+            this.getUserPreferences()
         );
 
         return (
@@ -280,7 +288,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             textRange,
             refactorName,
             command,
-            undefined
+            this.getUserPreferences()
         );
         if (!edits || edits.edits.length === 0) {
             return null;
