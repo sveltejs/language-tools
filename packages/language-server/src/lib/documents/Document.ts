@@ -1,6 +1,7 @@
 import { urlToPath } from '../../utils';
 import { WritableDocument } from './DocumentBase';
-import { extractScriptTags, extractStyleTag, TagInformation, parseHtml } from './utils';
+import { extractScriptTags, extractStyleTag, TagInformation } from './utils';
+import { parseHtml } from './parseHtml';
 import { SvelteConfig, loadConfig } from './configLoader';
 import { HTMLDocument } from 'vscode-html-languageservice';
 
