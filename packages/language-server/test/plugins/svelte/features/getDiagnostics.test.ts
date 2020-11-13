@@ -414,4 +414,46 @@ describe('SveltePlugin#getDiagnostics', () => {
             }
         ]);
     });
+
+    it('should correctly determine diagnostic position for script when theres also context="module"', async () => {
+        const { plugin, document } = setupFromFile('diagnostics-module-and-instance.svelte');
+        const diagnostics = await plugin.getDiagnostics(document);
+
+        assert.deepStrictEqual(diagnostics, [
+            {
+                code: 'unused-export-let',
+                message:
+                    "Component has unused export property 'unused1'. If it is for external reference only, please consider using `export const unused1`",
+                range: {
+                    end: {
+                        line: 4,
+                        character: 18
+                    },
+                    start: {
+                        line: 4,
+                        character: 18
+                    }
+                },
+                severity: 2,
+                source: 'svelte'
+            },
+            {
+                code: 'unused-export-let',
+                message:
+                    "Component has unused export property 'unused2'. If it is for external reference only, please consider using `export const unused2`",
+                range: {
+                    end: {
+                        line: 6,
+                        character: 28
+                    },
+                    start: {
+                        line: 6,
+                        character: 8
+                    }
+                },
+                severity: 2,
+                source: 'svelte'
+            }
+        ]);
+    });
 });
