@@ -45,7 +45,7 @@ function preprocess(text: string) {
                 currentStartTagStart !== null &&
                 isInsideMoustacheTag(text, currentStartTagStart, offset)
             ) {
-                removeTagEndLike(offset);
+                result = result.substring(0, offset) + ' ' + result.substring(offset + 1);
                 scanner = createScanner(text, offset, ScannerState.AfterAttributeName);
                 scanner.scan();
             }
@@ -55,12 +55,4 @@ function preprocess(text: string) {
     }
 
     return result;
-
-    function removeTagEndLike(offset: number) {
-        if (currentStartTagStart === null) {
-            return;
-        }
-
-        result = result.substring(0, offset) + ' ' + result.substring(offset + 1);
-    }
 }
