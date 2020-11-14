@@ -27,6 +27,9 @@ const createScanner = parser.createScanner as (
     initialState?: ScannerState
 ) => Scanner;
 
+/**
+ * scan the text and remove any `>` that cause the tag to end short
+ */
 function preprocess(text: string) {
     let scanner = createScanner(text);
     let token = scanner.scan();
@@ -39,14 +42,13 @@ function preprocess(text: string) {
             currentStartTagStart = offset;
         }
 
-        if (token === TokenType.StartTagClose) {
-            if (
-                currentStartTagStart !== null &&
-                isInsideMoustacheTag(text, currentStartTagStart, offset)
-            ) {
-                text = text.substring(0, offset) + ' ' + text.substring(offset + 1);
-                scanner = createScanner(text, offset, ScannerState.AfterAttributeName);
-            }
+        if (
+            token === TokenType.StartTagClose &&
+            currentStartTagStart !== null &&
+            isInsideMoustacheTag(text, currentStartTagStart, offset)
+        ) {
+            text = text.substring(0, offset) + ' ' + text.substring(offset + 1);
+            scanner = createScanner(text, offset, ScannerState.AfterAttributeName);
         }
 
         token = scanner.scan();
