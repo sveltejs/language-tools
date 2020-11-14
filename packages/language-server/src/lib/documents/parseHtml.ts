@@ -29,7 +29,6 @@ const createScanner = parser.createScanner as (
 
 function preprocess(text: string) {
     let scanner = createScanner(text);
-    let result = text;
     let token = scanner.scan();
     let currentStartTagStart: number | null = null;
 
@@ -45,14 +44,13 @@ function preprocess(text: string) {
                 currentStartTagStart !== null &&
                 isInsideMoustacheTag(text, currentStartTagStart, offset)
             ) {
-                result = result.substring(0, offset) + ' ' + result.substring(offset + 1);
+                text = text.substring(0, offset) + ' ' + text.substring(offset + 1);
                 scanner = createScanner(text, offset, ScannerState.AfterAttributeName);
-                scanner.scan();
             }
         }
 
         token = scanner.scan();
     }
 
-    return result;
+    return text;
 }
