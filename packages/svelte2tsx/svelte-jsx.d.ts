@@ -1,3 +1,4 @@
+/// <reference lib="dom" />
 /* eslint @typescript-eslint/no-unused-vars: off */
 /**
  * Adapted from jsx-dom
@@ -38,24 +39,24 @@ declare namespace svelte.JSX {
     //
     // Event Handler Types
     // ----------------------------------------------------------------------
-    type EventHandler<E = Event, T = HTMLElement> =
+    type EventHandler<E extends Event = Event, T extends EventTarget = HTMLElement> =
       (event: E & { currentTarget: EventTarget & T}) => any;
 
-    type ClipboardEventHandler<T> = EventHandler<ClipboardEvent, T>;
-    type CompositionEventHandler<T> = EventHandler<CompositionEvent, T>;
-    type DragEventHandler<T> = EventHandler<DragEvent, T>;
-    type FocusEventHandler<T> = EventHandler<FocusEvent, T>;
-    type FormEventHandler<T> = EventHandler<Event, T>;
-    type ChangeEventHandler<T> = EventHandler<Event, T>;
-    type KeyboardEventHandler<T> = EventHandler<KeyboardEvent, T>;
-    type MouseEventHandler<T> = EventHandler<MouseEvent, T>;
-    type TouchEventHandler<T> = EventHandler<TouchEvent, T>;
-    type PointerEventHandler<T> = EventHandler<PointerEvent, T>;
-    type UIEventHandler<T> = EventHandler<UIEvent, T>;
-    type WheelEventHandler<T> = EventHandler<WheelEvent, T>;
-    type AnimationEventHandler<T> = EventHandler<AnimationEvent, T>;
-    type TransitionEventHandler<T> = EventHandler<TransitionEvent, T>;
-    type MessageEventHandler<T> = EventHandler<MessageEvent, T>;
+    type ClipboardEventHandler<T extends EventTarget> = EventHandler<ClipboardEvent, T>;
+    type CompositionEventHandler<T extends EventTarget> = EventHandler<CompositionEvent, T>;
+    type DragEventHandler<T extends EventTarget> = EventHandler<DragEvent, T>;
+    type FocusEventHandler<T extends EventTarget> = EventHandler<FocusEvent, T>;
+    type FormEventHandler<T extends EventTarget> = EventHandler<Event, T>;
+    type ChangeEventHandler<T extends EventTarget> = EventHandler<Event, T>;
+    type KeyboardEventHandler<T extends EventTarget> = EventHandler<KeyboardEvent, T>;
+    type MouseEventHandler<T extends EventTarget> = EventHandler<MouseEvent, T>;
+    type TouchEventHandler<T extends EventTarget> = EventHandler<TouchEvent, T>;
+    type PointerEventHandler<T extends EventTarget> = EventHandler<PointerEvent, T>;
+    type UIEventHandler<T extends EventTarget> = EventHandler<UIEvent, T>;
+    type WheelEventHandler<T extends EventTarget> = EventHandler<WheelEvent, T>;
+    type AnimationEventHandler<T extends EventTarget> = EventHandler<AnimationEvent, T>;
+    type TransitionEventHandler<T extends EventTarget> = EventHandler<TransitionEvent, T>;
+    type MessageEventHandler<T extends EventTarget> = EventHandler<MessageEvent, T>;
 
     type ClassNameBase = boolean | string | number | void | null;
     type ClassName = string | Array<ClassNameBase | ClassNameBase[]> | {
@@ -76,7 +77,7 @@ declare namespace svelte.JSX {
     // This interface is not complete. Only properties accepting
     // unit-less numbers are listed here (see CSSProperty.js in React)
 
-    interface DOMAttributes<T> {
+    interface DOMAttributes<T extends EventTarget> {
       // jsx-dom specific
      /* children?: Children;
       innerText?: string;
@@ -104,7 +105,7 @@ declare namespace svelte.JSX {
       oninput?: FormEventHandler<T>;
       onreset?: FormEventHandler<T>;
       onsubmit?: FormEventHandler<T>;
-      oninvalid?: EventHandler<T>;
+      oninvalid?: EventHandler<Event, T>;
 
       // Image Events
       onload?: EventHandler;
@@ -116,29 +117,29 @@ declare namespace svelte.JSX {
       onkeyup?: KeyboardEventHandler<T>;
 
       // Media Events
-      onabort?: EventHandler<T>;
-      oncanplay?: EventHandler<T>;
-      oncanplaythrough?: EventHandler<T>;
-      oncuechange?: EventHandler<T>;
-      ondurationchange?: EventHandler<T>;
-      onemptied?: EventHandler<T>;
-      onencrypted?: EventHandler<T>;
-      onended?: EventHandler<T>;
-      onloadeddata?: EventHandler<T>;
-      onloadedmetadata?: EventHandler<T>;
-      onloadstart?: EventHandler<T>;
-      onpause?: EventHandler<T>;
-      onplay?: EventHandler<T>;
-      onplaying?: EventHandler<T>;
-      onprogress?: EventHandler<T>;
-      onratechange?: EventHandler<T>;
-      onseeked?: EventHandler<T>;
-      onseeking?: EventHandler<T>;
-      onstalled?: EventHandler<T>;
-      onsuspend?: EventHandler<T>;
-      ontimeupdate?: EventHandler<T>;
-      onvolumechange?: EventHandler<T>;
-      onwaiting?: EventHandler<T>;
+      onabort?: EventHandler<Event, T>;
+      oncanplay?: EventHandler<Event, T>;
+      oncanplaythrough?: EventHandler<Event, T>;
+      oncuechange?: EventHandler<Event, T>;
+      ondurationchange?: EventHandler<Event, T>;
+      onemptied?: EventHandler<Event, T>;
+      onencrypted?: EventHandler<Event, T>;
+      onended?: EventHandler<Event, T>;
+      onloadeddata?: EventHandler<Event, T>;
+      onloadedmetadata?: EventHandler<Event, T>;
+      onloadstart?: EventHandler<Event, T>;
+      onpause?: EventHandler<Event, T>;
+      onplay?: EventHandler<Event, T>;
+      onplaying?: EventHandler<Event, T>;
+      onprogress?: EventHandler<Event, T>;
+      onratechange?: EventHandler<Event, T>;
+      onseeked?: EventHandler<Event, T>;
+      onseeking?: EventHandler<Event, T>;
+      onstalled?: EventHandler<Event, T>;
+      onsuspend?: EventHandler<Event, T>;
+      ontimeupdate?: EventHandler<Event, T>;
+      onvolumechange?: EventHandler<Event, T>;
+      onwaiting?: EventHandler<Event, T>;
 
       // MouseEvents
       onauxclick?: MouseEventHandler<T>;
@@ -162,9 +163,9 @@ declare namespace svelte.JSX {
       onmouseup?: MouseEventHandler<T>;
 
       // Selection Events
-      onselect?: EventHandler<T>;
-      onselectionchange?: EventHandler<T>;
-      onselectstart?: EventHandler<T>;
+      onselect?: EventHandler<Event, T>;
+      onselectionchange?: EventHandler<Event, T>;
+      onselectstart?: EventHandler<Event, T>;
 
       // Touch Events
       ontouchcancel?: TouchEventHandler<T>;
@@ -210,13 +211,13 @@ declare namespace svelte.JSX {
       onmessageerror?: MessageEventHandler<T>;
 
       // Global Events
-      oncancel?: EventHandler<T>;
-      onclose?: EventHandler<T>;
-      onfullscreenchange?: EventHandler<T>;
-      onfullscreenerror?: EventHandler<T>;
+      oncancel?: EventHandler<Event, T>;
+      onclose?: EventHandler<Event, T>;
+      onfullscreenchange?: EventHandler<Event, T>;
+      onfullscreenerror?: EventHandler<Event, T>;
     }
 
-    interface HTMLAttributes<T> extends DOMAttributes<T> {
+    interface HTMLAttributes<T extends EventTarget> extends DOMAttributes<T> {
       // jsx-dom-specific Attributes
       class?: ClassName;
       dataset?: object; // eslint-disable-line
@@ -404,7 +405,7 @@ declare namespace svelte.JSX {
     //   - "number | string"
     //   - "string"
     //   - union of string literals
-    interface SVGAttributes<T> extends DOMAttributes<T> {
+    interface SVGAttributes<T extends EventTarget> extends DOMAttributes<T> {
       // Attributes which also defined in HTMLAttributes
       className?: string;
       class?: string;
@@ -672,9 +673,9 @@ declare namespace svelte.JSX {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-empty-interface
-    interface HTMLProps<T> extends HTMLAttributes<T> {}
+    interface HTMLProps<T extends EventTarget> extends HTMLAttributes<T> {}
     // eslint-disable-next-line @typescript-eslint/no-empty-interface
-    interface SVGProps<T> extends SVGAttributes<T> {}
+    interface SVGProps<T extends EventTarget> extends SVGAttributes<T> {}
 
     interface SvelteOptionProps extends HTMLProps<HTMLOptionElement> {
         value?: any;
