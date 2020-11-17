@@ -392,6 +392,7 @@
         ]
     },
     "devDependencies": {
+        "@types/lodash": "^4.14.116",
         "@tsconfig/node12": "^1.0.0",
         "@types/node": "^13.9.0",
         "@types/vscode": "*",
@@ -399,6 +400,7 @@
         "typescript": "*"
     },
     "dependencies": {
+        "lodash": "^4.17.19",
         "svelte-language-server": "*",
         "vscode-languageclient": "^6.1.1"
     }
