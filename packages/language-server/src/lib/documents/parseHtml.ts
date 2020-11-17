@@ -48,7 +48,7 @@ function preprocess(text: string) {
             isInsideMoustacheTag(text, currentStartTagStart, offset)
         ) {
             text = text.substring(0, offset) + ' ' + text.substring(offset + 1);
-            scanner = createScanner(text, offset, ScannerState.AfterAttributeName);
+            scanner = createScanner(text, offset, ScannerState.WithinTag);
         }
 
         token = scanner.scan();
