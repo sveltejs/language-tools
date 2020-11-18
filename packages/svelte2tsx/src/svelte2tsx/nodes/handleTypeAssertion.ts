@@ -1,6 +1,9 @@
 import MagicString from 'magic-string';
 import ts from 'typescript';
 
+/**
+ * Transform type assertion to as expression: <Type>a => a as Type
+ */
 export function handleTypeAssertion(
     str: MagicString,
     assertion: ts.TypeAssertion,
