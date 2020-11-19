@@ -211,3 +211,10 @@ Enable code actions for Svelte. _Default_: `true`
 ##### `svelte.plugin.svelte.selectionRange.enable`
 
 Enable selection range for Svelte. _Default_: `true`
+
+### Usage with Yarn 2 PnP
+
+1. Run `yarn add -D svelte-language-server` to install svelte-language-server as a dev dependency 
+2. Run `yarn dlx @yarnpkg/pnpify --sdk vscode` to generate or update the VSCode/Yarn integration SDKs. This also sets the `svelte.language-server.ls-path` setting for the workspace, pointing it to the workspace-installed language server.
+3. Restart VSCode.
+4. Commit the changes to `.yarn/sdks`
