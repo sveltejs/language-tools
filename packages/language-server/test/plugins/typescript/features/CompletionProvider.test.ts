@@ -272,7 +272,10 @@ describe('CompletionProviderImpl', () => {
         });
 
         assert.deepStrictEqual(detail, '(alias) function foo(): boolean\nimport foo');
-        assert.deepStrictEqual(documentation, { value: 'bars\n\n*@author* — John', kind: MarkupKind.Markdown });
+        assert.deepStrictEqual(documentation, {
+            value: 'bars\n\n*@author* — John',
+            kind: MarkupKind.Markdown
+        });
     });
 
     it('provides import completions for directory', async () => {
@@ -440,6 +443,35 @@ describe('CompletionProviderImpl', () => {
         assert.deepEqual(
             additionalTextEdits![0]?.range,
             Range.create(Position.create(0, 8), Position.create(0, 8))
+        );
+    });
+
+    it('resolve auto import completion (is second import, module-script present)', async () => {
+        const { completionProvider, document } = setup('importcompletions7.svelte');
+
+        const completions = await completionProvider.getCompletions(
+            document,
+            Position.create(7, 7)
+        );
+        document.version++;
+
+        const item = completions?.items.find((item) => item.label === 'onMount');
+        const { additionalTextEdits, detail } = await completionProvider.resolveCompletion(
+            document,
+            item!
+        );
+
+        assert.strictEqual(detail, 'Auto import from svelte\nfunction onMount(fn: any): void');
+
+        assert.strictEqual(
+            harmonizeNewLines(additionalTextEdits![0]?.newText),
+            // " instead of ' because VSCode uses " by default when there are no other imports indicating otherwise
+            `${newLine}import { onMount } from "svelte";${newLine}`
+        );
+
+        assert.deepEqual(
+            additionalTextEdits![0]?.range,
+            Range.create(Position.create(4, 8), Position.create(4, 8))
         );
     });
 

@@ -4,9 +4,11 @@
     "description": "Svelte language support for VS Code",
     "main": "dist/src/extension.js",
     "scripts": {
-        "build": "tsc -p ./",
+        "build:grammar": "js-yaml syntaxes/svelte.tmLanguage.src.yaml > syntaxes/svelte.tmLanguage.json",
+        "build:ts": "tsc -p ./",
+        "build": "npm run build:ts && npm run build:grammar",
         "vscode:prepublish": "npm run build && npm prune --production",
-        "watch": "tsc -w -p ./",
+        "watch": "npm run build:grammar && tsc -w -p ./",
         "test": "echo 'NOOP'"
     },
     "repository": {
@@ -311,12 +313,15 @@
                 "scopeName": "source.svelte",
                 "path": "./syntaxes/svelte.tmLanguage.json",
                 "embeddedLanguages": {
-                    "text.html": "html",
+                    "text.html.basic": "html",
+                    "text.html.markdown": "markdown",
                     "text.pug": "jade",
                     "source.css": "css",
                     "source.css.less": "less",
                     "source.css.scss": "scss",
+                    "source.css.postcss": "postcss",
                     "source.sass": "sass",
+                    "source.stylus": "stylus",
                     "source.js": "javascript",
                     "source.ts": "typescript"
                 }
@@ -404,12 +409,15 @@
         ]
     },
     "devDependencies": {
+        "@types/lodash": "^4.14.116",
         "@tsconfig/node12": "^1.0.0",
         "@types/node": "^13.9.0",
         "@types/vscode": "*",
+        "js-yaml": "^3.14.0",
         "typescript": "*"
     },
     "dependencies": {
+        "lodash": "^4.17.19",
         "svelte-language-server": "*",
         "vscode-languageclient": "^6.1.1"
     }

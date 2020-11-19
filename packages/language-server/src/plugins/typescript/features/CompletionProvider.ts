@@ -390,7 +390,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         if (
             range.start.line === -1 ||
             (range.start.line === 0 && range.start.character <= 1 && span.length === 0) ||
-            doc.offsetAt(range.start) > scriptTagInfo.end
+            !isInTag(range.start, scriptTagInfo)
         ) {
             range = convertRange(doc, {
                 start: scriptTagInfo.start,
@@ -399,7 +399,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         }
         // prevent newText from being placed like this: <script>import {} from ''
         if (
-            range.start.line === 0 &&
+            doc.offsetAt(range.start) === scriptTagInfo.start &&
             !change.newText.startsWith('\r\n') &&
             !change.newText.startsWith('\n')
         ) {

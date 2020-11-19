@@ -1,7 +1,8 @@
 import { clamp, isInRange, regexLastIndexOf } from '../../utils';
 import { Position, Range } from 'vscode-languageserver';
-import { Node, getLanguageService, HTMLDocument } from 'vscode-html-languageservice';
+import { Node, HTMLDocument } from 'vscode-html-languageservice';
 import * as path from 'path';
+import { parseHtml } from './parseHtml';
 
 export interface TagInformation {
     content: string;
@@ -36,16 +37,6 @@ function parseAttributes(
         }
         return attrValue;
     }
-}
-
-const parser = getLanguageService();
-
-/**
- * Parses text as HTML
- */
-export function parseHtml(text: string): HTMLDocument {
-    // We can safely only set getText because only this is used for parsing
-    return parser.parseHTMLDocument(<any>{ getText: () => text });
 }
 
 const regexIf = new RegExp('{#if\\s.*?}', 'gms');
@@ -374,4 +365,9 @@ export function getLangAttribute(...tags: Array<TagInformation | null>): string 
     }
 
     return attribute.replace(/^text\//, '');
+}
+
+export function isInsideMoustacheTag(html: string, tagStart: number, position: number) {
+    const charactersInNode = html.substring(tagStart, position);
+    return charactersInNode.lastIndexOf('{') > charactersInNode.lastIndexOf('}');
 }
