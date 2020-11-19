@@ -28,7 +28,7 @@ const createScanner = parser.createScanner as (
 ) => Scanner;
 
 /**
- * scan the text and remove any `>` that cause the tag to end short
+ * scan the text and remove any `>` or `<` that cause the tag to end short,
  */
 function preprocess(text: string) {
     let scanner = createScanner(text);
@@ -42,17 +42,44 @@ function preprocess(text: string) {
             currentStartTagStart = offset;
         }
 
+        if (token === TokenType.StartTagClose) {
+            if (shouldBlankStartOrEndTagLike(offset)) {
+                blankStartOrEndTagLike(offset);
+            } else {
+                currentStartTagStart = null;
+            }
+        }
+
+        if (token === TokenType.StartTagSelfClose) {
+            currentStartTagStart = null;
+        }
+
+        // <Foo checked={a < 1}>
+        // https://github.com/microsoft/vscode-html-languageservice/blob/71806ef57be07e1068ee40900ef8b0899c80e68a/src/parser/htmlScanner.ts#L327
         if (
-            token === TokenType.StartTagClose &&
-            currentStartTagStart !== null &&
-            isInsideMoustacheTag(text, currentStartTagStart, offset)
+            token === TokenType.Unknown &&
+            scanner.getScannerState() === ScannerState.WithinTag &&
+            scanner.getTokenText() === '<' &&
+            shouldBlankStartOrEndTagLike(offset)
         ) {
-            text = text.substring(0, offset) + ' ' + text.substring(offset + 1);
-            scanner = createScanner(text, offset, ScannerState.WithinTag);
+            blankStartOrEndTagLike(offset);
         }
 
         token = scanner.scan();
     }
 
     return text;
+
+    function shouldBlankStartOrEndTagLike(offset: number) {
+        // not null rather than falsy, otherwise it won't work on first tag(0)
+        return (
+            currentStartTagStart !== null &&
+            isInsideMoustacheTag(text, currentStartTagStart, offset)
+        );
+    }
+
+    function blankStartOrEndTagLike(offset: number) {
+        text = text.substring(0, offset) + ' ' + text.substring(offset + 1);
+        scanner = createScanner(text, offset, ScannerState.WithinTag);
+    }
 }
