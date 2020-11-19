@@ -364,7 +364,8 @@ repository:
   # For Svelte element directives. Scopes the 'on' part in `on:click`.
   attributes-directives-keywords:
     patterns:
-    # If other keywords are patched in in the future, they can easily be added here.
+    # If other keywords are patched in in the future, they can be added here but also need to be added
+    # where attributes-directives-keywords is included.
     - { match: on|use|bind,               name: keyword.control.svelte           }
     - { match: transition|in|out|animate, name: keyword.other.animation.svelte   }
     - { match: let,                       name: storage.type.svelte              }
@@ -385,7 +386,8 @@ repository:
 
   # Matches Svelte element directives, e.g. `on:click|preventDefault={var}`
   attributes-directives:
-    begin: (?<!<)(\w+)(:)([_$[:alpha:]][_\-$[:alnum:]]*)((?:\|.*)?\|\w*)?
+    # If something is added to attributes-directives-keywords, it must be added to the begin-regex, too.
+    begin: (?<!<)(on|use|bind|transition|in|out|animate|let|class)(:)([_$[:alpha:]][_\-$[:alnum:]]*)((?:\|.*)?\|\w*)?
     beginCaptures:
       1: { patterns: [ include: '#attributes-directives-keywords' ] }
       2: { name: punctuation.definition.keyword.svelte }
