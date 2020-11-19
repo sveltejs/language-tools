@@ -1,28 +1,40 @@
 import assert from 'assert';
+import { HTMLDocument } from 'vscode-html-languageservice';
 import { parseHtml } from '../../../src/lib/documents/parseHtml';
 
 describe('parseHtml', () => {
-    it('ignore arrow inside moustache', () => {
-        const { roots } = parseHtml(
-            `<Foo on:click={() => console.log('ya!!!')} />
-            <style></style>`
-        );
-
-        assert.deepStrictEqual(roots.map(r => r.tag), [
+    const testRootElements = (document: HTMLDocument) => {
+        assert.deepStrictEqual(document.roots.map(r => r.tag), [
             'Foo',
             'style'
         ]);
+    };
+
+    it('ignore arrow inside moustache', () => {
+        testRootElements(parseHtml(
+            `<Foo on:click={() => console.log('ya!!!')} />
+            <style></style>`
+        ));
     });
 
     it('ignore bigger than inside moustache', () => {
-        const { roots } = parseHtml(
+        testRootElements(parseHtml(
             `<Foo checked={a > 1} />
             <style></style>`
-        );
+        ));
+    });
 
-        assert.deepStrictEqual(roots.map(r => r.tag), [
-            'Foo',
-            'style'
-        ]);
+    it('parse baseline html', () => {
+        testRootElements(parseHtml(
+            `<Foo checked />
+            <style></style>`
+        ));
+    });
+
+    it('parse baseline html with moustache', () => {
+        testRootElements(parseHtml(
+            `<Foo checked={a} />
+            <style></style>`
+        ));
     });
 });
