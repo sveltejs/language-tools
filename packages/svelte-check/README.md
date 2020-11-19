@@ -62,6 +62,12 @@ Usage:
 | `--diagnostic-sources <js,svelte,css>`                          | A list of diagnostic sources which should run diagnostics on your code. Possible values are `js` (includes TS), `svelte`, `css`. Comma-separated, inside quotes. By default all are active. Example: `--diagnostic-sources "js,svelte"`                                                                          |
 | `--threshold <error\|warning>`                                  | Filters the diagnostics to display. `error` will output only errors while `warning` will output warnings and errors.                                                                                                                                                                                             |
 
+### FAQ
+
+#### Why is there no option to only check specific files (for example only staged files)?
+
+`svelte-check` needs to know the whole project to do valid checks. Imagine you alter a component property `export let foo` to `export let bar`, but you don't update any of the component usages. They all have errors now but you would not catch them if you only run checks on changed files.
+
 ### More docs, preprocessor setup and troubleshooting
 
 [See here](/docs/README.md).
