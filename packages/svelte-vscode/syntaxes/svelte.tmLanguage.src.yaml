@@ -10,28 +10,28 @@ injections:
 
   # Format:
   #  'L:meta.<script|style|template>.svelte (meta.lang.<lang> | meta.lang.<langalternative> | ...) - (meta source)'
-  #     patterns: [{begin: '(?<=>)', end: '(?=</)', name: meta.embedded.block.svelte,
+  #     patterns: [{begin: '(?<=>)(?!</)', end: '(?=</)', name: meta.embedded.block.svelte,
   #     contentName: source.<lang>, patterns: [{ include: source.<lang> }]}]
 
   # Script Languages
   # JavaScript | 'javascript' | 'source.js'
   'L:meta.script.svelte meta.lang.javascript - (meta source)':
-    patterns: [{begin: '(?<=>)', end: '(?=</)', name: meta.embedded.block.svelte,
+    patterns: [{begin: '(?<=>)(?!</)', end: '(?=</)', name: meta.embedded.block.svelte,
     contentName: source.js, patterns: [{ include: source.js }]}]
 
   # TypeScript | 'ts' 'typescript' | 'source.ts'
   'L:meta.script.svelte (meta.lang.ts | meta.lang.typescript) - (meta source)':
-    patterns: [{begin: '(?<=>)', end: '(?=</)', name: meta.embedded.block.svelte,
+    patterns: [{begin: '(?<=>)(?!</)', end: '(?=</)', name: meta.embedded.block.svelte,
     contentName: source.ts, patterns: [{ include: source.ts }]}]
 
   # CoffeeScript | 'coffee' | 'source.coffee'
   'L:meta.script.svelte meta.lang.coffee - (meta source)':
-    patterns: [{begin: '(?<=>)', end: '(?=</)', name: meta.embedded.block.svelte,
+    patterns: [{begin: '(?<=>)(?!</)', end: '(?=</)', name: meta.embedded.block.svelte,
     contentName: source.coffee, patterns: [{ include: source.coffee }]}]
 
   # Default (JavaScript)
   'L:meta.script.svelte - meta.lang - (meta source)':
-    patterns: [{begin: '(?<=>)', end: '(?=</)', name: meta.embedded.block.svelte,
+    patterns: [{begin: '(?<=>)(?!</)', end: '(?=</)', name: meta.embedded.block.svelte,
     contentName: source.js, patterns: [{ include: source.js }]}]
 
   # ----
@@ -39,37 +39,37 @@ injections:
   # Style Languages
   # Stylus | 'stylus' | 'source.stylus'
   'L:meta.style.svelte meta.lang.stylus - (meta source)':
-    patterns: [{begin: '(?<=>)', end: '(?=</)', name: meta.embedded.block.svelte,
+    patterns: [{begin: '(?<=>)(?!</)', end: '(?=</)', name: meta.embedded.block.svelte,
     contentName: source.stylus, patterns: [{ include: source.stylus }]}]
 
   # Sass | 'sass' | 'source.sass'
   'L:meta.style.svelte meta.lang.sass - (meta source)':
-    patterns: [{begin: '(?<=>)', end: '(?=</)', name: meta.embedded.block.svelte,
+    patterns: [{begin: '(?<=>)(?!</)', end: '(?=</)', name: meta.embedded.block.svelte,
     contentName: source.sass, patterns: [{ include: source.sass }]}]
 
   # CSS | 'css' | 'source.css'
   'L:meta.style.svelte meta.lang.css - (meta source)':
-    patterns: [{begin: '(?<=>)', end: '(?=</)', name: meta.embedded.block.svelte,
+    patterns: [{begin: '(?<=>)(?!</)', end: '(?=</)', name: meta.embedded.block.svelte,
     contentName: source.css, patterns: [{ include: source.css }]}]
 
   # SCSS | 'scss' | 'source.css.scss'
   'L:meta.style.svelte meta.lang.scss - (meta source)':
-    patterns: [{begin: '(?<=>)', end: '(?=</)', name: meta.embedded.block.svelte,
+    patterns: [{begin: '(?<=>)(?!</)', end: '(?=</)', name: meta.embedded.block.svelte,
     contentName: source.css.scss, patterns: [{ include: source.css.scss }]}]
 
   # Less | 'less' | 'source.css.less'
   'L:meta.style.svelte meta.lang.less - (meta source)':
-    patterns: [{begin: '(?<=>)', end: '(?=</)', name: meta.embedded.block.svelte,
+    patterns: [{begin: '(?<=>)(?!</)', end: '(?=</)', name: meta.embedded.block.svelte,
     contentName: source.css.less, patterns: [{ include: source.css.less }]}]
 
   # PostCSS | 'postcss' | 'source.css.postcss'
   'L:meta.style.svelte meta.lang.postcss - (meta source)':
-    patterns: [{begin: '(?<=>)', end: '(?=</)', name: meta.embedded.block.svelte,
+    patterns: [{begin: '(?<=>)(?!</)', end: '(?=</)', name: meta.embedded.block.svelte,
     contentName: source.css.postcss, patterns: [{ include: source.css.postcss }]}]
 
   # Default (CSS)
   'L:meta.style.svelte - meta.lang - (meta source)':
-    patterns: [{begin: '(?<=>)', end: '(?=</)', name: meta.embedded.block.svelte,
+    patterns: [{begin: '(?<=>)(?!</)', end: '(?=</)', name: meta.embedded.block.svelte,
     contentName: source.css, patterns: [{ include: source.css }]}]
 
   # ----
@@ -77,12 +77,12 @@ injections:
   # Template Languages
   # Pug | 'pug' | 'text.pug'
   'L:meta.template.svelte meta.lang.pug - (meta source)':
-    patterns: [{begin: '(?<=>)', end: '(?=</)', name: meta.embedded.block.svelte,
+    patterns: [{begin: '(?<=>)(?!</)', end: '(?=</)', name: meta.embedded.block.svelte,
     contentName: text.pug, patterns: [{ include: text.pug }]}]
 
   # Default (just introduces a new scope)
   'L:meta.template.svelte - meta.lang - (meta source)':
-    patterns: [{begin: '(?<=>)', end: '(?=</)', patterns: [{ include: '#scope' }]}]
+    patterns: [{begin: '(?<=>)(?!</)', end: '(?=</)', patterns: [{ include: '#scope' }]}]
 
   # ---- LANGUAGE EXTENSIONS
 
