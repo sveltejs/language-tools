@@ -106,10 +106,7 @@ export class TypeScriptPlugin
             this.completionProvider,
             this.getUserPreferences
         );
-        this.updateImportsProvider = new UpdateImportsProviderImpl(
-            this.lsAndTsDocResolver,
-            this.getUserPreferences
-        );
+        this.updateImportsProvider = new UpdateImportsProviderImpl(this.lsAndTsDocResolver);
         this.diagnosticsProvider = new DiagnosticsProviderImpl(this.lsAndTsDocResolver);
         this.renameProvider = new RenameProviderImpl(this.lsAndTsDocResolver);
         this.hoverProvider = new HoverProviderImpl(this.lsAndTsDocResolver);
