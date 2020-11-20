@@ -118,7 +118,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             end,
             errorCodes,
             {},
-            {}
+            this.getUserPreferences()
         );
 
         const docs = new Map<string, SnapshotFragment>([[tsDoc.filePath, fragment]]);
