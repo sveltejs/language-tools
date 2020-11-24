@@ -64,11 +64,7 @@ interface Svelte2TsxComponentConstructorParameters<Props extends {}> {
     $$inline?: boolean;
 }
 
-// TODO: Update all `AConstructorTypeOf` references to pass constructor args when it makes sense.
-// Check if should add prototype... seems to work fine without it thus far
 type AConstructorTypeOf<T, U extends any[] = any[]> = new (...args: U) => T;
-
-// TODO: Replace AConstructorTypeOf with more specific types so intellisense shows helpful hits like 'options' instead of args[0]
 type SvelteComponentConstructor<T, U extends Svelte2TsxComponentConstructorParameters<any>> = new (options: U) => T;
 
 type SvelteAction<U extends any[], El extends any> = (node: El, ...args:U) => {
