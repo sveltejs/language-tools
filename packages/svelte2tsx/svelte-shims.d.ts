@@ -24,23 +24,7 @@ declare class Svelte2TsxComponent<
      */
     $$slot_def: Slots;
     // https://svelte.dev/docs#Client-side_component_API
-    constructor(options: {
-        /**
-         * An HTMLElement to render to. This option is required.
-         */
-        target: Element;
-        /**
-         * A child of `target` to render the component immediately before.
-         */
-        anchor?: Element;
-        /**
-         * An object of properties to supply to the component.
-         */
-        props?: Props;
-        hydrate?: boolean;
-        intro?: boolean;
-        $$inline?: boolean;
-    });
+    constructor(options: Svelte2TsxComponentConstructorParameters<Props>);
     /**
      * Causes the callback function to be called whenever the component dispatches an event.
      * A function is returned that will remove the event listener when called.
@@ -62,7 +46,30 @@ declare class Svelte2TsxComponent<
     $inject_state(): void;
 }
 
-type AConstructorTypeOf<T> = new (...args: any[]) => T;
+interface Svelte2TsxComponentConstructorParameters<Props extends {}> {
+    /**
+     * An HTMLElement to render to. This option is required.
+     */
+    target: Element;
+    /**
+     * A child of `target` to render the component immediately before.
+     */
+    anchor?: Element;
+    /**
+     * An object of properties to supply to the component.
+     */
+    props?: Props;
+    hydrate?: boolean;
+    intro?: boolean;
+    $$inline?: boolean;
+}
+
+// TODO: Update all `AConstructorTypeOf` references to pass constructor args when it makes sense.
+// Check if should add prototype... seems to work fine without it thus far
+type AConstructorTypeOf<T, U extends any[] = any[]> = new (...args: U) => T;
+
+// TODO: Replace AConstructorTypeOf with more specific types so intellisense shows helpful hits like 'options' instead of args[0]
+type SvelteComponentConstructor<T, U extends Svelte2TsxComponentConstructorParameters<any>> = new (options: U) => T;
 
 type SvelteAction<U extends any[], El extends any> = (node: El, ...args:U) => {
 	update?: (...args:U) => void,
@@ -174,7 +181,7 @@ declare function __sveltets_each<T>(
 
 declare function createSvelte2TsxComponent<Props, Events, Slots>(
     render: () => {props?: Props, events?: Events, slots?: Slots }
-): AConstructorTypeOf<Svelte2TsxComponent<Props, Events, Slots>>;
+): SvelteComponentConstructor<Svelte2TsxComponent<Props, Events, Slots>,Svelte2TsxComponentConstructorParameters<Props>>;
 
 declare function __sveltets_unwrapArr<T>(arr: ArrayLike<T>): T
 declare function __sveltets_unwrapPromiseLike<T>(promise: PromiseLike<T> | T): T

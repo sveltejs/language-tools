@@ -281,17 +281,16 @@ function addComponentExport({
     fileName,
     componentDocumentation
 }: AddComponentExportPara) {
-    // FIXME: Does this make sense? Are we supposed to be able to listen to events our component does not emit?
-    const eventsDef = "ReturnType<typeof render>['events']" + (strictEvents ? '' : ' & Record<string, CustomEvent<any>>');
+    const eventsDef = strictEvents ? 'render' : '__sveltets_with_any_event(render)';
     const propDef =
         // Omit partial-wrapper only if both strict mode and ts file, because
         // in a js file the user has no way of telling the language that
         // the prop is optional
-        (strictMode && isTsFile
-                ? "ReturnType<typeof render>['props']"
-                : "Partial<ReturnType<typeof render>['props']>")
-        + (uses$$propsOr$$restProps ? ' & Record<string,any>' : '');
-    const slotDef = "ReturnType<typeof render>['slots']";
+        strictMode && isTsFile
+            ? uses$$propsOr$$restProps
+                ? `__sveltets_with_any(${eventsDef})`
+                : eventsDef
+            : `__sveltets_partial${uses$$propsOr$$restProps ? '_with_any' : ''}(${eventsDef})`;
 
     const doc = componentDocumentation.getFormatted();
     const className = fileName && classNameFromFilename(fileName);
@@ -299,7 +298,7 @@ function addComponentExport({
     const statement =
         `\n\n${doc}export default class${
             className ? ` ${className}` : ''
-        } extends Svelte2TsxComponent<${propDef},${eventsDef},${slotDef}> {` +
+        } extends createSvelte2TsxComponent(${propDef}) {` +
         createClassGetters(getters) +
         '\n}';
 
