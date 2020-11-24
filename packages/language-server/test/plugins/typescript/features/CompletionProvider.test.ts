@@ -68,7 +68,7 @@ describe('CompletionProviderImpl', () => {
             label: 'b',
             insertText: undefined,
             kind: CompletionItemKind.Method,
-            sortText: '0',
+            sortText: '1',
             commitCharacters: ['.', ',', '('],
             preselect: undefined
         });
@@ -249,7 +249,7 @@ describe('CompletionProviderImpl', () => {
                 line: 0
             },
             replacementSpan: undefined,
-            sortText: '0',
+            sortText: '1',
             source: undefined,
             uri: fileNameToAbsoluteUri(filename)
         } as CompletionEntryWithIdentifer);
