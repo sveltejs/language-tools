@@ -7,6 +7,7 @@ import * as path from 'path';
 import * as assert from 'assert';
 import { Range, Position, CodeActionKind, TextDocumentEdit } from 'vscode-languageserver';
 import { CompletionsProviderImpl } from '../../../../src/plugins/typescript/features/CompletionProvider';
+import { LSConfigManager } from '../../../../src/ls-config';
 
 const testDir = path.join(__dirname, '..');
 
@@ -27,12 +28,13 @@ describe('CodeActionsProvider', () => {
         const docManager = new DocumentManager(
             (textDocument) => new Document(textDocument.uri, textDocument.text)
         );
-        const lsAndTsDocResolver = new LSAndTSDocResolver(docManager, [pathToUrl(testDir)]);
-        const completionProvider = new CompletionsProviderImpl(lsAndTsDocResolver, () => ({}));
-        const provider = new CodeActionsProviderImpl(
-            lsAndTsDocResolver, completionProvider,
-            () => ({})
+        const lsAndTsDocResolver = new LSAndTSDocResolver(
+            docManager,
+            [pathToUrl(testDir)],
+            new LSConfigManager()
         );
+        const completionProvider = new CompletionsProviderImpl(lsAndTsDocResolver);
+        const provider = new CodeActionsProviderImpl(lsAndTsDocResolver, completionProvider);
         const filePath = getFullPath(filename);
         const document = docManager.openDocument(<any>{
             uri: pathToUrl(filePath),

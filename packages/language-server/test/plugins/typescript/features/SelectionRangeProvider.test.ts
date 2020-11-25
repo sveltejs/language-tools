@@ -6,6 +6,7 @@ import { Document, DocumentManager } from '../../../../src/lib/documents';
 import { SelectionRangeProviderImpl } from '../../../../src/plugins/typescript/features/SelectionRangeProvider';
 import { LSAndTSDocResolver } from '../../../../src/plugins/typescript/LSAndTSDocResolver';
 import { pathToUrl } from '../../../../src/utils';
+import { LSConfigManager } from '../../../../src/ls-config';
 
 const testDir = path.join(__dirname, '..');
 
@@ -20,7 +21,11 @@ describe('SelectionRangeProvider', () => {
             'selection-range',
             'selection-range.svelte'
         );
-        const lsAndTsDocResolver = new LSAndTSDocResolver(docManager, [pathToUrl(testDir)]);
+        const lsAndTsDocResolver = new LSAndTSDocResolver(
+            docManager,
+            [pathToUrl(testDir)],
+            new LSConfigManager()
+        );
         const provider = new SelectionRangeProviderImpl(lsAndTsDocResolver);
         const document = docManager.openDocument(<any>{
             uri: pathToUrl(filePath),

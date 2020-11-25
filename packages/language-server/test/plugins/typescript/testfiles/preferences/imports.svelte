@@ -1,3 +1,4 @@
 <script>
-    import { } from './definition'
+    import { definition } from './definition'
+    definition
 </script>

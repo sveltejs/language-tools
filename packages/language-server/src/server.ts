@@ -101,6 +101,7 @@ export function startServer(options?: LSOptions) {
             definitionLinkSupport: !!evt.capabilities.textDocument?.definition?.linkSupport
         });
         pluginHost.updateConfig(evt.initializationOptions?.config || {});
+        pluginHost.updateTsUserPreferences(evt.initializationOptions?.typescriptConfig || {});
         pluginHost.register(
             (sveltePlugin = new SveltePlugin(
                 configManager,
@@ -206,6 +207,7 @@ export function startServer(options?: LSOptions) {
 
     connection.onDidChangeConfiguration(({ settings }) => {
         pluginHost.updateConfig(settings.svelte?.plugin);
+        pluginHost.updateTsUserPreferences(settings);
     });
 
     connection.onDidOpenTextDocument((evt) => {

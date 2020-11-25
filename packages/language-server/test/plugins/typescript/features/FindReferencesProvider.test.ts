@@ -3,6 +3,7 @@ import * as path from 'path';
 import ts from 'typescript';
 import { Location, Position, Range } from 'vscode-languageserver';
 import { Document, DocumentManager } from '../../../../src/lib/documents';
+import { LSConfigManager } from '../../../../src/ls-config';
 import { FindReferencesProviderImpl } from '../../../../src/plugins/typescript/features/FindReferencesProvider';
 import { LSAndTSDocResolver } from '../../../../src/plugins/typescript/LSAndTSDocResolver';
 import { pathToUrl } from '../../../../src/utils';
@@ -22,7 +23,11 @@ describe('FindReferencesProvider', () => {
         const docManager = new DocumentManager(
             (textDocument) => new Document(textDocument.uri, textDocument.text)
         );
-        const lsAndTsDocResolver = new LSAndTSDocResolver(docManager, [testDir]);
+        const lsAndTsDocResolver = new LSAndTSDocResolver(
+            docManager,
+            [testDir],
+            new LSConfigManager()
+        );
         const provider = new FindReferencesProviderImpl(lsAndTsDocResolver);
         const document = openDoc(filename);
         return { provider, document };

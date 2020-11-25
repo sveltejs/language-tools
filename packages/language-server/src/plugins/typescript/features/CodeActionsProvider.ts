@@ -28,8 +28,7 @@ interface RefactorArgs {
 export class CodeActionsProviderImpl implements CodeActionsProvider {
     constructor(
         private readonly lsAndTsDocResolver: LSAndTSDocResolver,
-        private readonly completionProvider: CompletionsProviderImpl,
-        private readonly getUserPreferences: () => ts.UserPreferences
+        private readonly completionProvider: CompletionsProviderImpl
     ) {}
 
     async getCodeActions(
@@ -60,7 +59,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             return [];
         }
 
-        const { lang, tsDoc } = this.getLSAndTSDoc(document);
+        const { lang, tsDoc, userPreferences } = this.getLSAndTSDoc(document);
         const fragment = await tsDoc.getFragment();
 
         const changes = lang.organizeImports(
@@ -69,7 +68,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                 type: 'file'
             },
             {},
-            this.getUserPreferences()
+            userPreferences
         );
 
         const documentChanges = await Promise.all(
@@ -106,7 +105,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
     }
 
     private async applyQuickfix(document: Document, range: Range, context: CodeActionContext) {
-        const { lang, tsDoc } = this.getLSAndTSDoc(document);
+        const { lang, tsDoc, userPreferences } = this.getLSAndTSDoc(document);
         const fragment = await tsDoc.getFragment();
 
         const start = fragment.offsetAt(fragment.getGeneratedPosition(range.start));
@@ -118,7 +117,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             end,
             errorCodes,
             {},
-            this.getUserPreferences()
+            userPreferences
         );
 
         const docs = new Map<string, SnapshotFragment>([[tsDoc.filePath, fragment]]);
@@ -186,7 +185,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             return [];
         }
 
-        const { lang, tsDoc } = this.getLSAndTSDoc(document);
+        const { lang, tsDoc, userPreferences } = this.getLSAndTSDoc(document);
         const fragment = await tsDoc.getFragment();
         const textRange = {
             pos: fragment.offsetAt(fragment.getGeneratedPosition(range.start)),
@@ -195,7 +194,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         const applicableRefactors = lang.getApplicableRefactors(
             document.getFilePath() || '',
             textRange,
-            this.getUserPreferences()
+            userPreferences
         );
 
         return (
@@ -277,7 +276,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             return null;
         }
 
-        const { lang, tsDoc } = this.getLSAndTSDoc(document);
+        const { lang, tsDoc, userPreferences } = this.getLSAndTSDoc(document);
         const fragment = await tsDoc.getFragment();
         const path = document.getFilePath() || '';
         const { refactorName, originalRange, textRange } = <RefactorArgs>args[1];
@@ -288,7 +287,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             textRange,
             refactorName,
             command,
-            this.getUserPreferences()
+            userPreferences
         );
         if (!edits || edits.edits.length === 0) {
             return null;

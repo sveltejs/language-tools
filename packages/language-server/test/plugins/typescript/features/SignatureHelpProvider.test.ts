@@ -6,6 +6,7 @@ import { Document, DocumentManager } from '../../../../src/lib/documents';
 import { SignatureHelpProviderImpl } from '../../../../src/plugins/typescript/features/SignatureHelpProvider';
 import { LSAndTSDocResolver } from '../../../../src/plugins/typescript/LSAndTSDocResolver';
 import { pathToUrl } from '../../../../src/utils';
+import { LSConfigManager } from '../../../../src/ls-config';
 
 const testDir = path.join(__dirname, '..');
 
@@ -20,7 +21,11 @@ describe('SignatureHelpProvider', () => {
             'signature-help',
             'signature-help.svelte'
         );
-        const lsAndTsDocResolver = new LSAndTSDocResolver(docManager, [pathToUrl(testDir)]);
+        const lsAndTsDocResolver = new LSAndTSDocResolver(
+            docManager,
+            [pathToUrl(testDir)],
+            new LSConfigManager()
+        );
         const provider = new SignatureHelpProviderImpl(lsAndTsDocResolver);
         const document = docManager.openDocument(<any>{
             uri: pathToUrl(filePath),

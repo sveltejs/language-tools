@@ -1,5 +1,6 @@
 import ts from 'typescript';
 import { Document, DocumentManager } from '../../lib/documents';
+import { LSConfigManager } from '../../ls-config';
 import { debounceSameArg, pathToUrl } from '../../utils';
 import { DocumentSnapshot, SvelteDocumentSnapshot } from './DocumentSnapshot';
 import {
@@ -13,7 +14,8 @@ import { SnapshotManager } from './SnapshotManager';
 export class LSAndTSDocResolver {
     constructor(
         private readonly docManager: DocumentManager,
-        private readonly workspaceUris: string[]
+        private readonly workspaceUris: string[],
+        private readonly configManager: LSConfigManager
     ) {
         docManager.on(
             'documentChange',
@@ -50,6 +52,7 @@ export class LSAndTSDocResolver {
     ): {
         tsDoc: SvelteDocumentSnapshot;
         lang: ts.LanguageService;
+        userPreferences: ts.UserPreferences;
     } {
         const lang = getLanguageServiceForDocument(
             document,
@@ -58,8 +61,9 @@ export class LSAndTSDocResolver {
         );
         const filePath = document.getFilePath()!;
         const tsDoc = this.getSnapshot(filePath, document);
+        const userPreferences = this.getUserPreferences(tsDoc.scriptKind);
 
-        return { tsDoc, lang };
+        return { tsDoc, lang, userPreferences };
     }
 
     getSnapshot(filePath: string, document: Document): SvelteDocumentSnapshot;
@@ -96,5 +100,12 @@ export class LSAndTSDocResolver {
 
     private getTSService(filePath: string): LanguageServiceContainer {
         return getService(filePath, this.workspaceUris, this.createDocument);
+    }
+
+    private getUserPreferences(scriptKind: ts.ScriptKind): ts.UserPreferences {
+        const configLang = scriptKind === ts.ScriptKind.TS || scriptKind === ts.ScriptKind.TSX
+            ? 'typescript' : 'javascript';
+
+        return this.configManager.getTsUserPreferences(configLang);
     }
 }

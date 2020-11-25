@@ -130,23 +130,6 @@
                     "title": "TypeScript: Rename",
                     "description": "Enable rename functionality for JS/TS variables inside Svelte files"
                 },
-                "svelte.plugin.typescript.preferences.importModuleSpecifier": {
-                    "type": "string",
-                    "enum": [
-                        "auto",
-                        "relative",
-                        "non-relative"
-                    ]
-                },
-                "svelte.plugin.typescript.preferences.importModuleSpecifierEnding": {
-                    "type": "string",
-                    "enum": [
-                        "auto",
-                        "minimal",
-                        "index",
-                        "js"
-                    ]
-                },
                 "svelte.plugin.css.enable": {
                     "type": "boolean",
                     "default": true,

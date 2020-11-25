@@ -16,8 +16,7 @@ const defaultLSConfig: LSConfig = {
         codeActions: { enable: true },
         rename: { enable: true },
         selectionRange: { enable: true },
-        signatureHelp: { enable: true },
-        preferences: {}
+        signatureHelp: { enable: true }
     },
     css: {
         enable: true,
@@ -92,10 +91,6 @@ export interface LSTypescriptConfig {
     };
     signatureHelp: {
         enable: boolean;
-    },
-    preferences: {
-        importModuleSpecifier?: UserPreferences['importModuleSpecifierPreference'];
-        importModuleSpecifierEnding?: UserPreferences['importModuleSpecifierEnding'];
     }
 }
 
@@ -169,6 +164,13 @@ export interface LSSvelteConfig {
     };
 }
 
+export interface TsUserPreferencesConfig {
+    importModuleSpecifier?: UserPreferences['importModuleSpecifierPreference'];
+    importModuleSpecifierEnding?: UserPreferences['importModuleSpecifierEnding'];
+}
+
+export type TsUserConfigLang = 'typescript' | 'javascript';
+
 type DeepPartial<T> = T extends CompilerWarningsSettings
     ? T
     : {
@@ -178,6 +180,10 @@ type DeepPartial<T> = T extends CompilerWarningsSettings
 export class LSConfigManager {
     private config: LSConfig = defaultLSConfig;
     private listeners: Array<(config: LSConfigManager) => void> = [];
+    private tsUserPreferences: Record<TsUserConfigLang, UserPreferences> = {
+        typescript: {},
+        javascript: {}
+    }
 
     /**
      * Updates config.
@@ -224,6 +230,17 @@ export class LSConfigManager {
      */
     onChange(callback: (config: LSConfigManager) => void): void {
         this.listeners.push(callback);
+    }
+
+    updateTsUserPreferences(lang: TsUserConfigLang, config: TsUserPreferencesConfig) {
+        this.tsUserPreferences[lang] = Object.assign(this.tsUserPreferences[lang], {
+            importModuleSpecifierPreference: config.importModuleSpecifier,
+            importModuleSpecifierEnding: config.importModuleSpecifierEnding
+        });
+    }
+
+    getTsUserPreferences(lang: TsUserConfigLang) {
+        return this.tsUserPreferences[lang];
     }
 }
 

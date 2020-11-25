@@ -88,13 +88,17 @@ export function activate(context: ExtensionContext) {
         documentSelector: [{ scheme: 'file', language: 'svelte' }],
         revealOutputChannelOn: RevealOutputChannelOn.Never,
         synchronize: {
-            configurationSection: ['svelte'],
+            configurationSection: ['svelte', 'javascript', 'typescript'],
             fileEvents: workspace.createFileSystemWatcher('{**/*.js,**/*.ts}', false, false, false)
         },
         initializationOptions: {
             config: workspace.getConfiguration('svelte.plugin'),
             prettierConfig: workspace.getConfiguration('prettier'),
             emmetConfig: workspace.getConfiguration('emmet'),
+            typescriptConfig: {
+                typescript: workspace.getConfiguration('typescript'),
+                javascript: workspace.getConfiguration('javascript')
+            },
             dontFilterIncompleteCompletions: true // VSCode filters client side and is smarter at it than us
         }
     };

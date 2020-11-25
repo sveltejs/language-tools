@@ -4,7 +4,6 @@ import { join } from 'path';
 
 import {
     CodeActionContext,
-    CodeActionKind,
     Diagnostic,
     DiagnosticSeverity,
     Position,
@@ -16,6 +15,7 @@ import { CompletionsProviderImpl } from '../../../../src/plugins/typescript/feat
 import { LSAndTSDocResolver } from '../../../../src/plugins/typescript/LSAndTSDocResolver';
 import { pathToUrl } from '../../../../src/utils';
 import { CodeActionsProviderImpl } from '../../../../src/plugins/typescript/features/CodeActionsProvider';
+import { LSConfigManager, TsUserPreferencesConfig } from '../../../../src/ls-config';
 
 const testFilesDir = join(__dirname, '..', 'testfiles', 'preferences');
 
@@ -35,21 +35,23 @@ describe('ts user preferences', () => {
 
     const expectedImportEdit = 'import { definition } from "~/definition/index";';
 
-    function getPreferences(): ts.UserPreferences {
+    function getPreferences(): TsUserPreferencesConfig {
         return {
-            importModuleSpecifierPreference: 'non-relative',
+            importModuleSpecifier: 'non-relative',
             importModuleSpecifierEnding: 'index'
         };
     }
 
     function createLSAndTSDocResolver(docManager: DocumentManager) {
-        return new LSAndTSDocResolver(docManager, [pathToUrl(testFilesDir)]);
+        const configManager = new LSConfigManager();
+        configManager.updateTsUserPreferences('typescript', getPreferences());
+        return new LSAndTSDocResolver(docManager, [pathToUrl(testFilesDir)], configManager);
     }
 
     it('provides auto import completion according to preferences', async () => {
         const { docManager, document } = setup('code-action.svelte');
         const lsAndTsDocResolver = createLSAndTSDocResolver(docManager);
-        const completionProvider = new CompletionsProviderImpl(lsAndTsDocResolver, getPreferences);
+        const completionProvider = new CompletionsProviderImpl(lsAndTsDocResolver);
 
         const completions = await completionProvider.getCompletions(
             document,
@@ -69,11 +71,10 @@ describe('ts user preferences', () => {
     ) {
         const { docManager, document } = setup(filename);
         const lsAndTsDocResolver = createLSAndTSDocResolver(docManager);
-        const completionProvider = new CompletionsProviderImpl(lsAndTsDocResolver, getPreferences);
+        const completionProvider = new CompletionsProviderImpl(lsAndTsDocResolver);
         const codeActionProvider = new CodeActionsProviderImpl(
             lsAndTsDocResolver,
-            completionProvider,
-            getPreferences
+            completionProvider
         );
 
         const codeAction = await codeActionProvider.getCodeActions(document, range, context);
@@ -85,7 +86,7 @@ describe('ts user preferences', () => {
 
     it('provides auto import code action according to preferences', async () => {
         const range = Range.create(Position.create(1, 4), Position.create(1, 14));
-        importCodeActionTest('code-action.svelte', range, {
+        await importCodeActionTest('code-action.svelte', range, {
             diagnostics: [
                 Diagnostic.create(
                     range,
@@ -95,14 +96,6 @@ describe('ts user preferences', () => {
                     'ts'
                 )
             ]
-        });
-    });
-
-    it('organizes imports according to preferences', async () => {
-        const range = Range.create(Position.create(1, 4), Position.create(1, 34));
-        importCodeActionTest('imports.svelte', range, {
-            diagnostics: [],
-            only: [CodeActionKind.SourceOrganizeImports]
         });
     });
 });

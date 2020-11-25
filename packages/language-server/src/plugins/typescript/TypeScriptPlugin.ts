@@ -95,16 +95,15 @@ export class TypeScriptPlugin
         workspaceUris: string[]
     ) {
         this.configManager = configManager;
-        this.lsAndTsDocResolver = new LSAndTSDocResolver(docManager, workspaceUris);
-        this.getUserPreferences = this.getUserPreferences.bind(this);
-        this.completionProvider = new CompletionsProviderImpl(
-            this.lsAndTsDocResolver,
-            this.getUserPreferences
+        this.lsAndTsDocResolver = new LSAndTSDocResolver(
+            docManager,
+            workspaceUris,
+            configManager
         );
+        this.completionProvider = new CompletionsProviderImpl(this.lsAndTsDocResolver);
         this.codeActionsProvider = new CodeActionsProviderImpl(
             this.lsAndTsDocResolver,
-            this.completionProvider,
-            this.getUserPreferences
+            this.completionProvider
         );
         this.updateImportsProvider = new UpdateImportsProviderImpl(this.lsAndTsDocResolver);
         this.diagnosticsProvider = new DiagnosticsProviderImpl(this.lsAndTsDocResolver);
@@ -423,19 +422,5 @@ export class TypeScriptPlugin
             this.configManager.enabled('typescript.enable') &&
             this.configManager.enabled(`typescript.${feature}.enable`)
         );
-    }
-
-    private getUserPreferences(): ts.UserPreferences {
-        const [
-            importModuleSpecifierPreference,
-            importModuleSpecifierEnding
-        ] = ['importModuleSpecifier', 'importModuleSpecifierEnding'].map((key) =>
-            this.configManager.get(`typescript.preferences.${key}`)
-        );
-
-        return {
-            importModuleSpecifierPreference,
-            importModuleSpecifierEnding
-        };
     }
 }
