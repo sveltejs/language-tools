@@ -167,6 +167,7 @@ export interface LSSvelteConfig {
 export interface TsUserPreferencesConfig {
     importModuleSpecifier?: UserPreferences['importModuleSpecifierPreference'];
     importModuleSpecifierEnding?: UserPreferences['importModuleSpecifierEnding'];
+    quoteStyle: UserPreferences['quotePreference'];
 }
 
 export type TsUserConfigLang = 'typescript' | 'javascript';
@@ -235,8 +236,9 @@ export class LSConfigManager {
     updateTsUserPreferences(lang: TsUserConfigLang, config: TsUserPreferencesConfig) {
         this.tsUserPreferences[lang] = Object.assign(this.tsUserPreferences[lang], {
             importModuleSpecifierPreference: config.importModuleSpecifier,
-            importModuleSpecifierEnding: config.importModuleSpecifierEnding
-        });
+            importModuleSpecifierEnding: config.importModuleSpecifierEnding,
+            quotePreference: config.quoteStyle
+        } as UserPreferences);
     }
 
     getTsUserPreferences(lang: TsUserConfigLang) {

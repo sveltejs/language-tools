@@ -33,12 +33,13 @@ describe('ts user preferences', () => {
         return { document, docManager };
     }
 
-    const expectedImportEdit = 'import { definition } from "~/definition/index";';
+    const expectedImportEdit = "import { definition } from '~/definition/index';";
 
     function getPreferences(): TsUserPreferencesConfig {
         return {
             importModuleSpecifier: 'non-relative',
-            importModuleSpecifierEnding: 'index'
+            importModuleSpecifierEnding: 'index',
+            quoteStyle: 'single'
         };
     }
 
