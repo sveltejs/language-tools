@@ -165,9 +165,13 @@ export interface LSSvelteConfig {
 }
 
 export interface TsUserPreferencesConfig {
-    importModuleSpecifier?: UserPreferences['importModuleSpecifierPreference'];
-    importModuleSpecifierEnding?: UserPreferences['importModuleSpecifierEnding'];
+    importModuleSpecifier: UserPreferences['importModuleSpecifierPreference'];
+    importModuleSpecifierEnding: UserPreferences['importModuleSpecifierEnding'];
     quoteStyle: UserPreferences['quotePreference'];
+    /**
+     * only in typescript config
+     */
+    includePackageJsonAutoImports?: UserPreferences['includePackageJsonAutoImports'];
 }
 
 export type TsUserConfigLang = 'typescript' | 'javascript';
@@ -237,7 +241,9 @@ export class LSConfigManager {
         this.tsUserPreferences[lang] = Object.assign(this.tsUserPreferences[lang], {
             importModuleSpecifierPreference: config.importModuleSpecifier,
             importModuleSpecifierEnding: config.importModuleSpecifierEnding,
+            includePackageJsonAutoImports: config.includePackageJsonAutoImports,
             quotePreference: config.quoteStyle
+
         } as UserPreferences);
     }
 
