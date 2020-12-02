@@ -90,7 +90,8 @@ function extractTags(text: string, tag: 'script' | 'style', html?: HTMLDocument)
         const nodes = rootNodes.slice(rootNodes.indexOf(tag));
         const rootContentAfterTag = nodes
             .map((node, idx) => {
-                return text.substring(node.end, nodes[idx + 1]?.start);
+                const start = node.startTagEnd ? node.end : node.start + (node.tag?.length || 0);
+                return text.substring(start, nodes[idx + 1]?.start);
             })
             .join('');
 

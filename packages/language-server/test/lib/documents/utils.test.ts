@@ -92,6 +92,28 @@ describe('document/utils', () => {
             });
         });
 
+        it('can extract with unclosed component after it', () => {
+            const extracted = extractStyleTag('<style></style><C {#if asd}<p>asd</p>{/if}');
+            assert.deepStrictEqual(extracted, {
+                start: 7,
+                end: 7,
+                startPos: {
+                    character: 7,
+                    line: 0
+                },
+                endPos: {
+                    character: 7,
+                    line: 0
+                },
+                attributes: {},
+                content: '',
+                container: {
+                    start: 0,
+                    end: 15
+                }
+            });
+        });
+
         it('extracts style tag', () => {
             const text = `
                 <p>bla</p>
