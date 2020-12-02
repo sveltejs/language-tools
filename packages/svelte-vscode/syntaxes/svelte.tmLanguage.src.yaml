@@ -216,7 +216,7 @@ repository:
       end: (?=})
       patterns:
       # Start expression.
-      - begin: \G
+      - begin: \G\s*?(?=\S)
         end: (?=(?:^\s*|\s+)(as))
         contentName: meta.embedded.expression.svelte source.ts
         patterns: [ include: source.ts ]
@@ -244,7 +244,7 @@ repository:
       end: (?=})
       patterns:
       # Promise expression.
-      - begin: \G
+      - begin: \G\s*?(?=\S)
         end: \s+(then)|(?=})
         endCaptures: { 1: { name: keyword.control.flow.svelte } }
         contentName: meta.embedded.expression.svelte source.ts
