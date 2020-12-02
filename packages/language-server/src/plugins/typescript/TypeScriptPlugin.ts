@@ -95,7 +95,11 @@ export class TypeScriptPlugin
         workspaceUris: string[]
     ) {
         this.configManager = configManager;
-        this.lsAndTsDocResolver = new LSAndTSDocResolver(docManager, workspaceUris);
+        this.lsAndTsDocResolver = new LSAndTSDocResolver(
+            docManager,
+            workspaceUris,
+            configManager
+        );
         this.completionProvider = new CompletionsProviderImpl(this.lsAndTsDocResolver);
         this.codeActionsProvider = new CodeActionsProviderImpl(
             this.lsAndTsDocResolver,

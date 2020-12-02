@@ -3,6 +3,7 @@ import * as path from 'path';
 import ts from 'typescript';
 import { Hover, Position } from 'vscode-languageserver';
 import { Document, DocumentManager } from '../../../../src/lib/documents';
+import { LSConfigManager } from '../../../../src/ls-config';
 import { HoverProviderImpl } from '../../../../src/plugins/typescript/features/HoverProvider';
 import { LSAndTSDocResolver } from '../../../../src/plugins/typescript/LSAndTSDocResolver';
 import { pathToUrl } from '../../../../src/utils';
@@ -18,7 +19,11 @@ describe('HoverProvider', () => {
         const docManager = new DocumentManager(
             (textDocument) => new Document(textDocument.uri, textDocument.text)
         );
-        const lsAndTsDocResolver = new LSAndTSDocResolver(docManager, [testDir]);
+        const lsAndTsDocResolver = new LSAndTSDocResolver(
+            docManager,
+            [testDir],
+            new LSConfigManager()
+        );
         const provider = new HoverProviderImpl(lsAndTsDocResolver);
         const document = openDoc(filename);
         return { provider, document };

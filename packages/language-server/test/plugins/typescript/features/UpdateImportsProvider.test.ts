@@ -10,6 +10,7 @@ import {
     VersionedTextDocumentIdentifier
 } from 'vscode-languageserver';
 import { Document, DocumentManager } from '../../../../src/lib/documents';
+import { LSConfigManager } from '../../../../src/ls-config';
 import { UpdateImportsProviderImpl } from '../../../../src/plugins/typescript/features/UpdateImportsProvider';
 import { LSAndTSDocResolver } from '../../../../src/plugins/typescript/LSAndTSDocResolver';
 import { pathToUrl } from '../../../../src/utils';
@@ -22,7 +23,11 @@ describe('UpdateImportsProviderImpl', () => {
         const docManager = new DocumentManager(
             (textDocument) => new Document(textDocument.uri, textDocument.text)
         );
-        const lsAndTsDocResolver = new LSAndTSDocResolver(docManager, [pathToUrl(testDir)]);
+        const lsAndTsDocResolver = new LSAndTSDocResolver(
+            docManager,
+            [pathToUrl(testDir)],
+            new LSConfigManager()
+        );
         const updateImportsProvider = new UpdateImportsProviderImpl(lsAndTsDocResolver);
         const filePath = join(testFilesDir, filename);
         const fileUri = pathToUrl(filePath);

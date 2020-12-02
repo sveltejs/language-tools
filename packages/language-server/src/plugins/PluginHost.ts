@@ -24,7 +24,7 @@ import {
     SignatureHelp,
     SignatureHelpContext
 } from 'vscode-languageserver';
-import { LSConfig, LSConfigManager } from '../ls-config';
+import { LSConfig, LSConfigManager, TsUserConfigLang, TsUserPreferencesConfig } from '../ls-config';
 import { DocumentManager } from '../lib/documents';
 import {
     LSProvider,
@@ -51,7 +51,7 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         definitionLinkSupport: false
     };
 
-    constructor(private documentsManager: DocumentManager, private config: LSConfigManager) {}
+    constructor(private documentsManager: DocumentManager, private config: LSConfigManager) { }
 
     initialize(pluginHostConfig: LSPProviderConfig) {
         this.pluginHostConfig = pluginHostConfig;
@@ -63,6 +63,16 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
 
     updateConfig(config: LSConfig) {
         this.config.update(config);
+    }
+
+    updateTsUserPreferences(config: Record<TsUserConfigLang, {
+        preferences: TsUserPreferencesConfig
+    }>) {
+        (['typescript', 'javascript'] as const).forEach((lang) => {
+            if (config[lang]?.preferences) {
+                this.config.updateTsUserPreferences(lang, config[lang].preferences);
+            }
+        });
     }
 
     async getDiagnostics(textDocument: TextDocumentIdentifier): Promise<Diagnostic[]> {
