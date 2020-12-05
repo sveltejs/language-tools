@@ -140,16 +140,16 @@ function render() {
 				{ chapter.html}
 
 				<div class="controls">
-					{() => {if (chapter.app_b){<>
+					{(chapter.app_b) ? <>
 						
 						<button class="show" onclick={() => completed ? reset() : complete()}>
 							{completed ? 'Reset' : 'Show me'}
 						</button>
-					</>}}}
+					</> : <></>}
 
-					{() => {if (selected.next){<>
+					{(selected.next) ? <>
 						<a class="next" href={`tutorial/${selected.next.slug}`}>Next</a>
-					</>}}}
+					</> : <></>}
 				</div>
 
 				<div class="improve-chapter">
@@ -173,9 +173,9 @@ function render() {
 		</div>
 	</div>
 
-	{() => {if (mobile){<>
+	{(mobile) ? <>
 		<ScreenToggle offset={offset} labels={['tutorial', 'input', 'output']}/>
-	</>}}}
+	</> : <></>}
 </div>
 </>);
 return { props: {slug: slug , chapter: chapter}, slots: {}, getters: {}, events: {} }}

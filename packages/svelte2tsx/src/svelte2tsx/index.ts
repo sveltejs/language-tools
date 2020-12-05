@@ -38,7 +38,7 @@ interface AddComponentExportPara {
     uses$$propsOr$$restProps: boolean;
     strictMode: boolean;
     /**
-     * If true, not fallback to `CustomEvent<any>`
+     * If true, not fallback to `any`
      * -> all unknown events will throw a type error
      * */
     strictEvents: boolean;

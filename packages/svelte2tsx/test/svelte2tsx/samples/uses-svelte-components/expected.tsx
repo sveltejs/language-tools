@@ -1,8 +1,8 @@
 ///<reference types="svelte" />
 <></>;function render() {
-<>{() => {if (true){<>
+<>{(true) ? <>
 <svelteself prop1={1} />
-</>}}}
+</> : <></>}
 <sveltecomponent this={testComponent} propa={5}>
     <h1>content</h1>
 </sveltecomponent>
