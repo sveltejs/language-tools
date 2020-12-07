@@ -91,6 +91,7 @@ type SvelteAnimation<U extends any[]> = (node: Element, move: { from: DOMRect, t
 }
 
 type SvelteAllProps = { [index: string]: any }
+type SveltePropsAnyFallback<Props> = {[K in keyof Props]: Props[K] extends undefined ? any : Props[K]}
 type SvelteRestProps = { [index: string]: any }
 type SvelteSlots = { [index: string]: any }
 type SvelteStore<T> = { subscribe: (run: (value: T) => any, invalidate?: any) => any }
@@ -114,8 +115,14 @@ declare function __sveltets_restPropsType(): SvelteRestProps
 declare function __sveltets_slotsType<Slots, Key extends keyof Slots>(slots: Slots): Record<Key, boolean>;
 declare function __sveltets_partial<Props = {}, Events = {}, Slots = {}>(
     render: () => {props?: Props, events?: Events, slots?: Slots }
-): () => {props?: Partial<Props>, events?: Events, slots?: Slots }
+): () => {props?: Partial<SveltePropsAnyFallback<Props>>, events?: Events, slots?: Slots }
 declare function __sveltets_partial_with_any<Props = {}, Events = {}, Slots = {}>(
+    render: () => {props?: Props, events?: Events, slots?: Slots }
+): () => {props?: Partial<SveltePropsAnyFallback<Props>> & SvelteAllProps, events?: Events, slots?: Slots }
+declare function __sveltets_partial_ts<Props = {}, Events = {}, Slots = {}>(
+    render: () => {props?: Props, events?: Events, slots?: Slots }
+): () => {props?: Partial<Props>, events?: Events, slots?: Slots }
+declare function __sveltets_partial_ts_with_any<Props = {}, Events = {}, Slots = {}>(
     render: () => {props?: Props, events?: Events, slots?: Slots }
 ): () => {props?: Partial<Props> & SvelteAllProps, events?: Events, slots?: Slots }
 declare function __sveltets_with_any<Props = {}, Events = {}, Slots = {}>(
