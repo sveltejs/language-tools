@@ -82,12 +82,12 @@
 	</>)}
 </svg>
 
-{() => {if (adjusting){<>
+{(adjusting) ? <>
 	<div class="adjuster">
 		<p>adjust diameter of circle at {selected.cx}, {selected.cy}</p>
 		<input type="range" value={selected.r} oninput={adjust}/>
 	</div>
-</>}}}</>);
+</> : <></>}</>);
 return { props: {}, slots: {}, getters: {}, events: {} }}
 
 export default class Input__SvelteComponent_ extends createSvelte2TsxComponent(__sveltets_partial(__sveltets_with_any_event(render))) {

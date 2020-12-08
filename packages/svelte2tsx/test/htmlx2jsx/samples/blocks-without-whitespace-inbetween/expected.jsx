@@ -1,1 +1,1 @@
-<>{() => {if (name == "world"){<>!</>}}}{__sveltets_each(x, (y) => <>!</>)}{() => {let _$$p = (x); __sveltets_awaitThen(_$$p, (y) => {<>!</>})}}{() => {if (bla){<>*</>}}}</>
+<>{(name == "world") ? <>!</> : <></>}{__sveltets_each(x, (y) => <>!</>)}{() => {let _$$p = (x); __sveltets_awaitThen(_$$p, (y) => {<>!</>})}}{(bla) ? <>*</> : <></>}</>
