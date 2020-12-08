@@ -325,6 +325,7 @@ declare namespace svelte.JSX {
       novalidate?: boolean;
       open?: boolean;
       optimum?: number;
+      part?: string;
       pattern?: string;
       placeholder?: string;
       playsinline?: boolean;
