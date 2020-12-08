@@ -290,7 +290,9 @@ function addComponentExport({
             ? uses$$propsOr$$restProps
                 ? `__sveltets_with_any(${eventsDef})`
                 : eventsDef
-            : `__sveltets_partial${uses$$propsOr$$restProps ? '_with_any' : ''}(${eventsDef})`;
+            : `__sveltets_partial${isTsFile ? '_ts' : ''}${
+                  uses$$propsOr$$restProps ? '_with_any' : ''
+              }(${eventsDef})`;
 
     const doc = componentDocumentation.getFormatted();
     const className = fileName && classNameFromFilename(fileName);
