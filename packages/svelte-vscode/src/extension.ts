@@ -122,15 +122,28 @@ export function activate(context: ExtensionContext) {
         context.subscriptions.push(disposable);
     });
 
+    workspace.onDidSaveTextDocument(async (doc) => {
+        const parts = doc.uri.toString().split(/\/|\\/);
+        if (['tsconfig.json', 'jsconfig.json'].includes(parts[parts.length - 1])) {
+            await restartLS(false);
+        }
+    });
+
     context.subscriptions.push(
         commands.registerCommand('svelte.restartLanguageServer', async () => {
-            await ls.stop();
-            ls = createLanguageServer(serverOptions, clientOptions);
-            context.subscriptions.push(ls.start());
-            await ls.onReady();
-            window.showInformationMessage('Svelte language server restarted.');
+            await restartLS(true);
         })
     );
+
+    async function restartLS(showNotification: boolean) {
+        await ls.stop();
+        ls = createLanguageServer(serverOptions, clientOptions);
+        context.subscriptions.push(ls.start());
+        await ls.onReady();
+        if (showNotification) {
+            window.showInformationMessage('Svelte language server restarted.');
+        }
+    }
 
     function getLS() {
         return ls;
