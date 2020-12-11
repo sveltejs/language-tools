@@ -1,4 +1,4 @@
-import { EmmetConfiguration, getEmmetCompletionParticipants } from 'vscode-emmet-helper';
+import { getEmmetCompletionParticipants } from 'vscode-emmet-helper';
 import {
     getLanguageService,
     HTMLDocument,
@@ -33,11 +33,7 @@ export class HTMLPlugin implements HoverProvider, CompletionsProvider {
     private documents = new WeakMap<Document, HTMLDocument>();
     private styleScriptTemplate = new Set(['template', 'style', 'script']);
 
-    constructor(
-        docManager: DocumentManager,
-        configManager: LSConfigManager,
-        private emmetConfig?: EmmetConfiguration
-    ) {
+    constructor(docManager: DocumentManager, configManager: LSConfigManager) {
         this.configManager = configManager;
         docManager.on('documentChange', (document) => {
             this.documents.set(document, document.html);
@@ -84,7 +80,7 @@ export class HTMLPlugin implements HoverProvider, CompletionsProvider {
                 document,
                 position,
                 'html',
-                this.emmetConfig || {},
+                this.configManager.getEmmetConfig(),
                 emmetResults
             )
         ]);

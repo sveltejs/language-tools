@@ -21,7 +21,7 @@ export class SvelteCheck {
         (textDocument) => new Document(textDocument.uri, textDocument.text)
     );
     private configManager = new LSConfigManager();
-    private pluginHost = new PluginHost(this.docManager, this.configManager);
+    private pluginHost = new PluginHost(this.docManager);
 
     constructor(workspacePath: string, options: SvelteCheckOptions = {}) {
         Logger.setLogErrorsOnly(true);
@@ -36,7 +36,7 @@ export class SvelteCheck {
         });
         // No HTMLPlugin, it does not provide diagnostics
         if (shouldRegister('svelte')) {
-            this.pluginHost.register(new SveltePlugin(this.configManager, {}));
+            this.pluginHost.register(new SveltePlugin(this.configManager));
         }
         if (shouldRegister('css')) {
             this.pluginHost.register(new CSSPlugin(this.docManager, this.configManager));
