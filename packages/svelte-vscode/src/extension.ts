@@ -226,7 +226,14 @@ export function activate(context: ExtensionContext) {
 function addRenameFileListener(getLS: () => LanguageClient) {
     workspace.onDidRenameFiles(async (evt) => {
         const oldUri = evt.files[0].oldUri.toString(true);
-        if (!['.ts', '.js', '.json', '.svelte'].some((ending) => oldUri.endsWith(ending))) {
+        const parts = oldUri.split(/\/|\\/);
+        const lastPart = parts[parts.length - 1];
+        // If user moves/renames a folder, the URI only contains the parts up to that folder,
+        // and not files. So in case the URI does not contain a '.', check for imports to update.
+        if (
+            lastPart.includes('.') &&
+            !['.ts', '.js', '.json', '.svelte'].some((ending) => lastPart.endsWith(ending))
+        ) {
             return;
         }
 
