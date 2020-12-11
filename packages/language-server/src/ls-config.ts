@@ -1,5 +1,6 @@
 import { merge, get } from 'lodash';
 import { UserPreferences } from 'typescript';
+import { EmmetConfiguration } from 'vscode-emmet-helper';
 
 /**
  * Default config for the language server.
@@ -91,7 +92,7 @@ export interface LSTypescriptConfig {
     };
     signatureHelp: {
         enable: boolean;
-    }
+    };
 }
 
 export interface LSCSSConfig {
@@ -188,7 +189,9 @@ export class LSConfigManager {
     private tsUserPreferences: Record<TsUserConfigLang, UserPreferences> = {
         typescript: {},
         javascript: {}
-    }
+    };
+    private prettierConfig: any = {};
+    private emmetConfig: EmmetConfiguration = {};
 
     /**
      * Updates config.
@@ -237,13 +240,43 @@ export class LSConfigManager {
         this.listeners.push(callback);
     }
 
-    updateTsUserPreferences(lang: TsUserConfigLang, config: TsUserPreferencesConfig) {
+    updateEmmetConfig(config: EmmetConfiguration): void {
+        this.emmetConfig = config || {};
+    }
+
+    getEmmetConfig(): EmmetConfiguration {
+        return this.emmetConfig;
+    }
+
+    updatePrettierConfig(config: any): void {
+        this.prettierConfig = config || {};
+    }
+
+    getPrettierConfig(): any {
+        return this.prettierConfig;
+    }
+
+    updateTsJsUserPreferences(
+        config: Record<
+            TsUserConfigLang,
+            {
+                preferences: TsUserPreferencesConfig;
+            }
+        >
+    ): void {
+        (['typescript', 'javascript'] as const).forEach((lang) => {
+            if (config[lang]?.preferences) {
+                this._updateTsUserPreferences(lang, config[lang].preferences);
+            }
+        });
+    }
+
+    private _updateTsUserPreferences(lang: TsUserConfigLang, config: TsUserPreferencesConfig) {
         this.tsUserPreferences[lang] = Object.assign(this.tsUserPreferences[lang], {
             importModuleSpecifierPreference: config.importModuleSpecifier,
             importModuleSpecifierEnding: config.importModuleSpecifierEnding,
             includePackageJsonAutoImports: config.includePackageJsonAutoImports,
             quotePreference: config.quoteStyle
-
         } as UserPreferences);
     }
 

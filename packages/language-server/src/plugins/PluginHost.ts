@@ -5,38 +5,37 @@ import {
     Color,
     ColorInformation,
     ColorPresentation,
+    CompletionContext,
+    CompletionItem,
     CompletionList,
     DefinitionLink,
     Diagnostic,
+    FormattingOptions,
     Hover,
+    Location,
     Position,
     Range,
+    ReferenceContext,
+    SelectionRange,
+    SignatureHelp,
+    SignatureHelpContext,
     SymbolInformation,
     TextDocumentIdentifier,
     TextEdit,
-    CompletionItem,
-    CompletionContext,
-    WorkspaceEdit,
-    FormattingOptions,
-    ReferenceContext,
-    Location,
-    SelectionRange,
-    SignatureHelp,
-    SignatureHelpContext
+    WorkspaceEdit
 } from 'vscode-languageserver';
-import { LSConfig, LSConfigManager, TsUserConfigLang, TsUserPreferencesConfig } from '../ls-config';
 import { DocumentManager } from '../lib/documents';
+import { Logger } from '../logger';
+import { regexLastIndexOf } from '../utils';
 import {
-    LSProvider,
-    Plugin,
-    OnWatchFileChanges,
     AppCompletionItem,
     FileRename,
     LSPProviderConfig,
-    OnWatchFileChangesPara
+    LSProvider,
+    OnWatchFileChanges,
+    OnWatchFileChangesPara,
+    Plugin
 } from './interfaces';
-import { Logger } from '../logger';
-import { regexLastIndexOf } from '../utils';
 
 enum ExecuteMode {
     None,
@@ -51,7 +50,7 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         definitionLinkSupport: false
     };
 
-    constructor(private documentsManager: DocumentManager, private config: LSConfigManager) { }
+    constructor(private documentsManager: DocumentManager) {}
 
     initialize(pluginHostConfig: LSPProviderConfig) {
         this.pluginHostConfig = pluginHostConfig;
@@ -59,20 +58,6 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
 
     register(plugin: Plugin) {
         this.plugins.push(plugin);
-    }
-
-    updateConfig(config: LSConfig) {
-        this.config.update(config);
-    }
-
-    updateTsUserPreferences(config: Record<TsUserConfigLang, {
-        preferences: TsUserPreferencesConfig
-    }>) {
-        (['typescript', 'javascript'] as const).forEach((lang) => {
-            if (config[lang]?.preferences) {
-                this.config.updateTsUserPreferences(lang, config[lang].preferences);
-            }
-        });
     }
 
     async getDiagnostics(textDocument: TextDocumentIdentifier): Promise<Diagnostic[]> {
@@ -397,16 +382,18 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         }
 
         try {
-            return Promise.all(positions.map(async (position) => {
-                for (const plugin of this.plugins) {
-                    const range = await plugin.getSelectionRange?.(document, position);
+            return Promise.all(
+                positions.map(async (position) => {
+                    for (const plugin of this.plugins) {
+                        const range = await plugin.getSelectionRange?.(document, position);
 
-                    if (range) {
-                        return range;
+                        if (range) {
+                            return range;
+                        }
                     }
-                }
-                return SelectionRange.create(Range.create(position, position));
-            }));
+                    return SelectionRange.create(Range.create(position, position));
+                })
+            );
         } catch (error) {
             Logger.error(error);
             return null;

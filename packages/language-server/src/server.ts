@@ -83,7 +83,7 @@ export function startServer(options?: LSOptions) {
         (textDocument) => new Document(textDocument.uri, textDocument.text)
     );
     const configManager = new LSConfigManager();
-    const pluginHost = new PluginHost(docManager, configManager);
+    const pluginHost = new PluginHost(docManager);
     let sveltePlugin: SveltePlugin = undefined as any;
 
     connection.onInitialize((evt) => {
@@ -95,25 +95,19 @@ export function startServer(options?: LSOptions) {
             Logger.error('No workspace path set');
         }
 
+        configManager.update(evt.initializationOptions?.config || {});
+        configManager.updateTsJsUserPreferences(evt.initializationOptions?.typescriptConfig || {});
+        configManager.updateEmmetConfig(evt.initializationOptions?.emmetConfig || {});
+        configManager.updatePrettierConfig(evt.initializationOptions?.prettierConfig || {});
+
         pluginHost.initialize({
             filterIncompleteCompletions: !evt.initializationOptions
                 ?.dontFilterIncompleteCompletions,
             definitionLinkSupport: !!evt.capabilities.textDocument?.definition?.linkSupport
         });
-        pluginHost.updateConfig(evt.initializationOptions?.config || {});
-        pluginHost.updateTsUserPreferences(evt.initializationOptions?.typescriptConfig || {});
-        pluginHost.register(
-            (sveltePlugin = new SveltePlugin(
-                configManager,
-                evt.initializationOptions?.prettierConfig
-            ))
-        );
-        pluginHost.register(
-            new HTMLPlugin(docManager, configManager, evt.initializationOptions?.emmetConfig)
-        );
-        pluginHost.register(
-            new CSSPlugin(docManager, configManager, evt.initializationOptions?.emmetConfig)
-        );
+        pluginHost.register((sveltePlugin = new SveltePlugin(configManager)));
+        pluginHost.register(new HTMLPlugin(docManager, configManager));
+        pluginHost.register(new CSSPlugin(docManager, configManager));
         pluginHost.register(new TypeScriptPlugin(docManager, configManager, workspaceUris));
 
         const clientSupportApplyEditCommand = !!evt.capabilities.workspace?.applyEdit;
@@ -206,8 +200,10 @@ export function startServer(options?: LSOptions) {
     connection.onPrepareRename((req) => pluginHost.prepareRename(req.textDocument, req.position));
 
     connection.onDidChangeConfiguration(({ settings }) => {
-        pluginHost.updateConfig(settings.svelte?.plugin);
-        pluginHost.updateTsUserPreferences(settings);
+        configManager.update(settings.svelte?.plugin);
+        configManager.updateTsJsUserPreferences(settings);
+        configManager.updateEmmetConfig(settings.emmet);
+        configManager.updatePrettierConfig(settings.prettier);
     });
 
     connection.onDidOpenTextDocument((evt) => {
@@ -284,10 +280,12 @@ export function startServer(options?: LSOptions) {
     );
 
     connection.onDidChangeWatchedFiles((para) => {
-        const onWatchFileChangesParas = para.changes.map((change) => ({
-            fileName: urlToPath(change.uri),
-            changeType: change.type
-        })).filter((change): change is OnWatchFileChangesPara => !!change.fileName);
+        const onWatchFileChangesParas = para.changes
+            .map((change) => ({
+                fileName: urlToPath(change.uri),
+                changeType: change.type
+            }))
+            .filter((change): change is OnWatchFileChangesPara => !!change.fileName);
 
         pluginHost.onWatchFileChanges(onWatchFileChangesParas);
 

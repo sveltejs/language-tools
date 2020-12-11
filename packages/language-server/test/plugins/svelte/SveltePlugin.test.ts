@@ -11,7 +11,8 @@ describe('Svelte Plugin', () => {
         const document = new Document('file:///hello.svelte', content);
         const docManager = new DocumentManager(() => document);
         const pluginManager = new LSConfigManager();
-        const plugin = new SveltePlugin(pluginManager, prettierConfig);
+        pluginManager.updatePrettierConfig(prettierConfig);
+        const plugin = new SveltePlugin(pluginManager);
         docManager.openDocument(<any>'some doc');
         return { plugin, document };
     }

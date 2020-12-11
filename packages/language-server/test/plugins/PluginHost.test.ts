@@ -31,7 +31,7 @@ describe('PluginHost', () => {
             (textDocument) => new Document(textDocument.uri, textDocument.text)
         );
 
-        const pluginHost = new PluginHost(docManager, <any>{});
+        const pluginHost = new PluginHost(docManager);
         const plugin = {
             ...pluginProviderStubs
         };

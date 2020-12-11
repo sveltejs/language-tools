@@ -45,7 +45,10 @@ describe('ts user preferences', () => {
 
     function createLSAndTSDocResolver(docManager: DocumentManager) {
         const configManager = new LSConfigManager();
-        configManager.updateTsUserPreferences('typescript', getPreferences());
+        configManager.updateTsJsUserPreferences({
+            typescript: { preferences: getPreferences() },
+            javascript: { preferences: {} as any }
+        });
         return new LSAndTSDocResolver(docManager, [pathToUrl(testFilesDir)], configManager);
     }
 

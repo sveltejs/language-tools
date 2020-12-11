@@ -1,8 +1,4 @@
-import {
-    getEmmetCompletionParticipants,
-    doComplete as doEmmetComplete,
-    EmmetConfiguration
-} from 'vscode-emmet-helper';
+import { getEmmetCompletionParticipants, doComplete as doEmmetComplete } from 'vscode-emmet-helper';
 import {
     Color,
     ColorInformation,
@@ -28,7 +24,8 @@ import {
     mapSymbolInformationToOriginal,
     mapObjWithRangeToOriginal,
     mapHoverToParent,
-    mapSelectionRangeToParent, isInTag
+    mapSelectionRangeToParent,
+    isInTag
 } from '../../lib/documents';
 import { LSConfigManager, LSCSSConfig } from '../../ls-config';
 import {
@@ -58,11 +55,7 @@ export class CSSPlugin
     private triggerCharacters = ['.', ':', '-', '/'];
     private globalVars = new GlobalVars();
 
-    constructor(
-        docManager: DocumentManager,
-        configManager: LSConfigManager,
-        private emmetConfig?: EmmetConfiguration
-    ) {
+    constructor(docManager: DocumentManager, configManager: LSConfigManager) {
         this.configManager = configManager;
 
         this.globalVars.watchFiles(this.configManager.get('css.globals'));
@@ -81,12 +74,11 @@ export class CSSPlugin
         }
 
         const cssDocument = this.getCSSDoc(document);
-        const [range] = getLanguageService(extractLanguage(cssDocument))
-            .getSelectionRanges(
-                cssDocument,
-                [cssDocument.getGeneratedPosition(position)],
-                cssDocument.stylesheet
-            );
+        const [range] = getLanguageService(extractLanguage(cssDocument)).getSelectionRanges(
+            cssDocument,
+            [cssDocument.getGeneratedPosition(position)],
+            cssDocument.stylesheet
+        );
 
         if (!range) {
             return null;
@@ -160,7 +152,7 @@ export class CSSPlugin
         if (isSASS(cssDocument)) {
             // the css language service does not support sass, still we can use
             // the emmet helper directly to at least get emmet completions
-            return doEmmetComplete(document, position, 'sass', this.emmetConfig || {});
+            return doEmmetComplete(document, position, 'sass', this.configManager.getEmmetConfig());
         }
 
         const type = extractLanguage(cssDocument);
@@ -178,7 +170,7 @@ export class CSSPlugin
                 cssDocument,
                 cssDocument.getGeneratedPosition(position),
                 getLanguage(type),
-                this.emmetConfig || {},
+                this.configManager.getEmmetConfig(),
                 emmetResults
             )
         ]);

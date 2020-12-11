@@ -40,7 +40,7 @@ export class SveltePlugin
         SelectionRangeProvider {
     private docManager = new Map<Document, SvelteDocument>();
 
-    constructor(private configManager: LSConfigManager, private prettierConfig?: any) {}
+    constructor(private configManager: LSConfigManager) {}
 
     async getDiagnostics(document: Document): Promise<Diagnostic[]> {
         if (!this.featureEnabled('diagnostics')) {
@@ -73,7 +73,7 @@ export class SveltePlugin
         // Try resolving the config through prettier and fall back to possible editor config
         const config =
             returnObjectIfHasKeys(await prettier.resolveConfig(filePath, { editorconfig: true })) ||
-            returnObjectIfHasKeys(this.prettierConfig) ||
+            returnObjectIfHasKeys(this.configManager.getPrettierConfig()) ||
             // Be defensive here because IDEs other than VSCode might not have these settings
             (options && {
                 tabWidth: options.tabSize,
@@ -81,7 +81,7 @@ export class SveltePlugin
             });
         // Take .prettierignore into account
         const fileInfo = await prettier.getFileInfo(filePath, {
-            ignorePath: this.prettierConfig?.ignorePath ?? '.prettierignore',
+            ignorePath: this.configManager.getPrettierConfig()?.ignorePath ?? '.prettierignore',
             // Sapper places stuff within src/node_modules, we want to format that, too
             withNodeModules: true
         });
