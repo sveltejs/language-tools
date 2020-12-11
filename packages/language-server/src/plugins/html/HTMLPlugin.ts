@@ -75,15 +75,17 @@ export class HTMLPlugin implements HoverProvider, CompletionsProvider {
             isIncomplete: true,
             items: []
         };
-        this.lang.setCompletionParticipants([
-            getEmmetCompletionParticipants(
-                document,
-                position,
-                'html',
-                this.configManager.getEmmetConfig(),
-                emmetResults
-            )
-        ]);
+        if (this.configManager.getConfig().html.completions.emmet) {
+            this.lang.setCompletionParticipants([
+                getEmmetCompletionParticipants(
+                    document,
+                    position,
+                    'html',
+                    this.configManager.getEmmetConfig(),
+                    emmetResults
+                )
+            ]);
+        }
         const results = this.isInComponentTag(html, document, position)
             ? // Only allow emmet inside component element tags.
               // Other attributes/events would be false positives.

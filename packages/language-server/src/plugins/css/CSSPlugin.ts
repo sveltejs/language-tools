@@ -165,15 +165,17 @@ export class CSSPlugin
             isIncomplete: true,
             items: []
         };
-        lang.setCompletionParticipants([
-            getEmmetCompletionParticipants(
-                cssDocument,
-                cssDocument.getGeneratedPosition(position),
-                getLanguage(type),
-                this.configManager.getEmmetConfig(),
-                emmetResults
-            )
-        ]);
+        if (this.configManager.getConfig().css.completions.emmet) {
+            lang.setCompletionParticipants([
+                getEmmetCompletionParticipants(
+                    cssDocument,
+                    cssDocument.getGeneratedPosition(position),
+                    getLanguage(type),
+                    this.configManager.getEmmetConfig(),
+                    emmetResults
+                )
+            ]);
+        }
         const results = lang.doComplete(
             cssDocument,
             cssDocument.getGeneratedPosition(position),
