@@ -160,6 +160,12 @@
                     "title": "CSS: Auto Complete",
                     "description": "Enable auto completions for CSS"
                 },
+                "svelte.plugin.css.completions.emmet": {
+                    "type": "boolean",
+                    "default": true,
+                    "title": "CSS: Include Emmet Completions",
+                    "description": "Enable emmet auto completions for CSS"
+                },
                 "svelte.plugin.css.documentColors.enable": {
                     "type": "boolean",
                     "default": true,
@@ -201,6 +207,12 @@
                     "default": true,
                     "title": "HTML: Auto Complete",
                     "description": "Enable auto completions for HTML"
+                },
+                "svelte.plugin.html.completions.emmet": {
+                    "type": "boolean",
+                    "default": true,
+                    "title": "HTML: Include Emmet Completions",
+                    "description": "Enable emmet auto completions for HTML"
                 },
                 "svelte.plugin.html.tagComplete.enable": {
                     "type": "boolean",

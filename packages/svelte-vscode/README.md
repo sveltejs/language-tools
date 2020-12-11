@@ -80,35 +80,35 @@ If you experience crashes due to "port already in use", try setting the port.
 
 Enable the TypeScript plugin. _Default_: `true`
 
-##### `svelte.plugin.typescript.diagnostics`
+##### `svelte.plugin.typescript.diagnostics.enable`
 
 Enable diagnostic messages for TypeScript. _Default_: `true`
 
-##### `svelte.plugin.typescript.hover`
+##### `svelte.plugin.typescript.hover.enable`
 
 Enable hover info for TypeScript. _Default_: `true`
 
-##### `svelte.plugin.typescript.documentSymbols`
+##### `svelte.plugin.typescript.documentSymbols.enable`
 
 Enable document symbols for TypeScript. _Default_: `true`
 
-##### `svelte.plugin.typescript.completions`
+##### `svelte.plugin.typescript.completions.enable`
 
 Enable completions for TypeScript. _Default_: `true`
 
-##### `svelte.plugin.typescript.findReferences`
+##### `svelte.plugin.typescript.findReferences.enable`
 
 Enable find-references for TypeScript. _Default_: `true`
 
-##### `svelte.plugin.typescript.definitions`
+##### `svelte.plugin.typescript.definitions.enable`
 
 Enable go to definition for TypeScript. _Default_: `true`
 
-##### `svelte.plugin.typescript.codeActions`
+##### `svelte.plugin.typescript.codeActions.enable`
 
 Enable code actions for TypeScript. _Default_: `true`
 
-##### `svelte.plugin.typescript.selectionRange`
+##### `svelte.plugin.typescript.selectionRange.enable`
 
 Enable selection range for TypeScript. _Default_: `true`
 
@@ -128,31 +128,36 @@ Enable the CSS plugin. _Default_: `true`
 
 Which css files should be checked for global variables (`--global-var: value;`). These variables are added to the css completions. String of comma-separated file paths or globs relative to workspace root.
 
-##### `svelte.plugin.css.diagnostics`
+##### `svelte.plugin.css.diagnostics.enable`
 
 Enable diagnostic messages for CSS. _Default_: `true`
 
-##### `svelte.plugin.css.hover`
+##### `svelte.plugin.css.hover.enable`
 
 Enable hover info for CSS. _Default_: `true`
 
-##### `svelte.plugin.css.completions`
+##### `svelte.plugin.css.completions.enable`
 
 Enable auto completions for CSS. _Default_: `true`
 
-##### `svelte.plugin.css.documentColors`
+##### `svelte.plugin.css.completions.emmet`
+
+Enable emmet auto completions for CSS. _Default_: `true`
+If you want to disable emmet completely everywhere (not just Svelte), you can also set `"emmet.showExpandedAbbreviation": "never"` in your settings.
+
+##### `svelte.plugin.css.documentColors.enable`
 
 Enable document colors for CSS. _Default_: `true`
 
-##### `svelte.plugin.css.colorPresentations`
+##### `svelte.plugin.css.colorPresentations.enable`
 
 Enable color picker for CSS. _Default_: `true`
 
-##### `svelte.plugin.css.documentSymbols`
+##### `svelte.plugin.css.documentSymbols.enable`
 
 Enable document symbols for CSS. _Default_: `true`
 
-##### `svelte.plugin.css.selectionRange`
+##### `svelte.plugin.css.selectionRange.enable`
 
 Enable selection range for CSS. _Default_: `true`
 
@@ -160,19 +165,24 @@ Enable selection range for CSS. _Default_: `true`
 
 Enable the HTML plugin. _Default_: `true`
 
-##### `svelte.plugin.html.hover`
+##### `svelte.plugin.html.hover.enable`
 
 Enable hover info for HTML. _Default_: `true`
 
-##### `svelte.plugin.html.completions`
+##### `svelte.plugin.html.completions.enable`
 
 Enable auto completions for HTML. _Default_: `true`
 
-##### `svelte.plugin.html.tagComplete`
+##### `svelte.plugin.html.completions.emmet`
+
+Enable emmet auto completions for HTML. _Default_: `true`
+If you want to disable emmet completely everywhere (not just Svelte), you can also set `"emmet.showExpandedAbbreviation": "never"` in your settings.
+
+##### `svelte.plugin.html.tagComplete.enable`
 
 Enable HTML tag auto closing. _Default_: `true`
 
-##### `svelte.plugin.html.documentSymbols`
+##### `svelte.plugin.html.documentSymbols.enable`
 
 Enable document symbols for HTML. _Default_: `true`
 
@@ -214,7 +224,7 @@ Enable selection range for Svelte. _Default_: `true`
 
 ### Usage with Yarn 2 PnP
 
-1. Run `yarn add -D svelte-language-server` to install svelte-language-server as a dev dependency 
+1. Run `yarn add -D svelte-language-server` to install svelte-language-server as a dev dependency
 2. Run `yarn dlx @yarnpkg/pnpify --sdk vscode` to generate or update the VSCode/Yarn integration SDKs. This also sets the `svelte.language-server.ls-path` setting for the workspace, pointing it to the workspace-installed language server.
 3. Restart VSCode.
 4. Commit the changes to `.yarn/sdks`

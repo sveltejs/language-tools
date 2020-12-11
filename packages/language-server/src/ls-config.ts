@@ -24,7 +24,7 @@ const defaultLSConfig: LSConfig = {
         globals: '',
         diagnostics: { enable: true },
         hover: { enable: true },
-        completions: { enable: true },
+        completions: { enable: true, emmet: true },
         documentColors: { enable: true },
         colorPresentations: { enable: true },
         documentSymbols: { enable: true },
@@ -33,7 +33,7 @@ const defaultLSConfig: LSConfig = {
     html: {
         enable: true,
         hover: { enable: true },
-        completions: { enable: true },
+        completions: { enable: true, emmet: true },
         tagComplete: { enable: true },
         documentSymbols: { enable: true }
     },
@@ -106,6 +106,7 @@ export interface LSCSSConfig {
     };
     completions: {
         enable: boolean;
+        emmet: boolean;
     };
     documentColors: {
         enable: boolean;
@@ -128,6 +129,7 @@ export interface LSHTMLConfig {
     };
     completions: {
         enable: boolean;
+        emmet: boolean;
     };
     tagComplete: {
         enable: boolean;
