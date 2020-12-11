@@ -123,7 +123,7 @@ export function activate(context: ExtensionContext) {
     });
 
     workspace.onDidSaveTextDocument(async (doc) => {
-        const parts = doc.uri.toString().split(/\/|\\/);
+        const parts = doc.uri.toString(true).split(/\/|\\/);
         if (['tsconfig.json', 'jsconfig.json'].includes(parts[parts.length - 1])) {
             await restartLS(false);
         }
@@ -225,6 +225,11 @@ export function activate(context: ExtensionContext) {
 
 function addRenameFileListener(getLS: () => LanguageClient) {
     workspace.onDidRenameFiles(async (evt) => {
+        const oldUri = evt.files[0].oldUri.toString(true);
+        if (!['.ts', '.js', '.json', '.svelte'].some((ending) => oldUri.endsWith(ending))) {
+            return;
+        }
+
         window.withProgress(
             { location: ProgressLocation.Window, title: 'Updating Imports..' },
             async () => {
@@ -236,7 +241,7 @@ function addRenameFileListener(getLS: () => LanguageClient) {
                     // In the meantime, just assume it's a single entry and simplify the
                     // rest of the logic that way.
                     {
-                        oldUri: evt.files[0].oldUri.toString(true),
+                        oldUri: oldUri,
                         newUri: evt.files[0].newUri.toString(true)
                     }
                 );
