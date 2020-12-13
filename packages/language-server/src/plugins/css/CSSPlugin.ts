@@ -202,12 +202,9 @@ export class CSSPlugin
         const additionalItems: CompletionItem[] = this.globalVars
             .getGlobalVars()
             .map((globalVar) => ({
-                label: globalVar.name,
+                label: `var(${globalVar.name})`,
+                sortText: `-`,
                 detail: `${globalVar.filename}\n\n${globalVar.name}: ${globalVar.value}`,
-                textEdit: value.textEdit && {
-                    ...value.textEdit,
-                    newText: `var(${globalVar.name})`
-                },
                 kind: CompletionItemKind.Value
             }));
         return [...items, ...additionalItems];
