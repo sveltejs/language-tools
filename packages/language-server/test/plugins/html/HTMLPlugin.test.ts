@@ -38,6 +38,12 @@ describe('HTML Plugin', () => {
         assert.strictEqual(plugin.doHover(document, Position.create(0, 10)), null);
     });
 
+    it('does not provide hover info for component having the same name as a html element but being uppercase', async () => {
+        const { plugin, document } = setup('<Div></Div>');
+
+        assert.deepStrictEqual(plugin.doHover(document, Position.create(0, 2)), null);
+    });
+
     it('provides completions', async () => {
         const { plugin, document } = setup('<');
 
