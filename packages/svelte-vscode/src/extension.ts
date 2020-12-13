@@ -248,7 +248,7 @@ function addRenameFileListener(getLS: () => LanguageClient) {
                     // In the meantime, just assume it's a single entry and simplify the
                     // rest of the logic that way.
                     {
-                        oldUri: oldUri,
+                        oldUri,
                         newUri: evt.files[0].newUri.toString(true)
                     }
                 );

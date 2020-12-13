@@ -167,6 +167,20 @@ export interface LSSvelteConfig {
     };
 }
 
+/**
+ * A subset of the JS/TS VS Code settings which
+ * are transformed to ts.UserPreferences.
+ * It may not be available in other IDEs, that's why the keys are optional.
+ */
+export interface TSUserConfig {
+    preferences?: TsUserPreferencesConfig;
+    suggest?: TSSuggestConfig;
+}
+
+/**
+ * A subset of the JS/TS VS Code settings which
+ * are transformed to ts.UserPreferences.
+ */
 export interface TsUserPreferencesConfig {
     importModuleSpecifier: UserPreferences['importModuleSpecifierPreference'];
     importModuleSpecifierEnding: UserPreferences['importModuleSpecifierEnding'];
@@ -175,6 +189,14 @@ export interface TsUserPreferencesConfig {
      * only in typescript config
      */
     includePackageJsonAutoImports?: UserPreferences['includePackageJsonAutoImports'];
+}
+
+/**
+ * A subset of the JS/TS VS Code settings which
+ * are transformed to ts.UserPreferences.
+ */
+export interface TSSuggestConfig {
+    autoImports: UserPreferences['includeCompletionsForModuleExports'];
 }
 
 export type TsUserConfigLang = 'typescript' | 'javascript';
@@ -189,8 +211,12 @@ export class LSConfigManager {
     private config: LSConfig = defaultLSConfig;
     private listeners: Array<(config: LSConfigManager) => void> = [];
     private tsUserPreferences: Record<TsUserConfigLang, UserPreferences> = {
-        typescript: {},
-        javascript: {}
+        typescript: {
+            includeCompletionsForModuleExports: true
+        },
+        javascript: {
+            includeCompletionsForModuleExports: true
+        }
     };
     private prettierConfig: any = {};
     private emmetConfig: EmmetConfiguration = {};
@@ -258,28 +284,23 @@ export class LSConfigManager {
         return this.prettierConfig;
     }
 
-    updateTsJsUserPreferences(
-        config: Record<
-            TsUserConfigLang,
-            {
-                preferences: TsUserPreferencesConfig;
-            }
-        >
-    ): void {
+    updateTsJsUserPreferences(config: Record<TsUserConfigLang, TSUserConfig>): void {
         (['typescript', 'javascript'] as const).forEach((lang) => {
-            if (config[lang]?.preferences) {
-                this._updateTsUserPreferences(lang, config[lang].preferences);
+            if (config[lang]) {
+                this._updateTsUserPreferences(lang, config[lang]);
             }
         });
     }
 
-    private _updateTsUserPreferences(lang: TsUserConfigLang, config: TsUserPreferencesConfig) {
-        this.tsUserPreferences[lang] = Object.assign(this.tsUserPreferences[lang], {
-            importModuleSpecifierPreference: config.importModuleSpecifier,
-            importModuleSpecifierEnding: config.importModuleSpecifierEnding,
-            includePackageJsonAutoImports: config.includePackageJsonAutoImports,
-            quotePreference: config.quoteStyle
-        } as UserPreferences);
+    private _updateTsUserPreferences(lang: TsUserConfigLang, config: TSUserConfig) {
+        this.tsUserPreferences[lang] = {
+            ...this.tsUserPreferences[lang],
+            importModuleSpecifierPreference: config.preferences?.importModuleSpecifier,
+            importModuleSpecifierEnding: config.preferences?.importModuleSpecifierEnding,
+            includePackageJsonAutoImports: config.preferences?.includePackageJsonAutoImports,
+            quotePreference: config.preferences?.quoteStyle,
+            includeCompletionsForModuleExports: config.suggest?.autoImports ?? true
+        };
     }
 
     getTsUserPreferences(lang: TsUserConfigLang) {
