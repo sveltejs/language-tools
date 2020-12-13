@@ -50,6 +50,14 @@ export class HTMLPlugin implements HoverProvider, CompletionsProvider {
             return null;
         }
 
+        const node = html.findNodeAt(document.offsetAt(position));
+        if (!node || node.tag?.[0].match(/[A-Z]/)) {
+            // The language service is case insensitive, and would provide
+            // hover info for Svelte components like `Option` which have
+            // the same name like a html tag.
+            return null;
+        }
+
         return this.lang.doHover(document, position, html);
     }
 
