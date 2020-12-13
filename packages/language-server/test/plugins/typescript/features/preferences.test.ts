@@ -15,7 +15,7 @@ import { CompletionsProviderImpl } from '../../../../src/plugins/typescript/feat
 import { LSAndTSDocResolver } from '../../../../src/plugins/typescript/LSAndTSDocResolver';
 import { pathToUrl } from '../../../../src/utils';
 import { CodeActionsProviderImpl } from '../../../../src/plugins/typescript/features/CodeActionsProvider';
-import { LSConfigManager, TsUserPreferencesConfig } from '../../../../src/ls-config';
+import { LSConfigManager, TSUserConfig } from '../../../../src/ls-config';
 
 const testFilesDir = join(__dirname, '..', 'testfiles', 'preferences');
 
@@ -35,19 +35,27 @@ describe('ts user preferences', () => {
 
     const expectedImportEdit = "import { definition } from '~/definition/index';";
 
-    function getPreferences(): TsUserPreferencesConfig {
+    function getPreferences(): TSUserConfig {
         return {
-            importModuleSpecifier: 'non-relative',
-            importModuleSpecifierEnding: 'index',
-            quoteStyle: 'single'
+            preferences: {
+                importModuleSpecifier: 'non-relative',
+                importModuleSpecifierEnding: 'index',
+                quoteStyle: 'single'
+            },
+            suggest: {
+                autoImports: true
+            }
         };
     }
 
-    function createLSAndTSDocResolver(docManager: DocumentManager) {
+    function createLSAndTSDocResolver(
+        docManager: DocumentManager,
+        preferences?: Partial<TSUserConfig>
+    ) {
         const configManager = new LSConfigManager();
         configManager.updateTsJsUserPreferences({
-            typescript: { preferences: getPreferences() },
-            javascript: { preferences: {} as any }
+            typescript: { ...getPreferences(), ...preferences },
+            javascript: { ...getPreferences(), ...preferences }
         });
         return new LSAndTSDocResolver(docManager, [pathToUrl(testFilesDir)], configManager);
     }
@@ -101,5 +109,21 @@ describe('ts user preferences', () => {
                 )
             ]
         });
+    });
+
+    it('provides auto import suggestions according to preferences', async () => {
+        const { docManager, document } = setup('code-action.svelte');
+        const lsAndTsDocResolver = createLSAndTSDocResolver(docManager, {
+            suggest: { autoImports: false }
+        });
+        const completionProvider = new CompletionsProviderImpl(lsAndTsDocResolver);
+
+        const completions = await completionProvider.getCompletions(
+            document,
+            Position.create(1, 14)
+        );
+
+        const item = completions?.items.find((item) => item.label === 'definition');
+        assert.strictEqual(item, undefined, 'Expected no auto import suggestions');
     });
 });
