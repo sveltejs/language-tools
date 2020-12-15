@@ -33,7 +33,7 @@ async function openAllDocuments(
     filePathsToIgnore: string[],
     svelteCheck: SvelteCheck
 ) {
-    return new Promise((resolve, reject) => {
+    return new Promise<void>((resolve, reject) => {
         glob(
             '**/*.svelte',
             {

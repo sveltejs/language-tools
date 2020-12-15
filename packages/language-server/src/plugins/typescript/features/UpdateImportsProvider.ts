@@ -47,7 +47,7 @@ export class UpdateImportsProviderImpl implements UpdateImportsProvider {
                 }
 
                 return TextDocumentEdit.create(
-                    VersionedTextDocumentIdentifier.create(fragment.getURL(), null),
+                    VersionedTextDocumentIdentifier.create(fragment.getURL(), 0),
                     change.textChanges.map((edit) => {
                         const range = mapRangeToOriginal(
                             fragment!,

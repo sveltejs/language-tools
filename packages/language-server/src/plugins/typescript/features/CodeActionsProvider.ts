@@ -75,7 +75,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             changes.map(async (change) => {
                 // Organize Imports will only affect the current file, so no need to check the file path
                 return TextDocumentEdit.create(
-                    VersionedTextDocumentIdentifier.create(document.url, null),
+                    VersionedTextDocumentIdentifier.create(document.url, 0),
                     change.textChanges.map((edit) => {
                         let range = mapRangeToOriginal(fragment, convertRange(fragment, edit.span));
                         // Handle svelte2tsx wrong import mapping:
@@ -131,10 +131,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                             docs.set(change.fileName, doc);
                         }
                         return TextDocumentEdit.create(
-                            VersionedTextDocumentIdentifier.create(
-                                pathToUrl(change.fileName),
-                                null
-                            ),
+                            VersionedTextDocumentIdentifier.create(pathToUrl(change.fileName), 0),
                             change.textChanges.map((edit) => {
                                 if (
                                     fix.fixName === 'import' &&
@@ -214,10 +211,10 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                     ...refactor,
                     title: refactor.title
                         .replace(
-                            'Extract to inner function in function \'render\'',
+                            "Extract to inner function in function 'render'",
                             'Extract to function'
                         )
-                        .replace('Extract to constant in function \'render\'', 'Extract to constant')
+                        .replace("Extract to constant in function 'render'", 'Extract to constant')
                 }))
         );
     }
@@ -295,7 +292,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
 
         const documentChanges = edits?.edits.map((edit) =>
             TextDocumentEdit.create(
-                VersionedTextDocumentIdentifier.create(document.uri, null),
+                VersionedTextDocumentIdentifier.create(document.uri, 0),
                 edit.textChanges.map((edit) => {
                     let range = mapRangeToOriginal(fragment, convertRange(fragment, edit.span));
                     // Some refactorings place the new code at the end of svelte2tsx' render function,

@@ -3,11 +3,8 @@ import {
     ApplyWorkspaceEditParams,
     ApplyWorkspaceEditRequest,
     CodeActionKind,
-    createConnection,
     DocumentUri,
-    IConnection,
-    IPCMessageReader,
-    IPCMessageWriter,
+    _Connection,
     MessageType,
     RenameFile,
     RequestType,
@@ -17,6 +14,7 @@ import {
     TextDocumentSyncKind,
     WorkspaceEdit
 } from 'vscode-languageserver';
+import { IPCMessageReader, IPCMessageWriter, createConnection } from 'vscode-languageserver/node';
 import { DiagnosticsManager } from './lib/DiagnosticsManager';
 import { Document, DocumentManager } from './lib/documents';
 import { Logger } from './logger';
@@ -36,7 +34,6 @@ namespace TagCloseRequest {
     export const type: RequestType<
         TextDocumentPositionParams,
         string | null,
-        any,
         any
     > = new RequestType('html/tag');
 }
@@ -46,7 +43,7 @@ export interface LSOptions {
      * If you have a connection already that the ls should use, pass it in.
      * Else the connection will be created from `process`.
      */
-    connection?: IConnection;
+    connection?: _Connection;
     /**
      * If you want only errors getting logged.
      * Defaults to false.

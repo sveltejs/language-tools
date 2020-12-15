@@ -158,10 +158,13 @@ export class HTMLPlugin implements HoverProvider, CompletionsProvider {
                     insertText:
                         existingCompletion.insertText &&
                         `${existingCompletion.insertText} lang="${lang}"`,
-                    textEdit: existingCompletion.textEdit && {
-                        range: existingCompletion.textEdit.range,
-                        newText: `${existingCompletion.textEdit.newText} lang="${lang}"`
-                    }
+                    textEdit:
+                        existingCompletion.textEdit && TextEdit.is(existingCompletion.textEdit)
+                            ? {
+                                  range: existingCompletion.textEdit.range,
+                                  newText: `${existingCompletion.textEdit.newText} lang="${lang}"`
+                              }
+                            : undefined
                 })
             );
         }

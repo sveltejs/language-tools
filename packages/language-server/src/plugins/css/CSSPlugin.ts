@@ -203,7 +203,7 @@ export class CSSPlugin
             .getGlobalVars()
             .map((globalVar) => ({
                 label: `var(${globalVar.name})`,
-                sortText: `-`,
+                sortText: '-',
                 detail: `${globalVar.filename}\n\n${globalVar.name}: ${globalVar.value}`,
                 kind: CompletionItemKind.Value
             }));

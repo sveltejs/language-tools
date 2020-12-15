@@ -1,7 +1,7 @@
-import { IConnection, TextDocumentIdentifier, Diagnostic } from 'vscode-languageserver';
+import { _Connection, TextDocumentIdentifier, Diagnostic } from 'vscode-languageserver';
 import { DocumentManager, Document } from './documents';
 
-export type SendDiagnostics = IConnection['sendDiagnostics'];
+export type SendDiagnostics = _Connection['sendDiagnostics'];
 export type GetDiagnostics = (doc: TextDocumentIdentifier) => Thenable<Diagnostic[]>;
 
 export class DiagnosticsManager {

@@ -54,7 +54,7 @@ async function executeExtractComponentCommand(
 
     return <WorkspaceEdit>{
         documentChanges: [
-            TextDocumentEdit.create(VersionedTextDocumentIdentifier.create(svelteDoc.uri, null), [
+            TextDocumentEdit.create(VersionedTextDocumentIdentifier.create(svelteDoc.uri, 0), [
                 TextEdit.replace(range, `<${componentName}></${componentName}>`),
                 createComponentImportTextEdit()
             ]),
@@ -91,7 +91,7 @@ async function executeExtractComponentCommand(
             .map((tag) => tag.text)
             .join('');
 
-        return TextDocumentEdit.create(VersionedTextDocumentIdentifier.create(newFileUri, null), [
+        return TextDocumentEdit.create(VersionedTextDocumentIdentifier.create(newFileUri, 0), [
             TextEdit.insert(Position.create(0, 0), newText)
         ]);
 

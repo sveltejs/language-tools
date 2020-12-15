@@ -15,7 +15,8 @@
         "lint": "eslint \"packages/**/*.{ts,js}\""
     },
     "dependencies": {
-        "axios": "0.19.2"
+        "axios": "0.19.2",
+        "typescript": "^4.1.3"
     },
     "devDependencies": {
         "@sveltejs/eslint-config": "github:sveltejs/eslint-config#v5.2.0",

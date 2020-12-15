@@ -11,7 +11,8 @@ import {
     Position,
     Range,
     CompletionTriggerKind,
-    MarkupKind
+    MarkupKind,
+    TextEdit
 } from 'vscode-languageserver';
 import {
     CompletionsProviderImpl,
@@ -466,7 +467,10 @@ describe('CompletionProviderImpl', () => {
             item!
         );
 
-        assert.strictEqual(detail, 'Auto import from svelte\nfunction onMount(fn: any): void');
+        assert.strictEqual(
+            detail,
+            'Auto import from svelte\nfunction onMount(fn: () => any): void'
+        );
 
         assert.strictEqual(
             harmonizeNewLines(additionalTextEdits![0]?.newText),
@@ -625,7 +629,7 @@ describe('CompletionProviderImpl', () => {
         const end = Position.create(line, character + '*/'.length);
 
         assert.strictEqual(harmonizeNewLines(item?.textEdit?.newText), newText);
-        assert.deepStrictEqual(item?.textEdit?.range, Range.create(start, end));
+        assert.deepStrictEqual((item?.textEdit as TextEdit)?.range, Range.create(start, end));
     };
 
     it('show jsDoc template completion', async () => {

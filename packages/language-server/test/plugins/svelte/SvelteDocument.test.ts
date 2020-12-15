@@ -3,7 +3,10 @@ import sinon from 'sinon';
 import { Position } from 'vscode-languageserver';
 import { Document } from '../../../src/lib/documents';
 import * as importPackage from '../../../src/importPackage';
-import { SvelteDocument, TranspiledSvelteDocument } from '../../../src/plugins/svelte/SvelteDocument';
+import {
+    SvelteDocument,
+    TranspiledSvelteDocument
+} from '../../../src/plugins/svelte/SvelteDocument';
 import * as configLoader from '../../../src/lib/documents/configLoader';
 
 describe('Svelte Document', () => {
@@ -56,9 +59,11 @@ describe('Svelte Document', () => {
                     return Promise.resolve({
                         code: getSourceCode(true),
                         dependencies: [],
-                        toString: () => getSourceCode(true)
+                        toString: () => getSourceCode(true),
+                        map: <any>null
                     });
                 },
+                walk: <any>null,
                 VERSION: <any>'',
                 compile: <any>null,
                 parse: <any>null
