@@ -227,6 +227,11 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
         return positionAt(offset, this.text);
     }
 
+    getLineContainingOffset(offset: number) {
+        const chunks = this.getText(0, offset).split('\n');
+        return chunks[chunks.length - 1];
+    }
+
     hasProp(name: string): boolean {
         return this.exportedNames.has(name);
     }

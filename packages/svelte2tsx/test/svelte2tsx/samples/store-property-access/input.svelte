@@ -1,0 +1,21 @@
+<script>
+    const store = someStore();
+    $store;
+    $store.prop;
+    $store['prop'];
+    $store.prop.anotherProp;
+    $store['prop'].anotherProp;
+    $store.prop['anotherProp'];
+    $store['prop']['anotherProp'];
+    $store?.prop.anotherProp;
+    $store?.prop?.anotherProp;
+</script>
+<p>{$store}</p>
+<p>{$store.prop}</p>
+<p>{$store['prop']}</p>
+<p>{$store.prop.anotherProp}</p>
+<p>{$store['prop'].anotherProp}</p>
+<p>{$store.prop['anotherProp']}</p>
+<p>{$store['prop']['anotherProp']}</p>
+<p>{$store?.prop.anotherProp}</p>
+<p>{$store?.prop?.anotherProp}</p>

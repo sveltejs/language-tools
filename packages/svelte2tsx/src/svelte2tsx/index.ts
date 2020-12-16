@@ -13,6 +13,7 @@ import {
     handleScopeAndResolveForSlot,
     handleScopeAndResolveLetVarForSlot
 } from './nodes/handleScopeAndResolveForSlot';
+import { ImplicitStoreValues } from './nodes/ImplicitStoreValues';
 import { Scripts } from './nodes/Scripts';
 import { SlotHandler } from './nodes/slot';
 import { Stores } from './nodes/Stores';
@@ -58,6 +59,7 @@ type TemplateProcessResult = {
     /** To be added later as a comment on the default class export */
     componentDocumentation: ComponentDocumentation;
     events: ComponentEvents;
+    resolvedStores: string[];
 };
 
 /**
@@ -257,7 +259,7 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
     scripts.blankOtherScriptTags(str);
 
     //resolve stores
-    stores.resolveStores();
+    const resolvedStores = stores.resolveStores();
 
     return {
         moduleScriptTag,
@@ -267,7 +269,8 @@ function processSvelteTemplate(str: MagicString): TemplateProcessResult {
         uses$$props,
         uses$$restProps,
         uses$$slots,
-        componentDocumentation
+        componentDocumentation,
+        resolvedStores
     };
 }
 
@@ -419,7 +422,8 @@ export function svelte2tsx(
         uses$$slots,
         uses$$restProps,
         events,
-        componentDocumentation
+        componentDocumentation,
+        resolvedStores
     } = processSvelteTemplate(str);
 
     /* Rearrange the script tags so that module is first, and instance second followed finally by the template
@@ -442,12 +446,13 @@ export function svelte2tsx(
     //move the instance script and process the content
     let exportedNames = new ExportedNames();
     let getters = new Set<string>();
+    const implicitStoreValues = new ImplicitStoreValues(resolvedStores);
     if (scriptTag) {
         //ensure it is between the module script and the rest of the template (the variables need to be declared before the jsx template)
         if (scriptTag.start != instanceScriptTarget) {
             str.move(scriptTag.start, scriptTag.end, instanceScriptTarget);
         }
-        const res = processInstanceScriptContent(str, scriptTag, events);
+        const res = processInstanceScriptContent(str, scriptTag, events, implicitStoreValues);
         uses$$props = uses$$props || res.uses$$props;
         uses$$restProps = uses$$restProps || res.uses$$restProps;
         uses$$slots = uses$$slots || res.uses$$slots;
