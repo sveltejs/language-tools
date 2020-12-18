@@ -84,7 +84,7 @@ describe('CodeActionsProvider', () => {
                             ],
                             textDocument: {
                                 uri: getUri('codeactions.svelte'),
-                                version: null
+                                version: 0
                             }
                         }
                     ]
@@ -118,7 +118,8 @@ describe('CodeActionsProvider', () => {
                             edits: [
                                 {
                                     // eslint-disable-next-line max-len
-                                    newText: 'import { A } from \'bla\';\nimport { C } from \'blubb\';\n',
+                                    newText:
+                                        "import { A } from 'bla';\nimport { C } from 'blubb';\n",
                                     range: {
                                         start: {
                                             character: 0,
@@ -159,7 +160,7 @@ describe('CodeActionsProvider', () => {
                             ],
                             textDocument: {
                                 uri: getUri('codeactions.svelte'),
-                                version: null
+                                version: 0
                             }
                         }
                     ]
@@ -234,7 +235,7 @@ describe('CodeActionsProvider', () => {
                             ],
                             textDocument: {
                                 uri: getUri('organize-imports-with-module.svelte'),
-                                version: null
+                                version: 0
                             }
                         }
                     ]
@@ -328,7 +329,7 @@ describe('CodeActionsProvider', () => {
                     ],
                     textDocument: {
                         uri: getUri('codeactions.svelte'),
-                        version: null
+                        version: 0
                     }
                 }
             ]
@@ -369,7 +370,7 @@ describe('CodeActionsProvider', () => {
                     }
                 ],
                 command: 'function_scope_0',
-                title: 'Extract to inner function in function \'render\''
+                title: "Extract to inner function in function 'render'"
             },
             title: 'Extract to function'
         });
@@ -425,7 +426,7 @@ describe('CodeActionsProvider', () => {
                     ],
                     textDocument: {
                         uri: getUri('codeactions.svelte'),
-                        version: null
+                        version: 0
                     }
                 }
             ]

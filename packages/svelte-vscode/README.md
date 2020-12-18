@@ -21,7 +21,7 @@ This extension comes bundled with a formatter for Svelte files. To let this exte
 
 The formatter is a [Prettier](https://prettier.io/) [plugin](https://prettier.io/docs/en/plugins.html), which means some formatting options of Prettier apply. There are also Svelte specific settings like the sort order of scripts, markup, styles. More info about them and how to configure it can be found [here](https://github.com/sveltejs/prettier-plugin-svelte).
 
-You need at least VSCode version `1.41.0`.
+You need at least VSCode version `1.52.0`.
 
 Do you want to use TypeScript/SCSS/Less/..? [See the docs](/docs/README.md#language-specific-setup).
 

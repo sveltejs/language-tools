@@ -51,7 +51,7 @@ describe('UpdateImportsProviderImpl', () => {
         });
 
         assert.deepStrictEqual(workspaceEdit?.documentChanges, [
-            TextDocumentEdit.create(VersionedTextDocumentIdentifier.create(fileUri, null), [
+            TextDocumentEdit.create(VersionedTextDocumentIdentifier.create(fileUri, 0), [
                 TextEdit.replace(
                     Range.create(Position.create(1, 17), Position.create(1, 37)),
                     './documentation.svelte'

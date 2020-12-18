@@ -1,6 +1,6 @@
 import { merge, get } from 'lodash';
 import { UserPreferences } from 'typescript';
-import { EmmetConfiguration } from 'vscode-emmet-helper';
+import { VSCodeEmmetConfig } from 'vscode-emmet-helper';
 
 /**
  * Default config for the language server.
@@ -219,7 +219,7 @@ export class LSConfigManager {
         }
     };
     private prettierConfig: any = {};
-    private emmetConfig: EmmetConfiguration = {};
+    private emmetConfig: VSCodeEmmetConfig = {};
 
     /**
      * Updates config.
@@ -268,11 +268,11 @@ export class LSConfigManager {
         this.listeners.push(callback);
     }
 
-    updateEmmetConfig(config: EmmetConfiguration): void {
+    updateEmmetConfig(config: VSCodeEmmetConfig): void {
         this.emmetConfig = config || {};
     }
 
-    getEmmetConfig(): EmmetConfiguration {
+    getEmmetConfig(): VSCodeEmmetConfig {
         return this.emmetConfig;
     }
 

@@ -289,19 +289,16 @@ describe('SveltePlugin#getCodeAction', () => {
             const result = await extractComponent(path, range);
             assert.deepStrictEqual(result, <WorkspaceEdit>{
                 documentChanges: [
-                    TextDocumentEdit.create(
-                        VersionedTextDocumentIdentifier.create('someUrl', null),
-                        [
-                            TextEdit.replace(range, '<NewComp></NewComp>'),
-                            TextEdit.insert(
-                                doc.script?.startPos || Position.create(0, 0),
-                                '\n  import NewComp from \'./NewComp.svelte\';\n'
-                            )
-                        ]
-                    ),
+                    TextDocumentEdit.create(VersionedTextDocumentIdentifier.create('someUrl', 0), [
+                        TextEdit.replace(range, '<NewComp></NewComp>'),
+                        TextEdit.insert(
+                            doc.script?.startPos || Position.create(0, 0),
+                            "\n  import NewComp from './NewComp.svelte';\n"
+                        )
+                    ]),
                     CreateFile.create('file:///NewComp.svelte', { overwrite: true }),
                     TextDocumentEdit.create(
-                        VersionedTextDocumentIdentifier.create('file:///NewComp.svelte', null),
+                        VersionedTextDocumentIdentifier.create('file:///NewComp.svelte', 0),
                         [
                             TextEdit.insert(
                                 Position.create(0, 0),
@@ -360,30 +357,27 @@ describe('SveltePlugin#getCodeAction', () => {
             assert.deepStrictEqual(result, <WorkspaceEdit>{
                 documentChanges: [
                     TextDocumentEdit.create(
-                        VersionedTextDocumentIdentifier.create(existingFileUri, null),
+                        VersionedTextDocumentIdentifier.create(existingFileUri, 0),
                         [
                             TextEdit.replace(range, '<NewComp></NewComp>'),
                             TextEdit.insert(
                                 doc.script?.startPos || Position.create(0, 0),
-                                '\n  import NewComp from \'../NewComp.svelte\';\n'
+                                "\n  import NewComp from '../NewComp.svelte';\n"
                             )
                         ]
                     ),
                     CreateFile.create(newFileUri, { overwrite: true }),
-                    TextDocumentEdit.create(
-                        VersionedTextDocumentIdentifier.create(newFileUri, null),
-                        [
-                            TextEdit.insert(
-                                Position.create(0, 0),
-                                `<script>
+                    TextDocumentEdit.create(VersionedTextDocumentIdentifier.create(newFileUri, 0), [
+                        TextEdit.insert(
+                            Position.create(0, 0),
+                            `<script>
             import OtherComponent from './path/OtherComponent.svelte';
             import {test} from './test';
             </script>\n\ntoExtract\n\n<style>
             @import './path/style.css';
             </style>\n\n`
-                            )
-                        ]
-                    )
+                        )
+                    ])
                 ]
             });
         });

@@ -15,10 +15,7 @@ import {
     extensions
 } from 'vscode';
 import {
-    LanguageClient,
     LanguageClientOptions,
-    ServerOptions,
-    TransportKind,
     TextDocumentPositionParams,
     RequestType,
     RevealOutputChannelOn,
@@ -26,13 +23,14 @@ import {
     TextDocumentEdit,
     ExecuteCommandRequest
 } from 'vscode-languageclient';
+import { LanguageClient, ServerOptions, TransportKind } from 'vscode-languageclient/node';
 import { activateTagClosing } from './html/autoClose';
 import { EMPTY_ELEMENTS } from './html/htmlEmptyTagsShared';
 import CompiledCodeContentProvider from './CompiledCodeContentProvider';
 import * as path from 'path';
 
 namespace TagCloseRequest {
-    export const type: RequestType<TextDocumentPositionParams, string, any, any> = new RequestType(
+    export const type: RequestType<TextDocumentPositionParams, string, any> = new RequestType(
         'html/tag'
     );
 }
