@@ -1,5 +1,6 @@
 import MagicString from 'magic-string';
 import ts from 'typescript';
+import { getNamesFromLabeledStatement } from '../utils/tsAst';
 
 /**
  * Tracks all store-usages as well as all variable declarations and imports in the component.
@@ -10,10 +11,12 @@ import ts from 'typescript';
 export class ImplicitStoreValues {
     private accessedStores = new Set<string>();
     private variableDeclarations: ts.VariableDeclaration[] = [];
+    private reactiveDeclarations: ts.LabeledStatement[] = [];
     private importStatements: Array<ts.ImportClause | ts.ImportSpecifier> = [];
 
     public addStoreAcess = this.accessedStores.add.bind(this.accessedStores);
     public addVariableDeclaration = this.variableDeclarations.push.bind(this.variableDeclarations);
+    public addReactiveDeclaration = this.reactiveDeclarations.push.bind(this.reactiveDeclarations);
     public addImportStatement = this.importStatements.push.bind(this.importStatements);
 
     constructor(storesResolvedInTemplate: string[] = []) {
@@ -28,6 +31,10 @@ export class ImplicitStoreValues {
         this.variableDeclarations
             .filter(({ name }) => this.accessedStores.has(name.getText()))
             .forEach((node) => this.attachStoreValueDeclarationToDecl(node, astOffset, str));
+
+        this.reactiveDeclarations.forEach((node) =>
+            this.attachStoreValueDeclarationToReactiveAssignment(node, astOffset, str)
+        );
 
         this.importStatements
             .filter(({ name }) => name && this.accessedStores.has(name.getText()))
@@ -50,6 +57,24 @@ export class ImplicitStoreValues {
 
         const endPos = variableStatement.getEnd() + astOffset;
         str.appendRight(endPos, `;let $${storeName} = __sveltets_store_get(${storeName});`);
+    }
+
+    private attachStoreValueDeclarationToReactiveAssignment(
+        node: ts.LabeledStatement,
+        astOffset: number,
+        str: MagicString
+    ) {
+        const storeNames = getNamesFromLabeledStatement(node).filter((name) =>
+            this.accessedStores.has(name)
+        );
+
+        let toAppend = '';
+        for (let i = 0; i < storeNames.length; i++) {
+            toAppend += `;let $${storeNames[i]} = __sveltets_store_get(${storeNames[i]});`;
+        }
+
+        const endPos = node.getEnd() + astOffset;
+        str.appendRight(endPos, toAppend);
     }
 
     private attachStoreValueDeclarationToImport(

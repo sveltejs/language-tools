@@ -449,6 +449,7 @@ export function processInstanceScriptContent(
             const binaryExpression = getBinaryAssignmentExpr(node);
             if (binaryExpression) {
                 implicitTopLevelNames.add(node);
+                implicitStoreValues.addReactiveDeclaration(node);
                 wrapExpressionWithInvalidate(binaryExpression.right);
             } else {
                 const start = node.getStart() + astOffset;

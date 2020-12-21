@@ -134,8 +134,7 @@ export function getLastLeadingDoc(node: ts.Node): string | undefined {
     if (comment) {
         let commentText = nodeText.substring(comment.pos, comment.end);
 
-        const typedefTags = ts.getAllJSDocTagsOfKind(
-            node, ts.SyntaxKind.JSDocTypedefTag);
+        const typedefTags = ts.getAllJSDocTagsOfKind(node, ts.SyntaxKind.JSDocTypedefTag);
         typedefTags
             .filter((tag) => tag.pos >= comment.pos)
             .map((tag) => nodeText.substring(tag.pos, tag.end))
@@ -154,5 +153,22 @@ export function getLastLeadingDoc(node: ts.Node): string | undefined {
 export function isNotPropertyNameOfImport(identifier: ts.Identifier): boolean {
     return (
         !ts.isImportSpecifier(identifier.parent) || identifier.parent.propertyName !== identifier
+    );
+}
+
+/**
+ * Extract the variable names that are assigned to out of a labeled statement.
+ */
+export function getNamesFromLabeledStatement(node: ts.LabeledStatement): string[] {
+    const leftHandSide = getBinaryAssignmentExpr(node)?.left;
+    if (!leftHandSide) {
+        return [];
+    }
+
+    return (
+        extractIdentifiers(leftHandSide)
+            .map((id) => id.text)
+            // svelte won't let you create a variable with $ prefix (reserved for stores)
+            .filter((name) => !name.startsWith('$'))
     );
 }
