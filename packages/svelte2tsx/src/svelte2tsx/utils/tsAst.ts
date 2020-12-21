@@ -60,6 +60,8 @@ export function extractIdentifiers(
 ): ts.Identifier[] {
     if (ts.isIdentifier(node)) {
         identifiers.push(node);
+    } else if (ts.isBindingElement(node)) {
+        extractIdentifiers(node.name, identifiers);
     } else if (isMember(node)) {
         let object: ts.Node = node;
         while (isMember(object)) {
@@ -70,7 +72,7 @@ export function extractIdentifiers(
         }
     } else if (ts.isArrayBindingPattern(node) || ts.isObjectBindingPattern(node)) {
         node.elements.forEach((element) => {
-            extractIdentifiers(element);
+            extractIdentifiers(element, identifiers);
         });
     } else if (ts.isObjectLiteralExpression(node)) {
         node.properties.forEach((child) => {

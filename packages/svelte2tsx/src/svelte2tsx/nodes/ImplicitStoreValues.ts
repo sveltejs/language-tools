@@ -1,6 +1,6 @@
 import MagicString from 'magic-string';
 import ts from 'typescript';
-import { getNamesFromLabeledStatement } from '../utils/tsAst';
+import { extractIdentifiers, getNamesFromLabeledStatement } from '../utils/tsAst';
 
 /**
  * Tracks all store-usages as well as all variable declarations and imports in the component.
@@ -28,9 +28,9 @@ export class ImplicitStoreValues {
      * were used as stores are appended with `let $xx = __sveltets_store_get(xx)` to create the store variables.
      */
     public modifyCode(astOffset: number, str: MagicString) {
-        this.variableDeclarations
-            .filter(({ name }) => this.accessedStores.has(name.getText()))
-            .forEach((node) => this.attachStoreValueDeclarationToDecl(node, astOffset, str));
+        this.variableDeclarations.forEach((node) =>
+            this.attachStoreValueDeclarationToDecl(node, astOffset, str)
+        );
 
         this.reactiveDeclarations.forEach((node) =>
             this.attachStoreValueDeclarationToReactiveAssignment(node, astOffset, str)
@@ -46,17 +46,17 @@ export class ImplicitStoreValues {
         astOffset: number,
         str: MagicString
     ) {
-        const storeName = node.name.getText();
-        if (
-            !ts.isVariableDeclarationList(node.parent) ||
-            !ts.isVariableStatement(node.parent.parent)
-        )
-            return;
+        const storeNames = extractIdentifiers(node.name)
+            .map((id) => id.text)
+            .filter((name) => this.accessedStores.has(name));
 
-        const variableStatement = node.parent.parent;
+        let toAppend = '';
+        for (let i = 0; i < storeNames.length; i++) {
+            toAppend += `;let $${storeNames[i]} = __sveltets_store_get(${storeNames[i]});`;
+        }
 
-        const endPos = variableStatement.getEnd() + astOffset;
-        str.appendRight(endPos, `;let $${storeName} = __sveltets_store_get(${storeName});`);
+        const endPos = node.getEnd() + astOffset;
+        str.appendRight(endPos, toAppend);
     }
 
     private attachStoreValueDeclarationToReactiveAssignment(

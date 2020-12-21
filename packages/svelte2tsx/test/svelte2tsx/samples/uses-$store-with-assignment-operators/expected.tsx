@@ -4,7 +4,7 @@ import { writable } from 'svelte/store';
 function render() {
 
   
-  const count = writable(0);;let $count = __sveltets_store_get(count);
+  const count = writable(0);let $count = __sveltets_store_get(count);;
   let myvar = 42 // to show that this is different from ++ or --
   const handler1 = () => count.set( $count + myvar)
   const handler2 = () => count.set( $count - myvar)
