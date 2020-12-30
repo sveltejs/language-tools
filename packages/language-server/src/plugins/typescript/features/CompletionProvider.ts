@@ -307,7 +307,14 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             for (const action of actions) {
                 for (const change of action.changes) {
                     edit.push(
-                        ...this.codeActionChangesToTextEdit(document, fragment, change, isImport)
+                        ...this.codeActionChangesToTextEdit(
+                            document,
+                            fragment,
+                            change,
+                            isImport,
+                            isInTag(comp.position, document.scriptInfo) ||
+                                isInTag(comp.position, document.moduleScriptInfo)
+                        )
                     );
                 }
             }
@@ -342,10 +349,17 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         doc: Document,
         fragment: SvelteSnapshotFragment,
         changes: ts.FileTextChanges,
-        isImport: boolean
+        isImport: boolean,
+        actionTriggeredInScript: boolean
     ): TextEdit[] {
         return changes.textChanges.map((change) =>
-            this.codeActionChangeToTextEdit(doc, fragment, change, isImport)
+            this.codeActionChangeToTextEdit(
+                doc,
+                fragment,
+                change,
+                isImport,
+                actionTriggeredInScript
+            )
         );
     }
 
@@ -353,9 +367,10 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         doc: Document,
         fragment: SvelteSnapshotFragment,
         change: ts.TextChange,
-        isImport: boolean
+        isImport: boolean,
+        actionTriggeredInScript: boolean
     ): TextEdit {
-        change.newText = this.changeSvelteComponentImport(change.newText);
+        change.newText = this.changeComponentImport(change.newText, actionTriggeredInScript);
 
         const scriptTagInfo = fragment.scriptInfo;
         if (!scriptTagInfo) {
@@ -427,10 +442,11 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         return name.replace(/(\w+)__SvelteComponent_/, '$1');
     }
 
-    private changeSvelteComponentImport(importText: string) {
+    private changeComponentImport(importText: string, actionTriggeredInScript: boolean) {
         const changedName = this.changeSvelteComponentName(importText);
-        if (importText !== changedName) {
-            // For some reason, TS sometimes adds the `type` modifier. Remove it.
+        if (importText !== changedName || !actionTriggeredInScript) {
+            // For some reason, TS sometimes adds the `type` modifier. Remove it
+            // in case of Svelte component imports or if import triggered from markup.
             return changedName.replace(' type ', ' ');
         }
 

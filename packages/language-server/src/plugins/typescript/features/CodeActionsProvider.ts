@@ -8,7 +8,7 @@ import {
     VersionedTextDocumentIdentifier,
     WorkspaceEdit
 } from 'vscode-languageserver';
-import { Document, mapRangeToOriginal, isRangeInTag } from '../../../lib/documents';
+import { Document, mapRangeToOriginal, isRangeInTag, isInTag } from '../../../lib/documents';
 import { pathToUrl, flatten } from '../../../utils';
 import { CodeActionsProvider } from '../../interfaces';
 import { SnapshotFragment, SvelteSnapshotFragment } from '../DocumentSnapshot';
@@ -141,7 +141,9 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                                         document,
                                         doc,
                                         edit,
-                                        true
+                                        true,
+                                        isInTag(range.start, document.scriptInfo) ||
+                                            isInTag(range.start, document.moduleScriptInfo)
                                     );
                                 }
                                 return TextEdit.replace(
