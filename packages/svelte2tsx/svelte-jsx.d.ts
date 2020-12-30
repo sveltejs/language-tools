@@ -236,7 +236,7 @@ declare namespace svelte.JSX {
       autocomplete?: string;
       autofocus?: boolean;
       autoplay?: boolean;
-      capture?: boolean;
+      capture?: 'environment' | 'user' | boolean;
       cellpadding?: number | string;
       cellspacing?: number | string;
       charset?: string;
