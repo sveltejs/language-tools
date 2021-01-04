@@ -5,7 +5,7 @@ require('source-map-support').install();
 //console.clear();
 
 if (process.env.CI) {
-	const arr = glob('*.solo', { cwd: 'test' })
+	const arr = glob('**/*.solo', { cwd: 'test' })
 	if (arr.length) throw new Error(`Forgot to remove ".solo" from test(s) ${arr}`);
 }
 
