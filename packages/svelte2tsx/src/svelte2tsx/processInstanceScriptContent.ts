@@ -244,7 +244,7 @@ export function processInstanceScriptContent(
         handleStore(node, parent);
     };
 
-	const handleIdentifier = (ident: ts.Identifier, parent: ts.Node) => {
+    const handleIdentifier = (ident: ts.Identifier, parent: ts.Node) => {
         if (ident.text === '$$props') {
             uses$$props = true;
             return;
