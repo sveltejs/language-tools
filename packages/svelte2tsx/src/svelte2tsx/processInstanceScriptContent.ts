@@ -244,7 +244,7 @@ export function processInstanceScriptContent(
         handleStore(node, parent);
     };
 
-    const handleIdentifier = (ident: ts.Identifier, parent: ts.Node) => {
+	const handleIdentifier = (ident: ts.Identifier, parent: ts.Node) => {
         if (ident.text === '$$props') {
             uses$$props = true;
             return;
@@ -278,7 +278,8 @@ export function processInstanceScriptContent(
             if (ident.text.startsWith('$')) {
                 if (
                     (!ts.isPropertyAccessExpression(parent) || parent.expression == ident) &&
-                    (!ts.isPropertyAssignment(parent) || parent.initializer == ident)
+                    (!ts.isPropertyAssignment(parent) || parent.initializer == ident) &&
+                    !ts.isPropertySignature(parent) && !ts.isPropertyDeclaration(parent)
                 ) {
                     pendingStoreResolutions.push({ node: ident, parent, scope });
                 }
