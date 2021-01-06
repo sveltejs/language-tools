@@ -278,7 +278,8 @@ export function processInstanceScriptContent(
             if (ident.text.startsWith('$')) {
                 if (
                     (!ts.isPropertyAccessExpression(parent) || parent.expression == ident) &&
-                    (!ts.isPropertyAssignment(parent) || parent.initializer == ident)
+                    (!ts.isPropertyAssignment(parent) || parent.initializer == ident) &&
+                    !ts.isPropertySignature(parent) && !ts.isPropertyDeclaration(parent)
                 ) {
                     pendingStoreResolutions.push({ node: ident, parent, scope });
                 }
