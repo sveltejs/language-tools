@@ -726,6 +726,7 @@ declare namespace svelte.JSX {
     interface SapperAnchorProps {
         // transformed from sapper:noscroll so it should be camel case
         sapperNoscroll?: true;
+        sapperPrefetch?: true;
     }
 
     interface SvelteMediaTimeRange {
