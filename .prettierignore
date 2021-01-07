@@ -1,4 +1,5 @@
 packages/svelte2tsx/*.d.ts
+packages/svelte2tsx/test/*/samples/*/*sx
 packages/language-server/test/**/*.svelte
 packages/svelte-vscode/syntaxes/*.yaml
 .github/**
