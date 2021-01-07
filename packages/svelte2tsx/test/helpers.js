@@ -1,13 +1,16 @@
 const fs = require('fs');
 const assert = require('assert');
+
 function benchmark(fn) {
     return -Date.now() + (fn(), Date.now());
 }
+
 function readFileSync(path) {
     return fs.existsSync(path)
         ? fs.readFileSync(path, 'utf-8').replace(/\r\n/g, '\n').replace(/\s+$/, '')
         : null;
 }
+
 function check_dir(path, { allowed = [], required = allowed }) {
     const unchecked = new Set(required);
     const unknown = [];
@@ -70,4 +73,5 @@ function test_samples(dir, transform, tsx) {
         });
     }
 }
+
 module.exports = { benchmark, test_samples };
