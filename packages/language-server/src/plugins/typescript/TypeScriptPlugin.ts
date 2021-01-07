@@ -17,7 +17,8 @@ import {
     CompletionList,
     SelectionRange,
     SignatureHelp,
-    SignatureHelpContext
+    SignatureHelpContext,
+    SemanticTokens
 } from 'vscode-languageserver';
 import {
     Document,
@@ -43,7 +44,8 @@ import {
     SelectionRangeProvider,
     SignatureHelpProvider,
     UpdateImportsProvider,
-    OnWatchFileChangesPara
+    OnWatchFileChangesPara,
+    SemanticTokensProvider
 } from '../interfaces';
 import { SnapshotFragment } from './DocumentSnapshot';
 import { CodeActionsProviderImpl } from './features/CodeActionsProvider';
@@ -62,6 +64,7 @@ import { FindReferencesProviderImpl } from './features/FindReferencesProvider';
 import { SelectionRangeProviderImpl } from './features/SelectionRangeProvider';
 import { SignatureHelpProviderImpl } from './features/SignatureHelpProvider';
 import { SnapshotManager } from './SnapshotManager';
+import { SemanticTokensProviderImpl } from './features/SemanticTokensProvider';
 
 export class TypeScriptPlugin
     implements
@@ -75,6 +78,7 @@ export class TypeScriptPlugin
         FindReferencesProvider,
         SelectionRangeProvider,
         SignatureHelpProvider,
+        SemanticTokensProvider,
         OnWatchFileChanges,
         CompletionsProvider<CompletionEntryWithIdentifer> {
     private readonly configManager: LSConfigManager;
@@ -88,6 +92,7 @@ export class TypeScriptPlugin
     private readonly findReferencesProvider: FindReferencesProviderImpl;
     private readonly selectionRangeProvider: SelectionRangeProviderImpl;
     private readonly signatureHelpProvider: SignatureHelpProviderImpl;
+    private readonly semanticTokensProvider: SemanticTokensProviderImpl;
 
     constructor(
         docManager: DocumentManager,
@@ -112,6 +117,7 @@ export class TypeScriptPlugin
         this.findReferencesProvider = new FindReferencesProviderImpl(this.lsAndTsDocResolver);
         this.selectionRangeProvider = new SelectionRangeProviderImpl(this.lsAndTsDocResolver);
         this.signatureHelpProvider = new SignatureHelpProviderImpl(this.lsAndTsDocResolver);
+        this.semanticTokensProvider = new SemanticTokensProviderImpl(this.lsAndTsDocResolver);
     }
 
     async getDiagnostics(document: Document): Promise<Diagnostic[]> {
@@ -399,6 +405,10 @@ export class TypeScriptPlugin
         }
 
         return this.signatureHelpProvider.getSignatureHelp(document, position, context);
+    }
+
+    async getSemanticTokens(textDocument: Document, range?: Range): Promise<SemanticTokens> {
+        return this.semanticTokensProvider.getSemanticTokens(textDocument, range);
     }
 
     private getLSAndTSDoc(document: Document) {

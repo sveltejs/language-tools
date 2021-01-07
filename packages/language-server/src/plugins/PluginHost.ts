@@ -17,6 +17,7 @@ import {
     Range,
     ReferenceContext,
     SelectionRange,
+    SemanticTokens,
     SignatureHelp,
     SignatureHelpContext,
     SymbolInformation,
@@ -27,6 +28,7 @@ import {
 import { DocumentManager } from '../lib/documents';
 import { Logger } from '../logger';
 import { regexLastIndexOf } from '../utils';
+import { collectSemanticTokens } from './collector/collectSemanticToken';
 import {
     AppCompletionItem,
     FileRename,
@@ -400,6 +402,20 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         }
     }
 
+    async getSemanticTokens(textDocument: TextDocumentIdentifier, range?: Range) {
+        const document = this.getDocument(textDocument.uri);
+        if (!document) {
+            throw new Error('Cannot call methods on an unopened document');
+        }
+
+        return this.execute<SemanticTokens>(
+            'getSemanticTokens',
+            [document, range],
+            ExecuteMode.Collect,
+            collectSemanticTokens
+        );
+    }
+
     onWatchFileChanges(onWatchFileChangesParas: OnWatchFileChangesPara[]): void {
         for (const support of this.plugins) {
             support.onWatchFileChanges?.(onWatchFileChangesParas);
@@ -420,11 +436,18 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         args: any[],
         mode: ExecuteMode.Collect
     ): Promise<T[]>;
+    private execute<T>(
+        name: keyof LSProvider,
+        args: any[],
+        mode: ExecuteMode.Collect,
+        collector: (plugins: Plugin[], ...args: any[]) => Promise<T>
+    ): Promise<T>;
     private execute(name: keyof LSProvider, args: any[], mode: ExecuteMode.None): Promise<void>;
     private async execute<T>(
         name: keyof LSProvider,
         args: any[],
-        mode: ExecuteMode
+        mode: ExecuteMode,
+        collector?: (plugins: Plugin[], ...args: any[]) => T
     ): Promise<(T | null) | T[] | void> {
         const plugins = this.plugins.filter((plugin) => typeof plugin[name] === 'function');
 
@@ -438,6 +461,9 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
                 }
                 return null;
             case ExecuteMode.Collect:
+                if (typeof collector === 'function') {
+                    return collector(this.plugins, ...args);
+                }
                 return Promise.all(
                     plugins.map((plugin) => this.tryExecutePlugin(plugin, name, args, []))
                 );

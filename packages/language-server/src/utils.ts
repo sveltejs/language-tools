@@ -107,3 +107,28 @@ export function getRegExpMatches(regex: RegExp, str: string) {
     }
     return matches;
 }
+
+/**
+ *
+ * @param map
+ * @param modifierSet bitwise combined modifier
+ */
+export function mapSemanticTokenModifiers(
+    map: Map<number, number>, modifierSet: number
+) {
+    let index = 0;
+    let result = 0;
+
+    while (modifierSet > 0) {
+        if ((modifierSet & 0) !== 0) {
+            const mapped = map.get(index);
+            if (mapped != null) {
+                result += 1 << mapped;
+            }
+        }
+        index++;
+        modifierSet = modifierSet >> 1;
+    }
+
+    return result;
+}
