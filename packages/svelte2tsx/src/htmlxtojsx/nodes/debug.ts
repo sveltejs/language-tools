@@ -7,14 +7,10 @@ import MagicString from 'magic-string';
  * tsx won't accept commas, must split
  * {@debug a, b}	--->   {a}{b}
  */
-export function handleDebug(htmlx: string, str: MagicString, debugBlock: Node): void {
-    const content = htmlx.slice(debugBlock.start + '@debug'.length + 1, debugBlock.end - 1);
+export function handleDebug(_htmlx: string, str: MagicString, debugBlock: Node): void {
     str.overwrite(
         debugBlock.start,
         debugBlock.end,
-        content
-            .split(',')
-            .map((v) => `{${v.trim()}}`)
-            .join('')
+        debugBlock.identifiers.map((identifier: Node) => `{${identifier.name}}`).join('')
     );
 }
