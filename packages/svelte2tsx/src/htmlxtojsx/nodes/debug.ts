@@ -8,7 +8,7 @@ import MagicString from 'magic-string';
  * {@debug a, b}	--->   {a}{b}
  */
 export function handleDebug(htmlx: string, str: MagicString, debugBlock: Node): void {
-    const content = htmlx.slice(debugBlock.start + '@debug'.length + 1, debugBlock.end);
+    const content = htmlx.slice(debugBlock.start + '@debug'.length + 1, debugBlock.end - 1);
     str.overwrite(
         debugBlock.start,
         debugBlock.end,
