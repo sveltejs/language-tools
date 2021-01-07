@@ -560,7 +560,7 @@ declare namespace svelte.JSX {
       'overline-thickness'?: number | string;
       'paint-order'?: number | string;
       'panose-1'?: number | string;
-      path?:string;
+      path?: string;
       pathLength?: number | string;
       patternContentUnits?: string;
       patternTransform?: number | string;
