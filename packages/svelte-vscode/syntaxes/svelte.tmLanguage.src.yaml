@@ -187,7 +187,8 @@ repository:
   special-tags:
     patterns:
     - include: '#special-tags-void'
-    - include: '#special-tags-block'
+    - include: '#special-tags-block-begin'
+    - include: '#special-tags-block-end'
 
   # Special tag keywords, like `#if` and `/await`.
   special-tags-keywords:
@@ -277,39 +278,33 @@ repository:
     patterns: [ include: '#special-tags-modes' ]
 
   # Special tag blocks like `{#if}...{/if}`.
-  # Notice that we're matching _around_ these blocks.
-  special-tags-block:
-    begin: (?={\s*#([a-z]*))
-    end: (?<={\s*/\1\s*})
-    name: meta.scope.special.$1.svelte
-    patterns:
-    # Start node.
+  # Split up into start and end because we don't need to preserve the name
+  # inside and because it makes whitespace matching logic more robust
+  special-tags-block-begin:
     # This pattern is technically not correct,
     # as the (#|:|/)[logic] keywords do not care about whitespace between it and the { bracket.
     # This means newlines are actually valid!
     # However, deciphering what is logic and what is interpolation would be stupidly tedious. So we don't.
-    - begin: \G({)\s*(#([a-z]*))
-      beginCaptures: 
-        1: { name: punctuation.definition.block.begin.svelte }
-        2: { patterns: [ include: '#special-tags-keywords' ] }
-      end: \}
-      endCaptures: { 0: { name: punctuation.definition.block.end.svelte } }
-      name: meta.special.$3.start.svelte
-      patterns: [ include: '#special-tags-modes' ]
-    # End node.
+    begin: ({)\s*(#([a-z]*))
+    end: (})
+    name: meta.scope.special.$3.svelte
+    beginCaptures: 
+      1: { name: punctuation.definition.block.begin.svelte }
+      2: { patterns: [ include: '#special-tags-keywords' ] }
+    endCaptures: { 0: { name: punctuation.definition.block.end.svelte } }
+    patterns: [ include: '#special-tags-modes' ]
+
+  special-tags-block-end:
     # This is again technically not correct, and due to the same whitespacing reasons.
     # However... just don't introduce newlines in `{/if}` blocks. 'cuz that's weird.
-    - match: ({)\s*(/([a-z]*))\s*(})
-      captures:
-        1: { name: punctuation.definition.block.begin.svelte }
-        2: { patterns: [ include: '#special-tags-keywords' ] }
-        4: { name: punctuation.definition.block.end.svelte }
-      name: meta.special.$3.end.svelte
-    # Block content. (inbetween start and end nodes)
-    - begin: (?<=})
-      end: (?={\s*/)
-      # Introduce our new scope.
-      patterns: [ include: '#scope' ]
+    begin: ({)\s*(/([a-z]*))
+    end: (})
+    name: meta.scope.special.$3.svelte
+    beginCaptures:
+      1: { name: punctuation.definition.block.begin.svelte }
+      2: { patterns: [ include: '#special-tags-keywords' ] }
+    endCaptures:
+      1: { name: punctuation.definition.block.end.svelte }
 
   # ------------
   #  ATTRIBUTES
@@ -406,10 +401,11 @@ repository:
   # All tags together. Used whenever a new nested scope is introduced (and the root scope, of course).
   tags:
     patterns:
-    # The order is important here - void tags need to matched before block tags.
+    # The order is important here - void tags need to matched before block tags and end before start.
     - include: '#tags-lang'
     - include: '#tags-void'
-    - include: '#tags-general'
+    - include: '#tags-general-end'
+    - include: '#tags-general-start'
 
   # -- TAG COMPONENTS
 
@@ -434,7 +430,7 @@ repository:
   # Attributes for tag start nodes. Meant to start immediately after the `<name` section.
   tags-start-attributes:
     begin: \G
-    end: (?=/>)|>
+    end: (?=/?>)
     endCaptures: { 0: { name: punctuation.definition.tag.end.svelte } }
     name: meta.tag.start.svelte
     patterns: [ include: '#attributes' ]
@@ -455,12 +451,6 @@ repository:
       2: { name: meta.tag.end.svelte, patterns: [ include: '#tags-name' ] }
       3: { name: meta.tag.end.svelte punctuation.definition.tag.end.svelte }
       4: { name: meta.tag.start.svelte punctuation.definition.tag.end.svelte }
-
-  # Content of an element - inbetween the start and end nodes.
-  tags-block-content:
-    begin: (?<!/>)(?<=>)
-    end: (?=</)
-    patterns: [ include: '#scope' ]
 
   # -- TAG TYPES
 
@@ -495,14 +485,26 @@ repository:
     patterns: [ include: '#attributes' ]
 
   # All other tags, including custom/special Svelte tags.
-  tags-general:
-    begin: <([^/\s>]*)
-    end: </\1\s*>|/>
+  # Split up into start and end because we don't need to preserve the name
+  # inside and because it makes whitespace matching logic more robust
+  tags-general-start:
+    begin: (<)([^/\s>]*)
+    end: (>)
     beginCaptures: { 0: { patterns: [ include: '#tags-start-node' ] } }
-    endCaptures: { 0: { patterns: [ include: '#tags-end-node' ] } }
-    name: meta.scope.tag.$1.svelte
+    endCaptures:
+      1: { name: meta.tag.start.svelte punctuation.definition.tag.end.svelte }
+    name: meta.scope.tag.$2.svelte
     patterns:
     - include: '#tags-start-attributes'
-    - include: '#tags-block-content'
+
+  tags-general-end:
+    begin: (</)([^/\s>]*)
+    end: (>)
+    beginCaptures:
+      1: { name: punctuation.definition.tag.begin.svelte }
+      2: { patterns: [ include: '#tags-name' ] }
+    endCaptures:
+      1: { name: meta.tag.end.svelte punctuation.definition.tag.end.svelte }
+    name: meta.scope.tag.$2.svelte
 
 ...
