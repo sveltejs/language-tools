@@ -287,7 +287,7 @@ repository:
     # However, deciphering what is logic and what is interpolation would be stupidly tedious. So we don't.
     begin: ({)\s*(#([a-z]*))
     end: (})
-    name: meta.scope.special.$3.svelte
+    name: meta.special.$3.svelte meta.special.start.svelte
     beginCaptures: 
       1: { name: punctuation.definition.block.begin.svelte }
       2: { patterns: [ include: '#special-tags-keywords' ] }
@@ -299,7 +299,7 @@ repository:
     # However... just don't introduce newlines in `{/if}` blocks. 'cuz that's weird.
     begin: ({)\s*(/([a-z]*))
     end: (})
-    name: meta.scope.special.$3.svelte
+    name: meta.special.$3.svelte meta.special.end.svelte
     beginCaptures:
       1: { name: punctuation.definition.block.begin.svelte }
       2: { patterns: [ include: '#special-tags-keywords' ] }
