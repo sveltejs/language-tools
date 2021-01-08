@@ -51,7 +51,15 @@ export class SemanticTokensProviderImpl implements SemanticTokensProvider {
             if (!originalPosition) {
                 continue;
             }
+
             const [line, character, length] = originalPosition;
+
+            // remove identifers whose start and end mapped to the some location
+            // like the svelte2tsx inserted render function
+            if (!length) {
+                continue;
+            }
+
             const modifier = this.getTokenModifierFromClassification(encodedClassification);
 
             builder.push(line, character, length, classificationType , modifier);
