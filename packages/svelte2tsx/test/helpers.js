@@ -22,8 +22,9 @@ function check_dir(path, { allowed = [], required = allowed }) {
             }
         }
         for (const name of allowed) {
-            if ('*' === name[0] ? fileName.endsWith(name.slice(1)) : name === fileName)
+            if ('*' === name[0] ? fileName.endsWith(name.slice(1)) : name === fileName) {
                 continue loop;
+            }
         }
         unknown.push(fileName);
     }
@@ -31,8 +32,11 @@ function check_dir(path, { allowed = [], required = allowed }) {
         after(() => {
             for (const name of unknown) {
                 const msg = `Unexpected file ${path.split('/').slice(-1)}/${name}`;
-                if (process.env.CI) throw new Error(msg);
-                else console.info(msg);
+                if (process.env.CI) {
+                    throw new Error(msg);
+                } else {
+                    console.info(msg);
+                }
             }
         });
     }
