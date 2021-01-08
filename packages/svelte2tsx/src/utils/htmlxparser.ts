@@ -1,5 +1,5 @@
-import compiler from 'svelte/compiler';
 import { Node } from 'estree-walker';
+import * as compiler from 'svelte/compiler';
 
 function parseAttributeValue(value: string): string {
     return /^['"]/.test(value) ? value.slice(1, -1) : value;
