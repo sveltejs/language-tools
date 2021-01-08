@@ -27,7 +27,7 @@ function check_dir(path, { allowed = [], required = allowed }) {
         }
         unknown.push(fileName);
     }
-    if (0 !== unknown.length) {
+    if (unknown.length !== 0) {
         after(() => {
             for (const name of unknown) {
                 const msg = `Unexpected file ${path.split('/').slice(-1)}/${name}`;
@@ -36,7 +36,7 @@ function check_dir(path, { allowed = [], required = allowed }) {
             }
         });
     }
-    if (0 !== unchecked.size) {
+    if (unchecked.size !== 0) {
         throw new Error(
             `Expected file(s) ${[...unchecked].map((str) => `"${str}"`).join(', ')} in ${path}`
         );
