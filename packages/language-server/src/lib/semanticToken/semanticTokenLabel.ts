@@ -1,10 +1,14 @@
-import { SemanticTokensLegend } from 'vscode-languageserver';
+import {
+    SemanticTokensLegend,
+    SemanticTokenModifiers,
+    SemanticTokenTypes
+} from 'vscode-languageserver';
 
 /**
  * extended from https://github.com/microsoft/TypeScript/blob/35c8df04ad959224fad9037e340c1e50f0540a49/src/services/classifier2020.ts#L9
  * so that we don't have to map it into our own legend
  */
-export enum TokenType {
+export const enum TokenType {
     class,
     enum,
     interface,
@@ -16,9 +20,7 @@ export enum TokenType {
     enumMember,
     property,
     function,
-
-    // member is renamed to method in vscode to match LSP default
-    method,
+    member,
 
     // svelte
     event
@@ -28,7 +30,7 @@ export enum TokenType {
  * adopted from https://github.com/microsoft/TypeScript/blob/35c8df04ad959224fad9037e340c1e50f0540a49/src/services/classifier2020.ts#L13
  * so that we don't have to map it into our own legend
  */
-export enum TokenModifier {
+export const enum TokenModifier {
     declaration,
     static,
     async,
@@ -37,18 +39,40 @@ export enum TokenModifier {
     local
 }
 
-function isEnumMember<T extends number>(value: string | T): value is T {
-    return typeof value === 'number';
-}
+export function getSemanticTokenLegends(): SemanticTokensLegend {
+    const tokenModifiers: string[] = [];
 
-function extractEnumValues<T extends number>(values: Array<string | T>) {
-    return values.filter(isEnumMember).sort((a, b) => a - b);
-}
+    ([
+        [TokenModifier.declaration, SemanticTokenModifiers.declaration],
+        [TokenModifier.static, SemanticTokenModifiers.static],
+        [TokenModifier.async, SemanticTokenModifiers.async],
+        [TokenModifier.readonly, SemanticTokenModifiers.readonly],
+        [TokenModifier.defaultLibrary, SemanticTokenModifiers.defaultLibrary],
+        [TokenModifier.local, 'local']
+    ] as const).forEach(([tsModifier, legend]) => (tokenModifiers[tsModifier] = legend));
 
-// enum is transpiled into an object with enum name and value mapping each other
-export const semanticTokenLegends: SemanticTokensLegend = {
-    tokenModifiers: extractEnumValues(Object.values(TokenModifier)).map(
-        (modifier) => TokenModifier[modifier]
-    ),
-    tokenTypes: extractEnumValues(Object.values(TokenType)).map((tokenType) => TokenType[tokenType])
-};
+    const tokenTypes: string[] = [];
+
+    ([
+        [TokenType.class, SemanticTokenTypes.class],
+        [TokenType.enum, SemanticTokenTypes.enum],
+        [TokenType.interface, SemanticTokenTypes.interface],
+        [TokenType.namespace, SemanticTokenTypes.namespace],
+        [TokenType.typeParameter, SemanticTokenTypes.typeParameter],
+        [TokenType.type, SemanticTokenTypes.type],
+        [TokenType.parameter, SemanticTokenTypes.parameter],
+        [TokenType.variable, SemanticTokenTypes.variable],
+        [TokenType.enumMember, SemanticTokenTypes.enumMember],
+        [TokenType.property, SemanticTokenTypes.property],
+        [TokenType.function, SemanticTokenTypes.function],
+
+        // member is renamed to method in vscode codebase to match LSP default
+        [TokenType.member, SemanticTokenTypes.method],
+        [TokenType.event, SemanticTokenTypes.event]
+    ] as const).forEach(([tokenType, legend]) => (tokenTypes[tokenType] = legend));
+
+    return {
+        tokenModifiers,
+        tokenTypes
+    };
+}

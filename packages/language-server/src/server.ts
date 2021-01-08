@@ -17,7 +17,7 @@ import {
 import { IPCMessageReader, IPCMessageWriter, createConnection } from 'vscode-languageserver/node';
 import { DiagnosticsManager } from './lib/DiagnosticsManager';
 import { Document, DocumentManager } from './lib/documents';
-import { semanticTokenLegends } from './lib/semanticToken/semanticTokenLabel';
+import { getSemanticTokenLegends } from './lib/semanticToken/semanticTokenLabel';
 import { Logger } from './logger';
 import { LSConfigManager } from './ls-config';
 import {
@@ -189,7 +189,7 @@ export function startServer(options?: LSOptions) {
                     retriggerCharacters: [')']
                 },
                 semanticTokensProvider: {
-                    legend: semanticTokenLegends,
+                    legend: getSemanticTokenLegends(),
                     range: true,
                     full: true
                 }
