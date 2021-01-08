@@ -435,6 +435,14 @@ repository:
     name: meta.tag.start.svelte
     patterns: [ include: '#attributes' ]
 
+  # Same as tags-start-attributes but slightly adjusted for special script/style/template tags.
+  tags-lang-start-attributes:
+    begin: \G
+    end: (?=/>)|>
+    endCaptures: { 0: { name: punctuation.definition.tag.end.svelte } }
+    name: meta.tag.start.svelte
+    patterns: [ include: '#attributes' ]
+
   # Matches the beginning (`<name`) section of a tag start node.
   tags-start-node:
     match: (<)([^/\s>]*)
@@ -466,9 +474,9 @@ repository:
     - begin: \G(?=\s*(type|lang)\s*=\s*(['"]|)(?:text/)?(\w+)\2)
       end: (?=</|/>)
       name: meta.lang.$3.svelte
-      patterns: [ include: '#tags-start-attributes' ]
+      patterns: [ include: '#tags-lang-start-attributes' ]
     # Fallback to default language.
-    - include: '#tags-start-attributes'
+    - include: '#tags-lang-start-attributes'
 
   # Void element tags. They must be treated separately due to their lack of end nodes.
   # A void element cannot be differentiated from other tags, unless you look at their name.
