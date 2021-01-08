@@ -10,7 +10,7 @@ export function handleDebug(_htmlx: string, str: MagicString, debugBlock: Node):
     let cursor = debugBlock.start;
     for (const identifier of debugBlock.identifiers as Node[]) {
         str.remove(cursor, identifier.start);
-        str.appendRight(identifier.start, '{');
+        str.prependLeft(identifier.start, '{');
         str.prependLeft(identifier.end, '}');
         cursor = identifier.end;
     }
