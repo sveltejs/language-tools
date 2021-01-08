@@ -3,14 +3,16 @@ import MagicString from 'magic-string';
 
 /**
  * {@debug a}		--->   {a}
- *
- * tsx won't accept commas, must split
  * {@debug a, b}	--->   {a}{b}
+ * tsx won't accept commas, must split
  */
 export function handleDebug(_htmlx: string, str: MagicString, debugBlock: Node): void {
-    str.overwrite(
-        debugBlock.start,
-        debugBlock.end,
-        debugBlock.identifiers.map((identifier: Node) => `{${identifier.name}}`).join('')
-    );
+    let cursor = debugBlock.start;
+    for (const identifier of debugBlock.identifiers as Node[]) {
+        str.remove(cursor, identifier.start);
+        str.appendRight(identifier.start, '{');
+        str.prependLeft(identifier.end, '}');
+        cursor = identifier.end;
+    }
+    str.remove(cursor, debugBlock.end);
 }
