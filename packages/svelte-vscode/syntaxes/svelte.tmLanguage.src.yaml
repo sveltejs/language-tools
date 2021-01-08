@@ -501,8 +501,8 @@ repository:
     begin: (</)([^/\s>]*)
     end: (>)
     beginCaptures:
-      1: { name: punctuation.definition.tag.begin.svelte }
-      2: { patterns: [ include: '#tags-name' ] }
+      1: { name: meta.tag.end.svelte punctuation.definition.tag.begin.svelte }
+      2: { name: meta.tag.end.svelte, patterns: [ include: '#tags-name' ] }
     endCaptures:
       1: { name: meta.tag.end.svelte punctuation.definition.tag.end.svelte }
     name: meta.scope.tag.$2.svelte
