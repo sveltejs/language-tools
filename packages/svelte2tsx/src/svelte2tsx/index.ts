@@ -10,16 +10,16 @@ import { EventHandler } from './nodes/event-handler';
 import { ExportedNames } from './nodes/ExportedNames';
 import { createClassGetters, createRenderFunctionGetterStr } from './nodes/exportgetters';
 import {
-    handleScopeAndResolveForSlot,
-    handleScopeAndResolveLetVarForSlot
+	handleScopeAndResolveForSlot,
+	handleScopeAndResolveLetVarForSlot
 } from './nodes/handleScopeAndResolveForSlot';
 import { Scripts } from './nodes/Scripts';
 import { SlotHandler } from './nodes/slot';
 import { Stores } from './nodes/Stores';
 import TemplateScope from './nodes/TemplateScope';
 import {
-    InstanceScriptProcessResult,
-    processInstanceScriptContent
+	InstanceScriptProcessResult,
+	processInstanceScriptContent
 } from './processInstanceScriptContent';
 import { processModuleScriptTag } from './processModuleScriptTag';
 import { ScopeStack } from './utils/Scope';
