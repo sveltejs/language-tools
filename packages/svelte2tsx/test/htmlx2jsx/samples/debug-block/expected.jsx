@@ -1,1 +1,3 @@
-<>{ myfile, someOtherFile }</>
+<>{myfile}
+{myfile}{someOtherFile}
+{myfile}{someOtherFile}{someThirdFile}</>
