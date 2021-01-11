@@ -54,7 +54,7 @@ export class SemanticTokensProviderImpl implements SemanticTokensProvider {
 
             const [line, character, length] = originalPosition;
 
-            // remove identifers whose start and end mapped to the some location
+            // remove identifers whose start and end mapped to the same location
             // like the svelte2tsx inserted render function
             if (!length) {
                 continue;
@@ -89,8 +89,9 @@ export class SemanticTokensProviderImpl implements SemanticTokensProvider {
         return [startPosition.line, startPosition.character, endOffset - startOffset];
     }
 
-    /** TSClassification =
-     *  (TokenType + 1) << TokenEncodingConsts.typeOffset + TokenModifier */
+    /**
+     *  TSClassification = (TokenType + 1) << TokenEncodingConsts.typeOffset + TokenModifier
+     */
     private getTokenTypeFromClassification(tsClassification: number): number {
         return (tsClassification >> TokenEncodingConsts.typeOffset) - 1;
     }
