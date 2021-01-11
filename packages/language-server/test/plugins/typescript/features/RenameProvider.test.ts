@@ -12,7 +12,7 @@ const testDir = path.join(__dirname, '..');
 
 describe('RenameProvider', () => {
     function getFullPath(filename: string) {
-        return path.join(testDir, 'testfiles', filename);
+        return path.join(testDir, 'testfiles', 'rename', filename);
     }
 
     function getUri(filename: string) {
@@ -34,7 +34,17 @@ describe('RenameProvider', () => {
         const renameDoc3 = await openDoc('rename3.svelte');
         const renameDoc4 = await openDoc('rename4.svelte');
         const renameDoc5 = await openDoc('rename5.svelte');
-        return { provider, renameDoc1, renameDoc2, renameDoc3, renameDoc4, renameDoc5, docManager };
+        const renameDoc6 = await openDoc('rename6.svelte');
+        return {
+            provider,
+            renameDoc1,
+            renameDoc2,
+            renameDoc3,
+            renameDoc4,
+            renameDoc5,
+            renameDoc6,
+            docManager
+        };
 
         async function openDoc(filename: string) {
             const filePath = getFullPath(filename);
@@ -407,5 +417,56 @@ describe('RenameProvider', () => {
         const result = await provider.prepareRename(renameDoc1, Position.create(12, 5));
 
         assert.deepStrictEqual(result, null);
+    });
+
+    it('should rename with prefix', async () => {
+        const { provider, renameDoc6 } = await setup();
+        const result = await provider.rename(renameDoc6, Position.create(3, 9), 'newName');
+
+        assert.deepStrictEqual(result, {
+            changes: {
+                [getUri('rename6.svelte')]: [
+                    {
+                        newText: 'newName',
+                        range: {
+                            start: {
+                                character: 8,
+                                line: 3
+                            },
+                            end: {
+                                character: 11,
+                                line: 3
+                            }
+                        }
+                    },
+                    {
+                        newText: 'foo: newName',
+                        range: {
+                            start: {
+                                character: 16,
+                                line: 4
+                            },
+                            end: {
+                                character: 19,
+                                line: 4
+                            }
+                        }
+                    },
+                    {
+                        newText: 'foo: newName',
+                        range: {
+                            start: {
+                                character: 18,
+                                line: 7
+                            },
+                            end: {
+                                character: 21,
+                                line: 7
+                            }
+                        }
+                    }
+                ]
+            }
+        });
     });
 });
