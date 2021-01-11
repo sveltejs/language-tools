@@ -130,6 +130,12 @@
                     "title": "TypeScript: Rename",
                     "description": "Enable rename functionality for JS/TS variables inside Svelte files"
                 },
+                "svelte.plugin.typescript.semanticTokens.enable": {
+                  "type": "boolean",
+                  "default": true,
+                  "title": "TypeScript: Semantic Tokens",
+                  "description": "Enable semantic tokens (semantic highlight) for Typescript. Doesn't applied to JavaScript"
+                },
                 "svelte.plugin.css.enable": {
                     "type": "boolean",
                     "default": true,

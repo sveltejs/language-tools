@@ -408,6 +408,12 @@ export class TypeScriptPlugin
     }
 
     async getSemanticTokens(textDocument: Document, range?: Range): Promise<SemanticTokens> {
+        if (!this.featureEnabled('semanticTokens')) {
+            return {
+                data: []
+            };
+        }
+
         return this.semanticTokensProvider.getSemanticTokens(textDocument, range);
     }
 
