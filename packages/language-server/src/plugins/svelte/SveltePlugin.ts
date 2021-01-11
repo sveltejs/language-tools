@@ -75,6 +75,7 @@ export class SveltePlugin
         const config =
             returnObjectIfHasKeys(await prettier.resolveConfig(filePath, { editorconfig: true })) ||
             merge(
+                {}, // merge into empty obj to not manipulate own config
                 this.configManager.get('svelte.format.config'),
                 returnObjectIfHasKeys(this.configManager.getPrettierConfig()) ||
                     // Be defensive here because IDEs other than VSCode might not have these settings

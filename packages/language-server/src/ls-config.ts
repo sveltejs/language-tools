@@ -51,8 +51,6 @@ const defaultLSConfig: LSConfig = {
                 svelteBracketNewLine: true,
                 svelteIndentScriptAndStyle: true,
                 printWidth: 80,
-                tabWidth: 2,
-                useTabs: false,
                 singleQuote: false
             }
         },
@@ -169,8 +167,6 @@ export interface LSSvelteConfig {
             svelteBracketNewLine: boolean;
             svelteIndentScriptAndStyle: boolean;
             printWidth: number;
-            tabWidth: number;
-            useTabs: boolean;
             singleQuote: boolean;
         };
     };
