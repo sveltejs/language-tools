@@ -28,7 +28,6 @@ import {
 import { DocumentManager } from '../lib/documents';
 import { Logger } from '../logger';
 import { regexLastIndexOf } from '../utils';
-import { collectSemanticTokens } from './collector/collectSemanticToken';
 import {
     AppCompletionItem,
     FileRename,
@@ -408,11 +407,14 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
             throw new Error('Cannot call methods on an unopened document');
         }
 
-        return this.execute<SemanticTokens>(
-            'getSemanticTokens',
-            [document, range],
-            ExecuteMode.Collect,
-            collectSemanticTokens
+        return (
+            (await this.execute<SemanticTokens>(
+                'getSemanticTokens',
+                [document, range],
+                ExecuteMode.FirstNonNull
+            )) ?? {
+                data: []
+            }
         );
     }
 
