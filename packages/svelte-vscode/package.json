@@ -395,6 +395,12 @@
                     "when": "editorLangId == svelte",
                     "group": "navigation"
                 }
+            ],
+            "editor/context": [
+                {
+                    "command": "svelte.extractComponent",
+                    "group": "z_commands"
+                }
             ]
         },
         "breakpoints": [
