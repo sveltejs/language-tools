@@ -42,7 +42,20 @@ const defaultLSConfig: LSConfig = {
         compilerWarnings: {},
         diagnostics: { enable: true },
         rename: { enable: true },
-        format: { enable: true },
+        format: {
+            enable: true,
+            config: {
+                svelteSortOrder: 'options-scripts-markup-styles',
+                svelteStrictMode: false,
+                svelteAllowShorthand: true,
+                svelteBracketNewLine: true,
+                svelteIndentScriptAndStyle: true,
+                printWidth: 80,
+                tabWidth: 2,
+                useTabs: false,
+                singleQuote: false
+            }
+        },
         completions: { enable: true },
         hover: { enable: true },
         codeActions: { enable: true },
@@ -149,6 +162,17 @@ export interface LSSvelteConfig {
     };
     format: {
         enable: boolean;
+        config: {
+            svelteSortOrder: string;
+            svelteStrictMode: boolean;
+            svelteAllowShorthand: boolean;
+            svelteBracketNewLine: boolean;
+            svelteIndentScriptAndStyle: boolean;
+            printWidth: number;
+            tabWidth: number;
+            useTabs: boolean;
+            singleQuote: boolean;
+        };
     };
     rename: {
         enable: boolean;
