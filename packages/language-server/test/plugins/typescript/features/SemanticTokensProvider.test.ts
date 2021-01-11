@@ -1,7 +1,7 @@
 import path from 'path';
 import ts from 'typescript';
 import assert from 'assert';
-import { SemanticTokensBuilder } from 'vscode-languageserver';
+import { Position, Range, SemanticTokensBuilder } from 'vscode-languageserver';
 import { Document, DocumentManager } from '../../../../src/lib/documents';
 import { TokenModifier, TokenType } from '../../../../src/lib/semanticToken/semanticTokenLegend';
 import { LSConfigManager } from '../../../../src/ls-config';
@@ -35,11 +35,22 @@ describe('SemanticTokensProvider', () => {
 
         const { data } = await provider.getSemanticTokens(document);
 
-        assert.deepStrictEqual(data, getExpected());
+        assert.deepStrictEqual(data, getExpected(/* isFull */ true));
     });
 
-    function getExpected() {
-        const tokenData: Array<{
+    it('provides partial semantic token', async () => {
+        const { provider, document } = setup();
+
+        const { data } = await provider.getSemanticTokens(
+            document,
+            Range.create(Position.create(0, 0), Position.create(9, 0))
+        );
+
+        assert.deepStrictEqual(data, getExpected(/* isFull */ false));
+    });
+
+    function getExpected(full: boolean) {
+        const tokenDataScript: Array<{
             line: number;
             character: number;
             length: number;
@@ -87,7 +98,10 @@ describe('SemanticTokensProvider', () => {
                 length: 'blurHandler'.length,
                 type: TokenType.function,
                 modifiers: [TokenModifier.async, TokenModifier.declaration, TokenModifier.local]
-            },
+            }
+        ];
+        const tokenDataAll = [
+            ...tokenDataScript,
             {
                 line: 10,
                 character: 8,
@@ -126,13 +140,13 @@ describe('SemanticTokensProvider', () => {
         ];
 
         const builder = new SemanticTokensBuilder();
-        for (const token of tokenData) {
+        for (const token of full ? tokenDataAll : tokenDataScript) {
             builder.push(
                 token.line,
                 token.character,
                 token.length,
                 token.type,
-                token.modifiers.reduce((pre, next) => (pre | 1 << next), 0)
+                token.modifiers.reduce((pre, next) => pre | (1 << next), 0)
             );
         }
 
