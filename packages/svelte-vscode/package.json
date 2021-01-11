@@ -399,7 +399,7 @@
             "editor/context": [
                 {
                     "command": "svelte.extractComponent",
-                    "group": "z_commands"
+                    "group": "1_modification"
                 }
             ]
         },
