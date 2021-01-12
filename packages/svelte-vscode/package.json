@@ -399,6 +399,7 @@
             "editor/context": [
                 {
                     "command": "svelte.extractComponent",
+                    "when": "editorLangId == svelte",
                     "group": "1_modification"
                 }
             ]
