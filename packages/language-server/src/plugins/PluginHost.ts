@@ -438,18 +438,11 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         args: any[],
         mode: ExecuteMode.Collect
     ): Promise<T[]>;
-    private execute<T>(
-        name: keyof LSProvider,
-        args: any[],
-        mode: ExecuteMode.Collect,
-        collector: (plugins: Plugin[], ...args: any[]) => Promise<T>
-    ): Promise<T>;
     private execute(name: keyof LSProvider, args: any[], mode: ExecuteMode.None): Promise<void>;
     private async execute<T>(
         name: keyof LSProvider,
         args: any[],
-        mode: ExecuteMode,
-        collector?: (plugins: Plugin[], ...args: any[]) => T
+        mode: ExecuteMode
     ): Promise<(T | null) | T[] | void> {
         const plugins = this.plugins.filter((plugin) => typeof plugin[name] === 'function');
 
@@ -463,9 +456,6 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
                 }
                 return null;
             case ExecuteMode.Collect:
-                if (typeof collector === 'function') {
-                    return collector(this.plugins, ...args);
-                }
                 return Promise.all(
                     plugins.map((plugin) => this.tryExecutePlugin(plugin, name, args, []))
                 );
