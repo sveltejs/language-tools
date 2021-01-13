@@ -200,11 +200,11 @@ Svelte compiler warning codes to ignore or to treat as errors. Example: { 'css-u
 
 ##### `svelte.plugin.svelte.format.enable`
 
-Enable formatting for Svelte (includes css & js). You can set some formatting options through this extension. They will be ignored if there's a `.prettierrc` configuration file. _Default_: `true`
+Enable formatting for Svelte (includes css & js) using [prettier-plugin-svelte](https://github.com/sveltejs/prettier-plugin-svelte). You can set some formatting options through this extension. They will be ignored if there's a `.prettierrc` configuration file. _Default_: `true`
 
 ##### `svelte.plugin.svelte.format.config.svelteSortOrder`
 
-Format: join the keys `options`, `scripts`, `markup`, `styles` with a - in the order you want. _Default_: `options-scripts-markup-styles`
+Format: join the keys `options`, `scripts`, `markup`, `styles` with a `-` in the order you want. _Default_: `options-scripts-markup-styles`
 
 ##### `svelte.plugin.svelte.format.config.svelteStrictMode`
 
