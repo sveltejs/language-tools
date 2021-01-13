@@ -101,12 +101,23 @@ describe('Svelte Plugin', () => {
             });
         });
 
+        const defaultSettings = {
+            svelteSortOrder: 'options-scripts-markup-styles',
+            svelteStrictMode: false,
+            svelteAllowShorthand: true,
+            svelteBracketNewLine: true,
+            svelteIndentScriptAndStyle: true,
+            printWidth: 80,
+            singleQuote: false
+        };
+
         it('should use prettier fallback config for formatting', async () => {
             const formatStub = await testFormat(undefined, { fallbackConfig: true });
             sinon.assert.calledOnceWithExactly(formatStub, 'unformatted', {
                 fallbackConfig: true,
                 plugins: [],
-                parser: 'svelte'
+                parser: 'svelte',
+                ...defaultSettings
             });
         });
 
@@ -116,7 +127,8 @@ describe('Svelte Plugin', () => {
                 tabWidth: 4,
                 useTabs: false,
                 plugins: [],
-                parser: 'svelte'
+                parser: 'svelte',
+                ...defaultSettings
             });
         });
 
@@ -126,7 +138,8 @@ describe('Svelte Plugin', () => {
                 tabWidth: 4,
                 useTabs: false,
                 plugins: [],
-                parser: 'svelte'
+                parser: 'svelte',
+                ...defaultSettings
             });
         });
     });
