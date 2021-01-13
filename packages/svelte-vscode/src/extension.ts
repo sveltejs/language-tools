@@ -219,6 +219,16 @@ export function activate(context: ExtensionContext) {
             }
         ]
     });
+
+    // This API is considered private and only exposed for experimenting.
+    // Interface may change at any time. Use at your own risk!
+    return {
+        /**
+         * As a function, because restarting the server
+         * will result in another instance.
+         */
+        getLanguageServer: getLS
+    };
 }
 
 function addRenameFileListener(getLS: () => LanguageClient) {
