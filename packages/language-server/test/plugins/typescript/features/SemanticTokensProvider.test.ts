@@ -35,7 +35,7 @@ describe('SemanticTokensProvider', () => {
 
         const { data } = await provider.getSemanticTokens(document);
 
-        assert.deepStrictEqual(data, getExpected(/* isFull */ true));
+        assertResult(data, getExpected(/* isFull */ true));
     });
 
     it('provides partial semantic token', async () => {
@@ -46,7 +46,7 @@ describe('SemanticTokensProvider', () => {
             Range.create(Position.create(0, 0), Position.create(9, 0))
         );
 
-        assert.deepStrictEqual(data, getExpected(/* isFull */ false));
+        assertResult(data, getExpected(/* isFull */ false));
     });
 
     function getExpected(full: boolean) {
@@ -152,5 +152,26 @@ describe('SemanticTokensProvider', () => {
 
         const data = builder.build().data;
         return data;
+    }
+
+    /**
+     *  group result by tokens to better distinguish
+     */
+    function assertResult(actual: number[], expected: number[]) {
+        const actualGrouped = group(actual);
+        const expectedGrouped = group(expected);
+
+        assert.deepStrictEqual(actualGrouped, expectedGrouped);
+    }
+
+    function group(tokens: number[]) {
+        const result: number[][] = [];
+
+        let index = 0;
+        while (index < tokens.length) {
+            result.push(tokens.splice(index, index += 5));
+        }
+
+        return result;
     }
 });
