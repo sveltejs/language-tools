@@ -145,7 +145,8 @@ function enhanceIfNecessary(diagnostic: Diagnostic): Diagnostic {
         return {
             ...diagnostic,
             message:
-                'Type definitions are missing for this Svelte Component or element cannot be used as such.\n\n' +
+                'Element does not support attributes because ' +
+                'type definitions are missing for this Svelte Component or element cannot be used as such.\n\n' +
                 'Underlying error:\n' +
                 diagnostic.message
         };
