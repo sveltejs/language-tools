@@ -20,7 +20,10 @@ export class SemanticTokensProviderImpl implements SemanticTokensProvider {
             ? convertToTextSpan(range, fragment)
             : {
                   start: 0,
-                  length: fragment.text.length
+                  length: tsDoc.parserError
+                      ? fragment.text.length
+                      : // This is appended by svelte2tsx, there's nothing mappable afterwards
+                        fragment.text.lastIndexOf('return { props:') || fragment.text.length
               };
 
         const { spans } = lang.getEncodedSemanticClassifications(
