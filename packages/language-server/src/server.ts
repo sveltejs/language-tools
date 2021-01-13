@@ -4,7 +4,7 @@ import {
     ApplyWorkspaceEditRequest,
     CodeActionKind,
     DocumentUri,
-    _Connection,
+    Connection,
     MessageType,
     RenameFile,
     RequestType,
@@ -17,6 +17,7 @@ import {
 import { IPCMessageReader, IPCMessageWriter, createConnection } from 'vscode-languageserver/node';
 import { DiagnosticsManager } from './lib/DiagnosticsManager';
 import { Document, DocumentManager } from './lib/documents';
+import { getSemanticTokenLegends } from './lib/semanticToken/semanticTokenLegend';
 import { Logger } from './logger';
 import { LSConfigManager } from './ls-config';
 import {
@@ -43,7 +44,7 @@ export interface LSOptions {
      * If you have a connection already that the ls should use, pass it in.
      * Else the connection will be created from `process`.
      */
-    connection?: _Connection;
+    connection?: Connection;
     /**
      * If you want only errors getting logged.
      * Defaults to false.
@@ -186,6 +187,11 @@ export function startServer(options?: LSOptions) {
                 signatureHelpProvider: {
                     triggerCharacters: ['(', ',', '<'],
                     retriggerCharacters: [')']
+                },
+                semanticTokensProvider: {
+                    legend: getSemanticTokenLegends(),
+                    range: true,
+                    full: true
                 }
             }
         };
@@ -289,6 +295,11 @@ export function startServer(options?: LSOptions) {
         diagnosticsManager.updateAll();
     });
     connection.onDidSaveTextDocument(() => diagnosticsManager.updateAll());
+
+    connection.languages.semanticTokens.on((evt) => pluginHost.getSemanticTokens(evt.textDocument));
+    connection.languages.semanticTokens.onRange((evt) =>
+        pluginHost.getSemanticTokens(evt.textDocument, evt.range)
+    );
 
     docManager.on(
         'documentChange',

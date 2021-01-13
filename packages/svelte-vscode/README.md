@@ -120,6 +120,10 @@ Enable rename functionality for JS/TS variables inside Svelte files. _Default_: 
 
 Enable signature help (parameter hints) for JS/TS. _Default_: `true`
 
+##### `svelte.plugin.typescript.semanticTokens.enable`
+
+Enable semantic tokens (semantic highlight) for TypeScript. Doesn't apply to JavaScript. _Default_: `true`
+
 ##### `svelte.plugin.css.enable`
 
 Enable the CSS plugin. _Default_: `true`

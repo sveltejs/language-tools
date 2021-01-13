@@ -1,4 +1,4 @@
-import { CompletionContext, FileChangeType, SignatureHelpContext } from 'vscode-languageserver';
+import { CompletionContext, FileChangeType, SemanticTokens, SignatureHelpContext } from 'vscode-languageserver';
 import {
     CodeAction,
     CodeActionContext,
@@ -141,6 +141,13 @@ export interface SelectionRangeProvider {
     getSelectionRange(document: Document, position: Position): Resolvable<SelectionRange | null>;
 }
 
+export interface SemanticTokensProvider {
+    getSemanticTokens(
+        textDocument: Document,
+        range?: Range
+    ): Resolvable<SemanticTokens>
+}
+
 export interface OnWatchFileChangesPara {
     fileName: string;
     changeType: FileChangeType;
@@ -162,7 +169,8 @@ type ProviderBase = DiagnosticsProvider &
     CodeActionsProvider &
     FindReferencesProvider &
     RenameProvider &
-    SignatureHelpProvider;
+    SignatureHelpProvider &
+    SemanticTokensProvider;
 
 export type LSProvider = ProviderBase & BackwardsCompatibleDefinitionsProvider;
 

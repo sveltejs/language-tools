@@ -286,3 +286,13 @@ export function getTsCheckComment(str = ''): string | undefined {
         }
     }
 }
+
+export function convertToTextSpan(range: Range, fragment: SnapshotFragment): ts.TextSpan {
+    const start = fragment.offsetAt(fragment.getGeneratedPosition(range.start));
+    const end = fragment.offsetAt(fragment.getGeneratedPosition(range.end));
+
+    return {
+        start,
+        length: end - start
+    };
+}

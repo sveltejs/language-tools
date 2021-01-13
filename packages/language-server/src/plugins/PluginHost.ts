@@ -17,6 +17,7 @@ import {
     Range,
     ReferenceContext,
     SelectionRange,
+    SemanticTokens,
     SignatureHelp,
     SignatureHelpContext,
     SymbolInformation,
@@ -398,6 +399,23 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
             Logger.error(error);
             return null;
         }
+    }
+
+    async getSemanticTokens(textDocument: TextDocumentIdentifier, range?: Range) {
+        const document = this.getDocument(textDocument.uri);
+        if (!document) {
+            throw new Error('Cannot call methods on an unopened document');
+        }
+
+        return (
+            (await this.execute<SemanticTokens>(
+                'getSemanticTokens',
+                [document, range],
+                ExecuteMode.FirstNonNull
+            )) ?? {
+                data: []
+            }
+        );
     }
 
     onWatchFileChanges(onWatchFileChangesParas: OnWatchFileChangesPara[]): void {
