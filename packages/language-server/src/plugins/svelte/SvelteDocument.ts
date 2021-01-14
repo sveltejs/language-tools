@@ -27,7 +27,10 @@ export enum TranspileErrorSource {
     Style = 'Style'
 }
 
-type PositionMapper = Pick<DocumentMapper, 'getGeneratedPosition' | 'getOriginalPosition'>;
+type PositionMapper = Pick<
+    DocumentMapper,
+    'getGeneratedPosition' | 'getOriginalPosition' | 'getOriginalPositionOfEndOfChar'
+>;
 
 /**
  * Represents a text document that contains a svelte component.
@@ -250,6 +253,8 @@ export class SvelteFragmentMapper implements PositionMapper {
                     ? new SourceMapDocumentMapper(
                           await new SourceMapConsumer(processedSingle.map.toString()),
                           originalDoc.uri,
+                          processedSingle.code,
+                          originalDoc.getText(),
                           await parent
                       )
                     : new IdentityMapper(originalDoc.uri, await parent),

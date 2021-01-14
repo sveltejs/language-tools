@@ -24,6 +24,8 @@ export interface DocumentMapper {
      */
     getOriginalPosition(generatedPosition: Position): Position;
 
+    getOriginalPositionOfEndOfChar?(generatedPosition: Position): Position;
+
     /**
      * Map the original position to the generated position
      * @param originalPosition Position in parent
@@ -58,6 +60,10 @@ export class IdentityMapper implements DocumentMapper {
             generatedPosition = this.getOriginalPosition(generatedPosition);
         }
 
+        return generatedPosition;
+    }
+
+    getOriginalPositionOfEndOfChar(generatedPosition: Position): Position {
         return generatedPosition;
     }
 
@@ -96,6 +102,10 @@ export class FragmentMapper implements DocumentMapper {
         private url: string
     ) {}
 
+    getOriginalPositionOfEndOfChar(generatedPosition: Position): Position {
+        return generatedPosition;
+    }
+
     getOriginalPosition(generatedPosition: Position): Position {
         const parentOffset = this.offsetInParent(offsetAt(generatedPosition, this.tagInfo.content));
         return positionAt(parentOffset, this.originalText);
@@ -124,6 +134,8 @@ export class SourceMapDocumentMapper implements DocumentMapper {
     constructor(
         protected consumer: SourceMapConsumer,
         protected sourceUri: string,
+        private generatedText: string,
+        private originalText: string,
         private parent?: DocumentMapper
     ) {}
 
@@ -195,6 +207,20 @@ export class SourceMapDocumentMapper implements DocumentMapper {
         return this.sourceUri;
     }
 
+    getOriginalPositionOfEndOfChar(position: Position): Position {
+        const previousCharOriginalPosition = this.getOriginalPosition(offsetPositionByOneChar(
+            this.generatedText,
+            position,
+            OffsetPositionDirection.start
+        ));
+
+        return offsetPositionByOneChar(
+            this.originalText,
+            previousCharOriginalPosition,
+            OffsetPositionDirection.end
+        );
+    }
+
     /**
      * Needs to be called when source mapper is no longer needed in order to prevent memory leaks.
      */
@@ -205,18 +231,37 @@ export class SourceMapDocumentMapper implements DocumentMapper {
 }
 
 export function mapRangeToOriginal(
-    fragment: Pick<DocumentMapper, 'getOriginalPosition'>,
+    fragment: RangeMapper,
     range: Range
 ): Range {
+    // start and end is the same position, not start of char and end of char
+    const zeroLength = range.start.line === range.end.line &&
+        range.start.character === range.end.character;
+    const end = !zeroLength && fragment.getOriginalPositionOfEndOfChar ?
+        fragment.getOriginalPositionOfEndOfChar(range.end) :
+        fragment.getOriginalPosition(range.end);
+
     // DON'T use Range.create here! Positions might not be mapped
     // and therefore return negative numbers, which makes Range.create throw.
     // These invalid position need to be handled
     // on a case-by-case basis in the calling functions.
     return {
         start: fragment.getOriginalPosition(range.start),
+        end
+    };
+}
+
+export function mapRangeToOriginalWithEndOfChar(
+    fragment: Pick<DocumentMapper, 'getOriginalPosition'>,
+    range: Range
+): Range {
+
+    return {
+        start: fragment.getOriginalPosition(range.start),
         end: fragment.getOriginalPosition(range.end)
     };
 }
+
 
 export function mapRangeToGenerated(fragment: DocumentMapper, range: Range): Range {
     return Range.create(
@@ -226,7 +271,7 @@ export function mapRangeToGenerated(fragment: DocumentMapper, range: Range): Ran
 }
 
 export function mapCompletionItemToOriginal(
-    fragment: Pick<DocumentMapper, 'getOriginalPosition'>,
+    fragment: RangeMapper,
     item: CompletionItem
 ): CompletionItem {
     if (!item.textEdit) {
@@ -240,7 +285,7 @@ export function mapCompletionItemToOriginal(
 }
 
 export function mapHoverToParent(
-    fragment: Pick<DocumentMapper, 'getOriginalPosition'>,
+    fragment: RangeMapper,
     hover: Hover
 ): Hover {
     if (!hover.range) {
@@ -250,15 +295,17 @@ export function mapHoverToParent(
     return { ...hover, range: mapRangeToOriginal(fragment, hover.range) };
 }
 
+type RangeMapper = Pick<DocumentMapper, 'getOriginalPosition' | 'getOriginalPositionOfEndOfChar'>;
+
 export function mapObjWithRangeToOriginal<T extends { range: Range }>(
-    fragment: Pick<DocumentMapper, 'getOriginalPosition'>,
+    fragment: RangeMapper,
     objWithRange: T
 ): T {
     return { ...objWithRange, range: mapRangeToOriginal(fragment, objWithRange.range) };
 }
 
 export function mapInsertReplaceEditToOriginal(
-    fragment: Pick<DocumentMapper, 'getOriginalPosition'>,
+    fragment: RangeMapper,
     edit: InsertReplaceEdit
 ): InsertReplaceEdit {
     return {
@@ -269,7 +316,7 @@ export function mapInsertReplaceEditToOriginal(
 }
 
 export function mapEditToOriginal(
-    fragment: Pick<DocumentMapper, 'getOriginalPosition'>,
+    fragment: RangeMapper,
     edit: TextEdit | InsertReplaceEdit
 ): TextEdit | InsertReplaceEdit {
     return TextEdit.is(edit)
@@ -285,7 +332,7 @@ export function mapDiagnosticToGenerated(
 }
 
 export function mapColorPresentationToOriginal(
-    fragment: Pick<DocumentMapper, 'getOriginalPosition'>,
+    fragment: RangeMapper,
     presentation: ColorPresentation
 ): ColorPresentation {
     const item = {
@@ -306,7 +353,7 @@ export function mapColorPresentationToOriginal(
 }
 
 export function mapSymbolInformationToOriginal(
-    fragment: Pick<DocumentMapper, 'getOriginalPosition'>,
+    fragment: RangeMapper,
     info: SymbolInformation
 ): SymbolInformation {
     return { ...info, location: mapObjWithRangeToOriginal(fragment, info.location) };
@@ -354,7 +401,7 @@ export function mapCodeActionToOriginal(fragment: DocumentMapper, codeAction: Co
 }
 
 export function mapSelectionRangeToParent(
-    fragment: Pick<DocumentMapper, 'getOriginalPosition'>,
+    fragment: RangeMapper,
     selectionRange: SelectionRange
 ): SelectionRange {
     const { range, parent } = selectionRange;
@@ -362,5 +409,45 @@ export function mapSelectionRangeToParent(
     return SelectionRange.create(
         mapRangeToOriginal(fragment, range),
         parent && mapSelectionRangeToParent(fragment, parent)
+    );
+}
+
+const enum OffsetPositionDirection {
+    start = -1,
+    end = 1
+}
+
+function offsetPositionByOneChar(
+    text: string,
+    position: Position,
+    direction: OffsetPositionDirection
+): Position {
+    const lines = text.split('\n');
+    const offset = offsetAt(position, text);
+    const isStart = direction > 0;
+    const char = text[offset + direction];
+
+    if (char != null) {
+        if (char != '\n') {
+            return {
+                line: position.line,
+                character: position.character + direction
+            };
+        }
+
+        const line = position.line + direction;
+        const lineText = lines[line];
+
+        if (lineText != null) {
+            return {
+                line,
+                character: isStart ? 0 : lineText.length - 1
+            };
+        }
+    }
+
+    return positionAt(
+        offsetAt(position, text) + direction,
+        text
     );
 }

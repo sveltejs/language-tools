@@ -3,8 +3,14 @@ import { SourceMapConsumer } from 'source-map';
 import { SourceMapDocumentMapper } from '../../lib/documents';
 
 export class ConsumerDocumentMapper extends SourceMapDocumentMapper {
-    constructor(consumer: SourceMapConsumer, sourceUri: string, private nrPrependesLines: number) {
-        super(consumer, sourceUri);
+    constructor(
+        consumer: SourceMapConsumer,
+        sourceUri: string,
+        generatedText: string,
+        originalText: string,
+        private nrPrependesLines: number
+    ) {
+        super(consumer, sourceUri, generatedText, originalText);
     }
 
     getOriginalPosition(generatedPosition: Position): Position {

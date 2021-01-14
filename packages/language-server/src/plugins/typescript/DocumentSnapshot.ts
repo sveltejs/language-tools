@@ -267,6 +267,8 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
         return new ConsumerDocumentMapper(
             await new SourceMapConsumer(this.tsxMap),
             uri,
+            this.text,
+            this.parent.getText(),
             this.nrPrependedLines
         );
     }
@@ -337,6 +339,12 @@ export class SvelteSnapshotFragment implements SnapshotFragment {
 
     getOriginalPosition(pos: Position): Position {
         return this.mapper.getOriginalPosition(pos);
+    }
+
+    getOriginalPositionOfEndOfChar(pos: Position): Position {
+        return this.mapper.getOriginalPositionOfEndOfChar ?
+            this.mapper.getOriginalPositionOfEndOfChar(pos) :
+            this.mapper.getOriginalPosition(pos);
     }
 
     getGeneratedPosition(pos: Position): Position {

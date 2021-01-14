@@ -1,10 +1,6 @@
 import ts from 'typescript';
-import {
-    Range,
-    SemanticTokens,
-    SemanticTokensBuilder
-} from 'vscode-languageserver';
-import { Document } from '../../../lib/documents';
+import { Range, SemanticTokens, SemanticTokensBuilder } from 'vscode-languageserver';
+import { Document, offsetAt } from '../../../lib/documents';
 import { SemanticTokensProvider } from '../../interfaces';
 import { SnapshotFragment } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
@@ -57,15 +53,17 @@ export class SemanticTokensProviderImpl implements SemanticTokensProvider {
 
             const [line, character, length] = originalPosition;
 
-            // remove identifers whose start and end mapped to the same location
-            // like the svelte2tsx inserted render function
-            if (!length) {
+            // remove identifers who mapped to be one character long
+            // but longer in generated code,
+            // which is likely a generated identifier
+            // like the svelte2tsx render function and __sveltets_ helper function
+            if (generatedLength > 1 && length === 1) {
                 continue;
             }
 
             const modifier = this.getTokenModifierFromClassification(encodedClassification);
 
-            builder.push(line, character, length, classificationType , modifier);
+            builder.push(line, character, length, classificationType, modifier);
         }
 
         return builder.build();
@@ -83,11 +81,15 @@ export class SemanticTokensProviderImpl implements SemanticTokensProvider {
             return;
         }
 
-        const endPosition = fragment.getOriginalPosition(
-            fragment.positionAt(generatedOffset + generatedLength)
-        );
+        const generatedEndOffset = generatedOffset + generatedLength;
         const startOffset = document.offsetAt(startPosition);
-        const endOffset = document.offsetAt(endPosition);
+        const generatedEndPosition = fragment.positionAt(generatedEndOffset);
+        const endOffset = offsetAt(
+            fragment.getOriginalPositionOfEndOfChar
+                ? fragment.getOriginalPositionOfEndOfChar(generatedEndPosition)
+                : fragment.getGeneratedPosition(generatedEndPosition),
+            document.getText()
+        );
 
         return [startPosition.line, startPosition.character, endOffset - startOffset];
     }

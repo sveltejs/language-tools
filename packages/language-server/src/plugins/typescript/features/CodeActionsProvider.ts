@@ -8,7 +8,7 @@ import {
     VersionedTextDocumentIdentifier,
     WorkspaceEdit
 } from 'vscode-languageserver';
-import { Document, mapRangeToOriginal, isRangeInTag, isInTag } from '../../../lib/documents';
+import { Document, mapRangeToOriginal, isRangeInTag, isInTag, mapRangeToOriginalWithEndOfChar } from '../../../lib/documents';
 import { pathToUrl, flatten } from '../../../utils';
 import { CodeActionsProvider } from '../../interfaces';
 import { SnapshotFragment, SvelteSnapshotFragment } from '../DocumentSnapshot';
