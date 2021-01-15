@@ -86,7 +86,8 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                             range.end.line < range.start.line
                         ) {
                             edit.span.length -= 1;
-                            range = mapRangeToOriginal(fragment, convertRange(fragment, edit.span));
+                            range = mapRangeToOriginalWithEndOfChar(
+                                fragment, convertRange(fragment, edit.span));
                             range.end.character += 1;
                         }
                         return TextEdit.replace(range, edit.newText);

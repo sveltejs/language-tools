@@ -5,6 +5,7 @@ import { SemanticTokensProvider } from '../../interfaces';
 import { SnapshotFragment } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { convertToTextSpan } from '../utils';
+import { isSvelte2tsxGeneratedIdentifer } from './utils';
 
 export class SemanticTokensProviderImpl implements SemanticTokensProvider {
     constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
@@ -40,6 +41,10 @@ export class SemanticTokensProviderImpl implements SemanticTokensProvider {
             if (classificationType < 0) {
                 continue;
             }
+            const identifierText = fragment.text.substr(generatedOffset, generatedLength);
+            if (isSvelte2tsxGeneratedIdentifer(identifierText)) {
+                continue;
+            }
 
             const originalPosition = this.mapToOrigin(
                 textDocument,
@@ -53,11 +58,8 @@ export class SemanticTokensProviderImpl implements SemanticTokensProvider {
 
             const [line, character, length] = originalPosition;
 
-            // remove identifers who mapped to be one character long
-            // but longer in generated code,
-            // which is likely a generated identifier
-            // like the svelte2tsx render function and __sveltets_ helper function
-            if (generatedLength > 1 && length === 1) {
+            // remove generated identifier
+            if (!length) {
                 continue;
             }
 
@@ -84,12 +86,14 @@ export class SemanticTokensProviderImpl implements SemanticTokensProvider {
         const generatedEndOffset = generatedOffset + generatedLength;
         const startOffset = document.offsetAt(startPosition);
         const generatedEndPosition = fragment.positionAt(generatedEndOffset);
-        const endOffset = offsetAt(
-            fragment.getOriginalPositionOfEndOfChar
-                ? fragment.getOriginalPositionOfEndOfChar(generatedEndPosition)
-                : fragment.getGeneratedPosition(generatedEndPosition),
-            document.getText()
-        );
+        const endPosition = fragment.getOriginalPositionOfEndOfChar
+            ? fragment.getOriginalPositionOfEndOfChar(generatedEndPosition)
+            : fragment.getGeneratedPosition(generatedEndPosition);
+
+        if (endPosition.line < 0) {
+            return;
+        }
+        const endOffset = offsetAt(endPosition, document.getText());
 
         return [startPosition.line, startPosition.character, endOffset - startOffset];
     }

@@ -267,8 +267,6 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
         return new ConsumerDocumentMapper(
             await new SourceMapConsumer(this.tsxMap),
             uri,
-            this.text,
-            this.parent.getText(),
             this.nrPrependedLines
         );
     }

@@ -6,19 +6,18 @@ export class ConsumerDocumentMapper extends SourceMapDocumentMapper {
     constructor(
         consumer: SourceMapConsumer,
         sourceUri: string,
-        generatedText: string,
-        originalText: string,
         private nrPrependesLines: number
     ) {
-        super(consumer, sourceUri, generatedText, originalText);
+        super(consumer, sourceUri);
     }
 
-    getOriginalPosition(generatedPosition: Position): Position {
+    getOriginalPosition(generatedPosition: Position, bias?: number): Position {
         return super.getOriginalPosition(
             Position.create(
                 generatedPosition.line - this.nrPrependesLines,
                 generatedPosition.character
-            )
+            ),
+            bias
         );
     }
 

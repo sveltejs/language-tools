@@ -48,3 +48,7 @@ export function getComponentAtPosition(
     }
     return snapshot;
 }
+
+export function isSvelte2tsxGeneratedIdentifer(text: string) {
+    return text.includes('__sveltets') || text === '_$$p';
+}

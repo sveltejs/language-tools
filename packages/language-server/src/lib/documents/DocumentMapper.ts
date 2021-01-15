@@ -134,12 +134,10 @@ export class SourceMapDocumentMapper implements DocumentMapper {
     constructor(
         protected consumer: SourceMapConsumer,
         protected sourceUri: string,
-        private generatedText: string,
-        private originalText: string,
         private parent?: DocumentMapper
     ) {}
 
-    getOriginalPosition(generatedPosition: Position): Position {
+    getOriginalPosition(generatedPosition: Position, bias?: number): Position {
         if (this.parent) {
             generatedPosition = this.parent.getOriginalPosition(generatedPosition);
         }
@@ -150,7 +148,8 @@ export class SourceMapDocumentMapper implements DocumentMapper {
 
         const mapped = this.consumer.originalPositionFor({
             line: generatedPosition.line + 1,
-            column: generatedPosition.character
+            column: generatedPosition.character,
+            bias
         });
 
         if (!mapped) {
@@ -208,17 +207,7 @@ export class SourceMapDocumentMapper implements DocumentMapper {
     }
 
     getOriginalPositionOfEndOfChar(position: Position): Position {
-        const previousCharOriginalPosition = this.getOriginalPosition(offsetPositionByOneChar(
-            this.generatedText,
-            position,
-            OffsetPositionDirection.start
-        ));
-
-        return offsetPositionByOneChar(
-            this.originalText,
-            previousCharOriginalPosition,
-            OffsetPositionDirection.end
-        );
+        return this.getOriginalPosition(position, SourceMapConsumer.LEAST_UPPER_BOUND);
     }
 
     /**
@@ -412,42 +401,3 @@ export function mapSelectionRangeToParent(
     );
 }
 
-const enum OffsetPositionDirection {
-    start = -1,
-    end = 1
-}
-
-function offsetPositionByOneChar(
-    text: string,
-    position: Position,
-    direction: OffsetPositionDirection
-): Position {
-    const lines = text.split('\n');
-    const offset = offsetAt(position, text);
-    const isStart = direction > 0;
-    const char = text[offset + direction];
-
-    if (char != null) {
-        if (char != '\n') {
-            return {
-                line: position.line,
-                character: position.character + direction
-            };
-        }
-
-        const line = position.line + direction;
-        const lineText = lines[line];
-
-        if (lineText != null) {
-            return {
-                line,
-                character: isStart ? 0 : lineText.length - 1
-            };
-        }
-    }
-
-    return positionAt(
-        offsetAt(position, text) + direction,
-        text
-    );
-}

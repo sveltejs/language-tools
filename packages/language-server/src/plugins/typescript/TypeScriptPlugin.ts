@@ -65,6 +65,7 @@ import { SelectionRangeProviderImpl } from './features/SelectionRangeProvider';
 import { SignatureHelpProviderImpl } from './features/SignatureHelpProvider';
 import { SnapshotManager } from './SnapshotManager';
 import { SemanticTokensProviderImpl } from './features/SemanticTokensProvider';
+import { isSvelte2tsxGeneratedIdentifer } from './features/utils';
 
 export class TypeScriptPlugin
     implements
@@ -167,7 +168,7 @@ export class TypeScriptPlugin
                     (symbol) =>
                         symbol.location.range.start.line >= 0 &&
                         symbol.location.range.end.line >= 0 &&
-                        !symbol.name.startsWith('__sveltets_')
+                        !isSvelte2tsxGeneratedIdentifer(symbol.name)
                 )
                 .map((symbol) => {
                     if (symbol.name !== '<function>') {

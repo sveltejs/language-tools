@@ -12,6 +12,7 @@ import { SignatureHelpProvider } from '../..';
 import { Document } from '../../../lib/documents';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { getMarkdownDocumentation } from '../previewer';
+import { isSvelte2tsxGeneratedIdentifer } from './utils';
 
 export class SignatureHelpProviderImpl implements SignatureHelpProvider {
     constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) { }
@@ -146,6 +147,6 @@ export class SignatureHelpProviderImpl implements SignatureHelpProvider {
         signatureHelpItem: ts.SignatureHelpItem
     ) {
         return signatureHelpItem.prefixDisplayParts
-            .some((part) => part.text.includes('__sveltets'));
+            .some((part) => isSvelte2tsxGeneratedIdentifer(part.text));
     }
 }
