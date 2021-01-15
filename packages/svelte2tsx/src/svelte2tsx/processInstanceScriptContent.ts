@@ -391,11 +391,6 @@ export function processInstanceScriptContent(
         }
 
         if (ts.isImportDeclaration(node)) {
-            //move imports to top of script so they appear outside our render function
-            str.move(node.getStart() + astOffset, node.end + astOffset, script.start + 1);
-            //add in a \n
-            const originalEndChar = str.original[node.end + astOffset - 1];
-            str.overwrite(node.end + astOffset - 1, node.end + astOffset, originalEndChar + '\n');
             // Check if import is the event dispatcher
             events.checkIfImportIsEventDispatcher(node);
         }
@@ -470,11 +465,16 @@ export function processInstanceScriptContent(
     // declare implicit reactive variables we found in the script
     implicitTopLevelNames.modifyCode(rootScope.declared, astOffset, str);
 
-    const firstImport = tsAst.statements
+    //move imports to top of script so they appear outside our render function
+    const imports = tsAst.statements
         .filter(ts.isImportDeclaration)
-        .sort((a, b) => a.end - b.end)[0];
+        .sort((a, b) => a.end - b.end);
+    const [firstImport] = imports;
     if (firstImport) {
         str.appendRight(firstImport.getStart() + astOffset, '\n');
+        const lastImport = imports[imports.length - 1];
+        str.move(firstImport.getStart() + astOffset, lastImport.end + astOffset, script.start + 1);
+        str.appendLeft(lastImport.end + astOffset, '\n');
     }
 
     return {

@@ -1,10 +1,9 @@
 ///<reference types="svelte" />
 <></>;
 import { a as b } from "./test.svelte"
-import * as c from "b.ts"
-function render() {
 
-    
+    import * as c from "b.ts"
+function render() {
 
     
      let world = "name"
