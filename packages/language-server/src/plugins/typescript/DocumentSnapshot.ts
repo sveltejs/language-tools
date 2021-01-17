@@ -1,7 +1,7 @@
 import { RawSourceMap, SourceMapConsumer } from 'source-map';
 import svelte2tsx, { IExportedNames, ComponentEvents } from 'svelte2tsx';
 import ts from 'typescript';
-import { Position, Range } from 'vscode-languageserver';
+import { Position, Range, TextDocumentContentChangeEvent } from 'vscode-languageserver';
 import {
     Document,
     DocumentMapper,
@@ -282,11 +282,7 @@ export class JSOrTSDocumentSnapshot
     scriptKind = getScriptKindFromFileName(this.filePath);
     scriptInfo = null;
 
-    constructor(
-        public version: number,
-        public readonly filePath: string,
-        private readonly text: string
-    ) {
+    constructor(public version: number, public readonly filePath: string, private text: string) {
         super(pathToUrl(filePath));
     }
 
@@ -316,6 +312,23 @@ export class JSOrTSDocumentSnapshot
 
     destroyFragment() {
         // nothing to clean up
+    }
+
+    update(changes: TextDocumentContentChangeEvent[]): void {
+        for (const change of changes) {
+            let start = 0;
+            let end = 0;
+            if ('range' in change) {
+                start = this.offsetAt(change.range.start);
+                end = this.offsetAt(change.range.end);
+            } else {
+                end = this.getLength();
+            }
+
+            this.text = this.text.slice(0, start) + change.text + this.text.slice(end);
+        }
+
+        this.version++;
     }
 }
 

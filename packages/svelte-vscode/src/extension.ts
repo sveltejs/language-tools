@@ -147,6 +147,8 @@ export function activate(context: ExtensionContext) {
         return ls;
     }
 
+    addDidChangeTextDocumentListener(getLS);
+
     addRenameFileListener(getLS);
 
     addCompilePreviewCommand(getLS, context);
@@ -229,6 +231,26 @@ export function activate(context: ExtensionContext) {
          */
         getLanguageServer: getLS
     };
+}
+
+function addDidChangeTextDocumentListener(getLS: () => LanguageClient) {
+    // Only Svelte file changes are automatically notified through the inbuilt LSP
+    // because the extension says it's only responsible for Svelte files.
+    // Therefore we need to set this up for TS/JS files manually.
+    workspace.onDidChangeTextDocument((evt) => {
+        if (evt.document.languageId === 'typescript' || evt.document.languageId === 'javascript') {
+            getLS().sendNotification('$/onDidChangeTsOrJsFile', {
+                uri: evt.document.uri.toString(true),
+                changes: evt.contentChanges.map((c) => ({
+                    range: {
+                        start: { line: c.range.start.line, character: c.range.start.character },
+                        end: { line: c.range.end.line, character: c.range.end.character }
+                    },
+                    text: c.text
+                }))
+            });
+        }
+    });
 }
 
 function addRenameFileListener(getLS: () => LanguageClient) {

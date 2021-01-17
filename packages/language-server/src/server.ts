@@ -12,7 +12,8 @@ import {
     TextDocumentIdentifier,
     TextDocumentPositionParams,
     TextDocumentSyncKind,
-    WorkspaceEdit
+    WorkspaceEdit,
+    DidChangeTextDocumentParams
 } from 'vscode-languageserver';
 import { IPCMessageReader, IPCMessageWriter, createConnection } from 'vscode-languageserver/node';
 import { DiagnosticsManager } from './lib/DiagnosticsManager';
@@ -282,6 +283,7 @@ export function startServer(options?: LSOptions) {
         pluginHost.getDiagnostics.bind(pluginHost)
     );
 
+    const updateAllDiagnostics = _.debounce(() => diagnosticsManager.updateAll(), 1000);
     connection.onDidChangeWatchedFiles((para) => {
         const onWatchFileChangesParas = para.changes
             .map((change) => ({
@@ -292,9 +294,16 @@ export function startServer(options?: LSOptions) {
 
         pluginHost.onWatchFileChanges(onWatchFileChangesParas);
 
-        diagnosticsManager.updateAll();
+        updateAllDiagnostics();
     });
-    connection.onDidSaveTextDocument(() => diagnosticsManager.updateAll());
+    connection.onDidSaveTextDocument(updateAllDiagnostics);
+    connection.onNotification('$/onDidChangeTsOrJsFile', async (e: any) => {
+        const path = urlToPath(e.uri);
+        if (path) {
+            pluginHost.updateTsOrJsFile(path, e.changes);
+        }
+        updateAllDiagnostics();
+    });
 
     connection.languages.semanticTokens.on((evt) => pluginHost.getSemanticTokens(evt.textDocument));
     connection.languages.semanticTokens.onRange((evt) =>
