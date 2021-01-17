@@ -13,7 +13,7 @@ import {
 } from 'vscode-languageserver';
 import { Document } from '../../lib/documents';
 import { LSConfigManager, LSSvelteConfig } from '../../ls-config';
-import { importPrettier } from '../../importPackage';
+import { getPackageInfo, importPrettier } from '../../importPackage';
 import {
     CodeActionsProvider,
     CompletionsProvider,
