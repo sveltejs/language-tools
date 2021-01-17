@@ -2,7 +2,7 @@ import MagicString from 'magic-string';
 import { Node } from 'estree-walker';
 
 /**
- * transition:xxx(yyy)   --->   {...__sveltets_ensureTransition(xxx, yyy)}
+ * transition:xxx(yyy)   --->   {...__sveltets_ensureTransition(xxx(__sveltets_ElementNode,(yyy)))}
  */
 export function handleTransitionDirective(htmlx: string, str: MagicString, attr: Node): void {
     str.overwrite(
@@ -17,16 +17,16 @@ export function handleTransitionDirective(htmlx: string, str: MagicString, attr:
     }
 
     if (!attr.expression) {
-        str.appendLeft(attr.end, ', {})}');
+        str.appendLeft(attr.end, '(__sveltets_ElementNode))}');
         return;
     }
 
     str.overwrite(
         htmlx.indexOf(':', attr.start) + 1 + `${attr.name}`.length,
         attr.expression.start,
-        ', '
+        '(__sveltets_ElementNode,('
     );
-    str.appendLeft(attr.expression.end, ')');
+    str.appendLeft(attr.expression.end, ')))');
     if (htmlx[attr.end - 1] == '"') {
         str.remove(attr.end - 1, attr.end);
     }
