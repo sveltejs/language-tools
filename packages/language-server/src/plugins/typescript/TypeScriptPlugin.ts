@@ -18,7 +18,8 @@ import {
     SelectionRange,
     SignatureHelp,
     SignatureHelpContext,
-    SemanticTokens
+    SemanticTokens,
+    TextDocumentContentChangeEvent
 } from 'vscode-languageserver';
 import {
     Document,
@@ -45,7 +46,8 @@ import {
     SignatureHelpProvider,
     UpdateImportsProvider,
     OnWatchFileChangesPara,
-    SemanticTokensProvider
+    SemanticTokensProvider,
+    UpdateTsOrJsFile
 } from '../interfaces';
 import { SnapshotFragment } from './DocumentSnapshot';
 import { CodeActionsProviderImpl } from './features/CodeActionsProvider';
@@ -80,7 +82,8 @@ export class TypeScriptPlugin
         SignatureHelpProvider,
         SemanticTokensProvider,
         OnWatchFileChanges,
-        CompletionsProvider<CompletionEntryWithIdentifer> {
+        CompletionsProvider<CompletionEntryWithIdentifer>,
+        UpdateTsOrJsFile {
     private readonly configManager: LSConfigManager;
     private readonly lsAndTsDocResolver: LSAndTSDocResolver;
     private readonly completionProvider: CompletionsProviderImpl;
@@ -100,11 +103,7 @@ export class TypeScriptPlugin
         workspaceUris: string[]
     ) {
         this.configManager = configManager;
-        this.lsAndTsDocResolver = new LSAndTSDocResolver(
-            docManager,
-            workspaceUris,
-            configManager
-        );
+        this.lsAndTsDocResolver = new LSAndTSDocResolver(docManager, workspaceUris, configManager);
         this.completionProvider = new CompletionsProviderImpl(this.lsAndTsDocResolver);
         this.codeActionsProvider = new CodeActionsProviderImpl(
             this.lsAndTsDocResolver,
@@ -386,6 +385,11 @@ export class TypeScriptPlugin
         }
     }
 
+    updateTsOrJsFile(fileName: string, changes: TextDocumentContentChangeEvent[]): void {
+        const snapshotManager = this.getSnapshotManager(fileName);
+        snapshotManager.updateTsOrJsFile(fileName, changes);
+    }
+
     async getSelectionRange(
         document: Document,
         position: Position
@@ -398,7 +402,9 @@ export class TypeScriptPlugin
     }
 
     async getSignatureHelp(
-        document: Document, position: Position, context: SignatureHelpContext | undefined
+        document: Document,
+        position: Position,
+        context: SignatureHelpContext | undefined
     ): Promise<SignatureHelp | null> {
         if (!this.featureEnabled('signatureHelp')) {
             return null;
