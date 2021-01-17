@@ -12,8 +12,7 @@ import {
     TextDocumentIdentifier,
     TextDocumentPositionParams,
     TextDocumentSyncKind,
-    WorkspaceEdit,
-    DidChangeTextDocumentParams
+    WorkspaceEdit
 } from 'vscode-languageserver';
 import { IPCMessageReader, IPCMessageWriter, createConnection } from 'vscode-languageserver/node';
 import { DiagnosticsManager } from './lib/DiagnosticsManager';
