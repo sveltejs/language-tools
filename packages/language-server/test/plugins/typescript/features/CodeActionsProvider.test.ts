@@ -193,6 +193,7 @@ describe('CodeActionsProvider', () => {
                         {
                             edits: [
                                 {
+                                    // eslint-disable-next-line max-len
                                     newText: "import A from './A';\nimport { c } from './c';\n",
                                     range: {
                                         start: {
@@ -214,7 +215,7 @@ describe('CodeActionsProvider', () => {
                                         },
                                         end: {
                                             line: 7,
-                                            character: 0
+                                            character: 2
                                         }
                                     }
                                 },
@@ -223,7 +224,7 @@ describe('CodeActionsProvider', () => {
                                     range: {
                                         start: {
                                             line: 7,
-                                            character: 0
+                                            character: 2
                                         },
                                         end: {
                                             line: 7,
@@ -273,8 +274,8 @@ describe('CodeActionsProvider', () => {
                             }
                         },
                         textRange: {
-                            pos: 160,
-                            end: 194
+                            pos: 162,
+                            end: 196
                         }
                     }
                 ],
@@ -299,6 +300,7 @@ describe('CodeActionsProvider', () => {
                 {
                     edits: [
                         {
+                            // eslint-disable-next-line max-len
                             newText: 'const newLocal=Math.random()>0.5? true:false;\n',
                             range: {
                                 start: {
@@ -362,8 +364,8 @@ describe('CodeActionsProvider', () => {
                             }
                         },
                         textRange: {
-                            pos: 160,
-                            end: 194
+                            pos: 162,
+                            end: 196
                         }
                     }
                 ],
