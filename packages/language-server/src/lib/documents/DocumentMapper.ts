@@ -216,7 +216,7 @@ export class SourceMapDocumentMapper implements DocumentMapper {
     }
 
     getOriginalPositionOfEndOfChar(position: Position): Position {
-        // source-map doesn't map to next generated line.
+        // source-map doesn't map to the next generated line.
         // so don't search upper bound when it's the last character of the line
         if (this.getGeneratedLinesLength()[position.line] <= position.character + 1) {
             return this.getOriginalPosition(position);
@@ -238,7 +238,7 @@ export function mapRangeToOriginal(
     fragment: RangeMapper,
     range: Range
 ): Range {
-    // start and end is the same position, not start of char and end of char
+    // the start and the end is the same position, not the start of char and end of char
     const zeroLength = range.start.line === range.end.line &&
         range.start.character === range.end.character;
     const end = !zeroLength && fragment.getOriginalPositionOfEndOfChar ?
