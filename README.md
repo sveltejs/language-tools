@@ -33,9 +33,7 @@ A `.svelte` file would look something like this:
     }
 </script>
 
-<button on:click="{handleClick}">
-    Count: {count}
-</button>
+<button on:click="{handleClick}">Count: {count}</button>
 
 <p>{count} * 2 = {doubled}</p>
 <p>{doubled} * 2 = {quadrupled}</p>
@@ -128,7 +126,7 @@ For tricker issues, you can run the tests with a debugger in VSCode by setting a
 
 Svelte is an MIT-licensed open source project with its ongoing development made possible entirely by the support of awesome volunteers. If you'd like to support their efforts, please consider:
 
-- [Becoming a backer on Open Collective](https://opencollective.com/svelte).
+-   [Becoming a backer on Open Collective](https://opencollective.com/svelte).
 
 Funds donated via Open Collective will be used for compensating expenses related to Svelte's development such as hosting costs. If sufficient donations are received, funds may also be used to support Svelte's development more directly.
 

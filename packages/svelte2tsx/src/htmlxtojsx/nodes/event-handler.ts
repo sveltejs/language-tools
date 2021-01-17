@@ -37,9 +37,9 @@ export function handleEventHandler(
             //for handler assignment, we change it to call to our __sveltets_ensureFunction
             str.appendRight(attr.start, `{__sveltets_instanceOf(${getTypeForComponent(parent)}).$`);
             const eventNameIndex = htmlx.indexOf(':', attr.start) + 1;
-            str.overwrite(htmlx.indexOf(on, attr.start) + on.length, eventNameIndex, '(\'');
+            str.overwrite(htmlx.indexOf(on, attr.start) + on.length, eventNameIndex, "('");
             const eventEnd = htmlx.lastIndexOf('=', attr.expression.start);
-            str.overwrite(eventEnd, attr.expression.start, '\', ');
+            str.overwrite(eventEnd, attr.expression.start, "', ");
             str.overwrite(attr.expression.end, attr.end, ')}');
             str.move(attr.start, attr.end, parent.end);
         } else {

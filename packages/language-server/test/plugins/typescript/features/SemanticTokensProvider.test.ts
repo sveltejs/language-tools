@@ -169,7 +169,7 @@ describe('SemanticTokensProvider', () => {
 
         let index = 0;
         while (index < tokens.length) {
-            result.push(tokens.splice(index, index += 5));
+            result.push(tokens.splice(index, (index += 5)));
         }
 
         return result;

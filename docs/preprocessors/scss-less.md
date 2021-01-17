@@ -27,7 +27,7 @@ You need a `svelte.config.js`. [Read here on how to set it up and also how it re
 const sveltePreprocess = require('svelte-preprocess');
 
 module.exports = {
-    preprocess: sveltePreprocess(),
+    preprocess: sveltePreprocess()
 };
 ```
 
@@ -76,6 +76,6 @@ const sveltePreprocess = require('svelte-preprocess');
 const path = require('path');
 
 module.exports = {
-   preprocess: sveltePreprocess({ includePaths: [path.join(__dirname, 'relative/path')] })
+    preprocess: sveltePreprocess({ includePaths: [path.join(__dirname, 'relative/path')] })
 };
 ```

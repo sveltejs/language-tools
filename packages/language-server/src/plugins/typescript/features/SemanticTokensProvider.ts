@@ -1,9 +1,5 @@
 import ts from 'typescript';
-import {
-    Range,
-    SemanticTokens,
-    SemanticTokensBuilder
-} from 'vscode-languageserver';
+import { Range, SemanticTokens, SemanticTokensBuilder } from 'vscode-languageserver';
 import { Document } from '../../../lib/documents';
 import { SemanticTokensProvider } from '../../interfaces';
 import { SnapshotFragment } from '../DocumentSnapshot';
@@ -65,7 +61,7 @@ export class SemanticTokensProviderImpl implements SemanticTokensProvider {
 
             const modifier = this.getTokenModifierFromClassification(encodedClassification);
 
-            builder.push(line, character, length, classificationType , modifier);
+            builder.push(line, character, length, classificationType, modifier);
         }
 
         return builder.build();

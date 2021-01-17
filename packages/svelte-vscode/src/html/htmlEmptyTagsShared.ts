@@ -23,4 +23,3 @@ export const EMPTY_ELEMENTS: string[] = [
     'track',
     'wbr'
 ];
-

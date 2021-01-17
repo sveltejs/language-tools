@@ -22,10 +22,15 @@ const customDataProvider: ICSSDataProvider = {
     }
 };
 
-const [css, scss, less] = [getCSSLanguageService, getSCSSLanguageService, getLESSLanguageService]
-    .map(getService => getService({
+const [css, scss, less] = [
+    getCSSLanguageService,
+    getSCSSLanguageService,
+    getLESSLanguageService
+].map((getService) =>
+    getService({
         customDataProviders: [customDataProvider]
-    }));
+    })
+);
 
 const langs = {
     css,
