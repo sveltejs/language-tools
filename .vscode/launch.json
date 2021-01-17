@@ -32,8 +32,9 @@
         {
             "type": "node",
             "request": "attach",
-            "name": "Attach to debugger to svelte-vscode client",
+            "name": "Attach debugger to language server",
             "port": 6009,
+            "outFiles": ["${workspaceRoot}/packages/language-server/dist/**/*.js"],
             "skipFiles": ["<node_internals>/**"]
         }
     ]
