@@ -6,9 +6,10 @@ export class ConsumerDocumentMapper extends SourceMapDocumentMapper {
     constructor(
         consumer: SourceMapConsumer,
         sourceUri: string,
+        generatedText: string,
         private nrPrependesLines: number
     ) {
-        super(consumer, sourceUri);
+        super(consumer, sourceUri, generatedText);
     }
 
     getOriginalPosition(generatedPosition: Position, bias?: number): Position {

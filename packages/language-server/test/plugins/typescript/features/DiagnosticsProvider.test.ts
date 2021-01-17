@@ -223,16 +223,33 @@ describe('DiagnosticsProvider', () => {
 
         assert.deepStrictEqual(diagnostics, [
             {
+                code: 6133,
+                message: "'onMount' is declared but its value is never read.",
+                range: {
+                    end: {
+                        character: 36,
+                        line: 1
+                    },
+                    start: {
+                        character: 4,
+                        line: 1
+                    }
+                },
+                severity: 4,
+                source: 'ts',
+                tags: [1]
+            },
+            {
                 code: 6385,
                 message: "'a' is deprecated",
                 range: {
                     end: {
                         character: 5,
-                        line: 3
+                        line: 4
                     },
                     start: {
                         character: 4,
-                        line: 3
+                        line: 4
                     }
                 },
                 severity: 4,
@@ -245,11 +262,11 @@ describe('DiagnosticsProvider', () => {
                 range: {
                     end: {
                         character: 9,
-                        line: 4
+                        line: 5
                     },
                     start: {
                         character: 8,
-                        line: 4
+                        line: 5
                     }
                 },
                 severity: 4,

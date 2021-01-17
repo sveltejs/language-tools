@@ -134,6 +134,7 @@ export class SourceMapDocumentMapper implements DocumentMapper {
     constructor(
         protected consumer: SourceMapConsumer,
         protected sourceUri: string,
+        private generatedText: string,
         private parent?: DocumentMapper
     ) {}
 
@@ -206,7 +207,21 @@ export class SourceMapDocumentMapper implements DocumentMapper {
         return this.sourceUri;
     }
 
+    private generatedLinesLength: number[] | undefined;
+    private getGeneratedLinesLength() {
+        if (!this.generatedLinesLength) {
+            this.generatedLinesLength = this.generatedText.split('\n').map(line => line.length);
+        }
+        return this.generatedLinesLength;
+    }
+
     getOriginalPositionOfEndOfChar(position: Position): Position {
+        // source-map doesn't map to next generated line.
+        // so don't search upper bound when it's the last character of the line
+        if (this.getGeneratedLinesLength()[position.line] <= position.character + 1) {
+            return this.getOriginalPosition(position);
+        }
+
         return this.getOriginalPosition(position, SourceMapConsumer.LEAST_UPPER_BOUND);
     }
 

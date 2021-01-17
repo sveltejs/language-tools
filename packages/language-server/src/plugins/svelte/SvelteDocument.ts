@@ -253,6 +253,7 @@ export class SvelteFragmentMapper implements PositionMapper {
                     ? new SourceMapDocumentMapper(
                           await new SourceMapConsumer(processedSingle.map.toString()),
                           originalDoc.uri,
+                          processedSingle.code,
                           await parent
                       )
                     : new IdentityMapper(originalDoc.uri, await parent),
