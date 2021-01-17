@@ -18,13 +18,7 @@ export function createSvelteSys(getSnapshot: (fileName: string) => DocumentSnaps
         readDirectory(path, extensions, exclude, include, depth) {
             const extensionsWithSvelte = (extensions ?? []).concat('.svelte');
 
-            return ts.sys.readDirectory(
-                path,
-                extensionsWithSvelte,
-                exclude,
-                include,
-                depth
-            );
+            return ts.sys.readDirectory(path, extensionsWithSvelte, exclude, include, depth);
         }
     };
 

@@ -1,9 +1,5 @@
 import { Node } from 'estree-walker';
-import {
-    SvelteIdentifier,
-    SvelteArrayPattern,
-    SvelteObjectPattern
-} from '../interfaces';
+import { SvelteIdentifier, SvelteArrayPattern, SvelteObjectPattern } from '../interfaces';
 
 export function isMember(parent: Node, prop: string) {
     return parent.type == 'MemberExpression' && prop == 'property';
@@ -19,9 +15,7 @@ export function isObjectValue(parent: Node, prop: string) {
 
 export function isObjectValueShortHand(property: Node) {
     const { value, key } = property;
-    return (
-        value && isIdentifier(value) && key.start === value.start && key.end == value.end
-    );
+    return value && isIdentifier(value) && key.start === value.start && key.end == value.end;
 }
 
 export function isText(node: Node) {

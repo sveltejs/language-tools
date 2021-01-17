@@ -103,8 +103,10 @@ export class LSAndTSDocResolver {
     }
 
     private getUserPreferences(scriptKind: ts.ScriptKind): ts.UserPreferences {
-        const configLang = scriptKind === ts.ScriptKind.TS || scriptKind === ts.ScriptKind.TSX
-            ? 'typescript' : 'javascript';
+        const configLang =
+            scriptKind === ts.ScriptKind.TS || scriptKind === ts.ScriptKind.TSX
+                ? 'typescript'
+                : 'javascript';
 
         return this.configManager.getTsUserPreferences(configLang);
     }

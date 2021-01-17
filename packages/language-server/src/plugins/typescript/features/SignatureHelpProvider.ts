@@ -14,7 +14,7 @@ import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { getMarkdownDocumentation } from '../previewer';
 
 export class SignatureHelpProviderImpl implements SignatureHelpProvider {
-    constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) { }
+    constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
 
     private static readonly triggerCharacters = ['(', ',', '<'];
     private static readonly retriggerCharacters = [')'];
@@ -41,8 +41,7 @@ export class SignatureHelpProviderImpl implements SignatureHelpProvider {
             return null;
         }
 
-        const signatures = info.items
-            .map(this.toSignatureHelpInformation);
+        const signatures = info.items.map(this.toSignatureHelpInformation);
 
         return {
             signatures,
@@ -134,18 +133,19 @@ export class SignatureHelpProviderImpl implements SignatureHelpProvider {
 
         return {
             label: prefixLabel + signatureLabel + suffixLabel,
-            documentation: signatureDocumentation ? {
-                value: signatureDocumentation,
-                kind: MarkupKind.Markdown
-            } : undefined,
+            documentation: signatureDocumentation
+                ? {
+                      value: signatureDocumentation,
+                      kind: MarkupKind.Markdown
+                  }
+                : undefined,
             parameters
         };
     }
 
-    private isInSvelte2tsxGeneratedFunction(
-        signatureHelpItem: ts.SignatureHelpItem
-    ) {
-        return signatureHelpItem.prefixDisplayParts
-            .some((part) => part.text.includes('__sveltets'));
+    private isInSvelte2tsxGeneratedFunction(signatureHelpItem: ts.SignatureHelpItem) {
+        return signatureHelpItem.prefixDisplayParts.some((part) =>
+            part.text.includes('__sveltets')
+        );
     }
 }

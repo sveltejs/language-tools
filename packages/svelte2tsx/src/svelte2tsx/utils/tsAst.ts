@@ -134,8 +134,7 @@ export function getLastLeadingDoc(node: ts.Node): string | undefined {
     if (comment) {
         let commentText = nodeText.substring(comment.pos, comment.end);
 
-        const typedefTags = ts.getAllJSDocTagsOfKind(
-            node, ts.SyntaxKind.JSDocTypedefTag);
+        const typedefTags = ts.getAllJSDocTagsOfKind(node, ts.SyntaxKind.JSDocTypedefTag);
         typedefTags
             .filter((tag) => tag.pos >= comment.pos)
             .map((tag) => nodeText.substring(tag.pos, tag.end))
