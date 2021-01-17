@@ -48,13 +48,13 @@ describe('CodeActionsProvider', () => {
 
         const codeActions = await provider.getCodeActions(
             document,
-            Range.create(Position.create(5, 4), Position.create(5, 5)),
+            Range.create(Position.create(6, 4), Position.create(6, 5)),
             {
                 diagnostics: [
                     {
                         code: 6133,
                         message: "'a' is declared but its value is never read.",
-                        range: Range.create(Position.create(5, 4), Position.create(5, 5)),
+                        range: Range.create(Position.create(6, 4), Position.create(6, 5)),
                         source: 'ts'
                     }
                 ],
@@ -73,11 +73,63 @@ describe('CodeActionsProvider', () => {
                                     range: {
                                         start: {
                                             character: 0,
-                                            line: 5
+                                            line: 6
                                         },
                                         end: {
                                             character: 0,
+                                            line: 7
+                                        }
+                                    }
+                                }
+                            ],
+                            textDocument: {
+                                uri: getUri('codeactions.svelte'),
+                                version: 0
+                            }
+                        }
+                    ]
+                },
+                kind: CodeActionKind.QuickFix,
+                title: "Remove unused declaration for: 'a'"
+            }
+        ]);
+    });
+
+    it('provides quickfix', async () => {
+        const { provider, document } = setup('codeactions.svelte');
+
+        const codeActions = await provider.getCodeActions(
+            document,
+            Range.create(Position.create(6, 4), Position.create(6, 5)),
+            {
+                diagnostics: [
+                    {
+                        code: 6133,
+                        message: "'a' is declared but its value is never read.",
+                        range: Range.create(Position.create(6, 4), Position.create(6, 5)),
+                        source: 'ts'
+                    }
+                ],
+                only: [CodeActionKind.QuickFix]
+            }
+        );
+
+        assert.deepStrictEqual(codeActions, [
+            {
+                edit: {
+                    documentChanges: [
+                        {
+                            edits: [
+                                {
+                                    newText: '',
+                                    range: {
+                                        start: {
+                                            character: 0,
                                             line: 6
+                                        },
+                                        end: {
+                                            character: 0,
+                                            line: 7
                                         }
                                     }
                                 }
@@ -152,8 +204,21 @@ describe('CodeActionsProvider', () => {
                                             line: 3
                                         },
                                         end: {
-                                            character: 22,
-                                            line: 3
+                                            character: 0,
+                                            line: 4
+                                        }
+                                    }
+                                },
+                                {
+                                    newText: '',
+                                    range: {
+                                        start: {
+                                            character: 0,
+                                            line: 4
+                                        },
+                                        end: {
+                                            character: 20,
+                                            line: 4
                                         }
                                     }
                                 }
@@ -251,7 +316,7 @@ describe('CodeActionsProvider', () => {
 
         const actions = await provider.getCodeActions(
             document,
-            Range.create(Position.create(7, 8), Position.create(7, 42)),
+            Range.create(Position.create(8, 8), Position.create(8, 42)),
             { diagnostics: [], only: [CodeActionKind.Refactor] }
         );
         const action = actions[1];
@@ -266,16 +331,16 @@ describe('CodeActionsProvider', () => {
                         originalRange: {
                             start: {
                                 character: 8,
-                                line: 7
+                                line: 8
                             },
                             end: {
                                 character: 42,
-                                line: 7
+                                line: 8
                             }
                         },
                         textRange: {
-                            pos: 162,
-                            end: 196
+                            pos: 184,
+                            end: 218
                         }
                     }
                 ],
@@ -305,11 +370,11 @@ describe('CodeActionsProvider', () => {
                             range: {
                                 start: {
                                     character: 0,
-                                    line: 7
+                                    line: 8
                                 },
                                 end: {
                                     character: 0,
-                                    line: 7
+                                    line: 8
                                 }
                             }
                         },
@@ -318,11 +383,11 @@ describe('CodeActionsProvider', () => {
                             range: {
                                 start: {
                                     character: 8,
-                                    line: 7
+                                    line: 8
                                 },
                                 end: {
                                     character: 42,
-                                    line: 7
+                                    line: 8
                                 }
                             }
                         }
@@ -341,7 +406,7 @@ describe('CodeActionsProvider', () => {
 
         const actions = await provider.getCodeActions(
             document,
-            Range.create(Position.create(7, 8), Position.create(7, 42)),
+            Range.create(Position.create(8, 8), Position.create(8, 42)),
             { diagnostics: [], only: [CodeActionKind.Refactor] }
         );
         const action = actions[0];
@@ -356,16 +421,16 @@ describe('CodeActionsProvider', () => {
                         originalRange: {
                             start: {
                                 character: 8,
-                                line: 7
+                                line: 8
                             },
                             end: {
                                 character: 42,
-                                line: 7
+                                line: 8
                             }
                         },
                         textRange: {
-                            pos: 162,
-                            end: 196
+                            pos: 184,
+                            end: 218
                         }
                     }
                 ],
@@ -394,11 +459,11 @@ describe('CodeActionsProvider', () => {
                             range: {
                                 start: {
                                     character: 8,
-                                    line: 7
+                                    line: 8
                                 },
                                 end: {
                                     character: 42,
-                                    line: 7
+                                    line: 8
                                 }
                             }
                         },
@@ -415,11 +480,11 @@ describe('CodeActionsProvider', () => {
                             range: {
                                 start: {
                                     character: 0,
-                                    line: 8
+                                    line: 9
                                 },
                                 end: {
                                     character: 0,
-                                    line: 8
+                                    line: 9
                                 }
                             }
                         }
