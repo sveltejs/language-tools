@@ -300,6 +300,26 @@
                     ".svelte"
                 ],
                 "configuration": "./language-configuration.json"
+            },
+            {
+                "id": "json",
+                "filenames": [
+                    ".prettierrc"
+                ]
+            }
+        ],
+        "jsonValidation": [
+            {
+                "fileMatch": ".prettierrc",
+                "url": "./prettier-options-schema.json"
+            },
+            {
+                "fileMatch": ".prettierrc.json",
+                "url": "./prettier-options-schema.json"
+            },
+            {
+                "fileMatch": "package.json",
+                "url": "./package-json-schema.json"
             }
         ],
         "grammars": [
