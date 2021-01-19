@@ -148,7 +148,7 @@ export interface SelectionRangeProvider {
 }
 
 export interface SemanticTokensProvider {
-    getSemanticTokens(textDocument: Document, range?: Range): Resolvable<SemanticTokens>;
+    getSemanticTokens(textDocument: Document, range?: Range): Resolvable<SemanticTokens | null>;
 }
 
 export interface OnWatchFileChangesPara {

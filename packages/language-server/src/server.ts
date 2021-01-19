@@ -12,7 +12,9 @@ import {
     TextDocumentIdentifier,
     TextDocumentPositionParams,
     TextDocumentSyncKind,
-    WorkspaceEdit
+    WorkspaceEdit,
+    SemanticTokensRequest,
+    SemanticTokensRangeRequest
 } from 'vscode-languageserver';
 import { IPCMessageReader, IPCMessageWriter, createConnection } from 'vscode-languageserver/node';
 import { DiagnosticsManager } from './lib/DiagnosticsManager';
@@ -304,8 +306,10 @@ export function startServer(options?: LSOptions) {
         updateAllDiagnostics();
     });
 
-    connection.languages.semanticTokens.on((evt) => pluginHost.getSemanticTokens(evt.textDocument));
-    connection.languages.semanticTokens.onRange((evt) =>
+    connection.onRequest(SemanticTokensRequest.type, (evt) =>
+        pluginHost.getSemanticTokens(evt.textDocument)
+    );
+    connection.onRequest(SemanticTokensRangeRequest.type, (evt) =>
         pluginHost.getSemanticTokens(evt.textDocument, evt.range)
     );
 
