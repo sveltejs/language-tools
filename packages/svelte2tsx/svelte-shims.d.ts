@@ -29,7 +29,7 @@ declare class Svelte2TsxComponent<
      * Causes the callback function to be called whenever the component dispatches an event.
      * A function is returned that will remove the event listener when called.
      */
-    $on<K extends keyof Events>(event: K, handler: (e: Events[K]) => any): () => void;
+    $on<K extends keyof Events & string>(event: K, handler: (e: Events[K]) => any): () => void;
     /**
      * Removes a component from the DOM and triggers any `onDestroy` handlers.
      */
