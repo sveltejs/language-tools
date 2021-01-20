@@ -21,6 +21,7 @@ import {
     SignatureHelp,
     SignatureHelpContext,
     SymbolInformation,
+    TextDocumentContentChangeEvent,
     TextDocumentIdentifier,
     TextEdit,
     WorkspaceEdit
@@ -421,6 +422,12 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
     onWatchFileChanges(onWatchFileChangesParas: OnWatchFileChangesPara[]): void {
         for (const support of this.plugins) {
             support.onWatchFileChanges?.(onWatchFileChangesParas);
+        }
+    }
+
+    updateTsOrJsFile(fileName: string, changes: TextDocumentContentChangeEvent[]): void {
+        for (const support of this.plugins) {
+            support.updateTsOrJsFile?.(fileName, changes);
         }
     }
 

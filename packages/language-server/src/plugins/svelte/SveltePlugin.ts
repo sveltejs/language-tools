@@ -13,7 +13,7 @@ import {
 } from 'vscode-languageserver';
 import { Document } from '../../lib/documents';
 import { LSConfigManager, LSSvelteConfig } from '../../ls-config';
-import { importPrettier } from '../../importPackage';
+import { getPackageInfo, importPrettier } from '../../importPackage';
 import {
     CodeActionsProvider,
     CompletionsProvider,
@@ -85,6 +85,16 @@ export class SveltePlugin
                     }) ||
                     {}
             );
+        // If user has prettier-plugin-svelte 1.x, then remove `options` from the sort
+        // order or else it will throw a config error (`options` was not present back then).
+        if (
+            config?.svelteSortOrder &&
+            getPackageInfo('prettier-plugin-svelte', filePath)?.version.major < 2
+        ) {
+            config.svelteSortOrder = config.svelteSortOrder
+                .replace('-options', '')
+                .replace('options-', '');
+        }
         // Take .prettierignore into account
         const fileInfo = await prettier.getFileInfo(filePath, {
             ignorePath: this.configManager.getPrettierConfig()?.ignorePath ?? '.prettierignore',

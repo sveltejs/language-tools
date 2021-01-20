@@ -15,12 +15,7 @@ describe('SignatureHelpProvider', () => {
         const docManager = new DocumentManager(
             (textDocument) => new Document(textDocument.uri, textDocument.text)
         );
-        const filePath = path.join(
-            testDir,
-            'testfiles',
-            'signature-help',
-            'signature-help.svelte'
-        );
+        const filePath = path.join(testDir, 'testfiles', 'signature-help', 'signature-help.svelte');
         const lsAndTsDocResolver = new LSAndTSDocResolver(
             docManager,
             [pathToUrl(testDir)],
@@ -39,7 +34,7 @@ describe('SignatureHelpProvider', () => {
 
         const result = await provider.getSignatureHelp(document, Position.create(3, 8), undefined);
 
-        assert.deepStrictEqual(result, <SignatureHelp> {
+        assert.deepStrictEqual(result, <SignatureHelp>{
             signatures: [
                 {
                     label: 'foo(): boolean',
@@ -57,7 +52,7 @@ describe('SignatureHelpProvider', () => {
 
         const result = await provider.getSignatureHelp(document, Position.create(4, 12), undefined);
 
-        assert.deepStrictEqual(result, <SignatureHelp> {
+        assert.deepStrictEqual(result, <SignatureHelp>{
             signatures: [
                 {
                     label: 'abc(a: number, b: number): string',
@@ -94,7 +89,10 @@ describe('SignatureHelpProvider', () => {
         const { provider, document } = setup();
 
         const result = await provider.getSignatureHelp(
-            document, Position.create(18, 18), undefined);
+            document,
+            Position.create(18, 18),
+            undefined
+        );
 
         assert.equal(result, null);
     });

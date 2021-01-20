@@ -1,6 +1,11 @@
 import ts from 'typescript';
-import { DocumentSnapshot, SvelteSnapshotOptions } from './DocumentSnapshot';
+import {
+    DocumentSnapshot,
+    JSOrTSDocumentSnapshot,
+    SvelteSnapshotOptions
+} from './DocumentSnapshot';
 import { Logger } from '../../logger';
+import { TextDocumentContentChangeEvent } from 'vscode-languageserver';
 
 export interface TsFilesSpec {
     include?: readonly string[];
@@ -62,6 +67,19 @@ export class SnapshotManager {
         }
 
         this.set(fileName, newSnapshot);
+    }
+
+    updateTsOrJsFile(fileName: string, changes: TextDocumentContentChangeEvent[]): void {
+        if (!this.has(fileName)) {
+            return;
+        }
+
+        const previousSnapshot = this.get(fileName);
+        if (!(previousSnapshot instanceof JSOrTSDocumentSnapshot)) {
+            return;
+        }
+
+        previousSnapshot.update(changes);
     }
 
     has(fileName: string) {

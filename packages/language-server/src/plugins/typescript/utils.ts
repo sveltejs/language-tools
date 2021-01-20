@@ -111,7 +111,7 @@ export function findTsConfigPath(fileName: string, rootUris: string[]) {
         ts.findConfigFile(searchDir, ts.sys.fileExists, 'jsconfig.json') ||
         '';
     // Don't return config files that exceed the current workspace context.
-    return !!path && rootUris.some(rootUri => isSubPath(rootUri, path)) ? path : '';
+    return !!path && rootUris.some((rootUri) => isSubPath(rootUri, path)) ? path : '';
 }
 
 export function isSubPath(uri: string, possibleSubPath: string): boolean {

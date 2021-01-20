@@ -6,10 +6,7 @@ import { SvelteDocument } from '../../../../src/plugins/svelte/SvelteDocument';
 
 describe('SveltePlugin#getSelectionRange', () => {
     const CURSOR = '|';
-    async function expectToEqual(
-        contentWithCursor: string,
-        expected: SelectionRange | null
-    ) {
+    async function expectToEqual(contentWithCursor: string, expected: SelectionRange | null) {
         const svelteDoc = new SvelteDocument(
             new Document('url', contentWithCursor.replace(CURSOR, ''))
         );

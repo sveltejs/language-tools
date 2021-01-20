@@ -279,7 +279,8 @@ export function processInstanceScriptContent(
                 if (
                     (!ts.isPropertyAccessExpression(parent) || parent.expression == ident) &&
                     (!ts.isPropertyAssignment(parent) || parent.initializer == ident) &&
-                    !ts.isPropertySignature(parent) && !ts.isPropertyDeclaration(parent)
+                    !ts.isPropertySignature(parent) &&
+                    !ts.isPropertyDeclaration(parent)
                 ) {
                     pendingStoreResolutions.push({ node: ident, parent, scope });
                 }

@@ -107,7 +107,7 @@ export interface LSTypescriptConfig {
     };
     semanticTokens: {
         enable: boolean;
-    }
+    };
 }
 
 export interface LSCSSConfig {

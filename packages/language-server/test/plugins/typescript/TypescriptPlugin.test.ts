@@ -444,4 +444,28 @@ describe('TypescriptPlugin', () => {
             fs.unlinkSync(addFile);
         }
     });
+
+    it('should update ts/js file after document change', () => {
+        const { snapshotManager, projectJsFile, plugin } = setupForOnWatchedFileUpdateOrDelete();
+
+        const firstSnapshot = snapshotManager.get(projectJsFile);
+        const firstVersion = firstSnapshot?.version;
+        const firstText = firstSnapshot?.getText(0, firstSnapshot?.getLength());
+
+        assert.notEqual(firstVersion, INITIAL_VERSION);
+
+        plugin.updateTsOrJsFile(projectJsFile, [
+            {
+                range: { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } },
+                text: 'const = "hello world";'
+            }
+        ]);
+        const secondSnapshot = snapshotManager.get(projectJsFile);
+
+        assert.notEqual(secondSnapshot?.version, firstVersion);
+        assert.equal(
+            secondSnapshot?.getText(0, secondSnapshot?.getLength()),
+            'const = "hello world";' + firstText
+        );
+    });
 });
