@@ -210,7 +210,7 @@ export class SourceMapDocumentMapper implements DocumentMapper {
     private generatedLinesLength: number[] | undefined;
     private getGeneratedLinesLength() {
         if (!this.generatedLinesLength) {
-            this.generatedLinesLength = this.generatedText.split('\n').map(line => line.length);
+            this.generatedLinesLength = this.generatedText.split('\n').map((line) => line.length);
         }
         return this.generatedLinesLength;
     }
@@ -234,16 +234,14 @@ export class SourceMapDocumentMapper implements DocumentMapper {
     }
 }
 
-export function mapRangeToOriginal(
-    fragment: RangeMapper,
-    range: Range
-): Range {
+export function mapRangeToOriginal(fragment: RangeMapper, range: Range): Range {
     // the start and the end is the same position, not the start of char and end of char
-    const zeroLength = range.start.line === range.end.line &&
-        range.start.character === range.end.character;
-    const end = !zeroLength && fragment.getOriginalPositionOfEndOfChar ?
-        fragment.getOriginalPositionOfEndOfChar(range.end) :
-        fragment.getOriginalPosition(range.end);
+    const zeroLength =
+        range.start.line === range.end.line && range.start.character === range.end.character;
+    const end =
+        !zeroLength && fragment.getOriginalPositionOfEndOfChar
+            ? fragment.getOriginalPositionOfEndOfChar(range.end)
+            : fragment.getOriginalPosition(range.end);
 
     // DON'T use Range.create here! Positions might not be mapped
     // and therefore return negative numbers, which makes Range.create throw.
@@ -259,13 +257,11 @@ export function mapRangeToOriginalWithEndOfChar(
     fragment: Pick<DocumentMapper, 'getOriginalPosition'>,
     range: Range
 ): Range {
-
     return {
         start: fragment.getOriginalPosition(range.start),
         end: fragment.getOriginalPosition(range.end)
     };
 }
-
 
 export function mapRangeToGenerated(fragment: DocumentMapper, range: Range): Range {
     return Range.create(
@@ -288,10 +284,7 @@ export function mapCompletionItemToOriginal(
     };
 }
 
-export function mapHoverToParent(
-    fragment: RangeMapper,
-    hover: Hover
-): Hover {
+export function mapHoverToParent(fragment: RangeMapper, hover: Hover): Hover {
     if (!hover.range) {
         return hover;
     }
@@ -415,4 +408,3 @@ export function mapSelectionRangeToParent(
         parent && mapSelectionRangeToParent(fragment, parent)
     );
 }
-

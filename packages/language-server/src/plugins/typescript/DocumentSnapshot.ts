@@ -354,9 +354,9 @@ export class SvelteSnapshotFragment implements SnapshotFragment {
     }
 
     getOriginalPositionOfEndOfChar(pos: Position): Position {
-        return this.mapper.getOriginalPositionOfEndOfChar ?
-            this.mapper.getOriginalPositionOfEndOfChar(pos) :
-            this.mapper.getOriginalPosition(pos);
+        return this.mapper.getOriginalPositionOfEndOfChar
+            ? this.mapper.getOriginalPositionOfEndOfChar(pos)
+            : this.mapper.getOriginalPosition(pos);
     }
 
     getGeneratedPosition(pos: Position): Position {

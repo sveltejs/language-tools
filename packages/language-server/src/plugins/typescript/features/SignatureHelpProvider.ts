@@ -144,10 +144,9 @@ export class SignatureHelpProviderImpl implements SignatureHelpProvider {
         };
     }
 
-    private isInSvelte2tsxGeneratedFunction(
-        signatureHelpItem: ts.SignatureHelpItem
-    ) {
-        return signatureHelpItem.prefixDisplayParts
-            .some((part) => isSvelte2tsxGeneratedIdentifer(part.text));
+    private isInSvelte2tsxGeneratedFunction(signatureHelpItem: ts.SignatureHelpItem) {
+        return signatureHelpItem.prefixDisplayParts.some((part) =>
+            isSvelte2tsxGeneratedIdentifer(part.text)
+        );
     }
 }

@@ -8,7 +8,13 @@ import {
     VersionedTextDocumentIdentifier,
     WorkspaceEdit
 } from 'vscode-languageserver';
-import { Document, mapRangeToOriginal, isRangeInTag, isInTag, mapRangeToOriginalWithEndOfChar } from '../../../lib/documents';
+import {
+    Document,
+    mapRangeToOriginal,
+    isRangeInTag,
+    isInTag,
+    mapRangeToOriginalWithEndOfChar
+} from '../../../lib/documents';
 import { pathToUrl, flatten } from '../../../utils';
 import { CodeActionsProvider } from '../../interfaces';
 import { SnapshotFragment, SvelteSnapshotFragment } from '../DocumentSnapshot';
@@ -111,8 +117,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             range.end.line < range.start.line
         ) {
             edit.span.length -= 1;
-            range = mapRangeToOriginalWithEndOfChar(
-                fragment, convertRange(fragment, edit.span));
+            range = mapRangeToOriginalWithEndOfChar(fragment, convertRange(fragment, edit.span));
             range.end.character += 1;
         }
 
@@ -140,8 +145,9 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             codeFixes.map(async (fix) => {
                 const documentChanges = await Promise.all(
                     fix.changes.map(async (change) => {
-                        const doc = docs.get(change.fileName) ??
-                            await this.getAndCacheCodeActionDoc(change, docs);
+                        const doc =
+                            docs.get(change.fileName) ??
+                            (await this.getAndCacheCodeActionDoc(change, docs));
                         return TextDocumentEdit.create(
                             VersionedTextDocumentIdentifier.create(pathToUrl(change.fileName), 0),
                             change.textChanges.map((edit) => {
@@ -159,8 +165,10 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                                     );
                                 }
 
-                                let originalRange =
-                                    mapRangeToOriginal(doc, convertRange(doc, edit.span));
+                                let originalRange = mapRangeToOriginal(
+                                    doc,
+                                    convertRange(doc, edit.span)
+                                );
                                 if (fix.fixName === 'unusedIdentifier') {
                                     originalRange = this.checkRemoveImportCodeActionRange(
                                         edit,
@@ -169,10 +177,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                                     );
                                 }
 
-                                return TextEdit.replace(
-                                    originalRange,
-                                    edit.newText
-                                );
+                                return TextEdit.replace(originalRange, edit.newText);
                             })
                         );
                     })
