@@ -431,7 +431,6 @@ repository:
   tags-start-attributes:
     begin: \G
     end: (?=/?>)
-    endCaptures: { 0: { name: punctuation.definition.tag.end.svelte } }
     name: meta.tag.start.svelte
     patterns: [ include: '#attributes' ]
 
@@ -439,13 +438,12 @@ repository:
   tags-lang-start-attributes:
     begin: \G
     end: (?=/>)|>
-    endCaptures: { 0: { name: punctuation.definition.tag.end.svelte } }
     name: meta.tag.start.svelte
     patterns: [ include: '#attributes' ]
 
   # Matches the beginning (`<name`) section of a tag start node.
   tags-start-node:
-    match: (<)([^/\s>]*)
+    match: (<)([^/\s>/]*)
     captures:
       1: { name: punctuation.definition.tag.begin.svelte }
       2: { patterns: [ include: '#tags-name' ] }
@@ -496,8 +494,8 @@ repository:
   # Split up into start and end because we don't need to preserve the name
   # inside and because it makes whitespace matching logic more robust
   tags-general-start:
-    begin: (<)([^/\s>]*)
-    end: (>)
+    begin: (<)([^/\s>/]*)
+    end: (/?>)
     beginCaptures: { 0: { patterns: [ include: '#tags-start-node' ] } }
     endCaptures:
       1: { name: meta.tag.start.svelte punctuation.definition.tag.end.svelte }
