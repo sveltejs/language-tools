@@ -204,35 +204,47 @@ Svelte compiler warning codes to ignore or to treat as errors. Example: { 'css-u
 
 ##### `svelte.plugin.svelte.format.enable`
 
-Enable formatting for Svelte (includes css & js) using [prettier-plugin-svelte](https://github.com/sveltejs/prettier-plugin-svelte). You can set some formatting options through this extension. They will be ignored if there's a `.prettierrc` configuration file. _Default_: `true`
+Enable formatting for Svelte (includes css & js) using [prettier-plugin-svelte](https://github.com/sveltejs/prettier-plugin-svelte). _Default_: `true`
+
+You can set some formatting options through this extension. They will be ignored if there's any kind of configuration file, for example a `.prettierrc` file. Read more about Prettier's configuration file [here](https://prettier.io/docs/en/configuration.html).
 
 ##### `svelte.plugin.svelte.format.config.svelteSortOrder`
 
 Format: join the keys `options`, `scripts`, `markup`, `styles` with a `-` in the order you want. _Default_: `options-scripts-markup-styles`
 
+This option is ignored if there's any kind of configuration file, for example a `.prettierrc` file.
+
 ##### `svelte.plugin.svelte.format.config.svelteStrictMode`
 
 More strict HTML syntax. _Default_: `false`
+
+This option is ignored if there's any kind of configuration file, for example a `.prettierrc` file.
 
 ##### `svelte.plugin.svelte.format.config.svelteAllowShorthand`
 
 Option to enable/disable component attribute shorthand if attribute name and expression are the same. _Default_: `true`
 
+This option is ignored if there's any kind of configuration file, for example a `.prettierrc` file.
+
 ##### `svelte.plugin.svelte.format.config.svelteBracketNewLine`
 
 Put the `>` of a multiline element on a new line. _Default_: `true`
+
+This option is ignored if there's any kind of configuration file, for example a `.prettierrc` file.
 
 ##### `svelte.plugin.svelte.format.config.svelteIndentScriptAndStyle`
 
 Whether or not to indent code inside `<script>` and `<style>` tags. _Default_: `true`
 
+This option is ignored if there's any kind of configuration file, for example a `.prettierrc` file.
+
 ##### `svelte.plugin.svelte.format.config.printWidth`
 
-Maximum line width after which code is tried to be broken up. This is a Prettier core option. If you have the Prettier extension installed, this option is ignored and the corresponding option of that extension is used instead. _Default_: `80`
+Maximum line width after which code is tried to be broken up. This is a Prettier core option. If you have the Prettier extension installed, this option is ignored and the corresponding option of that extension is used instead. This option is also ignored if there's any kind of configuration file, for example a `.prettierrc` file. _Default_: `80`
 
 ##### `svelte.plugin.svelte.format.config.singleQuote`
 
-Use single quotes instead of double quotes, where possible. This is a Prettier core option. If you have the Prettier extension installed, this option is ignored and the corresponding option of that extension is used instead. _Default_: `false`
+Use single quotes instead of double quotes, where possible. This is a Prettier core option. If you have the Prettier extension installed, this option is ignored and the corresponding option of that extension is used instead. This option is also ignored if there's any kind of configuration file, for example a `.prettierrc` file. _Default_: `false`
 
 ##### `svelte.plugin.svelte.hover.enable`
 

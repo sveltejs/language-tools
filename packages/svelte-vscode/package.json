@@ -261,49 +261,49 @@
                     "type": "boolean",
                     "default": true,
                     "title": "Svelte: Format",
-                    "description": "Enable formatting for Svelte (includes css & js). You can set some formatting options through this extension. They will be ignored if there's a `.prettierrc` configuration file."
+                    "description": "Enable formatting for Svelte (includes css & js). You can set some formatting options through this extension. They will be ignored if there's any kind of configuration file, for example a `.prettierrc` file."
                 },
                 "svelte.plugin.svelte.format.config.svelteSortOrder": {
                     "type": "string",
                     "default": "options-scripts-markup-styles",
                     "title": "Svelte Format: Sort Order",
-                    "description": "Format: join the keys `options`, `scripts`, `markup`, `styles` with a - in the order you want"
+                    "description": "Format: join the keys `options`, `scripts`, `markup`, `styles` with a - in the order you want. This option is ignored if there's any kind of configuration file, for example a `.prettierrc` file."
                 },
                 "svelte.plugin.svelte.format.config.svelteStrictMode": {
                     "type": "boolean",
                     "default": false,
                     "title": "Svelte Format: Strict Mode",
-                    "description": "More strict HTML syntax"
+                    "description": "More strict HTML syntax. This option is ignored if there's any kind of configuration file, for example a `.prettierrc` file."
                 },
                 "svelte.plugin.svelte.format.config.svelteAllowShorthand": {
                     "type": "boolean",
                     "default": true,
                     "title": "Svelte Format: Allow Shorthand",
-                    "description": "Option to enable/disable component attribute shorthand if attribute name and expression are the same"
+                    "description": "Option to enable/disable component attribute shorthand if attribute name and expression are the same. This option is ignored if there's any kind of configuration file, for example a `.prettierrc` file."
                 },
                 "svelte.plugin.svelte.format.config.svelteBracketNewLine": {
                     "type": "boolean",
                     "default": true,
                     "title": "Svelte Format: Bracket New Line",
-                    "description": "Put the `>` of a multiline element on a new line"
+                    "description": "Put the `>` of a multiline element on a new line. This option is ignored if there's any kind of configuration file, for example a `.prettierrc` file."
                 },
                 "svelte.plugin.svelte.format.config.svelteIndentScriptAndStyle": {
                     "type": "boolean",
                     "default": true,
                     "title": "Svelte Format: Indent Script And Style",
-                    "description": "Whether or not to indent code inside `<script>` and `<style>` tags"
+                    "description": "Whether or not to indent code inside `<script>` and `<style>` tags. This option is ignored if there's any kind of configuration file, for example a `.prettierrc` file."
                 },
                 "svelte.plugin.svelte.format.config.printWidth": {
                     "type": "number",
                     "default": 80,
                     "title": "Svelte Format: Print Width",
-                    "description": "Maximum line width after which code is tried to be broken up. This is a Prettier core option. If you have the Prettier extension installed, this option is ignored and the corresponding option of that extension is used instead."
+                    "description": "Maximum line width after which code is tried to be broken up. This is a Prettier core option. If you have the Prettier extension installed, this option is ignored and the corresponding option of that extension is used instead. This option is also ignored if there's any kind of configuration file, for example a `.prettierrc` file."
                 },
                 "svelte.plugin.svelte.format.config.singleQuote": {
                     "type": "boolean",
                     "default": false,
                     "title": "Svelte Format: Quotes",
-                    "description": "Use single quotes instead of double quotes, where possible. This is a Prettier core option. If you have the Prettier extension installed, this option is ignored and the corresponding option of that extension is used instead."
+                    "description": "Use single quotes instead of double quotes, where possible. This is a Prettier core option. If you have the Prettier extension installed, this option is ignored and the corresponding option of that extension is used instead. This option is also ignored if there's any kind of configuration file, for example a `.prettierrc` file."
                 },
                 "svelte.plugin.svelte.completions.enable": {
                     "type": "boolean",
