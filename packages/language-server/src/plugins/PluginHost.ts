@@ -408,14 +408,10 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
             throw new Error('Cannot call methods on an unopened document');
         }
 
-        return (
-            (await this.execute<SemanticTokens>(
-                'getSemanticTokens',
-                [document, range],
-                ExecuteMode.FirstNonNull
-            )) ?? {
-                data: []
-            }
+        return await this.execute<SemanticTokens>(
+            'getSemanticTokens',
+            [document, range],
+            ExecuteMode.FirstNonNull
         );
     }
 

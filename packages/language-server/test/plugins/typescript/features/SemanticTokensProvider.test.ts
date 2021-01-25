@@ -33,7 +33,9 @@ describe('SemanticTokensProvider', () => {
     it('provides semantic token', async () => {
         const { provider, document } = setup();
 
-        const { data } = await provider.getSemanticTokens(document);
+        const { data } = (await provider.getSemanticTokens(document)) ?? {
+            data: []
+        };
 
         assertResult(data, getExpected(/* isFull */ true));
     });
@@ -41,10 +43,12 @@ describe('SemanticTokensProvider', () => {
     it('provides partial semantic token', async () => {
         const { provider, document } = setup();
 
-        const { data } = await provider.getSemanticTokens(
+        const { data } = (await provider.getSemanticTokens(
             document,
             Range.create(Position.create(0, 0), Position.create(9, 0))
-        );
+        )) ?? {
+            data: []
+        };
 
         assertResult(data, getExpected(/* isFull */ false));
     });

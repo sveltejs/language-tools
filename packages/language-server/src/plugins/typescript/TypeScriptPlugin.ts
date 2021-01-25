@@ -413,7 +413,7 @@ export class TypeScriptPlugin
         return this.signatureHelpProvider.getSignatureHelp(document, position, context);
     }
 
-    async getSemanticTokens(textDocument: Document, range?: Range): Promise<SemanticTokens> {
+    async getSemanticTokens(textDocument: Document, range?: Range): Promise<SemanticTokens | null> {
         if (!this.featureEnabled('semanticTokens')) {
             return {
                 data: []

@@ -6,12 +6,20 @@ import { SnapshotFragment } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { convertToTextSpan } from '../utils';
 
+const CONTENT_LENGTH_LIMIT = 50000;
+
 export class SemanticTokensProviderImpl implements SemanticTokensProvider {
     constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
 
-    async getSemanticTokens(textDocument: Document, range?: Range): Promise<SemanticTokens> {
+    async getSemanticTokens(textDocument: Document, range?: Range): Promise<SemanticTokens | null> {
         const { lang, tsDoc } = this.lsAndTsDocResolver.getLSAndTSDoc(textDocument);
         const fragment = await tsDoc.getFragment();
+
+        // for better performance, don't do full-file semantic tokens when the file is too big
+        if (!range && fragment.text.length > CONTENT_LENGTH_LIMIT) {
+            return null;
+        }
+
         const textSpan = range
             ? convertToTextSpan(range, fragment)
             : {
