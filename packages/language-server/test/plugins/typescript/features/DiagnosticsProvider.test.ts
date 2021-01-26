@@ -258,4 +258,11 @@ describe('DiagnosticsProvider', () => {
             }
         ]);
     });
+
+    it('ignores coffeescript', async () => {
+        const { plugin, document } = setup('diagnostics-coffeescript.svelte');
+        const diagnostics = await plugin.getDiagnostics(document);
+
+        assert.deepStrictEqual(diagnostics, []);
+    });
 });

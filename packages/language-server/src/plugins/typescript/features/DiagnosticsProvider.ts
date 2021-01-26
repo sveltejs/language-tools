@@ -11,6 +11,11 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
 
     async getDiagnostics(document: Document): Promise<Diagnostic[]> {
         const { lang, tsDoc } = this.getLSAndTSDoc(document);
+
+        if (['coffee', 'coffeescript'].includes(document.getLanguageAttribute('script'))) {
+            return [];
+        }
+
         const isTypescript = tsDoc.scriptKind === ts.ScriptKind.TSX;
 
         // Document preprocessing failed, show parser error instead
