@@ -104,7 +104,7 @@ describe('DiagnosticsProvider', () => {
                     "Argument of type 'string' is not assignable to parameter of type 'SvelteStore<any>'.",
                 range: {
                     end: {
-                        character: 5,
+                        character: 6,
                         line: 2
                     },
                     start: {
@@ -122,7 +122,7 @@ describe('DiagnosticsProvider', () => {
                     "Argument of type 'string' is not assignable to parameter of type 'SvelteStore<any>'.",
                 range: {
                     end: {
-                        character: 8,
+                        character: 9,
                         line: 3
                     },
                     start: {
@@ -140,7 +140,7 @@ describe('DiagnosticsProvider', () => {
                     "Argument of type 'string' is not assignable to parameter of type 'SvelteStore<any>'.",
                 range: {
                     end: {
-                        character: 6,
+                        character: 7,
                         line: 6
                     },
                     start: {
@@ -158,7 +158,7 @@ describe('DiagnosticsProvider', () => {
                     "Argument of type 'string' is not assignable to parameter of type 'SvelteStore<any>'.",
                 range: {
                     end: {
-                        character: 10,
+                        character: 11,
                         line: 7
                     },
                     start: {

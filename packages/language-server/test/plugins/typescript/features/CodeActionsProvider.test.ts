@@ -152,7 +152,7 @@ describe('CodeActionsProvider', () => {
                                             line: 3
                                         },
                                         end: {
-                                            character: 22,
+                                            character: 23,
                                             line: 3
                                         }
                                     }
@@ -228,7 +228,7 @@ describe('CodeActionsProvider', () => {
                                         },
                                         end: {
                                             line: 7,
-                                            character: 22
+                                            character: 23
                                         }
                                     }
                                 }
