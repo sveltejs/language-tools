@@ -128,7 +128,9 @@ const possibleOperatorOrPropertyAccess = [
     '&',
     '^',
     '|',
-    ','
+    ',',
+    '+',
+    '-'
 ];
 
 function blankPossiblyErrorOperatorOrPropertyAccess(htmlx: string) {
@@ -141,8 +143,19 @@ function blankPossiblyErrorOperatorOrPropertyAccess(htmlx: string) {
         while (backwardIndex > lastIndex) {
             const char = htmlx.charAt(backwardIndex);
             if (possibleOperatorOrPropertyAccess.includes(char)) {
-                htmlx =
-                    htmlx.substring(0, backwardIndex) + ' ' + htmlx.substring(backwardIndex + 1);
+                const isPlusOrMinus = char === '+' || char === '-';
+                const isIncrementOrDecrement =
+                    isPlusOrMinus && htmlx.charAt(backwardIndex - 1) === char;
+
+                if (isIncrementOrDecrement) {
+                    backwardIndex -= 2;
+                    continue;
+                } else {
+                    htmlx =
+                        htmlx.substring(0, backwardIndex) +
+                        ' ' +
+                        htmlx.substring(backwardIndex + 1);
+                }
             } else if (!/\s/.test(char)) {
                 break;
             }
