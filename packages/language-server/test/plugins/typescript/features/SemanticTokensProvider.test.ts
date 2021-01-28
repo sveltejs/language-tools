@@ -140,6 +140,20 @@ describe('SemanticTokensProvider', () => {
                 length: 'text'.length,
                 type: TokenType.property,
                 modifiers: []
+            },
+            {
+                line: 13,
+                character: 16,
+                length: 1,
+                type: TokenType.parameter,
+                modifiers: [TokenModifier.declaration]
+            },
+            {
+                line: 14,
+                character: 5,
+                length: 1,
+                type: TokenType.parameter,
+                modifiers: []
             }
         ];
 

@@ -1,6 +1,6 @@
 import ts from 'typescript';
 import { Range, SemanticTokens, SemanticTokensBuilder } from 'vscode-languageserver';
-import { Document } from '../../../lib/documents';
+import { Document, mapRangeToOriginal } from '../../../lib/documents';
 import { SemanticTokensProvider } from '../../interfaces';
 import { SnapshotFragment } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
@@ -81,15 +81,16 @@ export class SemanticTokensProviderImpl implements SemanticTokensProvider {
         generatedOffset: number,
         generatedLength: number
     ): [line: number, character: number, length: number] | undefined {
-        const startPosition = fragment.getOriginalPosition(fragment.positionAt(generatedOffset));
+        const range = {
+            start: fragment.positionAt(generatedOffset),
+            end: fragment.positionAt(generatedOffset + generatedLength)
+        };
+        const { start: startPosition, end: endPosition } = mapRangeToOriginal(fragment, range);
 
-        if (startPosition.line < 0) {
+        if (startPosition.line < 0 || endPosition.line < 0) {
             return;
         }
 
-        const endPosition = fragment.getOriginalPosition(
-            fragment.positionAt(generatedOffset + generatedLength)
-        );
         const startOffset = document.offsetAt(startPosition);
         const endOffset = document.offsetAt(endPosition);
 

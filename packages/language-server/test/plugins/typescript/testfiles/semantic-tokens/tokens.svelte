@@ -11,3 +11,6 @@
 {#await textPromise then text}
     <textarea on:blur={blurHandler} value={text.text} />
 {/await}
+{#each ['a'] as a}
+    {a}
+{/each}
