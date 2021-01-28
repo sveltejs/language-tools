@@ -115,7 +115,7 @@ export function parseHtmlx(htmlx: string): Node {
     return svelteHtmlxAst;
 }
 
-const possibleOperatorOrPropertyAccess = [
+const possibleOperatorOrPropertyAccess = new Set([
     '.',
     '?',
     '*',
@@ -131,7 +131,7 @@ const possibleOperatorOrPropertyAccess = [
     ',',
     '+',
     '-'
-];
+]);
 
 function blankPossiblyErrorOperatorOrPropertyAccess(htmlx: string) {
     let index = htmlx.indexOf('}');
@@ -142,7 +142,7 @@ function blankPossiblyErrorOperatorOrPropertyAccess(htmlx: string) {
         let backwardIndex = index - 1;
         while (backwardIndex > lastIndex) {
             const char = htmlx.charAt(backwardIndex);
-            if (possibleOperatorOrPropertyAccess.includes(char)) {
+            if (possibleOperatorOrPropertyAccess.has(char)) {
                 const isPlusOrMinus = char === '+' || char === '-';
                 const isIncrementOrDecrement =
                     isPlusOrMinus && htmlx.charAt(backwardIndex - 1) === char;
