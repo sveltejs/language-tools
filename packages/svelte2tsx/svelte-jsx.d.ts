@@ -707,6 +707,7 @@ declare namespace svelte.JSX {
       onbeforeprint?: EventHandler<Event, Window>;
       onafterprint?: EventHandler<Event, Window>;
       onlanguagechange?: EventHandler<Event, Window>;
+      onorientationchange?: EventHandler<Event, Window>;
       onmessage?: EventHandler<MessageEvent, Window>;
       onmessageerror?: EventHandler<MessageEvent, Window>;
       onoffline?: EventHandler<Event, Window>;
