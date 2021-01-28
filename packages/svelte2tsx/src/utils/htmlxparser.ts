@@ -103,7 +103,8 @@ export function parseHtmlx(htmlx: string): Node {
     const deconstructed = blankVerbatimContent(htmlx, verbatimElements);
 
     //extract the html content parsed as htmlx this excludes our script and style tags
-    const svelteHtmlxAst = compiler.parse(deconstructed).html;
+    const svelteHtmlxAst = compiler.parse(blankPossiblyErrorOperatorOrPropertyAccess(deconstructed))
+        .html;
 
     //restore our script and style tags as nodes to maintain validity with HTMLx
     for (const s of verbatimElements) {
@@ -112,4 +113,45 @@ export function parseHtmlx(htmlx: string): Node {
         svelteHtmlxAst.end = Math.max(svelteHtmlxAst.end, s.end);
     }
     return svelteHtmlxAst;
+}
+
+const possibleOperatorOrPropertyAccess = [
+    '.',
+    '?',
+    '*',
+    '/',
+    '~',
+    '=',
+    '<',
+    '>',
+    '!',
+    '&',
+    '^',
+    '|',
+    ','
+];
+
+function blankPossiblyErrorOperatorOrPropertyAccess(htmlx: string) {
+    let index = htmlx.indexOf('}');
+    let lastIndex = 0;
+    const { length } = htmlx;
+
+    while (index < length && index >= 0) {
+        let backwardIndex = index - 1;
+        while (backwardIndex > lastIndex) {
+            const char = htmlx.charAt(backwardIndex);
+            if (possibleOperatorOrPropertyAccess.includes(char)) {
+                htmlx =
+                    htmlx.substring(0, backwardIndex) + ' ' + htmlx.substring(backwardIndex + 1);
+            } else if (!/\s/.test(char)) {
+                break;
+            }
+            backwardIndex--;
+        }
+
+        lastIndex = index;
+        index = htmlx.indexOf('}', index + 1);
+    }
+
+    return htmlx;
 }
