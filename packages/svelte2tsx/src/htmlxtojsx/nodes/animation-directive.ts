@@ -37,7 +37,8 @@ export function handleAnimateDirective(htmlx: string, str: MagicString, attr: No
  * To not show unnecessary type errors to those users, `{}` should be added
  * as a fallback parameter if the user did not provide one.
  * It may be the case that someone has a custom animation with the same name
- * that expects different parameters, but that possibility is far less likely.
+ * that expects different parameters, or that someone did an import alias fly as foo,
+ * but those are very unlikely.
  *
  * Remove this "hack" some day.
  */
