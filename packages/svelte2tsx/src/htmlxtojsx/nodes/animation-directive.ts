@@ -1,5 +1,6 @@
 import MagicString from 'magic-string';
 import { Node } from 'estree-walker';
+import { isQuote } from '../utils/node-utils';
 
 /**
  * animation:xxx(yyy)   --->   {...__sveltets_ensureAnimation(xxx(__sveltets_ElementNode,__sveltets_AnimationMove,(yyy)))}
@@ -21,7 +22,7 @@ export function handleAnimateDirective(htmlx: string, str: MagicString, attr: No
         '(__sveltets_ElementNode,__sveltets_AnimationMove,('
     );
     str.appendLeft(attr.expression.end, ')))');
-    if (htmlx[attr.end - 1] == '"') {
+    if (isQuote(htmlx[attr.end - 1])) {
         str.remove(attr.end - 1, attr.end);
     }
 }

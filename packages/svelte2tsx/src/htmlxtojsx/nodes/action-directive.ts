@@ -1,5 +1,6 @@
 import MagicString from 'magic-string';
 import { Node } from 'estree-walker';
+import { isQuote } from '../utils/node-utils';
 
 /**
  * use:xxx={params}   --->    {...__sveltets_ensureAction(xxx(__sveltets_mapElementTag('ParentNodeName'),(params)))}
@@ -23,7 +24,8 @@ export function handleActionDirective(
         `(__sveltets_mapElementTag('${parent.name}'),(`
     );
     str.appendLeft(attr.expression.end, ')))');
-    if (htmlx[attr.end - 1] == '"') {
+    const lastChar = htmlx[attr.end - 1];
+    if (isQuote(lastChar)) {
         str.remove(attr.end - 1, attr.end);
     }
 }

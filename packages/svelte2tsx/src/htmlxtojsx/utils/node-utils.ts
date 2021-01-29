@@ -26,3 +26,7 @@ export function beforeStart(start: number): number {
 export function isShortHandAttribute(attr: Node): boolean {
     return attr.expression.end === attr.end;
 }
+
+export function isQuote(str: string): boolean {
+    return str === '"' || str === "'";
+}
