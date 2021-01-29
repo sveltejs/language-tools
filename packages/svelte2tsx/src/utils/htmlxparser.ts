@@ -149,12 +149,9 @@ function blankPossiblyErrorOperatorOrPropertyAccess(htmlx: string) {
                 if (isIncrementOrDecrement) {
                     backwardIndex -= 2;
                     continue;
-                } else {
-                    htmlx =
-                        htmlx.substring(0, backwardIndex) +
-                        ' ' +
-                        htmlx.substring(backwardIndex + 1);
                 }
+                htmlx =
+                    htmlx.substring(0, backwardIndex) + ' ' + htmlx.substring(backwardIndex + 1);
             } else if (!/\s/.test(char)) {
                 break;
             }
