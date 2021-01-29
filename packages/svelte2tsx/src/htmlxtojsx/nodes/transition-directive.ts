@@ -1,5 +1,6 @@
 import MagicString from 'magic-string';
 import { Node } from 'estree-walker';
+import { isQuote } from '../utils/node-utils';
 
 /**
  * transition:xxx(yyy)   --->   {...__sveltets_ensureTransition(xxx(__sveltets_ElementNode,(yyy)))}
@@ -27,7 +28,7 @@ export function handleTransitionDirective(htmlx: string, str: MagicString, attr:
         '(__sveltets_ElementNode,('
     );
     str.appendLeft(attr.expression.end, ')))');
-    if (htmlx[attr.end - 1] == '"') {
+    if (isQuote(htmlx[attr.end - 1])) {
         str.remove(attr.end - 1, attr.end);
     }
 }

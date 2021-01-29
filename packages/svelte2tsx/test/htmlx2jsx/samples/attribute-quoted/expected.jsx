@@ -1,1 +1,2 @@
-<><SomeComponent attr={shorthand} /></>
+<><SomeComponent attr={shorthand} />
+<SomeComponent attr={shorthand} /></>

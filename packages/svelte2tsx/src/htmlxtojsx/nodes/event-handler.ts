@@ -1,6 +1,6 @@
 import MagicString from 'magic-string';
 import { Node } from 'estree-walker';
-import { getTypeForComponent } from '../utils/node-utils';
+import { getTypeForComponent, isQuote } from '../utils/node-utils';
 
 /**
  * Transform on:xxx={yyy}
@@ -23,8 +23,9 @@ export function handleEventHandler(
         if (attr.expression) {
             const endAttr = htmlx.indexOf('=', attr.start);
             str.overwrite(attr.start + 'on:'.length - 1, endAttr, jsxEventName);
-            if (htmlx[attr.end - 1] == '"') {
-                const firstQuote = htmlx.indexOf('"', endAttr);
+            const lastChar = htmlx[attr.end - 1];
+            if (isQuote(lastChar)) {
+                const firstQuote = htmlx.indexOf(lastChar, endAttr);
                 str.remove(firstQuote, firstQuote + 1);
                 str.remove(attr.end - 1, attr.end);
             }

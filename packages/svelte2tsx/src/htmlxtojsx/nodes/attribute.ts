@@ -1,6 +1,7 @@
 import MagicString from 'magic-string';
 import { Node } from 'estree-walker';
 import svgAttributes from '../svgattributes';
+import { isQuote } from '../utils/node-utils';
 
 /**
  * List taken from `svelte-jsx.d.ts` by searching for all attributes of type number
@@ -159,7 +160,7 @@ export function handleAttribute(htmlx: string, str: MagicString, attr: Node, par
         }
     }
 
-    if (htmlx[attr.end - 1] == '"') {
+    if (isQuote(htmlx[attr.end - 1])) {
         str.overwrite(attr.end - 1, attr.end, '`}');
     } else {
         str.appendLeft(attr.end, '`}');
