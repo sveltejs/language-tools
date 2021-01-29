@@ -1,4 +1,5 @@
 <>{abc.   }
 {abc?. }
 {abc ?}
-{a+}</>
+{a+}
+<Component regex={/.*/} /></>

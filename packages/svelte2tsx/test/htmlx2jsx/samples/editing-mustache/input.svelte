@@ -2,3 +2,4 @@
 {abc?. }
 {abc ?}
 {a+}
+<Component regex={/.*/} />
