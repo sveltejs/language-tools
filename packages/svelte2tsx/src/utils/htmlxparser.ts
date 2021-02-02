@@ -103,9 +103,9 @@ export function parseHtmlx(htmlx: string, options?: { emitOnTemplateError?: bool
     const deconstructed = blankVerbatimContent(htmlx, verbatimElements);
 
     //extract the html content parsed as htmlx this excludes our script and style tags
-    const parsingCode = options?.emitOnTemplateError ?
-        blankPossiblyErrorOperatorOrPropertyAccess(deconstructed) :
-        deconstructed;
+    const parsingCode = options?.emitOnTemplateError
+        ? blankPossiblyErrorOperatorOrPropertyAccess(deconstructed)
+        : deconstructed;
     const svelteHtmlxAst = compiler.parse(parsingCode).html;
 
     //restore our script and style tags as nodes to maintain validity with HTMLx

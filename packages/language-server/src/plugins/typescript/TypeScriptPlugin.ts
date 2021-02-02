@@ -108,7 +108,7 @@ export class TypeScriptPlugin
             docManager,
             workspaceUris,
             configManager,
-            /**transformOnTemplateError */isEditor
+            /**transformOnTemplateError */ isEditor
         );
         this.completionProvider = new CompletionsProviderImpl(this.lsAndTsDocResolver);
         this.codeActionsProvider = new CodeActionsProviderImpl(

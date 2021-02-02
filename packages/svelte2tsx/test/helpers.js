@@ -91,8 +91,8 @@ function test_samples(dir, transform, tsx) {
  */
 function get_input_content(dirPath) {
     const filename = fs.readdirSync(dirPath).find((f) => f.endsWith('.svelte'));
-    const content = readFileSync(`${dirPath}/${filename}`)
-    return { filename, content }
+    const content = readFileSync(`${dirPath}/${filename}`);
+    return { filename, content };
 }
 
 module.exports = { benchmark, test_samples, get_input_content, readFileSync };
