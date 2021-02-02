@@ -43,9 +43,12 @@ export class SvelteCheck {
         }
         if (shouldRegister('js')) {
             this.pluginHost.register(
-                new TypeScriptPlugin(this.docManager, this.configManager, [
-                    pathToUrl(workspacePath)
-                ])
+                new TypeScriptPlugin(
+                    this.docManager,
+                    this.configManager,
+                    [pathToUrl(workspacePath)],
+                    /**isEditor */ false
+                )
             );
         }
 

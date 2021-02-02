@@ -73,6 +73,7 @@ export interface SnapshotFragment extends DocumentMapper {
  */
 export interface SvelteSnapshotOptions {
     strictMode: boolean;
+    transformOnTemplateError: boolean;
 }
 
 export namespace DocumentSnapshot {
@@ -142,7 +143,8 @@ function preprocessSvelteFile(document: Document, options: SvelteSnapshotOptions
         const tsx = svelte2tsx(text, {
             strictMode: options.strictMode,
             filename: document.getFilePath() ?? undefined,
-            isTsFile: scriptKind === ts.ScriptKind.TSX
+            isTsFile: scriptKind === ts.ScriptKind.TSX,
+            emitOnTemplateError: options.transformOnTemplateError
         });
         text = tsx.code;
         tsxMap = tsx.map;

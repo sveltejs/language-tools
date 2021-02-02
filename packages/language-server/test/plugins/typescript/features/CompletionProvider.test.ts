@@ -67,13 +67,38 @@ describe('CompletionProviderImpl', () => {
         );
         assert.ok(completions!.items.length > 0, 'Expected completions to have length');
 
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { data, ...withoutData } = completions!.items[0];
+        const first = completions!.items[0];
+        delete first.data;
 
-        assert.deepStrictEqual(withoutData, <CompletionItem>{
+        assert.deepStrictEqual(first, <CompletionItem>{
             label: 'b',
             insertText: undefined,
             kind: CompletionItemKind.Method,
+            sortText: '1',
+            commitCharacters: ['.', ',', '('],
+            preselect: undefined
+        });
+    });
+
+    it('provides completions on simple property access in mustache', async () => {
+        const { completionProvider, document } = setup('mustache.svelte');
+
+        const completions = await completionProvider.getCompletions(
+            document,
+            Position.create(5, 3),
+            {
+                triggerKind: CompletionTriggerKind.TriggerCharacter,
+                triggerCharacter: '.'
+            }
+        );
+
+        const first = completions!.items[0];
+        delete first.data;
+
+        assert.deepStrictEqual(first, <CompletionItem>{
+            label: 'b',
+            insertText: undefined,
+            kind: CompletionItemKind.Field,
             sortText: '1',
             commitCharacters: ['.', ',', '('],
             preselect: undefined
