@@ -7,7 +7,8 @@ import {
     getLanguageServiceForDocument,
     getLanguageServiceForPath,
     getService,
-    LanguageServiceContainer
+    LanguageServiceContainer,
+    LanguageServiceDocumentContext
 } from './service';
 import { SnapshotManager } from './SnapshotManager';
 
@@ -15,7 +16,8 @@ export class LSAndTSDocResolver {
     constructor(
         private readonly docManager: DocumentManager,
         private readonly workspaceUris: string[],
-        private readonly configManager: LSConfigManager
+        private readonly configManager: LSConfigManager,
+        private readonly transformOnTemplateError = true
     ) {
         docManager.on(
             'documentChange',
@@ -43,8 +45,15 @@ export class LSAndTSDocResolver {
         return document;
     };
 
+    private get lsDocumentContext(): LanguageServiceDocumentContext {
+        return {
+            createDocument: this.createDocument,
+            transformOnTemplateError: this.transformOnTemplateError
+        };
+    }
+
     getLSForPath(path: string) {
-        return getLanguageServiceForPath(path, this.workspaceUris, this.createDocument);
+        return getLanguageServiceForPath(path, this.workspaceUris, this.lsDocumentContext);
     }
 
     getLSAndTSDoc(
@@ -57,7 +66,7 @@ export class LSAndTSDocResolver {
         const lang = getLanguageServiceForDocument(
             document,
             this.workspaceUris,
-            this.createDocument
+            this.lsDocumentContext
         );
         const filePath = document.getFilePath()!;
         const tsDoc = this.getSnapshot(filePath, document);
@@ -74,7 +83,10 @@ export class LSAndTSDocResolver {
 
         let tsDoc = snapshotManager.get(filePath);
         if (!tsDoc) {
-            const options = { strictMode: !!tsService.compilerOptions.strict };
+            const options = {
+                strictMode: !!tsService.compilerOptions.strict,
+                transformOnTemplateError: this.transformOnTemplateError
+            };
             tsDoc = document
                 ? DocumentSnapshot.fromDocument(document, options)
                 : DocumentSnapshot.fromFilePath(filePath, options);
@@ -99,7 +111,7 @@ export class LSAndTSDocResolver {
     }
 
     private getTSService(filePath: string): LanguageServiceContainer {
-        return getService(filePath, this.workspaceUris, this.createDocument);
+        return getService(filePath, this.workspaceUris, this.lsDocumentContext);
     }
 
     private getUserPreferences(scriptKind: ts.ScriptKind): ts.UserPreferences {

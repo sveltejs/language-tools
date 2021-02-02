@@ -100,10 +100,16 @@ export class TypeScriptPlugin
     constructor(
         docManager: DocumentManager,
         configManager: LSConfigManager,
-        workspaceUris: string[]
+        workspaceUris: string[],
+        isEditor = true
     ) {
         this.configManager = configManager;
-        this.lsAndTsDocResolver = new LSAndTSDocResolver(docManager, workspaceUris, configManager);
+        this.lsAndTsDocResolver = new LSAndTSDocResolver(
+            docManager,
+            workspaceUris,
+            configManager,
+            /**transformOnTemplateError */ isEditor
+        );
         this.completionProvider = new CompletionsProviderImpl(this.lsAndTsDocResolver);
         this.codeActionsProvider = new CodeActionsProviderImpl(
             this.lsAndTsDocResolver,
@@ -381,7 +387,10 @@ export class TypeScriptPlugin
 
             // Since the options parameter only applies to svelte snapshots, and this is not
             // a svelte file, we can just set it to false without having any effect.
-            snapshotManager.updateByFileName(fileName, { strictMode: false });
+            snapshotManager.updateByFileName(fileName, {
+                strictMode: false,
+                transformOnTemplateError: false
+            });
         }
     }
 

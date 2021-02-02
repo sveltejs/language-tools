@@ -19,27 +19,34 @@ export interface LanguageServiceContainer {
 
 const services = new Map<string, LanguageServiceContainer>();
 
-export type CreateDocument = (fileName: string, content: string) => Document;
+export interface LanguageServiceDocumentContext {
+    transformOnTemplateError: boolean;
+    createDocument: (fileName: string, content: string) => Document;
+}
 
 export function getLanguageServiceForPath(
     path: string,
     workspaceUris: string[],
-    createDocument: CreateDocument
+    docContext: LanguageServiceDocumentContext
 ): ts.LanguageService {
-    return getService(path, workspaceUris, createDocument).getService();
+    return getService(path, workspaceUris, docContext).getService();
 }
 
 export function getLanguageServiceForDocument(
     document: Document,
     workspaceUris: string[],
-    createDocument: CreateDocument
+    docContext: LanguageServiceDocumentContext
 ): ts.LanguageService {
-    return getService(document.getFilePath() || '', workspaceUris, createDocument).updateDocument(
+    return getService(document.getFilePath() || '', workspaceUris, docContext).updateDocument(
         document
     );
 }
 
-export function getService(path: string, workspaceUris: string[], createDocument: CreateDocument) {
+export function getService(
+    path: string,
+    workspaceUris: string[],
+    docContext: LanguageServiceDocumentContext
+) {
     const tsconfigPath = findTsConfigPath(path, workspaceUris);
 
     let service: LanguageServiceContainer;
@@ -47,7 +54,7 @@ export function getService(path: string, workspaceUris: string[], createDocument
         service = services.get(tsconfigPath)!;
     } else {
         Logger.log('Initialize new ts service at ', tsconfigPath);
-        service = createLanguageService(tsconfigPath, createDocument);
+        service = createLanguageService(tsconfigPath, docContext);
         services.set(tsconfigPath, service);
     }
 
@@ -56,7 +63,7 @@ export function getService(path: string, workspaceUris: string[], createDocument
 
 export function createLanguageService(
     tsconfigPath: string,
-    createDocument: CreateDocument
+    docContext: LanguageServiceDocumentContext
 ): LanguageServiceContainer {
     const workspacePath = tsconfigPath ? dirname(tsconfigPath) : '';
 
@@ -105,6 +112,10 @@ export function createLanguageService(
         getScriptKind: (fileName: string) => getSnapshot(fileName).scriptKind
     };
     let languageService = ts.createLanguageService(host);
+    const transformationConfig = {
+        strictMode: !!compilerOptions.strict,
+        transformOnTemplateError: docContext.transformOnTemplateError
+    };
 
     return {
         tsconfigPath,
@@ -128,9 +139,7 @@ export function createLanguageService(
             return languageService;
         }
 
-        const newSnapshot = DocumentSnapshot.fromDocument(document, {
-            strictMode: !!compilerOptions.strict
-        });
+        const newSnapshot = DocumentSnapshot.fromDocument(document, transformationConfig);
         if (preSnapshot && preSnapshot.scriptKind !== newSnapshot.scriptKind) {
             // Restart language service as it doesn't handle script kind changes.
             languageService.dispose();
@@ -151,11 +160,12 @@ export function createLanguageService(
 
         if (isSvelteFilePath(fileName)) {
             const file = ts.sys.readFile(fileName) || '';
-            doc = DocumentSnapshot.fromDocument(createDocument(fileName, file), {
-                strictMode: !!compilerOptions.strict
-            });
+            doc = DocumentSnapshot.fromDocument(
+                docContext.createDocument(fileName, file),
+                transformationConfig
+            );
         } else {
-            doc = DocumentSnapshot.fromFilePath(fileName, { strictMode: !!compilerOptions.strict });
+            doc = DocumentSnapshot.fromFilePath(fileName, transformationConfig);
         }
 
         snapshotManager.set(fileName, doc);

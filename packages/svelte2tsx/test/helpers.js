@@ -56,11 +56,18 @@ function test_samples(dir, transform, tsx) {
         const skip = testName.startsWith('.');
         check_dir(path, {
             required: ['*.svelte'],
-            allowed: ['expected.js', `expected.${tsx}`]
+            allowed: ['expected.js', `expected.${tsx}`, 'test.js']
         });
         (skip ? it.skip : solo ? it.only : it)(testName, function () {
-            const fileName = fs.readdirSync(path).find((f) => f.endsWith('.svelte'));
-            const output = transform(readFileSync(`${path}/${fileName}`), testName, fileName);
+            const testJsPath = `${path}/test.js`;
+            if (fs.existsSync(testJsPath)) {
+                const test = require(testJsPath);
+                test();
+                return;
+            }
+
+            const { filename, content } = get_input_content(path);
+            const output = transform(content, testName, filename);
             if (!has_expected) {
                 after(() => {
                     fs.writeFileSync(expected_path, output.code);
@@ -78,4 +85,14 @@ function test_samples(dir, transform, tsx) {
     }
 }
 
-module.exports = { benchmark, test_samples };
+/**
+ *
+ * @param {string} dirPath
+ */
+function get_input_content(dirPath) {
+    const filename = fs.readdirSync(dirPath).find((f) => f.endsWith('.svelte'));
+    const content = readFileSync(`${dirPath}/${filename}`);
+    return { filename, content };
+}
+
+module.exports = { benchmark, test_samples, get_input_content, readFileSync };
