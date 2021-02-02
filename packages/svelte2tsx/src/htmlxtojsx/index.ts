@@ -138,8 +138,8 @@ export function convertHtmlxToJsx(
 /**
  * @internal For testing only
  */
-export function htmlx2jsx(htmlx: string) {
-    const ast = parseHtmlx(htmlx);
+export function htmlx2jsx(htmlx: string, options?: { emitOnTemplateError?: boolean }) {
+    const ast = parseHtmlx(htmlx, options);
     const str = new MagicString(htmlx);
 
     convertHtmlxToJsx(str, ast);

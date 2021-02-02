@@ -66,8 +66,11 @@ type TemplateProcessResult = {
  */
 const COMPONENT_SUFFIX = '__SvelteComponent_';
 
-function processSvelteTemplate(str: MagicString): TemplateProcessResult {
-    const htmlxAst = parseHtmlx(str.original);
+function processSvelteTemplate(
+    str: MagicString,
+    options?: { emitOnTemplateError?: boolean }
+): TemplateProcessResult {
+    const htmlxAst = parseHtmlx(str.original, options);
 
     let uses$$props = false;
     let uses$$restProps = false;
@@ -407,7 +410,12 @@ function createRenderFunction({
 
 export function svelte2tsx(
     svelte: string,
-    options?: { filename?: string; strictMode?: boolean; isTsFile?: boolean }
+    options?: {
+        filename?: string;
+        strictMode?: boolean;
+        isTsFile?: boolean;
+        emitOnTemplateError?: boolean;
+    }
 ) {
     const str = new MagicString(svelte);
     // process the htmlx as a svelte template
@@ -420,7 +428,7 @@ export function svelte2tsx(
         uses$$restProps,
         events,
         componentDocumentation
-    } = processSvelteTemplate(str);
+    } = processSvelteTemplate(str, options);
 
     /* Rearrange the script tags so that module is first, and instance second followed finally by the template
      * This is a bit convoluted due to some trouble I had with magic string. A simple str.move(start,end,0) for each script wasn't enough
