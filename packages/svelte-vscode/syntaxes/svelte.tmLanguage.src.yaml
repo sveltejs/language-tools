@@ -382,14 +382,15 @@ repository:
   # Matches Svelte element directives, e.g. `on:click|preventDefault={var}`
   attributes-directives:
     # If something is added to attributes-directives-keywords, it must be added to the begin-regex, too.
-    begin: (?<!<)(on|use|bind|transition|in|out|animate|let|class)(:)([_$[:alpha:]][_\-$[:alnum:]]*)((?:\|.*)?\|\w*)?
+    begin: (?<!<)(on|use|bind|transition|in|out|animate|let|class)(:)([_$[:alpha:]][_\-$[:alnum:]]*)((\|\w+)*)
     beginCaptures:
       1: { patterns: [ include: '#attributes-directives-keywords' ] }
       2: { name: punctuation.definition.keyword.svelte }
       3: { patterns: [ include: '#attributes-directives-types' ] }
       4: { patterns: [
-         { match: '[^\|]', name: support.function.svelte },
-         { match: '\|', name: punctuation.separator.svelte }]}
+           { match: '\w+', name: support.function.svelte },
+           { match: '\|', name: punctuation.separator.svelte }
+         ]}
     end: (?=\s*+[^=\s])
     name: meta.directive.$1.svelte
     patterns:
