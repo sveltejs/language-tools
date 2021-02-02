@@ -361,11 +361,10 @@ async function transpile(
     });
 
     const svelte = importSvelte(document.getFilePath() || '');
-    const transpiled = (
-        await svelte.preprocess(document.getText(), wrappedPreprocessors, {
-            filename: document.getFilePath() || ''
-        })
-    ).toString();
+    const result = await svelte.preprocess(document.getText(), wrappedPreprocessors, {
+        filename: document.getFilePath() || ''
+    });
+    const transpiled = result.code || result.toString?.() || '';
 
     return { transpiled, processedScripts, processedStyles };
 }
