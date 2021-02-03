@@ -116,4 +116,36 @@ describe('HTML Plugin', () => {
             undefined
         );
     });
+
+    it('does not provide rename for element being uppercase', async () => {
+        const { plugin, document } = setup('<Div></Div>');
+
+        assert.deepStrictEqual(plugin.prepareRename(document, Position.create(0, 2)), null);
+    });
+
+    it('provides rename for element', () => {
+        const { plugin, document } = setup('<div on:click={() => {}}></div>');
+        const newName = 'p';
+
+        assert.deepStrictEqual(plugin.rename(document, Position.create(0, 2), newName), {
+            changes: {
+                [document.uri]: [
+                    {
+                        newText: 'p',
+                        range: {
+                            start: { line: 0, character: 1 },
+                            end: { line: 0, character: 4 }
+                        }
+                    },
+                    {
+                        newText: 'p',
+                        range: {
+                            start: { line: 0, character: 27 },
+                            end: { line: 0, character: 30 }
+                        }
+                    }
+                ]
+            }
+        });
+    });
 });
