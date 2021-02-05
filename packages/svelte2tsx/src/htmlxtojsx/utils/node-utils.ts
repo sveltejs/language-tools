@@ -16,6 +16,8 @@ export function getThisType(node: Node): string | undefined {
             return `__sveltets_ctorOf(__sveltets_mapElementTag('${node.name}'))`;
         case 'Body':
             return 'HTMLBodyElement';
+        case 'Slot': // Web Components only
+            return 'HTMLSlotElement';
     }
 }
 

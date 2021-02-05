@@ -31,7 +31,12 @@ export function handleBinding(htmlx: string, str: MagicString, attr: Node, el: N
         return;
     }
 
-    const supportsBindThis = ['InlineComponent', 'Element', 'Body'];
+    const supportsBindThis = [
+        'InlineComponent',
+        'Element',
+        'Body',
+        'Slot' // only valid for Web Components compile target
+    ];
 
     //bind this
     if (attr.name === 'this' && supportsBindThis.includes(el.type)) {
