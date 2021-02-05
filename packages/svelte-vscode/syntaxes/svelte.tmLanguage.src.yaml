@@ -86,6 +86,30 @@ injections:
 
   # ---- LANGUAGE EXTENSIONS
 
+  # - TS / JS / CS -
+
+  # Matches `$:` reactive statement symbols, but only in script tags.
+  # Exclusion of certain meta scopes prevents key literals from conflicting with this scope.
+  'L:meta.script.svelte (source.ts, source.js, source.coffee) - meta.var - meta.objectliteral':
+    patterns:
+    - match: ^\s*(\$)(:)
+      captures:
+        1: { name: keyword.control.svelte }
+        2: { name: punctuation.definition.keyword.svelte }
+
+  'L:(source.ts, source.js, source.coffee)':
+    patterns:
+    # Matches the store accessor symbol.
+    # i.e. the `$` in `$myStore`.
+    - match: (?<![_$[:alnum:]])\$(?=[_[:alpha:]][_$[:alnum:]]*)
+      name: punctuation.definition.variable.svelte
+    # Matches the built-in constants/keywords that Svelte supports.
+    # e.g. `$$restProps`.
+    - match: (?<![_$[:alnum:]])(\$\$)(props|restProps|slots)*
+      captures:
+        1: { name: punctuation.definition.variable.svelte }
+        2: { name: support.constant.svelte }
+
   # - PUG -
   # TODO: Pug language injections
 
@@ -115,7 +139,7 @@ repository:
     - include: '#tags'
     - include: '#interpolation'
     # Content text.
-    # This matches only inbetween all the nodes - nothing inside of them. 
+    # This matches only inbetween all the nodes - nothing inside of them.
     - begin: (?<=>|})
       end: (?=<|{)
       name: text.svelte
@@ -134,7 +158,7 @@ repository:
     # Component documentation.
     - begin: (@)(component)
       beginCaptures:
-        1: { name: punctuation.definition.keyword }
+        1: { name: punctuation.definition.keyword.svelte }
         2: { name: storage.type.class.component.svelte keyword.declaration.class.component.svelte }
       end: (?=-->)
       contentName: comment.block.documentation.svelte
@@ -142,7 +166,7 @@ repository:
       # The reason we do it like this is so that the Markdown grammar cannot break out of the `-->` bit.
       # Embedded languages, for whatever reason, can only break out of begin-end blocks. (...most of the time)
       # If you shove them in a match pattern, it cannot break out of it's matched bounds.
-      # And since the match consumed the line leading to `-->`, 
+      # And since the match consumed the line leading to `-->`,
       # the 'block' markdown won't break out of the comment block.
       - match: .*?(?=-->)
         captures: { 0: { patterns: [ include: text.html.markdown ] } }
@@ -269,7 +293,7 @@ repository:
   # Special void tags like `{:else}` and `{@html}`.
   special-tags-void:
     begin: ({)\s*((?:[@:])(else\s+if|[a-z]*))
-    beginCaptures: 
+    beginCaptures:
       1: { name: punctuation.definition.block.begin.svelte }
       2: { patterns: [ include: '#special-tags-keywords' ] }
     end: \}
@@ -288,7 +312,7 @@ repository:
     begin: ({)\s*(#([a-z]*))
     end: (})
     name: meta.special.$3.svelte meta.special.start.svelte
-    beginCaptures: 
+    beginCaptures:
       1: { name: punctuation.definition.block.begin.svelte }
       2: { patterns: [ include: '#special-tags-keywords' ] }
     endCaptures: { 0: { name: punctuation.definition.block.end.svelte } }
@@ -340,8 +364,8 @@ repository:
     patterns:
     # No quotes - just an interpolation expression.
     - include: '#interpolation'
-    # Pure digits / numbers.
-    - match: ([0-9._]|/(?!>))+
+    # Units, meaning digit characters and an optional unit string. e.g. `15px`
+    - match: ([0-9._]+[\w]{,4})(?=\s|/?>)
       name: constant.numeric.decimal.svelte
       patterns: [ include: '#interpolation' ]
     # Unquoted strings.
@@ -361,9 +385,9 @@ repository:
     patterns:
     # If other keywords are patched in in the future, they can be added here but also need to be added
     # where attributes-directives-keywords is included.
-    - { match: on|use|bind,               name: keyword.control.svelte           }
-    - { match: transition|in|out|animate, name: keyword.other.animation.svelte   }
-    - { match: let,                       name: storage.type.svelte              }
+    - { match: on|use|bind,               name: keyword.control.svelte             }
+    - { match: transition|in|out|animate, name: keyword.other.animation.svelte     }
+    - { match: let,                       name: storage.type.svelte                }
     - { match: class,                     name: entity.other.attribute-name.svelte }
 
   # For Svelte element directives. Scopes the 'click' part in `on:click`.
@@ -371,23 +395,35 @@ repository:
   attributes-directives-types:
     patterns:
     # If other keywords are patched in in the future, they can easily be added here.
+    - { match: '(?<=(on):).*$',                            name: entity.name.type.svelte   }
+    - { match: '(?<=(bind):).*$',                          name: variable.parameter.svelte }
+    - { match: '(?<=(use|transition|in|out|animate):).*$', name: variable.function.svelte  }
+    - { match: '(?<=(let|class):).*$',                     name: variable.parameter.svelte }
     # Special Cases
     # Makes 'bind:this' display like `this` would in JS.
     - { match: '(?<=(bind):)this$', name: variable.language.svelte }
-    # Generic
-    - { match: '(?<=(on|bind):).*$',                       name: entity.name.type.svelte   }
-    - { match: '(?<=(use|transition|in|out|animate):).*$', name: variable.function.svelte  }
-    - { match: '(?<=(let|class):).*$',                     name: variable.parameter.svelte }
+
+  # For directives that may be better suited using different scopes if assigned to something.
+  # e.g. `class:var={var}` is different to `class:var`.
+  # In the latter, `var` is a variable identifier and not a CSS class name.
+  attributes-directives-types-assigned:
+    patterns:
+    # If other keywords are patched in in the future, they can easily be added here.
+    - { match: '(?<=(bind):).*$',  name: entity.name.type.svelte                  }
+    - { match: '(?<=(class):).*$', name: entity.other.attribute-name.class.svelte }
+    # Defaults to the non-assignment version for everything else.
+    - include: '#attributes-directives-types'
 
   # Matches Svelte element directives, e.g. `on:click|preventDefault={var}`
   attributes-directives:
     # If something is added to attributes-directives-keywords, it must be added to the begin-regex, too.
-    begin: (?<!<)(on|use|bind|transition|in|out|animate|let|class)(:)([_$[:alpha:]][_\-$[:alnum:]]*)((\|\w+)*)
+    begin: (?<!<)(on|use|bind|transition|in|out|animate|let|class)(:)(?:([_$[:alpha:]][_\-$[:alnum:]]*(?=\s*=))|([_$[:alpha:]][_\-$[:alnum:]]*))((\|\w+)*)
     beginCaptures:
       1: { patterns: [ include: '#attributes-directives-keywords' ] }
       2: { name: punctuation.definition.keyword.svelte }
-      3: { patterns: [ include: '#attributes-directives-types' ] }
-      4: { patterns: [
+      3: { patterns: [ include: '#attributes-directives-types-assigned' ] }
+      4: { patterns: [ include: '#attributes-directives-types' ] }
+      5: { patterns: [
            { match: '\w+', name: support.function.svelte },
            { match: '\|', name: punctuation.separator.svelte }
          ]}
