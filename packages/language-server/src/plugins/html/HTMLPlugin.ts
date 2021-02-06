@@ -222,6 +222,7 @@ export class HTMLPlugin implements HoverProvider, CompletionsProvider, RenamePro
 
         return this.lang.doRename(document, position, newName, html);
     }
+
     prepareRename(document: Document, position: Position): Range | null {
         if (!this.featureEnabled('renameTags')) {
             return null;
