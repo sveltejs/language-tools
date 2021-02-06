@@ -123,11 +123,20 @@ describe('HTML Plugin', () => {
         assert.deepStrictEqual(plugin.prepareRename(document, Position.create(0, 2)), null);
     });
 
+    it('does not provide rename for valid element but incorrect position', () => {
+        const { plugin, document } = setup('<div on:click={ab => ab}>asd</div>');
+        const newName = 'p';
+
+        assert.deepStrictEqual(plugin.rename(document, Position.create(0, 16), newName), null);
+        assert.deepStrictEqual(plugin.rename(document, Position.create(0, 5), newName), null);
+        assert.deepStrictEqual(plugin.rename(document, Position.create(0, 26), newName), null);
+    });
+
     it('provides rename for element', () => {
         const { plugin, document } = setup('<div on:click={() => {}}></div>');
         const newName = 'p';
 
-        assert.deepStrictEqual(plugin.rename(document, Position.create(0, 2), newName), {
+        const renameInfo = {
             changes: {
                 [document.uri]: [
                     {
@@ -146,6 +155,12 @@ describe('HTML Plugin', () => {
                     }
                 ]
             }
-        });
+        };
+
+        assert.deepStrictEqual(plugin.rename(document, Position.create(0, 2), newName), renameInfo);
+        assert.deepStrictEqual(
+            plugin.rename(document, Position.create(0, 28), newName),
+            renameInfo
+        );
     });
 });
