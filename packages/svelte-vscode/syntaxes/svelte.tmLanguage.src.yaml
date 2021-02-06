@@ -399,15 +399,15 @@ repository:
     - { match: '(?<=(bind):).*$',                          name: variable.parameter.svelte }
     - { match: '(?<=(use|transition|in|out|animate):).*$', name: variable.function.svelte  }
     - { match: '(?<=(let|class):).*$',                     name: variable.parameter.svelte }
-    # Special Cases
-    # Makes 'bind:this' display like `this` would in JS.
-    - { match: '(?<=(bind):)this$', name: variable.language.svelte }
 
   # For directives that may be better suited using different scopes if assigned to something.
   # e.g. `class:var={var}` is different to `class:var`.
   # In the latter, `var` is a variable identifier and not a CSS class name.
   attributes-directives-types-assigned:
     patterns:
+    # Special Cases
+    # Makes 'bind:this' display like `this` would in JS.
+    - { match: '(?<=(bind):)this$', name: variable.language.svelte }
     # If other keywords are patched in in the future, they can easily be added here.
     - { match: '(?<=(bind):).*$',  name: entity.name.type.svelte                  }
     - { match: '(?<=(class):).*$', name: entity.other.attribute-name.class.svelte }
