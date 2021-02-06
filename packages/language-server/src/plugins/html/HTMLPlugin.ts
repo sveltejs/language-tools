@@ -43,16 +43,6 @@ export class HTMLPlugin implements HoverProvider, CompletionsProvider, RenamePro
         });
     }
 
-    /**
-     *
-     * The language service is case insensitive, and would provide
-     * hover info for Svelte components like `Option` which have
-     * the same name like a html tag.
-     */
-    private possiblyComponent(node: Node) {
-        return !!node.tag?.[0].match(/[A-Z]/);
-    }
-
     doHover(document: Document, position: Position): Hover | null {
         if (!this.featureEnabled('hover')) {
             return null;
@@ -242,13 +232,44 @@ export class HTMLPlugin implements HoverProvider, CompletionsProvider, RenamePro
             return null;
         }
 
-        const node = html.findNodeAt(document.offsetAt(position));
-        if (!node || this.possiblyComponent(node) || !node.tag) {
+        const offset = document.offsetAt(position);
+        const node = html.findNodeAt(offset);
+        if (
+            !node ||
+            this.possiblyComponent(node) ||
+            !node.tag ||
+            !this.isRenameAtTag(node, offset)
+        ) {
             return null;
         }
         const tagNameStart = node.start + '<'.length;
 
         return toRange(document.getText(), tagNameStart, tagNameStart + node.tag.length);
+    }
+
+    /**
+     *
+     * The language service is case insensitive, and would provide
+     * hover info for Svelte components like `Option` which have
+     * the same name like a html tag.
+     */
+    private possiblyComponent(node: Node): boolean {
+        return !!node.tag?.[0].match(/[A-Z]/);
+    }
+
+    /**
+     * Returns true if rename happens at the tag name, not anywhere inbetween.
+     */
+    private isRenameAtTag(node: Node, offset: number): boolean {
+        if (!node.tag) {
+            return false;
+        }
+
+        const startTagNameEnd = node.start + `<${node.tag}`.length;
+        const endTagNameStart = node.end - `${node.tag}>`.length;
+        const isAtStartTag = offset > node.start && offset <= startTagNameEnd;
+        const isAtEndTag = offset >= endTagNameStart && offset < node.end;
+        return isAtStartTag || isAtEndTag;
     }
 
     private featureEnabled(feature: keyof LSHTMLConfig) {
