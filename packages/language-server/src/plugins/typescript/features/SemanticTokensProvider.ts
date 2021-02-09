@@ -61,8 +61,9 @@ export class SemanticTokensProviderImpl implements SemanticTokensProvider {
 
             const [line, character, length] = originalPosition;
 
-            // remove identifers whose start and end mapped to the same location
-            // like the svelte2tsx inserted render function
+            // remove identifiers whose start and end mapped to the same location,
+            // like the svelte2tsx inserted render function,
+            // or reversed like Component.$on
             if (length <= 0) {
                 continue;
             }
