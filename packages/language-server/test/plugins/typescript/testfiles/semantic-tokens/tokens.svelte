@@ -1,4 +1,5 @@
 <script lang="ts">
+    import Imported from './imported.svelte';
     interface TextContent {
         text: string,
     }
@@ -9,7 +10,7 @@
 </script>
 
 {#await textPromise then text}
-    <textarea on:blur={blurHandler} value={text.text} />
+    <Imported on:blur={blurHandler} value={text.text} />
 {/await}
 {#each ['a'] as a}
     {a}

@@ -36,7 +36,7 @@ export class SemanticTokensProviderImpl implements SemanticTokensProvider {
             ts.SemanticClassificationFormat.TwentyTwenty
         );
 
-        const builder = new SemanticTokensBuilder();
+        const data: Array<[number, number, number, number, number]> = [];
         let index = 0;
 
         while (index < spans.length) {
@@ -63,15 +63,24 @@ export class SemanticTokensProviderImpl implements SemanticTokensProvider {
 
             // remove identifers whose start and end mapped to the same location
             // like the svelte2tsx inserted render function
-            if (!length) {
+            if (length <= 0) {
                 continue;
             }
 
             const modifier = this.getTokenModifierFromClassification(encodedClassification);
 
-            builder.push(line, character, length, classificationType, modifier);
+            data.push([line, character, length, classificationType, modifier]);
         }
 
+        const sorted = data.sort((a, b) => {
+            const [lineA, charA] = a;
+            const [lineB, charB] = b;
+
+            return lineA - lineB || charA - charB;
+        });
+
+        const builder = new SemanticTokensBuilder();
+        sorted.forEach((tokenData) => builder.push(...tokenData));
         return builder.build();
     }
 
