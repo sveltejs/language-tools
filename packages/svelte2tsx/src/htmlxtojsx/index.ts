@@ -19,6 +19,7 @@ import { handleElse, handleIf } from './nodes/if-else';
 import { handleRawHtml } from './nodes/raw-html';
 import { handleSvelteTag } from './nodes/svelte-tag';
 import { handleTransitionDirective } from './nodes/transition-directive';
+import { handleText } from './nodes/text';
 
 type Walker = (node: Node, parent: Node, prop: string, index: number) => void;
 
@@ -111,6 +112,9 @@ export function convertHtmlxToJsx(
                         break;
                     case 'Body':
                         handleSvelteTag(htmlx, str, node);
+                        break;
+                    case 'Text':
+                        handleText(str, node);
                         break;
                 }
                 if (onWalk) {
