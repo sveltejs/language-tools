@@ -124,7 +124,6 @@ const possibleOperatorOrPropertyAccess = new Set([
     '~',
     '=',
     '<',
-    '>',
     '!',
     '&',
     '^',
