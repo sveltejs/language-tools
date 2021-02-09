@@ -34,7 +34,10 @@
             "request": "attach",
             "name": "Attach debugger to language server",
             "port": 6009,
-            "outFiles": ["${workspaceRoot}/packages/language-server/dist/**/*.js"],
+            "outFiles": [
+                "${workspaceRoot}/packages/language-server/dist/**/*.js",
+                "${workspaceRoot}/packages/svelte2tsx/index.js"
+            ],
             "skipFiles": ["<node_internals>/**"]
         }
     ]
