@@ -88,15 +88,6 @@ injections:
 
   # - TS / JS / CS -
 
-  # Matches `$:` reactive statement symbols, but only in script tags.
-  # Exclusion of certain meta scopes prevents key literals from conflicting with this scope.
-  'L:meta.script.svelte (source.ts, source.js, source.coffee) - meta.var - meta.objectliteral':
-    patterns:
-    - match: ^\s*(\$)(:)
-      captures:
-        1: { name: keyword.control.svelte }
-        2: { name: punctuation.definition.keyword.svelte }
-
   'L:(source.ts, source.js, source.coffee)':
     patterns:
     # Matches the store accessor symbol.
@@ -105,10 +96,8 @@ injections:
       name: punctuation.definition.variable.svelte
     # Matches the built-in constants/keywords that Svelte supports.
     # e.g. `$$restProps`.
-    - match: (?<![_$[:alnum:]])(\$\$)(props|restProps|slots)*
-      captures:
-        1: { name: punctuation.definition.variable.svelte }
-        2: { name: support.constant.svelte }
+    - match: (?<![_$[:alnum:]])(\$\$)(?=props|restProps|slots)
+      name: punctuation.definition.variable.svelte
 
   # - PUG -
   # TODO: Pug language injections
