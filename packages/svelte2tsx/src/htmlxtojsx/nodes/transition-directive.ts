@@ -3,9 +3,14 @@ import { Node } from 'estree-walker';
 import { isQuote } from '../utils/node-utils';
 
 /**
- * transition:xxx(yyy)   --->   {...__sveltets_ensureTransition(xxx(__sveltets_ElementNode,(yyy)))}
+ * transition:xxx(yyy)   --->   {...__sveltets_ensureTransition(xxx(__sveltets_mapElementTag('..'),(yyy)))}
  */
-export function handleTransitionDirective(htmlx: string, str: MagicString, attr: Node): void {
+export function handleTransitionDirective(
+    htmlx: string,
+    str: MagicString,
+    attr: Node,
+    parent: Node
+): void {
     str.overwrite(
         attr.start,
         htmlx.indexOf(':', attr.start) + 1,
@@ -17,11 +22,13 @@ export function handleTransitionDirective(htmlx: string, str: MagicString, attr:
         str.remove(local, attr.expression ? attr.expression.start : attr.end);
     }
 
+    const nodeType = `__sveltets_mapElementTag('${parent.name}')`;
+
     if (!attr.expression) {
         if (transitionsThatNeedParam.has(attr.name)) {
-            str.appendLeft(attr.end, '(__sveltets_ElementNode,{}))}');
+            str.appendLeft(attr.end, `(${nodeType},{}))}`);
         } else {
-            str.appendLeft(attr.end, '(__sveltets_ElementNode))}');
+            str.appendLeft(attr.end, `(${nodeType}))}`);
         }
         return;
     }
@@ -29,7 +36,7 @@ export function handleTransitionDirective(htmlx: string, str: MagicString, attr:
     str.overwrite(
         htmlx.indexOf(':', attr.start) + 1 + `${attr.name}`.length,
         attr.expression.start,
-        '(__sveltets_ElementNode,('
+        `(${nodeType},(`
     );
     str.appendLeft(attr.expression.end, ')))');
     if (isQuote(htmlx[attr.end - 1])) {

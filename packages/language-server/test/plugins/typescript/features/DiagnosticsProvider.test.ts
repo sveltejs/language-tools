@@ -265,4 +265,50 @@ describe('DiagnosticsProvider', () => {
 
         assert.deepStrictEqual(diagnostics, []);
     });
+
+    it('type-checks actions/transitions/animations', async () => {
+        const { plugin, document } = setup('diagnostics-directive-types.svelte');
+        const diagnostics = await plugin.getDiagnostics(document);
+
+        assert.deepStrictEqual(diagnostics, [
+            {
+                code: 2345,
+                message:
+                    "Argument of type 'HTMLDivElement' is not assignable to parameter of type 'SVGElement & { getTotalLength(): number; }'.\n  " +
+                    "Type 'HTMLDivElement' is missing the following properties from type 'SVGElement': ownerSVGElement, viewportElement, correspondingElement, correspondingUseElement",
+                range: {
+                    end: {
+                        character: 19,
+                        line: 9
+                    },
+                    start: {
+                        character: 19,
+                        line: 9
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            },
+            {
+                code: 2345,
+                message:
+                    "Argument of type 'HTMLParagraphElement' is not assignable to parameter of type 'HTMLInputElement'.\n  " +
+                    "Type 'HTMLParagraphElement' is missing the following properties from type 'HTMLInputElement': accept, alt, autocomplete, checked, and 48 more.",
+                range: {
+                    end: {
+                        character: 12,
+                        line: 14
+                    },
+                    start: {
+                        character: 12,
+                        line: 14
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            }
+        ]);
+    });
 });

@@ -98,7 +98,6 @@ type SvelteStore<T> = { subscribe: (run: (value: T) => any, invalidate?: any) =>
 
 
 declare var process: NodeJS.Process & { browser: boolean }
-declare var __sveltets_ElementNode: Element
 declare var __sveltets_AnimationMove: { from: DOMRect, to: DOMRect }
 
 declare function __sveltets_ensureAnimation(animationCall: SvelteAnimationReturnType): {};
