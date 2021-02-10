@@ -90,10 +90,10 @@ export function convertHtmlxToJsx(
                         handleActionDirective(htmlx, str, node, parent);
                         break;
                     case 'Transition':
-                        handleTransitionDirective(htmlx, str, node);
+                        handleTransitionDirective(htmlx, str, node, parent);
                         break;
                     case 'Animation':
-                        handleAnimateDirective(htmlx, str, node);
+                        handleAnimateDirective(htmlx, str, node, parent);
                         break;
                     case 'Attribute':
                         handleAttribute(htmlx, str, node, parent);
