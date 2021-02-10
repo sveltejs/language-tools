@@ -703,7 +703,11 @@ declare namespace svelte.JSX {
       scrollY?: Window['scrollY'];
       readonly online?: Window['navigator']['onLine'];
 
-
+      ondevicelight?: EventHandler<Event, Window>;
+      onbeforeinstallprompt?: EventHandler<Event, Window>;
+      ondeviceproximity?: EventHandler<Event, Window>;
+      onpaint?: EventHandler<Event, Window>;
+      onuserproximity?: EventHandler<Event, Window>;
       onbeforeprint?: EventHandler<Event, Window>;
       onafterprint?: EventHandler<Event, Window>;
       onlanguagechange?: EventHandler<Event, Window>;
