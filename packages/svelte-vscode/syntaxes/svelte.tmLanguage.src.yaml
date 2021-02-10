@@ -82,7 +82,7 @@ injections:
 
   # Default (just introduces a new scope)
   'L:meta.template.svelte - meta.lang - (meta source)':
-    patterns: [{begin: '(?<=>)\s', end: '(?=</)', patterns: [{ include: '#scope' }]}]
+    patterns: [{begin: '(?<=>)\s', end: '(?=</template)', patterns: [{ include: '#scope' }]}]
 
   # ---- LANGUAGE EXTENSIONS
 
