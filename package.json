@@ -8,7 +8,7 @@
         "packages/*"
     ],
     "scripts": {
-        "bootstrap": "yarn workspace svelte2tsx build",
+        "bootstrap": "yarn workspace svelte2tsx build && yarn workspace svelte-vscode build:grammar",
         "build": "tsc -b",
         "test": "CI=true yarn workspaces run test",
         "watch": "tsc -b -watch",
