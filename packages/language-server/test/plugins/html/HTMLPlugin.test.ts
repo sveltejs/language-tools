@@ -116,4 +116,65 @@ describe('HTML Plugin', () => {
             undefined
         );
     });
+
+    it('does not provide rename for element being uppercase', async () => {
+        const { plugin, document } = setup('<Div></Div>');
+
+        assert.deepStrictEqual(plugin.prepareRename(document, Position.create(0, 2)), null);
+        assert.deepStrictEqual(plugin.rename(document, Position.create(0, 2), 'p'), null);
+    });
+
+    it('does not provide rename for valid element but incorrect position', () => {
+        const { plugin, document } = setup('<div on:click={ab => ab}>asd</div>');
+        const newName = 'p';
+
+        assert.deepStrictEqual(plugin.prepareRename(document, Position.create(0, 16)), null);
+        assert.deepStrictEqual(plugin.prepareRename(document, Position.create(0, 5)), null);
+        assert.deepStrictEqual(plugin.prepareRename(document, Position.create(0, 26)), null);
+
+        assert.deepStrictEqual(plugin.rename(document, Position.create(0, 16), newName), null);
+        assert.deepStrictEqual(plugin.rename(document, Position.create(0, 5), newName), null);
+        assert.deepStrictEqual(plugin.rename(document, Position.create(0, 26), newName), null);
+    });
+
+    it('provides rename for element', () => {
+        const { plugin, document } = setup('<div on:click={() => {}}></div>');
+        const newName = 'p';
+
+        const pepareRenameInfo = Range.create(Position.create(0, 1), Position.create(0, 4));
+        assert.deepStrictEqual(
+            plugin.prepareRename(document, Position.create(0, 2)),
+            pepareRenameInfo
+        );
+        assert.deepStrictEqual(
+            plugin.prepareRename(document, Position.create(0, 28)),
+            pepareRenameInfo
+        );
+
+        const renameInfo = {
+            changes: {
+                [document.uri]: [
+                    {
+                        newText: 'p',
+                        range: {
+                            start: { line: 0, character: 1 },
+                            end: { line: 0, character: 4 }
+                        }
+                    },
+                    {
+                        newText: 'p',
+                        range: {
+                            start: { line: 0, character: 27 },
+                            end: { line: 0, character: 30 }
+                        }
+                    }
+                ]
+            }
+        };
+        assert.deepStrictEqual(plugin.rename(document, Position.create(0, 2), newName), renameInfo);
+        assert.deepStrictEqual(
+            plugin.rename(document, Position.create(0, 28), newName),
+            renameInfo
+        );
+    });
 });

@@ -232,6 +232,7 @@ declare namespace svelte.JSX {
       allowtransparency?: boolean;
       allowpaymentrequest?: boolean;
       alt?: string;
+      as?: string;
       async?: boolean;
       autocomplete?: string;
       autofocus?: boolean;
@@ -560,6 +561,7 @@ declare namespace svelte.JSX {
       'overline-thickness'?: number | string;
       'paint-order'?: number | string;
       'panose-1'?: number | string;
+      path?: string;
       pathLength?: number | string;
       patternContentUnits?: string;
       patternTransform?: number | string;
@@ -701,10 +703,15 @@ declare namespace svelte.JSX {
       scrollY?: Window['scrollY'];
       readonly online?: Window['navigator']['onLine'];
 
-
+      ondevicelight?: EventHandler<Event, Window>;
+      onbeforeinstallprompt?: EventHandler<Event, Window>;
+      ondeviceproximity?: EventHandler<Event, Window>;
+      onpaint?: EventHandler<Event, Window>;
+      onuserproximity?: EventHandler<Event, Window>;
       onbeforeprint?: EventHandler<Event, Window>;
       onafterprint?: EventHandler<Event, Window>;
       onlanguagechange?: EventHandler<Event, Window>;
+      onorientationchange?: EventHandler<Event, Window>;
       onmessage?: EventHandler<MessageEvent, Window>;
       onmessageerror?: EventHandler<MessageEvent, Window>;
       onoffline?: EventHandler<Event, Window>;
@@ -726,6 +733,7 @@ declare namespace svelte.JSX {
     interface SapperAnchorProps {
         // transformed from sapper:noscroll so it should be camel case
         sapperNoscroll?: true;
+        sapperPrefetch?: true;
     }
 
     interface SvelteMediaTimeRange {

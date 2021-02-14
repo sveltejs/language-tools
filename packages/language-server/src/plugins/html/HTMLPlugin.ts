@@ -2,7 +2,8 @@ import { getEmmetCompletionParticipants } from 'vscode-emmet-helper';
 import {
     getLanguageService,
     HTMLDocument,
-    CompletionItem as HtmlCompletionItem
+    CompletionItem as HtmlCompletionItem,
+    Node
 } from 'vscode-html-languageservice';
 import {
     CompletionList,
@@ -11,7 +12,9 @@ import {
     SymbolInformation,
     CompletionItem,
     CompletionItemKind,
-    TextEdit
+    TextEdit,
+    Range,
+    WorkspaceEdit
 } from 'vscode-languageserver';
 import {
     DocumentManager,
@@ -21,10 +24,10 @@ import {
 } from '../../lib/documents';
 import { LSConfigManager, LSHTMLConfig } from '../../ls-config';
 import { svelteHtmlDataProvider } from './dataProvider';
-import { HoverProvider, CompletionsProvider } from '../interfaces';
-import { isInsideMoustacheTag } from '../../lib/documents/utils';
+import { HoverProvider, CompletionsProvider, RenameProvider } from '../interfaces';
+import { isInsideMoustacheTag, toRange } from '../../lib/documents/utils';
 
-export class HTMLPlugin implements HoverProvider, CompletionsProvider {
+export class HTMLPlugin implements HoverProvider, CompletionsProvider, RenameProvider {
     private configManager: LSConfigManager;
     private lang = getLanguageService({
         customDataProviders: [svelteHtmlDataProvider],
@@ -51,10 +54,7 @@ export class HTMLPlugin implements HoverProvider, CompletionsProvider {
         }
 
         const node = html.findNodeAt(document.offsetAt(position));
-        if (!node || node.tag?.[0].match(/[A-Z]/)) {
-            // The language service is case insensitive, and would provide
-            // hover info for Svelte components like `Option` which have
-            // the same name like a html tag.
+        if (!node || this.possiblyComponent(node)) {
             return null;
         }
 
@@ -204,6 +204,73 @@ export class HTMLPlugin implements HoverProvider, CompletionsProvider {
         }
 
         return this.lang.findDocumentSymbols(document, html);
+    }
+
+    rename(document: Document, position: Position, newName: string): WorkspaceEdit | null {
+        if (!this.featureEnabled('renameTags')) {
+            return null;
+        }
+        const html = this.documents.get(document);
+        if (!html) {
+            return null;
+        }
+
+        const node = html.findNodeAt(document.offsetAt(position));
+        if (!node || this.possiblyComponent(node)) {
+            return null;
+        }
+
+        return this.lang.doRename(document, position, newName, html);
+    }
+
+    prepareRename(document: Document, position: Position): Range | null {
+        if (!this.featureEnabled('renameTags')) {
+            return null;
+        }
+
+        const html = this.documents.get(document);
+        if (!html) {
+            return null;
+        }
+
+        const offset = document.offsetAt(position);
+        const node = html.findNodeAt(offset);
+        if (
+            !node ||
+            this.possiblyComponent(node) ||
+            !node.tag ||
+            !this.isRenameAtTag(node, offset)
+        ) {
+            return null;
+        }
+        const tagNameStart = node.start + '<'.length;
+
+        return toRange(document.getText(), tagNameStart, tagNameStart + node.tag.length);
+    }
+
+    /**
+     *
+     * The language service is case insensitive, and would provide
+     * hover info for Svelte components like `Option` which have
+     * the same name like a html tag.
+     */
+    private possiblyComponent(node: Node): boolean {
+        return !!node.tag?.[0].match(/[A-Z]/);
+    }
+
+    /**
+     * Returns true if rename happens at the tag name, not anywhere inbetween.
+     */
+    private isRenameAtTag(node: Node, offset: number): boolean {
+        if (!node.tag) {
+            return false;
+        }
+
+        const startTagNameEnd = node.start + `<${node.tag}`.length;
+        const endTagNameStart = node.end - `${node.tag}>`.length;
+        const isAtStartTag = offset > node.start && offset <= startTagNameEnd;
+        const isAtEndTag = offset >= endTagNameStart && offset < node.end;
+        return isAtStartTag || isAtEndTag;
     }
 
     private featureEnabled(feature: keyof LSHTMLConfig) {

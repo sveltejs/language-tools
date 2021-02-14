@@ -8,14 +8,14 @@
         "packages/*"
     ],
     "scripts": {
-        "bootstrap": "yarn workspace svelte2tsx build",
+        "bootstrap": "yarn workspace svelte2tsx build && yarn workspace svelte-vscode build:grammar",
         "build": "tsc -b",
         "test": "CI=true yarn workspaces run test",
         "watch": "tsc -b -watch",
-        "lint": "eslint \"packages/**/*.{ts,js}\""
+        "format": "prettier --write .",
+        "lint": "prettier --check . && eslint \"packages/**/*.{ts,js}\""
     },
     "dependencies": {
-        "axios": "0.19.2",
         "typescript": "^4.1.3"
     },
     "devDependencies": {
@@ -24,6 +24,7 @@
         "@typescript-eslint/parser": "^4.3.0",
         "eslint": "^7.7.0",
         "eslint-plugin-import": "^2.22.1",
-        "eslint-plugin-svelte3": "^2.7.3"
+        "eslint-plugin-svelte3": "^2.7.3",
+        "prettier": "2.2.1"
     }
 }

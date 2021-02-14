@@ -36,9 +36,7 @@ export class SelectionRangeProviderImpl implements SelectionRangeProvider {
         };
     }
 
-    private filterOutUnmappedRange(
-        selectionRange: SelectionRange
-    ): SelectionRange | null {
+    private filterOutUnmappedRange(selectionRange: SelectionRange): SelectionRange | null {
         const flattened = this.flattenAndReverseSelectionRange(selectionRange);
         const filtered = flattened.filter((range) => range.start.line > 0 && range.end.line > 0);
         if (!filtered.length) {
@@ -53,7 +51,6 @@ export class SelectionRangeProviderImpl implements SelectionRangeProvider {
 
         return result ?? null;
     }
-
 
     /**
      *   flatten the selection range and its parent to an array in reverse order

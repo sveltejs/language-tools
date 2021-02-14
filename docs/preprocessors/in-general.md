@@ -4,14 +4,14 @@
 
 If a svelte file contains some language other than `html`, `css` or `javascript`, `svelte-vscode` needs to know how to [preprocess](https://svelte.dev/docs#svelte_preprocess) it. This can be achieved by creating a `svelte.config.js` file at the root of your project which exports a svelte options object (similar to `svelte-loader` and `rollup-plugin-svelte`). It's recommended to use the official [svelte-preprocess](https://github.com/sveltejs/svelte-preprocess) package which can handle many languages.
 
-> NOTE: you __cannot__ use the new `import x from y` and `export const` / `export default` syntax in `svelte.config.js`.
+> NOTE: you **cannot** use the new `import x from y` and `export const` / `export default` syntax in `svelte.config.js`.
 
 ```js
 // svelte.config.js
 const sveltePreprocess = require('svelte-preprocess');
 
 module.exports = {
-    preprocess: sveltePreprocess(),
+    preprocess: sveltePreprocess()
 };
 ```
 
@@ -46,9 +46,9 @@ const sveltePreprocess = require('svelte-preprocess');
 module.exports = {
     preprocess: sveltePreprocess({
         defaults: {
-            script: 'typescript', // <-- now you can just write <script>let typingsAllowed: string;</script>
-        },
-    }),
+            script: 'typescript' // <-- now you can just write <script>let typingsAllowed: string;</script>
+        }
+    })
 };
 ```
 
@@ -63,14 +63,14 @@ const sveltePreprocess = require('svelte-preprocess');
 // using sourceMap as an example, but could be anything you need dynamically
 function createPreprocessors(sourceMap) {
     return sveltePreprocess({
-        sourceMap,
+        sourceMap
         // ... your settings
     });
 }
 
 module.exports = {
     preprocess: createPreprocessors(true),
-    createPreprocessors,
+    createPreprocessors
 };
 ```
 
@@ -88,10 +88,10 @@ export default {
         // ...
         svelte({
             // ...
-            preprocess: createPreprocessors(!production),
-        }),
+            preprocess: createPreprocessors(!production)
+        })
         // ...
-    ],
+    ]
 };
 ```
 

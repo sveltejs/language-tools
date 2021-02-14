@@ -221,7 +221,7 @@ const mediaAttributes: IAttributeData[] = [
     },
     {
         name: 'bind:playbackRate',
-        description: 'how fast or slow to play the video, where 1 is \'normal\''
+        description: "how fast or slow to play the video, where 1 is 'normal'"
     },
     {
         name: 'bind:paused'
@@ -256,14 +256,14 @@ const addAttributes: Record<string, IAttributeData[]> = {
         { name: 'bind:value' },
         { name: 'bind:group', description: 'Available for type="radio" and type="checkbox"' },
         indeterminateAttribute,
-        {...indeterminateAttribute, name: 'bind:indeterminate'}
+        { ...indeterminateAttribute, name: 'bind:indeterminate' }
     ],
     textarea: [{ name: 'bind:value' }],
     video: [...mediaAttributes, ...videoAttributes],
     audio: [...mediaAttributes]
 };
 
-const html5Tags = htmlData.tags!.map(tag => {
+const html5Tags = htmlData.tags!.map((tag) => {
     let attributes = tag.attributes.map(mapToSvelteEvent);
     if (addAttributes[tag.name]) {
         attributes = [...attributes, ...addAttributes[tag.name]];

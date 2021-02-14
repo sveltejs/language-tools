@@ -50,15 +50,23 @@ export class RenameProviderImpl implements RenameProvider {
             return null;
         }
 
-        const renameLocations = lang.findRenameLocations(tsDoc.filePath, offset, false, false);
+        const renameLocations = lang.findRenameLocations(
+            tsDoc.filePath,
+            offset,
+            false,
+            false,
+            true
+        );
         if (!renameLocations) {
             return null;
         }
 
         const docs = new Map<string, SnapshotFragment>([[tsDoc.filePath, fragment]]);
-        let convertedRenameLocations: Array<ts.RenameLocation & {
-            range: Range;
-        }> = await this.mapAndFilterRenameLocations(renameLocations, docs);
+        let convertedRenameLocations: Array<
+            ts.RenameLocation & {
+                range: Range;
+            }
+        > = await this.mapAndFilterRenameLocations(renameLocations, docs);
         // eslint-disable-next-line max-len
         const additionalRenameForPropRenameInsideComponentWithProp = await this.getAdditionLocationsForRenameOfPropInsideComponentWithProp(
             document,
@@ -94,7 +102,10 @@ export class RenameProviderImpl implements RenameProvider {
                 if (!acc.changes[uri]) {
                     acc.changes[uri] = [];
                 }
-                acc.changes[uri].push({ newText: newName, range: loc.range });
+                acc.changes[uri].push({
+                    newText: (loc.prefixText || '') + newName + (loc.suffixText || ''),
+                    range: loc.range
+                });
                 return acc;
             },
             <Required<Pick<WorkspaceEdit, 'changes'>>>{ changes: {} }
@@ -137,7 +148,8 @@ export class RenameProviderImpl implements RenameProvider {
     /**
      * If user renames prop of component A inside component A,
      * we need to handle the rename of the prop of A ourselves.
-     * Reason: the rename will do {oldPropName: newPropName}, we have to handle
+     * Reason: the rename will do {oldPropName: newPropName}, meaning
+     * the rename will not propagate further, so we have to handle
      * the conversion to {newPropName: newPropName} ourselves.
      */
     private async getAdditionLocationsForRenameOfPropInsideComponentWithProp(
@@ -196,8 +208,9 @@ export class RenameProviderImpl implements RenameProvider {
      * If user renames prop of component A inside component B,
      * we need to handle the rename of the prop of A ourselves.
      * Reason: the rename will rename the prop in the computed svelte2tsx code,
-     * but not the `export let X` code in the original. This additional logic
-     * is done in this method.
+     * but not the `export let X` code in the original because the
+     * rename does not propagate further than the prop.
+     * This additional logic/propagation is done in this method.
      */
     private async getAdditionalLocationsForRenameOfPropInsideOtherComponent(
         convertedRenameLocations: Array<ts.RenameLocation & { range: Range }>,

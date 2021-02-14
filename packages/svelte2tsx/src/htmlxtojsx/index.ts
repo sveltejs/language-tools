@@ -19,6 +19,7 @@ import { handleElse, handleIf } from './nodes/if-else';
 import { handleRawHtml } from './nodes/raw-html';
 import { handleSvelteTag } from './nodes/svelte-tag';
 import { handleTransitionDirective } from './nodes/transition-directive';
+import { handleText } from './nodes/text';
 
 type Walker = (node: Node, parent: Node, prop: string, index: number) => void;
 
@@ -89,10 +90,10 @@ export function convertHtmlxToJsx(
                         handleActionDirective(htmlx, str, node, parent);
                         break;
                     case 'Transition':
-                        handleTransitionDirective(htmlx, str, node);
+                        handleTransitionDirective(htmlx, str, node, parent);
                         break;
                     case 'Animation':
-                        handleAnimateDirective(htmlx, str, node);
+                        handleAnimateDirective(htmlx, str, node, parent);
                         break;
                     case 'Attribute':
                         handleAttribute(htmlx, str, node, parent);
@@ -111,6 +112,9 @@ export function convertHtmlxToJsx(
                         break;
                     case 'Body':
                         handleSvelteTag(htmlx, str, node);
+                        break;
+                    case 'Text':
+                        handleText(str, node);
                         break;
                 }
                 if (onWalk) {
@@ -138,8 +142,8 @@ export function convertHtmlxToJsx(
 /**
  * @internal For testing only
  */
-export function htmlx2jsx(htmlx: string) {
-    const ast = parseHtmlx(htmlx);
+export function htmlx2jsx(htmlx: string, options?: { emitOnTemplateError?: boolean }) {
+    const ast = parseHtmlx(htmlx, options);
     const str = new MagicString(htmlx);
 
     convertHtmlxToJsx(str, ast);

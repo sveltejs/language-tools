@@ -212,10 +212,22 @@ export function mapRangeToOriginal(
     // and therefore return negative numbers, which makes Range.create throw.
     // These invalid position need to be handled
     // on a case-by-case basis in the calling functions.
-    return {
+    const originalRange = {
         start: fragment.getOriginalPosition(range.start),
         end: fragment.getOriginalPosition(range.end)
     };
+
+    // Range may be mapped one character short - reverse that for "in the same line" cases
+    if (
+        originalRange.start.line === originalRange.end.line &&
+        range.start.line === range.end.line &&
+        originalRange.end.character - originalRange.start.character ===
+            range.end.character - range.start.character - 1
+    ) {
+        originalRange.end.character += 1;
+    }
+
+    return originalRange;
 }
 
 export function mapRangeToGenerated(fragment: DocumentMapper, range: Range): Range {

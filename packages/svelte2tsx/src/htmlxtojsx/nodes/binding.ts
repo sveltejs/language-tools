@@ -1,6 +1,6 @@
 import MagicString from 'magic-string';
 import { Node } from 'estree-walker';
-import { isShortHandAttribute, getThisType } from '../utils/node-utils';
+import { isShortHandAttribute, getThisType, isQuote } from '../utils/node-utils';
 
 const oneWayBindingAttributes: Map<string, string> = new Map(
     ['clientWidth', 'clientHeight', 'offsetWidth', 'offsetHeight']
@@ -31,7 +31,12 @@ export function handleBinding(htmlx: string, str: MagicString, attr: Node, el: N
         return;
     }
 
-    const supportsBindThis = ['InlineComponent', 'Element', 'Body'];
+    const supportsBindThis = [
+        'InlineComponent',
+        'Element',
+        'Body',
+        'Slot' // only valid for Web Components compile target
+    ];
 
     //bind this
     if (attr.name === 'this' && supportsBindThis.includes(el.type)) {
@@ -74,8 +79,9 @@ export function handleBinding(htmlx: string, str: MagicString, attr: Node, el: N
     }
 
     //remove possible quotes
-    if (htmlx[attr.end - 1] === '"') {
-        const firstQuote = htmlx.indexOf('"', attr.start);
+    const lastChar = htmlx[attr.end - 1];
+    if (isQuote(lastChar)) {
+        const firstQuote = htmlx.indexOf(lastChar, attr.start);
         str.remove(firstQuote, firstQuote + 1);
         str.remove(attr.end - 1, attr.end);
     }

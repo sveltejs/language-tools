@@ -17,9 +17,11 @@ import {
     Range,
     ReferenceContext,
     SelectionRange,
+    SemanticTokens,
     SignatureHelp,
     SignatureHelpContext,
     SymbolInformation,
+    TextDocumentContentChangeEvent,
     TextDocumentIdentifier,
     TextEdit,
     WorkspaceEdit
@@ -400,9 +402,28 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         }
     }
 
+    async getSemanticTokens(textDocument: TextDocumentIdentifier, range?: Range) {
+        const document = this.getDocument(textDocument.uri);
+        if (!document) {
+            throw new Error('Cannot call methods on an unopened document');
+        }
+
+        return await this.execute<SemanticTokens>(
+            'getSemanticTokens',
+            [document, range],
+            ExecuteMode.FirstNonNull
+        );
+    }
+
     onWatchFileChanges(onWatchFileChangesParas: OnWatchFileChangesPara[]): void {
         for (const support of this.plugins) {
             support.onWatchFileChanges?.(onWatchFileChangesParas);
+        }
+    }
+
+    updateTsOrJsFile(fileName: string, changes: TextDocumentContentChangeEvent[]): void {
+        for (const support of this.plugins) {
+            support.updateTsOrJsFile?.(fileName, changes);
         }
     }
 

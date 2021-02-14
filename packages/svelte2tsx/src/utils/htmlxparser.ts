@@ -96,14 +96,17 @@ function blankVerbatimContent(htmlx: string, verbatimElements: Node[]) {
     return output;
 }
 
-export function parseHtmlx(htmlx: string): Node {
+export function parseHtmlx(htmlx: string, options?: { emitOnTemplateError?: boolean }): Node {
     //Svelte tries to parse style and script tags which doesn't play well with typescript, so we blank them out.
     //HTMLx spec says they should just be retained after processing as is, so this is fine
     const verbatimElements = findVerbatimElements(htmlx);
     const deconstructed = blankVerbatimContent(htmlx, verbatimElements);
 
     //extract the html content parsed as htmlx this excludes our script and style tags
-    const svelteHtmlxAst = compiler.parse(deconstructed).html;
+    const parsingCode = options?.emitOnTemplateError
+        ? blankPossiblyErrorOperatorOrPropertyAccess(deconstructed)
+        : deconstructed;
+    const svelteHtmlxAst = compiler.parse(parsingCode).html;
 
     //restore our script and style tags as nodes to maintain validity with HTMLx
     for (const s of verbatimElements) {
@@ -112,4 +115,53 @@ export function parseHtmlx(htmlx: string): Node {
         svelteHtmlxAst.end = Math.max(svelteHtmlxAst.end, s.end);
     }
     return svelteHtmlxAst;
+}
+
+const possibleOperatorOrPropertyAccess = new Set([
+    '.',
+    '?',
+    '*',
+    '~',
+    '=',
+    '<',
+    '!',
+    '&',
+    '^',
+    '|',
+    ',',
+    '+',
+    '-'
+]);
+
+function blankPossiblyErrorOperatorOrPropertyAccess(htmlx: string) {
+    let index = htmlx.indexOf('}');
+    let lastIndex = 0;
+    const { length } = htmlx;
+
+    while (index < length && index >= 0) {
+        let backwardIndex = index - 1;
+        while (backwardIndex > lastIndex) {
+            const char = htmlx.charAt(backwardIndex);
+            if (possibleOperatorOrPropertyAccess.has(char)) {
+                const isPlusOrMinus = char === '+' || char === '-';
+                const isIncrementOrDecrement =
+                    isPlusOrMinus && htmlx.charAt(backwardIndex - 1) === char;
+
+                if (isIncrementOrDecrement) {
+                    backwardIndex -= 2;
+                    continue;
+                }
+                htmlx =
+                    htmlx.substring(0, backwardIndex) + ' ' + htmlx.substring(backwardIndex + 1);
+            } else if (!/\s/.test(char)) {
+                break;
+            }
+            backwardIndex--;
+        }
+
+        lastIndex = index;
+        index = htmlx.indexOf('}', index + 1);
+    }
+
+    return htmlx;
 }

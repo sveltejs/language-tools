@@ -32,7 +32,7 @@ You may optionally want to add a `svelte.config.js` file - but it is not require
 const sveltePreprocess = require('svelte-preprocess');
 
 module.exports = {
-    preprocess: sveltePreprocess(),
+    preprocess: sveltePreprocess()
 };
 ```
 
