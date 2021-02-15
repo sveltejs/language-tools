@@ -17,27 +17,36 @@ describe('TypeScript Plugin Performance Tests', () => {
         const pluginManager = new LSConfigManager();
         const plugin = new TypeScriptPlugin(docManager, pluginManager, [pathToUrl(testDir)]);
         docManager.openDocument({ uri, text: document.getText() });
-        const updateDocument = (newText: string) =>
+        const append = (newText: string) =>
             docManager.updateDocument({ uri, version: 1 }, [
                 { range: Range.create(Position.create(9, 0), Position.create(9, 0)), text: newText }
             ]);
-        return { plugin, document, updateDocument };
+        const prepend = (newText: string) =>
+            docManager.updateDocument({ uri, version: 1 }, [
+                { range: Range.create(Position.create(1, 0), Position.create(1, 0)), text: newText }
+            ]);
+        return { plugin, document, append, prepend };
     }
 
     it('should be fast enough', async () => {
-        const { document, plugin, updateDocument } = setup('performance');
+        const { document, plugin, append, prepend } = setup('performance.svelte');
 
         const start = performance.now();
-        for (let i = 0; i < 1000; i++) {
-            await plugin.doHover(document, Position.create(1, 15));
+        for (let i = 0; i < 100; i++) {
+            const position = Position.create(Math.floor(i / 2) + 1, 15);
+            await plugin.doHover(document, position);
             await plugin.getDiagnostics(document);
-            await plugin.findReferences(document, Position.create(1, 15), {
+            await plugin.findReferences(document, position, {
                 includeDeclaration: true
             });
             await plugin.getDocumentSymbols(document);
             await plugin.getSemanticTokens(document);
-            await plugin.prepareRename(document, Position.create(1, 15));
-            updateDocument('function asd() {}\n');
+            await plugin.prepareRename(document, position);
+            if (i % 2) {
+                prepend('function asd() {}\n');
+            } else {
+                append('function asd() {}\n');
+            }
         }
         const end = performance.now();
 
