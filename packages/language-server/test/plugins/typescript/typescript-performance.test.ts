@@ -51,5 +51,5 @@ describe('TypeScript Plugin Performance Tests', () => {
         const end = performance.now();
 
         console.log(`Performance test took ${end - start}ms`);
-    }).timeout(10001);
+    }).timeout(15000);
 });
