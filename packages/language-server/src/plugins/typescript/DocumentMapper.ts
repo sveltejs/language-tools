@@ -52,7 +52,7 @@ export class ConsumerDocumentMapper implements DocumentMapper {
             this.decoded = decode(this.rawMap);
         }
 
-        const lineMatches: [number, [number, number, number, number]][] = [];
+        const lineMatches: Array<[number, [number, number, number, number]]> = [];
         for (let line = 0; line < this.decoded.length; line++) {
             for (let column = 0; column < this.decoded[line].length; column++) {
                 const entry = this.decoded[line][column];
