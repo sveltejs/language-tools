@@ -3,19 +3,29 @@ import * as path from 'path';
 import ts from 'typescript';
 import { Document, DocumentManager } from '../../../../src/lib/documents';
 import { LSConfigManager } from '../../../../src/ls-config';
-import { TypeScriptPlugin } from '../../../../src/plugins';
+import { DiagnosticsProviderImpl } from '../../../../src/plugins/typescript/features/DiagnosticsProvider';
+import { LSAndTSDocResolver } from '../../../../src/plugins/typescript/LSAndTSDocResolver';
 import { pathToUrl } from '../../../../src/utils';
+
+const testDir = path.join(__dirname, '..', 'testfiles');
 
 describe('DiagnosticsProvider', () => {
     function setup(filename: string) {
-        const docManager = new DocumentManager(() => document);
-        const testDir = path.join(__dirname, '..');
-        const filePath = path.join(testDir, 'testfiles', filename);
-        const document = new Document(pathToUrl(filePath), ts.sys.readFile(filePath)!);
-        const pluginManager = new LSConfigManager();
-        const plugin = new TypeScriptPlugin(docManager, pluginManager, [pathToUrl(testDir)]);
-        docManager.openDocument(<any>'some doc');
-        return { plugin, document };
+        const docManager = new DocumentManager(
+            (textDocument) => new Document(textDocument.uri, textDocument.text)
+        );
+        const lsAndTsDocResolver = new LSAndTSDocResolver(
+            docManager,
+            [pathToUrl(testDir)],
+            new LSConfigManager()
+        );
+        const plugin = new DiagnosticsProviderImpl(lsAndTsDocResolver);
+        const filePath = path.join(testDir, filename);
+        const document = docManager.openDocument(<any>{
+            uri: pathToUrl(filePath),
+            text: ts.sys.readFile(filePath) || ''
+        });
+        return { plugin, document, docManager };
     }
 
     it('provides diagnostics', async () => {
@@ -303,6 +313,84 @@ describe('DiagnosticsProvider', () => {
                     start: {
                         character: 12,
                         line: 14
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            }
+        ]);
+    });
+
+    it('type-checks slots', async () => {
+        const { plugin, document } = setup('diagnostics-slots.svelte');
+        const diagnostics = await plugin.getDiagnostics(document);
+
+        assert.deepStrictEqual(diagnostics, [
+            {
+                code: 2304,
+                message: "Cannot find name 'defaultSlotProp'.",
+                range: {
+                    end: {
+                        character: 48,
+                        line: 4
+                    },
+                    start: {
+                        character: 33,
+                        line: 4
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            },
+            {
+                code: 2367,
+                message:
+                    "This condition will always return 'false' since the types 'number' and 'boolean' have no overlap.",
+                range: {
+                    end: {
+                        character: 28,
+                        line: 6
+                    },
+                    start: {
+                        character: 3,
+                        line: 6
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            },
+            {
+                code: 2367,
+                message:
+                    "This condition will always return 'false' since the types 'boolean' and 'number' have no overlap.",
+                range: {
+                    end: {
+                        character: 24,
+                        line: 8
+                    },
+                    start: {
+                        character: 5,
+                        line: 8
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            },
+            {
+                code: 2304,
+                message: "Cannot find name 'namedSlotProp'.",
+                range: {
+                    end: {
+                        character: 16,
+                        line: 12
+                    },
+                    start: {
+                        character: 3,
+                        line: 12
                     }
                 },
                 severity: 1,
