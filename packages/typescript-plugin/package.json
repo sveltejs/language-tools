@@ -1,0 +1,23 @@
+{
+    "name": "typescript-svelte-plugin",
+    "version": "0.1.0",
+    "description": "A TypeScript Plugin providing Svelte intellisense",
+    "main": "src/index.js",
+    "scripts": {
+        "test": "test",
+        "build": "tsc -p ./"
+    },
+    "keywords": [
+        "svelte",
+        "typescript",
+        "javascript",
+        "plugin"
+    ],
+    "author": "The Svelte Community",
+    "license": "MIT",
+    "devDependencies": {
+        "@tsconfig/node12": "^1.0.0",
+        "@types/node": "^13.9.0",
+        "typescript": "*"
+    }
+}
