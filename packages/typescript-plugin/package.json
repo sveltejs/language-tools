@@ -4,8 +4,8 @@
     "description": "A TypeScript Plugin providing Svelte intellisense",
     "main": "src/index.js",
     "scripts": {
-        "test": "test",
-        "build": "tsc -p ./"
+        "build": "tsc -p ./",
+        "test": "echo 'NOOP'"
     },
     "keywords": [
         "svelte",
