@@ -464,6 +464,7 @@ repository:
   tags-lang-start-attributes:
     begin: \G
     end: (?=/>)|>
+    endCaptures: { 0: { name: punctuation.definition.tag.end.svelte } }
     name: meta.tag.start.svelte
     patterns: [ include: '#attributes' ]
 
