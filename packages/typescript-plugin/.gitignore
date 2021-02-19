@@ -1,0 +1,5 @@
+src/**/*.js
+src/**/*.d.ts
+src/tsconfig.tsbuildinfo
+node_modules
+tsconfig.tsbuildinfo
