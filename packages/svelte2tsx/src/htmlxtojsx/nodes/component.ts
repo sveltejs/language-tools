@@ -42,22 +42,26 @@ function handleSlot(
     slotName: string
 ): void {
     //collect "let" definitions
+    const slotElIsComponent = slotEl === component;
     let hasMoved = false;
-    let afterTag: number;
+    let slotDefInsertionPoint: number;
     for (const attr of slotEl.attributes) {
         if (attr.type != 'Let') {
             continue;
         }
 
-        if (slotEl.children.length == 0) {
+        if (slotElIsComponent && slotEl.children.length == 0) {
             //no children anyway, just wipe out the attribute
             str.remove(attr.start, attr.end);
             continue;
         }
 
-        afterTag = afterTag || htmlx.lastIndexOf('>', slotEl.children[0].start) + 1;
+        slotDefInsertionPoint =
+            slotDefInsertionPoint || slotElIsComponent
+                ? htmlx.lastIndexOf('>', slotEl.children[0].start) + 1
+                : slotEl.start;
 
-        str.move(attr.start, attr.end, afterTag);
+        str.move(attr.start, attr.end, slotDefInsertionPoint);
 
         //remove let:
         if (hasMoved) {
@@ -77,9 +81,11 @@ function handleSlot(
     if (!hasMoved) {
         return;
     }
-    str.appendLeft(afterTag, '{() => { let {');
-    str.appendRight(afterTag, `} = ${getSingleSlotDef(component, slotName)}` + ';<>');
+    str.appendLeft(slotDefInsertionPoint, '{() => { let {');
+    str.appendRight(slotDefInsertionPoint, `} = ${getSingleSlotDef(component, slotName)}` + ';<>');
 
-    const closeTagStart = htmlx.lastIndexOf('<', slotEl.end - 1);
-    str.appendLeft(closeTagStart, '</>}}');
+    const closeSlotDefInsertionPoint = slotElIsComponent
+        ? htmlx.lastIndexOf('<', slotEl.end - 1)
+        : slotEl.end;
+    str.appendLeft(closeSlotDefInsertionPoint, '</>}}');
 }
