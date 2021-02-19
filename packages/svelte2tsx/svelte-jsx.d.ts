@@ -658,6 +658,7 @@ declare namespace svelte.JSX {
       xlinkActuate?: string;
       xlinkArcrole?: string;
       xlinkHref?: string;
+      href?: string;
       xlinkRole?: string;
       xlinkShow?: string;
       xlinkTitle?: string;
