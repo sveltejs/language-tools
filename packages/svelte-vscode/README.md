@@ -76,6 +76,14 @@ Can be used for attaching to the process for debugging / profiling.
 If you experience crashes due to "port already in use", try setting the port.
 -1 = default port is used.
 
+##### `svelte.trace.server`
+
+Traces the communication between VS Code and the Svelte Language Server. _Default_: `off`
+
+Value can be `off`, `messages`, or `verbose`.
+You normally don't set this. Can be used in debugging language server features.
+If enabled you can see the logging in the output channel near the integrated terminal.
+
 ##### `svelte.plugin.typescript.enable`
 
 Enable the TypeScript plugin. _Default_: `true`
