@@ -111,6 +111,9 @@ declare namespace svelte.JSX {
       onload?: EventHandler;
       onerror?: EventHandler; // also a Media Event
 
+      // Detail Events
+      ontoggle?: EventHandler<Event, T>;
+
       // Keyboard Events
       onkeydown?: KeyboardEventHandler<T>;
       onkeypress?: KeyboardEventHandler<T>;
