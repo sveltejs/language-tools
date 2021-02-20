@@ -65,14 +65,14 @@
                     "default": -1
                 },
                 "svelte.trace.server": {
-                  "type": "string",
-                  "enum": [
-                    "off",
-                    "messages",
-                    "verbose"
-                  ],
-                  "default": "off",
-                  "description": "Traces the communication between VS Code and the Svelte Language Server."
+                    "type": "string",
+                    "enum": [
+                        "off",
+                        "messages",
+                        "verbose"
+                    ],
+                    "default": "off",
+                    "description": "Traces the communication between VS Code and the Svelte Language Server."
                 },
                 "svelte.plugin.typescript.enable": {
                     "type": "boolean",
