@@ -6,6 +6,7 @@
         "declaration": true,
         "outDir": "dist",
         "sourceMap": true,
-        "composite": true
+        "composite": true,
+        "target": "ES5"
     }
 }
