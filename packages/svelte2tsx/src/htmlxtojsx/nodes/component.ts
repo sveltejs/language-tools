@@ -57,9 +57,10 @@ function handleSlot(
         }
 
         slotDefInsertionPoint =
-            slotDefInsertionPoint || slotElIsComponent
+            slotDefInsertionPoint ||
+            (slotElIsComponent
                 ? htmlx.lastIndexOf('>', slotEl.children[0].start) + 1
-                : slotEl.start;
+                : slotEl.start);
 
         str.move(attr.start, attr.end, slotDefInsertionPoint);
 
