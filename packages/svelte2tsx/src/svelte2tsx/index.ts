@@ -324,11 +324,15 @@ function classNameFromFilename(filename: string): string | undefined {
             // Although "-" is invalid, we leave it in, pascal-case-handling will throw it out later
             .filter((char) => /[A-Za-z$_\d-]/.test(char))
             .join('');
-        const withoutLeadingInvalidCharacters = withoutInvalidCharacters.substr(
-            withoutInvalidCharacters.split('').findIndex((char) => /[A-Za-z_$]/.test(char))
-        );
+        const firstValidCharIdx = withoutInvalidCharacters
+            .split('')
+            // Although _ and $ are valid first characters for classes, they are invalid first characters
+            // for tag names. For a better import autocompletion experience, we therefore throw them out.
+            .findIndex((char) => /[A-Za-z]/.test(char));
+        const withoutLeadingInvalidCharacters = withoutInvalidCharacters.substr(firstValidCharIdx);
         const inPascalCase = pascalCase(withoutLeadingInvalidCharacters);
-        return `${inPascalCase}${COMPONENT_SUFFIX}`;
+        const finalName = firstValidCharIdx === -1 ? `A${inPascalCase}` : inPascalCase;
+        return `${finalName}${COMPONENT_SUFFIX}`;
     } catch (error) {
         console.warn(`Failed to create a name for the component class from filename ${filename}`);
         return undefined;
