@@ -399,4 +399,82 @@ describe('DiagnosticsProvider', () => {
             }
         ]);
     });
+
+    it.only('$store control flow', async () => {
+        const { plugin, document } = setup('diagnostics-$store-control-flow.svelte');
+        const diagnostics = await plugin.getDiagnostics(document);
+
+        assert.deepStrictEqual(diagnostics, [
+            {
+                code: 2367,
+                message:
+                    "This condition will always return 'false' since the types 'string' and 'boolean' have no overlap.",
+                range: {
+                    start: {
+                        line: 9,
+                        character: 40
+                    },
+                    end: {
+                        line: 9,
+                        character: 57
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            },
+            {
+                code: 2322,
+                message: "Type 'string' is not assignable to type 'boolean'.",
+                range: {
+                    start: {
+                        line: 15,
+                        character: 12
+                    },
+                    end: {
+                        line: 15,
+                        character: 16
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            },
+            {
+                code: 2367,
+                message:
+                    "This condition will always return 'false' since the types 'string' and 'boolean' have no overlap.",
+                range: {
+                    start: {
+                        line: 23,
+                        character: 41
+                    },
+                    end: {
+                        line: 23,
+                        character: 58
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            },
+            {
+                code: 2322,
+                message: "Type 'string' is not assignable to type 'boolean'.",
+                range: {
+                    start: {
+                        line: 28,
+                        character: 13
+                    },
+                    end: {
+                        line: 28,
+                        character: 17
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            }
+        ]);
+    });
 });
