@@ -7,7 +7,7 @@ import { DiagnosticsProviderImpl } from '../../../../src/plugins/typescript/feat
 import { LSAndTSDocResolver } from '../../../../src/plugins/typescript/LSAndTSDocResolver';
 import { pathToUrl } from '../../../../src/utils';
 
-const testDir = path.join(__dirname, '..', 'testfiles');
+const testDir = path.join(__dirname, '..', 'testfiles', 'diagnostics');
 
 describe('DiagnosticsProvider', () => {
     function setup(filename: string) {
