@@ -87,8 +87,7 @@ describe('HoverProvider', () => {
         const { provider, document } = setup('hoverinfo.svelte');
 
         assert.deepStrictEqual(await provider.doHover(document, Position.create(9, 10)), <Hover>{
-            contents:
-                '```typescript\nconst withJsDocTag: true\n```\n---\n\n\n*@author* — foo',
+            contents: '```typescript\nconst withJsDocTag: true\n```\n---\n\n\n*@author* — foo',
             range: {
                 start: {
                     character: 10,

@@ -1,4 +1,4 @@
-import { LanguageClient } from 'vscode-languageclient';
+import { LanguageClient } from 'vscode-languageclient/node';
 import {
     Uri,
     TextDocumentContentProvider,

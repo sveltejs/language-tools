@@ -1,6 +1,7 @@
 import MagicString from 'magic-string';
 import { Node } from 'estree-walker';
 import svgAttributes from '../svgattributes';
+import { isQuote } from '../utils/node-utils';
 
 /**
  * List taken from `svelte-jsx.d.ts` by searching for all attributes of type number
@@ -39,7 +40,7 @@ export function handleAttribute(htmlx: string, str: MagicString, attr: Node, par
 
     //if we are on an "element" we are case insensitive, lowercase to match our JSX
     if (parent.type == 'Element') {
-        const sapperNoScroll = attr.name === 'sapper:noscroll';
+        const sapperLinkActions = ['sapper:prefetch', 'sapper:noscroll'];
         //skip Attribute shorthand, that is handled below
         if (
             (attr.value !== true &&
@@ -48,7 +49,7 @@ export function handleAttribute(htmlx: string, str: MagicString, attr: Node, par
                     attr.value.length == 1 &&
                     attr.value[0].type == 'AttributeShorthand'
                 )) ||
-            sapperNoScroll
+            sapperLinkActions.includes(attr.name)
         ) {
             let name = attr.name;
             if (!svgAttributes.find((x) => x == name)) {
@@ -159,7 +160,7 @@ export function handleAttribute(htmlx: string, str: MagicString, attr: Node, par
         }
     }
 
-    if (htmlx[attr.end - 1] == '"') {
+    if (isQuote(htmlx[attr.end - 1])) {
         str.overwrite(attr.end - 1, attr.end, '`}');
     } else {
         str.appendLeft(attr.end, '`}');

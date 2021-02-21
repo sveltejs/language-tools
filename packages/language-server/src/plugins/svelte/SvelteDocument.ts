@@ -1,5 +1,5 @@
 import { SourceMapConsumer } from 'source-map';
-import { PreprocessorGroup, Processed } from 'svelte/types/compiler/preprocess';
+import { PreprocessorGroup, Processed } from 'svelte/types/compiler/preprocess/types';
 import type { compile } from 'svelte/compiler';
 import { CompileOptions } from 'svelte/types/compiler/interfaces';
 
@@ -361,11 +361,10 @@ async function transpile(
     });
 
     const svelte = importSvelte(document.getFilePath() || '');
-    const transpiled = (
-        await svelte.preprocess(document.getText(), wrappedPreprocessors, {
-            filename: document.getFilePath() || ''
-        })
-    ).toString();
+    const result = await svelte.preprocess(document.getText(), wrappedPreprocessors, {
+        filename: document.getFilePath() || ''
+    });
+    const transpiled = result.code || result.toString?.() || '';
 
     return { transpiled, processedScripts, processedStyles };
 }

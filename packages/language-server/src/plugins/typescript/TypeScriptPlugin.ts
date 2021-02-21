@@ -17,7 +17,9 @@ import {
     CompletionList,
     SelectionRange,
     SignatureHelp,
-    SignatureHelpContext
+    SignatureHelpContext,
+    SemanticTokens,
+    TextDocumentContentChangeEvent
 } from 'vscode-languageserver';
 import {
     Document,
@@ -43,7 +45,9 @@ import {
     SelectionRangeProvider,
     SignatureHelpProvider,
     UpdateImportsProvider,
-    OnWatchFileChangesPara
+    OnWatchFileChangesPara,
+    SemanticTokensProvider,
+    UpdateTsOrJsFile
 } from '../interfaces';
 import { SnapshotFragment } from './DocumentSnapshot';
 import { CodeActionsProviderImpl } from './features/CodeActionsProvider';
@@ -62,6 +66,7 @@ import { FindReferencesProviderImpl } from './features/FindReferencesProvider';
 import { SelectionRangeProviderImpl } from './features/SelectionRangeProvider';
 import { SignatureHelpProviderImpl } from './features/SignatureHelpProvider';
 import { SnapshotManager } from './SnapshotManager';
+import { SemanticTokensProviderImpl } from './features/SemanticTokensProvider';
 
 export class TypeScriptPlugin
     implements
@@ -75,8 +80,10 @@ export class TypeScriptPlugin
         FindReferencesProvider,
         SelectionRangeProvider,
         SignatureHelpProvider,
+        SemanticTokensProvider,
         OnWatchFileChanges,
-        CompletionsProvider<CompletionEntryWithIdentifer> {
+        CompletionsProvider<CompletionEntryWithIdentifer>,
+        UpdateTsOrJsFile {
     private readonly configManager: LSConfigManager;
     private readonly lsAndTsDocResolver: LSAndTSDocResolver;
     private readonly completionProvider: CompletionsProviderImpl;
@@ -88,17 +95,20 @@ export class TypeScriptPlugin
     private readonly findReferencesProvider: FindReferencesProviderImpl;
     private readonly selectionRangeProvider: SelectionRangeProviderImpl;
     private readonly signatureHelpProvider: SignatureHelpProviderImpl;
+    private readonly semanticTokensProvider: SemanticTokensProviderImpl;
 
     constructor(
         docManager: DocumentManager,
         configManager: LSConfigManager,
-        workspaceUris: string[]
+        workspaceUris: string[],
+        isEditor = true
     ) {
         this.configManager = configManager;
         this.lsAndTsDocResolver = new LSAndTSDocResolver(
             docManager,
             workspaceUris,
-            configManager
+            configManager,
+            /**transformOnTemplateError */ isEditor
         );
         this.completionProvider = new CompletionsProviderImpl(this.lsAndTsDocResolver);
         this.codeActionsProvider = new CodeActionsProviderImpl(
@@ -112,6 +122,7 @@ export class TypeScriptPlugin
         this.findReferencesProvider = new FindReferencesProviderImpl(this.lsAndTsDocResolver);
         this.selectionRangeProvider = new SelectionRangeProviderImpl(this.lsAndTsDocResolver);
         this.signatureHelpProvider = new SignatureHelpProviderImpl(this.lsAndTsDocResolver);
+        this.semanticTokensProvider = new SemanticTokensProviderImpl(this.lsAndTsDocResolver);
     }
 
     async getDiagnostics(document: Document): Promise<Diagnostic[]> {
@@ -376,8 +387,16 @@ export class TypeScriptPlugin
 
             // Since the options parameter only applies to svelte snapshots, and this is not
             // a svelte file, we can just set it to false without having any effect.
-            snapshotManager.updateByFileName(fileName, { strictMode: false });
+            snapshotManager.updateByFileName(fileName, {
+                strictMode: false,
+                transformOnTemplateError: false
+            });
         }
+    }
+
+    updateTsOrJsFile(fileName: string, changes: TextDocumentContentChangeEvent[]): void {
+        const snapshotManager = this.getSnapshotManager(fileName);
+        snapshotManager.updateTsOrJsFile(fileName, changes);
     }
 
     async getSelectionRange(
@@ -392,13 +411,25 @@ export class TypeScriptPlugin
     }
 
     async getSignatureHelp(
-        document: Document, position: Position, context: SignatureHelpContext | undefined
+        document: Document,
+        position: Position,
+        context: SignatureHelpContext | undefined
     ): Promise<SignatureHelp | null> {
         if (!this.featureEnabled('signatureHelp')) {
             return null;
         }
 
         return this.signatureHelpProvider.getSignatureHelp(document, position, context);
+    }
+
+    async getSemanticTokens(textDocument: Document, range?: Range): Promise<SemanticTokens | null> {
+        if (!this.featureEnabled('semanticTokens')) {
+            return {
+                data: []
+            };
+        }
+
+        return this.semanticTokensProvider.getSemanticTokens(textDocument, range);
     }
 
     private getLSAndTSDoc(document: Document) {

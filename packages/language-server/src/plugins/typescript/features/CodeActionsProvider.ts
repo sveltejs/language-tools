@@ -8,7 +8,7 @@ import {
     VersionedTextDocumentIdentifier,
     WorkspaceEdit
 } from 'vscode-languageserver';
-import { Document, mapRangeToOriginal, isRangeInTag } from '../../../lib/documents';
+import { Document, mapRangeToOriginal, isRangeInTag, isInTag } from '../../../lib/documents';
 import { pathToUrl, flatten } from '../../../utils';
 import { CodeActionsProvider } from '../../interfaces';
 import { SnapshotFragment, SvelteSnapshotFragment } from '../DocumentSnapshot';
@@ -75,20 +75,14 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             changes.map(async (change) => {
                 // Organize Imports will only affect the current file, so no need to check the file path
                 return TextDocumentEdit.create(
-                    VersionedTextDocumentIdentifier.create(document.url, null),
+                    VersionedTextDocumentIdentifier.create(document.url, 0),
                     change.textChanges.map((edit) => {
-                        let range = mapRangeToOriginal(fragment, convertRange(fragment, edit.span));
-                        // Handle svelte2tsx wrong import mapping:
-                        // The character after the last import maps to the start of the script
-                        // TODO find a way to fix this in svelte2tsx and then remove this
-                        if (
-                            (range.end.line === 0 && range.end.character === 1) ||
-                            range.end.line < range.start.line
-                        ) {
-                            edit.span.length -= 1;
-                            range = mapRangeToOriginal(fragment, convertRange(fragment, edit.span));
-                            range.end.character += 1;
-                        }
+                        const range = this.checkRemoveImportCodeActionRange(
+                            edit,
+                            fragment,
+                            mapRangeToOriginal(fragment, convertRange(fragment, edit.span))
+                        );
+
                         return TextEdit.replace(range, edit.newText);
                     })
                 );
@@ -102,6 +96,26 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                 CodeActionKind.SourceOrganizeImports
             )
         ];
+    }
+
+    private checkRemoveImportCodeActionRange(
+        edit: ts.TextChange,
+        fragment: SnapshotFragment,
+        range: Range
+    ) {
+        // Handle svelte2tsx wrong import mapping:
+        // The character after the last import maps to the start of the script
+        // TODO find a way to fix this in svelte2tsx and then remove this
+        if (
+            (range.end.line === 0 && range.end.character === 1) ||
+            range.end.line < range.start.line
+        ) {
+            edit.span.length -= 1;
+            range = mapRangeToOriginal(fragment, convertRange(fragment, edit.span));
+            range.end.character += 1;
+        }
+
+        return range;
     }
 
     private async applyQuickfix(document: Document, range: Range, context: CodeActionContext) {
@@ -125,16 +139,11 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             codeFixes.map(async (fix) => {
                 const documentChanges = await Promise.all(
                     fix.changes.map(async (change) => {
-                        let doc = docs.get(change.fileName);
-                        if (!doc) {
-                            doc = await this.getSnapshot(change.fileName).getFragment();
-                            docs.set(change.fileName, doc);
-                        }
+                        const doc =
+                            docs.get(change.fileName) ??
+                            (await this.getAndCacheCodeActionDoc(change, docs));
                         return TextDocumentEdit.create(
-                            VersionedTextDocumentIdentifier.create(
-                                pathToUrl(change.fileName),
-                                null
-                            ),
+                            VersionedTextDocumentIdentifier.create(pathToUrl(change.fileName), 0),
                             change.textChanges.map((edit) => {
                                 if (
                                     fix.fixName === 'import' &&
@@ -144,13 +153,25 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                                         document,
                                         doc,
                                         edit,
-                                        true
+                                        true,
+                                        isInTag(range.start, document.scriptInfo) ||
+                                            isInTag(range.start, document.moduleScriptInfo)
                                     );
                                 }
-                                return TextEdit.replace(
-                                    mapRangeToOriginal(doc!, convertRange(doc!, edit.span)),
-                                    edit.newText
+
+                                let originalRange = mapRangeToOriginal(
+                                    doc,
+                                    convertRange(doc, edit.span)
                                 );
+                                if (fix.fixName === 'unusedIdentifier') {
+                                    originalRange = this.checkRemoveImportCodeActionRange(
+                                        edit,
+                                        doc,
+                                        originalRange
+                                    );
+                                }
+
+                                return TextEdit.replace(originalRange, edit.newText);
                             })
                         );
                     })
@@ -164,6 +185,15 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                 );
             })
         );
+    }
+
+    private async getAndCacheCodeActionDoc(
+        change: ts.FileTextChanges,
+        cache: Map<string, SnapshotFragment>
+    ) {
+        const doc = await this.getSnapshot(change.fileName).getFragment();
+        cache.set(change.fileName, doc);
+        return doc;
     }
 
     private async getApplicableRefactors(document: Document, range: Range): Promise<CodeAction[]> {
@@ -214,10 +244,10 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                     ...refactor,
                     title: refactor.title
                         .replace(
-                            'Extract to inner function in function \'render\'',
+                            "Extract to inner function in function 'render'",
                             'Extract to function'
                         )
-                        .replace('Extract to constant in function \'render\'', 'Extract to constant')
+                        .replace("Extract to constant in function 'render'", 'Extract to constant')
                 }))
         );
     }
@@ -295,7 +325,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
 
         const documentChanges = edits?.edits.map((edit) =>
             TextDocumentEdit.create(
-                VersionedTextDocumentIdentifier.create(document.uri, null),
+                VersionedTextDocumentIdentifier.create(document.uri, 0),
                 edit.textChanges.map((edit) => {
                     let range = mapRangeToOriginal(fragment, convertRange(fragment, edit.span));
                     // Some refactorings place the new code at the end of svelte2tsx' render function,

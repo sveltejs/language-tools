@@ -16,6 +16,8 @@ export function getThisType(node: Node): string | undefined {
             return `__sveltets_ctorOf(__sveltets_mapElementTag('${node.name}'))`;
         case 'Body':
             return 'HTMLBodyElement';
+        case 'Slot': // Web Components only
+            return 'HTMLSlotElement';
     }
 }
 
@@ -25,4 +27,8 @@ export function beforeStart(start: number): number {
 
 export function isShortHandAttribute(attr: Node): boolean {
     return attr.expression.end === attr.end;
+}
+
+export function isQuote(str: string): boolean {
+    return str === '"' || str === "'";
 }

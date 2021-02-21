@@ -1,4 +1,10 @@
-import { CompletionContext, FileChangeType, SignatureHelpContext } from 'vscode-languageserver';
+import {
+    CompletionContext,
+    FileChangeType,
+    SemanticTokens,
+    SignatureHelpContext,
+    TextDocumentContentChangeEvent
+} from 'vscode-languageserver';
 import {
     CodeAction,
     CodeActionContext,
@@ -134,11 +140,15 @@ export interface SignatureHelpProvider {
         document: Document,
         position: Position,
         context: SignatureHelpContext | undefined
-    ): Resolvable<SignatureHelp | null>
+    ): Resolvable<SignatureHelp | null>;
 }
 
 export interface SelectionRangeProvider {
     getSelectionRange(document: Document, position: Position): Resolvable<SelectionRange | null>;
+}
+
+export interface SemanticTokensProvider {
+    getSemanticTokens(textDocument: Document, range?: Range): Resolvable<SemanticTokens | null>;
 }
 
 export interface OnWatchFileChangesPara {
@@ -148,6 +158,10 @@ export interface OnWatchFileChangesPara {
 
 export interface OnWatchFileChanges {
     onWatchFileChanges(onWatchFileChangesParas: OnWatchFileChangesPara[]): void;
+}
+
+export interface UpdateTsOrJsFile {
+    updateTsOrJsFile(fileName: string, changes: TextDocumentContentChangeEvent[]): void;
 }
 
 type ProviderBase = DiagnosticsProvider &
@@ -162,7 +176,8 @@ type ProviderBase = DiagnosticsProvider &
     CodeActionsProvider &
     FindReferencesProvider &
     RenameProvider &
-    SignatureHelpProvider;
+    SignatureHelpProvider &
+    SemanticTokensProvider;
 
 export type LSProvider = ProviderBase & BackwardsCompatibleDefinitionsProvider;
 
@@ -179,5 +194,9 @@ export interface LSPProviderConfig {
 }
 
 export type Plugin = Partial<
-    ProviderBase & DefinitionsProvider & OnWatchFileChanges & SelectionRangeProvider
+    ProviderBase &
+        DefinitionsProvider &
+        OnWatchFileChanges &
+        SelectionRangeProvider &
+        UpdateTsOrJsFile
 >;

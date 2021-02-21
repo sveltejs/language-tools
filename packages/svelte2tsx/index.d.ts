@@ -32,5 +32,9 @@ export default function svelte2tsx(
          * `svelte-preprocess`.
          */
         isTsFile?: boolean;
+        /**
+         * Whether to try emitting result when there's a syntax error in the template
+         */
+        emitOnTemplateError?: boolean;
     }
 ): SvelteCompiledToTsx

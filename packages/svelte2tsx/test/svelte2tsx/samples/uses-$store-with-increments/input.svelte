@@ -7,3 +7,4 @@
 
 <button on:click={() => ++$count}>add</button>
 <button on:click={() => $count--}>subtract</button>
+<button on:click={() => $count++}>add</button>

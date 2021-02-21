@@ -9,7 +9,9 @@ import {
     LocationLink,
     TextDocumentEdit,
     CodeAction,
-    SelectionRange
+    SelectionRange,
+    TextEdit,
+    InsertReplaceEdit
 } from 'vscode-languageserver';
 import { TagInformation, offsetAt, positionAt } from './utils';
 import { SourceMapConsumer } from 'source-map';
@@ -206,10 +208,26 @@ export function mapRangeToOriginal(
     fragment: Pick<DocumentMapper, 'getOriginalPosition'>,
     range: Range
 ): Range {
-    return Range.create(
-        fragment.getOriginalPosition(range.start),
-        fragment.getOriginalPosition(range.end)
-    );
+    // DON'T use Range.create here! Positions might not be mapped
+    // and therefore return negative numbers, which makes Range.create throw.
+    // These invalid position need to be handled
+    // on a case-by-case basis in the calling functions.
+    const originalRange = {
+        start: fragment.getOriginalPosition(range.start),
+        end: fragment.getOriginalPosition(range.end)
+    };
+
+    // Range may be mapped one character short - reverse that for "in the same line" cases
+    if (
+        originalRange.start.line === originalRange.end.line &&
+        range.start.line === range.end.line &&
+        originalRange.end.character - originalRange.start.character ===
+            range.end.character - range.start.character - 1
+    ) {
+        originalRange.end.character += 1;
+    }
+
+    return originalRange;
 }
 
 export function mapRangeToGenerated(fragment: DocumentMapper, range: Range): Range {
@@ -227,7 +245,10 @@ export function mapCompletionItemToOriginal(
         return item;
     }
 
-    return { ...item, textEdit: mapObjWithRangeToOriginal(fragment, item.textEdit) };
+    return {
+        ...item,
+        textEdit: mapEditToOriginal(fragment, item.textEdit)
+    };
 }
 
 export function mapHoverToParent(
@@ -246,6 +267,26 @@ export function mapObjWithRangeToOriginal<T extends { range: Range }>(
     objWithRange: T
 ): T {
     return { ...objWithRange, range: mapRangeToOriginal(fragment, objWithRange.range) };
+}
+
+export function mapInsertReplaceEditToOriginal(
+    fragment: Pick<DocumentMapper, 'getOriginalPosition'>,
+    edit: InsertReplaceEdit
+): InsertReplaceEdit {
+    return {
+        ...edit,
+        insert: mapRangeToOriginal(fragment, edit.insert),
+        replace: mapRangeToOriginal(fragment, edit.replace)
+    };
+}
+
+export function mapEditToOriginal(
+    fragment: Pick<DocumentMapper, 'getOriginalPosition'>,
+    edit: TextEdit | InsertReplaceEdit
+): TextEdit | InsertReplaceEdit {
+    return TextEdit.is(edit)
+        ? mapObjWithRangeToOriginal(fragment, edit)
+        : mapInsertReplaceEditToOriginal(fragment, edit);
 }
 
 export function mapDiagnosticToGenerated(

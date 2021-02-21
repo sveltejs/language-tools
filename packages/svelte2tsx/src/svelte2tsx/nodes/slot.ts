@@ -223,7 +223,7 @@ export class SlotHandler {
         const attributes = new Map<string, string>();
         for (const attr of node.attributes) {
             if (attr.name == 'name') continue;
-            if (!attr.value.length) continue;
+            if (!attr.value?.length) continue;
 
             if (attributeValueIsString(attr)) {
                 attributes.set(attr.name, attributeStrValueAsJsExpression(attr));

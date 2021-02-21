@@ -1,0 +1,112 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "title": "Prettier-plugin-svelte schema for .prettierrc",
+    "definitions": {
+        "optionsDefinition": {
+            "type": "object",
+            "properties": {
+                "svelteSortOrder": {
+                    "description": "Sort order for <svelte:options>, scripts, markup, and styles.",
+                    "default": "options-scripts-markup-styles",
+                    "enum": [
+                        "options-scripts-markup-styles",
+                        "options-scripts-styles-markup",
+                        "options-markup-scripts-styles",
+                        "options-markup-styles-scripts",
+                        "options-styles-scripts-markup",
+                        "options-styles-markup-scripts",
+                        "scripts-options-markup-styles",
+                        "scripts-options-styles-markup",
+                        "scripts-markup-options-styles",
+                        "scripts-markup-styles-options",
+                        "scripts-styles-options-markup",
+                        "scripts-styles-markup-options",
+                        "markup-options-scripts-styles",
+                        "markup-options-styles-scripts",
+                        "markup-scripts-options-styles",
+                        "markup-scripts-styles-options",
+                        "markup-styles-options-scripts",
+                        "markup-styles-scripts-options",
+                        "styles-options-scripts-markup",
+                        "styles-options-markup-scripts",
+                        "styles-scripts-options-markup",
+                        "styles-scripts-markup-options",
+                        "styles-markup-options-scripts",
+                        "styles-markup-scripts-options",
+                        "scripts-markup-styles",
+                        "scripts-styles-markup",
+                        "markup-styles-scripts",
+                        "markup-scripts-styles",
+                        "styles-markup-scripts",
+                        "styles-scripts-markup"
+                    ]
+                },
+                "svelteStrictMode": {
+                    "description": "More strict HTML syntax: less self-closed tags, quotes in attributes, no attribute shorthand (overrules svelteAllowShorthand).",
+                    "default": true,
+                    "type": "boolean"
+                },
+                "svelteBracketNewLine": {
+                    "description": "Put the > of a multiline element on a new line. Roughly the Svelte equivalent of the jsxBracketSameLine rule.",
+                    "default": false,
+                    "type": "boolean"
+                },
+                "svelteAllowShorthand": {
+                    "description": "Option to enable/disable component attribute shorthand if attribute name and expression are same.",
+                    "default": false,
+                    "type": "boolean"
+                },
+                "svelteIndentScriptAndStyle": {
+                    "description": "Whether or not to indent the code inside <script> and <style> tags in Svelte files. This saves an indentation level, but might break code folding in your editor.",
+                    "default": false,
+                    "type": "boolean"
+                }
+            }
+        },
+        "overridesDefinition": {
+            "type": "object",
+            "properties": {
+                "overrides": {
+                    "type": "array",
+                    "description": "Provide a list of patterns to override prettier configuration.",
+                    "items": {
+                        "type": "object",
+                        "required": ["files"],
+                        "properties": {
+                            "files": {
+                                "description": "Include these files in this override.",
+                                "oneOf": [
+                                    { "type": "string" },
+                                    { "type": "array", "items": { "type": "string" } }
+                                ]
+                            },
+                            "excludeFiles": {
+                                "description": "Exclude these files from this override.",
+                                "oneOf": [
+                                    { "type": "string" },
+                                    { "type": "array", "items": { "type": "string" } }
+                                ]
+                            },
+                            "options": {
+                                "type": "object",
+                                "description": "The options to apply for this override.",
+                                "$ref": "#/definitions/optionsDefinition"
+                            }
+                        },
+                        "additionalProperties": false
+                    }
+                }
+            }
+        }
+    },
+    "oneOf": [
+        {
+            "type": "object",
+            "allOf": [
+                { "$ref": "#/definitions/optionsDefinition" },
+                { "$ref": "#/definitions/overridesDefinition" }
+            ]
+        },
+        { "type": "string" }
+    ]
+}

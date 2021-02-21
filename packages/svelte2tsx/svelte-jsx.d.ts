@@ -111,6 +111,9 @@ declare namespace svelte.JSX {
       onload?: EventHandler;
       onerror?: EventHandler; // also a Media Event
 
+      // Detail Events
+      ontoggle?: EventHandler<Event, T>;
+
       // Keyboard Events
       onkeydown?: KeyboardEventHandler<T>;
       onkeypress?: KeyboardEventHandler<T>;
@@ -232,11 +235,12 @@ declare namespace svelte.JSX {
       allowtransparency?: boolean;
       allowpaymentrequest?: boolean;
       alt?: string;
+      as?: string;
       async?: boolean;
       autocomplete?: string;
       autofocus?: boolean;
       autoplay?: boolean;
-      capture?: boolean;
+      capture?: 'environment' | 'user' | boolean;
       cellpadding?: number | string;
       cellspacing?: number | string;
       charset?: string;
@@ -513,6 +517,7 @@ declare namespace svelte.JSX {
       gradientTransform?: string;
       gradientUnits?: string;
       hanging?: number | string;
+      href?: string;
       'horiz-adv-x'?: number | string;
       'horiz-origin-x'?: number | string;
       ideographic?: number | string;
@@ -560,6 +565,7 @@ declare namespace svelte.JSX {
       'overline-thickness'?: number | string;
       'paint-order'?: number | string;
       'panose-1'?: number | string;
+      path?: string;
       pathLength?: number | string;
       patternContentUnits?: string;
       patternTransform?: number | string;
@@ -701,10 +707,15 @@ declare namespace svelte.JSX {
       scrollY?: Window['scrollY'];
       readonly online?: Window['navigator']['onLine'];
 
-
+      ondevicelight?: EventHandler<Event, Window>;
+      onbeforeinstallprompt?: EventHandler<Event, Window>;
+      ondeviceproximity?: EventHandler<Event, Window>;
+      onpaint?: EventHandler<Event, Window>;
+      onuserproximity?: EventHandler<Event, Window>;
       onbeforeprint?: EventHandler<Event, Window>;
       onafterprint?: EventHandler<Event, Window>;
       onlanguagechange?: EventHandler<Event, Window>;
+      onorientationchange?: EventHandler<Event, Window>;
       onmessage?: EventHandler<MessageEvent, Window>;
       onmessageerror?: EventHandler<MessageEvent, Window>;
       onoffline?: EventHandler<Event, Window>;
@@ -726,6 +737,7 @@ declare namespace svelte.JSX {
     interface SapperAnchorProps {
         // transformed from sapper:noscroll so it should be camel case
         sapperNoscroll?: true;
+        sapperPrefetch?: true;
     }
 
     interface SvelteMediaTimeRange {

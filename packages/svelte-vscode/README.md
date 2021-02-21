@@ -1,6 +1,6 @@
 # Svelte for VS Code
 
-Provides syntax highlighting and rich intellisense for Svelte components in VS Code, utilising the [svelte language server](/packages/language-server).
+Provides syntax highlighting and rich intellisense for Svelte components in VS Code, using the [svelte language server](/packages/language-server).
 
 ## Setup
 
@@ -21,7 +21,7 @@ This extension comes bundled with a formatter for Svelte files. To let this exte
 
 The formatter is a [Prettier](https://prettier.io/) [plugin](https://prettier.io/docs/en/plugins.html), which means some formatting options of Prettier apply. There are also Svelte specific settings like the sort order of scripts, markup, styles. More info about them and how to configure it can be found [here](https://github.com/sveltejs/prettier-plugin-svelte).
 
-You need at least VSCode version `1.41.0`.
+You need at least VSCode version `1.52.0`.
 
 Do you want to use TypeScript/SCSS/Less/..? [See the docs](/docs/README.md#language-specific-setup).
 
@@ -76,6 +76,14 @@ Can be used for attaching to the process for debugging / profiling.
 If you experience crashes due to "port already in use", try setting the port.
 -1 = default port is used.
 
+##### `svelte.trace.server`
+
+Traces the communication between VS Code and the Svelte Language Server. _Default_: `off`
+
+Value can be `off`, `messages`, or `verbose`.
+You normally don't set this. Can be used in debugging language server features.
+If enabled you can see the logging in the output channel near the integrated terminal.
+
 ##### `svelte.plugin.typescript.enable`
 
 Enable the TypeScript plugin. _Default_: `true`
@@ -119,6 +127,10 @@ Enable rename functionality for JS/TS variables inside Svelte files. _Default_: 
 ##### `svelte.plugin.typescript.signatureHelp.enable`
 
 Enable signature help (parameter hints) for JS/TS. _Default_: `true`
+
+##### `svelte.plugin.typescript.semanticTokens.enable`
+
+Enable semantic tokens (semantic highlight) for TypeScript. Doesn't apply to JavaScript. _Default_: `true`
 
 ##### `svelte.plugin.css.enable`
 
@@ -186,6 +198,10 @@ Enable HTML tag auto closing. _Default_: `true`
 
 Enable document symbols for HTML. _Default_: `true`
 
+##### `svelte.plugin.html.renameTags.enable`
+
+Enable rename tags for the opening/closing tag pairs in HTML. _Default_: `true`
+
 ##### `svelte.plugin.svelte.enable`
 
 Enable the Svelte plugin. _Default_: `true`
@@ -200,7 +216,47 @@ Svelte compiler warning codes to ignore or to treat as errors. Example: { 'css-u
 
 ##### `svelte.plugin.svelte.format.enable`
 
-Enable formatting for Svelte (includes css & js). _Default_: `true`
+Enable formatting for Svelte (includes css & js) using [prettier-plugin-svelte](https://github.com/sveltejs/prettier-plugin-svelte). _Default_: `true`
+
+You can set some formatting options through this extension. They will be ignored if there's any kind of configuration file, for example a `.prettierrc` file. Read more about Prettier's configuration file [here](https://prettier.io/docs/en/configuration.html).
+
+##### `svelte.plugin.svelte.format.config.svelteSortOrder`
+
+Format: join the keys `options`, `scripts`, `markup`, `styles` with a `-` in the order you want. _Default_: `options-scripts-markup-styles`
+
+This option is ignored if there's any kind of configuration file, for example a `.prettierrc` file.
+
+##### `svelte.plugin.svelte.format.config.svelteStrictMode`
+
+More strict HTML syntax. _Default_: `false`
+
+This option is ignored if there's any kind of configuration file, for example a `.prettierrc` file.
+
+##### `svelte.plugin.svelte.format.config.svelteAllowShorthand`
+
+Option to enable/disable component attribute shorthand if attribute name and expression are the same. _Default_: `true`
+
+This option is ignored if there's any kind of configuration file, for example a `.prettierrc` file.
+
+##### `svelte.plugin.svelte.format.config.svelteBracketNewLine`
+
+Put the `>` of a multiline element on a new line. _Default_: `true`
+
+This option is ignored if there's any kind of configuration file, for example a `.prettierrc` file.
+
+##### `svelte.plugin.svelte.format.config.svelteIndentScriptAndStyle`
+
+Whether or not to indent code inside `<script>` and `<style>` tags. _Default_: `true`
+
+This option is ignored if there's any kind of configuration file, for example a `.prettierrc` file.
+
+##### `svelte.plugin.svelte.format.config.printWidth`
+
+Maximum line width after which code is tried to be broken up. This is a Prettier core option. If you have the Prettier extension installed, this option is ignored and the corresponding option of that extension is used instead. This option is also ignored if there's any kind of configuration file, for example a `.prettierrc` file. _Default_: `80`
+
+##### `svelte.plugin.svelte.format.config.singleQuote`
+
+Use single quotes instead of double quotes, where possible. This is a Prettier core option. If you have the Prettier extension installed, this option is ignored and the corresponding option of that extension is used instead. This option is also ignored if there's any kind of configuration file, for example a `.prettierrc` file. _Default_: `false`
 
 ##### `svelte.plugin.svelte.hover.enable`
 

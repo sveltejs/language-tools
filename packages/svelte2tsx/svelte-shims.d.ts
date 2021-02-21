@@ -29,7 +29,7 @@ declare class Svelte2TsxComponent<
      * Causes the callback function to be called whenever the component dispatches an event.
      * A function is returned that will remove the event listener when called.
      */
-    $on<K extends keyof Events>(event: K, handler: (e: Events[K]) => any): () => void;
+    $on<K extends keyof Events & string>(event: K, handler: (e: Events[K]) => any): () => void;
     /**
      * Removes a component from the DOM and triggers any `onDestroy` handlers.
      */
@@ -67,8 +67,8 @@ interface Svelte2TsxComponentConstructorParameters<Props extends {}> {
 type AConstructorTypeOf<T, U extends any[] = any[]> = new (...args: U) => T;
 type SvelteComponentConstructor<T, U extends Svelte2TsxComponentConstructorParameters<any>> = new (options: U) => T;
 
-type SvelteAction<U extends any[], El extends any> = (node: El, ...args:U) => {
-	update?: (...args:U) => void,
+type SvelteActionReturnType = {
+	update?: (args: any) => void,
 	destroy?: () => void
 } | void
 
@@ -80,9 +80,9 @@ type SvelteTransitionConfig = {
     tick?: (t: number, u: number) => void
 }
 
-type SvelteTransition<U extends any[]> = (node: Element, ...args: U) => SvelteTransitionConfig | (() => SvelteTransitionConfig)
+type SvelteTransitionReturnType = SvelteTransitionConfig | (() => SvelteTransitionConfig)
 
-type SvelteAnimation<U extends any[]> = (node: Element, move: { from: DOMRect, to: DOMRect }, ...args: U) => {
+type SvelteAnimationReturnType = {
     delay?: number,
     duration?: number,
     easing?: (t: number) => number,
@@ -98,14 +98,11 @@ type SvelteStore<T> = { subscribe: (run: (value: T) => any, invalidate?: any) =>
 
 
 declare var process: NodeJS.Process & { browser: boolean }
+declare var __sveltets_AnimationMove: { from: DOMRect, to: DOMRect }
 
-declare function __sveltets_ensureAnimation<U extends any[]>(animation: SvelteAnimation<U>, ...args: U): {};
-declare function __sveltets_ensureAction<U extends any[], El extends any>(
-    el: El,
-    action: SvelteAction<U, El>,
-    ...args: U
-): {};
-declare function __sveltets_ensureTransition<U extends any[]>(transition: SvelteTransition<U>, ...args: U): {};
+declare function __sveltets_ensureAnimation(animationCall: SvelteAnimationReturnType): {};
+declare function __sveltets_ensureAction(actionCall: SvelteActionReturnType): {};
+declare function __sveltets_ensureTransition(transitionCall: SvelteTransitionReturnType): {};
 declare function __sveltets_ensureFunction(expression: (e: Event & { detail?: any }) => unknown ): {};
 declare function __sveltets_ensureType<T>(type: AConstructorTypeOf<T>, el: T): {};
 declare function __sveltets_ctorOf<T>(type: T): AConstructorTypeOf<T>;

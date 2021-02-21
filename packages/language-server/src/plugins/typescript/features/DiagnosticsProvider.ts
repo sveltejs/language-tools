@@ -11,6 +11,11 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
 
     async getDiagnostics(document: Document): Promise<Diagnostic[]> {
         const { lang, tsDoc } = this.getLSAndTSDoc(document);
+
+        if (['coffee', 'coffeescript'].includes(document.getLanguageAttribute('script'))) {
+            return [];
+        }
+
         const isTypescript = tsDoc.scriptKind === ts.ScriptKind.TSX;
 
         // Document preprocessing failed, show parser error instead
@@ -156,8 +161,32 @@ function enhanceIfNecessary(diagnostic: Diagnostic): Diagnostic {
                 // eslint-disable-next-line max-len
                 "It needs a class definition with at least the property '$$prop_def' which should contain a map of input property definitions.\n" +
                 'Example:\n' +
-                'class ComponentName { $$prop_def: { propertyName: string; } }\n\n' +
+                '  class ComponentName { $$prop_def: { propertyName: string; } }\n' +
+                'If you are using Svelte 3.31+, use SvelteComponentTyped:\n' +
+                '  import type { SvelteComponentTyped } from "svelte";\n' +
+                '  class ComponentName extends SvelteComponentTyped<{propertyName: string;}> {}\n\n' +
+                'Underlying error:\n' +
                 diagnostic.message
+        };
+    }
+
+    if (diagnostic.code === 2607) {
+        return {
+            ...diagnostic,
+            message:
+                'Element does not support attributes because ' +
+                'type definitions are missing for this Svelte Component or element cannot be used as such.\n\n' +
+                'Underlying error:\n' +
+                diagnostic.message
+        };
+    }
+
+    if (diagnostic.code === 1184) {
+        return {
+            ...diagnostic,
+            message:
+                diagnostic.message +
+                '\nIf this is a declare statement, move it into <script context="module">..</script>'
         };
     }
 

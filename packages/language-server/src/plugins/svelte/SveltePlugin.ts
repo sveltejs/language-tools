@@ -13,7 +13,7 @@ import {
 } from 'vscode-languageserver';
 import { Document } from '../../lib/documents';
 import { LSConfigManager, LSSvelteConfig } from '../../ls-config';
-import { importPrettier } from '../../importPackage';
+import { getPackageInfo, importPrettier } from '../../importPackage';
 import {
     CodeActionsProvider,
     CompletionsProvider,
@@ -29,6 +29,7 @@ import { getHoverInfo } from './features/getHoverInfo';
 import { SvelteCompileResult, SvelteDocument } from './SvelteDocument';
 import { Logger } from '../../logger';
 import { getSelectionRange } from './features/getSelectionRanges';
+import { merge } from 'lodash';
 
 export class SveltePlugin
     implements
@@ -73,12 +74,27 @@ export class SveltePlugin
         // Try resolving the config through prettier and fall back to possible editor config
         const config =
             returnObjectIfHasKeys(await prettier.resolveConfig(filePath, { editorconfig: true })) ||
-            returnObjectIfHasKeys(this.configManager.getPrettierConfig()) ||
-            // Be defensive here because IDEs other than VSCode might not have these settings
-            (options && {
-                tabWidth: options.tabSize,
-                useTabs: !options.insertSpaces
-            });
+            merge(
+                {}, // merge into empty obj to not manipulate own config
+                this.configManager.get('svelte.format.config'),
+                returnObjectIfHasKeys(this.configManager.getPrettierConfig()) ||
+                    // Be defensive here because IDEs other than VSCode might not have these settings
+                    (options && {
+                        tabWidth: options.tabSize,
+                        useTabs: !options.insertSpaces
+                    }) ||
+                    {}
+            );
+        // If user has prettier-plugin-svelte 1.x, then remove `options` from the sort
+        // order or else it will throw a config error (`options` was not present back then).
+        if (
+            config?.svelteSortOrder &&
+            getPackageInfo('prettier-plugin-svelte', filePath)?.version.major < 2
+        ) {
+            config.svelteSortOrder = config.svelteSortOrder
+                .replace('-options', '')
+                .replace('options-', '');
+        }
         // Take .prettierignore into account
         const fileInfo = await prettier.getFileInfo(filePath, {
             ignorePath: this.configManager.getPrettierConfig()?.ignorePath ?? '.prettierignore',

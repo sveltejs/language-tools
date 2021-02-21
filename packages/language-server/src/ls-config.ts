@@ -1,6 +1,6 @@
 import { merge, get } from 'lodash';
 import { UserPreferences } from 'typescript';
-import { EmmetConfiguration } from 'vscode-emmet-helper';
+import { VSCodeEmmetConfig } from 'vscode-emmet-helper';
 
 /**
  * Default config for the language server.
@@ -17,7 +17,8 @@ const defaultLSConfig: LSConfig = {
         codeActions: { enable: true },
         rename: { enable: true },
         selectionRange: { enable: true },
-        signatureHelp: { enable: true }
+        signatureHelp: { enable: true },
+        semanticTokens: { enable: true }
     },
     css: {
         enable: true,
@@ -35,14 +36,26 @@ const defaultLSConfig: LSConfig = {
         hover: { enable: true },
         completions: { enable: true, emmet: true },
         tagComplete: { enable: true },
-        documentSymbols: { enable: true }
+        documentSymbols: { enable: true },
+        renameTags: { enable: true }
     },
     svelte: {
         enable: true,
         compilerWarnings: {},
         diagnostics: { enable: true },
         rename: { enable: true },
-        format: { enable: true },
+        format: {
+            enable: true,
+            config: {
+                svelteSortOrder: 'options-scripts-markup-styles',
+                svelteStrictMode: false,
+                svelteAllowShorthand: true,
+                svelteBracketNewLine: true,
+                svelteIndentScriptAndStyle: true,
+                printWidth: 80,
+                singleQuote: false
+            }
+        },
         completions: { enable: true },
         hover: { enable: true },
         codeActions: { enable: true },
@@ -93,6 +106,9 @@ export interface LSTypescriptConfig {
     signatureHelp: {
         enable: boolean;
     };
+    semanticTokens: {
+        enable: boolean;
+    };
 }
 
 export interface LSCSSConfig {
@@ -137,6 +153,9 @@ export interface LSHTMLConfig {
     documentSymbols: {
         enable: boolean;
     };
+    renameTags: {
+        enable: boolean;
+    };
 }
 
 export type CompilerWarningsSettings = Record<string, 'ignore' | 'error'>;
@@ -149,6 +168,15 @@ export interface LSSvelteConfig {
     };
     format: {
         enable: boolean;
+        config: {
+            svelteSortOrder: string;
+            svelteStrictMode: boolean;
+            svelteAllowShorthand: boolean;
+            svelteBracketNewLine: boolean;
+            svelteIndentScriptAndStyle: boolean;
+            printWidth: number;
+            singleQuote: boolean;
+        };
     };
     rename: {
         enable: boolean;
@@ -219,7 +247,7 @@ export class LSConfigManager {
         }
     };
     private prettierConfig: any = {};
-    private emmetConfig: EmmetConfiguration = {};
+    private emmetConfig: VSCodeEmmetConfig = {};
 
     /**
      * Updates config.
@@ -268,11 +296,11 @@ export class LSConfigManager {
         this.listeners.push(callback);
     }
 
-    updateEmmetConfig(config: EmmetConfiguration): void {
+    updateEmmetConfig(config: VSCodeEmmetConfig): void {
         this.emmetConfig = config || {};
     }
 
-    getEmmetConfig(): EmmetConfiguration {
+    getEmmetConfig(): VSCodeEmmetConfig {
         return this.emmetConfig;
     }
 
