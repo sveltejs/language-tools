@@ -11,7 +11,7 @@ function render() {
 () => (<>
 
 <button onclick={() => count.set( $count + 1)}>add</button>
-<button onclick={() => count.set( $count - 1)}>subtract</button></>
+<button onclick={() => count.set( $count - 1)}>subtract</button>
 <button onclick={() => count.set( $count + 1)}>add</button></>);
 return { props: {}, slots: {}, getters: {}, events: {} }}
 
