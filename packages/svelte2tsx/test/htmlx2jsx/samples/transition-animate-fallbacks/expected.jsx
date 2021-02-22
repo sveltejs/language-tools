@@ -11,7 +11,7 @@
 
 <h1 {...__sveltets_ensureAnimation(flip(__sveltets_mapElementTag('h1'),__sveltets_AnimationMove,{}))}>Hello</h1>
 
-<h1 {...__sveltets_ensureTransition(foo(__sveltets_mapElementTag('h1')))}>Hello</h1>
-<h1 {...__sveltets_ensureTransition(foo(__sveltets_mapElementTag('h1')))}>Hello</h1>
-<h1 {...__sveltets_ensureTransition(foo(__sveltets_mapElementTag('h1')))}>Hello</h1>
-<h1 {...__sveltets_ensureAnimation(foo(__sveltets_mapElementTag('h1'),__sveltets_AnimationMove))}>Hello</h1></>
+<h1 {...__sveltets_ensureTransition(foo(__sveltets_mapElementTag('h1'),{}))}>Hello</h1>
+<h1 {...__sveltets_ensureTransition(foo(__sveltets_mapElementTag('h1'),{}))}>Hello</h1>
+<h1 {...__sveltets_ensureTransition(foo(__sveltets_mapElementTag('h1'),{}))}>Hello</h1>
+<h1 {...__sveltets_ensureAnimation(foo(__sveltets_mapElementTag('h1'),__sveltets_AnimationMove,{}))}>Hello</h1></>

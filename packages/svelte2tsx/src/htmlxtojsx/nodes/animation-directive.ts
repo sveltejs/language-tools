@@ -20,11 +20,7 @@ export function handleAnimateDirective(
     const nodeType = `__sveltets_mapElementTag('${parent.name}')`;
 
     if (!attr.expression) {
-        if (animationsThatNeedParam.has(attr.name)) {
-            str.appendLeft(attr.end, `(${nodeType},__sveltets_AnimationMove,{}))}`);
-        } else {
-            str.appendLeft(attr.end, `(${nodeType},__sveltets_AnimationMove))}`);
-        }
+        str.appendLeft(attr.end, `(${nodeType},__sveltets_AnimationMove,{}))}`);
         return;
     }
     str.overwrite(
@@ -37,16 +33,3 @@ export function handleAnimateDirective(
         str.remove(attr.end - 1, attr.end);
     }
 }
-
-/**
- * Up to Svelte version 3.32.0, the following built-in animate functions have
- * optional parameters, but according to its typings they were mandatory.
- * To not show unnecessary type errors to those users, `{}` should be added
- * as a fallback parameter if the user did not provide one.
- * It may be the case that someone has a custom animation with the same name
- * that expects different parameters, or that someone did an import alias fly as foo,
- * but those are very unlikely.
- *
- * Remove this "hack" some day.
- */
-const animationsThatNeedParam = new Set(['flip']);

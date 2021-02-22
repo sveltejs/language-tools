@@ -111,6 +111,9 @@ declare namespace svelte.JSX {
       onload?: EventHandler;
       onerror?: EventHandler; // also a Media Event
 
+      // Detail Events
+      ontoggle?: EventHandler<Event, T>;
+
       // Keyboard Events
       onkeydown?: KeyboardEventHandler<T>;
       onkeypress?: KeyboardEventHandler<T>;
@@ -514,6 +517,7 @@ declare namespace svelte.JSX {
       gradientTransform?: string;
       gradientUnits?: string;
       hanging?: number | string;
+      href?: string;
       'horiz-adv-x'?: number | string;
       'horiz-origin-x'?: number | string;
       ideographic?: number | string;
