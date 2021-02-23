@@ -87,7 +87,7 @@ export function startServer(options?: LSOptions) {
     const configManager = new LSConfigManager();
     const pluginHost = new PluginHost(docManager);
     let sveltePlugin: SveltePlugin = undefined as any;
-    let watchers: FallbackWatcher[] | undefined;
+    let watcher: FallbackWatcher | undefined;
 
     connection.onInitialize((evt) => {
         const workspaceUris = evt.workspaceFolders?.map((folder) => folder.uri.toString()) ?? [
@@ -99,11 +99,9 @@ export function startServer(options?: LSOptions) {
         }
 
         if (!evt.capabilities.workspace?.didChangeWatchedFiles) {
-            watchers = workspaceUris
-                .map(urlToPath)
-                .filter(isNotNullOrUndefined)
-                .map((path) => new FallbackWatcher('**/*.{ts,js}', path));
-            watchers.forEach((watcher) => watcher.onDidChangeWatchedFiles(onDidChangeWatchedFiles));
+            const workspacePaths = workspaceUris.map(urlToPath).filter(isNotNullOrUndefined);
+            watcher = new FallbackWatcher('**/*.{ts,js}', workspacePaths);
+            watcher.onDidChangeWatchedFiles(onDidChangeWatchedFiles);
         }
 
         configManager.update(evt.initializationOptions?.config || {});
@@ -211,7 +209,7 @@ export function startServer(options?: LSOptions) {
     });
 
     connection.onExit(() => {
-        watchers?.forEach((watcher) => watcher.dispose());
+        watcher?.dispose();
     });
 
     connection.onRenameRequest((req) =>

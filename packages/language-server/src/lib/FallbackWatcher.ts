@@ -9,19 +9,16 @@ export class FallbackWatcher {
     private readonly watcher: FSWatcher;
     private readonly callbacks: DidChangeHandler[] = [];
 
-    constructor(glob: string, private readonly workspacePath: string) {
-        this.watcher = watch(glob, {
-            cwd: workspacePath
-        });
+    constructor(glob: string, workspacePaths: string[]) {
+        this.watcher = watch(workspacePaths.map((workspacePath) => join(workspacePath, glob)));
 
-        this.watcher.on('add', (path) => this.callback(path, FileChangeType.Created));
-        this.watcher.on('unlink', (path) => this.callback(path, FileChangeType.Deleted));
-        this.watcher.on('change', (path) => this.callback(path, FileChangeType.Changed));
+        this.watcher
+            .on('add', (path) => this.callback(path, FileChangeType.Created))
+            .on('unlink', (path) => this.callback(path, FileChangeType.Deleted))
+            .on('change', (path) => this.callback(path, FileChangeType.Changed));
     }
 
-    private convert(relativePath: string, type: FileChangeType): DidChangeWatchedFilesParams {
-        const path = join(this.workspacePath, relativePath);
-
+    private convert(path: string, type: FileChangeType): DidChangeWatchedFilesParams {
         const event: FileEvent = {
             type,
             uri: pathToUrl(path)
