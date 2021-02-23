@@ -14,7 +14,8 @@ import {
     TextDocumentSyncKind,
     WorkspaceEdit,
     SemanticTokensRequest,
-    SemanticTokensRangeRequest
+    SemanticTokensRangeRequest,
+    DidChangeWatchedFilesParams
 } from 'vscode-languageserver';
 import { IPCMessageReader, IPCMessageWriter, createConnection } from 'vscode-languageserver/node';
 import { DiagnosticsManager } from './lib/DiagnosticsManager';
@@ -31,7 +32,8 @@ import {
     TypeScriptPlugin,
     OnWatchFileChangesPara
 } from './plugins';
-import { urlToPath } from './utils';
+import { isNotNullOrUndefined, urlToPath } from './utils';
+import { FallbackWatcher } from './lib/FallbackWatcher';
 
 namespace TagCloseRequest {
     export const type: RequestType<
@@ -85,6 +87,7 @@ export function startServer(options?: LSOptions) {
     const configManager = new LSConfigManager();
     const pluginHost = new PluginHost(docManager);
     let sveltePlugin: SveltePlugin = undefined as any;
+    let watchers: FallbackWatcher[] | undefined;
 
     connection.onInitialize((evt) => {
         const workspaceUris = evt.workspaceFolders?.map((folder) => folder.uri.toString()) ?? [
@@ -93,6 +96,14 @@ export function startServer(options?: LSOptions) {
         Logger.log('Initialize language server at ', workspaceUris.join(', '));
         if (workspaceUris.length === 0) {
             Logger.error('No workspace path set');
+        }
+
+        if (!evt.capabilities.workspace?.didChangeWatchedFiles) {
+            watchers = workspaceUris
+                .map(urlToPath)
+                .filter(isNotNullOrUndefined)
+                .map((path) => new FallbackWatcher('**/*.{ts,js}', path));
+            watchers.forEach((watcher) => watcher.onDidChangeWatchedFiles(onDidChangeWatchedFiles));
         }
 
         configManager.update(evt.initializationOptions?.config || {});
@@ -199,6 +210,10 @@ export function startServer(options?: LSOptions) {
         };
     });
 
+    connection.onExit(() => {
+        watchers?.forEach((watcher) => watcher.dispose());
+    });
+
     connection.onRenameRequest((req) =>
         pluginHost.rename(req.textDocument, req.position, req.newName)
     );
@@ -285,7 +300,9 @@ export function startServer(options?: LSOptions) {
     );
 
     const updateAllDiagnostics = _.debounce(() => diagnosticsManager.updateAll(), 1000);
-    connection.onDidChangeWatchedFiles((para) => {
+
+    connection.onDidChangeWatchedFiles(onDidChangeWatchedFiles);
+    function onDidChangeWatchedFiles(para: DidChangeWatchedFilesParams) {
         const onWatchFileChangesParas = para.changes
             .map((change) => ({
                 fileName: urlToPath(change.uri),
@@ -296,7 +313,8 @@ export function startServer(options?: LSOptions) {
         pluginHost.onWatchFileChanges(onWatchFileChangesParas);
 
         updateAllDiagnostics();
-    });
+    }
+
     connection.onDidSaveTextDocument(updateAllDiagnostics);
     connection.onNotification('$/onDidChangeTsOrJsFile', async (e: any) => {
         const path = urlToPath(e.uri);
