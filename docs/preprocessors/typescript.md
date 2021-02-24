@@ -135,3 +135,18 @@ declare namespace svelte.JSX {
 ```
 
 Then make sure that `d.ts` file is referenced in your `tsconfig.json`. If it reads something like `"include": ["src/**/*"]` and your `d.ts` file is inside `src`, it should work. You may need to reload for the changes to take effect.
+
+### I'm unable to use installed types (for example through `@types/..`)
+
+You are most likely extending from Svelte's `@tsconfig/svelte` base config in your `tsconfig.json`, or you did set `"types": [..]` in your `tsconfig`. In both cases, a `"types": [..]` property is present. This makes TypeScript prevent all ambient types which are not listed in that `types`-array from getting picked up. The solution is to enhance/add a `types` section to your `tsconfig.json`:
+
+```
+{
+    "compilerOptions": {
+        // ..
+        "types": ["svelte", "..<your installed type>.."]
+    }
+}
+```
+
+We are looking for ways to make the `types` definition in `@tsconfig/svelte` unnecessary, so you don't have those issues in the future.
