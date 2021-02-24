@@ -150,3 +150,7 @@ You are most likely extending from Svelte's `@tsconfig/svelte` base config in yo
 ```
 
 We are looking for ways to make the `types` definition in `@tsconfig/svelte` unnecessary, so you don't have those issues in the future.
+
+### I'm getting weird behavior when using `"module": "CommonJS"`
+
+Don't set the module to `CommonJS`, it will result in wrong transpilation of TypeScript to JavaScript. Moreover, you shouldn't set this anyway as `CommonJS` is a module format for NodeJS which is not understood by the Browser. For more technical details, see [this issue comment](https://github.com/sveltejs/language-tools/issues/826#issuecomment-782858437).
