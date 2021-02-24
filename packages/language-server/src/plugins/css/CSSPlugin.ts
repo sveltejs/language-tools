@@ -40,6 +40,8 @@ import {
 import { CSSDocument } from './CSSDocument';
 import { getLanguage, getLanguageService } from './service';
 import { GlobalVars } from './global-vars';
+import { getIdClassCompletion } from './features/getIdClassCompletion';
+import { foundCurrentAttributeInfo } from '../../lib/documents/parseHtml';
 
 export class CSSPlugin
     implements
@@ -130,10 +132,10 @@ export class CSSPlugin
     ): CompletionList | null {
         const triggerCharacter = completionContext?.triggerCharacter;
         const triggerKind = completionContext?.triggerKind;
-        const isCustomTriggerCharater = triggerKind === CompletionTriggerKind.TriggerCharacter;
+        const isCustomTriggerCharacter = triggerKind === CompletionTriggerKind.TriggerCharacter;
 
         if (
-            isCustomTriggerCharater &&
+            isCustomTriggerCharacter &&
             triggerCharacter &&
             !this.triggerCharacters.includes(triggerCharacter)
         ) {
@@ -146,7 +148,11 @@ export class CSSPlugin
 
         const cssDocument = this.getCSSDoc(document);
         if (!cssDocument.isInGenerated(position)) {
-            return null;
+            const currentAttributeInfo = foundCurrentAttributeInfo(document, position);
+            if (!currentAttributeInfo) {
+                return null;
+            }
+            return getIdClassCompletion(cssDocument, currentAttributeInfo) ?? null;
         }
 
         if (isSASS(cssDocument)) {
