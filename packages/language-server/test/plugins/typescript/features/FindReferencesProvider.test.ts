@@ -80,4 +80,80 @@ describe('FindReferencesProvider', () => {
     it('finds references (not searching from declaration)', async () => {
         await test(Position.create(2, 8), true);
     });
+
+    it('finds references for $store', async () => {
+        const { provider, document } = setup('find-references-$store.svelte');
+
+        const results = await provider.findReferences(document, Position.create(2, 10), {
+            includeDeclaration: true
+        });
+        assert.deepStrictEqual(results, [
+            {
+                range: {
+                    end: {
+                        character: 16,
+                        line: 1
+                    },
+                    start: {
+                        character: 10,
+                        line: 1
+                    }
+                },
+                uri: getUri('find-references-$store.svelte')
+            },
+            // TODO this one should be filtered out
+            {
+                range: {
+                    end: {
+                        character: 30,
+                        line: 1
+                    },
+                    start: {
+                        character: 30,
+                        line: 1
+                    }
+                },
+                uri: getUri('find-references-$store.svelte')
+            },
+            {
+                range: {
+                    end: {
+                        character: 15,
+                        line: 2
+                    },
+                    start: {
+                        character: 9,
+                        line: 2
+                    }
+                },
+                uri: getUri('find-references-$store.svelte')
+            },
+            {
+                range: {
+                    end: {
+                        character: 15,
+                        line: 3
+                    },
+                    start: {
+                        character: 9,
+                        line: 3
+                    }
+                },
+                uri: getUri('find-references-$store.svelte')
+            },
+            {
+                range: {
+                    end: {
+                        character: 8,
+                        line: 7
+                    },
+                    start: {
+                        character: 2,
+                        line: 7
+                    }
+                },
+                uri: getUri('find-references-$store.svelte')
+            }
+        ]);
+    });
 });
