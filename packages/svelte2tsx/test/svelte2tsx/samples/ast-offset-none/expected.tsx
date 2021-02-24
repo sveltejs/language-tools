@@ -1,6 +1,6 @@
 ///<reference types="svelte" />
 <></>;function render() {
-__sveltets_store_get(var);
+(__sveltets_store_get(var), $var);
 () => (<></>);
 return { props: {}, slots: {}, getters: {}, events: {} }}
 
