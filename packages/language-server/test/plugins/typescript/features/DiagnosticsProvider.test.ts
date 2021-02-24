@@ -234,7 +234,7 @@ describe('DiagnosticsProvider', () => {
         assert.deepStrictEqual(diagnostics, [
             {
                 code: 6385,
-                message: "'a' is deprecated",
+                message: "'a' is deprecated.",
                 range: {
                     end: {
                         character: 5,
@@ -400,7 +400,7 @@ describe('DiagnosticsProvider', () => {
         ]);
     });
 
-    it.only('$store control flow', async () => {
+    it('$store control flow', async () => {
         const { plugin, document } = setup('diagnostics-$store-control-flow.svelte');
         const diagnostics = await plugin.getDiagnostics(document);
 
