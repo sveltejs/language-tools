@@ -2,7 +2,7 @@
     "name": "typescript-svelte-plugin",
     "version": "0.1.0",
     "description": "A TypeScript Plugin providing Svelte intellisense",
-    "main": "src/index.js",
+    "main": "index.js",
     "scripts": {
         "build": "esbuild src/index.ts --bundle --platform=node --target=es2020 --external:svelte2tsx --outfile=index.js",
         "watch": "npm run build -- --watch",
