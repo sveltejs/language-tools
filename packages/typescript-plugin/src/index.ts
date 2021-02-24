@@ -1,13 +1,12 @@
-function init(modules: { typescript: typeof import('typescript/lib/tsserverlibrary') }) {
-    function create(info: ts.server.PluginCreateInfo) {
-        // TODO
-    }
-
-    function getExternalFiles(project: ts.server.ConfiguredProject) {
-        // TODO
-    }
-
-    return { create, getExternalFiles };
-}
-
-export = init;
+import svelte2tsx, { SvelteCompiledToTsx } from "svelte2tsx";
+import { createLanguagePlugin } from "./ts-language-plugin";
+module.exports = createLanguagePlugin({
+	extension: "svelte",
+	transform(fileName, text) {
+		const tsx: SvelteCompiledToTsx = svelte2tsx(text, { filename: fileName, emitOnTemplateError: true });
+		return {
+			content: tsx.code,
+			mappings: tsx.map.mappings,
+		};
+	},
+});

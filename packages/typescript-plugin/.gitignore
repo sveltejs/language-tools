@@ -3,3 +3,4 @@ src/**/*.d.ts
 src/tsconfig.tsbuildinfo
 node_modules
 tsconfig.tsbuildinfo
+index.js

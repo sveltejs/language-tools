@@ -4,7 +4,8 @@
     "description": "A TypeScript Plugin providing Svelte intellisense",
     "main": "src/index.js",
     "scripts": {
-        "build": "tsc -p ./",
+        "build": "esbuild src/index.ts --bundle --platform=node --target=es2020 --external:svelte2tsx --outfile=index.js",
+        "watch": "npm run build -- --watch",
         "test": "echo 'NOOP'"
     },
     "keywords": [
@@ -18,6 +19,11 @@
     "devDependencies": {
         "@tsconfig/node12": "^1.0.0",
         "@types/node": "^13.9.0",
+        "esbuild": "^0.8.51",
         "typescript": "*"
+    },
+    "dependencies": {
+        "sourcemap-codec": "^1.4.8",
+        "svelte2tsx": "^0.1.174"
     }
 }

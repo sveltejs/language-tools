@@ -3,11 +3,15 @@
     "compilerOptions": {
         "moduleResolution": "node",
         "esModuleInterop": true,
-        "strict": true,
+        "strict": false,
+        "strictFunctionTypes": true,
+        "strictBindCallApply": true,
+        "noImplicitThis": true,
         "declaration": true,
         "outDir": ".",
         "sourceMap": false,
-        "composite": true
+        "composite": true,
+        "skipLibCheck": true
     },
     "include": ["./src/**/*"],
     "exclude": ["./node_modules"]

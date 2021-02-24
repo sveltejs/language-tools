@@ -492,6 +492,16 @@
             {
                 "language": "svelte"
             }
+        ],
+        "typescriptServerPlugins": [
+            {
+                "name": "ts-plugin-svelte",
+                "enableForWorkspaceTypeScriptVersions": true,
+                "path": "../ts-plugin-svelte",
+                "languages": [
+                    "svelte"
+                ]
+            }
         ]
     },
     "devDependencies": {
