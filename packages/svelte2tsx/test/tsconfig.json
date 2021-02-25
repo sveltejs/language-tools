@@ -1,0 +1,10 @@
+{
+    "include": ["*.ts", "build/*"],
+    "compilerOptions": {
+        "types": ["@types/node", "@types/mocha"],
+        "target": "esnext",
+        "moduleResolution": "node",
+        "allowSyntheticDefaultImports": true,
+        "allowJs": true
+    }
+}
