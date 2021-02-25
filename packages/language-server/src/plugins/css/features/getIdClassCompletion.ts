@@ -1,12 +1,12 @@
 import { CompletionItem, CompletionItemKind, CompletionList } from 'vscode-languageserver';
-import { AttributeInfo } from '../../../lib/documents/parseHtml';
+import { AttributeContext } from '../../../lib/documents/parseHtml';
 import { CSSDocument } from '../CSSDocument';
 
 export function getIdClassCompletion(
     cssDoc: CSSDocument,
-    currentAttrInfo: AttributeInfo
+    attributeContext: AttributeContext
 ): CompletionList | undefined {
-    const collectingType = getCollectingType(currentAttrInfo);
+    const collectingType = getCollectingType(attributeContext);
 
     if (!collectingType) {
         return;
@@ -16,15 +16,15 @@ export function getIdClassCompletion(
     return CompletionList.create(items);
 }
 
-function getCollectingType(currentAttrInfo: AttributeInfo): number | undefined {
-    if (currentAttrInfo.inValue) {
-        if (currentAttrInfo.name === 'class') {
+function getCollectingType(attributeContext: AttributeContext): number | undefined {
+    if (attributeContext.inValue) {
+        if (attributeContext.name === 'class') {
             return NodeType.ClassSelector;
         }
-        if (currentAttrInfo.name === 'id') {
+        if (attributeContext.name === 'id') {
             return NodeType.IdentifierSelector;
         }
-    } else if (currentAttrInfo.name.startsWith('class:')) {
+    } else if (attributeContext.name.startsWith('class:')) {
         return NodeType.ClassSelector;
     }
 }

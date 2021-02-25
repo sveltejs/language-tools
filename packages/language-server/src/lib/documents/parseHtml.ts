@@ -87,15 +87,15 @@ function preprocess(text: string) {
     }
 }
 
-export interface AttributeInfo {
+export interface AttributeContext {
     name: string;
     inValue: boolean;
 }
 
-export function foundCurrentAttributeInfo(
+export function getAttributeContextAtPosition(
     document: Document,
     position: Position
-): AttributeInfo | null {
+): AttributeContext | null {
     const offset = document.offsetAt(position);
     const { html } = document;
     const tag = html.findNodeAt(offset);

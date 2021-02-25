@@ -41,7 +41,7 @@ import { CSSDocument } from './CSSDocument';
 import { getLanguage, getLanguageService } from './service';
 import { GlobalVars } from './global-vars';
 import { getIdClassCompletion } from './features/getIdClassCompletion';
-import { foundCurrentAttributeInfo } from '../../lib/documents/parseHtml';
+import { getAttributeContextAtPosition } from '../../lib/documents/parseHtml';
 
 export class CSSPlugin
     implements
@@ -148,11 +148,11 @@ export class CSSPlugin
 
         const cssDocument = this.getCSSDoc(document);
         if (!cssDocument.isInGenerated(position)) {
-            const currentAttributeInfo = foundCurrentAttributeInfo(document, position);
-            if (!currentAttributeInfo) {
+            const attributeContext = getAttributeContextAtPosition(document, position);
+            if (!attributeContext) {
                 return null;
             }
-            return getIdClassCompletion(cssDocument, currentAttributeInfo) ?? null;
+            return getIdClassCompletion(cssDocument, attributeContext) ?? null;
         }
 
         if (isSASS(cssDocument)) {
