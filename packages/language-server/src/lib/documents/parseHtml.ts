@@ -90,6 +90,7 @@ function preprocess(text: string) {
 export interface AttributeContext {
     name: string;
     inValue: boolean;
+    valueRange?: [number, number]
 }
 
 export function getAttributeContextAtPosition(
@@ -128,14 +129,22 @@ export function getAttributeContextAtPosition(
             if (scanner.getTokenEnd() === offset && currentAttributeName) {
                 return {
                     name: currentAttributeName,
-                    inValue: true
+                    inValue: true,
+                    valueRange: [offset, offset]
                 };
             }
         } else if (token === TokenType.AttributeValue) {
             if (inTokenRange() && currentAttributeName) {
+                let start = scanner.getTokenOffset();
+                let end = scanner.getTokenEnd();
+                if (text[start] === '"') {
+                    start++;
+                    end--;
+                }
                 return {
                     name: currentAttributeName,
-                    inValue: true
+                    inValue: true,
+                    valueRange: [start, end]
                 };
             }
             currentAttributeName = undefined;
