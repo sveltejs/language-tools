@@ -32,7 +32,6 @@
         "rollup-plugin-delete": "^2.0.0",
         "source-map": "^0.6.1",
         "source-map-support": "^0.5.16",
-        "sucrase": "^3.17.0",
         "svelte": "3.28.0",
         "tiny-glob": "^0.2.6",
         "tslib": "^1.10.0",
@@ -46,7 +45,6 @@
         "build": "rollup -c",
         "prepublishOnly": "npm run build",
         "dev": "rollup -c -w",
-        "debug": "node -r sucrase/register/ts repl/debug.ts",
         "test": "mocha --opts mocha.opts",
         "pretest": "rollup -c rollup.config.test.js"
     },
