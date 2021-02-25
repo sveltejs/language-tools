@@ -111,7 +111,11 @@ export function test_samples(dir: string, transform: TransformSampleFn, jsx: 'js
                 } catch (error) {
                     hadError = true;
                     if (shouldGenerateError) {
-                        generateExpected(this, errorPath, JSON.stringify(error, void 0, '    '));
+                        generateExpected(
+                            this,
+                            errorPath,
+                            JSON.stringify(error, void 0, '    ') + '\n'
+                        );
                     } else if (expectsError) {
                         assert.deepEqual(
                             JSON.parse(readFileSync(errorPath)),
