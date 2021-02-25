@@ -1,4 +1,4 @@
-import { RawSourceMap, SourceMapConsumer } from 'source-map';
+import { RawSourceMap } from 'source-map';
 import svelte2tsx, { IExportedNames, ComponentEvents } from 'svelte2tsx';
 import ts from 'typescript';
 import { Position, Range, TextDocumentContentChangeEvent } from 'vscode-languageserver';
@@ -271,11 +271,7 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
         if (!this.tsxMap) {
             return new FragmentMapper(this.parent.getText(), scriptInfo, uri);
         }
-        return new ConsumerDocumentMapper(
-            await new SourceMapConsumer(this.tsxMap),
-            uri,
-            this.nrPrependedLines
-        );
+        return new ConsumerDocumentMapper(this.tsxMap.mappings, uri, this.nrPrependedLines);
     }
 }
 

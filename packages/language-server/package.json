@@ -53,6 +53,7 @@
         "prettier": "2.2.1",
         "prettier-plugin-svelte": "~2.1.0",
         "source-map": "^0.7.3",
+        "sourcemap-codec": "^1.4.8",
         "svelte": "~3.32.1",
         "svelte-preprocess": "~4.6.1",
         "svelte2tsx": "*",
