@@ -2,7 +2,6 @@ import fs from 'fs';
 import svelte2tsx from '../src';
 const content = fs.readFileSync(`${__dirname}/index.svelte`, 'utf-8');
 svelte2tsx(content);
-debugger;
 /**
  * To enable the REPL, simply run the "dev" package script.
  * 
