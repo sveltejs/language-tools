@@ -3,11 +3,12 @@ import { Node } from 'estree-walker';
 import { getSlotName } from '../../utils/svelteAst';
 import { beforeStart } from '../utils/node-utils';
 import { getSingleSlotDef } from '../../svelte2tsx/nodes/slot';
+import { IfScope } from './if-else';
 
 /**
  * Handle `<svelte:self>` and slot-specific transformations.
  */
-export function handleComponent(htmlx: string, str: MagicString, el: Node): void {
+export function handleComponent(htmlx: string, str: MagicString, el: Node, ifScope: IfScope): void {
     //we need to remove : if it is a svelte component
     if (el.name.startsWith('svelte:')) {
         const colon = htmlx.indexOf(':', el.start);
@@ -21,7 +22,7 @@ export function handleComponent(htmlx: string, str: MagicString, el: Node): void
     }
 
     //we only need to do something if there is a let or slot
-    handleSlot(htmlx, str, el, el, 'default');
+    handleSlot(htmlx, str, el, el, 'default', ifScope);
 
     //walk the direct children looking for slots. We do this here because we need the name of our component for handleSlot
     //we could lean on leave/enter, but I am lazy
@@ -29,7 +30,7 @@ export function handleComponent(htmlx: string, str: MagicString, el: Node): void
     for (const child of el.children) {
         const slotName = getSlotName(child);
         if (slotName) {
-            handleSlot(htmlx, str, child, el, slotName);
+            handleSlot(htmlx, str, child, el, slotName, ifScope);
         }
     }
 }
@@ -39,7 +40,8 @@ function handleSlot(
     str: MagicString,
     slotEl: Node,
     component: Node,
-    slotName: string
+    slotName: string,
+    ifScope: IfScope
 ): void {
     //collect "let" definitions
     const slotElIsComponent = slotEl === component;
@@ -83,7 +85,10 @@ function handleSlot(
         return;
     }
     str.appendLeft(slotDefInsertionPoint, '{() => { let {');
-    str.appendRight(slotDefInsertionPoint, `} = ${getSingleSlotDef(component, slotName)}` + ';<>');
+    str.appendRight(
+        slotDefInsertionPoint,
+        `} = ${getSingleSlotDef(component, slotName)}` + `;${ifScope.addPossibleIfCondition()}<>`
+    );
 
     const closeSlotDefInsertionPoint = slotElIsComponent
         ? htmlx.lastIndexOf('<', slotEl.end - 1)

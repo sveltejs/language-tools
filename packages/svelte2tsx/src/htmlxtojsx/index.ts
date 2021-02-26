@@ -15,7 +15,7 @@ import { handleDebug } from './nodes/debug';
 import { handleEach } from './nodes/each';
 import { handleElement } from './nodes/element';
 import { handleEventHandler } from './nodes/event-handler';
-import { handleElse, handleIf } from './nodes/if-else';
+import { handleElse, handleIf, IfScope } from './nodes/if-else';
 import { handleRawHtml } from './nodes/raw-html';
 import { handleSvelteTag } from './nodes/svelte-tag';
 import { handleTransitionDirective } from './nodes/transition-directive';
@@ -46,21 +46,24 @@ export function convertHtmlxToJsx(
     str.prepend('<>');
     str.append('</>');
 
+    let ifScope = new IfScope();
+
     (svelte as any).walk(ast, {
         enter: (node: Node, parent: Node, prop: string, index: number) => {
             try {
                 switch (node.type) {
                     case 'IfBlock':
-                        handleIf(htmlx, str, node);
+                        handleIf(htmlx, str, node, ifScope);
+                        ifScope = ifScope.getChild();
                         break;
                     case 'EachBlock':
-                        handleEach(htmlx, str, node);
+                        handleEach(htmlx, str, node, ifScope);
                         break;
                     case 'ElseBlock':
-                        handleElse(htmlx, str, node, parent);
+                        handleElse(htmlx, str, node, parent, ifScope);
                         break;
                     case 'AwaitBlock':
-                        handleAwait(htmlx, str, node);
+                        handleAwait(htmlx, str, node, ifScope);
                         break;
                     case 'KeyBlock':
                         handleKey(htmlx, str, node);
@@ -72,7 +75,7 @@ export function convertHtmlxToJsx(
                         handleDebug(htmlx, str, node);
                         break;
                     case 'InlineComponent':
-                        handleComponent(htmlx, str, node);
+                        handleComponent(htmlx, str, node, ifScope);
                         break;
                     case 'Element':
                         handleElement(htmlx, str, node);
@@ -128,6 +131,11 @@ export function convertHtmlxToJsx(
 
         leave: (node: Node, parent: Node, prop: string, index: number) => {
             try {
+                switch (node.type) {
+                    case 'IfBlock':
+                        ifScope = ifScope.getParent();
+                        break;
+                }
                 if (onLeave) {
                     onLeave(node, parent, prop, index);
                 }

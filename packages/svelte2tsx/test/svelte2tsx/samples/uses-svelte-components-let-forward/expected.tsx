@@ -1,7 +1,7 @@
 ///<reference types="svelte" />
 <></>;function render() {
 <>{(true) ? <>
-<svelteself >{() => { let {prop} = __sveltets_instanceOf(__sveltets_componentType()).$$slot_def['default'];<>
+<svelteself >{() => { let {prop} = __sveltets_instanceOf(__sveltets_componentType()).$$slot_def['default'];((true)) && <>
     <slot prop={prop} />
 </>}}</svelteself>
 </> : <></>}

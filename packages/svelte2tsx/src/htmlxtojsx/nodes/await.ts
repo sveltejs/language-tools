@@ -1,16 +1,22 @@
 import MagicString from 'magic-string';
 import { Node } from 'estree-walker';
+import { IfScope } from './if-else';
 
 /**
  * Transform {#await ...} into something JSX understands
  */
-export function handleAwait(htmlx: string, str: MagicString, awaitBlock: Node): void {
+export function handleAwait(
+    htmlx: string,
+    str: MagicString,
+    awaitBlock: Node,
+    ifScope: IfScope
+): void {
     // {#await somePromise then value} ->
     // {() => {let _$$p = (somePromise);
     str.overwrite(awaitBlock.start, awaitBlock.expression.start, '{() => {let _$$p = (');
 
     // then value } | {:then value} | {await ..} .. {/await} ->
-    // __sveltets_awaitThen(_$$p, (value) => {<>
+    // __sveltets_awaitThen(_$$p, (value) => {(possibleIfCondition && )<>
     let thenStart: number;
     let thenEnd: number;
     if (!awaitBlock.then.skip) {
@@ -30,7 +36,7 @@ export function handleAwait(htmlx: string, str: MagicString, awaitBlock: Node): 
 
             // somePromise} -> somePromise);
             str.overwrite(awaitBlock.expression.end, awaitEnd + 1, ');');
-            str.appendRight(awaitEnd + 1, ' <>');
+            str.appendRight(awaitEnd + 1, ` ${ifScope.addPossibleIfCondition()}<>`);
         } else {
             // {await ... then ...}
             thenStart = htmlx.indexOf('then', awaitBlock.expression.end);
@@ -53,9 +59,9 @@ export function handleAwait(htmlx: string, str: MagicString, awaitBlock: Node): 
 
     if (awaitBlock.value) {
         str.overwrite(thenStart, awaitBlock.value.start, '__sveltets_awaitThen(_$$p, (');
-        str.overwrite(awaitBlock.value.end, thenEnd, ') => {<>');
+        str.overwrite(awaitBlock.value.end, thenEnd, `) => {${ifScope.addPossibleIfCondition()}<>`);
     } else {
-        const awaitThenFn = '__sveltets_awaitThen(_$$p, () => {<>';
+        const awaitThenFn = `__sveltets_awaitThen(_$$p, () => {${ifScope.addPossibleIfCondition()}<>`;
         if (thenStart === thenEnd) {
             str.appendLeft(thenStart, awaitThenFn);
         } else {
@@ -74,7 +80,7 @@ export function handleAwait(htmlx: string, str: MagicString, awaitBlock: Node): 
         const errorEnd = awaitBlock.error ? awaitBlock.error.end : errorStart;
         const catchEnd = htmlx.indexOf('}', errorEnd) + 1;
         str.overwrite(catchStart, errorStart, '</>}, (');
-        str.overwrite(errorEnd, catchEnd, ') => {<>');
+        str.overwrite(errorEnd, catchEnd, `) => {${ifScope.addPossibleIfCondition()}<>`);
     }
     // {/await} ->
     // <>})}

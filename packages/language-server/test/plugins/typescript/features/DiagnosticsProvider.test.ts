@@ -477,4 +477,137 @@ describe('DiagnosticsProvider', () => {
             }
         ]);
     });
+
+    it('if control flow', async () => {
+        const { plugin, document } = setup('diagnostics-if-control-flow.svelte');
+        const diagnostics = await plugin.getDiagnostics(document);
+
+        assert.deepStrictEqual(diagnostics, [
+            {
+                code: 2367,
+                message:
+                    "This condition will always return 'false' since the types 'string' and 'boolean' have no overlap.",
+                range: {
+                    end: {
+                        character: 15,
+                        line: 13
+                    },
+                    start: {
+                        character: 5,
+                        line: 13
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            },
+            {
+                code: 2367,
+                message:
+                    "This condition will always return 'false' since the types 'string' and 'boolean' have no overlap.",
+                range: {
+                    end: {
+                        character: 19,
+                        line: 16
+                    },
+                    start: {
+                        character: 9,
+                        line: 16
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            },
+            {
+                code: 2367,
+                message:
+                    "This condition will always return 'false' since the types 'string' and 'boolean' have no overlap.",
+                range: {
+                    end: {
+                        character: 19,
+                        line: 20
+                    },
+                    start: {
+                        character: 9,
+                        line: 20
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            },
+            {
+                code: 2532,
+                message: "Object is possibly 'undefined'.",
+                range: {
+                    end: {
+                        character: 14,
+                        line: 33
+                    },
+                    start: {
+                        character: 13,
+                        line: 33
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            },
+            {
+                code: 2367,
+                message:
+                    "This condition will always return 'false' since the types 'boolean' and 'string' have no overlap.",
+                range: {
+                    end: {
+                        character: 26,
+                        line: 35
+                    },
+                    start: {
+                        character: 17,
+                        line: 35
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            },
+            {
+                code: 2367,
+                message:
+                    "This condition will always return 'false' since the types 'string' and 'boolean' have no overlap.",
+                range: {
+                    end: {
+                        character: 25,
+                        line: 44
+                    },
+                    start: {
+                        character: 13,
+                        line: 44
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            },
+            {
+                code: 2322,
+                message:
+                    "Type 'string | boolean' is not assignable to type 'string'.\n  Type 'boolean' is not assignable to type 'string'.",
+                range: {
+                    end: {
+                        character: 8,
+                        line: 53
+                    },
+                    start: {
+                        character: 1,
+                        line: 53
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            }
+        ]);
+    });
 });

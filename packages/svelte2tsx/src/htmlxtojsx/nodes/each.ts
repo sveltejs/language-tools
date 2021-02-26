@@ -1,12 +1,18 @@
 import MagicString from 'magic-string';
 import { Node } from 'estree-walker';
+import { IfScope } from './if-else';
 
 /**
  * Transform each block into something JSX can understand.
  */
-export function handleEach(htmlx: string, str: MagicString, eachBlock: Node): void {
+export function handleEach(
+    htmlx: string,
+    str: MagicString,
+    eachBlock: Node,
+    ifScope: IfScope
+): void {
     // {#each items as item,i (key)} ->
-    // {__sveltets_each(items, (item,i) => (key) && <>
+    // {__sveltets_each(items, (item,i) => (key) && (possible if expression &&) <>
     str.overwrite(eachBlock.start, eachBlock.expression.start, '{__sveltets_each(');
     str.overwrite(eachBlock.expression.end, eachBlock.context.start, ', (');
 
@@ -24,10 +30,10 @@ export function handleEach(htmlx: string, str: MagicString, eachBlock: Node): vo
     str.prependLeft(contextEnd, ') =>');
     if (eachBlock.key) {
         const endEachStart = htmlx.indexOf('}', eachBlock.key.end);
-        str.overwrite(endEachStart, endEachStart + 1, ' && <>');
+        str.overwrite(endEachStart, endEachStart + 1, ` && ${ifScope.addPossibleIfCondition()}<>`);
     } else {
         const endEachStart = htmlx.indexOf('}', contextEnd);
-        str.overwrite(endEachStart, endEachStart + 1, ' <>');
+        str.overwrite(endEachStart, endEachStart + 1, ` ${ifScope.addPossibleIfCondition()}<>`);
     }
     const endEach = htmlx.lastIndexOf('{', eachBlock.end - 1);
     // {/each} -> </>)} or {:else} -> </>)}
