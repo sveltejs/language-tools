@@ -3,11 +3,11 @@
         {y}
     </>})}}
     {(hi && bye) ? <>
-    {() => {let _$$p = (x); __sveltets_awaitThen(_$$p, (y) => {(((hello))) && ((hi && bye)) && <>
-        {y}
-    </>}, () => {(((hello))) && ((hi && bye)) && <>
-        z
-    </>})}}
+        {() => {let _$$p = (x); __sveltets_awaitThen(_$$p, (y) => {(((hello))) && ((hi && bye)) && <>
+            {y}
+        </>}, () => {(((hello))) && ((hi && bye)) && <>
+            z
+        </>})}}
     </> : (cool) ? <>
         {() => {let _$$p = (x); (((hello))) && (!(hi && bye) && (cool)) && <>
             loading

@@ -1,14 +1,20 @@
 import MagicString from 'magic-string';
 import { Node } from 'estree-walker';
-import { getSlotName } from '../../utils/svelteAst';
 import { beforeStart } from '../utils/node-utils';
 import { getSingleSlotDef } from '../../svelte2tsx/nodes/slot';
-import { IfScope } from './if-else';
+import { IfScope } from './if-scope';
+import TemplateScope from '../../svelte2tsx/nodes/TemplateScope';
 
 /**
  * Handle `<svelte:self>` and slot-specific transformations.
  */
-export function handleComponent(htmlx: string, str: MagicString, el: Node, ifScope: IfScope): void {
+export function handleComponent(
+    htmlx: string,
+    str: MagicString,
+    el: Node,
+    ifScope: IfScope,
+    templateScope: TemplateScope
+): void {
     //we need to remove : if it is a svelte component
     if (el.name.startsWith('svelte:')) {
         const colon = htmlx.indexOf(':', el.start);
@@ -22,26 +28,21 @@ export function handleComponent(htmlx: string, str: MagicString, el: Node, ifSco
     }
 
     //we only need to do something if there is a let or slot
-    handleSlot(htmlx, str, el, el, 'default', ifScope);
-
-    //walk the direct children looking for slots. We do this here because we need the name of our component for handleSlot
-    //we could lean on leave/enter, but I am lazy
-    if (!el.children) return;
-    for (const child of el.children) {
-        const slotName = getSlotName(child);
-        if (slotName) {
-            handleSlot(htmlx, str, child, el, slotName, ifScope);
-        }
-    }
+    handleSlot(htmlx, str, el, el, 'default', ifScope, templateScope);
 }
 
-function handleSlot(
+export function usesLet(node: Node) {
+    return node.attributes?.some((attr) => attr.type === 'Let');
+}
+
+export function handleSlot(
     htmlx: string,
     str: MagicString,
     slotEl: Node,
     component: Node,
     slotName: string,
-    ifScope: IfScope
+    ifScope: IfScope,
+    templateScope: TemplateScope
 ): void {
     //collect "let" definitions
     const slotElIsComponent = slotEl === component;
@@ -72,6 +73,13 @@ function handleSlot(
         } else {
             str.remove(attr.start, attr.start + 'let:'.length);
         }
+        templateScope.add(
+            {
+                name: attr.expression?.name || attr.name,
+                type: 'Identifier'
+            },
+            slotEl
+        );
         hasMoved = true;
         if (attr.expression) {
             //overwrite the = as a :
@@ -84,7 +92,7 @@ function handleSlot(
     if (!hasMoved) {
         return;
     }
-    str.appendLeft(slotDefInsertionPoint, '{() => { let {');
+    str.appendLeft(slotDefInsertionPoint, `{${ifScope.addConstsPrefixIfNecessary()}() => { let {`);
     str.appendRight(
         slotDefInsertionPoint,
         `} = ${getSingleSlotDef(component, slotName)}` + `;${ifScope.addPossibleIfCondition()}<>`
@@ -93,5 +101,5 @@ function handleSlot(
     const closeSlotDefInsertionPoint = slotElIsComponent
         ? htmlx.lastIndexOf('<', slotEl.end - 1)
         : slotEl.end;
-    str.appendLeft(closeSlotDefInsertionPoint, '</>}}');
+    str.appendLeft(closeSlotDefInsertionPoint, `</>}}${ifScope.addConstsSuffixIfNecessary()}`);
 }

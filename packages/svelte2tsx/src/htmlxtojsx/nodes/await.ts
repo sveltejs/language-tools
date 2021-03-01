@@ -1,6 +1,6 @@
 import MagicString from 'magic-string';
 import { Node } from 'estree-walker';
-import { IfScope } from './if-else';
+import { IfScope } from './if-scope';
 
 /**
  * Transform {#await ...} into something JSX understands

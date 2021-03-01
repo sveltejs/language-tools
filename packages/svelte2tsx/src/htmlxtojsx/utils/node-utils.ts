@@ -1,4 +1,4 @@
-import { Node } from 'estree-walker';
+import { Node, walk } from 'estree-walker';
 
 export function getTypeForComponent(node: Node): string {
     if (node.name === 'svelte:component' || node.name === 'svelte:self') {
@@ -31,4 +31,35 @@ export function isShortHandAttribute(attr: Node): boolean {
 
 export function isQuote(str: string): boolean {
     return str === '"' || str === "'";
+}
+
+export function getIdentifiersInIfExpression(
+    expression: Node
+): Map<string, { start: number; end: number }[]> {
+    const offset = expression.start;
+    const identifiers = new Map<string, { start: number; end: number }[]>();
+    walk(expression, {
+        enter: (node, parent) => {
+            switch (node.type) {
+                case 'Identifier':
+                    // parent.property === node => node is "prop" in "obj.prop"
+                    // parent.callee === node => node is "fun" in "fun(..)"
+                    if (parent?.property !== node && parent?.callee !== node) {
+                        add(node);
+                    }
+                    break;
+            }
+        }
+    });
+
+    function add(node: Node) {
+        let entry = identifiers.get(node.name);
+        if (!entry) {
+            entry = [];
+        }
+        entry.push({ start: node.start - offset, end: node.end - offset });
+        identifiers.set(node.name, entry);
+    }
+
+    return identifiers;
 }

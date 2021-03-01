@@ -1,6 +1,6 @@
 import MagicString from 'magic-string';
 import { Node } from 'estree-walker';
-import { IfScope } from './if-else';
+import { IfScope } from './if-scope';
 
 /**
  * Transform each block into something JSX can understand.
@@ -13,7 +13,11 @@ export function handleEach(
 ): void {
     // {#each items as item,i (key)} ->
     // {__sveltets_each(items, (item,i) => (key) && (possible if expression &&) <>
-    str.overwrite(eachBlock.start, eachBlock.expression.start, '{__sveltets_each(');
+    str.overwrite(
+        eachBlock.start,
+        eachBlock.expression.start,
+        `{${ifScope.addConstsPrefixIfNecessary()}() => {__sveltets_each(`
+    );
     str.overwrite(eachBlock.expression.end, eachBlock.context.start, ', (');
 
     // {#each true, items as item}
@@ -40,9 +44,9 @@ export function handleEach(
     if (eachBlock.else) {
         const elseEnd = htmlx.lastIndexOf('}', eachBlock.else.start);
         const elseStart = htmlx.lastIndexOf('{', elseEnd);
-        str.overwrite(elseStart, elseEnd + 1, '</>)}');
+        str.overwrite(elseStart, elseEnd + 1, `</>)}}${ifScope.addConstsSuffixIfNecessary()}`);
         str.remove(endEach, eachBlock.end);
     } else {
-        str.overwrite(endEach, eachBlock.end, '</>)}');
+        str.overwrite(endEach, eachBlock.end, `</>)}}${ifScope.addConstsSuffixIfNecessary()}`);
     }
 }

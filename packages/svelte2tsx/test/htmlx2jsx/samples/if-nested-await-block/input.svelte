@@ -3,11 +3,11 @@
         {y}
     {/await}
     {#if hi && bye}
-    {#await x then y}
-        {y}
-    {:catch}
-        z
-    {/await}
+        {#await x then y}
+            {y}
+        {:catch}
+            z
+        {/await}
     {:else if cool}
         {#await x}
             loading

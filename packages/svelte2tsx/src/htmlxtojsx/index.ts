@@ -10,16 +10,21 @@ import { handleKey } from './nodes/key';
 import { handleBinding } from './nodes/binding';
 import { handleClassDirective } from './nodes/class-directive';
 import { handleComment } from './nodes/comment';
-import { handleComponent } from './nodes/component';
+import { handleComponent, handleSlot, usesLet } from './nodes/component';
 import { handleDebug } from './nodes/debug';
 import { handleEach } from './nodes/each';
 import { handleElement } from './nodes/element';
 import { handleEventHandler } from './nodes/event-handler';
-import { handleElse, handleIf, IfScope } from './nodes/if-else';
+import { handleElse, handleIf } from './nodes/if-else';
+import { IfScope } from './nodes/if-scope';
 import { handleRawHtml } from './nodes/raw-html';
 import { handleSvelteTag } from './nodes/svelte-tag';
 import { handleTransitionDirective } from './nodes/transition-directive';
 import { handleText } from './nodes/text';
+import TemplateScope from '../svelte2tsx/nodes/TemplateScope';
+import { getSlotName, isDestructuringPatterns, isIdentifier } from '../utils/svelteAst';
+import { extract_identifiers } from 'periscopic';
+import { SvelteIdentifier } from '../interfaces';
 
 type Walker = (node: Node, parent: Node, prop: string, index: number) => void;
 
@@ -46,7 +51,27 @@ export function convertHtmlxToJsx(
     str.prepend('<>');
     str.append('</>');
 
-    let ifScope = new IfScope();
+    const templateScope = { value: new TemplateScope() };
+    const handleScopeEach = (node: Node) => {
+        templateScope.value = templateScope.value.child();
+        if (node.context) {
+            handleScope(node.context, node, templateScope.value);
+        }
+        if (node.index) {
+            templateScope.value.add({ name: node.index, type: 'Identifier' }, node);
+        }
+    };
+    const handleScopeAwait = (node: Node) => {
+        templateScope.value = templateScope.value.child();
+        if (node.value) {
+            handleScope(node.value, node.then, templateScope.value);
+        }
+        if (node.error) {
+            handleScope(node.error, node.catch, templateScope.value);
+        }
+    };
+
+    let ifScope = new IfScope(templateScope);
 
     (svelte as any).walk(ast, {
         enter: (node: Node, parent: Node, prop: string, index: number) => {
@@ -57,12 +82,14 @@ export function convertHtmlxToJsx(
                         ifScope = ifScope.getChild();
                         break;
                     case 'EachBlock':
+                        handleScopeEach(node);
                         handleEach(htmlx, str, node, ifScope);
                         break;
                     case 'ElseBlock':
                         handleElse(htmlx, str, node, parent, ifScope);
                         break;
                     case 'AwaitBlock':
+                        handleScopeAwait(node);
                         handleAwait(htmlx, str, node, ifScope);
                         break;
                     case 'KeyBlock':
@@ -75,9 +102,24 @@ export function convertHtmlxToJsx(
                         handleDebug(htmlx, str, node);
                         break;
                     case 'InlineComponent':
-                        handleComponent(htmlx, str, node, ifScope);
+                        if (usesLet(node)) {
+                            templateScope.value = templateScope.value.child();
+                        }
+                        handleComponent(htmlx, str, node, ifScope, templateScope.value);
                         break;
                     case 'Element':
+                        if (usesLet(node)) {
+                            templateScope.value = templateScope.value.child();
+                            handleSlot(
+                                htmlx,
+                                str,
+                                node,
+                                parent,
+                                getSlotName(node),
+                                ifScope,
+                                templateScope.value
+                            );
+                        }
                         handleElement(htmlx, str, node);
                         break;
                     case 'Comment':
@@ -135,6 +177,16 @@ export function convertHtmlxToJsx(
                     case 'IfBlock':
                         ifScope = ifScope.getParent();
                         break;
+                    case 'EachBlock':
+                    case 'AwaitBlock':
+                        templateScope.value = templateScope.value.parent;
+                        break;
+                    case 'InlineComponent':
+                    case 'Element':
+                        if (usesLet(node)) {
+                            templateScope.value = templateScope.value.parent;
+                        }
+                        break;
                 }
                 if (onLeave) {
                     onLeave(node, parent, prop, index);
@@ -145,6 +197,17 @@ export function convertHtmlxToJsx(
             }
         }
     });
+}
+
+function handleScope(identifierDef: Node, owner: Node, templateScope: TemplateScope) {
+    if (isIdentifier(identifierDef)) {
+        templateScope.add(identifierDef, owner);
+    }
+    if (isDestructuringPatterns(identifierDef)) {
+        // the node object is returned as-it with no mutation
+        const identifiers = extract_identifiers(identifierDef) as SvelteIdentifier[];
+        templateScope.addMany(identifiers, owner);
+    }
 }
 
 /**
