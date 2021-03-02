@@ -62,7 +62,10 @@ export function handleSlot(
     if (!hasMoved) {
         return;
     }
-    str.appendLeft(slotDefInsertionPoint, `{${ifScope.addConstsPrefixIfNecessary()}() => { let {`);
+
+    const constRedeclares = ifScope.getConstsToRedeclare();
+    const prefix = constRedeclares ? `() => {${constRedeclares}` : '';
+    str.appendLeft(slotDefInsertionPoint, `{${prefix}() => { let {`);
     str.appendRight(
         slotDefInsertionPoint,
         `} = ${getSingleSlotDef(component, slotName)}` + `;${ifScope.addPossibleIfCondition()}<>`
@@ -71,7 +74,7 @@ export function handleSlot(
     const closeSlotDefInsertionPoint = slotElIsComponent
         ? htmlx.lastIndexOf('<', slotEl.end - 1)
         : slotEl.end;
-    str.appendLeft(closeSlotDefInsertionPoint, `</>}}${ifScope.addConstsSuffixIfNecessary()}`);
+    str.appendLeft(closeSlotDefInsertionPoint, `</>}}${constRedeclares ? '}' : ''}`);
 }
 
 export function usesLet(node: Node) {

@@ -198,11 +198,11 @@ export class IfScope {
         return current;
     }
 
-    addConstsPrefixIfNecessary(): string {
+    getConstsToRedeclare(): string {
         const replacements = this.getNamesToRedeclare()
             .map((identifier) => `${this.replacementPrefix + identifier}=${identifier}`)
             .join(',');
-        return replacements ? `() => {const ${replacements};` : '';
+        return replacements ? `const ${replacements};` : '';
     }
 
     addConstsSuffixIfNecessary(): string {
