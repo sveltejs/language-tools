@@ -10,3 +10,4 @@
     <h1>Hi</h1>
 </svelte:head>
 <svelte:options />
+<svelte:fragment />

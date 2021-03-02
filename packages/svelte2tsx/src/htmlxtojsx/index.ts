@@ -10,7 +10,8 @@ import { handleKey } from './nodes/key';
 import { handleBinding } from './nodes/binding';
 import { handleClassDirective } from './nodes/class-directive';
 import { handleComment } from './nodes/comment';
-import { handleComponent, handleSlot, usesLet } from './nodes/component';
+import { handleComponent } from './nodes/component';
+import { handleSlot, usesLet } from './nodes/slot';
 import { handleDebug } from './nodes/debug';
 import { handleEach } from './nodes/each';
 import { handleElement } from './nodes/element';
@@ -105,22 +106,13 @@ export function convertHtmlxToJsx(
                         if (usesLet(node)) {
                             templateScope.value = templateScope.value.child();
                         }
-                        handleComponent(htmlx, str, node, ifScope, templateScope.value);
+                        handleComponent(htmlx, str, node, parent, ifScope, templateScope.value);
                         break;
                     case 'Element':
                         if (usesLet(node)) {
                             templateScope.value = templateScope.value.child();
-                            handleSlot(
-                                htmlx,
-                                str,
-                                node,
-                                parent,
-                                getSlotName(node),
-                                ifScope,
-                                templateScope.value
-                            );
                         }
-                        handleElement(htmlx, str, node);
+                        handleElement(htmlx, str, node, parent, ifScope, templateScope.value);
                         break;
                     case 'Comment':
                         handleComment(str, node);
@@ -157,6 +149,18 @@ export function convertHtmlxToJsx(
                         break;
                     case 'Body':
                         handleSvelteTag(htmlx, str, node);
+                        break;
+                    case 'SlotTemplate':
+                        handleSvelteTag(htmlx, str, node);
+                        handleSlot(
+                            htmlx,
+                            str,
+                            node,
+                            parent,
+                            getSlotName(node) || 'default',
+                            ifScope,
+                            templateScope.value
+                        );
                         break;
                     case 'Text':
                         handleText(str, node);
