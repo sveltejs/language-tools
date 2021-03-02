@@ -152,15 +152,18 @@ export function convertHtmlxToJsx(
                         break;
                     case 'SlotTemplate':
                         handleSvelteTag(htmlx, str, node);
-                        handleSlot(
-                            htmlx,
-                            str,
-                            node,
-                            parent,
-                            getSlotName(node) || 'default',
-                            ifScope,
-                            templateScope.value
-                        );
+                        if (usesLet(node)) {
+                            templateScope.value = templateScope.value.child();
+                            handleSlot(
+                                htmlx,
+                                str,
+                                node,
+                                parent,
+                                getSlotName(node) || 'default',
+                                ifScope,
+                                templateScope.value
+                            );
+                        }
                         break;
                     case 'Text':
                         handleText(str, node);

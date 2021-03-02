@@ -6,6 +6,21 @@
                 {hello}
             {/if}
         </Comp>
+        <svelte:fragment slot="named1" let:hello>
+            {#if hello}
+                {hello}
+            {/if}
+        </svelte:fragment>
+        <p slot="named2" let:hello>
+            {#if hello}
+                {hello}
+            {/if}
+        </p>
+        <Comp slot="named3" let:hello>
+            {#if hello}
+                {hello}
+            {/if}
+        </Comp>
         {#if hello}
             <Comp let:hello>
                 {#if hello}
