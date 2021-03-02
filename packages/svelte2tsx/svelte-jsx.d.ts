@@ -28,8 +28,9 @@ declare namespace svelte.JSX {
 
     type NativeElement = HTMLElement;
 
-    // eslint-disable-next-line @typescript-eslint/no-empty-interface
-    interface IntrinsicAttributes {}
+    interface IntrinsicAttributes {
+      slot?: string;
+    }
 
     // TypeScript SVGElement has no `dataset` (Chrome 55+, Firefox 51+).
     type Element = NativeElement & {
@@ -952,6 +953,7 @@ declare namespace svelte.JSX {
       // Svelte specific
       sveltewindow: HTMLProps<Window> & SvelteWindowProps;
       sveltebody: HTMLProps<HTMLElement>;
+      sveltefragment: { slot?: string; };
 
       [name: string]: { [name: string]: any };
     }
