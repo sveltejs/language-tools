@@ -177,6 +177,17 @@ const svelteTags: ITagData[] = [
         ]
     },
     {
+        name: 'svelte:fragment',
+        description:
+            'This element is useful if you want to assign a component to a named slot without creating a wrapper DOM element.',
+        attributes: [
+            {
+                name: 'slot',
+                description: 'The name of the named slot that should be targeted.'
+            }
+        ]
+    },
+    {
         name: 'slot',
         description:
             'Components can have child content, in the same way that elements can.\n\nThe content is exposed in the child component using the <slot> element, which can contain fallback content that is rendered if no children are provided.',
