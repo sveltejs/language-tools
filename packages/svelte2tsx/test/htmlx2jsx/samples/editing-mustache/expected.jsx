@@ -2,4 +2,5 @@
 {abc?. }
 {abc ?}
 {a+}
-<Component regex={/.*/} /></>
+<Component regex={/.*/} />
+<span></span></>

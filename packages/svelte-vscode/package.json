@@ -64,6 +64,16 @@
                     "description": "- You normally don't set this - At which port to spawn the language server. Can be used for attaching to the process for debugging / profiling. If you experience crashes due to \"port already in use\", try setting the port. -1 = default port is used.",
                     "default": -1
                 },
+                "svelte.trace.server": {
+                    "type": "string",
+                    "enum": [
+                        "off",
+                        "messages",
+                        "verbose"
+                    ],
+                    "default": "off",
+                    "description": "Traces the communication between VS Code and the Svelte Language Server."
+                },
                 "svelte.plugin.typescript.enable": {
                     "type": "boolean",
                     "default": true,
@@ -237,6 +247,12 @@
                     "default": true,
                     "title": "HTML: Linked Editing",
                     "description": "Enable Linked Editing for HTML"
+                },
+                "svelte.plugin.html.renameTags.enable": {
+                    "type": "boolean",
+                    "default": true,
+                    "title": "HTML: Rename tags",
+                    "description": "Enable rename for the opening/closing tag pairs in HTML"
                 },
                 "svelte.plugin.svelte.enable": {
                     "type": "boolean",
@@ -485,8 +501,8 @@
         ]
     },
     "devDependencies": {
-        "@types/lodash": "^4.14.116",
         "@tsconfig/node12": "^1.0.0",
+        "@types/lodash": "^4.14.116",
         "@types/node": "^13.9.0",
         "@types/vscode": "*",
         "js-yaml": "^3.14.0",

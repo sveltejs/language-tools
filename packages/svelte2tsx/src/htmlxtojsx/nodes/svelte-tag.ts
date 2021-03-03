@@ -3,7 +3,7 @@ import { Node } from 'estree-walker';
 
 /**
  * `<svelte:window>...</svelte:window>`   ---->    `<sveltewindow>...</sveltewindow>`
- * (same for :head, :body, :options)
+ * (same for :head, :body, :options, :fragment)
  */
 export function handleSvelteTag(htmlx: string, str: MagicString, node: Node): void {
     const colon = htmlx.indexOf(':', node.start);

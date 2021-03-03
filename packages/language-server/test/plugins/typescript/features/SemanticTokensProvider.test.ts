@@ -62,42 +62,42 @@ describe('SemanticTokensProvider', () => {
             modifiers: number[];
         }> = [
             {
-                line: 1,
+                line: 2,
                 character: 14,
                 length: 'TextContent'.length,
                 type: TokenType.interface,
                 modifiers: [TokenModifier.declaration]
             },
             {
-                line: 2,
+                line: 3,
                 character: 8,
                 length: 'text'.length,
                 type: TokenType.property,
                 modifiers: [TokenModifier.declaration]
             },
             {
-                line: 5,
+                line: 6,
                 character: 15,
                 length: 'textPromise'.length,
                 type: TokenType.variable,
                 modifiers: [TokenModifier.declaration, TokenModifier.local]
             },
             {
-                line: 5,
+                line: 6,
                 character: 28,
                 length: 'Promise'.length,
                 type: TokenType.interface,
                 modifiers: [TokenModifier.defaultLibrary]
             },
             {
-                line: 5,
+                line: 6,
                 character: 36,
                 length: 'TextContent'.length,
                 type: TokenType.interface,
                 modifiers: []
             },
             {
-                line: 7,
+                line: 8,
                 character: 19,
                 length: 'blurHandler'.length,
                 type: TokenType.function,
@@ -107,49 +107,49 @@ describe('SemanticTokensProvider', () => {
         const tokenDataAll = [
             ...tokenDataScript,
             {
-                line: 10,
+                line: 11,
                 character: 8,
                 length: 'textPromise'.length,
                 type: TokenType.variable,
                 modifiers: [TokenModifier.local]
             },
             {
-                line: 10,
+                line: 11,
                 character: 25,
                 length: 'text'.length,
                 type: TokenType.parameter,
                 modifiers: [TokenModifier.declaration]
             },
             {
-                line: 11,
+                line: 12,
                 character: 23,
                 length: 'blurHandler'.length,
                 type: TokenType.function,
                 modifiers: [TokenModifier.async, TokenModifier.local]
             },
             {
-                line: 11,
+                line: 12,
                 character: 43,
                 length: 'text'.length,
                 type: TokenType.parameter,
                 modifiers: []
             },
             {
-                line: 11,
+                line: 12,
                 character: 48,
                 length: 'text'.length,
                 type: TokenType.property,
                 modifiers: []
             },
             {
-                line: 13,
+                line: 14,
                 character: 16,
                 length: 1,
                 type: TokenType.parameter,
                 modifiers: [TokenModifier.declaration]
             },
             {
-                line: 14,
+                line: 15,
                 character: 5,
                 length: 1,
                 type: TokenType.parameter,
@@ -187,7 +187,7 @@ describe('SemanticTokensProvider', () => {
 
         let index = 0;
         while (index < tokens.length) {
-            result.push(tokens.splice(index, (index += 5)));
+            result.push(tokens.slice(index, (index += 5)));
         }
 
         return result;

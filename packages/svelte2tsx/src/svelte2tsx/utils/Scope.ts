@@ -5,6 +5,10 @@ export class Scope {
     constructor(parent?: Scope) {
         this.parent = parent;
     }
+
+    hasDefined(name: string) {
+        return this.declared.has(name) || (!!this.parent && this.parent.hasDefined(name));
+    }
 }
 
 export class ScopeStack {

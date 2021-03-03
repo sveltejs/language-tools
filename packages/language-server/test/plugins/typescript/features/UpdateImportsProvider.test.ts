@@ -46,14 +46,14 @@ describe('UpdateImportsProviderImpl', () => {
 
         const workspaceEdit = await updateImportsProvider.updateImports({
             // imported files both old and new have to actually exist, so we just use some other test files
-            oldUri: pathToUrl(join(testFilesDir, 'diagnostics.svelte')),
+            oldUri: pathToUrl(join(testFilesDir, 'diagnostics', 'diagnostics.svelte')),
             newUri: pathToUrl(join(testFilesDir, 'documentation.svelte'))
         });
 
         assert.deepStrictEqual(workspaceEdit?.documentChanges, [
             TextDocumentEdit.create(VersionedTextDocumentIdentifier.create(fileUri, 0), [
                 TextEdit.replace(
-                    Range.create(Position.create(1, 17), Position.create(1, 37)),
+                    Range.create(Position.create(1, 17), Position.create(1, 49)),
                     './documentation.svelte'
                 )
             ])

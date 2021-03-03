@@ -28,8 +28,9 @@ declare namespace svelte.JSX {
 
     type NativeElement = HTMLElement;
 
-    // eslint-disable-next-line @typescript-eslint/no-empty-interface
-    interface IntrinsicAttributes {}
+    interface IntrinsicAttributes {
+      slot?: string;
+    }
 
     // TypeScript SVGElement has no `dataset` (Chrome 55+, Firefox 51+).
     type Element = NativeElement & {
@@ -110,6 +111,9 @@ declare namespace svelte.JSX {
       // Image Events
       onload?: EventHandler;
       onerror?: EventHandler; // also a Media Event
+
+      // Detail Events
+      ontoggle?: EventHandler<Event, T>;
 
       // Keyboard Events
       onkeydown?: KeyboardEventHandler<T>;
@@ -514,6 +518,7 @@ declare namespace svelte.JSX {
       gradientTransform?: string;
       gradientUnits?: string;
       hanging?: number | string;
+      href?: string;
       'horiz-adv-x'?: number | string;
       'horiz-origin-x'?: number | string;
       ideographic?: number | string;
@@ -703,7 +708,11 @@ declare namespace svelte.JSX {
       scrollY?: Window['scrollY'];
       readonly online?: Window['navigator']['onLine'];
 
-
+      ondevicelight?: EventHandler<Event, Window>;
+      onbeforeinstallprompt?: EventHandler<Event, Window>;
+      ondeviceproximity?: EventHandler<Event, Window>;
+      onpaint?: EventHandler<Event, Window>;
+      onuserproximity?: EventHandler<Event, Window>;
       onbeforeprint?: EventHandler<Event, Window>;
       onafterprint?: EventHandler<Event, Window>;
       onlanguagechange?: EventHandler<Event, Window>;
@@ -944,6 +953,7 @@ declare namespace svelte.JSX {
       // Svelte specific
       sveltewindow: HTMLProps<Window> & SvelteWindowProps;
       sveltebody: HTMLProps<HTMLElement>;
+      sveltefragment: { slot?: string; };
 
       [name: string]: { [name: string]: any };
     }

@@ -1,9 +1,9 @@
 ///<reference types="svelte" />
 <></>;function render() {
 <><Component>
-    <div  >{() => { let {a} = __sveltets_instanceOf(Component).$$slot_def['b'];<>
+    {() => { let {a} = __sveltets_instanceOf(Component).$$slot_def['b'];<><div  >
         <slot a={a}></slot>
-    </>}}</div>
+    </div></>}}
 </Component></>
 return { props: {}, slots: {'default': {a:__sveltets_instanceOf(Component).$$slot_def['b'].a}}, getters: {}, events: {} }}
 
