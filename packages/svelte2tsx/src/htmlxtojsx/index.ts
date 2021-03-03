@@ -2,30 +2,29 @@ import { Node } from 'estree-walker';
 import MagicString from 'magic-string';
 import svelte from 'svelte/compiler';
 import { parseHtmlx } from '../utils/htmlxparser';
+import { getSlotName } from '../utils/svelteAst';
 import { handleActionDirective } from './nodes/action-directive';
 import { handleAnimateDirective } from './nodes/animation-directive';
 import { handleAttribute } from './nodes/attribute';
 import { handleAwait } from './nodes/await';
-import { handleKey } from './nodes/key';
 import { handleBinding } from './nodes/binding';
 import { handleClassDirective } from './nodes/class-directive';
 import { handleComment } from './nodes/comment';
 import { handleComponent } from './nodes/component';
-import { handleSlot, usesLet } from './nodes/slot';
 import { handleDebug } from './nodes/debug';
 import { handleEach } from './nodes/each';
 import { handleElement } from './nodes/element';
 import { handleEventHandler } from './nodes/event-handler';
 import { handleElse, handleIf } from './nodes/if-else';
 import { IfScope } from './nodes/if-scope';
+import { handleKey } from './nodes/key';
 import { handleRawHtml } from './nodes/raw-html';
+import { handleSlot } from './nodes/slot';
 import { handleSvelteTag } from './nodes/svelte-tag';
-import { handleTransitionDirective } from './nodes/transition-directive';
+import { TemplateScopeManager } from './nodes/template-scope';
 import { handleText } from './nodes/text';
-import TemplateScope from './nodes/template-scope';
-import { getSlotName, isDestructuringPatterns, isIdentifier } from '../utils/svelteAst';
-import { extract_identifiers } from 'periscopic';
-import { SvelteIdentifier } from '../interfaces';
+import { handleTransitionDirective } from './nodes/transition-directive';
+import { usesLet } from './utils/node-utils';
 
 type Walker = (node: Node, parent: Node, prop: string, index: number) => void;
 
@@ -52,27 +51,9 @@ export function convertHtmlxToJsx(
     str.prepend('<>');
     str.append('</>');
 
-    const templateScope = { value: new TemplateScope() };
-    const handleScopeEach = (node: Node) => {
-        templateScope.value = templateScope.value.child();
-        if (node.context) {
-            handleScope(node.context, templateScope.value);
-        }
-        if (node.index) {
-            templateScope.value.add(node.index);
-        }
-    };
-    const handleScopeAwait = (node: Node) => {
-        templateScope.value = templateScope.value.child();
-        if (node.value) {
-            handleScope(node.value, templateScope.value);
-        }
-        if (node.error) {
-            handleScope(node.error, templateScope.value);
-        }
-    };
+    const templateScopeManager = new TemplateScopeManager();
 
-    let ifScope = new IfScope(templateScope);
+    let ifScope = new IfScope(templateScopeManager);
 
     (svelte as any).walk(ast, {
         enter: (node: Node, parent: Node, prop: string, index: number) => {
@@ -85,17 +66,15 @@ export function convertHtmlxToJsx(
                         }
                         break;
                     case 'EachBlock':
-                        handleScopeEach(node);
+                        templateScopeManager.eachEnter(node);
                         handleEach(htmlx, str, node, ifScope);
                         break;
                     case 'ElseBlock':
-                        if (parent.type === 'EachBlock') {
-                            templateScope.value = templateScope.value.parent;
-                        }
+                        templateScopeManager.elseEnter(parent);
                         handleElse(htmlx, str, node, parent, ifScope);
                         break;
                     case 'AwaitBlock':
-                        handleScopeAwait(node);
+                        templateScopeManager.awaitEnter(node);
                         handleAwait(htmlx, str, node, ifScope);
                         break;
                     case 'KeyBlock':
@@ -108,16 +87,26 @@ export function convertHtmlxToJsx(
                         handleDebug(htmlx, str, node);
                         break;
                     case 'InlineComponent':
-                        if (usesLet(node)) {
-                            templateScope.value = templateScope.value.child();
-                        }
-                        handleComponent(htmlx, str, node, parent, ifScope, templateScope.value);
+                        templateScopeManager.componentOrSlotTemplateOrElementEnter(node);
+                        handleComponent(
+                            htmlx,
+                            str,
+                            node,
+                            parent,
+                            ifScope,
+                            templateScopeManager.value
+                        );
                         break;
                     case 'Element':
-                        if (usesLet(node)) {
-                            templateScope.value = templateScope.value.child();
-                        }
-                        handleElement(htmlx, str, node, parent, ifScope, templateScope.value);
+                        templateScopeManager.componentOrSlotTemplateOrElementEnter(node);
+                        handleElement(
+                            htmlx,
+                            str,
+                            node,
+                            parent,
+                            ifScope,
+                            templateScopeManager.value
+                        );
                         break;
                     case 'Comment':
                         handleComment(str, node);
@@ -157,8 +146,8 @@ export function convertHtmlxToJsx(
                         break;
                     case 'SlotTemplate':
                         handleSvelteTag(htmlx, str, node);
+                        templateScopeManager.componentOrSlotTemplateOrElementEnter(node);
                         if (usesLet(node)) {
-                            templateScope.value = templateScope.value.child();
                             handleSlot(
                                 htmlx,
                                 str,
@@ -166,7 +155,7 @@ export function convertHtmlxToJsx(
                                 parent,
                                 getSlotName(node) || 'default',
                                 ifScope,
-                                templateScope.value
+                                templateScopeManager.value
                             );
                         }
                         break;
@@ -190,19 +179,15 @@ export function convertHtmlxToJsx(
                         ifScope = ifScope.getParent();
                         break;
                     case 'EachBlock':
-                        if (!node.else) {
-                            templateScope.value = templateScope.value.parent;
-                        }
+                        templateScopeManager.eachLeave(node);
                         break;
                     case 'AwaitBlock':
-                        templateScope.value = templateScope.value.parent;
+                        templateScopeManager.awaitLeave();
                         break;
                     case 'InlineComponent':
                     case 'Element':
                     case 'SlotTemplate':
-                        if (usesLet(node)) {
-                            templateScope.value = templateScope.value.parent;
-                        }
+                        templateScopeManager.componentOrSlotTemplateOrElementLeave(node);
                         break;
                 }
                 if (onLeave) {
@@ -214,17 +199,6 @@ export function convertHtmlxToJsx(
             }
         }
     });
-}
-
-function handleScope(identifierDef: Node, templateScope: TemplateScope) {
-    if (isIdentifier(identifierDef)) {
-        templateScope.add(identifierDef.name);
-    }
-    if (isDestructuringPatterns(identifierDef)) {
-        // the node object is returned as-it with no mutation
-        const identifiers = extract_identifiers(identifierDef) as SvelteIdentifier[];
-        templateScope.addMany(identifiers.map((id) => id.name));
-    }
 }
 
 /**

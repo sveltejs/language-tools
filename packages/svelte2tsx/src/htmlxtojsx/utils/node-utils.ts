@@ -63,3 +63,7 @@ export function getIdentifiersInIfExpression(
 
     return identifiers;
 }
+
+export function usesLet(node: Node): boolean {
+    return node.attributes?.some((attr) => attr.type === 'Let');
+}

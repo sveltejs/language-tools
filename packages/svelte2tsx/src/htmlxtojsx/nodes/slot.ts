@@ -3,7 +3,7 @@ import { Node } from 'estree-walker';
 import { beforeStart } from '../utils/node-utils';
 import { getSingleSlotDef } from '../../svelte2tsx/nodes/slot';
 import { IfScope } from './if-scope';
-import TemplateScope from '../nodes/template-scope';
+import { TemplateScope } from '../nodes/template-scope';
 
 export function handleSlot(
     htmlx: string,
@@ -69,8 +69,4 @@ export function handleSlot(
         ? htmlx.lastIndexOf('<', slotEl.end - 1)
         : slotEl.end;
     str.appendLeft(closeSlotDefInsertionPoint, `</>}}${constRedeclares ? '}' : ''}`);
-}
-
-export function usesLet(node: Node) {
-    return node.attributes?.some((attr) => attr.type === 'Let');
 }

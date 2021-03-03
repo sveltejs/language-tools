@@ -3,7 +3,7 @@ import { Node } from 'estree-walker';
 import { getSlotName } from '../../utils/svelteAst';
 import { handleSlot } from './slot';
 import { IfScope } from './if-scope';
-import TemplateScope from '../nodes/template-scope';
+import { TemplateScope } from '../nodes/template-scope';
 
 /**
  * Special treatment for self-closing / void tags to make them conform to JSX.
