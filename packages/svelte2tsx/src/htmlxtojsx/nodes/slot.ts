@@ -3,7 +3,7 @@ import { Node } from 'estree-walker';
 import { beforeStart } from '../utils/node-utils';
 import { getSingleSlotDef } from '../../svelte2tsx/nodes/slot';
 import { IfScope } from './if-scope';
-import TemplateScope from '../../svelte2tsx/nodes/TemplateScope';
+import TemplateScope from '../nodes/template-scope';
 
 export function handleSlot(
     htmlx: string,
@@ -43,13 +43,7 @@ export function handleSlot(
         } else {
             str.remove(attr.start, attr.start + 'let:'.length);
         }
-        templateScope.add(
-            {
-                name: attr.expression?.name || attr.name,
-                type: 'Identifier'
-            },
-            slotEl
-        );
+        templateScope.add(attr.expression?.name || attr.name);
         hasMoved = true;
         if (attr.expression) {
             //overwrite the = as a :

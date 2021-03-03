@@ -22,7 +22,7 @@ import { handleRawHtml } from './nodes/raw-html';
 import { handleSvelteTag } from './nodes/svelte-tag';
 import { handleTransitionDirective } from './nodes/transition-directive';
 import { handleText } from './nodes/text';
-import TemplateScope from '../svelte2tsx/nodes/TemplateScope';
+import TemplateScope from './nodes/template-scope';
 import { getSlotName, isDestructuringPatterns, isIdentifier } from '../utils/svelteAst';
 import { extract_identifiers } from 'periscopic';
 import { SvelteIdentifier } from '../interfaces';
@@ -56,19 +56,19 @@ export function convertHtmlxToJsx(
     const handleScopeEach = (node: Node) => {
         templateScope.value = templateScope.value.child();
         if (node.context) {
-            handleScope(node.context, node, templateScope.value);
+            handleScope(node.context, templateScope.value);
         }
         if (node.index) {
-            templateScope.value.add({ name: node.index, type: 'Identifier' }, node);
+            templateScope.value.add(node.index);
         }
     };
     const handleScopeAwait = (node: Node) => {
         templateScope.value = templateScope.value.child();
         if (node.value) {
-            handleScope(node.value, node.then, templateScope.value);
+            handleScope(node.value, templateScope.value);
         }
         if (node.error) {
-            handleScope(node.error, node.catch, templateScope.value);
+            handleScope(node.error, templateScope.value);
         }
     };
 
@@ -216,14 +216,14 @@ export function convertHtmlxToJsx(
     });
 }
 
-function handleScope(identifierDef: Node, owner: Node, templateScope: TemplateScope) {
+function handleScope(identifierDef: Node, templateScope: TemplateScope) {
     if (isIdentifier(identifierDef)) {
-        templateScope.add(identifierDef, owner);
+        templateScope.add(identifierDef.name);
     }
     if (isDestructuringPatterns(identifierDef)) {
         // the node object is returned as-it with no mutation
         const identifiers = extract_identifiers(identifierDef) as SvelteIdentifier[];
-        templateScope.addMany(identifiers, owner);
+        templateScope.addMany(identifiers.map((id) => id.name));
     }
 }
 

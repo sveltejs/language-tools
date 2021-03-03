@@ -1,7 +1,7 @@
 import MagicString from 'magic-string';
 import { Node } from 'estree-walker';
 import { getIdentifiersInIfExpression } from '../utils/node-utils';
-import TemplateScope from '../../svelte2tsx/nodes/TemplateScope';
+import TemplateScope from '../nodes/template-scope';
 
 enum IfType {
     If,

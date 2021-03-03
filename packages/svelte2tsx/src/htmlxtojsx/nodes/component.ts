@@ -3,7 +3,7 @@ import { Node } from 'estree-walker';
 import { getSlotName } from '../../utils/svelteAst';
 import { handleSlot } from './slot';
 import { IfScope } from './if-scope';
-import TemplateScope from '../../svelte2tsx/nodes/TemplateScope';
+import TemplateScope from '../nodes/template-scope';
 
 /**
  * Handle `<svelte:self>` and slot-specific transformations.
