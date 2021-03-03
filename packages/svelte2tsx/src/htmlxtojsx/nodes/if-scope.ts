@@ -10,7 +10,7 @@ enum IfType {
 }
 
 interface ConditionInfo {
-    identifiers: Map<string, { start: number; end: number }[]>;
+    identifiers: Map<string, Array<{ start: number; end: number }>>;
     condition: string;
 }
 
@@ -80,7 +80,7 @@ function getConditionString(
     replacedNames: string[],
     replacementPrefix: string
 ): string {
-    const replacements: { name: string; start: number; end: number }[] = [];
+    const replacements: Array<{ name: string; start: number; end: number }> = [];
     for (const name of replacedNames) {
         const occurences = condition.identifiers.get(name);
         if (occurences) {

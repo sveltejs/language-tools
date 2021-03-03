@@ -66,7 +66,7 @@ export function handleAwait(
         str.overwrite(thenStart, awaitBlock.value.start, '__sveltets_awaitThen(_$$p, (');
         str.overwrite(awaitBlock.value.end, thenEnd, `) => {${ifScope.addPossibleIfCondition()}<>`);
     } else {
-        const awaitThenFn = `__sveltets_awaitThen(_$$p, () => {${ifScope.addPossibleIfCondition()}<>`;
+        const awaitThenFn = `__sveltets_awaitThen(_$$p, () => {${ifScope.addPossibleIfCondition()}<>`; // eslint-disable-line
         if (thenStart === thenEnd) {
             str.appendLeft(thenStart, awaitThenFn);
         } else {

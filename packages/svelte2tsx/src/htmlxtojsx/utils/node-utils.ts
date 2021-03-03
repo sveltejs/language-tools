@@ -35,9 +35,9 @@ export function isQuote(str: string): boolean {
 
 export function getIdentifiersInIfExpression(
     expression: Node
-): Map<string, { start: number; end: number }[]> {
+): Map<string, Array<{ start: number; end: number }>> {
     const offset = expression.start;
-    const identifiers = new Map<string, { start: number; end: number }[]>();
+    const identifiers = new Map<string, Array<{ start: number; end: number }>>();
     walk(expression, {
         enter: (node, parent) => {
             switch (node.type) {
