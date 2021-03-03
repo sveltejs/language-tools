@@ -125,11 +125,6 @@ function collectReferencedIdentifiers(condition: Condition | undefined): Set<str
     return identifiers;
 }
 
-// TODO:
-// - Use TemplateScope in IfScope to detect shadowed variables
-// - In case of Shadowed variables, do a walk on the expression. Search for "Identifier" | "MemberExpression"[.object]
-// - prepend some unichar to all found identifiers and add const x = y; before it
-
 export class IfScope {
     private child?: IfScope;
     private ownScope = this.scope.value;
@@ -267,13 +262,3 @@ export class IfScope {
         return idx;
     }
 }
-
-// TODO: wenn ein neuer Scope aufgeht, muss der IfScope das bei der Analyse und dem Replacement berücksichtigen und das sozusagen "resetten"
-// Scope, der info enthält, was gerade zu überschreiben ist. scope wird bei jedem if und elseif und await und each und let neu gemacht
-// SCope enthält die aktuell geshadowed-en Variablen.
-// depth für ifScope damit er weiß wie viele Ω vorne dran
-// templatescope hat eine depth
-// ifscope kriegt die depth gesagt
-// wenn nach re-if gefragt wird, guckt ifscope den templatescope von current(=max) bis sichselbst+1. wenn da redeclare von variable wird die ersetzt
-// wenn neues await/each/slot, guckt der ifscope "darüber", ob bei sich selbst oder vater-ifs (bis zu templatescope wo redeclare) schon eine solche variable in der ifcondition war und wenn ja const x=y prepend.
-// jeder if-scope braucht seinen direkten templatescope-vater
