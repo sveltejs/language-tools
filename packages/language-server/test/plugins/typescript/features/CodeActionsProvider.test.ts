@@ -125,7 +125,8 @@ describe('CodeActionsProvider', () => {
                         {
                             edits: [
                                 {
-                                    newText: "\n\nfunction abc() {\nthrow new Error('Function not implemented.');\n}\n",
+                                    newText:
+                                        "\n\nfunction abc() {\nthrow new Error('Function not implemented.');\n}\n",
                                     range: {
                                         start: {
                                             character: 0,

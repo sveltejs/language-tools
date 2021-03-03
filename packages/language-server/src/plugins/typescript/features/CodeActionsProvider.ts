@@ -355,10 +355,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
     private checkEndOfFileCodeInsert(resultRange: Range, targetRange: Range, document: Document) {
         if (resultRange.start.line < 0 || resultRange.end.line < 0) {
             if (isRangeInTag(targetRange, document.scriptInfo)) {
-                resultRange = Range.create(
-                    document.scriptInfo.endPos,
-                    document.scriptInfo.endPos
-                );
+                resultRange = Range.create(document.scriptInfo.endPos, document.scriptInfo.endPos);
             } else if (isRangeInTag(targetRange, document.moduleScriptInfo)) {
                 resultRange = Range.create(
                     document.moduleScriptInfo.endPos,
