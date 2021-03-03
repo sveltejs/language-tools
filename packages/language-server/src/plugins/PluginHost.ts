@@ -12,6 +12,7 @@ import {
     Diagnostic,
     FormattingOptions,
     Hover,
+    LinkedEditingRanges,
     Location,
     Position,
     Range,
@@ -411,6 +412,22 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         return await this.execute<SemanticTokens>(
             'getSemanticTokens',
             [document, range],
+            ExecuteMode.FirstNonNull
+        );
+    }
+
+    async getLinkedEditingRanges(
+        textDocument: TextDocumentIdentifier,
+        position: Position
+    ): Promise<LinkedEditingRanges | null> {
+        const document = this.getDocument(textDocument.uri);
+        if (!document) {
+            throw new Error('Cannot call methods on an unopened document');
+        }
+
+        return await this.execute<LinkedEditingRanges>(
+            'getLinkedEditingRanges',
+            [document, position],
             ExecuteMode.FirstNonNull
         );
     }
