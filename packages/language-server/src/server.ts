@@ -14,7 +14,8 @@ import {
     TextDocumentSyncKind,
     WorkspaceEdit,
     SemanticTokensRequest,
-    SemanticTokensRangeRequest
+    SemanticTokensRangeRequest,
+    LinkedEditingRangeRequest
 } from 'vscode-languageserver';
 import { IPCMessageReader, IPCMessageWriter, createConnection } from 'vscode-languageserver/node';
 import { DiagnosticsManager } from './lib/DiagnosticsManager';
@@ -194,7 +195,8 @@ export function startServer(options?: LSOptions) {
                     legend: getSemanticTokenLegends(),
                     range: true,
                     full: true
-                }
+                },
+                linkedEditingRangeProvider: true
             }
         };
     });
@@ -311,6 +313,11 @@ export function startServer(options?: LSOptions) {
     );
     connection.onRequest(SemanticTokensRangeRequest.type, (evt) =>
         pluginHost.getSemanticTokens(evt.textDocument, evt.range)
+    );
+
+    connection.onRequest(
+        LinkedEditingRangeRequest.type,
+        async (evt) => await pluginHost.getLinkedEditingRanges(evt.textDocument, evt.position)
     );
 
     docManager.on(

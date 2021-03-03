@@ -11,7 +11,8 @@ import {
     SymbolInformation,
     CompletionItem,
     CompletionItemKind,
-    TextEdit
+    TextEdit,
+    LinkedEditingRanges
 } from 'vscode-languageserver';
 import {
     DocumentManager,
@@ -21,10 +22,10 @@ import {
 } from '../../lib/documents';
 import { LSConfigManager, LSHTMLConfig } from '../../ls-config';
 import { svelteHtmlDataProvider } from './dataProvider';
-import { HoverProvider, CompletionsProvider } from '../interfaces';
+import { HoverProvider, CompletionsProvider, LinkedEditingRangesProvider } from '../interfaces';
 import { isInsideMoustacheTag } from '../../lib/documents/utils';
 
-export class HTMLPlugin implements HoverProvider, CompletionsProvider {
+export class HTMLPlugin implements HoverProvider, CompletionsProvider, LinkedEditingRangesProvider {
     private configManager: LSConfigManager;
     private lang = getLanguageService({
         customDataProviders: [svelteHtmlDataProvider],
@@ -204,6 +205,25 @@ export class HTMLPlugin implements HoverProvider, CompletionsProvider {
         }
 
         return this.lang.findDocumentSymbols(document, html);
+    }
+
+    getLinkedEditingRanges(document: Document, position: Position): LinkedEditingRanges | null {
+        if (!this.featureEnabled('linkedEditing')) {
+            return null;
+        }
+
+        const html = this.documents.get(document);
+        if (!html) {
+            return null;
+        }
+
+        const ranges = this.lang.findLinkedEditingRanges(document, position, html);
+
+        if (!ranges) {
+            return null;
+        }
+
+        return { ranges };
     }
 
     private featureEnabled(feature: keyof LSHTMLConfig) {

@@ -36,7 +36,8 @@ const defaultLSConfig: LSConfig = {
         hover: { enable: true },
         completions: { enable: true, emmet: true },
         tagComplete: { enable: true },
-        documentSymbols: { enable: true }
+        documentSymbols: { enable: true },
+        linkedEditing: { enable: true }
     },
     svelte: {
         enable: true,
@@ -150,6 +151,9 @@ export interface LSHTMLConfig {
         enable: boolean;
     };
     documentSymbols: {
+        enable: boolean;
+    };
+    linkedEditing: {
         enable: boolean;
     };
 }

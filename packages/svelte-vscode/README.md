@@ -190,6 +190,10 @@ Enable HTML tag auto closing. _Default_: `true`
 
 Enable document symbols for HTML. _Default_: `true`
 
+##### `svelte.plugin.html.linkedEditing.enable`
+
+Enable Linked Editing for HTML. _Default_: `true`
+
 ##### `svelte.plugin.svelte.enable`
 
 Enable the Svelte plugin. _Default_: `true`
