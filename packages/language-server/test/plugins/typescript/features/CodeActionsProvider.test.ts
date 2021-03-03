@@ -95,6 +95,62 @@ describe('CodeActionsProvider', () => {
         ]);
     });
 
+    it('provides quickfix for missing function', async () => {
+        const { provider, document } = setup('codeactions.svelte');
+
+        const codeActions = await provider.getCodeActions(
+            document,
+            Range.create(Position.create(9, 0), Position.create(9, 3)),
+            {
+                diagnostics: [
+                    {
+                        code: 2304,
+                        message: "Cannot find name 'abc'.",
+                        range: Range.create(Position.create(9, 0), Position.create(9, 3)),
+                        source: 'ts'
+                    }
+                ],
+                only: [CodeActionKind.QuickFix]
+            }
+        );
+
+        (<TextDocumentEdit>codeActions[0]?.edit?.documentChanges?.[0])?.edits.forEach(
+            (edit) => (edit.newText = harmonizeNewLines(edit.newText))
+        );
+
+        assert.deepStrictEqual(codeActions, [
+            {
+                edit: {
+                    documentChanges: [
+                        {
+                            edits: [
+                                {
+                                    newText: "\n\nfunction abc() {\nthrow new Error('Function not implemented.');\n}\n",
+                                    range: {
+                                        start: {
+                                            character: 0,
+                                            line: 10
+                                        },
+                                        end: {
+                                            character: 0,
+                                            line: 10
+                                        }
+                                    }
+                                }
+                            ],
+                            textDocument: {
+                                uri: getUri('codeactions.svelte'),
+                                version: 0
+                            }
+                        }
+                    ]
+                },
+                kind: CodeActionKind.QuickFix,
+                title: "Add missing function declaration 'abc'"
+            }
+        ]);
+    });
+
     it('organizes imports', async () => {
         const { provider, document } = setup('codeactions.svelte');
 
@@ -428,11 +484,11 @@ describe('CodeActionsProvider', () => {
                             range: {
                                 start: {
                                     character: 0,
-                                    line: 9
+                                    line: 10
                                 },
                                 end: {
                                     character: 0,
-                                    line: 9
+                                    line: 10
                                 }
                             }
                         }

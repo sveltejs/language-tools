@@ -171,6 +171,14 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                                     );
                                 }
 
+                                if (fix.fixName === 'fixMissingFunctionDeclaration') {
+                                    originalRange = this.checkEndOfFileCodeInsert(
+                                        originalRange,
+                                        range,
+                                        document
+                                    );
+                                }
+
                                 return TextEdit.replace(originalRange, edit.newText);
                             })
                         );
@@ -327,28 +335,38 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             TextDocumentEdit.create(
                 VersionedTextDocumentIdentifier.create(document.uri, 0),
                 edit.textChanges.map((edit) => {
-                    let range = mapRangeToOriginal(fragment, convertRange(fragment, edit.span));
-                    // Some refactorings place the new code at the end of svelte2tsx' render function,
-                    // which is unmapped. In this case, add it to the end of the script tag ourselves.
-                    if (range.start.line < 0 || range.end.line < 0) {
-                        if (isRangeInTag(originalRange, document.scriptInfo)) {
-                            range = Range.create(
-                                document.scriptInfo.endPos,
-                                document.scriptInfo.endPos
-                            );
-                        } else if (isRangeInTag(originalRange, document.moduleScriptInfo)) {
-                            range = Range.create(
-                                document.moduleScriptInfo.endPos,
-                                document.moduleScriptInfo.endPos
-                            );
-                        }
-                    }
-                    return TextEdit.replace(range, edit.newText);
+                    const range = mapRangeToOriginal(fragment, convertRange(fragment, edit.span));
+
+                    return TextEdit.replace(
+                        this.checkEndOfFileCodeInsert(range, originalRange, document),
+                        edit.newText
+                    );
                 })
             )
         );
 
         return { documentChanges };
+    }
+
+    /**
+     * Some refactorings place the new code at the end of svelte2tsx' render function,
+     *  which is unmapped. In this case, add it to the end of the script tag ourselves.
+     */
+    private checkEndOfFileCodeInsert(resultRange: Range, targetRange: Range, document: Document) {
+        if (resultRange.start.line < 0 || resultRange.end.line < 0) {
+            if (isRangeInTag(targetRange, document.scriptInfo)) {
+                resultRange = Range.create(
+                    document.scriptInfo.endPos,
+                    document.scriptInfo.endPos
+                );
+            } else if (isRangeInTag(targetRange, document.moduleScriptInfo)) {
+                resultRange = Range.create(
+                    document.moduleScriptInfo.endPos,
+                    document.moduleScriptInfo.endPos
+                );
+            }
+        }
+        return resultRange;
     }
 
     private getLSAndTSDoc(document: Document) {
