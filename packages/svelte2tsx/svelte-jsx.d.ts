@@ -369,7 +369,7 @@ declare namespace svelte.JSX {
       title?: string;
       type?: string;
       usemap?: string;
-      value?: string | string[] | number;
+      value?: string | string[] | number | null;
       /**
        * a value between 0 and 1
       */
