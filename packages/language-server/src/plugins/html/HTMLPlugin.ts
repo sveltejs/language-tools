@@ -25,10 +25,16 @@ import {
 } from '../../lib/documents';
 import { LSConfigManager, LSHTMLConfig } from '../../ls-config';
 import { svelteHtmlDataProvider } from './dataProvider';
-import { HoverProvider, CompletionsProvider, RenameProvider, LinkedEditingRangesProvider } from '../interfaces';
+import {
+    HoverProvider,
+    CompletionsProvider,
+    RenameProvider,
+    LinkedEditingRangesProvider
+} from '../interfaces';
 import { isInsideMoustacheTag, toRange } from '../../lib/documents/utils';
 
-export class HTMLPlugin implements HoverProvider, CompletionsProvider, RenameProvider, LinkedEditingRangesProvider {
+export class HTMLPlugin
+    implements HoverProvider, CompletionsProvider, RenameProvider, LinkedEditingRangesProvider {
     private configManager: LSConfigManager;
     private lang = getLanguageService({
         customDataProviders: [svelteHtmlDataProvider],
