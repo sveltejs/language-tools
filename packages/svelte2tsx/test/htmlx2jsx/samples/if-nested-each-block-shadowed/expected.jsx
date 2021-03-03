@@ -9,6 +9,10 @@
             </>)}}}
         </> : <></>}
     </>)}}}
+        {(hello) ? <>
+            {hello}
+        </> : <></>}
+    
     {(hi && bye) ? <>
         {() => {const Ωbye=bye;() => {__sveltets_each(items, (bye) => (((hello))) && ((hi && Ωbye)) && <>
             <div>{bye}</div>
@@ -18,12 +22,30 @@
             </> : <></>}
         
     </> : (cool) ? <>
-        {() => {const ΩΩcool=cool;() => {__sveltets_each(items, (item,cool) => ((((hello))) && (!(hi && bye) && (Ωcool))) && ((bye)) && <>
+        {() => {const Ωcool=cool;() => {__sveltets_each(items, (item,cool) => (((hello))) && (!(hi && bye) && (Ωcool)) && <>
             <div>{item}{cool}</div>
         </>)}}}
     </> : <>
-        {() => {const ΩΩhello=hello;() => {__sveltets_each(items, (hello) => ((((Ωhello))) && (!(hi && bye) && (cool))) && (!(bye)) && <>
+        {() => {const Ωhello=hello;() => {__sveltets_each(items, (hello) => (((Ωhello))) && (!(hi && bye) && !(cool)) && <>
             <div>{hello}</div>
         </>)}}}
     </> }
-</> : <></>}</>
+</> : <></>}
+
+{__sveltets_each(items, (hello,i) => <>
+    {(hello && i && bye) ? <>
+        {hello} {i} {bye}
+    </> : (hello && i && bye) ? <>
+        {hello} {i} {bye}
+    </> : <>
+        {hello} {i} {bye}
+    </> }
+</>)}
+    {(hello && i && bye) ? <>
+        {hello} {i} {bye}
+    </> : (hello && i && bye) ? <>
+        {hello} {i} {bye}
+    </> : <>
+        {hello} {i} {bye}
+    </> }
+</>

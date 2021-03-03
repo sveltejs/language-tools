@@ -80,13 +80,18 @@ export function convertHtmlxToJsx(
                 switch (node.type) {
                     case 'IfBlock':
                         handleIf(htmlx, str, node, ifScope);
-                        ifScope = ifScope.getChild();
+                        if (!node.elseif) {
+                            ifScope = ifScope.getChild();
+                        }
                         break;
                     case 'EachBlock':
                         handleScopeEach(node);
                         handleEach(htmlx, str, node, ifScope);
                         break;
                     case 'ElseBlock':
+                        if (parent.type === 'EachBlock') {
+                            templateScope.value = templateScope.value.parent;
+                        }
                         handleElse(htmlx, str, node, parent, ifScope);
                         break;
                     case 'AwaitBlock':
@@ -185,11 +190,16 @@ export function convertHtmlxToJsx(
                         ifScope = ifScope.getParent();
                         break;
                     case 'EachBlock':
+                        if (!node.else) {
+                            templateScope.value = templateScope.value.parent;
+                        }
+                        break;
                     case 'AwaitBlock':
                         templateScope.value = templateScope.value.parent;
                         break;
                     case 'InlineComponent':
                     case 'Element':
+                    case 'SlotTemplate':
                         if (usesLet(node)) {
                             templateScope.value = templateScope.value.parent;
                         }

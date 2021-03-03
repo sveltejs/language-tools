@@ -22,7 +22,7 @@
             </> : <></>}
         </Comp></>}}
         {(hello) ? <>
-            <Comp >{() => {const ΩΩΩhello=hello;() => { let {hello} = __sveltets_instanceOf(Comp).$$slot_def['default'];(((Ωhello && hello1))) && ((ΩΩΩhello)) && <>
+            <Comp >{() => {const ΩΩhello=hello;() => { let {hello} = __sveltets_instanceOf(Comp).$$slot_def['default'];(((Ωhello && hello1))) && ((ΩΩhello)) && <>
                 {(hello) ? <>
                     {hello}
                 </> : <></>}
@@ -30,20 +30,48 @@
         </> : <></>}
     </>}}}</Comp>
     {(hi && bye) ? <>
-        <Comp >{() => {const ΩΩbye=bye;() => { let {foo:bye} = __sveltets_instanceOf(Comp).$$slot_def['default'];(((Ωhello && hello1))) && ((hi && ΩΩbye)) && <>
+        <Comp >{() => {const Ωbye=bye;() => { let {foo:bye} = __sveltets_instanceOf(Comp).$$slot_def['default'];(((hello && hello1))) && ((hi && Ωbye)) && <>
             {bye}
         </>}}}</Comp>
     </> : (cool) ? <>
         <Comp>
-            {() => {const ΩΩcool=cool;() => { let {cool, hello} = __sveltets_instanceOf(Comp).$$slot_def['named'];(((Ωhello && hello1))) && (!(hi && bye) && (ΩΩcool)) && <><div   >
+            {() => {const Ωcool=cool,Ωhello=hello;() => { let {cool, hello} = __sveltets_instanceOf(Comp).$$slot_def['named'];(((Ωhello && hello1))) && (!(hi && bye) && (Ωcool)) && <><div   >
                 {hello}
             </div></>}}}
         </Comp>
     </> : <>
         <Comp>
-            {() => { let {foo:hello, hello1:other} = __sveltets_instanceOf(Comp).$$slot_def['named'];(((Ωhello && hello1))) && (!(hi && bye) && !(cool)) && <><div   >
+            {() => {const Ωhello=hello;() => { let {foo:hello, hello1:other} = __sveltets_instanceOf(Comp).$$slot_def['named'];(((Ωhello && hello1))) && (!(hi && bye) && !(cool)) && <><div   >
                 {hello}
-            </div></>}}
+            </div></>}}}
         </Comp>
     </> }
-</> : <></>}</>
+</> : <></>}
+
+<Comp >{() => { let {hello} = __sveltets_instanceOf(Comp).$$slot_def['default'];<>
+    {(hello && bye) ? <>
+        {hello} {bye}
+    </> : (hello && bye) ? <>
+        {hello} {bye}
+    </> : <>
+        {hello} {bye}
+    </> }
+    {() => { let {hello} = __sveltets_instanceOf(Comp).$$slot_def['named1'];<><sveltefragment  >
+        {(hello && bye) ? <>
+            {hello} {bye}
+        </> : (hello && bye) ? <>
+            {hello} {bye}
+        </> : <>
+            {hello} {bye}
+        </> }
+    </sveltefragment></>}}
+    {() => { let {hello} = __sveltets_instanceOf(Comp).$$slot_def['named2'];<><p  >
+        {(hello && bye) ? <>
+            {hello} {bye}
+        </> : (hello && bye) ? <>
+            {hello} {bye}
+        </> : <>
+            {hello} {bye}
+        </> }
+    </p></>}}
+</>}}</Comp></>

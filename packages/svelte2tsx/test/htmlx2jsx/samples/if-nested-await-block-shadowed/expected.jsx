@@ -1,14 +1,16 @@
 <>{(hello) ? <>
-    {() => {let _$$p = (x); __sveltets_awaitThen(_$$p, (hello) => {((Ωhello)) && <>
+    {() => {const Ωhello=hello;let _$$p = (hello); __sveltets_awaitThen(_$$p, (hello) => {((Ωhello)) && <>
         {hello}
-        {() => {let _$$p = (x); __sveltets_awaitThen(_$$p, (hello) => {((Ωhello)) && <>
-            {(hello) ? <>
-                {hello}
-            </> : <></>}
-        </>})}}
+        {(hello) ? <>
+            {() => {const ΩΩhello=hello;let _$$p = (x); __sveltets_awaitThen(_$$p, (hello) => {(((Ωhello))) && ((ΩΩhello)) && <>
+                {(hello) ? <>
+                    {hello}
+                </> : <></>}
+            </>})}}
+        </> : <></>}
     </>})}}
     {(hi && bye) ? <>
-        {() => {let _$$p = (x); __sveltets_awaitThen(_$$p, (bye) => {(((Ωhello))) && ((hi && Ωbye)) && <>
+        {() => {const Ωbye=bye,Ωhello=hello;let _$$p = (x); __sveltets_awaitThen(_$$p, (bye) => {(((Ωhello))) && ((hi && Ωbye)) && <>
             {bye}
         </>}, (hello) => {(((Ωhello))) && ((hi && Ωbye)) && <>
             {(hello) ? <>
@@ -16,20 +18,40 @@
             </> : <></>}
         </>})}}
     </> : (cool) ? <>
-        {() => {let _$$p = (cool); ((((hello))) && (!(hi && bye) && (Ωcool))) && ((hello)) && <>
+        {() => {const Ωcool=cool;let _$$p = (cool); (((hello))) && (!(hi && bye) && (Ωcool)) && <>
             loading
-        </>; __sveltets_awaitThen(_$$p, (cool) => {((((hello))) && (!(hi && bye) && (Ωcool))) && ((hello)) && <>
+        </>; __sveltets_awaitThen(_$$p, (cool) => {(((hello))) && (!(hi && bye) && (Ωcool)) && <>
             {(cool) ? <>
                 {cool}
             </> : <></>}
-        </>}, (cool) => {((((hello))) && (!(hi && bye) && (Ωcool))) && ((hello)) && <>
+        </>}, (cool) => {(((hello))) && (!(hi && bye) && (Ωcool)) && <>
             z
         </>})}}
     </> : <>
-        {() => {let _$$p = (x); __sveltets_awaitThen(_$$p, (hello) => {((((Ωhello))) && (!(hi && bye) && (cool))) && (!(ΩΩhello)) && <>
+        {() => {const Ωhello=hello;let _$$p = (x); __sveltets_awaitThen(_$$p, (hello) => {(((Ωhello))) && (!(hi && bye) && !(cool)) && <>
             {(hello) ? <>
                 {hello}
             </> : <></>}
         </>})}}
     </> }
-</> : <></>}</>
+</> : <></>}
+
+{() => {let _$$p = (cool); <>
+    {(cool) ? <>
+        {cool}
+    </> : (hello) ? <>
+        {hello}
+    </> : <></> }
+</>; __sveltets_awaitThen(_$$p, (cool) => {<>
+    {(cool) ? <>
+        {cool}
+    </> : (hello) ? <>
+        {hello}
+    </> : <></> }
+</>}, (cool) => {<>
+    {(cool) ? <>
+        {cool}
+    </> : (hello) ? <>
+        {hello}
+    </> : <></> }
+</>})}}</>

@@ -13,7 +13,12 @@ export function handleAwait(
 ): void {
     // {#await somePromise then value} ->
     // {() => {let _$$p = (somePromise);
-    str.overwrite(awaitBlock.start, awaitBlock.expression.start, '{() => {let _$$p = (');
+    const constRedeclares = ifScope.getConstsToRedeclare();
+    str.overwrite(
+        awaitBlock.start,
+        awaitBlock.expression.start,
+        `{() => {${constRedeclares}let _$$p = (`
+    );
 
     // then value } | {:then value} | {await ..} .. {/await} ->
     // __sveltets_awaitThen(_$$p, (value) => {(possibleIfCondition && )<>

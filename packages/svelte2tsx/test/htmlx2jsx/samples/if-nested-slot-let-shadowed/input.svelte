@@ -47,3 +47,31 @@
         </Comp>
     {/if}
 {/if}
+
+<Comp let:hello>
+    {#if hello && bye}
+        {hello} {bye}
+    {:else if hello && bye}
+        {hello} {bye}
+    {:else}
+        {hello} {bye}
+    {/if}
+    <svelte:fragment slot="named1" let:hello>
+        {#if hello && bye}
+            {hello} {bye}
+        {:else if hello && bye}
+            {hello} {bye}
+        {:else}
+            {hello} {bye}
+        {/if}
+    </svelte:fragment>
+    <p slot="named2" let:hello>
+        {#if hello && bye}
+            {hello} {bye}
+        {:else if hello && bye}
+            {hello} {bye}
+        {:else}
+            {hello} {bye}
+        {/if}
+    </p>
+</Comp>

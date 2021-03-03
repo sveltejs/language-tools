@@ -8,6 +8,10 @@
                 {/if}
             {/each}
         {/if}
+    {:else}
+        {#if hello}
+            {hello}
+        {/if}
     {/each}
     {#if hi && bye}
         {#each items as bye}
@@ -27,3 +31,21 @@
         {/each}
     {/if}
 {/if}
+
+{#each items as hello,i}
+    {#if hello && i && bye}
+        {hello} {i} {bye}
+    {:else if hello && i && bye}
+        {hello} {i} {bye}
+    {:else}
+        {hello} {i} {bye}
+    {/if}
+{:else}
+    {#if hello && i && bye}
+        {hello} {i} {bye}
+    {:else if hello && i && bye}
+        {hello} {i} {bye}
+    {:else}
+        {hello} {i} {bye}
+    {/if}
+{/each}
