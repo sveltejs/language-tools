@@ -14,7 +14,8 @@ import {
     CompletionItemKind,
     TextEdit,
     Range,
-    WorkspaceEdit
+    WorkspaceEdit,
+    LinkedEditingRanges
 } from 'vscode-languageserver';
 import {
     DocumentManager,
@@ -24,10 +25,16 @@ import {
 } from '../../lib/documents';
 import { LSConfigManager, LSHTMLConfig } from '../../ls-config';
 import { svelteHtmlDataProvider } from './dataProvider';
-import { HoverProvider, CompletionsProvider, RenameProvider } from '../interfaces';
+import {
+    HoverProvider,
+    CompletionsProvider,
+    RenameProvider,
+    LinkedEditingRangesProvider
+} from '../interfaces';
 import { isInsideMoustacheTag, toRange } from '../../lib/documents/utils';
 
-export class HTMLPlugin implements HoverProvider, CompletionsProvider, RenameProvider {
+export class HTMLPlugin
+    implements HoverProvider, CompletionsProvider, RenameProvider, LinkedEditingRangesProvider {
     private configManager: LSConfigManager;
     private lang = getLanguageService({
         customDataProviders: [svelteHtmlDataProvider],
@@ -210,6 +217,7 @@ export class HTMLPlugin implements HoverProvider, CompletionsProvider, RenamePro
         if (!this.featureEnabled('renameTags')) {
             return null;
         }
+
         const html = this.documents.get(document);
         if (!html) {
             return null;
@@ -246,6 +254,25 @@ export class HTMLPlugin implements HoverProvider, CompletionsProvider, RenamePro
         const tagNameStart = node.start + '<'.length;
 
         return toRange(document.getText(), tagNameStart, tagNameStart + node.tag.length);
+    }
+
+    getLinkedEditingRanges(document: Document, position: Position): LinkedEditingRanges | null {
+        if (!this.featureEnabled('linkedEditing')) {
+            return null;
+        }
+
+        const html = this.documents.get(document);
+        if (!html) {
+            return null;
+        }
+
+        const ranges = this.lang.findLinkedEditingRanges(document, position, html);
+
+        if (!ranges) {
+            return null;
+        }
+
+        return { ranges };
     }
 
     /**

@@ -1,6 +1,7 @@
 import {
     CompletionContext,
     FileChangeType,
+    LinkedEditingRanges,
     SemanticTokens,
     SignatureHelpContext,
     TextDocumentContentChangeEvent
@@ -151,6 +152,13 @@ export interface SemanticTokensProvider {
     getSemanticTokens(textDocument: Document, range?: Range): Resolvable<SemanticTokens | null>;
 }
 
+export interface LinkedEditingRangesProvider {
+    getLinkedEditingRanges(
+        document: Document,
+        position: Position
+    ): Resolvable<LinkedEditingRanges | null>;
+}
+
 export interface OnWatchFileChangesPara {
     fileName: string;
     changeType: FileChangeType;
@@ -177,7 +185,8 @@ type ProviderBase = DiagnosticsProvider &
     FindReferencesProvider &
     RenameProvider &
     SignatureHelpProvider &
-    SemanticTokensProvider;
+    SemanticTokensProvider &
+    LinkedEditingRangesProvider;
 
 export type LSProvider = ProviderBase & BackwardsCompatibleDefinitionsProvider;
 

@@ -115,11 +115,11 @@ describe('DiagnosticsProvider', () => {
                 range: {
                     end: {
                         character: 6,
-                        line: 2
+                        line: 6
                     },
                     start: {
                         character: 1,
-                        line: 2
+                        line: 6
                     }
                 },
                 severity: 1,
@@ -133,11 +133,29 @@ describe('DiagnosticsProvider', () => {
                 range: {
                     end: {
                         character: 9,
-                        line: 3
+                        line: 7
                     },
                     start: {
                         character: 4,
-                        line: 3
+                        line: 7
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            },
+            {
+                code: 2345,
+                message:
+                    "Argument of type 'string' is not assignable to parameter of type 'SvelteStore<any>'.",
+                range: {
+                    end: {
+                        character: 14,
+                        line: 8
+                    },
+                    start: {
+                        character: 1,
+                        line: 8
                     }
                 },
                 severity: 1,
@@ -151,11 +169,11 @@ describe('DiagnosticsProvider', () => {
                 range: {
                     end: {
                         character: 7,
-                        line: 6
+                        line: 11
                     },
                     start: {
                         character: 2,
-                        line: 6
+                        line: 11
                     }
                 },
                 severity: 1,
@@ -169,11 +187,29 @@ describe('DiagnosticsProvider', () => {
                 range: {
                     end: {
                         character: 11,
-                        line: 7
+                        line: 12
                     },
                     start: {
                         character: 6,
-                        line: 7
+                        line: 12
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            },
+            {
+                code: 2345,
+                message:
+                    "Argument of type 'string' is not assignable to parameter of type 'SvelteStore<any>'.",
+                range: {
+                    end: {
+                        character: 15,
+                        line: 15
+                    },
+                    start: {
+                        character: 2,
+                        line: 15
                     }
                 },
                 severity: 1,
@@ -410,13 +446,13 @@ describe('DiagnosticsProvider', () => {
                 message:
                     "This condition will always return 'false' since the types 'string' and 'boolean' have no overlap.",
                 range: {
-                    start: {
-                        line: 9,
-                        character: 40
-                    },
                     end: {
-                        line: 9,
-                        character: 57
+                        character: 57,
+                        line: 15
+                    },
+                    start: {
+                        character: 40,
+                        line: 15
                     }
                 },
                 severity: 1,
@@ -427,13 +463,13 @@ describe('DiagnosticsProvider', () => {
                 code: 2322,
                 message: "Type 'string' is not assignable to type 'boolean'.",
                 range: {
-                    start: {
-                        line: 15,
-                        character: 12
-                    },
                     end: {
-                        line: 15,
-                        character: 16
+                        character: 16,
+                        line: 21
+                    },
+                    start: {
+                        character: 12,
+                        line: 21
                     }
                 },
                 severity: 1,
@@ -445,13 +481,31 @@ describe('DiagnosticsProvider', () => {
                 message:
                     "This condition will always return 'false' since the types 'string' and 'boolean' have no overlap.",
                 range: {
-                    start: {
-                        line: 23,
-                        character: 41
-                    },
                     end: {
-                        line: 23,
-                        character: 58
+                        character: 69,
+                        line: 28
+                    },
+                    start: {
+                        character: 46,
+                        line: 28
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            },
+            {
+                code: 2367,
+                message:
+                    "This condition will always return 'false' since the types 'string' and 'boolean' have no overlap.",
+                range: {
+                    end: {
+                        character: 58,
+                        line: 35
+                    },
+                    start: {
+                        character: 41,
+                        line: 35
                     }
                 },
                 severity: 1,
@@ -462,13 +516,31 @@ describe('DiagnosticsProvider', () => {
                 code: 2322,
                 message: "Type 'string' is not assignable to type 'boolean'.",
                 range: {
-                    start: {
-                        line: 28,
-                        character: 13
-                    },
                     end: {
-                        line: 28,
-                        character: 17
+                        character: 17,
+                        line: 40
+                    },
+                    start: {
+                        character: 13,
+                        line: 40
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            },
+            {
+                code: 2367,
+                message:
+                    "This condition will always return 'false' since the types 'string' and 'boolean' have no overlap.",
+                range: {
+                    end: {
+                        character: 70,
+                        line: 47
+                    },
+                    start: {
+                        character: 47,
+                        line: 47
                     }
                 },
                 severity: 1,

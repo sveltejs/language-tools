@@ -41,6 +41,10 @@ export class ImplicitStoreValues {
             .forEach((node) => this.attachStoreValueDeclarationToImport(node, astOffset, str));
     }
 
+    public getAccessedStores(): string[] {
+        return [...this.accessedStores.keys()];
+    }
+
     private attachStoreValueDeclarationToDecl(
         node: ts.VariableDeclaration,
         astOffset: number,

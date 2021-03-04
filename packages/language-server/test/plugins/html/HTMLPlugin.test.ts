@@ -177,4 +177,16 @@ describe('HTML Plugin', () => {
             renameInfo
         );
     });
+
+    it('provides linked editing ranges', async () => {
+        const { plugin, document } = setup('<div></div>');
+
+        const ranges = plugin.getLinkedEditingRanges(document, Position.create(0, 3));
+        assert.deepStrictEqual(ranges, {
+            ranges: [
+                { start: { line: 0, character: 1 }, end: { line: 0, character: 4 } },
+                { start: { line: 0, character: 7 }, end: { line: 0, character: 10 } }
+            ]
+        });
+    });
 });

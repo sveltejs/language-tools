@@ -37,7 +37,8 @@ const defaultLSConfig: LSConfig = {
         completions: { enable: true, emmet: true },
         tagComplete: { enable: true },
         documentSymbols: { enable: true },
-        renameTags: { enable: true }
+        renameTags: { enable: true },
+        linkedEditing: { enable: true }
     },
     svelte: {
         enable: true,
@@ -154,6 +155,9 @@ export interface LSHTMLConfig {
         enable: boolean;
     };
     renameTags: {
+        enable: boolean;
+    };
+    linkedEditing: {
         enable: boolean;
     };
 }
