@@ -1,8 +1,8 @@
 <>{(hello) ? <>
-    {() => {const Ωhello=hello;() => {__sveltets_each(items, (hello,i) => (hello.id) && ((Ωhello)) && <>
+    {() => {/*Ωignore_startΩ*/const Ωhello=hello;/*Ωignore_endΩ*/() => {__sveltets_each(items, (hello,i) => (hello.id) && /*Ωignore_startΩ*/((Ωhello)) && /*Ωignore_endΩ*/<>
         <div>{hello}{i}</div>
         {(hello) ? <>
-            {() => {const ΩΩhello=hello;() => {__sveltets_each(items, (hello) => (((Ωhello))) && ((ΩΩhello)) && <>
+            {() => {/*Ωignore_startΩ*/const ΩΩhello=hello;/*Ωignore_endΩ*/() => {__sveltets_each(items, (hello) => /*Ωignore_startΩ*/(((Ωhello))) && ((ΩΩhello)) && /*Ωignore_endΩ*/<>
                 {(hello) ? <>
                     {hello}
                 </> : <></>}
@@ -14,7 +14,7 @@
         </> : <></>}
     
     {(hi && bye) ? <>
-        {() => {const Ωbye=bye;() => {__sveltets_each(items, (bye) => (((hello))) && ((hi && Ωbye)) && <>
+        {() => {/*Ωignore_startΩ*/const Ωbye=bye;/*Ωignore_endΩ*/() => {__sveltets_each(items, (bye) => /*Ωignore_startΩ*/(((hello))) && ((hi && Ωbye)) && /*Ωignore_endΩ*/<>
             <div>{bye}</div>
         </>)}}}
             {(bye) ? <>
@@ -22,11 +22,11 @@
             </> : <></>}
         
     </> : (cool) ? <>
-        {() => {const Ωcool=cool;() => {__sveltets_each(items, (item,cool) => (((hello))) && (!(hi && bye) && (Ωcool)) && <>
+        {() => {/*Ωignore_startΩ*/const Ωcool=cool;/*Ωignore_endΩ*/() => {__sveltets_each(items, (item,cool) => /*Ωignore_startΩ*/(((hello))) && (!(hi && bye) && (Ωcool)) && /*Ωignore_endΩ*/<>
             <div>{item}{cool}</div>
         </>)}}}
     </> : <>
-        {() => {const Ωhello=hello;() => {__sveltets_each(items, (hello) => (((Ωhello))) && (!(hi && bye) && !(cool)) && <>
+        {() => {/*Ωignore_startΩ*/const Ωhello=hello;/*Ωignore_endΩ*/() => {__sveltets_each(items, (hello) => /*Ωignore_startΩ*/(((Ωhello))) && (!(hi && bye) && !(cool)) && /*Ωignore_endΩ*/<>
             <div>{hello}</div>
         </>)}}}
     </> }

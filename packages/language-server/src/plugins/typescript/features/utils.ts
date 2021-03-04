@@ -48,3 +48,16 @@ export function getComponentAtPosition(
     }
     return snapshot;
 }
+
+/**
+ * Checks if this a section that should be completely ignored
+ * because it's purely generated.
+ */
+export function isInGeneratedCode(text: string, start: number, end: number) {
+    const lineStart = text.lastIndexOf('\n', start);
+    const lineEnd = text.indexOf('\n', end);
+    return (
+        text.substring(lineStart, start).includes('/*Ωignore_startΩ*/') &&
+        text.substring(end, lineEnd).includes('/*Ωignore_endΩ*/')
+    );
+}

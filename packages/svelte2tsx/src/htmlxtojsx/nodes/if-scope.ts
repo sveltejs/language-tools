@@ -2,6 +2,7 @@ import MagicString from 'magic-string';
 import { Node } from 'estree-walker';
 import { getIdentifiersInIfExpression } from '../utils/node-utils';
 import { TemplateScope } from '../nodes/template-scope';
+import { surroundWithIgnoreComments } from '../../utils/ignore';
 
 enum IfType {
     If,
@@ -192,7 +193,7 @@ export class IfScope {
      */
     addPossibleIfCondition(skipImmediateChildScope = false): string {
         const condition = this.getFullCondition(skipImmediateChildScope);
-        return condition ? `${condition} && ` : '';
+        return condition ? surroundWithIgnoreComments(`${condition} && `) : '';
     }
 
     /**
@@ -255,7 +256,7 @@ export class IfScope {
         const replacements = this.getNamesToRedeclare()
             .map((identifier) => `${this.replacementPrefix + identifier}=${identifier}`)
             .join(',');
-        return replacements ? `const ${replacements};` : '';
+        return replacements ? surroundWithIgnoreComments(`const ${replacements};`) : '';
     }
 
     /**
