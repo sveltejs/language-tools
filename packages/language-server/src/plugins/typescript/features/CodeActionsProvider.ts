@@ -9,7 +9,7 @@ import {
     WorkspaceEdit
 } from 'vscode-languageserver';
 import { Document, mapRangeToOriginal, isRangeInTag, isInTag } from '../../../lib/documents';
-import { pathToUrl, flatten } from '../../../utils';
+import { pathToUrl, flatten, isNotNullOrUndefined } from '../../../utils';
 import { CodeActionsProvider } from '../../interfaces';
 import { SnapshotFragment, SvelteSnapshotFragment } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
@@ -17,6 +17,7 @@ import { convertRange } from '../utils';
 
 import ts from 'typescript';
 import { CompletionsProviderImpl } from './CompletionProvider';
+import { isNoTextSpanInGeneratedCode, SnapshotFragmentMap } from './utils';
 
 interface RefactorArgs {
     type: 'refactor';
@@ -134,45 +135,56 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             userPreferences
         );
 
-        const docs = new Map<string, SnapshotFragment>([[tsDoc.filePath, fragment]]);
+        const docs = new SnapshotFragmentMap(this.lsAndTsDocResolver);
+        docs.set(tsDoc.filePath, { fragment, snapshot: tsDoc });
+
         return await Promise.all(
             codeFixes.map(async (fix) => {
                 const documentChanges = await Promise.all(
                     fix.changes.map(async (change) => {
-                        const doc =
-                            docs.get(change.fileName) ??
-                            (await this.getAndCacheCodeActionDoc(change, docs));
+                        const { snapshot, fragment } = await docs.retrieve(change.fileName);
                         return TextDocumentEdit.create(
                             VersionedTextDocumentIdentifier.create(pathToUrl(change.fileName), 0),
-                            change.textChanges.map((edit) => {
-                                if (
-                                    fix.fixName === 'import' &&
-                                    doc instanceof SvelteSnapshotFragment
-                                ) {
-                                    return this.completionProvider.codeActionChangeToTextEdit(
-                                        document,
-                                        doc,
-                                        edit,
-                                        true,
-                                        isInTag(range.start, document.scriptInfo) ||
-                                            isInTag(range.start, document.moduleScriptInfo)
-                                    );
-                                }
+                            change.textChanges
+                                .map((edit) => {
+                                    if (
+                                        fix.fixName === 'import' &&
+                                        fragment instanceof SvelteSnapshotFragment
+                                    ) {
+                                        return this.completionProvider.codeActionChangeToTextEdit(
+                                            document,
+                                            fragment,
+                                            edit,
+                                            true,
+                                            isInTag(range.start, document.scriptInfo) ||
+                                                isInTag(range.start, document.moduleScriptInfo)
+                                        );
+                                    }
 
-                                let originalRange = mapRangeToOriginal(
-                                    doc,
-                                    convertRange(doc, edit.span)
-                                );
-                                if (fix.fixName === 'unusedIdentifier') {
-                                    originalRange = this.checkRemoveImportCodeActionRange(
-                                        edit,
-                                        doc,
-                                        originalRange
-                                    );
-                                }
+                                    if (
+                                        !isNoTextSpanInGeneratedCode(
+                                            snapshot.getFullText(),
+                                            edit.span
+                                        )
+                                    ) {
+                                        return undefined;
+                                    }
 
-                                return TextEdit.replace(originalRange, edit.newText);
-                            })
+                                    let originalRange = mapRangeToOriginal(
+                                        fragment,
+                                        convertRange(fragment, edit.span)
+                                    );
+                                    if (fix.fixName === 'unusedIdentifier') {
+                                        originalRange = this.checkRemoveImportCodeActionRange(
+                                            edit,
+                                            fragment,
+                                            originalRange
+                                        );
+                                    }
+
+                                    return TextEdit.replace(originalRange, edit.newText);
+                                })
+                                .filter(isNotNullOrUndefined)
                         );
                     })
                 );
@@ -185,15 +197,6 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                 );
             })
         );
-    }
-
-    private async getAndCacheCodeActionDoc(
-        change: ts.FileTextChanges,
-        cache: Map<string, SnapshotFragment>
-    ) {
-        const doc = await this.getSnapshot(change.fileName).getFragment();
-        cache.set(change.fileName, doc);
-        return doc;
     }
 
     private async getApplicableRefactors(document: Document, range: Range): Promise<CodeAction[]> {

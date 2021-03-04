@@ -28,7 +28,7 @@ import {
     getTextInRange
 } from '../../lib/documents';
 import { LSConfigManager, LSTypescriptConfig } from '../../ls-config';
-import { pathToUrl } from '../../utils';
+import { isNotNullOrUndefined, pathToUrl } from '../../utils';
 import {
     AppCompletionItem,
     AppCompletionList,
@@ -49,7 +49,6 @@ import {
     SemanticTokensProvider,
     UpdateTsOrJsFile
 } from '../interfaces';
-import { SnapshotFragment } from './DocumentSnapshot';
 import { CodeActionsProviderImpl } from './features/CodeActionsProvider';
 import {
     CompletionEntryWithIdentifer,
@@ -67,6 +66,7 @@ import { SelectionRangeProviderImpl } from './features/SelectionRangeProvider';
 import { SignatureHelpProviderImpl } from './features/SignatureHelpProvider';
 import { SnapshotManager } from './SnapshotManager';
 import { SemanticTokensProviderImpl } from './features/SemanticTokensProvider';
+import { isNoTextSpanInGeneratedCode, SnapshotFragmentMap } from './features/utils';
 
 export class TypeScriptPlugin
     implements
@@ -263,35 +263,35 @@ export class TypeScriptPlugin
         }
 
         const { lang, tsDoc } = this.getLSAndTSDoc(document);
-        const fragment = await tsDoc.getFragment();
+        const mainFragment = await tsDoc.getFragment();
 
         const defs = lang.getDefinitionAndBoundSpan(
             tsDoc.filePath,
-            fragment.offsetAt(fragment.getGeneratedPosition(position))
+            mainFragment.offsetAt(mainFragment.getGeneratedPosition(position))
         );
 
         if (!defs || !defs.definitions) {
             return [];
         }
 
-        const docs = new Map<string, SnapshotFragment>([[tsDoc.filePath, fragment]]);
+        const docs = new SnapshotFragmentMap(this.lsAndTsDocResolver);
+        docs.set(tsDoc.filePath, { fragment: mainFragment, snapshot: tsDoc });
 
-        return await Promise.all(
+        const result = await Promise.all(
             defs.definitions.map(async (def) => {
-                let defDoc = docs.get(def.fileName);
-                if (!defDoc) {
-                    defDoc = await this.getSnapshot(def.fileName).getFragment();
-                    docs.set(def.fileName, defDoc);
-                }
+                const { fragment, snapshot } = await docs.retrieve(def.fileName);
 
-                return LocationLink.create(
-                    pathToUrl(def.fileName),
-                    convertToLocationRange(defDoc, def.textSpan),
-                    convertToLocationRange(defDoc, def.textSpan),
-                    convertToLocationRange(fragment, defs.textSpan)
-                );
+                if (isNoTextSpanInGeneratedCode(snapshot.getFullText(), def.textSpan)) {
+                    return LocationLink.create(
+                        pathToUrl(def.fileName),
+                        convertToLocationRange(fragment, def.textSpan),
+                        convertToLocationRange(fragment, def.textSpan),
+                        convertToLocationRange(mainFragment, defs.textSpan)
+                    );
+                }
             })
         );
+        return result.filter(isNotNullOrUndefined);
     }
 
     async prepareRename(document: Document, position: Position): Promise<Range | null> {
@@ -434,10 +434,6 @@ export class TypeScriptPlugin
 
     private getLSAndTSDoc(document: Document) {
         return this.lsAndTsDocResolver.getLSAndTSDoc(document);
-    }
-
-    private getSnapshot(filePath: string, document?: Document) {
-        return this.lsAndTsDocResolver.getSnapshot(filePath, document);
     }
 
     /**

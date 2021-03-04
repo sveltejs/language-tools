@@ -711,79 +711,75 @@ describe('DiagnosticsProvider', () => {
         const { plugin, document } = setup('diagnostics-ignore-generated.svelte');
         const diagnostics = await plugin.getDiagnostics(document);
 
-        assert.deepStrictEqual(
-            diagnostics,
-
-            [
-                {
-                    code: 2304,
-                    message: "Cannot find name 'a'.",
-                    range: {
-                        end: {
-                            character: 13,
-                            line: 3
-                        },
-                        start: {
-                            character: 12,
-                            line: 3
-                        }
+        assert.deepStrictEqual(diagnostics, [
+            {
+                code: 2304,
+                message: "Cannot find name 'a'.",
+                range: {
+                    end: {
+                        character: 13,
+                        line: 3
                     },
-                    severity: 1,
-                    source: 'ts',
-                    tags: []
+                    start: {
+                        character: 12,
+                        line: 3
+                    }
                 },
-                {
-                    code: 2304,
-                    message: "Cannot find name 'a'.",
-                    range: {
-                        end: {
-                            character: 6,
-                            line: 4
-                        },
-                        start: {
-                            character: 5,
-                            line: 4
-                        }
+                severity: 1,
+                source: 'ts',
+                tags: []
+            },
+            {
+                code: 2304,
+                message: "Cannot find name 'a'.",
+                range: {
+                    end: {
+                        character: 6,
+                        line: 4
                     },
-                    severity: 1,
-                    source: 'ts',
-                    tags: []
+                    start: {
+                        character: 5,
+                        line: 4
+                    }
                 },
-                {
-                    code: 2304,
-                    message: "Cannot find name 'b'.",
-                    range: {
-                        end: {
-                            character: 10,
-                            line: 8
-                        },
-                        start: {
-                            character: 9,
-                            line: 8
-                        }
+                severity: 1,
+                source: 'ts',
+                tags: []
+            },
+            {
+                code: 2304,
+                message: "Cannot find name 'b'.",
+                range: {
+                    end: {
+                        character: 10,
+                        line: 8
                     },
-                    severity: 1,
-                    source: 'ts',
-                    tags: []
+                    start: {
+                        character: 9,
+                        line: 8
+                    }
                 },
-                {
-                    code: 2304,
-                    message: "Cannot find name 'b'.",
-                    range: {
-                        end: {
-                            character: 10,
-                            line: 9
-                        },
-                        start: {
-                            character: 9,
-                            line: 9
-                        }
+                severity: 1,
+                source: 'ts',
+                tags: []
+            },
+            {
+                code: 2304,
+                message: "Cannot find name 'b'.",
+                range: {
+                    end: {
+                        character: 10,
+                        line: 9
                     },
-                    severity: 1,
-                    source: 'ts',
-                    tags: []
-                }
-            ]
-        );
+                    start: {
+                        character: 9,
+                        line: 9
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            }
+        ]);
     });
 });

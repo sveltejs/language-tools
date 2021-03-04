@@ -1,12 +1,6 @@
 import ts from 'typescript';
 import { Diagnostic, DiagnosticSeverity, DiagnosticTag } from 'vscode-languageserver';
-import {
-    Document,
-    mapObjWithRangeToOriginal,
-    getTextInRange,
-    getLineAtPosition,
-    offsetAt
-} from '../../../lib/documents';
+import { Document, mapObjWithRangeToOriginal, getTextInRange } from '../../../lib/documents';
 import { DiagnosticsProvider } from '../../interfaces';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { convertRange, mapSeverity } from '../utils';

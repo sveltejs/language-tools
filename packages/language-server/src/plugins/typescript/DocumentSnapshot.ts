@@ -57,6 +57,10 @@ export interface DocumentSnapshot extends ts.IScriptSnapshot {
      * in order to prevent memory leaks.
      */
     destroyFragment(): void;
+    /**
+     * Convenience function for getText(0, getLength())
+     */
+    getFullText(): string;
 }
 
 /**
@@ -221,6 +225,10 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
         return this.text.length;
     }
 
+    getFullText() {
+        return this.text;
+    }
+
     getChangeRange() {
         return undefined;
     }
@@ -299,6 +307,10 @@ export class JSOrTSDocumentSnapshot
 
     getLength() {
         return this.text.length;
+    }
+
+    getFullText() {
+        return this.text;
     }
 
     getChangeRange() {
