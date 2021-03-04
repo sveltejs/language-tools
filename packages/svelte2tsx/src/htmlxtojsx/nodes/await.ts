@@ -41,7 +41,7 @@ export function handleAwait(
 
             // somePromise} -> somePromise);
             str.overwrite(awaitBlock.expression.end, awaitEnd + 1, ');');
-            str.appendRight(awaitEnd + 1, ` ${ifScope.addPossibleIfCondition()}<>`);
+            str.appendRight(awaitEnd + 1, ` ${ifScope.addPossibleIfCondition(true)}<>`);
         } else {
             // {await ... then ...}
             thenStart = htmlx.indexOf('then', awaitBlock.expression.end);
@@ -58,7 +58,7 @@ export function handleAwait(
 
         const awaitEnd = htmlx.indexOf('}', awaitBlock.expression.end);
         str.overwrite(awaitBlock.expression.end, awaitEnd + 1, ');');
-        str.appendRight(awaitEnd + 1, ' <>');
+        str.appendRight(awaitEnd + 1, ` ${ifScope.addPossibleIfCondition(true)}<>`);
         str.appendLeft(thenEnd, '</>; ');
     }
 

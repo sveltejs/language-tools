@@ -172,15 +172,15 @@ export class IfScope {
      * Returns the full currently known condition, prepended with the conditions
      * of its parents. Identifiers in the condition get replaced if they were redeclared.
      */
-    getFullCondition(): string {
+    getFullCondition(skipImmediateChildScope = false): string {
         if (!this.current) {
             return '';
         }
 
-        const parentCondition = this.parent?.getFullCondition();
+        const parentCondition = this.parent?.getFullCondition(false);
         const condition = `(${getFullCondition(
             this.current,
-            this.getNamesThatNeedReplacement(),
+            this.getNamesThatNeedReplacement(skipImmediateChildScope),
             this.replacementPrefix
         )})`;
         return parentCondition ? `(${parentCondition}) && ${condition}` : condition;
@@ -190,8 +190,8 @@ export class IfScope {
      * Convenience method which invokes `getFullCondition` and adds a `&&` at the end
      * for easy chaining.
      */
-    addPossibleIfCondition(): string {
-        const condition = this.getFullCondition();
+    addPossibleIfCondition(skipImmediateChildScope = false): string {
+        const condition = this.getFullCondition(skipImmediateChildScope);
         return condition ? `${condition} && ` : '';
     }
 
@@ -297,10 +297,10 @@ export class IfScope {
     /**
      * Return all identifiers that were redeclared and therefore need replacement.
      */
-    private getNamesThatNeedReplacement() {
+    private getNamesThatNeedReplacement(skipImmediateChildScope: boolean) {
         const referencedIdentifiers = this.collectReferencedIdentifiers();
         return [...referencedIdentifiers].filter((identifier) =>
-            this.someChildScopeHasRedeclaredVariable(identifier)
+            this.someChildScopeHasRedeclaredVariable(identifier, skipImmediateChildScope)
         );
     }
 
@@ -308,9 +308,13 @@ export class IfScope {
      * Returns true if given identifier name is redeclared in a child template scope
      * and is therefore shadowed within that scope.
      */
-    private someChildScopeHasRedeclaredVariable(name: string) {
+    private someChildScopeHasRedeclaredVariable(name: string, skipImmediateChildScope: boolean) {
         let scope = this.scope.value;
-        while (scope && scope !== this.ownScope) {
+        while (
+            scope &&
+            (!skipImmediateChildScope || scope.parent !== this.ownScope) &&
+            scope !== this.ownScope
+        ) {
             if (scope.inits.has(name)) {
                 return true;
             }

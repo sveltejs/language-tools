@@ -2,6 +2,9 @@
     {#await x then y}
         {y}
     {/await}
+    {#await aPromise}
+      {hello}
+    {/await}
     {#if hi && bye}
         {#await x then y}
             {y}

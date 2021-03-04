@@ -2,6 +2,14 @@
     {#await hello then hello}
         {hello}
         {#if hello}
+            {#await aPromise}
+                {hello}
+            {/await}
+            {#await aPromise}
+                {hello}
+            {:catch hello}
+                {hello}
+            {/await}
             {#await x then hello}
                 {#if hello}
                     {hello}
@@ -26,6 +34,11 @@
             {/if}
         {:catch cool}
             z
+        {/await}
+        {#await aPromise}
+            loading
+        {:then cool}
+            {cool}
         {/await}
     {:else}
         {#await x then hello}
