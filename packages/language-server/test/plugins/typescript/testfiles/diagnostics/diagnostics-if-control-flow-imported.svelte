@@ -2,4 +2,4 @@
     const foo: string | boolean = '' as any;
 </script>
 
-<slot {foo} />
+<slot {foo} b={foo} />

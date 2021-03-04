@@ -610,4 +610,100 @@ describe('DiagnosticsProvider', () => {
             }
         ]);
     });
+
+    it('if control flow with shadowed variables', async () => {
+        const { plugin, document } = setup('diagnostics-if-control-flow-shadowed.svelte');
+        const diagnostics = await plugin.getDiagnostics(document);
+
+        assert.deepStrictEqual(diagnostics, [
+            {
+                code: 2367,
+                message:
+                    "This condition will always return 'false' since the types 'string' and 'boolean' have no overlap.",
+                range: {
+                    end: {
+                        character: 15,
+                        line: 13
+                    },
+                    start: {
+                        character: 5,
+                        line: 13
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            },
+            {
+                code: 2322,
+                message: "Type 'boolean' is not assignable to type 'string'.",
+                range: {
+                    end: {
+                        character: 16,
+                        line: 17
+                    },
+                    start: {
+                        character: 9,
+                        line: 17
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            },
+            {
+                code: 2339,
+                message: "Property 'a' does not exist on type 'boolean'.",
+                range: {
+                    end: {
+                        character: 16,
+                        line: 23
+                    },
+                    start: {
+                        character: 15,
+                        line: 23
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            },
+            {
+                code: 2339,
+                message:
+                    "Property 'a' does not exist on type 'string | boolean'.\n  Property 'a' does not exist on type 'string'.",
+                range: {
+                    end: {
+                        character: 16,
+                        line: 29
+                    },
+                    start: {
+                        character: 15,
+                        line: 29
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            },
+            {
+                code: 2367,
+                message:
+                    "This condition will always return 'false' since the types 'string' and 'boolean' have no overlap.",
+                range: {
+                    end: {
+                        character: 24,
+                        line: 31
+                    },
+                    start: {
+                        character: 17,
+                        line: 31
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            }
+        ]);
+    });
 });
