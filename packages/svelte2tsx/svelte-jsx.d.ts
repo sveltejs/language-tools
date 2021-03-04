@@ -202,7 +202,10 @@ declare namespace svelte.JSX {
       onanimationiteration?: AnimationEventHandler<T>;
 
       // Transition Events
+      ontransitionstart?: TransitionEventHandler<T>;
+      ontransitionrun?: TransitionEventHandler<T>;
       ontransitionend?: TransitionEventHandler<T>;
+      ontransitioncancel?: TransitionEventHandler<T>;
 
       // Svelte Transition Events
       onoutrostart?: EventHandler<CustomEvent<null>, T>;
