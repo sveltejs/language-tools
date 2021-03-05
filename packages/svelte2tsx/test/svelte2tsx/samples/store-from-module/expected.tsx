@@ -5,8 +5,8 @@
     const store4 = writable('');let $store4 = __sveltets_store_get(store4);;
 ;<></>;function render() {
 
-    (__sveltets_store_get(store1), $store1);
-    (__sveltets_store_get(store3), $store3);
+    ;(__sveltets_store_get(store1), $store1);
+    ;(__sveltets_store_get(store3), $store3);
 ;
 () => (<>
 

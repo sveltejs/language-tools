@@ -174,3 +174,14 @@ export function getNamesFromLabeledStatement(node: ts.LabeledStatement): string[
             .filter((name) => !name.startsWith('$'))
     );
 }
+
+export function isFirstInAnExpressionStatement(node: ts.Identifier): boolean {
+    let parent = node.parent;
+    while (parent && !ts.isExpressionStatement(parent)) {
+        parent = parent.parent;
+    }
+    if (!parent) {
+        return false;
+    }
+    return parent.getStart() === node.getStart();
+}
