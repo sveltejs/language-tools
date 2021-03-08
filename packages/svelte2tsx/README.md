@@ -23,7 +23,6 @@ Input.svelte
 </script>
 
 <h1>hello {world}</h1>
-
 ```
 
 will produce this ugly but type checkable TSX

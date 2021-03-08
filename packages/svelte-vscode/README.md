@@ -198,6 +198,10 @@ Enable HTML tag auto closing. _Default_: `true`
 
 Enable document symbols for HTML. _Default_: `true`
 
+##### `svelte.plugin.html.linkedEditing.enable`
+
+Enable Linked Editing for HTML. _Default_: `true`
+
 ##### `svelte.plugin.html.renameTags.enable`
 
 Enable rename tags for the opening/closing tag pairs in HTML. _Default_: `true`

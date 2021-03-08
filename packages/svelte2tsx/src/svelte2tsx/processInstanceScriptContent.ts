@@ -4,6 +4,7 @@ import * as ts from 'typescript';
 import {
     findExportKeyword,
     getBinaryAssignmentExpr,
+    isFirstInAnExpressionStatement,
     isNotPropertyNameOfImport
 } from './utils/tsAst';
 import { ExportedNames } from './nodes/ExportedNames';
@@ -22,11 +23,11 @@ export interface InstanceScriptProcessResult {
     getters: Set<string>;
 }
 
-type PendingStoreResolution<T> = {
-    node: T;
-    parent: T;
+interface PendingStoreResolution {
+    node: ts.Identifier;
+    parent: ts.Node;
     scope: Scope;
-};
+}
 
 export function processInstanceScriptContent(
     str: MagicString,
@@ -57,7 +58,7 @@ export function processInstanceScriptContent(
 
     //track $store variables since we are only supposed to give top level scopes special treatment, and users can declare $blah variables at higher scopes
     //which prevents us just changing all instances of Identity that start with $
-    const pendingStoreResolutions: Array<PendingStoreResolution<ts.Node>> = [];
+    const pendingStoreResolutions: PendingStoreResolution[] = [];
 
     let scope = new Scope();
     const rootScope = scope;
@@ -140,7 +141,7 @@ export function processInstanceScriptContent(
         }
     };
 
-    const handleStore = (ident: ts.Node, parent: ts.Node) => {
+    const handleStore = (ident: ts.Identifier, parent: ts.Node) => {
         const storename = ident.getText().slice(1); // drop the $
         // handle assign to
         // eslint-disable-next-line max-len
@@ -229,11 +230,12 @@ export function processInstanceScriptContent(
         // - in order to get ts errors if store is not assignable to SvelteStore
         // - use $store variable defined above to get ts flow control
         const dollar = str.original.indexOf('$', ident.getStart() + astOffset);
-        str.overwrite(dollar, dollar + 1, '(__sveltets_store_get(');
+        const getPrefix = isFirstInAnExpressionStatement(ident) ? ';' : '';
+        str.overwrite(dollar, dollar + 1, getPrefix + '(__sveltets_store_get(');
         str.prependLeft(ident.end + astOffset, `), $${storename})`);
     };
 
-    const resolveStore = (pending: PendingStoreResolution<ts.Node>) => {
+    const resolveStore = (pending: PendingStoreResolution) => {
         let { node, parent, scope } = pending;
         const name = (node as ts.Identifier).text;
         while (scope) {
