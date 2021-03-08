@@ -46,7 +46,7 @@
         "prepublishOnly": "npm run build",
         "dev": "rollup -c -w",
         "test": "mocha -r ts-node/register/transpile-only test/test.ts",
-        "epretest": "rollup -c rollup.config.test.js"
+        "pretest": "rollup -c rollup.config.test.js"
     },
     "files": [
         "index.mjs",
