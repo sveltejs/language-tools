@@ -10,27 +10,102 @@ enum IfType {
     Else
 }
 
+/**
+ * Contains the raw text of the condition and a map of identifiers
+ * used within that condition.
+ */
 interface ConditionInfo {
     identifiers: Map<string, Array<{ start: number; end: number }>>;
     text: string;
 }
 
+/**
+ * See `Condition` for an explanation of the structure.
+ */
 interface IfCondition {
     type: IfType.If;
     condition: ConditionInfo;
 }
 
+/**
+ * See `Condition` for an explanation of the structure.
+ */
 interface ElseIfCondition {
     type: IfType.ElseIf;
     condition: ConditionInfo;
     parent: IfCondition | ElseIfCondition;
 }
 
+/**
+ * See `Condition` for an explanation of the structure.
+ */
 interface ElseCondition {
     type: IfType.Else;
     parent: IfCondition | ElseIfCondition;
 }
+
+/**
+ * A condition is a nested structure which starts with IfCondition
+ * and ends with ElseIfCondition or ElseCondition.
+ * ElseIfCondition/ElseCondition have parents which mark the previous conditions.
+ * This means that the resulting structure is reversed (starts with the last condition).
+ * Example:
+ *
+ * ```
+ * if (foo) {
+ * } else if (bar) {
+ * } else {}
+ * ```
+ *
+ * is translated to
+ *
+ * ```
+ * {
+ *  type: 2, // Else
+ *  parent: {
+ *      type: 1, // ElseIf
+ *      condition: {
+ *          identifiers: [[bar, [{start: 0, end: 2}]]],
+ *          text: 'bar'
+ *      },
+ *      parent: {
+ *          type: 0, // If
+ *          condition: {
+ *              identifiers: [[foo, [{start: 0, end: 2}]]],
+ *              text: 'foo'
+ *      }
+ * }
+ * ```
+ */
 type Condition = IfCondition | ElseIfCondition | ElseCondition;
+
+/**
+ * Creates a new condition whos parent is the current condition
+ * and the leaf is the passed in condition info.
+ * See `Condition` for an explanation of the structure.
+ */
+function addElseIfCondition(
+    existingCondition: IfCondition | ElseIfCondition,
+    newCondition: ConditionInfo
+): ElseIfCondition {
+    return {
+        parent: existingCondition,
+        condition: newCondition,
+        type: IfType.ElseIf
+    };
+}
+
+/**
+ * Creates a new condition whos parent is the current condition
+ * and the leaf is the else condition, where children can follow.
+ * See `Condition` for an explanation of the structure.
+ */
+function addElseCondition(existingCondition: IfCondition | ElseIfCondition): ElseCondition {
+    return {
+        parent: existingCondition,
+        type: IfType.Else
+    };
+}
 
 const REPLACEMENT_PREFIX = '\u03A9';
 
@@ -210,18 +285,14 @@ export class IfScope {
      */
     addElseIf(expression: Node, str: MagicString): void {
         const condition = this.getConditionInfo(str, expression);
-        this.current = {
-            condition,
-            parent: this.current as IfCondition | ElseIfCondition,
-            type: IfType.ElseIf
-        };
+        this.current = addElseIfCondition(this.current as IfCondition | ElseIfCondition, condition);
     }
 
     /**
      * Adds a `else` branch to the scope and enhances the condition accordingly.
      */
     addElse(): void {
-        this.current = { parent: this.current as IfCondition | ElseIfCondition, type: IfType.Else };
+        this.current = addElseCondition(this.current as IfCondition | ElseIfCondition);
     }
 
     getChild(): IfScope {
@@ -273,7 +344,7 @@ export class IfScope {
         return this.parent.referencesIdentifier(name);
     }
 
-    private getConditionInfo(str: MagicString, expression: Node) {
+    private getConditionInfo(str: MagicString, expression: Node): ConditionInfo {
         const identifiers = getIdentifiersInIfExpression(expression);
         const text = str.original.substring(expression.start, expression.end);
         return { identifiers, text };
