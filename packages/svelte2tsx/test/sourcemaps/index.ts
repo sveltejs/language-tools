@@ -32,9 +32,27 @@ describe('sourcemaps', function () {
                 expected: sample.get('mappings.jsx'),
                 actual: print_mappings(original.code, generated.code, decoded).replace(/\s*$/, '')
             };
+            if (!process.env.CI) {
+                sample.generate(
+                    'output.tsx',
+                    `${generated.code}\n//# sourceMappingURL=${generated.map.toUrl()}`,
+                    false
+                );
+            }
+            const debug = process.env.CI
+                ? ''
+                : `To visualize the output in detail:\n\n` +
+                  `1) Go to https://evanw.github.io/source-map-visualization/\n` +
+                  `2) Upload "generated.tsx" from ${sample.directory}\n`;
 
             if (sample.has('test.html')) {
-                test_sample_result(original.code, generated.code, sample.get('test.html'), decoded);
+                test_sample_result(
+                    original.code,
+                    generated.code,
+                    sample.get('test.html'),
+                    decoded,
+                    `SourceMapping test failed\n\n` + debug
+                );
             }
 
             if (mappings.expected === mappings.actual && !shouldGenerate) return;
@@ -49,12 +67,7 @@ describe('sourcemaps', function () {
                         `${generated.code}\n//# sourceMappingURL=${generated.map.toUrl()}`,
                         false
                     );
-                    after(() =>
-                        console.log(
-                            `SourceMapping Changed at "${sample.name}"\n\n` +
-                                `Visualize the output in details by opening "output.tsx" on https://evanw.github.io/source-map-visualization/\n\n`
-                        )
-                    );
+                    after(() => console.log(`SourceMapping Changed (${sample.name})\n\n` + debug));
                 }
                 sample.generate('mappings.jsx', mappings.actual);
             }

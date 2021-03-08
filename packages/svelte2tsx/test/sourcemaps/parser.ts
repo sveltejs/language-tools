@@ -353,7 +353,8 @@ export function test_sample_result(
     original_text: string,
     generated_text: string,
     html_text: string,
-    mappings: HiresMappings
+    mappings: HiresMappings,
+    message: string
 ) {
     assert.ok(html_text);
 
@@ -394,7 +395,8 @@ export function test_sample_result(
         assert.strictEqual(
             untab(ogLine.content).replace(/\s*$/, '\n') + `${untab(actual_range)}`,
             untab(svelte_line.content).replace(/\s*$/, '\n') +
-                `${untab(svelte_range.content).replace(/[\s]*$/, '')}`
+                `${untab(svelte_range.content).replace(/[\s]*$/, '')}`,
+            message
         );
     }
 }
