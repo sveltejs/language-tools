@@ -61,14 +61,7 @@ describe('sourcemaps', function () {
                 assert(sample.has('mappings.jsx'), `Forgot to generate expected sample results`);
                 assert.fail(`Source Mappings changed, run tests locally to re-generate results.`);
             } else {
-                if (!shouldGenerate) {
-                    sample.generate(
-                        'output.tsx',
-                        `${generated.code}\n//# sourceMappingURL=${generated.map.toUrl()}`,
-                        false
-                    );
-                    after(() => console.log(`SourceMapping Changed (${sample.name})\n\n` + debug));
-                }
+                after(() => console.log(`SourceMapping Changed (${sample.name})\n\n` + debug));
                 sample.generate('mappings.jsx', mappings.actual);
             }
         });
