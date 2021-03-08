@@ -7,7 +7,7 @@ import { DiagnosticsProviderImpl } from '../../../../src/plugins/typescript/feat
 import { LSAndTSDocResolver } from '../../../../src/plugins/typescript/LSAndTSDocResolver';
 import { pathToUrl } from '../../../../src/utils';
 
-const testDir = path.join(__dirname, '..', 'testfiles');
+const testDir = path.join(__dirname, '..', 'testfiles', 'diagnostics');
 
 describe('DiagnosticsProvider', () => {
     function setup(filename: string) {
@@ -115,11 +115,11 @@ describe('DiagnosticsProvider', () => {
                 range: {
                     end: {
                         character: 6,
-                        line: 2
+                        line: 6
                     },
                     start: {
                         character: 1,
-                        line: 2
+                        line: 6
                     }
                 },
                 severity: 1,
@@ -133,11 +133,29 @@ describe('DiagnosticsProvider', () => {
                 range: {
                     end: {
                         character: 9,
-                        line: 3
+                        line: 7
                     },
                     start: {
                         character: 4,
-                        line: 3
+                        line: 7
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            },
+            {
+                code: 2345,
+                message:
+                    "Argument of type 'string' is not assignable to parameter of type 'SvelteStore<any>'.",
+                range: {
+                    end: {
+                        character: 14,
+                        line: 8
+                    },
+                    start: {
+                        character: 1,
+                        line: 8
                     }
                 },
                 severity: 1,
@@ -151,11 +169,11 @@ describe('DiagnosticsProvider', () => {
                 range: {
                     end: {
                         character: 7,
-                        line: 6
+                        line: 11
                     },
                     start: {
                         character: 2,
-                        line: 6
+                        line: 11
                     }
                 },
                 severity: 1,
@@ -169,11 +187,29 @@ describe('DiagnosticsProvider', () => {
                 range: {
                     end: {
                         character: 11,
-                        line: 7
+                        line: 12
                     },
                     start: {
                         character: 6,
-                        line: 7
+                        line: 12
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            },
+            {
+                code: 2345,
+                message:
+                    "Argument of type 'string' is not assignable to parameter of type 'SvelteStore<any>'.",
+                range: {
+                    end: {
+                        character: 15,
+                        line: 15
+                    },
+                    start: {
+                        character: 2,
+                        line: 15
                     }
                 },
                 severity: 1,
@@ -234,7 +270,7 @@ describe('DiagnosticsProvider', () => {
         assert.deepStrictEqual(diagnostics, [
             {
                 code: 6385,
-                message: "'a' is deprecated",
+                message: "'a' is deprecated.",
                 range: {
                     end: {
                         character: 5,
@@ -391,6 +427,120 @@ describe('DiagnosticsProvider', () => {
                     start: {
                         character: 3,
                         line: 12
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            }
+        ]);
+    });
+
+    it('$store control flow', async () => {
+        const { plugin, document } = setup('diagnostics-$store-control-flow.svelte');
+        const diagnostics = await plugin.getDiagnostics(document);
+
+        assert.deepStrictEqual(diagnostics, [
+            {
+                code: 2367,
+                message:
+                    "This condition will always return 'false' since the types 'string' and 'boolean' have no overlap.",
+                range: {
+                    end: {
+                        character: 57,
+                        line: 15
+                    },
+                    start: {
+                        character: 40,
+                        line: 15
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            },
+            {
+                code: 2322,
+                message: "Type 'string' is not assignable to type 'boolean'.",
+                range: {
+                    end: {
+                        character: 16,
+                        line: 21
+                    },
+                    start: {
+                        character: 12,
+                        line: 21
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            },
+            {
+                code: 2367,
+                message:
+                    "This condition will always return 'false' since the types 'string' and 'boolean' have no overlap.",
+                range: {
+                    end: {
+                        character: 69,
+                        line: 28
+                    },
+                    start: {
+                        character: 46,
+                        line: 28
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            },
+            {
+                code: 2367,
+                message:
+                    "This condition will always return 'false' since the types 'string' and 'boolean' have no overlap.",
+                range: {
+                    end: {
+                        character: 58,
+                        line: 35
+                    },
+                    start: {
+                        character: 41,
+                        line: 35
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            },
+            {
+                code: 2322,
+                message: "Type 'string' is not assignable to type 'boolean'.",
+                range: {
+                    end: {
+                        character: 17,
+                        line: 40
+                    },
+                    start: {
+                        character: 13,
+                        line: 40
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            },
+            {
+                code: 2367,
+                message:
+                    "This condition will always return 'false' since the types 'string' and 'boolean' have no overlap.",
+                range: {
+                    end: {
+                        character: 70,
+                        line: 47
+                    },
+                    start: {
+                        character: 47,
+                        line: 47
                     }
                 },
                 severity: 1,

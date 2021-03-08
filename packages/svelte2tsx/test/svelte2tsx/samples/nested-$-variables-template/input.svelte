@@ -1,5 +1,7 @@
 <h1 on:click={ () => {
 
+    // TODO: this is invalid Svelte right now, stores have to be top level 
+    // it's therefore okay to not append "let top1$/top2$ = __svelte_store_get(..)"
     let top1 = someStore()
     let top2 = someStore()
     let topLevelGet = $top1

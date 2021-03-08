@@ -1,9 +1,8 @@
 import ts from 'typescript';
 import MagicString from 'magic-string';
 import {
-    getBinaryAssignmentExpr,
-    extractIdentifiers,
-    isParenthesizedObjectOrArrayLiteralExpression
+    isParenthesizedObjectOrArrayLiteralExpression,
+    getNamesFromLabeledStatement
 } from '../utils/tsAst';
 
 export class ImplicitTopLevelNames {
@@ -15,7 +14,7 @@ export class ImplicitTopLevelNames {
 
     modifyCode(rootVariables: Set<string>, astOffset: number, str: MagicString) {
         for (const node of this.map.values()) {
-            const names = this.getNames(node);
+            const names = getNamesFromLabeledStatement(node);
             if (names.length === 0) {
                 continue;
             }
@@ -35,20 +34,6 @@ export class ImplicitTopLevelNames {
                 });
             }
         }
-    }
-
-    private getNames(node: ts.LabeledStatement) {
-        const leftHandSide = getBinaryAssignmentExpr(node)?.left;
-        if (!leftHandSide) {
-            return [];
-        }
-
-        return (
-            extractIdentifiers(leftHandSide)
-                .map((id) => id.text)
-                // svelte won't let you create a variable with $ prefix (reserved for stores)
-                .filter((name) => !name.startsWith('$'))
-        );
     }
 
     private hasOnlyImplicitTopLevelNames(names: string[], implicitTopLevelNames: string[]) {

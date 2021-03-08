@@ -13,6 +13,7 @@ import {
     handleScopeAndResolveForSlot,
     handleScopeAndResolveLetVarForSlot
 } from './nodes/handleScopeAndResolveForSlot';
+import { ImplicitStoreValues } from './nodes/ImplicitStoreValues';
 import { Scripts } from './nodes/Scripts';
 import { SlotHandler } from './nodes/slot';
 import { Stores } from './nodes/Stores';
@@ -58,6 +59,7 @@ type TemplateProcessResult = {
     /** To be added later as a comment on the default class export */
     componentDocumentation: ComponentDocumentation;
     events: ComponentEvents;
+    resolvedStores: string[];
 };
 
 /**
@@ -260,7 +262,7 @@ function processSvelteTemplate(
     scripts.blankOtherScriptTags(str);
 
     //resolve stores
-    stores.resolveStores();
+    const resolvedStores = stores.resolveStores();
 
     return {
         moduleScriptTag,
@@ -270,7 +272,8 @@ function processSvelteTemplate(
         uses$$props,
         uses$$restProps,
         uses$$slots,
-        componentDocumentation
+        componentDocumentation,
+        resolvedStores
     };
 }
 
@@ -324,11 +327,15 @@ function classNameFromFilename(filename: string): string | undefined {
             // Although "-" is invalid, we leave it in, pascal-case-handling will throw it out later
             .filter((char) => /[A-Za-z$_\d-]/.test(char))
             .join('');
-        const withoutLeadingInvalidCharacters = withoutInvalidCharacters.substr(
-            withoutInvalidCharacters.split('').findIndex((char) => /[A-Za-z_$]/.test(char))
-        );
+        const firstValidCharIdx = withoutInvalidCharacters
+            .split('')
+            // Although _ and $ are valid first characters for classes, they are invalid first characters
+            // for tag names. For a better import autocompletion experience, we therefore throw them out.
+            .findIndex((char) => /[A-Za-z]/.test(char));
+        const withoutLeadingInvalidCharacters = withoutInvalidCharacters.substr(firstValidCharIdx);
         const inPascalCase = pascalCase(withoutLeadingInvalidCharacters);
-        return `${inPascalCase}${COMPONENT_SUFFIX}`;
+        const finalName = firstValidCharIdx === -1 ? `A${inPascalCase}` : inPascalCase;
+        return `${finalName}${COMPONENT_SUFFIX}`;
     } catch (error) {
         console.warn(`Failed to create a name for the component class from filename ${filename}`);
         return undefined;
@@ -427,7 +434,8 @@ export function svelte2tsx(
         uses$$slots,
         uses$$restProps,
         events,
-        componentDocumentation
+        componentDocumentation,
+        resolvedStores
     } = processSvelteTemplate(str, options);
 
     /* Rearrange the script tags so that module is first, and instance second followed finally by the template
@@ -447,6 +455,7 @@ export function svelte2tsx(
         }
     }
 
+    const implicitStoreValues = new ImplicitStoreValues(resolvedStores);
     //move the instance script and process the content
     let exportedNames = new ExportedNames();
     let getters = new Set<string>();
@@ -455,7 +464,7 @@ export function svelte2tsx(
         if (scriptTag.start != instanceScriptTarget) {
             str.move(scriptTag.start, scriptTag.end, instanceScriptTarget);
         }
-        const res = processInstanceScriptContent(str, scriptTag, events);
+        const res = processInstanceScriptContent(str, scriptTag, events, implicitStoreValues);
         uses$$props = uses$$props || res.uses$$props;
         uses$$restProps = uses$$restProps || res.uses$$restProps;
         uses$$slots = uses$$slots || res.uses$$slots;
@@ -480,7 +489,11 @@ export function svelte2tsx(
 
     // we need to process the module script after the instance script has moved otherwise we get warnings about moving edited items
     if (moduleScriptTag) {
-        processModuleScriptTag(str, moduleScriptTag);
+        processModuleScriptTag(
+            str,
+            moduleScriptTag,
+            new ImplicitStoreValues(implicitStoreValues.getAccessedStores())
+        );
     }
 
     addComponentExport({

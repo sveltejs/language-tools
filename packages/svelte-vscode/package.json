@@ -242,6 +242,12 @@
                     "title": "HTML: Symbols in Outline",
                     "description": "Enable document symbols for HTML"
                 },
+                "svelte.plugin.html.linkedEditing.enable": {
+                    "type": "boolean",
+                    "default": true,
+                    "title": "HTML: Linked Editing",
+                    "description": "Enable Linked Editing for HTML"
+                },
                 "svelte.plugin.html.renameTags.enable": {
                     "type": "boolean",
                     "default": true,

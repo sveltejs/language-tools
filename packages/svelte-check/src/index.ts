@@ -121,7 +121,7 @@ class DiagnosticsWatcher {
         private writer: Writer,
         filePathsToIgnore: string[]
     ) {
-        watch(`${workspaceUri.fsPath}/**/*.svelte`, {
+        watch(`${workspaceUri.fsPath}/**/*.{svelte,d.ts,ts,js}`, {
             ignored: ['node_modules']
                 .concat(filePathsToIgnore)
                 .map((ignore) => path.join(workspaceUri.fsPath, ignore))

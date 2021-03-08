@@ -327,8 +327,11 @@ export class RenameProviderImpl implements RenameProvider {
             // When the user renames a Svelte component, ts will also want to rename
             // `__sveltets_instanceOf(TheComponentToRename)` or
             // `__sveltets_ensureType(TheComponentToRename,..`. Prevent that.
+            // Additionally, we cannot rename the hidden variable containing the store value
             return (
-                notPrecededBy('__sveltets_instanceOf(') && notPrecededBy('__sveltets_ensureType(')
+                notPrecededBy('__sveltets_instanceOf(') &&
+                notPrecededBy('__sveltets_ensureType(') &&
+                notPrecededBy('= __sveltets_store_get(')
             );
 
             function notPrecededBy(str: string) {

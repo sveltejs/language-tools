@@ -1,7 +1,7 @@
 import { Document, DocumentManager } from './lib/documents';
 import { LSConfigManager } from './ls-config';
 import { CSSPlugin, PluginHost, SveltePlugin, TypeScriptPlugin } from './plugins';
-import { Diagnostic } from 'vscode-languageserver';
+import { Diagnostic, Position, Range } from 'vscode-languageserver';
 import { Logger } from './logger';
 import { urlToPath, pathToUrl } from './utils';
 
@@ -63,11 +63,23 @@ export class SvelteCheck {
      * @param doc Text and Uri of the document
      */
     upsertDocument(doc: { text: string; uri: string }) {
-        this.docManager.openDocument({
-            text: doc.text,
-            uri: doc.uri
-        });
-        this.docManager.markAsOpenedInClient(doc.uri);
+        if (doc.uri.endsWith('.ts') || doc.uri.endsWith('.js')) {
+            this.pluginHost.updateTsOrJsFile(urlToPath(doc.uri) || '', [
+                {
+                    range: Range.create(
+                        Position.create(0, 0),
+                        Position.create(Number.MAX_VALUE, Number.MAX_VALUE)
+                    ),
+                    text: doc.text
+                }
+            ]);
+        } else {
+            this.docManager.openDocument({
+                text: doc.text,
+                uri: doc.uri
+            });
+            this.docManager.markAsOpenedInClient(doc.uri);
+        }
     }
 
     /**

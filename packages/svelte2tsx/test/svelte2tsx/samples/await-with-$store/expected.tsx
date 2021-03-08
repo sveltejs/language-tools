@@ -4,11 +4,11 @@ import { readable } from 'svelte/store';
 function render() {
 
 	
-	const store = readable(Promise.resolve('test'), () => {});
+	const store = readable(Promise.resolve('test'), () => {});let $store = __sveltets_store_get(store);;
 ;
 () => (<>
 
-{() => {let _$$p = (__sveltets_store_get(store)); <>
+{() => {let _$$p = ((__sveltets_store_get(store), $store)); <>
 	<p>loading</p>
 </>; __sveltets_awaitThen(_$$p, (data) => {<>
 	{data}

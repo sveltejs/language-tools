@@ -50,7 +50,7 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
             }))
             .map((diagnostic) => mapObjWithRangeToOriginal(fragment, diagnostic))
             .filter(hasNoNegativeLines)
-            .filter(isNoFalsePositive(document.getText(), tsDoc))
+            .filter(isNoFalsePositive(document.getText(), tsDoc, diagnostics))
             .map(enhanceIfNecessary)
             .map(swapRangeStartEndIfNecessary);
     }
@@ -80,14 +80,38 @@ function hasNoNegativeLines(diagnostic: Diagnostic): boolean {
     return diagnostic.range.start.line >= 0 && diagnostic.range.end.line >= 0;
 }
 
-function isNoFalsePositive(text: string, tsDoc: SvelteDocumentSnapshot) {
-    return (diagnostic: Diagnostic) => {
+function isNoFalsePositive(
+    text: string,
+    tsDoc: SvelteDocumentSnapshot,
+    rawTsDiagnostics: ts.Diagnostic[]
+) {
+    return (diagnostic: Diagnostic, idx: number) => {
         return (
             isNoJsxCannotHaveMultipleAttrsError(diagnostic) &&
             isNoUnusedLabelWarningForReactiveStatement(diagnostic) &&
-            isNoUsedBeforeAssigned(diagnostic, text, tsDoc)
+            isNoUsedBeforeAssigned(diagnostic, text, tsDoc) &&
+            isNotHiddenStoreValueDeclaration(diagnostic, tsDoc, rawTsDiagnostics[idx])
         );
     };
+}
+
+/**
+ * During compilation to tsx, for each store we create an additional variable
+ * called `$<store-name>` which contains the store value.
+ * This variable declaration does not show up in the sourcemaps.
+ * We have to ignore the error if the variable prefixed by `$` was not a store.
+ */
+function isNotHiddenStoreValueDeclaration(
+    diagnostic: Diagnostic,
+    tsDoc: SvelteDocumentSnapshot,
+    rawTsDiagnostic: ts.Diagnostic
+): boolean {
+    if (diagnostic.code !== 2345 || !rawTsDiagnostic.start) return true;
+
+    const affectedLine = tsDoc.getLineContainingOffset(rawTsDiagnostic.start);
+    const hasStoreValueDefinition = /let \$[\w$]+ = __sveltets_store_get\(/.test(affectedLine);
+
+    return !hasStoreValueDefinition;
 }
 
 /**

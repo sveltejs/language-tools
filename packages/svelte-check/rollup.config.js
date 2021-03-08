@@ -63,6 +63,7 @@ export default [
             // we don't want to bundle and instead require them as dependencies
             'typescript',
             'svelte',
+            'svelte/compiler',
             'svelte-preprocess',
             'import-fresh', // because of https://github.com/sindresorhus/import-fresh/issues/18
             'source-map'
