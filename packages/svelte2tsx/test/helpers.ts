@@ -171,7 +171,6 @@ class Sample {
         }
     }
 }
-type SampleGeneratedFile = { fileName: string; content: string };
 export function* each_sample(dir: string) {
     for (const name of fs.readdirSync(`${dir}/samples`)) {
         yield new Sample(dir, name);

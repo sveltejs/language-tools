@@ -1,6 +1,6 @@
 import assert from 'assert';
 import svelte2tsx from '../build';
-import { binarySearch, each_sample } from '../helpers';
+import { each_sample } from '../helpers';
 import { decode } from 'sourcemap-codec';
 import { print_mappings, test_sample_result } from './parser';
 

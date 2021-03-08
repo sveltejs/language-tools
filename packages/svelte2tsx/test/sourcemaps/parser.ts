@@ -139,7 +139,7 @@ class GeneratedLine extends Line {
     }
     getGeneratedUnordered(ogLine: Line) {
         let _prev;
-        const str = this.reduce((prev, char, write) => {
+        const str = this.reduce((_, char, write) => {
             if (char && char[2] === ogLine.index) {
                 if (_prev && _prev[3] > char[3]) {
                     write(_prev[0], '#' + '='.repeat(char[0] - _prev[0] - '#'.length));
@@ -185,14 +185,14 @@ class GeneratedLine extends Line {
         return arr.sort((a, b) => (a.line.index > b.line.index ? 1 : -1));
     }
     getGeneratedMappingResult(ogLine: Line) {
-        return this.reduce((prev, char, write) => {
+        return this.reduce((_, char, write) => {
             if (char && char[2] === ogLine.index) {
                 write(char[0], ogLine.content[char[3]]);
             }
         });
     }
     getOriginalMappingResult(ogLine: Line) {
-        return this.reduce((prev, char, write) => {
+        return this.reduce((_, char, write) => {
             if (char && char[2] === ogLine.index) {
                 write(char[3], ogLine.content[char[3]]);
             }
@@ -302,10 +302,6 @@ function overwrite(str: string, start: number, replacement: string) {
     if (str.length < start) return str.padEnd(start, ' ') + replacement;
     return str.slice(0, start) + replacement + str.slice(start + replacement.length);
 }
-function ensureLN(str: string) {
-    if (!/\n\s*$/.test(str)) return str + '\n';
-    return str;
-}
 function untab(str: string) {
     return str.replace(/\t/g, '    ');
 }
@@ -313,7 +309,8 @@ class CommentWriter {
     constructor(readonly width: number = 150) {}
     private str: string = '';
     private concat(str: string) {
-        this.str += ensureLN(str);
+        if (!/\n\s*$/.test(str)) str += '\n';
+        this.str += str;
     }
     raw(str: string) {
         this.concat(str);
