@@ -5,3 +5,4 @@ node_modules
 /index.mjs
 test/typecheck/samples/**/input.svelte.tsx
 test/build
+test/sourcemaps/samples/*/output.tsx

@@ -32,6 +32,7 @@
         "rollup-plugin-delete": "^2.0.0",
         "source-map": "^0.6.1",
         "source-map-support": "^0.5.16",
+        "sourcemap-codec": "^1.4.8",
         "sucrase": "^3.17.1",
         "svelte": "~3.32.1",
         "tiny-glob": "^0.2.6",

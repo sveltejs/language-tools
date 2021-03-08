@@ -4,7 +4,16 @@ import resolve from '@rollup/plugin-node-resolve';
 import json from '@rollup/plugin-json';
 import del from 'rollup-plugin-delete';
 import builtins from 'builtin-modules';
-
+import fs from 'fs';
+function link_dts(file, x) {
+    return {
+        writeBundle() {
+            if (!process.env.CI) {
+                fs.writeFileSync(file, x);
+            }
+        }
+    };
+}
 export default [
     {
         input: ['src/index.ts'],
@@ -18,7 +27,8 @@ export default [
             resolve({ browser: false, preferBuiltins: true }),
             commonjs(),
             json(),
-            typescript({ include: ['src/**/*'] })
+            typescript({ include: ['src/**/*'] }),
+            link_dts(`test/build/index.d.ts`, `export { default } from '../../index';`)
         ],
         external: [...builtins, 'typescript', 'svelte', 'svelte/compiler', 'magic-string']
     },
@@ -34,7 +44,8 @@ export default [
             resolve({ browser: false, preferBuiltins: true }),
             commonjs(),
             json(),
-            typescript({ include: ['src/**/*'] })
+            typescript({ include: ['src/**/*'] }),
+            link_dts(`test/build/htmlxtojsx.d.ts`, `export * from '../../src/htmlxtojsx/index';`)
         ],
         external: [...builtins, 'typescript', 'svelte', 'svelte/compiler', 'magic-string']
     }

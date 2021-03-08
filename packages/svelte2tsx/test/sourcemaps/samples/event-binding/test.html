@@ -1,0 +1,8 @@
+<Component on:click={$check ? method1 : method2} />
+					  1==== 2==================
+<Component  />{__sveltets_instanceOf(Component).$on('click', (__sveltets_store_get(check), $check) ? method1 : method2)}
+                                                                                   1====           2==================
+<button on:click={$check ? method1 : method2} >Bla</button>
+                   1==== 2==================
+<button onclick={(__sveltets_store_get(check), $check) ? method1 : method2} >Bla</button></>);
+                                       1====           2==================

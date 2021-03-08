@@ -1,188 +1,3 @@
-///<reference types="svelte" />
-<></>;
-	export async function preload({ params }) {
-		const res = await this.fetch(`tutorial/${params.slug}.json`);
-
-		if (!res.ok) {
-			return this.redirect(301, `tutorial/basics`);
-		}
-
-		return {
-			slug: params.slug,
-			chapter: await res.json()
-		};
-	}
-;<></>;
-import Repl from '@sveltejs/svelte-repl';
-import { getContext } from 'svelte';
-import ScreenToggle from '../../../components/ScreenToggle.svelte';
-import TableOfContents from './_TableOfContents.svelte';
-import {
-		mapbox_setup, // needed for context API tutorial
-		rollupUrl,
-		svelteUrl
-	} from '../../../config';
-function render() {
-
-	
-	
-
-	
-	
-
-	
-
-	 let slug;
-	 let chapter;
-
-	const { sections } = getContext('tutorial');
-
-	let repl;
-	let prev;
-	let scrollable;
-	const lookup = new Map();
-
-	let width = process.browser ? window.innerWidth : 1000;
-	let offset = 0;
-
-	sections.forEach(section => {
-		section.chapters.forEach(chapter => {
-			const obj = {
-				slug: chapter.slug,
-				section,
-				chapter,
-				prev
-			};
-
-			lookup.set(chapter.slug, obj);
-
-			if (process.browser) { // pending https://github.com/sveltejs/svelte/issues/2135
-				if (prev) prev.next = obj;
-				prev = obj;
-			}
-		});
-	});
-
-    // TODO is there a non-hacky way to trigger scroll when chapter changes?
-    ;() => {$: if (scrollable) chapter, scrollable.scrollTo(0, 0);}
-
-	// TODO: this will need to be changed to the master branch, and probably should be dynamic instead of included
-	//   here statically
-	const tutorial_repo_link = 'https://github.com/sveltejs/svelte/tree/master/site/content/tutorial';
-
-	let  selected = __sveltets_invalidate(() => lookup.get(slug));
-	let  improve_link = __sveltets_invalidate(() => `${tutorial_repo_link}/${selected.chapter.section_dir}/${selected.chapter.chapter_dir}`);
-
-	const clone = file => ({
-		name: file.name,
-		type: file.type,
-		source: file.source
-	});
-
-    ;() => {$: if (repl) {
-		completed = false;
-		repl.set({
-			components: chapter.app_a.map(clone)
-		});
-    }}
-
-	let  mobile = __sveltets_invalidate(() => width < 768);
-
-	function reset() {
-		repl.update({
-			components: chapter.app_a.map(clone)
-		});
-	}
-
-	function complete() {
-		repl.update({
-			components: chapter.app_b.map(clone)
-		});
-	}
-
-	let completed = false;
-
-	function handle_change(event) {
-		completed = event.detail.components.every((file, i) => {
-			const expected = chapter.app_b[i];
-			return expected && (
-				file.name === expected.name &&
-				file.type === expected.type &&
-				file.source.trim().replace(/\s+$/gm, '') === expected.source.trim().replace(/\s+$/gm, '')
-			);
-		});
-	}
-;
-() => (<>
-
-
-
-
-
-<sveltehead>
-	<title>{selected.section.title} / {selected.chapter.title} • Svelte Tutorial</title>
-
-	<meta name="twitter:title" content="Svelte tutorial"/>
-	<meta name="twitter:description" content={`${selected.section.title} / ${selected.chapter.title}`}/>
-	<meta name="Description" content={`${selected.section.title} / ${selected.chapter.title}`}/>
-</sveltehead>
-
-<sveltewindow innerWidth={width}/>
-
-<div class="tutorial-outer">
-	<div class={`viewport offset-${offset}`}>
-		<div class="tutorial-text">
-			<div class="table-of-contents">
-				<TableOfContents sections={sections} slug={slug} selected={selected}/>
-			</div>
-
-			<div class="chapter-markup" {...__sveltets_ensureType(__sveltets_ctorOf(__sveltets_mapElementTag('div')), scrollable)}>
-				{ chapter.html}
-
-				<div class="controls">
-					{(chapter.app_b) ? <>
-						
-						<button class="show" onclick={() => completed ? reset() : complete()}>
-							{completed ? 'Reset' : 'Show me'}
-						</button>
-					</> : <></>}
-
-					{(selected.next) ? <>
-						<a class="next" href={`tutorial/${selected.next.slug}`}>Next</a>
-					</> : <></>}
-				</div>
-
-				<div class="improve-chapter">
-					<a class="no-underline" href={improve_link}>Edit this chapter</a>
-				</div>
-			</div>
-		</div>
-
-		<div class="tutorial-repl">
-			<Repl
-				{...__sveltets_ensureType(Repl, repl)}
-				workersUrl="workers"
-				svelteUrl={svelteUrl}
-				rollupUrl={rollupUrl}
-				orientation={mobile ? 'columns' : 'rows'}
-				fixed={mobile}
-				
-				injectedJS={mapbox_setup}
-				relaxed
-			/>{__sveltets_instanceOf(Repl).$on('change', handle_change)}
-		</div>
-	</div>
-
-	{(mobile) ? <>
-		<ScreenToggle offset={offset} labels={['tutorial', 'input', 'output']}/>
-	</> : <></>}
-</div>
-</>);
-return { props: {slug: slug , chapter: chapter}, slots: {}, getters: {}, events: {} }}
-
-export default class extends createSvelte2TsxComponent(__sveltets_partial(__sveltets_with_any_event(render))) {
-}
-!Expected
 <script context="module">
 	export async function preload({ params }) {
 		const res = await this.fetch(`tutorial/${params.slug}.json`);
@@ -200,16 +15,15 @@ export default class extends createSvelte2TsxComponent(__sveltets_partial(__svel
 
 <script>
 	import Repl from '@sveltejs/svelte-repl';
-	import { getContext } from 'svelte';
+import { getContext } from 'svelte';
+import ScreenToggle from '../../../components/ScreenToggle.svelte';
+import {
+mapbox_setup,
+rollupUrl,
+svelteUrl
+} from '../../../config';
+import TableOfContents from './_TableOfContents.svelte';
 
-	import ScreenToggle from '../../../components/ScreenToggle.svelte';
-	import TableOfContents from './_TableOfContents.svelte';
-
-	import {
-		mapbox_setup, // needed for context API tutorial
-		rollupUrl,
-		svelteUrl
-	} from '../../../config';
 
 	export let slug;
 	export let chapter;
@@ -260,7 +74,6 @@ export default class extends createSvelte2TsxComponent(__sveltets_partial(__svel
 
 	$: if (repl) {
 		completed = false;
-        1========
 		repl.set({
 			components: chapter.app_a.map(clone)
 		});
