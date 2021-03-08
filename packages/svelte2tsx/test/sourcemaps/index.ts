@@ -1,8 +1,8 @@
-let svelte2tsx = require('../build/index');
-let converter = require('../build/htmlxtojsx');
-let fs = require('fs');
-let assert = require('assert');
-let sm = require('source-map');
+import svelte2tsx from '../build/index';
+import converter from '../build/htmlxtojsx';
+import fs from 'fs';
+import assert from 'assert';
+import sm from 'source-map';
 
 describe('sourcemap', () => {
     /**
