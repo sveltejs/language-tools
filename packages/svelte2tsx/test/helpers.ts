@@ -108,16 +108,16 @@ type TransformSampleFn = (
     }
 ) => ReturnType<typeof htmlx2jsx | typeof svelte2tsx>;
 
-export function test_samples(dir: string, transform: TransformSampleFn, jsx: 'jsx' | 'tsx') {
+export function test_samples(dir: string, transform: TransformSampleFn, tsx: 'jsx' | 'tsx') {
     for (const sample of each_sample(dir)) {
         const svelteFile = sample.folder.find((f) => f.endsWith('.svelte'));
 
         sample.check_dir({
             required: ['*.svelte'],
-            allowed: ['test.js', 'expected.js', `expected.${jsx}`, 'expected.error.json']
+            allowed: ['expected.js', `expected.${tsx}`, 'test.js']
         });
 
-        const shouldGenerateExpected = !sample.has(`expected.${jsx}`);
+        const shouldGenerateExpected = !sample.has(`expected.${tsx}`);
 
         sample.it(function () {
             if (sample.has('test.js')) {
@@ -134,9 +134,9 @@ export function test_samples(dir: string, transform: TransformSampleFn, jsx: 'js
             const output = transform(input, config);
 
             if (shouldGenerateExpected) {
-                sample.generate(`expected.${jsx}`, output.code);
+                sample.generate(`expected.${tsx}`, output.code);
             } else {
-                assert.strictEqual(output.code, sample.get(`expected.${jsx}`));
+                assert.strictEqual(output.code, sample.get(`expected.${tsx}`));
             }
 
             if (sample.has('expected.js')) {
