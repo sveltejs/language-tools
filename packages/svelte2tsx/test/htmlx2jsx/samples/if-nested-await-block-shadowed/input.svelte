@@ -1,4 +1,14 @@
 {#if hello}
+    {#await aPromise then hello}
+        {hello}
+    {:catch}
+        {hello}
+    {/await}
+    {#await aPromise then hi}
+        {hello}
+    {:catch hello}
+        {hello}
+    {/await}
     {#await hello then hello}
         {hello}
         {#if hello}

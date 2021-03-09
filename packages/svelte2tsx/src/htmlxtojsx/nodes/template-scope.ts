@@ -57,6 +57,38 @@ export class TemplateScopeManager {
         }
     }
 
+    awaitPendingEnter(node: Node, parent: Node) {
+        if (node.skip || parent.type !== 'AwaitBlock') {
+            return;
+        }
+        // Reset inits, as pending can have no inits
+        this.value.inits.clear();
+    }
+
+    awaitThenEnter(node: Node, parent: Node) {
+        if (node.skip || parent.type !== 'AwaitBlock') {
+            return;
+        }
+        // Reset inits, this time only taking the then
+        // scope into account.
+        this.value.inits.clear();
+        if (parent.value) {
+            this.handleScope(parent.value);
+        }
+    }
+
+    awaitCatchEnter(node: Node, parent: Node) {
+        if (node.skip || parent.type !== 'AwaitBlock') {
+            return;
+        }
+        // Reset inits, this time only taking the error
+        // scope into account.
+        this.value.inits.clear();
+        if (parent.error) {
+            this.handleScope(parent.error);
+        }
+    }
+
     awaitLeave() {
         this.value = this.value.parent;
     }

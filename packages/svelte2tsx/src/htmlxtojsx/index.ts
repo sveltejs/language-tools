@@ -6,7 +6,7 @@ import { getSlotName } from '../utils/svelteAst';
 import { handleActionDirective } from './nodes/action-directive';
 import { handleAnimateDirective } from './nodes/animation-directive';
 import { handleAttribute } from './nodes/attribute';
-import { handleAwait } from './nodes/await';
+import { handleAwait, handleAwaitCatch, handleAwaitPending, handleAwaitThen } from './nodes/await';
 import { handleBinding } from './nodes/binding';
 import { handleClassDirective } from './nodes/class-directive';
 import { handleComment } from './nodes/comment';
@@ -76,6 +76,18 @@ export function convertHtmlxToJsx(
                     case 'AwaitBlock':
                         templateScopeManager.awaitEnter(node);
                         handleAwait(htmlx, str, node, ifScope);
+                        break;
+                    case 'PendingBlock':
+                        templateScopeManager.awaitPendingEnter(node, parent);
+                        handleAwaitPending(parent, htmlx, str, ifScope);
+                        break;
+                    case 'ThenBlock':
+                        templateScopeManager.awaitThenEnter(node, parent);
+                        handleAwaitThen(parent, htmlx, str, ifScope);
+                        break;
+                    case 'CatchBlock':
+                        templateScopeManager.awaitCatchEnter(node, parent);
+                        handleAwaitCatch(parent, htmlx, str, ifScope);
                         break;
                     case 'KeyBlock':
                         handleKey(htmlx, str, node);

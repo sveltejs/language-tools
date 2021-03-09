@@ -1,13 +1,23 @@
 <>{(hello) ? <>
+    {() => {/*Ωignore_startΩ*/const Ωhello=hello;/*Ωignore_endΩ*/let _$$p = (aPromise); __sveltets_awaitThen(_$$p, (hello) => {/*Ωignore_startΩ*/((Ωhello)) && /*Ωignore_endΩ*/<>
+        {hello}
+    </>}, () => {/*Ωignore_startΩ*/((hello)) && /*Ωignore_endΩ*/<>
+        {hello}
+    </>})}}
+    {() => {/*Ωignore_startΩ*/const Ωhello=hello;/*Ωignore_endΩ*/let _$$p = (aPromise); __sveltets_awaitThen(_$$p, (hi) => {/*Ωignore_startΩ*/((hello)) && /*Ωignore_endΩ*/<>
+        {hello}
+    </>}, (hello) => {/*Ωignore_startΩ*/((Ωhello)) && /*Ωignore_endΩ*/<>
+        {hello}
+    </>})}}
     {() => {/*Ωignore_startΩ*/const Ωhello=hello;/*Ωignore_endΩ*/let _$$p = (hello); __sveltets_awaitThen(_$$p, (hello) => {/*Ωignore_startΩ*/((Ωhello)) && /*Ωignore_endΩ*/<>
         {hello}
         {(hello) ? <>
             {() => {let _$$p = (aPromise); /*Ωignore_startΩ*/(((Ωhello))) && ((hello)) && /*Ωignore_endΩ*/<>
                 {hello}
-            </>; __sveltets_awaitThen(_$$p, () => {/*Ωignore_startΩ*/(((Ωhello))) && ((hello)) && /*Ωignore_endΩ*/<></>})}}
+            </>; __sveltets_awaitThen(_$$p, () => {<></>})}}
             {() => {/*Ωignore_startΩ*/const ΩΩhello=hello;/*Ωignore_endΩ*/let _$$p = (aPromise); /*Ωignore_startΩ*/(((Ωhello))) && ((hello)) && /*Ωignore_endΩ*/<>
                 {hello}
-            </>; __sveltets_awaitThen(_$$p, () => {/*Ωignore_startΩ*/(((Ωhello))) && ((ΩΩhello)) && /*Ωignore_endΩ*/<></>}, (hello) => {/*Ωignore_startΩ*/(((Ωhello))) && ((ΩΩhello)) && /*Ωignore_endΩ*/<>
+            </>; __sveltets_awaitThen(_$$p, () => {<></>}, (hello) => {/*Ωignore_startΩ*/(((Ωhello))) && ((ΩΩhello)) && /*Ωignore_endΩ*/<>
                 {hello}
             </>})}}
             {() => {/*Ωignore_startΩ*/const ΩΩhello=hello;/*Ωignore_endΩ*/let _$$p = (x); __sveltets_awaitThen(_$$p, (hello) => {/*Ωignore_startΩ*/(((Ωhello))) && ((ΩΩhello)) && /*Ωignore_endΩ*/<>
@@ -18,9 +28,9 @@
         </> : <></>}
     </>})}}
     {(hi && bye) ? <>
-        {() => {/*Ωignore_startΩ*/const Ωbye=bye,Ωhello=hello;/*Ωignore_endΩ*/let _$$p = (x); __sveltets_awaitThen(_$$p, (bye) => {/*Ωignore_startΩ*/(((Ωhello))) && ((hi && Ωbye)) && /*Ωignore_endΩ*/<>
+        {() => {/*Ωignore_startΩ*/const Ωbye=bye,Ωhello=hello;/*Ωignore_endΩ*/let _$$p = (x); __sveltets_awaitThen(_$$p, (bye) => {/*Ωignore_startΩ*/(((hello))) && ((hi && Ωbye)) && /*Ωignore_endΩ*/<>
             {bye}
-        </>}, (hello) => {/*Ωignore_startΩ*/(((Ωhello))) && ((hi && Ωbye)) && /*Ωignore_endΩ*/<>
+        </>}, (hello) => {/*Ωignore_startΩ*/(((Ωhello))) && ((hi && bye)) && /*Ωignore_endΩ*/<>
             {(hello) ? <>
                 {hello}
             </> : <></>}

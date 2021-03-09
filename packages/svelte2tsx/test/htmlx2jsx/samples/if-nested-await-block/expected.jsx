@@ -4,7 +4,7 @@
     </>})}}
     {() => {let _$$p = (aPromise); /*Ωignore_startΩ*/((hello)) && /*Ωignore_endΩ*/<>
       {hello}
-    </>; __sveltets_awaitThen(_$$p, () => {/*Ωignore_startΩ*/((hello)) && /*Ωignore_endΩ*/<></>})}}
+    </>; __sveltets_awaitThen(_$$p, () => {<></>})}}
     {(hi && bye) ? <>
         {() => {let _$$p = (x); __sveltets_awaitThen(_$$p, (y) => {/*Ωignore_startΩ*/(((hello))) && ((hi && bye)) && /*Ωignore_endΩ*/<>
             {y}
