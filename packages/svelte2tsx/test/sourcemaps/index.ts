@@ -1,8 +1,8 @@
-import assert from 'assert';
-import fs from 'fs';
-import { SourceMapConsumer } from 'source-map';
-import svelte2tsx from '../build';
+import svelte2tsx from '../build/index';
 import { htmlx2jsx } from '../build/htmlxtojsx';
+import fs from 'fs';
+import assert from 'assert';
+import sm from 'source-map';
 
 describe('sourcemap', () => {
     /**
@@ -103,7 +103,7 @@ describe('sourcemap', () => {
                 "Couldn't generate input source map for test"
             );
 
-            let decoder = new SourceMapConsumer(map);
+            let decoder = new sm.SourceMapConsumer(map);
 
             for (let [id, span] of input.locations.entries()) {
                 let expectedSpan = expected.locations.get(id);

@@ -455,10 +455,10 @@ export function svelte2tsx(
         }
     }
 
+    const implicitStoreValues = new ImplicitStoreValues(resolvedStores);
     //move the instance script and process the content
     let exportedNames = new ExportedNames();
     let getters = new Set<string>();
-    const implicitStoreValues = new ImplicitStoreValues(resolvedStores);
     if (scriptTag) {
         //ensure it is between the module script and the rest of the template (the variables need to be declared before the jsx template)
         if (scriptTag.start != instanceScriptTarget) {
@@ -489,7 +489,11 @@ export function svelte2tsx(
 
     // we need to process the module script after the instance script has moved otherwise we get warnings about moving edited items
     if (moduleScriptTag) {
-        processModuleScriptTag(str, moduleScriptTag);
+        processModuleScriptTag(
+            str,
+            moduleScriptTag,
+            new ImplicitStoreValues(implicitStoreValues.getAccessedStores())
+        );
     }
 
     addComponentExport({

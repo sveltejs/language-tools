@@ -41,6 +41,10 @@ export class ImplicitStoreValues {
             .forEach((node) => this.attachStoreValueDeclarationToImport(node, astOffset, str));
     }
 
+    public getAccessedStores(): string[] {
+        return [...this.accessedStores.keys()];
+    }
+
     private attachStoreValueDeclarationToDecl(
         node: ts.VariableDeclaration,
         astOffset: number,
@@ -55,8 +59,11 @@ export class ImplicitStoreValues {
             toAppend += `;let $${storeNames[i]} = __sveltets_store_get(${storeNames[i]});`;
         }
 
-        const endPos = node.getEnd() + astOffset;
-        str.appendRight(endPos, toAppend);
+        const nodeEnd =
+            ts.isVariableDeclarationList(node.parent) && node.parent.declarations.length > 1
+                ? node.parent.declarations[node.parent.declarations.length - 1].getEnd()
+                : node.getEnd();
+        str.appendRight(nodeEnd + astOffset, toAppend);
     }
 
     private attachStoreValueDeclarationToReactiveAssignment(

@@ -1,10 +1,11 @@
 {
-    "include": ["*.ts", "build/*"],
     "compilerOptions": {
         "types": ["@types/node", "@types/mocha"],
         "target": "esnext",
+        "module": "commonjs",
         "moduleResolution": "node",
-        "allowSyntheticDefaultImports": true,
-        "allowJs": true
-    }
+        "esModuleInterop": true
+    },
+    "exclude": ["samples/**"],
+    "include": ["*.ts"]
 }

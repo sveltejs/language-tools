@@ -2,15 +2,15 @@
 <></>;function render() {
 
     const store = someStore();let $store = __sveltets_store_get(store);;
-    (__sveltets_store_get(store), $store);
-    (__sveltets_store_get(store), $store).prop;
-    (__sveltets_store_get(store), $store)['prop'];
-    (__sveltets_store_get(store), $store).prop.anotherProp;
-    (__sveltets_store_get(store), $store)['prop'].anotherProp;
-    (__sveltets_store_get(store), $store).prop['anotherProp'];
-    (__sveltets_store_get(store), $store)['prop']['anotherProp'];
-    (__sveltets_store_get(store), $store)?.prop.anotherProp;
-    (__sveltets_store_get(store), $store)?.prop?.anotherProp;
+    ;(__sveltets_store_get(store), $store);
+    ;(__sveltets_store_get(store), $store).prop;
+    ;(__sveltets_store_get(store), $store)['prop'];
+    ;(__sveltets_store_get(store), $store).prop.anotherProp;
+    ;(__sveltets_store_get(store), $store)['prop'].anotherProp;
+    ;(__sveltets_store_get(store), $store).prop['anotherProp'];
+    ;(__sveltets_store_get(store), $store)['prop']['anotherProp'];
+    ;(__sveltets_store_get(store), $store)?.prop.anotherProp;
+    ;(__sveltets_store_get(store), $store)?.prop?.anotherProp;
 ;
 () => (<>
 <p>{(__sveltets_store_get(store), $store)}</p>

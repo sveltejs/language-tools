@@ -28,8 +28,9 @@ declare namespace svelte.JSX {
 
     type NativeElement = HTMLElement;
 
-    // eslint-disable-next-line @typescript-eslint/no-empty-interface
-    interface IntrinsicAttributes {}
+    interface IntrinsicAttributes {
+      slot?: string;
+    }
 
     // TypeScript SVGElement has no `dataset` (Chrome 55+, Firefox 51+).
     type Element = NativeElement & {
@@ -201,7 +202,10 @@ declare namespace svelte.JSX {
       onanimationiteration?: AnimationEventHandler<T>;
 
       // Transition Events
+      ontransitionstart?: TransitionEventHandler<T>;
+      ontransitionrun?: TransitionEventHandler<T>;
       ontransitionend?: TransitionEventHandler<T>;
+      ontransitioncancel?: TransitionEventHandler<T>;
 
       // Svelte Transition Events
       onoutrostart?: EventHandler<CustomEvent<null>, T>;
@@ -368,7 +372,7 @@ declare namespace svelte.JSX {
       title?: string;
       type?: string;
       usemap?: string;
-      value?: string | string[] | number;
+      value?: string | string[] | number | null;
       /**
        * a value between 0 and 1
       */
@@ -952,6 +956,7 @@ declare namespace svelte.JSX {
       // Svelte specific
       sveltewindow: HTMLProps<Window> & SvelteWindowProps;
       sveltebody: HTMLProps<HTMLElement>;
+      sveltefragment: { slot?: string; };
 
       [name: string]: { [name: string]: any };
     }
