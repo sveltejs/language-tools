@@ -47,7 +47,10 @@ export default [
             commonjs(),
             json(),
             typescript({ include: ['src/**/*'] }),
-            generateFile(`test/build/htmlxtojsx.d.ts`, `export * from '../../src/htmlxtojsx/index';`)
+            generateFile(
+                `test/build/htmlxtojsx.d.ts`,
+                `export * from '../../src/htmlxtojsx/index';`
+            )
         ],
         external: [...builtins, 'typescript', 'svelte', 'svelte/compiler', 'magic-string']
     }
