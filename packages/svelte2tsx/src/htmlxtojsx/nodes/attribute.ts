@@ -105,6 +105,12 @@ export function handleAttribute(htmlx: string, str: MagicString, attr: Node, par
         }
 
         const equals = htmlx.lastIndexOf('=', attrVal.start);
+
+        const sanitizedName = sanitizeLeadingChars(attr.name);
+        if (sanitizedName !== attr.name) {
+            str.overwrite(attr.start, equals, sanitizedName);
+        }
+
         if (attrVal.type == 'Text') {
             const endsWithQuote =
                 htmlx.lastIndexOf('"', attrVal.end) === attrVal.end - 1 ||
@@ -165,4 +171,17 @@ export function handleAttribute(htmlx: string, str: MagicString, attr: Node, par
     } else {
         str.appendLeft(attr.end, '`}');
     }
+}
+
+function sanitizeLeadingChars(attrName: string): string {
+    let sanitizedName = '';
+    for (let i = 0; i < attrName.length; i++) {
+        if (/[A-Za-z$_]/.test(attrName[i])) {
+            sanitizedName += attrName.substr(i);
+            return sanitizedName;
+        } else {
+            sanitizedName += '_';
+        }
+    }
+    return sanitizedName;
 }
