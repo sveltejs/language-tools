@@ -1,0 +1,10 @@
+{
+    "compilerOptions": {
+        "target": "esnext",
+        "module": "commonjs",
+        "moduleResolution": "node",
+        "esModuleInterop": true
+    },
+    "exclude": ["samples/**"],
+    "include": ["*.ts"]
+}

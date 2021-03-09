@@ -1,6 +1,9 @@
-import glob from 'tiny-glob/sync.js';
-
+require('ts-node').register({
+    project: 'test/tsconfig.json',
+    transpileOnly: true
+});
 require('source-map-support').install();
+const glob = require('tiny-glob/sync');
 
 //console.clear();
 
