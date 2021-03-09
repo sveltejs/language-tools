@@ -1,8 +1,8 @@
-let svelte2tsx = require('../build/index');
-let converter = require('../build/htmlxtojsx');
-let fs = require('fs');
-let assert = require('assert');
-let sm = require('source-map');
+import svelte2tsx from '../build/index';
+import { htmlx2jsx } from '../build/htmlxtojsx';
+import fs from 'fs';
+import assert from 'assert';
+import sm from 'source-map';
 
 describe('sourcemap', () => {
     /**
@@ -95,7 +95,7 @@ describe('sourcemap', () => {
             // but assert that the source it generates matches our input source.
             //console.log(expected.source)
             const { map, code } = dir.endsWith('.htmlx.html')
-                ? converter.htmlx2jsx(expected.source)
+                ? htmlx2jsx(expected.source)
                 : svelte2tsx(expected.source);
             assert.equal(
                 showWhitespace(code),

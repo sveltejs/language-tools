@@ -1,11 +1,11 @@
-const fs = require('fs');
-const assert = require('assert');
+import fs from 'fs';
+import assert from 'assert';
 
-function benchmark(fn) {
+export function benchmark(fn) {
     return -Date.now() + (fn(), Date.now());
 }
 
-function readFileSync(path) {
+export function readFileSync(path) {
     return fs.existsSync(path)
         ? fs.readFileSync(path, 'utf-8').replace(/\r\n/g, '\n').replace(/\s+$/, '')
         : null;
@@ -47,7 +47,7 @@ function check_dir(path, { allowed = [], required = allowed }) {
     }
 }
 
-function test_samples(dir, transform, tsx) {
+export function test_samples(dir, transform, tsx) {
     for (const testName of fs.readdirSync(`${dir}/samples`)) {
         const path = `${dir}/samples/${testName}`;
         const expected_path = `${path}/expected.${tsx}`;
@@ -89,10 +89,8 @@ function test_samples(dir, transform, tsx) {
  *
  * @param {string} dirPath
  */
-function get_input_content(dirPath) {
+export function get_input_content(dirPath) {
     const filename = fs.readdirSync(dirPath).find((f) => f.endsWith('.svelte'));
     const content = readFileSync(`${dirPath}/${filename}`);
     return { filename, content };
 }
-
-module.exports = { benchmark, test_samples, get_input_content, readFileSync };
