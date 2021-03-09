@@ -5,6 +5,8 @@ require('ts-node').register({
 require('source-map-support').install();
 const glob = require('tiny-glob/sync');
 
+//console.clear();
+
 if (process.env.CI) {
     const arr = glob('**/*.solo', { cwd: 'test' });
     if (arr.length) throw new Error(`Forgot to remove ".solo" from test(s) ${arr}`);
