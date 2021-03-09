@@ -4,7 +4,7 @@ import { test_samples } from '../helpers';
 describe('htmlx2jsx', function () {
     test_samples(
         __dirname,
-        function ({ input, emitOnTemplateError }) {
+        function (input, { emitOnTemplateError }) {
             return htmlx2jsx(input, { emitOnTemplateError });
         },
         'jsx'
