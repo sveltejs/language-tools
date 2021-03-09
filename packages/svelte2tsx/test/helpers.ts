@@ -8,7 +8,7 @@ export function benchmark(fn: () => void) {
     return -Date.now() + (fn(), Date.now());
 }
 
-function readFileSync(path: string) {
+export function readFileSync(path: string) {
     return fs.existsSync(path)
         ? fs.readFileSync(path, 'utf-8').replace(/\r\n/g, '\n').replace(/\s+$/, '')
         : null;
@@ -28,11 +28,15 @@ export function test_samples(dir: string, transform: TransformSampleFn, jsx: 'js
 
         sample.check({
             required: ['*.svelte'],
-            allowed: ['expected.js', `expected.${jsx}`, 'expected.error.json']
+            allowed: ['test.js', 'expected.js', `expected.${jsx}`, 'expected.error.json']
         });
 
         const shouldGenerateExpected = !sample.has(`expected.${jsx}`);
-        const shouldGenerateError = sample.get('expected.error.json') === '';
+
+        if (sample.has('test.js')) {
+            sample.eval('test.js');
+            return;
+        }
 
         sample.it(function () {
             const input = sample.get(svelteFile);
@@ -41,28 +45,6 @@ export function test_samples(dir: string, transform: TransformSampleFn, jsx: 'js
                 sampleName: sample.name,
                 emitOnTemplateError: false
             };
-
-            if (sample.has('expected.error.json')) {
-                let hadError = false;
-                try {
-                    transform(input, config);
-                } catch (error) {
-                    hadError = true;
-                    if (shouldGenerateError) {
-                        sample.generate(
-                            'expected.error.json',
-                            JSON.stringify(error, void 0, '    ') + '\n'
-                        );
-                    } else {
-                        assert.deepEqual(
-                            JSON.parse(sample.get('expected.error.json')),
-                            JSON.parse(JSON.stringify(error))
-                        );
-                    }
-                }
-                config.emitOnTemplateError = true;
-                assert(hadError, `Expected a template error but got none`);
-            }
 
             const output = transform(input, config);
 
@@ -167,4 +149,14 @@ export function* each_sample(dir: string) {
     for (const name of fs.readdirSync(`${dir}/samples`)) {
         yield new Sample(dir, name);
     }
+}
+
+/**
+ *
+ * @param {string} dirPath
+ */
+export function get_input_content(dirPath) {
+    const filename = fs.readdirSync(dirPath).find((f) => f.endsWith('.svelte'));
+    const content = readFileSync(`${dirPath}/${filename}`);
+    return { filename, content };
 }
