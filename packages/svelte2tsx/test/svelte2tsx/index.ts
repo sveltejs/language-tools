@@ -1,5 +1,5 @@
-const svelte2tsx = require('../build/index');
-const { test_samples } = require('../helpers');
+import svelte2tsx from '../build/index';
+import { test_samples } from '../helpers';
 
 describe('svelte2tsx', () => {
     test_samples(

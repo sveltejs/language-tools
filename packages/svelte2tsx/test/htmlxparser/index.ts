@@ -1,6 +1,6 @@
-const { htmlx2jsx } = require('../build/htmlxtojsx');
-const assert = require('assert');
-const { benchmark } = require('../helpers');
+import { htmlx2jsx } from '../build/htmlxtojsx';
+import assert from 'assert';
+import { benchmark } from '../helpers';
 
 describe('htmlxparser', () => {
     it('parses in a reasonable time', () => {
