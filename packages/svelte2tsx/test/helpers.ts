@@ -15,6 +15,43 @@ export function readFileSync(path: string) {
 }
 
 class Sample {
+    check_dir({ required = [], allowed = required }: { allowed?: string[]; required?: string[] }) {
+        const unchecked = new Set(required);
+        const unknown = [];
+        loop: for (const fileName of this.folder) {
+            for (const name of unchecked) {
+                if ('*' === name[0] ? fileName.endsWith(name.slice(1)) : name === fileName) {
+                    unchecked.delete(name);
+                    continue loop;
+                }
+            }
+            for (const name of allowed) {
+                if ('*' === name[0] ? fileName.endsWith(name.slice(1)) : name === fileName) {
+                    continue loop;
+                }
+            }
+            unknown.push(fileName);
+        }
+        if (unknown.length) {
+            const errors =
+                unknown.map((name) => `Unexpected file "${name}"`).join('\n') +
+                `\nat ${this.directory}`;
+            if (process.env.CI) {
+                throw new Error('\n' + errors);
+            } else {
+                after(() => {
+                    console.log(errors);
+                });
+            }
+        }
+        if (unchecked.size) {
+            throw new Error(
+                `Expected file${unchecked.size === 1 ? '' : 's'} ${[...unchecked]
+                    .map((str) => `"${str}"`)
+                    .join(', ')} in "${this.directory}"`
+            );
+        }
+    }
     readonly folder: string[];
     readonly directory: string;
     constructor(dir: string, readonly name: string) {
@@ -61,43 +98,6 @@ class Sample {
         const fn = require(`${this.directory}/${fileName}`);
         fn(...args);
     }
-    check({ required = [], allowed = required }: { allowed?: string[]; required?: string[] }) {
-        const unchecked = new Set(required);
-        const unknown = [];
-        loop: for (const fileName of this.folder) {
-            for (const name of unchecked) {
-                if ('*' === name[0] ? fileName.endsWith(name.slice(1)) : name === fileName) {
-                    unchecked.delete(name);
-                    continue loop;
-                }
-            }
-            for (const name of allowed) {
-                if ('*' === name[0] ? fileName.endsWith(name.slice(1)) : name === fileName) {
-                    continue loop;
-                }
-            }
-            unknown.push(fileName);
-        }
-        if (unknown.length) {
-            const errors =
-                unknown.map((name) => `Unexpected file "${name}"`).join('\n') +
-                `\nat ${this.directory}`;
-            if (process.env.CI) {
-                throw new Error('\n' + errors);
-            } else {
-                after(() => {
-                    console.log(errors);
-                });
-            }
-        }
-        if (unchecked.size) {
-            throw new Error(
-                `Expected file${unchecked.size === 1 ? '' : 's'} ${[...unchecked]
-                    .map((str) => `"${str}"`)
-                    .join(', ')} in "${this.directory}"`
-            );
-        }
-    }
 }
 type TransformSampleFn = (
     input: string,
@@ -112,7 +112,7 @@ export function test_samples(dir: string, transform: TransformSampleFn, jsx: 'js
     for (const sample of each_sample(dir)) {
         const svelteFile = sample.folder.find((f) => f.endsWith('.svelte'));
 
-        sample.check({
+        sample.check_dir({
             required: ['*.svelte'],
             allowed: ['test.js', 'expected.js', `expected.${jsx}`, 'expected.error.json']
         });
