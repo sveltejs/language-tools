@@ -1,8 +1,8 @@
 import assert from 'assert';
 import fs from 'fs';
 import { TestFunction } from 'mocha';
-import svelte2tsx from '../build/index';
-import { htmlx2jsx } from '../build/htmlxtojsx';
+import svelte2tsx from './build/index';
+import { htmlx2jsx } from './build/htmlxtojsx';
 
 export function benchmark(fn: () => void) {
     return -Date.now() + (fn(), Date.now());
@@ -13,16 +13,14 @@ function readFileSync(path: string) {
         ? fs.readFileSync(path, 'utf-8').replace(/\r\n/g, '\n').replace(/\s+$/, '')
         : null;
 }
-type TransformFn = typeof htmlx2jsx | typeof svelte2tsx;
-type TransformedFile = ReturnType<TransformFn>;
 type TransformSampleFn = (
     input: string,
     config: {
-        sampleName: string;
         fileName: string;
+        sampleName: string;
         emitOnTemplateError: boolean;
     }
-) => TransformedFile;
+) => ReturnType<typeof htmlx2jsx | typeof svelte2tsx>;
 
 export function test_samples(dir: string, transform: TransformSampleFn, jsx: 'jsx' | 'tsx') {
     for (const sample of each_sample(dir)) {
