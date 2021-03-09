@@ -411,8 +411,16 @@ repository:
   # Matches attribute keyvalues. (and boolean attributes as well)
   # e.g. `class="my-class"`
   attributes-keyvalue:
-    begin: ([_$[:alpha:]][_\-$[:alnum:]]*)
-    beginCaptures: { 1: { name: entity.other.attribute-name.svelte } }
+    begin: ((?:--)?[_$[:alpha:]][_\-$[:alnum:]]*)
+    beginCaptures:
+      0:
+        patterns:
+        # Matches if the key is a `--css-variable` attribute.
+        - match: --.*
+          name: support.type.property-name.svelte
+        # Matches everything else.
+        - match: .*
+          name: entity.other.attribute-name.svelte
     end: (?=\s*+[^=\s])
     name: 'meta.attribute.$1.svelte'
     patterns:
