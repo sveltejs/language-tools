@@ -33,12 +33,11 @@ export function test_samples(dir: string, transform: TransformSampleFn, jsx: 'js
 
         const shouldGenerateExpected = !sample.has(`expected.${jsx}`);
 
-        if (sample.has('test.js')) {
-            sample.eval('test.js');
-            return;
-        }
-
         sample.it(function () {
+            if (sample.has('test.js')) {
+                sample.eval('test.js');
+                return;
+            }
             const input = sample.get(svelteFile);
             const config = {
                 fileName: svelteFile,
