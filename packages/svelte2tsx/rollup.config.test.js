@@ -30,7 +30,7 @@ export default [
             commonjs(),
             json(),
             typescript({ include: ['src/**/*'] }),
-            generateFile(`test/build/index.d.ts`, `export { default } from '../../index';`)
+            generateFile('test/build/index.d.ts', "export { default } from '../../index';")
         ],
         external: [...builtins, 'typescript', 'svelte', 'svelte/compiler', 'magic-string']
     },
@@ -48,8 +48,8 @@ export default [
             json(),
             typescript({ include: ['src/**/*'] }),
             generateFile(
-                `test/build/htmlxtojsx.d.ts`,
-                `export * from '../../src/htmlxtojsx/index';`
+                'test/build/htmlxtojsx.d.ts',
+                "export * from '../../src/htmlxtojsx/index';"
             )
         ],
         external: [...builtins, 'typescript', 'svelte', 'svelte/compiler', 'magic-string']
