@@ -3,7 +3,7 @@
     "properties": {
         "prettier": {
             "description": "Prettier-Plugin-Svelte configuration",
-            "$ref": "./prettier-options.json"
+            "$ref": "./prettier-options-schema.json"
         }
     }
 }
