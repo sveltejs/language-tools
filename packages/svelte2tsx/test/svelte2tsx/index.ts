@@ -4,11 +4,12 @@ import { test_samples } from '../helpers';
 describe('svelte2tsx', () => {
     test_samples(
         __dirname,
-        (input, testName, filename) => {
+        (input, { sampleName, fileName, emitOnTemplateError }) => {
             return svelte2tsx(input, {
-                strictMode: testName.includes('strictMode'),
-                isTsFile: testName.startsWith('ts-'),
-                filename
+                strictMode: sampleName.includes('strictMode'),
+                isTsFile: sampleName.startsWith('ts-'),
+                filename: fileName,
+                emitOnTemplateError
             });
         },
         'tsx'

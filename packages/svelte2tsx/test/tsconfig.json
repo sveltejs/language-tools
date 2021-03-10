@@ -1,5 +1,6 @@
 {
     "compilerOptions": {
+        "types": ["@types/node", "@types/mocha"],
         "target": "esnext",
         "module": "commonjs",
         "moduleResolution": "node",
