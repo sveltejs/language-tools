@@ -26,12 +26,12 @@ export class LSAndTSDocResolver {
         docManager.on(
             'documentChange',
             isEditor
-                ? handleDocumentChange
-                : debounceSameArg(
+                ? debounceSameArg(
                       handleDocumentChange,
                       (newDoc, prevDoc) => newDoc.uri === prevDoc?.uri,
                       1000
                   )
+                : handleDocumentChange
         );
     }
 
