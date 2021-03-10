@@ -64,7 +64,7 @@ class Sample {
             );
         }
     }
-    
+
     it(fn: () => void) {
         let _it = it;
 
