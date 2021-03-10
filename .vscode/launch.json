@@ -15,6 +15,19 @@
         {
             "type": "node",
             "request": "launch",
+            "name": "Run 'svelte2tsx/repl/debug.ts' with debugger",
+            "runtimeArgs": ["-r", "ts-node/register"],
+            "args": ["${workspaceFolder}/packages/svelte2tsx/repl/debug.ts"],
+            "env": {
+                "TS_NODE_COMPILER_OPTIONS": "{\"esModuleInterop\":true, \"target\": \"es2018\"}",
+                "TS_NODE_TRANSPILE_ONLY": "true"
+            },
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen"
+        },
+        {
+            "type": "node",
+            "request": "launch",
             "name": "Run tests with debugger",
             "program": "${workspaceFolder}/node_modules/mocha/bin/_mocha",
             "args": [

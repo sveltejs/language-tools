@@ -55,7 +55,7 @@ export function convertHtmlxToJsx(
 
     let ifScope = new IfScope(templateScopeManager);
 
-    (walk as any)(ast, {
+    walk(ast, {
         enter: (node: Node, parent: Node, prop: string, index: number) => {
             try {
                 switch (node.type) {

@@ -6,3 +6,4 @@ node_modules
 test/typecheck/samples/**/input.svelte.tsx
 test/build
 test/sourcemaps/samples/*/output.tsx
+repl/output

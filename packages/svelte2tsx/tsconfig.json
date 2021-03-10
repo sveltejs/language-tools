@@ -23,5 +23,5 @@
         "@/*": ["src/*"]
     },
     // "include" is set in rollup.config(.test).js
-    "exclude": ["node_modules"]
+    "exclude": ["node_modules", "repl"]
 }
