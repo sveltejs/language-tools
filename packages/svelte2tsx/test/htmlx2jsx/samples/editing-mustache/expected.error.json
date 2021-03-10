@@ -1,0 +1,16 @@
+{
+    "name": "ParseError",
+    "code": "parse-error",
+    "start": {
+        "line": 1,
+        "column": 8,
+        "character": 8
+    },
+    "end": {
+        "line": 1,
+        "column": 8,
+        "character": 8
+    },
+    "pos": 8,
+    "frame": "1: {abc.   }\n           ^\n2: {abc?. }\n3: {abc ?}"
+}
