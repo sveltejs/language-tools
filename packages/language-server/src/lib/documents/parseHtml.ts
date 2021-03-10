@@ -3,8 +3,11 @@ import {
     HTMLDocument,
     TokenType,
     ScannerState,
-    Scanner
+    Scanner,
+    Node,
+    Position
 } from 'vscode-html-languageservice';
+import { Document } from './Document';
 import { isInsideMoustacheTag } from './utils';
 
 const parser = getLanguageService();
@@ -82,4 +85,67 @@ function preprocess(text: string) {
         text = text.substring(0, offset) + ' ' + text.substring(offset + 1);
         scanner = createScanner(text, offset, ScannerState.WithinTag);
     }
+}
+
+export interface AttributeContext {
+    name: string;
+    inValue: boolean;
+}
+
+export function getAttributeContextAtPosition(
+    document: Document,
+    position: Position
+): AttributeContext | null {
+    const offset = document.offsetAt(position);
+    const { html } = document;
+    const tag = html.findNodeAt(offset);
+
+    if (!inStartTag(offset, tag) || !tag.attributes) {
+        return null;
+    }
+
+    const text = document.getText();
+    const beforeStartTagEnd =
+        text.substring(0, tag.start) + preprocess(text.substring(tag.start, tag.startTagEnd));
+
+    const scanner = createScanner(beforeStartTagEnd, tag.start);
+
+    let token = scanner.scan();
+    let currentAttributeName: string | undefined;
+    const inTokenRange = () =>
+        scanner.getTokenOffset() <= offset && offset <= scanner.getTokenEnd();
+    while (token != TokenType.EOS) {
+        // adopted from https://github.com/microsoft/vscode-html-languageservice/blob/2f7ae4df298ac2c299a40e9024d118f4a9dc0c68/src/services/htmlCompletion.ts#L402
+        if (token === TokenType.AttributeName) {
+            currentAttributeName = scanner.getTokenText();
+            if (inTokenRange()) {
+                return {
+                    name: currentAttributeName,
+                    inValue: false
+                };
+            }
+        } else if (token === TokenType.DelimiterAssign) {
+            if (scanner.getTokenEnd() === offset && currentAttributeName) {
+                return {
+                    name: currentAttributeName,
+                    inValue: true
+                };
+            }
+        } else if (token === TokenType.AttributeValue) {
+            if (inTokenRange() && currentAttributeName) {
+                return {
+                    name: currentAttributeName,
+                    inValue: true
+                };
+            }
+            currentAttributeName = undefined;
+        }
+        token = scanner.scan();
+    }
+
+    return null;
+}
+
+function inStartTag(offset: number, node: Node) {
+    return offset > node.start && node.startTagEnd != undefined && offset < node.startTagEnd;
 }

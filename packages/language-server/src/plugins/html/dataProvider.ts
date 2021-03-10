@@ -177,6 +177,17 @@ const svelteTags: ITagData[] = [
         ]
     },
     {
+        name: 'svelte:fragment',
+        description:
+            'This element is useful if you want to assign a component to a named slot without creating a wrapper DOM element.',
+        attributes: [
+            {
+                name: 'slot',
+                description: 'The name of the named slot that should be targeted.'
+            }
+        ]
+    },
+    {
         name: 'slot',
         description:
             'Components can have child content, in the same way that elements can.\n\nThe content is exposed in the child component using the <slot> element, which can contain fallback content that is rendered if no children are provided.',
@@ -221,7 +232,7 @@ const mediaAttributes: IAttributeData[] = [
     },
     {
         name: 'bind:playbackRate',
-        description: 'how fast or slow to play the video, where 1 is \'normal\''
+        description: "how fast or slow to play the video, where 1 is 'normal'"
     },
     {
         name: 'bind:paused'
@@ -256,14 +267,14 @@ const addAttributes: Record<string, IAttributeData[]> = {
         { name: 'bind:value' },
         { name: 'bind:group', description: 'Available for type="radio" and type="checkbox"' },
         indeterminateAttribute,
-        {...indeterminateAttribute, name: 'bind:indeterminate'}
+        { ...indeterminateAttribute, name: 'bind:indeterminate' }
     ],
     textarea: [{ name: 'bind:value' }],
     video: [...mediaAttributes, ...videoAttributes],
     audio: [...mediaAttributes]
 };
 
-const html5Tags = htmlData.tags!.map(tag => {
+const html5Tags = htmlData.tags!.map((tag) => {
     let attributes = tag.attributes.map(mapToSvelteEvent);
     if (addAttributes[tag.name]) {
         attributes = [...attributes, ...addAttributes[tag.name]];

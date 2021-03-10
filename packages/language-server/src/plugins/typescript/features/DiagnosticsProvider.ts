@@ -5,12 +5,18 @@ import { DiagnosticsProvider } from '../../interfaces';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { convertRange, mapSeverity } from '../utils';
 import { SvelteDocumentSnapshot } from '../DocumentSnapshot';
+import { isInGeneratedCode } from './utils';
 
 export class DiagnosticsProviderImpl implements DiagnosticsProvider {
     constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
 
     async getDiagnostics(document: Document): Promise<Diagnostic[]> {
         const { lang, tsDoc } = this.getLSAndTSDoc(document);
+
+        if (['coffee', 'coffeescript'].includes(document.getLanguageAttribute('script'))) {
+            return [];
+        }
+
         const isTypescript = tsDoc.scriptKind === ts.ScriptKind.TSX;
 
         // Document preprocessing failed, show parser error instead
@@ -35,6 +41,7 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
         const fragment = await tsDoc.getFragment();
 
         return diagnostics
+            .filter(isNotGenerated(tsDoc.getText(0, tsDoc.getLength())))
             .map<Diagnostic>((diagnostic) => ({
                 range: convertRange(tsDoc, diagnostic),
                 severity: mapSeverity(diagnostic.category),
@@ -45,7 +52,7 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
             }))
             .map((diagnostic) => mapObjWithRangeToOriginal(fragment, diagnostic))
             .filter(hasNoNegativeLines)
-            .filter(isNoFalsePositive(document.getText(), tsDoc))
+            .filter(isNoFalsePositive(document.getText(), tsDoc, diagnostics))
             .map(enhanceIfNecessary)
             .map(swapRangeStartEndIfNecessary);
     }
@@ -75,14 +82,38 @@ function hasNoNegativeLines(diagnostic: Diagnostic): boolean {
     return diagnostic.range.start.line >= 0 && diagnostic.range.end.line >= 0;
 }
 
-function isNoFalsePositive(text: string, tsDoc: SvelteDocumentSnapshot) {
-    return (diagnostic: Diagnostic) => {
+function isNoFalsePositive(
+    text: string,
+    tsDoc: SvelteDocumentSnapshot,
+    rawTsDiagnostics: ts.Diagnostic[]
+) {
+    return (diagnostic: Diagnostic, idx: number) => {
         return (
             isNoJsxCannotHaveMultipleAttrsError(diagnostic) &&
             isNoUnusedLabelWarningForReactiveStatement(diagnostic) &&
-            isNoUsedBeforeAssigned(diagnostic, text, tsDoc)
+            isNoUsedBeforeAssigned(diagnostic, text, tsDoc) &&
+            isNotHiddenStoreValueDeclaration(diagnostic, tsDoc, rawTsDiagnostics[idx])
         );
     };
+}
+
+/**
+ * During compilation to tsx, for each store we create an additional variable
+ * called `$<store-name>` which contains the store value.
+ * This variable declaration does not show up in the sourcemaps.
+ * We have to ignore the error if the variable prefixed by `$` was not a store.
+ */
+function isNotHiddenStoreValueDeclaration(
+    diagnostic: Diagnostic,
+    tsDoc: SvelteDocumentSnapshot,
+    rawTsDiagnostic: ts.Diagnostic
+): boolean {
+    if (diagnostic.code !== 2345 || !rawTsDiagnostic.start) return true;
+
+    const affectedLine = tsDoc.getLineContainingOffset(rawTsDiagnostic.start);
+    const hasStoreValueDefinition = /let \$[\w$]+ = __sveltets_store_get\(/.test(affectedLine);
+
+    return !hasStoreValueDefinition;
 }
 
 /**
@@ -130,10 +161,34 @@ function enhanceIfNecessary(diagnostic: Diagnostic): Diagnostic {
             message:
                 'Type definitions are missing for this Svelte Component. ' +
                 // eslint-disable-next-line max-len
-                'It needs a class definition with at least the property \'$$prop_def\' which should contain a map of input property definitions.\n' +
+                "It needs a class definition with at least the property '$$prop_def' which should contain a map of input property definitions.\n" +
                 'Example:\n' +
-                'class ComponentName { $$prop_def: { propertyName: string; } }\n\n' +
+                '  class ComponentName { $$prop_def: { propertyName: string; } }\n' +
+                'If you are using Svelte 3.31+, use SvelteComponentTyped:\n' +
+                '  import type { SvelteComponentTyped } from "svelte";\n' +
+                '  class ComponentName extends SvelteComponentTyped<{propertyName: string;}> {}\n\n' +
+                'Underlying error:\n' +
                 diagnostic.message
+        };
+    }
+
+    if (diagnostic.code === 2607) {
+        return {
+            ...diagnostic,
+            message:
+                'Element does not support attributes because ' +
+                'type definitions are missing for this Svelte Component or element cannot be used as such.\n\n' +
+                'Underlying error:\n' +
+                diagnostic.message
+        };
+    }
+
+    if (diagnostic.code === 1184) {
+        return {
+            ...diagnostic,
+            message:
+                diagnostic.message +
+                '\nIf this is a declare statement, move it into <script context="module">..</script>'
         };
     }
 
@@ -154,4 +209,17 @@ function swapRangeStartEndIfNecessary(diag: Diagnostic): Diagnostic {
         diag.range.end = start;
     }
     return diag;
+}
+
+/**
+ * Checks if diagnostic is not within a section that should be completely ignored
+ * because it's purely generated.
+ */
+function isNotGenerated(text: string) {
+    return (diagnostic: ts.Diagnostic) => {
+        if (diagnostic.start === undefined || diagnostic.length === undefined) {
+            return true;
+        }
+        return !isInGeneratedCode(text, diagnostic.start, diagnostic.start + diagnostic.length);
+    };
 }

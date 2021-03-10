@@ -15,8 +15,7 @@ import {
 export const tsDirectives = [
     {
         value: '@ts-check',
-        description:
-            'Enables semantic checking in a JavaScript file. Must be at the top of a file.'
+        description: 'Enables semantic checking in a JavaScript file. Must be at the top of a file.'
     },
     {
         value: '@ts-nocheck',

@@ -60,6 +60,8 @@ export function extractIdentifiers(
 ): ts.Identifier[] {
     if (ts.isIdentifier(node)) {
         identifiers.push(node);
+    } else if (ts.isBindingElement(node)) {
+        extractIdentifiers(node.name, identifiers);
     } else if (isMember(node)) {
         let object: ts.Node = node;
         while (isMember(object)) {
@@ -70,7 +72,7 @@ export function extractIdentifiers(
         }
     } else if (ts.isArrayBindingPattern(node) || ts.isObjectBindingPattern(node)) {
         node.elements.forEach((element) => {
-            extractIdentifiers(element);
+            extractIdentifiers(element, identifiers);
         });
     } else if (ts.isObjectLiteralExpression(node)) {
         node.properties.forEach((child) => {
@@ -134,8 +136,7 @@ export function getLastLeadingDoc(node: ts.Node): string | undefined {
     if (comment) {
         let commentText = nodeText.substring(comment.pos, comment.end);
 
-        const typedefTags = ts.getAllJSDocTagsOfKind(
-            node, ts.SyntaxKind.JSDocTypedefTag);
+        const typedefTags = ts.getAllJSDocTagsOfKind(node, ts.SyntaxKind.JSDocTypedefTag);
         typedefTags
             .filter((tag) => tag.pos >= comment.pos)
             .map((tag) => nodeText.substring(tag.pos, tag.end))
@@ -155,4 +156,32 @@ export function isNotPropertyNameOfImport(identifier: ts.Identifier): boolean {
     return (
         !ts.isImportSpecifier(identifier.parent) || identifier.parent.propertyName !== identifier
     );
+}
+
+/**
+ * Extract the variable names that are assigned to out of a labeled statement.
+ */
+export function getNamesFromLabeledStatement(node: ts.LabeledStatement): string[] {
+    const leftHandSide = getBinaryAssignmentExpr(node)?.left;
+    if (!leftHandSide) {
+        return [];
+    }
+
+    return (
+        extractIdentifiers(leftHandSide)
+            .map((id) => id.text)
+            // svelte won't let you create a variable with $ prefix (reserved for stores)
+            .filter((name) => !name.startsWith('$'))
+    );
+}
+
+export function isFirstInAnExpressionStatement(node: ts.Identifier): boolean {
+    let parent = node.parent;
+    while (parent && !ts.isExpressionStatement(parent)) {
+        parent = parent.parent;
+    }
+    if (!parent) {
+        return false;
+    }
+    return parent.getStart() === node.getStart();
 }

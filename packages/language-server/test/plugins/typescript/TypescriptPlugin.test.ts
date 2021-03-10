@@ -258,28 +258,28 @@ describe('TypescriptPlugin', () => {
         it('(within script simple)', async () => {
             await test$StoreDef(
                 Position.create(7, 1),
-                Range.create(Position.create(7, 1), Position.create(7, 5))
+                Range.create(Position.create(7, 1), Position.create(7, 6))
             );
         });
 
         it('(within script if)', async () => {
             await test$StoreDef(
                 Position.create(8, 7),
-                Range.create(Position.create(8, 5), Position.create(8, 9))
+                Range.create(Position.create(8, 5), Position.create(8, 10))
             );
         });
 
         it('(within template simple)', async () => {
             await test$StoreDef(
                 Position.create(13, 3),
-                Range.create(Position.create(13, 2), Position.create(13, 6))
+                Range.create(Position.create(13, 2), Position.create(13, 7))
             );
         });
 
         it('(within template if)', async () => {
             await test$StoreDef(
                 Position.create(14, 7),
-                Range.create(Position.create(14, 6), Position.create(14, 10))
+                Range.create(Position.create(14, 6), Position.create(14, 11))
             );
         });
     });
@@ -321,28 +321,28 @@ describe('TypescriptPlugin', () => {
         it('(within script simple)', async () => {
             await test$StoreDef(
                 Position.create(9, 1),
-                Range.create(Position.create(9, 1), Position.create(9, 5))
+                Range.create(Position.create(9, 1), Position.create(9, 6))
             );
         });
 
         it('(within script if)', async () => {
             await test$StoreDef(
                 Position.create(10, 7),
-                Range.create(Position.create(10, 5), Position.create(10, 9))
+                Range.create(Position.create(10, 5), Position.create(10, 10))
             );
         });
 
         it('(within template simple)', async () => {
             await test$StoreDef(
                 Position.create(16, 3),
-                Range.create(Position.create(16, 2), Position.create(16, 6))
+                Range.create(Position.create(16, 2), Position.create(16, 7))
             );
         });
 
         it('(within template if)', async () => {
             await test$StoreDef(
                 Position.create(17, 7),
-                Range.create(Position.create(17, 6), Position.create(17, 10))
+                Range.create(Position.create(17, 6), Position.create(17, 11))
             );
         });
     });
@@ -443,5 +443,29 @@ describe('TypescriptPlugin', () => {
         } finally {
             fs.unlinkSync(addFile);
         }
+    });
+
+    it('should update ts/js file after document change', () => {
+        const { snapshotManager, projectJsFile, plugin } = setupForOnWatchedFileUpdateOrDelete();
+
+        const firstSnapshot = snapshotManager.get(projectJsFile);
+        const firstVersion = firstSnapshot?.version;
+        const firstText = firstSnapshot?.getText(0, firstSnapshot?.getLength());
+
+        assert.notEqual(firstVersion, INITIAL_VERSION);
+
+        plugin.updateTsOrJsFile(projectJsFile, [
+            {
+                range: { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } },
+                text: 'const = "hello world";'
+            }
+        ]);
+        const secondSnapshot = snapshotManager.get(projectJsFile);
+
+        assert.notEqual(secondSnapshot?.version, firstVersion);
+        assert.equal(
+            secondSnapshot?.getText(0, secondSnapshot?.getLength()),
+            'const = "hello world";' + firstText
+        );
     });
 });

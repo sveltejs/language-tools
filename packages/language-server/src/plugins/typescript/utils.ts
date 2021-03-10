@@ -111,7 +111,7 @@ export function findTsConfigPath(fileName: string, rootUris: string[]) {
         ts.findConfigFile(searchDir, ts.sys.fileExists, 'jsconfig.json') ||
         '';
     // Don't return config files that exceed the current workspace context.
-    return !!path && rootUris.some(rootUri => isSubPath(rootUri, path)) ? path : '';
+    return !!path && rootUris.some((rootUri) => isSubPath(rootUri, path)) ? path : '';
 }
 
 export function isSubPath(uri: string, possibleSubPath: string): boolean {
@@ -285,4 +285,14 @@ export function getTsCheckComment(str = ''): string | undefined {
             return `// ${tsCheck[tsCheck.length - 3]}${ts.sys.newLine}`;
         }
     }
+}
+
+export function convertToTextSpan(range: Range, fragment: SnapshotFragment): ts.TextSpan {
+    const start = fragment.offsetAt(fragment.getGeneratedPosition(range.start));
+    const end = fragment.offsetAt(fragment.getGeneratedPosition(range.end));
+
+    return {
+        start,
+        length: end - start
+    };
 }

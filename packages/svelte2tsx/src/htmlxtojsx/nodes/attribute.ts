@@ -1,6 +1,7 @@
 import MagicString from 'magic-string';
 import { Node } from 'estree-walker';
 import svgAttributes from '../svgattributes';
+import { isQuote } from '../utils/node-utils';
 
 /**
  * List taken from `svelte-jsx.d.ts` by searching for all attributes of type number
@@ -104,6 +105,12 @@ export function handleAttribute(htmlx: string, str: MagicString, attr: Node, par
         }
 
         const equals = htmlx.lastIndexOf('=', attrVal.start);
+
+        const sanitizedName = sanitizeLeadingChars(attr.name);
+        if (sanitizedName !== attr.name) {
+            str.overwrite(attr.start, equals, sanitizedName);
+        }
+
         if (attrVal.type == 'Text') {
             const endsWithQuote =
                 htmlx.lastIndexOf('"', attrVal.end) === attrVal.end - 1 ||
@@ -159,9 +166,22 @@ export function handleAttribute(htmlx: string, str: MagicString, attr: Node, par
         }
     }
 
-    if (htmlx[attr.end - 1] == '"') {
+    if (isQuote(htmlx[attr.end - 1])) {
         str.overwrite(attr.end - 1, attr.end, '`}');
     } else {
         str.appendLeft(attr.end, '`}');
     }
+}
+
+function sanitizeLeadingChars(attrName: string): string {
+    let sanitizedName = '';
+    for (let i = 0; i < attrName.length; i++) {
+        if (/[A-Za-z$_]/.test(attrName[i])) {
+            sanitizedName += attrName.substr(i);
+            return sanitizedName;
+        } else {
+            sanitizedName += '_';
+        }
+    }
+    return sanitizedName;
 }

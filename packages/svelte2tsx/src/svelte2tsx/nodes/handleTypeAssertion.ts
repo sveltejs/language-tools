@@ -24,4 +24,3 @@ export function handleTypeAssertion(
     // remove '>'
     str.remove(typeEnd, expressionStart);
 }
-

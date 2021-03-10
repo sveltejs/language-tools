@@ -39,9 +39,7 @@ LSP-compatible editors, you can use an HTML comment with the `@component` tag:
 <!-- @component But only the last documentation comment will be used -->
 
 <main>
-    <h1>
-        Hello world
-    </h1>
+    <h1>Hello world</h1>
 </main>
 ```
 
@@ -66,7 +64,7 @@ The VS Code extension comes with its own syntax highlighting grammar which defin
 }
 ```
 
-To find out the scope of the things you want to highlight differently, you can use the scope inspector by entering the command "Developer: Inspect Editor Tokens and Scopes". The scope at the top of the section "textmate scopes" is what you are looking for. The current color is in the section "foreground" - you can use this to look up colors of other scopes if you want them to be the same color but don't know the color-code. 
+To find out the scope of the things you want to highlight differently, you can use the scope inspector by entering the command "Developer: Inspect Editor Tokens and Scopes". The scope at the top of the section "textmate scopes" is what you are looking for. The current color is in the section "foreground" - you can use this to look up colors of other scopes if you want them to be the same color but don't know the color-code.
 
 For more info on customizing your theme, [see the VS Code docs](https://code.visualstudio.com/docs/getstarted/themes#_customizing-a-color-theme).
 
@@ -95,8 +93,9 @@ If you have the `Babel Javascript` plugin installed, this may be the cause. Disa
 #### My Code does not get formatted
 
 Your default formatter for Svelte files may be wrong.
-- Mabye it's set to the old Svelte extension, if so, remove the setting
-- Maybe you set all files to be formatted by the prettier extension. Then you have two options: Either install `prettier-plugin-svelte` from npm, or tell VSCode to format the code with the `Svelte for VSCode extension`:
+
+-   Mabye it's set to the old Svelte extension, if so, remove the setting
+-   Maybe you set all files to be formatted by the prettier extension. Then you have two options: Either install `prettier-plugin-svelte` from npm, or tell VSCode to format the code with the `Svelte for VSCode extension`:
 
 ```json
   "[svelte]": {

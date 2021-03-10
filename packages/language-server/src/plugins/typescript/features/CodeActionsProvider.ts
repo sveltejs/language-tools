@@ -9,7 +9,7 @@ import {
     WorkspaceEdit
 } from 'vscode-languageserver';
 import { Document, mapRangeToOriginal, isRangeInTag, isInTag } from '../../../lib/documents';
-import { pathToUrl, flatten } from '../../../utils';
+import { pathToUrl, flatten, isNotNullOrUndefined } from '../../../utils';
 import { CodeActionsProvider } from '../../interfaces';
 import { SnapshotFragment, SvelteSnapshotFragment } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
@@ -17,6 +17,7 @@ import { convertRange } from '../utils';
 
 import ts from 'typescript';
 import { CompletionsProviderImpl } from './CompletionProvider';
+import { isNoTextSpanInGeneratedCode, SnapshotFragmentMap } from './utils';
 
 interface RefactorArgs {
     type: 'refactor';
@@ -77,18 +78,12 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                 return TextDocumentEdit.create(
                     VersionedTextDocumentIdentifier.create(document.url, 0),
                     change.textChanges.map((edit) => {
-                        let range = mapRangeToOriginal(fragment, convertRange(fragment, edit.span));
-                        // Handle svelte2tsx wrong import mapping:
-                        // The character after the last import maps to the start of the script
-                        // TODO find a way to fix this in svelte2tsx and then remove this
-                        if (
-                            (range.end.line === 0 && range.end.character === 1) ||
-                            range.end.line < range.start.line
-                        ) {
-                            edit.span.length -= 1;
-                            range = mapRangeToOriginal(fragment, convertRange(fragment, edit.span));
-                            range.end.character += 1;
-                        }
+                        const range = this.checkRemoveImportCodeActionRange(
+                            edit,
+                            fragment,
+                            mapRangeToOriginal(fragment, convertRange(fragment, edit.span))
+                        );
+
                         return TextEdit.replace(range, edit.newText);
                     })
                 );
@@ -102,6 +97,26 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                 CodeActionKind.SourceOrganizeImports
             )
         ];
+    }
+
+    private checkRemoveImportCodeActionRange(
+        edit: ts.TextChange,
+        fragment: SnapshotFragment,
+        range: Range
+    ) {
+        // Handle svelte2tsx wrong import mapping:
+        // The character after the last import maps to the start of the script
+        // TODO find a way to fix this in svelte2tsx and then remove this
+        if (
+            (range.end.line === 0 && range.end.character === 1) ||
+            range.end.line < range.start.line
+        ) {
+            edit.span.length -= 1;
+            range = mapRangeToOriginal(fragment, convertRange(fragment, edit.span));
+            range.end.character += 1;
+        }
+
+        return range;
     }
 
     private async applyQuickfix(document: Document, range: Range, context: CodeActionContext) {
@@ -120,37 +135,65 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             userPreferences
         );
 
-        const docs = new Map<string, SnapshotFragment>([[tsDoc.filePath, fragment]]);
+        const docs = new SnapshotFragmentMap(this.lsAndTsDocResolver);
+        docs.set(tsDoc.filePath, { fragment, snapshot: tsDoc });
+
         return await Promise.all(
             codeFixes.map(async (fix) => {
                 const documentChanges = await Promise.all(
                     fix.changes.map(async (change) => {
-                        let doc = docs.get(change.fileName);
-                        if (!doc) {
-                            doc = await this.getSnapshot(change.fileName).getFragment();
-                            docs.set(change.fileName, doc);
-                        }
+                        const { snapshot, fragment } = await docs.retrieve(change.fileName);
                         return TextDocumentEdit.create(
                             VersionedTextDocumentIdentifier.create(pathToUrl(change.fileName), 0),
-                            change.textChanges.map((edit) => {
-                                if (
-                                    fix.fixName === 'import' &&
-                                    doc instanceof SvelteSnapshotFragment
-                                ) {
-                                    return this.completionProvider.codeActionChangeToTextEdit(
-                                        document,
-                                        doc,
-                                        edit,
-                                        true,
-                                        isInTag(range.start, document.scriptInfo) ||
-                                            isInTag(range.start, document.moduleScriptInfo)
+                            change.textChanges
+                                .map((edit) => {
+                                    if (
+                                        fix.fixName === 'import' &&
+                                        fragment instanceof SvelteSnapshotFragment
+                                    ) {
+                                        return this.completionProvider.codeActionChangeToTextEdit(
+                                            document,
+                                            fragment,
+                                            edit,
+                                            true,
+                                            isInTag(range.start, document.scriptInfo) ||
+                                                isInTag(range.start, document.moduleScriptInfo)
+                                        );
+                                    }
+
+                                    if (
+                                        !isNoTextSpanInGeneratedCode(
+                                            snapshot.getFullText(),
+                                            edit.span
+                                        )
+                                    ) {
+                                        return undefined;
+                                    }
+
+                                    let originalRange = mapRangeToOriginal(
+                                        fragment,
+                                        convertRange(fragment, edit.span)
                                     );
-                                }
-                                return TextEdit.replace(
-                                    mapRangeToOriginal(doc!, convertRange(doc!, edit.span)),
-                                    edit.newText
-                                );
-                            })
+
+                                    if (fix.fixName === 'unusedIdentifier') {
+                                        originalRange = this.checkRemoveImportCodeActionRange(
+                                            edit,
+                                            fragment,
+                                            originalRange
+                                        );
+                                    }
+
+                                    if (fix.fixName === 'fixMissingFunctionDeclaration') {
+                                        originalRange = this.checkEndOfFileCodeInsert(
+                                            originalRange,
+                                            range,
+                                            document
+                                        );
+                                    }
+
+                                    return TextEdit.replace(originalRange, edit.newText);
+                                })
+                                .filter(isNotNullOrUndefined)
                         );
                     })
                 );
@@ -296,28 +339,35 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             TextDocumentEdit.create(
                 VersionedTextDocumentIdentifier.create(document.uri, 0),
                 edit.textChanges.map((edit) => {
-                    let range = mapRangeToOriginal(fragment, convertRange(fragment, edit.span));
-                    // Some refactorings place the new code at the end of svelte2tsx' render function,
-                    // which is unmapped. In this case, add it to the end of the script tag ourselves.
-                    if (range.start.line < 0 || range.end.line < 0) {
-                        if (isRangeInTag(originalRange, document.scriptInfo)) {
-                            range = Range.create(
-                                document.scriptInfo.endPos,
-                                document.scriptInfo.endPos
-                            );
-                        } else if (isRangeInTag(originalRange, document.moduleScriptInfo)) {
-                            range = Range.create(
-                                document.moduleScriptInfo.endPos,
-                                document.moduleScriptInfo.endPos
-                            );
-                        }
-                    }
-                    return TextEdit.replace(range, edit.newText);
+                    const range = mapRangeToOriginal(fragment, convertRange(fragment, edit.span));
+
+                    return TextEdit.replace(
+                        this.checkEndOfFileCodeInsert(range, originalRange, document),
+                        edit.newText
+                    );
                 })
             )
         );
 
         return { documentChanges };
+    }
+
+    /**
+     * Some refactorings place the new code at the end of svelte2tsx' render function,
+     *  which is unmapped. In this case, add it to the end of the script tag ourselves.
+     */
+    private checkEndOfFileCodeInsert(resultRange: Range, targetRange: Range, document: Document) {
+        if (resultRange.start.line < 0 || resultRange.end.line < 0) {
+            if (isRangeInTag(targetRange, document.scriptInfo)) {
+                resultRange = Range.create(document.scriptInfo.endPos, document.scriptInfo.endPos);
+            } else if (isRangeInTag(targetRange, document.moduleScriptInfo)) {
+                resultRange = Range.create(
+                    document.moduleScriptInfo.endPos,
+                    document.moduleScriptInfo.endPos
+                );
+            }
+        }
+        return resultRange;
     }
 
     private getLSAndTSDoc(document: Document) {

@@ -28,8 +28,9 @@ declare namespace svelte.JSX {
 
     type NativeElement = HTMLElement;
 
-    // eslint-disable-next-line @typescript-eslint/no-empty-interface
-    interface IntrinsicAttributes {}
+    interface IntrinsicAttributes {
+      slot?: string;
+    }
 
     // TypeScript SVGElement has no `dataset` (Chrome 55+, Firefox 51+).
     type Element = NativeElement & {
@@ -110,6 +111,9 @@ declare namespace svelte.JSX {
       // Image Events
       onload?: EventHandler;
       onerror?: EventHandler; // also a Media Event
+
+      // Detail Events
+      ontoggle?: EventHandler<Event, T>;
 
       // Keyboard Events
       onkeydown?: KeyboardEventHandler<T>;
@@ -198,7 +202,10 @@ declare namespace svelte.JSX {
       onanimationiteration?: AnimationEventHandler<T>;
 
       // Transition Events
+      ontransitionstart?: TransitionEventHandler<T>;
+      ontransitionrun?: TransitionEventHandler<T>;
       ontransitionend?: TransitionEventHandler<T>;
+      ontransitioncancel?: TransitionEventHandler<T>;
 
       // Svelte Transition Events
       onoutrostart?: EventHandler<CustomEvent<null>, T>;
@@ -232,6 +239,7 @@ declare namespace svelte.JSX {
       allowtransparency?: boolean;
       allowpaymentrequest?: boolean;
       alt?: string;
+      as?: string;
       async?: boolean;
       autocomplete?: string;
       autofocus?: boolean;
@@ -364,7 +372,7 @@ declare namespace svelte.JSX {
       title?: string;
       type?: string;
       usemap?: string;
-      value?: string | string[] | number;
+      value?: string | string[] | number | null;
       /**
        * a value between 0 and 1
       */
@@ -513,6 +521,7 @@ declare namespace svelte.JSX {
       gradientTransform?: string;
       gradientUnits?: string;
       hanging?: number | string;
+      href?: string;
       'horiz-adv-x'?: number | string;
       'horiz-origin-x'?: number | string;
       ideographic?: number | string;
@@ -560,6 +569,7 @@ declare namespace svelte.JSX {
       'overline-thickness'?: number | string;
       'paint-order'?: number | string;
       'panose-1'?: number | string;
+      path?: string;
       pathLength?: number | string;
       patternContentUnits?: string;
       patternTransform?: number | string;
@@ -701,10 +711,15 @@ declare namespace svelte.JSX {
       scrollY?: Window['scrollY'];
       readonly online?: Window['navigator']['onLine'];
 
-
+      ondevicelight?: EventHandler<Event, Window>;
+      onbeforeinstallprompt?: EventHandler<Event, Window>;
+      ondeviceproximity?: EventHandler<Event, Window>;
+      onpaint?: EventHandler<Event, Window>;
+      onuserproximity?: EventHandler<Event, Window>;
       onbeforeprint?: EventHandler<Event, Window>;
       onafterprint?: EventHandler<Event, Window>;
       onlanguagechange?: EventHandler<Event, Window>;
+      onorientationchange?: EventHandler<Event, Window>;
       onmessage?: EventHandler<MessageEvent, Window>;
       onmessageerror?: EventHandler<MessageEvent, Window>;
       onoffline?: EventHandler<Event, Window>;
@@ -941,6 +956,7 @@ declare namespace svelte.JSX {
       // Svelte specific
       sveltewindow: HTMLProps<Window> & SvelteWindowProps;
       sveltebody: HTMLProps<HTMLElement>;
+      sveltefragment: { slot?: string; };
 
       [name: string]: { [name: string]: any };
     }

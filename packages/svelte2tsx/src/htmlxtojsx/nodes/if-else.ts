@@ -1,10 +1,11 @@
 import MagicString from 'magic-string';
 import { Node } from 'estree-walker';
+import { IfScope } from './if-scope';
 
 /**
  * {# if ...}...{/if}   --->   {() => {if(...){<>...</>}}}
  */
-export function handleIf(htmlx: string, str: MagicString, ifBlock: Node): void {
+export function handleIf(htmlx: string, str: MagicString, ifBlock: Node, ifScope: IfScope): void {
     const endIf = htmlx.lastIndexOf('{', ifBlock.end - 1);
 
     if (ifBlock.elseif) {
@@ -13,6 +14,8 @@ export function handleIf(htmlx: string, str: MagicString, ifBlock: Node): void {
         const elseIfConditionEnd = htmlx.indexOf('}', ifBlock.expression.end) + 1;
         str.overwrite(elseIfStart, ifBlock.expression.start, '</> : (', { contentOnly: true });
         str.overwrite(ifBlock.expression.end, elseIfConditionEnd, ') ? <>');
+
+        ifScope.addElseIf(ifBlock.expression, str);
 
         if (!ifBlock.else) {
             str.appendLeft(endIf, '</> : <>');
@@ -24,6 +27,8 @@ export function handleIf(htmlx: string, str: MagicString, ifBlock: Node): void {
     str.overwrite(ifBlock.start, ifBlock.expression.start, '{(', { contentOnly: true });
     const end = htmlx.indexOf('}', ifBlock.expression.end);
     str.overwrite(ifBlock.expression.end, end + 1, ') ? <>', { contentOnly: true });
+
+    ifScope.addNestedIf(ifBlock.expression, str);
 
     if (ifBlock.else) {
         // {/if}  ->  </> }
@@ -37,7 +42,13 @@ export function handleIf(htmlx: string, str: MagicString, ifBlock: Node): void {
 /**
  * {:else}   --->   </> : <>
  */
-export function handleElse(htmlx: string, str: MagicString, elseBlock: Node, parent: Node): void {
+export function handleElse(
+    htmlx: string,
+    str: MagicString,
+    elseBlock: Node,
+    parent: Node,
+    ifScope: IfScope
+): void {
     if (
         parent.type !== 'IfBlock' ||
         (elseBlock.children[0]?.type === 'IfBlock' && elseBlock.children[0]?.elseif)
@@ -48,4 +59,6 @@ export function handleElse(htmlx: string, str: MagicString, elseBlock: Node, par
     const elseword = htmlx.lastIndexOf(':else', elseEnd);
     const elseStart = htmlx.lastIndexOf('{', elseword);
     str.overwrite(elseStart, elseEnd + 1, '</> : <>');
+
+    ifScope.addElse();
 }

@@ -4,7 +4,7 @@ import {
     ApplyWorkspaceEditRequest,
     CodeActionKind,
     DocumentUri,
-    _Connection,
+    Connection,
     MessageType,
     RenameFile,
     RequestType,
@@ -12,11 +12,16 @@ import {
     TextDocumentIdentifier,
     TextDocumentPositionParams,
     TextDocumentSyncKind,
-    WorkspaceEdit
+    WorkspaceEdit,
+    SemanticTokensRequest,
+    SemanticTokensRangeRequest,
+    DidChangeWatchedFilesParams,
+    LinkedEditingRangeRequest
 } from 'vscode-languageserver';
 import { IPCMessageReader, IPCMessageWriter, createConnection } from 'vscode-languageserver/node';
 import { DiagnosticsManager } from './lib/DiagnosticsManager';
 import { Document, DocumentManager } from './lib/documents';
+import { getSemanticTokenLegends } from './lib/semanticToken/semanticTokenLegend';
 import { Logger } from './logger';
 import { LSConfigManager } from './ls-config';
 import {
@@ -28,7 +33,8 @@ import {
     TypeScriptPlugin,
     OnWatchFileChangesPara
 } from './plugins';
-import { urlToPath } from './utils';
+import { isNotNullOrUndefined, urlToPath } from './utils';
+import { FallbackWatcher } from './lib/FallbackWatcher';
 
 namespace TagCloseRequest {
     export const type: RequestType<
@@ -43,7 +49,7 @@ export interface LSOptions {
      * If you have a connection already that the ls should use, pass it in.
      * Else the connection will be created from `process`.
      */
-    connection?: _Connection;
+    connection?: Connection;
     /**
      * If you want only errors getting logged.
      * Defaults to false.
@@ -82,6 +88,7 @@ export function startServer(options?: LSOptions) {
     const configManager = new LSConfigManager();
     const pluginHost = new PluginHost(docManager);
     let sveltePlugin: SveltePlugin = undefined as any;
+    let watcher: FallbackWatcher | undefined;
 
     connection.onInitialize((evt) => {
         const workspaceUris = evt.workspaceFolders?.map((folder) => folder.uri.toString()) ?? [
@@ -90,6 +97,12 @@ export function startServer(options?: LSOptions) {
         Logger.log('Initialize language server at ', workspaceUris.join(', '));
         if (workspaceUris.length === 0) {
             Logger.error('No workspace path set');
+        }
+
+        if (!evt.capabilities.workspace?.didChangeWatchedFiles) {
+            const workspacePaths = workspaceUris.map(urlToPath).filter(isNotNullOrUndefined);
+            watcher = new FallbackWatcher('**/*.{ts,js}', workspacePaths);
+            watcher.onDidChangeWatchedFiles(onDidChangeWatchedFiles);
         }
 
         configManager.update(evt.initializationOptions?.config || {});
@@ -186,9 +199,19 @@ export function startServer(options?: LSOptions) {
                 signatureHelpProvider: {
                     triggerCharacters: ['(', ',', '<'],
                     retriggerCharacters: [')']
-                }
+                },
+                semanticTokensProvider: {
+                    legend: getSemanticTokenLegends(),
+                    range: true,
+                    full: true
+                },
+                linkedEditingRangeProvider: true
             }
         };
+    });
+
+    connection.onExit(() => {
+        watcher?.dispose();
     });
 
     connection.onRenameRequest((req) =>
@@ -276,7 +299,10 @@ export function startServer(options?: LSOptions) {
         pluginHost.getDiagnostics.bind(pluginHost)
     );
 
-    connection.onDidChangeWatchedFiles((para) => {
+    const updateAllDiagnostics = _.debounce(() => diagnosticsManager.updateAll(), 1000);
+
+    connection.onDidChangeWatchedFiles(onDidChangeWatchedFiles);
+    function onDidChangeWatchedFiles(para: DidChangeWatchedFilesParams) {
         const onWatchFileChangesParas = para.changes
             .map((change) => ({
                 fileName: urlToPath(change.uri),
@@ -286,9 +312,29 @@ export function startServer(options?: LSOptions) {
 
         pluginHost.onWatchFileChanges(onWatchFileChangesParas);
 
-        diagnosticsManager.updateAll();
+        updateAllDiagnostics();
+    }
+
+    connection.onDidSaveTextDocument(updateAllDiagnostics);
+    connection.onNotification('$/onDidChangeTsOrJsFile', async (e: any) => {
+        const path = urlToPath(e.uri);
+        if (path) {
+            pluginHost.updateTsOrJsFile(path, e.changes);
+        }
+        updateAllDiagnostics();
     });
-    connection.onDidSaveTextDocument(() => diagnosticsManager.updateAll());
+
+    connection.onRequest(SemanticTokensRequest.type, (evt) =>
+        pluginHost.getSemanticTokens(evt.textDocument)
+    );
+    connection.onRequest(SemanticTokensRangeRequest.type, (evt) =>
+        pluginHost.getSemanticTokens(evt.textDocument, evt.range)
+    );
+
+    connection.onRequest(
+        LinkedEditingRangeRequest.type,
+        async (evt) => await pluginHost.getLinkedEditingRanges(evt.textDocument, evt.position)
+    );
 
     docManager.on(
         'documentChange',

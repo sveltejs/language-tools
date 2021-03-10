@@ -1,7 +1,7 @@
 import { RawSourceMap, SourceMapConsumer } from 'source-map';
 import svelte2tsx, { IExportedNames, ComponentEvents } from 'svelte2tsx';
 import ts from 'typescript';
-import { Position, Range } from 'vscode-languageserver';
+import { Position, Range, TextDocumentContentChangeEvent } from 'vscode-languageserver';
 import {
     Document,
     DocumentMapper,
@@ -57,6 +57,10 @@ export interface DocumentSnapshot extends ts.IScriptSnapshot {
      * in order to prevent memory leaks.
      */
     destroyFragment(): void;
+    /**
+     * Convenience function for getText(0, getLength())
+     */
+    getFullText(): string;
 }
 
 /**
@@ -73,6 +77,7 @@ export interface SnapshotFragment extends DocumentMapper {
  */
 export interface SvelteSnapshotOptions {
     strictMode: boolean;
+    transformOnTemplateError: boolean;
 }
 
 export namespace DocumentSnapshot {
@@ -142,7 +147,8 @@ function preprocessSvelteFile(document: Document, options: SvelteSnapshotOptions
         const tsx = svelte2tsx(text, {
             strictMode: options.strictMode,
             filename: document.getFilePath() ?? undefined,
-            isTsFile: scriptKind === ts.ScriptKind.TSX
+            isTsFile: scriptKind === ts.ScriptKind.TSX,
+            emitOnTemplateError: options.transformOnTemplateError
         });
         text = tsx.code;
         tsxMap = tsx.map;
@@ -219,12 +225,21 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
         return this.text.length;
     }
 
+    getFullText() {
+        return this.text;
+    }
+
     getChangeRange() {
         return undefined;
     }
 
     positionAt(offset: number) {
         return positionAt(offset, this.text);
+    }
+
+    getLineContainingOffset(offset: number) {
+        const chunks = this.getText(0, offset).split('\n');
+        return chunks[chunks.length - 1];
     }
 
     hasProp(name: string): boolean {
@@ -282,11 +297,7 @@ export class JSOrTSDocumentSnapshot
     scriptKind = getScriptKindFromFileName(this.filePath);
     scriptInfo = null;
 
-    constructor(
-        public version: number,
-        public readonly filePath: string,
-        private readonly text: string
-    ) {
+    constructor(public version: number, public readonly filePath: string, private text: string) {
         super(pathToUrl(filePath));
     }
 
@@ -296,6 +307,10 @@ export class JSOrTSDocumentSnapshot
 
     getLength() {
         return this.text.length;
+    }
+
+    getFullText() {
+        return this.text;
     }
 
     getChangeRange() {
@@ -316,6 +331,23 @@ export class JSOrTSDocumentSnapshot
 
     destroyFragment() {
         // nothing to clean up
+    }
+
+    update(changes: TextDocumentContentChangeEvent[]): void {
+        for (const change of changes) {
+            let start = 0;
+            let end = 0;
+            if ('range' in change) {
+                start = this.offsetAt(change.range.start);
+                end = this.offsetAt(change.range.end);
+            } else {
+                end = this.getLength();
+            }
+
+            this.text = this.text.slice(0, start) + change.text + this.text.slice(end);
+        }
+
+        this.version++;
     }
 }
 

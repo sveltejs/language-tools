@@ -1,7 +1,12 @@
 import ts from 'typescript';
 import { Position } from 'vscode-languageserver';
 import { Document, getNodeIfIsInComponentStartTag, isInTag } from '../../../lib/documents';
-import { SvelteDocumentSnapshot, SvelteSnapshotFragment } from '../DocumentSnapshot';
+import {
+    DocumentSnapshot,
+    SnapshotFragment,
+    SvelteDocumentSnapshot,
+    SvelteSnapshotFragment
+} from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 
 /**
@@ -47,4 +52,57 @@ export function getComponentAtPosition(
         return null;
     }
     return snapshot;
+}
+
+/**
+ * Checks if this a section that should be completely ignored
+ * because it's purely generated.
+ */
+export function isInGeneratedCode(text: string, start: number, end: number) {
+    const lineStart = text.lastIndexOf('\n', start);
+    const lineEnd = text.indexOf('\n', end);
+    return (
+        text.substring(lineStart, start).includes('/*Ωignore_startΩ*/') &&
+        text.substring(end, lineEnd).includes('/*Ωignore_endΩ*/')
+    );
+}
+
+/**
+ * Checks that this isn't a text span that should be completely ignored
+ * because it's purely generated.
+ */
+export function isNoTextSpanInGeneratedCode(text: string, span: ts.TextSpan) {
+    return !isInGeneratedCode(text, span.start, span.start + span.length);
+}
+
+export class SnapshotFragmentMap {
+    private map = new Map<string, { fragment: SnapshotFragment; snapshot: DocumentSnapshot }>();
+    constructor(private resolver: LSAndTSDocResolver) {}
+
+    set(fileName: string, content: { fragment: SnapshotFragment; snapshot: DocumentSnapshot }) {
+        this.map.set(fileName, content);
+    }
+
+    get(fileName: string) {
+        return this.map.get(fileName);
+    }
+
+    getFragment(fileName: string) {
+        return this.map.get(fileName)?.fragment;
+    }
+
+    async retrieve(fileName: string) {
+        let snapshotFragment = this.get(fileName);
+        if (!snapshotFragment) {
+            const snapshot = this.resolver.getSnapshot(fileName);
+            const fragment = await snapshot.getFragment();
+            snapshotFragment = { fragment, snapshot };
+            this.set(fileName, snapshotFragment);
+        }
+        return snapshotFragment;
+    }
+
+    async retrieveFragment(fileName: string) {
+        return (await this.retrieve(fileName)).fragment;
+    }
 }

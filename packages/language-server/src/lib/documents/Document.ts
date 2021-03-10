@@ -62,6 +62,19 @@ export class Document extends WritableDocument {
         return this.url;
     }
 
+    /**
+     * Returns the language associated to either script or style.
+     * Returns an empty string if there's nothing set.
+     */
+    getLanguageAttribute(tag: 'script' | 'style'): string {
+        const attrs =
+            (tag === 'style'
+                ? this.styleInfo?.attributes
+                : this.scriptInfo?.attributes || this.moduleScriptInfo?.attributes) || {};
+        const lang = attrs.lang || attrs.type || '';
+        return lang.replace(/^text\//, '');
+    }
+
     private addDefaultLanguage(
         tagInfo: TagInformation | null,
         tag: 'style' | 'script'

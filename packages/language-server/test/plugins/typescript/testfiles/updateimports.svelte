@@ -1,3 +1,3 @@
 <script>
-import Bla from './diagnostics.svelte';
+import Bla from './diagnostics/diagnostics.svelte';
 </script>

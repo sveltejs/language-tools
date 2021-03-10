@@ -18,10 +18,11 @@ For example
 Input.svelte
 
 ```svelte
-<h1>hello {world}</h1>
 <script>
-    export let world = "name"
+    export let world = 'name';
 </script>
+
+<h1>hello {world}</h1>
 ```
 
 will produce this ugly but type checkable TSX
@@ -37,7 +38,7 @@ function render() {
 }
 
 export default class _World_ extends createSvelte2TsxComponent(
-    __sveltets_partial(__sveltets_with_any_event(render)),
+    __sveltets_partial(__sveltets_with_any_event(render))
 ) {}
 ```
 

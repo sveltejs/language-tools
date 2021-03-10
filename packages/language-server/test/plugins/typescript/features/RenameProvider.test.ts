@@ -12,7 +12,7 @@ const testDir = path.join(__dirname, '..');
 
 describe('RenameProvider', () => {
     function getFullPath(filename: string) {
-        return path.join(testDir, 'testfiles', filename);
+        return path.join(testDir, 'testfiles', 'rename', filename);
     }
 
     function getUri(filename: string) {
@@ -34,7 +34,19 @@ describe('RenameProvider', () => {
         const renameDoc3 = await openDoc('rename3.svelte');
         const renameDoc4 = await openDoc('rename4.svelte');
         const renameDoc5 = await openDoc('rename5.svelte');
-        return { provider, renameDoc1, renameDoc2, renameDoc3, renameDoc4, renameDoc5, docManager };
+        const renameDoc6 = await openDoc('rename6.svelte');
+        const renameDocIgnoreGenerated = await openDoc('rename-ignore-generated.svelte');
+        return {
+            provider,
+            renameDoc1,
+            renameDoc2,
+            renameDoc3,
+            renameDoc4,
+            renameDoc5,
+            renameDoc6,
+            renameDocIgnoreGenerated,
+            docManager
+        };
 
         async function openDoc(filename: string) {
             const filePath = getFullPath(filename);
@@ -407,5 +419,111 @@ describe('RenameProvider', () => {
         const result = await provider.prepareRename(renameDoc1, Position.create(12, 5));
 
         assert.deepStrictEqual(result, null);
+    });
+
+    it('should rename with prefix', async () => {
+        const { provider, renameDoc6 } = await setup();
+        const result = await provider.rename(renameDoc6, Position.create(3, 9), 'newName');
+
+        assert.deepStrictEqual(result, {
+            changes: {
+                [getUri('rename6.svelte')]: [
+                    {
+                        newText: 'newName',
+                        range: {
+                            start: {
+                                character: 8,
+                                line: 3
+                            },
+                            end: {
+                                character: 11,
+                                line: 3
+                            }
+                        }
+                    },
+                    {
+                        newText: 'foo: newName',
+                        range: {
+                            start: {
+                                character: 16,
+                                line: 4
+                            },
+                            end: {
+                                character: 19,
+                                line: 4
+                            }
+                        }
+                    },
+                    {
+                        newText: 'foo: newName',
+                        range: {
+                            start: {
+                                character: 18,
+                                line: 7
+                            },
+                            end: {
+                                character: 21,
+                                line: 7
+                            }
+                        }
+                    }
+                ]
+            }
+        });
+    });
+
+    it('should rename and ignore generated', async () => {
+        const { provider, renameDocIgnoreGenerated } = await setup();
+        const result = await provider.rename(
+            renameDocIgnoreGenerated,
+            Position.create(1, 8),
+            'newName'
+        );
+
+        assert.deepStrictEqual(result, {
+            changes: {
+                [getUri('rename-ignore-generated.svelte')]: [
+                    {
+                        newText: 'newName',
+                        range: {
+                            end: {
+                                character: 9,
+                                line: 1
+                            },
+                            start: {
+                                character: 8,
+                                line: 1
+                            }
+                        }
+                    },
+                    {
+                        newText: 'newName',
+                        range: {
+                            end: {
+                                character: 6,
+                                line: 5
+                            },
+                            start: {
+                                character: 5,
+                                line: 5
+                            }
+                        }
+                    },
+                    {
+                        newText: 'newName',
+                        range: {
+                            end: {
+                                character: 21,
+                                line: 7
+                            },
+                            start: {
+                                character: 20,
+                                line: 7
+                            }
+                        }
+                    }
+                ]
+            }
+        });
     });
 });
