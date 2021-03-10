@@ -151,7 +151,7 @@ export function test_samples(dir: string, transform: TransformSampleFn, jsx: 'js
                     if (shouldGenerateError) {
                         sample.generate(
                             'expected.error.json',
-                            JSON.stringify(error, void 0, '    ') + '\n'
+                            JSON.stringify(error, null, 4) + '\n'
                         );
                     } else {
                         assert.deepEqual(
