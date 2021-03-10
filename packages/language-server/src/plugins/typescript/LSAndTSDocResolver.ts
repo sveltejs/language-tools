@@ -17,18 +17,21 @@ export class LSAndTSDocResolver {
         private readonly docManager: DocumentManager,
         private readonly workspaceUris: string[],
         private readonly configManager: LSConfigManager,
-        private readonly transformOnTemplateError = true
+        private readonly isEditor = true
     ) {
+        const handleDocumentChange = (document: Document) => {
+            // This refreshes the document in the ts language service
+            this.getLSAndTSDoc(document);
+        };
         docManager.on(
             'documentChange',
-            debounceSameArg(
-                async (document: Document) => {
-                    // This refreshes the document in the ts language service
-                    this.getLSAndTSDoc(document);
-                },
-                (newDoc, prevDoc) => newDoc.uri === prevDoc?.uri,
-                1000
-            )
+            isEditor
+                ? handleDocumentChange
+                : debounceSameArg(
+                      handleDocumentChange,
+                      (newDoc, prevDoc) => newDoc.uri === prevDoc?.uri,
+                      1000
+                  )
         );
     }
 
@@ -48,7 +51,7 @@ export class LSAndTSDocResolver {
     private get lsDocumentContext(): LanguageServiceDocumentContext {
         return {
             createDocument: this.createDocument,
-            transformOnTemplateError: this.transformOnTemplateError
+            transformOnTemplateError: this.isEditor
         };
     }
 
@@ -85,7 +88,7 @@ export class LSAndTSDocResolver {
         if (!tsDoc) {
             const options = {
                 strictMode: !!tsService.compilerOptions.strict,
-                transformOnTemplateError: this.transformOnTemplateError
+                transformOnTemplateError: this.isEditor
             };
             tsDoc = document
                 ? DocumentSnapshot.fromDocument(document, options)
