@@ -1,5 +1,5 @@
-import assert from 'assert';
 import { htmlx2jsx } from '../build/htmlxtojsx';
+import assert from 'assert';
 import { benchmark } from '../helpers';
 
 describe('htmlxparser', () => {

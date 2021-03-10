@@ -35,6 +35,7 @@ describe('RenameProvider', () => {
         const renameDoc4 = await openDoc('rename4.svelte');
         const renameDoc5 = await openDoc('rename5.svelte');
         const renameDoc6 = await openDoc('rename6.svelte');
+        const renameDocIgnoreGenerated = await openDoc('rename-ignore-generated.svelte');
         return {
             provider,
             renameDoc1,
@@ -43,6 +44,7 @@ describe('RenameProvider', () => {
             renameDoc4,
             renameDoc5,
             renameDoc6,
+            renameDocIgnoreGenerated,
             docManager
         };
 
@@ -461,6 +463,61 @@ describe('RenameProvider', () => {
                             },
                             end: {
                                 character: 21,
+                                line: 7
+                            }
+                        }
+                    }
+                ]
+            }
+        });
+    });
+
+    it('should rename and ignore generated', async () => {
+        const { provider, renameDocIgnoreGenerated } = await setup();
+        const result = await provider.rename(
+            renameDocIgnoreGenerated,
+            Position.create(1, 8),
+            'newName'
+        );
+
+        assert.deepStrictEqual(result, {
+            changes: {
+                [getUri('rename-ignore-generated.svelte')]: [
+                    {
+                        newText: 'newName',
+                        range: {
+                            end: {
+                                character: 9,
+                                line: 1
+                            },
+                            start: {
+                                character: 8,
+                                line: 1
+                            }
+                        }
+                    },
+                    {
+                        newText: 'newName',
+                        range: {
+                            end: {
+                                character: 6,
+                                line: 5
+                            },
+                            start: {
+                                character: 5,
+                                line: 5
+                            }
+                        }
+                    },
+                    {
+                        newText: 'newName',
+                        range: {
+                            end: {
+                                character: 21,
+                                line: 7
+                            },
+                            start: {
+                                character: 20,
                                 line: 7
                             }
                         }

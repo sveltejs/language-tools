@@ -5,7 +5,8 @@ import json from '@rollup/plugin-json';
 import del from 'rollup-plugin-delete';
 import builtins from 'builtin-modules';
 import fs from 'fs';
-function link_dts(file, x) {
+
+function generateFile(file, x) {
     return {
         writeBundle() {
             if (!process.env.CI) {
@@ -14,6 +15,7 @@ function link_dts(file, x) {
         }
     };
 }
+
 export default [
     {
         input: ['src/index.ts'],
@@ -28,7 +30,7 @@ export default [
             commonjs(),
             json(),
             typescript({ include: ['src/**/*'] }),
-            link_dts(`test/build/index.d.ts`, `export { default } from '../../index';`)
+            generateFile('test/build/index.d.ts', "export { default } from '../../index';")
         ],
         external: [...builtins, 'typescript', 'svelte', 'svelte/compiler', 'magic-string']
     },
@@ -45,7 +47,10 @@ export default [
             commonjs(),
             json(),
             typescript({ include: ['src/**/*'] }),
-            link_dts(`test/build/htmlxtojsx.d.ts`, `export * from '../../src/htmlxtojsx/index';`)
+            generateFile(
+                'test/build/htmlxtojsx.d.ts',
+                "export * from '../../src/htmlxtojsx/index';"
+            )
         ],
         external: [...builtins, 'typescript', 'svelte', 'svelte/compiler', 'magic-string']
     }

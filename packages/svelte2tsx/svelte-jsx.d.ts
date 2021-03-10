@@ -358,7 +358,7 @@ declare namespace svelte.JSX {
       sizes?: string;
       slot?: string;
       span?: number;
-      spellcheck?: boolean;
+      spellcheck?: boolean | 'true' | 'false';
       src?: string;
       srcdoc?: string;
       srclang?: string;

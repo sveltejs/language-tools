@@ -5,6 +5,7 @@ import { DiagnosticsProvider } from '../../interfaces';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { convertRange, mapSeverity } from '../utils';
 import { SvelteDocumentSnapshot } from '../DocumentSnapshot';
+import { isInGeneratedCode } from './utils';
 
 export class DiagnosticsProviderImpl implements DiagnosticsProvider {
     constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
@@ -40,6 +41,7 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
         const fragment = await tsDoc.getFragment();
 
         return diagnostics
+            .filter(isNotGenerated(tsDoc.getText(0, tsDoc.getLength())))
             .map<Diagnostic>((diagnostic) => ({
                 range: convertRange(tsDoc, diagnostic),
                 severity: mapSeverity(diagnostic.category),
@@ -207,4 +209,17 @@ function swapRangeStartEndIfNecessary(diag: Diagnostic): Diagnostic {
         diag.range.end = start;
     }
     return diag;
+}
+
+/**
+ * Checks if diagnostic is not within a section that should be completely ignored
+ * because it's purely generated.
+ */
+function isNotGenerated(text: string) {
+    return (diagnostic: ts.Diagnostic) => {
+        if (diagnostic.start === undefined || diagnostic.length === undefined) {
+            return true;
+        }
+        return !isInGeneratedCode(text, diagnostic.start, diagnostic.start + diagnostic.length);
+    };
 }

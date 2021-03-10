@@ -6,7 +6,7 @@ import { print_mappings, test_sample_result } from './parser';
 
 describe('sourcemaps', function () {
     for (const sample of each_sample(__dirname)) {
-        sample.check({
+        sample.check_dir({
             required: ['*.svelte'],
             allowed: ['output.tsx', 'mappings.jsx', 'test.html']
         });

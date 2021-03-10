@@ -1,10 +1,11 @@
+import ts from 'typescript';
 import { Location, Position, ReferenceContext } from 'vscode-languageserver';
 import { Document } from '../../../lib/documents';
 import { pathToUrl } from '../../../utils';
 import { FindReferencesProvider } from '../../interfaces';
-import { SnapshotFragment } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { convertToLocationRange } from '../utils';
+import { isNoTextSpanInGeneratedCode, SnapshotFragmentMap } from './utils';
 
 export class FindReferencesProviderImpl implements FindReferencesProvider {
     constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
@@ -25,17 +26,15 @@ export class FindReferencesProviderImpl implements FindReferencesProvider {
             return null;
         }
 
-        const docs = new Map<string, SnapshotFragment>([[tsDoc.filePath, fragment]]);
+        const docs = new SnapshotFragmentMap(this.lsAndTsDocResolver);
+        docs.set(tsDoc.filePath, { fragment, snapshot: tsDoc });
 
         return await Promise.all(
             references
                 .filter((ref) => context.includeDeclaration || !ref.isDefinition)
+                .filter(notInGeneratedCode(tsDoc.getFullText()))
                 .map(async (ref) => {
-                    let defDoc = docs.get(ref.fileName);
-                    if (!defDoc) {
-                        defDoc = await this.getSnapshot(ref.fileName).getFragment();
-                        docs.set(ref.fileName, defDoc);
-                    }
+                    const defDoc = await docs.retrieveFragment(ref.fileName);
 
                     return Location.create(
                         pathToUrl(ref.fileName),
@@ -48,8 +47,10 @@ export class FindReferencesProviderImpl implements FindReferencesProvider {
     private getLSAndTSDoc(document: Document) {
         return this.lsAndTsDocResolver.getLSAndTSDoc(document);
     }
+}
 
-    private getSnapshot(filePath: string, document?: Document) {
-        return this.lsAndTsDocResolver.getSnapshot(filePath, document);
-    }
+function notInGeneratedCode(text: string) {
+    return (ref: ts.ReferenceEntry) => {
+        return isNoTextSpanInGeneratedCode(text, ref.textSpan);
+    };
 }
