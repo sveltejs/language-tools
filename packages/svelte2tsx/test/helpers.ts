@@ -15,9 +15,19 @@ export function readFileSync(path: string) {
 }
 
 class Sample {
+    readonly folder: string[];
+    readonly directory: string;
+    private skipped = false;
+
+    constructor(dir: string, readonly name: string) {
+        this.directory = `${dir}/samples/${name}`;
+        this.folder = fs.readdirSync(this.directory);
+    }
+
     check_dir({ required = [], allowed = required }: { allowed?: string[]; required?: string[] }) {
         const unchecked = new Set(required);
         const unknown = [];
+
         loop: for (const fileName of this.folder) {
             for (const name of unchecked) {
                 if ('*' === name[0] ? fileName.endsWith(name.slice(1)) : name === fileName) {
@@ -32,6 +42,7 @@ class Sample {
             }
             unknown.push(fileName);
         }
+
         if (unknown.length) {
             const errors =
                 unknown.map((name) => `Unexpected file "${name}"`).join('\n') +
@@ -44,6 +55,7 @@ class Sample {
                 });
             }
         }
+
         if (unchecked.size) {
             throw new Error(
                 `Expected file${unchecked.size === 1 ? '' : 's'} ${[...unchecked]
@@ -52,20 +64,18 @@ class Sample {
             );
         }
     }
-    readonly folder: string[];
-    readonly directory: string;
-    constructor(dir: string, readonly name: string) {
-        this.directory = `${dir}/samples/${name}`;
-        this.folder = fs.readdirSync(this.directory);
-    }
+    
     it(fn: () => void) {
         let _it = it;
+
         if (this.name.startsWith('.')) {
             _it = it.skip as TestFunction;
         } else if (this.name.endsWith('.solo')) {
             _it = it.only as TestFunction;
         }
+
         const sample = this;
+
         _it(this.name, function () {
             try {
                 fn();
@@ -76,13 +86,15 @@ class Sample {
             }
         });
     }
+
     has(file: string) {
         return this.folder.includes(file);
     }
+
     get(file: string) {
         return readFileSync(`${this.directory}/${file}`);
     }
-    private skipped = false;
+
     generate(fileName: string, content: string) {
         const path = `${this.directory}/${fileName}`;
         if (process.env.CI) {
@@ -94,11 +106,13 @@ class Sample {
         });
         this.skipped = true;
     }
+
     eval(fileName: string, ...args: any[]) {
         const fn = require(`${this.directory}/${fileName}`);
         fn(...args);
     }
 }
+
 type TransformSampleFn = (
     input: string,
     config: {
