@@ -156,4 +156,53 @@ describe('FindReferencesProvider', () => {
             }
         ]);
     });
+
+    it('ignores references inside generated code', async () => {
+        const { provider, document } = setup('find-references-ignore-generated.svelte');
+
+        const results = await provider.findReferences(document, Position.create(1, 8), {
+            includeDeclaration: true
+        });
+        assert.deepStrictEqual(results, [
+            {
+                range: {
+                    end: {
+                        character: 9,
+                        line: 1
+                    },
+                    start: {
+                        character: 8,
+                        line: 1
+                    }
+                },
+                uri: getUri('find-references-ignore-generated.svelte')
+            },
+            {
+                range: {
+                    end: {
+                        character: 6,
+                        line: 5
+                    },
+                    start: {
+                        character: 5,
+                        line: 5
+                    }
+                },
+                uri: getUri('find-references-ignore-generated.svelte')
+            },
+            {
+                range: {
+                    end: {
+                        character: 21,
+                        line: 7
+                    },
+                    start: {
+                        character: 20,
+                        line: 7
+                    }
+                },
+                uri: getUri('find-references-ignore-generated.svelte')
+            }
+        ]);
+    });
 });

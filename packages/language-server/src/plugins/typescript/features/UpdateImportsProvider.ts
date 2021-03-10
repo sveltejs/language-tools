@@ -4,12 +4,12 @@ import {
     VersionedTextDocumentIdentifier,
     WorkspaceEdit
 } from 'vscode-languageserver';
-import { Document, mapRangeToOriginal } from '../../../lib/documents';
+import { mapRangeToOriginal } from '../../../lib/documents';
 import { urlToPath } from '../../../utils';
 import { FileRename, UpdateImportsProvider } from '../../interfaces';
-import { SnapshotFragment } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { convertRange } from '../utils';
+import { SnapshotFragmentMap } from './utils';
 
 export class UpdateImportsProviderImpl implements UpdateImportsProvider {
     constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
@@ -37,21 +37,17 @@ export class UpdateImportsProviderImpl implements UpdateImportsProvider {
                 return change;
             });
 
-        const docs = new Map<string, SnapshotFragment>();
+        const docs = new SnapshotFragmentMap(this.lsAndTsDocResolver);
         const documentChanges = await Promise.all(
             updateImportsChanges.map(async (change) => {
-                let fragment = docs.get(change.fileName);
-                if (!fragment) {
-                    fragment = await this.getSnapshot(change.fileName).getFragment();
-                    docs.set(change.fileName, fragment);
-                }
+                const fragment = await docs.retrieveFragment(change.fileName);
 
                 return TextDocumentEdit.create(
                     VersionedTextDocumentIdentifier.create(fragment.getURL(), 0),
                     change.textChanges.map((edit) => {
                         const range = mapRangeToOriginal(
-                            fragment!,
-                            convertRange(fragment!, edit.span)
+                            fragment,
+                            convertRange(fragment, edit.span)
                         );
                         return TextEdit.replace(range, edit.newText);
                     })
@@ -64,9 +60,5 @@ export class UpdateImportsProviderImpl implements UpdateImportsProvider {
 
     private getLSForPath(path: string) {
         return this.lsAndTsDocResolver.getLSForPath(path);
-    }
-
-    private getSnapshot(filePath: string, document?: Document) {
-        return this.lsAndTsDocResolver.getSnapshot(filePath, document);
     }
 }
