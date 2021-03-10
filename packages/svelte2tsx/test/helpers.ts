@@ -55,6 +55,7 @@ class Sample {
                 });
             }
         }
+
         if (unchecked.size) {
             throw new Error(
                 `Expected file${unchecked.size === 1 ? '' : 's'} ${[...unchecked]
@@ -105,11 +106,13 @@ class Sample {
         });
         this.skipped = true;
     }
+
     eval(fileName: string, ...args: any[]) {
         const fn = require(`${this.directory}/${fileName}`);
         fn(...args);
     }
 }
+
 type TransformSampleFn = (
     input: string,
     config: {
