@@ -5,9 +5,9 @@ import { storeB } from './store';
 import { storeB as storeC } from './store';
 function render() {
 
-    ;let $storeA = __sveltets_store_get(storeA);
-    ;let $storeB = __sveltets_store_get(storeB);
-    ;let $storeC = __sveltets_store_get(storeC);
+    /*Ωignore_startΩ*/;let $storeA = __sveltets_store_get(storeA);/*Ωignore_endΩ*/
+    /*Ωignore_startΩ*/;let $storeB = __sveltets_store_get(storeB);/*Ωignore_endΩ*/
+    /*Ωignore_startΩ*/;let $storeC = __sveltets_store_get(storeC);/*Ωignore_endΩ*/
 ;
 () => (<>
 

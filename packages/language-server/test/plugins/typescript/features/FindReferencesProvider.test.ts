@@ -101,20 +101,6 @@ describe('FindReferencesProvider', () => {
                 },
                 uri: getUri('find-references-$store.svelte')
             },
-            // TODO this one should be filtered out
-            {
-                range: {
-                    end: {
-                        character: 30,
-                        line: 1
-                    },
-                    start: {
-                        character: 30,
-                        line: 1
-                    }
-                },
-                uri: getUri('find-references-$store.svelte')
-            },
             {
                 range: {
                     end: {

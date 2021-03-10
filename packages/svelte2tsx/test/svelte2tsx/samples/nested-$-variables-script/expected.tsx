@@ -1,8 +1,8 @@
 ///<reference types="svelte" />
 <></>;function render() {
 
-let top1 = someStore();let $top1 = __sveltets_store_get(top1);
-let top2 = someStore();let $top2 = __sveltets_store_get(top2);
+let top1 = someStore()/*Ωignore_startΩ*/;let $top1 = __sveltets_store_get(top1);/*Ωignore_endΩ*/
+let top2 = someStore()/*Ωignore_startΩ*/;let $top2 = __sveltets_store_get(top2);/*Ωignore_endΩ*/
 let topLevelGet = (__sveltets_store_get(top1), $top1)
 topLevelGet = (__sveltets_store_get(top2), $top2)
 

@@ -4,7 +4,7 @@ import { writable } from 'svelte/store';
 function render() {
 
   
-  const count = writable(0);let $count = __sveltets_store_get(count);;
+  const count = writable(0)/*Ωignore_startΩ*/;let $count = __sveltets_store_get(count);/*Ωignore_endΩ*/;
   const handler1 = () => !(__sveltets_store_get(count), $count)
 ;
 () => (<>
