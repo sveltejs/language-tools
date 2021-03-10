@@ -2,13 +2,17 @@ import MagicString from 'magic-string';
 import { Node } from 'estree-walker';
 import { beforeStart } from '../utils/node-utils';
 import { getSingleSlotDef } from '../../svelte2tsx/nodes/slot';
+import { IfScope } from './if-scope';
+import { TemplateScope } from '../nodes/template-scope';
 
 export function handleSlot(
     htmlx: string,
     str: MagicString,
     slotEl: Node,
     component: Node,
-    slotName: string
+    slotName: string,
+    ifScope: IfScope,
+    templateScope: TemplateScope
 ): void {
     //collect "let" definitions
     const slotElIsComponent = slotEl === component;
@@ -39,6 +43,7 @@ export function handleSlot(
         } else {
             str.remove(attr.start, attr.start + 'let:'.length);
         }
+        templateScope.inits.add(attr.expression?.name || attr.name);
         hasMoved = true;
         if (attr.expression) {
             //overwrite the = as a :
@@ -51,11 +56,17 @@ export function handleSlot(
     if (!hasMoved) {
         return;
     }
-    str.appendLeft(slotDefInsertionPoint, '{() => { let {');
-    str.appendRight(slotDefInsertionPoint, `} = ${getSingleSlotDef(component, slotName)}` + ';<>');
+
+    const constRedeclares = ifScope.getConstsToRedeclare();
+    const prefix = constRedeclares ? `() => {${constRedeclares}` : '';
+    str.appendLeft(slotDefInsertionPoint, `{${prefix}() => { let {`);
+    str.appendRight(
+        slotDefInsertionPoint,
+        `} = ${getSingleSlotDef(component, slotName)}` + `;${ifScope.addPossibleIfCondition()}<>`
+    );
 
     const closeSlotDefInsertionPoint = slotElIsComponent
         ? htmlx.lastIndexOf('<', slotEl.end - 1)
         : slotEl.end;
-    str.appendLeft(closeSlotDefInsertionPoint, '</>}}');
+    str.appendLeft(closeSlotDefInsertionPoint, `</>}}${constRedeclares ? '}' : ''}`);
 }

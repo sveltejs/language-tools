@@ -2,11 +2,20 @@ import MagicString from 'magic-string';
 import { Node } from 'estree-walker';
 import { getSlotName } from '../../utils/svelteAst';
 import { handleSlot } from './slot';
+import { IfScope } from './if-scope';
+import { TemplateScope } from '../nodes/template-scope';
 
 /**
  * Handle `<svelte:self>` and slot-specific transformations.
  */
-export function handleComponent(htmlx: string, str: MagicString, el: Node, parent: Node): void {
+export function handleComponent(
+    htmlx: string,
+    str: MagicString,
+    el: Node,
+    parent: Node,
+    ifScope: IfScope,
+    templateScope: TemplateScope
+): void {
     //we need to remove : if it is a svelte component
     if (el.name.startsWith('svelte:')) {
         const colon = htmlx.indexOf(':', el.start);
@@ -21,5 +30,13 @@ export function handleComponent(htmlx: string, str: MagicString, el: Node, paren
 
     // Handle possible slot
     const slotName = getSlotName(el) || 'default';
-    handleSlot(htmlx, str, el, slotName === 'default' ? el : parent, slotName);
+    handleSlot(
+        htmlx,
+        str,
+        el,
+        slotName === 'default' ? el : parent,
+        slotName,
+        ifScope,
+        templateScope
+    );
 }

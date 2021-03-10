@@ -2,14 +2,23 @@ import MagicString from 'magic-string';
 import { Node } from 'estree-walker';
 import { getSlotName } from '../../utils/svelteAst';
 import { handleSlot } from './slot';
+import { IfScope } from './if-scope';
+import { TemplateScope } from '../nodes/template-scope';
 
 /**
  * Special treatment for self-closing / void tags to make them conform to JSX.
  */
-export function handleElement(htmlx: string, str: MagicString, node: Node, parent: Node): void {
+export function handleElement(
+    htmlx: string,
+    str: MagicString,
+    node: Node,
+    parent: Node,
+    ifScope: IfScope,
+    templateScope: TemplateScope
+): void {
     const slotName = getSlotName(node);
     if (slotName) {
-        handleSlot(htmlx, str, node, parent, slotName);
+        handleSlot(htmlx, str, node, parent, slotName, ifScope, templateScope);
     }
 
     //we just have to self close void tags since jsx always wants the />

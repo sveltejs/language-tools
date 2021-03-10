@@ -2,26 +2,29 @@ import { Node } from 'estree-walker';
 import MagicString from 'magic-string';
 import svelte from 'svelte/compiler';
 import { parseHtmlx } from '../utils/htmlxparser';
+import { getSlotName } from '../utils/svelteAst';
 import { handleActionDirective } from './nodes/action-directive';
 import { handleAnimateDirective } from './nodes/animation-directive';
 import { handleAttribute } from './nodes/attribute';
-import { handleAwait } from './nodes/await';
-import { handleKey } from './nodes/key';
+import { handleAwait, handleAwaitCatch, handleAwaitPending, handleAwaitThen } from './nodes/await';
 import { handleBinding } from './nodes/binding';
 import { handleClassDirective } from './nodes/class-directive';
 import { handleComment } from './nodes/comment';
 import { handleComponent } from './nodes/component';
-import { handleSlot } from './nodes/slot';
 import { handleDebug } from './nodes/debug';
 import { handleEach } from './nodes/each';
 import { handleElement } from './nodes/element';
 import { handleEventHandler } from './nodes/event-handler';
 import { handleElse, handleIf } from './nodes/if-else';
+import { IfScope } from './nodes/if-scope';
+import { handleKey } from './nodes/key';
 import { handleRawHtml } from './nodes/raw-html';
+import { handleSlot } from './nodes/slot';
 import { handleSvelteTag } from './nodes/svelte-tag';
-import { handleTransitionDirective } from './nodes/transition-directive';
+import { TemplateScopeManager } from './nodes/template-scope';
 import { handleText } from './nodes/text';
-import { getSlotName } from '../utils/svelteAst';
+import { handleTransitionDirective } from './nodes/transition-directive';
+import { usesLet } from './utils/node-utils';
 
 type Walker = (node: Node, parent: Node, prop: string, index: number) => void;
 
@@ -48,21 +51,43 @@ export function convertHtmlxToJsx(
     str.prepend('<>');
     str.append('</>');
 
+    const templateScopeManager = new TemplateScopeManager();
+
+    let ifScope = new IfScope(templateScopeManager);
+
     (svelte as any).walk(ast, {
         enter: (node: Node, parent: Node, prop: string, index: number) => {
             try {
                 switch (node.type) {
                     case 'IfBlock':
-                        handleIf(htmlx, str, node);
+                        handleIf(htmlx, str, node, ifScope);
+                        if (!node.elseif) {
+                            ifScope = ifScope.getChild();
+                        }
                         break;
                     case 'EachBlock':
-                        handleEach(htmlx, str, node);
+                        templateScopeManager.eachEnter(node);
+                        handleEach(htmlx, str, node, ifScope);
                         break;
                     case 'ElseBlock':
-                        handleElse(htmlx, str, node, parent);
+                        templateScopeManager.elseEnter(parent);
+                        handleElse(htmlx, str, node, parent, ifScope);
                         break;
                     case 'AwaitBlock':
-                        handleAwait(htmlx, str, node);
+                        templateScopeManager.awaitEnter(node);
+                        handleAwait(htmlx, str, node, ifScope);
+                        break;
+                    case 'PendingBlock':
+                        templateScopeManager.awaitPendingEnter(node, parent);
+                        handleAwaitPending(parent, htmlx, str, ifScope);
+                        break;
+                    case 'ThenBlock':
+                        templateScopeManager.awaitThenEnter(node, parent);
+                        handleAwaitThen(parent, htmlx, str, ifScope);
+                        break;
+                    case 'CatchBlock':
+                        templateScopeManager.awaitCatchEnter(node, parent);
+                        handleAwaitCatch(parent, htmlx, str, ifScope);
                         break;
                     case 'KeyBlock':
                         handleKey(htmlx, str, node);
@@ -74,10 +99,26 @@ export function convertHtmlxToJsx(
                         handleDebug(htmlx, str, node);
                         break;
                     case 'InlineComponent':
-                        handleComponent(htmlx, str, node, parent);
+                        templateScopeManager.componentOrSlotTemplateOrElementEnter(node);
+                        handleComponent(
+                            htmlx,
+                            str,
+                            node,
+                            parent,
+                            ifScope,
+                            templateScopeManager.value
+                        );
                         break;
                     case 'Element':
-                        handleElement(htmlx, str, node, parent);
+                        templateScopeManager.componentOrSlotTemplateOrElementEnter(node);
+                        handleElement(
+                            htmlx,
+                            str,
+                            node,
+                            parent,
+                            ifScope,
+                            templateScopeManager.value
+                        );
                         break;
                     case 'Comment':
                         handleComment(str, node);
@@ -117,7 +158,18 @@ export function convertHtmlxToJsx(
                         break;
                     case 'SlotTemplate':
                         handleSvelteTag(htmlx, str, node);
-                        handleSlot(htmlx, str, node, parent, getSlotName(node) || 'default');
+                        templateScopeManager.componentOrSlotTemplateOrElementEnter(node);
+                        if (usesLet(node)) {
+                            handleSlot(
+                                htmlx,
+                                str,
+                                node,
+                                parent,
+                                getSlotName(node) || 'default',
+                                ifScope,
+                                templateScopeManager.value
+                            );
+                        }
                         break;
                     case 'Text':
                         handleText(str, node);
@@ -134,6 +186,22 @@ export function convertHtmlxToJsx(
 
         leave: (node: Node, parent: Node, prop: string, index: number) => {
             try {
+                switch (node.type) {
+                    case 'IfBlock':
+                        ifScope = ifScope.getParent();
+                        break;
+                    case 'EachBlock':
+                        templateScopeManager.eachLeave(node);
+                        break;
+                    case 'AwaitBlock':
+                        templateScopeManager.awaitLeave();
+                        break;
+                    case 'InlineComponent':
+                    case 'Element':
+                    case 'SlotTemplate':
+                        templateScopeManager.componentOrSlotTemplateOrElementLeave(node);
+                        break;
+                }
                 if (onLeave) {
                     onLeave(node, parent, prop, index);
                 }

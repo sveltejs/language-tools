@@ -6,7 +6,7 @@ import {
     offsetAt,
     getLineAtPosition
 } from '../../../lib/documents';
-import { pathToUrl } from '../../../utils';
+import { isNotNullOrUndefined, pathToUrl } from '../../../utils';
 import { RenameProvider } from '../../interfaces';
 import {
     SnapshotFragment,
@@ -17,6 +17,7 @@ import { convertRange } from '../utils';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import ts from 'typescript';
 import { uniqWith, isEqual } from 'lodash';
+import { isNoTextSpanInGeneratedCode, SnapshotFragmentMap } from './utils';
 
 export class RenameProviderImpl implements RenameProvider {
     constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
@@ -61,7 +62,8 @@ export class RenameProviderImpl implements RenameProvider {
             return null;
         }
 
-        const docs = new Map<string, SnapshotFragment>([[tsDoc.filePath, fragment]]);
+        const docs = new SnapshotFragmentMap(this.lsAndTsDocResolver);
+        docs.set(tsDoc.filePath, { fragment, snapshot: tsDoc });
         let convertedRenameLocations: Array<
             ts.RenameLocation & {
                 range: Range;
@@ -158,7 +160,7 @@ export class RenameProviderImpl implements RenameProvider {
         fragment: SvelteSnapshotFragment,
         position: Position,
         convertedRenameLocations: Array<ts.RenameLocation & { range: Range }>,
-        fragments: Map<string, SnapshotFragment>,
+        fragments: SnapshotFragmentMap,
         lang: ts.LanguageService
     ) {
         // First find out if it's really the "rename prop inside component with that prop" case
@@ -214,7 +216,7 @@ export class RenameProviderImpl implements RenameProvider {
      */
     private async getAdditionalLocationsForRenameOfPropInsideOtherComponent(
         convertedRenameLocations: Array<ts.RenameLocation & { range: Range }>,
-        fragments: Map<string, SnapshotFragment>,
+        fragments: SnapshotFragmentMap,
         lang: ts.LanguageService
     ) {
         // Check if it's a prop rename
@@ -226,7 +228,7 @@ export class RenameProviderImpl implements RenameProvider {
             return [];
         }
         // Find generated `export let`
-        const doc = <SvelteSnapshotFragment>fragments.get(updatePropLocation.fileName);
+        const doc = <SvelteSnapshotFragment>fragments.getFragment(updatePropLocation.fileName);
         const match = this.matchGeneratedExportLet(doc, updatePropLocation);
         if (!match) {
             return [];
@@ -256,7 +258,7 @@ export class RenameProviderImpl implements RenameProvider {
 
     private findLocationWhichWantsToUpdatePropName(
         convertedRenameLocations: Array<ts.RenameLocation & { range: Range }>,
-        fragments: Map<string, SnapshotFragment>
+        fragments: SnapshotFragmentMap
     ) {
         return convertedRenameLocations.find((loc) => {
             // Props are not in mapped range
@@ -264,7 +266,7 @@ export class RenameProviderImpl implements RenameProvider {
                 return;
             }
 
-            const fragment = fragments.get(loc.fileName);
+            const fragment = fragments.getFragment(loc.fileName);
             // Props are in svelte snapshots only
             if (!(fragment instanceof SvelteSnapshotFragment)) {
                 return false;
@@ -295,23 +297,21 @@ export class RenameProviderImpl implements RenameProvider {
      */
     private async mapAndFilterRenameLocations(
         renameLocations: readonly ts.RenameLocation[],
-        fragments: Map<string, SnapshotFragment>
+        fragments: SnapshotFragmentMap
     ): Promise<Array<ts.RenameLocation & { range: Range }>> {
         const mappedLocations = await Promise.all(
             renameLocations.map(async (loc) => {
-                let doc = fragments.get(loc.fileName);
-                if (!doc) {
-                    doc = await this.getSnapshot(loc.fileName).getFragment();
-                    fragments.set(loc.fileName, doc);
-                }
+                const { fragment, snapshot } = await fragments.retrieve(loc.fileName);
 
-                return {
-                    ...loc,
-                    range: this.mapRangeToOriginal(doc, loc.textSpan)
-                };
+                if (isNoTextSpanInGeneratedCode(snapshot.getFullText(), loc.textSpan)) {
+                    return {
+                        ...loc,
+                        range: this.mapRangeToOriginal(fragment, loc.textSpan)
+                    };
+                }
             })
         );
-        return this.filterWrongRenameLocations(mappedLocations);
+        return this.filterWrongRenameLocations(mappedLocations.filter(isNotNullOrUndefined));
     }
 
     private filterWrongRenameLocations(
