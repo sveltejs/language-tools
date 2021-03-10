@@ -12,16 +12,6 @@ export class TemplateScope {
         this.parent = parent;
     }
 
-    addMany(inits: string[]) {
-        inits.forEach((item) => this.add(item));
-        return this;
-    }
-
-    add(name: string) {
-        this.inits.add(name);
-        return this;
-    }
-
     child() {
         const child = new TemplateScope(this);
         return child;
@@ -37,7 +27,7 @@ export class TemplateScopeManager {
             this.handleScope(node.context);
         }
         if (node.index) {
-            this.value.add(node.index);
+            this.value.inits.add(node.index);
         }
     }
 
@@ -113,12 +103,12 @@ export class TemplateScopeManager {
 
     private handleScope(identifierDef: Node) {
         if (isIdentifier(identifierDef)) {
-            this.value.add(identifierDef.name);
+            this.value.inits.add(identifierDef.name);
         }
         if (isDestructuringPatterns(identifierDef)) {
             // the node object is returned as-it with no mutation
             const identifiers = extract_identifiers(identifierDef) as SvelteIdentifier[];
-            this.value.addMany(identifiers.map((id) => id.name));
+            identifiers.forEach((id) => this.value.inits.add(id.name));
         }
     }
 }

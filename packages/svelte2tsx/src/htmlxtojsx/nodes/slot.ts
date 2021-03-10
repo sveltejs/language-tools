@@ -43,7 +43,7 @@ export function handleSlot(
         } else {
             str.remove(attr.start, attr.start + 'let:'.length);
         }
-        templateScope.add(attr.expression?.name || attr.name);
+        templateScope.inits.add(attr.expression?.name || attr.name);
         hasMoved = true;
         if (attr.expression) {
             //overwrite the = as a :
