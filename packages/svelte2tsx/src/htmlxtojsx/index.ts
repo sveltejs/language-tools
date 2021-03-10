@@ -1,6 +1,6 @@
 import { Node } from 'estree-walker';
 import MagicString from 'magic-string';
-import * as svelte from 'svelte/compiler';
+import { walk } from 'svelte/compiler';
 import { parseHtmlx } from '../utils/htmlxparser';
 import { getSlotName } from '../utils/svelteAst';
 import { handleActionDirective } from './nodes/action-directive';
@@ -55,7 +55,7 @@ export function convertHtmlxToJsx(
 
     let ifScope = new IfScope(templateScopeManager);
 
-    (svelte as any).walk(ast, {
+    walk(ast, {
         enter: (node: Node, parent: Node, prop: string, index: number) => {
             try {
                 switch (node.type) {

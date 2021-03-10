@@ -1,5 +1,5 @@
 import { Node } from 'estree-walker';
-import * as compiler from 'svelte/compiler';
+import { parse } from 'svelte/compiler';
 
 function parseAttributeValue(value: string): string {
     return /^['"]/.test(value) ? value.slice(1, -1) : value;
@@ -106,7 +106,7 @@ export function parseHtmlx(htmlx: string, options?: { emitOnTemplateError?: bool
     const parsingCode = options?.emitOnTemplateError
         ? blankPossiblyErrorOperatorOrPropertyAccess(deconstructed)
         : deconstructed;
-    const svelteHtmlxAst = compiler.parse(parsingCode).html;
+    const svelteHtmlxAst = parse(parsingCode).html;
 
     //restore our script and style tags as nodes to maintain validity with HTMLx
     for (const s of verbatimElements) {
