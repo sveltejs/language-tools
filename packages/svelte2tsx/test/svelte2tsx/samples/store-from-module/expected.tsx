@@ -1,8 +1,8 @@
 ///<reference types="svelte" />
 <></>;
-    import {store1, store2} from './store';;let $store1 = __sveltets_store_get(store1);;let $store2 = __sveltets_store_get(store2);
-    const store3 = writable('');let $store3 = __sveltets_store_get(store3);;
-    const store4 = writable('');let $store4 = __sveltets_store_get(store4);;
+    import {store1, store2} from './store';/*Ωignore_startΩ*/;let $store1 = __sveltets_store_get(store1);/*Ωignore_endΩ*//*Ωignore_startΩ*/;let $store2 = __sveltets_store_get(store2);/*Ωignore_endΩ*/
+    const store3 = writable('')/*Ωignore_startΩ*/;let $store3 = __sveltets_store_get(store3);/*Ωignore_endΩ*/;
+    const store4 = writable('')/*Ωignore_startΩ*/;let $store4 = __sveltets_store_get(store4);/*Ωignore_endΩ*/;
 ;<></>;function render() {
 
     ;(__sveltets_store_get(store1), $store1);

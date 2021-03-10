@@ -1,7 +1,7 @@
 ///<reference types="svelte" />
 <></>;function render() {
 
-    const store = someStore();let $store = __sveltets_store_get(store);;
+    const store = someStore()/*Ωignore_startΩ*/;let $store = __sveltets_store_get(store);/*Ωignore_endΩ*/;
     ;(__sveltets_store_get(store), $store);
     ;(__sveltets_store_get(store), $store).prop;
     ;(__sveltets_store_get(store), $store)['prop'];

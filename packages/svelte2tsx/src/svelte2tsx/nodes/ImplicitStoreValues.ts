@@ -1,5 +1,6 @@
 import MagicString from 'magic-string';
 import ts from 'typescript';
+import { surroundWithIgnoreComments } from '../../utils/ignore';
 import { extractIdentifiers, getNamesFromLabeledStatement } from '../utils/tsAst';
 
 /**
@@ -53,17 +54,19 @@ export class ImplicitStoreValues {
         const storeNames = extractIdentifiers(node.name)
             .map((id) => id.text)
             .filter((name) => this.accessedStores.has(name));
-
-        let toAppend = '';
-        for (let i = 0; i < storeNames.length; i++) {
-            toAppend += `;let $${storeNames[i]} = __sveltets_store_get(${storeNames[i]});`;
+        if (!storeNames.length) {
+            return;
         }
 
+        const storeDeclarations = surroundWithIgnoreComments(
+            this.createStoreDeclarations(storeNames)
+        );
         const nodeEnd =
             ts.isVariableDeclarationList(node.parent) && node.parent.declarations.length > 1
                 ? node.parent.declarations[node.parent.declarations.length - 1].getEnd()
                 : node.getEnd();
-        str.appendRight(nodeEnd + astOffset, toAppend);
+
+        str.appendRight(nodeEnd + astOffset, storeDeclarations);
     }
 
     private attachStoreValueDeclarationToReactiveAssignment(
@@ -74,14 +77,16 @@ export class ImplicitStoreValues {
         const storeNames = getNamesFromLabeledStatement(node).filter((name) =>
             this.accessedStores.has(name)
         );
-
-        let toAppend = '';
-        for (let i = 0; i < storeNames.length; i++) {
-            toAppend += `;let $${storeNames[i]} = __sveltets_store_get(${storeNames[i]});`;
+        if (!storeNames.length) {
+            return;
         }
 
+        const storeDeclarations = surroundWithIgnoreComments(
+            this.createStoreDeclarations(storeNames)
+        );
         const endPos = node.getEnd() + astOffset;
-        str.appendRight(endPos, toAppend);
+
+        str.appendRight(endPos, storeDeclarations);
     }
 
     private attachStoreValueDeclarationToImport(
@@ -90,9 +95,22 @@ export class ImplicitStoreValues {
         str: MagicString
     ) {
         const storeName = node.name.getText();
+        const storeDeclaration = surroundWithIgnoreComments(this.createStoreDeclaration(storeName));
         const importStatement = ts.isImportClause(node) ? node.parent : node.parent.parent.parent;
-
         const endPos = importStatement.getEnd() + astOffset;
-        str.appendRight(endPos, `;let $${storeName} = __sveltets_store_get(${storeName});`);
+
+        str.appendRight(endPos, storeDeclaration);
+    }
+
+    private createStoreDeclarations(storeNames: string[]): string {
+        let declarations = '';
+        for (let i = 0; i < storeNames.length; i++) {
+            declarations += this.createStoreDeclaration(storeNames[i]);
+        }
+        return declarations;
+    }
+
+    private createStoreDeclaration(storeName: string): string {
+        return `;let $${storeName} = __sveltets_store_get(${storeName});`;
     }
 }

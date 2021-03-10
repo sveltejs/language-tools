@@ -4,7 +4,7 @@ import { readable } from 'svelte/store';
 function render() {
 
 	
-	const store = readable(Promise.resolve('test'), () => {});let $store = __sveltets_store_get(store);;
+	const store = readable(Promise.resolve('test'), () => {})/*Ωignore_startΩ*/;let $store = __sveltets_store_get(store);/*Ωignore_endΩ*/;
 ;
 () => (<>
 
