@@ -188,7 +188,9 @@ export function convertHtmlxToJsx(
             try {
                 switch (node.type) {
                     case 'IfBlock':
-                        ifScope = ifScope.getParent();
+                        if (!node.elseif) {
+                            ifScope = ifScope.getParent();
+                        }
                         break;
                     case 'EachBlock':
                         templateScopeManager.eachLeave(node);
