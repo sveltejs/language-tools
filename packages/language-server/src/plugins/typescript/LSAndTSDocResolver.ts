@@ -17,7 +17,7 @@ export class LSAndTSDocResolver {
         private readonly docManager: DocumentManager,
         private readonly workspaceUris: string[],
         private readonly configManager: LSConfigManager,
-        private readonly isEditor = true
+        private readonly transformOnTemplateError = true
     ) {
         const handleDocumentChange = (document: Document) => {
             // This refreshes the document in the ts language service
@@ -25,14 +25,18 @@ export class LSAndTSDocResolver {
         };
         docManager.on(
             'documentChange',
-            isEditor
-                ? debounceSameArg(
-                      handleDocumentChange,
-                      (newDoc, prevDoc) => newDoc.uri === prevDoc?.uri,
-                      1000
-                  )
-                : handleDocumentChange
+            debounceSameArg(
+                handleDocumentChange,
+                (newDoc, prevDoc) => newDoc.uri === prevDoc?.uri,
+                1000
+            )
         );
+
+        // New files would cause typescript to rebuild its type-checker.
+        // Open it immediately to reduce rebuilds in the startup
+        // where multiple files and their dependencies
+        // being loaded in a short period of times
+        docManager.on('documentOpen', handleDocumentChange);
     }
 
     /**
@@ -51,7 +55,7 @@ export class LSAndTSDocResolver {
     private get lsDocumentContext(): LanguageServiceDocumentContext {
         return {
             createDocument: this.createDocument,
-            transformOnTemplateError: this.isEditor
+            transformOnTemplateError: this.transformOnTemplateError
         };
     }
 
@@ -88,7 +92,7 @@ export class LSAndTSDocResolver {
         if (!tsDoc) {
             const options = {
                 strictMode: !!tsService.compilerOptions.strict,
-                transformOnTemplateError: this.isEditor
+                transformOnTemplateError: this.transformOnTemplateError
             };
             tsDoc = document
                 ? DocumentSnapshot.fromDocument(document, options)
