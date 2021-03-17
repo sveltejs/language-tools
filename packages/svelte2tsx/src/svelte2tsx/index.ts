@@ -182,6 +182,11 @@ function processSvelteTemplate(
                 stores.handleIdentifier(node, parent, prop);
                 eventHandler.handleIdentifier(node, parent, prop);
                 break;
+            case 'Transition':
+            case 'Action':
+            case 'Animation':
+                stores.handleDirective(node, str);
+                break;
             case 'Slot':
                 slotHandler.handleSlot(node, templateScope);
                 break;
