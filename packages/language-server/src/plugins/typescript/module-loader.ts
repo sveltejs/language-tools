@@ -2,10 +2,8 @@ import ts from 'typescript';
 import {
     isVirtualSvelteFilePath,
     ensureRealSvelteFilePath,
-    isSvelteFilePath,
     getExtensionFromScriptKind
 } from './utils';
-import { isAbsolute } from 'path';
 import { DocumentSnapshot } from './DocumentSnapshot';
 import { createSvelteSys } from './svelte-sys';
 
@@ -67,7 +65,6 @@ export function createSvelteModuleLoader(
 ) {
     const svelteSys = createSvelteSys(getSnapshot);
     const moduleCache = new ModuleResolutionCache();
-    const pathAliases = getPathAliases(compilerOptions.paths);
 
     return {
         fileExists: svelteSys.fileExists,
@@ -97,24 +94,29 @@ export function createSvelteModuleLoader(
         name: string,
         containingFile: string
     ): ts.ResolvedModule | undefined {
-        // In the normal case, delegate to ts.resolveModuleName.
-        // In the relative-imported.svelte case, delegate to our own svelte module loader.
-        if (isAbsolutePath(name) || !isSvelteFilePath(name)) {
-            return ts.resolveModuleName(name, containingFile, compilerOptions, ts.sys)
-                .resolvedModule;
+        // Delegate to the TS resolver first.
+        // If that does not bring up anything, try the Svelte Module loader
+        // which is able to deal with .svelte files.
+        const tsResolvedModule = ts.resolveModuleName(name, containingFile, compilerOptions, ts.sys)
+            .resolvedModule;
+        if (tsResolvedModule && !isVirtualSvelteFilePath(tsResolvedModule.resolvedFileName)) {
+            return tsResolvedModule;
         }
 
-        const tsResolvedModule = ts.resolveModuleName(
+        const svelteResolvedModule = ts.resolveModuleName(
             name,
             containingFile,
             compilerOptions,
             svelteSys
         ).resolvedModule;
-        if (!tsResolvedModule || !isVirtualSvelteFilePath(tsResolvedModule.resolvedFileName)) {
-            return tsResolvedModule;
+        if (
+            !svelteResolvedModule ||
+            !isVirtualSvelteFilePath(svelteResolvedModule.resolvedFileName)
+        ) {
+            return svelteResolvedModule;
         }
 
-        const resolvedFileName = ensureRealSvelteFilePath(tsResolvedModule.resolvedFileName);
+        const resolvedFileName = ensureRealSvelteFilePath(svelteResolvedModule.resolvedFileName);
         const snapshot = getSnapshot(resolvedFileName);
 
         const resolvedSvelteModule: ts.ResolvedModuleFull = {
@@ -122,18 +124,5 @@ export function createSvelteModuleLoader(
             resolvedFileName
         };
         return resolvedSvelteModule;
-    }
-
-    function isAbsolutePath(path: string) {
-        return isAbsolute(path) && !pathAliases.some((p) => path.startsWith(p));
-    }
-
-    function getPathAliases(paths: ts.MapLike<string[]> | undefined) {
-        return Object.keys(paths || {}).map((key) => {
-            if (key.endsWith('*')) {
-                key = key.substr(0, key.length - 1);
-            }
-            return key;
-        });
     }
 }
