@@ -7,7 +7,7 @@
 <div>
     <slot a={b}>Hello</slot>
 </div></>);
-return { props: {}, slots: {'default': {a:b}}, getters: {}, events: {} }}
+return { props: {}, slots: {'default': {a:b}}, getters: {}, setters: {}, events: {} }}
 
 export default class Input__SvelteComponent_ extends createSvelte2TsxComponent(__sveltets_partial(__sveltets_with_any_event(render))) {
 }

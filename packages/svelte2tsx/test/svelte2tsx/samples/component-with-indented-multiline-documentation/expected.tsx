@@ -3,7 +3,7 @@
 <>
 
 <main>At least I am documented</main></>
-return { props: {}, slots: {}, getters: {}, events: {} }}
+return { props: {}, slots: {}, getters: {}, setters: {}, events: {} }}
 
 /**
  * This component has indented multiline documentation:

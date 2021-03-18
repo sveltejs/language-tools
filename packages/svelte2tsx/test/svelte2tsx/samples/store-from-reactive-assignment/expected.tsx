@@ -9,7 +9,7 @@
 <p>{(__sveltets_store_get(store), $store)}</p>
 <p>{(__sveltets_store_get(store1), $store1)}</p>
 <p>{(__sveltets_store_get(store2), $store2)}</p></>);
-return { props: {}, slots: {}, getters: {}, events: {} }}
+return { props: {}, slots: {}, getters: {}, setters: {}, events: {} }}
 
 export default class Input__SvelteComponent_ extends createSvelte2TsxComponent(__sveltets_partial(__sveltets_with_any_event(render))) {
 }

@@ -14,7 +14,7 @@ function render() {
 <p>{(__sveltets_store_get(storeA), $storeA)}</p>
 <p>{(__sveltets_store_get(storeB), $storeB)}</p>
 <p>{(__sveltets_store_get(storeC), $storeC)}</p></>);
-return { props: {}, slots: {}, getters: {}, events: {} }}
+return { props: {}, slots: {}, getters: {}, setters: {}, events: {} }}
 
 export default class Input__SvelteComponent_ extends createSvelte2TsxComponent(__sveltets_partial(__sveltets_with_any_event(render))) {
 }
