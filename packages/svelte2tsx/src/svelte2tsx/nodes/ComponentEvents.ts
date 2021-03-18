@@ -204,12 +204,13 @@ class ComponentEventsFromEventsMap {
         if (this.eventDispatcherTyping) {
             return `__sveltets_toEventTypings<${this.eventDispatcherTyping}>()`;
         }
+
         return (
             '{' +
-            this.eventHandler.bubbledEventsMapToString() +
-            [...this.dispatchedEvents.keys()]
-                .map((e) => `'${e}': __sveltets_customEvent`)
-                .join(', ') +
+            [
+                ...this.eventHandler.bubbledEventsAsStrings(),
+                ...[...this.dispatchedEvents.keys()].map((e) => `'${e}': __sveltets_customEvent`)
+            ].join(', ') +
             '}'
         );
     }
