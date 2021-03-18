@@ -333,7 +333,7 @@ function addComponentExport({
     const statement =
         `\n\n${doc}export default class${className ? ` ${className}` : ''
         } extends createSvelte2TsxComponent(${propDef}) {` +
-        createClassGetters(getters) + '\n' + createClassSetters(setters) + '\n}';
+        createClassGetters(getters) + createClassSetters(setters) + '\n}';
 
     str.append(statement);
 }
