@@ -332,8 +332,7 @@ function addComponentExport({
     const className = fileName && classNameFromFilename(fileName);
 
     const statement =
-        `\n\ntype SvelteTsxRender = ReturnType<typeof render()>
-        \n${doc}export default class${className ? ` ${className}` : ''
+        `\n\n${doc}export default class${className ? ` ${className}` : ''
         } extends createSvelte2TsxComponent(${propDef}) {` +
         createClassGetters(getters) + '\n' + createClassSetters(setters) + '\n}';
 
