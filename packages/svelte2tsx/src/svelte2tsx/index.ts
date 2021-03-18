@@ -196,7 +196,6 @@ function processSvelteTemplate(
             isDeclaration.value = true;
         }
 
-        console.log(node.type);
         switch (node.type) {
             case 'Comment':
                 componentDocumentation.handleComment(node);
