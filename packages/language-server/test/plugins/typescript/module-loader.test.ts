@@ -5,7 +5,7 @@ import * as svS from '../../../src/plugins/typescript/svelte-sys';
 import { DocumentSnapshot } from '../../../src/plugins/typescript/DocumentSnapshot';
 import { createSvelteModuleLoader } from '../../../src/plugins/typescript/module-loader';
 
-describe.only('createSvelteModuleLoader', () => {
+describe('createSvelteModuleLoader', () => {
     afterEach(() => {
         sinon.restore();
     });
