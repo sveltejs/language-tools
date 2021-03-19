@@ -32,7 +32,7 @@
         "rollup-plugin-delete": "^2.0.0",
         "source-map": "^0.6.1",
         "source-map-support": "^0.5.16",
-        "sourcemap-codec": "^1.4.8",
+        "sourcemap-codec": "^1.4.4",
         "svelte": "~3.35.0",
         "tiny-glob": "^0.2.6",
         "tslib": "^1.10.0",
@@ -47,7 +47,7 @@
         "prepublishOnly": "npm run build",
         "dev": "rollup -c -w",
         "test": "mocha test/test.ts",
-        "epretest": "rollup -c rollup.config.test.js"
+        "pretest": "rollup -c rollup.config.test.js"
     },
     "files": [
         "index.mjs",

@@ -138,7 +138,7 @@ export class Sample {
     private generate(fileName: string, content: string, skip = true) {
         const path = `${this.directory}/${fileName}`;
         if (process.env.CI) {
-            throw new Error(`Forgot to generate sample file "${fileName}"\n\n\tat "${path}"`);
+            throw new Error(`Forgot to generate sample file "${fileName}" at "${path}"`);
         }
         if (readFileSync(path) !== normalize(content)) {
             after(() => {
@@ -147,9 +147,6 @@ export class Sample {
                 writeFileSync(path, content);
             });
             if (skip) this.skipped = true;
-            return true;
-        } else {
-            return false;
         }
     }
 

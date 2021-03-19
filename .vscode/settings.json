@@ -1,4 +1,3 @@
 {
-	"typescript.preferences.quoteStyle": "single",
-	"typescript.tsdk": "node_modules\\typescript\\lib"
+    "typescript.preferences.quoteStyle": "single"
 }
