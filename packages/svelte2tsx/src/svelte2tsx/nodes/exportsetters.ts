@@ -1,6 +1,5 @@
 export const createClassSetter = (name: string) =>
-    `\n
-    /**accessor*/\n${' '.repeat(4)}set ${name}(${name}) {}`;
+    `\n    /**accessor*/\n    set ${name}(${name}) {}`;
 
 export const createClassSetters = (names: Set<string>) => {
     return Array.from(names).map(createClassSetter).join('');
