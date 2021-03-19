@@ -329,16 +329,20 @@ function addComponentExport({
             ? uses$$propsOr$$restProps
                 ? `__sveltets_with_any(${eventsDef})`
                 : eventsDef
-            : `__sveltets_partial${isTsFile ? '_ts' : ''}${uses$$propsOr$$restProps ? '_with_any' : ''
-            }(${eventsDef})`;
+            : `__sveltets_partial${isTsFile ? '_ts' : ''}${
+                  uses$$propsOr$$restProps ? '_with_any' : ''
+              }(${eventsDef})`;
 
     const doc = componentDocumentation.getFormatted();
     const className = fileName && classNameFromFilename(fileName);
 
     const statement =
-        `\n\n${doc}export default class${className ? ` ${className}` : ''
+        `\n\n${doc}export default class${
+            className ? ` ${className}` : ''
         } extends createSvelte2TsxComponent(${propDef}) {` +
-        createClassGetters(getters) + createClassSetters(setters) + '\n}';
+        createClassGetters(getters) +
+        createClassSetters(setters) +
+        '\n}';
 
     str.append(statement);
 }
@@ -501,7 +505,13 @@ export function svelte2tsx(
         if (scriptTag.start != instanceScriptTarget) {
             str.move(scriptTag.start, scriptTag.end, instanceScriptTarget);
         }
-        const res = processInstanceScriptContent(str, scriptTag, events, implicitStoreValues, usesAccessors);
+        const res = processInstanceScriptContent(
+            str,
+            scriptTag,
+            events,
+            implicitStoreValues,
+            usesAccessors
+        );
         uses$$props = uses$$props || res.uses$$props;
         uses$$restProps = uses$$restProps || res.uses$$restProps;
         uses$$slots = uses$$slots || res.uses$$slots;
