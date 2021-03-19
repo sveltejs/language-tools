@@ -17,7 +17,7 @@ class Comment {
         if ('indent' in this.opts) indent = this.opts.indent;
         return this.content
             .map(([map, comment]) =>
-                (' '.repeat(indent * 4) + map.padEnd(col0_width) + '\t' + comment).padEnd(width)
+                (' '.repeat(indent * 4) + map.padEnd(col0_width) + '    ' + comment).padEnd(width)
             )
             .join('\n');
     }
@@ -85,7 +85,7 @@ export function compose_file(
             str = current.render(opts.indent ?? 0, min_col0_width, width);
             if (!(next === undefined || is_inside_comment(next))) str += comment_end;
         } else {
-            str = ('' + current).trimRight();
+            str = ('' + current).trimRight().replace(/\t/g, '    ');
             if (is_inside_comment(next) && !str.includes('//')) {
                 str = str.padEnd(width - get_extra_indent(str)) + comment_start;
             }

@@ -1,34 +1,33 @@
 import { ComposeHelper, compose_file } from './composer';
 import {
-	each_exec,
-	fromLineChar,
-	hash,
-	insert_segments,
-	MappedKeys,
-	MappedPosition,
-	MappedRange,
-	Mappings,
-	Position,
-
-	Range,
-	range_for,
-	reduce_segments,
-	tab_aware_index,
-	underline
+    each_exec,
+    fromLineChar,
+    hash,
+    insert_segments,
+    MappedKeys,
+    MappedPosition,
+    MappedRange,
+    Mappings,
+    Position,
+    Range,
+    range_for,
+    reduce_segments,
+    tab_aware_index,
+    underline
 } from './helpers';
 import {
-	GeneratedLine,
-	GeneratedSourceText,
-	Line,
-	parse,
-	ParsedSource,
-	SourceText
+    GeneratedLine,
+    GeneratedSourceText,
+    Line,
+    parse,
+    ParsedSource,
+    SourceText
 } from './parser';
 
 namespace raw {
     const EDIT_FILE_START = `/** Surround [[[text]]] with brackets & run tests to add it to this sample's tested ranges */\n`;
     const EDIT_FILE_END = `\n/** content-hash: $ */`.split('$');
-    const TEST_FILE_START = '/** tested-ranges: $ */\n'.split('$');
+    const TEST_FILE_START = '/** tested-ranges: $ */'.split('$');
     const TEST_FILE_END = '\n/** origin-hash: $ */'.split('$');
     export function fromTestFile(file: string) {
         if (!file.startsWith(TEST_FILE_START[0]) || !file.includes(TEST_FILE_END[0]))
@@ -45,15 +44,13 @@ namespace raw {
         const raw = JSON.stringify(ranges);
         if (raw.includes(TEST_FILE_START[1]))
             throw new Error(`Tested range cannot include "${TEST_FILE_START[1]}"`);
-        return (
-            TEST_FILE_START[0] +
-            raw +
-            TEST_FILE_START[1] +
-            content +
-            TEST_FILE_END[0] +
-            hash(origin) +
-            TEST_FILE_END[1]
-        );
+        let header = TEST_FILE_START[0] + raw + TEST_FILE_START[1];
+        hack: if (ranges.length && /^\s*{\/\*\*/.test(content)) {
+            const width = content.indexOf('{');
+            content = content.slice(Math.min(width, header.length));
+        }
+
+        return header + content + TEST_FILE_END[0] + hash(origin) + TEST_FILE_END[1];
     }
     export function fromEditFile(file: string) {
         const start = file.lastIndexOf(EDIT_FILE_START);
@@ -130,7 +127,7 @@ namespace print {
         function* compose_test(composer: ComposeHelper) {
             const ranges = test_ranges.map((range) => tryEvalTestRange(range, source).range);
             for (let i = 0; i < ranges.length; i++) {
-                yield composer.rule(title_for(ranges[i]));
+                yield composer.rule('', '-');
                 if (is_same_line(ranges[i].start, ranges[i].end)) {
                     const j = i;
                     while (i < ranges.length - 1 && can_merge(ranges[i], ranges[i + 1])) i++;
@@ -150,9 +147,11 @@ namespace print {
                                         (is_single ? '#' : i + 1) + '=='
                                     )
                             ),
-                            key === 'generated' && !target[0].start.original.line
-                                ? ' => No Mappings !'
-                                : ''
+                            `[${key}] line ${line.index + 1}${
+                                key === 'generated' && !target[0].start.original.line
+                                    ? ' => No Mappings !'
+                                    : ''
+                            }`
                         ]);
                     }
                 } else {

@@ -135,34 +135,17 @@ export class Sample {
         return readFileSync(`${this.directory}/${file}`);
     }
 
-    private file_generate = new Map<string, string>();
-
     private generate(fileName: string, content: string, skip = true) {
         const path = `${this.directory}/${fileName}`;
         if (process.env.CI) {
             throw new Error(`Forgot to generate sample file "${fileName}"\n\n\tat "${path}"`);
         }
         if (readFileSync(path) !== normalize(content)) {
-            if (this.file_generate.size === 0) {
-                after(() => {
-                    let str = '';
-                    for (const [fileName, content] of this.file_generate) {
-                        const path = `${this.directory}/${fileName}`;
-                        const action = existsSync(path) ? 'updated' : 'generated';
-                        str += `\t[${action}] ${fileName}\n`;
-                        writeFileSync(path, content);
-                    }
-                    if (this.file_generate.size === 1) {
-                        str = `${str.slice(0, -1)} (${this.directory}/${fileName})`;
-                    } else {
-                        str = `\t${this.name}: ${this.directory}\n${str}`;
-                    }
-                    console.info(color.cyan(str));
-                });
-            } else {
-                assert(!this.file_generate.has(fileName));
-            }
-            this.file_generate.set(fileName, content);
+            after(() => {
+                const action = existsSync(path) ? 'updated' : 'generated';
+                console.info(`\t[${action}] ${color.cyan(fileName)} (${color.underscore(path)}) `);
+                writeFileSync(path, content);
+            });
             if (skip) this.skipped = true;
             return true;
         } else {
@@ -283,4 +266,7 @@ export const color = (function (colors, special) {
     for (let i = 0; i < colors.length; i++) obj[colors[i]] = fn.bind(null, 31 + i);
     for (let i = 0; i < special.length; i++) obj[special[i]] = fn.bind(null, 2 * (1 + i));
     return obj as { [K in (typeof special | typeof colors)[any]]: (str: string) => string };
-})(['red', 'green', 'yellow', 'blue', 'magenta', 'cyan'] as const, ['dim', 'underscore'] as const);
+})(
+    ['red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'white'] as const,
+    ['dim', 'underscore'] as const
+);

@@ -4,14 +4,14 @@ import svelte2tsx from '../build';
 import { color, each_sample, GenerateFn, get_svelte2tsx_config, Sample } from '../helpers';
 import { print_string } from './helpers';
 import {
-	handler,
-	is_edit_changed,
-	is_edit_empty,
-	is_edit_from_same_generated,
-	is_test_empty,
-	is_test_from_same_input,
-	validate_edit_file,
-	validate_test_file
+    handler,
+    is_edit_changed,
+    is_edit_empty,
+    is_edit_from_same_generated,
+    is_test_empty,
+    is_test_from_same_input,
+    validate_edit_file,
+    validate_test_file
 } from './process';
 
 describe('sourcemaps', function () {
@@ -85,11 +85,6 @@ function maybe_generate(sample: Sample, regenerate: (generate: GenerateFn) => vo
         return sample.generateDeps(regenerate);
     }
 
-    if (!sample.has('mappings.jsx') || (!sample.has('test.jsx') && !sample.has('test.edit.jsx'))) {
-        sample.log(color.yellow(`[Repaired] Uncomplete Sample ${sample.name}`));
-        return sample.generateDeps(regenerate);
-    }
-
     if (sample.has('test.edit.jsx')) {
         const edit = sample.get('test.edit.jsx');
 
@@ -130,6 +125,11 @@ function maybe_generate(sample: Sample, regenerate: (generate: GenerateFn) => vo
                 );
             });
         }
+    }
+
+    if (!sample.has('mappings.jsx') || (!sample.has('test.jsx') && !sample.has('test.edit.jsx'))) {
+        sample.log(color.yellow(`[Repaired] Uncomplete Sample ${sample.name}`));
+        return sample.generateDeps(regenerate);
     }
 
     const test = sample.get('test.jsx');

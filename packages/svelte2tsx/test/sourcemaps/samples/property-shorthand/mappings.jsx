@@ -2,10 +2,10 @@
 <></>;function render() {                                                                                                                             {/**
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
 <><button count={count}>button</button></>                                                                                                            {/**
-=#                                         	Originless mappings                                                                                       
-<><button•count={count}>button</button></>↲	[generated] line 3                                                                                        
-  <button•      {count}>button</button>    	                                                                                                          
-<button•{count}>button</button>            	[original] line 1                                                                                         
+=#                                             Originless mappings                                                                                    
+<><button•count={count}>button</button></>↲    [generated] line 3                                                                                     
+  <button•      {count}>button</button>                                                                                                               
+<button•{count}>button</button>                [original] line 1                                                                                      
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
 return { props: {}, slots: {}, getters: {}, events: {} }}
 

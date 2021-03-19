@@ -16,13 +16,15 @@
 <script>
 	import Repl from '@sveltejs/svelte-repl';
 	import { getContext } from 'svelte';
+
 	import ScreenToggle from '../../../components/ScreenToggle.svelte';
-	import {
-		mapbox_setup,	
-		rollupUrl,	
-		svelteUrl	
-	} from '../../../config';
 	import TableOfContents from './_TableOfContents.svelte';
+	
+	import {
+		mapbox_setup, // needed for context API tutorial
+		rollupUrl,
+		svelteUrl
+	} from '../../../config';
 
 
 	export let slug;
