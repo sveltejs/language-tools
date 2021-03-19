@@ -104,11 +104,6 @@ export function processInstanceScriptContent(
             const name = identifier.getText();
             const end = declaration.end + astOffset;
 
-            if (usesAccessors) {
-                setters.add(name);
-                getters.add(name);
-            }
-
             str.appendLeft(end, `;${name} = __sveltets_any(${name});`);
         };
 
@@ -499,6 +494,15 @@ export function processInstanceScriptContent(
         .sort((a, b) => a.end - b.end)[0];
     if (firstImport) {
         str.appendRight(firstImport.getStart() + astOffset, '\n');
+    }
+
+    if (usesAccessors) {
+        for (const prop of exportedNames.keys()) {
+            if (!getters.has(prop)) {
+                setters.add(prop);
+                getters.add(prop);
+            }
+        }
     }
 
     return {
