@@ -1,69 +1,194 @@
 import assert from 'assert';
-import svelte2tsx from '../build';
-import { each_sample } from '../helpers';
 import { decode } from 'sourcemap-codec';
-import { print_mappings, test_sample_result } from './parser';
+import svelte2tsx from '../build';
+import { color, each_sample, GenerateFn, get_svelte2tsx_config, Sample } from '../helpers';
+import { print_string } from './helpers';
+import {
+	handler,
+	is_edit_changed,
+	is_edit_empty,
+	is_edit_from_same_generated,
+	is_test_empty,
+	is_test_from_same_input,
+	validate_edit_file,
+	validate_test_file
+} from './process';
 
 describe('sourcemaps', function () {
     for (const sample of each_sample(__dirname)) {
-        sample.check_dir({
-            required: ['*.svelte'],
-            allowed: ['output.tsx', 'mappings.jsx', 'test.html']
-        });
-        const svelteFile = sample.folder.find((f) => f.endsWith('.svelte'));
-
-        const shouldGenerate = !process.env.CI && !sample.has('mappings.jsx');
+        if (process.env.CI) {
+            sample.checkDirectory({ required: ['*.svelte', 'mappings.jsx', 'test.jsx'] });
+        } else {
+            sample.checkDirectory({
+                required: ['*.svelte'],
+                allowed: ['mappings.jsx', 'test.jsx', 'test.edit.jsx', 'output.tsx']
+            });
+            maybe_generate(sample, regenerate);
+        }
 
         sample.it(function () {
-            const original = { code: sample.get(svelteFile) };
-            const generated = svelte2tsx(original.code, {
-                strictMode: sample.name.includes('strictMode'),
-                isTsFile: sample.name.startsWith('ts-'),
-                filename: svelteFile
-            });
+            const parsed = parse(sample);
 
-            generated.map.file = 'output.tsx';
-            generated.map.sources = [svelteFile];
-            generated.map.sourcesContent = [original.code];
-
-            const decoded = decode(generated.map.mappings) as any;
+            if (sample.has('test.jsx')) {
+                parsed.each_test_range(
+                    sample.get('test.jsx'),
+                    function (actual, expected) {
+                        assert.strictEqual(actual, expected);
+                    },
+                    function () {
+                        throw new Error('Invalid test file format');
+                    },
+                    function (ranges) {
+                        throw new Error(
+                            `Could not find the following snippets in generated output\n` +
+                                ranges.map((range) => `\t"${print_string(range[2])}"`).join('\n') +
+                                (process.env.CI
+                                    ? ''
+                                    : `\nTo edit ranges : ${sample.directory}/test.edit.jsx`)
+                        );
+                    }
+                );
+            }
 
             const mappings = {
-                expected: sample.get('mappings.jsx'),
-                actual: print_mappings(original.code, generated.code, decoded).replace(/\s*$/, '')
+                actual: parsed.print_mappings(),
+                expected: sample.get('mappings.jsx')
             };
-            if (!process.env.CI) {
-                sample.generate(
-                    'output.tsx',
-                    `${generated.code}\n//# sourceMappingURL=${generated.map.toUrl()}`,
-                    false
-                );
-            }
-            const debug = process.env.CI
-                ? ''
-                : `To visualize the output in detail:\n\n` +
-                  `1) Go to https://evanw.github.io/source-map-visualization/\n` +
-                  `2) Upload "generated.tsx" from ${sample.directory}\n`;
-
-            if (sample.has('test.html')) {
-                test_sample_result(
-                    original.code,
-                    generated.code,
-                    sample.get('test.html'),
-                    decoded,
-                    `SourceMapping test failed\n\n` + debug
-                );
-            }
-
-            if (mappings.expected === mappings.actual && !shouldGenerate) return;
 
             if (process.env.CI) {
-                assert(sample.has('mappings.jsx'), `Forgot to generate expected sample results`);
-                assert.fail(`Source Mappings changed, run tests locally to re-generate results.`);
+                assert.strictEqual(
+                    mappings.actual,
+                    mappings.expected,
+                    `SourceMapping changed, run tests locally to re-generate results.`
+                );
             } else {
-                after(() => console.log(`SourceMapping Changed (${sample.name})\n\n` + debug));
-                sample.generate('mappings.jsx', mappings.actual);
+                if (mappings.actual !== mappings.expected) {
+                    sample.generateDeps(regenerate);
+                }
             }
         });
+
+        function regenerate(generate: GenerateFn) {
+            const parsed = parse(sample);
+            generate_passive(generate, parsed);
+            if (!sample.has('test.jsx')) generate('test.jsx', parsed.generate_test(), false);
+            generate('test.edit.jsx', parsed.generate_test_edit(sample.get('test.jsx')), false);
+        }
     }
 });
+
+function maybe_generate(sample: Sample, regenerate: (generate: GenerateFn) => void) {
+    const svelteFile = sample.wildcard('*.svelte');
+
+    if (sample.hasOnly(svelteFile)) {
+        sample.log(color.green(`[New] Sample ${sample.name}`));
+        return sample.generateDeps(regenerate);
+    }
+
+    if (!sample.has('mappings.jsx') || (!sample.has('test.jsx') && !sample.has('test.edit.jsx'))) {
+        sample.log(color.yellow(`[Repaired] Uncomplete Sample ${sample.name}`));
+        return sample.generateDeps(regenerate);
+    }
+
+    if (sample.has('test.edit.jsx')) {
+        const edit = sample.get('test.edit.jsx');
+
+        try {
+            validate_edit_file(edit);
+        } catch (err) {
+            return sample.generateDeps(function (generate) {
+                generate_passive(generate, parse(sample));
+                err.message += `\n\tat ${sample.directory}/test.edit.jsx`;
+                throw err;
+            });
+        }
+
+        const edit_changed = is_edit_changed(edit);
+
+        if (edit_changed || !sample.has('test.jsx')) {
+            return sample.generateDeps(function (generate) {
+                const parsed = parse(sample);
+                if (is_edit_empty(edit)) {
+                    generate('test.jsx', parsed.generate_test());
+                    generate('test.edit.jsx', parsed.generate_test_edit());
+                    generate_passive(generate, parsed);
+                    return;
+                }
+                if (is_edit_from_same_generated(edit, parsed.generated)) {
+                    const new_test = parsed.generate_test(edit);
+                    generate('test.jsx', new_test);
+                    generate('test.edit.jsx', parsed.generate_test_edit(new_test));
+                    generate_passive(generate, parsed);
+                    return;
+                }
+                const err = edit_changed ? 'apply changes made to' : 'generate "test.jsx" from';
+                throw new Error(
+                    '' +
+                        `Failed to ${err} "test.edit.jsx" as it is based on a stale output.\n` +
+                        `\tEither reverse output changes or delete "test.edit.jsx" manually before running tests again\n` +
+                        `\tcmd-click : ${sample.directory}/test.edit.jsx\n`
+                );
+            });
+        }
+    }
+
+    const test = sample.get('test.jsx');
+    try {
+        validate_test_file(test);
+    } catch (err) {
+        return sample.generateDeps(function (generate) {
+            generate_passive(generate, parse(sample));
+            err.message += `\n\tat ${sample.directory}/test.jsx`;
+            throw err;
+        });
+    }
+    if (!is_test_from_same_input(test, sample.get(svelteFile))) {
+        return sample.generateDeps(function (generate) {
+            const parsed = parse(sample);
+            generate_passive(generate, parsed);
+            generate('test.edit.jsx', parsed.generate_test_edit());
+            if (is_test_empty(test)) {
+                generate('test.jsx', parsed.generate_test());
+                return;
+            }
+            throw new Error(
+                '' +
+                    `Test input at "${svelteFile}" changed, thus making "test.jsx" invalid.\n` +
+                    `\tEither manually re-select all tested ranges in the newly generated "test.edit.jsx", delete "test.jsx" or undo input changes.\n` +
+                    `\tcmd-click : ${sample.directory}/test.edit.jsx\n`
+            );
+        });
+    }
+
+    sample.onError(regenerate);
+}
+
+function generate_passive(generate: GenerateFn, parsed: Parsed) {
+    generate('output.tsx', parsed.inline, false);
+    generate('mappings.jsx', parsed.print_mappings(), false);
+}
+
+type Parsed = ReturnType<typeof handler> & { generated: string; inline: string };
+const cache = new WeakMap<Sample, Parsed>();
+function parse(sample: Sample): Parsed {
+    if (!cache.has(sample)) {
+        const filename = sample.wildcard('*.svelte');
+        const original = sample.get(filename);
+        const { code, map } = svelte2tsx(
+            original,
+            get_svelte2tsx_config({ filename }, sample.name)
+        );
+
+        map.file = 'output.tsx';
+        map.sources = [filename];
+        map.sourcesContent = [original];
+
+        const mapped = handler(original, code, decode(map.mappings) as any);
+        cache.set(sample, {
+            ...mapped,
+            generated: code,
+            inline: code + `\n//# sourceMappingURL=${map.toUrl()}`
+        });
+    }
+    return cache.get(sample);
+}
