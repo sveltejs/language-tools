@@ -562,11 +562,11 @@ describe('DiagnosticsProvider', () => {
                 range: {
                     end: {
                         character: 15,
-                        line: 13
+                        line: 14
                     },
                     start: {
                         character: 5,
-                        line: 13
+                        line: 14
                     }
                 },
                 severity: 1,
@@ -580,11 +580,11 @@ describe('DiagnosticsProvider', () => {
                 range: {
                     end: {
                         character: 19,
-                        line: 16
+                        line: 17
                     },
                     start: {
                         character: 9,
-                        line: 16
+                        line: 17
                     }
                 },
                 severity: 1,
@@ -598,11 +598,11 @@ describe('DiagnosticsProvider', () => {
                 range: {
                     end: {
                         character: 19,
-                        line: 20
+                        line: 21
                     },
                     start: {
                         character: 9,
-                        line: 20
+                        line: 21
                     }
                 },
                 severity: 1,
@@ -615,11 +615,11 @@ describe('DiagnosticsProvider', () => {
                 range: {
                     end: {
                         character: 14,
-                        line: 33
+                        line: 34
                     },
                     start: {
                         character: 13,
-                        line: 33
+                        line: 34
                     }
                 },
                 severity: 1,
@@ -633,11 +633,11 @@ describe('DiagnosticsProvider', () => {
                 range: {
                     end: {
                         character: 26,
-                        line: 35
+                        line: 36
                     },
                     start: {
                         character: 17,
-                        line: 35
+                        line: 36
                     }
                 },
                 severity: 1,
@@ -651,11 +651,11 @@ describe('DiagnosticsProvider', () => {
                 range: {
                     end: {
                         character: 25,
-                        line: 44
+                        line: 45
                     },
                     start: {
                         character: 13,
-                        line: 44
+                        line: 45
                     }
                 },
                 severity: 1,
@@ -669,11 +669,28 @@ describe('DiagnosticsProvider', () => {
                 range: {
                     end: {
                         character: 8,
-                        line: 53
+                        line: 54
                     },
                     start: {
                         character: 1,
-                        line: 53
+                        line: 54
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            },
+            {
+                code: 2531,
+                message: "Object is possibly 'null'.",
+                range: {
+                    end: {
+                        character: 22,
+                        line: 56
+                    },
+                    start: {
+                        character: 8,
+                        line: 56
                     }
                 },
                 severity: 1,

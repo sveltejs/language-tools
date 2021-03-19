@@ -74,8 +74,7 @@ export function convertHtmlxToJsx(
                         handleElse(htmlx, str, node, parent, ifScope);
                         break;
                     case 'AwaitBlock':
-                        templateScopeManager.awaitEnter(node);
-                        handleAwait(htmlx, str, node, ifScope);
+                        handleAwait(htmlx, str, node, ifScope, templateScopeManager);
                         break;
                     case 'PendingBlock':
                         templateScopeManager.awaitPendingEnter(node, parent);

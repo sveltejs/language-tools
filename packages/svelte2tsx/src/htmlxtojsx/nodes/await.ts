@@ -1,6 +1,8 @@
 import MagicString from 'magic-string';
 import { Node } from 'estree-walker';
 import { IfScope } from './if-scope';
+import { TemplateScopeManager } from './template-scope';
+import { surroundWithIgnoreComments } from '../../utils/ignore';
 
 /**
  * Transform {#await ...} into something JSX understands
@@ -9,21 +11,25 @@ export function handleAwait(
     htmlx: string,
     str: MagicString,
     awaitBlock: Node,
-    ifScope: IfScope
+    ifScope: IfScope,
+    templateScopeManager: TemplateScopeManager
 ): void {
     // {#await somePromise then value} ->
     // {() => {let _$$p = (somePromise);
+    let ifCondition = ifScope.getFullCondition();
+    ifCondition = ifCondition ? surroundWithIgnoreComments(`if(${ifCondition}) {`) : '';
+    templateScopeManager.awaitEnter(awaitBlock);
     const constRedeclares = ifScope.getConstsToRedeclare();
     str.overwrite(
         awaitBlock.start,
         awaitBlock.expression.start,
-        `{() => {${constRedeclares}let _$$p = (`
+        `{() => {${constRedeclares}${ifCondition}let _$$p = (`
     );
 
     // {/await} ->
     // <>})}
     const awaitEndStart = htmlx.lastIndexOf('{', awaitBlock.end - 1);
-    str.overwrite(awaitEndStart, awaitBlock.end, '</>})}}');
+    str.overwrite(awaitEndStart, awaitBlock.end, '</>})}}' + (ifCondition ? '}' : ''));
 }
 
 export function handleAwaitPending(

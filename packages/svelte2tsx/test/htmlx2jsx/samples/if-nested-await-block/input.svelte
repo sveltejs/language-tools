@@ -1,4 +1,7 @@
 {#if hello}
+    {#await hello.foo then y}
+        {y}
+    {/await}
     {#await x then y}
         {y}
     {/await}
