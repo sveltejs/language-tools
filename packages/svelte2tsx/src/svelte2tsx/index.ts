@@ -460,7 +460,10 @@ export function svelte2tsx(
         }
     }
 
-    const implicitStoreValues = new ImplicitStoreValues(resolvedStores);
+    const renderFunctionStart = scriptTag
+        ? str.original.lastIndexOf('>', scriptTag.content.start) + 1
+        : instanceScriptTarget;
+    const implicitStoreValues = new ImplicitStoreValues(resolvedStores, renderFunctionStart);
     //move the instance script and process the content
     let exportedNames = new ExportedNames();
     let getters = new Set<string>();
@@ -497,7 +500,7 @@ export function svelte2tsx(
         processModuleScriptTag(
             str,
             moduleScriptTag,
-            new ImplicitStoreValues(implicitStoreValues.getAccessedStores())
+            new ImplicitStoreValues(implicitStoreValues.getAccessedStores(), renderFunctionStart)
         );
     }
 

@@ -20,7 +20,7 @@ export class ImplicitStoreValues {
     public addReactiveDeclaration = this.reactiveDeclarations.push.bind(this.reactiveDeclarations);
     public addImportStatement = this.importStatements.push.bind(this.importStatements);
 
-    constructor(storesResolvedInTemplate: string[] = []) {
+    constructor(storesResolvedInTemplate: string[] = [], private renderFunctionStart: number) {
         storesResolvedInTemplate.forEach(this.addStoreAcess);
     }
 
@@ -37,9 +37,7 @@ export class ImplicitStoreValues {
             this.attachStoreValueDeclarationToReactiveAssignment(node, astOffset, str)
         );
 
-        this.importStatements
-            .filter(({ name }) => name && this.accessedStores.has(name.getText()))
-            .forEach((node) => this.attachStoreValueDeclarationToImport(node, astOffset, str));
+        this.attachStoreValueDeclarationOfImportsToRenderFn(str);
     }
 
     public getAccessedStores(): string[] {
@@ -89,17 +87,19 @@ export class ImplicitStoreValues {
         str.appendRight(endPos, storeDeclarations);
     }
 
-    private attachStoreValueDeclarationToImport(
-        node: ts.ImportClause | ts.ImportSpecifier,
-        astOffset: number,
-        str: MagicString
-    ) {
-        const storeName = node.name.getText();
-        const storeDeclaration = surroundWithIgnoreComments(this.createStoreDeclaration(storeName));
-        const importStatement = ts.isImportClause(node) ? node.parent : node.parent.parent.parent;
-        const endPos = importStatement.getEnd() + astOffset;
+    private attachStoreValueDeclarationOfImportsToRenderFn(str: MagicString) {
+        const storeNames = this.importStatements
+            .filter(({ name }) => name && this.accessedStores.has(name.getText()))
+            .map(({ name }) => name.getText());
+        if (!storeNames.length) {
+            return;
+        }
 
-        str.appendRight(endPos, storeDeclaration);
+        const storeDeclarations = surroundWithIgnoreComments(
+            this.createStoreDeclarations(storeNames)
+        );
+
+        str.appendRight(this.renderFunctionStart, storeDeclarations);
     }
 
     private createStoreDeclarations(storeNames: string[]): string {
