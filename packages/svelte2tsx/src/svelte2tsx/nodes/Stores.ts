@@ -80,8 +80,22 @@ export class Stores {
         private isDeclaration: { value: boolean }
     ) {}
 
+    handleDirective(node: Node, str: MagicString): void {
+        if (this.notAStore(node.name) || this.isDeclaration.value) {
+            return;
+        }
+
+        const start = str.original.indexOf('$', node.start);
+        const end = start + node.name.length;
+        this.pendingStoreResolutions.push({
+            node: { type: 'Identifier', start, end, name: node.name },
+            parent: { start: 0, end: 0, type: '' },
+            scope: this.scope.current
+        });
+    }
+
     handleIdentifier(node: Node, parent: Node, prop: string): void {
-        if (node.name[0] !== '$' || reservedNames.has(node.name)) {
+        if (this.notAStore(node.name)) {
             return;
         }
 
@@ -113,5 +127,9 @@ export class Stores {
         unresolvedStores.forEach(({ node, parent }) => handleStore(node, parent, this.str));
 
         return unresolvedStores.map(({ node }) => node.name.slice(1));
+    }
+
+    private notAStore(name: string): boolean {
+        return name[0] !== '$' || reservedNames.has(name);
     }
 }
