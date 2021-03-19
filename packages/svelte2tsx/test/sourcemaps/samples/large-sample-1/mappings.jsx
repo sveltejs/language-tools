@@ -469,7 +469,7 @@ s
 </div></>);↲    [generated] line 180                                                                                                                  
 </div>          [original] line 320                                                                                                                   
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
-return { props: {slug: slug , chapter: chapter}, slots: {}, getters: {}, events: {} }}
+return { props: {slug: slug , chapter: chapter}, slots: {}, getters: {}, setters: {}, events: {} }}
 
 export default class Input__SvelteComponent_ extends createSvelte2TsxComponent(__sveltets_partial(__sveltets_with_any_event(render))) {
 }

@@ -24,55 +24,46 @@ describe('sourcemaps', function () {
                 allowed: ['mappings.jsx', 'test.jsx', 'test.edit.jsx', 'output.tsx']
             });
             maybe_generate(sample, regenerate);
+            sample.onError(function (generate, err) {
+                const skip = (err as Error).message.includes('SourceMapping changed');
+                regenerate(generate, skip);
+            });
         }
 
         sample.it(function () {
             const parsed = parse(sample);
 
-            if (sample.has('test.jsx')) {
-                parsed.each_test_range(
-                    sample.get('test.jsx'),
-                    function (actual, expected) {
-                        assert.strictEqual(actual, expected);
-                    },
-                    function () {
-                        throw new Error('Invalid test file format');
-                    },
-                    function (ranges) {
-                        throw new Error(
-                            `Could not find the following snippets in generated output\n` +
-                                ranges.map((range) => `\t"${print_string(range[2])}"`).join('\n') +
-                                (process.env.CI
-                                    ? ''
-                                    : `\nTo edit ranges : ${sample.directory}/test.edit.jsx`)
-                        );
-                    }
-                );
-            }
-
-            const mappings = {
-                actual: parsed.print_mappings(),
-                expected: sample.get('mappings.jsx')
-            };
-
-            if (process.env.CI) {
-                assert.strictEqual(
-                    mappings.actual,
-                    mappings.expected,
-                    `SourceMapping changed, run tests locally to re-generate results.`
-                );
-            } else {
-                if (mappings.actual !== mappings.expected) {
-                    sample.generateDeps(regenerate);
+            parsed.each_test_range(
+                sample.get('test.jsx'),
+                function (actual, expected) {
+                    assert.strictEqual(actual, expected);
+                },
+                function () {
+                    throw new Error(`Invalid test file format at ${sample.directory}/test.jsx`);
+                },
+                function (ranges) {
+                    throw new Error(
+                        `Could not find the following snippets in generated output\n` +
+                            ranges.map((range) => `\t"${print_string(range[2])}"`).join('\n') +
+                            (process.env.CI
+                                ? ''
+                                : `\nTo edit ranges : ${sample.directory}/test.edit.jsx`)
+                    );
                 }
-            }
+            );
+
+            assert.strictEqual(
+                parsed.print_mappings(),
+                sample.get('mappings.jsx'),
+                `SourceMapping changed, run tests locally to re-generate results.`
+            );
         });
 
-        function regenerate(generate: GenerateFn) {
+        function regenerate(generate: GenerateFn, skip = false) {
             const parsed = parse(sample);
-            generate_passive(generate, parsed);
-            if (!sample.has('test.jsx')) generate('test.jsx', parsed.generate_test(), false);
-            generate('test.edit.jsx', parsed.generate_test_edit(sample.get('test.jsx')), false);
+            generate_passive(generate, parsed, skip);
+            if (!sample.has('test.jsx')) generate('test.jsx', parsed.generate_test(), skip);
+            generate('test.edit.jsx', parsed.generate_test_edit(sample.get('test.jsx')), skip);
         }
     }
 });
@@ -159,13 +150,11 @@ function maybe_generate(sample: Sample, regenerate: (generate: GenerateFn) => vo
             );
         });
     }
-
-    sample.onError(regenerate);
 }
 
-function generate_passive(generate: GenerateFn, parsed: Parsed) {
-    generate('output.tsx', parsed.inline, false);
-    generate('mappings.jsx', parsed.print_mappings(), false);
+function generate_passive(generate: GenerateFn, parsed: Parsed, skip = false) {
+    generate('output.tsx', parsed.inline, skip);
+    generate('mappings.jsx', parsed.print_mappings(), skip);
 }
 
 type Parsed = ReturnType<typeof handler> & { generated: string; inline: string };
