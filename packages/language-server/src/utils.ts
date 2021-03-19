@@ -107,3 +107,22 @@ export function getRegExpMatches(regex: RegExp, str: string) {
     }
     return matches;
 }
+
+/**
+ * Function to modify each line of a text, preserving the line break style (`\n` or `\r\n`)
+ */
+export function modifyLines(
+    text: string,
+    replacementFn: (line: string, lineIdx: number) => string
+): string {
+    let idx = 0;
+    return text
+        .split('\r\n')
+        .map((l1) =>
+            l1
+                .split('\n')
+                .map((line) => replacementFn(line, idx++))
+                .join('\n')
+        )
+        .join('\r\n');
+}
