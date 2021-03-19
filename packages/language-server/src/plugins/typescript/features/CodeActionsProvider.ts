@@ -92,7 +92,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
 
                         return TextEdit.replace(
                             range,
-                            this.fixIntendationOfImports(edit.newText, range, document)
+                            this.fixIndentationOfImports(edit.newText, range, document)
                         );
                     })
                 );
@@ -108,7 +108,10 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         ];
     }
 
-    private fixIntendationOfImports(edit: string, range: Range, document: Document): string {
+    private fixIndentationOfImports(edit: string, range: Range, document: Document): string {
+        // "Organize Imports" will have edits that delete all imports by return empty edits
+        // and one edit which contains all the organized imports. Fix indentation
+        // of that one by prepending all lines with the indentation of the first line.
         if (!edit || range.start.character === 0) {
             return edit;
         }
