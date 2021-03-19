@@ -105,10 +105,27 @@ export function startServer(options?: LSOptions) {
             watcher.onDidChangeWatchedFiles(onDidChangeWatchedFiles);
         }
 
-        configManager.update(evt.initializationOptions?.config || {});
-        configManager.updateTsJsUserPreferences(evt.initializationOptions?.typescriptConfig || {});
-        configManager.updateEmmetConfig(evt.initializationOptions?.emmetConfig || {});
-        configManager.updatePrettierConfig(evt.initializationOptions?.prettierConfig || {});
+        // Backwards-compatible way of setting initialization options (first `||` is the old style)
+        configManager.update(
+            evt.initializationOptions?.configuration?.svelte?.plugin ||
+                evt.initializationOptions?.config ||
+                {}
+        );
+        configManager.updateTsJsUserPreferences(
+            evt.initializationOptions?.configuration ||
+                evt.initializationOptions?.typescriptConfig ||
+                {}
+        );
+        configManager.updateEmmetConfig(
+            evt.initializationOptions?.configuration?.emmet ||
+                evt.initializationOptions?.emmetConfig ||
+                {}
+        );
+        configManager.updatePrettierConfig(
+            evt.initializationOptions?.configuration?.prettier ||
+                evt.initializationOptions?.prettierConfig ||
+                {}
+        );
 
         pluginHost.initialize({
             filterIncompleteCompletions: !evt.initializationOptions
