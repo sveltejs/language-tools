@@ -46,8 +46,8 @@ export class EventHandler {
         return eventNames;
     }
 
-    bubbledEventsMapToString() {
-        return Array.from(this.bubbledEvents.entries()).map(eventMapEntryToString).join(', ');
+    bubbledEventsAsStrings() {
+        return Array.from(this.bubbledEvents.entries()).map(eventMapEntryToString);
     }
 
     private handleEventHandlerBubble(parent: Node, eventName: string): void {
