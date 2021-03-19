@@ -264,7 +264,7 @@ describe('CodeActionsProvider', () => {
                             edits: [
                                 {
                                     // eslint-disable-next-line max-len
-                                    newText: "import A from './A';\nimport { c } from './c';\n",
+                                    newText: "import A from './A';\n  import { c } from './c';\n",
                                     range: {
                                         start: {
                                             line: 1,
@@ -305,6 +305,94 @@ describe('CodeActionsProvider', () => {
                             ],
                             textDocument: {
                                 uri: getUri('organize-imports-with-module.svelte'),
+                                version: 0
+                            }
+                        }
+                    ]
+                },
+                kind: CodeActionKind.SourceOrganizeImports,
+                title: 'Organize Imports'
+            }
+        ]);
+    });
+
+    it('organizes imports with module script and store', async () => {
+        const { provider, document } = setup('organize-imports-module-store.svelte');
+
+        const codeActions = await provider.getCodeActions(
+            document,
+            Range.create(Position.create(1, 4), Position.create(1, 5)), // irrelevant
+            {
+                diagnostics: [],
+                only: [CodeActionKind.SourceOrganizeImports]
+            }
+        );
+        (<TextDocumentEdit>codeActions[0]?.edit?.documentChanges?.[0])?.edits.forEach(
+            (edit) => (edit.newText = harmonizeNewLines(edit.newText))
+        );
+
+        assert.deepStrictEqual(codeActions, [
+            {
+                edit: {
+                    documentChanges: [
+                        {
+                            edits: [
+                                {
+                                    newText:
+                                        "import { _,_d } from 'svelte-i18n';\n  import { _e } from 'svelte-i18n1';\n",
+                                    range: {
+                                        end: {
+                                            character: 0,
+                                            line: 2
+                                        },
+                                        start: {
+                                            character: 2,
+                                            line: 1
+                                        }
+                                    }
+                                },
+                                {
+                                    newText: '',
+                                    range: {
+                                        end: {
+                                            character: 2,
+                                            line: 6
+                                        },
+                                        start: {
+                                            character: 2,
+                                            line: 5
+                                        }
+                                    }
+                                },
+                                {
+                                    newText: '',
+                                    range: {
+                                        end: {
+                                            character: 2,
+                                            line: 7
+                                        },
+                                        start: {
+                                            character: 2,
+                                            line: 6
+                                        }
+                                    }
+                                },
+                                {
+                                    newText: '',
+                                    range: {
+                                        end: {
+                                            character: 37,
+                                            line: 7
+                                        },
+                                        start: {
+                                            character: 2,
+                                            line: 7
+                                        }
+                                    }
+                                }
+                            ],
+                            textDocument: {
+                                uri: getUri('organize-imports-module-store.svelte'),
                                 version: 0
                             }
                         }

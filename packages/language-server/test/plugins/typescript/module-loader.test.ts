@@ -35,6 +35,10 @@ describe('createSvelteModuleLoader', () => {
         };
     }
 
+    function lastCall(stub: sinon.SinonStub<any[], any>) {
+        return stub.getCall(stub.getCalls().length - 1);
+    }
+
     it('uses tsSys for normal files', async () => {
         const resolvedModule: ts.ResolvedModuleFull = {
             extension: ts.Extension.Ts,
@@ -47,7 +51,7 @@ describe('createSvelteModuleLoader', () => {
         );
 
         assert.deepStrictEqual(result, [resolvedModule]);
-        assert.deepStrictEqual(resolveStub.getCall(0).args, [
+        assert.deepStrictEqual(lastCall(resolveStub).args, [
             './normal.ts',
             'C:/somerepo/somefile.svelte',
             compilerOptions,
@@ -67,8 +71,28 @@ describe('createSvelteModuleLoader', () => {
         );
 
         assert.deepStrictEqual(result, [resolvedModule]);
-        assert.deepStrictEqual(resolveStub.getCall(0).args, [
+        assert.deepStrictEqual(lastCall(resolveStub).args, [
             '/@/normal',
+            'C:/somerepo/somefile.svelte',
+            compilerOptions,
+            ts.sys
+        ]);
+    });
+
+    it('uses tsSys for svelte.d.ts files', async () => {
+        const resolvedModule: ts.ResolvedModuleFull = {
+            extension: ts.Extension.Dts,
+            resolvedFileName: 'filename.d.ts'
+        };
+        const { resolveStub, moduleResolver, compilerOptions } = setup(resolvedModule);
+        const result = moduleResolver.resolveModuleNames(
+            ['./normal.ts'],
+            'C:/somerepo/somefile.svelte'
+        );
+
+        assert.deepStrictEqual(result, [resolvedModule]);
+        assert.deepStrictEqual(lastCall(resolveStub).args, [
+            './normal.ts',
             'C:/somerepo/somefile.svelte',
             compilerOptions,
             ts.sys
@@ -98,13 +122,13 @@ describe('createSvelteModuleLoader', () => {
                 resolvedFileName: 'filename.svelte'
             }
         ]);
-        assert.deepStrictEqual(resolveStub.getCall(0).args, [
+        assert.deepStrictEqual(lastCall(resolveStub).args, [
             './svelte.svelte',
             'C:/somerepo/somefile.svelte',
             compilerOptions,
             svelteSys
         ]);
-        assert.deepStrictEqual(getSvelteSnapshotStub.getCall(0).args, ['filename.svelte']);
+        assert.deepStrictEqual(lastCall(getSvelteSnapshotStub).args, ['filename.svelte']);
     });
 
     it('uses svelte module loader for virtual svelte files with TS path aliases', async () => {
@@ -130,13 +154,13 @@ describe('createSvelteModuleLoader', () => {
                 resolvedFileName: 'filename.svelte'
             }
         ]);
-        assert.deepStrictEqual(resolveStub.getCall(0).args, [
+        assert.deepStrictEqual(lastCall(resolveStub).args, [
             '/@/svelte.svelte',
             'C:/somerepo/somefile.svelte',
             compilerOptions,
             svelteSys
         ]);
-        assert.deepStrictEqual(getSvelteSnapshotStub.getCall(0).args, ['filename.svelte']);
+        assert.deepStrictEqual(lastCall(getSvelteSnapshotStub).args, ['filename.svelte']);
     });
 
     it('uses cache if module was already resolved before', async () => {

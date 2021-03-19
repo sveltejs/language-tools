@@ -19,17 +19,24 @@ export class LSAndTSDocResolver {
         private readonly configManager: LSConfigManager,
         private readonly transformOnTemplateError = true
     ) {
+        const handleDocumentChange = (document: Document) => {
+            // This refreshes the document in the ts language service
+            this.getLSAndTSDoc(document);
+        };
         docManager.on(
             'documentChange',
             debounceSameArg(
-                async (document: Document) => {
-                    // This refreshes the document in the ts language service
-                    this.getLSAndTSDoc(document);
-                },
+                handleDocumentChange,
                 (newDoc, prevDoc) => newDoc.uri === prevDoc?.uri,
                 1000
             )
         );
+
+        // New files would cause typescript to rebuild its type-checker.
+        // Open it immediately to reduce rebuilds in the startup
+        // where multiple files and their dependencies
+        // being loaded in a short period of times
+        docManager.on('documentOpen', handleDocumentChange);
     }
 
     /**

@@ -1,4 +1,4 @@
-import { isBeforeOrEqualToPosition, regexLastIndexOf } from '../src/utils';
+import { isBeforeOrEqualToPosition, modifyLines, regexLastIndexOf } from '../src/utils';
 import { Position } from 'vscode-languageserver';
 import * as assert from 'assert';
 
@@ -41,6 +41,24 @@ describe('utils', () => {
 
         it('should work #3', () => {
             assert.equal(regexLastIndexOf('<bla blubb={() => hello', /[\W\s]/g), 17);
+        });
+    });
+
+    describe('#modifyLines', () => {
+        it('should work', () => {
+            assert.equal(
+                modifyLines('a\nb\r\nc\nd', (line) => 1 + line),
+                '1a\n1b\r\n1c\n1d'
+            );
+        });
+
+        it('should pass correct line numbers', () => {
+            const idxs: number[] = [];
+            modifyLines('a\nb\r\nc\nd', (_, idx) => {
+                idxs.push(idx);
+                return _;
+            });
+            assert.deepStrictEqual(idxs, [0, 1, 2, 3]);
         });
     });
 });

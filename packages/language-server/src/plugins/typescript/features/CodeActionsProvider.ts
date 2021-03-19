@@ -8,8 +8,14 @@ import {
     VersionedTextDocumentIdentifier,
     WorkspaceEdit
 } from 'vscode-languageserver';
-import { Document, mapRangeToOriginal, isRangeInTag, isInTag } from '../../../lib/documents';
-import { pathToUrl, flatten, isNotNullOrUndefined } from '../../../utils';
+import {
+    Document,
+    mapRangeToOriginal,
+    isRangeInTag,
+    isInTag,
+    getLineAtPosition
+} from '../../../lib/documents';
+import { pathToUrl, flatten, isNotNullOrUndefined, modifyLines } from '../../../utils';
 import { CodeActionsProvider } from '../../interfaces';
 import { SnapshotFragment, SvelteSnapshotFragment } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
@@ -84,7 +90,10 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                             mapRangeToOriginal(fragment, convertRange(fragment, edit.span))
                         );
 
-                        return TextEdit.replace(range, edit.newText);
+                        return TextEdit.replace(
+                            range,
+                            this.fixIndentationOfImports(edit.newText, range, document)
+                        );
                     })
                 );
             })
@@ -97,6 +106,22 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                 CodeActionKind.SourceOrganizeImports
             )
         ];
+    }
+
+    private fixIndentationOfImports(edit: string, range: Range, document: Document): string {
+        // "Organize Imports" will have edits that delete all imports by return empty edits
+        // and one edit which contains all the organized imports. Fix indentation
+        // of that one by prepending all lines with the indentation of the first line.
+        if (!edit || range.start.character === 0) {
+            return edit;
+        }
+
+        const line = getLineAtPosition(range.start, document.getText());
+        const leadingChars = line.substring(0, range.start.character);
+        if (leadingChars.trim() !== '') {
+            return edit;
+        }
+        return modifyLines(edit, (line, idx) => (idx === 0 || !line ? line : leadingChars + line));
     }
 
     private checkRemoveImportCodeActionRange(

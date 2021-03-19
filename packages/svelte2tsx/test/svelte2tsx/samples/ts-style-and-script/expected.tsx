@@ -5,7 +5,7 @@
 ;
 () => (<>
 </>);
-return { props: {foo: foo} as {foo: string}, slots: {}, getters: {}, events: {} }}
+return { props: {foo: foo} as {foo: string}, slots: {}, getters: {}, setters: {}, events: {} }}
 
 export default class Input__SvelteComponent_ extends createSvelte2TsxComponent(__sveltets_partial_ts(__sveltets_with_any_event(render))) {
 }

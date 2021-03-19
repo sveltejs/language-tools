@@ -7,6 +7,7 @@
     let assignA: string = '';
     assignA;
     const aPromise: Promise<boolean> = Promise.resolve(true);
+    const aNestedPromise: {p: Promise<boolean>} | null = null as any;
     const store = writable<boolean | string>(true);
 </script>
 
@@ -52,3 +53,12 @@
 
 {a === true}
 {assignA = a}
+
+{#await aNestedPromise.p then x}
+    {x}
+{/await}
+{#if aNestedPromise}
+    {#await aNestedPromise.p then x}
+        {x}
+    {/await}
+{/if}

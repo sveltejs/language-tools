@@ -4,7 +4,7 @@ import { writable } from 'svelte/store';
 function render() {
 
   
-  const count = writable(0);let $count = __sveltets_store_get(count);;
+  const count = writable(0)/*Ωignore_startΩ*/;let $count = __sveltets_store_get(count);/*Ωignore_endΩ*/;
   let myvar = 42 // to show that this is different from ++ or --
   const handler1 = () => count.set( $count + myvar)
   const handler2 = () => count.set( $count - myvar)
@@ -33,7 +33,7 @@ function render() {
 <button onclick={() => count.set( $count & myvar)}>AND</button>
 <button onclick={() => count.set( $count ^ myvar)}>XOR</button>
 <button onclick={() => count.set( $count | myvar)}>OR</button></>);
-return { props: {}, slots: {}, getters: {}, events: {} }}
+return { props: {}, slots: {}, getters: {}, setters: {}, events: {} }}
 
 export default class Input__SvelteComponent_ extends createSvelte2TsxComponent(__sveltets_partial(__sveltets_with_any_event(render))) {
 }
