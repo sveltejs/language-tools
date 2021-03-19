@@ -90,10 +90,10 @@ export function activate(context: ExtensionContext) {
             fileEvents: workspace.createFileSystemWatcher('{**/*.js,**/*.ts}', false, false, false)
         },
         initializationOptions: {
-            config: workspace.getConfiguration('svelte.plugin'),
-            prettierConfig: workspace.getConfiguration('prettier'),
-            emmetConfig: workspace.getConfiguration('emmet'),
-            typescriptConfig: {
+            configuration: {
+                svelte: workspace.getConfiguration('svelte'),
+                prettier: workspace.getConfiguration('prettier'),
+                emmet: workspace.getConfiguration('emmet'),
                 typescript: workspace.getConfiguration('typescript'),
                 javascript: workspace.getConfiguration('javascript')
             },
