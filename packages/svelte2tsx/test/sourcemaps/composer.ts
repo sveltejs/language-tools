@@ -8,7 +8,7 @@ class Comment {
     readonly content: [string, string][];
     constructor(gen: Iterable<comment>, readonly opts: CommentOpts = {}) {
         this.content = Array.from(gen, ([cmap, message]): [string, string] => [
-            typeof cmap === 'string' ? cmap : cmap.text.padStart(cmap.start),
+            typeof cmap === 'string' ? cmap : ' '.repeat(cmap.start) + cmap.text,
             message
         ]);
     }

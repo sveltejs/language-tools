@@ -2,6 +2,7 @@ import { ComposeHelper, compose_file } from './composer';
 import {
     each_exec,
     fromLineChar,
+    get_extra_indent,
     hash,
     insert_segments,
     MappedKeys,
@@ -146,7 +147,7 @@ namespace print {
                                         tab_aware_index(line.toString(), range.end.character),
                                         (is_single ? '#' : i + 1) + '=='
                                     )
-                            ),
+                            ).padEnd(line.length + get_extra_indent(line.toString()) - 3),
                             `[${key}] line ${line.index + 1}${
                                 key === 'generated' && !target[0].start.original.line
                                     ? ' => No Mappings !'
