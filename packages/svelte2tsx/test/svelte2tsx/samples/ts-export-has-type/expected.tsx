@@ -6,7 +6,7 @@
      let b: A = {};b = __sveltets_any(b);;
 ;
 () => (<></>);
-return { props: {a: a , b: b} as {a: A, b?: A}, slots: {}, getters: {}, events: {} }}
+return { props: {a: a , b: b} as {a: A, b?: A}, slots: {}, getters: {}, setters: {}, events: {} }}
 
 export default class Input__SvelteComponent_ extends createSvelte2TsxComponent(__sveltets_partial_ts(__sveltets_with_any_event(render))) {
 }

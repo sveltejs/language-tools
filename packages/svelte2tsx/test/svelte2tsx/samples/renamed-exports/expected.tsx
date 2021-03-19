@@ -6,7 +6,7 @@
     
 ;
 () => (<></>);
-return { props: {name3: name , name4: name2}, slots: {}, getters: {}, events: {} }}
+return { props: {name3: name , name4: name2}, slots: {}, getters: {}, setters: {}, events: {} }}
 
 export default class Input__SvelteComponent_ extends createSvelte2TsxComponent(__sveltets_partial(__sveltets_with_any_event(render))) {
 }
