@@ -11,7 +11,7 @@ function render() {
 () => (<>
 
 <input onfocus={undefined} /></>);
-return { props: {}, slots: {}, getters: {}, events: {'focus':__sveltets_mapElementEvent('focus'), 'mount': __sveltets_customEvent} }}
+return { props: {}, slots: {}, getters: {}, setters: {}, events: {'focus':__sveltets_mapElementEvent('focus'), 'mount': __sveltets_customEvent} }}
 
 export default class Input__SvelteComponent_ extends createSvelte2TsxComponent(__sveltets_partial(__sveltets_with_any_event(render))) {
 }
