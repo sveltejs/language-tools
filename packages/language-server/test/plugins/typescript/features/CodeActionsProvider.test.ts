@@ -264,7 +264,7 @@ describe('CodeActionsProvider', () => {
                             edits: [
                                 {
                                     // eslint-disable-next-line max-len
-                                    newText: "import A from './A';\nimport { c } from './c';\n",
+                                    newText: "import A from './A';\n  import { c } from './c';\n",
                                     range: {
                                         start: {
                                             line: 1,
@@ -339,7 +339,7 @@ describe('CodeActionsProvider', () => {
                             edits: [
                                 {
                                     newText:
-                                        "import { _,_d } from 'svelte-i18n';\nimport { _e } from 'svelte-i18n1';\n",
+                                        "import { _,_d } from 'svelte-i18n';\n  import { _e } from 'svelte-i18n1';\n",
                                     range: {
                                         end: {
                                             character: 0,
