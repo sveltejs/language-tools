@@ -39,7 +39,7 @@ describe('sourcemaps', function () {
                     assert.strictEqual(actual, expected);
                 },
                 function () {
-                    throw new Error(`Invalid test file format at ${sample.directory}/test.jsx`);
+                    throw new Error(`Invalid test file format`);
                 },
                 function (ranges) {
                     throw new Error(
@@ -47,7 +47,7 @@ describe('sourcemaps', function () {
                             ranges.map((range) => `\t"${print_string(range[2])}"`).join('\n') +
                             (process.env.CI
                                 ? ''
-                                : `\nTo edit ranges : ${sample.directory}/test.edit.jsx`)
+                                : `\nTo edit ranges : ${sample.cmd('test.edit.jsx')}`)
                     );
                 }
             );
@@ -72,7 +72,6 @@ function maybe_generate(sample: Sample, regenerate: (generate: GenerateFn) => vo
     const svelteFile = sample.wildcard('*.svelte');
 
     if (sample.hasOnly(svelteFile)) {
-        sample.log(color.green(`[New] Sample ${sample.name}`));
         return sample.generateDeps(regenerate);
     }
 
@@ -84,7 +83,6 @@ function maybe_generate(sample: Sample, regenerate: (generate: GenerateFn) => vo
         } catch (err) {
             return sample.generateDeps(function (generate) {
                 generate_passive(generate, parse(sample));
-                err.message += `\n\tat ${sample.directory}/test.edit.jsx`;
                 throw err;
             });
         }
@@ -112,14 +110,13 @@ function maybe_generate(sample: Sample, regenerate: (generate: GenerateFn) => vo
                     '' +
                         `Failed to ${err} "test.edit.jsx" as it is based on a stale output.\n` +
                         `\tEither reverse output changes or delete "test.edit.jsx" manually before running tests again\n` +
-                        `\tcmd-click : ${sample.directory}/test.edit.jsx\n`
+                        `\tcmd-click : ${sample.cmd('test.edit.jsx')}\n`
                 );
             });
         }
     }
 
     if (!sample.has('mappings.jsx') || (!sample.has('test.jsx') && !sample.has('test.edit.jsx'))) {
-        sample.log(color.yellow(`[Repaired] Uncomplete Sample ${sample.name}`));
         return sample.generateDeps(regenerate);
     }
 
@@ -129,7 +126,6 @@ function maybe_generate(sample: Sample, regenerate: (generate: GenerateFn) => vo
     } catch (err) {
         return sample.generateDeps(function (generate) {
             generate_passive(generate, parse(sample));
-            err.message += `\n\tat ${sample.directory}/test.jsx`;
             throw err;
         });
     }
@@ -146,7 +142,7 @@ function maybe_generate(sample: Sample, regenerate: (generate: GenerateFn) => vo
                 '' +
                     `Test input at "${svelteFile}" changed, thus making "test.jsx" invalid.\n` +
                     `\tEither manually re-select all tested ranges in the newly generated "test.edit.jsx", delete "test.jsx" or undo input changes.\n` +
-                    `\tcmd-click : ${sample.directory}/test.edit.jsx\n`
+                    `\tcmd-click : ${sample.cmd('test.edit.jsx')}\n`
             );
         });
     }

@@ -1,8 +1,9 @@
-import assert from 'assert';
 import fs from 'fs';
+import assert, { AssertionError } from 'assert';
 import { TestFunction } from 'mocha';
-import { htmlx2jsx } from './build/htmlxtojsx';
 import svelte2tsx from './build/index';
+import { htmlx2jsx } from './build/htmlxtojsx';
+import path from 'path';
 
 export function benchmark(fn: () => void) {
     return -Date.now() + (fn(), Date.now());
@@ -12,31 +13,34 @@ function normalize(content: string) {
     return content.replace(/\r\n/g, '\n').replace(/\s+$/, '');
 }
 
+function print_error(err: Error) {
+    return JSON.stringify(err, null, 4) + '\n';
+}
+
 function readFileSync(path: string) {
     return fs.existsSync(path) ? normalize(fs.readFileSync(path, 'utf-8')) : null;
 }
+
 function writeFileSync(path: string, content: string) {
     return fs.writeFileSync(path, normalize(content));
-}
-function existsSync(path: string) {
-    return fs.existsSync(path);
 }
 
 function wildcard(str: string, target: string) {
     if (str[0] === '*') return target.endsWith(str.slice(1));
     return str === target;
 }
+
 export type GenerateFn = (file: string, content: string, skip?: boolean) => void;
-type OnlyGenerateFn = (generate: GenerateFn) => void;
 type ErrorFn = (fn: GenerateFn, err: any) => void;
+
 export class Sample {
     private readonly folder: string[];
-    readonly directory: string;
+    private readonly directory: string;
     private skipped = false;
     private on_error?: ErrorFn;
 
     constructor(dir: string, readonly name: string) {
-        this.directory = `${dir}/samples/${name}`;
+        this.directory = path.resolve(dir, 'samples', name);
         this.folder = fs.readdirSync(this.directory);
     }
 
@@ -60,13 +64,11 @@ export class Sample {
         }
 
         if (unknown.length) {
-            const errors = unknown
-                .map((name) => `[Unexpected file] ${this.directory}/${name}`)
-                .join('\n');
+            const errors = unknown.map((name) => `[Unexpected file] ${this.cmd(name)}`).join('\n');
             if (process.env.CI) {
                 throw new Error('\n' + errors);
             } else {
-                console.log(color.red(errors));
+                this.log(color.yellow(errors));
             }
         }
 
@@ -95,8 +97,9 @@ export class Sample {
                 fn();
                 if (sample.skipped) this.skip();
             } catch (err) {
-                sample.on_error?.(sample.generate.bind(sample), err);
+                if (sample.on_error) sample.on_error(sample.generate.bind(sample), err);
                 if (sample.skipped) this.skip();
+                this.test.title = sample.cmd('');
                 throw err;
             }
         });
@@ -110,12 +113,8 @@ export class Sample {
         });
     }
 
-    generateDeps(fn: OnlyGenerateFn) {
-        if (process.env.CI) throw new Error(`Forgot to generate ${this.name} dependencies`);
-        it.only(`${this.name} dependencies`, () => fn(this.generate.bind(this)));
-    }
-
     onError(fn: ErrorFn) {
+        assert(!this.on_error);
         this.on_error = fn;
     }
 
@@ -123,35 +122,51 @@ export class Sample {
         return this.folder.includes(target_file);
     }
 
-    hasOnly(...files: string[]) {
-        return this.folder.length === files.length && files.every((f) => this.has(f));
+    hasOnly(...fileNames: string[]) {
+        return this.folder.length === fileNames.length && fileNames.every((f) => this.has(f));
     }
 
-    wildcard(file: string) {
-        return this.folder.find((f) => wildcard(file, f));
+    wildcard(fileName: string) {
+        return this.folder.find((f) => wildcard(fileName, f));
     }
 
-    get(file: string) {
-        return readFileSync(`${this.directory}/${file}`);
+    at(file: string) {
+        return path.resolve(this.directory, file);
     }
 
-    private generate(fileName: string, content: string, skip = true) {
-        const path = `${this.directory}/${fileName}`;
+    cmd(file: string) {
+        return this.at(file).replace(process.cwd(), '').slice(1).replace(/\\/g, '/');
+    }
+
+    get(fileName: string) {
+        return readFileSync(this.at(fileName));
+    }
+
+    generateDeps(fn: (generate: GenerateFn) => void) {
         if (process.env.CI) {
-            throw new Error(`Forgot to generate sample file "${fileName}" at "${path}"`);
+            throw new Error(`Tried to generate ${this.name} dependencies`);
         }
-        if (readFileSync(path) !== normalize(content)) {
+        it.only(`${this.name} dependencies`, () => fn(this.generate.bind(this)));
+    }
+
+    private generate(file: string, content: string, skip = true) {
+        if (process.env.CI) {
+            throw new Error(
+                `Tried to generate file at ${this.cmd(file)}\nRun tests locally to fix`
+            );
+        }
+        if (this.get(file) !== normalize(content)) {
             after(() => {
-                const action = existsSync(path) ? 'updated' : 'generated';
-                console.info(`\t[${action}] ${color.cyan(fileName)} (${color.underscore(path)}) `);
-                writeFileSync(path, content);
+                const action = this.has(file) ? 'updated' : 'generated';
+                console.log(`\t[${action}] ${color.cyan(file)} ${color.grey(this.cmd(file))}`);
+                writeFileSync(this.at(file), content);
             });
             if (skip) this.skipped = true;
         }
     }
 
     eval(fileName: string, ...args: any[]) {
-        const fn = require(`${this.directory}/${fileName}`);
+        const fn = require(this.at(fileName));
         fn(...args);
     }
 }
@@ -164,6 +179,12 @@ type TransformSampleFn = (
         emitOnTemplateError: boolean;
     }
 ) => ReturnType<typeof htmlx2jsx | typeof svelte2tsx>;
+
+const enum TestError {
+    WrongError = 'Expected an Error but not this one',
+    MissingError = 'Expected an Error but got none',
+    WrongExpected = 'Expected a different output'
+}
 
 export function test_samples(dir: string, transform: TransformSampleFn, jsx: 'jsx' | 'tsx') {
     for (const sample of each_sample(dir)) {
@@ -185,32 +206,33 @@ export function test_samples(dir: string, transform: TransformSampleFn, jsx: 'js
                 allowed: ['expected.js', `expected.${jsx}`, 'expected.error.json']
             });
 
-            const shouldGenerateExpected = !sample.has(`expected.${jsx}`);
-            const shouldGenerateError = sample.get('expected.error.json') === '';
-
-            if (shouldGenerateExpected || shouldGenerateError) {
+            if (sample.hasOnly(svelteFile) || sample.hasOnly(svelteFile, 'expected.js')) {
                 sample.generateDeps((generate) => {
                     const input = sample.get(svelteFile);
-                    if (shouldGenerateError) {
-                        let hadError = false;
-                        try {
-                            transform(input, config);
-                        } catch (error) {
-                            hadError = true;
-                            generate('expected.error.json', JSON.stringify(error, null, 4) + '\n');
-                        }
+                    try {
+                        transform(input, config);
+                    } catch (error) {
+                        generate('expected.error.json', print_error(error));
                         config.emitOnTemplateError = true;
-                        assert(
-                            hadError,
-                            `Expected a template error but got none, ` +
-                                `if this is expected delete ${sample.directory}/expected.error.json`
-                        );
                     }
-                    if (shouldGenerateExpected) {
-                        generate(`expected.${jsx}`, transform(input, config).code);
-                    }
+                    generate(`expected.${jsx}`, transform(input, config).code);
                 });
             }
+
+            sample.onError(function (generate, err: AssertionError) {
+                if (!err || err.code !== 'ERR_ASSERTION') return;
+                const { message, actual } = err;
+                switch (message) {
+                    case TestError.WrongExpected: {
+                        generate(`expected.${jsx}`, actual);
+                        break;
+                    }
+                    case TestError.WrongError: {
+                        generate('expected.error.json', print_error(actual));
+                        break;
+                    }
+                }
+            });
         }
 
         sample.it(function () {
@@ -223,17 +245,18 @@ export function test_samples(dir: string, transform: TransformSampleFn, jsx: 'js
                 } catch (error) {
                     hadError = true;
                     assert.deepEqual(
+                        JSON.parse(JSON.stringify(error)),
                         JSON.parse(sample.get('expected.error.json')),
-                        JSON.parse(JSON.stringify(error))
+                        TestError.WrongError
                     );
+                    config.emitOnTemplateError = true;
                 }
-                config.emitOnTemplateError = true;
-                assert(hadError, `Expected a template error but got none`);
+                assert(hadError, TestError.MissingError);
             }
 
             const output = transform(input, config);
 
-            assert.strictEqual(output.code, sample.get(`expected.${jsx}`));
+            assert.strictEqual(output.code, sample.get(`expected.${jsx}`), TestError.WrongExpected);
 
             if (sample.has('expected.js')) {
                 sample.eval('expected.js', output);
@@ -257,13 +280,13 @@ export function* each_sample(dir: string) {
         yield new Sample(dir, name);
     }
 }
-export const color = (function (colors, special) {
+export const color = (function (colors, mods) {
     const obj = {};
-    const fn = (code: number, str: string) => `\x1b[${code}m${str}\x1b[0m`;
-    for (let i = 0; i < colors.length; i++) obj[colors[i]] = fn.bind(null, 31 + i);
-    for (let i = 0; i < special.length; i++) obj[special[i]] = fn.bind(null, 2 * (1 + i));
-    return obj as { [K in (typeof special | typeof colors)[any]]: (str: string) => string };
+    const fn = (c1: number, c2: number, str: string) => `\x1b[${c1}m${str}\x1b[${c2}m`;
+    for (let i = 0; i < colors.length; i++) obj[colors[i]] = fn.bind(null, 30 + i, 39);
+    for (const key in mods) obj[key] = fn.bind(null, mods[key][0], mods[key][1]);
+    return obj as { [K in typeof colors[any] | keyof typeof mods]: (str: string) => string };
 })(
-    ['red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'white'] as const,
-    ['dim', 'underscore'] as const
+    ['black', 'red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'white'] as const,
+    { grey: [90, 39], bold: [1, 22], italic: [3, 23], underline: [4, 24], hidden: [8, 28] } as const
 );
