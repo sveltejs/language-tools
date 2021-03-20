@@ -220,7 +220,7 @@ export function test_samples(dir: string, transform: TransformSampleFn, jsx: 'js
             }
 
             sample.onError(function (generate, err: AssertionError) {
-                if (err?.code !== 'ERR_ASSERTION') return;
+                if (!err || err.code !== 'ERR_ASSERTION') return;
                 const { message, actual } = err;
                 switch (message) {
                     case TestError.WrongExpected: {
