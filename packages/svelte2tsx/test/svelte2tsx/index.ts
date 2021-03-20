@@ -1,16 +1,11 @@
 import svelte2tsx from '../build/index';
-import { test_samples } from '../helpers';
+import { get_svelte2tsx_config, test_samples } from '../helpers';
 
 describe('svelte2tsx', () => {
     test_samples(
         __dirname,
-        (input, { sampleName, fileName, emitOnTemplateError }) => {
-            return svelte2tsx(input, {
-                strictMode: sampleName.includes('strictMode'),
-                isTsFile: sampleName.startsWith('ts-'),
-                filename: fileName,
-                emitOnTemplateError
-            });
+        (input, config) => {
+            return svelte2tsx(input, get_svelte2tsx_config(config, config.sampleName));
         },
         'tsx'
     );
