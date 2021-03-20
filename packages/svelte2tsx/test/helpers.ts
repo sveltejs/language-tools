@@ -282,7 +282,7 @@ export function* each_sample(dir: string) {
         yield new Sample(dir, name);
     }
 }
-                
+
 export const color = (function (colors, mods) {
     const obj = {};
     const fn = (c1: number, c2: number, str: string) => `\x1b[${c1}m${str}\x1b[${c2}m`;
