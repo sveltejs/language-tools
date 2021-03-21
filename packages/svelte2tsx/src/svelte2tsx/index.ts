@@ -9,7 +9,7 @@ import { ComponentEvents } from './nodes/ComponentEvents';
 import { EventHandler } from './nodes/event-handler';
 import { ExportedNames } from './nodes/ExportedNames';
 import { createClassGetters, createRenderFunctionGetterStr } from './nodes/exportgetters';
-import { createClassSetters, createRenderFunctionSetterStr } from './nodes/exportsetters';
+import { createClassAccessors } from './nodes/exportaccessors';
 import {
     handleScopeAndResolveForSlot,
     handleScopeAndResolveLetVarForSlot
@@ -46,7 +46,8 @@ interface AddComponentExportPara {
     strictEvents: boolean;
     isTsFile: boolean;
     getters: Set<string>;
-    setters: Set<string>;
+    usesAccessors: boolean;
+    exportedNames: ExportedNames;
     fileName?: string;
     componentDocumentation: ComponentDocumentation;
 }
@@ -316,7 +317,8 @@ function addComponentExport({
     strictEvents,
     isTsFile,
     getters,
-    setters,
+    usesAccessors,
+    exportedNames,
     fileName,
     componentDocumentation
 }: AddComponentExportPara) {
@@ -341,7 +343,7 @@ function addComponentExport({
             className ? ` ${className}` : ''
         } extends createSvelte2TsxComponent(${propDef}) {` +
         createClassGetters(getters) +
-        createClassSetters(setters) +
+        (usesAccessors ? createClassAccessors(getters, exportedNames) : '') +
         '\n}';
 
     str.append(statement);
@@ -382,7 +384,6 @@ function createRenderFunction({
     scriptDestination,
     slots,
     getters,
-    setters,
     events,
     exportedNames,
     isTsFile,
@@ -437,10 +438,9 @@ function createRenderFunction({
         '}';
 
     const returnString =
-        `\nreturn { props: ${exportedNames.createPropsStr(
-            isTsFile
-        )}, slots: ${slotsAsDef}, getters: ${createRenderFunctionGetterStr(getters)}` +
-        `, setters: ${createRenderFunctionSetterStr(setters)}` +
+        `\nreturn { props: ${exportedNames.createPropsStr(isTsFile)}` +
+        `, slots: ${slotsAsDef}` +
+        `, getters: ${createRenderFunctionGetterStr(getters)}` +
         `, events: ${events.toDefString()} }}`;
 
     // wrap template with callback
@@ -499,24 +499,17 @@ export function svelte2tsx(
     //move the instance script and process the content
     let exportedNames = new ExportedNames();
     let getters = new Set<string>();
-    let setters = new Set<string>();
     if (scriptTag) {
         //ensure it is between the module script and the rest of the template (the variables need to be declared before the jsx template)
         if (scriptTag.start != instanceScriptTarget) {
             str.move(scriptTag.start, scriptTag.end, instanceScriptTarget);
         }
-        const res = processInstanceScriptContent(
-            str,
-            scriptTag,
-            events,
-            implicitStoreValues,
-            usesAccessors
-        );
+        const res = processInstanceScriptContent(str, scriptTag, events, implicitStoreValues);
         uses$$props = uses$$props || res.uses$$props;
         uses$$restProps = uses$$restProps || res.uses$$restProps;
         uses$$slots = uses$$slots || res.uses$$slots;
 
-        ({ exportedNames, events, getters, setters } = res);
+        ({ exportedNames, events, getters } = res);
     }
 
     //wrap the script tag and template content in a function returning the slot and exports
@@ -527,7 +520,6 @@ export function svelte2tsx(
         slots,
         events,
         getters,
-        setters,
         exportedNames,
         isTsFile: options?.isTsFile,
         uses$$props,
@@ -551,7 +543,8 @@ export function svelte2tsx(
         strictEvents: events.hasInterface(),
         isTsFile: options?.isTsFile,
         getters,
-        setters,
+        exportedNames,
+        usesAccessors,
         fileName: options?.filename,
         componentDocumentation
     });

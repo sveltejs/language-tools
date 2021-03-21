@@ -21,7 +21,6 @@ export interface InstanceScriptProcessResult {
     uses$$restProps: boolean;
     uses$$slots: boolean;
     getters: Set<string>;
-    setters: Set<string>;
 }
 
 interface PendingStoreResolution {
@@ -34,8 +33,7 @@ export function processInstanceScriptContent(
     str: MagicString,
     script: Node,
     events: ComponentEvents,
-    implicitStoreValues: ImplicitStoreValues,
-    usesAccessors: boolean
+    implicitStoreValues: ImplicitStoreValues
 ): InstanceScriptProcessResult {
     const htmlx = str.original;
     const scriptContent = htmlx.substring(script.content.start, script.content.end);
@@ -49,7 +47,6 @@ export function processInstanceScriptContent(
     const astOffset = script.content.start;
     const exportedNames = new ExportedNames();
     const getters = new Set<string>();
-    const setters = new Set<string>();
 
     const implicitTopLevelNames = new ImplicitTopLevelNames();
     let uses$$props = false;
@@ -103,11 +100,6 @@ export function processInstanceScriptContent(
             }
             const name = identifier.getText();
             const end = declaration.end + astOffset;
-
-            if (usesAccessors) {
-                setters.add(name);
-                getters.add(name);
-            }
 
             str.appendLeft(end, `;${name} = __sveltets_any(${name});`);
         };
@@ -507,7 +499,6 @@ export function processInstanceScriptContent(
         uses$$props,
         uses$$restProps,
         uses$$slots,
-        getters,
-        setters
+        getters
     };
 }

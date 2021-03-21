@@ -18,7 +18,7 @@ function render() {
 () => (<>
 
 <button onclick={() => dispatch('btn', '')}></button></>);
-return { props: {}, slots: {}, getters: {}, setters: {}, events: {'btn': __sveltets_customEvent, 'hi': __sveltets_customEvent, 'bye': __sveltets_customEvent} }}
+return { props: {}, slots: {}, getters: {}, events: {'btn': __sveltets_customEvent, 'hi': __sveltets_customEvent, 'bye': __sveltets_customEvent} }}
 
 export default class Input__SvelteComponent_ extends createSvelte2TsxComponent(__sveltets_partial(__sveltets_with_any_event(render))) {
 }
