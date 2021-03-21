@@ -11,7 +11,7 @@
     {d}
 </>})}}
 <slot name="third" d={d} c={c}></slot></>
-return { props: {}, slots: {'default': {a:(({ a }) => a)(__sveltets_unwrapArr(__sveltets_unwrapArr(items)))}, 'second': {a:a}, 'third': {d:d, c:c}}, getters: {}, setters: {}, events: {} }}
+return { props: {}, slots: {'default': {a:(({ a }) => a)(__sveltets_unwrapArr(__sveltets_unwrapArr(items)))}, 'second': {a:a}, 'third': {d:d, c:c}}, getters: {}, events: {} }}
 
 export default class Input__SvelteComponent_ extends createSvelte2TsxComponent(__sveltets_partial(__sveltets_with_any_event(render))) {
 }

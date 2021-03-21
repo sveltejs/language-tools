@@ -18,7 +18,7 @@ $: ({ bla4, bla5 } = __sveltets_invalidate(() => (__sveltets_store_get(data), $d
 $: ([ bla4, bla5 ] = __sveltets_invalidate(() => (__sveltets_store_get(data), $data)))
 ;
 () => (<></>);
-return { props: {}, slots: {}, getters: {}, setters: {}, events: {} }}
+return { props: {}, slots: {}, getters: {}, events: {} }}
 
 export default class Input__SvelteComponent_ extends createSvelte2TsxComponent(__sveltets_partial(__sveltets_with_any_event(render))) {
 }
