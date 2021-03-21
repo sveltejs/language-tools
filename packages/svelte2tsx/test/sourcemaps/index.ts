@@ -1,7 +1,7 @@
 import assert from 'assert';
 import { decode } from 'sourcemap-codec';
 import svelte2tsx from '../build';
-import { color, each_sample, GenerateFn, get_svelte2tsx_config, Sample } from '../helpers';
+import { each_sample, GenerateFn, get_svelte2tsx_config, Sample } from '../helpers';
 import { print_string } from './helpers';
 import {
     handler,
