@@ -155,6 +155,7 @@ function generate_passive(generate: GenerateFn, parsed: Parsed, skip = false) {
 
 type Parsed = ReturnType<typeof handler> & { generated: string; inline: string };
 const cache = new WeakMap<Sample, Parsed>();
+
 function parse(sample: Sample): Parsed {
     if (!cache.has(sample)) {
         const filename = sample.wildcard('*.svelte');

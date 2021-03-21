@@ -10,8 +10,12 @@ import {
     span,
     underline
 } from './helpers';
+
 type LineContext = { index: number; start: number; length: number };
+
 export class SourceText<L extends Line = Line> {
+    readonly lines: L[] = [];
+
     constructor(readonly text: string, line?: (ctx: LineContext) => L) {
         this.lines = Array.from(
             (function* (text: string): Generator<LineContext> {
@@ -33,22 +37,25 @@ export class SourceText<L extends Line = Line> {
             line ? line.bind(this) : (ctx) => new Line(this, ctx)
         );
     }
-    readonly lines: L[] = [];
+
     toLineChar(index: number) {
         let i = this.lines.length - 1;
         while (index < this.lines[i].start) i--;
         return { line: this.lines[i], character: index - this.lines[i].start };
     }
+
     print_slice(start: number, end?: number) {
         return print_string(this.text.slice(start, end));
     }
 }
+
 export class GeneratedSourceText extends SourceText<GeneratedLine> {
     firstMapped: number;
     lastMapped: number;
     readonly original: SourceText;
     readonly mappings: Mappings;
     private readonly references: Map<Line, GeneratedLine[]>;
+
     constructor(text: string, original: SourceText, mappings: Mappings) {
         const references = new Map<Line, GeneratedLine[]>(original.lines.map((line) => [line, []]));
         super(text, function (this: GeneratedSourceText, line) {
@@ -71,10 +78,12 @@ export class GeneratedSourceText extends SourceText<GeneratedLine> {
         this.original = original;
         this.mappings = mappings;
     }
+
     at(genCharIndex: number): MappedPosition {
         const { line, character } = super.toLineChar(genCharIndex);
         return { generated: { line, character }, original: line.getOriginalPosition(character) };
     }
+
     from(ogCharIndex: number): MappedPosition[] {
         const original = this.original.toLineChar(ogCharIndex);
         const { line: ogLine, character: ogIndex } = original;
@@ -88,23 +97,29 @@ export class GeneratedSourceText extends SourceText<GeneratedLine> {
         }
         return matches.map((generated) => ({ generated, original }));
     }
+
     for(ogLine: Line) {
         return this.references.get(ogLine);
     }
 }
+
 export class Line {
     readonly index: number;
     readonly start: number;
     readonly length: number;
+
     get end() {
         return this.start + this.length - 1;
     }
+
     constructor(readonly source: SourceText<any>, ctx: LineContext) {
         ({ index: this.index, start: this.start, length: this.length } = ctx);
     }
+
     print_charAt(charIndex: number) {
         return print_string(this.source.text.charAt(this.start + charIndex));
     }
+
     print_slice(start: number, end?: number) {
         return print_string(
             start >= 0 && (end === undefined || (start <= end && end <= this.length))
@@ -112,9 +127,11 @@ export class Line {
                 : this.toString().slice(start, end)
         );
     }
+
     print() {
         return this.print_slice(0);
     }
+
     toString() {
         return this.source.text.slice(this.start, this.start + this.length);
     }
@@ -124,6 +141,7 @@ export class GeneratedLine extends Line {
     readonly hasOrigin = this.lineMap.length !== 0;
     readonly hasStartOrigin = this.hasOrigin && this.lineMap[0][0] === 0;
     readonly isSingleOrigin = this.hasOrigin && this.ogLines.length === 1;
+
     constructor(
         source: GeneratedSourceText,
         ctx: LineContext,
@@ -132,6 +150,7 @@ export class GeneratedLine extends Line {
     ) {
         super(source, ctx);
     }
+
     isExact() {
         return (
             this.hasOrigin &&
@@ -142,6 +161,7 @@ export class GeneratedLine extends Line {
             this.lineMap.every((char) => char[0] === char[3])
         );
     }
+
     getOrderBreaking(ogLine: Line) {
         let prev: CharMap4 = this.lineMap.find((char) => char[2] === ogLine.index);
         return reduce_segments(this.lineMap, function (char) {
@@ -153,21 +173,25 @@ export class GeneratedLine extends Line {
             }
         });
     }
+
     getUnmappedStart() {
         return span(this.lineMap[0]?.[0] ?? this.length, '==#');
     }
+
     getGeneratedMappingResult(ogLine: Line) {
         return reduce_segments(this.lineMap, function (char) {
             if (char[2] === ogLine.index)
                 return { start: char[0], text: ogLine.print_charAt(char[3]) };
         });
     }
+
     getOriginalMappingResult(ogLine: Line) {
         return reduce_segments(this.lineMap, function (char) {
             if (char[2] === ogLine.index)
                 return { start: char[3], text: ogLine.print_charAt(char[3]) };
         });
     }
+
     *subsets() {
         if (!this.hasOrigin) return;
         if (this.isSingleOrigin)
@@ -184,12 +208,14 @@ export class GeneratedLine extends Line {
             yield { ogLine, text: text[ogLine.index], index };
         }
     }
+
     getMappingFor(charIndex: number) {
         if (!this.hasOrigin || (!this.hasStartOrigin && charIndex < this.lineMap[0][0])) return;
         let i = this.lineMap.length - 1;
         while (this.lineMap[i][0] > charIndex) i--;
         return this.lineMap[i];
     }
+
     getOriginalPosition(charIndex: number) {
         const char = this.getMappingFor(charIndex);
         if (!char) return { line: null, character: -1 };
@@ -197,10 +223,12 @@ export class GeneratedLine extends Line {
         return { line: this.source.original.lines[line], character };
     }
 }
+
 export type ParsedSource = {
     original: SourceText;
     generated: GeneratedSourceText;
 };
+
 export function parse(
     original_text: string,
     generated_text: string,

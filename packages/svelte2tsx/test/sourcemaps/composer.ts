@@ -1,9 +1,11 @@
 import { get_extra_indent, Segment } from './helpers';
 import { Line } from './parser';
+
 type cmap = string | Segment;
 type CommentOpts = { indent?: number };
 type comment = [cmap, string] | readonly [cmap, string];
 type Section = HorizontalRule | Comment | Line | string;
+
 class Comment {
     readonly content: [string, string][];
     constructor(gen: Iterable<comment>, readonly opts: CommentOpts = {}) {
@@ -22,6 +24,7 @@ class Comment {
             .join('\n');
     }
 }
+
 class HorizontalRule {
     constructor(readonly content?: string, readonly _fill: string = '-') {}
     fill(width: number) {
@@ -36,6 +39,7 @@ class HorizontalRule {
 function rule(content?: string, fill?: string): HorizontalRule {
     return new HorizontalRule(content, fill);
 }
+
 function comment(lines: comment | Iterable<comment>, opts?: CommentOpts) {
     return new Comment(
         lines instanceof Array && lines.length === 2 && !(lines[0] instanceof Array)
@@ -44,10 +48,13 @@ function comment(lines: comment | Iterable<comment>, opts?: CommentOpts) {
         opts
     );
 }
+
 function is_inside_comment(section: Section) {
     return section instanceof HorizontalRule || section instanceof Comment;
 }
+
 export type ComposeHelper = { rule: typeof rule; comment: typeof comment };
+
 export function compose_file(
     fn: (composer: ComposeHelper) => Iterable<Section>,
     opts: { width?: number; indent?: number; match_first_column_width?: boolean } = {}
@@ -94,5 +101,6 @@ export function compose_file(
     }
     return content.join('\n');
 }
+
 const comment_start = '{/**';
 const comment_end = ' */}';

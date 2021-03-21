@@ -30,6 +30,7 @@ namespace raw {
     const EDIT_FILE_END = `\n/** content-hash: $ */`.split('$');
     const TEST_FILE_START = '/** tested-ranges: $ */'.split('$');
     const TEST_FILE_END = '\n/** origin-hash: $ */'.split('$');
+
     export function fromTestFile(file: string) {
         if (!file.startsWith(TEST_FILE_START[0]) || !file.includes(TEST_FILE_END[0]))
             throw new Error('Invalid test file');
@@ -41,6 +42,7 @@ namespace raw {
         );
         return { ranges: ranges as RawTestRange[], hash };
     }
+
     export function toTestFile(origin: string, content: string, ranges: RawTestRange[]) {
         const raw = JSON.stringify(ranges);
         if (raw.includes(TEST_FILE_START[1]))
@@ -53,6 +55,7 @@ namespace raw {
 
         return header + content + TEST_FILE_END[0] + hash(origin) + TEST_FILE_END[1];
     }
+
     export function fromEditFile(file: string) {
         const start = file.lastIndexOf(EDIT_FILE_START);
         const end = file.lastIndexOf(EDIT_FILE_END[0]);
@@ -63,10 +66,12 @@ namespace raw {
             hash: file.slice(end + EDIT_FILE_END[0].length, file.indexOf(EDIT_FILE_END[1], end))
         };
     }
+
     export function toEditFile(content: string) {
         return EDIT_FILE_START + content + EDIT_FILE_END[0] + hash(content) + EDIT_FILE_END[1];
     }
 }
+
 namespace print {
     export function mappings({ generated }: ParsedSource) {
         return compose_file(function* (composer) {
@@ -85,6 +90,7 @@ namespace print {
                 }
             }
         });
+
         function* comment_for(line: GeneratedLine) {
             const text_generated = line.print();
             for (const { ogLine, text: text_og_subset, index } of line.subsets()) {
@@ -119,12 +125,14 @@ namespace print {
             }
         }
     }
+
     export function test(test_ranges: RawTestRange[], source: ParsedSource) {
         return raw.toTestFile(
             source.original.text,
             compose_file(compose_test, { match_first_column_width: true }),
             test_ranges
         );
+
         function* compose_test(composer: ComposeHelper) {
             const ranges = test_ranges.map((range) => tryEvalTestRange(range, source).range);
             for (let i = 0; i < ranges.length; i++) {
@@ -194,11 +202,6 @@ namespace print {
                 yield composer.rule('---');
             }
         }
-        function title_for(range: MappedRange) {
-            const { start, end } = range_for('generated', range);
-            const to = start.line === end.line ? '' : `to ${end.line.index + 1} `;
-            return `# Line ${start.line.index + 1} ${to}#`;
-        }
 
         function can_merge(r1: MappedRange, r2: MappedRange) {
             return (
@@ -207,10 +210,12 @@ namespace print {
                 r2.start.original.character > r1.end.original.character
             );
         }
+
         function is_same_line(p1: MappedPosition, p2: MappedPosition) {
             return p1.generated.line === p2.generated.line && p1.original.line === p2.original.line;
         }
     }
+
     export function test_edit(parsed_tests: SourceMappingTest[], source: ParsedSource) {
         return raw.toEditFile(
             insert_segments(
@@ -249,8 +254,10 @@ namespace print {
  * 	 	2) Find the closest occurence of [2]
  *
  */
+
 type RawTestRange = [ogStart: number, ogLength: number, genText: string];
 type SourceMappingTest = { actual: Range; expected: Range; range: MappedRange };
+
 function tryEvalTestRange(
     tested_range: RawTestRange,
     source: ParsedSource
@@ -270,6 +277,7 @@ function tryEvalTestRange(
         };
     }
 }
+
 function tryFindGenPosition(
     generated: GeneratedSourceText,
     generated_subset: string,
@@ -299,6 +307,7 @@ function tryFindGenPosition(
                 `\n Matching : ${matches.map((match) => toString(match.generated)).join(', ')}`
         );
     }
+
     function toString(pos: Position) {
         return `[${pos.line.index + 1}:${pos.character + 1}]`;
     }
@@ -320,6 +329,7 @@ export function validate_edit_file(text_with_ranges: string) {
         }
     }
 }
+
 export function validate_test_file(test: string) {
     raw.fromTestFile(test);
 }
@@ -332,29 +342,37 @@ export function is_edit_changed(edit_file: string) {
         return true;
     }
 }
+
 export function is_test_from_same_input(test: string, input: string) {
     return hash(input) === raw.fromTestFile(test).hash;
 }
+
 export function is_test_empty(test: string) {
     return raw.fromTestFile(test).ranges.length === 0;
 }
+
 export function is_edit_from_same_generated(test_edit: string, generated: string) {
     return raw.fromEditFile(test_edit).content.replace(/\[\[\[|\]\]\]/g, '') === generated;
 }
+
 export function is_edit_empty(test_edit: string) {
     return !/\[\[\[[^\]]*\]\]\]/.test(raw.fromEditFile(test_edit).content);
 }
+
 export function handler(original_text: string, generated_text: string, mappings: Mappings) {
     const source = parse(original_text, generated_text, mappings);
     return {
         print_mappings: () => print.mappings(source),
+
         generate_test_edit(test_file: string = '') {
             return print.test_edit(parse_test_file(test_file, source), source);
         },
+
         generate_test(test_edit_file: string = '') {
             if (test_edit_file) validate_edit_file(test_edit_file);
             return print.test(parse_edit_file(test_edit_file, source), source);
         },
+
         each_test_range(
             test_file: string,
             assertStrictEqual: (actual: string, expected: string) => void,
@@ -420,6 +438,7 @@ function parse_test_file(
     if (invalid.length) on_invalid_range?.(invalid);
     return parsed;
 }
+
 function parse_edit_file(edit_file: string, { generated }: ParsedSource) {
     if (!edit_file) return [];
     return parse_edit_ranges(edit_file, true).map<RawTestRange>(function (raw) {
@@ -435,6 +454,7 @@ function parse_edit_file(edit_file: string, { generated }: ParsedSource) {
         ];
     });
 }
+
 function parse_edit_ranges(text_with_ranges: string, index_relative: boolean) {
     const ranges: { start: number; end: number }[] = [];
     const pending: { start: number; end: number }[] = [];
