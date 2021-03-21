@@ -744,6 +744,12 @@ declare namespace svelte.JSX {
         sapperPrefetch?: true;
     }
 
+    interface SvelteKitAnchorProps {
+        // transformed from sveltekit:noscroll so it should be camel case
+        sveltekitNoscroll?: true;
+        sveltekitPrefetch?: true;
+    }
+
     interface SvelteMediaTimeRange {
         start: number;
         end: number;
@@ -782,7 +788,7 @@ declare namespace svelte.JSX {
 
     interface IntrinsicElements {
       // HTML
-      a: HTMLProps<HTMLAnchorElement> & SapperAnchorProps;
+      a: HTMLProps<HTMLAnchorElement> & SapperAnchorProps & SvelteKitAnchorProps;
       abbr: HTMLProps<HTMLElement>;
       address: HTMLProps<HTMLElement>;
       area: HTMLProps<HTMLAreaElement>;
