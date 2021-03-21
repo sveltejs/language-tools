@@ -6,8 +6,10 @@ import { htmlx2jsx } from './build/htmlxtojsx';
 import path from 'path';
 
 let update_count = 0;
+let all_tests_skipped = false;
+
 function can_auto_update() {
-    if (!process.argv.includes('--auto')) {
+    if (!process.argv.includes('--auto') && !all_tests_skipped) {
         if (update_count++ === 0) {
             process.on('exit', () => {
                 const command = color.yellow('npm run test -- --auto');
@@ -159,6 +161,7 @@ export class Sample {
         if (process.env.CI) {
             throw new Error(`Tried to generate ${this.name} dependencies`);
         }
+        all_tests_skipped = true;
         it.only(`${this.name} dependencies`, () => fn(this.generate.bind(this)));
     }
 
