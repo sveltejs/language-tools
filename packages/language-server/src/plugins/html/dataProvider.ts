@@ -271,7 +271,21 @@ const addAttributes: Record<string, IAttributeData[]> = {
     ],
     textarea: [{ name: 'bind:value' }],
     video: [...mediaAttributes, ...videoAttributes],
-    audio: [...mediaAttributes]
+    audio: [...mediaAttributes],
+    a: [
+        {
+            name: 'sveltekit:noscroll',
+            description:
+                'SvelteKit-specific attribute. Will prevent scrolling after the link is clicked.',
+            valueSet: 'v'
+        },
+        {
+            name: 'sveltekit:prefetch',
+            description:
+                "SvelteKit-specific attribute. Will cause SvelteKit to run the page's load function as soon as the user hovers over the link (on a desktop) or touches it (on mobile), rather than waiting for the click event to trigger navigation.",
+            valueSet: 'v'
+        }
+    ]
 };
 
 const html5Tags = htmlData.tags!.map((tag) => {

@@ -41,6 +41,7 @@ export function handleAttribute(htmlx: string, str: MagicString, attr: Node, par
     //if we are on an "element" we are case insensitive, lowercase to match our JSX
     if (parent.type == 'Element') {
         const sapperLinkActions = ['sapper:prefetch', 'sapper:noscroll'];
+        const sveltekitLinkActions = ['sveltekit:prefetch', 'sveltekit:noscroll'];
         //skip Attribute shorthand, that is handled below
         if (
             (attr.value !== true &&
@@ -49,7 +50,8 @@ export function handleAttribute(htmlx: string, str: MagicString, attr: Node, par
                     attr.value.length == 1 &&
                     attr.value[0].type == 'AttributeShorthand'
                 )) ||
-            sapperLinkActions.includes(attr.name)
+            sapperLinkActions.includes(attr.name) ||
+            sveltekitLinkActions.includes(attr.name)
         ) {
             let name = attr.name;
             if (!svgAttributes.find((x) => x == name)) {
