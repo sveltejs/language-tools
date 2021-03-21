@@ -5,6 +5,19 @@ import svelte2tsx from './build/index';
 import { htmlx2jsx } from './build/htmlxtojsx';
 import path from 'path';
 
+let update_count = 0;
+function can_auto_update() {
+    if (!process.argv.includes('--auto')) {
+        if (update_count++ === 0) {
+            process.on('exit', () => {
+                const command = color.yellow('npm run test -- --auto');
+                console.log(`  Run ${command} to update ${update_count} files\n`);
+            });
+        }
+        return false;
+    }
+    return true;
+}
 export function benchmark(fn: () => void) {
     return -Date.now() + (fn(), Date.now());
 }
@@ -156,12 +169,15 @@ export class Sample {
             );
         }
         if (this.get(file) !== normalize(content)) {
+            const action = this.has(file) ? 'updated' : 'generated';
+            if (skip) {
+                if (action === 'updated' && !can_auto_update()) return;
+                this.skipped = true;
+            }
             after(() => {
-                const action = this.has(file) ? 'updated' : 'generated';
                 console.log(`\t[${action}] ${color.cyan(file)} ${color.grey(this.cmd(file))}`);
                 writeFileSync(this.at(file), content);
             });
-            if (skip) this.skipped = true;
         }
     }
 
