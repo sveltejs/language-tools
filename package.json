@@ -12,8 +12,8 @@
         "build": "tsc -b",
         "test": "CI=true yarn workspaces run test",
         "watch": "tsc -b -watch",
-        "format": "prettier --end-of-line auto --write .",
-        "lint": "prettier --end-of-line auto --check . && eslint \"packages/**/*.{ts,js}\""
+        "format": "prettier --write .",
+        "lint": "prettier --check . && eslint \"packages/**/*.{ts,js}\""
     },
     "dependencies": {
         "typescript": "^4.2.2"
