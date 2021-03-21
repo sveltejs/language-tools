@@ -12,6 +12,7 @@ import {
 } from 'vscode-languageserver';
 import {
     Document,
+    getNodeIfIsInHTMLStartTag,
     getWordRangeAt,
     isInTag,
     mapCompletionItemToOriginal,
@@ -125,6 +126,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
 
         const existingImports = this.getExistingImports(document);
         const completionItems = completions
+            .filter(isValidCompletion(document, position))
             .map((comp) =>
                 this.toCompletionItem(
                     fragment,
@@ -460,3 +462,19 @@ const beginOfDocumentRange = Range.create(Position.create(0, 0), Position.create
 // Note: Does not take into account if import is within a comment.
 // eslint-disable-next-line max-len
 const scriptImportRegex = /\bimport\s+{([^}]*?)}\s+?from\s+['"`].+?['"`]|\bimport\s+(\w+?)\s+from\s+['"`].+?['"`]/g;
+
+const completionBlacklist = new Set(['sveltekitPrefetch', 'sveltekitNoscroll']);
+
+function isValidCompletion(
+    document: Document,
+    position: Position
+): (value: ts.CompletionEntry) => boolean {
+    const isCompletionInHTMLStartTag = !!getNodeIfIsInHTMLStartTag(
+        document.html,
+        document.offsetAt(position)
+    );
+    if (!isCompletionInHTMLStartTag) {
+        return () => true;
+    }
+    return (value) => !completionBlacklist.has(value.name);
+}

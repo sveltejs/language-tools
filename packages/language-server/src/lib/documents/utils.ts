@@ -307,6 +307,20 @@ export function getNodeIfIsInComponentStartTag(
 }
 
 /**
+ * Returns the node if offset is inside a HTML starttag
+ */
+export function getNodeIfIsInHTMLStartTag(html: HTMLDocument, offset: number): Node | undefined {
+    const node = html.findNodeAt(offset);
+    if (
+        !!node.tag &&
+        node.tag[0] === node.tag[0].toLowerCase() &&
+        (!node.startTagEnd || offset < node.startTagEnd)
+    ) {
+        return node;
+    }
+}
+
+/**
  * Gets word range at position.
  * Delimiter is by default a whitespace, but can be adjusted.
  */
