@@ -25,11 +25,40 @@ import {
     SourceText
 } from './parser';
 
+/**
+ *
+ * 	SourceMapping Tests
+ *
+ * 		- Original range (expected)		never changes
+ * 		- Generated range (actual)		"always" changes
+ *
+ * 	Tested ranges cannot be stored as simple positions,
+ * 	else they wouldn't map correctly on generated range change
+ *
+ * 	TestedRange format [number, number, string]
+ *
+ * 		[0] : index of the tested range in original
+ * 		[1] : length in original
+ * 		[2] : generated text for the range
+ *
+ * 	To find Tested Ranges between changes,
+ *
+ * 		1) Reverse lookup the generated position for [0]
+ * 	 	2) Find the closest occurence of [2]
+ *
+ */
+type RawTestRange = [ogStart: number, ogLength: number, genText: string];
+type SourceMappingTest = { actual: Range; expected: Range; range: MappedRange };
+
+// inject/retrieve info from raw file
 namespace raw {
+    // test.edit.jsx
     const EDIT_FILE_START = `/** Surround [[[text]]] with brackets & run tests to add it to this sample's tested ranges */\n`;
-    const EDIT_FILE_END = `\n/** content-hash: $ */`.split('$');
-    const TEST_FILE_START = '/** tested-ranges: $ */'.split('$');
-    const TEST_FILE_END = '\n/** origin-hash: $ */'.split('$');
+    const EDIT_FILE_END = `\n/** content-hash: $ */`.split('$'); // Hash of own content (used to check if ranges were edited)
+
+    // test.jsx
+    const TEST_FILE_START = '/** tested-ranges: $ */'.split('$'); // RawTestRange[] (what tests are evaluated from)
+    const TEST_FILE_END = '\n/** origin-hash: $ */'.split('$'); // Hash of input.svelte
 
     export function fromTestFile(file: string) {
         if (!file.startsWith(TEST_FILE_START[0]) || !file.includes(TEST_FILE_END[0]))
@@ -73,6 +102,7 @@ namespace raw {
 }
 
 namespace print {
+    // mappings.jsx
     export function mappings({ generated }: ParsedSource) {
         return compose_file(function* (composer) {
             for (const line of generated.lines) {
@@ -126,6 +156,7 @@ namespace print {
         }
     }
 
+    // test.jsx
     export function test(test_ranges: RawTestRange[], source: ParsedSource) {
         return raw.toTestFile(
             source.original.text,
@@ -139,6 +170,7 @@ namespace print {
                 yield composer.rule('', '-');
                 if (is_same_line(ranges[i].start, ranges[i].end)) {
                     const j = i;
+                    // print ranges that map from same gen line to same og line together
                     while (i < ranges.length - 1 && can_merge(ranges[i], ranges[i + 1])) i++;
                     const target = ranges.slice(j, i + 1);
                     const is_single = j === i;
@@ -216,6 +248,7 @@ namespace print {
         }
     }
 
+    // test.edit.jsx
     export function test_edit(parsed_tests: SourceMappingTest[], source: ParsedSource) {
         return raw.toEditFile(
             insert_segments(
@@ -231,32 +264,6 @@ namespace print {
         );
     }
 }
-
-/**
- *
- * 	SourceMapping Tests
- *
- * 		- Original range (expected)		never changes
- * 		- Generated range (actual)		"always" changes
- *
- * 	Tested ranges cannot be stored as simple positions,
- * 	else they wouldn't map correctly on generated range change
- *
- * 	TestedRange format [number, number, string]
- *
- * 		[0] : index of the tested range in original
- * 		[1] : length in original
- * 		[2] : generated text for the range
- *
- * 	To find Tested Ranges between changes,
- *
- * 		1) Reverse lookup the generated position for [0]
- * 	 	2) Find the closest occurence of [2]
- *
- */
-
-type RawTestRange = [ogStart: number, ogLength: number, genText: string];
-type SourceMappingTest = { actual: Range; expected: Range; range: MappedRange };
 
 function tryEvalTestRange(
     tested_range: RawTestRange,
@@ -304,7 +311,7 @@ function tryFindGenPosition(
             `Could not find TestRange: Generated text includes ` +
                 `${m} characters mapping back to origin's ${toString(matches[0].original)} and ` +
                 `${m_of_them} start with the tested text "${generated_subset}"` +
-                `\n Matching : ${matches.map((match) => toString(match.generated)).join(', ')}`
+                `\n Matching : ${matches.map((match) => toString(match.generated)).join(',\n')}`
         );
     }
 

@@ -63,7 +63,7 @@ describe('sourcemaps', function () {
             const parsed = parse(sample);
             generate_passive(generate, parsed, skip);
             if (!sample.has('test.jsx')) generate('test.jsx', parsed.generate_test(), skip);
-            generate('test.edit.jsx', parsed.generate_test_edit(sample.get('test.jsx')), skip);
+            generate('test.edit.jsx', parsed.generate_test_edit(sample.get('test.jsx')), false);
         }
     }
 });

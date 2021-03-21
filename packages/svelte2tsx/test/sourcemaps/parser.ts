@@ -136,6 +136,7 @@ export class Line {
         return this.source.text.slice(this.start, this.start + this.length);
     }
 }
+
 export class GeneratedLine extends Line {
     readonly source: GeneratedSourceText;
     readonly hasOrigin = this.lineMap.length !== 0;
