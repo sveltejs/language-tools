@@ -55,7 +55,7 @@ describe('sourcemaps', function () {
             assert.strictEqual(
                 parsed.print_mappings(),
                 sample.get('mappings.jsx'),
-                `SourceMapping changed, run tests locally to re-generate results.`
+                `SourceMapping changed, run tests with --auto to update them`
             );
         });
 
@@ -149,7 +149,7 @@ function maybe_generate(sample: Sample, regenerate: (generate: GenerateFn) => vo
 }
 
 function generate_passive(generate: GenerateFn, parsed: Parsed, skip = false) {
-    generate('output.tsx', parsed.inline, skip);
+    generate('output.tsx', parsed.inline, false);
     generate('mappings.jsx', parsed.print_mappings(), skip);
 }
 

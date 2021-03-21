@@ -24,7 +24,7 @@
 ;<></>;↲      [generated] line 15                                                                                                                     
 ;<>           [generated] subset                                                                                                                      
 <                                                                                                                                                     
-</script>↲    [original] line 14 (rest generated at line 117)                                                                                         
+</script>↲    [original] line 14 (rest generated at line 116)                                                                                         
                                                                                                                                                       
 ;<></>;↲      [generated] line 15                                                                                                                     
    </>;↲      [generated] subset                                                                                                                      
@@ -116,18 +116,17 @@ s
                              ↲                                                                                                                        
    ╚}•from•'../../../config';↲    [original] line 27 (rest generated at line 24)                                                                      
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
-
                                                                                                                                                       {/**
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
      let slug;                                                                                                                                        {/**
-   ╚•let•slug;↲          [generated] line 36                                                                                                          
+   ╚•let•slug;↲          [generated] line 35                                                                                                          
    ╚      •let•slug;↲                                                                                                                                 
-   ╚export•let•slug;↲    [original] line 30                                                                                                           
+   ╚export•let•slug;↲    [original] line 29                                                                                                           
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
      let chapter;                                                                                                                                     {/**
-   ╚•let•chapter;↲          [generated] line 37                                                                                                       
+   ╚•let•chapter;↲          [generated] line 36                                                                                                       
    ╚      •let•chapter;↲                                                                                                                              
-   ╚export•let•chapter;↲    [original] line 31                                                                                                        
+   ╚export•let•chapter;↲    [original] line 30                                                                                                        
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
 
     const { sections } = getContext('tutorial');
@@ -161,9 +160,9 @@ s
     // TODO is there a non-hacky way to trigger scroll when chapter changes?
 //----------------------------------------------------------------------------------------------------------------------------------------------------
     ;() => {$: if (scrollable) chapter, scrollable.scrollTo(0, 0);}                                                                                   {/**
-   ╚;()•=>•{$:•if•(scrollable)•chapter,•scrollable.scrollTo(0,•0);}↲    [generated] line 68                                                           
+   ╚;()•=>•{$:•if•(scrollable)•chapter,•scrollable.scrollTo(0,•0);}↲    [generated] line 67                                                           
    ╚        $:•if•(scrollable)•chapter,•scrollable.scrollTo(0,•0); ↲                                                                                  
-   ╚$:•if•(scrollable)•chapter,•scrollable.scrollTo(0,•0);↲             [original] line 62                                                            
+   ╚$:•if•(scrollable)•chapter,•scrollable.scrollTo(0,•0);↲             [original] line 61                                                            
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
 
     // TODO: this will need to be changed to the master branch, and probably should be dynamic instead of included
@@ -172,16 +171,16 @@ s
                                                                                                                                                       {/**
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
     let  selected = __sveltets_invalidate(() => lookup.get(slug));                                                                                    {/**
-   ╚let••selected•=•__sveltets_invalidate(()•=>•lookup.get(slug));↲    [generated] line 74                                                            
+   ╚let••selected•=•__sveltets_invalidate(()•=>•lookup.get(slug));↲    [generated] line 73                                                            
    ╚    •selected•=•                            lookup.get(slug) ;↲                                                                                   
    ╚  •selected•=•lookup.get(slug);↲                                                                                                                  
-   ╚$:•selected•=•lookup.get(slug);↲                                   [original] line 68                                                             
+   ╚$:•selected•=•lookup.get(slug);↲                                   [original] line 67                                                             
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
     let  improve_link = __sveltets_invalidate(() => `${tutorial_repo_link}/${selected.chapter.section_dir}/${selected.chapter.chapter_dir}`);         {/**
-   ╚let••improve_link•=•__sveltets_invalidate(()•=>•`${tutorial_repo_link}/${selected.chapter.section_dir}/${selected.chapter.chapter_dir}`);↲    [generated] line 75
+   ╚let••improve_link•=•__sveltets_invalidate(()•=>•`${tutorial_repo_link}/${selected.chapter.section_dir}/${selected.chapter.chapter_dir}`);↲    [generated] line 74
    ╚    •improve_link•=•                            `${tutorial_repo_link}/${selected.chapter.section_dir}/${selected.chapter.chapter_dir}` ;↲        
    ╚  •improve_link•=•`${tutorial_repo_link}/${selected.chapter.section_dir}/${selected.chapter.chapter_dir}`;↲                                       
-   ╚$:•improve_link•=•`${tutorial_repo_link}/${selected.chapter.section_dir}/${selected.chapter.chapter_dir}`;↲                                   [original] line 69 
+   ╚$:•improve_link•=•`${tutorial_repo_link}/${selected.chapter.section_dir}/${selected.chapter.chapter_dir}`;↲                                   [original] line 68 
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
 
     const clone = file => ({
@@ -192,9 +191,9 @@ s
                                                                                                                                                       {/**
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
     ;() => {$: if (repl) {                                                                                                                            {/**
-   ╚;()•=>•{$:•if•(repl)•{↲    [generated] line 83                                                                                                    
+   ╚;()•=>•{$:•if•(repl)•{↲    [generated] line 82                                                                                                    
    ╚        $:•if•(repl)•{↲                                                                                                                           
-   ╚$:•if•(repl)•{↲            [original] line 77                                                                                                     
+   ╚$:•if•(repl)•{↲            [original] line 76                                                                                                     
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
         completed = false;
         repl.set({
@@ -202,17 +201,17 @@ s
         });                                                                                                                                           {/**
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
     }}                                                                                                                                                {/**
-   ╚}}↲    [generated] line 88                                                                                                                        
+   ╚}}↲    [generated] line 87                                                                                                                        
    ╚} ↲                                                                                                                                               
-   ╚}↲     [original] line 82                                                                                                                         
+   ╚}↲     [original] line 81                                                                                                                         
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                                                                                                                                                       {/**
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
     let  mobile = __sveltets_invalidate(() => width < 768);                                                                                           {/**
-   ╚let••mobile•=•__sveltets_invalidate(()•=>•width•<•768);↲    [generated] line 90                                                                   
+   ╚let••mobile•=•__sveltets_invalidate(()•=>•width•<•768);↲    [generated] line 89                                                                   
    ╚    •mobile•=•                            width•<•768 ;↲                                                                                          
    ╚  •mobile•=•width•<•768;↲                                                                                                                         
-   ╚$:•mobile•=•width•<•768;↲                                   [original] line 84                                                                    
+   ╚$:•mobile•=•width•<•768;↲                                   [original] line 83                                                                    
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
 
     function reset() {
@@ -241,155 +240,155 @@ s
     }                                                                                                                                                 {/**
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
 ;                                                                                                                                                     {/**
-;↲            [generated] line 116                                                                                                                    
+;↲            [generated] line 115                                                                                                                    
 <                                                                                                                                                     
-</script>↲    [original] line 110 (rest generated at line 119)                                                                                        
+</script>↲    [original] line 109 (rest generated at line 118)                                                                                        
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
 () => (<>                                                                                                                                             {/**
 ========#     Originless mappings                                                                                                                     
-()•=>•(<>↲    [generated] line 117                                                                                                                    
+()•=>•(<>↲    [generated] line 116                                                                                                                    
          ↲                                                                                                                                            
 </script>↲    [original] line 14 (rest generated at line 15)                                                                                          
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                                                                                                                                                       {/**
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                                                                                                                                                       {/**
-↲             [generated] line 119                                                                                                                    
+↲             [generated] line 118                                                                                                                    
          ↲                                                                                                                                            
-</script>↲    [original] line 110 (rest generated at line 116)                                                                                        
+</script>↲    [original] line 109 (rest generated at line 115)                                                                                        
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                                                                                                                                                       {/**
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                                                                                                                                                       {/**
-↲            [generated] line 121                                                                                                                     
+↲            [generated] line 120                                                                                                                     
         ↲                                                                                                                                             
-</style>↲    [original] line 260                                                                                                                      
+</style>↲    [original] line 259                                                                                                                      
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                                                                                                                                                       {/**
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
 <sveltehead>                                                                                                                                          {/**
-<sveltehead>↲     [generated] line 123                                                                                                                
+<sveltehead>↲     [generated] line 122                                                                                                                
 <svelte head>↲                                                                                                                                        
-<svelte:head>↲    [original] line 262                                                                                                                 
+<svelte:head>↲    [original] line 261                                                                                                                 
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
     <title>{selected.section.title} / {selected.chapter.title} • Svelte Tutorial</title>
                                                                                                                                                       {/**
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
     <meta name="twitter:title" content="Svelte tutorial"/>                                                                                            {/**
-   ╚<meta•name="twitter:title"•content="Svelte•tutorial"/>↲    [generated] line 126                                                                   
+   ╚<meta•name="twitter:title"•content="Svelte•tutorial"/>↲    [generated] line 125                                                                   
    ╚<meta•n   ="twitter:title"•c      ="Svelte•tutorial" >↲                                                                                           
    ╚<meta•n   ="twitter:title"•c      ="Svelte•tutorial">↲                                                                                            
-   ╚<meta•name="twitter:title"•content="Svelte•tutorial">↲     [original] line 265                                                                    
+   ╚<meta•name="twitter:title"•content="Svelte•tutorial">↲     [original] line 264                                                                    
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
     <meta name="twitter:description" content={`${selected.section.title} / ${selected.chapter.title}`}/>                                              {/**
-   ╚<meta•name="twitter:description"•content={`${selected.section.title}•/•${selected.chapter.title}`}/>↲    [generated] line 127                     
+   ╚<meta•name="twitter:description"•content={`${selected.section.title}•/•${selected.chapter.title}`}/>↲    [generated] line 126                     
    ╚<meta•n   ="twitter:description"•c      =   {selected.section.title}•/• {selected.chapter.title}"  >↲                                             
    ╚<meta•n   ="twitter:description"•c      = {selected.section.title}•/•{selected.chapter.title}">↲                                                  
-   ╚<meta•name="twitter:description"•content="{selected.section.title}•/•{selected.chapter.title}">↲         [original] line 266                      
+   ╚<meta•name="twitter:description"•content="{selected.section.title}•/•{selected.chapter.title}">↲         [original] line 265                      
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
     <meta name="Description" content={`${selected.section.title} / ${selected.chapter.title}`}/>                                                      {/**
-   ╚<meta•name="Description"•content={`${selected.section.title}•/•${selected.chapter.title}`}/>↲    [generated] line 128                             
+   ╚<meta•name="Description"•content={`${selected.section.title}•/•${selected.chapter.title}`}/>↲    [generated] line 127                             
    ╚<meta•n   ="Description"•c      =   {selected.section.title}•/• {selected.chapter.title}"  >↲                                                     
    ╚<meta•n   ="Description"•c      = {selected.section.title}•/•{selected.chapter.title}">↲                                                          
-   ╚<meta•name="Description"•content="{selected.section.title}•/•{selected.chapter.title}">↲         [original] line 267                              
+   ╚<meta•name="Description"•content="{selected.section.title}•/•{selected.chapter.title}">↲         [original] line 266                              
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
 </sveltehead>                                                                                                                                         {/**
-</sveltehead>↲     [generated] line 129                                                                                                               
+</sveltehead>↲     [generated] line 128                                                                                                               
 </svelte head>↲                                                                                                                                       
-</svelte:head>↲    [original] line 268                                                                                                                
+</svelte:head>↲    [original] line 267                                                                                                                
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                                                                                                                                                       {/**
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
 <sveltewindow innerWidth={width}/>                                                                                                                    {/**
-<sveltewindow•innerWidth={width}/>↲          [generated] line 131                                                                                     
+<sveltewindow•innerWidth={width}/>↲          [generated] line 130                                                                                     
 <svelte window•     innerWidth={width}/>↲                                                                                                             
-<svelte:window•bind:innerWidth={width}/>↲    [original] line 270                                                                                      
+<svelte:window•bind:innerWidth={width}/>↲    [original] line 269                                                                                      
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
 
 <div class="tutorial-outer">                                                                                                                          {/**
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
     <div class={`viewport offset-${offset}`}>                                                                                                         {/**
-   ╚<div•class={`viewport•offset-${offset}`}>↲    [generated] line 134                                                                                
+   ╚<div•class={`viewport•offset-${offset}`}>↲    [generated] line 133                                                                                
    ╚<div•c    =  viewport•offset- {offset}" >↲                                                                                                        
    ╚<div•c    = viewport•offset-{offset}">↲                                                                                                           
-   ╚<div•class="viewport•offset-{offset}">↲       [original] line 273                                                                                 
+   ╚<div•class="viewport•offset-{offset}">↲       [original] line 272                                                                                 
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
         <div class="tutorial-text">
             <div class="table-of-contents">                                                                                                           {/**
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                 <TableOfContents sections={sections} slug={slug} selected={selected}/>                                                                {/**
-            ╚╚╚╚<TableOfContents•sections={sections}•slug={slug}•selected={selected}/>↲    [generated] line 137                                       
+            ╚╚╚╚<TableOfContents•sections={sections}•slug={slug}•selected={selected}/>↲    [generated] line 136                                       
             ╚╚╚╚<TableOfContents•         {sections}•     {slug}•         {selected}/>↲                                                               
-            ╚╚╚╚<TableOfContents•{sections}•{slug}•{selected}/>↲                           [original] line 276                                        
+            ╚╚╚╚<TableOfContents•{sections}•{slug}•{selected}/>↲                           [original] line 275                                        
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
             </div>
                                                                                                                                                       {/**
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
             <div class="chapter-markup" {...__sveltets_ensureType(__sveltets_ctorOf(__sveltets_mapElementTag('div')), scrollable)}>                   {/**
-         ╚╚╚<div•class="chapter-markup"•{...__sveltets_ensureType(__sveltets_ctorOf(__sveltets_mapElementTag('div')),•scrollable)}>↲    [generated] line 140
+         ╚╚╚<div•class="chapter-markup"•{...__sveltets_ensureType(__sveltets_ctorOf(__sveltets_mapElementTag('div')),•scrollable)}>↲    [generated] line 139
          ╚╚╚<div•c    ="chapter-markup"•                                                                              scrollable} >↲                  
          ╚╚╚<div•c    ="chapter-markup"•           scrollable}>↲                                                                                      
-         ╚╚╚<div•class="chapter-markup"•bind:this={scrollable}>↲                                                                        [original] line 279 
+         ╚╚╚<div•class="chapter-markup"•bind:this={scrollable}>↲                                                                        [original] line 278 
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                 { chapter.html}                                                                                                                       {/**
-            ╚╚╚╚{•chapter.html}↲         [generated] line 141                                                                                         
+            ╚╚╚╚{•chapter.html}↲         [generated] line 140                                                                                         
             ╚╚╚╚{     •chapter.html}↲                                                                                                                 
-            ╚╚╚╚{@html•chapter.html}↲    [original] line 280                                                                                          
+            ╚╚╚╚{@html•chapter.html}↲    [original] line 279                                                                                          
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
 
                 <div class="controls">                                                                                                                {/**
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                     {(chapter.app_b) ? <>                                                                                                             {/**
-               ╚╚╚╚╚{(chapter.app_b)•?•<>↲    [generated] line 144                                                                                    
+               ╚╚╚╚╚{(chapter.app_b)•?•<>↲    [generated] line 143                                                                                    
                ╚╚╚╚╚{ chapter.app_b}     ↲                                                                                                            
                ╚╚╚╚╚{    chapter.app_b}↲                                                                                                              
-               ╚╚╚╚╚{#if•chapter.app_b}↲      [original] line 283                                                                                     
+               ╚╚╚╚╚{#if•chapter.app_b}↲      [original] line 282                                                                                     
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                                                                                                                                                       {/**
-                  ╚╚╚╚╚╚↲                                                               [generated] line 145                                          
+                  ╚╚╚╚╚╚↲                                                               [generated] line 144                                          
                   ╚╚╚╚╚╚                                                                [generated] subset                                            
                   ╚╚╚╚╚╚                                                                                                                              
-                  ╚╚╚╚╚╚<!--•TODO•disable•this•button•when•the•contents•of•the•REPL↲    [original] line 284                                           
+                  ╚╚╚╚╚╚<!--•TODO•disable•this•button•when•the•contents•of•the•REPL↲    [original] line 283                                           
                                                                                                                                                       
-                  ╚╚╚╚╚╚↲                                                               [generated] line 145                                          
+                  ╚╚╚╚╚╚↲                                                               [generated] line 144                                          
                         ↲                                                               [generated] subset                                            
                                                             ↲                                                                                         
-                  ╚╚╚╚╚╚╚matches•the•expected•end•result•-->↲                           [original] line 285                                           
+                  ╚╚╚╚╚╚╚matches•the•expected•end•result•-->↲                           [original] line 284                                           
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                         <button class="show" onclick={() => completed ? reset() : complete()}>                                                        {/**
-                  ╚╚╚╚╚╚<button•class="show"•onclick={()•=>•completed•?•reset()•:•complete()}>↲       [generated] line 146                            
+                  ╚╚╚╚╚╚<button•class="show"•onclick={()•=>•completed•?•reset()•:•complete()}>↲       [generated] line 145                            
                   ╚╚╚╚╚╚<button•c    ="show"•on:    ={()•=>•completed•?•reset()•:•complete()}>↲                                                       
                   ╚╚╚╚╚╚<button•c    ="show"•on:     = {()•=>•completed•?•reset()•:•complete()} >↲                                                    
-                  ╚╚╚╚╚╚<button•class="show"•on:click="{()•=>•completed•?•reset()•:•complete()}">↲    [original] line 286                             
+                  ╚╚╚╚╚╚<button•class="show"•on:click="{()•=>•completed•?•reset()•:•complete()}">↲    [original] line 285                             
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                             {completed ? 'Reset' : 'Show me'}
                         </button>                                                                                                                     {/**
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                     </> : <></>}                                                                                                                      {/**
-               ╚╚╚╚╚</>•:•<></>}↲    [generated] line 149                                                                                             
+               ╚╚╚╚╚</>•:•<></>}↲    [generated] line 148                                                                                             
                ╚╚╚╚╚{           ↲                                                                                                                     
                ╚╚╚╚╚{    ↲                                                                                                                            
-               ╚╚╚╚╚{/if}↲           [original] line 289                                                                                              
+               ╚╚╚╚╚{/if}↲           [original] line 288                                                                                              
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                                                                                                                                                       {/**
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                     {(selected.next) ? <>                                                                                                             {/**
-               ╚╚╚╚╚{(selected.next)•?•<>↲    [generated] line 151                                                                                    
+               ╚╚╚╚╚{(selected.next)•?•<>↲    [generated] line 150                                                                                    
                ╚╚╚╚╚{ selected.next}     ↲                                                                                                            
                ╚╚╚╚╚{    selected.next}↲                                                                                                              
-               ╚╚╚╚╚{#if•selected.next}↲      [original] line 291                                                                                     
+               ╚╚╚╚╚{#if•selected.next}↲      [original] line 290                                                                                     
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                         <a class="next" href={`tutorial/${selected.next.slug}`}>Next</a>                                                              {/**
-                  ╚╚╚╚╚╚<a•class="next"•href={`tutorial/${selected.next.slug}`}>Next</a>↲    [generated] line 152                                     
+                  ╚╚╚╚╚╚<a•class="next"•href={`tutorial/${selected.next.slug}`}>Next</a>↲    [generated] line 151                                     
                   ╚╚╚╚╚╚<a•c    ="next"•h   =  tutorial/ {selected.next.slug}" >Next</a>↲                                                             
                   ╚╚╚╚╚╚<a•c    ="next"•h   = tutorial/{selected.next.slug}">Next</a>↲                                                                
-                  ╚╚╚╚╚╚<a•class="next"•href="tutorial/{selected.next.slug}">Next</a>↲       [original] line 292                                      
+                  ╚╚╚╚╚╚<a•class="next"•href="tutorial/{selected.next.slug}">Next</a>↲       [original] line 291                                      
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                     </> : <></>}                                                                                                                      {/**
-               ╚╚╚╚╚</>•:•<></>}↲    [generated] line 153                                                                                             
+               ╚╚╚╚╚</>•:•<></>}↲    [generated] line 152                                                                                             
                ╚╚╚╚╚{           ↲                                                                                                                     
                ╚╚╚╚╚{    ↲                                                                                                                            
-               ╚╚╚╚╚{/if}↲           [original] line 293                                                                                              
+               ╚╚╚╚╚{/if}↲           [original] line 292                                                                                              
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                 </div>
 
@@ -403,73 +402,73 @@ s
             <Repl                                                                                                                                     {/**
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                 {...__sveltets_ensureType(Repl, repl)}                                                                                                {/**
-            ╚╚╚╚{...__sveltets_ensureType(Repl,•repl)}↲    [generated] line 164                                                                       
+            ╚╚╚╚{...__sveltets_ensureType(Repl,•repl)}↲    [generated] line 163                                                                       
             ╚╚╚╚                                repl} ↲                                                                                               
             ╚╚╚╚           repl}↲                                                                                                                     
-            ╚╚╚╚bind:this={repl}↲                          [original] line 304                                                                        
+            ╚╚╚╚bind:this={repl}↲                          [original] line 303                                                                        
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                 workersUrl="workers"                                                                                                                  {/**
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                 svelteUrl={svelteUrl}                                                                                                                 {/**
-            ╚╚╚╚svelteUrl={svelteUrl}↲    [generated] line 166                                                                                        
+            ╚╚╚╚svelteUrl={svelteUrl}↲    [generated] line 165                                                                                        
             ╚╚╚╚          {svelteUrl}↲                                                                                                                
-            ╚╚╚╚{svelteUrl}↲              [original] line 306                                                                                         
+            ╚╚╚╚{svelteUrl}↲              [original] line 305                                                                                         
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                 rollupUrl={rollupUrl}                                                                                                                 {/**
-            ╚╚╚╚rollupUrl={rollupUrl}↲    [generated] line 167                                                                                        
+            ╚╚╚╚rollupUrl={rollupUrl}↲    [generated] line 166                                                                                        
             ╚╚╚╚          {rollupUrl}↲                                                                                                                
-            ╚╚╚╚{rollupUrl}↲              [original] line 307                                                                                         
+            ╚╚╚╚{rollupUrl}↲              [original] line 306                                                                                         
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                 orientation={mobile ? 'columns' : 'rows'}
                 fixed={mobile}                                                                                                                        {/**
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                                                                                                                                                       {/**
-            ╚╚╚╚↲                             [generated] line 170                                                                                    
+            ╚╚╚╚↲                             [generated] line 169                                                                                    
             ╚╚╚╚                         ↲                                                                                                            
-            ╚╚╚╚on:change={handle_change}↲    [original] line 310 (rest generated at line 173)                                                        
+            ╚╚╚╚on:change={handle_change}↲    [original] line 309 (rest generated at line 172)                                                        
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                 injectedJS={mapbox_setup}
                 relaxed                                                                                                                               {/**
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
             />{__sveltets_instanceOf(Repl).$on('change', handle_change)}                                                                              {/**
-         ╚╚╚/>{__sveltets_instanceOf(Repl).$on('change',•handle_change)}↲    [generated] line 173                                                     
+         ╚╚╚/>{__sveltets_instanceOf(Repl).$on('change',•handle_change)}↲    [generated] line 172                                                     
                                             on('change',•handle_change)}     [generated] subset                                                       
                                             on: change=  handle_change}                                                                               
              on:change= handle_change}                                                                                                                
-         ╚╚╚╚on:change={handle_change}↲                                      [original] line 310 (rest generated at line 170)                         
+         ╚╚╚╚on:change={handle_change}↲                                      [original] line 309 (rest generated at line 169)                         
                                                                                                                                                       
-         ╚╚╚/>{__sveltets_instanceOf(Repl).$on('change',•handle_change)}↲    [generated] line 173                                                     
+         ╚╚╚/>{__sveltets_instanceOf(Repl).$on('change',•handle_change)}↲    [generated] line 172                                                     
          ╚╚╚/>{__sveltets_instanceOf(Repl).$                            ↲    [generated] subset                                                       
          ╚╚╚/>                                                          ↲                                                                             
-         ╚╚╚/>↲                                                              [original] line 313                                                      
+         ╚╚╚/>↲                                                              [original] line 312                                                      
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
         </div>
     </div>
                                                                                                                                                       {/**
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
     {(mobile) ? <>                                                                                                                                    {/**
-   ╚{(mobile)•?•<>↲    [generated] line 177                                                                                                           
+   ╚{(mobile)•?•<>↲    [generated] line 176                                                                                                           
    ╚{ mobile}     ↲                                                                                                                                   
    ╚{    mobile}↲                                                                                                                                     
-   ╚{#if•mobile}↲      [original] line 317                                                                                                            
+   ╚{#if•mobile}↲      [original] line 316                                                                                                            
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
         <ScreenToggle offset={offset} labels={['tutorial', 'input', 'output']}/>                                                                      {/**
-      ╚╚<ScreenToggle•offset={offset}•labels={['tutorial',•'input',•'output']}/>↲    [generated] line 178                                             
+      ╚╚<ScreenToggle•offset={offset}•labels={['tutorial',•'input',•'output']}/>↲    [generated] line 177                                             
       ╚╚<ScreenToggle•        offset •labels={['tutorial',•'input',•'output']}/>↲                                                                     
       ╚╚<ScreenToggle•     offset•labels={['tutorial',•'input',•'output']}/>↲                                                                         
-      ╚╚<ScreenToggle•bind:offset•labels={['tutorial',•'input',•'output']}/>↲        [original] line 318                                              
+      ╚╚<ScreenToggle•bind:offset•labels={['tutorial',•'input',•'output']}/>↲        [original] line 317                                              
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
     </> : <></>}                                                                                                                                      {/**
-   ╚</>•:•<></>}↲    [generated] line 179                                                                                                             
+   ╚</>•:•<></>}↲    [generated] line 178                                                                                                             
    ╚{           ↲                                                                                                                                     
    ╚{    ↲                                                                                                                                            
-   ╚{/if}↲           [original] line 319                                                                                                              
+   ╚{/if}↲           [original] line 318                                                                                                              
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
 </div></>);                                                                                                                                           {/**
-</div></>);↲    [generated] line 180                                                                                                                  
-</div>          [original] line 320                                                                                                                   
+</div></>);↲    [generated] line 179                                                                                                                  
+</div>          [original] line 319                                                                                                                   
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
-return { props: {slug: slug , chapter: chapter}, slots: {}, getters: {}, setters: {}, events: {} }}
+return { props: {slug: slug , chapter: chapter}, slots: {}, getters: {}, events: {} }}
 
 export default class Input__SvelteComponent_ extends createSvelte2TsxComponent(__sveltets_partial(__sveltets_with_any_event(render))) {
 }
