@@ -1,5 +1,5 @@
-import svelte2tsx from '../build/index';
-import { htmlx2jsx } from '../build/htmlxtojsx';
+import { svelte2tsx } from '../build';
+import { htmlx2jsx } from '../build';
 import fs from 'fs';
 import assert from 'assert';
 import sm from 'source-map';
