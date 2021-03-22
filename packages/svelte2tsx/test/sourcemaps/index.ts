@@ -1,6 +1,6 @@
+import { svelte2tsx } from '../build';
 import assert from 'assert';
 import { decode } from 'sourcemap-codec';
-import svelte2tsx from '../build';
 import { each_sample, GenerateFn, get_svelte2tsx_config, Sample } from '../helpers';
 import { print_string } from './helpers';
 import {
