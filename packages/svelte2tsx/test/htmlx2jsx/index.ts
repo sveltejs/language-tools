@@ -1,4 +1,4 @@
-import { htmlx2jsx } from '../build/htmlxtojsx';
+import { htmlx2jsx } from '../build';
 import { test_samples } from '../helpers';
 
 describe('htmlx2jsx', () => {

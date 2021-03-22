@@ -1,4 +1,4 @@
-import { htmlx2jsx } from '../build/htmlxtojsx';
+import { htmlx2jsx } from '../build';
 import assert from 'assert';
 import { benchmark } from '../helpers';
 

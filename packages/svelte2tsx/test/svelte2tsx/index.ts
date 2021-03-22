@@ -1,4 +1,4 @@
-import svelte2tsx from '../build/index';
+import { svelte2tsx } from '../build';
 import { get_svelte2tsx_config, test_samples } from '../helpers';
 
 describe('svelte2tsx', () => {

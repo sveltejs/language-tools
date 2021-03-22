@@ -1,8 +1,7 @@
 import fs from 'fs';
 import assert, { AssertionError } from 'assert';
 import { TestFunction } from 'mocha';
-import svelte2tsx from './build/index';
-import { htmlx2jsx } from './build/htmlxtojsx';
+import { htmlx2jsx, svelte2tsx } from './build';
 import path from 'path';
 
 let update_count = 0;

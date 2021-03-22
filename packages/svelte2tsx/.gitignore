@@ -4,5 +4,4 @@ node_modules
 /index.js.map
 /index.mjs
 test/typecheck/samples/**/input.svelte.tsx
-test/build
 repl/output
