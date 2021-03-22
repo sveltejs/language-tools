@@ -6,8 +6,8 @@ const createClassAccessor = (name: string) =>
 
 export const createClassAccessors = (getters: Set<string>, exportedNames: ExportedNames) => {
     const accessors: string[] = [];
-    for (const [name, value] of exportedNames) {
-        if (getters.has(name)) {
+    for (const [_, value] of exportedNames) {
+        if (getters.has(value.identifierText)) {
             continue;
         }
 
