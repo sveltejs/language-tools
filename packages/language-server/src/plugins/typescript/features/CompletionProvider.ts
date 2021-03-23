@@ -476,5 +476,11 @@ function isValidCompletion(
     if (!isCompletionInHTMLStartTag) {
         return () => true;
     }
-    return (value) => !completionBlacklist.has(value.name);
+    return (value) =>
+        !completionBlacklist.has(value.name) &&
+        // remove attribues starting with "on" because those are events.
+        // Svelte wants events of the form "on:X", but the suggestions
+        // are of the form "onX". Moreover, they are doubled by the HTML
+        // attribute suggestions. Therefore filter them out.
+        !value.name.startsWith('on');
 }
