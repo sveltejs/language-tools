@@ -100,4 +100,90 @@ describe('HoverProvider', () => {
             }
         });
     });
+
+    it('provides hover info for $store access', async () => {
+        const { provider, document } = setup('hover-$store.svelte');
+
+        assert.deepStrictEqual(await provider.doHover(document, Position.create(3, 5)), <Hover>{
+            contents: '```typescript\nlet $b: string | {\n    a: boolean | string;\n}\n```',
+            range: {
+                end: {
+                    character: 6,
+                    line: 3
+                },
+                start: {
+                    character: 5,
+                    line: 3
+                }
+            }
+        });
+        assert.deepStrictEqual(await provider.doHover(document, Position.create(5, 9)), <Hover>{
+            contents: '```typescript\nlet $b: string\n```',
+            range: {
+                end: {
+                    character: 10,
+                    line: 5
+                },
+                start: {
+                    character: 9,
+                    line: 5
+                }
+            }
+        });
+        assert.deepStrictEqual(await provider.doHover(document, Position.create(7, 4)), <Hover>{
+            contents:
+                '```typescript\nconst b: Writable<string | {\n    a: boolean | string;\n}>\n```',
+            range: {
+                end: {
+                    character: 5,
+                    line: 7
+                },
+                start: {
+                    character: 4,
+                    line: 7
+                }
+            }
+        });
+
+        assert.deepStrictEqual(await provider.doHover(document, Position.create(10, 2)), <Hover>{
+            contents: '```typescript\nlet $b: string | {\n    a: boolean | string;\n}\n```',
+            range: {
+                end: {
+                    character: 3,
+                    line: 10
+                },
+                start: {
+                    character: 2,
+                    line: 10
+                }
+            }
+        });
+        assert.deepStrictEqual(await provider.doHover(document, Position.create(12, 6)), <Hover>{
+            contents: '```typescript\nlet $b: string\n```',
+            range: {
+                end: {
+                    character: 7,
+                    line: 12
+                },
+                start: {
+                    character: 6,
+                    line: 12
+                }
+            }
+        });
+        assert.deepStrictEqual(await provider.doHover(document, Position.create(14, 1)), <Hover>{
+            contents:
+                '```typescript\nconst b: Writable<string | {\n    a: boolean | string;\n}>\n```',
+            range: {
+                end: {
+                    character: 2,
+                    line: 14
+                },
+                start: {
+                    character: 1,
+                    line: 14
+                }
+            }
+        });
+    });
 });
