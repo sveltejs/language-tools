@@ -15,7 +15,8 @@ import {
     TextEdit,
     Range,
     WorkspaceEdit,
-    LinkedEditingRanges
+    LinkedEditingRanges,
+    DocumentHighlight
 } from 'vscode-languageserver';
 import {
     DocumentManager,
@@ -29,12 +30,18 @@ import {
     HoverProvider,
     CompletionsProvider,
     RenameProvider,
-    LinkedEditingRangesProvider
+    LinkedEditingRangesProvider,
+    DocumentHighlightProvider
 } from '../interfaces';
 import { isInsideMoustacheTag, toRange } from '../../lib/documents/utils';
 
 export class HTMLPlugin
-    implements HoverProvider, CompletionsProvider, RenameProvider, LinkedEditingRangesProvider {
+    implements
+        HoverProvider,
+        CompletionsProvider,
+        RenameProvider,
+        LinkedEditingRangesProvider,
+        DocumentHighlightProvider {
     private configManager: LSConfigManager;
     private lang = getLanguageService({
         customDataProviders: [svelteHtmlDataProvider],
@@ -273,6 +280,29 @@ export class HTMLPlugin
         }
 
         return { ranges };
+    }
+
+    findDocumentHighlight(
+        document: Document,
+        position: Position
+    ): DocumentHighlight[] | null {
+        const html = this.documents.get(document);
+        if (!html) {
+            return null;
+        }
+
+        // const node = html.findNodeAt(document.offsetAt(position));
+        // if (!node || this.possiblyComponent(node)) {
+        //     return null;
+        // }
+
+        const result = this.lang.findDocumentHighlights(document, position, html);
+
+        if (!result.length) {
+            return null;
+        }
+
+        return result;
     }
 
     /**

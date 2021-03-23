@@ -13,7 +13,8 @@ import {
     SymbolInformation,
     CompletionItem,
     CompletionItemKind,
-    SelectionRange
+    SelectionRange,
+    DocumentHighlight
 } from 'vscode-languageserver';
 import {
     Document,
@@ -33,6 +34,7 @@ import {
     CompletionsProvider,
     DiagnosticsProvider,
     DocumentColorsProvider,
+    DocumentHighlightProvider,
     DocumentSymbolsProvider,
     HoverProvider,
     SelectionRangeProvider
@@ -51,7 +53,8 @@ export class CSSPlugin
         DocumentColorsProvider,
         ColorPresentationsProvider,
         DocumentSymbolsProvider,
-        SelectionRangeProvider {
+        SelectionRangeProvider,
+        DocumentHighlightProvider {
     private configManager: LSConfigManager;
     private cssDocuments = new WeakMap<Document, CSSDocument>();
     private triggerCharacters = ['.', ':', '-', '/'];
@@ -70,6 +73,7 @@ export class CSSPlugin
         );
         docManager.on('documentClose', (document) => this.cssDocuments.delete(document));
     }
+
     getSelectionRange(document: Document, position: Position): SelectionRange | null {
         if (!this.featureEnabled('selectionRange') || !isInTag(position, document.styleInfo)) {
             return null;
@@ -280,6 +284,24 @@ export class CSSPlugin
                 return symbol;
             })
             .map((symbol) => mapSymbolInformationToOriginal(cssDocument, symbol));
+    }
+
+    findDocumentHighlight(document: Document, position: Position): DocumentHighlight[] | null {
+        const cssDocument = this.getCSSDoc(document);
+
+        if (!cssDocument.isInGenerated(position)) {
+            return null;
+        }
+
+        const kind = extractLanguage(cssDocument);
+
+        const result = getLanguageService(kind).findDocumentHighlights(
+            cssDocument,
+            cssDocument.getGeneratedPosition(position),
+            cssDocument.stylesheet
+        ).map(highlight => mapObjWithRangeToOriginal(cssDocument, highlight));
+
+        return result;
     }
 
     private getCSSDoc(document: Document) {

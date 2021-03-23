@@ -19,7 +19,8 @@ import {
     SignatureHelp,
     SignatureHelpContext,
     SemanticTokens,
-    TextDocumentContentChangeEvent
+    TextDocumentContentChangeEvent,
+    DocumentHighlight
 } from 'vscode-languageserver';
 import {
     Document,
@@ -47,7 +48,8 @@ import {
     UpdateImportsProvider,
     OnWatchFileChangesPara,
     SemanticTokensProvider,
-    UpdateTsOrJsFile
+    UpdateTsOrJsFile,
+    DocumentHighlightProvider
 } from '../interfaces';
 import { CodeActionsProviderImpl } from './features/CodeActionsProvider';
 import {
@@ -67,6 +69,7 @@ import { SignatureHelpProviderImpl } from './features/SignatureHelpProvider';
 import { SnapshotManager } from './SnapshotManager';
 import { SemanticTokensProviderImpl } from './features/SemanticTokensProvider';
 import { isNoTextSpanInGeneratedCode, SnapshotFragmentMap } from './features/utils';
+import { DocumentHighlightProviderImpl } from './features/DocumentHighlightProvider';
 
 export class TypeScriptPlugin
     implements
@@ -81,6 +84,7 @@ export class TypeScriptPlugin
         SelectionRangeProvider,
         SignatureHelpProvider,
         SemanticTokensProvider,
+        DocumentHighlightProvider,
         OnWatchFileChanges,
         CompletionsProvider<CompletionEntryWithIdentifer>,
         UpdateTsOrJsFile {
@@ -96,6 +100,7 @@ export class TypeScriptPlugin
     private readonly selectionRangeProvider: SelectionRangeProviderImpl;
     private readonly signatureHelpProvider: SignatureHelpProviderImpl;
     private readonly semanticTokensProvider: SemanticTokensProviderImpl;
+    private readonly documentHeightProvider: DocumentHighlightProviderImpl;
 
     constructor(
         docManager: DocumentManager,
@@ -123,6 +128,7 @@ export class TypeScriptPlugin
         this.selectionRangeProvider = new SelectionRangeProviderImpl(this.lsAndTsDocResolver);
         this.signatureHelpProvider = new SignatureHelpProviderImpl(this.lsAndTsDocResolver);
         this.semanticTokensProvider = new SemanticTokensProviderImpl(this.lsAndTsDocResolver);
+        this.documentHeightProvider = new DocumentHighlightProviderImpl(this.lsAndTsDocResolver);
     }
 
     async getDiagnostics(document: Document): Promise<Diagnostic[]> {
@@ -430,6 +436,13 @@ export class TypeScriptPlugin
         }
 
         return this.semanticTokensProvider.getSemanticTokens(textDocument, range);
+    }
+
+    async findDocumentHighlight(
+        document: Document,
+        position: Position
+    ): Promise<DocumentHighlight[] | null> {
+        return this.documentHeightProvider.findDocumentHighlight(document, position);
     }
 
     private getLSAndTSDoc(document: Document) {

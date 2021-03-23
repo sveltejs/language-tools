@@ -27,7 +27,8 @@ import {
     TextEdit,
     WorkspaceEdit,
     SelectionRange,
-    SignatureHelp
+    SignatureHelp,
+    DocumentHighlight
 } from 'vscode-languageserver-types';
 import { Document } from '../lib/documents';
 
@@ -159,6 +160,13 @@ export interface LinkedEditingRangesProvider {
     ): Resolvable<LinkedEditingRanges | null>;
 }
 
+export interface DocumentHighlightProvider {
+    findDocumentHighlight(
+        document: Document,
+        position: Position
+    ): Resolvable<DocumentHighlight[] | null>
+}
+
 export interface OnWatchFileChangesPara {
     fileName: string;
     changeType: FileChangeType;
@@ -186,7 +194,8 @@ type ProviderBase = DiagnosticsProvider &
     RenameProvider &
     SignatureHelpProvider &
     SemanticTokensProvider &
-    LinkedEditingRangesProvider;
+    LinkedEditingRangesProvider &
+    DocumentHighlightProvider;
 
 export type LSProvider = ProviderBase & BackwardsCompatibleDefinitionsProvider;
 

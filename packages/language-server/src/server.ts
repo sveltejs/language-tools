@@ -222,7 +222,8 @@ export function startServer(options?: LSOptions) {
                     range: true,
                     full: true
                 },
-                linkedEditingRangeProvider: true
+                linkedEditingRangeProvider: true,
+                documentHighlightProvider: true
             }
         };
     });
@@ -308,6 +309,10 @@ export function startServer(options?: LSOptions) {
 
     connection.onSelectionRanges((evt) =>
         pluginHost.getSelectionRanges(evt.textDocument, evt.positions)
+    );
+
+    connection.onDocumentHighlight((evt) =>
+        pluginHost.findDocumentHighlight(evt.textDocument, evt.position)
     );
 
     const diagnosticsManager = new DiagnosticsManager(

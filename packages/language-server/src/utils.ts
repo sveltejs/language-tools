@@ -126,3 +126,7 @@ export function modifyLines(
         )
         .join('\r\n');
 }
+
+export function isSamePosition(position: Position, another: Position) {
+    return position.line === another.line && position.character === another.character;
+}
