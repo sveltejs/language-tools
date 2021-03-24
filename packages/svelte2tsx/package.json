@@ -8,10 +8,10 @@
         "svelte",
         "typescript"
     ],
-    "homepage": "https://github.com/halfnelson/svelte2tsx",
+    "homepage": "https://github.com/sveltejs/language-tools/tree/master/packages/svelte2tsx",
     "repository": {
         "type": "git",
-        "url": "https://github.com/halfnelson/svelte2tsx.git"
+        "url": "https://github.com/sveltejs/language-tools/tree/master/packages/svelte2tsx"
     },
     "type": "commonjs",
     "main": "index.js",
