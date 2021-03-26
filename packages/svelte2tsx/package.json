@@ -15,6 +15,7 @@
     },
     "type": "commonjs",
     "main": "index.js",
+    "module": "index.mjs",
     "types": "index.d.ts",
     "devDependencies": {
         "@rollup/plugin-commonjs": "^15.0.0",
