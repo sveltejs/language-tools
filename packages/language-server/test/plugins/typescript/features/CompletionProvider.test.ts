@@ -353,7 +353,7 @@ describe('CompletionProviderImpl', () => {
         );
 
         assert.equal(completions?.items[0].label, 'toImport.ts');
-    })
+    });
 
     it('provides import completions for supported files', async () => {
         const sourceFile = 'importcompletions.svelte';
@@ -599,7 +599,7 @@ describe('CompletionProviderImpl', () => {
             harmonizeNewLines(additionalTextEdits![0]?.newText),
             // " instead of ' because VSCode uses " by default when there are no other imports indicating otherwise
             `<script>${newLine}import ImportedFile from "./imported-file.svelte";` +
-            `${newLine}${newLine}</script>${newLine}`
+                `${newLine}${newLine}</script>${newLine}`
         );
 
         assert.deepEqual(
