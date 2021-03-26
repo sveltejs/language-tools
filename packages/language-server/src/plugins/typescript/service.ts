@@ -6,14 +6,14 @@ import { getPackageInfo } from '../../importPackage';
 import { DocumentSnapshot } from './DocumentSnapshot';
 import { createSvelteModuleLoader } from './module-loader';
 import { SnapshotManager } from './SnapshotManager';
-import { ensureRealSvelteFilePath, findTsConfigPath, isSvelteFilePath } from './utils';
+import { ensureRealSvelteFilePath, findTsConfigPath } from './utils';
 
 export interface LanguageServiceContainer {
     readonly tsconfigPath: string;
     readonly compilerOptions: ts.CompilerOptions;
     readonly snapshotManager: SnapshotManager;
     getService(): ts.LanguageService;
-    updateDocument(document: Document): ts.LanguageService;
+    updateDocument(documentOrFilePath: Document | string): DocumentSnapshot;
     deleteDocument(filePath: string): void;
 }
 
@@ -37,9 +37,7 @@ export function getLanguageServiceForDocument(
     workspaceUris: string[],
     docContext: LanguageServiceDocumentContext
 ): ts.LanguageService {
-    return getService(document.getFilePath() || '', workspaceUris, docContext).updateDocument(
-        document
-    );
+    return getLanguageServiceForPath(document.getFilePath() || '', workspaceUris, docContext);
 }
 
 export function getService(
@@ -130,23 +128,34 @@ export function createLanguageService(
         snapshotManager.delete(filePath);
     }
 
-    function updateDocument(document: Document): ts.LanguageService {
-        const preSnapshot = snapshotManager.get(document.getFilePath()!);
+    function updateDocument(documentOrFilePath: Document | string): DocumentSnapshot {
+        const filePath =
+            typeof documentOrFilePath === 'string'
+                ? documentOrFilePath
+                : documentOrFilePath.getFilePath() || '';
+        const document = typeof documentOrFilePath === 'string' ? undefined : documentOrFilePath;
+        const prevSnapshot = snapshotManager.get(filePath);
 
         // Don't reinitialize document if no update needed.
-        if (preSnapshot?.version === document.version) {
-            return languageService;
+        if (document && prevSnapshot?.version === document.version) {
+            return prevSnapshot;
         }
 
-        const newSnapshot = DocumentSnapshot.fromDocument(document, transformationConfig);
-        if (preSnapshot && preSnapshot.scriptKind !== newSnapshot.scriptKind) {
+        const newSnapshot = document
+            ? DocumentSnapshot.fromDocument(document, transformationConfig)
+            : DocumentSnapshot.fromFilePath(
+                  filePath,
+                  docContext.createDocument,
+                  transformationConfig
+              );
+        if (prevSnapshot && prevSnapshot.scriptKind !== newSnapshot.scriptKind) {
             // Restart language service as it doesn't handle script kind changes.
             languageService.dispose();
             languageService = ts.createLanguageService(host);
         }
 
-        snapshotManager.set(document.getFilePath()!, newSnapshot);
-        return languageService;
+        snapshotManager.set(filePath, newSnapshot);
+        return newSnapshot;
     }
 
     function getSnapshot(fileName: string): DocumentSnapshot {
@@ -157,16 +166,11 @@ export function createLanguageService(
             return doc;
         }
 
-        if (isSvelteFilePath(fileName)) {
-            const file = ts.sys.readFile(fileName) || '';
-            doc = DocumentSnapshot.fromDocument(
-                docContext.createDocument(fileName, file),
-                transformationConfig
-            );
-        } else {
-            doc = DocumentSnapshot.fromFilePath(fileName, transformationConfig);
-        }
-
+        doc = DocumentSnapshot.fromFilePath(
+            fileName,
+            docContext.createDocument,
+            transformationConfig
+        );
         snapshotManager.set(fileName, doc);
         return doc;
     }
