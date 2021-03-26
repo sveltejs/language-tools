@@ -340,6 +340,21 @@ describe('CompletionProviderImpl', () => {
         }
     });
 
+    it('provides import completions in file with uppercase directory', async () => {
+        const { completionProvider, document } = setup('UpperCase/dirCasing.svelte');
+
+        const completions = await completionProvider.getCompletions(
+            document,
+            Position.create(1, 22),
+            {
+                triggerKind: CompletionTriggerKind.TriggerCharacter,
+                triggerCharacter: '/'
+            }
+        );
+
+        assert.equal(completions?.items[0].label, 'toImport.ts');
+    });
+
     it('provides import completions for supported files', async () => {
         const sourceFile = 'importcompletions.svelte';
         const { completionProvider, document } = setup(sourceFile);
