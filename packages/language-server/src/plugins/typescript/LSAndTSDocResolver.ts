@@ -75,32 +75,18 @@ export class LSAndTSDocResolver {
             this.workspaceUris,
             this.lsDocumentContext
         );
-        const filePath = document.getFilePath()!;
-        const tsDoc = this.getSnapshot(filePath, document);
+        const tsDoc = this.getSnapshot(document);
         const userPreferences = this.getUserPreferences(tsDoc.scriptKind);
 
         return { tsDoc, lang, userPreferences };
     }
 
-    getSnapshot(filePath: string, document: Document): SvelteDocumentSnapshot;
-    getSnapshot(filePath: string, document?: Document): DocumentSnapshot;
-    getSnapshot(filePath: string, document?: Document) {
+    getSnapshot(document: Document): SvelteDocumentSnapshot;
+    getSnapshot(pathOrDoc: string | Document): DocumentSnapshot;
+    getSnapshot(pathOrDoc: string | Document) {
+        const filePath = typeof pathOrDoc === 'string' ? pathOrDoc : pathOrDoc.getFilePath() || '';
         const tsService = this.getTSService(filePath);
-        const { snapshotManager } = tsService;
-
-        let tsDoc = snapshotManager.get(filePath);
-        if (!tsDoc) {
-            const options = {
-                strictMode: !!tsService.compilerOptions.strict,
-                transformOnTemplateError: this.transformOnTemplateError
-            };
-            tsDoc = document
-                ? DocumentSnapshot.fromDocument(document, options)
-                : DocumentSnapshot.fromFilePath(filePath, options);
-            snapshotManager.set(filePath, tsDoc);
-        }
-
-        return tsDoc;
+        return tsService.updateDocument(pathOrDoc);
     }
 
     updateSnapshotPath(oldPath: string, newPath: string): DocumentSnapshot {

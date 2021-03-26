@@ -385,12 +385,7 @@ export class TypeScriptPlugin
                 return;
             }
 
-            // Since the options parameter only applies to svelte snapshots, and this is not
-            // a svelte file, we can just set it to false without having any effect.
-            snapshotManager.updateByFileName(fileName, {
-                strictMode: false,
-                transformOnTemplateError: false
-            });
+            snapshotManager.updateTsOrJsFile(fileName);
         }
     }
 

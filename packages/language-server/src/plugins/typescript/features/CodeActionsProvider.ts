@@ -398,8 +398,4 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
     private getLSAndTSDoc(document: Document) {
         return this.lsAndTsDocResolver.getLSAndTSDoc(document);
     }
-
-    private getSnapshot(filePath: string, document?: Document) {
-        return this.lsAndTsDocResolver.getSnapshot(filePath, document);
-    }
 }
