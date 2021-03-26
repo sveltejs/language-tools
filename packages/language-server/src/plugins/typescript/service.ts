@@ -107,8 +107,7 @@ export function createLanguageService(
         resolveModuleNames: svelteModuleLoader.resolveModuleNames,
         readDirectory: svelteModuleLoader.readDirectory,
         getDirectories: ts.sys.getDirectories,
-        // vscode's uri is all lowercase
-        useCaseSensitiveFileNames: () => false,
+        useCaseSensitiveFileNames: () => ts.sys.useCaseSensitiveFileNames,
         getScriptKind: (fileName: string) => getSnapshot(fileName).scriptKind
     };
     let languageService = ts.createLanguageService(host);
