@@ -61,15 +61,18 @@ describe('sourcemaps', function () {
 
         function regenerate(generate: GenerateFn, skip = false) {
             const parsed = parse(sample);
-            generate_passive(generate, parsed, skip);
+            generate_output_and_mappings_file(generate, parsed, skip);
             if (!sample.has('test.jsx')) generate('test.jsx', parsed.generate_test(), skip);
             generate('test.edit.jsx', parsed.generate_test_edit(sample.get('test.jsx')), false);
         }
     }
 });
 
+/**
+ * Maybe generates test result files depending on the currently existing files.
+ */
 function maybe_generate(sample: Sample, regenerate: (generate: GenerateFn) => void) {
-    const svelteFile = sample.wildcard('*.svelte');
+    const svelteFile = sample.find_file('*.svelte');
 
     if (sample.hasOnly(svelteFile)) {
         return sample.generateDeps(regenerate);
@@ -82,7 +85,7 @@ function maybe_generate(sample: Sample, regenerate: (generate: GenerateFn) => vo
             validate_edit_file(edit);
         } catch (err) {
             return sample.generateDeps(function (generate) {
-                generate_passive(generate, parse(sample));
+                generate_output_and_mappings_file(generate, parse(sample));
                 throw err;
             });
         }
@@ -95,14 +98,14 @@ function maybe_generate(sample: Sample, regenerate: (generate: GenerateFn) => vo
                 if (is_edit_empty(edit)) {
                     generate('test.jsx', parsed.generate_test());
                     generate('test.edit.jsx', parsed.generate_test_edit());
-                    generate_passive(generate, parsed);
+                    generate_output_and_mappings_file(generate, parsed);
                     return;
                 }
                 if (is_edit_from_same_generated(edit, parsed.generated)) {
                     const new_test = parsed.generate_test(edit);
                     generate('test.jsx', new_test);
                     generate('test.edit.jsx', parsed.generate_test_edit(new_test));
-                    generate_passive(generate, parsed);
+                    generate_output_and_mappings_file(generate, parsed);
                     return;
                 }
                 const err = edit_changed ? 'apply changes made to' : 'generate "test.jsx" from';
@@ -125,14 +128,14 @@ function maybe_generate(sample: Sample, regenerate: (generate: GenerateFn) => vo
         validate_test_file(test);
     } catch (err) {
         return sample.generateDeps(function (generate) {
-            generate_passive(generate, parse(sample));
+            generate_output_and_mappings_file(generate, parse(sample));
             throw err;
         });
     }
     if (!is_test_from_same_input(test, sample.get(svelteFile))) {
         return sample.generateDeps(function (generate) {
             const parsed = parse(sample);
-            generate_passive(generate, parsed);
+            generate_output_and_mappings_file(generate, parsed);
             generate('test.edit.jsx', parsed.generate_test_edit());
             if (is_test_empty(test)) {
                 generate('test.jsx', parsed.generate_test());
@@ -148,7 +151,7 @@ function maybe_generate(sample: Sample, regenerate: (generate: GenerateFn) => vo
     }
 }
 
-function generate_passive(generate: GenerateFn, parsed: Parsed, skip = false) {
+function generate_output_and_mappings_file(generate: GenerateFn, parsed: Parsed, skip = false) {
     generate('output.tsx', parsed.inline, false);
     generate('mappings.jsx', parsed.print_mappings(), skip);
 }
@@ -156,9 +159,13 @@ function generate_passive(generate: GenerateFn, parsed: Parsed, skip = false) {
 type Parsed = ReturnType<typeof handler> & { generated: string; inline: string };
 const cache = new WeakMap<Sample, Parsed>();
 
+/**
+ * Generates svelte2tsx-output and mappings and prepares methods for
+ * generating further test output files.
+ */
 function parse(sample: Sample): Parsed {
     if (!cache.has(sample)) {
-        const filename = sample.wildcard('*.svelte');
+        const filename = sample.find_file('*.svelte');
         const original = sample.get(filename);
         const { code, map } = svelte2tsx(
             original,

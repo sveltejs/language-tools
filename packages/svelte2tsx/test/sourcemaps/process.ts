@@ -1,7 +1,7 @@
 import { ComposeHelper, compose_file } from './composer';
 import {
     each_exec,
-    fromLineChar,
+    fromLineCharToOffset,
     get_extra_indent,
     hash,
     insert_segments,
@@ -60,6 +60,9 @@ namespace raw {
     const TEST_FILE_START = '/** tested-ranges: $ */'.split('$'); // RawTestRange[] (what tests are evaluated from)
     const TEST_FILE_END = '\n/** origin-hash: $ */'.split('$'); // Hash of input.svelte
 
+    /**
+     * Return raw ranges and the hash from a test.jsx input string.
+     */
     export function fromTestFile(file: string) {
         if (!file.startsWith(TEST_FILE_START[0]) || !file.includes(TEST_FILE_END[0]))
             throw new Error('Invalid test file');
@@ -72,12 +75,15 @@ namespace raw {
         return { ranges: ranges as RawTestRange[], hash };
     }
 
+    /**
+     * Returns a string for a test.jsx file
+     */
     export function toTestFile(origin: string, content: string, ranges: RawTestRange[]) {
         const raw = JSON.stringify(ranges);
         if (raw.includes(TEST_FILE_START[1]))
             throw new Error(`Tested range cannot include "${TEST_FILE_START[1]}"`);
         let header = TEST_FILE_START[0] + raw + TEST_FILE_START[1];
-        hack: if (ranges.length && /^\s*{\/\*\*/.test(content)) {
+        if (ranges.length && /^\s*{\/\*\*/.test(content)) {
             const width = content.indexOf('{');
             content = content.slice(Math.min(width, header.length));
         }
@@ -102,8 +108,10 @@ namespace raw {
 }
 
 namespace print {
-    // mappings.jsx
-    export function mappings({ generated }: ParsedSource) {
+    /**
+     * Return string for mappings.jsx
+     */
+    export function mappings({ generated }: ParsedSource): string {
         return compose_file(function* (composer) {
             for (const line of generated.lines) {
                 if (
@@ -156,8 +164,10 @@ namespace print {
         }
     }
 
-    // test.jsx
-    export function test(test_ranges: RawTestRange[], source: ParsedSource) {
+    /**
+     * Print string for test.jsx
+     */
+    export function test(test_ranges: RawTestRange[], source: ParsedSource): string {
         return raw.toTestFile(
             source.original.text,
             compose_file(compose_test, { match_first_column_width: true }),
@@ -248,7 +258,9 @@ namespace print {
         }
     }
 
-    // test.edit.jsx
+    /**
+     * Print string for test.edit.jsx
+     */
     export function test_edit(parsed_tests: SourceMappingTest[], source: ParsedSource) {
         return raw.toEditFile(
             insert_segments(
@@ -256,8 +268,8 @@ namespace print {
                 (function* () {
                     for (const test of parsed_tests) {
                         const { start, end } = range_for('generated', test.range);
-                        yield { start: fromLineChar(start), text: '[[[' };
-                        yield { start: fromLineChar(end) + 1, text: ']]]' };
+                        yield { start: fromLineCharToOffset(start), text: '[[[' };
+                        yield { start: fromLineCharToOffset(end) + 1, text: ']]]' };
                     }
                 })()
             )
@@ -292,15 +304,15 @@ function tryFindGenPosition(
 ) {
     const matches = generated.from(ogStart);
     const { generated: cue } = matches.length === 1 ? matches[0] : tryPickMatch(matches);
-    const forward = generated.text.indexOf(generated_subset, fromLineChar(cue));
-    const backward = generated.text.lastIndexOf(generated_subset, fromLineChar(cue));
+    const forward = generated.text.indexOf(generated_subset, fromLineCharToOffset(cue));
+    const backward = generated.text.lastIndexOf(generated_subset, fromLineCharToOffset(cue));
     const target = forward === backward || forward === -1 ? backward : forward;
     return target;
 
     function tryPickMatch(matches: MappedPosition[]) {
         const exact = matches.filter((match) =>
             match.generated.line.source.text
-                .slice(fromLineChar(match.generated))
+                .slice(fromLineCharToOffset(match.generated))
                 .startsWith(generated_subset)
         );
         if (exact.length === 1) return exact[0];
@@ -452,12 +464,12 @@ function parse_edit_file(edit_file: string, { generated }: ParsedSource) {
         const range = { start: generated.at(raw.start), end: generated.at(raw.end) };
         const original = range_for('original', range);
         const { start, end } = range_for('generated', range);
-        const ogStart = original.start.line ? fromLineChar(original.start) : 0;
-        const ogLength = original.end.line ? fromLineChar(original.end) - ogStart + 1 : 0;
+        const ogStart = original.start.line ? fromLineCharToOffset(original.start) : 0;
+        const ogLength = original.end.line ? fromLineCharToOffset(original.end) - ogStart + 1 : 0;
         return [
             ogStart,
             ogLength,
-            generated.text.slice(fromLineChar(start), fromLineChar(end) + 1)
+            generated.text.slice(fromLineCharToOffset(start), fromLineCharToOffset(end) + 1)
         ];
     });
 }

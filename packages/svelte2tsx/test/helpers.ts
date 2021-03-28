@@ -39,7 +39,7 @@ function writeFileSync(path: string, content: string) {
     return fs.writeFileSync(path, normalize(content));
 }
 
-function wildcard(str: string, target: string) {
+function is_same_file(str: string, target: string) {
     if (str[0] === '*') return target.endsWith(str.slice(1));
     return str === target;
 }
@@ -64,13 +64,13 @@ export class Sample {
 
         loop: for (const fileName of this.folder) {
             for (const name of unchecked) {
-                if (wildcard(name, fileName)) {
+                if (is_same_file(name, fileName)) {
                     unchecked.delete(name);
                     continue loop;
                 }
             }
             for (const name of allowed) {
-                if (wildcard(name, fileName)) {
+                if (is_same_file(name, fileName)) {
                     continue loop;
                 }
             }
@@ -140,8 +140,12 @@ export class Sample {
         return this.folder.length === fileNames.length && fileNames.every((f) => this.has(f));
     }
 
-    wildcard(fileName: string) {
-        return this.folder.find((f) => wildcard(fileName, f));
+    /**
+     * Returns first found file that matches the fileName,
+     * or ends with it in case of a wildcard search.
+     */
+    find_file(fileName: string) {
+        return this.folder.find((f) => is_same_file(fileName, f));
     }
 
     at(file: string) {
@@ -206,7 +210,7 @@ const enum TestError {
 
 export function test_samples(dir: string, transform: TransformSampleFn, jsx: 'jsx' | 'tsx') {
     for (const sample of each_sample(dir)) {
-        const svelteFile = sample.wildcard('*.svelte');
+        const svelteFile = sample.find_file('*.svelte');
         const config = {
             filename: svelteFile,
             sampleName: sample.name,

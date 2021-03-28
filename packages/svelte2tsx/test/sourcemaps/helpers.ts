@@ -30,12 +30,15 @@ export function print_string(str: string) {
         .replace(/\t/g, '╚');
 }
 
-function edit(str: string, { start, text }: Segment, insert: boolean) {
+function edit_string(str: string, { start, text }: Segment, insert: boolean) {
     if (str.length === start) return str + text;
     else if (str.length < start) return str.padEnd(start) + text;
     else return str.slice(0, start) + text + str.slice(start + (insert ? 0 : text.length));
 }
 
+/**
+ * Reduces segments into one big string
+ */
 export function reduce_segments<T>(
     gen: Iterable<T>,
     fn: (value: T, index: number) => Segment | void,
@@ -45,7 +48,7 @@ export function reduce_segments<T>(
     let i = 0;
     for (const value of gen) {
         const segment = fn(value, i++);
-        if (segment) str = edit(str, segment, false);
+        if (segment) str = edit_string(str, segment, false);
     }
     return str;
 }
@@ -60,10 +63,13 @@ export function insert_segments(text: string, segments: Iterable<Segment>) {
     return text.slice(0, prev_start) + str;
 }
 
-export function fromLineChar({ line, character }: { line: Line; character: number }) {
+export function fromLineCharToOffset({ line, character }: { line: Line; character: number }) {
     return line.start + character;
 }
 
+/**
+ * Returns a text span starting with head, ending with tail, and repeating body in the middle.
+ */
 export function span(length: number, [head, body, tail]: string = '#==') {
     if (length <= 1) return length < 1 ? '' : body === tail ? head : tail;
     return head + body.repeat(length - 2) + tail;
@@ -71,6 +77,7 @@ export function span(length: number, [head, body, tail]: string = '#==') {
 
 class Underline {
     constructor(readonly start: number, readonly text: string) {}
+
     toString() {
         return ' '.repeat(this.start) + this.text;
     }

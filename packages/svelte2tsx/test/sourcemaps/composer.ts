@@ -2,21 +2,23 @@ import { get_extra_indent, Segment } from './helpers';
 import { Line } from './parser';
 
 type cmap = string | Segment;
-type CommentOpts = { indent?: number };
+type CommentOptions = { indent?: number };
 type comment = [cmap, string] | readonly [cmap, string];
 type Section = HorizontalRule | Comment | Line | string;
 
 class Comment {
     readonly content: [string, string][];
-    constructor(gen: Iterable<comment>, readonly opts: CommentOpts = {}) {
+
+    constructor(gen: Iterable<comment>, readonly options: CommentOptions = {}) {
         this.content = Array.from(gen, ([cmap, message]): [string, string] => [
             typeof cmap === 'string' ? cmap : ' '.repeat(cmap.start) + cmap.text,
             message
         ]);
     }
+
     render(indent: number, col0_width: number, width: number) {
         col0_width = Math.max(col0_width, ...this.content.map(([map]) => map.length));
-        if ('indent' in this.opts) indent = this.opts.indent;
+        if ('indent' in this.options) indent = this.options.indent;
         return this.content
             .map(([map, comment]) =>
                 (' '.repeat(indent * 4) + map.padEnd(col0_width) + '    ' + comment).padEnd(width)
@@ -27,20 +29,25 @@ class Comment {
 
 class HorizontalRule {
     constructor(readonly content?: string, readonly _fill: string = '-') {}
+
     fill(width: number) {
         return this.content
             ? this.content
-                  .padStart((width + this.content.length) >> 1, this._fill)
+                  .padStart(Math.floor((width + this.content.length) / 2), this._fill)
                   .padEnd(width, this._fill)
             : this._fill.repeat(width);
     }
 }
 
+/**
+ * Creates a rule that puts the passed in context in the middle and fills up remaining
+ * width around it with the given fill.
+ */
 function rule(content?: string, fill?: string): HorizontalRule {
     return new HorizontalRule(content, fill);
 }
 
-function comment(lines: comment | Iterable<comment>, opts?: CommentOpts) {
+function comment(lines: comment | Iterable<comment>, opts?: CommentOptions) {
     return new Comment(
         lines instanceof Array && lines.length === 2 && !(lines[0] instanceof Array)
             ? [lines]
@@ -75,6 +82,7 @@ export function compose_file(
     if (sections[0] instanceof HorizontalRule || sections[0] instanceof Comment) {
         sections.unshift('');
     }
+
     for (let i = 0; i < sections.length; i++) {
         const { [i]: current, [i + 1]: next } = sections;
         let str = '';
@@ -99,6 +107,7 @@ export function compose_file(
         }
         content.push(str);
     }
+
     return content.join('\n');
 }
 
