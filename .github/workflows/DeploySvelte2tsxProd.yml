@@ -1,9 +1,9 @@
-name: Tagged Production Deploys for svelte-check
+name: Tagged Production Deploys for svelte2tsx
 
 on:
   push:
     tags:
-      - "svelte-check-*"
+      - "svelte2tsx-*"
 
 jobs:
   deploy:
@@ -24,11 +24,11 @@ jobs:
       - run: "npm install -g json"
 
       # Setup the environment
-      - run: 'json -I -f packages/svelte-check/package.json -e "this.version=\`${{ github.ref }}\`.split(\`-\`).pop()"'
+      - run: 'json -I -f packages/svelte2tsx/package.json -e "this.version=\`${{ github.ref }}\`.split(\`-\`).pop()"'
 
       # Ship it
       - run: |
-         cd packages/svelte-check
+         cd packages/svelte2tsx
          npm install
          npm publish
 
