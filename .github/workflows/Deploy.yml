@@ -44,5 +44,5 @@ jobs:
           OVSX_TOKEN: ${{ secrets.OVSX_TOKEN }}
         with:
           sort: '["svelte2tsx", "svelte-language-server", "svelte-check", "svelte-vscode-nightly"]'
-          only: '["svelte2tsx", "svelte-language-server", "svelte-vscode-nightly"]'
+          only: '["svelte-vscode-nightly"]'
           install: "true"
