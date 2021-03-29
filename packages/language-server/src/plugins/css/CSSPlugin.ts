@@ -177,7 +177,7 @@ export class CSSPlugin
                 new StyleAttributeDocument(document, start, end)
             );
         } else {
-            return getIdClassCompletion(cssDocument, attributeContext) ?? null;
+            return getIdClassCompletion(cssDocument, attributeContext);
         }
     }
 
