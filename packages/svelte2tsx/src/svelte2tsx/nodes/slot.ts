@@ -9,8 +9,9 @@ import {
     getSlotName
 } from '../../utils/svelteAst';
 import TemplateScope from './TemplateScope';
-import { SvelteIdentifier, WithName, BaseDirective } from '../../interfaces';
+import { SvelteIdentifier, WithName } from '../../interfaces';
 import { getTypeForComponent } from '../../htmlxtojsx/utils/node-utils';
+import { Directive } from 'svelte/types/compiler/interfaces';
 
 function attributeStrValueAsJsExpression(attr: Node): string {
     if (attr.value.length == 0) return "''"; //wut?
@@ -98,7 +99,7 @@ export class SlotHandler {
     resolveDestructuringAssignmentForLet(
         destructuringNode: Node,
         identifiers: SvelteIdentifier[],
-        letNode: BaseDirective,
+        letNode: Directive,
         component: Node,
         slotName: string
     ) {
@@ -112,15 +113,11 @@ export class SlotHandler {
         });
     }
 
-    private getResolveExpressionStrForLet(
-        letNode: BaseDirective,
-        component: Node,
-        slotName: string
-    ) {
+    private getResolveExpressionStrForLet(letNode: Directive, component: Node, slotName: string) {
         return `${getSingleSlotDef(component, slotName)}.${letNode.name}`;
     }
 
-    resolveLet(letNode: BaseDirective, identifierDef: WithName, component: Node, slotName: string) {
+    resolveLet(letNode: Directive, identifierDef: WithName, component: Node, slotName: string) {
         let resolved = this.resolved.get(identifierDef);
         if (resolved) {
             return resolved;
@@ -153,7 +150,7 @@ export class SlotHandler {
     private getLetNodes(child: Node, slotName: string) {
         const letNodes = ((child?.attributes as Node[]) ?? []).filter(
             (attr) => attr.type === 'Let'
-        ) as BaseDirective[];
+        ) as Directive[];
 
         return letNodes?.map((letNode) => ({
             letNode,

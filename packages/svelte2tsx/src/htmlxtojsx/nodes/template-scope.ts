@@ -1,6 +1,5 @@
-import { Node } from 'estree-walker';
 import { extract_identifiers } from 'periscopic';
-import { SvelteIdentifier } from '../../interfaces';
+import { BaseNode, SvelteIdentifier } from '../../interfaces';
 import { isDestructuringPatterns, isIdentifier } from '../../utils/svelteAst';
 import { usesLet } from '../utils/node-utils';
 
@@ -21,7 +20,7 @@ export class TemplateScope {
 export class TemplateScopeManager {
     value = new TemplateScope();
 
-    eachEnter(node: Node) {
+    eachEnter(node: BaseNode) {
         this.value = this.value.child();
         if (node.context) {
             this.handleScope(node.context);
@@ -31,13 +30,13 @@ export class TemplateScopeManager {
         }
     }
 
-    eachLeave(node: Node) {
+    eachLeave(node: BaseNode) {
         if (!node.else) {
             this.value = this.value.parent;
         }
     }
 
-    awaitEnter(node: Node) {
+    awaitEnter(node: BaseNode) {
         this.value = this.value.child();
         if (node.value) {
             this.handleScope(node.value);
@@ -47,7 +46,7 @@ export class TemplateScopeManager {
         }
     }
 
-    awaitPendingEnter(node: Node, parent: Node) {
+    awaitPendingEnter(node: BaseNode, parent: BaseNode) {
         if (node.skip || parent.type !== 'AwaitBlock') {
             return;
         }
@@ -55,7 +54,7 @@ export class TemplateScopeManager {
         this.value.inits.clear();
     }
 
-    awaitThenEnter(node: Node, parent: Node) {
+    awaitThenEnter(node: BaseNode, parent: BaseNode) {
         if (node.skip || parent.type !== 'AwaitBlock') {
             return;
         }
@@ -67,7 +66,7 @@ export class TemplateScopeManager {
         }
     }
 
-    awaitCatchEnter(node: Node, parent: Node) {
+    awaitCatchEnter(node: BaseNode, parent: BaseNode) {
         if (node.skip || parent.type !== 'AwaitBlock') {
             return;
         }
@@ -83,25 +82,25 @@ export class TemplateScopeManager {
         this.value = this.value.parent;
     }
 
-    elseEnter(parent: Node) {
+    elseEnter(parent: BaseNode) {
         if (parent.type === 'EachBlock') {
             this.value = this.value.parent;
         }
     }
 
-    componentOrSlotTemplateOrElementEnter(node: Node) {
+    componentOrSlotTemplateOrElementEnter(node: BaseNode) {
         if (usesLet(node)) {
             this.value = this.value.child();
         }
     }
 
-    componentOrSlotTemplateOrElementLeave(node: Node) {
+    componentOrSlotTemplateOrElementLeave(node: BaseNode) {
         if (usesLet(node)) {
             this.value = this.value.parent;
         }
     }
 
-    private handleScope(identifierDef: Node) {
+    private handleScope(identifierDef: BaseNode) {
         if (isIdentifier(identifierDef)) {
             this.value.inits.add(identifierDef.name);
         }

@@ -1,9 +1,10 @@
 import { Node } from 'estree-walker';
-import { BaseDirective, SvelteIdentifier } from '../../interfaces';
+import { SvelteIdentifier } from '../../interfaces';
 import TemplateScope from './TemplateScope';
 import { SlotHandler } from './slot';
 import { isIdentifier, isDestructuringPatterns } from '../../utils/svelteAst';
 import { extract_identifiers as extractIdentifiers } from 'periscopic';
+import { Directive } from 'svelte/types/compiler/interfaces';
 
 export function handleScopeAndResolveForSlot({
     identifierDef,
@@ -44,7 +45,7 @@ export function handleScopeAndResolveLetVarForSlot({
     templateScope,
     slotHandler
 }: {
-    letNode: BaseDirective;
+    letNode: Directive;
     slotName: string;
     component: Node;
     templateScope: TemplateScope;

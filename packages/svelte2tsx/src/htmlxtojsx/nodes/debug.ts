@@ -1,14 +1,14 @@
-import { Node } from 'estree-walker';
 import MagicString from 'magic-string';
+import { BaseNode } from '../../interfaces';
 
 /**
  * {@debug a}		--->   {a}
  * {@debug a, b}	--->   {a}{b}
  * tsx won't accept commas, must split
  */
-export function handleDebug(_htmlx: string, str: MagicString, debugBlock: Node): void {
+export function handleDebug(_htmlx: string, str: MagicString, debugBlock: BaseNode): void {
     let cursor = debugBlock.start;
-    for (const identifier of debugBlock.identifiers as Node[]) {
+    for (const identifier of debugBlock.identifiers as BaseNode[]) {
         str.remove(cursor, identifier.start);
         str.prependLeft(identifier.start, '{');
         str.prependLeft(identifier.end, '}');

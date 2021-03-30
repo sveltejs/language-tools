@@ -1,6 +1,6 @@
 import MagicString from 'magic-string';
-import { Node } from 'estree-walker';
 import { isQuote } from '../utils/node-utils';
+import { BaseDirective, BaseNode } from '../../interfaces';
 
 /**
  * transition:xxx(yyy)   --->   {...__sveltets_ensureTransition(xxx(__sveltets_mapElementTag('..'),(yyy)))}
@@ -8,8 +8,8 @@ import { isQuote } from '../utils/node-utils';
 export function handleTransitionDirective(
     htmlx: string,
     str: MagicString,
-    attr: Node,
-    parent: Node
+    attr: BaseDirective,
+    parent: BaseNode
 ): void {
     str.overwrite(
         attr.start,
