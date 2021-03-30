@@ -4,7 +4,7 @@ import { decode } from 'sourcemap-codec';
 import { each_sample, GenerateFn, get_svelte2tsx_config, Sample } from '../helpers';
 import { print_string } from './helpers';
 import {
-    handler,
+    process_transformed_text,
     is_edit_changed,
     is_edit_empty,
     is_edit_from_same_generated,
@@ -156,7 +156,7 @@ function generate_output_and_mappings_file(generate: GenerateFn, parsed: Parsed,
     generate('mappings.jsx', parsed.print_mappings(), skip);
 }
 
-type Parsed = ReturnType<typeof handler> & { generated: string; inline: string };
+type Parsed = ReturnType<typeof process_transformed_text> & { generated: string; inline: string };
 const cache = new WeakMap<Sample, Parsed>();
 
 /**
@@ -176,7 +176,7 @@ function parse(sample: Sample): Parsed {
         map.sources = [filename];
         map.sourcesContent = [original];
 
-        const mapped = handler(original, code, decode(map.mappings) as any);
+        const mapped = process_transformed_text(original, code, decode(map.mappings) as any);
         cache.set(sample, {
             ...mapped,
             generated: code,

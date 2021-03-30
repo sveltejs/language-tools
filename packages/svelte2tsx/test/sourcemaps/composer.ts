@@ -47,6 +47,9 @@ function rule(content?: string, fill?: string): HorizontalRule {
     return new HorizontalRule(content, fill);
 }
 
+/**
+ * Prints given line(s) in a multi-line comment block. (succeeding comments are joined together)
+ */
 function comment(lines: comment | Iterable<comment>, opts?: CommentOptions) {
     return new Comment(
         lines instanceof Array && lines.length === 2 && !(lines[0] instanceof Array)

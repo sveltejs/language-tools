@@ -53,9 +53,13 @@ export function reduce_segments<T>(
     return str;
 }
 
+/**
+ * Inserts each segment in the given text
+ */
 export function insert_segments(text: string, segments: Iterable<Segment>) {
     let str = '';
     let prev_start: number = undefined;
+    // sort descending
     for (const segment of [...segments].sort((a, b) => b.start - a.start)) {
         str = segment.text + text.slice(segment.start, prev_start) + str;
         prev_start = segment.start;
@@ -102,10 +106,16 @@ export function* each_exec(str: string, re: RegExp) {
     while ((arr = re.exec(str))) yield { match: arr[0], index: arr.index };
 }
 
+/**
+ * Returns offset of character at index after accounting for extra space taken by tabs
+ */
 export function tab_aware_index(str: string, index: number) {
     return index + get_extra_indent(str.slice(0, index + 1));
 }
 
+/**
+ * Returns all extra space taken by tabs in given string
+ */
 export function get_extra_indent(str: string) {
     return (str.match(/\t/g)?.length ?? 0) * 3;
 }

@@ -49,6 +49,9 @@ export class SourceText<L extends Line = Line> {
     }
 }
 
+/**
+ * Wrapper around text that was compiled from another
+ */
 export class GeneratedSourceText extends SourceText<GeneratedLine> {
     firstMapped: number;
     lastMapped: number;
@@ -103,6 +106,9 @@ export class GeneratedSourceText extends SourceText<GeneratedLine> {
     }
 }
 
+/**
+ * Wrapper around each line in a SourceText
+ */
 export class Line {
     readonly index: number;
     readonly start: number;
@@ -137,6 +143,9 @@ export class Line {
     }
 }
 
+/**
+ * Wrapper around each line in a GeneratedSourceText
+ */
 export class GeneratedLine extends Line {
     readonly source: GeneratedSourceText;
     readonly hasOrigin = this.lineMap.length !== 0;
@@ -230,6 +239,12 @@ export type ParsedSource = {
     generated: GeneratedSourceText;
 };
 
+/**
+ * Reconciliates the generated text with the original using its mappings
+ * @param original_text original code
+ * @param generated_text transformed code compiled from original
+ * @param mappings mappings from transformed to original
+ */
 export function parse(
     original_text: string,
     generated_text: string,

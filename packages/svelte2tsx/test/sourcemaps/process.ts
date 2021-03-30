@@ -378,7 +378,11 @@ export function is_edit_empty(test_edit: string) {
     return !/\[\[\[[^\]]*\]\]\]/.test(raw.fromEditFile(test_edit).content);
 }
 
-export function handler(original_text: string, generated_text: string, mappings: Mappings) {
+export function process_transformed_text(
+    original_text: string,
+    generated_text: string,
+    mappings: Mappings
+) {
     const source = parse(original_text, generated_text, mappings);
     return {
         print_mappings: () => print.mappings(source),
