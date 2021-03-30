@@ -6,6 +6,7 @@ import {
     MustacheTag,
     Text
 } from 'svelte/types/compiler/interfaces';
+
 export interface NodeRange {
     start: number;
     end: number;
