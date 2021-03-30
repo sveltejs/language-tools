@@ -7,7 +7,8 @@ import {
     CompletionItemKind,
     TextEdit,
     CompletionContext,
-    SelectionRange
+    SelectionRange,
+    CompletionTriggerKind
 } from 'vscode-languageserver';
 import { DocumentManager, Document } from '../../../src/lib/documents';
 import { CSSPlugin } from '../../../src/plugins';
@@ -46,6 +47,28 @@ describe('CSS Plugin', () => {
         it('not for stylus', () => {
             const { plugin, document } = setup('<style lang="stylus">h1 {}</style>');
             assert.deepStrictEqual(plugin.doHover(document, Position.create(0, 22)), null);
+        });
+
+        it('for style attribute', () => {
+            const { plugin, document } = setup('<div style="height: auto;"></div>');
+            assert.deepStrictEqual(plugin.doHover(document, Position.create(0, 13)), <Hover>{
+                contents: {
+                    kind: 'markdown',
+                    value:
+                        'Specifies the height of the content area,' +
+                        ' padding area or border area \\(depending on \'box\\-sizing\'\\)'+
+                        ' of certain boxes\\.\n' +
+
+                    '\nSyntax: &lt;viewport\\-length&gt;\\{1,2\\}\n\n' +
+                    '[MDN Reference](https://developer.mozilla.org/docs/Web/CSS/height)'
+                },
+                range: Range.create(0, 12, 0, 24)
+            });
+        });
+
+        it('not for style attribute with interpolation', () => {
+            const { plugin, document } = setup('<div style="height: {}"></div>');
+            assert.deepStrictEqual(plugin.doHover(document, Position.create(0, 13)), null);
         });
     });
 
@@ -91,6 +114,42 @@ describe('CSS Plugin', () => {
                 triggerCharacter: '.'
             } as CompletionContext);
             assert.deepStrictEqual(completions, null);
+        });
+
+        it('for style attribute', () => {
+            const { plugin, document } = setup('<div style="display: n"></div>');
+            const completions = plugin.getCompletions(document, Position.create(0, 22), {
+                triggerKind: CompletionTriggerKind.Invoked
+            } as CompletionContext);
+            assert.deepStrictEqual(completions?.items.find(item => item.label === 'none'), <CompletionItem>{
+                insertTextFormat: undefined,
+                kind: 12,
+                label: 'none',
+                documentation: {
+                    kind: 'markdown',
+                    value: 'The element and its descendants generates no boxes\\.'
+                },
+                sortText: ' ',
+                tags: [],
+                textEdit: {
+                    newText: 'none',
+                    range: {
+                        start: {
+                            line: 0,
+                            character: 21
+                        },
+                        end: {
+                            line: 0,
+                            character: 22
+                        }
+                    }
+                }
+            });
+        });
+
+        it('not for style attribute with interpolation', () => {
+            const { plugin, document } = setup('<div style="height: {}"></div>');
+            assert.deepStrictEqual(plugin.getCompletions(document, Position.create(0, 21)), null);
         });
     });
 
