@@ -121,9 +121,13 @@ export class CSSPlugin
             return this.doHoverInternal(cssDocument, position);
         }
         const attributeContext = getAttributeContextAtPosition(document, position);
-        if (attributeContext && this.inStyleAttribute(attributeContext)) {
+        if (
+            attributeContext &&
+            this.inStyleAttributeWithoutInterpolation(attributeContext, document.getText())
+        ) {
+            const [start, end] = attributeContext.valueRange;
             return this.doHoverInternal(new StyleAttributeDocument(
-                document, attributeContext.valueRange[0], attributeContext.valueRange[1]
+                document, start, end
             ), position);
         }
         return null;
@@ -169,7 +173,7 @@ export class CSSPlugin
             return null;
         }
 
-        if (this.inStyleAttribute(attributeContext)) {
+        if (this.inStyleAttributeWithoutInterpolation(attributeContext, document.getText())) {
             const [start, end] = attributeContext.valueRange;
             return this.getCompletionsInternal(
                 document,
@@ -181,11 +185,11 @@ export class CSSPlugin
         }
     }
 
-    private inStyleAttribute(attrContext: AttributeContext):
-        attrContext is Required<AttributeContext>
-    {
+    private inStyleAttributeWithoutInterpolation(attrContext: AttributeContext, text: string):
+        attrContext is Required<AttributeContext> {
         return attrContext.name === 'style' &&
-            !!attrContext.valueRange;
+            !!attrContext.valueRange &&
+            !text.substring(attrContext.valueRange[0], attrContext.valueRange[1]).includes('{');
     }
 
     private getCompletionsInternal(
