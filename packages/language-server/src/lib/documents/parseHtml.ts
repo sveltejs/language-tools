@@ -127,10 +127,12 @@ export function getAttributeContextAtPosition(
             }
         } else if (token === TokenType.DelimiterAssign) {
             if (scanner.getTokenEnd() === offset && currentAttributeName) {
+                const nextToken = scanner.scan();
                 return {
                     name: currentAttributeName,
                     inValue: true,
-                    valueRange: [offset, offset]
+                    valueRange: [offset, nextToken === TokenType.AttributeValue ?
+                        scanner.getTokenEnd() : offset]
                 };
             }
         } else if (token === TokenType.AttributeValue) {
