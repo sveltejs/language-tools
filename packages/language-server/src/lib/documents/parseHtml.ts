@@ -90,7 +90,7 @@ function preprocess(text: string) {
 export interface AttributeContext {
     name: string;
     inValue: boolean;
-    valueRange?: [number, number]
+    valueRange?: [number, number];
 }
 
 export function getAttributeContextAtPosition(
@@ -131,8 +131,10 @@ export function getAttributeContextAtPosition(
                 return {
                     name: currentAttributeName,
                     inValue: true,
-                    valueRange: [offset, nextToken === TokenType.AttributeValue ?
-                        scanner.getTokenEnd() : offset]
+                    valueRange: [
+                        offset,
+                        nextToken === TokenType.AttributeValue ? scanner.getTokenEnd() : offset
+                    ]
                 };
             }
         } else if (token === TokenType.AttributeValue) {

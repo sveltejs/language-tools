@@ -46,13 +46,13 @@ import { StyleAttributeDocument } from './StyleAttributeDocument';
 
 export class CSSPlugin
     implements
-    HoverProvider,
-    CompletionsProvider,
-    DiagnosticsProvider,
-    DocumentColorsProvider,
-    ColorPresentationsProvider,
-    DocumentSymbolsProvider,
-    SelectionRangeProvider {
+        HoverProvider,
+        CompletionsProvider,
+        DiagnosticsProvider,
+        DocumentColorsProvider,
+        ColorPresentationsProvider,
+        DocumentSymbolsProvider,
+        SelectionRangeProvider {
     private configManager: LSConfigManager;
     private cssDocuments = new WeakMap<Document, CSSDocument>();
     private triggerCharacters = ['.', ':', '-', '/'];
@@ -126,9 +126,7 @@ export class CSSPlugin
             this.inStyleAttributeWithoutInterpolation(attributeContext, document.getText())
         ) {
             const [start, end] = attributeContext.valueRange;
-            return this.doHoverInternal(new StyleAttributeDocument(
-                document, start, end
-            ), position);
+            return this.doHoverInternal(new StyleAttributeDocument(document, start, end), position);
         }
         return null;
     }
@@ -185,11 +183,15 @@ export class CSSPlugin
         }
     }
 
-    private inStyleAttributeWithoutInterpolation(attrContext: AttributeContext, text: string):
-        attrContext is Required<AttributeContext> {
-        return attrContext.name === 'style' &&
+    private inStyleAttributeWithoutInterpolation(
+        attrContext: AttributeContext,
+        text: string
+    ): attrContext is Required<AttributeContext> {
+        return (
+            attrContext.name === 'style' &&
             !!attrContext.valueRange &&
-            !text.substring(attrContext.valueRange[0], attrContext.valueRange[1]).includes('{');
+            !text.substring(attrContext.valueRange[0], attrContext.valueRange[1]).includes('{')
+        );
     }
 
     private getCompletionsInternal(

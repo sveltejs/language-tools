@@ -4,8 +4,8 @@ import { getLanguageService } from './service';
 import { Document, DocumentMapper, ReadableDocument, TagInformation } from '../../lib/documents';
 
 export interface CSSDocumentBase extends DocumentMapper, TextDocument {
-    languageId: string
-    stylesheet: Stylesheet
+    languageId: string;
+    stylesheet: Stylesheet;
 }
 
 export class CSSDocument extends ReadableDocument implements DocumentMapper {

@@ -56,11 +56,10 @@ describe('CSS Plugin', () => {
                     kind: 'markdown',
                     value:
                         'Specifies the height of the content area,' +
-                        ' padding area or border area \\(depending on \'box\\-sizing\'\\)'+
+                        " padding area or border area \\(depending on 'box\\-sizing'\\)" +
                         ' of certain boxes\\.\n' +
-
-                    '\nSyntax: &lt;viewport\\-length&gt;\\{1,2\\}\n\n' +
-                    '[MDN Reference](https://developer.mozilla.org/docs/Web/CSS/height)'
+                        '\nSyntax: &lt;viewport\\-length&gt;\\{1,2\\}\n\n' +
+                        '[MDN Reference](https://developer.mozilla.org/docs/Web/CSS/height)'
                 },
                 range: Range.create(0, 12, 0, 24)
             });
@@ -121,30 +120,33 @@ describe('CSS Plugin', () => {
             const completions = plugin.getCompletions(document, Position.create(0, 22), {
                 triggerKind: CompletionTriggerKind.Invoked
             } as CompletionContext);
-            assert.deepStrictEqual(completions?.items.find(item => item.label === 'none'), <CompletionItem>{
-                insertTextFormat: undefined,
-                kind: 12,
-                label: 'none',
-                documentation: {
-                    kind: 'markdown',
-                    value: 'The element and its descendants generates no boxes\\.'
-                },
-                sortText: ' ',
-                tags: [],
-                textEdit: {
-                    newText: 'none',
-                    range: {
-                        start: {
-                            line: 0,
-                            character: 21
-                        },
-                        end: {
-                            line: 0,
-                            character: 22
+            assert.deepStrictEqual(
+                completions?.items.find((item) => item.label === 'none'),
+                <CompletionItem>{
+                    insertTextFormat: undefined,
+                    kind: 12,
+                    label: 'none',
+                    documentation: {
+                        kind: 'markdown',
+                        value: 'The element and its descendants generates no boxes\\.'
+                    },
+                    sortText: ' ',
+                    tags: [],
+                    textEdit: {
+                        newText: 'none',
+                        range: {
+                            start: {
+                                line: 0,
+                                character: 21
+                            },
+                            end: {
+                                line: 0,
+                                character: 22
+                            }
                         }
                     }
                 }
-            });
+            );
         });
 
         it('not for style attribute with interpolation', () => {
