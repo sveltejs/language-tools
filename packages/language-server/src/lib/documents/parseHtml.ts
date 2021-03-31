@@ -145,7 +145,7 @@ export function getAttributeContextAtPosition(
                 let end = scanner.getTokenEnd();
                 const char = text[start];
 
-                if (char === '"' || char === '\'') {
+                if (char === '"' || char === "'") {
                     start++;
                     end--;
                 }
