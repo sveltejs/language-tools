@@ -20,7 +20,7 @@ describe('Svelte Document', () => {
     }
 
     function setup(config: configLoader.SvelteConfig = {}) {
-        sinon.stub(configLoader, 'loadConfig').returns(config);
+        sinon.stub(configLoader, 'getConfig').returns(config);
         const parent = new Document('file:///hello.svelte', getSourceCode(false));
         sinon.restore();
         const svelteDoc = new SvelteDocument(parent);

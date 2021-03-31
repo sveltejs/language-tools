@@ -19,7 +19,7 @@ const testDir = join(__dirname, '..');
 const testFilesDir = join(testDir, 'testfiles');
 
 describe('UpdateImportsProviderImpl', () => {
-    function setup(filename: string) {
+    async function setup(filename: string) {
         const docManager = new DocumentManager(
             (textDocument) => new Document(textDocument.uri, textDocument.text)
         );
@@ -35,14 +35,14 @@ describe('UpdateImportsProviderImpl', () => {
             uri: fileUri,
             text: ts.sys.readFile(filePath) || ''
         });
-        lsAndTsDocResolver.getLSAndTSDoc(document); // this makes sure ts ls knows the file
+        await lsAndTsDocResolver.getLSAndTSDoc(document); // this makes sure ts ls knows the file
         return { updateImportsProvider, fileUri };
     }
 
     afterEach(() => sinon.restore());
 
     it('updates imports', async () => {
-        const { updateImportsProvider, fileUri } = setup('updateimports.svelte');
+        const { updateImportsProvider, fileUri } = await setup('updateimports.svelte');
 
         const workspaceEdit = await updateImportsProvider.updateImports({
             // imported files both old and new have to actually exist, so we just use some other test files

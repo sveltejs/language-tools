@@ -13,14 +13,14 @@ import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
  * If the given original position is within a Svelte starting tag,
  * return the snapshot of that component.
  */
-export function getComponentAtPosition(
+export async function getComponentAtPosition(
     lsAndTsDocResovler: LSAndTSDocResolver,
     lang: ts.LanguageService,
     doc: Document,
     tsDoc: SvelteDocumentSnapshot,
     fragment: SvelteSnapshotFragment,
     originalPosition: Position
-): SvelteDocumentSnapshot | null {
+): Promise<SvelteDocumentSnapshot | null> {
     if (tsDoc.parserError) {
         return null;
     }
@@ -47,7 +47,7 @@ export function getComponentAtPosition(
         return null;
     }
 
-    const snapshot = lsAndTsDocResovler.getSnapshot(def.fileName);
+    const snapshot = await lsAndTsDocResovler.getSnapshot(def.fileName);
     if (!(snapshot instanceof SvelteDocumentSnapshot)) {
         return null;
     }
@@ -94,7 +94,7 @@ export class SnapshotFragmentMap {
     async retrieve(fileName: string) {
         let snapshotFragment = this.get(fileName);
         if (!snapshotFragment) {
-            const snapshot = this.resolver.getSnapshot(fileName);
+            const snapshot = await this.resolver.getSnapshot(fileName);
             const fragment = await snapshot.getFragment();
             snapshotFragment = { fragment, snapshot };
             this.set(fileName, snapshotFragment);

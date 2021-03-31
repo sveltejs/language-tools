@@ -14,8 +14,9 @@ export async function getDiagnostics(
     svelteDoc: SvelteDocument,
     settings: CompilerWarningsSettings
 ): Promise<Diagnostic[]> {
-    if (svelteDoc.config.loadConfigError) {
-        return getConfigLoadErrorDiagnostics(svelteDoc.config.loadConfigError);
+    const config = await svelteDoc.config;
+    if (config?.loadConfigError) {
+        return getConfigLoadErrorDiagnostics(config.loadConfigError);
     }
 
     try {

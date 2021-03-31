@@ -15,7 +15,7 @@ export class FindReferencesProviderImpl implements FindReferencesProvider {
         position: Position,
         context: ReferenceContext
     ): Promise<Location[] | null> {
-        const { lang, tsDoc } = this.getLSAndTSDoc(document);
+        const { lang, tsDoc } = await this.getLSAndTSDoc(document);
         const fragment = await tsDoc.getFragment();
 
         const references = lang.getReferencesAtPosition(
@@ -44,7 +44,7 @@ export class FindReferencesProviderImpl implements FindReferencesProvider {
         );
     }
 
-    private getLSAndTSDoc(document: Document) {
+    private async getLSAndTSDoc(document: Document) {
         return this.lsAndTsDocResolver.getLSAndTSDoc(document);
     }
 }

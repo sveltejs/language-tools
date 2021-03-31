@@ -12,7 +12,7 @@ export class SemanticTokensProviderImpl implements SemanticTokensProvider {
     constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
 
     async getSemanticTokens(textDocument: Document, range?: Range): Promise<SemanticTokens | null> {
-        const { lang, tsDoc } = this.lsAndTsDocResolver.getLSAndTSDoc(textDocument);
+        const { lang, tsDoc } = await this.lsAndTsDocResolver.getLSAndTSDoc(textDocument);
         const fragment = await tsDoc.getFragment();
 
         // for better performance, don't do full-file semantic tokens when the file is too big

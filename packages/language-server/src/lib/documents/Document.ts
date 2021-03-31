@@ -2,7 +2,7 @@ import { urlToPath } from '../../utils';
 import { WritableDocument } from './DocumentBase';
 import { extractScriptTags, extractStyleTag, TagInformation } from './utils';
 import { parseHtml } from './parseHtml';
-import { SvelteConfig, loadConfig } from './configLoader';
+import { SvelteConfig, getConfig, awaitConfig } from './configLoader';
 import { HTMLDocument } from 'vscode-html-languageservice';
 
 /**
@@ -13,23 +13,40 @@ export class Document extends WritableDocument {
     scriptInfo: TagInformation | null = null;
     moduleScriptInfo: TagInformation | null = null;
     styleInfo: TagInformation | null = null;
-    config!: SvelteConfig;
+    config: Promise<SvelteConfig | undefined>;
     html!: HTMLDocument;
 
     constructor(public url: string, public content: string) {
         super();
+        this.config = awaitConfig(this.getFilePath() || '');
         this.updateDocInfo();
     }
 
     private updateDocInfo() {
-        if (!this.config || this.config.loadConfigError) {
-            this.config = loadConfig(this.getFilePath() || '');
-        }
         this.html = parseHtml(this.content);
         const scriptTags = extractScriptTags(this.content, this.html);
-        this.scriptInfo = this.addDefaultLanguage(scriptTags?.script || null, 'script');
-        this.moduleScriptInfo = this.addDefaultLanguage(scriptTags?.moduleScript || null, 'script');
-        this.styleInfo = this.addDefaultLanguage(extractStyleTag(this.content, this.html), 'style');
+        const update = (config: SvelteConfig | undefined) => {
+            this.scriptInfo = this.addDefaultLanguage(config, scriptTags?.script || null, 'script');
+            this.moduleScriptInfo = this.addDefaultLanguage(
+                config,
+                scriptTags?.moduleScript || null,
+                'script'
+            );
+            this.styleInfo = this.addDefaultLanguage(
+                config,
+                extractStyleTag(this.content, this.html),
+                'style'
+            );
+        };
+
+        const config = getConfig(this.getFilePath() || '');
+        if (config && !config.loadConfigError) {
+            update(config);
+        } else {
+            this.config = awaitConfig(this.getFilePath() || '');
+            update(undefined);
+            this.config.then((c) => update(c));
+        }
     }
 
     /**
@@ -76,17 +93,19 @@ export class Document extends WritableDocument {
     }
 
     private addDefaultLanguage(
+        config: SvelteConfig | undefined,
         tagInfo: TagInformation | null,
         tag: 'style' | 'script'
     ): TagInformation | null {
-        if (!tagInfo) {
-            return null;
+        if (!tagInfo || !config) {
+            return tagInfo;
         }
 
-        const defaultLang = Array.isArray(this.config.preprocess)
-            ? this.config.preprocess.find((group) => group.defaultLanguages?.[tag])
-                  ?.defaultLanguages?.[tag]
-            : this.config.preprocess?.defaultLanguages?.[tag];
+        const defaultLang = Array.isArray(config.preprocess)
+            ? config.preprocess.find((group) => group.defaultLanguages?.[tag])?.defaultLanguages?.[
+                  tag
+              ]
+            : config.preprocess?.defaultLanguages?.[tag];
 
         if (!tagInfo.attributes.lang && !tagInfo.attributes.type && defaultLang) {
             tagInfo.attributes.lang = defaultLang;

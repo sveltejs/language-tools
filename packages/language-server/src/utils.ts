@@ -126,3 +126,18 @@ export function modifyLines(
         )
         .join('\r\n');
 }
+
+/**
+ * Like array.filter, but asynchronous
+ */
+export async function filterAsync<T>(
+    array: T[],
+    predicate: (t: T, idx: number) => Promise<boolean>
+): Promise<T[]> {
+    const fail = Symbol();
+    return (
+        await Promise.all(
+            array.map(async (item, idx) => ((await predicate(item, idx)) ? item : fail))
+        )
+    ).filter((i) => i !== fail) as T[];
+}

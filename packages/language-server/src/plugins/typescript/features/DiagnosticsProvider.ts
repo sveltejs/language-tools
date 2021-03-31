@@ -11,7 +11,7 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
     constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
 
     async getDiagnostics(document: Document): Promise<Diagnostic[]> {
-        const { lang, tsDoc } = this.getLSAndTSDoc(document);
+        const { lang, tsDoc } = await this.getLSAndTSDoc(document);
 
         if (['coffee', 'coffeescript'].includes(document.getLanguageAttribute('script'))) {
             return [];
@@ -68,7 +68,7 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
         return tags;
     }
 
-    private getLSAndTSDoc(document: Document) {
+    private async getLSAndTSDoc(document: Document) {
         return this.lsAndTsDocResolver.getLSAndTSDoc(document);
     }
 }
