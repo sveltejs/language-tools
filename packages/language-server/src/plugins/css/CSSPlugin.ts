@@ -128,6 +128,7 @@ export class CSSPlugin
             const [start, end] = attributeContext.valueRange;
             return this.doHoverInternal(new StyleAttributeDocument(document, start, end), position);
         }
+
         return null;
     }
     private doHoverInternal(cssDocument: CSSDocumentBase, position: Position) {

@@ -119,6 +119,7 @@ export function getAttributeContextAtPosition(
         // adopted from https://github.com/microsoft/vscode-html-languageservice/blob/2f7ae4df298ac2c299a40e9024d118f4a9dc0c68/src/services/htmlCompletion.ts#L402
         if (token === TokenType.AttributeName) {
             currentAttributeName = scanner.getTokenText();
+
             if (inTokenRange()) {
                 return {
                     name: currentAttributeName,
@@ -128,6 +129,7 @@ export function getAttributeContextAtPosition(
         } else if (token === TokenType.DelimiterAssign) {
             if (scanner.getTokenEnd() === offset && currentAttributeName) {
                 const nextToken = scanner.scan();
+
                 return {
                     name: currentAttributeName,
                     inValue: true,
@@ -141,10 +143,13 @@ export function getAttributeContextAtPosition(
             if (inTokenRange() && currentAttributeName) {
                 let start = scanner.getTokenOffset();
                 let end = scanner.getTokenEnd();
-                if (text[start] === '"') {
+                const char = text[start];
+
+                if (char === '"' || char === '\'') {
                     start++;
                     end--;
                 }
+
                 return {
                     name: currentAttributeName,
                     inValue: true,
