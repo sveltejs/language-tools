@@ -31,7 +31,7 @@
     },
     "homepage": "https://github.com/sveltejs/language-tools#readme",
     "engines": {
-        "node": ">= 12.17.0"
+        "node": ">= 12.0.0"
     },
     "devDependencies": {
         "@tsconfig/node12": "^1.0.0",
