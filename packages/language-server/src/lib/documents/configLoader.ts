@@ -5,6 +5,7 @@ import { importSveltePreprocess } from '../../importPackage';
 import glob from 'glob';
 import { dirname, join, relative } from 'path';
 import { existsSync } from 'fs';
+import { pathToFileURL, URL } from 'url';
 
 export type InternalPreprocessorGroup = PreprocessorGroup & {
     /**
@@ -30,6 +31,15 @@ const DEFAULT_OPTIONS: CompileOptions = {
 const NO_GENERATE: CompileOptions = {
     generate: false
 };
+
+/**
+ * This function encapsulates the import call in a way
+ * that TypeScript does not transpile `import()`.
+ * https://github.com/microsoft/TypeScript/issues/43329
+ */
+const dynamicImport = new Function('modulePath', 'return import(modulePath)') as (
+    modulePath: URL
+) => Promise<any>;
 
 const configFiles = new Map<string, SvelteConfig>();
 const configFilesAsync = new Map<string, Promise<SvelteConfig>>();
@@ -57,11 +67,10 @@ export async function loadConfigs(directory: string): Promise<void> {
                 pathResults.push(relative(directory, configPathUpwards));
             }
         }
-        if (pathResults.length === 0)
-            if (pathResults.length === 0) {
-                await addFallbackConfig(directory);
-                return;
-            }
+        if (pathResults.length === 0) {
+            addFallbackConfig(directory);
+            return;
+        }
 
         const promises = pathResults
             .map((pathResult) => join(directory, pathResult))
@@ -74,15 +83,15 @@ export async function loadConfigs(directory: string): Promise<void> {
             });
         await Promise.all(promises);
     } catch (e) {
-        // Logger.error(e);
+        Logger.error(e);
     }
 }
 
-async function addFallbackConfig(directory: string) {
+function addFallbackConfig(directory: string) {
     const fallback = useFallbackPreprocessor(directory, false);
     const path = join(directory, 'svelte.config.js');
-    configFilesAsync.set(path, fallback);
-    configFiles.set(path, await fallback);
+    configFilesAsync.set(path, Promise.resolve(fallback));
+    configFiles.set(path, fallback);
 }
 
 function searchConfigPathUpwards(path: string) {
@@ -105,7 +114,10 @@ function searchConfigPathUpwards(path: string) {
 }
 
 async function loadAndCacheConfig(configPath: string, directory: string) {
-    if (!configFilesAsync.has(configPath)) {
+    const loadingConfig = configFilesAsync.get(configPath);
+    if (loadingConfig) {
+        await loadingConfig;
+    } else {
         const newConfig = loadConfig(configPath, directory);
         configFilesAsync.set(configPath, newConfig);
         configFiles.set(configPath, await newConfig);
@@ -114,7 +126,7 @@ async function loadAndCacheConfig(configPath: string, directory: string) {
 
 async function loadConfig(configPath: string, directory: string) {
     try {
-        let config = await import(configPath);
+        let config = (await dynamicImport(pathToFileURL(configPath)))?.default;
         config = {
             ...config,
             compilerOptions: {
@@ -129,7 +141,7 @@ async function loadConfig(configPath: string, directory: string) {
         Logger.error('Error while loading config');
         Logger.error(err);
         const config = {
-            ...(await useFallbackPreprocessor(directory, true)),
+            ...useFallbackPreprocessor(directory, true),
             compilerOptions: {
                 ...DEFAULT_OPTIONS,
                 ...NO_GENERATE
@@ -183,7 +195,7 @@ export async function awaitConfig(file: string): Promise<SvelteConfig | undefine
     if (configPath) {
         await loadAndCacheConfig(configPath, dirname(file));
     } else {
-        await addFallbackConfig(dirname(file));
+        addFallbackConfig(dirname(file));
     }
     return getConfig(file);
 }
@@ -197,14 +209,14 @@ function tryGetConfig(file: string, fromDirectory: string, configFileEnding: str
     }
 }
 
-async function useFallbackPreprocessor(path: string, foundConfig: boolean): Promise<SvelteConfig> {
+function useFallbackPreprocessor(path: string, foundConfig: boolean): SvelteConfig {
     Logger.log(
         (foundConfig
             ? 'Found svelte.config.js but there was an error loading it. '
             : 'No svelte.config.js found. ') +
             'Using https://github.com/sveltejs/svelte-preprocess as fallback'
     );
-    const sveltePreprocess = await importSveltePreprocess(path);
+    const sveltePreprocess = importSveltePreprocess(path);
     return {
         preprocess: sveltePreprocess({
             // 4.x does not have transpileOnly anymore, but if the user has version 3.x
