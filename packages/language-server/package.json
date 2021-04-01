@@ -1,6 +1,6 @@
 {
     "name": "svelte-language-server",
-    "version": "0.12.0",
+    "version": "0.13.0",
     "description": "A language server for Svelte",
     "main": "dist/src/index.js",
     "typings": "dist/src/index",
@@ -30,6 +30,9 @@
         "url": "https://github.com/sveltejs/language-tools/issues"
     },
     "homepage": "https://github.com/sveltejs/language-tools#readme",
+    "engines": {
+        "node": ">= 12.17.0"
+    },
     "devDependencies": {
         "@tsconfig/node12": "^1.0.0",
         "@types/estree": "^0.0.42",
