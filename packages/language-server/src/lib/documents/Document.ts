@@ -2,7 +2,7 @@ import { urlToPath } from '../../utils';
 import { WritableDocument } from './DocumentBase';
 import { extractScriptTags, extractStyleTag, TagInformation } from './utils';
 import { parseHtml } from './parseHtml';
-import { SvelteConfig, getConfig, awaitConfig } from './configLoader';
+import { SvelteConfig, configLoader } from './configLoader';
 import { HTMLDocument } from 'vscode-html-languageservice';
 
 /**
@@ -18,7 +18,7 @@ export class Document extends WritableDocument {
 
     constructor(public url: string, public content: string) {
         super();
-        this.config = awaitConfig(this.getFilePath() || '');
+        this.config = configLoader.awaitConfig(this.getFilePath() || '');
         this.updateDocInfo();
     }
 
@@ -39,11 +39,11 @@ export class Document extends WritableDocument {
             );
         };
 
-        const config = getConfig(this.getFilePath() || '');
+        const config = configLoader.getConfig(this.getFilePath() || '');
         if (config && !config.loadConfigError) {
             update(config);
         } else {
-            this.config = awaitConfig(this.getFilePath() || '');
+            this.config = configLoader.awaitConfig(this.getFilePath() || '');
             update(undefined);
             this.config.then((c) => update(c));
         }

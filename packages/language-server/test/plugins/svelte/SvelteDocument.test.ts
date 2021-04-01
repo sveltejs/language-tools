@@ -7,7 +7,7 @@ import {
     SvelteDocument,
     TranspiledSvelteDocument
 } from '../../../src/plugins/svelte/SvelteDocument';
-import * as configLoader from '../../../src/lib/documents/configLoader';
+import { configLoader, SvelteConfig } from '../../../src/lib/documents/configLoader';
 
 describe('Svelte Document', () => {
     function getSourceCode(transpiled: boolean): string {
@@ -19,7 +19,7 @@ describe('Svelte Document', () => {
         `;
     }
 
-    function setup(config: configLoader.SvelteConfig = {}) {
+    function setup(config: SvelteConfig = {}) {
         sinon.stub(configLoader, 'getConfig').returns(config);
         const parent = new Document('file:///hello.svelte', getSourceCode(false));
         sinon.restore();

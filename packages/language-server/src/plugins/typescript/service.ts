@@ -7,7 +7,7 @@ import { DocumentSnapshot } from './DocumentSnapshot';
 import { createSvelteModuleLoader } from './module-loader';
 import { SnapshotManager } from './SnapshotManager';
 import { ensureRealSvelteFilePath, findTsConfigPath } from './utils';
-import { loadConfigs } from '../../lib/documents/configLoader';
+import { configLoader } from '../../lib/documents/configLoader';
 
 export interface LanguageServiceContainer {
     readonly tsconfigPath: string;
@@ -72,7 +72,10 @@ async function createLanguageService(
     // see: https://github.com/microsoft/TypeScript/blob/08e4f369fbb2a5f0c30dee973618d65e6f7f09f8/src/compiler/commandLineParser.ts#L2537
     const snapshotManager = new SnapshotManager(files, raw, workspacePath || process.cwd());
 
-    await loadConfigs(workspacePath);
+    // Load all configs within the tsconfig scope and the one above so that they are all loaded
+    // by the time they need to be accessed synchronously by DocumentSnapshots to determine
+    // the default language.
+    await configLoader.loadConfigs(workspacePath);
 
     const svelteModuleLoader = createSvelteModuleLoader(getSnapshot, compilerOptions);
 
