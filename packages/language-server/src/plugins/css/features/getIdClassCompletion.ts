@@ -5,11 +5,11 @@ import { CSSDocument } from '../CSSDocument';
 export function getIdClassCompletion(
     cssDoc: CSSDocument,
     attributeContext: AttributeContext
-): CompletionList | undefined {
+): CompletionList | null {
     const collectingType = getCollectingType(attributeContext);
 
     if (!collectingType) {
-        return;
+        return null;
     }
     const items = collectSelectors(cssDoc.stylesheet as CSSNode, collectingType);
 

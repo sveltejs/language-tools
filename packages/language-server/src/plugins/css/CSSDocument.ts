@@ -1,7 +1,12 @@
-import { Stylesheet } from 'vscode-css-languageservice';
+import { Stylesheet, TextDocument } from 'vscode-css-languageservice';
 import { Position } from 'vscode-languageserver';
 import { getLanguageService } from './service';
 import { Document, DocumentMapper, ReadableDocument, TagInformation } from '../../lib/documents';
+
+export interface CSSDocumentBase extends DocumentMapper, TextDocument {
+    languageId: string;
+    stylesheet: Stylesheet;
+}
 
 export class CSSDocument extends ReadableDocument implements DocumentMapper {
     private styleInfo: Pick<TagInformation, 'attributes' | 'start' | 'end'>;
