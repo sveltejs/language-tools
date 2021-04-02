@@ -1,0 +1,1 @@
+<><div>{(true) ? <><span>Hey!</span></> : (!true) ? <><span>there...</span></> : <></> }</div></>
