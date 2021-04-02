@@ -1,6 +1,6 @@
 import MagicString from 'magic-string';
-import { Node } from 'estree-walker';
 import { isQuote } from '../utils/node-utils';
+import { BaseDirective, BaseNode } from '../../interfaces';
 
 /**
  * use:xxx={params}   --->    {...__sveltets_ensureAction(xxx(__sveltets_mapElementTag('ParentNodeName'),(params)))}
@@ -8,8 +8,8 @@ import { isQuote } from '../utils/node-utils';
 export function handleActionDirective(
     htmlx: string,
     str: MagicString,
-    attr: Node,
-    parent: Node
+    attr: BaseDirective,
+    parent: BaseNode
 ): void {
     str.overwrite(attr.start, attr.start + 'use:'.length, '{...__sveltets_ensureAction(');
 

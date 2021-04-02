@@ -1,6 +1,7 @@
-import { Node } from 'estree-walker';
 import MagicString from 'magic-string';
 import { walk } from 'svelte/compiler';
+import { TemplateNode, Text } from 'svelte/types/compiler/interfaces';
+import { Attribute, BaseDirective, BaseNode } from '../interfaces';
 import { parseHtmlx } from '../utils/htmlxparser';
 import { getSlotName } from '../utils/svelteAst';
 import { handleActionDirective } from './nodes/action-directive';
@@ -26,7 +27,7 @@ import { handleText } from './nodes/text';
 import { handleTransitionDirective } from './nodes/transition-directive';
 import { usesLet } from './utils/node-utils';
 
-type Walker = (node: Node, parent: Node, prop: string, index: number) => void;
+type Walker = (node: TemplateNode, parent: BaseNode, prop: string, index: number) => void;
 
 function stripDoctype(str: MagicString): void {
     const regex = /<!doctype(.+?)>(\n)?/i;
@@ -42,7 +43,7 @@ function stripDoctype(str: MagicString): void {
  */
 export function convertHtmlxToJsx(
     str: MagicString,
-    ast: Node,
+    ast: TemplateNode,
     onWalk: Walker = null,
     onLeave: Walker = null
 ): void {
@@ -56,7 +57,7 @@ export function convertHtmlxToJsx(
     let ifScope = new IfScope(templateScopeManager);
 
     walk(ast, {
-        enter: (node: Node, parent: Node, prop: string, index: number) => {
+        enter: (node: TemplateNode, parent: BaseNode, prop: string, index: number) => {
             try {
                 switch (node.type) {
                     case 'IfBlock':
@@ -123,25 +124,25 @@ export function convertHtmlxToJsx(
                         handleComment(str, node);
                         break;
                     case 'Binding':
-                        handleBinding(htmlx, str, node, parent);
+                        handleBinding(htmlx, str, node as BaseDirective, parent);
                         break;
                     case 'Class':
-                        handleClassDirective(str, node);
+                        handleClassDirective(str, node as BaseDirective);
                         break;
                     case 'Action':
-                        handleActionDirective(htmlx, str, node, parent);
+                        handleActionDirective(htmlx, str, node as BaseDirective, parent);
                         break;
                     case 'Transition':
-                        handleTransitionDirective(htmlx, str, node, parent);
+                        handleTransitionDirective(htmlx, str, node as BaseDirective, parent);
                         break;
                     case 'Animation':
-                        handleAnimateDirective(htmlx, str, node, parent);
+                        handleAnimateDirective(htmlx, str, node as BaseDirective, parent);
                         break;
                     case 'Attribute':
-                        handleAttribute(htmlx, str, node, parent);
+                        handleAttribute(htmlx, str, node as Attribute, parent);
                         break;
                     case 'EventHandler':
-                        handleEventHandler(htmlx, str, node, parent);
+                        handleEventHandler(htmlx, str, node as BaseDirective, parent);
                         break;
                     case 'Options':
                         handleSvelteTag(htmlx, str, node);
@@ -171,7 +172,7 @@ export function convertHtmlxToJsx(
                         }
                         break;
                     case 'Text':
-                        handleText(str, node);
+                        handleText(str, node as Text);
                         break;
                 }
                 if (onWalk) {
@@ -183,7 +184,7 @@ export function convertHtmlxToJsx(
             }
         },
 
-        leave: (node: Node, parent: Node, prop: string, index: number) => {
+        leave: (node: TemplateNode, parent: BaseNode, prop: string, index: number) => {
             try {
                 switch (node.type) {
                     case 'IfBlock':

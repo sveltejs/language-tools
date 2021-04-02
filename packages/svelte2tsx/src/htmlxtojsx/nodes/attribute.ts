@@ -1,7 +1,7 @@
 import MagicString from 'magic-string';
-import { Node } from 'estree-walker';
 import svgAttributes from '../svgattributes';
 import { isQuote } from '../utils/node-utils';
+import { Attribute, BaseNode } from '../../interfaces';
 
 /**
  * List taken from `svelte-jsx.d.ts` by searching for all attributes of type number
@@ -35,14 +35,19 @@ const numberOnlyAttributes = new Set([
  * - lowercase DOM attributes
  * - multi-value handling
  */
-export function handleAttribute(htmlx: string, str: MagicString, attr: Node, parent: Node): void {
+export function handleAttribute(
+    htmlx: string,
+    str: MagicString,
+    attr: Attribute,
+    parent: BaseNode
+): void {
     let transformedFromDirectiveOrNamespace = false;
 
     //if we are on an "element" we are case insensitive, lowercase to match our JSX
     if (parent.type == 'Element') {
         const sapperLinkActions = ['sapper:prefetch', 'sapper:noscroll'];
         const sveltekitLinkActions = ['sveltekit:prefetch', 'sveltekit:noscroll'];
-        //skip Attribute shorthand, that is handled below
+        // skip Attribute shorthand, that is handled below
         if (
             (attr.value !== true &&
                 !(

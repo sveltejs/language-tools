@@ -1,15 +1,15 @@
 import MagicString from 'magic-string';
-import { Node } from 'estree-walker';
 import { beforeStart } from '../utils/node-utils';
 import { getSingleSlotDef } from '../../svelte2tsx/nodes/slot';
 import { IfScope } from './if-scope';
 import { TemplateScope } from '../nodes/template-scope';
+import { BaseNode } from '../../interfaces';
 
 export function handleSlot(
     htmlx: string,
     str: MagicString,
-    slotEl: Node,
-    component: Node,
+    slotEl: BaseNode,
+    component: BaseNode,
     slotName: string,
     ifScope: IfScope,
     templateScope: TemplateScope
