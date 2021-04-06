@@ -5,5 +5,5 @@ import { BaseNode } from '../../interfaces';
  * Removes comment
  */
 export function handleComment(str: MagicString, node: BaseNode): void {
-    str.remove(node.start, node.end);
+    str.overwrite(node.start, node.end, '', { contentOnly: true });
 }
