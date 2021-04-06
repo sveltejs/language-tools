@@ -1,9 +1,9 @@
 import MagicString from 'magic-string';
-import { Node } from 'estree-walker';
 import { getSlotName } from '../../utils/svelteAst';
 import { handleSlot } from './slot';
 import { IfScope } from './if-scope';
 import { TemplateScope } from '../nodes/template-scope';
+import { BaseNode } from '../../interfaces';
 
 /**
  * Special treatment for self-closing / void tags to make them conform to JSX.
@@ -11,8 +11,8 @@ import { TemplateScope } from '../nodes/template-scope';
 export function handleElement(
     htmlx: string,
     str: MagicString,
-    node: Node,
-    parent: Node,
+    node: BaseNode,
+    parent: BaseNode,
     ifScope: IfScope,
     templateScope: TemplateScope
 ): void {

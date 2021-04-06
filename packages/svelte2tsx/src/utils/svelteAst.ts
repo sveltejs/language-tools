@@ -1,5 +1,5 @@
 import { Node } from 'estree-walker';
-import { SvelteIdentifier, SvelteArrayPattern, SvelteObjectPattern } from '../interfaces';
+import { SvelteIdentifier, SvelteArrayPattern, SvelteObjectPattern, BaseNode } from '../interfaces';
 
 export function isMember(parent: Node, prop: string) {
     return parent.type == 'MemberExpression' && prop == 'property';
@@ -36,8 +36,8 @@ export function isIdentifier(node: Node): node is SvelteIdentifier {
     return node.type === 'Identifier';
 }
 
-export function getSlotName(child: Node): string | undefined {
-    const slot = (child.attributes as Node[])?.find((a) => a.name == 'slot');
+export function getSlotName(child: BaseNode): string | undefined {
+    const slot = (child.attributes as BaseNode[])?.find((a) => a.name == 'slot');
 
     return slot?.value?.[0].raw;
 }

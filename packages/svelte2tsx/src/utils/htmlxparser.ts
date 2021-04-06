@@ -96,7 +96,7 @@ function blankVerbatimContent(htmlx: string, verbatimElements: Node[]) {
     return output;
 }
 
-export function parseHtmlx(htmlx: string, options?: { emitOnTemplateError?: boolean }): Node {
+export function parseHtmlx(htmlx: string, options?: { emitOnTemplateError?: boolean }) {
     //Svelte tries to parse style and script tags which doesn't play well with typescript, so we blank them out.
     //HTMLx spec says they should just be retained after processing as is, so this is fine
     const verbatimElements = findVerbatimElements(htmlx);

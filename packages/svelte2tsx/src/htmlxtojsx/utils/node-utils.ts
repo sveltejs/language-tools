@@ -1,4 +1,5 @@
 import { Node, walk } from 'estree-walker';
+import { BaseNode } from '../../interfaces';
 
 export function getTypeForComponent(node: Node): string {
     if (node.name === 'svelte:component' || node.name === 'svelte:self') {
@@ -64,6 +65,6 @@ export function getIdentifiersInIfExpression(
     return identifiers;
 }
 
-export function usesLet(node: Node): boolean {
+export function usesLet(node: BaseNode): boolean {
     return node.attributes?.some((attr) => attr.type === 'Let');
 }

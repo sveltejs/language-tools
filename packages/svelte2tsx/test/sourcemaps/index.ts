@@ -1,178 +1,187 @@
 import { svelte2tsx } from '../build';
-import { htmlx2jsx } from '../build';
-import fs from 'fs';
 import assert from 'assert';
-import sm from 'source-map';
+import { decode } from 'sourcemap-codec';
+import { each_sample, GenerateFn, get_svelte2tsx_config, Sample } from '../helpers';
+import { print_string } from './helpers';
+import {
+    process_transformed_text,
+    is_edit_changed,
+    is_edit_empty,
+    is_edit_from_same_generated,
+    is_test_empty,
+    is_test_from_same_input,
+    validate_edit_file,
+    validate_test_file
+} from './process';
 
-describe('sourcemap', () => {
-    /**
-     *
-     * @param {string} input
-     *
-     * @returns { {source: string, locations: Map<String,{ line: number, start: number, offsets:number[] }}> }
-     */
-    function extractLocations(input) {
-        let lines = input.split('\n');
-        let line;
-        let source_line = 0;
-        let source = [];
-        let locations = new Map();
-        while (lines.length) {
-            line = lines.shift();
-            //are we a range line, we test to see if it starts with whitespace followed by a digit
-            if (/^\s*[\d=]+[\s\d=]*$/.test(line)) {
-                //create the ranges
-                let currentId = null;
-                let offset = 0;
-                let offsets = [];
-                let start = 0;
-                const endSpan = () => {
-                    if (offsets.length) {
-                        locations.set(currentId, {
-                            line: source_line,
-                            start: start,
-                            offsets: offsets
-                        });
-                    }
-                    offset = 0;
-                    offsets = [];
-                };
+describe('sourcemaps', function () {
+    for (const sample of each_sample(__dirname)) {
+        if (process.env.CI) {
+            sample.checkDirectory({ required: ['*.svelte', 'mappings.jsx', 'test.jsx'] });
+        } else {
+            sample.checkDirectory({
+                required: ['*.svelte'],
+                allowed: ['mappings.jsx', 'test.jsx', 'test.edit.jsx', 'output.tsx']
+            });
+            maybe_generate(sample, regenerate);
+            sample.onError(function (generate, err) {
+                const skip = (err as Error).message.includes('SourceMapping changed');
+                regenerate(generate, skip);
+            });
+        }
 
-                for (let char = 0; char < line.length; char++) {
-                    let c = line[char];
-                    let isDigit = /\d/.test(c),
-                        isEquals = /=/.test(c);
-                    if (isDigit) {
-                        endSpan();
-                        currentId = c;
-                        start = char + 1;
-                    }
-                    if (isEquals || isDigit) {
-                        offsets.push(offset);
-                        offset++;
-                    } else {
-                        endSpan();
-                    }
+        sample.it(function () {
+            const parsed = parse(sample);
+
+            parsed.each_test_range(
+                sample.get('test.jsx'),
+                function (actual, expected) {
+                    assert.strictEqual(actual, expected);
+                },
+                function () {
+                    throw new Error(`Invalid test file format`);
+                },
+                function (ranges) {
+                    throw new Error(
+                        `Could not find the following snippets in generated output\n` +
+                            ranges.map((range) => `\t"${print_string(range[2])}"`).join('\n') +
+                            (process.env.CI
+                                ? ''
+                                : `\nTo edit ranges : ${sample.cmd('test.edit.jsx')}`)
+                    );
                 }
-                endSpan();
-            } else {
-                //we are a source line
-                source.push(line);
-                source_line++;
-            }
-        }
-
-        return { source: source.join('\n'), locations };
-    }
-
-    fs.readdirSync(`${__dirname}`).forEach((dir) => {
-        if (dir[0] === '.') return;
-
-        if (!dir.endsWith('.html') && !dir.endsWith('.html.solo')) return;
-
-        // add .solo to a sample directory name to only run that test
-        const solo = /\.solo$/.test(dir);
-
-        if (solo && process.env.CI) {
-            throw new Error(`Forgot to remove '.solo' from test parser/samples/${dir}`);
-        }
-
-        let showWhitespace = (str) => {
-            return str.replace(/\t/g, '\\t').replace(/\n/g, '\\n\n').replace(/\r/g, '\\r');
-        };
-
-        (solo ? it.only : it)(dir, () => {
-            const testContent = fs
-                .readFileSync(`${__dirname}/${dir}`, 'utf-8')
-                .replace(/\r\n/g, '\n')
-                .replace(/\t/g, '    ');
-
-            let [inputBlock, expectedBlock] = testContent.split(/\n!Expected.*?\n/);
-            let input = extractLocations(inputBlock);
-            let expected = extractLocations(expectedBlock);
-
-            // seems backwards but we don't have an "input" source map, so we generate one from our expected output
-            // but assert that the source it generates matches our input source.
-            //console.log(expected.source)
-            const { map, code } = dir.endsWith('.htmlx.html')
-                ? htmlx2jsx(expected.source)
-                : svelte2tsx(expected.source);
-            assert.equal(
-                showWhitespace(code),
-                showWhitespace(input.source),
-                "Couldn't generate input source map for test"
             );
 
-            let decoder = new sm.SourceMapConsumer(map);
-
-            for (let [id, span] of input.locations.entries()) {
-                let expectedSpan = expected.locations.get(id);
-
-                //walk our generated span checking it lines up
-                let col = span.start;
-                let input_line = span.line;
-                let expected_line = expectedSpan.line;
-
-                assert.ok(input.source);
-                let error_source = input.source.split('\n')[span.line - 1];
-                assert.ok(error_source);
-                let error_map = new Array(error_source.length).fill(' ');
-
-                let actual_result_line, actual_result_source, actual_result;
-                let errorCount = 0;
-
-                for (var off = 0; off < span.offsets.length; off++) {
-                    let input_col = col + off;
-                    let expected_col = expectedSpan.start + span.offsets[off];
-
-                    //originalPositionFor uses 0 base cols and 1 base lines....
-                    let { line: actual_line, column: decoded_col } = decoder.originalPositionFor({
-                        line: input_line,
-                        column: input_col - 1
-                    });
-                    let actual_col = decoded_col + 1;
-
-                    if (!actual_result) {
-                        actual_result_source = expected.source.split('\n')[actual_line - 1];
-                        actual_result = new Array(actual_result_source.length).fill(' ');
-                        actual_result_line = actual_line;
-                    }
-                    if (actual_line == actual_result_line) {
-                        if (actual_result_line[actual_col - 1] == ' ') {
-                            actual_result[actual_col - 1] = '1';
-                        } else {
-                            //track number of characters mapped to result
-                            actual_result[actual_col - 1] = `${Math.min(
-                                (actual_result[actual_col - 1] << 0) + 1,
-                                9
-                            )}`;
-                        }
-                    } else {
-                        actual_result = actual_result + 'X';
-                    }
-
-                    if (actual_col != expected_col || actual_line != expected_line) {
-                        errorCount++;
-                        error_map[input_col - 1] = 'X';
-                    } else {
-                        error_map[input_col - 1] = '=';
-                    }
-                }
-
-                if (errorCount != 0) {
-                    assert.fail(`
-					Errors on span ${id}
-			
-					Output
-					${actual_result_source}
-					${actual_result.join('').replace(/1/g, '=')}
-
-					Errors
-					${error_source}
-					${error_map.join('')}
-					`);
-                }
-            }
+            assert.strictEqual(
+                parsed.print_mappings(),
+                sample.get('mappings.jsx'),
+                `SourceMapping changed, run tests with --auto to update them`
+            );
         });
-    });
+
+        function regenerate(generate: GenerateFn, skip = false) {
+            const parsed = parse(sample);
+            generate_output_and_mappings_file(generate, parsed, skip);
+            if (!sample.has('test.jsx')) generate('test.jsx', parsed.generate_test(), skip);
+            generate('test.edit.jsx', parsed.generate_test_edit(sample.get('test.jsx')), false);
+        }
+    }
 });
+
+/**
+ * Maybe generates test result files depending on the currently existing files.
+ */
+function maybe_generate(sample: Sample, regenerate: (generate: GenerateFn) => void) {
+    const svelteFile = sample.find_file('*.svelte');
+
+    if (sample.hasOnly(svelteFile)) {
+        return sample.generateDeps(regenerate);
+    }
+
+    if (sample.has('test.edit.jsx')) {
+        const edit = sample.get('test.edit.jsx');
+
+        try {
+            validate_edit_file(edit);
+        } catch (err) {
+            return sample.generateDeps(function (generate) {
+                generate_output_and_mappings_file(generate, parse(sample));
+                throw err;
+            });
+        }
+
+        const edit_changed = is_edit_changed(edit);
+
+        if (edit_changed || !sample.has('test.jsx')) {
+            return sample.generateDeps(function (generate) {
+                const parsed = parse(sample);
+                if (is_edit_empty(edit)) {
+                    generate('test.jsx', parsed.generate_test());
+                    generate('test.edit.jsx', parsed.generate_test_edit());
+                    generate_output_and_mappings_file(generate, parsed);
+                    return;
+                }
+                if (is_edit_from_same_generated(edit, parsed.generated)) {
+                    const new_test = parsed.generate_test(edit);
+                    generate('test.jsx', new_test);
+                    generate('test.edit.jsx', parsed.generate_test_edit(new_test));
+                    generate_output_and_mappings_file(generate, parsed);
+                    return;
+                }
+                const err = edit_changed ? 'apply changes made to' : 'generate "test.jsx" from';
+                throw new Error(
+                    '' +
+                        `Failed to ${err} "test.edit.jsx" as it is based on a stale output.\n` +
+                        `\tEither reverse output changes or delete "test.edit.jsx" manually before running tests again\n` +
+                        `\tcmd-click : ${sample.cmd('test.edit.jsx')}\n`
+                );
+            });
+        }
+    }
+
+    if (!sample.has('mappings.jsx') || (!sample.has('test.jsx') && !sample.has('test.edit.jsx'))) {
+        return sample.generateDeps(regenerate);
+    }
+
+    const test = sample.get('test.jsx');
+    try {
+        validate_test_file(test);
+    } catch (err) {
+        return sample.generateDeps(function (generate) {
+            generate_output_and_mappings_file(generate, parse(sample));
+            throw err;
+        });
+    }
+    if (!is_test_from_same_input(test, sample.get(svelteFile))) {
+        return sample.generateDeps(function (generate) {
+            const parsed = parse(sample);
+            generate_output_and_mappings_file(generate, parsed);
+            generate('test.edit.jsx', parsed.generate_test_edit());
+            if (is_test_empty(test)) {
+                generate('test.jsx', parsed.generate_test());
+                return;
+            }
+            throw new Error(
+                '' +
+                    `Test input at "${svelteFile}" changed, thus making "test.jsx" invalid.\n` +
+                    `\tEither manually re-select all tested ranges in the newly generated "test.edit.jsx", delete "test.jsx" or undo input changes.\n` +
+                    `\tcmd-click : ${sample.cmd('test.edit.jsx')}\n`
+            );
+        });
+    }
+}
+
+function generate_output_and_mappings_file(generate: GenerateFn, parsed: Parsed, skip = false) {
+    generate('output.tsx', parsed.inline, false);
+    generate('mappings.jsx', parsed.print_mappings(), skip);
+}
+
+type Parsed = ReturnType<typeof process_transformed_text> & { generated: string; inline: string };
+const cache = new WeakMap<Sample, Parsed>();
+
+/**
+ * Generates svelte2tsx-output and mappings and prepares methods for
+ * generating further test output files.
+ */
+function parse(sample: Sample): Parsed {
+    if (!cache.has(sample)) {
+        const filename = sample.find_file('*.svelte');
+        const original = sample.get(filename);
+        const { code, map } = svelte2tsx(
+            original,
+            get_svelte2tsx_config({ filename }, sample.name)
+        );
+
+        map.file = 'output.tsx';
+        map.sources = [filename];
+        map.sourcesContent = [original];
+
+        const mapped = process_transformed_text(original, code, decode(map.mappings) as any);
+        cache.set(sample, {
+            ...mapped,
+            generated: code,
+            inline: code + `\n//# sourceMappingURL=${map.toUrl()}`
+        });
+    }
+    return cache.get(sample);
+}

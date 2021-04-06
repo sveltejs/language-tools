@@ -1,8 +1,8 @@
 import MagicString from 'magic-string';
-import { Node } from 'estree-walker';
 import { IfScope } from './if-scope';
 import { TemplateScopeManager } from './template-scope';
 import { surroundWithIgnoreComments } from '../../utils/ignore';
+import { BaseNode } from '../../interfaces';
 
 /**
  * Transform {#await ...} into something JSX understands
@@ -10,7 +10,7 @@ import { surroundWithIgnoreComments } from '../../utils/ignore';
 export function handleAwait(
     htmlx: string,
     str: MagicString,
-    awaitBlock: Node,
+    awaitBlock: BaseNode,
     ifScope: IfScope,
     templateScopeManager: TemplateScopeManager
 ): void {
@@ -33,7 +33,7 @@ export function handleAwait(
 }
 
 export function handleAwaitPending(
-    awaitBlock: Node,
+    awaitBlock: BaseNode,
     htmlx: string,
     str: MagicString,
     ifScope: IfScope
@@ -61,7 +61,7 @@ export function handleAwaitPending(
 }
 
 export function handleAwaitThen(
-    awaitBlock: Node,
+    awaitBlock: BaseNode,
     htmlx: string,
     str: MagicString,
     ifScope: IfScope
@@ -106,7 +106,7 @@ export function handleAwaitThen(
 }
 
 export function handleAwaitCatch(
-    awaitBlock: Node,
+    awaitBlock: BaseNode,
     htmlx: string,
     str: MagicString,
     ifScope: IfScope

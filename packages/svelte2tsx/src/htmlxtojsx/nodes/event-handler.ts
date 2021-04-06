@@ -1,6 +1,6 @@
 import MagicString from 'magic-string';
-import { Node } from 'estree-walker';
 import { getTypeForComponent, isQuote } from '../utils/node-utils';
+import { BaseDirective, BaseNode } from '../../interfaces';
 
 /**
  * Transform on:xxx={yyy}
@@ -10,8 +10,8 @@ import { getTypeForComponent, isQuote } from '../utils/node-utils';
 export function handleEventHandler(
     htmlx: string,
     str: MagicString,
-    attr: Node,
-    parent: Node
+    attr: BaseDirective,
+    parent: BaseNode
 ): void {
     const jsxEventName = attr.name;
 

@@ -5,11 +5,13 @@ import { htmlx2jsx, svelte2tsx } from './build';
 import path from 'path';
 
 let update_count = 0;
+let all_tests_skipped = false;
+
 function can_auto_update() {
-    if (!process.argv.includes('--auto')) {
+    if (!process.argv.includes('--auto') && !all_tests_skipped) {
         if (update_count++ === 0) {
             process.on('exit', () => {
-                const command = color.yellow('npm run test -- --auto');
+                const command = color.yellow('yarn run test --auto');
                 console.log(`  Run ${command} to update ${update_count} files\n`);
             });
         }
@@ -37,7 +39,7 @@ function writeFileSync(path: string, content: string) {
     return fs.writeFileSync(path, normalize(content));
 }
 
-function wildcard(str: string, target: string) {
+function is_same_file(str: string, target: string) {
     if (str[0] === '*') return target.endsWith(str.slice(1));
     return str === target;
 }
@@ -62,13 +64,13 @@ export class Sample {
 
         loop: for (const fileName of this.folder) {
             for (const name of unchecked) {
-                if (wildcard(name, fileName)) {
+                if (is_same_file(name, fileName)) {
                     unchecked.delete(name);
                     continue loop;
                 }
             }
             for (const name of allowed) {
-                if (wildcard(name, fileName)) {
+                if (is_same_file(name, fileName)) {
                     continue loop;
                 }
             }
@@ -138,8 +140,12 @@ export class Sample {
         return this.folder.length === fileNames.length && fileNames.every((f) => this.has(f));
     }
 
-    wildcard(fileName: string) {
-        return this.folder.find((f) => wildcard(fileName, f));
+    /**
+     * Returns first found file that matches the fileName,
+     * or ends with it in case of a wildcard search.
+     */
+    find_file(fileName: string) {
+        return this.folder.find((f) => is_same_file(fileName, f));
     }
 
     at(file: string) {
@@ -158,6 +164,7 @@ export class Sample {
         if (process.env.CI) {
             throw new Error(`Tried to generate ${this.name} dependencies`);
         }
+        all_tests_skipped = true;
         it.only(`${this.name} dependencies`, () => fn(this.generate.bind(this)));
     }
 
@@ -192,6 +199,7 @@ type TransformSampleFn = (
         filename: string;
         sampleName: string;
         emitOnTemplateError: boolean;
+        preserveAttributeCase: boolean;
     }
 ) => ReturnType<typeof htmlx2jsx | typeof svelte2tsx>;
 
@@ -203,11 +211,12 @@ const enum TestError {
 
 export function test_samples(dir: string, transform: TransformSampleFn, jsx: 'jsx' | 'tsx') {
     for (const sample of each_sample(dir)) {
-        const svelteFile = sample.wildcard('*.svelte');
+        const svelteFile = sample.find_file('*.svelte');
         const config = {
             filename: svelteFile,
             sampleName: sample.name,
-            emitOnTemplateError: false
+            emitOnTemplateError: false,
+            preserveAttributeCase: sample.name.endsWith('-foreign-ns')
         };
 
         if (process.env.CI) {
@@ -288,7 +297,8 @@ export function get_svelte2tsx_config(base: BaseConfig, sampleName: string): Sve
         filename: base.filename,
         emitOnTemplateError: base.emitOnTemplateError,
         strictMode: sampleName.includes('strictMode'),
-        isTsFile: sampleName.startsWith('ts-')
+        isTsFile: sampleName.startsWith('ts-'),
+        namespace: sampleName.endsWith('-foreign-ns') ? 'foreign' : null
     };
 }
 

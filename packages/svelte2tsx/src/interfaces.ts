@@ -1,5 +1,11 @@
-import { Node } from 'estree-walker';
 import { ArrayPattern, ObjectPattern, Identifier } from 'estree';
+import {
+    Directive,
+    TemplateNode,
+    Transition,
+    MustacheTag,
+    Text
+} from 'svelte/types/compiler/interfaces';
 
 export interface NodeRange {
     start: number;
@@ -17,19 +23,10 @@ export interface WithName {
     name: string;
 }
 
-export type DirectiveType =
-    | 'Action'
-    | 'Animation'
-    | 'Binding'
-    | 'Class'
-    | 'EventHandler'
-    | 'Let'
-    | 'Ref'
-    | 'Transition';
+export type BaseNode = Exclude<TemplateNode, Text | MustacheTag | Directive | Transition>;
 
-export interface BaseDirective extends Node {
-    type: DirectiveType;
-    expression: null | Node;
-    name: string;
-    modifiers: string[];
+export type BaseDirective = Exclude<Directive, Transition>;
+
+export interface Attribute extends BaseNode {
+    value: BaseNode[] | true;
 }

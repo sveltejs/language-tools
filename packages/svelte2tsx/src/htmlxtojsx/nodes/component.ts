@@ -1,9 +1,9 @@
 import MagicString from 'magic-string';
-import { Node } from 'estree-walker';
 import { getSlotName } from '../../utils/svelteAst';
 import { handleSlot } from './slot';
 import { IfScope } from './if-scope';
 import { TemplateScope } from '../nodes/template-scope';
+import { BaseNode } from '../../interfaces';
 
 /**
  * Handle `<svelte:self>` and slot-specific transformations.
@@ -11,8 +11,8 @@ import { TemplateScope } from '../nodes/template-scope';
 export function handleComponent(
     htmlx: string,
     str: MagicString,
-    el: Node,
-    parent: Node,
+    el: BaseNode,
+    parent: BaseNode,
     ifScope: IfScope,
     templateScope: TemplateScope
 ): void {

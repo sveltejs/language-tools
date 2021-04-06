@@ -13,8 +13,8 @@ import { getVariableAtTopLevel, getLastLeadingDoc } from '../utils/tsAst';
  * The logic is as follows:
  * - If there exists a ComponentEvents interface definition, use that and skip the rest
  * - Else first try to find the `createEventDispatcher` import
- * - If it exists, try to find the variable where `createEventDispatcher()` is assigned to
- * - If that variable is found, try to find out if it's typed.
+ * - If it exists, try to find the variables where `createEventDispatcher()` is assigned to
+ * - For each variable found, try to find out if it's typed.
  *   - If yes, extract the event names and the event types from it
  *   - If no, track all invocations of it to get the event names
  */
@@ -108,8 +108,7 @@ class ComponentEventsFromEventsMap {
     private dispatchedEvents = new Set();
     private stringVars = new Map<string, string>();
     private eventDispatcherImport = '';
-    private eventDispatcherTyping?: string;
-    private dispatcherName = '';
+    private eventDispatchers: Array<{ name: string; typing?: string }> = [];
 
     constructor(private eventHandler: EventHandler) {
         this.events = this.extractEvents(eventHandler);
@@ -155,11 +154,14 @@ class ComponentEventsFromEventsMap {
             ts.isIdentifier(node.initializer.expression) &&
             node.initializer.expression.text === this.eventDispatcherImport
         ) {
-            this.dispatcherName = node.name.text;
+            const dispatcherName = node.name.text;
             const dispatcherTyping = node.initializer.typeArguments?.[0];
 
             if (dispatcherTyping && ts.isTypeLiteralNode(dispatcherTyping)) {
-                this.eventDispatcherTyping = dispatcherTyping.getText();
+                this.eventDispatchers.push({
+                    name: dispatcherName,
+                    typing: dispatcherTyping.getText()
+                });
                 dispatcherTyping.members.filter(ts.isPropertySignature).forEach((member) => {
                     this.addToEvents(getName(member.name), {
                         type: `CustomEvent<${member.type?.getText() || 'any'}>`,
@@ -167,26 +169,35 @@ class ComponentEventsFromEventsMap {
                     });
                 });
             } else {
+                this.eventDispatchers.push({ name: dispatcherName });
                 this.eventHandler
-                    .getDispatchedEventsForIdentifier(this.dispatcherName)
-                    .forEach((evtName) => this.addToEvents(evtName));
+                    .getDispatchedEventsForIdentifier(dispatcherName)
+                    .forEach((evtName) => {
+                        this.addToEvents(evtName);
+                        this.dispatchedEvents.add(evtName);
+                    });
             }
         }
     }
 
     checkIfCallExpressionIsDispatch(node: ts.CallExpression) {
         if (
-            !this.eventDispatcherTyping &&
-            ts.isIdentifier(node.expression) &&
-            node.expression.text === this.dispatcherName
+            this.eventDispatchers.some(
+                (dispatcher) =>
+                    !dispatcher.typing &&
+                    ts.isIdentifier(node.expression) &&
+                    node.expression.text === dispatcher.name
+            )
         ) {
             const firstArg = node.arguments[0];
             if (ts.isStringLiteral(firstArg)) {
                 this.addToEvents(firstArg.text);
+                this.dispatchedEvents.add(firstArg.text);
             } else if (ts.isIdentifier(firstArg)) {
                 const str = this.stringVars.get(firstArg.text);
                 if (str) {
                     this.addToEvents(str);
+                    this.dispatchedEvents.add(str);
                 }
             }
         }
@@ -196,18 +207,26 @@ class ComponentEventsFromEventsMap {
         eventName: string,
         info: { type: string; doc?: string } = { type: 'CustomEvent<any>' }
     ) {
-        this.events.set(eventName, info);
-        this.dispatchedEvents.add(eventName);
+        if (this.events.has(eventName)) {
+            // If there are multiple definitions, merge them by falling back to any-typing
+            this.events.set(eventName, { type: 'CustomEvent<any>' });
+            this.dispatchedEvents.add(eventName);
+        } else {
+            this.events.set(eventName, info);
+        }
     }
 
     toDefString() {
-        if (this.eventDispatcherTyping) {
-            return `__sveltets_toEventTypings<${this.eventDispatcherTyping}>()`;
-        }
-
         return (
             '{' +
             [
+                ...this.eventDispatchers
+                    .map(
+                        (dispatcher) =>
+                            dispatcher.typing &&
+                            `...__sveltets_toEventTypings<${dispatcher.typing}>()`
+                    )
+                    .filter((str) => !!str),
                 ...this.eventHandler.bubbledEventsAsStrings(),
                 ...[...this.dispatchedEvents.keys()].map((e) => `'${e}': __sveltets_customEvent`)
             ].join(', ') +
