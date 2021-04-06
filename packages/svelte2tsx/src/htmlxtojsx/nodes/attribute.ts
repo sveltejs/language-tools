@@ -39,9 +39,18 @@ export function handleAttribute(
     htmlx: string,
     str: MagicString,
     attr: Attribute,
-    parent: BaseNode
+    parent: BaseNode,
+    preserveCase: boolean
 ): void {
     let transformedFromDirectiveOrNamespace = false;
+
+    const transformAttributeCase = (name: string) => {
+        if (!preserveCase && !svgAttributes.find((x) => x == name)) {
+            return name.toLowerCase();
+        } else {
+            return name;
+        }
+    };
 
     //if we are on an "element" we are case insensitive, lowercase to match our JSX
     if (parent.type == 'Element') {
@@ -58,10 +67,7 @@ export function handleAttribute(
             sapperLinkActions.includes(attr.name) ||
             sveltekitLinkActions.includes(attr.name)
         ) {
-            let name = attr.name;
-            if (!svgAttributes.find((x) => x == name)) {
-                name = name.toLowerCase();
-            }
+            let name = transformAttributeCase(attr.name);
 
             //strip ":" from out attribute name and uppercase the next letter to convert to jsx attribute
             const colonIndex = name.indexOf(':');
@@ -83,7 +89,7 @@ export function handleAttribute(
             !transformedFromDirectiveOrNamespace &&
             parent.name !== '!DOCTYPE'
         ) {
-            str.overwrite(attr.start, attr.end, attr.name.toLowerCase());
+            str.overwrite(attr.start, attr.end, transformAttributeCase(attr.name));
         }
         return;
     }
@@ -101,10 +107,7 @@ export function handleAttribute(
         if (attrVal.type == 'AttributeShorthand') {
             let attrName = attrVal.expression.name;
             if (parent.type == 'Element') {
-                // eslint-disable-next-line max-len
-                attrName = svgAttributes.find((a) => a == attrName)
-                    ? attrName
-                    : attrName.toLowerCase();
+                attrName = transformAttributeCase(attrName);
             }
 
             str.appendRight(attr.start, `${attrName}=`);
