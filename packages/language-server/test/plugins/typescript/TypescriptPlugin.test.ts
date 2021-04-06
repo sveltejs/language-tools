@@ -347,10 +347,10 @@ describe('TypescriptPlugin', () => {
         });
     });
 
-    const setupForOnWatchedFileChanges = () => {
+    const setupForOnWatchedFileChanges = async () => {
         const { plugin, document } = setup('empty.svelte');
         const targetSvelteFile = document.getFilePath()!;
-        const snapshotManager = plugin.getSnapshotManager(targetSvelteFile);
+        const snapshotManager = await plugin.getSnapshotManager(targetSvelteFile);
 
         return {
             snapshotManager,
@@ -366,14 +366,14 @@ describe('TypescriptPlugin', () => {
         return urlToPath(pathToUrl(path)) ?? '';
     };
 
-    const setupForOnWatchedFileUpdateOrDelete = () => {
-        const { plugin, snapshotManager, targetSvelteFile } = setupForOnWatchedFileChanges();
+    const setupForOnWatchedFileUpdateOrDelete = async () => {
+        const { plugin, snapshotManager, targetSvelteFile } = await setupForOnWatchedFileChanges();
 
         const projectJsFile = normalizeWatchFilePath(
             path.join(path.dirname(targetSvelteFile), 'documentation.ts')
         );
 
-        plugin.onWatchFileChanges([
+        await plugin.onWatchFileChanges([
             {
                 fileName: projectJsFile,
                 changeType: FileChangeType.Changed
@@ -387,15 +387,19 @@ describe('TypescriptPlugin', () => {
         };
     };
 
-    it('bumps snapshot version when watched file changes', () => {
-        const { snapshotManager, projectJsFile, plugin } = setupForOnWatchedFileUpdateOrDelete();
+    it('bumps snapshot version when watched file changes', async () => {
+        const {
+            snapshotManager,
+            projectJsFile,
+            plugin
+        } = await setupForOnWatchedFileUpdateOrDelete();
 
         const firstSnapshot = snapshotManager.get(projectJsFile);
         const firstVersion = firstSnapshot?.version;
 
         assert.notEqual(firstVersion, INITIAL_VERSION);
 
-        plugin.onWatchFileChanges([
+        await plugin.onWatchFileChanges([
             {
                 fileName: projectJsFile,
                 changeType: FileChangeType.Changed
@@ -406,13 +410,17 @@ describe('TypescriptPlugin', () => {
         assert.notEqual(secondSnapshot?.version, firstVersion);
     });
 
-    it('should delete snapshot cache when file delete', () => {
-        const { snapshotManager, projectJsFile, plugin } = setupForOnWatchedFileUpdateOrDelete();
+    it('should delete snapshot cache when file delete', async () => {
+        const {
+            snapshotManager,
+            projectJsFile,
+            plugin
+        } = await setupForOnWatchedFileUpdateOrDelete();
 
         const firstSnapshot = snapshotManager.get(projectJsFile);
         assert.notEqual(firstSnapshot, undefined);
 
-        plugin.onWatchFileChanges([
+        await plugin.onWatchFileChanges([
             {
                 fileName: projectJsFile,
                 changeType: FileChangeType.Deleted
@@ -423,8 +431,8 @@ describe('TypescriptPlugin', () => {
         assert.equal(secondSnapshot, undefined);
     });
 
-    it('should add snapshot when project file added', () => {
-        const { snapshotManager, plugin, targetSvelteFile } = setupForOnWatchedFileChanges();
+    it('should add snapshot when project file added', async () => {
+        const { snapshotManager, plugin, targetSvelteFile } = await setupForOnWatchedFileChanges();
         const addFile = path.join(path.dirname(targetSvelteFile), 'foo.ts');
         const normalizedAddFilePath = normalizeWatchFilePath(addFile);
 
@@ -432,7 +440,7 @@ describe('TypescriptPlugin', () => {
             fs.writeFileSync(addFile, 'export function abc() {}');
             assert.equal(snapshotManager.has(normalizedAddFilePath), false);
 
-            plugin.onWatchFileChanges([
+            await plugin.onWatchFileChanges([
                 {
                     fileName: normalizedAddFilePath,
                     changeType: FileChangeType.Created
@@ -445,8 +453,12 @@ describe('TypescriptPlugin', () => {
         }
     });
 
-    it('should update ts/js file after document change', () => {
-        const { snapshotManager, projectJsFile, plugin } = setupForOnWatchedFileUpdateOrDelete();
+    it('should update ts/js file after document change', async () => {
+        const {
+            snapshotManager,
+            projectJsFile,
+            plugin
+        } = await setupForOnWatchedFileUpdateOrDelete();
 
         const firstSnapshot = snapshotManager.get(projectJsFile);
         const firstVersion = firstSnapshot?.version;
@@ -454,7 +466,7 @@ describe('TypescriptPlugin', () => {
 
         assert.notEqual(firstVersion, INITIAL_VERSION);
 
-        plugin.updateTsOrJsFile(projectJsFile, [
+        await plugin.updateTsOrJsFile(projectJsFile, [
             {
                 range: { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } },
                 text: 'const = "hello world";'

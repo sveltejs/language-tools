@@ -42,7 +42,9 @@ export class SvelteDocument {
     public languageId = 'svelte';
     public version = 0;
     public uri = this.parent.uri;
-    public config = this.parent.config;
+    public get config() {
+        return this.parent.configPromise;
+    }
 
     constructor(private parent: Document) {
         this.script = this.parent.scriptInfo;
@@ -67,7 +69,7 @@ export class SvelteDocument {
         if (!this.transpiledDoc) {
             this.transpiledDoc = await TranspiledSvelteDocument.create(
                 this.parent,
-                this.parent.config.preprocess
+                (await this.config)?.preprocess
             );
         }
         return this.transpiledDoc;
@@ -75,7 +77,7 @@ export class SvelteDocument {
 
     async getCompiled(): Promise<SvelteCompileResult> {
         if (!this.compileResult) {
-            this.compileResult = await this.getCompiledWith(this.parent.config.compilerOptions);
+            this.compileResult = await this.getCompiledWith((await this.config)?.compilerOptions);
         }
 
         return this.compileResult;

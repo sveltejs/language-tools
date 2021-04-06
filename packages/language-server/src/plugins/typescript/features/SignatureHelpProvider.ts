@@ -24,7 +24,7 @@ export class SignatureHelpProviderImpl implements SignatureHelpProvider {
         position: Position,
         context: SignatureHelpContext | undefined
     ): Promise<SignatureHelp | null> {
-        const { lang, tsDoc } = this.lsAndTsDocResolver.getLSAndTSDoc(document);
+        const { lang, tsDoc } = await this.lsAndTsDocResolver.getLSAndTSDoc(document);
         const fragment = await tsDoc.getFragment();
 
         const offset = fragment.offsetAt(fragment.getGeneratedPosition(position));

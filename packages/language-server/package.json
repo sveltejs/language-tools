@@ -1,6 +1,6 @@
 {
     "name": "svelte-language-server",
-    "version": "0.12.0",
+    "version": "0.13.0",
     "description": "A language server for Svelte",
     "main": "dist/src/index.js",
     "typings": "dist/src/index",
@@ -30,10 +30,13 @@
         "url": "https://github.com/sveltejs/language-tools/issues"
     },
     "homepage": "https://github.com/sveltejs/language-tools#readme",
+    "engines": {
+        "node": ">= 12.0.0"
+    },
     "devDependencies": {
         "@tsconfig/node12": "^1.0.0",
-        "@types/cosmiconfig": "^6.0.0",
         "@types/estree": "^0.0.42",
+        "@types/glob": "^7.1.1",
         "@types/lodash": "^4.14.116",
         "@types/mocha": "^7.0.2",
         "@types/node": "^13.9.0",
@@ -47,8 +50,8 @@
     },
     "dependencies": {
         "chokidar": "^3.4.1",
-        "cosmiconfig": "^7.0.0",
         "estree-walker": "^2.0.1",
+        "glob": "^7.1.6",
         "lodash": "^4.17.19",
         "prettier": "2.2.1",
         "prettier-plugin-svelte": "~2.2.0",

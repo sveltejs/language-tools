@@ -6,7 +6,7 @@ import {
     offsetAt,
     getLineAtPosition
 } from '../../../lib/documents';
-import { isNotNullOrUndefined, pathToUrl } from '../../../utils';
+import { filterAsync, isNotNullOrUndefined, pathToUrl } from '../../../utils';
 import { RenameProvider } from '../../interfaces';
 import {
     SnapshotFragment,
@@ -25,7 +25,7 @@ export class RenameProviderImpl implements RenameProvider {
     // TODO props written as `export {x as y}` are not supported yet.
 
     async prepareRename(document: Document, position: Position): Promise<Range | null> {
-        const { lang, tsDoc } = this.getLSAndTSDoc(document);
+        const { lang, tsDoc } = await this.getLSAndTSDoc(document);
         const fragment = await tsDoc.getFragment();
 
         const offset = fragment.offsetAt(fragment.getGeneratedPosition(position));
@@ -42,7 +42,7 @@ export class RenameProviderImpl implements RenameProvider {
         position: Position,
         newName: string
     ): Promise<WorkspaceEdit | null> {
-        const { lang, tsDoc } = this.getLSAndTSDoc(document);
+        const { lang, tsDoc } = await this.getLSAndTSDoc(document);
         const fragment = await tsDoc.getFragment();
 
         const offset = fragment.offsetAt(fragment.getGeneratedPosition(position));
@@ -316,9 +316,9 @@ export class RenameProviderImpl implements RenameProvider {
 
     private filterWrongRenameLocations(
         mappedLocations: Array<ts.RenameLocation & { range: Range }>
-    ): Array<ts.RenameLocation & { range: Range }> {
-        return mappedLocations.filter((loc) => {
-            const snapshot = this.getSnapshot(loc.fileName);
+    ): Promise<Array<ts.RenameLocation & { range: Range }>> {
+        return filterAsync(mappedLocations, async (loc) => {
+            const snapshot = await this.getSnapshot(loc.fileName);
             if (!(snapshot instanceof SvelteDocumentSnapshot)) {
                 return true;
             }
@@ -370,7 +370,7 @@ export class RenameProviderImpl implements RenameProvider {
         return tsDoc.getText(start, start + length);
     }
 
-    private getLSAndTSDoc(document: Document) {
+    private async getLSAndTSDoc(document: Document) {
         return this.lsAndTsDocResolver.getLSAndTSDoc(document);
     }
 

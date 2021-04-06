@@ -63,7 +63,9 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             return null;
         }
 
-        const { lang, tsDoc, userPreferences } = this.lsAndTsDocResolver.getLSAndTSDoc(document);
+        const { lang, tsDoc, userPreferences } = await this.lsAndTsDocResolver.getLSAndTSDoc(
+            document
+        );
 
         const filePath = tsDoc.filePath;
         if (!filePath) {
@@ -102,7 +104,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             return getJsDocTemplateCompletion(fragment, lang, filePath, offset);
         }
 
-        const eventCompletions = this.getEventCompletions(
+        const eventCompletions = await this.getEventCompletions(
             lang,
             document,
             tsDoc,
@@ -151,14 +153,14 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         return new Set(tidiedImports);
     }
 
-    private getEventCompletions(
+    private async getEventCompletions(
         lang: ts.LanguageService,
         doc: Document,
         tsDoc: SvelteDocumentSnapshot,
         fragment: SvelteSnapshotFragment,
         originalPosition: Position
-    ): Array<AppCompletionItem<CompletionEntryWithIdentifer>> {
-        const snapshot = getComponentAtPosition(
+    ): Promise<Array<AppCompletionItem<CompletionEntryWithIdentifer>>> {
+        const snapshot = await getComponentAtPosition(
             this.lsAndTsDocResolver,
             lang,
             doc,
@@ -272,7 +274,9 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         completionItem: AppCompletionItem<CompletionEntryWithIdentifer>
     ): Promise<AppCompletionItem<CompletionEntryWithIdentifer>> {
         const { data: comp } = completionItem;
-        const { tsDoc, lang, userPreferences } = this.lsAndTsDocResolver.getLSAndTSDoc(document);
+        const { tsDoc, lang, userPreferences } = await this.lsAndTsDocResolver.getLSAndTSDoc(
+            document
+        );
 
         const filePath = tsDoc.filePath;
 

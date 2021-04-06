@@ -66,7 +66,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             return [];
         }
 
-        const { lang, tsDoc, userPreferences } = this.getLSAndTSDoc(document);
+        const { lang, tsDoc, userPreferences } = await this.getLSAndTSDoc(document);
         const fragment = await tsDoc.getFragment();
 
         const changes = lang.organizeImports(
@@ -145,7 +145,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
     }
 
     private async applyQuickfix(document: Document, range: Range, context: CodeActionContext) {
-        const { lang, tsDoc, userPreferences } = this.getLSAndTSDoc(document);
+        const { lang, tsDoc, userPreferences } = await this.getLSAndTSDoc(document);
         const fragment = await tsDoc.getFragment();
 
         const start = fragment.offsetAt(fragment.getGeneratedPosition(range.start));
@@ -252,7 +252,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             return [];
         }
 
-        const { lang, tsDoc, userPreferences } = this.getLSAndTSDoc(document);
+        const { lang, tsDoc, userPreferences } = await this.getLSAndTSDoc(document);
         const fragment = await tsDoc.getFragment();
         const textRange = {
             pos: fragment.offsetAt(fragment.getGeneratedPosition(range.start)),
@@ -343,7 +343,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             return null;
         }
 
-        const { lang, tsDoc, userPreferences } = this.getLSAndTSDoc(document);
+        const { lang, tsDoc, userPreferences } = await this.getLSAndTSDoc(document);
         const fragment = await tsDoc.getFragment();
         const path = document.getFilePath() || '';
         const { refactorName, originalRange, textRange } = <RefactorArgs>args[1];
@@ -395,7 +395,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         return resultRange;
     }
 
-    private getLSAndTSDoc(document: Document) {
+    private async getLSAndTSDoc(document: Document) {
         return this.lsAndTsDocResolver.getLSAndTSDoc(document);
     }
 }
