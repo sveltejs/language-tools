@@ -122,7 +122,15 @@ export function activate(context: ExtensionContext) {
 
     workspace.onDidSaveTextDocument(async (doc) => {
         const parts = doc.uri.toString(true).split(/\/|\\/);
-        if (['tsconfig.json', 'jsconfig.json'].includes(parts[parts.length - 1])) {
+        if (
+            [
+                'tsconfig.json',
+                'jsconfig.json',
+                'svelte.config.js',
+                'svelte.config.cjs',
+                'svelte.config.mjs'
+            ].includes(parts[parts.length - 1])
+        ) {
             await restartLS(false);
         }
     });
