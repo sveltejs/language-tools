@@ -13,12 +13,13 @@ export class Document extends WritableDocument {
     scriptInfo: TagInformation | null = null;
     moduleScriptInfo: TagInformation | null = null;
     styleInfo: TagInformation | null = null;
-    config: Promise<SvelteConfig | undefined>;
+    configPromise: Promise<SvelteConfig | undefined>;
+    config?: SvelteConfig;
     html!: HTMLDocument;
 
     constructor(public url: string, public content: string) {
         super();
-        this.config = configLoader.awaitConfig(this.getFilePath() || '');
+        this.configPromise = configLoader.awaitConfig(this.getFilePath() || '');
         this.updateDocInfo();
     }
 
@@ -26,6 +27,7 @@ export class Document extends WritableDocument {
         this.html = parseHtml(this.content);
         const scriptTags = extractScriptTags(this.content, this.html);
         const update = (config: SvelteConfig | undefined) => {
+            this.config = config;
             this.scriptInfo = this.addDefaultLanguage(config, scriptTags?.script || null, 'script');
             this.moduleScriptInfo = this.addDefaultLanguage(
                 config,
@@ -43,9 +45,9 @@ export class Document extends WritableDocument {
         if (config && !config.loadConfigError) {
             update(config);
         } else {
-            this.config = configLoader.awaitConfig(this.getFilePath() || '');
+            this.configPromise = configLoader.awaitConfig(this.getFilePath() || '');
             update(undefined);
-            this.config.then((c) => update(c));
+            this.configPromise.then((c) => update(c));
         }
     }
 

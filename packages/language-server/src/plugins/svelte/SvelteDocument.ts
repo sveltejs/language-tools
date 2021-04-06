@@ -43,7 +43,7 @@ export class SvelteDocument {
     public version = 0;
     public uri = this.parent.uri;
     public get config() {
-        return this.parent.config;
+        return this.parent.configPromise;
     }
 
     constructor(private parent: Document) {
