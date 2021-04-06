@@ -108,7 +108,7 @@ class ComponentEventsFromEventsMap {
     private dispatchedEvents = new Set();
     private stringVars = new Map<string, string>();
     private eventDispatcherImport = '';
-    private eventDispatchers: { name: string; typing?: string }[] = [];
+    private eventDispatchers: Array<{ name: string; typing?: string }> = [];
 
     constructor(private eventHandler: EventHandler) {
         this.events = this.extractEvents(eventHandler);
