@@ -45,7 +45,8 @@ export function convertHtmlxToJsx(
     str: MagicString,
     ast: TemplateNode,
     onWalk: Walker = null,
-    onLeave: Walker = null
+    onLeave: Walker = null,
+    options: { preserveAttributeCase?: boolean } = {}
 ): void {
     const htmlx = str.original;
     stripDoctype(str);
@@ -139,7 +140,13 @@ export function convertHtmlxToJsx(
                         handleAnimateDirective(htmlx, str, node as BaseDirective, parent);
                         break;
                     case 'Attribute':
-                        handleAttribute(htmlx, str, node as Attribute, parent);
+                        handleAttribute(
+                            htmlx,
+                            str,
+                            node as Attribute,
+                            parent,
+                            options.preserveAttributeCase
+                        );
                         break;
                     case 'EventHandler':
                         handleEventHandler(htmlx, str, node as BaseDirective, parent);
@@ -218,11 +225,14 @@ export function convertHtmlxToJsx(
 /**
  * @internal For testing only
  */
-export function htmlx2jsx(htmlx: string, options?: { emitOnTemplateError?: boolean }) {
+export function htmlx2jsx(
+    htmlx: string,
+    options?: { emitOnTemplateError?: boolean; preserveAttributeCase: boolean }
+) {
     const ast = parseHtmlx(htmlx, options);
     const str = new MagicString(htmlx);
 
-    convertHtmlxToJsx(str, ast);
+    convertHtmlxToJsx(str, ast, null, null, options);
 
     return {
         map: str.generateMap({ hires: true }),

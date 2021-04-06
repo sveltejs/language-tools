@@ -36,5 +36,9 @@ export default function svelte2tsx(
          * Whether to try emitting result when there's a syntax error in the template
          */
         emitOnTemplateError?: boolean;
+        /**
+         * The namespace option from svelte config
+         */
+        namespace?: string;
     }
 ): SvelteCompiledToTsx

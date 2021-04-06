@@ -4,8 +4,8 @@ import { test_samples } from '../helpers';
 describe('htmlx2jsx', () => {
     test_samples(
         __dirname,
-        (input, { emitOnTemplateError }) => {
-            return htmlx2jsx(input, { emitOnTemplateError });
+        (input, { emitOnTemplateError, preserveAttributeCase }) => {
+            return htmlx2jsx(input, { emitOnTemplateError, preserveAttributeCase });
         },
         'jsx'
     );

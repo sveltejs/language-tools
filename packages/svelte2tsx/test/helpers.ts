@@ -199,6 +199,7 @@ type TransformSampleFn = (
         filename: string;
         sampleName: string;
         emitOnTemplateError: boolean;
+        preserveAttributeCase: boolean;
     }
 ) => ReturnType<typeof htmlx2jsx | typeof svelte2tsx>;
 
@@ -214,7 +215,8 @@ export function test_samples(dir: string, transform: TransformSampleFn, jsx: 'js
         const config = {
             filename: svelteFile,
             sampleName: sample.name,
-            emitOnTemplateError: false
+            emitOnTemplateError: false,
+            preserveAttributeCase: sample.name.endsWith('-foreign-ns')
         };
 
         if (process.env.CI) {
@@ -295,7 +297,8 @@ export function get_svelte2tsx_config(base: BaseConfig, sampleName: string): Sve
         filename: base.filename,
         emitOnTemplateError: base.emitOnTemplateError,
         strictMode: sampleName.includes('strictMode'),
-        isTsFile: sampleName.startsWith('ts-')
+        isTsFile: sampleName.startsWith('ts-'),
+        namespace: sampleName.endsWith('-foreign-ns') ? 'foreign' : null
     };
 }
 
