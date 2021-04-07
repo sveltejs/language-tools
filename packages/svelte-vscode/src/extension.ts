@@ -56,7 +56,9 @@ export function activate(context: ExtensionContext) {
     const serverModule = require.resolve(lsPath || 'svelte-language-server/bin/server.js');
     console.log('Loading server from ', serverModule);
 
-    const runExecArgv: string[] = [];
+    // Add --experimental-modules flag for people using node 12 < version < 12.17
+    // Remove this in mid 2022 and bump vs code minimum required version to 1.55
+    const runExecArgv: string[] = ['--experimental-modules'];
     let port = runtimeConfig.get<number>('port') ?? -1;
     if (port < 0) {
         port = 6009;
@@ -64,7 +66,7 @@ export function activate(context: ExtensionContext) {
         console.log('setting port to', port);
         runExecArgv.push(`--inspect=${port}`);
     }
-    const debugOptions = { execArgv: ['--nolazy', `--inspect=${port}`] };
+    const debugOptions = { execArgv: ['--nolazy', '--experimental-modules', `--inspect=${port}`] };
 
     const serverOptions: ServerOptions = {
         run: {
@@ -376,6 +378,7 @@ function addExtracComponentCommand(getLS: () => LanguageClient, context: Extensi
 }
 
 function createLanguageServer(serverOptions: ServerOptions, clientOptions: LanguageClientOptions) {
+    console.log('NEWWWWWWWWWWWWWWWW');
     return new LanguageClient('svelte', 'Svelte', serverOptions, clientOptions);
 }
 
