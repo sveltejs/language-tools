@@ -52,7 +52,7 @@
                     "scope": "application",
                     "type": "string",
                     "title": "Language Server Runtime",
-                    "description": "- You normally don't need this - Path to the node executable to use to spawn the language server. This is useful when you depend on native modules such as node-sass as without this they will run in the context of vscode, meaning node version mismatch is likely. This setting can only be changed in user settings for security reasons."
+                    "description": "- You normally don't need this - Path to the node executable to use to spawn the language server. This is useful when you depend on native modules such as node-sass as without this they will run in the context of vscode, meaning node version mismatch is likely. Minimum required node version is 12.17. This setting can only be changed in user settings for security reasons."
                 },
                 "svelte.language-server.ls-path": {
                     "scope": "application",

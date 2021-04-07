@@ -62,12 +62,14 @@ More docs and troubleshooting: [See here](/docs/README.md).
 ##### `svelte.language-server.runtime`
 
 Path to the node executable you would like to use to run the language server.
-This is useful when you depend on native modules such as node-sass as without
-this they will run in the context of vscode, meaning node version mismatch is likely.
+This is useful when you depend on native modules such as node-sass as without this they will run in the context of vscode, meaning node version mismatch is likely.
+Minimum required node version is `12.17`.
+This setting can only be changed in user settings for security reasons.
 
 ##### `svelte.language-server.ls-path`
 
-You normally don't set this. Path to the language server executable. If you installed the \"svelte-language-server\" npm package, it's within there at \"bin/server.js\". Path can be either relative to your workspace root or absolute. Set this only if you want to use a custom version of the language server.
+You normally don't set this. Path to the language server executable. If you installed the `svelte-language-server` npm package, it's within there at `bin/server.js`. Path can be either relative to your workspace root or absolute. Set this only if you want to use a custom version of the language server.
+This setting can only be changed in user settings for security reasons.
 
 ##### `svelte.language-server.port`
 
