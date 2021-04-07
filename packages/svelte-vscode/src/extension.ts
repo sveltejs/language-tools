@@ -378,7 +378,6 @@ function addExtracComponentCommand(getLS: () => LanguageClient, context: Extensi
 }
 
 function createLanguageServer(serverOptions: ServerOptions, clientOptions: LanguageClientOptions) {
-    console.log('NEWWWWWWWWWWWWWWWW');
     return new LanguageClient('svelte', 'Svelte', serverOptions, clientOptions);
 }
 
