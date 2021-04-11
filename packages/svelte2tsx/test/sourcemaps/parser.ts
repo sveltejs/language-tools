@@ -226,6 +226,10 @@ export class GeneratedLine extends Line {
         return this.lineMap[i];
     }
 
+    hasExactMappingFor(charIndex: number) {
+        return this.getMappingFor(charIndex)?.[0] === charIndex;
+    }
+
     getOriginalPosition(charIndex: number) {
         const char = this.getMappingFor(charIndex);
         if (!char) return { line: null, character: -1 };
