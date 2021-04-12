@@ -1,5 +1,6 @@
 import { ComposeHelper, compose_file } from './composer';
 import {
+    debug_print,
     each_exec,
     fromLineCharToOffset,
     get_extra_indent,
@@ -468,13 +469,27 @@ function parse_edit_file(edit_file: string, { generated }: ParsedSource) {
         const range = { start: generated.at(raw.start), end: generated.at(raw.end) };
         const original = range_for('original', range);
         const { start, end } = range_for('generated', range);
-        const ogStart = original.start.line ? fromLineCharToOffset(original.start) : 0;
-        const ogLength = original.end.line ? fromLineCharToOffset(original.end) - ogStart + 1 : 0;
-        return [
-            ogStart,
-            ogLength,
-            generated.text.slice(fromLineCharToOffset(start), fromLineCharToOffset(end) + 1)
-        ];
+        const text = generated.text.slice(
+            fromLineCharToOffset(start),
+            fromLineCharToOffset(end) + 1
+        );
+
+        if (
+            !original.start.line ||
+            !original.end.line ||
+            (original.start.line === original.end.line &&
+                original.start.character === original.end.character &&
+                !start.line.hasExactMappingFor(start.character))
+        ) {
+            throw new Error(
+                `Failed to generate mapping test, selected range has no mappings.\n\n` +
+                    debug_print(start, end)
+            );
+        }
+
+        const ogStart = fromLineCharToOffset(original.start);
+        const ogLength = fromLineCharToOffset(original.end) - ogStart + 1;
+        return [ogStart, ogLength, text];
     });
 }
 

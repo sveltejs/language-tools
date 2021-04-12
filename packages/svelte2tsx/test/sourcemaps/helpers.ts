@@ -131,3 +131,17 @@ export function hash(str: string): string {
     while (i--) hash = ((hash << 5) - hash) ^ str.charCodeAt(i);
     return (hash >>> 0).toString(36);
 }
+
+export function debug_print(start: Position, end: Position) {
+    const underline_length =
+        Math.min(
+            fromLineCharToOffset(end) - fromLineCharToOffset(start),
+            start.line.length - start.character
+        ) + 1;
+    const info = `${start.line.index + 1}`;
+    const fill = ' '.repeat(info.length);
+    return (
+        `> ${info} | ${start.line.print()}\n` +
+        `  ${fill}   ${' '.repeat(start.character)}${'^'.repeat(underline_length)}\n`
+    );
+}

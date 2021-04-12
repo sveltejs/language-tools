@@ -165,7 +165,17 @@ export class Sample {
             throw new Error(`Tried to generate ${this.name} dependencies`);
         }
         all_tests_skipped = true;
-        it.only(`${this.name} dependencies`, () => fn(this.generate.bind(this)));
+
+        const sample = this;
+
+        it.only(`${this.name} dependencies`, function () {
+            try {
+                fn(sample.generate.bind(sample));
+            } catch (err) {
+                this.test.title = sample.cmd('');
+                throw err;
+            }
+        });
     }
 
     private generate(file: string, content: string, skip = true) {
