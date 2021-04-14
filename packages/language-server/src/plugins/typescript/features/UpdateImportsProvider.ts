@@ -1,7 +1,7 @@
 import {
+    OptionalVersionedTextDocumentIdentifier,
     TextDocumentEdit,
     TextEdit,
-    VersionedTextDocumentIdentifier,
     WorkspaceEdit
 } from 'vscode-languageserver';
 import { mapRangeToOriginal } from '../../../lib/documents';
@@ -43,7 +43,7 @@ export class UpdateImportsProviderImpl implements UpdateImportsProvider {
                 const fragment = await docs.retrieveFragment(change.fileName);
 
                 return TextDocumentEdit.create(
-                    VersionedTextDocumentIdentifier.create(fragment.getURL(), 0),
+                    OptionalVersionedTextDocumentIdentifier.create(fragment.getURL(), null),
                     change.textChanges.map((edit) => {
                         const range = mapRangeToOriginal(
                             fragment,

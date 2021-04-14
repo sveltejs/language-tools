@@ -1,11 +1,11 @@
 import * as path from 'path';
 import {
     CreateFile,
+    OptionalVersionedTextDocumentIdentifier,
     Position,
     Range,
     TextDocumentEdit,
     TextEdit,
-    VersionedTextDocumentIdentifier,
     WorkspaceEdit
 } from 'vscode-languageserver';
 import { isRangeInTag, TagInformation, updateRelativeImport } from '../../../../lib/documents';
@@ -54,10 +54,13 @@ async function executeExtractComponentCommand(
 
     return <WorkspaceEdit>{
         documentChanges: [
-            TextDocumentEdit.create(VersionedTextDocumentIdentifier.create(svelteDoc.uri, 0), [
-                TextEdit.replace(range, `<${componentName}></${componentName}>`),
-                createComponentImportTextEdit()
-            ]),
+            TextDocumentEdit.create(
+                OptionalVersionedTextDocumentIdentifier.create(svelteDoc.uri, null),
+                [
+                    TextEdit.replace(range, `<${componentName}></${componentName}>`),
+                    createComponentImportTextEdit()
+                ]
+            ),
             CreateFile.create(newFileUri, { overwrite: true }),
             createNewFileEdit()
         ]
@@ -91,9 +94,10 @@ async function executeExtractComponentCommand(
             .map((tag) => tag.text)
             .join('');
 
-        return TextDocumentEdit.create(VersionedTextDocumentIdentifier.create(newFileUri, 0), [
-            TextEdit.insert(Position.create(0, 0), newText)
-        ]);
+        return TextDocumentEdit.create(
+            OptionalVersionedTextDocumentIdentifier.create(newFileUri, null),
+            [TextEdit.insert(Position.create(0, 0), newText)]
+        );
 
         function getTemplate() {
             const startOffset = svelteDoc.offsetAt(range.start);

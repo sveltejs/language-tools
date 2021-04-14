@@ -3,11 +3,11 @@ import { join } from 'path';
 import sinon from 'sinon';
 import ts from 'typescript';
 import {
+    OptionalVersionedTextDocumentIdentifier,
     Position,
     Range,
     TextDocumentEdit,
-    TextEdit,
-    VersionedTextDocumentIdentifier
+    TextEdit
 } from 'vscode-languageserver';
 import { Document, DocumentManager } from '../../../../src/lib/documents';
 import { LSConfigManager } from '../../../../src/ls-config';
@@ -51,7 +51,7 @@ describe('UpdateImportsProviderImpl', () => {
         });
 
         assert.deepStrictEqual(workspaceEdit?.documentChanges, [
-            TextDocumentEdit.create(VersionedTextDocumentIdentifier.create(fileUri, 0), [
+            TextDocumentEdit.create(OptionalVersionedTextDocumentIdentifier.create(fileUri, null), [
                 TextEdit.replace(
                     Range.create(Position.create(1, 17), Position.create(1, 49)),
                     './documentation.svelte'

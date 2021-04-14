@@ -84,7 +84,7 @@ describe('CodeActionsProvider', () => {
                             ],
                             textDocument: {
                                 uri: getUri('codeactions.svelte'),
-                                version: 0
+                                version: null
                             }
                         }
                     ]
@@ -141,7 +141,7 @@ describe('CodeActionsProvider', () => {
                             ],
                             textDocument: {
                                 uri: getUri('codeactions.svelte'),
-                                version: 0
+                                version: null
                             }
                         }
                     ]
@@ -230,7 +230,7 @@ describe('CodeActionsProvider', () => {
                             ],
                             textDocument: {
                                 uri: getUri('codeactions.svelte'),
-                                version: 0
+                                version: null
                             }
                         }
                     ]
@@ -305,7 +305,7 @@ describe('CodeActionsProvider', () => {
                             ],
                             textDocument: {
                                 uri: getUri('organize-imports-with-module.svelte'),
-                                version: 0
+                                version: null
                             }
                         }
                     ]
@@ -393,7 +393,7 @@ describe('CodeActionsProvider', () => {
                             ],
                             textDocument: {
                                 uri: getUri('organize-imports-module-store.svelte'),
-                                version: 0
+                                version: null
                             }
                         }
                     ]
@@ -487,7 +487,7 @@ describe('CodeActionsProvider', () => {
                     ],
                     textDocument: {
                         uri: getUri('codeactions.svelte'),
-                        version: 0
+                        version: null
                     }
                 }
             ]
@@ -584,7 +584,7 @@ describe('CodeActionsProvider', () => {
                     ],
                     textDocument: {
                         uri: getUri('codeactions.svelte'),
-                        version: 0
+                        version: null
                     }
                 }
             ]
