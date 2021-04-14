@@ -2,10 +2,10 @@ import {
     CodeAction,
     CodeActionContext,
     CodeActionKind,
+    OptionalVersionedTextDocumentIdentifier,
     Range,
     TextDocumentEdit,
     TextEdit,
-    VersionedTextDocumentIdentifier,
     WorkspaceEdit
 } from 'vscode-languageserver';
 import {
@@ -82,7 +82,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             changes.map(async (change) => {
                 // Organize Imports will only affect the current file, so no need to check the file path
                 return TextDocumentEdit.create(
-                    VersionedTextDocumentIdentifier.create(document.url, 0),
+                    OptionalVersionedTextDocumentIdentifier.create(document.url, null),
                     change.textChanges.map((edit) => {
                         const range = this.checkRemoveImportCodeActionRange(
                             edit,
@@ -169,7 +169,10 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                     fix.changes.map(async (change) => {
                         const { snapshot, fragment } = await docs.retrieve(change.fileName);
                         return TextDocumentEdit.create(
-                            VersionedTextDocumentIdentifier.create(pathToUrl(change.fileName), 0),
+                            OptionalVersionedTextDocumentIdentifier.create(
+                                pathToUrl(change.fileName),
+                                null
+                            ),
                             change.textChanges
                                 .map((edit) => {
                                     if (
@@ -362,7 +365,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
 
         const documentChanges = edits?.edits.map((edit) =>
             TextDocumentEdit.create(
-                VersionedTextDocumentIdentifier.create(document.uri, 0),
+                OptionalVersionedTextDocumentIdentifier.create(document.uri, null),
                 edit.textChanges.map((edit) => {
                     const range = mapRangeToOriginal(fragment, convertRange(fragment, edit.span));
 

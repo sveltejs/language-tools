@@ -6,10 +6,10 @@ import {
     CodeActionKind,
     Diagnostic,
     DiagnosticSeverity,
+    OptionalVersionedTextDocumentIdentifier,
     Position,
     TextDocumentEdit,
-    TextEdit,
-    VersionedTextDocumentIdentifier
+    TextEdit
 } from 'vscode-languageserver';
 import { mapObjWithRangeToOriginal, offsetAt, positionAt } from '../../../../lib/documents';
 import { pathToUrl } from '../../../../utils';
@@ -40,9 +40,9 @@ async function createQuickfixAction(
     svelteDoc: SvelteDocument,
     ast: Ast
 ): Promise<CodeAction> {
-    const textDocument = VersionedTextDocumentIdentifier.create(
+    const textDocument = OptionalVersionedTextDocumentIdentifier.create(
         pathToUrl(svelteDoc.getFilePath()),
-        svelteDoc.version
+        null
     );
 
     return CodeAction.create(
