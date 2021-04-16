@@ -14,7 +14,7 @@ Adding it to an existing project? [The official blog post explains how to do it]
 
 To tell us to treat your script tags as typescript, add a `type` or `lang` attribute to your script tags like so:
 
-```html
+```svelte
 <!-- Add type="text/typescript" -->
 <script type="text/typescript">
     export let name: string;
@@ -48,7 +48,7 @@ When you are using TypeScript, you can type which events your component has in t
 
 The first and possibly most often used way is to type the `createEventDispatcher` invocation like this:
 
-```html
+```svelte
 <script lang="ts">
     import { createEventDispatcher } from 'svelte';
 
@@ -78,7 +78,7 @@ Make sure to follow the [setup instructions](/packages/svelte-vscode#setup)
 
 The following code may throw an error like `Variable 'show' implicitly has type 'any' in some locations where its type cannot be determined.`, if you have stricter type settings:
 
-```html
+```svelte
 <script lang="typescript">
     export let data: { someKey: string | null };
 
@@ -108,10 +108,9 @@ At the moment, you cannot. Only `script`/`style` tags are preprocessed/transpile
 
 You may need to set `baseUrl` in `tsconfig.json` at the project root to include (restart the language server to see this take effect):
 
-```
+```json
 "compilerOptions": {
     "baseUrl": "."
-  }
 }
 ```
 
@@ -140,7 +139,7 @@ Then make sure that `d.ts` file is referenced in your `tsconfig.json`. If it rea
 
 You are most likely extending from Svelte's `@tsconfig/svelte` base config in your `tsconfig.json`, or you did set `"types": [..]` in your `tsconfig`. In both cases, a `"types": [..]` property is present. This makes TypeScript prevent all ambient types which are not listed in that `types`-array from getting picked up. The solution is to enhance/add a `types` section to your `tsconfig.json`:
 
-```
+```json
 {
     "compilerOptions": {
         // ..

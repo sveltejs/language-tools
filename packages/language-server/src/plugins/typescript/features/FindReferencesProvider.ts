@@ -8,49 +8,49 @@ import { convertToLocationRange } from '../utils';
 import { isNoTextSpanInGeneratedCode, SnapshotFragmentMap } from './utils';
 
 export class FindReferencesProviderImpl implements FindReferencesProvider {
-    constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
+	constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
 
-    async findReferences(
-        document: Document,
-        position: Position,
-        context: ReferenceContext
-    ): Promise<Location[] | null> {
-        const { lang, tsDoc } = await this.getLSAndTSDoc(document);
-        const fragment = await tsDoc.getFragment();
+	async findReferences(
+		document: Document,
+		position: Position,
+		context: ReferenceContext
+	): Promise<Location[] | null> {
+		const { lang, tsDoc } = await this.getLSAndTSDoc(document);
+		const fragment = await tsDoc.getFragment();
 
-        const references = lang.getReferencesAtPosition(
-            tsDoc.filePath,
-            fragment.offsetAt(fragment.getGeneratedPosition(position))
-        );
-        if (!references) {
-            return null;
-        }
+		const references = lang.getReferencesAtPosition(
+			tsDoc.filePath,
+			fragment.offsetAt(fragment.getGeneratedPosition(position))
+		);
+		if (!references) {
+			return null;
+		}
 
-        const docs = new SnapshotFragmentMap(this.lsAndTsDocResolver);
-        docs.set(tsDoc.filePath, { fragment, snapshot: tsDoc });
+		const docs = new SnapshotFragmentMap(this.lsAndTsDocResolver);
+		docs.set(tsDoc.filePath, { fragment, snapshot: tsDoc });
 
-        return await Promise.all(
-            references
-                .filter((ref) => context.includeDeclaration || !ref.isDefinition)
-                .filter(notInGeneratedCode(tsDoc.getFullText()))
-                .map(async (ref) => {
-                    const defDoc = await docs.retrieveFragment(ref.fileName);
+		return await Promise.all(
+			references
+				.filter((ref) => context.includeDeclaration || !ref.isDefinition)
+				.filter(notInGeneratedCode(tsDoc.getFullText()))
+				.map(async (ref) => {
+					const defDoc = await docs.retrieveFragment(ref.fileName);
 
-                    return Location.create(
-                        pathToUrl(ref.fileName),
-                        convertToLocationRange(defDoc, ref.textSpan)
-                    );
-                })
-        );
-    }
+					return Location.create(
+						pathToUrl(ref.fileName),
+						convertToLocationRange(defDoc, ref.textSpan)
+					);
+				})
+		);
+	}
 
-    private async getLSAndTSDoc(document: Document) {
-        return this.lsAndTsDocResolver.getLSAndTSDoc(document);
-    }
+	private async getLSAndTSDoc(document: Document) {
+		return this.lsAndTsDocResolver.getLSAndTSDoc(document);
+	}
 }
 
 function notInGeneratedCode(text: string) {
-    return (ref: ts.ReferenceEntry) => {
-        return isNoTextSpanInGeneratedCode(text, ref.textSpan);
-    };
+	return (ref: ts.ReferenceEntry) => {
+		return isNoTextSpanInGeneratedCode(text, ref.textSpan);
+	};
 }

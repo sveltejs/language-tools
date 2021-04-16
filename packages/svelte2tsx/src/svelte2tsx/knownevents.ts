@@ -1,118 +1,118 @@
 export default [
-    'oncopy',
-    'oncut',
-    'onpaste',
+	'oncopy',
+	'oncut',
+	'onpaste',
 
-    // composition events
-    'oncompositionend',
-    'oncompositionstart',
-    'oncompositionupdate',
+	// composition events
+	'oncompositionend',
+	'oncompositionstart',
+	'oncompositionupdate',
 
-    // focus events
-    'onfocus',
-    'onblur',
+	// focus events
+	'onfocus',
+	'onblur',
 
-    // form events
-    'onchange',
-    'oninput',
-    'onreset',
-    'onsubmit',
-    'oninvalid',
+	// form events
+	'onchange',
+	'oninput',
+	'onreset',
+	'onsubmit',
+	'oninvalid',
 
-    // image events
-    'onload',
-    'onerror',
+	// image events
+	'onload',
+	'onerror',
 
-    // keyboard events
-    'onkeydown',
-    'onkeypress',
-    'onkeyup',
+	// keyboard events
+	'onkeydown',
+	'onkeypress',
+	'onkeyup',
 
-    // media events
-    'onabort',
-    'oncanplay',
-    'oncanplaythrough',
-    'oncuechange',
-    'ondurationchange',
-    'onemptied',
-    'onencrypted',
-    'onended',
-    'onloadeddata',
-    'onloadedmetadata',
-    'onloadstart',
-    'onpause',
-    'onplay',
-    'onplaying',
-    'onprogress',
-    'onratechange',
-    'onseeked',
-    'onseeking',
-    'onstalled',
-    'onsuspend',
-    'ontimeupdate',
-    'onvolumechange',
-    'onwaiting',
+	// media events
+	'onabort',
+	'oncanplay',
+	'oncanplaythrough',
+	'oncuechange',
+	'ondurationchange',
+	'onemptied',
+	'onencrypted',
+	'onended',
+	'onloadeddata',
+	'onloadedmetadata',
+	'onloadstart',
+	'onpause',
+	'onplay',
+	'onplaying',
+	'onprogress',
+	'onratechange',
+	'onseeked',
+	'onseeking',
+	'onstalled',
+	'onsuspend',
+	'ontimeupdate',
+	'onvolumechange',
+	'onwaiting',
 
-    // mouseevents
-    'onclick',
-    'onauxclick',
-    'oncontextmenu',
-    'ondblclick',
-    'ondrag',
-    'ondragend',
-    'ondragenter',
-    'ondragexit',
-    'ondragleave',
-    'ondragover',
-    'ondragstart',
-    'ondrop',
-    'onmousedown',
-    'onmouseenter',
-    'onmouseleave',
-    'onmousemove',
-    'onmouseout',
-    'onmouseover',
-    'onmouseup',
+	// mouseevents
+	'onclick',
+	'onauxclick',
+	'oncontextmenu',
+	'ondblclick',
+	'ondrag',
+	'ondragend',
+	'ondragenter',
+	'ondragexit',
+	'ondragleave',
+	'ondragover',
+	'ondragstart',
+	'ondrop',
+	'onmousedown',
+	'onmouseenter',
+	'onmouseleave',
+	'onmousemove',
+	'onmouseout',
+	'onmouseover',
+	'onmouseup',
 
-    // selection events
-    'onselect',
-    'onselectionchange',
-    'onselectstart',
+	// selection events
+	'onselect',
+	'onselectionchange',
+	'onselectstart',
 
-    // touch events
-    'ontouchcancel',
-    'ontouchend',
-    'ontouchmove',
-    'ontouchstart',
+	// touch events
+	'ontouchcancel',
+	'ontouchend',
+	'ontouchmove',
+	'ontouchstart',
 
-    // pointer events
-    'ongotpointercapture',
-    'onpointercancel',
-    'onpointerdown',
-    'onpointerenter',
-    'onpointerleave',
-    'onpointermove',
-    'onpointerout',
-    'onpointerover',
-    'onpointerup',
-    'onlostpointercapture',
+	// pointer events
+	'ongotpointercapture',
+	'onpointercancel',
+	'onpointerdown',
+	'onpointerenter',
+	'onpointerleave',
+	'onpointermove',
+	'onpointerout',
+	'onpointerover',
+	'onpointerup',
+	'onlostpointercapture',
 
-    // ui events
-    'onscroll',
+	// ui events
+	'onscroll',
 
-    // wheel events
-    'onwheel',
+	// wheel events
+	'onwheel',
 
-    // animation events
-    'onanimationstart',
-    'onanimationend',
-    'onanimationiteration',
+	// animation events
+	'onanimationstart',
+	'onanimationend',
+	'onanimationiteration',
 
-    // transition events
-    'ontransitionend',
+	// transition events
+	'ontransitionend',
 
-    // global events
-    'oncancel',
-    'onmessage',
-    'onmessageerror'
+	// global events
+	'oncancel',
+	'onmessage',
+	'onmessageerror'
 ];

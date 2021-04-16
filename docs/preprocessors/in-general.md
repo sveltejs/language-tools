@@ -17,7 +17,7 @@ module.exports = {
 
 It's also necessary to add a `type="text/language-name"` or `lang="language-name"` to your `style` and `script` tags, which defines how that code should be interpreted by the extension.
 
-```html
+```svelte
 <div>
     <h1>Hello, world!</h1>
 </div>

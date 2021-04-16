@@ -35,7 +35,7 @@ module.exports = {
 
 To gain syntax highlighing for your SCSS code and to make us understand the language you are using, add a `type` or `lang` attribute to your style tags like so:
 
-```html
+```svelte
 <!-- Add type="text/scss" -->
 <style type="text/scss">
     header {

@@ -30,10 +30,11 @@ Our `language-server` can roughly be split into [four areas](/packages/language-
 The last area, TS/JS, is where most of the work is done. Svelte is a mix of JavaScript/TypeScript inside `script` and more of it within Svelte's template syntax. To get a holistic view of the file, we need to account for both.
 This is also the reason why preprocessors such as `svelte-preprocess` cannot do type checking because it produces wrong diagnostics. To preprocess the script content, it only gets the content from the script. Think of this situation:
 
-```html
+```svelte
 <script lang="ts">
     let a: number = 1;
 </script>
+
 {a}
 ```
 
@@ -64,7 +65,7 @@ This example shows how our `language-server` uses `svelte2tsx`:
 
 1. Svelte file comes in
 
-```html
+```svelte
 <script>
     export let world = 'name';
 </script>

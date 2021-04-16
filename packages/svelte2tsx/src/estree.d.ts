@@ -6,17 +6,17 @@ import { BaseNode } from 'estree';
 // to both estree and estree-walker.
 
 declare module 'estree-walker' {
-    export interface Node extends BaseNode {
-        start: number;
-        end: number;
-        [propName: string]: any;
-    }
+	export interface Node extends BaseNode {
+		start: number;
+		end: number;
+		[propName: string]: any;
+	}
 }
 
 declare module 'estree' {
-    export interface BaseNode {
-        start: number;
-        end: number;
-        [propName: string]: any;
-    }
+	export interface BaseNode {
+		start: number;
+		end: number;
+		[propName: string]: any;
+	}
 }

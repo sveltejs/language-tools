@@ -1,5 +1,5 @@
 module.exports = {
-    rules: {
-        'import/no-unresolved': [2, { ignore: ['vscode'] }]
-    }
+	rules: {
+		'import/no-unresolved': [2, { ignore: ['vscode'] }]
+	}
 };

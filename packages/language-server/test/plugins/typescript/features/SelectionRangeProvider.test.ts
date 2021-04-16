@@ -11,68 +11,68 @@ import { LSConfigManager } from '../../../../src/ls-config';
 const testDir = path.join(__dirname, '..');
 
 describe('SelectionRangeProvider', () => {
-    function setup() {
-        const docManager = new DocumentManager(
-            (textDocument) => new Document(textDocument.uri, textDocument.text)
-        );
-        const filePath = path.join(
-            testDir,
-            'testfiles',
-            'selection-range',
-            'selection-range.svelte'
-        );
-        const lsAndTsDocResolver = new LSAndTSDocResolver(
-            docManager,
-            [pathToUrl(testDir)],
-            new LSConfigManager()
-        );
-        const provider = new SelectionRangeProviderImpl(lsAndTsDocResolver);
-        const document = docManager.openDocument(<any>{
-            uri: pathToUrl(filePath),
-            text: ts.sys.readFile(filePath)
-        });
-        return { provider, document };
-    }
+	function setup() {
+		const docManager = new DocumentManager(
+			(textDocument) => new Document(textDocument.uri, textDocument.text)
+		);
+		const filePath = path.join(
+			testDir,
+			'testfiles',
+			'selection-range',
+			'selection-range.svelte'
+		);
+		const lsAndTsDocResolver = new LSAndTSDocResolver(
+			docManager,
+			[pathToUrl(testDir)],
+			new LSConfigManager()
+		);
+		const provider = new SelectionRangeProviderImpl(lsAndTsDocResolver);
+		const document = docManager.openDocument(<any>{
+			uri: pathToUrl(filePath),
+			text: ts.sys.readFile(filePath)
+		});
+		return { provider, document };
+	}
 
-    it('provides selection range', async () => {
-        const { provider, document } = setup();
+	it('provides selection range', async () => {
+		const { provider, document } = setup();
 
-        const selectionRange = await provider.getSelectionRange(document, Position.create(1, 9));
+		const selectionRange = await provider.getSelectionRange(document, Position.create(1, 9));
 
-        assert.deepStrictEqual(selectionRange, <SelectionRange>{
-            parent: {
-                parent: undefined,
-                // let a;
-                range: {
-                    end: {
-                        character: 10,
-                        line: 1
-                    },
-                    start: {
-                        character: 4,
-                        line: 1
-                    }
-                }
-            },
-            // a
-            range: {
-                end: {
-                    character: 9,
-                    line: 1
-                },
-                start: {
-                    character: 8,
-                    line: 1
-                }
-            }
-        });
-    });
+		assert.deepStrictEqual(selectionRange, <SelectionRange>{
+			parent: {
+				parent: undefined,
+				// let a;
+				range: {
+					end: {
+						character: 10,
+						line: 1
+					},
+					start: {
+						character: 4,
+						line: 1
+					}
+				}
+			},
+			// a
+			range: {
+				end: {
+					character: 9,
+					line: 1
+				},
+				start: {
+					character: 8,
+					line: 1
+				}
+			}
+		});
+	});
 
-    it('return null when in style', async () => {
-        const { provider, document } = setup();
+	it('return null when in style', async () => {
+		const { provider, document } = setup();
 
-        const selectionRange = await provider.getSelectionRange(document, Position.create(5, 0));
+		const selectionRange = await provider.getSelectionRange(document, Position.create(5, 0));
 
-        assert.equal(selectionRange, null);
-    });
+		assert.equal(selectionRange, null);
+	});
 });

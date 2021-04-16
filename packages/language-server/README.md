@@ -93,7 +93,6 @@ Update:
     javascript: { /* .. */ },
     prettierConfig: { /* .. */ },
     // ...
-    }
 }
 ```
 

@@ -12,582 +12,582 @@ import { LSConfigManager } from '../../../../src/ls-config';
 const testDir = path.join(__dirname, '..');
 
 describe('CodeActionsProvider', () => {
-    function getFullPath(filename: string) {
-        return path.join(testDir, 'testfiles', filename);
-    }
+	function getFullPath(filename: string) {
+		return path.join(testDir, 'testfiles', filename);
+	}
 
-    function getUri(filename: string) {
-        return pathToUrl(getFullPath(filename));
-    }
+	function getUri(filename: string) {
+		return pathToUrl(getFullPath(filename));
+	}
 
-    function harmonizeNewLines(input: string) {
-        return input.replace(/\r\n/g, '~:~').replace(/\n/g, '~:~').replace(/~:~/g, '\n');
-    }
+	function harmonizeNewLines(input: string) {
+		return input.replace(/\r\n/g, '~:~').replace(/\n/g, '~:~').replace(/~:~/g, '\n');
+	}
 
-    function setup(filename: string) {
-        const docManager = new DocumentManager(
-            (textDocument) => new Document(textDocument.uri, textDocument.text)
-        );
-        const lsAndTsDocResolver = new LSAndTSDocResolver(
-            docManager,
-            [pathToUrl(testDir)],
-            new LSConfigManager()
-        );
-        const completionProvider = new CompletionsProviderImpl(lsAndTsDocResolver);
-        const provider = new CodeActionsProviderImpl(lsAndTsDocResolver, completionProvider);
-        const filePath = getFullPath(filename);
-        const document = docManager.openDocument(<any>{
-            uri: pathToUrl(filePath),
-            text: harmonizeNewLines(ts.sys.readFile(filePath) || '')
-        });
-        return { provider, document, docManager };
-    }
+	function setup(filename: string) {
+		const docManager = new DocumentManager(
+			(textDocument) => new Document(textDocument.uri, textDocument.text)
+		);
+		const lsAndTsDocResolver = new LSAndTSDocResolver(
+			docManager,
+			[pathToUrl(testDir)],
+			new LSConfigManager()
+		);
+		const completionProvider = new CompletionsProviderImpl(lsAndTsDocResolver);
+		const provider = new CodeActionsProviderImpl(lsAndTsDocResolver, completionProvider);
+		const filePath = getFullPath(filename);
+		const document = docManager.openDocument(<any>{
+			uri: pathToUrl(filePath),
+			text: harmonizeNewLines(ts.sys.readFile(filePath) || '')
+		});
+		return { provider, document, docManager };
+	}
 
-    it('provides quickfix', async () => {
-        const { provider, document } = setup('codeactions.svelte');
+	it('provides quickfix', async () => {
+		const { provider, document } = setup('codeactions.svelte');
 
-        const codeActions = await provider.getCodeActions(
-            document,
-            Range.create(Position.create(6, 4), Position.create(6, 5)),
-            {
-                diagnostics: [
-                    {
-                        code: 6133,
-                        message: "'a' is declared but its value is never read.",
-                        range: Range.create(Position.create(6, 4), Position.create(6, 5)),
-                        source: 'ts'
-                    }
-                ],
-                only: [CodeActionKind.QuickFix]
-            }
-        );
+		const codeActions = await provider.getCodeActions(
+			document,
+			Range.create(Position.create(6, 4), Position.create(6, 5)),
+			{
+				diagnostics: [
+					{
+						code: 6133,
+						message: "'a' is declared but its value is never read.",
+						range: Range.create(Position.create(6, 4), Position.create(6, 5)),
+						source: 'ts'
+					}
+				],
+				only: [CodeActionKind.QuickFix]
+			}
+		);
 
-        assert.deepStrictEqual(codeActions, [
-            {
-                edit: {
-                    documentChanges: [
-                        {
-                            edits: [
-                                {
-                                    newText: '',
-                                    range: {
-                                        start: {
-                                            character: 0,
-                                            line: 6
-                                        },
-                                        end: {
-                                            character: 0,
-                                            line: 7
-                                        }
-                                    }
-                                }
-                            ],
-                            textDocument: {
-                                uri: getUri('codeactions.svelte'),
-                                version: null
-                            }
-                        }
-                    ]
-                },
-                kind: CodeActionKind.QuickFix,
-                title: "Remove unused declaration for: 'a'"
-            }
-        ]);
-    });
+		assert.deepStrictEqual(codeActions, [
+			{
+				edit: {
+					documentChanges: [
+						{
+							edits: [
+								{
+									newText: '',
+									range: {
+										start: {
+											character: 0,
+											line: 6
+										},
+										end: {
+											character: 0,
+											line: 7
+										}
+									}
+								}
+							],
+							textDocument: {
+								uri: getUri('codeactions.svelte'),
+								version: null
+							}
+						}
+					]
+				},
+				kind: CodeActionKind.QuickFix,
+				title: "Remove unused declaration for: 'a'"
+			}
+		]);
+	});
 
-    it('provides quickfix for missing function', async () => {
-        const { provider, document } = setup('codeactions.svelte');
+	it('provides quickfix for missing function', async () => {
+		const { provider, document } = setup('codeactions.svelte');
 
-        const codeActions = await provider.getCodeActions(
-            document,
-            Range.create(Position.create(9, 0), Position.create(9, 3)),
-            {
-                diagnostics: [
-                    {
-                        code: 2304,
-                        message: "Cannot find name 'abc'.",
-                        range: Range.create(Position.create(9, 0), Position.create(9, 3)),
-                        source: 'ts'
-                    }
-                ],
-                only: [CodeActionKind.QuickFix]
-            }
-        );
+		const codeActions = await provider.getCodeActions(
+			document,
+			Range.create(Position.create(9, 0), Position.create(9, 3)),
+			{
+				diagnostics: [
+					{
+						code: 2304,
+						message: "Cannot find name 'abc'.",
+						range: Range.create(Position.create(9, 0), Position.create(9, 3)),
+						source: 'ts'
+					}
+				],
+				only: [CodeActionKind.QuickFix]
+			}
+		);
 
-        (<TextDocumentEdit>codeActions[0]?.edit?.documentChanges?.[0])?.edits.forEach(
-            (edit) => (edit.newText = harmonizeNewLines(edit.newText))
-        );
+		(<TextDocumentEdit>codeActions[0]?.edit?.documentChanges?.[0])?.edits.forEach(
+			(edit) => (edit.newText = harmonizeNewLines(edit.newText))
+		);
 
-        assert.deepStrictEqual(codeActions, [
-            {
-                edit: {
-                    documentChanges: [
-                        {
-                            edits: [
-                                {
-                                    newText:
-                                        "\n\nfunction abc() {\nthrow new Error('Function not implemented.');\n}\n",
-                                    range: {
-                                        start: {
-                                            character: 0,
-                                            line: 10
-                                        },
-                                        end: {
-                                            character: 0,
-                                            line: 10
-                                        }
-                                    }
-                                }
-                            ],
-                            textDocument: {
-                                uri: getUri('codeactions.svelte'),
-                                version: null
-                            }
-                        }
-                    ]
-                },
-                kind: CodeActionKind.QuickFix,
-                title: "Add missing function declaration 'abc'"
-            }
-        ]);
-    });
+		assert.deepStrictEqual(codeActions, [
+			{
+				edit: {
+					documentChanges: [
+						{
+							edits: [
+								{
+									newText:
+										"\n\nfunction abc() {\nthrow new Error('Function not implemented.');\n}\n",
+									range: {
+										start: {
+											character: 0,
+											line: 10
+										},
+										end: {
+											character: 0,
+											line: 10
+										}
+									}
+								}
+							],
+							textDocument: {
+								uri: getUri('codeactions.svelte'),
+								version: null
+							}
+						}
+					]
+				},
+				kind: CodeActionKind.QuickFix,
+				title: "Add missing function declaration 'abc'"
+			}
+		]);
+	});
 
-    it('organizes imports', async () => {
-        const { provider, document } = setup('codeactions.svelte');
+	it('organizes imports', async () => {
+		const { provider, document } = setup('codeactions.svelte');
 
-        const codeActions = await provider.getCodeActions(
-            document,
-            Range.create(Position.create(1, 4), Position.create(1, 5)), // irrelevant
-            {
-                diagnostics: [],
-                only: [CodeActionKind.SourceOrganizeImports]
-            }
-        );
-        (<TextDocumentEdit>codeActions[0]?.edit?.documentChanges?.[0])?.edits.forEach(
-            (edit) => (edit.newText = harmonizeNewLines(edit.newText))
-        );
+		const codeActions = await provider.getCodeActions(
+			document,
+			Range.create(Position.create(1, 4), Position.create(1, 5)), // irrelevant
+			{
+				diagnostics: [],
+				only: [CodeActionKind.SourceOrganizeImports]
+			}
+		);
+		(<TextDocumentEdit>codeActions[0]?.edit?.documentChanges?.[0])?.edits.forEach(
+			(edit) => (edit.newText = harmonizeNewLines(edit.newText))
+		);
 
-        assert.deepStrictEqual(codeActions, [
-            {
-                edit: {
-                    documentChanges: [
-                        {
-                            edits: [
-                                {
-                                    // eslint-disable-next-line max-len
-                                    newText:
-                                        "import { A } from 'bla';\nimport { C } from 'blubb';\n",
-                                    range: {
-                                        start: {
-                                            character: 0,
-                                            line: 1
-                                        },
-                                        end: {
-                                            character: 0,
-                                            line: 2
-                                        }
-                                    }
-                                },
-                                {
-                                    newText: '',
-                                    range: {
-                                        start: {
-                                            character: 0,
-                                            line: 2
-                                        },
-                                        end: {
-                                            character: 0,
-                                            line: 3
-                                        }
-                                    }
-                                },
-                                {
-                                    newText: '',
-                                    range: {
-                                        start: {
-                                            character: 0,
-                                            line: 3
-                                        },
-                                        end: {
-                                            character: 0,
-                                            line: 4
-                                        }
-                                    }
-                                },
-                                {
-                                    newText: '',
-                                    range: {
-                                        start: {
-                                            character: 0,
-                                            line: 4
-                                        },
-                                        end: {
-                                            character: 21,
-                                            line: 4
-                                        }
-                                    }
-                                }
-                            ],
-                            textDocument: {
-                                uri: getUri('codeactions.svelte'),
-                                version: null
-                            }
-                        }
-                    ]
-                },
-                kind: CodeActionKind.SourceOrganizeImports,
-                title: 'Organize Imports'
-            }
-        ]);
-    });
+		assert.deepStrictEqual(codeActions, [
+			{
+				edit: {
+					documentChanges: [
+						{
+							edits: [
+								{
+									// eslint-disable-next-line max-len
+									newText:
+										"import { A } from 'bla';\nimport { C } from 'blubb';\n",
+									range: {
+										start: {
+											character: 0,
+											line: 1
+										},
+										end: {
+											character: 0,
+											line: 2
+										}
+									}
+								},
+								{
+									newText: '',
+									range: {
+										start: {
+											character: 0,
+											line: 2
+										},
+										end: {
+											character: 0,
+											line: 3
+										}
+									}
+								},
+								{
+									newText: '',
+									range: {
+										start: {
+											character: 0,
+											line: 3
+										},
+										end: {
+											character: 0,
+											line: 4
+										}
+									}
+								},
+								{
+									newText: '',
+									range: {
+										start: {
+											character: 0,
+											line: 4
+										},
+										end: {
+											character: 21,
+											line: 4
+										}
+									}
+								}
+							],
+							textDocument: {
+								uri: getUri('codeactions.svelte'),
+								version: null
+							}
+						}
+					]
+				},
+				kind: CodeActionKind.SourceOrganizeImports,
+				title: 'Organize Imports'
+			}
+		]);
+	});
 
-    it('organizes imports with module script', async () => {
-        const { provider, document } = setup('organize-imports-with-module.svelte');
+	it('organizes imports with module script', async () => {
+		const { provider, document } = setup('organize-imports-with-module.svelte');
 
-        const codeActions = await provider.getCodeActions(
-            document,
-            Range.create(Position.create(1, 4), Position.create(1, 5)), // irrelevant
-            {
-                diagnostics: [],
-                only: [CodeActionKind.SourceOrganizeImports]
-            }
-        );
-        (<TextDocumentEdit>codeActions[0]?.edit?.documentChanges?.[0])?.edits.forEach(
-            (edit) => (edit.newText = harmonizeNewLines(edit.newText))
-        );
+		const codeActions = await provider.getCodeActions(
+			document,
+			Range.create(Position.create(1, 4), Position.create(1, 5)), // irrelevant
+			{
+				diagnostics: [],
+				only: [CodeActionKind.SourceOrganizeImports]
+			}
+		);
+		(<TextDocumentEdit>codeActions[0]?.edit?.documentChanges?.[0])?.edits.forEach(
+			(edit) => (edit.newText = harmonizeNewLines(edit.newText))
+		);
 
-        assert.deepStrictEqual(codeActions, [
-            {
-                edit: {
-                    documentChanges: [
-                        {
-                            edits: [
-                                {
-                                    // eslint-disable-next-line max-len
-                                    newText: "import A from './A';\n  import { c } from './c';\n",
-                                    range: {
-                                        start: {
-                                            line: 1,
-                                            character: 2
-                                        },
-                                        end: {
-                                            line: 2,
-                                            character: 0
-                                        }
-                                    }
-                                },
-                                {
-                                    newText: '',
-                                    range: {
-                                        start: {
-                                            line: 6,
-                                            character: 2
-                                        },
-                                        end: {
-                                            line: 7,
-                                            character: 2
-                                        }
-                                    }
-                                },
-                                {
-                                    newText: '',
-                                    range: {
-                                        start: {
-                                            line: 7,
-                                            character: 2
-                                        },
-                                        end: {
-                                            line: 7,
-                                            character: 23
-                                        }
-                                    }
-                                }
-                            ],
-                            textDocument: {
-                                uri: getUri('organize-imports-with-module.svelte'),
-                                version: null
-                            }
-                        }
-                    ]
-                },
-                kind: CodeActionKind.SourceOrganizeImports,
-                title: 'Organize Imports'
-            }
-        ]);
-    });
+		assert.deepStrictEqual(codeActions, [
+			{
+				edit: {
+					documentChanges: [
+						{
+							edits: [
+								{
+									// eslint-disable-next-line max-len
+									newText: "import A from './A';\n  import { c } from './c';\n",
+									range: {
+										start: {
+											line: 1,
+											character: 2
+										},
+										end: {
+											line: 2,
+											character: 0
+										}
+									}
+								},
+								{
+									newText: '',
+									range: {
+										start: {
+											line: 6,
+											character: 2
+										},
+										end: {
+											line: 7,
+											character: 2
+										}
+									}
+								},
+								{
+									newText: '',
+									range: {
+										start: {
+											line: 7,
+											character: 2
+										},
+										end: {
+											line: 7,
+											character: 23
+										}
+									}
+								}
+							],
+							textDocument: {
+								uri: getUri('organize-imports-with-module.svelte'),
+								version: null
+							}
+						}
+					]
+				},
+				kind: CodeActionKind.SourceOrganizeImports,
+				title: 'Organize Imports'
+			}
+		]);
+	});
 
-    it('organizes imports with module script and store', async () => {
-        const { provider, document } = setup('organize-imports-module-store.svelte');
+	it('organizes imports with module script and store', async () => {
+		const { provider, document } = setup('organize-imports-module-store.svelte');
 
-        const codeActions = await provider.getCodeActions(
-            document,
-            Range.create(Position.create(1, 4), Position.create(1, 5)), // irrelevant
-            {
-                diagnostics: [],
-                only: [CodeActionKind.SourceOrganizeImports]
-            }
-        );
-        (<TextDocumentEdit>codeActions[0]?.edit?.documentChanges?.[0])?.edits.forEach(
-            (edit) => (edit.newText = harmonizeNewLines(edit.newText))
-        );
+		const codeActions = await provider.getCodeActions(
+			document,
+			Range.create(Position.create(1, 4), Position.create(1, 5)), // irrelevant
+			{
+				diagnostics: [],
+				only: [CodeActionKind.SourceOrganizeImports]
+			}
+		);
+		(<TextDocumentEdit>codeActions[0]?.edit?.documentChanges?.[0])?.edits.forEach(
+			(edit) => (edit.newText = harmonizeNewLines(edit.newText))
+		);
 
-        assert.deepStrictEqual(codeActions, [
-            {
-                edit: {
-                    documentChanges: [
-                        {
-                            edits: [
-                                {
-                                    newText:
-                                        "import { _,_d } from 'svelte-i18n';\n  import { _e } from 'svelte-i18n1';\n",
-                                    range: {
-                                        end: {
-                                            character: 0,
-                                            line: 2
-                                        },
-                                        start: {
-                                            character: 2,
-                                            line: 1
-                                        }
-                                    }
-                                },
-                                {
-                                    newText: '',
-                                    range: {
-                                        end: {
-                                            character: 2,
-                                            line: 6
-                                        },
-                                        start: {
-                                            character: 2,
-                                            line: 5
-                                        }
-                                    }
-                                },
-                                {
-                                    newText: '',
-                                    range: {
-                                        end: {
-                                            character: 2,
-                                            line: 7
-                                        },
-                                        start: {
-                                            character: 2,
-                                            line: 6
-                                        }
-                                    }
-                                },
-                                {
-                                    newText: '',
-                                    range: {
-                                        end: {
-                                            character: 37,
-                                            line: 7
-                                        },
-                                        start: {
-                                            character: 2,
-                                            line: 7
-                                        }
-                                    }
-                                }
-                            ],
-                            textDocument: {
-                                uri: getUri('organize-imports-module-store.svelte'),
-                                version: null
-                            }
-                        }
-                    ]
-                },
-                kind: CodeActionKind.SourceOrganizeImports,
-                title: 'Organize Imports'
-            }
-        ]);
-    });
+		assert.deepStrictEqual(codeActions, [
+			{
+				edit: {
+					documentChanges: [
+						{
+							edits: [
+								{
+									newText:
+										"import { _,_d } from 'svelte-i18n';\n  import { _e } from 'svelte-i18n1';\n",
+									range: {
+										end: {
+											character: 0,
+											line: 2
+										},
+										start: {
+											character: 2,
+											line: 1
+										}
+									}
+								},
+								{
+									newText: '',
+									range: {
+										end: {
+											character: 2,
+											line: 6
+										},
+										start: {
+											character: 2,
+											line: 5
+										}
+									}
+								},
+								{
+									newText: '',
+									range: {
+										end: {
+											character: 2,
+											line: 7
+										},
+										start: {
+											character: 2,
+											line: 6
+										}
+									}
+								},
+								{
+									newText: '',
+									range: {
+										end: {
+											character: 37,
+											line: 7
+										},
+										start: {
+											character: 2,
+											line: 7
+										}
+									}
+								}
+							],
+							textDocument: {
+								uri: getUri('organize-imports-module-store.svelte'),
+								version: null
+							}
+						}
+					]
+				},
+				kind: CodeActionKind.SourceOrganizeImports,
+				title: 'Organize Imports'
+			}
+		]);
+	});
 
-    it('should do extract into const refactor', async () => {
-        const { provider, document } = setup('codeactions.svelte');
+	it('should do extract into const refactor', async () => {
+		const { provider, document } = setup('codeactions.svelte');
 
-        const actions = await provider.getCodeActions(
-            document,
-            Range.create(Position.create(8, 8), Position.create(8, 42)),
-            { diagnostics: [], only: [CodeActionKind.Refactor] }
-        );
-        const action = actions[1];
+		const actions = await provider.getCodeActions(
+			document,
+			Range.create(Position.create(8, 8), Position.create(8, 42)),
+			{ diagnostics: [], only: [CodeActionKind.Refactor] }
+		);
+		const action = actions[1];
 
-        assert.deepStrictEqual(action, {
-            command: {
-                arguments: [
-                    getUri('codeactions.svelte'),
-                    {
-                        type: 'refactor',
-                        refactorName: 'Extract Symbol',
-                        originalRange: {
-                            start: {
-                                character: 8,
-                                line: 8
-                            },
-                            end: {
-                                character: 42,
-                                line: 8
-                            }
-                        },
-                        textRange: {
-                            pos: 184,
-                            end: 218
-                        }
-                    }
-                ],
-                command: 'constant_scope_0',
-                title: 'Extract to constant in enclosing scope'
-            },
-            title: 'Extract to constant in enclosing scope'
-        });
+		assert.deepStrictEqual(action, {
+			command: {
+				arguments: [
+					getUri('codeactions.svelte'),
+					{
+						type: 'refactor',
+						refactorName: 'Extract Symbol',
+						originalRange: {
+							start: {
+								character: 8,
+								line: 8
+							},
+							end: {
+								character: 42,
+								line: 8
+							}
+						},
+						textRange: {
+							pos: 184,
+							end: 218
+						}
+					}
+				],
+				command: 'constant_scope_0',
+				title: 'Extract to constant in enclosing scope'
+			},
+			title: 'Extract to constant in enclosing scope'
+		});
 
-        const edit = await provider.executeCommand(
-            document,
-            action.command?.command || '',
-            action.command?.arguments
-        );
+		const edit = await provider.executeCommand(
+			document,
+			action.command?.command || '',
+			action.command?.arguments
+		);
 
-        (<TextDocumentEdit>edit?.documentChanges?.[0])?.edits.forEach(
-            (edit) => (edit.newText = harmonizeNewLines(edit.newText))
-        );
+		(<TextDocumentEdit>edit?.documentChanges?.[0])?.edits.forEach(
+			(edit) => (edit.newText = harmonizeNewLines(edit.newText))
+		);
 
-        assert.deepStrictEqual(edit, {
-            documentChanges: [
-                {
-                    edits: [
-                        {
-                            // eslint-disable-next-line max-len
-                            newText: 'const newLocal=Math.random()>0.5? true:false;\n',
-                            range: {
-                                start: {
-                                    character: 0,
-                                    line: 8
-                                },
-                                end: {
-                                    character: 0,
-                                    line: 8
-                                }
-                            }
-                        },
-                        {
-                            newText: 'newLocal',
-                            range: {
-                                start: {
-                                    character: 8,
-                                    line: 8
-                                },
-                                end: {
-                                    character: 42,
-                                    line: 8
-                                }
-                            }
-                        }
-                    ],
-                    textDocument: {
-                        uri: getUri('codeactions.svelte'),
-                        version: null
-                    }
-                }
-            ]
-        });
-    });
+		assert.deepStrictEqual(edit, {
+			documentChanges: [
+				{
+					edits: [
+						{
+							// eslint-disable-next-line max-len
+							newText: 'const newLocal=Math.random()>0.5? true:false;\n',
+							range: {
+								start: {
+									character: 0,
+									line: 8
+								},
+								end: {
+									character: 0,
+									line: 8
+								}
+							}
+						},
+						{
+							newText: 'newLocal',
+							range: {
+								start: {
+									character: 8,
+									line: 8
+								},
+								end: {
+									character: 42,
+									line: 8
+								}
+							}
+						}
+					],
+					textDocument: {
+						uri: getUri('codeactions.svelte'),
+						version: null
+					}
+				}
+			]
+		});
+	});
 
-    it('should do extract into function refactor', async () => {
-        const { provider, document } = setup('codeactions.svelte');
+	it('should do extract into function refactor', async () => {
+		const { provider, document } = setup('codeactions.svelte');
 
-        const actions = await provider.getCodeActions(
-            document,
-            Range.create(Position.create(8, 8), Position.create(8, 42)),
-            { diagnostics: [], only: [CodeActionKind.Refactor] }
-        );
-        const action = actions[0];
+		const actions = await provider.getCodeActions(
+			document,
+			Range.create(Position.create(8, 8), Position.create(8, 42)),
+			{ diagnostics: [], only: [CodeActionKind.Refactor] }
+		);
+		const action = actions[0];
 
-        assert.deepStrictEqual(action, {
-            command: {
-                arguments: [
-                    getUri('codeactions.svelte'),
-                    {
-                        type: 'refactor',
-                        refactorName: 'Extract Symbol',
-                        originalRange: {
-                            start: {
-                                character: 8,
-                                line: 8
-                            },
-                            end: {
-                                character: 42,
-                                line: 8
-                            }
-                        },
-                        textRange: {
-                            pos: 184,
-                            end: 218
-                        }
-                    }
-                ],
-                command: 'function_scope_0',
-                title: "Extract to inner function in function 'render'"
-            },
-            title: 'Extract to function'
-        });
+		assert.deepStrictEqual(action, {
+			command: {
+				arguments: [
+					getUri('codeactions.svelte'),
+					{
+						type: 'refactor',
+						refactorName: 'Extract Symbol',
+						originalRange: {
+							start: {
+								character: 8,
+								line: 8
+							},
+							end: {
+								character: 42,
+								line: 8
+							}
+						},
+						textRange: {
+							pos: 184,
+							end: 218
+						}
+					}
+				],
+				command: 'function_scope_0',
+				title: "Extract to inner function in function 'render'"
+			},
+			title: 'Extract to function'
+		});
 
-        const edit = await provider.executeCommand(
-            document,
-            action.command?.command || '',
-            action.command?.arguments
-        );
+		const edit = await provider.executeCommand(
+			document,
+			action.command?.command || '',
+			action.command?.arguments
+		);
 
-        (<TextDocumentEdit>edit?.documentChanges?.[0])?.edits.forEach(
-            (edit) => (edit.newText = harmonizeNewLines(edit.newText))
-        );
+		(<TextDocumentEdit>edit?.documentChanges?.[0])?.edits.forEach(
+			(edit) => (edit.newText = harmonizeNewLines(edit.newText))
+		);
 
-        assert.deepStrictEqual(edit, {
-            documentChanges: [
-                {
-                    edits: [
-                        {
-                            newText: 'newFunction()',
-                            range: {
-                                start: {
-                                    character: 8,
-                                    line: 8
-                                },
-                                end: {
-                                    character: 42,
-                                    line: 8
-                                }
-                            }
-                        },
-                        {
-                            newText:
-                                '\n' +
-                                '\n' +
-                                'function newFunction() {' +
-                                '\n' +
-                                'return Math.random()>0.5? true:false;' +
-                                '\n' +
-                                '}' +
-                                '\n',
-                            range: {
-                                start: {
-                                    character: 0,
-                                    line: 10
-                                },
-                                end: {
-                                    character: 0,
-                                    line: 10
-                                }
-                            }
-                        }
-                    ],
-                    textDocument: {
-                        uri: getUri('codeactions.svelte'),
-                        version: null
-                    }
-                }
-            ]
-        });
-    });
+		assert.deepStrictEqual(edit, {
+			documentChanges: [
+				{
+					edits: [
+						{
+							newText: 'newFunction()',
+							range: {
+								start: {
+									character: 8,
+									line: 8
+								},
+								end: {
+									character: 42,
+									line: 8
+								}
+							}
+						},
+						{
+							newText:
+								'\n' +
+								'\n' +
+								'function newFunction() {' +
+								'\n' +
+								'return Math.random()>0.5? true:false;' +
+								'\n' +
+								'}' +
+								'\n',
+							range: {
+								start: {
+									character: 0,
+									line: 10
+								},
+								end: {
+									character: 0,
+									line: 10
+								}
+							}
+						}
+					],
+					textDocument: {
+						uri: getUri('codeactions.svelte'),
+						version: null
+					}
+				}
+			]
+		});
+	});
 });

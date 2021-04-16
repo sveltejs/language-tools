@@ -1,31 +1,31 @@
 {
-    "name": "@svelte/language-tools",
-    "version": "1.0.0",
-    "author": "Svelte Contributors",
-    "license": "MIT",
-    "private": true,
-    "workspaces": [
-        "packages/*"
-    ],
-    "scripts": {
-        "bootstrap": "yarn workspace svelte2tsx build && yarn workspace svelte-vscode build:grammar",
-        "build": "tsc -b",
-        "test": "cross-env CI=true yarn workspaces run test",
-        "watch": "tsc -b -watch",
-        "format": "prettier --write .",
-        "lint": "prettier --check . && eslint \"packages/**/*.{ts,js}\""
-    },
-    "dependencies": {
-        "typescript": "^4.2.2"
-    },
-    "devDependencies": {
-        "@sveltejs/eslint-config": "github:sveltejs/eslint-config#v5.2.0",
-        "@typescript-eslint/eslint-plugin": "^4.3.0",
-        "@typescript-eslint/parser": "^4.3.0",
-        "eslint": "^7.7.0",
-        "eslint-plugin-import": "^2.22.1",
-        "eslint-plugin-svelte3": "^2.7.3",
-        "prettier": "2.2.1",
-        "cross-env": "^7.0.2"
-    }
+	"name": "@svelte/language-tools",
+	"version": "1.0.0",
+	"author": "Svelte Contributors",
+	"license": "MIT",
+	"private": true,
+	"workspaces": [
+		"packages/*"
+	],
+	"scripts": {
+		"bootstrap": "yarn workspace svelte2tsx build && yarn workspace svelte-vscode build:grammar",
+		"build": "tsc -b",
+		"test": "cross-env CI=true yarn workspaces run test",
+		"watch": "tsc -b -watch",
+		"format": "prettier --write .",
+		"lint": "prettier --check . && eslint \"packages/**/*.{ts,js}\""
+	},
+	"dependencies": {
+		"typescript": "^4.2.2"
+	},
+	"devDependencies": {
+		"@sveltejs/eslint-config": "github:sveltejs/eslint-config#v5.2.0",
+		"@typescript-eslint/eslint-plugin": "^4.3.0",
+		"@typescript-eslint/parser": "^4.3.0",
+		"eslint": "^7.7.0",
+		"eslint-plugin-import": "^2.22.1",
+		"eslint-plugin-svelte3": "^2.7.3",
+		"prettier": "2.2.1",
+		"cross-env": "^7.0.2"
+	}
 }

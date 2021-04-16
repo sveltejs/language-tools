@@ -7,65 +7,65 @@ import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { convertRange } from '../utils';
 
 export class SelectionRangeProviderImpl implements SelectionRangeProvider {
-    constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
+	constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
 
-    async getSelectionRange(
-        document: Document,
-        position: Position
-    ): Promise<SelectionRange | null> {
-        const { tsDoc, lang } = await this.lsAndTsDocResolver.getLSAndTSDoc(document);
-        const fragment = await tsDoc.getFragment();
+	async getSelectionRange(
+		document: Document,
+		position: Position
+	): Promise<SelectionRange | null> {
+		const { tsDoc, lang } = await this.lsAndTsDocResolver.getLSAndTSDoc(document);
+		const fragment = await tsDoc.getFragment();
 
-        const tsSelectionRange = lang.getSmartSelectionRange(
-            tsDoc.filePath,
-            fragment.offsetAt(fragment.getGeneratedPosition(position))
-        );
-        const selectionRange = this.toSelectionRange(fragment, tsSelectionRange);
-        const mappedRange = mapSelectionRangeToParent(fragment, selectionRange);
+		const tsSelectionRange = lang.getSmartSelectionRange(
+			tsDoc.filePath,
+			fragment.offsetAt(fragment.getGeneratedPosition(position))
+		);
+		const selectionRange = this.toSelectionRange(fragment, tsSelectionRange);
+		const mappedRange = mapSelectionRangeToParent(fragment, selectionRange);
 
-        return this.filterOutUnmappedRange(mappedRange);
-    }
+		return this.filterOutUnmappedRange(mappedRange);
+	}
 
-    private toSelectionRange(
-        fragment: SvelteSnapshotFragment,
-        { textSpan, parent }: ts.SelectionRange
-    ): SelectionRange {
-        return {
-            range: convertRange(fragment, textSpan),
-            parent: parent && this.toSelectionRange(fragment, parent)
-        };
-    }
+	private toSelectionRange(
+		fragment: SvelteSnapshotFragment,
+		{ textSpan, parent }: ts.SelectionRange
+	): SelectionRange {
+		return {
+			range: convertRange(fragment, textSpan),
+			parent: parent && this.toSelectionRange(fragment, parent)
+		};
+	}
 
-    private filterOutUnmappedRange(selectionRange: SelectionRange): SelectionRange | null {
-        const flattened = this.flattenAndReverseSelectionRange(selectionRange);
-        const filtered = flattened.filter((range) => range.start.line > 0 && range.end.line > 0);
-        if (!filtered.length) {
-            return null;
-        }
+	private filterOutUnmappedRange(selectionRange: SelectionRange): SelectionRange | null {
+		const flattened = this.flattenAndReverseSelectionRange(selectionRange);
+		const filtered = flattened.filter((range) => range.start.line > 0 && range.end.line > 0);
+		if (!filtered.length) {
+			return null;
+		}
 
-        let result: SelectionRange | undefined;
+		let result: SelectionRange | undefined;
 
-        for (const selectionRange of filtered) {
-            result = SelectionRange.create(selectionRange, result);
-        }
+		for (const selectionRange of filtered) {
+			result = SelectionRange.create(selectionRange, result);
+		}
 
-        return result ?? null;
-    }
+		return result ?? null;
+	}
 
-    /**
-     *   flatten the selection range and its parent to an array in reverse order
-     * so it's easier to filter out unmapped selection and create a new tree of
-     * selection range
-     */
-    private flattenAndReverseSelectionRange(selectionRange: SelectionRange) {
-        const result: Range[] = [];
-        let current = selectionRange;
+	/**
+	 *   flatten the selection range and its parent to an array in reverse order
+	 * so it's easier to filter out unmapped selection and create a new tree of
+	 * selection range
+	 */
+	private flattenAndReverseSelectionRange(selectionRange: SelectionRange) {
+		const result: Range[] = [];
+		let current = selectionRange;
 
-        while (current.parent) {
-            result.unshift(current.range);
-            current = current.parent;
-        }
+		while (current.parent) {
+			result.unshift(current.range);
+			current = current.parent;
+		}
 
-        return result;
-    }
+		return result;
+	}
 }
