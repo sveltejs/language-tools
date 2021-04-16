@@ -34,6 +34,7 @@ This is also the reason why preprocessors such as `svelte-preprocess` cannot do 
 <script lang="ts">
     let a: number = 1;
 </script>
+
 {a}
 ```
 

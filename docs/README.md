@@ -54,12 +54,12 @@ The VS Code extension comes with its own syntax highlighting grammar which defin
             "textMateRules": [
                 {
                     "settings": {
-                        "foreground": "#569CD6", // any color you like
+                        "foreground": "#569CD6" // any color you like
                     },
                     "scope": "support.class.component.svelte" // scope name you want to adjust highlighting for
                 }
-            ],
-        },
+            ]
+        }
     }
 }
 ```

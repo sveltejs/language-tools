@@ -33,7 +33,7 @@ A `.svelte` file would look something like this:
     }
 </script>
 
-<button on:click="{handleClick}">Count: {count}</button>
+<button on:click={handleClick}>Count: {count}</button>
 
 <p>{count} * 2 = {doubled}</p>
 <p>{doubled} * 2 = {quadrupled}</p>
