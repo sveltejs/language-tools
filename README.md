@@ -20,7 +20,7 @@ Svelte Language Tools contains a library implementing the Language Server Protoc
 
 A `.svelte` file would look something like this:
 
-```html
+```svelte
 <script>
     let count = 1;
 
