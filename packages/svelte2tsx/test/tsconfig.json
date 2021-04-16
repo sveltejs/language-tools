@@ -1,11 +1,11 @@
 {
-    "compilerOptions": {
-        "types": ["@types/node", "@types/mocha"],
-        "target": "es6",
-        "module": "commonjs",
-        "moduleResolution": "node",
-        "esModuleInterop": true
-    },
-    "exclude": ["samples/**"],
-    "include": ["*.ts"]
+	"compilerOptions": {
+		"types": ["@types/node", "@types/mocha"],
+		"target": "es6",
+		"module": "commonjs",
+		"moduleResolution": "node",
+		"esModuleInterop": true
+	},
+	"exclude": ["samples/**"],
+	"include": ["*.ts"]
 }

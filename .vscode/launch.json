@@ -1,57 +1,57 @@
 {
-    "version": "0.2.0",
-    "configurations": [
-        {
-            "name": "Run VS Code Extension",
-            "type": "extensionHost",
-            "request": "launch",
-            "runtimeExecutable": "${execPath}",
-            "args": ["--extensionDevelopmentPath=${workspaceRoot}/packages/svelte-vscode"],
-            "stopOnEntry": false,
-            "sourceMaps": true,
-            "outFiles": ["${workspaceRoot}/packages/svelte-vscode/dist/**/*.js"],
-            "preLaunchTask": "npm: watch"
-        },
-        {
-            "type": "node",
-            "request": "launch",
-            "name": "Run 'svelte2tsx/repl/debug.ts' with debugger",
-            "runtimeArgs": ["-r", "ts-node/register"],
-            "args": ["${workspaceFolder}/packages/svelte2tsx/repl/debug.ts"],
-            "env": {
-                "TS_NODE_COMPILER_OPTIONS": "{\"esModuleInterop\":true, \"target\": \"es2018\"}",
-                "TS_NODE_TRANSPILE_ONLY": "true"
-            },
-            "console": "integratedTerminal",
-            "internalConsoleOptions": "neverOpen"
-        },
-        {
-            "type": "node",
-            "request": "launch",
-            "name": "Run tests with debugger",
-            "program": "${workspaceFolder}/node_modules/mocha/bin/_mocha",
-            "args": [
-                "-r",
-                "ts-node/register",
-                "--colors",
-                "${workspaceFolder}/packages/*/test/**/*.ts"
-            ],
-            "env": {
-                "TS_NODE_COMPILER_OPTIONS": "{\"esModuleInterop\":true}"
-            },
-            "console": "integratedTerminal",
-            "internalConsoleOptions": "neverOpen"
-        },
-        {
-            "type": "node",
-            "request": "attach",
-            "name": "Attach debugger to language server",
-            "port": 6009,
-            "outFiles": [
-                "${workspaceRoot}/packages/language-server/dist/**/*.js",
-                "${workspaceRoot}/packages/svelte2tsx/index.js"
-            ],
-            "skipFiles": ["<node_internals>/**"]
-        }
-    ]
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"name": "Run VS Code Extension",
+			"type": "extensionHost",
+			"request": "launch",
+			"runtimeExecutable": "${execPath}",
+			"args": ["--extensionDevelopmentPath=${workspaceRoot}/packages/svelte-vscode"],
+			"stopOnEntry": false,
+			"sourceMaps": true,
+			"outFiles": ["${workspaceRoot}/packages/svelte-vscode/dist/**/*.js"],
+			"preLaunchTask": "npm: watch"
+		},
+		{
+			"type": "node",
+			"request": "launch",
+			"name": "Run 'svelte2tsx/repl/debug.ts' with debugger",
+			"runtimeArgs": ["-r", "ts-node/register"],
+			"args": ["${workspaceFolder}/packages/svelte2tsx/repl/debug.ts"],
+			"env": {
+				"TS_NODE_COMPILER_OPTIONS": "{\"esModuleInterop\":true, \"target\": \"es2018\"}",
+				"TS_NODE_TRANSPILE_ONLY": "true"
+			},
+			"console": "integratedTerminal",
+			"internalConsoleOptions": "neverOpen"
+		},
+		{
+			"type": "node",
+			"request": "launch",
+			"name": "Run tests with debugger",
+			"program": "${workspaceFolder}/node_modules/mocha/bin/_mocha",
+			"args": [
+				"-r",
+				"ts-node/register",
+				"--colors",
+				"${workspaceFolder}/packages/*/test/**/*.ts"
+			],
+			"env": {
+				"TS_NODE_COMPILER_OPTIONS": "{\"esModuleInterop\":true}"
+			},
+			"console": "integratedTerminal",
+			"internalConsoleOptions": "neverOpen"
+		},
+		{
+			"type": "node",
+			"request": "attach",
+			"name": "Attach debugger to language server",
+			"port": 6009,
+			"outFiles": [
+				"${workspaceRoot}/packages/language-server/dist/**/*.js",
+				"${workspaceRoot}/packages/svelte2tsx/index.js"
+			],
+			"skipFiles": ["<node_internals>/**"]
+		}
+	]
 }
