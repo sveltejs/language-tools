@@ -1,8 +1,23 @@
 {
-    "useTabs": false,
-    "printWidth": 100,
-    "tabWidth": 4,
-    "semi": true,
-    "trailingComma": "none",
-    "singleQuote": true
+	"arrowParens": "always",
+	"useTabs": true,
+	"printWidth": 100,
+	"tabWidth": 4,
+	"semi": true,
+	"trailingComma": "none",
+	"singleQuote": true,
+	"overrides": [
+		{
+			"files": ["package.json"],
+			"options": {
+				"tabWidth": 2
+			}
+		},
+		{
+			"files": ["*.md"],
+			"options": {
+				"useTabs": false
+			}
+		}
+	]
 }
