@@ -1,6 +1,6 @@
 <p>
   <a href="https://svelte.dev">
-	<img alt="Cybernetically enhanced web apps: Svelte" src="https://user-images.githubusercontent.com/49038/76711598-f0b39180-66e7-11ea-9501-37f6e1edf8a6.png">
+    <img alt="Cybernetically enhanced web apps: Svelte" src="https://user-images.githubusercontent.com/49038/76711598-f0b39180-66e7-11ea-9501-37f6e1edf8a6.png">
   </a>
 
   <a href="https://www.npmjs.com/package/svelte">

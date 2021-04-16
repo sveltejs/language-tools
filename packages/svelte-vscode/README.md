@@ -13,10 +13,10 @@ If you have previously installed the old "Svelte" extension by James Birtles, un
 
 This extension comes bundled with a formatter for Svelte files. To let this extension format Svelte files, adjust your VS Code settings:
 
-```
-   "[svelte]": {
-     "editor.defaultFormatter": "svelte.svelte-vscode"
-   },
+```json
+"[svelte]": {
+    "editor.defaultFormatter": "svelte.svelte-vscode"
+},
 ```
 
 The formatter is a [Prettier](https://prettier.io/) [plugin](https://prettier.io/docs/en/plugins.html), which means some formatting options of Prettier apply. There are also Svelte specific settings like the sort order of scripts, markup, styles. More info about them and how to configure it can be found [here](https://github.com/sveltejs/prettier-plugin-svelte).

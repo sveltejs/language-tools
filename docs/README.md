@@ -47,7 +47,7 @@ LSP-compatible editors, you can use an HTML comment with the `@component` tag:
 
 The VS Code extension comes with its own syntax highlighting grammar which defines special scopes. If your syntax highlighting seems to be not working for Svelte components or you feel that some colors are wrong, you can add something like the following to your `settings.json`:
 
-```
+```json
 {
     "editor.tokenColorCustomizations": {
         "[<Name of your theme>]": {
@@ -80,7 +80,7 @@ You need to save the file to see the changes. If the problem persists after savi
 
 ```json
 "files.watcherExclude": {
-  "**/*": true,
+    "**/*": true,
 }
 ```
 
@@ -94,13 +94,13 @@ If you have the `Babel Javascript` plugin installed, this may be the cause. Disa
 
 Your default formatter for Svelte files may be wrong.
 
--   Mabye it's set to the old Svelte extension, if so, remove the setting
+-   Maybe it's set to the old Svelte extension, if so, remove the setting
 -   Maybe you set all files to be formatted by the prettier extension. Then you have two options: Either install `prettier-plugin-svelte` from npm, or tell VSCode to format the code with the `Svelte for VSCode extension`:
 
 ```json
-  "[svelte]": {
+"[svelte]": {
     "editor.defaultFormatter": "svelte.svelte-vscode"
-  },
+},
 ```
 
 ## Internals

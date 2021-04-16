@@ -108,10 +108,9 @@ At the moment, you cannot. Only `script`/`style` tags are preprocessed/transpile
 
 You may need to set `baseUrl` in `tsconfig.json` at the project root to include (restart the language server to see this take effect):
 
-```
+```json
 "compilerOptions": {
     "baseUrl": "."
-  }
 }
 ```
 
@@ -140,7 +139,7 @@ Then make sure that `d.ts` file is referenced in your `tsconfig.json`. If it rea
 
 You are most likely extending from Svelte's `@tsconfig/svelte` base config in your `tsconfig.json`, or you did set `"types": [..]` in your `tsconfig`. In both cases, a `"types": [..]` property is present. This makes TypeScript prevent all ambient types which are not listed in that `types`-array from getting picked up. The solution is to enhance/add a `types` section to your `tsconfig.json`:
 
-```
+```json
 {
     "compilerOptions": {
         // ..
