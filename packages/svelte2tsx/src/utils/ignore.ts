@@ -6,5 +6,5 @@ export const IGNORE_END_COMMENT = '/*Ωignore_endΩ*/';
  * to be ignored by tooling.
  */
 export function surroundWithIgnoreComments(str: string): string {
-    return IGNORE_START_COMMENT + str + IGNORE_END_COMMENT;
+	return IGNORE_START_COMMENT + str + IGNORE_END_COMMENT;
 }

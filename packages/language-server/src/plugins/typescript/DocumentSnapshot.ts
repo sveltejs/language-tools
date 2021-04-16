@@ -3,31 +3,31 @@ import svelte2tsx, { IExportedNames, ComponentEvents } from 'svelte2tsx';
 import ts from 'typescript';
 import { Position, Range, TextDocumentContentChangeEvent } from 'vscode-languageserver';
 import {
-    Document,
-    DocumentMapper,
-    FragmentMapper,
-    IdentityMapper,
-    offsetAt,
-    positionAt,
-    TagInformation,
-    isInTag
+	Document,
+	DocumentMapper,
+	FragmentMapper,
+	IdentityMapper,
+	offsetAt,
+	positionAt,
+	TagInformation,
+	isInTag
 } from '../../lib/documents';
 import { pathToUrl } from '../../utils';
 import { ConsumerDocumentMapper } from './DocumentMapper';
 import {
-    getScriptKindFromAttributes,
-    getScriptKindFromFileName,
-    isSvelteFilePath,
-    getTsCheckComment
+	getScriptKindFromAttributes,
+	getScriptKindFromFileName,
+	isSvelteFilePath,
+	getTsCheckComment
 } from './utils';
 
 /**
  * An error which occured while trying to parse/preprocess the svelte file contents.
  */
 export interface ParserError {
-    message: string;
-    range: Range;
-    code: number;
+	message: string;
+	range: Range;
+	code: number;
 }
 
 /**
@@ -40,280 +40,280 @@ export const INITIAL_VERSION = 0;
  * Can be a svelte or ts/js file.
  */
 export interface DocumentSnapshot extends ts.IScriptSnapshot {
-    version: number;
-    filePath: string;
-    scriptKind: ts.ScriptKind;
-    positionAt(offset: number): Position;
-    /**
-     * Instantiates a source mapper.
-     * `destroyFragment` needs to be called when
-     * it's no longer needed / the class should be cleaned up
-     * in order to prevent memory leaks.
-     */
-    getFragment(): Promise<SnapshotFragment>;
-    /**
-     * Needs to be called when source mapper
-     * is no longer needed / the class should be cleaned up
-     * in order to prevent memory leaks.
-     */
-    destroyFragment(): void;
-    /**
-     * Convenience function for getText(0, getLength())
-     */
-    getFullText(): string;
+	version: number;
+	filePath: string;
+	scriptKind: ts.ScriptKind;
+	positionAt(offset: number): Position;
+	/**
+	 * Instantiates a source mapper.
+	 * `destroyFragment` needs to be called when
+	 * it's no longer needed / the class should be cleaned up
+	 * in order to prevent memory leaks.
+	 */
+	getFragment(): Promise<SnapshotFragment>;
+	/**
+	 * Needs to be called when source mapper
+	 * is no longer needed / the class should be cleaned up
+	 * in order to prevent memory leaks.
+	 */
+	destroyFragment(): void;
+	/**
+	 * Convenience function for getText(0, getLength())
+	 */
+	getFullText(): string;
 }
 
 /**
  * The mapper to get from original snapshot positions to generated and vice versa.
  */
 export interface SnapshotFragment extends DocumentMapper {
-    scriptInfo: TagInformation | null;
-    positionAt(offset: number): Position;
-    offsetAt(position: Position): number;
+	scriptInfo: TagInformation | null;
+	positionAt(offset: number): Position;
+	offsetAt(position: Position): number;
 }
 
 /**
  * Options that apply to svelte files.
  */
 export interface SvelteSnapshotOptions {
-    strictMode: boolean;
-    transformOnTemplateError: boolean;
+	strictMode: boolean;
+	transformOnTemplateError: boolean;
 }
 
 export namespace DocumentSnapshot {
-    /**
-     * Returns a svelte snapshot from a svelte document.
-     * @param document the svelte document
-     * @param options options that apply to the svelte document
-     */
-    export function fromDocument(document: Document, options: SvelteSnapshotOptions) {
-        const {
-            tsxMap,
-            text,
-            exportedNames,
-            componentEvents,
-            parserError,
-            nrPrependedLines,
-            scriptKind
-        } = preprocessSvelteFile(document, options);
+	/**
+	 * Returns a svelte snapshot from a svelte document.
+	 * @param document the svelte document
+	 * @param options options that apply to the svelte document
+	 */
+	export function fromDocument(document: Document, options: SvelteSnapshotOptions) {
+		const {
+			tsxMap,
+			text,
+			exportedNames,
+			componentEvents,
+			parserError,
+			nrPrependedLines,
+			scriptKind
+		} = preprocessSvelteFile(document, options);
 
-        return new SvelteDocumentSnapshot(
-            document,
-            parserError,
-            scriptKind,
-            text,
-            nrPrependedLines,
-            exportedNames,
-            componentEvents,
-            tsxMap
-        );
-    }
+		return new SvelteDocumentSnapshot(
+			document,
+			parserError,
+			scriptKind,
+			text,
+			nrPrependedLines,
+			exportedNames,
+			componentEvents,
+			tsxMap
+		);
+	}
 
-    /**
-     * Returns a svelte or ts/js snapshot from a file path, depending on the file contents.
-     * @param filePath path to the js/ts/svelte file
-     * @param createDocument function that is used to create a document in case it's a Svelte file
-     * @param options options that apply in case it's a svelte file
-     */
-    export function fromFilePath(
-        filePath: string,
-        createDocument: (filePath: string, text: string) => Document,
-        options: SvelteSnapshotOptions
-    ) {
-        if (isSvelteFilePath(filePath)) {
-            return DocumentSnapshot.fromSvelteFilePath(filePath, createDocument, options);
-        } else {
-            return DocumentSnapshot.fromNonSvelteFilePath(filePath);
-        }
-    }
+	/**
+	 * Returns a svelte or ts/js snapshot from a file path, depending on the file contents.
+	 * @param filePath path to the js/ts/svelte file
+	 * @param createDocument function that is used to create a document in case it's a Svelte file
+	 * @param options options that apply in case it's a svelte file
+	 */
+	export function fromFilePath(
+		filePath: string,
+		createDocument: (filePath: string, text: string) => Document,
+		options: SvelteSnapshotOptions
+	) {
+		if (isSvelteFilePath(filePath)) {
+			return DocumentSnapshot.fromSvelteFilePath(filePath, createDocument, options);
+		} else {
+			return DocumentSnapshot.fromNonSvelteFilePath(filePath);
+		}
+	}
 
-    /**
-     * Returns a ts/js snapshot from a file path.
-     * @param filePath path to the js/ts file
-     * @param options options that apply in case it's a svelte file
-     */
-    export function fromNonSvelteFilePath(filePath: string) {
-        const originalText = ts.sys.readFile(filePath) ?? '';
-        return new JSOrTSDocumentSnapshot(INITIAL_VERSION, filePath, originalText);
-    }
+	/**
+	 * Returns a ts/js snapshot from a file path.
+	 * @param filePath path to the js/ts file
+	 * @param options options that apply in case it's a svelte file
+	 */
+	export function fromNonSvelteFilePath(filePath: string) {
+		const originalText = ts.sys.readFile(filePath) ?? '';
+		return new JSOrTSDocumentSnapshot(INITIAL_VERSION, filePath, originalText);
+	}
 
-    /**
-     * Returns a svelte snapshot from a file path.
-     * @param filePath path to the svelte file
-     * @param createDocument function that is used to create a document
-     * @param options options that apply in case it's a svelte file
-     */
-    export function fromSvelteFilePath(
-        filePath: string,
-        createDocument: (filePath: string, text: string) => Document,
-        options: SvelteSnapshotOptions
-    ) {
-        const originalText = ts.sys.readFile(filePath) ?? '';
-        return fromDocument(createDocument(filePath, originalText), options);
-    }
+	/**
+	 * Returns a svelte snapshot from a file path.
+	 * @param filePath path to the svelte file
+	 * @param createDocument function that is used to create a document
+	 * @param options options that apply in case it's a svelte file
+	 */
+	export function fromSvelteFilePath(
+		filePath: string,
+		createDocument: (filePath: string, text: string) => Document,
+		options: SvelteSnapshotOptions
+	) {
+		const originalText = ts.sys.readFile(filePath) ?? '';
+		return fromDocument(createDocument(filePath, originalText), options);
+	}
 }
 
 /**
  * Tries to preprocess the svelte document and convert the contents into better analyzable js/ts(x) content.
  */
 function preprocessSvelteFile(document: Document, options: SvelteSnapshotOptions) {
-    let tsxMap: RawSourceMap | undefined;
-    let parserError: ParserError | null = null;
-    let nrPrependedLines = 0;
-    let text = document.getText();
-    let exportedNames: IExportedNames = { has: () => false };
-    let componentEvents: ComponentEvents | undefined = undefined;
+	let tsxMap: RawSourceMap | undefined;
+	let parserError: ParserError | null = null;
+	let nrPrependedLines = 0;
+	let text = document.getText();
+	let exportedNames: IExportedNames = { has: () => false };
+	let componentEvents: ComponentEvents | undefined = undefined;
 
-    const scriptKind = [
-        getScriptKindFromAttributes(document.scriptInfo?.attributes ?? {}),
-        getScriptKindFromAttributes(document.moduleScriptInfo?.attributes ?? {})
-    ].includes(ts.ScriptKind.TSX)
-        ? ts.ScriptKind.TSX
-        : ts.ScriptKind.JSX;
+	const scriptKind = [
+		getScriptKindFromAttributes(document.scriptInfo?.attributes ?? {}),
+		getScriptKindFromAttributes(document.moduleScriptInfo?.attributes ?? {})
+	].includes(ts.ScriptKind.TSX)
+		? ts.ScriptKind.TSX
+		: ts.ScriptKind.JSX;
 
-    try {
-        const tsx = svelte2tsx(text, {
-            strictMode: options.strictMode,
-            filename: document.getFilePath() ?? undefined,
-            isTsFile: scriptKind === ts.ScriptKind.TSX,
-            emitOnTemplateError: options.transformOnTemplateError,
-            namespace: document.config?.compilerOptions?.namespace
-        });
-        text = tsx.code;
-        tsxMap = tsx.map;
-        exportedNames = tsx.exportedNames;
-        componentEvents = tsx.events;
-        if (tsxMap) {
-            tsxMap.sources = [document.uri];
+	try {
+		const tsx = svelte2tsx(text, {
+			strictMode: options.strictMode,
+			filename: document.getFilePath() ?? undefined,
+			isTsFile: scriptKind === ts.ScriptKind.TSX,
+			emitOnTemplateError: options.transformOnTemplateError,
+			namespace: document.config?.compilerOptions?.namespace
+		});
+		text = tsx.code;
+		tsxMap = tsx.map;
+		exportedNames = tsx.exportedNames;
+		componentEvents = tsx.events;
+		if (tsxMap) {
+			tsxMap.sources = [document.uri];
 
-            const scriptInfo = document.scriptInfo || document.moduleScriptInfo;
-            const tsCheck = getTsCheckComment(scriptInfo?.content);
-            if (tsCheck) {
-                text = tsCheck + text;
-                nrPrependedLines = 1;
-            }
-        }
-    } catch (e) {
-        // Error start/end logic is different and has different offsets for line, so we need to convert that
-        const start: Position = {
-            line: e.start?.line - 1 ?? 0,
-            character: e.start?.column ?? 0
-        };
-        const end: Position = e.end ? { line: e.end.line - 1, character: e.end.column } : start;
+			const scriptInfo = document.scriptInfo || document.moduleScriptInfo;
+			const tsCheck = getTsCheckComment(scriptInfo?.content);
+			if (tsCheck) {
+				text = tsCheck + text;
+				nrPrependedLines = 1;
+			}
+		}
+	} catch (e) {
+		// Error start/end logic is different and has different offsets for line, so we need to convert that
+		const start: Position = {
+			line: e.start?.line - 1 ?? 0,
+			character: e.start?.column ?? 0
+		};
+		const end: Position = e.end ? { line: e.end.line - 1, character: e.end.column } : start;
 
-        parserError = {
-            range: { start, end },
-            message: e.message,
-            code: -1
-        };
+		parserError = {
+			range: { start, end },
+			message: e.message,
+			code: -1
+		};
 
-        // fall back to extracted script, if any
-        const scriptInfo = document.scriptInfo || document.moduleScriptInfo;
-        text = scriptInfo ? scriptInfo.content : '';
-    }
+		// fall back to extracted script, if any
+		const scriptInfo = document.scriptInfo || document.moduleScriptInfo;
+		text = scriptInfo ? scriptInfo.content : '';
+	}
 
-    return {
-        tsxMap,
-        text,
-        exportedNames,
-        componentEvents,
-        parserError,
-        nrPrependedLines,
-        scriptKind
-    };
+	return {
+		tsxMap,
+		text,
+		exportedNames,
+		componentEvents,
+		parserError,
+		nrPrependedLines,
+		scriptKind
+	};
 }
 
 /**
  * A svelte document snapshot suitable for the ts language service and the plugin.
  */
 export class SvelteDocumentSnapshot implements DocumentSnapshot {
-    private fragment?: SvelteSnapshotFragment;
+	private fragment?: SvelteSnapshotFragment;
 
-    version = this.parent.version;
+	version = this.parent.version;
 
-    constructor(
-        private readonly parent: Document,
-        public readonly parserError: ParserError | null,
-        public readonly scriptKind: ts.ScriptKind,
-        private readonly text: string,
-        private readonly nrPrependedLines: number,
-        private readonly exportedNames: IExportedNames,
-        private readonly componentEvents?: ComponentEvents,
-        private readonly tsxMap?: RawSourceMap
-    ) {}
+	constructor(
+		private readonly parent: Document,
+		public readonly parserError: ParserError | null,
+		public readonly scriptKind: ts.ScriptKind,
+		private readonly text: string,
+		private readonly nrPrependedLines: number,
+		private readonly exportedNames: IExportedNames,
+		private readonly componentEvents?: ComponentEvents,
+		private readonly tsxMap?: RawSourceMap
+	) {}
 
-    get filePath() {
-        return this.parent.getFilePath() || '';
-    }
+	get filePath() {
+		return this.parent.getFilePath() || '';
+	}
 
-    getText(start: number, end: number) {
-        return this.text.substring(start, end);
-    }
+	getText(start: number, end: number) {
+		return this.text.substring(start, end);
+	}
 
-    getLength() {
-        return this.text.length;
-    }
+	getLength() {
+		return this.text.length;
+	}
 
-    getFullText() {
-        return this.text;
-    }
+	getFullText() {
+		return this.text;
+	}
 
-    getChangeRange() {
-        return undefined;
-    }
+	getChangeRange() {
+		return undefined;
+	}
 
-    positionAt(offset: number) {
-        return positionAt(offset, this.text);
-    }
+	positionAt(offset: number) {
+		return positionAt(offset, this.text);
+	}
 
-    getLineContainingOffset(offset: number) {
-        const chunks = this.getText(0, offset).split('\n');
-        return chunks[chunks.length - 1];
-    }
+	getLineContainingOffset(offset: number) {
+		const chunks = this.getText(0, offset).split('\n');
+		return chunks[chunks.length - 1];
+	}
 
-    hasProp(name: string): boolean {
-        return this.exportedNames.has(name);
-    }
+	hasProp(name: string): boolean {
+		return this.exportedNames.has(name);
+	}
 
-    getEvents() {
-        return this.componentEvents?.getAll() || [];
-    }
+	getEvents() {
+		return this.componentEvents?.getAll() || [];
+	}
 
-    async getFragment() {
-        if (!this.fragment) {
-            const uri = pathToUrl(this.filePath);
-            this.fragment = new SvelteSnapshotFragment(
-                await this.getMapper(uri),
-                this.text,
-                this.parent,
-                uri
-            );
-        }
-        return this.fragment;
-    }
+	async getFragment() {
+		if (!this.fragment) {
+			const uri = pathToUrl(this.filePath);
+			this.fragment = new SvelteSnapshotFragment(
+				await this.getMapper(uri),
+				this.text,
+				this.parent,
+				uri
+			);
+		}
+		return this.fragment;
+	}
 
-    destroyFragment() {
-        if (this.fragment) {
-            this.fragment.destroy();
-            this.fragment = undefined;
-        }
-    }
+	destroyFragment() {
+		if (this.fragment) {
+			this.fragment.destroy();
+			this.fragment = undefined;
+		}
+	}
 
-    private async getMapper(uri: string) {
-        const scriptInfo = this.parent.scriptInfo || this.parent.moduleScriptInfo;
+	private async getMapper(uri: string) {
+		const scriptInfo = this.parent.scriptInfo || this.parent.moduleScriptInfo;
 
-        if (!scriptInfo) {
-            return new IdentityMapper(uri);
-        }
-        if (!this.tsxMap) {
-            return new FragmentMapper(this.parent.getText(), scriptInfo, uri);
-        }
-        return new ConsumerDocumentMapper(
-            await new SourceMapConsumer(this.tsxMap),
-            uri,
-            this.nrPrependedLines
-        );
-    }
+		if (!scriptInfo) {
+			return new IdentityMapper(uri);
+		}
+		if (!this.tsxMap) {
+			return new FragmentMapper(this.parent.getText(), scriptInfo, uri);
+		}
+		return new ConsumerDocumentMapper(
+			await new SourceMapConsumer(this.tsxMap),
+			uri,
+			this.nrPrependedLines
+		);
+	}
 }
 
 /**
@@ -321,63 +321,63 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
  * Since no mapping has to be done here, it also implements the mapper interface.
  */
 export class JSOrTSDocumentSnapshot
-    extends IdentityMapper
-    implements DocumentSnapshot, SnapshotFragment {
-    scriptKind = getScriptKindFromFileName(this.filePath);
-    scriptInfo = null;
+	extends IdentityMapper
+	implements DocumentSnapshot, SnapshotFragment {
+	scriptKind = getScriptKindFromFileName(this.filePath);
+	scriptInfo = null;
 
-    constructor(public version: number, public readonly filePath: string, private text: string) {
-        super(pathToUrl(filePath));
-    }
+	constructor(public version: number, public readonly filePath: string, private text: string) {
+		super(pathToUrl(filePath));
+	}
 
-    getText(start: number, end: number) {
-        return this.text.substring(start, end);
-    }
+	getText(start: number, end: number) {
+		return this.text.substring(start, end);
+	}
 
-    getLength() {
-        return this.text.length;
-    }
+	getLength() {
+		return this.text.length;
+	}
 
-    getFullText() {
-        return this.text;
-    }
+	getFullText() {
+		return this.text;
+	}
 
-    getChangeRange() {
-        return undefined;
-    }
+	getChangeRange() {
+		return undefined;
+	}
 
-    positionAt(offset: number) {
-        return positionAt(offset, this.text);
-    }
+	positionAt(offset: number) {
+		return positionAt(offset, this.text);
+	}
 
-    offsetAt(position: Position): number {
-        return offsetAt(position, this.text);
-    }
+	offsetAt(position: Position): number {
+		return offsetAt(position, this.text);
+	}
 
-    async getFragment() {
-        return this;
-    }
+	async getFragment() {
+		return this;
+	}
 
-    destroyFragment() {
-        // nothing to clean up
-    }
+	destroyFragment() {
+		// nothing to clean up
+	}
 
-    update(changes: TextDocumentContentChangeEvent[]): void {
-        for (const change of changes) {
-            let start = 0;
-            let end = 0;
-            if ('range' in change) {
-                start = this.offsetAt(change.range.start);
-                end = this.offsetAt(change.range.end);
-            } else {
-                end = this.getLength();
-            }
+	update(changes: TextDocumentContentChangeEvent[]): void {
+		for (const change of changes) {
+			let start = 0;
+			let end = 0;
+			if ('range' in change) {
+				start = this.offsetAt(change.range.start);
+				end = this.offsetAt(change.range.end);
+			} else {
+				end = this.getLength();
+			}
 
-            this.text = this.text.slice(0, start) + change.text + this.text.slice(end);
-        }
+			this.text = this.text.slice(0, start) + change.text + this.text.slice(end);
+		}
 
-        this.version++;
-    }
+		this.version++;
+	}
 }
 
 /**
@@ -385,47 +385,47 @@ export class JSOrTSDocumentSnapshot
  * to generated snapshot positions and vice versa.
  */
 export class SvelteSnapshotFragment implements SnapshotFragment {
-    constructor(
-        private readonly mapper: DocumentMapper,
-        public readonly text: string,
-        private readonly parent: Document,
-        private readonly url: string
-    ) {}
+	constructor(
+		private readonly mapper: DocumentMapper,
+		public readonly text: string,
+		private readonly parent: Document,
+		private readonly url: string
+	) {}
 
-    get scriptInfo() {
-        return this.parent.scriptInfo || this.parent.moduleScriptInfo;
-    }
+	get scriptInfo() {
+		return this.parent.scriptInfo || this.parent.moduleScriptInfo;
+	}
 
-    getOriginalPosition(pos: Position): Position {
-        return this.mapper.getOriginalPosition(pos);
-    }
+	getOriginalPosition(pos: Position): Position {
+		return this.mapper.getOriginalPosition(pos);
+	}
 
-    getGeneratedPosition(pos: Position): Position {
-        return this.mapper.getGeneratedPosition(pos);
-    }
+	getGeneratedPosition(pos: Position): Position {
+		return this.mapper.getGeneratedPosition(pos);
+	}
 
-    isInGenerated(pos: Position): boolean {
-        return !isInTag(pos, this.parent.styleInfo);
-    }
+	isInGenerated(pos: Position): boolean {
+		return !isInTag(pos, this.parent.styleInfo);
+	}
 
-    getURL(): string {
-        return this.url;
-    }
+	getURL(): string {
+		return this.url;
+	}
 
-    positionAt(offset: number) {
-        return positionAt(offset, this.text);
-    }
+	positionAt(offset: number) {
+		return positionAt(offset, this.text);
+	}
 
-    offsetAt(position: Position) {
-        return offsetAt(position, this.text);
-    }
+	offsetAt(position: Position) {
+		return offsetAt(position, this.text);
+	}
 
-    /**
-     * Needs to be called when source mapper is no longer needed in order to prevent memory leaks.
-     */
-    destroy() {
-        if (this.mapper.destroy) {
-            this.mapper.destroy();
-        }
-    }
+	/**
+	 * Needs to be called when source mapper is no longer needed in order to prevent memory leaks.
+	 */
+	destroy() {
+		if (this.mapper.destroy) {
+			this.mapper.destroy();
+		}
+	}
 }

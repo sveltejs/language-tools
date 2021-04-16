@@ -11,89 +11,89 @@ import { LSConfigManager } from '../../../../src/ls-config';
 const testDir = path.join(__dirname, '..');
 
 describe('SignatureHelpProvider', () => {
-    function setup() {
-        const docManager = new DocumentManager(
-            (textDocument) => new Document(textDocument.uri, textDocument.text)
-        );
-        const filePath = path.join(testDir, 'testfiles', 'signature-help', 'signature-help.svelte');
-        const lsAndTsDocResolver = new LSAndTSDocResolver(
-            docManager,
-            [pathToUrl(testDir)],
-            new LSConfigManager()
-        );
-        const provider = new SignatureHelpProviderImpl(lsAndTsDocResolver);
-        const document = docManager.openDocument(<any>{
-            uri: pathToUrl(filePath),
-            text: ts.sys.readFile(filePath)
-        });
-        return { provider, document };
-    }
+	function setup() {
+		const docManager = new DocumentManager(
+			(textDocument) => new Document(textDocument.uri, textDocument.text)
+		);
+		const filePath = path.join(testDir, 'testfiles', 'signature-help', 'signature-help.svelte');
+		const lsAndTsDocResolver = new LSAndTSDocResolver(
+			docManager,
+			[pathToUrl(testDir)],
+			new LSConfigManager()
+		);
+		const provider = new SignatureHelpProviderImpl(lsAndTsDocResolver);
+		const document = docManager.openDocument(<any>{
+			uri: pathToUrl(filePath),
+			text: ts.sys.readFile(filePath)
+		});
+		return { provider, document };
+	}
 
-    it('provide signature help with formatted documentation', async () => {
-        const { provider, document } = setup();
+	it('provide signature help with formatted documentation', async () => {
+		const { provider, document } = setup();
 
-        const result = await provider.getSignatureHelp(document, Position.create(3, 8), undefined);
+		const result = await provider.getSignatureHelp(document, Position.create(3, 8), undefined);
 
-        assert.deepStrictEqual(result, <SignatureHelp>{
-            signatures: [
-                {
-                    label: 'foo(): boolean',
-                    documentation: { value: 'bars\n\n*@author* — John', kind: MarkupKind.Markdown },
-                    parameters: []
-                }
-            ],
-            activeParameter: 0,
-            activeSignature: 0
-        });
-    });
+		assert.deepStrictEqual(result, <SignatureHelp>{
+			signatures: [
+				{
+					label: 'foo(): boolean',
+					documentation: { value: 'bars\n\n*@author* — John', kind: MarkupKind.Markdown },
+					parameters: []
+				}
+			],
+			activeParameter: 0,
+			activeSignature: 0
+		});
+	});
 
-    it('provide signature help with function signatures', async () => {
-        const { provider, document } = setup();
+	it('provide signature help with function signatures', async () => {
+		const { provider, document } = setup();
 
-        const result = await provider.getSignatureHelp(document, Position.create(4, 12), undefined);
+		const result = await provider.getSignatureHelp(document, Position.create(4, 12), undefined);
 
-        assert.deepStrictEqual(result, <SignatureHelp>{
-            signatures: [
-                {
-                    label: 'abc(a: number, b: number): string',
-                    documentation: undefined,
-                    parameters: [
-                        {
-                            label: [4, 13]
-                        },
-                        {
-                            label: [15, 24]
-                        }
-                    ]
-                },
-                {
-                    label: 'abc(a: number, b: string): string',
-                    documentation: undefined,
-                    parameters: [
-                        {
-                            label: [4, 13]
-                        },
-                        {
-                            label: [15, 24],
-                            documentation: 'formatted number'
-                        }
-                    ]
-                }
-            ],
-            activeParameter: 1,
-            activeSignature: 1
-        });
-    });
+		assert.deepStrictEqual(result, <SignatureHelp>{
+			signatures: [
+				{
+					label: 'abc(a: number, b: number): string',
+					documentation: undefined,
+					parameters: [
+						{
+							label: [4, 13]
+						},
+						{
+							label: [15, 24]
+						}
+					]
+				},
+				{
+					label: 'abc(a: number, b: string): string',
+					documentation: undefined,
+					parameters: [
+						{
+							label: [4, 13]
+						},
+						{
+							label: [15, 24],
+							documentation: 'formatted number'
+						}
+					]
+				}
+			],
+			activeParameter: 1,
+			activeSignature: 1
+		});
+	});
 
-    it('filter out svelte2tsx signature', async () => {
-        const { provider, document } = setup();
+	it('filter out svelte2tsx signature', async () => {
+		const { provider, document } = setup();
 
-        const result = await provider.getSignatureHelp(
-            document,
-            Position.create(18, 18),
-            undefined
-        );
+		const result = await provider.getSignatureHelp(
+			document,
+			Position.create(18, 18),
+			undefined
+		);
 
-        assert.equal(result, null);
-    });
+		assert.equal(result, null);
+	});
 });
