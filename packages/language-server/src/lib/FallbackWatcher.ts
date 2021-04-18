@@ -16,6 +16,7 @@ export class FallbackWatcher {
             {
                 ignored: (path: string) =>
                     gitOrNodeModules.test(path) &&
+                    // Handle Sapper's alias mapping
                     !path.includes('src/node_modules') &&
                     !path.includes('src\\node_modules')
             }
