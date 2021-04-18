@@ -15,7 +15,9 @@ export class FallbackWatcher {
             workspacePaths.map((workspacePath) => join(workspacePath, glob)),
             {
                 ignored: (path: string) =>
-                    gitOrNodeModules.test(path) && !path.includes('src/node_modules')
+                    gitOrNodeModules.test(path) &&
+                    !path.includes('src/node_modules') &&
+                    !path.includes('src\\node_modules')
             }
         );
 
