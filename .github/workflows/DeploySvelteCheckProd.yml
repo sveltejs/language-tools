@@ -1,4 +1,4 @@
-name: Tagged Production Deploys
+name: Tagged Production Deploys for svelte-check
 
 on:
   push:

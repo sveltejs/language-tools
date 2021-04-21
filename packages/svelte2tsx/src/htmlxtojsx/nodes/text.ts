@@ -1,7 +1,7 @@
-import { Node } from 'estree-walker';
 import MagicString from 'magic-string';
+import { Text } from 'svelte/types/compiler/interfaces';
 
-export function handleText(str: MagicString, node: Node) {
+export function handleText(str: MagicString, node: Text) {
     if (!node.data) {
         return;
     }

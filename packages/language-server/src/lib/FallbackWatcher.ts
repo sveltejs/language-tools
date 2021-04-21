@@ -10,7 +10,17 @@ export class FallbackWatcher {
     private readonly callbacks: DidChangeHandler[] = [];
 
     constructor(glob: string, workspacePaths: string[]) {
-        this.watcher = watch(workspacePaths.map((workspacePath) => join(workspacePath, glob)));
+        const gitOrNodeModules = /\.git|node_modules/;
+        this.watcher = watch(
+            workspacePaths.map((workspacePath) => join(workspacePath, glob)),
+            {
+                ignored: (path: string) =>
+                    gitOrNodeModules.test(path) &&
+                    // Handle Sapper's alias mapping
+                    !path.includes('src/node_modules') &&
+                    !path.includes('src\\node_modules')
+            }
+        );
 
         this.watcher
             .on('add', (path) => this.callback(path, FileChangeType.Created))

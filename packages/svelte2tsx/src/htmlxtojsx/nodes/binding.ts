@@ -1,6 +1,6 @@
 import MagicString from 'magic-string';
-import { Node } from 'estree-walker';
 import { isShortHandAttribute, getThisType, isQuote } from '../utils/node-utils';
+import { BaseDirective, BaseNode } from '../../interfaces';
 
 const oneWayBindingAttributes: Map<string, string> = new Map(
     ['clientWidth', 'clientHeight', 'offsetWidth', 'offsetHeight']
@@ -16,7 +16,12 @@ const oneWayBindingAttributes: Map<string, string> = new Map(
 /**
  * Transform bind:xxx into something that conforms to JSX
  */
-export function handleBinding(htmlx: string, str: MagicString, attr: Node, el: Node): void {
+export function handleBinding(
+    htmlx: string,
+    str: MagicString,
+    attr: BaseDirective,
+    el: BaseNode
+): void {
     //bind group on input
     if (attr.name == 'group' && el.name == 'input') {
         str.remove(attr.start, attr.expression.start);

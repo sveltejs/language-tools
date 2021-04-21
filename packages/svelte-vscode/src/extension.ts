@@ -56,7 +56,9 @@ export function activate(context: ExtensionContext) {
     const serverModule = require.resolve(lsPath || 'svelte-language-server/bin/server.js');
     console.log('Loading server from ', serverModule);
 
-    const runExecArgv: string[] = [];
+    // Add --experimental-modules flag for people using node 12 < version < 12.17
+    // Remove this in mid 2022 and bump vs code minimum required version to 1.55
+    const runExecArgv: string[] = ['--experimental-modules'];
     let port = runtimeConfig.get<number>('port') ?? -1;
     if (port < 0) {
         port = 6009;
@@ -64,7 +66,7 @@ export function activate(context: ExtensionContext) {
         console.log('setting port to', port);
         runExecArgv.push(`--inspect=${port}`);
     }
-    const debugOptions = { execArgv: ['--nolazy', `--inspect=${port}`] };
+    const debugOptions = { execArgv: ['--nolazy', '--experimental-modules', `--inspect=${port}`] };
 
     const serverOptions: ServerOptions = {
         run: {
@@ -122,7 +124,15 @@ export function activate(context: ExtensionContext) {
 
     workspace.onDidSaveTextDocument(async (doc) => {
         const parts = doc.uri.toString(true).split(/\/|\\/);
-        if (['tsconfig.json', 'jsconfig.json'].includes(parts[parts.length - 1])) {
+        if (
+            [
+                'tsconfig.json',
+                'jsconfig.json',
+                'svelte.config.js',
+                'svelte.config.cjs',
+                'svelte.config.mjs'
+            ].includes(parts[parts.length - 1])
+        ) {
             await restartLS(false);
         }
     });

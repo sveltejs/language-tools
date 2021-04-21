@@ -1,11 +1,16 @@
 import MagicString from 'magic-string';
-import { Node } from 'estree-walker';
 import { IfScope } from './if-scope';
+import { BaseNode } from '../../interfaces';
 
 /**
  * {# if ...}...{/if}   --->   {() => {if(...){<>...</>}}}
  */
-export function handleIf(htmlx: string, str: MagicString, ifBlock: Node, ifScope: IfScope): void {
+export function handleIf(
+    htmlx: string,
+    str: MagicString,
+    ifBlock: BaseNode,
+    ifScope: IfScope
+): void {
     const endIf = htmlx.lastIndexOf('{', ifBlock.end - 1);
 
     if (ifBlock.elseif) {
@@ -45,8 +50,8 @@ export function handleIf(htmlx: string, str: MagicString, ifBlock: Node, ifScope
 export function handleElse(
     htmlx: string,
     str: MagicString,
-    elseBlock: Node,
-    parent: Node,
+    elseBlock: BaseNode,
+    parent: BaseNode,
     ifScope: IfScope
 ): void {
     if (

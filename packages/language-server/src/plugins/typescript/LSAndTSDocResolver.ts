@@ -59,65 +59,51 @@ export class LSAndTSDocResolver {
         };
     }
 
-    getLSForPath(path: string) {
+    async getLSForPath(path: string) {
         return getLanguageServiceForPath(path, this.workspaceUris, this.lsDocumentContext);
     }
 
-    getLSAndTSDoc(
+    async getLSAndTSDoc(
         document: Document
-    ): {
+    ): Promise<{
         tsDoc: SvelteDocumentSnapshot;
         lang: ts.LanguageService;
         userPreferences: ts.UserPreferences;
-    } {
-        const lang = getLanguageServiceForDocument(
+    }> {
+        const lang = await getLanguageServiceForDocument(
             document,
             this.workspaceUris,
             this.lsDocumentContext
         );
-        const filePath = document.getFilePath()!;
-        const tsDoc = this.getSnapshot(filePath, document);
+        const tsDoc = await this.getSnapshot(document);
         const userPreferences = this.getUserPreferences(tsDoc.scriptKind);
 
         return { tsDoc, lang, userPreferences };
     }
 
-    getSnapshot(filePath: string, document: Document): SvelteDocumentSnapshot;
-    getSnapshot(filePath: string, document?: Document): DocumentSnapshot;
-    getSnapshot(filePath: string, document?: Document) {
-        const tsService = this.getTSService(filePath);
-        const { snapshotManager } = tsService;
-
-        let tsDoc = snapshotManager.get(filePath);
-        if (!tsDoc) {
-            const options = {
-                strictMode: !!tsService.compilerOptions.strict,
-                transformOnTemplateError: this.transformOnTemplateError
-            };
-            tsDoc = document
-                ? DocumentSnapshot.fromDocument(document, options)
-                : DocumentSnapshot.fromFilePath(filePath, options);
-            snapshotManager.set(filePath, tsDoc);
-        }
-
-        return tsDoc;
+    async getSnapshot(document: Document): Promise<SvelteDocumentSnapshot>;
+    async getSnapshot(pathOrDoc: string | Document): Promise<DocumentSnapshot>;
+    async getSnapshot(pathOrDoc: string | Document) {
+        const filePath = typeof pathOrDoc === 'string' ? pathOrDoc : pathOrDoc.getFilePath() || '';
+        const tsService = await this.getTSService(filePath);
+        return tsService.updateDocument(pathOrDoc);
     }
 
-    updateSnapshotPath(oldPath: string, newPath: string): DocumentSnapshot {
-        this.deleteSnapshot(oldPath);
+    async updateSnapshotPath(oldPath: string, newPath: string): Promise<DocumentSnapshot> {
+        await this.deleteSnapshot(oldPath);
         return this.getSnapshot(newPath);
     }
 
-    deleteSnapshot(filePath: string) {
-        this.getTSService(filePath).deleteDocument(filePath);
+    async deleteSnapshot(filePath: string) {
+        (await this.getTSService(filePath)).deleteDocument(filePath);
         this.docManager.releaseDocument(pathToUrl(filePath));
     }
 
-    getSnapshotManager(filePath: string): SnapshotManager {
-        return this.getTSService(filePath).snapshotManager;
+    async getSnapshotManager(filePath: string): Promise<SnapshotManager> {
+        return (await this.getTSService(filePath)).snapshotManager;
     }
 
-    private getTSService(filePath: string): LanguageServiceContainer {
+    private getTSService(filePath: string): Promise<LanguageServiceContainer> {
         return getService(filePath, this.workspaceUris, this.lsDocumentContext);
     }
 

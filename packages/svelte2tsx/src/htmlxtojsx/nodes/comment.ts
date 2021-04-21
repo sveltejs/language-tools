@@ -1,9 +1,9 @@
 import MagicString from 'magic-string';
-import { Node } from 'estree-walker';
+import { BaseNode } from '../../interfaces';
 
 /**
  * Removes comment
  */
-export function handleComment(str: MagicString, node: Node): void {
-    str.remove(node.start, node.end);
+export function handleComment(str: MagicString, node: BaseNode): void {
+    str.overwrite(node.start, node.end, '', { contentOnly: true });
 }

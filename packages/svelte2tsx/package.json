@@ -8,13 +8,14 @@
         "svelte",
         "typescript"
     ],
-    "homepage": "https://github.com/halfnelson/svelte2tsx",
+    "homepage": "https://github.com/sveltejs/language-tools/tree/master/packages/svelte2tsx",
     "repository": {
         "type": "git",
-        "url": "https://github.com/halfnelson/svelte2tsx.git"
+        "url": "https://github.com/sveltejs/language-tools/tree/master/packages/svelte2tsx"
     },
     "type": "commonjs",
     "main": "index.js",
+    "module": "index.mjs",
     "types": "index.d.ts",
     "devDependencies": {
         "@rollup/plugin-commonjs": "^15.0.0",
@@ -32,6 +33,7 @@
         "rollup-plugin-delete": "^2.0.0",
         "source-map": "^0.6.1",
         "source-map-support": "^0.5.16",
+        "sourcemap-codec": "^1.4.4",
         "svelte": "~3.35.0",
         "tiny-glob": "^0.2.6",
         "tslib": "^1.10.0",

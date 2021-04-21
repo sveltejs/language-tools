@@ -39,11 +39,12 @@ import {
     HoverProvider,
     SelectionRangeProvider
 } from '../interfaces';
-import { CSSDocument } from './CSSDocument';
+import { CSSDocument, CSSDocumentBase } from './CSSDocument';
 import { getLanguage, getLanguageService } from './service';
 import { GlobalVars } from './global-vars';
 import { getIdClassCompletion } from './features/getIdClassCompletion';
-import { getAttributeContextAtPosition } from '../../lib/documents/parseHtml';
+import { AttributeContext, getAttributeContextAtPosition } from '../../lib/documents/parseHtml';
+import { StyleAttributeDocument } from './StyleAttributeDocument';
 
 export class CSSPlugin
     implements
@@ -117,10 +118,24 @@ export class CSSPlugin
         }
 
         const cssDocument = this.getCSSDoc(document);
-        if (!cssDocument.isInGenerated(position) || shouldExcludeHover(cssDocument)) {
+        if (shouldExcludeHover(cssDocument)) {
             return null;
         }
+        if (cssDocument.isInGenerated(position)) {
+            return this.doHoverInternal(cssDocument, position);
+        }
+        const attributeContext = getAttributeContextAtPosition(document, position);
+        if (
+            attributeContext &&
+            this.inStyleAttributeWithoutInterpolation(attributeContext, document.getText())
+        ) {
+            const [start, end] = attributeContext.valueRange;
+            return this.doHoverInternal(new StyleAttributeDocument(document, start, end), position);
+        }
 
+        return null;
+    }
+    private doHoverInternal(cssDocument: CSSDocumentBase, position: Position) {
         const hoverInfo = getLanguageService(extractLanguage(cssDocument)).doHover(
             cssDocument,
             cssDocument.getGeneratedPosition(position),
@@ -151,14 +166,44 @@ export class CSSPlugin
         }
 
         const cssDocument = this.getCSSDoc(document);
-        if (!cssDocument.isInGenerated(position)) {
-            const attributeContext = getAttributeContextAtPosition(document, position);
-            if (!attributeContext) {
-                return null;
-            }
-            return getIdClassCompletion(cssDocument, attributeContext) ?? null;
+
+        if (cssDocument.isInGenerated(position)) {
+            return this.getCompletionsInternal(document, position, cssDocument);
         }
 
+        const attributeContext = getAttributeContextAtPosition(document, position);
+        if (!attributeContext) {
+            return null;
+        }
+
+        if (this.inStyleAttributeWithoutInterpolation(attributeContext, document.getText())) {
+            const [start, end] = attributeContext.valueRange;
+            return this.getCompletionsInternal(
+                document,
+                position,
+                new StyleAttributeDocument(document, start, end)
+            );
+        } else {
+            return getIdClassCompletion(cssDocument, attributeContext);
+        }
+    }
+
+    private inStyleAttributeWithoutInterpolation(
+        attrContext: AttributeContext,
+        text: string
+    ): attrContext is Required<AttributeContext> {
+        return (
+            attrContext.name === 'style' &&
+            !!attrContext.valueRange &&
+            !text.substring(attrContext.valueRange[0], attrContext.valueRange[1]).includes('{')
+        );
+    }
+
+    private getCompletionsInternal(
+        document: Document,
+        position: Position,
+        cssDocument: CSSDocumentBase
+    ) {
         if (isSASS(cssDocument)) {
             // the css language service does not support sass, still we can use
             // the emmet helper directly to at least get emmet completions
@@ -376,7 +421,7 @@ function shouldExcludeColor(document: CSSDocument) {
     }
 }
 
-function isSASS(document: CSSDocument) {
+function isSASS(document: CSSDocumentBase) {
     switch (extractLanguage(document)) {
         case 'sass':
             return true;
@@ -385,8 +430,7 @@ function isSASS(document: CSSDocument) {
     }
 }
 
-function extractLanguage(document: CSSDocument): string {
-    const attrs = document.getAttributes();
-    const lang = attrs.lang || attrs.type || '';
+function extractLanguage(document: CSSDocumentBase): string {
+    const lang = document.languageId;
     return lang.replace(/^text\//, '');
 }

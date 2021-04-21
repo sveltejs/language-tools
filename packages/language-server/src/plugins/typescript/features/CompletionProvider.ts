@@ -63,7 +63,9 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             return null;
         }
 
-        const { lang, tsDoc, userPreferences } = this.lsAndTsDocResolver.getLSAndTSDoc(document);
+        const { lang, tsDoc, userPreferences } = await this.lsAndTsDocResolver.getLSAndTSDoc(
+            document
+        );
 
         const filePath = tsDoc.filePath;
         if (!filePath) {
@@ -102,7 +104,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             return getJsDocTemplateCompletion(fragment, lang, filePath, offset);
         }
 
-        const eventCompletions = this.getEventCompletions(
+        const eventCompletions = await this.getEventCompletions(
             lang,
             document,
             tsDoc,
@@ -151,14 +153,14 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         return new Set(tidiedImports);
     }
 
-    private getEventCompletions(
+    private async getEventCompletions(
         lang: ts.LanguageService,
         doc: Document,
         tsDoc: SvelteDocumentSnapshot,
         fragment: SvelteSnapshotFragment,
         originalPosition: Position
-    ): Array<AppCompletionItem<CompletionEntryWithIdentifer>> {
-        const snapshot = getComponentAtPosition(
+    ): Promise<Array<AppCompletionItem<CompletionEntryWithIdentifer>>> {
+        const snapshot = await getComponentAtPosition(
             this.lsAndTsDocResolver,
             lang,
             doc,
@@ -272,7 +274,9 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         completionItem: AppCompletionItem<CompletionEntryWithIdentifer>
     ): Promise<AppCompletionItem<CompletionEntryWithIdentifer>> {
         const { data: comp } = completionItem;
-        const { tsDoc, lang, userPreferences } = this.lsAndTsDocResolver.getLSAndTSDoc(document);
+        const { tsDoc, lang, userPreferences } = await this.lsAndTsDocResolver.getLSAndTSDoc(
+            document
+        );
 
         const filePath = tsDoc.filePath;
 
@@ -476,5 +480,11 @@ function isValidCompletion(
     if (!isCompletionInHTMLStartTag) {
         return () => true;
     }
-    return (value) => !completionBlacklist.has(value.name);
+    return (value) =>
+        !completionBlacklist.has(value.name) &&
+        // remove attribues starting with "on" because those are events.
+        // Svelte wants events of the form "on:X", but the suggestions
+        // are of the form "onX". Moreover, they are doubled by the HTML
+        // attribute suggestions. Therefore filter them out.
+        !value.name.startsWith('on');
 }

@@ -2,10 +2,10 @@ import {
     CodeAction,
     CodeActionContext,
     CodeActionKind,
+    OptionalVersionedTextDocumentIdentifier,
     Range,
     TextDocumentEdit,
     TextEdit,
-    VersionedTextDocumentIdentifier,
     WorkspaceEdit
 } from 'vscode-languageserver';
 import {
@@ -66,7 +66,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             return [];
         }
 
-        const { lang, tsDoc, userPreferences } = this.getLSAndTSDoc(document);
+        const { lang, tsDoc, userPreferences } = await this.getLSAndTSDoc(document);
         const fragment = await tsDoc.getFragment();
 
         const changes = lang.organizeImports(
@@ -82,7 +82,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             changes.map(async (change) => {
                 // Organize Imports will only affect the current file, so no need to check the file path
                 return TextDocumentEdit.create(
-                    VersionedTextDocumentIdentifier.create(document.url, 0),
+                    OptionalVersionedTextDocumentIdentifier.create(document.url, null),
                     change.textChanges.map((edit) => {
                         const range = this.checkRemoveImportCodeActionRange(
                             edit,
@@ -145,7 +145,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
     }
 
     private async applyQuickfix(document: Document, range: Range, context: CodeActionContext) {
-        const { lang, tsDoc, userPreferences } = this.getLSAndTSDoc(document);
+        const { lang, tsDoc, userPreferences } = await this.getLSAndTSDoc(document);
         const fragment = await tsDoc.getFragment();
 
         const start = fragment.offsetAt(fragment.getGeneratedPosition(range.start));
@@ -169,7 +169,10 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                     fix.changes.map(async (change) => {
                         const { snapshot, fragment } = await docs.retrieve(change.fileName);
                         return TextDocumentEdit.create(
-                            VersionedTextDocumentIdentifier.create(pathToUrl(change.fileName), 0),
+                            OptionalVersionedTextDocumentIdentifier.create(
+                                pathToUrl(change.fileName),
+                                null
+                            ),
                             change.textChanges
                                 .map((edit) => {
                                     if (
@@ -252,7 +255,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             return [];
         }
 
-        const { lang, tsDoc, userPreferences } = this.getLSAndTSDoc(document);
+        const { lang, tsDoc, userPreferences } = await this.getLSAndTSDoc(document);
         const fragment = await tsDoc.getFragment();
         const textRange = {
             pos: fragment.offsetAt(fragment.getGeneratedPosition(range.start)),
@@ -343,7 +346,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             return null;
         }
 
-        const { lang, tsDoc, userPreferences } = this.getLSAndTSDoc(document);
+        const { lang, tsDoc, userPreferences } = await this.getLSAndTSDoc(document);
         const fragment = await tsDoc.getFragment();
         const path = document.getFilePath() || '';
         const { refactorName, originalRange, textRange } = <RefactorArgs>args[1];
@@ -362,7 +365,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
 
         const documentChanges = edits?.edits.map((edit) =>
             TextDocumentEdit.create(
-                VersionedTextDocumentIdentifier.create(document.uri, 0),
+                OptionalVersionedTextDocumentIdentifier.create(document.uri, null),
                 edit.textChanges.map((edit) => {
                     const range = mapRangeToOriginal(fragment, convertRange(fragment, edit.span));
 
@@ -395,11 +398,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         return resultRange;
     }
 
-    private getLSAndTSDoc(document: Document) {
+    private async getLSAndTSDoc(document: Document) {
         return this.lsAndTsDocResolver.getLSAndTSDoc(document);
-    }
-
-    private getSnapshot(filePath: string, document?: Document) {
-        return this.lsAndTsDocResolver.getSnapshot(filePath, document);
     }
 }

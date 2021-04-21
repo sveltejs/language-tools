@@ -1,9 +1,5 @@
 import ts from 'typescript';
-import {
-    DocumentSnapshot,
-    JSOrTSDocumentSnapshot,
-    SvelteSnapshotOptions
-} from './DocumentSnapshot';
+import { DocumentSnapshot, JSOrTSDocumentSnapshot } from './DocumentSnapshot';
 import { Logger } from '../../logger';
 import { TextDocumentContentChangeEvent } from 'vscode-languageserver';
 
@@ -50,36 +46,26 @@ export class SnapshotManager {
         this.projectFiles = Array.from(new Set([...this.projectFiles, ...projectFiles]));
     }
 
-    updateByFileName(fileName: string, options: SvelteSnapshotOptions) {
-        if (!this.has(fileName)) {
-            return;
-        }
-
-        const newSnapshot = DocumentSnapshot.fromFilePath(fileName, options);
+    updateTsOrJsFile(fileName: string, changes?: TextDocumentContentChangeEvent[]): void {
         const previousSnapshot = this.get(fileName);
 
-        if (previousSnapshot) {
-            newSnapshot.version = previousSnapshot.version + 1;
+        if (changes) {
+            if (!(previousSnapshot instanceof JSOrTSDocumentSnapshot)) {
+                return;
+            }
+            previousSnapshot.update(changes);
         } else {
-            // ensure it's greater than initial version
-            // so that ts server picks up the change
-            newSnapshot.version += 1;
+            const newSnapshot = DocumentSnapshot.fromNonSvelteFilePath(fileName);
+
+            if (previousSnapshot) {
+                newSnapshot.version = previousSnapshot.version + 1;
+            } else {
+                // ensure it's greater than initial version
+                // so that ts server picks up the change
+                newSnapshot.version += 1;
+            }
+            this.set(fileName, newSnapshot);
         }
-
-        this.set(fileName, newSnapshot);
-    }
-
-    updateTsOrJsFile(fileName: string, changes: TextDocumentContentChangeEvent[]): void {
-        if (!this.has(fileName)) {
-            return;
-        }
-
-        const previousSnapshot = this.get(fileName);
-        if (!(previousSnapshot instanceof JSOrTSDocumentSnapshot)) {
-            return;
-        }
-
-        previousSnapshot.update(changes);
     }
 
     has(fileName: string) {

@@ -112,16 +112,44 @@ export namespace DocumentSnapshot {
     /**
      * Returns a svelte or ts/js snapshot from a file path, depending on the file contents.
      * @param filePath path to the js/ts/svelte file
+     * @param createDocument function that is used to create a document in case it's a Svelte file
      * @param options options that apply in case it's a svelte file
      */
-    export function fromFilePath(filePath: string, options: SvelteSnapshotOptions) {
-        const originalText = ts.sys.readFile(filePath) ?? '';
-
+    export function fromFilePath(
+        filePath: string,
+        createDocument: (filePath: string, text: string) => Document,
+        options: SvelteSnapshotOptions
+    ) {
         if (isSvelteFilePath(filePath)) {
-            return fromDocument(new Document(pathToUrl(filePath), originalText), options);
+            return DocumentSnapshot.fromSvelteFilePath(filePath, createDocument, options);
         } else {
-            return new JSOrTSDocumentSnapshot(INITIAL_VERSION, filePath, originalText);
+            return DocumentSnapshot.fromNonSvelteFilePath(filePath);
         }
+    }
+
+    /**
+     * Returns a ts/js snapshot from a file path.
+     * @param filePath path to the js/ts file
+     * @param options options that apply in case it's a svelte file
+     */
+    export function fromNonSvelteFilePath(filePath: string) {
+        const originalText = ts.sys.readFile(filePath) ?? '';
+        return new JSOrTSDocumentSnapshot(INITIAL_VERSION, filePath, originalText);
+    }
+
+    /**
+     * Returns a svelte snapshot from a file path.
+     * @param filePath path to the svelte file
+     * @param createDocument function that is used to create a document
+     * @param options options that apply in case it's a svelte file
+     */
+    export function fromSvelteFilePath(
+        filePath: string,
+        createDocument: (filePath: string, text: string) => Document,
+        options: SvelteSnapshotOptions
+    ) {
+        const originalText = ts.sys.readFile(filePath) ?? '';
+        return fromDocument(createDocument(filePath, originalText), options);
     }
 }
 
@@ -148,7 +176,8 @@ function preprocessSvelteFile(document: Document, options: SvelteSnapshotOptions
             strictMode: options.strictMode,
             filename: document.getFilePath() ?? undefined,
             isTsFile: scriptKind === ts.ScriptKind.TSX,
-            emitOnTemplateError: options.transformOnTemplateError
+            emitOnTemplateError: options.transformOnTemplateError,
+            namespace: document.config?.compilerOptions?.namespace
         });
         text = tsx.code;
         tsxMap = tsx.map;

@@ -4,4 +4,6 @@ node_modules
 /index.js.map
 /index.mjs
 test/typecheck/samples/**/input.svelte.tsx
+test/sourcemaps/samples/*/output.tsx
+test/sourcemaps/samples/*/test.edit.jsx
 repl/output

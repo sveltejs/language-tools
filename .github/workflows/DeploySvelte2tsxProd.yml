@@ -1,0 +1,36 @@
+name: Tagged Production Deploys for svelte2tsx
+
+on:
+  push:
+    tags:
+      - "svelte2tsx-*"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v1
+        with:
+          node-version: "12.x"
+          registry-url: "https://registry.npmjs.org"
+
+      # Ensure everything is compiling
+      - run: "yarn install"
+      - run: "yarn build"
+
+      # Lets us use one-liner JSON manipulations the package.json files
+      - run: "npm install -g json"
+
+      # Setup the environment
+      - run: 'json -I -f packages/svelte2tsx/package.json -e "this.version=\`${{ github.ref }}\`.split(\`-\`).pop()"'
+
+      # Ship it
+      - run: |
+         cd packages/svelte2tsx
+         npm install
+         npm publish
+
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

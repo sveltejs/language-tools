@@ -1,6 +1,6 @@
 import MagicString from 'magic-string';
-import { Node } from 'estree-walker';
 import { isQuote } from '../utils/node-utils';
+import { BaseDirective, BaseNode } from '../../interfaces';
 
 /**
  * animate:xxx(yyy)   --->   {...__sveltets_ensureAnimation(xxx(__sveltets_mapElementTag('..'),__sveltets_AnimationMove,(yyy)))}
@@ -8,8 +8,8 @@ import { isQuote } from '../utils/node-utils';
 export function handleAnimateDirective(
     htmlx: string,
     str: MagicString,
-    attr: Node,
-    parent: Node
+    attr: BaseDirective,
+    parent: BaseNode
 ): void {
     str.overwrite(
         attr.start,

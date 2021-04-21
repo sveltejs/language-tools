@@ -6,43 +6,42 @@ import { getPackageInfo } from '../../importPackage';
 import { DocumentSnapshot } from './DocumentSnapshot';
 import { createSvelteModuleLoader } from './module-loader';
 import { SnapshotManager } from './SnapshotManager';
-import { ensureRealSvelteFilePath, findTsConfigPath, isSvelteFilePath } from './utils';
+import { ensureRealSvelteFilePath, findTsConfigPath } from './utils';
+import { configLoader } from '../../lib/documents/configLoader';
 
 export interface LanguageServiceContainer {
     readonly tsconfigPath: string;
     readonly compilerOptions: ts.CompilerOptions;
     readonly snapshotManager: SnapshotManager;
     getService(): ts.LanguageService;
-    updateDocument(document: Document): ts.LanguageService;
+    updateDocument(documentOrFilePath: Document | string): DocumentSnapshot;
     deleteDocument(filePath: string): void;
 }
 
-const services = new Map<string, LanguageServiceContainer>();
+const services = new Map<string, Promise<LanguageServiceContainer>>();
 
 export interface LanguageServiceDocumentContext {
     transformOnTemplateError: boolean;
     createDocument: (fileName: string, content: string) => Document;
 }
 
-export function getLanguageServiceForPath(
+export async function getLanguageServiceForPath(
     path: string,
     workspaceUris: string[],
     docContext: LanguageServiceDocumentContext
-): ts.LanguageService {
-    return getService(path, workspaceUris, docContext).getService();
+): Promise<ts.LanguageService> {
+    return (await getService(path, workspaceUris, docContext)).getService();
 }
 
-export function getLanguageServiceForDocument(
+export async function getLanguageServiceForDocument(
     document: Document,
     workspaceUris: string[],
     docContext: LanguageServiceDocumentContext
-): ts.LanguageService {
-    return getService(document.getFilePath() || '', workspaceUris, docContext).updateDocument(
-        document
-    );
+): Promise<ts.LanguageService> {
+    return getLanguageServiceForPath(document.getFilePath() || '', workspaceUris, docContext);
 }
 
-export function getService(
+export async function getService(
     path: string,
     workspaceUris: string[],
     docContext: LanguageServiceDocumentContext
@@ -51,26 +50,32 @@ export function getService(
 
     let service: LanguageServiceContainer;
     if (services.has(tsconfigPath)) {
-        service = services.get(tsconfigPath)!;
+        service = await services.get(tsconfigPath)!;
     } else {
         Logger.log('Initialize new ts service at ', tsconfigPath);
-        service = createLanguageService(tsconfigPath, docContext);
-        services.set(tsconfigPath, service);
+        const newService = createLanguageService(tsconfigPath, docContext);
+        services.set(tsconfigPath, newService);
+        service = await newService;
     }
 
     return service;
 }
 
-export function createLanguageService(
+async function createLanguageService(
     tsconfigPath: string,
     docContext: LanguageServiceDocumentContext
-): LanguageServiceContainer {
+): Promise<LanguageServiceContainer> {
     const workspacePath = tsconfigPath ? dirname(tsconfigPath) : '';
 
     const { options: compilerOptions, fileNames: files, raw } = getParsedConfig();
     // raw is the tsconfig merged with extending config
     // see: https://github.com/microsoft/TypeScript/blob/08e4f369fbb2a5f0c30dee973618d65e6f7f09f8/src/compiler/commandLineParser.ts#L2537
     const snapshotManager = new SnapshotManager(files, raw, workspacePath || process.cwd());
+
+    // Load all configs within the tsconfig scope and the one above so that they are all loaded
+    // by the time they need to be accessed synchronously by DocumentSnapshots to determine
+    // the default language.
+    await configLoader.loadConfigs(workspacePath);
 
     const svelteModuleLoader = createSvelteModuleLoader(getSnapshot, compilerOptions);
 
@@ -107,8 +112,7 @@ export function createLanguageService(
         resolveModuleNames: svelteModuleLoader.resolveModuleNames,
         readDirectory: svelteModuleLoader.readDirectory,
         getDirectories: ts.sys.getDirectories,
-        // vscode's uri is all lowercase
-        useCaseSensitiveFileNames: () => false,
+        useCaseSensitiveFileNames: () => ts.sys.useCaseSensitiveFileNames,
         getScriptKind: (fileName: string) => getSnapshot(fileName).scriptKind
     };
     let languageService = ts.createLanguageService(host);
@@ -131,23 +135,34 @@ export function createLanguageService(
         snapshotManager.delete(filePath);
     }
 
-    function updateDocument(document: Document): ts.LanguageService {
-        const preSnapshot = snapshotManager.get(document.getFilePath()!);
+    function updateDocument(documentOrFilePath: Document | string): DocumentSnapshot {
+        const filePath =
+            typeof documentOrFilePath === 'string'
+                ? documentOrFilePath
+                : documentOrFilePath.getFilePath() || '';
+        const document = typeof documentOrFilePath === 'string' ? undefined : documentOrFilePath;
+        const prevSnapshot = snapshotManager.get(filePath);
 
         // Don't reinitialize document if no update needed.
-        if (preSnapshot?.version === document.version) {
-            return languageService;
+        if (document && prevSnapshot?.version === document.version) {
+            return prevSnapshot;
         }
 
-        const newSnapshot = DocumentSnapshot.fromDocument(document, transformationConfig);
-        if (preSnapshot && preSnapshot.scriptKind !== newSnapshot.scriptKind) {
+        const newSnapshot = document
+            ? DocumentSnapshot.fromDocument(document, transformationConfig)
+            : DocumentSnapshot.fromFilePath(
+                  filePath,
+                  docContext.createDocument,
+                  transformationConfig
+              );
+        snapshotManager.set(filePath, newSnapshot);
+        if (prevSnapshot && prevSnapshot.scriptKind !== newSnapshot.scriptKind) {
             // Restart language service as it doesn't handle script kind changes.
             languageService.dispose();
             languageService = ts.createLanguageService(host);
         }
 
-        snapshotManager.set(document.getFilePath()!, newSnapshot);
-        return languageService;
+        return newSnapshot;
     }
 
     function getSnapshot(fileName: string): DocumentSnapshot {
@@ -158,16 +173,11 @@ export function createLanguageService(
             return doc;
         }
 
-        if (isSvelteFilePath(fileName)) {
-            const file = ts.sys.readFile(fileName) || '';
-            doc = DocumentSnapshot.fromDocument(
-                docContext.createDocument(fileName, file),
-                transformationConfig
-            );
-        } else {
-            doc = DocumentSnapshot.fromFilePath(fileName, transformationConfig);
-        }
-
+        doc = DocumentSnapshot.fromFilePath(
+            fileName,
+            docContext.createDocument,
+            transformationConfig
+        );
         snapshotManager.set(fileName, doc);
         return doc;
     }

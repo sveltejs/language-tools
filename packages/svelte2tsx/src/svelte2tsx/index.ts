@@ -74,7 +74,7 @@ const COMPONENT_SUFFIX = '__SvelteComponent_';
 
 function processSvelteTemplate(
     str: MagicString,
-    options?: { emitOnTemplateError?: boolean }
+    options?: { emitOnTemplateError?: boolean; namespace?: string }
 ): TemplateProcessResult {
     const htmlxAst = parseHtmlx(str.original, options);
 
@@ -287,7 +287,9 @@ function processSvelteTemplate(
         }
     };
 
-    convertHtmlxToJsx(str, htmlxAst, onHtmlxWalk, onHtmlxLeave);
+    convertHtmlxToJsx(str, htmlxAst, onHtmlxWalk, onHtmlxLeave, {
+        preserveAttributeCase: options?.namespace == 'foreign'
+    });
 
     // resolve scripts
     const { scriptTag, moduleScriptTag } = scripts.getTopLevelScriptTags();
@@ -458,6 +460,7 @@ export function svelte2tsx(
         strictMode?: boolean;
         isTsFile?: boolean;
         emitOnTemplateError?: boolean;
+        namespace?: string;
     }
 ) {
     const str = new MagicString(svelte);

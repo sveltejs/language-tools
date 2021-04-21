@@ -1,7 +1,7 @@
 import {
+    OptionalVersionedTextDocumentIdentifier,
     TextDocumentEdit,
     TextEdit,
-    VersionedTextDocumentIdentifier,
     WorkspaceEdit
 } from 'vscode-languageserver';
 import { mapRangeToOriginal } from '../../../lib/documents';
@@ -21,11 +21,11 @@ export class UpdateImportsProviderImpl implements UpdateImportsProvider {
             return null;
         }
 
-        const ls = this.getLSForPath(newPath);
+        const ls = await this.getLSForPath(newPath);
         // `getEditsForFileRename` might take a while
         const fileChanges = ls.getEditsForFileRename(oldPath, newPath, {}, {});
 
-        this.lsAndTsDocResolver.updateSnapshotPath(oldPath, newPath);
+        await this.lsAndTsDocResolver.updateSnapshotPath(oldPath, newPath);
         const updateImportsChanges = fileChanges
             // Assumption: Updating imports will not create new files, and to make sure just filter those out
             // who - for whatever reason - might be new ones.
@@ -43,7 +43,7 @@ export class UpdateImportsProviderImpl implements UpdateImportsProvider {
                 const fragment = await docs.retrieveFragment(change.fileName);
 
                 return TextDocumentEdit.create(
-                    VersionedTextDocumentIdentifier.create(fragment.getURL(), 0),
+                    OptionalVersionedTextDocumentIdentifier.create(fragment.getURL(), null),
                     change.textChanges.map((edit) => {
                         const range = mapRangeToOriginal(
                             fragment,
@@ -58,7 +58,7 @@ export class UpdateImportsProviderImpl implements UpdateImportsProvider {
         return { documentChanges };
     }
 
-    private getLSForPath(path: string) {
+    private async getLSForPath(path: string) {
         return this.lsAndTsDocResolver.getLSForPath(path);
     }
 }

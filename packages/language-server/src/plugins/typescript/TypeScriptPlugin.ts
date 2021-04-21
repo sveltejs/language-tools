@@ -152,7 +152,7 @@ export class TypeScriptPlugin
             return [];
         }
 
-        const { lang, tsDoc } = this.getLSAndTSDoc(document);
+        const { lang, tsDoc } = await this.getLSAndTSDoc(document);
         const fragment = await tsDoc.getFragment();
         const navTree = lang.getNavigationTree(tsDoc.filePath);
 
@@ -268,7 +268,7 @@ export class TypeScriptPlugin
             return [];
         }
 
-        const { lang, tsDoc } = this.getLSAndTSDoc(document);
+        const { lang, tsDoc } = await this.getLSAndTSDoc(document);
         const mainFragment = await tsDoc.getFragment();
 
         const defs = lang.getDefinitionAndBoundSpan(
@@ -369,7 +369,7 @@ export class TypeScriptPlugin
         return this.findReferencesProvider.findReferences(document, position, context);
     }
 
-    onWatchFileChanges(onWatchFileChangesParas: OnWatchFileChangesPara[]) {
+    async onWatchFileChanges(onWatchFileChangesParas: OnWatchFileChangesPara[]): Promise<void> {
         const doneUpdateProjectFiles = new Set<SnapshotManager>();
 
         for (const { fileName, changeType } of onWatchFileChangesParas) {
@@ -380,7 +380,7 @@ export class TypeScriptPlugin
                 continue;
             }
 
-            const snapshotManager = this.getSnapshotManager(fileName);
+            const snapshotManager = await this.getSnapshotManager(fileName);
             if (changeType === FileChangeType.Created) {
                 if (!doneUpdateProjectFiles.has(snapshotManager)) {
                     snapshotManager.updateProjectFiles();
@@ -391,17 +391,15 @@ export class TypeScriptPlugin
                 return;
             }
 
-            // Since the options parameter only applies to svelte snapshots, and this is not
-            // a svelte file, we can just set it to false without having any effect.
-            snapshotManager.updateByFileName(fileName, {
-                strictMode: false,
-                transformOnTemplateError: false
-            });
+            snapshotManager.updateTsOrJsFile(fileName);
         }
     }
 
-    updateTsOrJsFile(fileName: string, changes: TextDocumentContentChangeEvent[]): void {
-        const snapshotManager = this.getSnapshotManager(fileName);
+    async updateTsOrJsFile(
+        fileName: string,
+        changes: TextDocumentContentChangeEvent[]
+    ): Promise<void> {
+        const snapshotManager = await this.getSnapshotManager(fileName);
         snapshotManager.updateTsOrJsFile(fileName, changes);
     }
 
@@ -445,7 +443,7 @@ export class TypeScriptPlugin
         return this.documentHeightProvider.findDocumentHighlight(document, position);
     }
 
-    private getLSAndTSDoc(document: Document) {
+    private async getLSAndTSDoc(document: Document) {
         return this.lsAndTsDocResolver.getLSAndTSDoc(document);
     }
 

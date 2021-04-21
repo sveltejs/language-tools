@@ -1,10 +1,10 @@
 import MagicString from 'magic-string';
-import { Node } from 'estree-walker';
+import { BaseNode } from '../../interfaces';
 
 /**
  * {#key expr}content{/key}   --->   {expr} content
  */
-export function handleKey(htmlx: string, str: MagicString, keyBlock: Node): void {
+export function handleKey(htmlx: string, str: MagicString, keyBlock: BaseNode): void {
     // {#key expr}   ->   {expr}
     str.overwrite(keyBlock.start, keyBlock.expression.start, '{');
     const end = htmlx.indexOf('}', keyBlock.expression.end);

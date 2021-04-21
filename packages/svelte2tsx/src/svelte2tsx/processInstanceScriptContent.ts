@@ -142,9 +142,17 @@ export function processInstanceScriptContent(
     };
 
     const handleStore = (ident: ts.Identifier, parent: ts.Node) => {
+        // ignore "typeof $store"
+        if (parent && parent.kind === ts.SyntaxKind.TypeQuery) {
+            return;
+        }
+        // ignore break
+        if (parent && parent.kind === ts.SyntaxKind.BreakStatement) {
+            return;
+        }
+
         const storename = ident.getText().slice(1); // drop the $
         // handle assign to
-        // eslint-disable-next-line max-len
         if (
             parent &&
             ts.isBinaryExpression(parent) &&
@@ -160,10 +168,7 @@ export function processInstanceScriptContent(
             str.appendLeft(parent.end + astOffset, ')');
             return;
         }
-        // ignore break
-        if (parent && parent.kind === ts.SyntaxKind.BreakStatement) {
-            return;
-        }
+
         // handle Assignment operators ($store +=, -=, *=, /=, %=, **=, etc.)
         // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Expressions_and_Operators#Assignment
         const operators = {

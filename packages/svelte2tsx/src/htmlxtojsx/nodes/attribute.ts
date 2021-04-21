@@ -1,7 +1,7 @@
 import MagicString from 'magic-string';
-import { Node } from 'estree-walker';
 import svgAttributes from '../svgattributes';
 import { isQuote } from '../utils/node-utils';
+import { Attribute, BaseNode } from '../../interfaces';
 
 /**
  * List taken from `svelte-jsx.d.ts` by searching for all attributes of type number
@@ -35,14 +35,28 @@ const numberOnlyAttributes = new Set([
  * - lowercase DOM attributes
  * - multi-value handling
  */
-export function handleAttribute(htmlx: string, str: MagicString, attr: Node, parent: Node): void {
+export function handleAttribute(
+    htmlx: string,
+    str: MagicString,
+    attr: Attribute,
+    parent: BaseNode,
+    preserveCase: boolean
+): void {
     let transformedFromDirectiveOrNamespace = false;
+
+    const transformAttributeCase = (name: string) => {
+        if (!preserveCase && !svgAttributes.find((x) => x == name)) {
+            return name.toLowerCase();
+        } else {
+            return name;
+        }
+    };
 
     //if we are on an "element" we are case insensitive, lowercase to match our JSX
     if (parent.type == 'Element') {
         const sapperLinkActions = ['sapper:prefetch', 'sapper:noscroll'];
         const sveltekitLinkActions = ['sveltekit:prefetch', 'sveltekit:noscroll'];
-        //skip Attribute shorthand, that is handled below
+        // skip Attribute shorthand, that is handled below
         if (
             (attr.value !== true &&
                 !(
@@ -53,10 +67,7 @@ export function handleAttribute(htmlx: string, str: MagicString, attr: Node, par
             sapperLinkActions.includes(attr.name) ||
             sveltekitLinkActions.includes(attr.name)
         ) {
-            let name = attr.name;
-            if (!svgAttributes.find((x) => x == name)) {
-                name = name.toLowerCase();
-            }
+            let name = transformAttributeCase(attr.name);
 
             //strip ":" from out attribute name and uppercase the next letter to convert to jsx attribute
             const colonIndex = name.indexOf(':');
@@ -78,7 +89,7 @@ export function handleAttribute(htmlx: string, str: MagicString, attr: Node, par
             !transformedFromDirectiveOrNamespace &&
             parent.name !== '!DOCTYPE'
         ) {
-            str.overwrite(attr.start, attr.end, attr.name.toLowerCase());
+            str.overwrite(attr.start, attr.end, transformAttributeCase(attr.name));
         }
         return;
     }
@@ -96,10 +107,7 @@ export function handleAttribute(htmlx: string, str: MagicString, attr: Node, par
         if (attrVal.type == 'AttributeShorthand') {
             let attrName = attrVal.expression.name;
             if (parent.type == 'Element') {
-                // eslint-disable-next-line max-len
-                attrName = svgAttributes.find((a) => a == attrName)
-                    ? attrName
-                    : attrName.toLowerCase();
+                attrName = transformAttributeCase(attrName);
             }
 
             str.appendRight(attr.start, `${attrName}=`);

@@ -1,10 +1,10 @@
 import MagicString from 'magic-string';
-import { Node } from 'estree-walker';
+import { BaseDirective } from '../../interfaces';
 
 /**
  * class:xx={yyy}   --->   {...__sveltets_ensureType(Boolean, !!(yyy))}
  */
-export function handleClassDirective(str: MagicString, attr: Node): void {
+export function handleClassDirective(str: MagicString, attr: BaseDirective): void {
     str.overwrite(attr.start, attr.expression.start, '{...__sveltets_ensureType(Boolean, !!(');
     const endBrackets = '))}';
     if (attr.end !== attr.expression.end) {
