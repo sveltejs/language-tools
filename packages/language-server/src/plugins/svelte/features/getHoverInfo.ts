@@ -3,6 +3,7 @@ import { SvelteDocument } from '../SvelteDocument';
 import { documentation, SvelteTag, getLatestOpeningTag } from './SvelteTags';
 import { flatten } from '../../../utils';
 import { isInTag } from '../../../lib/documents';
+import { inStyleOrScript } from '../utils';
 
 /**
  * Get hover information for special svelte tags within moustache tags.
@@ -10,10 +11,7 @@ import { isInTag } from '../../../lib/documents';
 export function getHoverInfo(svelteDoc: SvelteDocument, position: Position): Hover | null {
     const offset = svelteDoc.offsetAt(position);
 
-    const isInStyleOrScript =
-        isInTag(position, svelteDoc.style) ||
-        isInTag(position, svelteDoc.script) ||
-        isInTag(position, svelteDoc.moduleScript);
+    const isInStyleOrScript = inStyleOrScript(svelteDoc, position);
 
     const offsetStart = Math.max(offset - 10, 0);
     const charactersAroundOffset = svelteDoc

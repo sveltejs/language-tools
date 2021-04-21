@@ -9,7 +9,8 @@ import {
     Range,
     TextEdit,
     WorkspaceEdit,
-    SelectionRange
+    SelectionRange,
+    DocumentHighlight
 } from 'vscode-languageserver';
 import { Document } from '../../lib/documents';
 import { LSConfigManager, LSSvelteConfig } from '../../ls-config';
@@ -18,6 +19,7 @@ import {
     CodeActionsProvider,
     CompletionsProvider,
     DiagnosticsProvider,
+    DocumentHighlightProvider,
     FormattingProvider,
     HoverProvider,
     SelectionRangeProvider
@@ -30,6 +32,7 @@ import { SvelteCompileResult, SvelteDocument } from './SvelteDocument';
 import { Logger } from '../../logger';
 import { getSelectionRange } from './features/getSelectionRanges';
 import { merge } from 'lodash';
+import { getDocumentHighlight } from './features/getDocumentHighlight';
 
 export class SveltePlugin
     implements
@@ -38,7 +41,8 @@ export class SveltePlugin
         CompletionsProvider,
         HoverProvider,
         CodeActionsProvider,
-        SelectionRangeProvider {
+        SelectionRangeProvider,
+        DocumentHighlightProvider {
     private docManager = new Map<Document, SvelteDocument>();
 
     constructor(private configManager: LSConfigManager) {}
@@ -198,6 +202,15 @@ export class SveltePlugin
         const svelteDoc = await this.getSvelteDoc(document);
 
         return getSelectionRange(svelteDoc, position);
+    }
+
+    async findDocumentHighlight(
+        document: Document,
+        position: Position
+    ): Promise<DocumentHighlight[] | null> {
+        const svelteDoc = await this.getSvelteDoc(document);
+
+        return getDocumentHighlight(document, svelteDoc, position);
     }
 
     private featureEnabled(feature: keyof LSSvelteConfig) {
