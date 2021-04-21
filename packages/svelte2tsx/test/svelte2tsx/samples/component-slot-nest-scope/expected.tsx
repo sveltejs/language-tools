@@ -6,7 +6,7 @@
     </>)}
     <slot name="second" a={ a }></slot>
 </>)}
-<Component >{() => { let {c} = __sveltets_instanceOf(Component).$$slot_def['default'];<>{ c }</>}}</Component>
+<Component >{() => { let {c} = /*Ωignore_startΩ*/new Component({target: __sveltets_any(''), props: {}})/*Ωignore_endΩ*/.$$slot_def['default'];<>{ c }</>}}</Component>
 {() => {let _$$p = (promise); __sveltets_awaitThen(_$$p, (d) => {<>
     {d}
 </>})}}

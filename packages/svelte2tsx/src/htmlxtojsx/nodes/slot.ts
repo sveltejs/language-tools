@@ -1,6 +1,5 @@
 import MagicString from 'magic-string';
-import { beforeStart } from '../utils/node-utils';
-import { getSingleSlotDef } from '../../svelte2tsx/nodes/slot';
+import { beforeStart, getInstanceType } from '../utils/node-utils';
 import { IfScope } from './if-scope';
 import { TemplateScope } from '../nodes/template-scope';
 import { BaseNode } from '../../interfaces';
@@ -62,11 +61,16 @@ export function handleSlot(
     str.appendLeft(slotDefInsertionPoint, `{${prefix}() => { let {`);
     str.appendRight(
         slotDefInsertionPoint,
-        `} = ${getSingleSlotDef(component, slotName)}` + `;${ifScope.addPossibleIfCondition()}<>`
+        `} = ${getSingleSlotDef(component, slotName, str.original)}` +
+            `;${ifScope.addPossibleIfCondition()}<>`
     );
 
     const closeSlotDefInsertionPoint = slotElIsComponent
         ? htmlx.lastIndexOf('<', slotEl.end - 1)
         : slotEl.end;
     str.appendLeft(closeSlotDefInsertionPoint, `</>}}${constRedeclares ? '}' : ''}`);
+}
+
+function getSingleSlotDef(componentNode: BaseNode, slotName: string, originalStr: string) {
+    return `${getInstanceType(componentNode, originalStr)}.$$slot_def['${slotName}']`;
 }

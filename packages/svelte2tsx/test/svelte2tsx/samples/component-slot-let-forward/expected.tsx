@@ -1,6 +1,6 @@
 ///<reference types="svelte" />
 <></>;function render() {
-<><Component   >{() => { let {name:n, thing, whatever:{ bla }} = __sveltets_instanceOf(Component).$$slot_def['default'];<>
+<><Component   >{() => { let {name:n, thing, whatever:{ bla }} = /*Ωignore_startΩ*/new Component({target: __sveltets_any(''), props: {}})/*Ωignore_endΩ*/.$$slot_def['default'];<>
     <slot n={n} thing={thing} bla={bla} />
 </>}}</Component></>
 return { props: {}, slots: {'default': {n:__sveltets_instanceOf(Component).$$slot_def['default'].name, thing:__sveltets_instanceOf(Component).$$slot_def['default'].thing, bla:(({ bla }) => bla)(__sveltets_instanceOf(Component).$$slot_def['default'].whatever)}}, getters: {}, events: {} }}

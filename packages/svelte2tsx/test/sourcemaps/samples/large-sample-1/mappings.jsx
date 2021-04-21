@@ -430,17 +430,17 @@ s
                 injectedJS={mapbox_setup}
                 relaxed                                                                                                                               {/**
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
-            />{__sveltets_instanceOf(Repl).$on('change', handle_change)}                                                                              {/**
-         ╚╚╚/>{__sveltets_instanceOf(Repl).$on('change',•handle_change)}↲    [generated] line 172                                                     
-                                            on('change',•handle_change)}     [generated] subset                                                       
-                                            on: change=  handle_change}                                                                               
-             on:change= handle_change}                                                                                                                
-         ╚╚╚╚on:change={handle_change}↲                                      [original] line 309 (rest generated at line 169)                         
-                                                                                                                                                      
-         ╚╚╚/>{__sveltets_instanceOf(Repl).$on('change',•handle_change)}↲    [generated] line 172                                                     
-         ╚╚╚/>{__sveltets_instanceOf(Repl).$                            ↲    [generated] subset                                                       
-         ╚╚╚/>                                                          ↲                                                                             
-         ╚╚╚/>↲                                                              [original] line 312                                                      
+            />{/*Ωignore_startΩ*/new Repl({target: __sveltets_any(''), props: {workersUrl:("workers"), svelteUrl, rollupUrl, orientation:(mobile ? 'columns' : 'rows'), fixed:(mobile), injectedJS:(mapbox_setup), relaxed:true}})/*Ωignore_endΩ*/.$on('change', handle_change)}{/**
+         ╚╚╚/>{/*Ωignore_startΩ*/new•Repl({target:•__sveltets_any(''),•props:•{workersUrl:("workers"),•svelteUrl,•rollupUrl,•orientation:(mobile•?•'columns'•:•'rows'),•fixed:(mobile),•injectedJS:(mapbox_setup),•relaxed:true}})/*Ωignore_endΩ*/.$on('change',•handle_change)}↲    [generated] line 172
+                                                                                                                                                                                                                                                    on('change',•handle_change)}     [generated] subset
+                                                                                                                                                                                                                                                    on: change=  handle_change}      
+             on:change= handle_change}                                                                                                                                                                                                                                               
+         ╚╚╚╚on:change={handle_change}↲                                                                                                                                                                                                                                              [original] line 309 (rest generated at line 169)
+                                                                                                                                                                                                                                                                                     
+         ╚╚╚/>{/*Ωignore_startΩ*/new•Repl({target:•__sveltets_any(''),•props:•{workersUrl:("workers"),•svelteUrl,•rollupUrl,•orientation:(mobile•?•'columns'•:•'rows'),•fixed:(mobile),•injectedJS:(mapbox_setup),•relaxed:true}})/*Ωignore_endΩ*/.$on('change',•handle_change)}↲    [generated] line 172
+         ╚╚╚/>{/*Ωignore_startΩ*/new•Repl({target:•__sveltets_any(''),•props:•{workersUrl:("workers"),•svelteUrl,•rollupUrl,•orientation:(mobile•?•'columns'•:•'rows'),•fixed:(mobile),•injectedJS:(mapbox_setup),•relaxed:true}})/*Ωignore_endΩ*/.$                            ↲    [generated] subset
+         ╚╚╚/>                                                                                                                                                                                                                                                                  ↲    
+         ╚╚╚/>↲                                                                                                                                                                                                                                                                      [original] line 312 
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
         </div>
     </div>

@@ -1,13 +1,13 @@
 ///<reference types="svelte" />
 <></>;function render() {                                                                                                                             {/**
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
-<><Component  />{__sveltets_instanceOf(Component).$on('click', (__sveltets_store_get(check), $check) ? method1 : method2)}                            {/**
-=#                                                                                                                             Originless mappings    
-<><Component••/>{__sveltets_instanceOf(Component).$on('click',•(__sveltets_store_get(check),•$check)•?•method1•:•method2)}↲    [generated] line 3     
-  <Component••/>                                   on: click=  $                     check          •?•method1•:•method2} ↲                           
-               #===================================                                                                            Order-breaking mappings
-<Component•on:click= $check•?•method1•:•method2}•/>↲                                                                                                  
-<Component•on:click={$check•?•method1•:•method2}•/>↲                                                                           [original] line 1      
+<><Component  />{/*Ωignore_startΩ*/new Component({target: __sveltets_any(''), props: {}})/*Ωignore_endΩ*/.$on('click', (__sveltets_store_get(check), $check) ? method1 : method2)}{/**
+=#                                                                                                                                                                                     Originless mappings
+<><Component••/>{/*Ωignore_startΩ*/new•Component({target:•__sveltets_any(''),•props:•{}})/*Ωignore_endΩ*/.$on('click',•(__sveltets_store_get(check),•$check)•?•method1•:•method2)}↲    [generated] line 3
+  <Component••/>                                                                                           on: click=  $                     check          •?•method1•:•method2} ↲    
+               #===========================================================================================                                                                            Order-breaking mappings
+<Component•on:click= $check•?•method1•:•method2}•/>↲                                                                                                                                   
+<Component•on:click={$check•?•method1•:•method2}•/>↲                                                                                                                                   [original] line 1 
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
 <button onclick={(__sveltets_store_get(check), $check) ? method1 : method2} >Bla</button></>                                                          {/**
 <button•onclick={(__sveltets_store_get(check),•$check)•?•method1•:•method2}•>Bla</button></>↲    [generated] line 4                                   

@@ -362,6 +362,15 @@ describe('DiagnosticsProvider', () => {
         const { plugin, document } = setup('diagnostics-slots.svelte');
         const diagnostics = await plugin.getDiagnostics(document);
 
+        class A {
+            constructor(a: number) {}
+        }
+
+        const a = 1;
+        () => {
+            const a = new A(a);
+        };
+
         assert.deepStrictEqual(diagnostics, [
             {
                 code: 2304,

@@ -1,5 +1,6 @@
 import { Node, walk } from 'estree-walker';
 import { BaseNode } from '../../interfaces';
+import { surroundWithIgnoreComments } from '../../utils/ignore';
 
 export function getTypeForComponent(node: Node): string {
     if (node.name === 'svelte:component' || node.name === 'svelte:self') {
@@ -7,6 +8,45 @@ export function getTypeForComponent(node: Node): string {
     } else {
         return node.name;
     }
+}
+
+export function getInstanceType(node: Node, originalStr: string): string {
+    if (node.name === 'svelte:component' || node.name === 'svelte:self') {
+        return '__sveltets_instanceOf(__sveltets_componentType())';
+    } else {
+        const str = `new ${
+            node.name
+        }({target: __sveltets_any(''), props: ${getPropsStrFromAttributes(node, originalStr)}})`;
+        return surroundWithIgnoreComments(str);
+    }
+}
+
+function getPropsStrFromAttributes(node: Node, originalStr: string) {
+    const attrs = (node.attributes || [])
+        .filter((attr) => attr.type === 'Attribute')
+        .map((attr) => {
+            if (attr.value === true) {
+                return `${attr.name}:true`;
+            }
+            if (attr.value[0].type === 'AttributeShorthand') {
+                return attr.name;
+            }
+            const attrVal =
+                '(' +
+                attr.value
+                    .map((val) => {
+                        if (val.type === 'Text') {
+                            return `"${val.data || val.raw}"`;
+                        } else if (val.type === 'MustacheTag') {
+                            return originalStr.substring(val.start + 1, val.end - 1);
+                        }
+                    })
+                    .filter((val) => !!val)
+                    .join(') + (') +
+                ')';
+            return `${attr.name}:${attrVal}`;
+        });
+    return '{' + attrs.join(', ') + '}';
 }
 
 export function getThisType(node: Node): string | undefined {

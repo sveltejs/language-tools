@@ -36,6 +36,8 @@ describe('RenameProvider', () => {
         const renameDoc5 = await openDoc('rename5.svelte');
         const renameDoc6 = await openDoc('rename6.svelte');
         const renameDocIgnoreGenerated = await openDoc('rename-ignore-generated.svelte');
+        const renameDocSlotEventsImporter = await openDoc('rename-slot-events-importer.svelte');
+        const renameDocPropWithSlotEvents = await openDoc('rename-prop-with-slot-events.svelte');
         return {
             provider,
             renameDoc1,
@@ -45,6 +47,8 @@ describe('RenameProvider', () => {
             renameDoc5,
             renameDoc6,
             renameDocIgnoreGenerated,
+            renameDocSlotEventsImporter,
+            renameDocPropWithSlotEvents,
             docManager
         };
 
@@ -519,6 +523,63 @@ describe('RenameProvider', () => {
                             start: {
                                 character: 20,
                                 line: 7
+                            }
+                        }
+                    }
+                ]
+            }
+        });
+    });
+
+    it('rename prop correctly when events/slots present', async () => {
+        const { provider, renameDocPropWithSlotEvents } = await setup();
+        const result = await provider.rename(
+            renameDocPropWithSlotEvents,
+            Position.create(3, 15),
+            'newName'
+        );
+
+        assert.deepStrictEqual(result, {
+            changes: {
+                [getUri('rename-prop-with-slot-events.svelte')]: [
+                    {
+                        newText: 'newName',
+                        range: {
+                            end: {
+                                character: 17,
+                                line: 3
+                            },
+                            start: {
+                                character: 13,
+                                line: 3
+                            }
+                        }
+                    },
+                    {
+                        newText: 'newName',
+                        range: {
+                            end: {
+                                character: 17,
+                                line: 8
+                            },
+                            start: {
+                                character: 13,
+                                line: 8
+                            }
+                        }
+                    }
+                ],
+                [getUri('rename-slot-events-importer.svelte')]: [
+                    {
+                        newText: 'newName',
+                        range: {
+                            end: {
+                                character: 7,
+                                line: 4
+                            },
+                            start: {
+                                character: 3,
+                                line: 4
                             }
                         }
                     }

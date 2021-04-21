@@ -1,5 +1,5 @@
 import MagicString from 'magic-string';
-import { getTypeForComponent, isQuote } from '../utils/node-utils';
+import { getInstanceType, isQuote } from '../utils/node-utils';
 import { BaseDirective, BaseNode } from '../../interfaces';
 
 /**
@@ -36,7 +36,7 @@ export function handleEventHandler(
         if (attr.expression) {
             const on = 'on';
             //for handler assignment, we change it to call to our __sveltets_ensureFunction
-            str.appendRight(attr.start, `{__sveltets_instanceOf(${getTypeForComponent(parent)}).$`);
+            str.appendRight(attr.start, `{${getInstanceType(parent, str.original)}.$`);
             const eventNameIndex = htmlx.indexOf(':', attr.start) + 1;
             str.overwrite(htmlx.indexOf(on, attr.start) + on.length, eventNameIndex, "('");
             const eventEnd = htmlx.lastIndexOf('=', attr.expression.start);
