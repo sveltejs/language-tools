@@ -275,6 +275,7 @@ declare namespace svelte.JSX {
       coords?: string;
       crossorigin?: string;
       currenttime?: number;
+      decoding?: 'async' | 'sync' | 'auto';
       data?: string;
       datetime?: string;
       default?: boolean;
