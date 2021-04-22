@@ -89,7 +89,7 @@ export function getInstanceTypeForDefaultSlot(
 function getNameValuePairsFromAttributes(
     node: Node,
     originalStr: string
-): {
+): Array<{
     /**
      * Attribute name
      */
@@ -104,7 +104,7 @@ function getNameValuePairsFromAttributes(
      * If the attribute value is complex, it's `true`
      */
     identifier?: true | string;
-}[] {
+}> {
     return ((node.attributes as Node[]) || [])
         .filter((attr) => attr.type === 'Attribute')
         .map((attr) => {
