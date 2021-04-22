@@ -18,7 +18,12 @@ export class FallbackWatcher {
                     gitOrNodeModules.test(path) &&
                     // Handle Sapper's alias mapping
                     !path.includes('src/node_modules') &&
-                    !path.includes('src\\node_modules')
+                    !path.includes('src\\node_modules'),
+
+                // typescript would scan the project files on init.
+                // We only need to know what got updated.
+                ignoreInitial: true,
+                ignorePermissionErrors: true
             }
         );
 
