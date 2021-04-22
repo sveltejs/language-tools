@@ -1,13 +1,17 @@
 import { FSWatcher, watch } from 'chokidar';
 import { join } from 'path';
 import { DidChangeWatchedFilesParams, FileChangeType, FileEvent } from 'vscode-languageserver';
-import { pathToUrl } from '../utils';
+import { debounceSameArg, pathToUrl } from '../utils';
 
 type DidChangeHandler = (para: DidChangeWatchedFilesParams) => void;
+
+const DELAY = 50;
 
 export class FallbackWatcher {
     private readonly watcher: FSWatcher;
     private readonly callbacks: DidChangeHandler[] = [];
+
+    private undeliveredFileEvents: FileEvent[] = [];
 
     constructor(glob: string, workspacePaths: string[]) {
         const gitOrNodeModules = /\.git|node_modules/;
@@ -28,26 +32,37 @@ export class FallbackWatcher {
         );
 
         this.watcher
-            .on('add', (path) => this.callback(path, FileChangeType.Created))
-            .on('unlink', (path) => this.callback(path, FileChangeType.Deleted))
-            .on('change', (path) => this.callback(path, FileChangeType.Changed));
+            .on('add', (path) => this.onFSEvent(path, FileChangeType.Created))
+            .on('unlink', (path) => this.onFSEvent(path, FileChangeType.Deleted))
+            .on('change', (path) => this.onFSEvent(path, FileChangeType.Changed));
     }
 
-    private convert(path: string, type: FileChangeType): DidChangeWatchedFilesParams {
-        const event: FileEvent = {
+    private convert(path: string, type: FileChangeType): FileEvent {
+        return {
             type,
             uri: pathToUrl(path)
         };
-
-        return {
-            changes: [event]
-        };
     }
 
-    private callback(path: string, type: FileChangeType) {
-        const para = this.convert(path, type);
-        this.callbacks.forEach((callback) => callback(para));
+    private onFSEvent(path: string, type: FileChangeType) {
+        const fileEvent = this.convert(path, type);
+
+        this.undeliveredFileEvents.push(fileEvent);
+        this.scheduleTrigger();
     }
+
+    private readonly scheduleTrigger = debounceSameArg<void>(
+        () => {
+            const para: DidChangeWatchedFilesParams = {
+                changes: this.undeliveredFileEvents
+            };
+            this.undeliveredFileEvents = [];
+
+            this.callbacks.forEach((callback) => callback(para));
+        },
+        () => true,
+        DELAY
+    );
 
     onDidChangeWatchedFiles(callback: DidChangeHandler) {
         this.callbacks.push(callback);
