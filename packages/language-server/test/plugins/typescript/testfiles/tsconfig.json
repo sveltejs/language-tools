@@ -6,5 +6,9 @@
           because TS does not look up other types.
         */
         "types": ["svelte"]
-    }
+    },
+    "exclude": [
+        /**For testing exclude */
+        "./dist"
+    ]
 }

@@ -382,10 +382,9 @@ export class TypeScriptPlugin
                 }
             } else if (changeType === FileChangeType.Deleted) {
                 snapshotManager.delete(fileName);
-                return;
+            } else {
+                snapshotManager.updateTsOrJsFile(fileName);
             }
-
-            snapshotManager.updateTsOrJsFile(fileName);
         }
     }
 

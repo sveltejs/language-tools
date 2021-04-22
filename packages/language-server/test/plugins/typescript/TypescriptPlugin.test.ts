@@ -431,9 +431,9 @@ describe('TypescriptPlugin', () => {
         assert.equal(secondSnapshot, undefined);
     });
 
-    it('should add snapshot when project file added', async () => {
+    const testForOnWatchedFileAdd = async (fileName: string, shouldExist: boolean) => {
         const { snapshotManager, plugin, targetSvelteFile } = await setupForOnWatchedFileChanges();
-        const addFile = path.join(path.dirname(targetSvelteFile), 'foo.ts');
+        const addFile = path.join(path.dirname(targetSvelteFile), fileName);
         const normalizedAddFilePath = normalizeWatchFilePath(addFile);
 
         try {
@@ -447,10 +447,18 @@ describe('TypescriptPlugin', () => {
                 }
             ]);
 
-            assert.equal(snapshotManager.has(normalizedAddFilePath), true);
+            assert.equal(snapshotManager.has(normalizedAddFilePath), shouldExist);
         } finally {
             fs.unlinkSync(addFile);
         }
+    };
+
+    it('should add snapshot when a project file is added', async () => {
+        testForOnWatchedFileAdd('foo.ts', true);
+    });
+
+    it('should not add snapshot when an excluded file is added', async () => {
+        testForOnWatchedFileAdd('dist/index.js', false);
     });
 
     it('should update ts/js file after document change', async () => {
