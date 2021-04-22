@@ -10,28 +10,128 @@ export function getTypeForComponent(node: Node): string {
     }
 }
 
-export function getInstanceType(node: Node, originalStr: string): string {
+export function getInstanceType(
+    node: Node,
+    originalStr: string,
+    replacedPropValues: PropsShadowedByLet[] = []
+): string {
     if (node.name === 'svelte:component' || node.name === 'svelte:self') {
         return '__sveltets_instanceOf(__sveltets_componentType())';
     } else {
-        const str = `new ${
-            node.name
-        }({target: __sveltets_any(''), props: ${getPropsStrFromAttributes(node, originalStr)}})`;
-        return surroundWithIgnoreComments(str);
+        const propsStr = getNameValuePairsFromAttributes(node, originalStr)
+            .map(({ name, value }) => {
+                const replacedPropValue = replacedPropValues.find(
+                    ({ name: propName }) => propName === name
+                )?.replacement;
+                if (!replacedPropValue) {
+                    return `${name}:${value}`;
+                } else {
+                    return `${name}:${replacedPropValue}`;
+                }
+            })
+            .join(', ');
+        return surroundWithIgnoreComments(
+            `new ${node.name}({target: __sveltets_any(''), props: {${propsStr}}})`
+        );
     }
 }
 
-function getPropsStrFromAttributes(node: Node, originalStr: string) {
-    const attrs = (node.attributes || [])
+export interface PropsShadowedByLet {
+    name: string;
+    value: string;
+    replacement: string;
+}
+
+/**
+ * Return a string which makes it possible for TypeScript to infer the instance type of the given component.
+ * In the case of another component, this is done by creating a `new Comp({.. props: {..}})` code string.
+ * Alongside with the result a list of shadowed props is returned. A shadowed prop is a prop
+ * whose value is either too complex to analyse or contains an identifier which has the same name
+ * as a `let:X` expression on the component. In that case, the returned string only contains a reference
+ * to a constant which is `replacedPropsPrefix + propName`, so the calling code needs to make sure
+ * to create such a `const`.
+ */
+export function getInstanceTypeForDefaultSlot(
+    node: Node,
+    originalStr: string,
+    replacedPropsPrefix: string
+): { str: string; shadowedProps: PropsShadowedByLet[] } {
+    if (node.name === 'svelte:component' || node.name === 'svelte:self') {
+        return {
+            str: '__sveltets_instanceOf(__sveltets_componentType())',
+            shadowedProps: []
+        };
+    } else {
+        const lets = new Set<string>(
+            (node.attributes || []).filter((attr) => attr.type === 'Let').map((attr) => attr.name)
+        );
+        const shadowedProps: PropsShadowedByLet[] = [];
+        // Go through attribute values and mark those for reassignment to a const that
+        // either definitely shadow a let: or where it cannot be determined because the value is too complex.
+        const propsStr = getNameValuePairsFromAttributes(node, originalStr)
+            .map(({ name, value, identifier }) => {
+                if (identifier === true || lets.has(identifier)) {
+                    const replacement = replacedPropsPrefix + name;
+                    shadowedProps.push({ name, value, replacement });
+                    return `${name}:${replacement}`;
+                } else {
+                    return `${name}:${value}`;
+                }
+            })
+            .join(', ');
+        const str = surroundWithIgnoreComments(
+            `new ${node.name}({target: __sveltets_any(''), props: {${propsStr}}})`
+        );
+        return { str, shadowedProps };
+    }
+}
+
+function getNameValuePairsFromAttributes(
+    node: Node,
+    originalStr: string
+): {
+    /**
+     * Attribute name
+     */
+    name: string;
+    /**
+     * Attribute value string
+     */
+    value: string;
+    /**
+     * If the attribute value's identifier can be determined, it's a string
+     * with its name. If the attribute value has no identifier, it's unset.
+     * If the attribute value is complex, it's `true`
+     */
+    identifier?: true | string;
+}[] {
+    return ((node.attributes as Node[]) || [])
         .filter((attr) => attr.type === 'Attribute')
         .map((attr) => {
+            const name: string = attr.name;
+
             if (attr.value === true) {
-                return `${attr.name}:true`;
+                return { name, value: 'true' };
             }
-            if (attr.value[0].type === 'AttributeShorthand') {
-                return attr.name;
+
+            if (attr.value.length === 1) {
+                const val = attr.value[0];
+                if (val.type === 'AttributeShorthand') {
+                    return { name, value: name, identifier: name };
+                }
+                if (val.type === 'Text') {
+                    return { name, value: `"${val.data || val.raw}"` };
+                }
+                if (val.type === 'MustacheTag') {
+                    const valueStr = originalStr.substring(val.start + 1, val.end - 1);
+                    if (val.expression.type === 'Identifier') {
+                        return { name, value: valueStr, identifier: valueStr };
+                    }
+                    return { name, value: valueStr, identifier: true };
+                }
             }
-            const attrVal =
+
+            const value =
                 '(' +
                 attr.value
                     .map((val) => {
@@ -44,9 +144,9 @@ function getPropsStrFromAttributes(node: Node, originalStr: string) {
                     .filter((val) => !!val)
                     .join(') + (') +
                 ')';
-            return `${attr.name}:${attrVal}`;
+
+            return { name, value, identifier: true };
         });
-    return '{' + attrs.join(', ') + '}';
 }
 
 export function getThisType(node: Node): string | undefined {

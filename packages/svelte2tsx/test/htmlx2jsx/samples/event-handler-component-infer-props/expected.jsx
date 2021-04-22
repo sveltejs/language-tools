@@ -1,1 +1,1 @@
-<><Component propA propB={propB} propC="val1" propD="val2" propE={`a${a}b${b}`}  />{/*Ωignore_startΩ*/new Component({target: __sveltets_any(''), props: {propA:true, propB, propC:("val1"), propD:("val2"), propE:("a") + (a) + ("b") + (b)}})/*Ωignore_endΩ*/.$on('click', e => e)}</>
+<><Component propA propB={propB} propC="val1" propD="val2" propE={`a${a}b${b}`}  />{/*Ωignore_startΩ*/new Component({target: __sveltets_any(''), props: {propA:true, propB:propB, propC:"val1", propD:"val2", propE:("a") + (a) + ("b") + (b)}})/*Ωignore_endΩ*/.$on('click', e => e)}</>

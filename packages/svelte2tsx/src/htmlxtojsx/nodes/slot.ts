@@ -1,14 +1,27 @@
 import MagicString from 'magic-string';
-import { beforeStart, getInstanceType } from '../utils/node-utils';
+import {
+    beforeStart,
+    getInstanceType,
+    getInstanceTypeForDefaultSlot,
+    PropsShadowedByLet
+} from '../utils/node-utils';
 import { IfScope } from './if-scope';
 import { TemplateScope } from '../nodes/template-scope';
 import { BaseNode } from '../../interfaces';
+import { surroundWithIgnoreComments } from '../../utils/ignore';
+
+const shadowedPropsSymbol = Symbol('shadowedProps');
+
+interface ComponentNode extends BaseNode {
+    // Not pretty, but it works, and because it's a symbol, estree-walker will ignore it
+    [shadowedPropsSymbol]?: PropsShadowedByLet[];
+}
 
 export function handleSlot(
     htmlx: string,
     str: MagicString,
     slotEl: BaseNode,
-    component: BaseNode,
+    component: ComponentNode,
     slotName: string,
     ifScope: IfScope,
     templateScope: TemplateScope
@@ -56,13 +69,18 @@ export function handleSlot(
         return;
     }
 
-    const constRedeclares = ifScope.getConstsToRedeclare();
+    const { singleSlotDef, constRedeclares } = getSingleSlotDefAndConstsRedeclaration(
+        component,
+        slotName,
+        str.original,
+        ifScope,
+        slotElIsComponent
+    );
     const prefix = constRedeclares ? `() => {${constRedeclares}` : '';
     str.appendLeft(slotDefInsertionPoint, `{${prefix}() => { let {`);
     str.appendRight(
         slotDefInsertionPoint,
-        `} = ${getSingleSlotDef(component, slotName, str.original)}` +
-            `;${ifScope.addPossibleIfCondition()}<>`
+        `} = ${singleSlotDef}` + `;${ifScope.addPossibleIfCondition()}<>`
     );
 
     const closeSlotDefInsertionPoint = slotElIsComponent
@@ -71,6 +89,43 @@ export function handleSlot(
     str.appendLeft(closeSlotDefInsertionPoint, `</>}}${constRedeclares ? '}' : ''}`);
 }
 
-function getSingleSlotDef(componentNode: BaseNode, slotName: string, originalStr: string) {
-    return `${getInstanceType(componentNode, originalStr)}.$$slot_def['${slotName}']`;
+function getSingleSlotDefAndConstsRedeclaration(
+    componentNode: ComponentNode,
+    slotName: string,
+    originalStr: string,
+    ifScope: IfScope,
+    findAndRedeclareShadowedProps: boolean
+) {
+    if (findAndRedeclareShadowedProps) {
+        const replacement = 'Ψ';
+        const { str, shadowedProps } = getInstanceTypeForDefaultSlot(
+            componentNode,
+            originalStr,
+            replacement
+        );
+        componentNode[shadowedPropsSymbol] = shadowedProps;
+        return {
+            singleSlotDef: `${str}.$$slot_def['${slotName}']`,
+            constRedeclares: getConstsToRedeclare(ifScope, shadowedProps)
+        };
+    } else {
+        const str = getInstanceType(
+            componentNode,
+            originalStr,
+            componentNode[shadowedPropsSymbol] || []
+        );
+        return {
+            singleSlotDef: `${str}.$$slot_def['${slotName}']`,
+            constRedeclares: ifScope.getConstsRedaclarationString()
+        };
+    }
+}
+
+function getConstsToRedeclare(ifScope: IfScope, shadowedProps: PropsShadowedByLet[]) {
+    const ifScopeRedeclarations = ifScope.getConstsToRedeclare();
+    const letRedeclarations = shadowedProps.map(
+        ({ value, replacement }) => `${replacement}=${value}`
+    );
+    const replacements = [...ifScopeRedeclarations, ...letRedeclarations].join(',');
+    return replacements ? surroundWithIgnoreComments(`const ${replacements};`) : '';
 }

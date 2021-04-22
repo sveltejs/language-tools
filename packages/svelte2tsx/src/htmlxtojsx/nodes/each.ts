@@ -13,7 +13,7 @@ export function handleEach(
 ): void {
     // {#each items as item,i (key)} ->
     // {__sveltets_each(items, (item,i) => (key) && (possible if expression &&) <>
-    const constRedeclares = ifScope.getConstsToRedeclare();
+    const constRedeclares = ifScope.getConstsRedaclarationString();
     const prefix = constRedeclares ? `{() => {${constRedeclares}() => ` : '';
     str.overwrite(eachBlock.start, eachBlock.expression.start, `${prefix}{__sveltets_each(`);
     str.overwrite(eachBlock.expression.end, eachBlock.context.start, ', (');

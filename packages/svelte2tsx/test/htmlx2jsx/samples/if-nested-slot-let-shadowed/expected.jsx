@@ -6,6 +6,11 @@
                 {hello}
             </> : <></>}
         </>}}</Comp>
+        <Comp hello={hello} >{() => {/*Ωignore_startΩ*/const Ψhello=hello;/*Ωignore_endΩ*/() => { let {hello} = /*Ωignore_startΩ*/new Comp({target: __sveltets_any(''), props: {hello:Ψhello}})/*Ωignore_endΩ*/.$$slot_def['default'];/*Ωignore_startΩ*/((Ωhello && hello1)) && /*Ωignore_endΩ*/<>
+            {(hello) ? <>
+                {hello}
+            </> : <></>}
+        </>}}}</Comp>
         {() => { let {hello} = /*Ωignore_startΩ*/new Comp({target: __sveltets_any(''), props: {}})/*Ωignore_endΩ*/.$$slot_def['named1'];/*Ωignore_startΩ*/((Ωhello && hello1)) && /*Ωignore_endΩ*/<><sveltefragment  >
             {(hello) ? <>
                 {hello}

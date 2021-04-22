@@ -323,11 +323,19 @@ export class IfScope {
      * in the conditions which would be overwritten by the scope
      * (because they declare a variable with the same name, therefore shadowing the outer variable).
      */
-    getConstsToRedeclare(): string {
-        const replacements = this.getNamesToRedeclare()
-            .map((identifier) => `${this.replacementPrefix + identifier}=${identifier}`)
-            .join(',');
+    getConstsRedaclarationString(): string {
+        const replacements = this.getConstsToRedeclare().join(',');
         return replacements ? surroundWithIgnoreComments(`const ${replacements};`) : '';
+    }
+
+    /**
+     * Like `getConstsRedaclarationString`, but only returns a list of redaclaration-string without
+     * merging the result with `const` and a ignore comments surround.
+     */
+    getConstsToRedeclare(): string[] {
+        return this.getNamesToRedeclare().map(
+            (identifier) => `${this.replacementPrefix + identifier}=${identifier}`
+        );
     }
 
     /**
@@ -353,7 +361,7 @@ export class IfScope {
     /**
      * Contains a list of identifiers which would be overwritten by the child template scope.
      */
-    private getNamesToRedeclare() {
+    getNamesToRedeclare() {
         return [...this.scope.value.inits.keys()].filter((init) => {
             let parent = this.scope.value.parent;
             while (parent && parent !== this.ownScope) {
