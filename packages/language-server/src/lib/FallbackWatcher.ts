@@ -1,7 +1,8 @@
 import { FSWatcher, watch } from 'chokidar';
+import { debounce } from 'lodash';
 import { join } from 'path';
 import { DidChangeWatchedFilesParams, FileChangeType, FileEvent } from 'vscode-languageserver';
-import { debounceSameArg, pathToUrl } from '../utils';
+import { pathToUrl } from '../utils';
 
 type DidChangeHandler = (para: DidChangeWatchedFilesParams) => void;
 
@@ -51,18 +52,14 @@ export class FallbackWatcher {
         this.scheduleTrigger();
     }
 
-    private readonly scheduleTrigger = debounceSameArg<void>(
-        () => {
-            const para: DidChangeWatchedFilesParams = {
-                changes: this.undeliveredFileEvents
-            };
-            this.undeliveredFileEvents = [];
+    private readonly scheduleTrigger = debounce(() => {
+        const para: DidChangeWatchedFilesParams = {
+            changes: this.undeliveredFileEvents
+        };
+        this.undeliveredFileEvents = [];
 
-            this.callbacks.forEach((callback) => callback(para));
-        },
-        () => true,
-        DELAY
-    );
+        this.callbacks.forEach((callback) => callback(para));
+    }, DELAY);
 
     onDidChangeWatchedFiles(callback: DidChangeHandler) {
         this.callbacks.push(callback);
