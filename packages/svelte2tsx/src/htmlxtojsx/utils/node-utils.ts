@@ -24,9 +24,9 @@ export function getInstanceType(
                     ({ name: propName }) => propName === name
                 )?.replacement;
                 if (!replacedPropValue) {
-                    return `${name}:${value}`;
+                    return `'${name}':${value}`;
                 } else {
-                    return `${name}:${replacedPropValue}`;
+                    return `'${name}':${replacedPropValue}`;
                 }
             })
             .join(', ');
@@ -71,11 +71,11 @@ export function getInstanceTypeForDefaultSlot(
         const propsStr = getNameValuePairsFromAttributes(node, originalStr)
             .map(({ name, value, identifier }) => {
                 if (identifier === true || lets.has(identifier)) {
-                    const replacement = replacedPropsPrefix + name;
+                    const replacement = replacedPropsPrefix + sanitizePropName(name);
                     shadowedProps.push({ name, value, replacement });
-                    return `${name}:${replacement}`;
+                    return `'${name}':${replacement}`;
                 } else {
-                    return `${name}:${value}`;
+                    return `'${name}':${value}`;
                 }
             })
             .join(', ');
@@ -147,6 +147,13 @@ function getNameValuePairsFromAttributes(
 
             return { name, value, identifier: true };
         });
+}
+
+function sanitizePropName(name: string): string {
+    return name
+        .split('')
+        .map((char) => (/[0-9A-Za-z$_]/.test(char) ? char : '_'))
+        .join('');
 }
 
 export function getThisType(node: Node): string | undefined {

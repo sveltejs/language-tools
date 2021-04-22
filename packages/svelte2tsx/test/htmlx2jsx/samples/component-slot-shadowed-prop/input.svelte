@@ -3,7 +3,7 @@
     foo={unshadowed2}
     {subthing}
     {shadowed1}
-    _shadowed2={shadowed2}
+    shadowed-2={shadowed2}
     complex=" {complex} "
     let:name={n}
     let:shadowed1
