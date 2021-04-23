@@ -116,7 +116,7 @@ function getSingleSlotDefAndConstsRedeclaration(
         );
         return {
             singleSlotDef: `${str}.$$slot_def['${slotName}']`,
-            constRedeclares: ifScope.getConstsRedaclarationString()
+            constRedeclares: ifScope.getConstDeclaration()
         };
     }
 }

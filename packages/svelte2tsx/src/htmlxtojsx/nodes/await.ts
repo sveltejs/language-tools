@@ -19,7 +19,7 @@ export function handleAwait(
     let ifCondition = ifScope.getFullCondition();
     ifCondition = ifCondition ? surroundWithIgnoreComments(`if(${ifCondition}) {`) : '';
     templateScopeManager.awaitEnter(awaitBlock);
-    const constRedeclares = ifScope.getConstsRedaclarationString();
+    const constRedeclares = ifScope.getConstDeclaration();
     str.overwrite(
         awaitBlock.start,
         awaitBlock.expression.start,

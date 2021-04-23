@@ -17,23 +17,19 @@ export function getInstanceType(
 ): string {
     if (node.name === 'svelte:component' || node.name === 'svelte:self') {
         return '__sveltets_instanceOf(__sveltets_componentType())';
-    } else {
-        const propsStr = getNameValuePairsFromAttributes(node, originalStr)
-            .map(({ name, value }) => {
-                const replacedPropValue = replacedPropValues.find(
-                    ({ name: propName }) => propName === name
-                )?.replacement;
-                if (!replacedPropValue) {
-                    return `'${name}':${value}`;
-                } else {
-                    return `'${name}':${replacedPropValue}`;
-                }
-            })
-            .join(', ');
-        return surroundWithIgnoreComments(
-            `new ${node.name}({target: __sveltets_any(''), props: {${propsStr}}})`
-        );
     }
+
+    const propsStr = getNameValuePairsFromAttributes(node, originalStr)
+        .map(({ name, value }) => {
+            const replacedPropValue = replacedPropValues.find(
+                ({ name: propName }) => propName === name
+            )?.replacement;
+            return `'${name}':${replacedPropValue || value}`;
+        })
+        .join(', ');
+    return surroundWithIgnoreComments(
+        `new ${node.name}({target: __sveltets_any(''), props: {${propsStr}}})`
+    );
 }
 
 export interface PropsShadowedByLet {
@@ -61,29 +57,29 @@ export function getInstanceTypeForDefaultSlot(
             str: '__sveltets_instanceOf(__sveltets_componentType())',
             shadowedProps: []
         };
-    } else {
-        const lets = new Set<string>(
-            (node.attributes || []).filter((attr) => attr.type === 'Let').map((attr) => attr.name)
-        );
-        const shadowedProps: PropsShadowedByLet[] = [];
-        // Go through attribute values and mark those for reassignment to a const that
-        // either definitely shadow a let: or where it cannot be determined because the value is too complex.
-        const propsStr = getNameValuePairsFromAttributes(node, originalStr)
-            .map(({ name, value, identifier }) => {
-                if (identifier === true || lets.has(identifier)) {
-                    const replacement = replacedPropsPrefix + sanitizePropName(name);
-                    shadowedProps.push({ name, value, replacement });
-                    return `'${name}':${replacement}`;
-                } else {
-                    return `'${name}':${value}`;
-                }
-            })
-            .join(', ');
-        const str = surroundWithIgnoreComments(
-            `new ${node.name}({target: __sveltets_any(''), props: {${propsStr}}})`
-        );
-        return { str, shadowedProps };
     }
+
+    const lets = new Set<string>(
+        (node.attributes || []).filter((attr) => attr.type === 'Let').map((attr) => attr.name)
+    );
+    const shadowedProps: PropsShadowedByLet[] = [];
+    // Go through attribute values and mark those for reassignment to a const that
+    // either definitely shadow a let: or where it cannot be determined because the value is too complex.
+    const propsStr = getNameValuePairsFromAttributes(node, originalStr)
+        .map(({ name, value, identifier, complexExpression }) => {
+            if (complexExpression || lets.has(identifier)) {
+                const replacement = replacedPropsPrefix + sanitizePropName(name);
+                shadowedProps.push({ name, value, replacement });
+                return `'${name}':${replacement}`;
+            } else {
+                return `'${name}':${value}`;
+            }
+        })
+        .join(', ');
+    const str = surroundWithIgnoreComments(
+        `new ${node.name}({target: __sveltets_any(''), props: {${propsStr}}})`
+    );
+    return { str, shadowedProps };
 }
 
 function getNameValuePairsFromAttributes(
@@ -99,11 +95,15 @@ function getNameValuePairsFromAttributes(
      */
     value: string;
     /**
-     * If the attribute value's identifier can be determined, it's a string
-     * with its name. If the attribute value has no identifier, it's unset.
-     * If the attribute value is complex, it's `true`
+     * If the attribute value's identifier can be determined, it's a string with its name.
+     * If the attribute value has no identifier or is too complex, it's unset.
      */
-    identifier?: true | string;
+    identifier?: string;
+    /**
+     * If the attribute's value is too complex to determine a specific identifier from it,
+     * this is true.
+     */
+    complexExpression?: true;
 }> {
     return ((node.attributes as Node[]) || [])
         .filter((attr) => attr.type === 'Attribute')
@@ -120,32 +120,26 @@ function getNameValuePairsFromAttributes(
                     return { name, value: name, identifier: name };
                 }
                 if (val.type === 'Text') {
-                    return { name, value: `"${val.data || val.raw}"` };
+                    // Value not important, just that it's typeof text
+                    return { name, value: `""` };
                 }
                 if (val.type === 'MustacheTag') {
                     const valueStr = originalStr.substring(val.start + 1, val.end - 1);
                     if (val.expression.type === 'Identifier') {
                         return { name, value: valueStr, identifier: valueStr };
                     }
-                    return { name, value: valueStr, identifier: true };
+                    if (val.expression.type === 'Literal') {
+                        return { name, value: val.expression.value };
+                    }
+                    return { name, value: valueStr, complexExpression: true };
                 }
             }
 
-            const value =
-                '(' +
-                attr.value
-                    .map((val) => {
-                        if (val.type === 'Text') {
-                            return `"${val.data || val.raw}"`;
-                        } else if (val.type === 'MustacheTag') {
-                            return originalStr.substring(val.start + 1, val.end - 1);
-                        }
-                    })
-                    .filter((val) => !!val)
-                    .join(') + (') +
-                ')';
-
-            return { name, value, identifier: true };
+            // In the case of zero values, the user did attr="", which is the empty string.
+            // In the case of multiple values, the user did put in a property value
+            // like a="a{b}c" which is a template literal string. Since we only care
+            // about the type of the expression in the end, we can simplify this
+            return { name, value: '""' };
         });
 }
 

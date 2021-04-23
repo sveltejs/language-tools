@@ -323,7 +323,7 @@ export class IfScope {
      * in the conditions which would be overwritten by the scope
      * (because they declare a variable with the same name, therefore shadowing the outer variable).
      */
-    getConstsRedaclarationString(): string {
+    getConstDeclaration(): string {
         const replacements = this.getConstsToRedeclare().join(',');
         return replacements ? surroundWithIgnoreComments(`const ${replacements};`) : '';
     }

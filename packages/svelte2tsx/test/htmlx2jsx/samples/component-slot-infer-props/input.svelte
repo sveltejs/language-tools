@@ -1,4 +1,4 @@
-<Parent propA {propB} propC=val1 propD="val2" propE="a{a}b{b}" let:foo>
+<Parent bare {shorthand} text1=val1 text2="val2" text3="a{a}b{b}" textEmpty="" literal={true} complex={{a}} a-dashed-complex={{a}} let:foo>
     <Component slot="named" let:bar>
         {foo} {bar}
     </Component>

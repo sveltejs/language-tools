@@ -4,7 +4,8 @@
     {subthing}
     {shadowed1}
     shadowed-2={shadowed2}
-    complex=" {complex} "
+    templateString=" {complex} "
+    complex="{{complex}}"
     let:name={n}
     let:shadowed1
     let:shadowed2
