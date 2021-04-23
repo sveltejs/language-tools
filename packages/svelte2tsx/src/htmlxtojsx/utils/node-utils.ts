@@ -129,7 +129,9 @@ function getNameValuePairsFromAttributes(
                         return { name, value: valueStr, identifier: valueStr };
                     }
                     if (val.expression.type === 'Literal') {
-                        return { name, value: val.expression.value };
+                        const value =
+                            typeof val.expression.value === 'string' ? '""' : val.expression.value;
+                        return { name, value };
                     }
                     return { name, value: valueStr, complexExpression: true };
                 }
