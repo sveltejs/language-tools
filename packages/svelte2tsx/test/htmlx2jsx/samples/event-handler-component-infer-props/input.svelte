@@ -1,0 +1,1 @@
+<Component  bare {shorthand} text1=val1 text2="val2" text3="a{a}b{b}" textEmpty="" literal={true} complex={{a}} a-dashed-complex={{a}} on:click={e => e} />

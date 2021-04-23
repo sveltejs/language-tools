@@ -1,7 +1,7 @@
 ///<reference types="svelte" />
 <></>;function render() {
 <><Component>
-    {() => { let {a} = __sveltets_instanceOf(Component).$$slot_def['b'];<><div  >
+    {() => { let {a} = /*Ωignore_startΩ*/new Component({target: __sveltets_any(''), props: {}})/*Ωignore_endΩ*/.$$slot_def['b'];<><div  >
         <slot a={a}></slot>
     </div></>}}
 </Component></>

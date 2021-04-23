@@ -256,7 +256,13 @@ export class SlotHandler {
     }
 }
 
-export function getSingleSlotDef(componentNode: Node, slotName: string) {
+function getSingleSlotDef(componentNode: Node, slotName: string) {
+    // In contrast to getSingleSlotDef in htmlx2jsx, use a simple instanceOf-transformation here.
+    // This means that if someone forwards a slot whose type can only be infered from the input properties
+    // because there's a generic relationship, then that slot type is of type any or unknown.
+    // This is a limitation which could be tackled later. The problem is that in contrast to the transformation
+    // in htmlx2jsx, we cannot know for sure that all properties we would generate the component with exist
+    // in this scope, some could have been generated through each/await blocks or other lets.
     const componentType = getTypeForComponent(componentNode);
     return `__sveltets_instanceOf(${componentType}).$$slot_def['${slotName}']`;
 }

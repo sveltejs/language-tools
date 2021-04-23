@@ -1,5 +1,6 @@
 import { Node, walk } from 'estree-walker';
 import { BaseNode } from '../../interfaces';
+import { surroundWithIgnoreComments } from '../../utils/ignore';
 
 export function getTypeForComponent(node: Node): string {
     if (node.name === 'svelte:component' || node.name === 'svelte:self') {
@@ -7,6 +8,146 @@ export function getTypeForComponent(node: Node): string {
     } else {
         return node.name;
     }
+}
+
+export function getInstanceType(
+    node: Node,
+    originalStr: string,
+    replacedPropValues: PropsShadowedByLet[] = []
+): string {
+    if (node.name === 'svelte:component' || node.name === 'svelte:self') {
+        return '__sveltets_instanceOf(__sveltets_componentType())';
+    }
+
+    const propsStr = getNameValuePairsFromAttributes(node, originalStr)
+        .map(({ name, value }) => {
+            const replacedPropValue = replacedPropValues.find(
+                ({ name: propName }) => propName === name
+            )?.replacement;
+            return `'${name}':${replacedPropValue || value}`;
+        })
+        .join(', ');
+    return surroundWithIgnoreComments(
+        `new ${node.name}({target: __sveltets_any(''), props: {${propsStr}}})`
+    );
+}
+
+export interface PropsShadowedByLet {
+    name: string;
+    value: string;
+    replacement: string;
+}
+
+/**
+ * Return a string which makes it possible for TypeScript to infer the instance type of the given component.
+ * In the case of another component, this is done by creating a `new Comp({.. props: {..}})` code string.
+ * Alongside with the result a list of shadowed props is returned. A shadowed prop is a prop
+ * whose value is either too complex to analyse or contains an identifier which has the same name
+ * as a `let:X` expression on the component. In that case, the returned string only contains a reference
+ * to a constant which is `replacedPropsPrefix + propName`, so the calling code needs to make sure
+ * to create such a `const`.
+ */
+export function getInstanceTypeForDefaultSlot(
+    node: Node,
+    originalStr: string,
+    replacedPropsPrefix: string
+): { str: string; shadowedProps: PropsShadowedByLet[] } {
+    if (node.name === 'svelte:component' || node.name === 'svelte:self') {
+        return {
+            str: '__sveltets_instanceOf(__sveltets_componentType())',
+            shadowedProps: []
+        };
+    }
+
+    const lets = new Set<string>(
+        (node.attributes || []).filter((attr) => attr.type === 'Let').map((attr) => attr.name)
+    );
+    const shadowedProps: PropsShadowedByLet[] = [];
+    // Go through attribute values and mark those for reassignment to a const that
+    // either definitely shadow a let: or where it cannot be determined because the value is too complex.
+    const propsStr = getNameValuePairsFromAttributes(node, originalStr)
+        .map(({ name, value, identifier, complexExpression }) => {
+            if (complexExpression || lets.has(identifier)) {
+                const replacement = replacedPropsPrefix + sanitizePropName(name);
+                shadowedProps.push({ name, value, replacement });
+                return `'${name}':${replacement}`;
+            } else {
+                return `'${name}':${value}`;
+            }
+        })
+        .join(', ');
+    const str = surroundWithIgnoreComments(
+        `new ${node.name}({target: __sveltets_any(''), props: {${propsStr}}})`
+    );
+    return { str, shadowedProps };
+}
+
+function getNameValuePairsFromAttributes(
+    node: Node,
+    originalStr: string
+): Array<{
+    /**
+     * Attribute name
+     */
+    name: string;
+    /**
+     * Attribute value string
+     */
+    value: string;
+    /**
+     * If the attribute value's identifier can be determined, it's a string with its name.
+     * If the attribute value has no identifier or is too complex, it's unset.
+     */
+    identifier?: string;
+    /**
+     * If the attribute's value is too complex to determine a specific identifier from it,
+     * this is true.
+     */
+    complexExpression?: true;
+}> {
+    return ((node.attributes as Node[]) || [])
+        .filter((attr) => attr.type === 'Attribute')
+        .map((attr) => {
+            const name: string = attr.name;
+
+            if (attr.value === true) {
+                return { name, value: 'true' };
+            }
+
+            if (attr.value.length === 1) {
+                const val = attr.value[0];
+                if (val.type === 'AttributeShorthand') {
+                    return { name, value: name, identifier: name };
+                }
+                if (val.type === 'Text') {
+                    // Value not important, just that it's typeof text
+                    return { name, value: '""' };
+                }
+                if (val.type === 'MustacheTag') {
+                    const valueStr = originalStr.substring(val.start + 1, val.end - 1);
+                    if (val.expression.type === 'Identifier') {
+                        return { name, value: valueStr, identifier: valueStr };
+                    }
+                    if (val.expression.type === 'Literal') {
+                        return { name, value: val.expression.value };
+                    }
+                    return { name, value: valueStr, complexExpression: true };
+                }
+            }
+
+            // In the case of zero values, the user did attr="", which is the empty string.
+            // In the case of multiple values, the user did put in a property value
+            // like a="a{b}c" which is a template literal string. Since we only care
+            // about the type of the expression in the end, we can simplify this
+            return { name, value: '""' };
+        });
+}
+
+function sanitizePropName(name: string): string {
+    return name
+        .split('')
+        .map((char) => (/[0-9A-Za-z$_]/.test(char) ? char : '_'))
+        .join('');
 }
 
 export function getThisType(node: Node): string | undefined {

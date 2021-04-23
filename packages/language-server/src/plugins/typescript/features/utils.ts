@@ -61,10 +61,9 @@ export async function getComponentAtPosition(
 export function isInGeneratedCode(text: string, start: number, end: number) {
     const lineStart = text.lastIndexOf('\n', start);
     const lineEnd = text.indexOf('\n', end);
-    return (
-        text.substring(lineStart, start).includes('/*Ωignore_startΩ*/') &&
-        text.substring(end, lineEnd).includes('/*Ωignore_endΩ*/')
-    );
+    const lastStart = text.substring(lineStart, start).lastIndexOf('/*Ωignore_startΩ*/');
+    const lastEnd = text.substring(lineStart, start).lastIndexOf('/*Ωignore_endΩ*/');
+    return lastStart > lastEnd && text.substring(end, lineEnd).includes('/*Ωignore_endΩ*/');
 }
 
 /**
