@@ -1,6 +1,11 @@
 import ts from 'typescript';
 import { Diagnostic, DiagnosticSeverity, DiagnosticTag } from 'vscode-languageserver';
-import { Document, mapObjWithRangeToOriginal, getTextInRange } from '../../../lib/documents';
+import {
+    Document,
+    mapObjWithRangeToOriginal,
+    getTextInRange,
+    isRangeInTag
+} from '../../../lib/documents';
 import { DiagnosticsProvider } from '../../interfaces';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { convertRange, mapSeverity } from '../utils';
@@ -52,7 +57,7 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
             }))
             .map((diagnostic) => mapObjWithRangeToOriginal(fragment, diagnostic))
             .filter(hasNoNegativeLines)
-            .filter(isNoFalsePositive(document.getText(), tsDoc))
+            .filter(isNoFalsePositive(document, tsDoc))
             .map(enhanceIfNecessary)
             .map(swapRangeStartEndIfNecessary);
     }
@@ -82,14 +87,30 @@ function hasNoNegativeLines(diagnostic: Diagnostic): boolean {
     return diagnostic.range.start.line >= 0 && diagnostic.range.end.line >= 0;
 }
 
-function isNoFalsePositive(text: string, tsDoc: SvelteDocumentSnapshot) {
-    return (diagnostic: Diagnostic, idx: number) => {
+function isNoFalsePositive(document: Document, tsDoc: SvelteDocumentSnapshot) {
+    const text = document.getText();
+    const usesPug = document.getLanguageAttribute('template') === 'pug';
+
+    return (diagnostic: Diagnostic) => {
         return (
             isNoJsxCannotHaveMultipleAttrsError(diagnostic) &&
             isNoUnusedLabelWarningForReactiveStatement(diagnostic) &&
-            isNoUsedBeforeAssigned(diagnostic, text, tsDoc)
+            isNoUsedBeforeAssigned(diagnostic, text, tsDoc) &&
+            (!usesPug || isNoPugFalsePositive(diagnostic, document))
         );
     };
+}
+
+/**
+ * All diagnostics inside the template tag and the unused import/variable diagnostics
+ * are marked as false positive.
+ */
+function isNoPugFalsePositive(diagnostic: Diagnostic, document: Document): boolean {
+    return (
+        !isRangeInTag(diagnostic.range, document.templateInfo) &&
+        diagnostic.code !== 6133 &&
+        diagnostic.code !== 6192
+    );
 }
 
 /**
