@@ -121,7 +121,7 @@ function getNameValuePairsFromAttributes(
                 }
                 if (val.type === 'Text') {
                     // Value not important, just that it's typeof text
-                    return { name, value: `""` };
+                    return { name, value: '""' };
                 }
                 if (val.type === 'MustacheTag') {
                     const valueStr = originalStr.substring(val.start + 1, val.end - 1);
