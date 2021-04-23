@@ -72,7 +72,11 @@ function blankIfBlocks(text: string): string {
  * @param source text content to extract tag from
  * @param tag the tag to extract
  */
-function extractTags(text: string, tag: 'script' | 'style', html?: HTMLDocument): TagInformation[] {
+function extractTags(
+    text: string,
+    tag: 'script' | 'style' | 'template',
+    html?: HTMLDocument
+): TagInformation[] {
     text = blankIfBlocks(text);
     const rootNodes = html?.roots || parseHtml(text).roots;
     const matchedNodes = rootNodes
@@ -171,6 +175,16 @@ export function extractStyleTag(source: string, html?: HTMLDocument): TagInforma
 
     // There can only be one style tag
     return styles[0];
+}
+
+export function extractTemplateTag(source: string, html?: HTMLDocument): TagInformation | null {
+    const templates = extractTags(source, 'template', html);
+    if (!templates.length) {
+        return null;
+    }
+
+    // There should only be one style tag
+    return templates[0];
 }
 
 /**

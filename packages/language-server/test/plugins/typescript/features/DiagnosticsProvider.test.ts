@@ -871,4 +871,63 @@ describe('DiagnosticsProvider', () => {
             }
         ]);
     });
+
+    it('Pug: Ignores errors in template and unused warnings in script', async () => {
+        const { plugin, document } = setup('diagnostics-pug.svelte');
+        const diagnostics = await plugin.getDiagnostics(document);
+
+        assert.deepStrictEqual(diagnostics, [
+            {
+                code: 2307,
+                message: "Cannot find module '.' or its corresponding type declarations.",
+                range: {
+                    end: {
+                        character: 22,
+                        line: 1
+                    },
+                    start: {
+                        character: 19,
+                        line: 1
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            },
+            {
+                code: 2307,
+                message: "Cannot find module '.' or its corresponding type declarations.",
+                range: {
+                    end: {
+                        character: 30,
+                        line: 2
+                    },
+                    start: {
+                        character: 27,
+                        line: 2
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            },
+            {
+                code: 2322,
+                message: "Type 'boolean' is not assignable to type 'string | number'.",
+                range: {
+                    end: {
+                        character: 10,
+                        line: 4
+                    },
+                    start: {
+                        character: 9,
+                        line: 4
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            }
+        ]);
+    });
 });

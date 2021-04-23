@@ -1,6 +1,6 @@
 import { urlToPath } from '../../utils';
 import { WritableDocument } from './DocumentBase';
-import { extractScriptTags, extractStyleTag, TagInformation } from './utils';
+import { extractScriptTags, extractStyleTag, extractTemplateTag, TagInformation } from './utils';
 import { parseHtml } from './parseHtml';
 import { SvelteConfig, configLoader } from './configLoader';
 import { HTMLDocument } from 'vscode-html-languageservice';
@@ -13,6 +13,7 @@ export class Document extends WritableDocument {
     scriptInfo: TagInformation | null = null;
     moduleScriptInfo: TagInformation | null = null;
     styleInfo: TagInformation | null = null;
+    templateInfo: TagInformation | null = null;
     configPromise: Promise<SvelteConfig | undefined>;
     config?: SvelteConfig;
     html!: HTMLDocument;
@@ -25,8 +26,8 @@ export class Document extends WritableDocument {
 
     private updateDocInfo() {
         this.html = parseHtml(this.content);
-        const scriptTags = extractScriptTags(this.content, this.html);
         const update = (config: SvelteConfig | undefined) => {
+            const scriptTags = extractScriptTags(this.content, this.html);
             this.config = config;
             this.scriptInfo = this.addDefaultLanguage(config, scriptTags?.script || null, 'script');
             this.moduleScriptInfo = this.addDefaultLanguage(
@@ -38,6 +39,11 @@ export class Document extends WritableDocument {
                 config,
                 extractStyleTag(this.content, this.html),
                 'style'
+            );
+            this.templateInfo = this.addDefaultLanguage(
+                config,
+                extractTemplateTag(this.content, this.html),
+                'markup'
             );
         };
 
@@ -82,14 +88,16 @@ export class Document extends WritableDocument {
     }
 
     /**
-     * Returns the language associated to either script or style.
+     * Returns the language associated to script, style or template.
      * Returns an empty string if there's nothing set.
      */
-    getLanguageAttribute(tag: 'script' | 'style'): string {
+    getLanguageAttribute(tag: 'script' | 'style' | 'template'): string {
         const attrs =
             (tag === 'style'
                 ? this.styleInfo?.attributes
-                : this.scriptInfo?.attributes || this.moduleScriptInfo?.attributes) || {};
+                : tag === 'script'
+                ? this.scriptInfo?.attributes || this.moduleScriptInfo?.attributes
+                : this.templateInfo?.attributes) || {};
         const lang = attrs.lang || attrs.type || '';
         return lang.replace(/^text\//, '');
     }
@@ -97,7 +105,7 @@ export class Document extends WritableDocument {
     private addDefaultLanguage(
         config: SvelteConfig | undefined,
         tagInfo: TagInformation | null,
-        tag: 'style' | 'script'
+        tag: 'style' | 'script' | 'markup'
     ): TagInformation | null {
         if (!tagInfo || !config) {
             return tagInfo;
