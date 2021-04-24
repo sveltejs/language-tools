@@ -106,7 +106,7 @@ function getNameValuePairsFromAttributes(
     complexExpression?: true;
 }> {
     return ((node.attributes as Node[]) || [])
-        .filter((attr) => attr.type === 'Attribute')
+        .filter((attr) => attr.type === 'Attribute' && !attr.name.startsWith('--'))
         .map((attr) => {
             const name: string = attr.name;
 
