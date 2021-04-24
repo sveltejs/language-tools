@@ -82,6 +82,12 @@ export function handleAttribute(
         }
     }
 
+    // Custom property -> remove completely due to JSX incompatibility
+    if (parent.type === 'InlineComponent' && attr.name.startsWith('--')) {
+        str.overwrite(attr.start, attr.end, '', { contentOnly: true });
+        return;
+    }
+
     //we are a bare attribute
     if (attr.value === true) {
         if (
