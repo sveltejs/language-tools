@@ -64,7 +64,7 @@ import { getDirectiveCommentCompletions } from './features/getDirectiveCommentCo
 import { FindReferencesProviderImpl } from './features/FindReferencesProvider';
 import { SelectionRangeProviderImpl } from './features/SelectionRangeProvider';
 import { SignatureHelpProviderImpl } from './features/SignatureHelpProvider';
-import { SnapshotManager } from './SnapshotManager';
+import { ignoredBuildDirectories, SnapshotManager } from './SnapshotManager';
 import { SemanticTokensProviderImpl } from './features/SemanticTokensProvider';
 import { isNoTextSpanInGeneratedCode, SnapshotFragmentMap } from './features/utils';
 
@@ -367,8 +367,13 @@ export class TypeScriptPlugin
         const doneUpdateProjectFiles = new Set<SnapshotManager>();
 
         for (const { fileName, changeType } of onWatchFileChangesParas) {
-            const scriptKind = getScriptKindFromFileName(fileName);
+            const pathParts = fileName.split(/\/|\\/);
+            const dirPathParts = pathParts.slice(0, pathParts.length);
+            if (ignoredBuildDirectories.some((dir) => dirPathParts.includes(dir))) {
+                continue;
+            }
 
+            const scriptKind = getScriptKindFromFileName(fileName);
             if (scriptKind === ts.ScriptKind.Unknown) {
                 // We don't deal with svelte files here
                 continue;
@@ -382,7 +387,10 @@ export class TypeScriptPlugin
                 }
             } else if (changeType === FileChangeType.Deleted) {
                 snapshotManager.delete(fileName);
-            } else {
+            } else if (snapshotManager.has(fileName)) {
+                // Only allow existing files to be update
+                // Otherwise, new files would still get loaded
+                // into snapshot manager after update
                 snapshotManager.updateTsOrJsFile(fileName);
             }
         }

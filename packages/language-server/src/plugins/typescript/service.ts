@@ -5,7 +5,7 @@ import { Logger } from '../../logger';
 import { getPackageInfo } from '../../importPackage';
 import { DocumentSnapshot } from './DocumentSnapshot';
 import { createSvelteModuleLoader } from './module-loader';
-import { SnapshotManager } from './SnapshotManager';
+import { ignoredBuildDirectories, SnapshotManager } from './SnapshotManager';
 import { ensureRealSvelteFilePath, findTsConfigPath } from './utils';
 import { configLoader } from '../../lib/documents/configLoader';
 
@@ -269,6 +269,6 @@ async function createLanguageService(
     }
 
     function getDefaultExclude() {
-        return ['__sapper__', 'node_modules'];
+        return ['node_modules', ...ignoredBuildDirectories];
     }
 }
