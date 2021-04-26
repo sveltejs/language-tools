@@ -2,6 +2,7 @@ import MagicString from 'magic-string';
 import { Node } from 'estree-walker';
 import ts from 'typescript';
 import { ImplicitStoreValues } from './nodes/ImplicitStoreValues';
+import { handleTypeAssertion } from './nodes/handleTypeAssertion';
 
 export function processModuleScriptTag(
     str: MagicString,
@@ -45,6 +46,10 @@ function resolveImplicitStores(
 
         if (ts.isImportSpecifier(node)) {
             implicitStoreValues.addImportStatement(node);
+        }
+
+        if (ts.isTypeAssertionExpression?.(node)) {
+            handleTypeAssertion(str, node, astOffset);
         }
 
         ts.forEachChild(node, (n) => walk(n));
