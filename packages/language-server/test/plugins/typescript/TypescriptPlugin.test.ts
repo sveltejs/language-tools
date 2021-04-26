@@ -8,6 +8,7 @@ import { LSConfigManager } from '../../../src/ls-config';
 import { TypeScriptPlugin } from '../../../src/plugins';
 import { INITIAL_VERSION } from '../../../src/plugins/typescript/DocumentSnapshot';
 import { pathToUrl, urlToPath } from '../../../src/utils';
+import { ignoredBuildDirectories } from '../../../src/plugins/typescript/SnapshotManager';
 
 describe('TypescriptPlugin', () => {
     function getUri(filename: string) {
@@ -454,6 +455,15 @@ describe('TypescriptPlugin', () => {
             ]);
 
             assert.equal(snapshotManager.has(normalizedAddFilePath), shouldExist);
+
+            await plugin.onWatchFileChanges([
+                {
+                    fileName: normalizedAddFilePath,
+                    changeType: FileChangeType.Changed
+                }
+            ]);
+
+            assert.equal(snapshotManager.has(normalizedAddFilePath), shouldExist);
         } finally {
             fs.unlinkSync(addFile);
         }
@@ -465,6 +475,12 @@ describe('TypescriptPlugin', () => {
 
     it('should not add snapshot when an excluded file is added', async () => {
         await testForOnWatchedFileAdd(path.join('dist', 'index.js'), false);
+    });
+
+    it('should not add snapshot when files added to known build directory', async () => {
+        for (const dir of ignoredBuildDirectories) {
+            await testForOnWatchedFileAdd(path.join(dir, 'index.js'), false);
+        }
     });
 
     it('should update ts/js file after document change', async () => {
