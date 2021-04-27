@@ -51,7 +51,6 @@ export class Document extends WritableDocument {
         if (config && !config.loadConfigError) {
             update(config);
         } else {
-            this.configPromise = configLoader.awaitConfig(this.getFilePath() || '');
             update(undefined);
             this.configPromise.then((c) => update(c));
         }
