@@ -86,7 +86,7 @@ export class LSAndTSDocResolver {
     async getSnapshot(pathOrDoc: string | Document) {
         const filePath = typeof pathOrDoc === 'string' ? pathOrDoc : pathOrDoc.getFilePath() || '';
         const tsService = await this.getTSService(filePath);
-        return tsService.updateDocument(pathOrDoc);
+        return tsService.updateSnapshot(pathOrDoc);
     }
 
     async updateSnapshotPath(oldPath: string, newPath: string): Promise<DocumentSnapshot> {
@@ -95,7 +95,7 @@ export class LSAndTSDocResolver {
     }
 
     async deleteSnapshot(filePath: string) {
-        (await this.getTSService(filePath)).deleteDocument(filePath);
+        (await this.getTSService(filePath)).deleteSnapshot(filePath);
         this.docManager.releaseDocument(pathToUrl(filePath));
     }
 
