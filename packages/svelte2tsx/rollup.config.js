@@ -72,8 +72,17 @@ export default [
     {
         input: 'src/index.ts',
         output: [
-            { exports: 'auto', file: 'index.js', format: 'commonjs', sourcemap: true },
-            { exports: 'auto', file: 'index.mjs', format: 'esm' }
+            {
+                exports: 'auto',
+                sourcemap: true,
+                format: 'commonjs',
+                file: 'index.js'
+            },
+            {
+                exports: 'auto',
+                file: 'index.mjs',
+                format: 'esm'
+            }
         ],
         plugins: [
             resolve({ browser: false, preferBuiltins: true }),
