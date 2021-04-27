@@ -143,7 +143,13 @@ export function activate(context: ExtensionContext) {
         })
     );
 
+    let restartingLs = false;
     async function restartLS(showNotification: boolean) {
+        if (restartingLs) {
+            return;
+        }
+
+        restartingLs = true;
         await ls.stop();
         ls = createLanguageServer(serverOptions, clientOptions);
         context.subscriptions.push(ls.start());
@@ -151,6 +157,7 @@ export function activate(context: ExtensionContext) {
         if (showNotification) {
             window.showInformationMessage('Svelte language server restarted.');
         }
+        restartingLs = false;
     }
 
     function getLS() {
