@@ -5,26 +5,66 @@ import typescript from '@rollup/plugin-typescript';
 import builtins from 'builtin-modules';
 import fs from 'fs';
 import path from 'path';
+import { decode } from 'sourcemap-codec';
+
+const DEV = !!process.env.ROLLUP_WATCH;
 
 function repl() {
+    require('ts-node').register({
+        project: 'test/tsconfig.json',
+        transpileOnly: true
+    });
+    const OUTDIR = path.resolve(__dirname, 'repl', 'output');
+
+    const INPUT = path.resolve(__dirname, 'repl', 'index.svelte');
+    const OUTPUT = path.resolve(__dirname, 'repl', 'output', 'code.tsx');
+    const MAP = path.resolve(__dirname, 'repl', 'output', 'code.tsx.map');
+    const MAPPINGS = path.resolve(__dirname, 'repl', 'output', 'mappings.jsx');
+
     return {
         name: 'dev-repl',
         buildStart() {
-            this.addWatchFile('./repl/index.svelte');
+            this.addWatchFile(INPUT);
         },
         writeBundle() {
-            if (!this.meta.watchMode) return;
+            const BUILD = require.resolve('./index.js');
+            const BUILD_TEST = require.resolve('./test/build.ts');
 
-            const repl = `${__dirname}/repl/`;
-            const output = `${__dirname}/repl/output/`;
-
-            delete require.cache[path.resolve(__dirname, 'index.js')];
+            delete require.cache[BUILD];
             const svelte2tsx = require('./index.js');
 
-            const tsx = svelte2tsx(fs.readFileSync(`${repl}/index.svelte`, 'utf-8'));
+            delete require.cache[BUILD_TEST];
+            require.cache[BUILD_TEST] = require.cache[BUILD];
+            const { process_transformed_text } = require('./test/sourcemaps/process');
 
-            if (!fs.existsSync(output)) fs.mkdirSync(output);
-            fs.writeFileSync(`${repl}/output/code.tsx`, tsx.code);
+            const input_content = fs.readFileSync(INPUT, 'utf-8');
+
+            try {
+                const { code, map } = svelte2tsx(input_content);
+
+                map.file = 'code.tsx';
+                map.sources = ['index.svelte'];
+                map.sourcesContent = [input_content];
+
+                if (!fs.existsSync(OUTDIR)) fs.mkdirSync(OUTDIR);
+                fs.writeFileSync(OUTPUT, code);
+                fs.writeFileSync(MAP, map.toString());
+
+                try {
+                    const mappings = process_transformed_text(
+                        input_content,
+                        code, // @ts-expect-error
+                        decode(map.mappings)
+                    ).print_mappings();
+
+                    fs.writeFileSync(MAPPINGS, mappings);
+                } catch (e) {
+                    fs.writeFileSync(MAPPINGS, e.toString());
+                }
+            } catch (e) {
+                fs.writeFileSync(OUTPUT, e.toString());
+                fs.writeFileSync(MAPPINGS, e.toString());
+            }
         }
     };
 }
@@ -32,22 +72,15 @@ export default [
     {
         input: 'src/index.ts',
         output: [
-            {
-                sourcemap: true,
-                format: 'commonjs',
-                file: 'index.js'
-            },
-            {
-                file: 'index.mjs',
-                format: 'esm'
-            }
+            { exports: 'auto', file: 'index.js', format: 'commonjs', sourcemap: true },
+            { exports: 'auto', file: 'index.mjs', format: 'esm' }
         ],
         plugins: [
             resolve({ browser: false, preferBuiltins: true }),
             commonjs(),
             json(),
             typescript({ include: ['src/**/*'] }),
-            repl()
+            DEV && repl()
         ],
         watch: {
             clearScreen: false
