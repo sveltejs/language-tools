@@ -288,9 +288,7 @@ export function handle_subset(str: MagicString, fullnode: BaseNode) {
         }
         const tail = strings[nodes.length];
         if (tail) {
-            //if (start !== fullnode.end || tail !== str.slice(start, fullnode.end)) {
-            const offset = start === fullnode.end - 1 ? 2 : 1;
-            str.overwrite(start, fullnode.end + offset, tail + str.original.charAt(fullnode.end));
+            str.overwrite(start, fullnode.end + 1, tail + str.original.charAt(fullnode.end));
         }
     }
     return { deconstruct, edit };
