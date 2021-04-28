@@ -1,4 +1,5 @@
 import { Node, walk } from 'estree-walker';
+import MagicString from 'magic-string';
 import { BaseNode } from '../../interfaces';
 import { surroundWithIgnoreComments } from '../../utils/ignore';
 
@@ -210,4 +211,87 @@ export function getIdentifiersInIfExpression(
 
 export function usesLet(node: BaseNode): boolean {
     return node.attributes?.some((attr) => attr.type === 'Let');
+}
+
+export function handle_subset(str: MagicString, fullnode: BaseNode) {
+    type Range = {
+        start: number;
+        end: number;
+    };
+
+    function print_string(str: string) {
+        return str.replace(/[\r\n]/g, '↲').replace(/\t/g, '╚');
+    }
+
+    function match_regexp(pattern: string, start: number): Range {
+        const re = new RegExp(pattern, 'g');
+        re.lastIndex = start;
+        const match = re.exec(str.original);
+        if (!match || match.index !== start) {
+            throw new Error(`Expected to match /${pattern}/` + at(start));
+        }
+        return { start, end: start + match[0].length };
+    }
+
+    function match_string(pattern: string, start: number): Range {
+        if (str.original.indexOf(pattern, start) !== start) {
+            throw new Error(`Expected "${pattern}"` + at(start));
+        }
+        return { start, end: start + pattern.length };
+    }
+
+    function at(index: number) {
+        const pre = print_string(str.original.slice(Math.max(0, index - 5), index));
+        const post = print_string(str.original.slice(index, index + 15));
+        return `\n  ${pre}${post}` + `\n  ${pre.replace(/./g, ' ')}^`;
+    }
+
+    function* deconstruct(patterns: TemplateStringsArray, ...nodes: (Range | string)[]) {
+        let start = fullnode.start;
+        for (let i = 0; i < patterns.length; i++) {
+            const pattern = patterns.raw[i];
+            start = match_regexp(pattern, start).end;
+            if (i !== patterns.length - 1) {
+                const node = nodes[i];
+                if (typeof node === 'string') {
+                    yield match_string(node, start);
+                    start += node.length;
+                } else {
+                    yield node;
+                    start = node.end;
+                }
+            }
+        }
+    }
+
+    function edit(strings: TemplateStringsArray, ...nodes: (Range | string)[]) {
+        let start = fullnode.start;
+        strings = { ...strings };
+        for (let i = 0; i < nodes.length; i++) {
+            const next_node = nodes[i];
+            if (typeof next_node === 'string') {
+                // @ts-expect-error TemplateStringsArray is readonly
+                strings[i + 1] = strings[i] + next_node + strings[i + 1];
+            } else {
+                if (next_node.start < start) {
+                    const snippet = `${strings.raw[i]}\${<ReorderedNode>}${strings.raw[i + 1]}`;
+                    throw new Error(`Subset Nodes cannot be reordered! (${snippet})`);
+                }
+                if (i === 0) {
+                    str.remove(start, next_node.start);
+                    str.prependLeft(next_node.start, strings[i]);
+                } else {
+                    str.overwrite(start, next_node.start, strings[i]);
+                }
+                start = next_node.end;
+            }
+        }
+        const tail = strings[nodes.length];
+        if (tail) {
+            //if (start !== fullnode.end || tail !== str.slice(start, fullnode.end)) {
+            const offset = start === fullnode.end - 1 ? 2 : 1;
+            str.overwrite(start, fullnode.end + offset, tail + str.original.charAt(fullnode.end));
+        }
+    }
+    return { deconstruct, edit };
 }

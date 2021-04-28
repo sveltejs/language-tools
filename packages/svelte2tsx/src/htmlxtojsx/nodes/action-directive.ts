@@ -1,31 +1,24 @@
 import MagicString from 'magic-string';
-import { isQuote } from '../utils/node-utils';
 import { BaseDirective, BaseNode } from '../../interfaces';
+import { handle_subset } from '../utils/node-utils';
 
 /**
  * use:xxx={params}   --->    {...__sveltets_ensureAction(xxx(__sveltets_mapElementTag('ParentNodeName'),(params)))}
  */
 export function handleActionDirective(
-    htmlx: string,
+    _htmlx: string,
     str: MagicString,
     attr: BaseDirective,
     parent: BaseNode
 ): void {
-    str.overwrite(attr.start, attr.start + 'use:'.length, '{...__sveltets_ensureAction(');
+    const subset = handle_subset(str, attr);
 
-    if (!attr.expression) {
-        str.appendLeft(attr.end, `(__sveltets_mapElementTag('${parent.name}')))}`);
-        return;
-    }
-
-    str.overwrite(
-        attr.start + `use:${attr.name}`.length,
-        attr.expression.start,
-        `(__sveltets_mapElementTag('${parent.name}'),(`
-    );
-    str.appendLeft(attr.expression.end, ')))');
-    const lastChar = htmlx[attr.end - 1];
-    if (isQuote(lastChar)) {
-        str.remove(attr.end - 1, attr.end);
+    if (attr.expression == null) {
+        const [action] = subset.deconstruct`use:${attr.name}`;
+        subset.edit`{...__sveltets_ensureAction(${action}(__sveltets_mapElementTag('${parent.name}')))}`;
+    } else {
+        // prettier-ignore
+        const [action, expression] = subset.deconstruct`use:${attr.name}=["']?{${attr.expression}}["']"?`;
+        subset.edit`{...__sveltets_ensureAction(${action}(__sveltets_mapElementTag('${parent.name}'),(${expression})))}`;
     }
 }
