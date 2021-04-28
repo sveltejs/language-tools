@@ -18,7 +18,7 @@ export function handleActionDirective(
         subset.edit`{...__sveltets_ensureAction(${action}(__sveltets_mapElementTag('${parent.name}')))}`;
     } else {
         // prettier-ignore
-        const [action, expression] = subset.deconstruct`use:${attr.name}=["']?{${attr.expression}}["']"?`;
+        const [action, expression] = subset.deconstruct`use:${attr.name}=["']?{${attr.expression}}["']?`;
         subset.edit`{...__sveltets_ensureAction(${action}(__sveltets_mapElementTag('${parent.name}'),(${expression})))}`;
     }
 }
