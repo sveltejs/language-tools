@@ -246,7 +246,7 @@ export function handle_subset(str: MagicString, fullnode: BaseNode) {
         return `\n  ${pre}${post}` + `\n  ${pre.replace(/./g, ' ')}^`;
     }
 
-    function* deconstruct(patterns: TemplateStringsArray, ...nodes: (Range | string)[]) {
+    function* deconstruct(patterns: TemplateStringsArray, ...nodes: Array<Range | string>) {
         let start = fullnode.start;
         for (let i = 0; i < patterns.length; i++) {
             const pattern = patterns.raw[i];
@@ -264,7 +264,7 @@ export function handle_subset(str: MagicString, fullnode: BaseNode) {
         }
     }
 
-    function edit(strings: TemplateStringsArray, ...nodes: (Range | string)[]) {
+    function edit(strings: TemplateStringsArray, ...nodes: Array<Range | string>) {
         let start = fullnode.start;
         strings = { ...strings };
         for (let i = 0; i < nodes.length; i++) {
