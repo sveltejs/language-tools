@@ -17,7 +17,7 @@ module.exports = {
         'import/no-cycle': 'off',
         'import/no-unused-modules': 'off',
         'import/no-deprecated': 'off',
-		// handled by prettier
+        // handled by prettier
         'max-len': 'off',
         // project-specific settings
         'no-trailing-spaces': 'error',
