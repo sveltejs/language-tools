@@ -31,7 +31,7 @@ export class SvelteSnapshot {
 
         // Assumption: We don't change identifiers itself, so we don't change ranges.
         return {
-            start: start,
+            start,
             length: textSpan.length
         };
     }
@@ -64,30 +64,6 @@ export class SvelteSnapshot {
     setAndPatchScriptInfo(scriptInfo: ts.server.ScriptInfo) {
         // @ts-expect-error
         scriptInfo.scriptKind = this.typescript.ScriptKind.TSX;
-        // const editContent = scriptInfo.editContent.bind(scriptInfo);
-        // scriptInfo.editContent = (start, end, newText) => {
-        //     const getOriginal = (pos: number) => {
-        //         const lineOffset = scriptInfo.positionToLineOffset(start);
-        //         const original = this.mapper.getOriginalPosition({
-        //             line: lineOffset.line - 1,
-        //             character: lineOffset.offset - 1
-        //         });
-        //         return scriptInfo.lineOffsetToPosition(original.line + 1, original.character + 1);
-        //     };
-        //     this.log(
-        //         'EDIT CONTENT: ',
-        //         newText,
-        //         '|',
-        //         start,
-        //         '->',
-        //         getOriginal(start),
-        //         '|',
-        //         end,
-        //         '->',
-        //         getOriginal(end)
-        //     );
-        //     editContent(getOriginal(start), getOriginal(end), newText);
-        // };
 
         const positionToLineOffset = scriptInfo.positionToLineOffset.bind(scriptInfo);
         scriptInfo.positionToLineOffset = (position) => {

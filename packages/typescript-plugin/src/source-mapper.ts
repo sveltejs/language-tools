@@ -30,7 +30,7 @@ function binaryInsert<T extends Record<any, number> | number[]>(
     value: T,
     key: keyof T
 ): void;
-function binaryInsert<A extends Record<any, number>[] | number[]>(
+function binaryInsert<A extends Array<Record<any, number>> | number[]>(
     array: A,
     value: A[any],
     key?: keyof (A[any] & object)

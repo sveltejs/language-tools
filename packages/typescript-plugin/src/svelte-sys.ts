@@ -1,12 +1,6 @@
 import ts from 'typescript';
-import svelte2tsx from 'svelte2tsx';
-import {
-    ensureRealSvelteFilePath,
-    isSvelteFilePath,
-    isVirtualSvelteFilePath,
-    toRealSvelteFilePath
-} from './utils';
 import { Logger } from './logger';
+import { ensureRealSvelteFilePath, isVirtualSvelteFilePath, toRealSvelteFilePath } from './utils';
 
 /**
  * This should only be accessed by TS svelte module resolution.
@@ -16,17 +10,6 @@ export function createSvelteSys(logger: Logger) {
         ...ts.sys,
         fileExists(path: string) {
             return ts.sys.fileExists(ensureRealSvelteFilePath(path));
-        },
-        readFile(path: string) {
-            if (isSvelteFilePath(path)) {
-                try {
-                    return svelte2tsx(ts.sys.readFile(path) || '').code;
-                } catch (e) {
-                    throw e;
-                }
-            } else {
-                return ts.sys.readFile(path);
-            }
         },
         readDirectory(path, extensions, exclude, include, depth) {
             const extensionsWithSvelte = (extensions ?? []).concat('.svelte');

@@ -39,7 +39,7 @@ export function decorateRename(
                 const converted = {
                     ...renameLocation,
                     textSpan: {
-                        start: start,
+                        start,
                         length: renameLocation.textSpan.length
                     }
                 };
