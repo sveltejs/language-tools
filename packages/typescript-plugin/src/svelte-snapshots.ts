@@ -2,7 +2,7 @@ import svelte2tsx from 'svelte2tsx';
 import type ts from 'typescript/lib/tsserverlibrary';
 import { Logger } from './logger';
 import { SourceMapper } from './source-mapper';
-import { isSvelteFilePath } from './utils';
+import { isNoTextSpanInGeneratedCode, isSvelteFilePath } from './utils';
 
 export class SvelteSnapshot {
     private scriptInfo?: ts.server.ScriptInfo;
@@ -24,6 +24,10 @@ export class SvelteSnapshot {
     }
 
     getOriginalTextSpan(textSpan: ts.TextSpan): ts.TextSpan | null {
+        if (!isNoTextSpanInGeneratedCode(this.getText(), textSpan)) {
+            return null;
+        }
+
         const start = this.getOriginalOffset(textSpan.start);
         if (start === -1) {
             return null;
@@ -191,6 +195,14 @@ export class SvelteSnapshot {
 
     private toggleMappingMode(convertInternalCodePositions: boolean) {
         this.convertInternalCodePositions = convertInternalCodePositions;
+    }
+
+    private getText() {
+        const snapshot = this.scriptInfo?.getSnapshot();
+        if (!snapshot) {
+            return '';
+        }
+        return snapshot.getText(0, snapshot.getLength());
     }
 }
 

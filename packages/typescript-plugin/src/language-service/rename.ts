@@ -31,17 +31,14 @@ export function decorateRename(
                 }
 
                 // TODO more needed to filter invalid locations, see RenameProvider
-                const start = snapshot.getOriginalOffset(renameLocation.textSpan.start);
-                if (start === -1) {
+                const textSpan = snapshot.getOriginalTextSpan(renameLocation.textSpan);
+                if (!textSpan) {
                     return null;
                 }
 
                 const converted = {
                     ...renameLocation,
-                    textSpan: {
-                        start,
-                        length: renameLocation.textSpan.length
-                    }
+                    textSpan
                 };
                 if (converted.contextSpan) {
                     // Not important, spare the work
