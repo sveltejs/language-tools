@@ -23,6 +23,6 @@
     },
     "dependencies": {
         "svelte2tsx": "*",
-        "sourcemap-codec": "^1.4.8"
+        "sourcemap-codec": "^1.4.4"
     }
 }
