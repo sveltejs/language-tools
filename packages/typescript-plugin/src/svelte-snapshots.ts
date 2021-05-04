@@ -6,6 +6,7 @@ import { isNoTextSpanInGeneratedCode, isSvelteFilePath } from './utils';
 
 export class SvelteSnapshot {
     private scriptInfo?: ts.server.ScriptInfo;
+    private lineOffsets?: number[];
     private convertInternalCodePositions = false;
 
     constructor(
@@ -20,6 +21,7 @@ export class SvelteSnapshot {
     update(svelteCode: string, mapper: SourceMapper) {
         this.svelteCode = svelteCode;
         this.mapper = mapper;
+        this.lineOffsets = undefined;
         this.log('Updated Snapshot');
     }
 
@@ -47,7 +49,7 @@ export class SvelteSnapshot {
 
         this.toggleMappingMode(true);
         const lineOffset = this.scriptInfo.positionToLineOffset(generatedOffset);
-        this.log('try convert offset', generatedOffset, '/', lineOffset);
+        this.debug('try convert offset', generatedOffset, '/', lineOffset);
         const original = this.mapper.getOriginalPosition({
             line: lineOffset.line - 1,
             character: lineOffset.offset - 1
@@ -61,7 +63,7 @@ export class SvelteSnapshot {
             original.line + 1,
             original.character + 1
         );
-        this.log('converted to', original, '/', originalOffset);
+        this.debug('converted offset to', original, '/', originalOffset);
         return originalOffset;
     }
 
@@ -71,39 +73,48 @@ export class SvelteSnapshot {
 
         const positionToLineOffset = scriptInfo.positionToLineOffset.bind(scriptInfo);
         scriptInfo.positionToLineOffset = (position) => {
-            const lineOffset = this.positionAt(position);
-            // const e = new Error('').stack;
-            this.log(
-                'script info for',
-                this.fileName,
-                'convert ',
-                position,
-                this.convertInternalCodePositions,
-                lineOffset
-                // e
-            );
             if (this.convertInternalCodePositions) {
-                return positionToLineOffset(position);
+                const lineOffset = positionToLineOffset(position);
+                this.debug('positionToLineOffset for generated code', position, lineOffset);
+                return lineOffset;
             }
+
+            const lineOffset = this.positionAt(position);
+            this.debug('positionToLineOffset for original code', position, lineOffset);
             return { line: lineOffset.line + 1, offset: lineOffset.character + 1 };
         };
 
         const lineOffsetToPosition = scriptInfo.lineOffsetToPosition.bind(scriptInfo);
         scriptInfo.lineOffsetToPosition = (line, offset) => {
             if (this.convertInternalCodePositions) {
-                return lineOffsetToPosition(line, offset);
+                const position = lineOffsetToPosition(line, offset);
+                this.debug('lineOffsetToPosition for generated code', { line, offset }, position);
+                return position;
             }
-            return this.offsetAt({ line: line - 1, character: offset - 1 });
+
+            const position = this.offsetAt({ line: line - 1, character: offset - 1 });
+            this.debug('lineOffsetToPosition for original code', { line, offset }, position);
+            return position;
         };
 
-        const lineToTextSpan = scriptInfo.lineToTextSpan.bind(scriptInfo);
-        scriptInfo.lineToTextSpan = (line) => {
-            // if (this.convertInternalCodePositions) {
-            const res = lineToTextSpan(line);
-            this.log('lineToTextSpan', line, '::', res);
-            return res;
-            // }
-        };
+        // TODO do we need to patch this?
+        // const lineToTextSpan = scriptInfo.lineToTextSpan.bind(scriptInfo);
+        // scriptInfo.lineToTextSpan = (line) => {
+        //     if (this.convertInternalCodePositions) {
+        //         const span = lineToTextSpan(line);
+        //         this.debug('lineToTextSpan for generated code', line, span);
+        //         return span;
+        //     }
+
+        //     const lineOffset = this.getLineOffsets();
+        //     const start = lineOffset[line - 1];
+        //     const span: ts.TextSpan = {
+        //         start,
+        //         length: (lineOffset[line] || this.svelteCode.length) - start
+        //     };
+        //     this.debug('lineToTextSpan for original code', line, span);
+        //     return span;
+        // };
 
         this.scriptInfo = scriptInfo;
         this.log('patched scriptInfo');
@@ -162,6 +173,10 @@ export class SvelteSnapshot {
     }
 
     private getLineOffsets() {
+        if (this.lineOffsets) {
+            return this.lineOffsets;
+        }
+
         const lineOffsets = [];
         const text = this.svelteCode;
         let isLineStart = true;
@@ -182,6 +197,7 @@ export class SvelteSnapshot {
             lineOffsets.push(text.length);
         }
 
+        this.lineOffsets = lineOffsets;
         return lineOffsets;
     }
 
@@ -190,7 +206,11 @@ export class SvelteSnapshot {
     }
 
     private log(...args: any[]) {
-        this.logger.log('-SvelteSnapshot:', this.fileName, '-', ...args);
+        this.logger.log('SvelteSnapshot:', this.fileName, '-', ...args);
+    }
+
+    private debug(...args: any[]) {
+        this.logger.debug('SvelteSnapshot:', this.fileName, '-', ...args);
     }
 
     private toggleMappingMode(convertInternalCodePositions: boolean) {
