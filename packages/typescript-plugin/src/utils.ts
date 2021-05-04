@@ -39,7 +39,7 @@ export function isNoTextSpanInGeneratedCode(text: string, span: ts.TextSpan) {
 }
 
 /**
- * Replace all occurences of a string within an object with another string,
+ * Replace all occurrences of a string within an object with another string,
  */
 export function replaceDeep<T extends Record<string, any>>(
     obj: T,

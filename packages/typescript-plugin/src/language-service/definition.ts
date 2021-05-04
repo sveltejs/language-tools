@@ -11,7 +11,7 @@ export function decorateGetDefinition(
     const getDefinitionAndBoundSpan = ls.getDefinitionAndBoundSpan;
     ls.getDefinitionAndBoundSpan = (fileName, position) => {
         const definition = getDefinitionAndBoundSpan(fileName, position);
-        if (!definition || !definition.definitions) {
+        if (!definition?.definitions) {
             return definition;
         }
 

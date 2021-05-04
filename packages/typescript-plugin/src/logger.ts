@@ -3,10 +3,10 @@ import type ts from 'typescript/lib/tsserverlibrary';
 export class Logger {
     constructor(
         private tsLogService: ts.server.Logger,
-        surpressNonSvelteLogs = false,
+        suppressNonSvelteLogs = false,
         private logDebug = false
     ) {
-        if (surpressNonSvelteLogs) {
+        if (suppressNonSvelteLogs) {
             const log = this.tsLogService.info.bind(this.tsLogService);
             this.tsLogService.info = (s: string) => {
                 if (s.startsWith('-Svelte Plugin-')) {
