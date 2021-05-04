@@ -2,9 +2,10 @@
     "name": "typescript-svelte-plugin",
     "version": "0.1.0",
     "description": "A TypeScript Plugin providing Svelte intellisense",
-    "main": "src/index.js",
+    "main": "dist/src/index.js",
     "scripts": {
         "build": "tsc -p ./",
+        "watch": "tsc -w -p ./",
         "test": "echo 'NOOP'"
     },
     "keywords": [
@@ -19,5 +20,9 @@
         "@tsconfig/node12": "^1.0.0",
         "@types/node": "^13.9.0",
         "typescript": "*"
+    },
+    "dependencies": {
+        "svelte2tsx": "*",
+        "sourcemap-codec": "^1.4.4"
     }
 }
