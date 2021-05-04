@@ -2,11 +2,10 @@ import type ts from 'typescript/lib/tsserverlibrary';
 import { Logger } from '../logger';
 import { isSvelteFilePath } from '../utils';
 
-export function decorateDiagnostics(ls: ts.LanguageService, logger: Logger) {
+export function decorateDiagnostics(ls: ts.LanguageService, logger: Logger): void {
     decorateSyntacticDiagnostics(ls);
     decorateSemanticDiagnostics(ls);
     decorateSuggestionDiagnostics(ls);
-    return ls;
 }
 
 function decorateSyntacticDiagnostics(ls: ts.LanguageService): void {
