@@ -44,6 +44,12 @@
         "onCommand:svelte.restartLanguageServer"
     ],
     "contributes": {
+        "typescriptServerPlugins-disabled": [
+            {
+                "name": "typescript-svelte-plugin",
+                "enableForWorkspaceTypeScriptVersions": true
+            }
+        ],
         "configuration": {
             "type": "object",
             "title": "Svelte",
@@ -472,6 +478,10 @@
             {
                 "command": "svelte.extractComponent",
                 "title": "Svelte: Extract Component"
+            },
+            {
+                "command": "svelte.toggleTsPlugin",
+                "title": "Svelte: Toggle TS Plugin"
             }
         ],
         "menus": {
@@ -513,6 +523,7 @@
     "dependencies": {
         "lodash": "^4.17.19",
         "svelte-language-server": "*",
-        "vscode-languageclient": "^7.0.0"
+        "vscode-languageclient": "^7.0.0",
+        "typescript-svelte-plugin": "*"
     }
 }
