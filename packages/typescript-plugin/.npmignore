@@ -3,3 +3,4 @@
 tsconfig.json
 .gitignore
 internal.md
+dist/tsconfig.tsbuildinfo
