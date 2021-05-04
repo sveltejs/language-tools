@@ -6,7 +6,8 @@
     "scripts": {
         "build": "tsc -p ./",
         "watch": "tsc -w -p ./",
-        "test": "echo 'NOOP'"
+        "test": "echo 'NOOP'",
+        "prepublishOnly": "npm run build"
     },
     "keywords": [
         "svelte",
