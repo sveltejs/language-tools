@@ -6,6 +6,7 @@ import { decorateCompletions } from './completions';
 import { decorateGetDefinition } from './definition';
 import { decorateDiagnostics } from './diagnostics';
 import { decorateFindReferences } from './find-references';
+import { decorateGetImplementation } from './implementation';
 import { decorateRename } from './rename';
 
 export function decorateLanguageService(
@@ -19,6 +20,7 @@ export function decorateLanguageService(
     decorateFindReferences(ls, snapshotManager, logger);
     decorateCompletions(ls, logger);
     decorateGetDefinition(ls, snapshotManager, logger);
+    decorateGetImplementation(ls, snapshotManager, logger);
     return ls;
 }
 
