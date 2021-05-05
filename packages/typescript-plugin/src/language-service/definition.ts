@@ -23,11 +23,13 @@ export function decorateGetDefinition(
                         return def;
                     }
 
-                    const textSpan = snapshotManager
+                    let textSpan = snapshotManager
                         .get(def.fileName)
                         ?.getOriginalTextSpan(def.textSpan);
                     if (!textSpan) {
-                        return undefined;
+                        // Unmapped positions are for example the default export.
+                        // Fall back to the start of the file to at least go to the correct file.
+                        textSpan = { start: 0, length: 1 };
                     }
                     return {
                         ...def,
