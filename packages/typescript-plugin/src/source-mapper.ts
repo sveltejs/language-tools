@@ -78,7 +78,12 @@ export class SourceMapper {
         }
 
         const closestMatch = binarySearch(lineMap, position.character, 0);
-        const { 2: line, 3: character } = lineMap[closestMatch];
+        const match = lineMap[closestMatch];
+        if (!match) {
+            return { line: -1, character: -1 };
+        }
+
+        const { 2: line, 3: character } = match;
         return { line, character };
     }
 
@@ -90,7 +95,12 @@ export class SourceMapper {
         }
 
         const closestMatch = binarySearch(lineMap, position.character, 0);
-        const { 1: line, 2: character } = lineMap[closestMatch];
+        const match = lineMap[closestMatch];
+        if (!match) {
+            return { line: -1, character: -1 };
+        }
+
+        const { 1: line, 2: character } = match;
         return { line, character };
     }
 
