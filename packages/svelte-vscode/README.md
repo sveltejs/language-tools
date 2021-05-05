@@ -59,6 +59,10 @@ More docs and troubleshooting: [See here](/docs/README.md).
 
 ### Settings
 
+##### `svelte.enable-ts-plugin`
+
+Enables a TypeScript plugin which provides intellisense for Svelte files inside TS/JS files. _Default_: `false`
+
 ##### `svelte.language-server.runtime`
 
 Path to the node executable you would like to use to run the language server.
