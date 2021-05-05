@@ -1,4 +1,4 @@
-import { SourceMapConsumer } from 'source-map';
+import { RawSourceMap, SourceMapConsumer } from 'source-map';
 import { PreprocessorGroup, Processed } from 'svelte/types/compiler/preprocess/types';
 import type { compile } from 'svelte/compiler';
 import { CompileOptions } from 'svelte/types/compiler/interfaces';
@@ -250,7 +250,7 @@ export class SvelteFragmentMapper implements PositionMapper {
             async (parent, processedSingle) =>
                 processedSingle?.map
                     ? new SourceMapDocumentMapper(
-                          await new SourceMapConsumer(processedSingle.map.toString()),
+                          await new SourceMapConsumer(processedSingle.map as string | RawSourceMap),
                           originalDoc.uri,
                           await parent
                       )
