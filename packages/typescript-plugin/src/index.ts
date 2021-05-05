@@ -8,6 +8,12 @@ import type ts from 'typescript/lib/tsserverlibrary';
 function init(modules: { typescript: typeof ts }) {
     function create(info: ts.server.PluginCreateInfo) {
         const logger = new Logger(info.project.projectService.logger);
+
+        if (!isSvelteProject(info)) {
+            logger.log('Detected that this is not a Svelte project, abort patching TypeScript');
+            return info.languageService;
+        }
+
         logger.log('Starting Svelte plugin');
 
         const snapshotManager = new SvelteSnapshotManager(
@@ -45,12 +51,23 @@ function init(modules: { typescript: typeof ts }) {
         compilerOptions.jsx = modules.typescript.JsxEmit.Preserve;
 
         // detect which JSX namespace to use (svelte | svelteNative) if not specified or not compatible
-        if (!compilerOptions.jsxFactory || !compilerOptions.jsxFactory.startsWith('svelte')) {
+        if (!compilerOptions.jsxFactory?.startsWith('svelte')) {
             // Default to regular svelte, this causes the usage of the "svelte.JSX" namespace
             // We don't need to add a switch for svelte-native because the jsx is only relevant
             // within Svelte files, which this plugin does not deal with.
             compilerOptions.jsxFactory = 'svelte.createElement';
         }
+    }
+
+    function isSvelteProject(info: ts.server.PluginCreateInfo) {
+        // Add more checks like "no Svelte file found" or "no config file found"?
+        const compilerOptions = info.project.getCompilerOptions();
+        const isNoJsxProject =
+            (!compilerOptions.jsx || compilerOptions.jsx === modules.typescript.JsxEmit.Preserve) &&
+            (!compilerOptions.jsxFactory || compilerOptions.jsxFactory.startsWith('svelte')) &&
+            !compilerOptions.jsxFragmentFactory &&
+            !compilerOptions.jsxImportSource;
+        return isNoJsxProject;
     }
 
     return { create, getExternalFiles };
