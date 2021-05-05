@@ -54,6 +54,12 @@
             "type": "object",
             "title": "Svelte",
             "properties": {
+                "svelte.enable-ts-plugin": {
+                    "type": "boolean",
+                    "default": false,
+                    "title": "Enable TypeScript Svelte plugin",
+                    "description": "Enables a TypeScript plugin which provides intellisense for Svelte files inside TS/JS files."
+                },
                 "svelte.language-server.runtime": {
                     "scope": "application",
                     "type": "string",
@@ -478,10 +484,6 @@
             {
                 "command": "svelte.extractComponent",
                 "title": "Svelte: Extract Component"
-            },
-            {
-                "command": "svelte.toggleTsPlugin",
-                "title": "Svelte: Toggle TS Plugin"
             }
         ],
         "menus": {

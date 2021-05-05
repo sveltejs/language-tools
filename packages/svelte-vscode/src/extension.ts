@@ -1,34 +1,34 @@
+import * as path from 'path';
 import {
-    workspace,
-    ExtensionContext,
-    TextDocument,
-    Position,
-    Range,
     commands,
-    window,
-    WorkspaceEdit,
-    Uri,
-    ProgressLocation,
-    ViewColumn,
-    languages,
+    ExtensionContext,
+    extensions,
     IndentAction,
-    extensions
+    languages,
+    Position,
+    ProgressLocation,
+    Range,
+    TextDocument,
+    Uri,
+    ViewColumn,
+    window,
+    workspace,
+    WorkspaceEdit
 } from 'vscode';
 import {
+    ExecuteCommandRequest,
     LanguageClientOptions,
-    TextDocumentPositionParams,
     RequestType,
     RevealOutputChannelOn,
-    WorkspaceEdit as LSWorkspaceEdit,
     TextDocumentEdit,
-    ExecuteCommandRequest
+    TextDocumentPositionParams,
+    WorkspaceEdit as LSWorkspaceEdit
 } from 'vscode-languageclient';
 import { LanguageClient, ServerOptions, TransportKind } from 'vscode-languageclient/node';
+import CompiledCodeContentProvider from './CompiledCodeContentProvider';
 import { activateTagClosing } from './html/autoClose';
 import { EMPTY_ELEMENTS } from './html/htmlEmptyTagsShared';
-import CompiledCodeContentProvider from './CompiledCodeContentProvider';
-import * as path from 'path';
-import { readFileSync, writeFileSync } from 'fs';
+import { TsPlugin } from './tsplugin';
 
 namespace TagCloseRequest {
     export const type: RequestType<TextDocumentPositionParams, string, any> = new RequestType(
@@ -173,7 +173,7 @@ export function activate(context: ExtensionContext) {
 
     addExtracComponentCommand(getLS, context);
 
-    context.subscriptions.push(commands.registerCommand('svelte.toggleTsPlugin', toggleTsPlugin));
+    TsPlugin.create(context);
 
     languages.setLanguageConfiguration('svelte', {
         indentationRules: {
@@ -385,46 +385,6 @@ function addExtracComponentCommand(getLS: () => LanguageClient, context: Extensi
             });
         })
     );
-}
-
-function toggleTsPlugin() {
-    const extension = extensions.getExtension('svelte.svelte-vscode');
-    if (!extension) {
-        // This shouldn't be possible
-        return;
-    }
-
-    const packageJson = path.join(extension.extensionPath, 'package.json');
-    const enabled = '"typescriptServerPlugins"';
-    const disabled = '"typescriptServerPlugins-disabled"';
-    try {
-        const packageText = readFileSync(packageJson, 'utf8');
-        if (packageText.includes(disabled)) {
-            const newText = packageText.replace(disabled, enabled);
-            writeFileSync(packageJson, newText, 'utf8');
-            showReload(true);
-        } else if (packageText.includes(enabled)) {
-            const newText = packageText.replace(enabled, disabled);
-            writeFileSync(packageJson, newText, 'utf8');
-            showReload(false);
-        } else {
-            window.showWarningMessage('Unknown Svelte for VS Code package.json status.');
-        }
-    } catch (err) {
-        window.showWarningMessage('Svelte for VS Code package.json update failed.');
-    }
-
-    async function showReload(enabled: boolean) {
-        const reload = await window.showInformationMessage(
-            ` TypeScript Svelte Plugin ${
-                enabled ? 'enabled' : 'disabled'
-            }, please reload VS Code to restart the TS Server.`,
-            'Reload Window'
-        );
-        if (reload) {
-            commands.executeCommand('workbench.action.reloadWindow');
-        }
-    }
 }
 
 function createLanguageServer(serverOptions: ServerOptions, clientOptions: LanguageClientOptions) {
