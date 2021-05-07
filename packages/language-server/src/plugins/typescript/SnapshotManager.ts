@@ -123,4 +123,4 @@ export class SnapshotManager {
     }
 }
 
-export const ignoredBuildDirectories = ['__sapper__', '.svelte'];
+export const ignoredBuildDirectories = ['__sapper__', '.svelte-kit''];
