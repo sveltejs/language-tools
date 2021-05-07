@@ -30,7 +30,9 @@ const svelteEvents = [
     { name: 'on:pointerup' },
     // Mouse events
     { name: 'on:mouseenter' },
-    { name: 'on:mouseleave' }
+    { name: 'on:mouseleave' },
+    // Other
+    { name: 'on:hashchange' }
 ];
 const svelteAttributes: IAttributeData[] = [
     {
