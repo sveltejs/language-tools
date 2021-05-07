@@ -1,4 +1,4 @@
-import { RawSourceMap, SourceMapConsumer } from 'source-map';
+import { SourceMapConsumer } from 'source-map';
 import { PreprocessorGroup, Processed } from 'svelte/types/compiler/preprocess/types';
 import type { compile } from 'svelte/compiler';
 import { CompileOptions } from 'svelte/types/compiler/interfaces';
@@ -250,13 +250,23 @@ export class SvelteFragmentMapper implements PositionMapper {
             async (parent, processedSingle) =>
                 processedSingle?.map
                     ? new SourceMapDocumentMapper(
-                          await new SourceMapConsumer(processedSingle.map as string | RawSourceMap),
+                          await new SourceMapConsumer(normalizeMap(processedSingle.map)),
                           originalDoc.uri,
                           await parent
                       )
                     : new IdentityMapper(originalDoc.uri, await parent),
             Promise.resolve<DocumentMapper>(<any>undefined)
         );
+
+        function normalizeMap(map: any) {
+            // We don't know what we get, could be a stringified sourcemap,
+            // or a class which has the required properties on it, or a class
+            // which we need to call toString() on to get the correct format.
+            if (typeof map === 'string' || map.version) {
+                return map;
+            }
+            return map.toString();
+        }
     }
 
     private constructor(
