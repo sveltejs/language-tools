@@ -66,6 +66,25 @@ describe('Svelte Document', () => {
             return setupTranspiled(rawObjectSourceMapScript);
         }
 
+        async function setupTranspiledWithClassSourceMap() {
+            const rawObjectSourceMapScript = () => ({
+                code: '',
+                map: {
+                    toString: () =>
+                        JSON.stringify({
+                            version: 3,
+                            file: '',
+                            names: [],
+                            sources: [],
+                            sourceRoot: '',
+                            mappings: ''
+                        })
+                }
+            });
+
+            return setupTranspiled(rawObjectSourceMapScript);
+        }
+
         async function setupTranspiled(sourceMapPreProcessor: Preprocessor) {
             const { parent, svelteDoc } = setup({
                 preprocess: {
@@ -133,6 +152,12 @@ describe('Svelte Document', () => {
 
         it('should map correctly within object valued sourcemapped script', async () => {
             const { transpiled } = await setupTranspiledWithObjectSourceMap();
+
+            assertCanMapBackAndForth(transpiled, Position.create(3, 2), Position.create(2, 18));
+        });
+
+        it('should map correctly within class valued sourcemapped script', async () => {
+            const { transpiled } = await setupTranspiledWithClassSourceMap();
 
             assertCanMapBackAndForth(transpiled, Position.create(3, 2), Position.create(2, 18));
         });
