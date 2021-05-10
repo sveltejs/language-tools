@@ -712,6 +712,11 @@ declare namespace svelte.JSX {
       scrollY?: Window['scrollY'];
       readonly online?: Window['navigator']['onLine'];
 
+      // Transformed from on:sveltekit:xy
+      'onsveltekit:start': EventHandler<CustomEvent, Window>;
+      'onsveltekit:navigation-start': EventHandler<CustomEvent, Window>;
+      'onsveltekit:navigation-end': EventHandler<CustomEvent, Window>;
+
       ondevicelight?: EventHandler<Event, Window>;
       onbeforeinstallprompt?: EventHandler<Event, Window>;
       ondeviceproximity?: EventHandler<Event, Window>;
