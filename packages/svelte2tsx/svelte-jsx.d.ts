@@ -283,6 +283,7 @@ declare namespace svelte.JSX {
       defaultplaybackrate?: number;
       defer?: boolean;
       dir?: string;
+      dirname?: string;
       disabled?: boolean;
       download?: any;
       draggable?: boolean | 'true' | 'false';
