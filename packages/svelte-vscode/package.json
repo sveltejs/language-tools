@@ -523,7 +523,7 @@
         "typescript": "*"
     },
     "dependencies": {
-        "lodash": "^4.17.19",
+        "lodash": "^4.17.21",
         "svelte-language-server": "*",
         "vscode-languageclient": "^7.0.0",
         "typescript-svelte-plugin": "*"
