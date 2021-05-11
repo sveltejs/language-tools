@@ -136,8 +136,8 @@ async function executeExtractComponentCommand(
 }
 
 // `import {...} from '..'` or `import ... from '..'`
-// eslint-disable-next-line max-len
 const scriptRelativeImportRegex =
+    // eslint-disable-next-line max-len
     /import\s+{[^}]*}.*['"`](((\.\/)|(\.\.\/)).*?)['"`]|import\s+\w+\s+from\s+['"`](((\.\/)|(\.\.\/)).*?)['"`]/g;
 // `@import '..'`
 const styleRelativeImportRege = /@import\s+['"`](((\.\/)|(\.\.\/)).*?)['"`]/g;
