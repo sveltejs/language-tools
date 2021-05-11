@@ -322,7 +322,8 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
  */
 export class JSOrTSDocumentSnapshot
     extends IdentityMapper
-    implements DocumentSnapshot, SnapshotFragment {
+    implements DocumentSnapshot, SnapshotFragment
+{
     scriptKind = getScriptKindFromFileName(this.filePath);
     scriptInfo = null;
 

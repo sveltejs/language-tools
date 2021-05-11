@@ -33,8 +33,8 @@
         "rollup-plugin-delete": "^2.0.0",
         "source-map": "^0.6.1",
         "source-map-support": "^0.5.16",
-        "sourcemap-codec": "^1.4.4",
-        "svelte": "~3.35.0",
+        "sourcemap-codec": "^1.4.8",
+        "svelte": "~3.38.2",
         "tiny-glob": "^0.2.6",
         "tslib": "^1.10.0",
         "typescript": "^4.2.2"

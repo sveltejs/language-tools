@@ -69,7 +69,9 @@ export class SvelteDocument {
         if (!this.transpiledDoc) {
             this.transpiledDoc = await TranspiledSvelteDocument.create(
                 this.parent,
-                (await this.config)?.preprocess
+                (
+                    await this.config
+                )?.preprocess
             );
         }
         return this.transpiledDoc;
@@ -294,9 +296,8 @@ export class SvelteFragmentMapper implements PositionMapper {
 
     getOriginalPosition(generatedPosition: Position): Position {
         // Map the position to be relative to the transpiled fragment
-        const positionInTranspiledFragment = this.transpiledFragmentMapper.getGeneratedPosition(
-            generatedPosition
-        );
+        const positionInTranspiledFragment =
+            this.transpiledFragmentMapper.getGeneratedPosition(generatedPosition);
         // Map the position, using the sourcemap, to the original position in the source fragment
         const positionInOriginalFragment = this.sourceMapper.getOriginalPosition(
             positionInTranspiledFragment
@@ -309,9 +310,8 @@ export class SvelteFragmentMapper implements PositionMapper {
      * Reversing `getOriginalPosition`
      */
     getGeneratedPosition(originalPosition: Position): Position {
-        const positionInOriginalFragment = this.originalFragmentMapper.getGeneratedPosition(
-            originalPosition
-        );
+        const positionInOriginalFragment =
+            this.originalFragmentMapper.getGeneratedPosition(originalPosition);
         const positionInTranspiledFragment = this.sourceMapper.getGeneratedPosition(
             positionInOriginalFragment
         );

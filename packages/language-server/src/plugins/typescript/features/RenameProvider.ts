@@ -70,15 +70,16 @@ export class RenameProviderImpl implements RenameProvider {
             }
         > = await this.mapAndFilterRenameLocations(renameLocations, docs);
         // eslint-disable-next-line max-len
-        const additionalRenameForPropRenameInsideComponentWithProp = await this.getAdditionLocationsForRenameOfPropInsideComponentWithProp(
-            document,
-            tsDoc,
-            fragment,
-            position,
-            convertedRenameLocations,
-            docs,
-            lang
-        );
+        const additionalRenameForPropRenameInsideComponentWithProp =
+            await this.getAdditionLocationsForRenameOfPropInsideComponentWithProp(
+                document,
+                tsDoc,
+                fragment,
+                position,
+                convertedRenameLocations,
+                docs,
+                lang
+            );
         const additionalRenamesForPropRenameOutsideComponentWithProp =
             // This is an either-or-situation, don't do both
             additionalRenameForPropRenameInsideComponentWithProp.length > 0

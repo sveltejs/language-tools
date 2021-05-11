@@ -63,9 +63,7 @@ export class LSAndTSDocResolver {
         return getLanguageServiceForPath(path, this.workspaceUris, this.lsDocumentContext);
     }
 
-    async getLSAndTSDoc(
-        document: Document
-    ): Promise<{
+    async getLSAndTSDoc(document: Document): Promise<{
         tsDoc: SvelteDocumentSnapshot;
         lang: ts.LanguageService;
         userPreferences: ts.UserPreferences;

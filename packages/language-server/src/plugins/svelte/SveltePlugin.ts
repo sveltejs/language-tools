@@ -38,7 +38,8 @@ export class SveltePlugin
         CompletionsProvider,
         HoverProvider,
         CodeActionsProvider,
-        SelectionRangeProvider {
+        SelectionRangeProvider
+{
     private docManager = new Map<Document, SvelteDocument>();
 
     constructor(private configManager: LSConfigManager) {}

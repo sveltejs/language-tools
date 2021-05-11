@@ -389,11 +389,8 @@ describe('TypescriptPlugin', () => {
     };
 
     it('bumps snapshot version when watched file changes', async () => {
-        const {
-            snapshotManager,
-            projectJsFile,
-            plugin
-        } = await setupForOnWatchedFileUpdateOrDelete();
+        const { snapshotManager, projectJsFile, plugin } =
+            await setupForOnWatchedFileUpdateOrDelete();
 
         const firstSnapshot = snapshotManager.get(projectJsFile);
         const firstVersion = firstSnapshot?.version;
@@ -412,11 +409,8 @@ describe('TypescriptPlugin', () => {
     });
 
     it('should delete snapshot cache when file delete', async () => {
-        const {
-            snapshotManager,
-            projectJsFile,
-            plugin
-        } = await setupForOnWatchedFileUpdateOrDelete();
+        const { snapshotManager, projectJsFile, plugin } =
+            await setupForOnWatchedFileUpdateOrDelete();
 
         const firstSnapshot = snapshotManager.get(projectJsFile);
         assert.notEqual(firstSnapshot, undefined);
@@ -484,11 +478,8 @@ describe('TypescriptPlugin', () => {
     });
 
     it('should update ts/js file after document change', async () => {
-        const {
-            snapshotManager,
-            projectJsFile,
-            plugin
-        } = await setupForOnWatchedFileUpdateOrDelete();
+        const { snapshotManager, projectJsFile, plugin } =
+            await setupForOnWatchedFileUpdateOrDelete();
 
         const firstSnapshot = snapshotManager.get(projectJsFile);
         const firstVersion = firstSnapshot?.version;

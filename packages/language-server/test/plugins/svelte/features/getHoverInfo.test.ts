@@ -84,11 +84,13 @@ describe('SveltePlugin#getHoverInfo', () => {
     });
 
     describe('should return hover for definite :', () => {
-        ([
-            ['if', 'else if'],
-            ['await', 'then'],
-            ['await', 'catch']
-        ] as const).forEach((tag) => {
+        (
+            [
+                ['if', 'else if'],
+                ['await', 'then'],
+                ['await', 'catch']
+            ] as const
+        ).forEach((tag) => {
             it(`(:${tag[1]})`, () => {
                 expectHoverInfoFor(`{:${tag[1]}}`, Position.create(0, 3)).toEqual(tag[0]);
                 expectHoverInfoFor(`{:${tag[1]} `, Position.create(0, 3)).toEqual(tag[0]);

@@ -104,13 +104,8 @@ describe('createSvelteModuleLoader', () => {
             extension: ts.Extension.Ts,
             resolvedFileName: 'filename.svelte.ts'
         };
-        const {
-            resolveStub,
-            svelteSys,
-            moduleResolver,
-            compilerOptions,
-            getSvelteSnapshotStub
-        } = setup(resolvedModule);
+        const { resolveStub, svelteSys, moduleResolver, compilerOptions, getSvelteSnapshotStub } =
+            setup(resolvedModule);
         const result = moduleResolver.resolveModuleNames(
             ['./svelte.svelte'],
             'C:/somerepo/somefile.svelte'
@@ -136,13 +131,8 @@ describe('createSvelteModuleLoader', () => {
             extension: ts.Extension.Ts,
             resolvedFileName: 'filename.svelte.ts'
         };
-        const {
-            resolveStub,
-            svelteSys,
-            moduleResolver,
-            compilerOptions,
-            getSvelteSnapshotStub
-        } = setup(resolvedModule);
+        const { resolveStub, svelteSys, moduleResolver, compilerOptions, getSvelteSnapshotStub } =
+            setup(resolvedModule);
         const result = moduleResolver.resolveModuleNames(
             ['/@/svelte.svelte'],
             'C:/somerepo/somefile.svelte'

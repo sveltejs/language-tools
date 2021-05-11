@@ -270,7 +270,8 @@ const commentsRegex = /^(\s*\/\/.*\s*)*/;
 // [ \t\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff]
 // is just \s (a.k.a any whitespace character) without linebreak and vertical tab
 // eslint-disable-next-line max-len
-const tsCheckRegex = /\/\/[ \t\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff]*(@ts-(no)?check)($|\s)/;
+const tsCheckRegex =
+    /\/\/[ \t\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff]*(@ts-(no)?check)($|\s)/;
 
 /**
  * Returns `// @ts-check` or `// @ts-nocheck` if content starts with comments and has one of these

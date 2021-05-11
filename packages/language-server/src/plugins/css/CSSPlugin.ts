@@ -52,7 +52,8 @@ export class CSSPlugin
         DocumentColorsProvider,
         ColorPresentationsProvider,
         DocumentSymbolsProvider,
-        SelectionRangeProvider {
+        SelectionRangeProvider
+{
     private configManager: LSConfigManager;
     private cssDocuments = new WeakMap<Document, CSSDocument>();
     private triggerCharacters = ['.', ':', '-', '/'];

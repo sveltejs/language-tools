@@ -34,7 +34,8 @@ import {
 import { isInsideMoustacheTag, toRange } from '../../lib/documents/utils';
 
 export class HTMLPlugin
-    implements HoverProvider, CompletionsProvider, RenameProvider, LinkedEditingRangesProvider {
+    implements HoverProvider, CompletionsProvider, RenameProvider, LinkedEditingRangesProvider
+{
     private configManager: LSConfigManager;
     private lang = getLanguageService({
         customDataProviders: [svelteHtmlDataProvider],

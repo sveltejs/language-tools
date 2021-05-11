@@ -185,8 +185,9 @@ export function activate(context: ExtensionContext) {
             // Or matches `<!--`
             // Or matches open curly brace
             //
-            // eslint-disable-next-line max-len, no-useless-escape
-            increaseIndentPattern: /<(?!\?|(?:area|base|br|col|frame|hr|html|img|input|link|meta|param)\b|[^>]*\/>)([-_\.A-Za-z0-9]+)(?=\s|>)\b[^>]*>(?!.*<\/\1>)|<!--(?!.*-->)|\{[^}"']*$/,
+            increaseIndentPattern:
+                // eslint-disable-next-line max-len, no-useless-escape
+                /<(?!\?|(?:area|base|br|col|frame|hr|html|img|input|link|meta|param)\b|[^>]*\/>)([-_\.A-Za-z0-9]+)(?=\s|>)\b[^>]*>(?!.*<\/\1>)|<!--(?!.*-->)|\{[^}"']*$/,
             // Matches a closing tag that:
             //  - Follows optional whitespace
             //  - Is not `</html>`
@@ -202,8 +203,9 @@ export function activate(context: ExtensionContext) {
         //  - Is a sequence of characters without spaces and not containing
         //    any of the following: `~!@$^&*()=+[{]}\|;:'",.<>/
         //
-        // eslint-disable-next-line max-len, no-useless-escape
-        wordPattern: /(-?\d*\.\d\w*)|([^\`\~\!\@\$\#\^\&\*\(\)\=\+\[\{\]\}\\\|\;\:\'\"\,\.\<\>\/\s]+)/g,
+        wordPattern:
+            // eslint-disable-next-line max-len, no-useless-escape
+            /(-?\d*\.\d\w*)|([^\`\~\!\@\$\#\^\&\*\(\)\=\+\[\{\]\}\\\|\;\:\'\"\,\.\<\>\/\s]+)/g,
         onEnterRules: [
             {
                 // Matches an opening tag that:
