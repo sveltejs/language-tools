@@ -2432,10 +2432,10 @@ svelte-preprocess@^4.0.0:
     detect-indent "^6.0.0"
     strip-indent "^3.0.0"
 
-svelte-preprocess@~4.7.3:
-  version "4.7.3"
-  resolved "https://registry.yarnpkg.com/svelte-preprocess/-/svelte-preprocess-4.7.3.tgz#454fa059c2400b15e7a3caeca18993cff9df0e96"
-  integrity sha512-Zx1/xLeGOIBlZMGPRCaXtlMe4ZA0faato5Dc3CosEqwu75MIEPuOstdkH6cy+RYTUYynoxzNaDxkPX4DbrPwRA==
+svelte-preprocess@~4.6.1:
+  version "4.6.9"
+  resolved "https://registry.yarnpkg.com/svelte-preprocess/-/svelte-preprocess-4.6.9.tgz#073d923eb351b98b6c6a454ba5feee981cd9dbf5"
+  integrity sha512-SROWH0rB0DJ+0Ii264cprmNu/NJyZacs5wFD71ya93Cg/oA2lKHgQm4F6j0EWA4ktFMzeuJJm/eX6fka39hEHA==
   dependencies:
     "@types/pug" "^2.0.4"
     "@types/sass" "^1.16.0"
