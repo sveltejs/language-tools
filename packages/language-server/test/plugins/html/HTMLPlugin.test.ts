@@ -28,8 +28,7 @@ describe('HTML Plugin', () => {
         assert.deepStrictEqual(plugin.doHover(document, Position.create(0, 2)), <Hover>{
             contents: {
                 kind: 'markdown',
-                value:
-                    'The h1 element represents a section heading.\n\n[MDN Reference](https://developer.mozilla.org/docs/Web/HTML/Element/Heading_Elements)'
+                value: 'The h1 element represents a section heading.\n\n[MDN Reference](https://developer.mozilla.org/docs/Web/HTML/Element/Heading_Elements)'
             },
 
             range: Range.create(0, 1, 0, 3)

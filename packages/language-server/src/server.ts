@@ -37,11 +37,8 @@ import { isNotNullOrUndefined, urlToPath } from './utils';
 import { FallbackWatcher } from './lib/FallbackWatcher';
 
 namespace TagCloseRequest {
-    export const type: RequestType<
-        TextDocumentPositionParams,
-        string | null,
-        any
-    > = new RequestType('html/tag');
+    export const type: RequestType<TextDocumentPositionParams, string | null, any> =
+        new RequestType('html/tag');
 }
 
 export interface LSOptions {
@@ -128,8 +125,8 @@ export function startServer(options?: LSOptions) {
         );
 
         pluginHost.initialize({
-            filterIncompleteCompletions: !evt.initializationOptions
-                ?.dontFilterIncompleteCompletions,
+            filterIncompleteCompletions:
+                !evt.initializationOptions?.dontFilterIncompleteCompletions,
             definitionLinkSupport: !!evt.capabilities.textDocument?.definition?.linkSupport
         });
         pluginHost.register((sveltePlugin = new SveltePlugin(configManager)));

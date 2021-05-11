@@ -42,34 +42,38 @@ export const enum TokenModifier {
 export function getSemanticTokenLegends(): SemanticTokensLegend {
     const tokenModifiers: string[] = [];
 
-    ([
-        [TokenModifier.declaration, SemanticTokenModifiers.declaration],
-        [TokenModifier.static, SemanticTokenModifiers.static],
-        [TokenModifier.async, SemanticTokenModifiers.async],
-        [TokenModifier.readonly, SemanticTokenModifiers.readonly],
-        [TokenModifier.defaultLibrary, SemanticTokenModifiers.defaultLibrary],
-        [TokenModifier.local, 'local']
-    ] as const).forEach(([tsModifier, legend]) => (tokenModifiers[tsModifier] = legend));
+    (
+        [
+            [TokenModifier.declaration, SemanticTokenModifiers.declaration],
+            [TokenModifier.static, SemanticTokenModifiers.static],
+            [TokenModifier.async, SemanticTokenModifiers.async],
+            [TokenModifier.readonly, SemanticTokenModifiers.readonly],
+            [TokenModifier.defaultLibrary, SemanticTokenModifiers.defaultLibrary],
+            [TokenModifier.local, 'local']
+        ] as const
+    ).forEach(([tsModifier, legend]) => (tokenModifiers[tsModifier] = legend));
 
     const tokenTypes: string[] = [];
 
-    ([
-        [TokenType.class, SemanticTokenTypes.class],
-        [TokenType.enum, SemanticTokenTypes.enum],
-        [TokenType.interface, SemanticTokenTypes.interface],
-        [TokenType.namespace, SemanticTokenTypes.namespace],
-        [TokenType.typeParameter, SemanticTokenTypes.typeParameter],
-        [TokenType.type, SemanticTokenTypes.type],
-        [TokenType.parameter, SemanticTokenTypes.parameter],
-        [TokenType.variable, SemanticTokenTypes.variable],
-        [TokenType.enumMember, SemanticTokenTypes.enumMember],
-        [TokenType.property, SemanticTokenTypes.property],
-        [TokenType.function, SemanticTokenTypes.function],
+    (
+        [
+            [TokenType.class, SemanticTokenTypes.class],
+            [TokenType.enum, SemanticTokenTypes.enum],
+            [TokenType.interface, SemanticTokenTypes.interface],
+            [TokenType.namespace, SemanticTokenTypes.namespace],
+            [TokenType.typeParameter, SemanticTokenTypes.typeParameter],
+            [TokenType.type, SemanticTokenTypes.type],
+            [TokenType.parameter, SemanticTokenTypes.parameter],
+            [TokenType.variable, SemanticTokenTypes.variable],
+            [TokenType.enumMember, SemanticTokenTypes.enumMember],
+            [TokenType.property, SemanticTokenTypes.property],
+            [TokenType.function, SemanticTokenTypes.function],
 
-        // member is renamed to method in vscode codebase to match LSP default
-        [TokenType.member, SemanticTokenTypes.method],
-        [TokenType.event, SemanticTokenTypes.event]
-    ] as const).forEach(([tokenType, legend]) => (tokenTypes[tokenType] = legend));
+            // member is renamed to method in vscode codebase to match LSP default
+            [TokenType.member, SemanticTokenTypes.method],
+            [TokenType.event, SemanticTokenTypes.event]
+        ] as const
+    ).forEach(([tokenType, legend]) => (tokenTypes[tokenType] = legend));
 
     return {
         tokenModifiers,

@@ -83,7 +83,8 @@ export class TypeScriptPlugin
         SemanticTokensProvider,
         OnWatchFileChanges,
         CompletionsProvider<CompletionEntryWithIdentifer>,
-        UpdateTsOrJsFile {
+        UpdateTsOrJsFile
+{
     private readonly configManager: LSConfigManager;
     private readonly lsAndTsDocResolver: LSAndTSDocResolver;
     private readonly completionProvider: CompletionsProviderImpl;

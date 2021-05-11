@@ -30,8 +30,7 @@ describe('can get typescript directive comment completions', () => {
             isIncomplete: false,
             items: [
                 {
-                    detail:
-                        'Enables semantic checking in a JavaScript file. Must be at the top of a file.',
+                    detail: 'Enables semantic checking in a JavaScript file. Must be at the top of a file.',
                     kind: 15,
                     label: '@ts-check',
                     textEdit: {
@@ -49,8 +48,7 @@ describe('can get typescript directive comment completions', () => {
                     }
                 },
                 {
-                    detail:
-                        'Disables semantic checking in a JavaScript file. Must be at the top of a file.',
+                    detail: 'Disables semantic checking in a JavaScript file. Must be at the top of a file.',
                     kind: 15,
                     label: '@ts-nocheck',
                     textEdit: {
@@ -86,8 +84,7 @@ describe('can get typescript directive comment completions', () => {
                     }
                 },
                 {
-                    detail:
-                        'Suppresses @ts-check errors on the next line of a file, expecting at least one to exist.',
+                    detail: 'Suppresses @ts-check errors on the next line of a file, expecting at least one to exist.',
                     kind: 15,
                     label: '@ts-expect-error',
                     textEdit: {

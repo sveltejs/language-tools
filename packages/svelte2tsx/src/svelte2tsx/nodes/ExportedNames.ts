@@ -15,7 +15,8 @@ export class ExportedNames
             doc?: string;
         }
     >
-    implements IExportedNames {
+    implements IExportedNames
+{
     /**
      * Adds export to map
      */

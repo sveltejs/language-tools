@@ -97,8 +97,12 @@ export function createSvelteModuleLoader(
         // Delegate to the TS resolver first.
         // If that does not bring up anything, try the Svelte Module loader
         // which is able to deal with .svelte files.
-        const tsResolvedModule = ts.resolveModuleName(name, containingFile, compilerOptions, ts.sys)
-            .resolvedModule;
+        const tsResolvedModule = ts.resolveModuleName(
+            name,
+            containingFile,
+            compilerOptions,
+            ts.sys
+        ).resolvedModule;
         if (tsResolvedModule && !isVirtualSvelteFilePath(tsResolvedModule.resolvedFileName)) {
             return tsResolvedModule;
         }
