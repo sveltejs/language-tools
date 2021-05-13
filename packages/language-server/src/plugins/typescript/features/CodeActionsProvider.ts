@@ -224,6 +224,10 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                                 );
                             }
 
+                            if (originalRange.start.line < 0 || originalRange.end.line < 0) {
+                                return undefined;
+                            }
+
                             return TextEdit.replace(originalRange, edit.newText);
                         })
                         .filter(isNotNullOrUndefined)
