@@ -12,7 +12,7 @@ import {
     TextEdit
 } from 'vscode-languageserver';
 import { mapObjWithRangeToOriginal, offsetAt, positionAt } from '../../../../lib/documents';
-import { pathToUrl } from '../../../../utils';
+import { getIndent, pathToUrl } from '../../../../utils';
 import { SvelteDocument } from '../../SvelteDocument';
 import ts from 'typescript';
 // estree does not have start/end in their public Node interface,
@@ -111,7 +111,7 @@ async function getSvelteIgnoreEdit(svelteDoc: SvelteDocument, ast: Ast, diagnost
         transpiled.getText()
     );
     const afterStartLineStart = content.slice(nodeLineStart);
-    const indent = /^[ |\t]+/.exec(afterStartLineStart)?.[0] ?? '';
+    const indent = getIndent(afterStartLineStart);
 
     // TODO: Make all code action's new line consistent
     const ignore = `${indent}<!-- svelte-ignore ${code} -->${EOL}`;
