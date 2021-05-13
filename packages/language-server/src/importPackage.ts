@@ -26,9 +26,9 @@ export function getPackageInfo(packageName: string, fromPath: string) {
         path: dirname(packageJSONPath),
         version: {
             full: version,
-            major,
-            minor,
-            patch
+            major: Number(major),
+            minor: Number(minor),
+            patch: Number(patch)
         }
     };
 }
