@@ -930,4 +930,10 @@ describe('DiagnosticsProvider', () => {
             }
         ]);
     });
+
+    it('no errors on intrinsic elements without attributes or events', async () => {
+        const { plugin, document } = setup('diagnostics-intrinsic.svelte');
+        const diagnostics = await plugin.getDiagnostics(document);
+        assert.deepStrictEqual(diagnostics, []);
+    });
 });
