@@ -258,6 +258,162 @@ describe('SveltePlugin#getCodeAction', () => {
         });
     });
 
+    describe('It should provide svelte ignore code actions (TypeScript)', () => {
+        const svelteIgnoreCodeAction = 'svelte-ignore-code-action-ts.svelte';
+
+        it('should provide ignore comment', async () => {
+            (
+                await expectCodeActionFor(svelteIgnoreCodeAction, {
+                    diagnostics: [
+                        {
+                            severity: DiagnosticSeverity.Warning,
+                            code: 'a11y-missing-attribute',
+                            range: Range.create(
+                                { line: 7, character: 0 },
+                                { line: 7, character: 6 }
+                            ),
+                            message: '',
+                            source: 'svelte'
+                        }
+                    ]
+                })
+            ).toEqual([
+                {
+                    edit: {
+                        documentChanges: [
+                            {
+                                edits: [
+                                    {
+                                        // eslint-disable-next-line max-len
+                                        newText: `<!-- svelte-ignore a11y-missing-attribute -->${EOL}`,
+                                        range: {
+                                            end: {
+                                                character: 0,
+                                                line: 7
+                                            },
+                                            start: {
+                                                character: 0,
+                                                line: 7
+                                            }
+                                        }
+                                    }
+                                ],
+                                textDocument: {
+                                    uri: getUri(svelteIgnoreCodeAction),
+                                    version: null
+                                }
+                            }
+                        ]
+                    },
+                    title: '(svelte) Disable a11y-missing-attribute for this line',
+                    kind: 'quickfix'
+                }
+            ]);
+        });
+
+        it('should provide ignore comment with indent', async () => {
+            (
+                await expectCodeActionFor(svelteIgnoreCodeAction, {
+                    diagnostics: [
+                        {
+                            severity: DiagnosticSeverity.Warning,
+                            code: 'a11y-missing-attribute',
+                            range: Range.create(
+                                { line: 10, character: 4 },
+                                { line: 10, character: 11 }
+                            ),
+                            message: '',
+                            source: 'svelte'
+                        }
+                    ]
+                })
+            ).toEqual([
+                {
+                    edit: {
+                        documentChanges: [
+                            {
+                                edits: [
+                                    {
+                                        newText: `${' '.repeat(
+                                            4
+                                        )}<!-- svelte-ignore a11y-missing-attribute -->${EOL}`,
+                                        range: {
+                                            end: {
+                                                character: 0,
+                                                line: 10
+                                            },
+                                            start: {
+                                                character: 0,
+                                                line: 10
+                                            }
+                                        }
+                                    }
+                                ],
+                                textDocument: {
+                                    uri: getUri(svelteIgnoreCodeAction),
+                                    version: null
+                                }
+                            }
+                        ]
+                    },
+                    title: '(svelte) Disable a11y-missing-attribute for this line',
+                    kind: 'quickfix'
+                }
+            ]);
+        });
+
+        it('should provide ignore comment with indent of parent tag', async () => {
+            (
+                await expectCodeActionFor(svelteIgnoreCodeAction, {
+                    diagnostics: [
+                        {
+                            severity: DiagnosticSeverity.Warning,
+                            code: 'a11y-invalid-attribute',
+                            range: Range.create(
+                                { line: 13, character: 8 },
+                                { line: 13, character: 15 }
+                            ),
+                            message: '',
+                            source: 'svelte'
+                        }
+                    ]
+                })
+            ).toEqual([
+                {
+                    edit: {
+                        documentChanges: [
+                            {
+                                edits: [
+                                    {
+                                        newText: `${' '.repeat(
+                                            4
+                                        )}<!-- svelte-ignore a11y-invalid-attribute -->${EOL}`,
+                                        range: {
+                                            end: {
+                                                character: 0,
+                                                line: 12
+                                            },
+                                            start: {
+                                                character: 0,
+                                                line: 12
+                                            }
+                                        }
+                                    }
+                                ],
+                                textDocument: {
+                                    uri: getUri(svelteIgnoreCodeAction),
+                                    version: null
+                                }
+                            }
+                        ]
+                    },
+                    title: '(svelte) Disable a11y-invalid-attribute for this line',
+                    kind: 'quickfix'
+                }
+            ]);
+        });
+    });
+
     describe('#extractComponent', async () => {
         const scriptContent = `<script>
         const bla = true;

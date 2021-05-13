@@ -425,13 +425,13 @@ describe('SveltePlugin#getDiagnostics', () => {
                 message:
                     "Component has unused export property 'unused1'. If it is for external reference only, please consider using `export const unused1`",
                 range: {
-                    end: {
-                        line: 4,
-                        character: 18
-                    },
                     start: {
-                        line: 4,
-                        character: 18
+                        line: 5,
+                        character: 13
+                    },
+                    end: {
+                        line: 5,
+                        character: 27
                     }
                 },
                 severity: 2,
@@ -442,13 +442,13 @@ describe('SveltePlugin#getDiagnostics', () => {
                 message:
                     "Component has unused export property 'unused2'. If it is for external reference only, please consider using `export const unused2`",
                 range: {
-                    end: {
-                        line: 6,
-                        character: 28
-                    },
                     start: {
                         line: 6,
-                        character: 8
+                        character: 13
+                    },
+                    end: {
+                        line: 6,
+                        character: 27
                     }
                 },
                 severity: 2,

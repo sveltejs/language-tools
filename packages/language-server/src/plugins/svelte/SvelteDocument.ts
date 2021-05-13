@@ -1,9 +1,9 @@
 import { SourceMapConsumer } from 'source-map';
-import { PreprocessorGroup, Processed } from 'svelte/types/compiler/preprocess/types';
 import type { compile } from 'svelte/compiler';
 import { CompileOptions } from 'svelte/types/compiler/interfaces';
-
+import { PreprocessorGroup, Processed } from 'svelte/types/compiler/preprocess/types';
 import { Position } from 'vscode-languageserver';
+import { getPackageInfo, importSvelte } from '../../importPackage';
 import {
     Document,
     DocumentMapper,
@@ -17,7 +17,7 @@ import {
     SourceMapDocumentMapper,
     TagInformation
 } from '../../lib/documents';
-import { importSvelte } from '../../importPackage';
+import { SvelteConfig } from '../../lib/documents/configLoader';
 import { isNotNullOrUndefined } from '../../utils';
 
 export type SvelteCompileResult = ReturnType<typeof compile>;
@@ -33,7 +33,7 @@ type PositionMapper = Pick<DocumentMapper, 'getGeneratedPosition' | 'getOriginal
  * Represents a text document that contains a svelte component.
  */
 export class SvelteDocument {
-    private transpiledDoc: TranspiledSvelteDocument | undefined;
+    private transpiledDoc: ITranspiledSvelteDocument | undefined;
     private compileResult: SvelteCompileResult | undefined;
 
     public script: TagInformation | null;
@@ -65,14 +65,25 @@ export class SvelteDocument {
         return this.parent.offsetAt(position);
     }
 
-    async getTranspiled(): Promise<TranspiledSvelteDocument> {
+    async getTranspiled(): Promise<ITranspiledSvelteDocument> {
         if (!this.transpiledDoc) {
-            this.transpiledDoc = await TranspiledSvelteDocument.create(
-                this.parent,
-                (
+            const {
+                version: { major, minor }
+            } = getPackageInfo('svelte', this.getFilePath());
+
+            if (major > 3 || (major === 3 && minor >= 32)) {
+                this.transpiledDoc = await TranspiledSvelteDocument.create(
+                    this.parent,
                     await this.config
-                )?.preprocess
-            );
+                );
+            } else {
+                this.transpiledDoc = await FallbackTranspiledSvelteDocument.create(
+                    this.parent,
+                    (
+                        await this.config
+                    )?.preprocess
+                );
+            }
         }
         return this.transpiledDoc;
     }
@@ -101,7 +112,67 @@ export class SvelteDocument {
     }
 }
 
-export class TranspiledSvelteDocument implements PositionMapper {
+export interface ITranspiledSvelteDocument extends PositionMapper {
+    getText(): string;
+    destroy(): void;
+}
+
+export class TranspiledSvelteDocument implements ITranspiledSvelteDocument {
+    static async create(document: Document, config: SvelteConfig | undefined) {
+        if (!config?.preprocess) {
+            return new TranspiledSvelteDocument(document.getText());
+        }
+
+        const filename = document.getFilePath() || '';
+        const svelte = importSvelte(filename);
+        const preprocessed = await svelte.preprocess(document.getText(), config?.preprocess || [], {
+            filename
+        });
+
+        if (preprocessed.code === document.getText()) {
+            return new TranspiledSvelteDocument(document.getText());
+        }
+
+        return new TranspiledSvelteDocument(
+            preprocessed.code,
+            preprocessed.map
+                ? new SourceMapDocumentMapper(
+                      await createSourceMapConsumer(preprocessed.map),
+                      // The "sources" array only contains the Svelte filename, not its path.
+                      // For getting generated positions, the sourcemap consumer wants an exact match
+                      // of the source filepath. Therefore only pass in the filename here.
+                      filename.replace(/\\/g, '/').split('/').pop() || ''
+                  )
+                : undefined
+        );
+    }
+
+    constructor(private code: string, private mapper?: SourceMapDocumentMapper) {}
+
+    getOriginalPosition(generatedPosition: Position): Position {
+        return this.mapper?.getOriginalPosition(generatedPosition) || generatedPosition;
+    }
+
+    getText() {
+        return this.code;
+    }
+
+    getGeneratedPosition(originalPosition: Position): Position {
+        return this.mapper?.getGeneratedPosition(originalPosition) || originalPosition;
+    }
+
+    destroy() {
+        this.mapper?.destroy();
+    }
+}
+
+/**
+ * Only used when the user has an old Svelte version installed where source map support
+ * for preprocessors is not built in yet.
+ * This fallback version does not map correctly when there's both a module and instance script.
+ * It isn't worth fixing these cases though now that Svelte ships a preprocessor with source maps.
+ */
+export class FallbackTranspiledSvelteDocument implements ITranspiledSvelteDocument {
     static async create(
         document: Document,
         preprocessors: PreprocessorGroup | PreprocessorGroup[] = []
@@ -121,7 +192,12 @@ export class TranspiledSvelteDocument implements PositionMapper {
             processedStyles
         );
 
-        return new TranspiledSvelteDocument(document, transpiled, scriptMapper, styleMapper);
+        return new FallbackTranspiledSvelteDocument(
+            document,
+            transpiled,
+            scriptMapper,
+            styleMapper
+        );
     }
 
     private fragmentInfos = [this.scriptMapper?.fragmentInfo, this.styleMapper?.fragmentInfo]
@@ -252,23 +328,13 @@ export class SvelteFragmentMapper implements PositionMapper {
             async (parent, processedSingle) =>
                 processedSingle?.map
                     ? new SourceMapDocumentMapper(
-                          await new SourceMapConsumer(normalizeMap(processedSingle.map)),
+                          await createSourceMapConsumer(processedSingle.map),
                           originalDoc.uri,
                           await parent
                       )
                     : new IdentityMapper(originalDoc.uri, await parent),
             Promise.resolve<DocumentMapper>(<any>undefined)
         );
-
-        function normalizeMap(map: any) {
-            // We don't know what we get, could be a stringified sourcemap,
-            // or a class which has the required properties on it, or a class
-            // which we need to call toString() on to get the correct format.
-            if (typeof map === 'string' || map.version) {
-                return map;
-            }
-            return map.toString();
-        }
     }
 
     private constructor(
@@ -379,4 +445,18 @@ async function transpile(
     const transpiled = result.code || result.toString?.() || '';
 
     return { transpiled, processedScripts, processedStyles };
+}
+
+async function createSourceMapConsumer(map: any): Promise<SourceMapConsumer> {
+    return new SourceMapConsumer(normalizeMap(map));
+
+    function normalizeMap(map: any) {
+        // We don't know what we get, could be a stringified sourcemap,
+        // or a class which has the required properties on it, or a class
+        // which we need to call toString() on to get the correct format.
+        if (typeof map === 'string' || map.version) {
+            return map;
+        }
+        return map.toString();
+    }
 }

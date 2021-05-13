@@ -5,7 +5,7 @@ import { Document } from '../../../src/lib/documents';
 import * as importPackage from '../../../src/importPackage';
 import {
     SvelteDocument,
-    TranspiledSvelteDocument
+    ITranspiledSvelteDocument
 } from '../../../src/plugins/svelte/SvelteDocument';
 import { configLoader, SvelteConfig } from '../../../src/lib/documents/configLoader';
 import { Preprocessor } from 'svelte/types/compiler/preprocess/types';
@@ -33,7 +33,7 @@ describe('Svelte Document', () => {
         assert.strictEqual(svelteDoc.getText(), parent.getText());
     });
 
-    describe('#transpiled', () => {
+    describe('#transpiled (fallback)', () => {
         async function setupTranspiledWithStringSourceMap() {
             const stringSourceMapScript = () => ({
                 code: '',
@@ -93,7 +93,10 @@ describe('Svelte Document', () => {
             });
 
             // stub svelte preprocess and getOriginalPosition
-            // to fake a source mapping process
+            // to fake a source mapping process with the fallback version
+            sinon
+                .stub(importPackage, 'getPackageInfo')
+                .returns({ path: '', version: { full: '', major: 3, minor: 31, patch: 0 } });
             sinon.stub(importPackage, 'importSvelte').returns({
                 preprocess: (text, preprocessor) => {
                     preprocessor = Array.isArray(preprocessor) ? preprocessor : [preprocessor];
@@ -111,7 +114,7 @@ describe('Svelte Document', () => {
                 parse: <any>null
             });
             const transpiled = await svelteDoc.getTranspiled();
-            const scriptSourceMapper = (<any>transpiled.scriptMapper).sourceMapper;
+            const scriptSourceMapper = (<any>transpiled).scriptMapper.sourceMapper;
             // hacky reset of method because mocking the SourceMap constructor is an impossible task
             scriptSourceMapper.getOriginalPosition = ({ line, character }: Position) => ({
                 line: line - 1,
@@ -127,7 +130,7 @@ describe('Svelte Document', () => {
         }
 
         function assertCanMapBackAndForth(
-            transpiled: TranspiledSvelteDocument,
+            transpiled: ITranspiledSvelteDocument,
             generatedPosition: Position,
             originalPosition: Position
         ) {
