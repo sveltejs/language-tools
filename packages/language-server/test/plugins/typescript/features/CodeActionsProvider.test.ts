@@ -5,7 +5,13 @@ import { pathToUrl } from '../../../../src/utils';
 import ts from 'typescript';
 import * as path from 'path';
 import * as assert from 'assert';
-import { Range, Position, CodeActionKind, TextDocumentEdit } from 'vscode-languageserver';
+import {
+    Range,
+    Position,
+    CodeActionKind,
+    TextDocumentEdit,
+    CodeAction
+} from 'vscode-languageserver';
 import { CompletionsProviderImpl } from '../../../../src/plugins/typescript/features/CompletionProvider';
 import { LSConfigManager } from '../../../../src/ls-config';
 
@@ -13,7 +19,7 @@ const testDir = path.join(__dirname, '..');
 
 describe('CodeActionsProvider', () => {
     function getFullPath(filename: string) {
-        return path.join(testDir, 'testfiles', filename);
+        return path.join(testDir, 'testfiles', 'code-actions', filename);
     }
 
     function getUri(filename: string) {
@@ -148,6 +154,95 @@ describe('CodeActionsProvider', () => {
                 },
                 kind: CodeActionKind.QuickFix,
                 title: "Add missing function declaration 'abc'"
+            }
+        ]);
+    });
+
+    it('provides quickfix for ts-checked-js', async () => {
+        const { provider, document } = setup('codeaction-checkJs.svelte');
+        const errorRange = Range.create(Position.create(2, 21), Position.create(2, 26));
+
+        const codeActions = await provider.getCodeActions(document, errorRange, {
+            diagnostics: [
+                {
+                    code: 2304,
+                    message: "Cannot find name 'blubb'.",
+                    range: errorRange
+                }
+            ]
+        });
+
+        for (const codeAction of codeActions) {
+            (<TextDocumentEdit>codeAction.edit?.documentChanges?.[0])?.edits.forEach(
+                (edit) => (edit.newText = harmonizeNewLines(edit.newText))
+            );
+        }
+
+        const textDocument = {
+            uri: getUri('codeaction-checkJs.svelte'),
+            version: null
+        };
+        assert.deepStrictEqual(codeActions, <CodeAction[]>[
+            {
+                edit: {
+                    documentChanges: [
+                        {
+                            edits: [
+                                {
+                                    newText: '\nimport { blubb } from "../definitions";\n\n',
+                                    range: Range.create(
+                                        Position.create(0, 8),
+                                        Position.create(0, 8)
+                                    )
+                                }
+                            ],
+                            textDocument
+                        }
+                    ]
+                },
+                kind: 'quickfix',
+                title: 'Import \'blubb\' from module "../definitions"'
+            },
+            {
+                edit: {
+                    documentChanges: [
+                        {
+                            edits: [
+                                {
+                                    newText: '// @ts-ignore\n    ',
+                                    range: Range.create(
+                                        Position.create(2, 4),
+                                        Position.create(2, 4)
+                                    )
+                                }
+                            ],
+                            textDocument
+                        }
+                    ]
+                },
+                kind: 'quickfix',
+                title: 'Ignore this error message'
+            },
+            {
+                edit: {
+                    documentChanges: [
+                        {
+                            edits: [
+                                {
+                                    newText: '\n// @ts-nocheck',
+                                    range: Range.create(
+                                        Position.create(0, 8),
+                                        Position.create(0, 8)
+                                    )
+                                }
+                            ],
+                            textDocument
+                        }
+                    ]
+                },
+
+                kind: 'quickfix',
+                title: 'Disable checking for this file'
             }
         ]);
     });

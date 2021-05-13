@@ -141,3 +141,7 @@ export async function filterAsync<T>(
         )
     ).filter((i) => i !== fail) as T[];
 }
+
+export function getIndent(text: string) {
+    return /^[ |\t]+/.exec(text)?.[0] ?? '';
+}
