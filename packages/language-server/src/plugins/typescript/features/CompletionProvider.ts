@@ -27,6 +27,7 @@ import { getMarkdownDocumentation } from '../previewer';
 import {
     convertRange,
     getCommitCharactersForScriptElement,
+    isInScript,
     scriptElementKindToCompletionItemKind
 } from '../utils';
 import { getJsDocTemplateCompletion } from './getJsDocTemplateCompletion';
@@ -376,7 +377,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
     ): TextEdit {
         change.newText = this.changeComponentImport(change.newText, actionTriggeredInScript);
 
-        const scriptTagInfo = fragment.scriptInfo;
+        const scriptTagInfo = fragment.scriptInfo || fragment.moduleScriptInfo;
         if (!scriptTagInfo) {
             // no script tag defined yet, add it.
             return TextEdit.replace(
@@ -406,7 +407,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         if (
             range.start.line === -1 ||
             (range.start.line === 0 && range.start.character <= 1 && span.length === 0) ||
-            !isInTag(range.start, scriptTagInfo)
+            !isInScript(range.start, fragment)
         ) {
             range = convertRange(doc, {
                 start: scriptTagInfo.start,
@@ -414,8 +415,10 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             });
         }
         // prevent newText from being placed like this: <script>import {} from ''
+        const editOffset = doc.offsetAt(range.start);
         if (
-            doc.offsetAt(range.start) === scriptTagInfo.start &&
+            (editOffset === fragment.scriptInfo?.start ||
+                editOffset === fragment.moduleScriptInfo?.start) &&
             !change.newText.startsWith('\r\n') &&
             !change.newText.startsWith('\n')
         ) {
