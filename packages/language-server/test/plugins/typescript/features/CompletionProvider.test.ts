@@ -655,6 +655,26 @@ describe('CompletionProviderImpl', () => {
         assert.strictEqual(additionalTextEdits, undefined);
     });
 
+    it('resolve auto completion in correct place when already imported in module script', async () => {
+        const { completionProvider, document } = setup('importCompletion8.svelte');
+
+        const completions = await completionProvider.getCompletions(
+            document,
+            Position.create(5, 8)
+        );
+
+        const item = completions?.items.find((item) => item.label === 'blubb');
+
+        const { additionalTextEdits } = await completionProvider.resolveCompletion(document, item!);
+
+        assert.deepStrictEqual(additionalTextEdits, <TextEdit[]>[
+            {
+                newText: '{ blubb }',
+                range: Range.create(Position.create(1, 11), Position.create(1, 14))
+            }
+        ]);
+    });
+
     const testForJsDocTemplateCompletion = async (position: Position, newText: string) => {
         const { completionProvider, document } = setup('jsdoc-completions.svelte');
 

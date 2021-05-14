@@ -7,9 +7,9 @@ import {
     Range,
     SymbolKind
 } from 'vscode-languageserver';
-import { mapRangeToOriginal } from '../../lib/documents';
+import { isInTag, mapRangeToOriginal } from '../../lib/documents';
 import { pathToUrl } from '../../utils';
-import { SnapshotFragment } from './DocumentSnapshot';
+import { SnapshotFragment, SvelteSnapshotFragment } from './DocumentSnapshot';
 
 export function getScriptKindFromFileName(fileName: string): ts.ScriptKind {
     const ext = fileName.substr(fileName.lastIndexOf('.'));
@@ -296,4 +296,8 @@ export function convertToTextSpan(range: Range, fragment: SnapshotFragment): ts.
         start,
         length: end - start
     };
+}
+
+export function isInScript(position: Position, fragment: SvelteSnapshotFragment) {
+    return isInTag(position, fragment.scriptInfo) || isInTag(position, fragment.moduleScriptInfo);
 }

@@ -394,7 +394,11 @@ export class SvelteSnapshotFragment implements SnapshotFragment {
     ) {}
 
     get scriptInfo() {
-        return this.parent.scriptInfo || this.parent.moduleScriptInfo;
+        return this.parent.scriptInfo;
+    }
+
+    get moduleScriptInfo() {
+        return this.parent.moduleScriptInfo;
     }
 
     getOriginalPosition(pos: Position): Position {
