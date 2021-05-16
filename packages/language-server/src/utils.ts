@@ -26,6 +26,14 @@ export function normalizeUri(uri: string): string {
     return URI.parse(uri).toString();
 }
 
+/**
+ * Given a path like foo/bar or foo/bar.svelte , returns its last path
+ * (bar or bar.svelte in this example).
+ */
+export function getLastPartOfPath(path: string): string {
+    return path.replace(/\\/g, '/').split('/').pop() || '';
+}
+
 export function flatten<T>(arr: T[][]): T[] {
     return arr.reduce((all, item) => [...all, ...item], []);
 }

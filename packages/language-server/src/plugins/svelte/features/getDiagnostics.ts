@@ -3,6 +3,7 @@ import { Diagnostic, DiagnosticSeverity, Position, Range } from 'vscode-language
 import { Document, isInTag, mapObjWithRangeToOriginal } from '../../../lib/documents';
 import { Logger } from '../../../logger';
 import { CompilerWarningsSettings } from '../../../ls-config';
+import { getLastPartOfPath } from '../../../utils';
 import { SvelteDocument, TranspileErrorSource } from '../SvelteDocument';
 
 /**
@@ -140,6 +141,12 @@ function getConfigLoadErrorDiagnostics(error: any): Diagnostic[] {
  * Try to infer a nice diagnostic error message from the transpilation error.
  */
 function getStyleErrorDiagnostics(error: any, document: Document): Diagnostic[] {
+    // Error could be from another file that was mixed into the Svelte file as part of preprocessing.
+    // Some preprocessors set the file property from which we can infer that
+    const isErrorFromOtherFile =
+        typeof error.file === 'string' &&
+        getLastPartOfPath(error.file) !== getLastPartOfPath(document.getFilePath() || '');
+
     return [
         {
             message: getStyleErrorMessage(),
@@ -155,20 +162,22 @@ function getStyleErrorDiagnostics(error: any, document: Document): Diagnostic[] 
             return getErrorMessage(error.message, 'style', hint);
         }
 
-        return (
+        const msg =
             error.formatted /* sass error messages have this */ ||
             error.message ||
-            'Style error. Transpilation failed.'
-        );
+            'Style error. Transpilation failed.';
+        return isErrorFromOtherFile ? 'Error in referenced file\n\n' + msg : msg;
     }
 
     function getStyleErrorRange() {
         const lineOffset = document.styleInfo?.startPos.line || 0;
         const position =
-            typeof error?.column === 'number' && typeof error?.line === 'number'
-                ? // Some preprocessors like sass or less return error objects with these attributes.
-                  // Use it to display a nice error message.
-                  Position.create(lineOffset + error.line - 1, error.column)
+            !isErrorFromOtherFile &&
+            // Some preprocessors like sass or less return error objects with these attributes.
+            // Use it to display message at better position.
+            typeof error?.column === 'number' &&
+            typeof error?.line === 'number'
+                ? Position.create(lineOffset + error.line - 1, error.column)
                 : document.styleInfo?.startPos || Position.create(0, 0);
         return Range.create(position, position);
     }
