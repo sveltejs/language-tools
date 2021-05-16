@@ -317,8 +317,8 @@ describe('CodeActionsProvider', () => {
                                             line: 4
                                         },
                                         end: {
-                                            character: 21,
-                                            line: 4
+                                            character: 0,
+                                            line: 5
                                         }
                                     }
                                 }
@@ -392,8 +392,8 @@ describe('CodeActionsProvider', () => {
                                             character: 2
                                         },
                                         end: {
-                                            line: 7,
-                                            character: 23
+                                            line: 8,
+                                            character: 0
                                         }
                                     }
                                 }
@@ -475,13 +475,13 @@ describe('CodeActionsProvider', () => {
                                 {
                                     newText: '',
                                     range: {
-                                        end: {
-                                            character: 37,
-                                            line: 7
-                                        },
                                         start: {
                                             character: 2,
                                             line: 7
+                                        },
+                                        end: {
+                                            character: 0,
+                                            line: 8
                                         }
                                     }
                                 }
@@ -494,6 +494,116 @@ describe('CodeActionsProvider', () => {
                     ]
                 },
                 kind: CodeActionKind.SourceOrganizeImports,
+                title: 'Organize Imports'
+            }
+        ]);
+    });
+
+    it('organizes imports which changes nothing (one import)', async () => {
+        const { provider, document } = setup('organize-imports-unchanged1.svelte');
+
+        const codeActions = await provider.getCodeActions(
+            document,
+            Range.create(Position.create(1, 4), Position.create(1, 5)), // irrelevant
+            {
+                diagnostics: [],
+                only: [CodeActionKind.SourceOrganizeImports]
+            }
+        );
+        (<TextDocumentEdit>codeActions[0]?.edit?.documentChanges?.[0])?.edits.forEach(
+            (edit) => (edit.newText = harmonizeNewLines(edit.newText))
+        );
+
+        assert.deepStrictEqual(codeActions, [
+            {
+                edit: {
+                    documentChanges: [
+                        {
+                            edits: [
+                                {
+                                    newText: "import { c } from './c';\n",
+                                    range: {
+                                        end: {
+                                            character: 0,
+                                            line: 2
+                                        },
+                                        start: {
+                                            character: 2,
+                                            line: 1
+                                        }
+                                    }
+                                }
+                            ],
+                            textDocument: {
+                                uri: getUri('organize-imports-unchanged1.svelte'),
+                                version: null
+                            }
+                        }
+                    ]
+                },
+                kind: 'source.organizeImports',
+                title: 'Organize Imports'
+            }
+        ]);
+    });
+
+    it('organizes imports which changes nothing (two imports)', async () => {
+        const { provider, document } = setup('organize-imports-unchanged2.svelte');
+
+        const codeActions = await provider.getCodeActions(
+            document,
+            Range.create(Position.create(1, 4), Position.create(1, 5)), // irrelevant
+            {
+                diagnostics: [],
+                only: [CodeActionKind.SourceOrganizeImports]
+            }
+        );
+        (<TextDocumentEdit>codeActions[0]?.edit?.documentChanges?.[0])?.edits.forEach(
+            (edit) => (edit.newText = harmonizeNewLines(edit.newText))
+        );
+
+        assert.deepStrictEqual(codeActions, [
+            {
+                edit: {
+                    documentChanges: [
+                        {
+                            edits: [
+                                {
+                                    newText:
+                                        "import { c } from './c';\n  import { d } from './d';\n",
+                                    range: {
+                                        end: {
+                                            character: 0,
+                                            line: 2
+                                        },
+                                        start: {
+                                            character: 2,
+                                            line: 1
+                                        }
+                                    }
+                                },
+                                {
+                                    newText: '',
+                                    range: {
+                                        end: {
+                                            character: 0,
+                                            line: 3
+                                        },
+                                        start: {
+                                            character: 0,
+                                            line: 2
+                                        }
+                                    }
+                                }
+                            ],
+                            textDocument: {
+                                uri: getUri('organize-imports-unchanged2.svelte'),
+                                version: null
+                            }
+                        }
+                    ]
+                },
+                kind: 'source.organizeImports',
                 title: 'Organize Imports'
             }
         ]);
