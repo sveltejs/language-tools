@@ -144,7 +144,7 @@ function getStyleErrorDiagnostics(error: any, document: Document): Diagnostic[] 
     // Error could be from another file that was mixed into the Svelte file as part of preprocessing.
     // Some preprocessors set the file property from which we can infer that
     const isErrorFromOtherFile =
-        typeof error.file === 'string' &&
+        typeof error?.file === 'string' &&
         getLastPartOfPath(error.file) !== getLastPartOfPath(document.getFilePath() || '');
 
     return [
