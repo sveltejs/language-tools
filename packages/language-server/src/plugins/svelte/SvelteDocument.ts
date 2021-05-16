@@ -18,7 +18,7 @@ import {
     TagInformation
 } from '../../lib/documents';
 import { SvelteConfig } from '../../lib/documents/configLoader';
-import { isNotNullOrUndefined } from '../../utils';
+import { getLastPartOfPath, isNotNullOrUndefined } from '../../utils';
 
 export type SvelteCompileResult = ReturnType<typeof compile>;
 
@@ -125,9 +125,13 @@ export class TranspiledSvelteDocument implements ITranspiledSvelteDocument {
 
         const filename = document.getFilePath() || '';
         const svelte = importSvelte(filename);
-        const preprocessed = await svelte.preprocess(document.getText(), config?.preprocess || [], {
-            filename
-        });
+        const preprocessed = await svelte.preprocess(
+            document.getText(),
+            wrapPreprocessors(config?.preprocess),
+            {
+                filename
+            }
+        );
 
         if (preprocessed.code === document.getText()) {
             return new TranspiledSvelteDocument(document.getText());
@@ -141,7 +145,7 @@ export class TranspiledSvelteDocument implements ITranspiledSvelteDocument {
                       // The "sources" array only contains the Svelte filename, not its path.
                       // For getting generated positions, the sourcemap consumer wants an exact match
                       // of the source filepath. Therefore only pass in the filename here.
-                      filename.replace(/\\/g, '/').split('/').pop() || ''
+                      getLastPartOfPath(filename)
                   )
                 : undefined
         );
@@ -392,6 +396,40 @@ export class SvelteFragmentMapper implements PositionMapper {
             this.sourceMapper.destroy();
         }
     }
+}
+
+/**
+ * Wrap preprocessors and rethrow on errors with more info on where the error came from.
+ */
+function wrapPreprocessors(preprocessors: PreprocessorGroup | PreprocessorGroup[] = []) {
+    preprocessors = Array.isArray(preprocessors) ? preprocessors : [preprocessors];
+    return preprocessors.map((preprocessor) => {
+        const wrappedPreprocessor: PreprocessorGroup = { markup: preprocessor.markup };
+
+        if (preprocessor.script) {
+            wrappedPreprocessor.script = async (args: any) => {
+                try {
+                    return await preprocessor.script!(args);
+                } catch (e) {
+                    e.__source = TranspileErrorSource.Script;
+                    throw e;
+                }
+            };
+        }
+
+        if (preprocessor.style) {
+            wrappedPreprocessor.style = async (args: any) => {
+                try {
+                    return await preprocessor.style!(args);
+                } catch (e) {
+                    e.__source = TranspileErrorSource.Style;
+                    throw e;
+                }
+            };
+        }
+
+        return wrappedPreprocessor;
+    });
 }
 
 async function transpile(
