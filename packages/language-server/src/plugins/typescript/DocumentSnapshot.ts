@@ -401,6 +401,10 @@ export class SvelteSnapshotFragment implements SnapshotFragment {
         return this.parent.moduleScriptInfo;
     }
 
+    get originalText() {
+        return this.parent.getText();
+    }
+
     getOriginalPosition(pos: Position): Position {
         return this.mapper.getOriginalPosition(pos);
     }

@@ -139,6 +139,13 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             edit.span.length -= 1;
             range = mapRangeToOriginal(fragment, convertRange(fragment, edit.span));
             range.end.character += 1;
+            if (
+                fragment instanceof SvelteSnapshotFragment &&
+                getLineAtPosition(range.end, fragment.originalText).length <= range.end.character
+            ) {
+                range.end.line += 1;
+                range.end.character = 0;
+            }
         }
 
         return range;
