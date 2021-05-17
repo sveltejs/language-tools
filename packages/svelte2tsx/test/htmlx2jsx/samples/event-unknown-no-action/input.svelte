@@ -1,0 +1,1 @@
+<h1 on:neverever1 on:neverever2={foo} on:neverever3="{() => bar}">Hello</h1>

@@ -1,0 +1,1 @@
+<><h1 {...__sveltets_ensureAction(action(__sveltets_mapElementTag('h1')))}  {...__sveltets_ensureCustomEvt(foo)} {...__sveltets_ensureCustomEvt(() => bar)}>Hello</h1></>

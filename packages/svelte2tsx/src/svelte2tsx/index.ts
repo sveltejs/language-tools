@@ -288,7 +288,8 @@ function processSvelteTemplate(
     };
 
     convertHtmlxToJsx(str, htmlxAst, onHtmlxWalk, onHtmlxLeave, {
-        preserveAttributeCase: options?.namespace == 'foreign'
+        preserveAttributeCase: options?.namespace === 'foreign',
+        hasEventDefinitions: !options?.namespace || options?.namespace === 'html'
     });
 
     // resolve scripts
