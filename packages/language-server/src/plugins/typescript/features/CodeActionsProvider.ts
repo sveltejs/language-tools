@@ -189,8 +189,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                                     fragment,
                                     edit,
                                     true,
-                                    isInTag(range.start, document.scriptInfo) ||
-                                        isInTag(range.start, document.moduleScriptInfo)
+                                    range.start
                                 );
                             }
 

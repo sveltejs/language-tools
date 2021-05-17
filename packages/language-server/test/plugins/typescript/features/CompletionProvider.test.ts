@@ -30,7 +30,7 @@ const fileNameToAbsoluteUri = (file: string) => {
     return pathToUrl(join(testFilesDir, file));
 };
 
-describe('CompletionProviderImpl', () => {
+describe.only('CompletionProviderImpl', () => {
     function setup(filename: string) {
         const docManager = new DocumentManager(
             (textDocument) => new Document(textDocument.uri, textDocument.text)
@@ -521,6 +521,60 @@ describe('CompletionProviderImpl', () => {
         assert.deepEqual(
             additionalTextEdits![0]?.range,
             Range.create(Position.create(4, 8), Position.create(4, 8))
+        );
+    });
+
+    it('resolve auto import completion in instance script (instance and module script present)', async () => {
+        const { completionProvider, document } = setup('importcompletions8.svelte');
+
+        const completions = await completionProvider.getCompletions(
+            document,
+            Position.create(5, 7)
+        );
+        document.version++;
+
+        const item = completions?.items.find((item) => item.label === 'onMount');
+        const { additionalTextEdits, detail } = await completionProvider.resolveCompletion(
+            document,
+            item!
+        );
+
+        assert.strictEqual(
+            harmonizeNewLines(additionalTextEdits![0]?.newText),
+            // " instead of ' because VSCode uses " by default when there are no other imports indicating otherwise
+            `${newLine}import { onMount } from "svelte";${newLine}${newLine}`
+        );
+
+        assert.deepEqual(
+            additionalTextEdits![0]?.range,
+            Range.create(Position.create(4, 8), Position.create(4, 8))
+        );
+    });
+
+    it('resolve auto import completion in module script (instance and module script present)', async () => {
+        const { completionProvider, document } = setup('importcompletions8.svelte');
+
+        const completions = await completionProvider.getCompletions(
+            document,
+            Position.create(1, 7)
+        );
+        document.version++;
+
+        const item = completions?.items.find((item) => item.label === 'onMount');
+        const { additionalTextEdits, detail } = await completionProvider.resolveCompletion(
+            document,
+            item!
+        );
+
+        assert.strictEqual(
+            harmonizeNewLines(additionalTextEdits![0]?.newText),
+            // " instead of ' because VSCode uses " by default when there are no other imports indicating otherwise
+            `${newLine}import { onMount } from "svelte";${newLine}${newLine}`
+        );
+
+        assert.deepEqual(
+            additionalTextEdits![0]?.range,
+            Range.create(Position.create(0, 25), Position.create(0, 25))
         );
     });
 

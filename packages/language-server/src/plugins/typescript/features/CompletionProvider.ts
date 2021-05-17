@@ -317,8 +317,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
                             fragment,
                             change,
                             isImport,
-                            isInTag(comp.position, document.scriptInfo) ||
-                                isInTag(comp.position, document.moduleScriptInfo)
+                            comp.position
                         )
                     );
                 }
@@ -355,7 +354,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         fragment: SvelteSnapshotFragment,
         changes: ts.FileTextChanges,
         isImport: boolean,
-        actionTriggeredInScript: boolean
+        originalTriggerPosition: Position
     ): TextEdit[] {
         return changes.textChanges.map((change) =>
             this.codeActionChangeToTextEdit(
@@ -363,7 +362,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
                 fragment,
                 change,
                 isImport,
-                actionTriggeredInScript
+                originalTriggerPosition
             )
         );
     }
@@ -373,9 +372,12 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         fragment: SvelteSnapshotFragment,
         change: ts.TextChange,
         isImport: boolean,
-        actionTriggeredInScript: boolean
+        originalTriggerPosition: Position
     ): TextEdit {
-        change.newText = this.changeComponentImport(change.newText, actionTriggeredInScript);
+        change.newText = this.changeComponentImport(
+            change.newText,
+            isInScript(originalTriggerPosition, doc)
+        );
 
         const scriptTagInfo = fragment.scriptInfo || fragment.moduleScriptInfo;
         if (!scriptTagInfo) {
@@ -410,7 +412,11 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             !isInScript(range.start, fragment)
         ) {
             range = convertRange(doc, {
-                start: scriptTagInfo.start,
+                start: isInTag(originalTriggerPosition, doc.scriptInfo)
+                    ? fragment.scriptInfo?.start || scriptTagInfo.start
+                    : isInTag(originalTriggerPosition, doc.moduleScriptInfo)
+                    ? fragment.moduleScriptInfo?.start || scriptTagInfo.start
+                    : scriptTagInfo.start,
                 length: span.length
             });
         }
