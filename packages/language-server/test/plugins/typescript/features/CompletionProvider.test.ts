@@ -710,7 +710,7 @@ describe.only('CompletionProviderImpl', () => {
     });
 
     it('resolve auto completion in correct place when already imported in module script', async () => {
-        const { completionProvider, document } = setup('importCompletion8.svelte');
+        const { completionProvider, document } = setup('importcompletions8.svelte');
 
         const completions = await completionProvider.getCompletions(
             document,
