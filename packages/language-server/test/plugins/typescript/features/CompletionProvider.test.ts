@@ -534,10 +534,7 @@ describe.only('CompletionProviderImpl', () => {
         document.version++;
 
         const item = completions?.items.find((item) => item.label === 'onMount');
-        const { additionalTextEdits, detail } = await completionProvider.resolveCompletion(
-            document,
-            item!
-        );
+        const { additionalTextEdits } = await completionProvider.resolveCompletion(document, item!);
 
         assert.strictEqual(
             harmonizeNewLines(additionalTextEdits![0]?.newText),
@@ -561,10 +558,7 @@ describe.only('CompletionProviderImpl', () => {
         document.version++;
 
         const item = completions?.items.find((item) => item.label === 'onMount');
-        const { additionalTextEdits, detail } = await completionProvider.resolveCompletion(
-            document,
-            item!
-        );
+        const { additionalTextEdits } = await completionProvider.resolveCompletion(document, item!);
 
         assert.strictEqual(
             harmonizeNewLines(additionalTextEdits![0]?.newText),
