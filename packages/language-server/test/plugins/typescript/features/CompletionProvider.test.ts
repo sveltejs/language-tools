@@ -525,7 +525,7 @@ describe.only('CompletionProviderImpl', () => {
     });
 
     it('resolve auto import completion in instance script (instance and module script present)', async () => {
-        const { completionProvider, document } = setup('importcompletions8.svelte');
+        const { completionProvider, document } = setup('importcompletions9.svelte');
 
         const completions = await completionProvider.getCompletions(
             document,
@@ -552,7 +552,7 @@ describe.only('CompletionProviderImpl', () => {
     });
 
     it('resolve auto import completion in module script (instance and module script present)', async () => {
-        const { completionProvider, document } = setup('importcompletions8.svelte');
+        const { completionProvider, document } = setup('importcompletions9.svelte');
 
         const completions = await completionProvider.getCompletions(
             document,
