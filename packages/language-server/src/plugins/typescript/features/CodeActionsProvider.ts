@@ -1,3 +1,4 @@
+import ts from 'typescript';
 import {
     CodeAction,
     CodeActionContext,
@@ -10,18 +11,15 @@ import {
 } from 'vscode-languageserver';
 import {
     Document,
-    mapRangeToOriginal,
+    getLineAtPosition,
     isRangeInTag,
-    isInTag,
-    getLineAtPosition
+    mapRangeToOriginal
 } from '../../../lib/documents';
-import { pathToUrl, flatten, isNotNullOrUndefined, modifyLines, getIndent } from '../../../utils';
+import { flatten, getIndent, isNotNullOrUndefined, modifyLines, pathToUrl } from '../../../utils';
 import { CodeActionsProvider } from '../../interfaces';
 import { SnapshotFragment, SvelteSnapshotFragment } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { convertRange } from '../utils';
-
-import ts from 'typescript';
 import { CompletionsProviderImpl } from './CompletionProvider';
 import { isNoTextSpanInGeneratedCode, SnapshotFragmentMap } from './utils';
 
