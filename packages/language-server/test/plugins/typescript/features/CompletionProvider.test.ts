@@ -606,12 +606,12 @@ describe.only('CompletionProviderImpl', () => {
             item!
         );
 
-        assert.strictEqual(detail, 'Auto import from ./imported-file.svelte\nclass ImportedFile');
+        assert.strictEqual(detail, 'Auto import from ../imported-file.svelte\nclass ImportedFile');
 
         assert.strictEqual(
             harmonizeNewLines(additionalTextEdits![0]?.newText),
             // " instead of ' because VSCode uses " by default when there are no other imports indicating otherwise
-            `${newLine}import ImportedFile from "./imported-file.svelte";${newLine}`
+            `${newLine}import ImportedFile from "../imported-file.svelte";${newLine}`
         );
 
         assert.deepEqual(
@@ -641,12 +641,12 @@ describe.only('CompletionProviderImpl', () => {
             item!
         );
 
-        assert.strictEqual(detail, 'Auto import from ./imported-file.svelte\nclass ImportedFile');
+        assert.strictEqual(detail, 'Auto import from ../imported-file.svelte\nclass ImportedFile');
 
         assert.strictEqual(
             harmonizeNewLines(additionalTextEdits![0]?.newText),
             // " instead of ' because VSCode uses " by default when there are no other imports indicating otherwise
-            `<script>${newLine}import ImportedFile from "./imported-file.svelte";` +
+            `<script>${newLine}import ImportedFile from "../imported-file.svelte";` +
                 `${newLine}${newLine}</script>${newLine}`
         );
 

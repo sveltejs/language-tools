@@ -228,7 +228,16 @@ async function createLanguageService(
             forcedCompilerOptions,
             tsconfigPath,
             undefined,
-            [{ extension: 'svelte', isMixedContent: false, scriptKind: ts.ScriptKind.TSX }]
+            [
+                {
+                    extension: 'svelte',
+                    isMixedContent: true,
+                    // Deferred was added in a later TS version, fall back to tsx
+                    // If Deferred exists, this means that all Svelte files are included
+                    // in parsedConfig.fileNames
+                    scriptKind: ts.ScriptKind.Deferred ?? ts.ScriptKind.TSX
+                }
+            ]
         );
 
         const compilerOptions: ts.CompilerOptions = {
