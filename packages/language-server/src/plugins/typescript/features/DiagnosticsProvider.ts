@@ -1,5 +1,5 @@
 import ts from 'typescript';
-import { Diagnostic, DiagnosticSeverity, DiagnosticTag } from 'vscode-languageserver';
+import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver';
 import {
     Document,
     mapObjWithRangeToOriginal,
@@ -8,7 +8,7 @@ import {
 } from '../../../lib/documents';
 import { DiagnosticsProvider } from '../../interfaces';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
-import { convertRange, mapSeverity } from '../utils';
+import { convertRange, getDiagnosticTag, mapSeverity } from '../utils';
 import { SvelteDocumentSnapshot } from '../DocumentSnapshot';
 import { isInGeneratedCode } from './utils';
 
@@ -53,24 +53,13 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
                 source: isTypescript ? 'ts' : 'js',
                 message: ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n'),
                 code: diagnostic.code,
-                tags: this.getDiagnosticTag(diagnostic)
+                tags: getDiagnosticTag(diagnostic)
             }))
             .map((diagnostic) => mapObjWithRangeToOriginal(fragment, diagnostic))
             .filter(hasNoNegativeLines)
             .filter(isNoFalsePositive(document, tsDoc))
             .map(enhanceIfNecessary)
             .map(swapRangeStartEndIfNecessary);
-    }
-
-    private getDiagnosticTag(diagnostic: ts.Diagnostic) {
-        const tags: DiagnosticTag[] = [];
-        if (diagnostic.reportsUnnecessary) {
-            tags.push(DiagnosticTag.Unnecessary);
-        }
-        if (diagnostic.reportsDeprecated) {
-            tags.push(DiagnosticTag.Deprecated);
-        }
-        return tags;
     }
 
     private async getLSAndTSDoc(document: Document) {

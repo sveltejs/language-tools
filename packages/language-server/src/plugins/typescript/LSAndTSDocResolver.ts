@@ -7,6 +7,8 @@ import {
     getLanguageServiceForDocument,
     getLanguageServiceForPath,
     getService,
+    getServiceForTsconfig,
+    hasServiceForFile,
     LanguageServiceContainer,
     LanguageServiceDocumentContext
 } from './service';
@@ -63,6 +65,10 @@ export class LSAndTSDocResolver {
         return getLanguageServiceForPath(path, this.workspaceUris, this.lsDocumentContext);
     }
 
+    async getLSContainerForTsconfigPath(tsconfigPath: string) {
+        return await getServiceForTsconfig(tsconfigPath, this.lsDocumentContext);
+    }
+
     async getLSAndTSDoc(document: Document): Promise<{
         tsDoc: SvelteDocumentSnapshot;
         lang: ts.LanguageService;
@@ -93,6 +99,11 @@ export class LSAndTSDocResolver {
     }
 
     async deleteSnapshot(filePath: string) {
+        if (!hasServiceForFile(filePath, this.workspaceUris)) {
+            // Don't initialize a service for a file that should be deleted
+            return;
+        }
+
         (await this.getTSService(filePath)).deleteSnapshot(filePath);
         this.docManager.releaseDocument(pathToUrl(filePath));
     }

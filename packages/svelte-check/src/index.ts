@@ -52,10 +52,13 @@ async function openAllDocuments(
 
                 for (const absFilePath of absFilePaths) {
                     const text = fs.readFileSync(absFilePath, 'utf-8');
-                    svelteCheck.upsertDocument({
-                        uri: URI.file(absFilePath).toString(),
-                        text
-                    });
+                    svelteCheck.upsertDocument(
+                        {
+                            uri: URI.file(absFilePath).toString(),
+                            text
+                        },
+                        true
+                    );
                 }
                 resolve();
             }
@@ -119,26 +122,32 @@ class DiagnosticsWatcher {
         private workspaceUri: URI,
         private svelteCheck: SvelteCheck,
         private writer: Writer,
-        filePathsToIgnore: string[]
+        filePathsToIgnore: string[],
+        ignoreInitialAdd: boolean
     ) {
         watch(`${workspaceUri.fsPath}/**/*.{svelte,d.ts,ts,js}`, {
             ignored: ['node_modules']
                 .concat(filePathsToIgnore)
-                .map((ignore) => path.join(workspaceUri.fsPath, ignore))
+                .map((ignore) => path.join(workspaceUri.fsPath, ignore)),
+            ignoreInitial: ignoreInitialAdd
         })
-            .on('add', (path) => this.updateDocument(path))
+            .on('add', (path) => this.updateDocument(path, true))
             .on('unlink', (path) => this.removeDocument(path))
-            .on('change', (path) => this.updateDocument(path));
+            .on('change', (path) => this.updateDocument(path, false));
+
+        if (ignoreInitialAdd) {
+            this.scheduleDiagnostics();
+        }
     }
 
-    private updateDocument(path: string) {
+    private async updateDocument(path: string, isNew: boolean) {
         const text = fs.readFileSync(path, 'utf-8');
-        this.svelteCheck.upsertDocument({ text, uri: URI.file(path).toString() });
+        await this.svelteCheck.upsertDocument({ text, uri: URI.file(path).toString() }, isNew);
         this.scheduleDiagnostics();
     }
 
-    private removeDocument(path: string) {
-        this.svelteCheck.removeDocument(URI.file(path).toString());
+    private async removeDocument(path: string) {
+        await this.svelteCheck.removeDocument(URI.file(path).toString());
         this.scheduleDiagnostics();
     }
 
@@ -178,12 +187,18 @@ function instantiateWriter(myArgs: argv.ParsedArgs): Writer {
     }
 }
 
-function getOptions(myArgs: argv.ParsedArgs): SvelteCheckOptions {
+function getOptions(myArgs: argv.ParsedArgs, workspacePath: string): SvelteCheckOptions {
+    let tsconfig = myArgs['tsconfig'];
+    if (tsconfig && !path.isAbsolute(tsconfig)) {
+        tsconfig = path.join(workspacePath, tsconfig);
+    }
+
     return {
         compilerWarnings: stringToObj(myArgs['compiler-warnings']),
         diagnosticSources: <any>(
             myArgs['diagnostic-sources']?.split(',')?.map((s: string) => s.trim())
-        )
+        ),
+        tsconfig
     };
 
     function stringToObj(str = '') {
@@ -217,13 +232,24 @@ function getOptions(myArgs: argv.ParsedArgs): SvelteCheckOptions {
 
     const writer = instantiateWriter(myArgs);
 
-    const svelteCheck = new SvelteCheck(workspaceUri.fsPath, getOptions(myArgs));
+    const svelteCheck = new SvelteCheck(
+        workspaceUri.fsPath,
+        getOptions(myArgs, workspaceUri.fsPath)
+    );
     const filePathsToIgnore = myArgs['ignore']?.split(',') || [];
 
     if (myArgs['watch']) {
-        new DiagnosticsWatcher(workspaceUri, svelteCheck, writer, filePathsToIgnore);
+        new DiagnosticsWatcher(
+            workspaceUri,
+            svelteCheck,
+            writer,
+            filePathsToIgnore,
+            !!myArgs['tsconfig']
+        );
     } else {
-        await openAllDocuments(workspaceUri, filePathsToIgnore, svelteCheck);
+        if (!myArgs['tsconfig']) {
+            await openAllDocuments(workspaceUri, filePathsToIgnore, svelteCheck);
+        }
         const result = await getDiagnostics(workspaceUri, writer, svelteCheck);
         if (
             result &&

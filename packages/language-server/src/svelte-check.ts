@@ -1,15 +1,22 @@
+import { isAbsolute } from 'path';
+import ts from 'typescript';
+import { Diagnostic, Position, Range } from 'vscode-languageserver';
 import { Document, DocumentManager } from './lib/documents';
+import { Logger } from './logger';
 import { LSConfigManager } from './ls-config';
 import { CSSPlugin, PluginHost, SveltePlugin, TypeScriptPlugin } from './plugins';
-import { Diagnostic, Position, Range } from 'vscode-languageserver';
-import { Logger } from './logger';
-import { urlToPath, pathToUrl } from './utils';
+import { convertRange, getDiagnosticTag, mapSeverity } from './plugins/typescript/utils';
+import { pathToUrl, urlToPath } from './utils';
 
 export type SvelteCheckDiagnosticSource = 'js' | 'css' | 'svelte';
 
 export interface SvelteCheckOptions {
     compilerWarnings?: Record<string, 'ignore' | 'error'>;
     diagnosticSources?: SvelteCheckDiagnosticSource[];
+    /**
+     * Path has to be absolute
+     */
+    tsconfig?: string;
 }
 
 /**
@@ -22,13 +29,18 @@ export class SvelteCheck {
     );
     private configManager = new LSConfigManager();
     private pluginHost = new PluginHost(this.docManager);
+    private typeScriptPlugin?: TypeScriptPlugin;
 
-    constructor(workspacePath: string, options: SvelteCheckOptions = {}) {
+    constructor(workspacePath: string, private options: SvelteCheckOptions = {}) {
         Logger.setLogErrorsOnly(true);
         this.initialize(workspacePath, options);
     }
 
-    private initialize(workspacePath: string, options: SvelteCheckOptions) {
+    private async initialize(workspacePath: string, options: SvelteCheckOptions) {
+        if (options.tsconfig && !isAbsolute(options.tsconfig)) {
+            throw new Error('tsconfigPath needs to be absolute, got ' + options.tsconfig);
+        }
+
         this.configManager.update({
             svelte: {
                 compilerWarnings: options.compilerWarnings
@@ -41,15 +53,14 @@ export class SvelteCheck {
         if (shouldRegister('css')) {
             this.pluginHost.register(new CSSPlugin(this.docManager, this.configManager));
         }
-        if (shouldRegister('js')) {
-            this.pluginHost.register(
-                new TypeScriptPlugin(
-                    this.docManager,
-                    this.configManager,
-                    [pathToUrl(workspacePath)],
-                    /**isEditor */ false
-                )
+        if (shouldRegister('js') || options.tsconfig) {
+            this.typeScriptPlugin = new TypeScriptPlugin(
+                this.docManager,
+                this.configManager,
+                [pathToUrl(workspacePath)],
+                /**isEditor */ false
             );
+            this.pluginHost.register(this.typeScriptPlugin);
         }
 
         function shouldRegister(source: SvelteCheckDiagnosticSource) {
@@ -61,10 +72,20 @@ export class SvelteCheck {
      * Creates/updates given document
      *
      * @param doc Text and Uri of the document
+     * @param isNew Whether or not this is the creation of the document
      */
-    upsertDocument(doc: { text: string; uri: string }) {
+    async upsertDocument(doc: { text: string; uri: string }, isNew: boolean): Promise<void> {
+        const filePath = urlToPath(doc.uri) || '';
+
+        if (isNew && this.options.tsconfig) {
+            const lsContainer = await this.getLSContainer(this.options.tsconfig);
+            if (!lsContainer.fileBelongsToProject(filePath)) {
+                return;
+            }
+        }
+
         if (doc.uri.endsWith('.ts') || doc.uri.endsWith('.js')) {
-            this.pluginHost.updateTsOrJsFile(urlToPath(doc.uri) || '', [
+            this.pluginHost.updateTsOrJsFile(filePath, [
                 {
                     range: Range.create(
                         Position.create(0, 0),
@@ -74,11 +95,18 @@ export class SvelteCheck {
                 }
             ]);
         } else {
-            this.docManager.openDocument({
+            const document = this.docManager.openDocument({
                 text: doc.text,
                 uri: doc.uri
             });
             this.docManager.markAsOpenedInClient(doc.uri);
+            if (this.options.tsconfig) {
+                // TODO openDocument notifies the LsAndTsDocResolver which may add
+                // the document to a different tsconfig. Therefore do this here one more time.
+                // --> find a way to get rid of this workaround
+                const lsContainer = await this.getLSContainer(this.options.tsconfig);
+                lsContainer.updateSnapshot(document);
+            }
         }
     }
 
@@ -87,9 +115,13 @@ export class SvelteCheck {
      *
      * @param uri Uri of the document
      */
-    removeDocument(uri: string) {
+    async removeDocument(uri: string): Promise<void> {
         this.docManager.closeDocument(uri);
         this.docManager.releaseDocument(uri);
+        if (this.options.tsconfig) {
+            const lsContainer = await this.getLSContainer(this.options.tsconfig);
+            lsContainer.deleteSnapshot(urlToPath(uri) || '');
+        }
     }
 
     /**
@@ -98,16 +130,68 @@ export class SvelteCheck {
     async getDiagnostics(): Promise<
         Array<{ filePath: string; text: string; diagnostics: Diagnostic[] }>
     > {
+        if (this.options.tsconfig) {
+            return this.getDiagnosticsForTsconfig(this.options.tsconfig);
+        }
         return await Promise.all(
             this.docManager.getAllOpenedByClient().map(async (doc) => {
                 const uri = doc[1].uri;
-                const diagnostics = await this.pluginHost.getDiagnostics({ uri });
-                return {
-                    filePath: urlToPath(uri) || '',
-                    text: this.docManager.get(uri)?.getText() || '',
-                    diagnostics
-                };
+                return await this.getDiagnosticsForFile(uri);
             })
         );
+    }
+
+    private async getDiagnosticsForTsconfig(tsconfigPath: string) {
+        const lsContainer = await this.getLSContainer(tsconfigPath);
+        const lang = lsContainer.getService();
+        const files = lang.getProgram()?.getSourceFiles() || [];
+
+        return await Promise.all(
+            files.map((file) => {
+                const uri = pathToUrl(file.fileName);
+                const doc = this.docManager.get(uri);
+                if (doc) {
+                    this.docManager.markAsOpenedInClient(uri);
+                    return this.getDiagnosticsForFile(uri);
+                } else {
+                    const diagnostics = [
+                        ...lang.getSyntacticDiagnostics(file.fileName),
+                        ...lang.getSuggestionDiagnostics(file.fileName),
+                        ...lang.getSemanticDiagnostics(file.fileName)
+                    ].map<Diagnostic>((diagnostic) => ({
+                        range: convertRange(
+                            { positionAt: file.getLineAndCharacterOfPosition.bind(file) },
+                            diagnostic
+                        ),
+                        severity: mapSeverity(diagnostic.category),
+                        source: diagnostic.source,
+                        message: ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n'),
+                        code: diagnostic.code,
+                        tags: getDiagnosticTag(diagnostic)
+                    }));
+                    return {
+                        filePath: file.fileName,
+                        text: file.text,
+                        diagnostics
+                    };
+                }
+            })
+        );
+    }
+
+    private async getDiagnosticsForFile(uri: string) {
+        const diagnostics = await this.pluginHost.getDiagnostics({ uri });
+        return {
+            filePath: urlToPath(uri) || '',
+            text: this.docManager.get(uri)?.getText() || '',
+            diagnostics
+        };
+    }
+
+    private getLSContainer(tsconfigPath: string) {
+        if (!this.typeScriptPlugin) {
+            throw new Error('Cannot run with tsconfig path without TypeScript plugin');
+        }
+        return this.typeScriptPlugin.getLSContainerForTsconfigPath(tsconfigPath);
     }
 }

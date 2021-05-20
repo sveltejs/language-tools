@@ -438,6 +438,13 @@ export class TypeScriptPlugin
         return this.semanticTokensProvider.getSemanticTokens(textDocument, range);
     }
 
+    /**
+     * @param tsconfigPath has to be absolute
+     */
+    async getLSContainerForTsconfigPath(tsconfigPath: string) {
+        return this.lsAndTsDocResolver.getLSContainerForTsconfigPath(tsconfigPath);
+    }
+
     private async getLSAndTSDoc(document: Document) {
         return this.lsAndTsDocResolver.getLSAndTSDoc(document);
     }
