@@ -4,8 +4,6 @@ import { LSConfigManager } from '../../ls-config';
 import { debounceSameArg, pathToUrl } from '../../utils';
 import { DocumentSnapshot, SvelteDocumentSnapshot } from './DocumentSnapshot';
 import {
-    getLanguageServiceForDocument,
-    getLanguageServiceForPath,
     getService,
     getServiceForTsconfig,
     hasServiceForFile,
@@ -15,11 +13,18 @@ import {
 import { SnapshotManager } from './SnapshotManager';
 
 export class LSAndTSDocResolver {
+    /**
+     *
+     * @param docManager
+     * @param workspaceUris
+     * @param configManager
+     * @param tsconfigPath This should only be set via svelte-check. Makes sure all documents are resolved to that tsconfig. Has to be absolute.
+     */
     constructor(
         private readonly docManager: DocumentManager,
         private readonly workspaceUris: string[],
         private readonly configManager: LSConfigManager,
-        private readonly transformOnTemplateError = true
+        private readonly tsconfigPath?: string
     ) {
         const handleDocumentChange = (document: Document) => {
             // This refreshes the document in the ts language service
@@ -57,16 +62,12 @@ export class LSAndTSDocResolver {
     private get lsDocumentContext(): LanguageServiceDocumentContext {
         return {
             createDocument: this.createDocument,
-            transformOnTemplateError: this.transformOnTemplateError
+            transformOnTemplateError: !this.tsconfigPath
         };
     }
 
     async getLSForPath(path: string) {
-        return getLanguageServiceForPath(path, this.workspaceUris, this.lsDocumentContext);
-    }
-
-    async getLSContainerForTsconfigPath(tsconfigPath: string) {
-        return await getServiceForTsconfig(tsconfigPath, this.lsDocumentContext);
+        return (await this.getTSService(path)).getService();
     }
 
     async getLSAndTSDoc(document: Document): Promise<{
@@ -74,11 +75,7 @@ export class LSAndTSDocResolver {
         lang: ts.LanguageService;
         userPreferences: ts.UserPreferences;
     }> {
-        const lang = await getLanguageServiceForDocument(
-            document,
-            this.workspaceUris,
-            this.lsDocumentContext
-        );
+        const lang = await this.getLSForPath(document.getFilePath() || '');
         const tsDoc = await this.getSnapshot(document);
         const userPreferences = this.getUserPreferences(tsDoc.scriptKind);
 
@@ -112,7 +109,13 @@ export class LSAndTSDocResolver {
         return (await this.getTSService(filePath)).snapshotManager;
     }
 
-    private getTSService(filePath: string): Promise<LanguageServiceContainer> {
+    async getTSService(filePath?: string): Promise<LanguageServiceContainer> {
+        if (this.tsconfigPath) {
+            return getServiceForTsconfig(this.tsconfigPath, this.lsDocumentContext);
+        }
+        if (!filePath) {
+            throw new Error('Cannot call getTSService without filePath and without tsconfigPath');
+        }
         return getService(filePath, this.workspaceUris, this.lsDocumentContext);
     }
 

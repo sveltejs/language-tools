@@ -30,22 +30,6 @@ export interface LanguageServiceDocumentContext {
     createDocument: (fileName: string, content: string) => Document;
 }
 
-export async function getLanguageServiceForPath(
-    path: string,
-    workspaceUris: string[],
-    docContext: LanguageServiceDocumentContext
-): Promise<ts.LanguageService> {
-    return (await getService(path, workspaceUris, docContext)).getService();
-}
-
-export async function getLanguageServiceForDocument(
-    document: Document,
-    workspaceUris: string[],
-    docContext: LanguageServiceDocumentContext
-): Promise<ts.LanguageService> {
-    return getLanguageServiceForPath(document.getFilePath() || '', workspaceUris, docContext);
-}
-
 export async function getService(
     path: string,
     workspaceUris: string[],

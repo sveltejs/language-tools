@@ -4,7 +4,13 @@ import { Diagnostic, Position, Range } from 'vscode-languageserver';
 import { Document, DocumentManager } from './lib/documents';
 import { Logger } from './logger';
 import { LSConfigManager } from './ls-config';
-import { CSSPlugin, PluginHost, SveltePlugin, TypeScriptPlugin } from './plugins';
+import {
+    CSSPlugin,
+    LSAndTSDocResolver,
+    PluginHost,
+    SveltePlugin,
+    TypeScriptPlugin
+} from './plugins';
 import { convertRange, getDiagnosticTag, mapSeverity } from './plugins/typescript/utils';
 import { pathToUrl, urlToPath } from './utils';
 
@@ -29,7 +35,7 @@ export class SvelteCheck {
     );
     private configManager = new LSConfigManager();
     private pluginHost = new PluginHost(this.docManager);
-    private typeScriptPlugin?: TypeScriptPlugin;
+    private lsAndTSDocResolver?: LSAndTSDocResolver;
 
     constructor(workspacePath: string, private options: SvelteCheckOptions = {}) {
         Logger.setLogErrorsOnly(true);
@@ -54,13 +60,15 @@ export class SvelteCheck {
             this.pluginHost.register(new CSSPlugin(this.docManager, this.configManager));
         }
         if (shouldRegister('js') || options.tsconfig) {
-            this.typeScriptPlugin = new TypeScriptPlugin(
+            this.lsAndTSDocResolver = new LSAndTSDocResolver(
                 this.docManager,
-                this.configManager,
                 [pathToUrl(workspacePath)],
-                /**isEditor */ false
+                this.configManager,
+                options.tsconfig
             );
-            this.pluginHost.register(this.typeScriptPlugin);
+            this.pluginHost.register(
+                new TypeScriptPlugin(this.configManager, this.lsAndTSDocResolver)
+            );
         }
 
         function shouldRegister(source: SvelteCheckDiagnosticSource) {
@@ -95,18 +103,11 @@ export class SvelteCheck {
                 }
             ]);
         } else {
-            const document = this.docManager.openDocument({
+            this.docManager.openDocument({
                 text: doc.text,
                 uri: doc.uri
             });
             this.docManager.markAsOpenedInClient(doc.uri);
-            if (this.options.tsconfig) {
-                // TODO openDocument notifies the LsAndTsDocResolver which may add
-                // the document to a different tsconfig. Therefore do this here one more time.
-                // --> find a way to get rid of this workaround
-                const lsContainer = await this.getLSContainer(this.options.tsconfig);
-                lsContainer.updateSnapshot(document);
-            }
         }
     }
 
@@ -116,6 +117,10 @@ export class SvelteCheck {
      * @param uri Uri of the document
      */
     async removeDocument(uri: string): Promise<void> {
+        if (!this.docManager.get(uri)) {
+            return;
+        }
+
         this.docManager.closeDocument(uri);
         this.docManager.releaseDocument(uri);
         if (this.options.tsconfig) {
@@ -189,9 +194,9 @@ export class SvelteCheck {
     }
 
     private getLSContainer(tsconfigPath: string) {
-        if (!this.typeScriptPlugin) {
-            throw new Error('Cannot run with tsconfig path without TypeScript plugin');
+        if (!this.lsAndTSDocResolver) {
+            throw new Error('Cannot run with tsconfig path without LS/TSdoc resolver');
         }
-        return this.typeScriptPlugin.getLSContainerForTsconfigPath(tsconfigPath);
+        return this.lsAndTSDocResolver.getTSService(tsconfigPath);
     }
 }

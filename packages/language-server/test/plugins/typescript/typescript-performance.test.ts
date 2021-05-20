@@ -4,7 +4,7 @@ import ts from 'typescript';
 import { Position, Range } from 'vscode-languageserver';
 import { Document, DocumentManager } from '../../../src/lib/documents';
 import { LSConfigManager } from '../../../src/ls-config';
-import { TypeScriptPlugin } from '../../../src/plugins';
+import { LSAndTSDocResolver, TypeScriptPlugin } from '../../../src/plugins';
 import { pathToUrl } from '../../../src/utils';
 
 describe('TypeScript Plugin Performance Tests', () => {
@@ -15,7 +15,10 @@ describe('TypeScript Plugin Performance Tests', () => {
         const uri = pathToUrl(filePath);
         const document = new Document(uri, ts.sys.readFile(filePath) || '');
         const pluginManager = new LSConfigManager();
-        const plugin = new TypeScriptPlugin(docManager, pluginManager, [pathToUrl(testDir)]);
+        const plugin = new TypeScriptPlugin(
+            pluginManager,
+            new LSAndTSDocResolver(docManager, [pathToUrl(testDir)], pluginManager)
+        );
         docManager.openDocument({ uri, text: document.getText() });
         const append = (newText: string) =>
             docManager.updateDocument({ uri, version: 1 }, [

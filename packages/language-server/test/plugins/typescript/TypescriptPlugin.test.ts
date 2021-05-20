@@ -5,7 +5,7 @@ import fs from 'fs';
 import { FileChangeType, Position, Range } from 'vscode-languageserver';
 import { Document, DocumentManager } from '../../../src/lib/documents';
 import { LSConfigManager } from '../../../src/ls-config';
-import { TypeScriptPlugin } from '../../../src/plugins';
+import { LSAndTSDocResolver, TypeScriptPlugin } from '../../../src/plugins';
 import { INITIAL_VERSION } from '../../../src/plugins/typescript/DocumentSnapshot';
 import { pathToUrl, urlToPath } from '../../../src/utils';
 import { ignoredBuildDirectories } from '../../../src/plugins/typescript/SnapshotManager';
@@ -26,7 +26,10 @@ describe('TypescriptPlugin', () => {
         const filePath = path.join(testDir, filename);
         const document = new Document(pathToUrl(filePath), ts.sys.readFile(filePath) || '');
         const pluginManager = new LSConfigManager();
-        const plugin = new TypeScriptPlugin(docManager, pluginManager, [pathToUrl(testDir)]);
+        const plugin = new TypeScriptPlugin(
+            pluginManager,
+            new LSAndTSDocResolver(docManager, [pathToUrl(testDir)], pluginManager)
+        );
         docManager.openDocument(<any>'some doc');
         return { plugin, document };
     }
