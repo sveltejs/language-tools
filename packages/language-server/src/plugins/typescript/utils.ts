@@ -3,6 +3,7 @@ import ts from 'typescript';
 import {
     CompletionItemKind,
     DiagnosticSeverity,
+    DiagnosticTag,
     Position,
     Range,
     SymbolKind
@@ -300,4 +301,15 @@ export function convertToTextSpan(range: Range, fragment: SnapshotFragment): ts.
 
 export function isInScript(position: Position, fragment: SvelteSnapshotFragment | Document) {
     return isInTag(position, fragment.scriptInfo) || isInTag(position, fragment.moduleScriptInfo);
+}
+
+export function getDiagnosticTag(diagnostic: ts.Diagnostic): DiagnosticTag[] {
+    const tags: DiagnosticTag[] = [];
+    if (diagnostic.reportsUnnecessary) {
+        tags.push(DiagnosticTag.Unnecessary);
+    }
+    if (diagnostic.reportsDeprecated) {
+        tags.push(DiagnosticTag.Deprecated);
+    }
+    return tags;
 }

@@ -31,7 +31,8 @@ import {
     PluginHost,
     SveltePlugin,
     TypeScriptPlugin,
-    OnWatchFileChangesPara
+    OnWatchFileChangesPara,
+    LSAndTSDocResolver
 } from './plugins';
 import { isNotNullOrUndefined, urlToPath } from './utils';
 import { FallbackWatcher } from './lib/FallbackWatcher';
@@ -132,7 +133,12 @@ export function startServer(options?: LSOptions) {
         pluginHost.register((sveltePlugin = new SveltePlugin(configManager)));
         pluginHost.register(new HTMLPlugin(docManager, configManager));
         pluginHost.register(new CSSPlugin(docManager, configManager));
-        pluginHost.register(new TypeScriptPlugin(docManager, configManager, workspaceUris));
+        pluginHost.register(
+            new TypeScriptPlugin(
+                configManager,
+                new LSAndTSDocResolver(docManager, workspaceUris, configManager)
+            )
+        );
 
         const clientSupportApplyEditCommand = !!evt.capabilities.workspace?.applyEdit;
 

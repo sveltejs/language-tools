@@ -16,6 +16,11 @@ export interface LanguageServiceContainer {
     getService(): ts.LanguageService;
     updateSnapshot(documentOrFilePath: Document | string): DocumentSnapshot;
     deleteSnapshot(filePath: string): void;
+    /**
+     * Careful, don't call often, or it will hurt performance.
+     * Only works for TS versions that have ScriptKind.Deferred
+     */
+    fileBelongsToProject(filePath: string): boolean;
 }
 
 const services = new Map<string, Promise<LanguageServiceContainer>>();
@@ -25,29 +30,28 @@ export interface LanguageServiceDocumentContext {
     createDocument: (fileName: string, content: string) => Document;
 }
 
-export async function getLanguageServiceForPath(
-    path: string,
-    workspaceUris: string[],
-    docContext: LanguageServiceDocumentContext
-): Promise<ts.LanguageService> {
-    return (await getService(path, workspaceUris, docContext)).getService();
-}
-
-export async function getLanguageServiceForDocument(
-    document: Document,
-    workspaceUris: string[],
-    docContext: LanguageServiceDocumentContext
-): Promise<ts.LanguageService> {
-    return getLanguageServiceForPath(document.getFilePath() || '', workspaceUris, docContext);
-}
-
 export async function getService(
     path: string,
     workspaceUris: string[],
     docContext: LanguageServiceDocumentContext
-) {
+): Promise<LanguageServiceContainer> {
     const tsconfigPath = findTsConfigPath(path, workspaceUris);
+    return getServiceForTsconfig(tsconfigPath, docContext);
+}
 
+export function hasServiceForFile(path: string, workspaceUris: string[]): boolean {
+    const tsconfigPath = findTsConfigPath(path, workspaceUris);
+    return services.has(tsconfigPath);
+}
+
+/**
+ * @param tsconfigPath has to be absolute
+ * @param docContext
+ */
+export async function getServiceForTsconfig(
+    tsconfigPath: string,
+    docContext: LanguageServiceDocumentContext
+): Promise<LanguageServiceContainer> {
     let service: LanguageServiceContainer;
     if (services.has(tsconfigPath)) {
         service = await services.get(tsconfigPath)!;
@@ -127,6 +131,7 @@ async function createLanguageService(
         getService: () => languageService,
         updateSnapshot,
         deleteSnapshot,
+        fileBelongsToProject,
         snapshotManager
     };
 
@@ -190,6 +195,10 @@ async function createLanguageService(
         );
         snapshotManager.set(fileName, doc);
         return doc;
+    }
+
+    function fileBelongsToProject(filePath: string): boolean {
+        return snapshotManager.has(filePath) || getParsedConfig().fileNames.includes(filePath);
     }
 
     function getParsedConfig() {

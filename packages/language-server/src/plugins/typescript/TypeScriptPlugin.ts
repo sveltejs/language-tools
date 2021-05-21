@@ -3,6 +3,7 @@ import {
     CodeAction,
     CodeActionContext,
     CompletionContext,
+    CompletionList,
     DefinitionLink,
     Diagnostic,
     FileChangeType,
@@ -12,21 +13,15 @@ import {
     Position,
     Range,
     ReferenceContext,
-    SymbolInformation,
-    WorkspaceEdit,
-    CompletionList,
     SelectionRange,
+    SemanticTokens,
     SignatureHelp,
     SignatureHelpContext,
-    SemanticTokens,
-    TextDocumentContentChangeEvent
+    SymbolInformation,
+    TextDocumentContentChangeEvent,
+    WorkspaceEdit
 } from 'vscode-languageserver';
-import {
-    Document,
-    DocumentManager,
-    mapSymbolInformationToOriginal,
-    getTextInRange
-} from '../../lib/documents';
+import { Document, getTextInRange, mapSymbolInformationToOriginal } from '../../lib/documents';
 import { LSConfigManager, LSTypescriptConfig } from '../../ls-config';
 import { isNotNullOrUndefined, pathToUrl } from '../../utils';
 import {
@@ -41,12 +36,12 @@ import {
     FindReferencesProvider,
     HoverProvider,
     OnWatchFileChanges,
+    OnWatchFileChangesPara,
     RenameProvider,
     SelectionRangeProvider,
+    SemanticTokensProvider,
     SignatureHelpProvider,
     UpdateImportsProvider,
-    OnWatchFileChangesPara,
-    SemanticTokensProvider,
     UpdateTsOrJsFile
 } from '../interfaces';
 import { CodeActionsProviderImpl } from './features/CodeActionsProvider';
@@ -55,18 +50,18 @@ import {
     CompletionsProviderImpl
 } from './features/CompletionProvider';
 import { DiagnosticsProviderImpl } from './features/DiagnosticsProvider';
+import { FindReferencesProviderImpl } from './features/FindReferencesProvider';
+import { getDirectiveCommentCompletions } from './features/getDirectiveCommentCompletions';
 import { HoverProviderImpl } from './features/HoverProvider';
 import { RenameProviderImpl } from './features/RenameProvider';
-import { UpdateImportsProviderImpl } from './features/UpdateImportsProvider';
-import { LSAndTSDocResolver } from './LSAndTSDocResolver';
-import { convertToLocationRange, getScriptKindFromFileName, symbolKindFromString } from './utils';
-import { getDirectiveCommentCompletions } from './features/getDirectiveCommentCompletions';
-import { FindReferencesProviderImpl } from './features/FindReferencesProvider';
 import { SelectionRangeProviderImpl } from './features/SelectionRangeProvider';
-import { SignatureHelpProviderImpl } from './features/SignatureHelpProvider';
-import { ignoredBuildDirectories, SnapshotManager } from './SnapshotManager';
 import { SemanticTokensProviderImpl } from './features/SemanticTokensProvider';
+import { SignatureHelpProviderImpl } from './features/SignatureHelpProvider';
+import { UpdateImportsProviderImpl } from './features/UpdateImportsProvider';
 import { isNoTextSpanInGeneratedCode, SnapshotFragmentMap } from './features/utils';
+import { LSAndTSDocResolver } from './LSAndTSDocResolver';
+import { ignoredBuildDirectories, SnapshotManager } from './SnapshotManager';
+import { convertToLocationRange, getScriptKindFromFileName, symbolKindFromString } from './utils';
 
 export class TypeScriptPlugin
     implements
@@ -98,19 +93,9 @@ export class TypeScriptPlugin
     private readonly signatureHelpProvider: SignatureHelpProviderImpl;
     private readonly semanticTokensProvider: SemanticTokensProviderImpl;
 
-    constructor(
-        docManager: DocumentManager,
-        configManager: LSConfigManager,
-        workspaceUris: string[],
-        isEditor = true
-    ) {
+    constructor(configManager: LSConfigManager, lsAndTsDocResolver: LSAndTSDocResolver) {
         this.configManager = configManager;
-        this.lsAndTsDocResolver = new LSAndTSDocResolver(
-            docManager,
-            workspaceUris,
-            configManager,
-            /**transformOnTemplateError */ isEditor
-        );
+        this.lsAndTsDocResolver = lsAndTsDocResolver;
         this.completionProvider = new CompletionsProviderImpl(this.lsAndTsDocResolver);
         this.codeActionsProvider = new CodeActionsProviderImpl(
             this.lsAndTsDocResolver,
