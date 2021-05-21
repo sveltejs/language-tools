@@ -8,6 +8,9 @@ export interface TsFilesSpec {
     exclude?: readonly string[];
 }
 
+/**
+ * Should only be used by `service.ts`
+ */
 export class SnapshotManager {
     private documents: Map<string, DocumentSnapshot> = new Map();
     private lastLogged = new Date(new Date().getTime() - 60_001);
