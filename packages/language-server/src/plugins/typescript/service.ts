@@ -168,7 +168,7 @@ async function createLanguageService(
         }
 
         if (!prevSnapshot) {
-            svelteModuleLoader.deleteUnresolvedResolutionsFromCache();
+            svelteModuleLoader.deleteUnresolvedResolutionsFromCache(filePath);
         }
 
         const newSnapshot = DocumentSnapshot.fromDocument(document, transformationConfig);
@@ -189,7 +189,7 @@ async function createLanguageService(
             return prevSnapshot;
         }
 
-        svelteModuleLoader.deleteUnresolvedResolutionsFromCache();
+        svelteModuleLoader.deleteUnresolvedResolutionsFromCache(filePath);
         const newSnapshot = DocumentSnapshot.fromFilePath(
             filePath,
             docContext.createDocument,
@@ -207,7 +207,7 @@ async function createLanguageService(
             return doc;
         }
 
-        svelteModuleLoader.deleteUnresolvedResolutionsFromCache();
+        svelteModuleLoader.deleteUnresolvedResolutionsFromCache(fileName);
         doc = DocumentSnapshot.fromFilePath(
             fileName,
             docContext.createDocument,
@@ -231,7 +231,7 @@ async function createLanguageService(
 
     function updateTsOrJsFile(fileName: string, changes?: TextDocumentContentChangeEvent[]): void {
         if (!snapshotManager.has(fileName)) {
-            svelteModuleLoader.deleteUnresolvedResolutionsFromCache();
+            svelteModuleLoader.deleteUnresolvedResolutionsFromCache(fileName);
         }
         snapshotManager.updateTsOrJsFile(fileName, changes);
     }

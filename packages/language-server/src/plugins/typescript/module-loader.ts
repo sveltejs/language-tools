@@ -1,11 +1,12 @@
 import ts from 'typescript';
-import {
-    isVirtualSvelteFilePath,
-    ensureRealSvelteFilePath,
-    getExtensionFromScriptKind
-} from './utils';
+import { getLastPartOfPath } from '../../utils';
 import { DocumentSnapshot } from './DocumentSnapshot';
 import { createSvelteSys } from './svelte-sys';
+import {
+    ensureRealSvelteFilePath,
+    getExtensionFromScriptKind,
+    isVirtualSvelteFilePath
+} from './utils';
 
 /**
  * Caches resolved modules.
@@ -49,10 +50,13 @@ class ModuleResolutionCache {
 
     /**
      * Deletes everything from cache that resolved to `undefined`
+     * and which might match the path.
      */
-    deleteUnresolvedResolutionsFromCache(): void {
+    deleteUnresolvedResolutionsFromCache(path: string): void {
+        const fileNameWithoutEnding = getLastPartOfPath(path).split('.').shift() || '';
         this.cache.forEach((val, key) => {
-            if (!val) {
+            const moduleName = key.split(':::').pop() || '';
+            if (!val && moduleName.includes(fileNameWithoutEnding)) {
                 this.cache.delete(key);
             }
         });
@@ -87,8 +91,8 @@ export function createSvelteModuleLoader(
         readFile: svelteSys.readFile,
         readDirectory: svelteSys.readDirectory,
         deleteFromModuleCache: (path: string) => moduleCache.delete(path),
-        deleteUnresolvedResolutionsFromCache: () =>
-            moduleCache.deleteUnresolvedResolutionsFromCache(),
+        deleteUnresolvedResolutionsFromCache: (path: string) =>
+            moduleCache.deleteUnresolvedResolutionsFromCache(path),
         resolveModuleNames
     };
 
