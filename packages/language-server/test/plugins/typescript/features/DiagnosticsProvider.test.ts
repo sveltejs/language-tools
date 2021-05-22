@@ -1,11 +1,12 @@
 import * as assert from 'assert';
+import { existsSync, unlinkSync, writeFileSync } from 'fs';
 import * as path from 'path';
 import ts from 'typescript';
 import { Document, DocumentManager } from '../../../../src/lib/documents';
 import { LSConfigManager } from '../../../../src/ls-config';
 import { DiagnosticsProviderImpl } from '../../../../src/plugins/typescript/features/DiagnosticsProvider';
 import { LSAndTSDocResolver } from '../../../../src/plugins/typescript/LSAndTSDocResolver';
-import { pathToUrl } from '../../../../src/utils';
+import { pathToUrl, urlToPath } from '../../../../src/utils';
 
 const testDir = path.join(__dirname, '..', 'testfiles', 'diagnostics');
 
@@ -25,7 +26,7 @@ describe('DiagnosticsProvider', () => {
             uri: pathToUrl(filePath),
             text: ts.sys.readFile(filePath) || ''
         });
-        return { plugin, document, docManager };
+        return { plugin, document, docManager, lsAndTsDocResolver };
     }
 
     it('provides diagnostics', async () => {
@@ -936,4 +937,28 @@ describe('DiagnosticsProvider', () => {
         const diagnostics = await plugin.getDiagnostics(document);
         assert.deepStrictEqual(diagnostics, []);
     });
+
+    it('notices creation and deletion of imported module', async () => {
+        const { plugin, document, lsAndTsDocResolver } = setup('unresolvedimport.svelte');
+
+        const diagnostics1 = await plugin.getDiagnostics(document);
+        assert.deepStrictEqual(diagnostics1.length, 1);
+
+        // back-and-forth-conversion normalizes slashes
+        const newFilePath = urlToPath(pathToUrl(path.join(testDir, 'doesntexistyet.js'))) || '';
+        writeFileSync(newFilePath, 'export default function foo() {}');
+        assert.ok(existsSync(newFilePath));
+        await lsAndTsDocResolver.getSnapshot(newFilePath);
+
+        try {
+            const diagnostics2 = await plugin.getDiagnostics(document);
+            assert.deepStrictEqual(diagnostics2.length, 0);
+            lsAndTsDocResolver.deleteSnapshot(newFilePath);
+        } finally {
+            unlinkSync(newFilePath);
+        }
+
+        const diagnostics3 = await plugin.getDiagnostics(document);
+        assert.deepStrictEqual(diagnostics3.length, 1);
+    }).timeout(5000);
 });
