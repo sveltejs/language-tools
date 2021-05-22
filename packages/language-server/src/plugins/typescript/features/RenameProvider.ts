@@ -20,7 +20,7 @@ import { uniqWith, isEqual } from 'lodash';
 import { isNoTextSpanInGeneratedCode, SnapshotFragmentMap } from './utils';
 
 export class RenameProviderImpl implements RenameProvider {
-    constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
+    constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) { }
 
     // TODO props written as `export {x as y}` are not supported yet.
 
@@ -69,7 +69,16 @@ export class RenameProviderImpl implements RenameProvider {
                 range: Range;
             }
         > = await this.mapAndFilterRenameLocations(renameLocations, docs);
-        // eslint-disable-next-line max-len
+
+        const program = lang.getProgram();
+        const sourceFile = program?.getSourceFile(tsDoc.filePath);
+        convertedRenameLocations = this.checkShortHandBindingLocation(
+            sourceFile,
+            convertedRenameLocations,
+            document,
+            fragment
+        );
+
         const additionalRenameForPropRenameInsideComponentWithProp =
             await this.getAdditionLocationsForRenameOfPropInsideComponentWithProp(
                 document,
@@ -85,10 +94,10 @@ export class RenameProviderImpl implements RenameProvider {
             additionalRenameForPropRenameInsideComponentWithProp.length > 0
                 ? []
                 : await this.getAdditionalLocationsForRenameOfPropInsideOtherComponent(
-                      convertedRenameLocations,
-                      docs,
-                      lang
-                  );
+                    convertedRenameLocations,
+                    docs,
+                    lang
+                );
         convertedRenameLocations = [
             ...convertedRenameLocations,
             ...additionalRenameForPropRenameInsideComponentWithProp,
@@ -378,8 +387,85 @@ export class RenameProviderImpl implements RenameProvider {
     private getSnapshot(filePath: string) {
         return this.lsAndTsDocResolver.getSnapshot(filePath);
     }
+
+    private checkShortHandBindingLocation(
+        sourceFile: ts.SourceFile | undefined,
+        renameLocations: Array<ts.RenameLocation & { range: Range }>,
+        document: Document,
+        fragment: SvelteSnapshotFragment
+    ): Array<ts.RenameLocation & { range: Range }> {
+        if (!sourceFile) {
+            return renameLocations;
+        }
+
+        const originalText = document.getText();
+        const bind = 'bind:';
+
+        return unique(renameLocations).map((location) => {
+            // Don't check rename to other files or unmapped range
+            if (
+                location.fileName !== sourceFile.fileName ||
+                location.range.start.line < 0 ||
+                location.range.end.line < 0
+            ) {
+                return location;
+            }
+
+            const { start, length } = location.textSpan;
+            const end = start + length;
+            const possibleJsxAttribute = findJsxAttribute(sourceFile, start, end);
+            if (!possibleJsxAttribute) {
+                return location;
+            }
+
+            const originalStart = document.offsetAt(location.range.start);
+
+            const isShortHandBinding = originalText.substr(
+                originalStart - bind.length, bind.length
+            ) === bind;
+
+            const directiveName = (isShortHandBinding ? bind : '') + possibleJsxAttribute.name.getText();
+            const prefixText = directiveName + '={';
+
+            const newRange = mapRangeToOriginal(
+                fragment,
+                convertRange(fragment, {
+                start: possibleJsxAttribute.getStart(),
+                length: possibleJsxAttribute.getWidth()
+            }));
+
+            // somehow the mapping is one character before
+            if (isShortHandBinding) {
+                newRange.start.character++;
+            }
+
+            return {
+                ...location,
+                prefixText,
+                suffixText: '}',
+                range: newRange
+            };
+        });
+    }
 }
 
 function unique<T>(array: T[]): T[] {
     return uniqWith(array, isEqual);
+}
+
+function findJsxAttribute(sourceFile: ts.Node, start: number, end: number) {
+    let found: ts.JsxAttribute | undefined;
+    walk(sourceFile);
+
+    function walk(node: ts.Node) {
+        if (node.getStart() <= start && node.getEnd() >= end) {
+            if (ts.isJsxAttribute(node)) {
+                found = node;
+                return;
+            }
+            node.forEachChild(walk);
+        }
+    }
+
+    return found;
 }
