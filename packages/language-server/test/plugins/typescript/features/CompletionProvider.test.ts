@@ -30,7 +30,7 @@ const fileNameToAbsoluteUri = (file: string) => {
     return pathToUrl(join(testFilesDir, file));
 };
 
-describe.only('CompletionProviderImpl', () => {
+describe('CompletionProviderImpl', () => {
     function setup(filename: string) {
         const docManager = new DocumentManager(
             (textDocument) => new Document(textDocument.uri, textDocument.text)

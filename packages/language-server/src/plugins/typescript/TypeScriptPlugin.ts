@@ -60,7 +60,8 @@ import { SignatureHelpProviderImpl } from './features/SignatureHelpProvider';
 import { UpdateImportsProviderImpl } from './features/UpdateImportsProvider';
 import { isNoTextSpanInGeneratedCode, SnapshotFragmentMap } from './features/utils';
 import { LSAndTSDocResolver } from './LSAndTSDocResolver';
-import { ignoredBuildDirectories, SnapshotManager } from './SnapshotManager';
+import { LanguageServiceContainer } from './service';
+import { ignoredBuildDirectories } from './SnapshotManager';
 import { convertToLocationRange, getScriptKindFromFileName, symbolKindFromString } from './utils';
 
 export class TypeScriptPlugin
@@ -350,7 +351,7 @@ export class TypeScriptPlugin
     }
 
     async onWatchFileChanges(onWatchFileChangesParas: OnWatchFileChangesPara[]): Promise<void> {
-        const doneUpdateProjectFiles = new Set<SnapshotManager>();
+        const doneUpdateProjectFiles = new Set<LanguageServiceContainer>();
 
         for (const { fileName, changeType } of onWatchFileChangesParas) {
             const pathParts = fileName.split(/\/|\\/);
@@ -365,19 +366,19 @@ export class TypeScriptPlugin
                 continue;
             }
 
-            const snapshotManager = await this.getSnapshotManager(fileName);
+            const tsService = await this.lsAndTsDocResolver.getTSService(fileName);
             if (changeType === FileChangeType.Created) {
-                if (!doneUpdateProjectFiles.has(snapshotManager)) {
-                    snapshotManager.updateProjectFiles();
-                    doneUpdateProjectFiles.add(snapshotManager);
+                if (!doneUpdateProjectFiles.has(tsService)) {
+                    tsService.updateProjectFiles();
+                    doneUpdateProjectFiles.add(tsService);
                 }
             } else if (changeType === FileChangeType.Deleted) {
-                snapshotManager.delete(fileName);
-            } else if (snapshotManager.has(fileName)) {
+                tsService.deleteSnapshot(fileName);
+            } else if (tsService.hasFile(fileName)) {
                 // Only allow existing files to be update
                 // Otherwise, new files would still get loaded
                 // into snapshot manager after update
-                snapshotManager.updateTsOrJsFile(fileName);
+                tsService.updateTsOrJsFile(fileName);
             }
         }
     }
@@ -428,8 +429,7 @@ export class TypeScriptPlugin
     }
 
     /**
-     *
-     * @internal
+     * @internal Public for tests only
      */
     public getSnapshotManager(fileName: string) {
         return this.lsAndTsDocResolver.getSnapshotManager(fileName);

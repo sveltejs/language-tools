@@ -1,21 +1,32 @@
 import { dirname, resolve } from 'path';
 import ts from 'typescript';
-import { Document } from '../../lib/documents';
-import { Logger } from '../../logger';
+import { TextDocumentContentChangeEvent } from 'vscode-languageserver-protocol';
 import { getPackageInfo } from '../../importPackage';
+import { Document } from '../../lib/documents';
+import { configLoader } from '../../lib/documents/configLoader';
+import { Logger } from '../../logger';
 import { DocumentSnapshot } from './DocumentSnapshot';
 import { createSvelteModuleLoader } from './module-loader';
 import { ignoredBuildDirectories, SnapshotManager } from './SnapshotManager';
 import { ensureRealSvelteFilePath, findTsConfigPath } from './utils';
-import { configLoader } from '../../lib/documents/configLoader';
 
 export interface LanguageServiceContainer {
     readonly tsconfigPath: string;
     readonly compilerOptions: ts.CompilerOptions;
+    /**
+     * @internal Public for tests only
+     */
     readonly snapshotManager: SnapshotManager;
     getService(): ts.LanguageService;
     updateSnapshot(documentOrFilePath: Document | string): DocumentSnapshot;
     deleteSnapshot(filePath: string): void;
+    updateProjectFiles(): void;
+    updateTsOrJsFile(fileName: string, changes?: TextDocumentContentChangeEvent[]): void;
+    /**
+     * Checks if a file is present in the project.
+     * Unlike `fileBelongsToProject`, this doesn't run a file search on disk.
+     */
+    hasFile(filePath: string): boolean;
     /**
      * Careful, don't call often, or it will hurt performance.
      * Only works for TS versions that have ScriptKind.Deferred
@@ -131,6 +142,9 @@ async function createLanguageService(
         getService: () => languageService,
         updateSnapshot,
         deleteSnapshot,
+        updateProjectFiles,
+        updateTsOrJsFile,
+        hasFile,
         fileBelongsToProject,
         snapshotManager
     };
@@ -153,6 +167,10 @@ async function createLanguageService(
             return prevSnapshot;
         }
 
+        if (!prevSnapshot) {
+            svelteModuleLoader.deleteUnresolvedResolutionsFromCache(filePath);
+        }
+
         const newSnapshot = DocumentSnapshot.fromDocument(document, transformationConfig);
 
         snapshotManager.set(filePath, newSnapshot);
@@ -171,6 +189,7 @@ async function createLanguageService(
             return prevSnapshot;
         }
 
+        svelteModuleLoader.deleteUnresolvedResolutionsFromCache(filePath);
         const newSnapshot = DocumentSnapshot.fromFilePath(
             filePath,
             docContext.createDocument,
@@ -188,6 +207,7 @@ async function createLanguageService(
             return doc;
         }
 
+        svelteModuleLoader.deleteUnresolvedResolutionsFromCache(fileName);
         doc = DocumentSnapshot.fromFilePath(
             fileName,
             docContext.createDocument,
@@ -197,8 +217,23 @@ async function createLanguageService(
         return doc;
     }
 
+    function updateProjectFiles(): void {
+        snapshotManager.updateProjectFiles();
+    }
+
+    function hasFile(filePath: string): boolean {
+        return snapshotManager.has(filePath);
+    }
+
     function fileBelongsToProject(filePath: string): boolean {
-        return snapshotManager.has(filePath) || getParsedConfig().fileNames.includes(filePath);
+        return hasFile(filePath) || getParsedConfig().fileNames.includes(filePath);
+    }
+
+    function updateTsOrJsFile(fileName: string, changes?: TextDocumentContentChangeEvent[]): void {
+        if (!snapshotManager.has(fileName)) {
+            svelteModuleLoader.deleteUnresolvedResolutionsFromCache(fileName);
+        }
+        snapshotManager.updateTsOrJsFile(fileName, changes);
     }
 
     function getParsedConfig() {

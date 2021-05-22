@@ -105,6 +105,9 @@ export class LSAndTSDocResolver {
         this.docManager.releaseDocument(pathToUrl(filePath));
     }
 
+    /**
+     * @internal Public for tests only
+     */
     async getSnapshotManager(filePath: string): Promise<SnapshotManager> {
         return (await this.getTSService(filePath)).snapshotManager;
     }
