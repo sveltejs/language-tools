@@ -1,5 +1,6 @@
 import ts from 'typescript';
 import {
+    CancellationToken,
     CompletionContext,
     CompletionList,
     CompletionTriggerKind,
@@ -58,7 +59,8 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
     async getCompletions(
         document: Document,
         position: Position,
-        completionContext?: CompletionContext
+        completionContext?: CompletionContext,
+        cancellationToken?: CancellationToken
     ): Promise<AppCompletionList<CompletionEntryWithIdentifer> | null> {
         if (isInTag(position, document.styleInfo)) {
             return null;
@@ -105,6 +107,10 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             return getJsDocTemplateCompletion(fragment, lang, filePath, offset);
         }
 
+        if (cancellationToken?.isCancellationRequested) {
+            return null;
+        }
+
         const eventCompletions = await this.getEventCompletions(
             lang,
             document,
@@ -117,11 +123,17 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             return CompletionList.create(eventCompletions, !!tsDoc.parserError);
         }
 
+        if (cancellationToken?.isCancellationRequested) {
+            return null;
+        }
+
+        console.time('getCompletionsAtPosition');
         const completions =
             lang.getCompletionsAtPosition(filePath, offset, {
                 ...userPreferences,
                 triggerCharacter: validTriggerCharacter
             })?.entries || [];
+        console.timeEnd('getCompletionsAtPosition');
 
         if (completions.length === 0 && eventCompletions.length === 0) {
             return tsDoc.parserError ? CompletionList.create([], true) : null;
@@ -272,7 +284,8 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
 
     async resolveCompletion(
         document: Document,
-        completionItem: AppCompletionItem<CompletionEntryWithIdentifer>
+        completionItem: AppCompletionItem<CompletionEntryWithIdentifer>,
+        cancellationToken?: CancellationToken
     ): Promise<AppCompletionItem<CompletionEntryWithIdentifer>> {
         const { data: comp } = completionItem;
         const { tsDoc, lang, userPreferences } = await this.lsAndTsDocResolver.getLSAndTSDoc(
@@ -281,11 +294,12 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
 
         const filePath = tsDoc.filePath;
 
-        if (!comp || !filePath) {
+        if (!comp || !filePath || cancellationToken?.isCancellationRequested) {
             return completionItem;
         }
 
         const fragment = await tsDoc.getFragment();
+
         const detail = lang.getCompletionEntryDetails(
             filePath,
             fragment.offsetAt(fragment.getGeneratedPosition(comp.position)),

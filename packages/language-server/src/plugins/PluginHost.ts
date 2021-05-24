@@ -1,5 +1,6 @@
 import { flatten } from 'lodash';
 import {
+    CancellationToken,
     CodeAction,
     CodeActionContext,
     Color,
@@ -86,7 +87,8 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
     async getCompletions(
         textDocument: TextDocumentIdentifier,
         position: Position,
-        completionContext?: CompletionContext
+        completionContext?: CompletionContext,
+        cancellationToken?: CancellationToken
     ): Promise<CompletionList> {
         const document = this.getDocument(textDocument.uri);
         if (!document) {
@@ -96,7 +98,7 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         const completions = (
             await this.execute<CompletionList>(
                 'getCompletions',
-                [document, position, completionContext],
+                [document, position, completionContext, cancellationToken],
                 ExecuteMode.Collect
             )
         ).filter((completion) => completion != null);
@@ -127,7 +129,8 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
 
     async resolveCompletion(
         textDocument: TextDocumentIdentifier,
-        completionItem: AppCompletionItem
+        completionItem: AppCompletionItem,
+        cancellationToken: CancellationToken
     ): Promise<CompletionItem> {
         const document = this.getDocument(textDocument.uri);
 
@@ -137,7 +140,7 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
 
         const result = await this.execute<CompletionItem>(
             'resolveCompletion',
-            [document, completionItem],
+            [document, completionItem, cancellationToken],
             ExecuteMode.FirstNonNull
         );
 

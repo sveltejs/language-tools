@@ -1,5 +1,5 @@
 import ts from 'typescript';
-import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver';
+import { CancellationToken, Diagnostic, DiagnosticSeverity } from 'vscode-languageserver';
 import {
     Document,
     mapObjWithRangeToOriginal,
@@ -15,10 +15,16 @@ import { isInGeneratedCode } from './utils';
 export class DiagnosticsProviderImpl implements DiagnosticsProvider {
     constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
 
-    async getDiagnostics(document: Document): Promise<Diagnostic[]> {
+    async getDiagnostics(
+        document: Document,
+        cancellationToken?: CancellationToken
+    ): Promise<Diagnostic[]> {
         const { lang, tsDoc } = await this.getLSAndTSDoc(document);
 
-        if (['coffee', 'coffeescript'].includes(document.getLanguageAttribute('script'))) {
+        if (
+            ['coffee', 'coffeescript'].includes(document.getLanguageAttribute('script')) ||
+            cancellationToken?.isCancellationRequested
+        ) {
             return [];
         }
 

@@ -256,8 +256,8 @@ export function startServer(options?: LSOptions) {
         docManager.updateDocument(evt.textDocument, evt.contentChanges)
     );
     connection.onHover((evt) => pluginHost.doHover(evt.textDocument, evt.position));
-    connection.onCompletion((evt) =>
-        pluginHost.getCompletions(evt.textDocument, evt.position, evt.context)
+    connection.onCompletion((evt, cancellationToken) =>
+        pluginHost.getCompletions(evt.textDocument, evt.position, evt.context, cancellationToken)
     );
     connection.onDocumentFormatting((evt) =>
         pluginHost.formatDocument(evt.textDocument, evt.options)
@@ -295,14 +295,14 @@ export function startServer(options?: LSOptions) {
         }
     });
 
-    connection.onCompletionResolve((completionItem) => {
+    connection.onCompletionResolve((completionItem, cancellationToken) => {
         const data = (completionItem as AppCompletionItem).data as TextDocumentIdentifier;
 
         if (!data) {
             return completionItem;
         }
 
-        return pluginHost.resolveCompletion(data, completionItem);
+        return pluginHost.resolveCompletion(data, completionItem, cancellationToken);
     });
 
     connection.onSignatureHelp((evt) =>

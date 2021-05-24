@@ -1,4 +1,5 @@
 import {
+    CancellationToken,
     CompletionContext,
     FileChangeType,
     LinkedEditingRanges,
@@ -53,12 +54,14 @@ export interface CompletionsProvider<T extends TextDocumentIdentifier = any> {
     getCompletions(
         document: Document,
         position: Position,
-        completionContext?: CompletionContext
+        completionContext?: CompletionContext,
+        cancellationToken?: CancellationToken
     ): Resolvable<AppCompletionList<T> | null>;
 
     resolveCompletion?(
         document: Document,
-        completionItem: AppCompletionItem<T>
+        completionItem: AppCompletionItem<T>,
+        cancellationToken?: CancellationToken
     ): Resolvable<AppCompletionItem<T>>;
 }
 

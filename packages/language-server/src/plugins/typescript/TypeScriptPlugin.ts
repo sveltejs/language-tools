@@ -1,5 +1,6 @@
 import ts, { NavigationTree } from 'typescript';
 import {
+    CancellationToken,
     CodeAction,
     CodeActionContext,
     CompletionContext,
@@ -112,12 +113,15 @@ export class TypeScriptPlugin
         this.semanticTokensProvider = new SemanticTokensProviderImpl(this.lsAndTsDocResolver);
     }
 
-    async getDiagnostics(document: Document): Promise<Diagnostic[]> {
+    async getDiagnostics(
+        document: Document,
+        cancellationToken?: CancellationToken
+    ): Promise<Diagnostic[]> {
         if (!this.featureEnabled('diagnostics')) {
             return [];
         }
 
-        return this.diagnosticsProvider.getDiagnostics(document);
+        return this.diagnosticsProvider.getDiagnostics(document, cancellationToken);
     }
 
     async doHover(document: Document, position: Position): Promise<Hover | null> {
@@ -209,7 +213,8 @@ export class TypeScriptPlugin
     async getCompletions(
         document: Document,
         position: Position,
-        completionContext?: CompletionContext
+        completionContext?: CompletionContext,
+        cancellationToken?: CancellationToken
     ): Promise<AppCompletionList<CompletionEntryWithIdentifer> | null> {
         if (!this.featureEnabled('completions')) {
             return null;
@@ -224,7 +229,8 @@ export class TypeScriptPlugin
         const completions = await this.completionProvider.getCompletions(
             document,
             position,
-            completionContext
+            completionContext,
+            cancellationToken
         );
 
         if (completions && tsDirectiveCommentCompletions) {
