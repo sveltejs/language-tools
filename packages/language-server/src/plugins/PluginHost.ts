@@ -215,7 +215,10 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         );
     }
 
-    async getDocumentSymbols(textDocument: TextDocumentIdentifier): Promise<SymbolInformation[]> {
+    async getDocumentSymbols(
+        textDocument: TextDocumentIdentifier,
+        cancellationToken: CancellationToken
+    ): Promise<SymbolInformation[]> {
         const document = this.getDocument(textDocument.uri);
         if (!document) {
             throw new Error('Cannot call methods on an unopened document');
@@ -224,7 +227,7 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         return flatten(
             await this.execute<SymbolInformation[]>(
                 'getDocumentSymbols',
-                [document],
+                [document, cancellationToken],
                 ExecuteMode.Collect
             )
         );
@@ -259,7 +262,8 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
     async getCodeActions(
         textDocument: TextDocumentIdentifier,
         range: Range,
-        context: CodeActionContext
+        context: CodeActionContext,
+        cancellationToken: CancellationToken
     ): Promise<CodeAction[]> {
         const document = this.getDocument(textDocument.uri);
         if (!document) {
@@ -269,7 +273,7 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         return flatten(
             await this.execute<CodeAction[]>(
                 'getCodeActions',
-                [document, range, context],
+                [document, range, context, cancellationToken],
                 ExecuteMode.Collect
             )
         );
@@ -353,7 +357,8 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
     async getSignatureHelp(
         textDocument: TextDocumentIdentifier,
         position: Position,
-        context: SignatureHelpContext | undefined
+        context: SignatureHelpContext | undefined,
+        cancellationToken: CancellationToken
     ): Promise<SignatureHelp | null> {
         const document = this.getDocument(textDocument.uri);
         if (!document) {
@@ -362,7 +367,7 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
 
         return await this.execute<any>(
             'getSignatureHelp',
-            [document, position, context],
+            [document, position, context, cancellationToken],
             ExecuteMode.FirstNonNull
         );
     }
@@ -406,7 +411,11 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         }
     }
 
-    async getSemanticTokens(textDocument: TextDocumentIdentifier, range?: Range) {
+    async getSemanticTokens(
+        textDocument: TextDocumentIdentifier,
+        range?: Range,
+        cancellationToken?: CancellationToken
+    ) {
         const document = this.getDocument(textDocument.uri);
         if (!document) {
             throw new Error('Cannot call methods on an unopened document');
@@ -414,7 +423,7 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
 
         return await this.execute<SemanticTokens>(
             'getSemanticTokens',
-            [document, range],
+            [document, range, cancellationToken],
             ExecuteMode.FirstNonNull
         );
     }

@@ -132,13 +132,21 @@ export class TypeScriptPlugin
         return this.hoverProvider.doHover(document, position);
     }
 
-    async getDocumentSymbols(document: Document): Promise<SymbolInformation[]> {
+    async getDocumentSymbols(
+        document: Document,
+        cancellationToken?: CancellationToken
+    ): Promise<SymbolInformation[]> {
         if (!this.featureEnabled('documentSymbols')) {
             return [];
         }
 
         const { lang, tsDoc } = await this.getLSAndTSDoc(document);
         const fragment = await tsDoc.getFragment();
+
+        if (cancellationToken?.isCancellationRequested) {
+            return [];
+        }
+
         const navTree = lang.getNavigationTree(tsDoc.filePath);
 
         const symbols: SymbolInformation[] = [];
@@ -245,9 +253,14 @@ export class TypeScriptPlugin
 
     async resolveCompletion(
         document: Document,
-        completionItem: AppCompletionItem<CompletionEntryWithIdentifer>
+        completionItem: AppCompletionItem<CompletionEntryWithIdentifer>,
+        cancellationToken?: CancellationToken
     ): Promise<AppCompletionItem<CompletionEntryWithIdentifer>> {
-        return this.completionProvider.resolveCompletion(document, completionItem);
+        return this.completionProvider.resolveCompletion(
+            document,
+            completionItem,
+            cancellationToken
+        );
     }
 
     async getDefinitions(document: Document, position: Position): Promise<DefinitionLink[]> {
@@ -310,13 +323,14 @@ export class TypeScriptPlugin
     async getCodeActions(
         document: Document,
         range: Range,
-        context: CodeActionContext
+        context: CodeActionContext,
+        cancellationToken?: CancellationToken
     ): Promise<CodeAction[]> {
         if (!this.featureEnabled('codeActions')) {
             return [];
         }
 
-        return this.codeActionsProvider.getCodeActions(document, range, context);
+        return this.codeActionsProvider.getCodeActions(document, range, context, cancellationToken);
     }
 
     async executeCommand(
@@ -411,23 +425,37 @@ export class TypeScriptPlugin
     async getSignatureHelp(
         document: Document,
         position: Position,
-        context: SignatureHelpContext | undefined
+        context: SignatureHelpContext | undefined,
+        cancellationToken?: CancellationToken
     ): Promise<SignatureHelp | null> {
         if (!this.featureEnabled('signatureHelp')) {
             return null;
         }
 
-        return this.signatureHelpProvider.getSignatureHelp(document, position, context);
+        return this.signatureHelpProvider.getSignatureHelp(
+            document,
+            position,
+            context,
+            cancellationToken
+        );
     }
 
-    async getSemanticTokens(textDocument: Document, range?: Range): Promise<SemanticTokens | null> {
+    async getSemanticTokens(
+        textDocument: Document,
+        range?: Range,
+        cancellationToken?: CancellationToken
+    ): Promise<SemanticTokens | null> {
         if (!this.featureEnabled('semanticTokens')) {
             return {
                 data: []
             };
         }
 
-        return this.semanticTokensProvider.getSemanticTokens(textDocument, range);
+        return this.semanticTokensProvider.getSemanticTokens(
+            textDocument,
+            range,
+            cancellationToken
+        );
     }
 
     private async getLSAndTSDoc(document: Document) {

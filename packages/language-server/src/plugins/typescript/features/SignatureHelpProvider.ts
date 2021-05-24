@@ -6,7 +6,8 @@ import {
     SignatureHelpTriggerKind,
     SignatureInformation,
     ParameterInformation,
-    MarkupKind
+    MarkupKind,
+    CancellationToken
 } from 'vscode-languageserver';
 import { SignatureHelpProvider } from '../..';
 import { Document } from '../../../lib/documents';
@@ -22,10 +23,15 @@ export class SignatureHelpProviderImpl implements SignatureHelpProvider {
     async getSignatureHelp(
         document: Document,
         position: Position,
-        context: SignatureHelpContext | undefined
+        context: SignatureHelpContext | undefined,
+        cancellationToken?: CancellationToken
     ): Promise<SignatureHelp | null> {
         const { lang, tsDoc } = await this.lsAndTsDocResolver.getLSAndTSDoc(document);
         const fragment = await tsDoc.getFragment();
+
+        if (cancellationToken?.isCancellationRequested) {
+            return null;
+        }
 
         const offset = fragment.offsetAt(fragment.getGeneratedPosition(position));
         const triggerReason = this.toTsTriggerReason(context);

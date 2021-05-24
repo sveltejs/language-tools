@@ -127,13 +127,11 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             return null;
         }
 
-        console.time('getCompletionsAtPosition');
         const completions =
             lang.getCompletionsAtPosition(filePath, offset, {
                 ...userPreferences,
                 triggerCharacter: validTriggerCharacter
             })?.entries || [];
-        console.timeEnd('getCompletionsAtPosition');
 
         if (completions.length === 0 && eventCompletions.length === 0) {
             return tsDoc.parserError ? CompletionList.create([], true) : null;

@@ -86,7 +86,10 @@ export interface ColorPresentationsProvider {
 }
 
 export interface DocumentSymbolsProvider {
-    getDocumentSymbols(document: Document): Resolvable<SymbolInformation[]>;
+    getDocumentSymbols(
+        document: Document,
+        cancellationToken?: CancellationToken
+    ): Resolvable<SymbolInformation[]>;
 }
 
 export interface DefinitionsProvider {
@@ -104,7 +107,8 @@ export interface CodeActionsProvider {
     getCodeActions(
         document: Document,
         range: Range,
-        context: CodeActionContext
+        context: CodeActionContext,
+        cancellationToken?: CancellationToken
     ): Resolvable<CodeAction[]>;
     executeCommand?(
         document: Document,
@@ -143,7 +147,8 @@ export interface SignatureHelpProvider {
     getSignatureHelp(
         document: Document,
         position: Position,
-        context: SignatureHelpContext | undefined
+        context: SignatureHelpContext | undefined,
+        cancellationToken?: CancellationToken
     ): Resolvable<SignatureHelp | null>;
 }
 
