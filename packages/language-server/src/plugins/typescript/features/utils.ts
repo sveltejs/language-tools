@@ -1,6 +1,11 @@
 import ts from 'typescript';
 import { Position } from 'vscode-languageserver';
-import { Document, getNodeIfIsInComponentStartTag, isInTag } from '../../../lib/documents';
+import {
+    Document,
+    getLineAtPosition,
+    getNodeIfIsInComponentStartTag,
+    isInTag
+} from '../../../lib/documents';
 import {
     DocumentSnapshot,
     SnapshotFragment,
@@ -72,6 +77,11 @@ export function isInGeneratedCode(text: string, start: number, end: number) {
  */
 export function isNoTextSpanInGeneratedCode(text: string, span: ts.TextSpan) {
     return !isInGeneratedCode(text, span.start, span.start + span.length);
+}
+
+export function isPartOfImportStatement(text: string, position: Position): boolean {
+    const line = getLineAtPosition(position, text);
+    return /\s*from\s+["'][^"']*/.test(line.substr(0, position.character));
 }
 
 export class SnapshotFragmentMap {
