@@ -1,4 +1,3 @@
-import _ from 'lodash';
 import {
     ApplyWorkspaceEditParams,
     ApplyWorkspaceEditRequest,
@@ -34,7 +33,7 @@ import {
     OnWatchFileChangesPara,
     LSAndTSDocResolver
 } from './plugins';
-import { isNotNullOrUndefined, urlToPath } from './utils';
+import { debounceThrottle, isNotNullOrUndefined, urlToPath } from './utils';
 import { FallbackWatcher } from './lib/FallbackWatcher';
 
 namespace TagCloseRequest {
@@ -319,7 +318,7 @@ export function startServer(options?: LSOptions) {
         pluginHost.getDiagnostics.bind(pluginHost)
     );
 
-    const updateAllDiagnostics = _.debounce(() => diagnosticsManager.updateAll(), 1000);
+    const updateAllDiagnostics = debounceThrottle(() => diagnosticsManager.updateAll(), 1000);
 
     connection.onDidChangeWatchedFiles(onDidChangeWatchedFiles);
     function onDidChangeWatchedFiles(para: DidChangeWatchedFilesParams) {
@@ -358,7 +357,7 @@ export function startServer(options?: LSOptions) {
 
     docManager.on(
         'documentChange',
-        _.debounce(async (document: Document) => diagnosticsManager.update(document), 500)
+        debounceThrottle(async (document: Document) => diagnosticsManager.update(document), 1000)
     );
     docManager.on('documentClose', (document: Document) =>
         diagnosticsManager.removeDiagnostics(document)

@@ -28,7 +28,7 @@ export class LSAndTSDocResolver {
     ) {
         const handleDocumentChange = (document: Document) => {
             // This refreshes the document in the ts language service
-            this.getLSAndTSDoc(document);
+            this.getSnapshot(document);
         };
         docManager.on(
             'documentChange',
