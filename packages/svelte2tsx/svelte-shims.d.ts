@@ -105,6 +105,7 @@ declare function __sveltets_ensureAction(actionCall: SvelteActionReturnType): {}
 declare function __sveltets_ensureTransition(transitionCall: SvelteTransitionReturnType): {};
 declare function __sveltets_ensureFunction(expression: (e: Event & { detail?: any }) => unknown ): {};
 declare function __sveltets_ensureType<T>(type: AConstructorTypeOf<T>, el: T): {};
+declare function __sveltets_cssProp(prop: Record<string, any>): {};
 declare function __sveltets_ctorOf<T>(type: T): AConstructorTypeOf<T>;
 declare function __sveltets_instanceOf<T = any>(type: AConstructorTypeOf<T>): T;
 declare function __sveltets_allPropsType(): SvelteAllProps
