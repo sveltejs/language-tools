@@ -2,24 +2,21 @@
  * This code's groundwork is taken from https://github.com/vuejs/vetur/tree/master/vti
  */
 
+import { watch } from 'chokidar';
 import * as fs from 'fs';
 import glob from 'glob';
-import argv from 'minimist';
 import * as path from 'path';
-import { SvelteCheck, SvelteCheckOptions } from 'svelte-language-server';
+import { SvelteCheck } from 'svelte-language-server';
 import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver-protocol';
 import { URI } from 'vscode-uri';
+import { parseOptions, SvelteCheckCliOptions } from './options';
 import {
+    DEFAULT_FILTER,
+    DiagnosticFilter,
     HumanFriendlyWriter,
     MachineFriendlyWriter,
-    Writer,
-    DiagnosticFilter,
-    DEFAULT_FILTER
+    Writer
 } from './writers';
-import { watch } from 'chokidar';
-
-const outputFormats = ['human', 'human-verbose', 'machine'] as const;
-type OutputFormat = typeof outputFormats[number];
 
 type Result = {
     fileCount: number;
@@ -160,8 +157,8 @@ class DiagnosticsWatcher {
     }
 }
 
-function createFilter(myArgs: argv.ParsedArgs): DiagnosticFilter {
-    switch (myArgs['threshold']) {
+function createFilter(opts: SvelteCheckCliOptions): DiagnosticFilter {
+    switch (opts.threshold) {
         case 'error':
             return (d) => d.severity === DiagnosticSeverity.Error;
         case 'warning':
@@ -173,96 +170,56 @@ function createFilter(myArgs: argv.ParsedArgs): DiagnosticFilter {
     }
 }
 
-function instantiateWriter(myArgs: argv.ParsedArgs): Writer {
-    const outputFormat: OutputFormat = outputFormats.includes(myArgs['output'])
-        ? myArgs['output']
-        : 'human-verbose';
+function instantiateWriter(opts: SvelteCheckCliOptions): Writer {
+    const filter = createFilter(opts);
 
-    const filter = createFilter(myArgs);
-
-    if (outputFormat === 'human-verbose' || outputFormat === 'human') {
-        return new HumanFriendlyWriter(process.stdout, outputFormat === 'human-verbose', filter);
+    if (opts.outputFormat === 'human-verbose' || opts.outputFormat === 'human') {
+        return new HumanFriendlyWriter(
+            process.stdout,
+            opts.outputFormat === 'human-verbose',
+            filter
+        );
     } else {
         return new MachineFriendlyWriter(process.stdout, filter);
     }
 }
 
-function getOptions(myArgs: argv.ParsedArgs, workspacePath: string): SvelteCheckOptions {
-    let tsconfig = myArgs['tsconfig'];
-    if (tsconfig && !path.isAbsolute(tsconfig)) {
-        tsconfig = path.join(workspacePath, tsconfig);
-    }
+parseOptions(async (opts) => {
+    try {
+        const writer = instantiateWriter(opts);
 
-    return {
-        compilerWarnings: stringToObj(myArgs['compiler-warnings']),
-        diagnosticSources: <any>(
-            myArgs['diagnostic-sources']?.split(',')?.map((s: string) => s.trim())
-        ),
-        tsconfig
-    };
+        const svelteCheck = new SvelteCheck(opts.workspaceUri.fsPath, {
+            compilerWarnings: opts.compilerWarnings,
+            diagnosticSources: opts.diagnosticSources,
+            tsconfig: opts.tsconfig
+        });
 
-    function stringToObj(str = '') {
-        return str
-            .split(',')
-            .map((s) => s.trim())
-            .filter((s) => !!s)
-            .reduce((settings, setting) => {
-                const [name, val] = setting.split(':');
-                if (val === 'error' || val === 'ignore') {
-                    settings[name] = val;
-                }
-                return settings;
-            }, <Record<string, 'error' | 'ignore'>>{});
-    }
-}
-
-(async () => {
-    const myArgs = argv(process.argv.slice(1));
-    let workspaceUri;
-
-    let workspacePath = myArgs['workspace'];
-    if (workspacePath) {
-        if (!path.isAbsolute(workspacePath)) {
-            workspacePath = path.resolve(process.cwd(), workspacePath);
-        }
-        workspaceUri = URI.file(workspacePath);
-    } else {
-        workspaceUri = URI.file(process.cwd());
-    }
-
-    const writer = instantiateWriter(myArgs);
-
-    const svelteCheck = new SvelteCheck(
-        workspaceUri.fsPath,
-        getOptions(myArgs, workspaceUri.fsPath)
-    );
-    const filePathsToIgnore = myArgs['ignore']?.split(',') || [];
-
-    if (myArgs['watch']) {
-        new DiagnosticsWatcher(
-            workspaceUri,
-            svelteCheck,
-            writer,
-            filePathsToIgnore,
-            !!myArgs['tsconfig']
-        );
-    } else {
-        if (!myArgs['tsconfig']) {
-            await openAllDocuments(workspaceUri, filePathsToIgnore, svelteCheck);
-        }
-        const result = await getDiagnostics(workspaceUri, writer, svelteCheck);
-        if (
-            result &&
-            result.errorCount === 0 &&
-            (!myArgs['fail-on-warnings'] || result.warningCount === 0) &&
-            (!myArgs['fail-on-hints'] || result.hintCount === 0)
-        ) {
-            process.exit(0);
+        if (opts.watch) {
+            new DiagnosticsWatcher(
+                opts.workspaceUri,
+                svelteCheck,
+                writer,
+                opts.filePathsToIgnore,
+                !!opts.tsconfig
+            );
         } else {
-            process.exit(1);
+            if (!opts.tsconfig) {
+                await openAllDocuments(opts.workspaceUri, opts.filePathsToIgnore, svelteCheck);
+            }
+            const result = await getDiagnostics(opts.workspaceUri, writer, svelteCheck);
+            if (
+                result &&
+                result.errorCount === 0 &&
+                (!opts.failOnWarnings || result.warningCount === 0) &&
+                (!opts.failOnHints || result.hintCount === 0)
+            ) {
+                process.exit(0);
+            } else {
+                process.exit(1);
+            }
         }
+    } catch (_err) {
+        console.error(_err);
+        console.error('svelte-check failed');
     }
-})().catch((_err) => {
-    console.error(_err);
-    console.error('svelte-check failed');
 });

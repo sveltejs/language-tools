@@ -62,6 +62,7 @@ export default [
             // Dependencies of svelte-language-server
             // we don't want to bundle and instead require them as dependencies
             'typescript',
+            'sade',
             'svelte',
             'svelte/compiler',
             'svelte-preprocess',
