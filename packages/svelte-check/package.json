@@ -24,6 +24,7 @@
         "glob": "^7.1.6",
         "import-fresh": "^3.2.1",
         "minimist": "^1.2.5",
+        "sade": "^1.7.4",
         "source-map": "^0.7.3",
         "svelte-preprocess": "^4.0.0",
         "typescript": "*"
@@ -45,6 +46,7 @@
         "@tsconfig/node12": "^1.0.0",
         "@types/glob": "^7.1.1",
         "@types/minimist": "^1.2.0",
+        "@types/sade": "^1.7.2",
         "rollup": "^2.28.0",
         "rollup-plugin-cleanup": "^3.0.0",
         "rollup-plugin-copy": "^3.0.0",
