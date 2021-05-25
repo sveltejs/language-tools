@@ -1,5 +1,5 @@
 export class Logger {
-    private static logErrorsOnly = true;
+    private static logErrorsOnly = false;
     static setLogErrorsOnly(logErrorsOnly: boolean) {
         Logger.logErrorsOnly = logErrorsOnly;
     }
