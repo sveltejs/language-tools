@@ -11,7 +11,7 @@ export interface SvelteCheckCliOptions {
     failOnWarnings: boolean;
     failOnHints: boolean;
     compilerWarnings: Record<string, 'error' | 'ignore'>;
-    diagnosticSources: Array<DiagnosticSource>;
+    diagnosticSources: DiagnosticSource[];
     threshold: Threshold;
 }
 
