@@ -1,7 +1,12 @@
 import path from 'path';
 import assert from 'assert';
 import ts from 'typescript';
-import { MarkupKind, Position, SignatureHelp } from 'vscode-languageserver';
+import {
+    CancellationTokenSource,
+    MarkupKind,
+    Position,
+    SignatureHelp
+} from 'vscode-languageserver';
 import { Document, DocumentManager } from '../../../../src/lib/documents';
 import { SignatureHelpProviderImpl } from '../../../../src/plugins/typescript/features/SignatureHelpProvider';
 import { LSAndTSDocResolver } from '../../../../src/plugins/typescript/LSAndTSDocResolver';
@@ -95,5 +100,20 @@ describe('SignatureHelpProvider', () => {
         );
 
         assert.equal(result, null);
+    });
+
+    it('provide signature help with formatted documentation', async () => {
+        const { provider, document } = setup();
+        const cancellationTokenSource = new CancellationTokenSource();
+
+        const signatureHelpPromise = provider.getSignatureHelp(
+            document,
+            Position.create(3, 8),
+            undefined,
+            cancellationTokenSource.token
+        );
+        cancellationTokenSource.cancel();
+
+        assert.deepStrictEqual(await signatureHelpPromise, null);
     });
 });

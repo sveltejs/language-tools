@@ -80,10 +80,16 @@ describe('PluginHost', () => {
         });
 
         sinon.assert.calledOnce(plugin.getCompletions);
-        sinon.assert.calledWithExactly(plugin.getCompletions, document, pos, {
-            triggerKind: CompletionTriggerKind.TriggerCharacter,
-            triggerCharacter: '.'
-        });
+        sinon.assert.calledWithExactly(
+            plugin.getCompletions,
+            document,
+            pos,
+            {
+                triggerKind: CompletionTriggerKind.TriggerCharacter,
+                triggerCharacter: '.'
+            },
+            undefined
+        );
     });
 
     describe('getCompletions (incomplete)', () => {

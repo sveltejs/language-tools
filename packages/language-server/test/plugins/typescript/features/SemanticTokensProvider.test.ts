@@ -1,7 +1,12 @@
 import path from 'path';
 import ts from 'typescript';
 import assert from 'assert';
-import { Position, Range, SemanticTokensBuilder } from 'vscode-languageserver';
+import {
+    CancellationTokenSource,
+    Position,
+    Range,
+    SemanticTokensBuilder
+} from 'vscode-languageserver';
 import { Document, DocumentManager } from '../../../../src/lib/documents';
 import { TokenModifier, TokenType } from '../../../../src/lib/semanticToken/semanticTokenLegend';
 import { LSConfigManager } from '../../../../src/ls-config';
@@ -51,6 +56,19 @@ describe('SemanticTokensProvider', () => {
         };
 
         assertResult(data, getExpected(/* isFull */ false));
+    });
+
+    it('can cancel semantic token before promise resolved', async () => {
+        const { provider, document } = setup();
+        const cancellationTokenSource = new CancellationTokenSource();
+        const tokenPromise = provider.getSemanticTokens(
+            document,
+            undefined,
+            cancellationTokenSource.token
+        );
+        cancellationTokenSource.cancel();
+
+        assert.deepStrictEqual(await tokenPromise, null);
     });
 
     function getExpected(full: boolean) {

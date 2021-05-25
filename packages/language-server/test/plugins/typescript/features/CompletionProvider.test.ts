@@ -12,7 +12,8 @@ import {
     Range,
     CompletionTriggerKind,
     MarkupKind,
-    TextEdit
+    TextEdit,
+    CancellationTokenSource
 } from 'vscode-languageserver';
 import {
     CompletionsProviderImpl,
@@ -721,6 +722,43 @@ describe('CompletionProviderImpl', () => {
                 range: Range.create(Position.create(1, 11), Position.create(1, 14))
             }
         ]);
+    });
+
+    it('can be canceled before promise resolved', async () => {
+        const { completionProvider, document } = setup('importcompletions1.svelte');
+        const cancellationTokenSource = new CancellationTokenSource();
+
+        const completionsPromise = completionProvider.getCompletions(
+            document,
+            Position.create(1, 3),
+            undefined,
+            cancellationTokenSource.token
+        );
+
+        cancellationTokenSource.cancel();
+
+        assert.deepStrictEqual(await completionsPromise, null);
+    });
+
+    it('can cancel completion resolving before promise resolved', async () => {
+        const { completionProvider, document } = setup('importcompletions1.svelte');
+        const cancellationTokenSource = new CancellationTokenSource();
+
+        const completions = await completionProvider.getCompletions(
+            document,
+            Position.create(1, 3)
+        );
+
+        const item = completions?.items.find((item) => item.label === 'blubb');
+
+        const completionResolvingPromise = completionProvider.resolveCompletion(
+            document,
+            item!,
+            cancellationTokenSource.token
+        );
+        cancellationTokenSource.cancel();
+
+        assert.deepStrictEqual((await completionResolvingPromise).additionalTextEdits, undefined);
     });
 
     const testForJsDocTemplateCompletion = async (position: Position, newText: string) => {

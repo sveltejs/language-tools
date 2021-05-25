@@ -2,7 +2,7 @@ import * as assert from 'assert';
 import * as path from 'path';
 import ts from 'typescript';
 import fs from 'fs';
-import { FileChangeType, Position, Range } from 'vscode-languageserver';
+import { CancellationTokenSource, FileChangeType, Position, Range } from 'vscode-languageserver';
 import { Document, DocumentManager } from '../../../src/lib/documents';
 import { LSConfigManager } from '../../../src/ls-config';
 import { LSAndTSDocResolver, TypeScriptPlugin } from '../../../src/plugins';
@@ -97,6 +97,15 @@ describe('TypescriptPlugin', () => {
                 }
             ]
         );
+    });
+
+    it('can cancel document symbols before promise resolved', async () => {
+        const { plugin, document } = setup('documentsymbols.svelte');
+        const cancellationTokenSource = new CancellationTokenSource();
+        const symbolsPromise = plugin.getDocumentSymbols(document, cancellationTokenSource.token);
+
+        cancellationTokenSource.cancel();
+        assert.deepStrictEqual(await symbolsPromise, []);
     });
 
     it('provides definitions within svelte doc', async () => {
