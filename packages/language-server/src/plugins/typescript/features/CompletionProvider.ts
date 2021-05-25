@@ -32,13 +32,19 @@ import {
     scriptElementKindToCompletionItemKind
 } from '../utils';
 import { getJsDocTemplateCompletion } from './getJsDocTemplateCompletion';
-import { getComponentAtPosition } from './utils';
+import { getComponentAtPosition, isPartOfImportStatement } from './utils';
 
 export interface CompletionEntryWithIdentifer extends ts.CompletionEntry, TextDocumentIdentifier {
     position: Position;
 }
 
 type validTriggerCharacter = '.' | '"' | "'" | '`' | '/' | '@' | '<' | '#';
+
+type LastCompletion = {
+    key: string;
+    position: Position;
+    completionList: AppCompletionList<CompletionEntryWithIdentifer> | null;
+};
 
 export class CompletionsProviderImpl implements CompletionsProvider<CompletionEntryWithIdentifer> {
     constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
@@ -49,6 +55,10 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
      * Therefore, only use the characters the typescript compiler treats as valid.
      */
     private readonly validTriggerCharacters = ['.', '"', "'", '`', '/', '@', '<', '#'] as const;
+    /**
+     * For performance reasons, try to reuse the last completion if possible.
+     */
+    private lastCompletion?: LastCompletion;
 
     private isValidTriggerCharacter(
         character: string | undefined
@@ -94,6 +104,21 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             !isEventTriggerCharacter
         ) {
             return null;
+        }
+
+        if (
+            this.canReuseLastCompletion(
+                this.lastCompletion,
+                triggerKind,
+                triggerCharacter,
+                document,
+                position
+            )
+        ) {
+            this.lastCompletion.position = position;
+            return this.lastCompletion.completionList;
+        } else {
+            this.lastCompletion = undefined;
         }
 
         const fragment = await tsDoc.getFragment();
@@ -153,7 +178,28 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             .map((comp) => mapCompletionItemToOriginal(fragment, comp))
             .concat(eventCompletions);
 
-        return CompletionList.create(completionItems, !!tsDoc.parserError);
+        const completionList = CompletionList.create(completionItems, !!tsDoc.parserError);
+        this.lastCompletion = { key: document.getFilePath() || '', position, completionList };
+        return completionList;
+    }
+
+    private canReuseLastCompletion(
+        lastCompletion: LastCompletion | undefined,
+        triggerKind: number | undefined,
+        triggerCharacter: string | undefined,
+        document: Document,
+        position: Position
+    ): lastCompletion is LastCompletion {
+        return (
+            !!lastCompletion &&
+            lastCompletion.key === document.getFilePath() &&
+            lastCompletion.position.line === position.line &&
+            Math.abs(lastCompletion.position.character - position.character) < 2 &&
+            (triggerKind === CompletionTriggerKind.TriggerForIncompleteCompletions ||
+                // Special case: `.` is a trigger character, but inside import path completions
+                // it shouldn't trigger another completion because we can reuse the old one
+                (triggerCharacter === '.' && isPartOfImportStatement(document.getText(), position)))
+        );
     }
 
     private getExistingImports(document: Document) {

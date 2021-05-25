@@ -82,9 +82,10 @@ export function handleAttribute(
         }
     }
 
-    // Custom property -> remove completely due to JSX incompatibility
-    if (parent.type === 'InlineComponent' && attr.name.startsWith('--')) {
-        str.overwrite(attr.start, attr.end, '', { contentOnly: true });
+    // Custom CSS property
+    if (parent.type === 'InlineComponent' && attr.name.startsWith('--') && attr.value !== true) {
+        str.prependRight(attr.start, '{...__sveltets_cssProp({"');
+        buildTemplateString(attr, str, htmlx, '": `', '`})}');
         return;
     }
 
@@ -169,23 +170,30 @@ export function handleAttribute(
         return;
     }
 
-    // we have multiple attribute values, so we build a string out of them.
-    // technically the user can do something funky like attr="text "{value} or even attr=text{value}
-    // so instead of trying to maintain a nice sourcemap with prepends etc, we just overwrite the whole thing
+    // We have multiple attribute values, so we build a template string out of them.
+    buildTemplateString(attr, str, htmlx, '={`', '`}');
+}
 
+function buildTemplateString(
+    attr: Attribute,
+    str: MagicString,
+    htmlx: string,
+    leadingOverride: string,
+    trailingOverride: string
+) {
     const equals = htmlx.lastIndexOf('=', attr.value[0].start);
-    str.overwrite(equals, attr.value[0].start, '={`');
+    str.overwrite(equals, attr.value[0].start, leadingOverride);
 
-    for (const n of attr.value) {
+    for (const n of attr.value as BaseNode[]) {
         if (n.type == 'MustacheTag') {
             str.appendRight(n.start, '$');
         }
     }
 
     if (isQuote(htmlx[attr.end - 1])) {
-        str.overwrite(attr.end - 1, attr.end, '`}');
+        str.overwrite(attr.end - 1, attr.end, trailingOverride);
     } else {
-        str.appendLeft(attr.end, '`}');
+        str.appendLeft(attr.end, trailingOverride);
     }
 }
 
