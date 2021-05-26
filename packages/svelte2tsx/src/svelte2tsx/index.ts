@@ -322,18 +322,18 @@ function addComponentExport({
     fileName,
     componentDocumentation
 }: AddComponentExportPara) {
-    const eventsDef = strictEvents ? 'render' : '__sveltets_with_any_event(render)';
-    const propDef =
-        // Omit partial-wrapper only if ts file, because
-        // in a js file the user has no way of telling the language that
-        // the prop is optional
-        isTsFile
-            ? uses$$propsOr$$restProps
-                ? `__sveltets_with_any(${eventsDef})`
-                : eventsDef
-            : `__sveltets_partial${isTsFile ? '_ts' : ''}${
-                  uses$$propsOr$$restProps ? '_with_any' : ''
-              }(${eventsDef})`;
+    const eventsDef = strictEvents ? 'render()' : '__sveltets_with_any_event(render())';
+    let propDef = '';
+    if (isTsFile) {
+        propDef = uses$$propsOr$$restProps ? `__sveltets_with_any(${eventsDef})` : eventsDef;
+    } else {
+        const optionalProps = exportedNames.createOptionalPropsArray();
+        const partial = `__sveltets_partial${uses$$propsOr$$restProps ? '_with_any' : ''}`;
+        propDef =
+            optionalProps.length > 0
+                ? `${partial}([${optionalProps.join(',')}], ${eventsDef})`
+                : `${partial}(${eventsDef})`;
+    }
 
     const doc = componentDocumentation.getFormatted();
     const className = fileName && classNameFromFilename(fileName);

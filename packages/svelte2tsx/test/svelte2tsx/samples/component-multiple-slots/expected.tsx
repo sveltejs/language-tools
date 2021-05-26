@@ -13,5 +13,5 @@
 </div></>);
 return { props: {}, slots: {'default': {a:b}, 'test': {c:d, e:e}, 'abc-cde.113': {}}, getters: {}, events: {} }}
 
-export default class Input__SvelteComponent_ extends createSvelte2TsxComponent(__sveltets_partial(__sveltets_with_any_event(render))) {
+export default class Input__SvelteComponent_ extends createSvelte2TsxComponent(__sveltets_partial(__sveltets_with_any_event(render()))) {
 }

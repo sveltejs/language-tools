@@ -10,5 +10,5 @@
 () => (<></>);
 return { props: {bla: bla , blubb: blubb , bla1: bla1 , blubb1: blubb1 , a1: a1 , a2: a2 , b1: b1 , b2: b2} as {bla?: typeof bla, blubb?: typeof blubb, bla1?: boolean, blubb1?: boolean, a1?: typeof a1, a2?: typeof a2, b1?: boolean, b2?: boolean}, slots: {}, getters: {}, events: {} }}
 
-export default class Input__SvelteComponent_ extends createSvelte2TsxComponent(__sveltets_with_any_event(render)) {
+export default class Input__SvelteComponent_ extends createSvelte2TsxComponent(__sveltets_with_any_event(render())) {
 }
