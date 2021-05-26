@@ -255,8 +255,8 @@ export function startServer(options?: LSOptions) {
         docManager.updateDocument(evt.textDocument, evt.contentChanges)
     );
     connection.onHover((evt) => pluginHost.doHover(evt.textDocument, evt.position));
-    connection.onCompletion((evt) =>
-        pluginHost.getCompletions(evt.textDocument, evt.position, evt.context)
+    connection.onCompletion((evt, cancellationToken) =>
+        pluginHost.getCompletions(evt.textDocument, evt.position, evt.context, cancellationToken)
     );
     connection.onDocumentFormatting((evt) =>
         pluginHost.formatDocument(evt.textDocument, evt.options)
@@ -268,14 +268,16 @@ export function startServer(options?: LSOptions) {
     connection.onColorPresentation((evt) =>
         pluginHost.getColorPresentations(evt.textDocument, evt.range, evt.color)
     );
-    connection.onDocumentSymbol((evt) => pluginHost.getDocumentSymbols(evt.textDocument));
+    connection.onDocumentSymbol((evt, cancellationToken) =>
+        pluginHost.getDocumentSymbols(evt.textDocument, cancellationToken)
+    );
     connection.onDefinition((evt) => pluginHost.getDefinitions(evt.textDocument, evt.position));
     connection.onReferences((evt) =>
         pluginHost.findReferences(evt.textDocument, evt.position, evt.context)
     );
 
-    connection.onCodeAction((evt) =>
-        pluginHost.getCodeActions(evt.textDocument, evt.range, evt.context)
+    connection.onCodeAction((evt, cancellationToken) =>
+        pluginHost.getCodeActions(evt.textDocument, evt.range, evt.context, cancellationToken)
     );
     connection.onExecuteCommand(async (evt) => {
         const result = await pluginHost.executeCommand(
@@ -294,18 +296,18 @@ export function startServer(options?: LSOptions) {
         }
     });
 
-    connection.onCompletionResolve((completionItem) => {
+    connection.onCompletionResolve((completionItem, cancellationToken) => {
         const data = (completionItem as AppCompletionItem).data as TextDocumentIdentifier;
 
         if (!data) {
             return completionItem;
         }
 
-        return pluginHost.resolveCompletion(data, completionItem);
+        return pluginHost.resolveCompletion(data, completionItem, cancellationToken);
     });
 
-    connection.onSignatureHelp((evt) =>
-        pluginHost.getSignatureHelp(evt.textDocument, evt.position, evt.context)
+    connection.onSignatureHelp((evt, cancellationToken) =>
+        pluginHost.getSignatureHelp(evt.textDocument, evt.position, evt.context, cancellationToken)
     );
 
     connection.onSelectionRanges((evt) =>
@@ -343,11 +345,11 @@ export function startServer(options?: LSOptions) {
         updateAllDiagnostics();
     });
 
-    connection.onRequest(SemanticTokensRequest.type, (evt) =>
-        pluginHost.getSemanticTokens(evt.textDocument)
+    connection.onRequest(SemanticTokensRequest.type, (evt, cancellationToken) =>
+        pluginHost.getSemanticTokens(evt.textDocument, undefined, cancellationToken)
     );
-    connection.onRequest(SemanticTokensRangeRequest.type, (evt) =>
-        pluginHost.getSemanticTokens(evt.textDocument, evt.range)
+    connection.onRequest(SemanticTokensRangeRequest.type, (evt, cancellationToken) =>
+        pluginHost.getSemanticTokens(evt.textDocument, evt.range, cancellationToken)
     );
 
     connection.onRequest(

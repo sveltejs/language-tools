@@ -1,5 +1,10 @@
 import ts from 'typescript';
-import { Range, SemanticTokens, SemanticTokensBuilder } from 'vscode-languageserver';
+import {
+    CancellationToken,
+    Range,
+    SemanticTokens,
+    SemanticTokensBuilder
+} from 'vscode-languageserver';
 import { Document, mapRangeToOriginal } from '../../../lib/documents';
 import { SemanticTokensProvider } from '../../interfaces';
 import { SnapshotFragment } from '../DocumentSnapshot';
@@ -11,12 +16,19 @@ const CONTENT_LENGTH_LIMIT = 50000;
 export class SemanticTokensProviderImpl implements SemanticTokensProvider {
     constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
 
-    async getSemanticTokens(textDocument: Document, range?: Range): Promise<SemanticTokens | null> {
+    async getSemanticTokens(
+        textDocument: Document,
+        range?: Range,
+        cancellationToken?: CancellationToken
+    ): Promise<SemanticTokens | null> {
         const { lang, tsDoc } = await this.lsAndTsDocResolver.getLSAndTSDoc(textDocument);
         const fragment = await tsDoc.getFragment();
 
         // for better performance, don't do full-file semantic tokens when the file is too big
-        if (!range && fragment.text.length > CONTENT_LENGTH_LIMIT) {
+        if (
+            (!range && fragment.text.length > CONTENT_LENGTH_LIMIT) ||
+            cancellationToken?.isCancellationRequested
+        ) {
             return null;
         }
 
