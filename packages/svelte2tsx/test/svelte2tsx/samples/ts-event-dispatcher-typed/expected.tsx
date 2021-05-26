@@ -46,5 +46,5 @@ return { props: {}, slots: {}, getters: {}, events: {...__sveltets_toEventTyping
     // not this
     btn: string;}>()} }}
 
-export default class Input__SvelteComponent_ extends createSvelte2TsxComponent(__sveltets_partial_ts(__sveltets_with_any_event(render))) {
+export default class Input__SvelteComponent_ extends createSvelte2TsxComponent(__sveltets_with_any_event(render)) {
 }

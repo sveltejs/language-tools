@@ -306,7 +306,6 @@ export function get_svelte2tsx_config(base: BaseConfig, sampleName: string): Sve
     return {
         filename: base.filename,
         emitOnTemplateError: base.emitOnTemplateError,
-        strictMode: sampleName.includes('strictMode'),
         isTsFile: sampleName.startsWith('ts-'),
         namespace: sampleName.endsWith('-foreign-ns') ? 'foreign' : null
     };

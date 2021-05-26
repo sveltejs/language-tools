@@ -132,7 +132,6 @@ async function createLanguageService(
     };
     let languageService = ts.createLanguageService(host);
     const transformationConfig = {
-        strictMode: !!compilerOptions.strict,
         transformOnTemplateError: docContext.transformOnTemplateError
     };
 

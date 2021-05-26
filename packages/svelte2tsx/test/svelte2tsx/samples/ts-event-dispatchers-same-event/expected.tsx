@@ -27,5 +27,5 @@ return { props: {}, slots: {}, getters: {}, events: {...__sveltets_toEventTyping
     hi: boolean;
     }>(), ...__sveltets_toEventTypings<{hi: string;}>(), 'click':__sveltets_mapElementEvent('click'), 'hi': __sveltets_customEvent, 'bye': __sveltets_customEvent} }}
 
-export default class Input__SvelteComponent_ extends createSvelte2TsxComponent(__sveltets_partial_ts(__sveltets_with_any_event(render))) {
+export default class Input__SvelteComponent_ extends createSvelte2TsxComponent(__sveltets_with_any_event(render)) {
 }
