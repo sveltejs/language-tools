@@ -294,9 +294,11 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         }
 
         if (isScriptElement && hasModifier) {
+            const label =
+                kindModifiers && !name.endsWith(kindModifiers) ? name + kindModifiers : name;
             return {
                 insertText: name,
-                label: name + kindModifiers,
+                label,
                 isSvelteComp
             };
         }
