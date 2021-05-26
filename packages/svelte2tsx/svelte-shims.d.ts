@@ -39,7 +39,7 @@ declare class Svelte2TsxComponent<
      * `component.$set({ x: 1 })` is equivalent to `x = 1` inside the component's `<script>` block.
      * Calling this method schedules an update for the next microtask — the DOM is __not__ updated synchronously.
      */
-    $set(props: Partial<Props>): void;
+    $set(props?: Partial<Props>): void;
     // From SvelteComponent(Dev) definition
     $$: any;
     $capture_state(): void;
