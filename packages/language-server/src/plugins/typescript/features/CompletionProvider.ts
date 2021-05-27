@@ -352,7 +352,8 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             comp.name,
             {},
             comp.source,
-            userPreferences
+            userPreferences,
+            comp.data
         );
 
         if (detail) {
@@ -390,11 +391,11 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
     }
 
     private getCompletionDocument(compDetail: ts.CompletionEntryDetails) {
-        const { source, documentation: tsDocumentation, displayParts, tags } = compDetail;
+        const { sourceDisplay, documentation: tsDocumentation, displayParts, tags } = compDetail;
         let detail: string = this.changeSvelteComponentName(ts.displayPartsToString(displayParts));
 
-        if (source) {
-            const importPath = ts.displayPartsToString(source);
+        if (sourceDisplay) {
+            const importPath = ts.displayPartsToString(sourceDisplay);
             detail = `Auto import from ${importPath}\n${detail}`;
         }
 

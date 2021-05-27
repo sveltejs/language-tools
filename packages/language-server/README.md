@@ -145,7 +145,7 @@ Enable signature help (parameter hints) for JS/TS. _Default_: `true`
 
 ##### `svelte.plugin.typescript.semanticTokens.enable`
 
-Enable semantic tokens (semantic highlight) for TypeScript. Doesn't apply to JavaScript. _Default_: `true`
+Enable semantic tokens (semantic highlight) for TypeScript. _Default_: `true`
 
 ##### `svelte.plugin.css.enable`
 

@@ -269,10 +269,13 @@ describe('CompletionProviderImpl', () => {
         const { data } = completions!.items[0];
 
         assert.deepStrictEqual(data, {
+            data: undefined,
             hasAction: undefined,
             insertText: undefined,
             isPackageJsonImport: undefined,
+            isImportStatementCompletion: undefined,
             isRecommended: undefined,
+            isSnippet: undefined,
             kind: 'method',
             kindModifiers: '',
             name: 'b',
@@ -283,6 +286,7 @@ describe('CompletionProviderImpl', () => {
             replacementSpan: undefined,
             sortText: '1',
             source: undefined,
+            sourceDisplay: undefined,
             uri: fileNameToAbsoluteUri(filename)
         } as CompletionEntryWithIdentifer);
     });
