@@ -100,7 +100,7 @@ export class HumanFriendlyWriter implements Writer {
         const message = [
             'svelte-check found ',
             `${errorCount} ${errorCount === 1 ? 'error' : 'errors'}, `,
-            `${warningCount} ${warningCount === 1 ? 'warning' : 'warnings'} and `,
+            `${warningCount} ${warningCount === 1 ? 'warning' : 'warnings'}, and `,
             `${hintCount} ${hintCount === 1 ? 'hint' : 'hints'}\n`
         ].join('');
         if (errorCount !== 0) {
