@@ -961,4 +961,208 @@ describe('DiagnosticsProvider', () => {
         const diagnostics3 = await plugin.getDiagnostics(document);
         assert.deepStrictEqual(diagnostics3.length, 1);
     }).timeout(5000);
+
+    function assertPropsDiagnosticsStrict(diagnostics: any[], source: 'ts' | 'js') {
+        assert.deepStrictEqual(
+            diagnostics.map((d: any) => {
+                // irrelevant for this test, save some lines
+                delete d.range;
+                return d;
+            }),
+            [
+                {
+                    code: 2322,
+                    message:
+                        // eslint-disable-next-line max-len
+                        "Type '{}' is not assignable to type 'IntrinsicAttributes & { required: string; optional1?: string | undefined; optional2?: string | undefined; }'.\n  Property 'required' is missing in type '{}' but required in type '{ required: string; optional1?: string | undefined; optional2?: string | undefined; }'.",
+                    severity: 1,
+                    source,
+                    tags: []
+                },
+                {
+                    code: 2322,
+                    message: "Type 'undefined' is not assignable to type 'string'.",
+                    severity: 1,
+                    source,
+                    tags: []
+                },
+                {
+                    code: 2322,
+                    message:
+                        // eslint-disable-next-line max-len
+                        "Type '{ required: string; optional1: string; optional2: string; doesntExist: boolean; }' is not assignable to type 'IntrinsicAttributes & { required: string; optional1?: string | undefined; optional2?: string | undefined; }'.\n  Property 'doesntExist' does not exist on type 'IntrinsicAttributes & { required: string; optional1?: string | undefined; optional2?: string | undefined; }'.",
+                    severity: 1,
+                    source,
+                    tags: []
+                },
+                {
+                    code: 2322,
+                    message: "Type 'boolean' is not assignable to type 'string'.",
+                    severity: 1,
+                    source,
+                    tags: []
+                },
+                {
+                    code: 2322,
+                    message: "Type 'true' is not assignable to type 'string | undefined'.",
+                    severity: 1,
+                    source,
+                    tags: []
+                },
+                {
+                    code: 2322,
+                    message: "Type 'true' is not assignable to type 'string | undefined'.",
+                    severity: 1,
+                    source,
+                    tags: []
+                },
+                {
+                    code: 2322,
+                    message:
+                        // eslint-disable-next-line max-len
+                        "Type '{}' is not assignable to type 'IntrinsicAttributes & Omit<SveltePropsAnyFallback<{ required: string; optional1: string; optional2: string | undefined; }>, \"optional1\" | \"optional2\"> & Partial<...>'.\n  Property 'required' is missing in type '{}' but required in type 'Omit<SveltePropsAnyFallback<{ required: string; optional1: string; optional2: string | undefined; }>, \"optional1\" | \"optional2\">'.",
+                    severity: 1,
+                    source,
+                    tags: []
+                },
+                {
+                    code: 2322,
+                    message: "Type 'undefined' is not assignable to type 'string'.",
+                    severity: 1,
+                    source,
+                    tags: []
+                },
+                {
+                    code: 2322,
+                    message: "Type 'boolean' is not assignable to type 'string'.",
+                    severity: 1,
+                    source,
+                    tags: []
+                },
+                {
+                    code: 2322,
+                    message: "Type 'true' is not assignable to type 'string | undefined'.",
+                    severity: 1,
+                    source,
+                    tags: []
+                },
+                {
+                    code: 2322,
+                    message: "Type 'true' is not assignable to type 'string | undefined'.",
+                    severity: 1,
+                    source,
+                    tags: []
+                }
+            ]
+        );
+    }
+
+    it('checks prop types correctly (ts file, strict mode)', async () => {
+        const { plugin, document } = setup(path.join('checkJs', 'props_importer-ts.svelte'));
+        const diagnostics = await plugin.getDiagnostics(document);
+        assertPropsDiagnosticsStrict(diagnostics, 'ts');
+    });
+
+    it('checks prop types correctly (js file, strict mode)', async () => {
+        const { plugin, document } = setup(path.join('checkJs', 'props_importer-js.svelte'));
+        const diagnostics = await plugin.getDiagnostics(document);
+        assertPropsDiagnosticsStrict(diagnostics, 'js');
+    });
+
+    function assertPropsDiagnostics(diagnostics: any[], source: 'ts' | 'js') {
+        assert.deepStrictEqual(
+            diagnostics.map((d: any) => {
+                // irrelevant for this test, save some lines
+                delete d.range;
+                return d;
+            }),
+            [
+                {
+                    code: 2322,
+                    message:
+                        // eslint-disable-next-line max-len
+                        "Type '{}' is not assignable to type 'IntrinsicAttributes & { required: string; optional1?: string; optional2?: string; }'.\n  Property 'required' is missing in type '{}' but required in type '{ required: string; optional1?: string; optional2?: string; }'.",
+                    severity: 1,
+                    source,
+                    tags: []
+                },
+                {
+                    code: 2322,
+                    message:
+                        // eslint-disable-next-line max-len
+                        "Type '{ required: string; optional1: string; optional2: string; doesntExist: boolean; }' is not assignable to type 'IntrinsicAttributes & { required: string; optional1?: string; optional2?: string; }'.\n  Property 'doesntExist' does not exist on type 'IntrinsicAttributes & { required: string; optional1?: string; optional2?: string; }'.",
+                    severity: 1,
+                    source,
+                    tags: []
+                },
+                {
+                    code: 2322,
+                    message: "Type 'boolean' is not assignable to type 'string'.",
+                    severity: 1,
+                    source,
+                    tags: []
+                },
+                {
+                    code: 2322,
+                    message: "Type 'boolean' is not assignable to type 'string'.",
+                    severity: 1,
+                    source,
+                    tags: []
+                },
+                {
+                    code: 2322,
+                    message: "Type 'boolean' is not assignable to type 'string'.",
+                    severity: 1,
+                    source,
+                    tags: []
+                },
+                {
+                    code: 2322,
+                    message:
+                        // eslint-disable-next-line max-len
+                        "Type '{}' is not assignable to type 'IntrinsicAttributes & Omit<SveltePropsAnyFallback<{ required: string; optional1: string; optional2: string; }>, \"optional1\" | \"optional2\"> & Partial<...>'.\n  Property 'required' is missing in type '{}' but required in type 'Omit<SveltePropsAnyFallback<{ required: string; optional1: string; optional2: string; }>, \"optional1\" | \"optional2\">'.",
+                    severity: 1,
+                    source,
+                    tags: []
+                },
+                {
+                    code: 2322,
+                    message: "Type 'boolean' is not assignable to type 'string'.",
+                    severity: 1,
+                    source,
+                    tags: []
+                },
+                {
+                    code: 2322,
+                    message: "Type 'boolean' is not assignable to type 'string'.",
+                    severity: 1,
+                    source,
+                    tags: []
+                },
+                {
+                    code: 2322,
+                    message: "Type 'boolean' is not assignable to type 'string'.",
+                    severity: 1,
+                    source,
+                    tags: []
+                }
+            ]
+        );
+    }
+
+    it('checks prop types correctly (ts file, no strict mode)', async () => {
+        const { plugin, document } = setup(
+            path.join('checkJs-no-strict', 'props_importer-ts.svelte')
+        );
+        const diagnostics = await plugin.getDiagnostics(document);
+        assertPropsDiagnostics(diagnostics, 'ts');
+    });
+
+    it('checks prop types correctly (js file, no strict mode)', async () => {
+        const { plugin, document } = setup(
+            path.join('checkJs-no-strict', 'props_importer-js.svelte')
+        );
+        const diagnostics = await plugin.getDiagnostics(document);
+        assertPropsDiagnostics(diagnostics, 'js');
+    });
 });
