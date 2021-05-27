@@ -95,11 +95,11 @@ export function patchModuleLoader(
             ) || Array.from<undefined>(Array(moduleNames.length));
 
         return resolved.map((moduleName, idx) => {
-            if (moduleName) {
+            const fileName = moduleNames[idx];
+            if (moduleName || !ensureRealSvelteFilePath(fileName).endsWith('.svelte')) {
                 return moduleName;
             }
 
-            const fileName = moduleNames[idx];
             const cachedModule = moduleCache.get(fileName, containingFile);
             if (cachedModule) {
                 return cachedModule;
