@@ -47,7 +47,6 @@ describe('SemanticTokensProvider', () => {
         assertResult(data, getTsExpected(/* isFull */ true));
     });
 
-
     it('provides partial semantic token', async () => {
         const { provider, document } = setup(tsFile);
 
@@ -64,28 +63,29 @@ describe('SemanticTokensProvider', () => {
     it('provides semantic token for js', async () => {
         const { provider, document } = setup('jsToken.svelte');
 
-        const { data } = (await provider.getSemanticTokens(
-            document
-        )) ?? {
+        const { data } = (await provider.getSemanticTokens(document)) ?? {
             data: []
         };
 
-        assertResult(data, buildExpected([
-            {
-                character: 4,
-                line: 1,
-                length: 'console'.length,
-                modifiers: [TokenModifier.defaultLibrary],
-                type: TokenType.variable
-            },
-            {
-                character: 12,
-                line: 1,
-                length: 'log'.length,
-                modifiers: [TokenModifier.defaultLibrary],
-                type: TokenType.member
-            }
-        ]));
+        assertResult(
+            data,
+            buildExpected([
+                {
+                    character: 4,
+                    line: 1,
+                    length: 'console'.length,
+                    modifiers: [TokenModifier.defaultLibrary],
+                    type: TokenType.variable
+                },
+                {
+                    character: 12,
+                    line: 1,
+                    length: 'log'.length,
+                    modifiers: [TokenModifier.defaultLibrary],
+                    type: TokenType.member
+                }
+            ])
+        );
     });
 
     it('can cancel semantic token before promise resolved', async () => {
