@@ -685,7 +685,7 @@ declare namespace svelte.JSX {
       externalResourcesRequired?: number | string;
       fill?: string;
       'fill-opacity'?: number | string;
-      fillRule?: 'nonzero' | 'evenodd' | 'inherit';
+      'fill-rule'?: 'nonzero' | 'evenodd' | 'inherit';
       filter?: string;
       filterRes?: number | string;
       filterUnits?: number | string;
