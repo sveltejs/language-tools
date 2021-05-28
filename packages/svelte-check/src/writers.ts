@@ -27,6 +27,14 @@ export class HumanFriendlyWriter implements Writer {
     ) {}
 
     start(workspaceDir: string) {
+        if (process.stdout.isTTY) {
+            // Clear screen
+            const blank = '\n'.repeat(process.stdout.rows);
+            this.stream.write(blank);
+            process.stdout.cursorTo(0, 0);
+            process.stdout.clearScreenDown();
+        }
+
         if (this.isVerbose) {
             this.stream.write('\n');
             this.stream.write(`Loading svelte-check in workspace: ${workspaceDir}`);
