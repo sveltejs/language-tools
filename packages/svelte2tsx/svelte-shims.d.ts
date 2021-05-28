@@ -97,6 +97,9 @@ type SvelteRestProps = { [index: string]: any }
 type SvelteSlots = { [index: string]: any }
 type SvelteStore<T> = { subscribe: (run: (value: T) => any, invalidate?: any) => any }
 
+// Forces TypeScript to look into the type which results in a better representation of it
+// which helps for error messages
+type Expand<T> = T extends infer O ? { [K in keyof O]: O[K] } : never;
 
 declare var process: NodeJS.Process & { browser: boolean }
 declare var __sveltets_AnimationMove: { from: DOMRect, to: DOMRect }
@@ -123,7 +126,7 @@ declare function __sveltets_partial<Props = {}, Events = {}, Slots = {}>(
 declare function __sveltets_partial<Props = {}, Events = {}, Slots = {}, OptionalProps extends keyof Props = any>(
     optionalProps: OptionalProps[],
     render: {props?: Props, events?: Events, slots?: Slots }
-): {props?: SvelteWithOptionalProps<SveltePropsAnyFallback<Props>, OptionalProps>, events?: Events, slots?: Slots }
+): {props?: Expand<SvelteWithOptionalProps<SveltePropsAnyFallback<Props>, OptionalProps>>, events?: Events, slots?: Slots }
 
 declare function __sveltets_partial_with_any<Props = {}, Events = {}, Slots = {}>(
     render: {props?: Props, events?: Events, slots?: Slots }
@@ -131,7 +134,7 @@ declare function __sveltets_partial_with_any<Props = {}, Events = {}, Slots = {}
 declare function __sveltets_partial_with_any<Props = {}, Events = {}, Slots = {}, OptionalProps extends keyof Props = any>(
     optionalProps: OptionalProps[],
     render: {props?: Props, events?: Events, slots?: Slots }
-): {props?: SvelteWithOptionalProps<SveltePropsAnyFallback<Props>, OptionalProps> & SvelteAllProps, events?: Events, slots?: Slots }
+): {props?: Expand<SvelteWithOptionalProps<SveltePropsAnyFallback<Props>, OptionalProps>> & SvelteAllProps, events?: Events, slots?: Slots }
 
 
 declare function __sveltets_with_any<Props = {}, Events = {}, Slots = {}>(

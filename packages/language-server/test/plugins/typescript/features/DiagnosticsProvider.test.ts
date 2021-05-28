@@ -1020,7 +1020,7 @@ describe('DiagnosticsProvider', () => {
                     code: 2322,
                     message:
                         // eslint-disable-next-line max-len
-                        "Type '{}' is not assignable to type 'IntrinsicAttributes & Omit<SveltePropsAnyFallback<{ required: string; optional1: string; optional2: string | undefined; }>, \"optional1\" | \"optional2\"> & Partial<...>'.\n  Property 'required' is missing in type '{}' but required in type 'Omit<SveltePropsAnyFallback<{ required: string; optional1: string; optional2: string | undefined; }>, \"optional1\" | \"optional2\">'.",
+                        "Type '{}' is not assignable to type 'IntrinsicAttributes & { required: string; optional1?: string | undefined; optional2?: string | undefined; }'.\n  Property 'required' is missing in type '{}' but required in type '{ required: string; optional1?: string | undefined; optional2?: string | undefined; }'.",
                     severity: 1,
                     source,
                     tags: []
@@ -1120,7 +1120,7 @@ describe('DiagnosticsProvider', () => {
                     code: 2322,
                     message:
                         // eslint-disable-next-line max-len
-                        "Type '{}' is not assignable to type 'IntrinsicAttributes & Omit<SveltePropsAnyFallback<{ required: string; optional1: string; optional2: string; }>, \"optional1\" | \"optional2\"> & Partial<...>'.\n  Property 'required' is missing in type '{}' but required in type 'Omit<SveltePropsAnyFallback<{ required: string; optional1: string; optional2: string; }>, \"optional1\" | \"optional2\">'.",
+                        "Type '{}' is not assignable to type 'IntrinsicAttributes & { required: string; optional1?: string; optional2?: string; }'.\n  Property 'required' is missing in type '{}' but required in type '{ required: string; optional1?: string; optional2?: string; }'.",
                     severity: 1,
                     source,
                     tags: []
