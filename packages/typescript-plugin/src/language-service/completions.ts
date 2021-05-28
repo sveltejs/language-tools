@@ -35,7 +35,8 @@ export function decorateCompletions(ls: ts.LanguageService, logger: Logger): voi
         entryName,
         formatOptions,
         source,
-        preferences
+        preferences,
+        data
     ) => {
         const details = getCompletionEntryDetails(
             fileName,
@@ -43,7 +44,8 @@ export function decorateCompletions(ls: ts.LanguageService, logger: Logger): voi
             entryName,
             formatOptions,
             source,
-            preferences
+            preferences,
+            data
         );
         if (details || !isSvelteFilePath(source || '')) {
             return details;
@@ -58,7 +60,8 @@ export function decorateCompletions(ls: ts.LanguageService, logger: Logger): voi
             entryName + componentPostfix,
             formatOptions,
             source,
-            preferences
+            preferences,
+            data
         );
         if (!svelteDetails) {
             return undefined;
