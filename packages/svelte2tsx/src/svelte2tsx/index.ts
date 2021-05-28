@@ -38,7 +38,6 @@ interface CreateRenderFunctionPara extends InstanceScriptProcessResult {
 interface AddComponentExportPara {
     str: MagicString;
     uses$$propsOr$$restProps: boolean;
-    strictMode: boolean;
     /**
      * If true, not fallback to `any`
      * -> all unknown events will throw a type error
@@ -315,7 +314,6 @@ function processSvelteTemplate(
 function addComponentExport({
     str,
     uses$$propsOr$$restProps,
-    strictMode,
     strictEvents,
     isTsFile,
     getters,
@@ -324,18 +322,18 @@ function addComponentExport({
     fileName,
     componentDocumentation
 }: AddComponentExportPara) {
-    const eventsDef = strictEvents ? 'render' : '__sveltets_with_any_event(render)';
-    const propDef =
-        // Omit partial-wrapper only if both strict mode and ts file, because
-        // in a js file the user has no way of telling the language that
-        // the prop is optional
-        strictMode && isTsFile
-            ? uses$$propsOr$$restProps
-                ? `__sveltets_with_any(${eventsDef})`
-                : eventsDef
-            : `__sveltets_partial${isTsFile ? '_ts' : ''}${
-                  uses$$propsOr$$restProps ? '_with_any' : ''
-              }(${eventsDef})`;
+    const eventsDef = strictEvents ? 'render()' : '__sveltets_with_any_event(render())';
+    let propDef = '';
+    if (isTsFile) {
+        propDef = uses$$propsOr$$restProps ? `__sveltets_with_any(${eventsDef})` : eventsDef;
+    } else {
+        const optionalProps = exportedNames.createOptionalPropsArray();
+        const partial = `__sveltets_partial${uses$$propsOr$$restProps ? '_with_any' : ''}`;
+        propDef =
+            optionalProps.length > 0
+                ? `${partial}([${optionalProps.join(',')}], ${eventsDef})`
+                : `${partial}(${eventsDef})`;
+    }
 
     const doc = componentDocumentation.getFormatted();
     const className = fileName && classNameFromFilename(fileName);
@@ -457,7 +455,6 @@ export function svelte2tsx(
     svelte: string,
     options?: {
         filename?: string;
-        strictMode?: boolean;
         isTsFile?: boolean;
         emitOnTemplateError?: boolean;
         namespace?: string;
@@ -542,7 +539,6 @@ export function svelte2tsx(
     addComponentExport({
         str,
         uses$$propsOr$$restProps: uses$$props || uses$$restProps,
-        strictMode: !!options?.strictMode,
         strictEvents: events.hasInterface(),
         isTsFile: options?.isTsFile,
         getters,

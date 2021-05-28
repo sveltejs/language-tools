@@ -21,10 +21,6 @@ export default function svelte2tsx(
          */
         filename?: string;
         /**
-         * Whether or not TS strictMode is enabled
-         */
-        strictMode?: boolean;
-        /**
          * If the given file uses TypeScript inside script.
          * This cannot be inferred from `svelte2tsx` by looking
          * at the attributes of the script tag because the
