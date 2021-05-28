@@ -12,7 +12,13 @@ const customDataProvider: ICSSDataProvider = {
         return pesudoClass;
     },
     provideProperties() {
-        return [];
+        return [
+            {
+                name: 'vector-effect',
+                values: [{ name: 'non-scaling-stroke' }, { name: 'none' }],
+                status: 'experimental'
+            }
+        ];
     },
     provideAtDirectives() {
         return [];
