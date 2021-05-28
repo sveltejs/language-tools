@@ -1,9 +1,14 @@
 import { Warning } from 'svelte/types/compiler/interfaces';
 import { Diagnostic, DiagnosticSeverity, Position, Range } from 'vscode-languageserver';
-import { Document, isInTag, mapObjWithRangeToOriginal } from '../../../lib/documents';
+import {
+    Document,
+    isInTag,
+    mapObjWithRangeToOriginal,
+    TagInformation
+} from '../../../lib/documents';
 import { Logger } from '../../../logger';
 import { CompilerWarningsSettings } from '../../../ls-config';
-import { getLastPartOfPath } from '../../../utils';
+import { getLastPartOfPath, moveRangeStartToEndIfNecessary } from '../../../utils';
 import { SvelteDocument, TranspileErrorSource } from '../SvelteDocument';
 
 /**
@@ -56,6 +61,7 @@ async function tryGetDiagnostics(
                 };
             })
             .map((diag) => mapObjWithRangeToOriginal(transpiled, diag))
+            .map((diag) => adjustMappings(diag, document))
             .filter((diag) => isNoFalsePositive(diag, document));
     } catch (err) {
         return (await createParserErrorDiagnostic(err, document)).map((diag) =>
@@ -271,6 +277,36 @@ function isNoFalsePositive(diag: Diagnostic, doc: Document): boolean {
         `\\bexport\\s+?enum\\s+?${unusedExportName}\\b`
     ).test(doc.getText());
     return !hasExportedEnumWithThatName;
+}
+
+/**
+ * Some mappings might be invalid. Try to catch these cases here.
+ */
+function adjustMappings(diag: Diagnostic, doc: Document): Diagnostic {
+    if (diag.range.start.character < 0) {
+        diag.range.start.character = 0;
+    }
+    if (diag.range.end.character < 0) {
+        diag.range.end.character = 0;
+    }
+    if (diag.range.start.line < 0) {
+        diag.range.start = { line: 0, character: 0 };
+    }
+    if (diag.range.end.line < 0) {
+        diag.range.end = { line: 0, character: 0 };
+    }
+    diag.range = moveRangeStartToEndIfNecessary(diag.range);
+
+    if (
+        diag.code === 'css-unused-selector' &&
+        doc.styleInfo &&
+        !isInTag(diag.range.start, doc.styleInfo)
+    ) {
+        diag.range.start = (doc.styleInfo as TagInformation).startPos;
+        diag.range.end = diag.range.start;
+    }
+
+    return diag;
 }
 
 const scssNodeRuntimeHint =

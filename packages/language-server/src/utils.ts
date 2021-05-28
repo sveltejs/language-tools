@@ -45,6 +45,29 @@ export function isInRange(range: Range, positionToTest: Position): boolean {
     );
 }
 
+export function isRangeStartAfterEnd(range: Range): boolean {
+    return (
+        range.end.line < range.start.line ||
+        (range.end.line === range.start.line && range.end.character < range.start.character)
+    );
+}
+
+export function swapRangeStartEndIfNecessary(range: Range): Range {
+    if (isRangeStartAfterEnd(range)) {
+        const start = range.start;
+        range.start = range.end;
+        range.end = start;
+    }
+    return range;
+}
+
+export function moveRangeStartToEndIfNecessary(range: Range): Range {
+    if (isRangeStartAfterEnd(range)) {
+        range.start = range.end;
+    }
+    return range;
+}
+
 export function isBeforeOrEqualToPosition(position: Position, positionToTest: Position): boolean {
     return (
         positionToTest.line < position.line ||
