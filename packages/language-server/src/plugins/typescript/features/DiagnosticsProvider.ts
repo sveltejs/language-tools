@@ -11,6 +11,7 @@ import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { convertRange, getDiagnosticTag, mapSeverity } from '../utils';
 import { SvelteDocumentSnapshot } from '../DocumentSnapshot';
 import { isInGeneratedCode } from './utils';
+import { swapRangeStartEndIfNecessary } from '../../../utils';
 
 export class DiagnosticsProviderImpl implements DiagnosticsProvider {
     constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
@@ -65,7 +66,7 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
             .filter(hasNoNegativeLines)
             .filter(isNoFalsePositive(document, tsDoc))
             .map(enhanceIfNecessary)
-            .map(swapRangeStartEndIfNecessary);
+            .map(swapDiagRangeStartEndIfNecessary);
     }
 
     private async getLSAndTSDoc(document: Document) {
@@ -190,16 +191,8 @@ function enhanceIfNecessary(diagnostic: Diagnostic): Diagnostic {
 /**
  * Due to source mapping, some ranges may be swapped: Start is end. Swap back in this case.
  */
-function swapRangeStartEndIfNecessary(diag: Diagnostic): Diagnostic {
-    if (
-        diag.range.end.line < diag.range.start.line ||
-        (diag.range.end.line === diag.range.start.line &&
-            diag.range.end.character < diag.range.start.character)
-    ) {
-        const start = diag.range.start;
-        diag.range.start = diag.range.end;
-        diag.range.end = start;
-    }
+function swapDiagRangeStartEndIfNecessary(diag: Diagnostic): Diagnostic {
+    diag.range = swapRangeStartEndIfNecessary(diag.range);
     return diag;
 }
 
