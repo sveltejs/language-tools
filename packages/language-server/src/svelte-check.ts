@@ -150,6 +150,7 @@ export class SvelteCheck {
         const lsContainer = await this.getLSContainer(tsconfigPath);
         const lang = lsContainer.getService();
         const files = lang.getProgram()?.getSourceFiles() || [];
+        const options = lang.getProgram()?.getCompilerOptions() || {};
 
         return await Promise.all(
             files.map((file) => {
@@ -159,21 +160,33 @@ export class SvelteCheck {
                     this.docManager.markAsOpenedInClient(uri);
                     return this.getDiagnosticsForFile(uri);
                 } else {
-                    const diagnostics = [
-                        ...lang.getSyntacticDiagnostics(file.fileName),
-                        ...lang.getSuggestionDiagnostics(file.fileName),
-                        ...lang.getSemanticDiagnostics(file.fileName)
-                    ].map<Diagnostic>((diagnostic) => ({
-                        range: convertRange(
-                            { positionAt: file.getLineAndCharacterOfPosition.bind(file) },
-                            diagnostic
-                        ),
-                        severity: mapSeverity(diagnostic.category),
-                        source: diagnostic.source,
-                        message: ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n'),
-                        code: diagnostic.code,
-                        tags: getDiagnosticTag(diagnostic)
-                    }));
+                    // This check is done inside TS mostly, too, but for some diagnostics like suggestions it
+                    // doesn't apply to all code paths. That's why we do it here, too.
+                    const skipDiagnosticsForFile =
+                        (options.skipLibCheck && file.isDeclarationFile) ||
+                        (options.skipDefaultLibCheck && file.hasNoDefaultLib);
+
+                    const diagnostics = skipDiagnosticsForFile
+                        ? []
+                        : [
+                              ...lang.getSyntacticDiagnostics(file.fileName),
+                              ...lang.getSuggestionDiagnostics(file.fileName),
+                              ...lang.getSemanticDiagnostics(file.fileName)
+                          ].map<Diagnostic>((diagnostic) => ({
+                              range: convertRange(
+                                  { positionAt: file.getLineAndCharacterOfPosition.bind(file) },
+                                  diagnostic
+                              ),
+                              severity: mapSeverity(diagnostic.category),
+                              source: diagnostic.source,
+                              message: ts.flattenDiagnosticMessageText(
+                                  diagnostic.messageText,
+                                  '\n'
+                              ),
+                              code: diagnostic.code,
+                              tags: getDiagnosticTag(diagnostic)
+                          }));
+
                     return {
                         filePath: file.fileName,
                         text: file.text,
