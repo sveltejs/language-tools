@@ -536,8 +536,6 @@ const beginOfDocumentRange = Range.create(Position.create(0, 0), Position.create
 const scriptImportRegex =
     /\bimport\s+{([^}]*?)}\s+?from\s+['"`].+?['"`]|\bimport\s+(\w+?)\s+from\s+['"`].+?['"`]/g;
 
-const completionBlacklist = new Set(['sveltekitPrefetch', 'sveltekitNoscroll']);
-
 function isValidCompletion(
     document: Document,
     position: Position
@@ -550,10 +548,8 @@ function isValidCompletion(
         return () => true;
     }
     return (value) =>
-        !completionBlacklist.has(value.name) &&
-        // remove attribues starting with "on" because those are events.
-        // Svelte wants events of the form "on:X", but the suggestions
-        // are of the form "onX". Moreover, they are doubled by the HTML
-        // attribute suggestions. Therefore filter them out.
-        !value.name.startsWith('on');
+        // Remove jsx attributes on html tags because they are doubled by the HTML
+        // attribute suggestions, and for events they are wrong (onX instead of on:X).
+        // Therefore filter them out.
+        value.kind !== ts.ScriptElementKind.jsxAttribute;
 }
