@@ -5,9 +5,14 @@ import { getPackageInfo } from '../../importPackage';
 import { Document } from '../../lib/documents';
 import { configLoader } from '../../lib/documents/configLoader';
 import { Logger } from '../../logger';
+import { normalizePath } from '../../utils';
 import { DocumentSnapshot } from './DocumentSnapshot';
 import { createSvelteModuleLoader } from './module-loader';
-import { ignoredBuildDirectories, SnapshotManager } from './SnapshotManager';
+import {
+    GlobalSnapshotsManager,
+    ignoredBuildDirectories,
+    SnapshotManager
+} from './SnapshotManager';
 import { ensureRealSvelteFilePath, findTsConfigPath } from './utils';
 
 export interface LanguageServiceContainer {
@@ -39,6 +44,7 @@ const services = new Map<string, Promise<LanguageServiceContainer>>();
 export interface LanguageServiceDocumentContext {
     transformOnTemplateError: boolean;
     createDocument: (fileName: string, content: string) => Document;
+    globalSnapshotsManager: GlobalSnapshotsManager;
 }
 
 export async function getService(
@@ -50,9 +56,12 @@ export async function getService(
     return getServiceForTsconfig(tsconfigPath, docContext);
 }
 
-export function hasServiceForFile(path: string, workspaceUris: string[]): boolean {
-    const tsconfigPath = findTsConfigPath(path, workspaceUris);
-    return services.has(tsconfigPath);
+export async function forAllServices(
+    cb: (service: LanguageServiceContainer) => any
+): Promise<void> {
+    for (const service of services.values()) {
+        cb(await service);
+    }
 }
 
 /**
@@ -85,7 +94,12 @@ async function createLanguageService(
     const { options: compilerOptions, fileNames: files, raw } = getParsedConfig();
     // raw is the tsconfig merged with extending config
     // see: https://github.com/microsoft/TypeScript/blob/08e4f369fbb2a5f0c30dee973618d65e6f7f09f8/src/compiler/commandLineParser.ts#L2537
-    const snapshotManager = new SnapshotManager(files, raw, workspacePath || process.cwd());
+    const snapshotManager = new SnapshotManager(
+        docContext.globalSnapshotsManager,
+        files,
+        raw,
+        workspacePath || process.cwd()
+    );
 
     // Load all configs within the tsconfig scope and the one above so that they are all loaded
     // by the time they need to be accessed synchronously by DocumentSnapshots to determine
@@ -225,6 +239,7 @@ async function createLanguageService(
     }
 
     function fileBelongsToProject(filePath: string): boolean {
+        filePath = normalizePath(filePath);
         return hasFile(filePath) || getParsedConfig().fileNames.includes(filePath);
     }
 
@@ -308,6 +323,7 @@ async function createLanguageService(
 
         return {
             ...parsedConfig,
+            fileNames: parsedConfig.fileNames.map(normalizePath),
             options: compilerOptions
         };
     }

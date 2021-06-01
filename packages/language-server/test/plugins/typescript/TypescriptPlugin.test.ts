@@ -1,14 +1,14 @@
 import * as assert from 'assert';
+import fs from 'fs';
 import * as path from 'path';
 import ts from 'typescript';
-import fs from 'fs';
 import { CancellationTokenSource, FileChangeType, Position, Range } from 'vscode-languageserver';
 import { Document, DocumentManager } from '../../../src/lib/documents';
 import { LSConfigManager } from '../../../src/ls-config';
 import { LSAndTSDocResolver, TypeScriptPlugin } from '../../../src/plugins';
 import { INITIAL_VERSION } from '../../../src/plugins/typescript/DocumentSnapshot';
-import { pathToUrl, urlToPath } from '../../../src/utils';
 import { ignoredBuildDirectories } from '../../../src/plugins/typescript/SnapshotManager';
+import { pathToUrl } from '../../../src/utils';
 
 describe('TypescriptPlugin', () => {
     function getUri(filename: string) {
@@ -372,20 +372,10 @@ describe('TypescriptPlugin', () => {
         };
     };
 
-    /**
-     *  make it the same style of path delimiter as vscode's request
-     */
-    const normalizeWatchFilePath = (path: string) => {
-        return urlToPath(pathToUrl(path)) ?? '';
-    };
-
     const setupForOnWatchedFileUpdateOrDelete = async () => {
         const { plugin, snapshotManager, targetSvelteFile } = await setupForOnWatchedFileChanges();
 
-        const projectJsFile = normalizeWatchFilePath(
-            path.join(path.dirname(targetSvelteFile), 'documentation.ts')
-        );
-
+        const projectJsFile = path.join(path.dirname(targetSvelteFile), 'documentation.ts');
         await plugin.onWatchFileChanges([
             {
                 fileName: projectJsFile,
@@ -441,7 +431,6 @@ describe('TypescriptPlugin', () => {
     const testForOnWatchedFileAdd = async (filePath: string, shouldExist: boolean) => {
         const { snapshotManager, plugin, targetSvelteFile } = await setupForOnWatchedFileChanges();
         const addFile = path.join(path.dirname(targetSvelteFile), filePath);
-        const normalizedAddFilePath = normalizeWatchFilePath(addFile);
 
         const dir = path.dirname(addFile);
         if (!fs.existsSync(dir)) {
@@ -451,25 +440,25 @@ describe('TypescriptPlugin', () => {
         assert.ok(fs.existsSync(addFile));
 
         try {
-            assert.equal(snapshotManager.has(normalizedAddFilePath), false);
+            assert.equal(snapshotManager.has(addFile), false);
 
             await plugin.onWatchFileChanges([
                 {
-                    fileName: normalizedAddFilePath,
+                    fileName: addFile,
                     changeType: FileChangeType.Created
                 }
             ]);
 
-            assert.equal(snapshotManager.has(normalizedAddFilePath), shouldExist);
+            assert.equal(snapshotManager.has(addFile), shouldExist);
 
             await plugin.onWatchFileChanges([
                 {
-                    fileName: normalizedAddFilePath,
+                    fileName: addFile,
                     changeType: FileChangeType.Changed
                 }
             ]);
 
-            assert.equal(snapshotManager.has(normalizedAddFilePath), shouldExist);
+            assert.equal(snapshotManager.has(addFile), shouldExist);
         } finally {
             fs.unlinkSync(addFile);
         }

@@ -61,7 +61,6 @@ import { SignatureHelpProviderImpl } from './features/SignatureHelpProvider';
 import { UpdateImportsProviderImpl } from './features/UpdateImportsProvider';
 import { isNoTextSpanInGeneratedCode, SnapshotFragmentMap } from './features/utils';
 import { LSAndTSDocResolver } from './LSAndTSDocResolver';
-import { LanguageServiceContainer } from './service';
 import { ignoredBuildDirectories } from './SnapshotManager';
 import { convertToLocationRange, getScriptKindFromFileName, symbolKindFromString } from './utils';
 
@@ -371,7 +370,7 @@ export class TypeScriptPlugin
     }
 
     async onWatchFileChanges(onWatchFileChangesParas: OnWatchFileChangesPara[]): Promise<void> {
-        const doneUpdateProjectFiles = new Set<LanguageServiceContainer>();
+        let doneUpdateProjectFiles = false;
 
         for (const { fileName, changeType } of onWatchFileChangesParas) {
             const pathParts = fileName.split(/\/|\\/);
@@ -386,19 +385,13 @@ export class TypeScriptPlugin
                 continue;
             }
 
-            const tsService = await this.lsAndTsDocResolver.getTSService(fileName);
-            if (changeType === FileChangeType.Created) {
-                if (!doneUpdateProjectFiles.has(tsService)) {
-                    tsService.updateProjectFiles();
-                    doneUpdateProjectFiles.add(tsService);
-                }
+            if (changeType === FileChangeType.Created && !doneUpdateProjectFiles) {
+                doneUpdateProjectFiles = true;
+                await this.lsAndTsDocResolver.updateProjectFiles();
             } else if (changeType === FileChangeType.Deleted) {
-                tsService.deleteSnapshot(fileName);
-            } else if (tsService.hasFile(fileName)) {
-                // Only allow existing files to be update
-                // Otherwise, new files would still get loaded
-                // into snapshot manager after update
-                tsService.updateTsOrJsFile(fileName);
+                await this.lsAndTsDocResolver.deleteSnapshot(fileName);
+            } else {
+                await this.lsAndTsDocResolver.updateExistingTsOrJsFile(fileName);
             }
         }
     }
@@ -407,8 +400,7 @@ export class TypeScriptPlugin
         fileName: string,
         changes: TextDocumentContentChangeEvent[]
     ): Promise<void> {
-        const snapshotManager = await this.getSnapshotManager(fileName);
-        snapshotManager.updateTsOrJsFile(fileName, changes);
+        await this.lsAndTsDocResolver.updateExistingTsOrJsFile(fileName, changes);
     }
 
     async getSelectionRange(

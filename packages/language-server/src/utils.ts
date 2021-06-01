@@ -18,6 +18,14 @@ export function pathToUrl(path: string) {
 }
 
 /**
+ * Some paths (on windows) start with a upper case driver letter, some don't.
+ * This is normalized here.
+ */
+export function normalizePath(path: string): string {
+    return urlToPath(pathToUrl(path)) ?? '';
+}
+
+/**
  * URIs coming from the client could be encoded in a different
  * way than expected / than the internal services create them.
  * This normalizes them to be the same as the internally generated ones.
