@@ -6,12 +6,7 @@ import {
     getNodeIfIsInComponentStartTag,
     isInTag
 } from '../../../lib/documents';
-import {
-    DocumentSnapshot,
-    SnapshotFragment,
-    SvelteDocumentSnapshot,
-    SvelteSnapshotFragment
-} from '../DocumentSnapshot';
+import { DocumentSnapshot, SnapshotFragment, SvelteDocumentSnapshot } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 
 /**
