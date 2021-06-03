@@ -101,3 +101,7 @@ Settings to toggle specific features of the extension. The full list of all sett
 3. Set the `svelte.language-server.ls-path` setting in your user configuration, pointing it to the workspace-installed language server.
 4. Restart VSCode.
 5. Commit the changes to `.yarn/sdks`
+
+### Credits
+
+-   The PostCSS grammar is based on [hudochenkov/Syntax-highlighting-for-PostCSS](https://github.com/hudochenkov/Syntax-highlighting-for-PostCSS)
