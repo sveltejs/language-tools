@@ -23,7 +23,6 @@ export async function getComponentAtPosition(
     lang: ts.LanguageService,
     doc: Document,
     tsDoc: SvelteDocumentSnapshot,
-    fragment: SvelteSnapshotFragment,
     originalPosition: Position
 ): Promise<SvelteDocumentSnapshot | null> {
     if (tsDoc.parserError) {
@@ -43,6 +42,7 @@ export async function getComponentAtPosition(
         return null;
     }
 
+    const fragment = await tsDoc.getFragment();
     const generatedPosition = fragment.getGeneratedPosition(doc.positionAt(node.start + 1));
     const def = lang.getDefinitionAtPosition(
         tsDoc.filePath,
@@ -57,6 +57,26 @@ export async function getComponentAtPosition(
         return null;
     }
     return snapshot;
+}
+
+export function isComponentAtPosition(
+    doc: Document,
+    tsDoc: SvelteDocumentSnapshot,
+    originalPosition: Position
+): boolean {
+    if (tsDoc.parserError) {
+        return false;
+    }
+
+    if (
+        isInTag(originalPosition, doc.scriptInfo) ||
+        isInTag(originalPosition, doc.moduleScriptInfo)
+    ) {
+        // Inside script tags -> not a component
+        return false;
+    }
+
+    return !!getNodeIfIsInComponentStartTag(doc.html, doc.offsetAt(originalPosition));
 }
 
 /**

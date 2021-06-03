@@ -15,13 +15,7 @@ export class HoverProviderImpl implements HoverProvider {
         const { lang, tsDoc } = await this.getLSAndTSDoc(document);
         const fragment = await tsDoc.getFragment();
 
-        const eventHoverInfo = await this.getEventHoverInfo(
-            lang,
-            document,
-            tsDoc,
-            fragment,
-            position
-        );
+        const eventHoverInfo = await this.getEventHoverInfo(lang, document, tsDoc, position);
         if (eventHoverInfo) {
             return eventHoverInfo;
         }
@@ -66,7 +60,6 @@ export class HoverProviderImpl implements HoverProvider {
         lang: ts.LanguageService,
         doc: Document,
         tsDoc: SvelteDocumentSnapshot,
-        fragment: SvelteSnapshotFragment,
         originalPosition: Position
     ): Promise<Hover | null> {
         const possibleEventName = getWordAt(doc.getText(), doc.offsetAt(originalPosition), {
@@ -82,7 +75,6 @@ export class HoverProviderImpl implements HoverProvider {
             lang,
             doc,
             tsDoc,
-            fragment,
             originalPosition
         );
         if (!component) {
