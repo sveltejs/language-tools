@@ -2,7 +2,7 @@ import ts from 'typescript';
 import { Hover, Position } from 'vscode-languageserver';
 import { Document, getWordAt, mapObjWithRangeToOriginal } from '../../../lib/documents';
 import { HoverProvider } from '../../interfaces';
-import { SvelteDocumentSnapshot, SvelteSnapshotFragment } from '../DocumentSnapshot';
+import { SvelteDocumentSnapshot } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { getMarkdownDocumentation } from '../previewer';
 import { convertRange } from '../utils';
@@ -15,13 +15,7 @@ export class HoverProviderImpl implements HoverProvider {
         const { lang, tsDoc } = await this.getLSAndTSDoc(document);
         const fragment = await tsDoc.getFragment();
 
-        const eventHoverInfo = await this.getEventHoverInfo(
-            lang,
-            document,
-            tsDoc,
-            fragment,
-            position
-        );
+        const eventHoverInfo = await this.getEventHoverInfo(lang, document, tsDoc, position);
         if (eventHoverInfo) {
             return eventHoverInfo;
         }
@@ -66,7 +60,6 @@ export class HoverProviderImpl implements HoverProvider {
         lang: ts.LanguageService,
         doc: Document,
         tsDoc: SvelteDocumentSnapshot,
-        fragment: SvelteSnapshotFragment,
         originalPosition: Position
     ): Promise<Hover | null> {
         const possibleEventName = getWordAt(doc.getText(), doc.offsetAt(originalPosition), {
@@ -82,7 +75,6 @@ export class HoverProviderImpl implements HoverProvider {
             lang,
             doc,
             tsDoc,
-            fragment,
             originalPosition
         );
         if (!component) {

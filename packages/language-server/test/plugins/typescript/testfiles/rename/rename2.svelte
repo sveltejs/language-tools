@@ -5,3 +5,4 @@ import Rename3 from './rename3.svelte';
 
 <Rename exportedProp={2}></Rename>
 <Rename3 exportedPropFromJs={2}></Rename3>
+<div class="foo" />

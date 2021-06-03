@@ -136,13 +136,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             return null;
         }
 
-        const eventCompletions = await this.getEventCompletions(
-            lang,
-            document,
-            tsDoc,
-            fragment,
-            position
-        );
+        const eventCompletions = await this.getEventCompletions(lang, document, tsDoc, position);
 
         if (isEventTriggerCharacter) {
             return CompletionList.create(eventCompletions, !!tsDoc.parserError);
@@ -214,7 +208,6 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         lang: ts.LanguageService,
         doc: Document,
         tsDoc: SvelteDocumentSnapshot,
-        fragment: SvelteSnapshotFragment,
         originalPosition: Position
     ): Promise<Array<AppCompletionItem<CompletionEntryWithIdentifer>>> {
         const snapshot = await getComponentAtPosition(
@@ -222,7 +215,6 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             lang,
             doc,
             tsDoc,
-            fragment,
             originalPosition
         );
         if (!snapshot) {
