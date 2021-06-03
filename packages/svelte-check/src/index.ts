@@ -177,6 +177,7 @@ function instantiateWriter(opts: SvelteCheckCliOptions): Writer {
         return new HumanFriendlyWriter(
             process.stdout,
             opts.outputFormat === 'human-verbose',
+            opts.watch,
             filter
         );
     } else {

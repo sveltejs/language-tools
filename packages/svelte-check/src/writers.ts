@@ -23,6 +23,7 @@ export class HumanFriendlyWriter implements Writer {
     constructor(
         private stream: Writable,
         private isVerbose = true,
+        private isWatchMode = false,
         private diagnosticFilter: DiagnosticFilter = DEFAULT_FILTER
     ) {}
 
@@ -37,10 +38,10 @@ export class HumanFriendlyWriter implements Writer {
 
         if (this.isVerbose) {
             this.stream.write('\n');
+            this.stream.write('====================================\n');
             this.stream.write(`Loading svelte-check in workspace: ${workspaceDir}`);
             this.stream.write('\n');
             this.stream.write('Getting Svelte diagnostics...\n');
-            this.stream.write('====================================\n');
             this.stream.write('\n');
         }
     }
@@ -119,6 +120,9 @@ export class HumanFriendlyWriter implements Writer {
             this.stream.write(chalk.grey(message));
         } else {
             this.stream.write(chalk.green(message));
+        }
+        if (this.isWatchMode) {
+            this.stream.write('Watching for file changes...');
         }
     }
 
