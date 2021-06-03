@@ -28,7 +28,7 @@ export class HumanFriendlyWriter implements Writer {
     ) {}
 
     start(workspaceDir: string) {
-        if (process.stdout.isTTY) {
+        if (process.stdout.isTTY && this.isWatchMode) {
             // Clear screen
             const blank = '\n'.repeat(process.stdout.rows);
             this.stream.write(blank);
