@@ -2,6 +2,7 @@ import ts from 'typescript';
 import {
     CancellationToken,
     CompletionContext,
+    CompletionItem,
     CompletionList,
     CompletionTriggerKind,
     MarkupContent,
@@ -38,8 +39,6 @@ export interface CompletionEntryWithIdentifer extends ts.CompletionEntry, TextDo
     position: Position;
 }
 
-type validTriggerCharacter = '.' | '"' | "'" | '`' | '/' | '@' | '<' | '#';
-
 type LastCompletion = {
     key: string;
     position: Position;
@@ -54,7 +53,17 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
      * Also, the completions are worse.
      * Therefore, only use the characters the typescript compiler treats as valid.
      */
-    private readonly validTriggerCharacters = ['.', '"', "'", '`', '/', '@', '<', '#'] as const;
+    private readonly validTriggerCharacters = [
+        '.',
+        '"',
+        "'",
+        '`',
+        '/',
+        '@',
+        '<',
+        '#',
+        ' '
+    ] as const;
     /**
      * For performance reasons, try to reuse the last completion if possible.
      */
@@ -62,8 +71,8 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
 
     private isValidTriggerCharacter(
         character: string | undefined
-    ): character is validTriggerCharacter {
-        return this.validTriggerCharacters.includes(character as validTriggerCharacter);
+    ): character is ts.CompletionsTriggerCharacter {
+        return this.validTriggerCharacters.includes(character as ts.CompletionsTriggerCharacter);
     }
 
     async getCompletions(
@@ -132,6 +141,10 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             return getJsDocTemplateCompletion(fragment, lang, filePath, offset);
         }
 
+        if (!this.shouldTrigger(fragment.text, offset, validTriggerCharacter, userPreferences)) {
+            return null;
+        }
+
         if (cancellationToken?.isCancellationRequested) {
             return null;
         }
@@ -156,6 +169,8 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             return tsDoc.parserError ? CompletionList.create([], true) : null;
         }
 
+        const line = document.getText().split('\n')[position.line] ?? '';
+        const wordRangeStart = this.getWordRangeStart(line, position);
         const existingImports = this.getExistingImports(document);
         const completionItems = completions
             .filter(isValidCompletion(document, position))
@@ -170,6 +185,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             )
             .filter(isNotNullOrUndefined)
             .map((comp) => mapCompletionItemToOriginal(fragment, comp))
+            .map((comp) => this.fixTextEditRange(line, wordRangeStart, comp, position))
             .concat(eventCompletions);
 
         const completionList = CompletionList.create(completionItems, !!tsDoc.parserError);
@@ -194,6 +210,27 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
                 // it shouldn't trigger another completion because we can reuse the old one
                 (triggerCharacter === '.' && isPartOfImportStatement(document.getText(), position)))
         );
+    }
+
+    /**
+     * Preventing typescript to rebuild program if there's probably
+     * no completions returns
+     */
+    private shouldTrigger(
+        text: string,
+        offset: number,
+        triggerCharacter: ts.CompletionsTriggerCharacter | undefined,
+        userPreferences: ts.UserPreferences
+    ) {
+        if (triggerCharacter === ' ') {
+            if (!userPreferences.includeCompletionsForImportStatements) {
+                return false;
+            }
+
+            return text.substring(offset, 'import'.length) === 'import';
+        }
+
+        return true;
     }
 
     private getExistingImports(document: Document) {
@@ -254,13 +291,17 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             return null;
         }
 
-        const { label, insertText, isSvelteComp } = completionLabelAndInsert;
+        const { label, insertText, isSvelteComp, replacementSpan } = completionLabelAndInsert;
         // TS may suggest another Svelte component even if there already exists an import
         // with the same name, because under the hood every Svelte component is postfixed
         // with `__SvelteComponent`. In this case, filter out this completion by returning null.
         if (isSvelteComp && existingImports.has(label)) {
             return null;
         }
+        const textEdit =
+            replacementSpan && insertText
+                ? TextEdit.replace(convertRange(fragment, replacementSpan), insertText)
+                : undefined;
 
         return {
             label,
@@ -270,6 +311,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             // Make sure svelte component takes precedence
             sortText: isSvelteComp ? '-1' : comp.sortText,
             preselect: isSvelteComp ? true : comp.isRecommended,
+            textEdit,
             // pass essential data for resolving completion
             data: {
                 ...comp,
@@ -283,14 +325,14 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         fragment: SvelteSnapshotFragment,
         comp: ts.CompletionEntry
     ) {
-        let { kind, kindModifiers, name, source } = comp;
-        const isScriptElement = kind === ts.ScriptElementKind.scriptElement;
+        let { name, insertText, kindModifiers } = comp;
+        const isScriptElement = comp.kind === ts.ScriptElementKind.scriptElement;
         const hasModifier = Boolean(comp.kindModifiers);
         const isSvelteComp = this.isSvelteComponentImport(name);
         if (isSvelteComp) {
             name = this.changeSvelteComponentName(name);
 
-            if (this.isExistingSvelteComponentImport(fragment, name, source)) {
+            if (this.isExistingSvelteComponentImport(fragment, name, comp.source)) {
                 return null;
             }
         }
@@ -302,6 +344,15 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
                 insertText: name,
                 label,
                 isSvelteComp
+            };
+        }
+
+        if (comp.isImportStatementCompletion && insertText) {
+            return {
+                label: name,
+                isSvelteComp,
+                insertText: this.changeSvelteComponentName(insertText),
+                replacementSpan: comp.replacementSpan
             };
         }
 
@@ -318,6 +369,66 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
     ): boolean {
         const importStatement = new RegExp(`import ${name} from ["'\`][\\s\\S]+\\.svelte["'\`]`);
         return !!source && !!fragment.text.match(importStatement);
+    }
+
+    private getWordRangeStart(line: string, position: Position) {
+        const { character } = position;
+        const charsNotInWord = /[~!@$^&*()=+[{\]}\\|;:'",.<>/\s]/;
+        let backwardIndex = 0;
+        while (backwardIndex < character) {
+            const pos = character - backwardIndex;
+            if (charsNotInWord.test(line.charAt(pos))) {
+                return pos;
+            }
+            backwardIndex++;
+        }
+
+        return 0;
+    }
+
+    /**
+     * adopted from https://github.com/microsoft/vscode/blob/b5b059d2e2b3fe8ff1ca5542b27347284a9fbb2e/extensions/typescript-language-features/src/languageFeatures/completions.ts#L408
+     */
+    private fixTextEditRange(
+        line: string,
+        wordRangeStart: number,
+        completionItem: CompletionItem,
+        position: Position
+    ) {
+        const { textEdit } = completionItem;
+        if (!textEdit || !TextEdit.is(textEdit)) {
+            return completionItem;
+        }
+
+        const text = line
+            .substring(
+                Math.max(0, position.character - completionItem.label.length),
+                position.character
+            )
+            .toLowerCase();
+
+        const entryName = completionItem.label.toLowerCase();
+        for (let index = entryName.length; index >= 0; --index) {
+            if (
+                text.endsWith(entryName.substr(0, index)) &&
+                (!wordRangeStart || wordRangeStart > position.character - 1)
+            ) {
+                const originalStart = textEdit.range.start.character;
+                const newStart = Math.max(0, position.character - index);
+                completionItem.textEdit = {
+                    range: {
+                        start: {
+                            line: position.line,
+                            character: newStart
+                        },
+                        end: textEdit.range.end
+                    },
+                    newText: textEdit.newText.substring(newStart - originalStart)
+                };
+            }
+        }
+
+        return completionItem;
     }
 
     async resolveCompletion(

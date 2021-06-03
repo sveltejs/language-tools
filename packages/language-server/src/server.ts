@@ -161,6 +161,7 @@ export function startServer(options?: LSOptions) {
                         '/',
                         '@',
                         '<',
+                        ' ',
 
                         // Emmet
                         '>',
