@@ -46,7 +46,7 @@ export function convertHtmlxToJsx(
     ast: TemplateNode,
     onWalk: Walker = null,
     onLeave: Walker = null,
-    options: { preserveAttributeCase?: boolean } = {}
+    options: { preserveAttributeCase?: boolean; hasEventDefinitions?: boolean } = {}
 ): void {
     const htmlx = str.original;
     stripDoctype(str);
@@ -149,7 +149,13 @@ export function convertHtmlxToJsx(
                         );
                         break;
                     case 'EventHandler':
-                        handleEventHandler(htmlx, str, node as BaseDirective, parent);
+                        handleEventHandler(
+                            htmlx,
+                            str,
+                            node as BaseDirective,
+                            parent,
+                            !!options.hasEventDefinitions
+                        );
                         break;
                     case 'Options':
                         handleSvelteTag(htmlx, str, node);
@@ -227,7 +233,11 @@ export function convertHtmlxToJsx(
  */
 export function htmlx2jsx(
     htmlx: string,
-    options?: { emitOnTemplateError?: boolean; preserveAttributeCase: boolean }
+    options?: {
+        emitOnTemplateError?: boolean;
+        preserveAttributeCase: boolean;
+        hasEventDefinitions: boolean;
+    }
 ) {
     const ast = parseHtmlx(htmlx, options);
     const str = new MagicString(htmlx);

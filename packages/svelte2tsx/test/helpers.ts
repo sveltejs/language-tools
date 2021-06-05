@@ -226,7 +226,8 @@ export function test_samples(dir: string, transform: TransformSampleFn, jsx: 'js
             filename: svelteFile,
             sampleName: sample.name,
             emitOnTemplateError: false,
-            preserveAttributeCase: sample.name.endsWith('-foreign-ns')
+            preserveAttributeCase: sample.name.endsWith('-foreign-ns'),
+            hasEventDefinitions: !sample.name.endsWith('-foreign-ns')
         };
 
         if (process.env.CI) {

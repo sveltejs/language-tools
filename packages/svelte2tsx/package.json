@@ -45,7 +45,8 @@
     },
     "scripts": {
         "build": "rollup -c",
-        "prepublishOnly": "npm run build",
+        "generate-infofile": "node ./create-knownevents.js",
+        "prepublishOnly": "npm run generate-infofile && npm run build",
         "dev": "rollup -c -w",
         "test": "mocha test/test.ts"
     },

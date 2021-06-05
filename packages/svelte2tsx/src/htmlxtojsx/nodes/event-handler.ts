@@ -1,25 +1,39 @@
 import MagicString from 'magic-string';
 import { getInstanceType, isQuote } from '../utils/node-utils';
 import { BaseDirective, BaseNode } from '../../interfaces';
+import { knownEvents } from '../../knownevents';
 
 /**
  * Transform on:xxx={yyy}
  * - For DOM elements: ---> onxxx={yyy}
+ * - For Custom Events on DOM element: ---> {...__sveltets_ensureCustomEvt(yyy)}
  * - For Svelte components/special elements: ---> {__sveltets_instanceOf(..ComponentType..).$on("xxx", yyy)}
  */
 export function handleEventHandler(
     htmlx: string,
     str: MagicString,
     attr: BaseDirective,
-    parent: BaseNode
+    parent: BaseNode,
+    hasEventDefinitions: boolean
 ): void {
-    const jsxEventName = attr.name;
+    if (['Element', 'Window', 'Body'].includes(parent.type)) {
+        const jsxEventName = attr.name;
+        const elementHasAction = !!parent.attributes?.some(
+            (attr: BaseNode) => attr.type === 'Action'
+        );
+        const isCustomEvent = hasEventDefinitions && !knownEvents.has(`on${attr.name}`);
 
-    if (
-        ['Element', 'Window', 'Body'].includes(
-            parent.type
-        ) /*&& KnownEvents.indexOf('on'+jsxEventName) >= 0*/
-    ) {
+        if (elementHasAction && isCustomEvent) {
+            if (attr.expression) {
+                str.remove(attr.start, attr.expression.start);
+                str.prependRight(attr.expression.start, '{...__sveltets_ensureCustomEvt(');
+                str.overwrite(attr.expression.end, attr.end, ')}');
+            } else {
+                str.remove(attr.start, attr.end);
+            }
+            return;
+        }
+
         if (attr.expression) {
             const endAttr = htmlx.indexOf('=', attr.start);
             str.overwrite(attr.start + 'on:'.length - 1, endAttr, jsxEventName);
