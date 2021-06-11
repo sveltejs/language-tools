@@ -25,6 +25,7 @@ import {
 } from './processInstanceScriptContent';
 import { processModuleScriptTag } from './processModuleScriptTag';
 import { ScopeStack } from './utils/Scope';
+import { svelteShims } from './svelteShims';
 
 interface CreateRenderFunctionPara extends InstanceScriptProcessResult {
     str: MagicString;
@@ -49,6 +50,7 @@ interface AddComponentExportPara {
     exportedNames: ExportedNames;
     fileName?: string;
     componentDocumentation: ComponentDocumentation;
+    mode: 'dts' | 'tsx';
 }
 
 type TemplateProcessResult = {
@@ -320,7 +322,8 @@ function addComponentExport({
     usesAccessors,
     exportedNames,
     fileName,
-    componentDocumentation
+    componentDocumentation,
+    mode
 }: AddComponentExportPara) {
     const eventsDef = strictEvents ? 'render()' : '__sveltets_with_any_event(render())';
     let propDef = '';
@@ -336,15 +339,30 @@ function addComponentExport({
     }
 
     const doc = componentDocumentation.getFormatted();
-    const className = fileName && classNameFromFilename(fileName);
+    const className = fileName && classNameFromFilename(fileName, mode !== 'dts');
 
-    const statement =
-        `\n\n${doc}export default class${
-            className ? ` ${className}` : ''
-        } extends createSvelte2TsxComponent(${propDef}) {` +
-        createClassGetters(getters) +
-        (usesAccessors ? createClassAccessors(getters, exportedNames) : '') +
-        '\n}';
+    let statement: string;
+    if (mode === 'dts') {
+        statement =
+            `\nconst __propDef = ${propDef};\n` +
+            `export type ${className}Props = typeof __propDef.props;\n` +
+            `export type ${className}Events = typeof __propDef.events;\n` +
+            `export type ${className}Slots = typeof __propDef.slots;\n` +
+            `\n${doc}export default class${
+                className ? ` ${className}` : ''
+            } extends SvelteComponentTyped<${className}Props, ${className}Events, ${className}Slots> {` +
+            createClassGetters(getters) +
+            (usesAccessors ? createClassAccessors(getters, exportedNames) : '') +
+            '\n}';
+    } else {
+        statement =
+            `\n\n${doc}export default class${
+                className ? ` ${className}` : ''
+            } extends createSvelte2TsxComponent(${propDef}) {` +
+            createClassGetters(getters) +
+            (usesAccessors ? createClassAccessors(getters, exportedNames) : '') +
+            '\n}';
+    }
 
     str.append(statement);
 }
@@ -355,7 +373,7 @@ function addComponentExport({
  *
  * https://svelte.dev/docs#Tags
  */
-function classNameFromFilename(filename: string): string | undefined {
+function classNameFromFilename(filename: string, appendSuffix: boolean): string | undefined {
     try {
         const withoutExtensions = path.parse(filename).name?.split('.')[0];
         const withoutInvalidCharacters = withoutExtensions
@@ -371,7 +389,7 @@ function classNameFromFilename(filename: string): string | undefined {
         const withoutLeadingInvalidCharacters = withoutInvalidCharacters.substr(firstValidCharIdx);
         const inPascalCase = pascalCase(withoutLeadingInvalidCharacters);
         const finalName = firstValidCharIdx === -1 ? `A${inPascalCase}` : inPascalCase;
-        return `${finalName}${COMPONENT_SUFFIX}`;
+        return `${finalName}${appendSuffix ? COMPONENT_SUFFIX : ''}`;
     } catch (error) {
         console.warn(`Failed to create a name for the component class from filename ${filename}`);
         return undefined;
@@ -453,12 +471,13 @@ function createRenderFunction({
 
 export function svelte2tsx(
     svelte: string,
-    options?: {
+    options: {
         filename?: string;
         isTsFile?: boolean;
         emitOnTemplateError?: boolean;
         namespace?: string;
-    }
+        mode?: 'tsx' | 'dts';
+    } = {}
 ) {
     const str = new MagicString(svelte);
     // process the htmlx as a svelte template
@@ -545,15 +564,32 @@ export function svelte2tsx(
         exportedNames,
         usesAccessors,
         fileName: options?.filename,
-        componentDocumentation
+        componentDocumentation,
+        mode: options.mode
     });
 
-    str.prepend('///<reference types="svelte" />\n');
-
-    return {
-        code: str.toString(),
-        map: str.generateMap({ hires: true, source: options?.filename }),
-        exportedNames,
-        events: events.createAPI()
-    };
+    if (options.mode === 'dts') {
+        // Prepend the import and all shims so the file is self-contained.
+        // TypeScript's dts generation will remove the unused parts later.
+        str.prepend('import { SvelteComponentTyped } from "svelte"\n' + svelteShims + '\n');
+        let code = str.toString();
+        // Remove all tsx occurences and the template part from the output
+        code =
+            code
+                .substr(0, code.indexOf('\n() => (<>'))
+                // prepended before each script block
+                .replace('<></>;', '')
+                .replace('<></>;', '') + code.substr(code.lastIndexOf('</>);') + '</>);'.length);
+        return {
+            code
+        };
+    } else {
+        str.prepend('///<reference types="svelte" />\n');
+        return {
+            code: str.toString(),
+            map: str.generateMap({ hires: true, source: options?.filename }),
+            exportedNames,
+            events: events.createAPI()
+        };
+    }
 }
