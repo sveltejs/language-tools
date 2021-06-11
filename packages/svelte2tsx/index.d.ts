@@ -36,5 +36,13 @@ export default function svelte2tsx(
          * The namespace option from svelte config
          */
         namespace?: string;
+        /**
+         * When setting this to 'dts', all tsx/jsx code and the template code will be thrown out,
+         * all shims will be inlined and the component export is written differently.
+         * Only the `code` property will be set on the returned element.
+         * Use this as an intermediate step to generate type definitions from a component.
+         * It is expected to pass the result to TypeScript which should handle emitting the d.ts files.
+         */
+        mode?: 'tsx' | 'dts'
     }
 ): SvelteCompiledToTsx
