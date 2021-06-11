@@ -350,7 +350,7 @@ function addComponentExport({
             `export type ${className}Slots = typeof __propDef.slots;\n` +
             `\n${doc}export default class${
                 className ? ` ${className}` : ''
-            } extends SvelteComponentTyped<${className}Props, ${className}Events, ${className}Slots> {` +
+            } extends SvelteComponentTyped<${className}Props, ${className}Events, ${className}Slots> {` + // eslint-disable-line max-len
             createClassGetters(getters) +
             (usesAccessors ? createClassAccessors(getters, exportedNames) : '') +
             '\n}';

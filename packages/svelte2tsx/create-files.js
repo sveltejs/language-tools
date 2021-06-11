@@ -5,6 +5,7 @@ svelteShims = svelteShims.substr(svelteShims.indexOf('declare class Sv')).replac
 fs.writeFileSync(
     './src/svelte2tsx/svelteShims.ts',
     `/* eslint-disable */
+// Auto-generated, do not change
 // prettier-ignore
 export const svelteShims = \`${svelteShims}\`;
 `
