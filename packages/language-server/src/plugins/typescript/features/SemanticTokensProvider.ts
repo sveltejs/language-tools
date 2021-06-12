@@ -32,6 +32,11 @@ export class SemanticTokensProviderImpl implements SemanticTokensProvider {
             return null;
         }
 
+        // No script tags -> nothing to analyse semantic tokens for
+        if (!textDocument.scriptInfo && !textDocument.moduleScriptInfo) {
+            return null;
+        }
+
         const textSpan = range
             ? convertToTextSpan(range, fragment)
             : {
