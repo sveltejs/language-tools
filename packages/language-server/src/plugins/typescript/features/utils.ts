@@ -6,6 +6,7 @@ import {
     getNodeIfIsInComponentStartTag,
     isInTag
 } from '../../../lib/documents';
+import { ComponentInfoProvider, JsOrTsComponentInfoProvider } from '../ComponentInfoProvider';
 import { DocumentSnapshot, SnapshotFragment, SvelteDocumentSnapshot } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 
@@ -14,12 +15,12 @@ import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
  * return the snapshot of that component.
  */
 export async function getComponentAtPosition(
-    lsAndTsDocResovler: LSAndTSDocResolver,
+    lsAndTsDocResolver: LSAndTSDocResolver,
     lang: ts.LanguageService,
     doc: Document,
     tsDoc: SvelteDocumentSnapshot,
     originalPosition: Position
-): Promise<SvelteDocumentSnapshot | null> {
+): Promise<ComponentInfoProvider | null> {
     if (tsDoc.parserError) {
         return null;
     }
@@ -47,11 +48,13 @@ export async function getComponentAtPosition(
         return null;
     }
 
-    const snapshot = await lsAndTsDocResovler.getSnapshot(def.fileName);
-    if (!(snapshot instanceof SvelteDocumentSnapshot)) {
-        return null;
+    const snapshot = await lsAndTsDocResolver.getSnapshot(def.fileName);
+
+    if (snapshot instanceof SvelteDocumentSnapshot) {
+        return snapshot;
     }
-    return snapshot;
+
+    return JsOrTsComponentInfoProvider.create(lang, def);
 }
 
 export function isComponentAtPosition(
@@ -128,5 +131,30 @@ export class SnapshotFragmentMap {
 
     async retrieveFragment(fileName: string) {
         return (await this.retrieve(fileName)).fragment;
+    }
+}
+
+
+export function findContainingNode<T extends ts.Node>(
+    node: ts.Node,
+    textSpan: ts.TextSpan,
+    predicate: (node: ts.Node) => node is T
+): T | undefined {
+    const children = node.getChildren();
+    const end = textSpan.start + textSpan.length;
+
+    for (const child of children) {
+        if (!(child.getStart() <= textSpan.start && child.getEnd() >= end)) {
+            continue;
+        }
+
+        if (predicate(child)) {
+            return child;
+        }
+
+        const foundInChildren = findContainingNode(child, textSpan, predicate);
+        if (foundInChildren) {
+            return foundInChildren;
+        }
     }
 }

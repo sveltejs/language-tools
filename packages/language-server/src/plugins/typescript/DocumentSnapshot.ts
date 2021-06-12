@@ -13,6 +13,7 @@ import {
     isInTag
 } from '../../lib/documents';
 import { pathToUrl } from '../../utils';
+import { ComponentInfoProvider } from './ComponentInfoProvider';
 import { ConsumerDocumentMapper } from './DocumentMapper';
 import {
     getScriptKindFromAttributes,
@@ -224,7 +225,7 @@ function preprocessSvelteFile(document: Document, options: SvelteSnapshotOptions
 /**
  * A svelte document snapshot suitable for the ts language service and the plugin.
  */
-export class SvelteDocumentSnapshot implements DocumentSnapshot {
+export class SvelteDocumentSnapshot implements DocumentSnapshot, ComponentInfoProvider {
     private fragment?: SvelteSnapshotFragment;
 
     version = this.parent.version;
