@@ -206,7 +206,8 @@ export function startServer(options?: LSOptions) {
                               'constant_scope_1',
                               'constant_scope_2',
                               'constant_scope_3',
-                              'extract_to_svelte_component'
+                              'extract_to_svelte_component',
+                              'Infer function return type'
                           ]
                       }
                     : undefined,
