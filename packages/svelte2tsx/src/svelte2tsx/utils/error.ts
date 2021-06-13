@@ -34,8 +34,7 @@ function positionAt(offset: number, text: string): { line: number; column: numbe
 
     // low is the least x for which the line offset is larger than the current offset
     // or array.length if no line offset is larger than the current offset
-    const line = low;
-    return { line: line, column: offset - lineOffsets[line - 1] };
+    return { line: low, column: offset - lineOffsets[low - 1] };
 }
 
 export function clamp(num: number, min: number, max: number): number {
