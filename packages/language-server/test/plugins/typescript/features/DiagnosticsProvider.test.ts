@@ -1215,4 +1215,82 @@ describe('DiagnosticsProvider', () => {
         const diagnostics = await plugin.getDiagnostics(document);
         assertPropsDiagnostics(diagnostics, 'js');
     });
+
+    it('checks generics correctly', async () => {
+        const { plugin, document } = setup('diagnostics-generics.svelte');
+        const diagnostics = await plugin.getDiagnostics(document);
+        assert.deepStrictEqual(diagnostics, [
+            {
+                code: 2322,
+                message:
+                    'Type \'"asd"\' is not assignable to type \'number | unique symbol | "toString" | "charAt" | "charCodeAt" | "concat" | "indexOf" | "lastIndexOf" | "localeCompare" | "match" | "replace" | "search" | "slice" | "split" | "substring" | ... 34 more ... | "replaceAll"\'.',
+                range: {
+                    start: {
+                        character: 25,
+                        line: 10
+                    },
+                    end: {
+                        character: 26,
+                        line: 10
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            },
+            {
+                code: 2322,
+                message: "Type 'string' is not assignable to type 'boolean'.",
+                range: {
+                    start: {
+                        character: 35,
+                        line: 10
+                    },
+                    end: {
+                        character: 36,
+                        line: 10
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            },
+            {
+                code: 2367,
+                message:
+                    "This condition will always return 'false' since the types 'string' and 'boolean' have no overlap.",
+                range: {
+                    start: {
+                        character: 3,
+                        line: 11
+                    },
+                    end: {
+                        character: 13,
+                        line: 11
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            },
+            {
+                code: 2367,
+                message:
+                    "This condition will always return 'false' since the types 'string' and 'boolean' have no overlap.",
+                range: {
+                    end: {
+                        character: 72,
+                        line: 10
+                    },
+                    start: {
+                        character: 55,
+                        line: 10
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            }
+        ]);
+    });
 });
