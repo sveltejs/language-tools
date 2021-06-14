@@ -329,7 +329,7 @@ function createRenderFunction({
         str.overwrite(
             scriptTag.start + 1,
             scriptTagEnd,
-            `function render${generics.toDefinitionString()}() {${propsDecl}\n`
+            `function render${generics.toDefinitionString(true)}() {${propsDecl}\n`
         );
 
         const scriptEndTagStart = htmlx.lastIndexOf('<', scriptTag.end - 1);
@@ -340,7 +340,7 @@ function createRenderFunction({
     } else {
         str.prependRight(
             scriptDestination,
-            `</>;function render${generics.toDefinitionString()}() {${propsDecl}\n<>`
+            `</>;function render${generics.toDefinitionString(true)}() {${propsDecl}\n<>`
         );
     }
 

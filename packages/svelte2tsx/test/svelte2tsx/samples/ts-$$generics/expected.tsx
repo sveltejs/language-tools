@@ -1,7 +1,7 @@
 ///<reference types="svelte" />
 <></>;
 import { createEventDispatcher } from 'svelte';
-function render<A,B extends keyof A,C extends boolean>() {
+function render</*Ωignore_startΩ*/A,B extends keyof A,C extends boolean/*Ωignore_endΩ*/>() {
 
     
 

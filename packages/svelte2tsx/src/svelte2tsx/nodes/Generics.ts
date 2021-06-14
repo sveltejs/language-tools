@@ -1,5 +1,6 @@
 import MagicString from 'magic-string';
 import ts from 'typescript';
+import { surroundWithIgnoreComments } from '../../utils/ignore';
 import { throwError } from '../utils/error';
 
 export class Generics {
@@ -44,8 +45,9 @@ export class Generics {
         );
     }
 
-    toDefinitionString() {
-        return this.definitions.length ? `<${this.definitions.join(',')}>` : '';
+    toDefinitionString(addIgnore = false) {
+        const surround = addIgnore ? surroundWithIgnoreComments : (str: string) => str;
+        return this.definitions.length ? `<${surround(this.definitions.join(','))}>` : '';
     }
 
     toReferencesString() {
