@@ -120,29 +120,29 @@ declare function __sveltets_slotsType<Slots, Key extends keyof Slots>(slots: Slo
 // optionalProps need to be first or its type cannot be infered correctly.
 
 declare function __sveltets_partial<Props = {}, Events = {}, Slots = {}>(
-    render: {props?: Props, events?: Events, slots?: Slots }
-): {props?: SveltePropsAnyFallback<Props>, events?: Events, slots?: Slots }
+    render: {props: Props, events: Events, slots: Slots }
+): {props: SveltePropsAnyFallback<Props>, events: Events, slots: Slots }
 declare function __sveltets_partial<Props = {}, Events = {}, Slots = {}, OptionalProps extends keyof Props = any>(
     optionalProps: OptionalProps[],
-    render: {props?: Props, events?: Events, slots?: Slots }
-): {props?: Expand<SvelteWithOptionalProps<SveltePropsAnyFallback<Props>, OptionalProps>>, events?: Events, slots?: Slots }
+    render: {props: Props, events: Events, slots: Slots }
+): {props: Expand<SvelteWithOptionalProps<SveltePropsAnyFallback<Props>, OptionalProps>>, events: Events, slots: Slots }
 
 declare function __sveltets_partial_with_any<Props = {}, Events = {}, Slots = {}>(
-    render: {props?: Props, events?: Events, slots?: Slots }
-): {props?: SveltePropsAnyFallback<Props> & SvelteAllProps, events?: Events, slots?: Slots }
+    render: {props: Props, events: Events, slots: Slots }
+): {props: SveltePropsAnyFallback<Props> & SvelteAllProps, events: Events, slots: Slots }
 declare function __sveltets_partial_with_any<Props = {}, Events = {}, Slots = {}, OptionalProps extends keyof Props = any>(
     optionalProps: OptionalProps[],
-    render: {props?: Props, events?: Events, slots?: Slots }
-): {props?: Expand<SvelteWithOptionalProps<SveltePropsAnyFallback<Props>, OptionalProps>> & SvelteAllProps, events?: Events, slots?: Slots }
+    render: {props: Props, events: Events, slots: Slots }
+): {props: Expand<SvelteWithOptionalProps<SveltePropsAnyFallback<Props>, OptionalProps>> & SvelteAllProps, events: Events, slots: Slots }
 
 
 declare function __sveltets_with_any<Props = {}, Events = {}, Slots = {}>(
-    render: {props?: Props, events?: Events, slots?: Slots }
-): {props?: Props & SvelteAllProps, events?: Events, slots?: Slots }
+    render: {props: Props, events: Events, slots: Slots }
+): {props: Props & SvelteAllProps, events: Events, slots: Slots }
 
 declare function __sveltets_with_any_event<Props = {}, Events = {}, Slots = {}>(
-    render: {props?: Props, events?: Events, slots?: Slots }
-): {props?: Props, events?: Events & {[evt: string]: CustomEvent<any>;}, slots?: Slots }
+    render: {props: Props, events: Events, slots: Slots }
+): {props: Props, events: Events & {[evt: string]: CustomEvent<any>;}, slots: Slots }
 
 declare function __sveltets_store_get<T = any>(store: SvelteStore<T>): T
 declare function __sveltets_any(dummy: any): any;
@@ -196,7 +196,7 @@ declare function __sveltets_each<T>(
 ): any;
 
 declare function createSvelte2TsxComponent<Props, Events, Slots>(
-    render: {props?: Props, events?: Events, slots?: Slots }
+    render: {props: Props, events: Events, slots: Slots }
 ): SvelteComponentConstructor<Svelte2TsxComponent<Props, Events, Slots>,Svelte2TsxComponentConstructorParameters<Props>>;
 
 declare function __sveltets_unwrapArr<T>(arr: ArrayLike<T>): T

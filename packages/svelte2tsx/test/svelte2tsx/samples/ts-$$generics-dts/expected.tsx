@@ -1,7 +1,4 @@
-declare module '*.svelte' {
-    export default Svelte2TsxComponent
-}
-
+import { SvelteComponentTyped } from "svelte"
 declare class Svelte2TsxComponent<
     Props extends {} = {},
     Events extends {} = {},
@@ -202,3 +199,38 @@ declare function createSvelte2TsxComponent<Props, Events, Slots>(
 
 declare function __sveltets_unwrapArr<T>(arr: ArrayLike<T>): T
 declare function __sveltets_unwrapPromiseLike<T>(promise: PromiseLike<T> | T): T
+
+
+import { createEventDispatcher } from 'svelte';
+function render</*Ωignore_startΩ*/A,B extends keyof A,C extends boolean/*Ωignore_endΩ*/>() {
+
+    
+
+    
+    
+    
+
+     let a: A;
+     let b: B;
+     let c: C;
+
+    const dispatch = createEventDispatcher<{a: A}>();
+;
+return { props: {a: a , b: b , c: c} as {a: A, b: B, c: C}, slots: {'default': {c:c}}, getters: {}, events: {...__sveltets_toEventTypings<{a: A}>()} }}
+class __sveltets_Render<A,B extends keyof A,C extends boolean> {
+    props() {
+        return render<A,B,C>().props;
+    }
+    events() {
+        return __sveltets_with_any_event(render<A,B,C>()).events;
+    }
+    slots() {
+        return render<A,B,C>().slots;
+    }
+}
+export type InputProps<A,B extends keyof A,C extends boolean> = ReturnType<__sveltets_Render<A,B,C>['props']>;
+export type InputEvents<A,B extends keyof A,C extends boolean> = ReturnType<__sveltets_Render<A,B,C>['events']>;
+export type InputSlots<A,B extends keyof A,C extends boolean> = ReturnType<__sveltets_Render<A,B,C>['slots']>;
+
+export default class Input<A,B extends keyof A,C extends boolean> extends SvelteComponentTyped<InputProps<A,B,C>, InputEvents<A,B,C>, InputSlots<A,B,C>> {
+}
