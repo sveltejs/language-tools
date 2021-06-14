@@ -1,6 +1,7 @@
 import ts from 'typescript';
 import { EventHandler } from './event-handler';
 import { getVariableAtTopLevel, getLastLeadingDoc } from '../utils/tsAst';
+import MagicString from 'magic-string';
 
 /**
  * This class accumulates all events that are dispatched from the component.
@@ -19,14 +20,16 @@ import { getVariableAtTopLevel, getLastLeadingDoc } from '../utils/tsAst';
  *   - If no, track all invocations of it to get the event names
  */
 export class ComponentEvents {
-    private componentEventsInterface?: ComponentEventsFromInterface;
+    private componentEventsInterface = new ComponentEventsFromInterface();
     private componentEventsFromEventsMap: ComponentEventsFromEventsMap;
 
     private get eventsClass() {
-        return this.componentEventsInterface || this.componentEventsFromEventsMap;
+        return this.componentEventsInterface.isPresent()
+            ? this.componentEventsInterface
+            : this.componentEventsFromEventsMap;
     }
 
-    constructor(eventHandler: EventHandler) {
+    constructor(eventHandler: EventHandler, private str: MagicString) {
         this.componentEventsFromEventsMap = new ComponentEventsFromEventsMap(eventHandler);
     }
 
@@ -49,16 +52,21 @@ export class ComponentEvents {
         };
     }
 
-    setComponentEventsInterface(node: ts.InterfaceDeclaration): void {
-        this.componentEventsInterface = new ComponentEventsFromInterface(node);
+    toDefString(): string {
+        return this.eventsClass.toDefString();
+    }
+
+    setComponentEventsInterface(node: ts.InterfaceDeclaration, astOffset: number): void {
+        this.componentEventsInterface.setComponentEventsInterface(node, this.str, astOffset);
     }
 
     hasInterface(): boolean {
-        return !!this.componentEventsInterface;
+        return this.componentEventsInterface.isPresent();
     }
 
     checkIfImportIsEventDispatcher(node: ts.ImportDeclaration): void {
         this.componentEventsFromEventsMap.checkIfImportIsEventDispatcher(node);
+        this.componentEventsInterface?.checkIfImportIsEventDispatcher(node);
     }
 
     checkIfIsStringLiteralDeclaration(node: ts.VariableDeclaration): void {
@@ -67,26 +75,67 @@ export class ComponentEvents {
 
     checkIfDeclarationInstantiatedEventDispatcher(node: ts.VariableDeclaration): void {
         this.componentEventsFromEventsMap.checkIfDeclarationInstantiatedEventDispatcher(node);
+        this.componentEventsInterface?.checkIfDeclarationInstantiatedEventDispatcher(node);
     }
 
     checkIfCallExpressionIsDispatch(node: ts.CallExpression): void {
         this.componentEventsFromEventsMap.checkIfCallExpressionIsDispatch(node);
     }
-
-    toDefString(): string {
-        return this.eventsClass.toDefString();
-    }
 }
 
 class ComponentEventsFromInterface {
     events = new Map<string, { type: string; doc?: string }>();
+    private eventDispatcherImport = '';
+    private node?: ts.InterfaceDeclaration;
+    private str?: MagicString;
+    private astOffset?: number;
 
-    constructor(node: ts.InterfaceDeclaration) {
+    setComponentEventsInterface(
+        node: ts.InterfaceDeclaration,
+        str: MagicString,
+        astOffset: number
+    ) {
+        this.node = node;
+        this.str = str;
+        this.astOffset = astOffset;
         this.events = this.extractEvents(node);
     }
 
+    checkIfImportIsEventDispatcher(node: ts.ImportDeclaration) {
+        if (this.eventDispatcherImport) {
+            return;
+        }
+        this.eventDispatcherImport = checkIfImportIsEventDispatcher(node);
+    }
+
+    checkIfDeclarationInstantiatedEventDispatcher(node: ts.VariableDeclaration) {
+        if (!this.isPresent()) {
+            return;
+        }
+        const result = checkIfDeclarationInstantiatedEventDispatcher(
+            node,
+            this.eventDispatcherImport
+        );
+        if (!result) {
+            return;
+        }
+
+        const { dispatcherTyping, dispatcherCreationExpr } = result;
+
+        if (!dispatcherTyping) {
+            this.str.prependLeft(
+                dispatcherCreationExpr.expression.getEnd() + this.astOffset,
+                '<__Sveltets_CustomEvents<$$Events>>'
+            );
+        }
+    }
+
     toDefString() {
-        return '{} as unknown as ComponentEvents';
+        return this.isPresent() ? '{} as unknown as $$Events' : undefined;
+    }
+
+    isPresent() {
+        return !!this.node;
     }
 
     private extractEvents(node: ts.InterfaceDeclaration) {
@@ -118,20 +167,7 @@ class ComponentEventsFromEventsMap {
         if (this.eventDispatcherImport) {
             return;
         }
-        if (ts.isStringLiteral(node.moduleSpecifier) && node.moduleSpecifier.text !== 'svelte') {
-            return;
-        }
-
-        const namedImports = node.importClause?.namedBindings;
-        if (ts.isNamedImports(namedImports)) {
-            const eventDispatcherImport = namedImports.elements.find(
-                // If it's an aliased import, propertyName is set
-                (el) => (el.propertyName || el.name).text === 'createEventDispatcher'
-            );
-            if (eventDispatcherImport) {
-                this.eventDispatcherImport = eventDispatcherImport.name.text;
-            }
-        }
+        this.eventDispatcherImport = checkIfImportIsEventDispatcher(node);
     }
 
     checkIfIsStringLiteralDeclaration(node: ts.VariableDeclaration) {
@@ -145,38 +181,35 @@ class ComponentEventsFromEventsMap {
     }
 
     checkIfDeclarationInstantiatedEventDispatcher(node: ts.VariableDeclaration) {
-        if (!ts.isIdentifier(node.name) || !node.initializer) {
+        const result = checkIfDeclarationInstantiatedEventDispatcher(
+            node,
+            this.eventDispatcherImport
+        );
+        if (!result) {
             return;
         }
 
-        if (
-            ts.isCallExpression(node.initializer) &&
-            ts.isIdentifier(node.initializer.expression) &&
-            node.initializer.expression.text === this.eventDispatcherImport
-        ) {
-            const dispatcherName = node.name.text;
-            const dispatcherTyping = node.initializer.typeArguments?.[0];
+        const { dispatcherTyping, dispatcherName } = result;
 
-            if (dispatcherTyping && ts.isTypeLiteralNode(dispatcherTyping)) {
-                this.eventDispatchers.push({
-                    name: dispatcherName,
-                    typing: dispatcherTyping.getText()
+        if (dispatcherTyping && ts.isTypeLiteralNode(dispatcherTyping)) {
+            this.eventDispatchers.push({
+                name: dispatcherName,
+                typing: dispatcherTyping.getText()
+            });
+            dispatcherTyping.members.filter(ts.isPropertySignature).forEach((member) => {
+                this.addToEvents(getName(member.name), {
+                    type: `CustomEvent<${member.type?.getText() || 'any'}>`,
+                    doc: getDoc(member)
                 });
-                dispatcherTyping.members.filter(ts.isPropertySignature).forEach((member) => {
-                    this.addToEvents(getName(member.name), {
-                        type: `CustomEvent<${member.type?.getText() || 'any'}>`,
-                        doc: getDoc(member)
-                    });
+            });
+        } else {
+            this.eventDispatchers.push({ name: dispatcherName });
+            this.eventHandler
+                .getDispatchedEventsForIdentifier(dispatcherName)
+                .forEach((evtName) => {
+                    this.addToEvents(evtName);
+                    this.dispatchedEvents.add(evtName);
                 });
-            } else {
-                this.eventDispatchers.push({ name: dispatcherName });
-                this.eventHandler
-                    .getDispatchedEventsForIdentifier(dispatcherName)
-                    .forEach((evtName) => {
-                        this.addToEvents(evtName);
-                        this.dispatchedEvents.add(evtName);
-                    });
-            }
         }
     }
 
@@ -308,4 +341,51 @@ function getDoc(member: ts.PropertySignature) {
     }
 
     return doc;
+}
+
+function checkIfImportIsEventDispatcher(node: ts.ImportDeclaration): string | undefined {
+    if (ts.isStringLiteral(node.moduleSpecifier) && node.moduleSpecifier.text !== 'svelte') {
+        return;
+    }
+
+    const namedImports = node.importClause?.namedBindings;
+    if (ts.isNamedImports(namedImports)) {
+        const eventDispatcherImport = namedImports.elements.find(
+            // If it's an aliased import, propertyName is set
+            (el) => (el.propertyName || el.name).text === 'createEventDispatcher'
+        );
+        if (eventDispatcherImport) {
+            return eventDispatcherImport.name.text;
+        }
+    }
+}
+
+function checkIfDeclarationInstantiatedEventDispatcher(
+    node: ts.VariableDeclaration,
+    eventDispatcherImport: string | undefined
+):
+    | {
+          dispatcherName: string;
+          dispatcherTyping: ts.TypeNode | undefined;
+          dispatcherCreationExpr: ts.CallExpression;
+      }
+    | undefined {
+    if (!ts.isIdentifier(node.name) || !node.initializer) {
+        return;
+    }
+
+    if (
+        ts.isCallExpression(node.initializer) &&
+        ts.isIdentifier(node.initializer.expression) &&
+        node.initializer.expression.text === eventDispatcherImport
+    ) {
+        const dispatcherName = node.name.text;
+        const dispatcherTyping = node.initializer.typeArguments?.[0];
+
+        return {
+            dispatcherName,
+            dispatcherTyping,
+            dispatcherCreationExpr: node.initializer
+        };
+    }
 }

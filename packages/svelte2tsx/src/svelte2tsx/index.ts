@@ -47,13 +47,14 @@ type TemplateProcessResult = {
     events: ComponentEvents;
     resolvedStores: string[];
     usesAccessors: boolean;
+    tags: Node[];
 };
 
 function processSvelteTemplate(
     str: MagicString,
     options?: { emitOnTemplateError?: boolean; namespace?: string }
 ): TemplateProcessResult {
-    const htmlxAst = parseHtmlx(str.original, options);
+    const { htmlxAst, tags } = parseHtmlx(str.original, options);
 
     let uses$$props = false;
     let uses$$restProps = false;
@@ -279,13 +280,14 @@ function processSvelteTemplate(
         moduleScriptTag,
         scriptTag,
         slots: slotHandler.getSlotDef(),
-        events: new ComponentEvents(eventHandler),
+        events: new ComponentEvents(eventHandler, str),
         uses$$props,
         uses$$restProps,
         uses$$slots,
         componentDocumentation,
         resolvedStores,
-        usesAccessors
+        usesAccessors,
+        tags
     };
 }
 
@@ -392,7 +394,8 @@ export function svelte2tsx(
         events,
         componentDocumentation,
         resolvedStores,
-        usesAccessors
+        usesAccessors,
+        tags
     } = processSvelteTemplate(str, options);
 
     /* Rearrange the script tags so that module is first, and instance second followed finally by the template
@@ -461,7 +464,9 @@ export function svelte2tsx(
     addComponentExport({
         str,
         uses$$propsOr$$restProps: uses$$props || uses$$restProps,
-        strictEvents: events.hasInterface(),
+        strictEvents:
+            events.hasInterface() ||
+            tags.some((tag) => tag.attributes?.some((a) => a.name === 'strictEvents')),
         isTsFile: options?.isTsFile,
         getters,
         exportedNames,

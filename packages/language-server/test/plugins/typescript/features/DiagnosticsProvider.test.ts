@@ -1293,4 +1293,117 @@ describe('DiagnosticsProvider', () => {
             }
         ]);
     });
+
+    it('checks $$Events usage', async () => {
+        const { plugin, document } = setup('$$events.svelte');
+        const diagnostics = await plugin.getDiagnostics(document);
+        assert.deepStrictEqual(diagnostics, [
+            {
+                code: 2345,
+                message:
+                    "Argument of type 'true' is not assignable to parameter of type 'string | undefined'.",
+                range: {
+                    start: {
+                        character: 20,
+                        line: 12
+                    },
+                    end: {
+                        character: 24,
+                        line: 12
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            },
+            {
+                code: 2345,
+                message:
+                    'Argument of type \'"click"\' is not assignable to parameter of type \'"foo"\'.',
+                range: {
+                    start: {
+                        character: 13,
+                        line: 13
+                    },
+                    end: {
+                        character: 20,
+                        line: 13
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            }
+        ]);
+    });
+
+    it('checks $$Events component usage', async () => {
+        const { plugin, document } = setup('diagnostics-$$events.svelte');
+        const diagnostics = await plugin.getDiagnostics(document);
+        assert.deepStrictEqual(diagnostics, [
+            {
+                code: 2345,
+                message:
+                    // Note: If you only run this test, the test message is slightly different for some reason
+                    'Argument of type \'"bar"\' is not assignable to parameter of type \'"foo" | "click"\'.',
+                range: {
+                    start: {
+                        character: 10,
+                        line: 7
+                    },
+                    end: {
+                        character: 15,
+                        line: 7
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            },
+            {
+                code: 2367,
+                message:
+                    "This condition will always return 'false' since the types 'string' and 'boolean' have no overlap.",
+                range: {
+                    start: {
+                        character: 37,
+                        line: 7
+                    },
+                    end: {
+                        character: 54,
+                        line: 7
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            }
+        ]);
+    });
+
+    it('checks strictEvents', async () => {
+        const { plugin, document } = setup('diagnostics-strictEvents.svelte');
+        const diagnostics = await plugin.getDiagnostics(document);
+        assert.deepStrictEqual(diagnostics, [
+            {
+                code: 2345,
+                message:
+                    // Note: If you only run this test, the test message is slightly different for some reason
+                    'Argument of type \'"bar"\' is not assignable to parameter of type \'"foo" | "click"\'.',
+                range: {
+                    start: {
+                        character: 16,
+                        line: 7
+                    },
+                    end: {
+                        character: 21,
+                        line: 7
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            }
+        ]);
+    });
 });

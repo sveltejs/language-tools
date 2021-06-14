@@ -3,7 +3,7 @@
 
     const A = 'a';
     const B = 'b', C = 'c';
-    interface ComponentEvents {
+    interface $$Events {
         /**
          * Some doc
          */
@@ -13,7 +13,7 @@
     }
 ;
 () => (<></>);
-return { props: {}, slots: {}, getters: {}, events: {} as unknown as ComponentEvents }}
+return { props: {}, slots: {}, getters: {}, events: {} as unknown as $$Events }}
 
 export default class Input__SvelteComponent_ extends createSvelte2TsxComponent(__sveltets_partial(render())) {
 }

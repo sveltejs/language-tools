@@ -1,14 +1,20 @@
 ///<reference types="svelte" />
-<></>;function render() {
+<></>;
+import { createEventDispatcher } from 'svelte';
+function render() {
+
+    
 
     interface $$Events {
         /**
-         * Some doc
+         * Some *doc*
          */
-        'a-b': boolean;
-        'b': string;
-        'c';
+        a: boolean;
+        b: string;
+        c;
     }
+
+    const dispatch = createEventDispatcher<__Sveltets_CustomEvents<$$Events>>();
 ;
 () => (<></>);
 return { props: {}, slots: {}, getters: {}, events: {} as unknown as $$Events }}

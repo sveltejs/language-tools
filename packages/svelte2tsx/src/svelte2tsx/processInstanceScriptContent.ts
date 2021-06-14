@@ -296,7 +296,8 @@ export function processInstanceScriptContent(
                     (!ts.isPropertyAssignment(parent) || parent.initializer == ident) &&
                     !ts.isPropertySignature(parent) &&
                     !ts.isPropertyDeclaration(parent) &&
-                    !ts.isTypeReferenceNode(parent)
+                    !ts.isTypeReferenceNode(parent) &&
+                    !ts.isInterfaceDeclaration(parent)
                 ) {
                     pendingStoreResolutions.push({ node: ident, parent, scope });
                 }
@@ -349,8 +350,8 @@ export function processInstanceScriptContent(
 
         generics.addIfIsGeneric(node);
 
-        if (ts.isInterfaceDeclaration(node) && node.name.text === 'ComponentEvents') {
-            events.setComponentEventsInterface(node);
+        if (ts.isInterfaceDeclaration(node) && node.name.text === '$$Events') {
+            events.setComponentEventsInterface(node, astOffset);
         }
 
         if (ts.isVariableStatement(node)) {
