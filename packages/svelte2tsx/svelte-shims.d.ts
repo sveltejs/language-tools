@@ -101,6 +101,9 @@ type SvelteStore<T> = { subscribe: (run: (value: T) => any, invalidate?: any) =>
 // which helps for error messages
 type Expand<T> = T extends infer O ? { [K in keyof O]: O[K] } : never;
 
+type KeysMatching<Obj, V> = {[K in keyof Obj]-?: Obj[K] extends V ? K : never}[keyof Obj]
+declare type __Sveltets_CustomEvents<T> = {[K in KeysMatching<T, CustomEvent>]: T[K] extends CustomEvent ? T[K]['detail']: T[K]}
+
 declare var process: NodeJS.Process & { browser: boolean }
 declare var __sveltets_AnimationMove: { from: DOMRect, to: DOMRect }
 

@@ -106,15 +106,15 @@ export function parseHtmlx(htmlx: string, options?: { emitOnTemplateError?: bool
     const parsingCode = options?.emitOnTemplateError
         ? blankPossiblyErrorOperatorOrPropertyAccess(deconstructed)
         : deconstructed;
-    const svelteHtmlxAst = parse(parsingCode).html;
+    const htmlxAst = parse(parsingCode).html;
 
     //restore our script and style tags as nodes to maintain validity with HTMLx
     for (const s of verbatimElements) {
-        svelteHtmlxAst.children.push(s);
-        svelteHtmlxAst.start = Math.min(svelteHtmlxAst.start, s.start);
-        svelteHtmlxAst.end = Math.max(svelteHtmlxAst.end, s.end);
+        htmlxAst.children.push(s);
+        htmlxAst.start = Math.min(htmlxAst.start, s.start);
+        htmlxAst.end = Math.max(htmlxAst.end, s.end);
     }
-    return svelteHtmlxAst;
+    return { htmlxAst, tags: verbatimElements };
 }
 
 const possibleOperatorOrPropertyAccess = new Set([

@@ -1,13 +1,13 @@
 ///<reference types="svelte" />
 <></>;function render() {
 
-    interface $$Events {
+    type $$Events = {
         /**
-         * Some doc
+         * Some *doc*
          */
-        'a-b': boolean;
-        'b': string;
-        'c';
+        a: boolean;
+        b: string;
+        c;
     }
 ;
 () => (<></>);

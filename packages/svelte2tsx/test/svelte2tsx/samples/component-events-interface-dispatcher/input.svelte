@@ -1,4 +1,6 @@
 <script lang="ts">
+    import { createEventDispatcher } from 'svelte';
+
     interface $$Events {
         /**
          * Some *doc*
@@ -7,4 +9,6 @@
         b: string;
         c;
     }
+
+    const dispatch = createEventDispatcher();
 </script>

@@ -53,7 +53,7 @@ function processSvelteTemplate(
     str: MagicString,
     options?: { emitOnTemplateError?: boolean; namespace?: string }
 ): TemplateProcessResult {
-    const htmlxAst = parseHtmlx(str.original, options);
+    const { htmlxAst, tags } = parseHtmlx(str.original, options);
 
     let uses$$props = false;
     let uses$$restProps = false;
@@ -279,7 +279,11 @@ function processSvelteTemplate(
         moduleScriptTag,
         scriptTag,
         slots: slotHandler.getSlotDef(),
-        events: new ComponentEvents(eventHandler),
+        events: new ComponentEvents(
+            eventHandler,
+            tags.some((tag) => tag.attributes?.some((a) => a.name === 'strictEvents')),
+            str
+        ),
         uses$$props,
         uses$$restProps,
         uses$$slots,
@@ -461,7 +465,7 @@ export function svelte2tsx(
     addComponentExport({
         str,
         uses$$propsOr$$restProps: uses$$props || uses$$restProps,
-        strictEvents: events.hasInterface(),
+        strictEvents: events.hasStrictEvents(),
         isTsFile: options?.isTsFile,
         getters,
         exportedNames,

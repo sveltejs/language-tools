@@ -1,7 +1,7 @@
 <script lang="ts">
     const A = 'a';
     const B = 'b', C = 'c';
-    interface ComponentEvents {
+    interface $$Events {
         /**
          * Some doc
          */
