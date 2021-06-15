@@ -4,6 +4,8 @@ import ts from 'typescript';
 import { ImplicitStoreValues } from './nodes/ImplicitStoreValues';
 import { handleTypeAssertion } from './nodes/handleTypeAssertion';
 import { Generics } from './nodes/Generics';
+import { is$$EventsDeclaration } from './nodes/ComponentEvents';
+import { throwError } from './utils/error';
 
 export function processModuleScriptTag(
     str: MagicString,
@@ -27,6 +29,7 @@ export function processModuleScriptTag(
         resolveImplicitStoreValue(node, implicitStoreValues, str, astOffset);
 
         generics.throwIfIsGeneric(node);
+        throwIfIs$$EventsDeclaration(node, str, astOffset);
 
         ts.forEachChild(node, (n) => walk(n));
     };
@@ -64,5 +67,16 @@ function resolveImplicitStoreValue(
 
     if (ts.isTypeAssertionExpression?.(node)) {
         handleTypeAssertion(str, node, astOffset);
+    }
+}
+
+function throwIfIs$$EventsDeclaration(node: ts.Node, str: MagicString, astOffset: number) {
+    if (is$$EventsDeclaration(node)) {
+        throwError(
+            node.getStart() + astOffset,
+            node.getEnd() + astOffset,
+            '$$Events can only be declared in the instance script',
+            str.original
+        );
     }
 }

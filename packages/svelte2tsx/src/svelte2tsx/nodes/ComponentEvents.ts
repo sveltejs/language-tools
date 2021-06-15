@@ -3,6 +3,15 @@ import { EventHandler } from './event-handler';
 import { getVariableAtTopLevel, getLastLeadingDoc } from '../utils/tsAst';
 import MagicString from 'magic-string';
 
+export function is$$EventsDeclaration(
+    node: ts.Node
+): node is ts.TypeAliasDeclaration | ts.InterfaceDeclaration {
+    return (
+        (ts.isTypeAliasDeclaration(node) || ts.isInterfaceDeclaration(node)) &&
+        node.name.text === '$$Events'
+    );
+}
+
 /**
  * This class accumulates all events that are dispatched from the component.
  * It also tracks bubbled/forwarded events.
@@ -29,7 +38,11 @@ export class ComponentEvents {
             : this.componentEventsFromEventsMap;
     }
 
-    constructor(eventHandler: EventHandler, private str: MagicString) {
+    constructor(
+        eventHandler: EventHandler,
+        private strictEvents: boolean,
+        private str: MagicString
+    ) {
         this.componentEventsFromEventsMap = new ComponentEventsFromEventsMap(eventHandler);
     }
 
@@ -56,17 +69,20 @@ export class ComponentEvents {
         return this.eventsClass.toDefString();
     }
 
-    setComponentEventsInterface(node: ts.InterfaceDeclaration, astOffset: number): void {
+    setComponentEventsInterface(
+        node: ts.InterfaceDeclaration | ts.TypeAliasDeclaration,
+        astOffset: number
+    ): void {
         this.componentEventsInterface.setComponentEventsInterface(node, this.str, astOffset);
     }
 
-    hasInterface(): boolean {
-        return this.componentEventsInterface.isPresent();
+    hasStrictEvents(): boolean {
+        return this.componentEventsInterface.isPresent() || this.strictEvents;
     }
 
     checkIfImportIsEventDispatcher(node: ts.ImportDeclaration): void {
         this.componentEventsFromEventsMap.checkIfImportIsEventDispatcher(node);
-        this.componentEventsInterface?.checkIfImportIsEventDispatcher(node);
+        this.componentEventsInterface.checkIfImportIsEventDispatcher(node);
     }
 
     checkIfIsStringLiteralDeclaration(node: ts.VariableDeclaration): void {
@@ -75,7 +91,7 @@ export class ComponentEvents {
 
     checkIfDeclarationInstantiatedEventDispatcher(node: ts.VariableDeclaration): void {
         this.componentEventsFromEventsMap.checkIfDeclarationInstantiatedEventDispatcher(node);
-        this.componentEventsInterface?.checkIfDeclarationInstantiatedEventDispatcher(node);
+        this.componentEventsInterface.checkIfDeclarationInstantiatedEventDispatcher(node);
     }
 
     checkIfCallExpressionIsDispatch(node: ts.CallExpression): void {
@@ -86,16 +102,14 @@ export class ComponentEvents {
 class ComponentEventsFromInterface {
     events = new Map<string, { type: string; doc?: string }>();
     private eventDispatcherImport = '';
-    private node?: ts.InterfaceDeclaration;
     private str?: MagicString;
     private astOffset?: number;
 
     setComponentEventsInterface(
-        node: ts.InterfaceDeclaration,
+        node: ts.InterfaceDeclaration | ts.TypeAliasDeclaration,
         str: MagicString,
         astOffset: number
     ) {
-        this.node = node;
         this.str = str;
         this.astOffset = astOffset;
         this.events = this.extractEvents(node);
@@ -135,20 +149,38 @@ class ComponentEventsFromInterface {
     }
 
     isPresent() {
-        return !!this.node;
+        return !!this.str;
     }
 
-    private extractEvents(node: ts.InterfaceDeclaration) {
+    private extractEvents(node: ts.InterfaceDeclaration | ts.TypeAliasDeclaration) {
         const map = new Map<string, { type: string; doc?: string }>();
 
-        node.members.filter(ts.isPropertySignature).forEach((member) => {
+        if (ts.isInterfaceDeclaration(node)) {
+            this.extractProperties(node.members, map);
+        } else {
+            if (ts.isTypeLiteralNode(node.type)) {
+                this.extractProperties(node.type.members, map);
+            } else if (ts.isIntersectionTypeNode(node.type)) {
+                node.type.types.forEach((type) => {
+                    if (ts.isTypeLiteralNode(type)) {
+                        this.extractProperties(type.members, map);
+                    }
+                });
+            }
+        }
+        return map;
+    }
+
+    private extractProperties(
+        members: ts.NodeArray<ts.TypeElement>,
+        map: Map<string, { type: string; doc?: string }>
+    ) {
+        members.filter(ts.isPropertySignature).forEach((member) => {
             map.set(getName(member.name), {
                 type: member.type?.getText() || 'Event',
                 doc: getDoc(member)
             });
         });
-
-        return map;
     }
 }
 

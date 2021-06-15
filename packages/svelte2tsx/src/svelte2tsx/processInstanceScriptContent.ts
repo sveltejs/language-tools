@@ -9,7 +9,7 @@ import {
 } from './utils/tsAst';
 import { ExportedNames } from './nodes/ExportedNames';
 import { ImplicitTopLevelNames } from './nodes/ImplicitTopLevelNames';
-import { ComponentEvents } from './nodes/ComponentEvents';
+import { ComponentEvents, is$$EventsDeclaration } from './nodes/ComponentEvents';
 import { Scope } from './utils/Scope';
 import { handleTypeAssertion } from './nodes/handleTypeAssertion';
 import { ImplicitStoreValues } from './nodes/ImplicitStoreValues';
@@ -297,6 +297,7 @@ export function processInstanceScriptContent(
                     !ts.isPropertySignature(parent) &&
                     !ts.isPropertyDeclaration(parent) &&
                     !ts.isTypeReferenceNode(parent) &&
+                    !ts.isTypeAliasDeclaration(parent) &&
                     !ts.isInterfaceDeclaration(parent)
                 ) {
                     pendingStoreResolutions.push({ node: ident, parent, scope });
@@ -350,7 +351,7 @@ export function processInstanceScriptContent(
 
         generics.addIfIsGeneric(node);
 
-        if (ts.isInterfaceDeclaration(node) && node.name.text === '$$Events') {
+        if (is$$EventsDeclaration(node)) {
             events.setComponentEventsInterface(node, astOffset);
         }
 
