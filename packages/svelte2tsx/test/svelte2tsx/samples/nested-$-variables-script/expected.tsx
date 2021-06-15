@@ -25,5 +25,5 @@ const test4 = ({a,  b: { $top1: $top2 }}) => $top2 && (__sveltets_store_get(top1
 () => (<></>);
 return { props: {}, slots: {}, getters: {}, events: {} }}
 
-export default class Input__SvelteComponent_ extends createSvelte2TsxComponent(__sveltets_partial(__sveltets_with_any_event(render))) {
+export default class Input__SvelteComponent_ extends createSvelte2TsxComponent(__sveltets_partial(__sveltets_with_any_event(render()))) {
 }

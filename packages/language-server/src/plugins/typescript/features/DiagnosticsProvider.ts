@@ -1,5 +1,5 @@
 import ts from 'typescript';
-import { Diagnostic, DiagnosticSeverity, DiagnosticTag } from 'vscode-languageserver';
+import { CancellationToken, Diagnostic, DiagnosticSeverity } from 'vscode-languageserver';
 import {
     Document,
     mapObjWithRangeToOriginal,
@@ -8,17 +8,24 @@ import {
 } from '../../../lib/documents';
 import { DiagnosticsProvider } from '../../interfaces';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
-import { convertRange, mapSeverity } from '../utils';
+import { convertRange, getDiagnosticTag, mapSeverity } from '../utils';
 import { SvelteDocumentSnapshot } from '../DocumentSnapshot';
 import { isInGeneratedCode } from './utils';
+import { swapRangeStartEndIfNecessary } from '../../../utils';
 
 export class DiagnosticsProviderImpl implements DiagnosticsProvider {
     constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
 
-    async getDiagnostics(document: Document): Promise<Diagnostic[]> {
+    async getDiagnostics(
+        document: Document,
+        cancellationToken?: CancellationToken
+    ): Promise<Diagnostic[]> {
         const { lang, tsDoc } = await this.getLSAndTSDoc(document);
 
-        if (['coffee', 'coffeescript'].includes(document.getLanguageAttribute('script'))) {
+        if (
+            ['coffee', 'coffeescript'].includes(document.getLanguageAttribute('script')) ||
+            cancellationToken?.isCancellationRequested
+        ) {
             return [];
         }
 
@@ -53,24 +60,13 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
                 source: isTypescript ? 'ts' : 'js',
                 message: ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n'),
                 code: diagnostic.code,
-                tags: this.getDiagnosticTag(diagnostic)
+                tags: getDiagnosticTag(diagnostic)
             }))
             .map((diagnostic) => mapObjWithRangeToOriginal(fragment, diagnostic))
             .filter(hasNoNegativeLines)
             .filter(isNoFalsePositive(document, tsDoc))
             .map(enhanceIfNecessary)
-            .map(swapRangeStartEndIfNecessary);
-    }
-
-    private getDiagnosticTag(diagnostic: ts.Diagnostic) {
-        const tags: DiagnosticTag[] = [];
-        if (diagnostic.reportsUnnecessary) {
-            tags.push(DiagnosticTag.Unnecessary);
-        }
-        if (diagnostic.reportsDeprecated) {
-            tags.push(DiagnosticTag.Deprecated);
-        }
-        return tags;
+            .map(swapDiagRangeStartEndIfNecessary);
     }
 
     private async getLSAndTSDoc(document: Document) {
@@ -195,16 +191,8 @@ function enhanceIfNecessary(diagnostic: Diagnostic): Diagnostic {
 /**
  * Due to source mapping, some ranges may be swapped: Start is end. Swap back in this case.
  */
-function swapRangeStartEndIfNecessary(diag: Diagnostic): Diagnostic {
-    if (
-        diag.range.end.line < diag.range.start.line ||
-        (diag.range.end.line === diag.range.start.line &&
-            diag.range.end.character < diag.range.start.character)
-    ) {
-        const start = diag.range.start;
-        diag.range.start = diag.range.end;
-        diag.range.end = start;
-    }
+function swapDiagRangeStartEndIfNecessary(diag: Diagnostic): Diagnostic {
+    diag.range = swapRangeStartEndIfNecessary(diag.range);
     return diag;
 }
 

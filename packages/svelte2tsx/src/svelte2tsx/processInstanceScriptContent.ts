@@ -9,10 +9,11 @@ import {
 } from './utils/tsAst';
 import { ExportedNames } from './nodes/ExportedNames';
 import { ImplicitTopLevelNames } from './nodes/ImplicitTopLevelNames';
-import { ComponentEvents } from './nodes/ComponentEvents';
+import { ComponentEvents, is$$EventsDeclaration } from './nodes/ComponentEvents';
 import { Scope } from './utils/Scope';
 import { handleTypeAssertion } from './nodes/handleTypeAssertion';
 import { ImplicitStoreValues } from './nodes/ImplicitStoreValues';
+import { Generics } from './nodes/Generics';
 
 export interface InstanceScriptProcessResult {
     exportedNames: ExportedNames;
@@ -21,6 +22,7 @@ export interface InstanceScriptProcessResult {
     uses$$restProps: boolean;
     uses$$slots: boolean;
     getters: Set<string>;
+    generics: Generics;
 }
 
 interface PendingStoreResolution {
@@ -47,6 +49,7 @@ export function processInstanceScriptContent(
     const astOffset = script.content.start;
     const exportedNames = new ExportedNames();
     const getters = new Set<string>();
+    const generics = new Generics(str, astOffset);
 
     const implicitTopLevelNames = new ImplicitTopLevelNames();
     let uses$$props = false;
@@ -292,7 +295,10 @@ export function processInstanceScriptContent(
                     (!ts.isPropertyAccessExpression(parent) || parent.expression == ident) &&
                     (!ts.isPropertyAssignment(parent) || parent.initializer == ident) &&
                     !ts.isPropertySignature(parent) &&
-                    !ts.isPropertyDeclaration(parent)
+                    !ts.isPropertyDeclaration(parent) &&
+                    !ts.isTypeReferenceNode(parent) &&
+                    !ts.isTypeAliasDeclaration(parent) &&
+                    !ts.isInterfaceDeclaration(parent)
                 ) {
                     pendingStoreResolutions.push({ node: ident, parent, scope });
                 }
@@ -343,8 +349,10 @@ export function processInstanceScriptContent(
         type onLeaveCallback = () => void;
         const onLeaveCallbacks: onLeaveCallback[] = [];
 
-        if (ts.isInterfaceDeclaration(node) && node.name.text === 'ComponentEvents') {
-            events.setComponentEventsInterface(node);
+        generics.addIfIsGeneric(node);
+
+        if (is$$EventsDeclaration(node)) {
+            events.setComponentEventsInterface(node, astOffset);
         }
 
         if (ts.isVariableStatement(node)) {
@@ -504,6 +512,7 @@ export function processInstanceScriptContent(
         uses$$props,
         uses$$restProps,
         uses$$slots,
-        getters
+        getters,
+        generics
     };
 }

@@ -10,7 +10,8 @@ import {
     Position,
     CodeActionKind,
     TextDocumentEdit,
-    CodeAction
+    CodeAction,
+    CancellationTokenSource
 } from 'vscode-languageserver';
 import { CompletionsProviderImpl } from '../../../../src/plugins/typescript/features/CompletionProvider';
 import { LSConfigManager } from '../../../../src/ls-config';
@@ -794,5 +795,47 @@ describe('CodeActionsProvider', () => {
                 }
             ]
         });
+    });
+
+    it('can cancel quick fix before promise resolved', async () => {
+        const { provider, document } = setup('codeactions.svelte');
+        const cancellationTokenSource = new CancellationTokenSource();
+
+        const codeActionsPromise = provider.getCodeActions(
+            document,
+            Range.create(Position.create(6, 4), Position.create(6, 5)),
+            {
+                diagnostics: [
+                    {
+                        code: 6133,
+                        message: "'a' is declared but its value is never read.",
+                        range: Range.create(Position.create(6, 4), Position.create(6, 5)),
+                        source: 'ts'
+                    }
+                ],
+                only: [CodeActionKind.QuickFix]
+            },
+            cancellationTokenSource.token
+        );
+
+        cancellationTokenSource.cancel();
+
+        assert.deepStrictEqual(await codeActionsPromise, []);
+    });
+
+    it('can cancel refactor before promise resolved', async () => {
+        const { provider, document } = setup('codeactions.svelte');
+        const cancellationTokenSource = new CancellationTokenSource();
+
+        const codeActionsPromise = provider.getCodeActions(
+            document,
+            Range.create(Position.create(8, 8), Position.create(8, 42)),
+            { diagnostics: [], only: [CodeActionKind.Refactor] },
+            cancellationTokenSource.token
+        );
+
+        cancellationTokenSource.cancel();
+
+        assert.deepStrictEqual(await codeActionsPromise, []);
     });
 });

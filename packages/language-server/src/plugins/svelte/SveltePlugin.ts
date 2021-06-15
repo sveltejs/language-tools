@@ -9,7 +9,9 @@ import {
     Range,
     TextEdit,
     WorkspaceEdit,
-    SelectionRange
+    SelectionRange,
+    CancellationToken,
+    CompletionContext
 } from 'vscode-languageserver';
 import { Document } from '../../lib/documents';
 import { LSConfigManager, LSSvelteConfig } from '../../ls-config';
@@ -138,12 +140,22 @@ export class SveltePlugin
         }
     }
 
-    async getCompletions(document: Document, position: Position): Promise<CompletionList | null> {
+    async getCompletions(
+        document: Document,
+        position: Position,
+        _?: CompletionContext,
+        cancellationToken?: CancellationToken
+    ): Promise<CompletionList | null> {
         if (!this.featureEnabled('completions')) {
             return null;
         }
 
-        return getCompletions(await this.getSvelteDoc(document), position);
+        const svelteDoc = await this.getSvelteDoc(document);
+        if (cancellationToken?.isCancellationRequested) {
+            return null;
+        }
+
+        return getCompletions(svelteDoc, position);
     }
 
     async doHover(document: Document, position: Position): Promise<Hover | null> {
@@ -157,13 +169,19 @@ export class SveltePlugin
     async getCodeActions(
         document: Document,
         range: Range,
-        context: CodeActionContext
+        context: CodeActionContext,
+        cancellationToken?: CancellationToken
     ): Promise<CodeAction[]> {
         if (!this.featureEnabled('codeActions')) {
             return [];
         }
 
         const svelteDoc = await this.getSvelteDoc(document);
+
+        if (cancellationToken?.isCancellationRequested) {
+            return [];
+        }
+
         try {
             return getCodeActions(svelteDoc, range, context);
         } catch (error) {

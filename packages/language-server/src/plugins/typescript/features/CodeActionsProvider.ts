@@ -1,4 +1,6 @@
+import ts from 'typescript';
 import {
+    CancellationToken,
     CodeAction,
     CodeActionContext,
     CodeActionKind,
@@ -10,18 +12,15 @@ import {
 } from 'vscode-languageserver';
 import {
     Document,
-    mapRangeToOriginal,
+    getLineAtPosition,
     isRangeInTag,
-    isInTag,
-    getLineAtPosition
+    mapRangeToOriginal
 } from '../../../lib/documents';
-import { pathToUrl, flatten, isNotNullOrUndefined, modifyLines, getIndent } from '../../../utils';
+import { flatten, getIndent, isNotNullOrUndefined, modifyLines, pathToUrl } from '../../../utils';
 import { CodeActionsProvider } from '../../interfaces';
 import { SnapshotFragment, SvelteSnapshotFragment } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { convertRange } from '../utils';
-
-import ts from 'typescript';
 import { CompletionsProviderImpl } from './CompletionProvider';
 import { isNoTextSpanInGeneratedCode, SnapshotFragmentMap } from './utils';
 
@@ -41,33 +40,41 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
     async getCodeActions(
         document: Document,
         range: Range,
-        context: CodeActionContext
+        context: CodeActionContext,
+        cancellationToken?: CancellationToken
     ): Promise<CodeAction[]> {
         if (context.only?.[0] === CodeActionKind.SourceOrganizeImports) {
-            return await this.organizeImports(document);
+            return await this.organizeImports(document, cancellationToken);
         }
 
         if (
             context.diagnostics.length &&
             (!context.only || context.only.includes(CodeActionKind.QuickFix))
         ) {
-            return await this.applyQuickfix(document, range, context);
+            return await this.applyQuickfix(document, range, context, cancellationToken);
         }
 
         if (!context.only || context.only.includes(CodeActionKind.Refactor)) {
-            return await this.getApplicableRefactors(document, range);
+            return await this.getApplicableRefactors(document, range, cancellationToken);
         }
 
         return [];
     }
 
-    private async organizeImports(document: Document): Promise<CodeAction[]> {
+    private async organizeImports(
+        document: Document,
+        cancellationToken: CancellationToken | undefined
+    ): Promise<CodeAction[]> {
         if (!document.scriptInfo && !document.moduleScriptInfo) {
             return [];
         }
 
         const { lang, tsDoc, userPreferences } = await this.getLSAndTSDoc(document);
         const fragment = await tsDoc.getFragment();
+
+        if (cancellationToken?.isCancellationRequested) {
+            return [];
+        }
 
         const changes = lang.organizeImports(
             {
@@ -151,9 +158,18 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         return range;
     }
 
-    private async applyQuickfix(document: Document, range: Range, context: CodeActionContext) {
+    private async applyQuickfix(
+        document: Document,
+        range: Range,
+        context: CodeActionContext,
+        cancellationToken: CancellationToken | undefined
+    ) {
         const { lang, tsDoc, userPreferences } = await this.getLSAndTSDoc(document);
         const fragment = await tsDoc.getFragment();
+
+        if (cancellationToken?.isCancellationRequested) {
+            return [];
+        }
 
         const start = fragment.offsetAt(fragment.getGeneratedPosition(range.start));
         const end = fragment.offsetAt(fragment.getGeneratedPosition(range.end));
@@ -189,8 +205,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                                     fragment,
                                     edit,
                                     true,
-                                    isInTag(range.start, document.scriptInfo) ||
-                                        isInTag(range.start, document.moduleScriptInfo)
+                                    range.start
                                 );
                             }
 
@@ -260,7 +275,11 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         );
     }
 
-    private async getApplicableRefactors(document: Document, range: Range): Promise<CodeAction[]> {
+    private async getApplicableRefactors(
+        document: Document,
+        range: Range,
+        cancellationToken: CancellationToken | undefined
+    ): Promise<CodeAction[]> {
         if (
             !isRangeInTag(range, document.scriptInfo) &&
             !isRangeInTag(range, document.moduleScriptInfo)
@@ -281,6 +300,11 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
 
         const { lang, tsDoc, userPreferences } = await this.getLSAndTSDoc(document);
         const fragment = await tsDoc.getFragment();
+
+        if (cancellationToken?.isCancellationRequested) {
+            return [];
+        }
+
         const textRange = {
             pos: fragment.offsetAt(fragment.getGeneratedPosition(range.start)),
             end: fragment.offsetAt(fragment.getGeneratedPosition(range.end))
@@ -297,7 +321,8 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                 .filter(
                     (refactor) =>
                         refactor.command?.command.includes('function_scope') ||
-                        refactor.command?.command.includes('constant_scope')
+                        refactor.command?.command.includes('constant_scope') ||
+                        refactor.command?.command === 'Infer function return type'
                 )
                 // The language server also proposes extraction into const/function in module scope,
                 // which is outside of the render function, which is svelte2tsx-specific and unmapped,

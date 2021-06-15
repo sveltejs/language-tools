@@ -1,27 +1,35 @@
 import ts from 'typescript';
+import { TextDocumentContentChangeEvent } from 'vscode-languageserver';
 import { Document, DocumentManager } from '../../lib/documents';
 import { LSConfigManager } from '../../ls-config';
-import { debounceSameArg, pathToUrl } from '../../utils';
+import { debounceSameArg, normalizePath, pathToUrl } from '../../utils';
 import { DocumentSnapshot, SvelteDocumentSnapshot } from './DocumentSnapshot';
 import {
-    getLanguageServiceForDocument,
-    getLanguageServiceForPath,
     getService,
+    getServiceForTsconfig,
+    forAllServices,
     LanguageServiceContainer,
     LanguageServiceDocumentContext
 } from './service';
-import { SnapshotManager } from './SnapshotManager';
+import { GlobalSnapshotsManager, SnapshotManager } from './SnapshotManager';
 
 export class LSAndTSDocResolver {
+    /**
+     *
+     * @param docManager
+     * @param workspaceUris
+     * @param configManager
+     * @param tsconfigPath This should only be set via svelte-check. Makes sure all documents are resolved to that tsconfig. Has to be absolute.
+     */
     constructor(
         private readonly docManager: DocumentManager,
         private readonly workspaceUris: string[],
         private readonly configManager: LSConfigManager,
-        private readonly transformOnTemplateError = true
+        private readonly tsconfigPath?: string
     ) {
         const handleDocumentChange = (document: Document) => {
             // This refreshes the document in the ts language service
-            this.getLSAndTSDoc(document);
+            this.getSnapshot(document);
         };
         docManager.on(
             'documentChange',
@@ -52,15 +60,18 @@ export class LSAndTSDocResolver {
         return document;
     };
 
+    private globalSnapshotsManager = new GlobalSnapshotsManager();
+
     private get lsDocumentContext(): LanguageServiceDocumentContext {
         return {
             createDocument: this.createDocument,
-            transformOnTemplateError: this.transformOnTemplateError
+            transformOnTemplateError: !this.tsconfigPath,
+            globalSnapshotsManager: this.globalSnapshotsManager
         };
     }
 
     async getLSForPath(path: string) {
-        return getLanguageServiceForPath(path, this.workspaceUris, this.lsDocumentContext);
+        return (await this.getTSService(path)).getService();
     }
 
     async getLSAndTSDoc(document: Document): Promise<{
@@ -68,17 +79,18 @@ export class LSAndTSDocResolver {
         lang: ts.LanguageService;
         userPreferences: ts.UserPreferences;
     }> {
-        const lang = await getLanguageServiceForDocument(
-            document,
-            this.workspaceUris,
-            this.lsDocumentContext
-        );
+        const lang = await this.getLSForPath(document.getFilePath() || '');
         const tsDoc = await this.getSnapshot(document);
         const userPreferences = this.getUserPreferences(tsDoc.scriptKind);
 
         return { tsDoc, lang, userPreferences };
     }
 
+    /**
+     * Retrieves and updates the snapshot for the given document or path from
+     * the ts service it primarely belongs into.
+     * The update is mirrored in all other services, too.
+     */
     async getSnapshot(document: Document): Promise<SvelteDocumentSnapshot>;
     async getSnapshot(pathOrDoc: string | Document): Promise<DocumentSnapshot>;
     async getSnapshot(pathOrDoc: string | Document) {
@@ -87,21 +99,63 @@ export class LSAndTSDocResolver {
         return tsService.updateSnapshot(pathOrDoc);
     }
 
+    /**
+     * Updates snapshot path in all existing ts services and retrieves snapshot
+     */
     async updateSnapshotPath(oldPath: string, newPath: string): Promise<DocumentSnapshot> {
         await this.deleteSnapshot(oldPath);
         return this.getSnapshot(newPath);
     }
 
+    /**
+     * Deletes snapshot in all existing ts services
+     */
     async deleteSnapshot(filePath: string) {
-        (await this.getTSService(filePath)).deleteSnapshot(filePath);
+        await forAllServices((service) => service.deleteSnapshot(filePath));
         this.docManager.releaseDocument(pathToUrl(filePath));
     }
 
+    /**
+     * Updates project files in all existing ts services
+     */
+    async updateProjectFiles() {
+        await forAllServices((service) => service.updateProjectFiles());
+    }
+
+    /**
+     * Updates file in all ts services where it exists
+     */
+    async updateExistingTsOrJsFile(
+        path: string,
+        changes?: TextDocumentContentChangeEvent[]
+    ): Promise<void> {
+        path = normalizePath(path);
+        // Only update once because all snapshots are shared between
+        // services. Since we don't have a current version of TS/JS
+        // files, the operation wouldn't be idempotent.
+        let didUpdate = false;
+        await forAllServices((service) => {
+            if (service.hasFile(path) && !didUpdate) {
+                didUpdate = true;
+                service.updateTsOrJsFile(path, changes);
+            }
+        });
+    }
+
+    /**
+     * @internal Public for tests only
+     */
     async getSnapshotManager(filePath: string): Promise<SnapshotManager> {
         return (await this.getTSService(filePath)).snapshotManager;
     }
 
-    private getTSService(filePath: string): Promise<LanguageServiceContainer> {
+    async getTSService(filePath?: string): Promise<LanguageServiceContainer> {
+        if (this.tsconfigPath) {
+            return getServiceForTsconfig(this.tsconfigPath, this.lsDocumentContext);
+        }
+        if (!filePath) {
+            throw new Error('Cannot call getTSService without filePath and without tsconfigPath');
+        }
         return getService(filePath, this.workspaceUris, this.lsDocumentContext);
     }
 

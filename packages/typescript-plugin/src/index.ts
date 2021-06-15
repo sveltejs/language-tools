@@ -19,8 +19,7 @@ function init(modules: { typescript: typeof ts }) {
         const snapshotManager = new SvelteSnapshotManager(
             modules.typescript,
             info.project.projectService,
-            logger,
-            !!info.project.getCompilerOptions().strict
+            logger
         );
 
         patchCompilerOptions(info.project);

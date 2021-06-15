@@ -209,13 +209,21 @@ describe('RenameProvider', () => {
         assert.deepStrictEqual(result, expectedEditsForPropRename);
     });
 
-    // TODO this does not work right now, see `RenameProviderImpl.cannotRename` for more explanation
-    // it('should do rename of prop of component A in component B', async () => {
-    //     const { provider, renameDoc2 } = await setup();
-    //     const result = await provider.rename(renameDoc2, Position.create(4, 10), 'newName');
+    it('should do rename of prop of component A in component B', async () => {
+        const { provider, renameDoc2 } = await setup();
+        const result = await provider.rename(renameDoc2, Position.create(5, 10), 'newName');
 
-    //     assert.deepStrictEqual(result, expectedEditsForPropRename);
-    // });
+        assert.deepStrictEqual(result, expectedEditsForPropRename);
+    });
+
+    it('should not allow rename of intrinsic attribute', async () => {
+        const { provider, renameDoc2 } = await setup();
+        const prepareResult = await provider.prepareRename(renameDoc2, Position.create(7, 7));
+        const renameResult = await provider.rename(renameDoc2, Position.create(7, 7), 'newName');
+
+        assert.deepStrictEqual(prepareResult, null);
+        assert.deepStrictEqual(renameResult, null);
+    });
 
     it('should do rename of prop without type of component A in component A', async () => {
         const { provider, renameDoc3 } = await setup();

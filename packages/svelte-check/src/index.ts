@@ -2,24 +2,21 @@
  * This code's groundwork is taken from https://github.com/vuejs/vetur/tree/master/vti
  */
 
+import { watch } from 'chokidar';
 import * as fs from 'fs';
 import glob from 'glob';
-import argv from 'minimist';
 import * as path from 'path';
-import { SvelteCheck, SvelteCheckOptions } from 'svelte-language-server';
+import { SvelteCheck } from 'svelte-language-server';
 import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver-protocol';
 import { URI } from 'vscode-uri';
+import { parseOptions, SvelteCheckCliOptions } from './options';
 import {
+    DEFAULT_FILTER,
+    DiagnosticFilter,
     HumanFriendlyWriter,
     MachineFriendlyWriter,
-    Writer,
-    DiagnosticFilter,
-    DEFAULT_FILTER
+    Writer
 } from './writers';
-import { watch } from 'chokidar';
-
-const outputFormats = ['human', 'human-verbose', 'machine'] as const;
-type OutputFormat = typeof outputFormats[number];
 
 type Result = {
     fileCount: number;
@@ -52,10 +49,13 @@ async function openAllDocuments(
 
                 for (const absFilePath of absFilePaths) {
                     const text = fs.readFileSync(absFilePath, 'utf-8');
-                    svelteCheck.upsertDocument({
-                        uri: URI.file(absFilePath).toString(),
-                        text
-                    });
+                    svelteCheck.upsertDocument(
+                        {
+                            uri: URI.file(absFilePath).toString(),
+                            text
+                        },
+                        true
+                    );
                 }
                 resolve();
             }
@@ -119,26 +119,32 @@ class DiagnosticsWatcher {
         private workspaceUri: URI,
         private svelteCheck: SvelteCheck,
         private writer: Writer,
-        filePathsToIgnore: string[]
+        filePathsToIgnore: string[],
+        ignoreInitialAdd: boolean
     ) {
         watch(`${workspaceUri.fsPath}/**/*.{svelte,d.ts,ts,js}`, {
             ignored: ['node_modules']
                 .concat(filePathsToIgnore)
-                .map((ignore) => path.join(workspaceUri.fsPath, ignore))
+                .map((ignore) => path.join(workspaceUri.fsPath, ignore)),
+            ignoreInitial: ignoreInitialAdd
         })
-            .on('add', (path) => this.updateDocument(path))
+            .on('add', (path) => this.updateDocument(path, true))
             .on('unlink', (path) => this.removeDocument(path))
-            .on('change', (path) => this.updateDocument(path));
+            .on('change', (path) => this.updateDocument(path, false));
+
+        if (ignoreInitialAdd) {
+            this.scheduleDiagnostics();
+        }
     }
 
-    private updateDocument(path: string) {
+    private async updateDocument(path: string, isNew: boolean) {
         const text = fs.readFileSync(path, 'utf-8');
-        this.svelteCheck.upsertDocument({ text, uri: URI.file(path).toString() });
+        await this.svelteCheck.upsertDocument({ text, uri: URI.file(path).toString() }, isNew);
         this.scheduleDiagnostics();
     }
 
-    private removeDocument(path: string) {
-        this.svelteCheck.removeDocument(URI.file(path).toString());
+    private async removeDocument(path: string) {
+        await this.svelteCheck.removeDocument(URI.file(path).toString());
         this.scheduleDiagnostics();
     }
 
@@ -151,8 +157,8 @@ class DiagnosticsWatcher {
     }
 }
 
-function createFilter(myArgs: argv.ParsedArgs): DiagnosticFilter {
-    switch (myArgs['threshold']) {
+function createFilter(opts: SvelteCheckCliOptions): DiagnosticFilter {
+    switch (opts.threshold) {
         case 'error':
             return (d) => d.severity === DiagnosticSeverity.Error;
         case 'warning':
@@ -164,79 +170,57 @@ function createFilter(myArgs: argv.ParsedArgs): DiagnosticFilter {
     }
 }
 
-function instantiateWriter(myArgs: argv.ParsedArgs): Writer {
-    const outputFormat: OutputFormat = outputFormats.includes(myArgs['output'])
-        ? myArgs['output']
-        : 'human-verbose';
+function instantiateWriter(opts: SvelteCheckCliOptions): Writer {
+    const filter = createFilter(opts);
 
-    const filter = createFilter(myArgs);
-
-    if (outputFormat === 'human-verbose' || outputFormat === 'human') {
-        return new HumanFriendlyWriter(process.stdout, outputFormat === 'human-verbose', filter);
+    if (opts.outputFormat === 'human-verbose' || opts.outputFormat === 'human') {
+        return new HumanFriendlyWriter(
+            process.stdout,
+            opts.outputFormat === 'human-verbose',
+            opts.watch,
+            filter
+        );
     } else {
         return new MachineFriendlyWriter(process.stdout, filter);
     }
 }
 
-function getOptions(myArgs: argv.ParsedArgs): SvelteCheckOptions {
-    return {
-        compilerWarnings: stringToObj(myArgs['compiler-warnings']),
-        diagnosticSources: <any>(
-            myArgs['diagnostic-sources']?.split(',')?.map((s: string) => s.trim())
-        )
-    };
+parseOptions(async (opts) => {
+    try {
+        const writer = instantiateWriter(opts);
 
-    function stringToObj(str = '') {
-        return str
-            .split(',')
-            .map((s) => s.trim())
-            .filter((s) => !!s)
-            .reduce((settings, setting) => {
-                const [name, val] = setting.split(':');
-                if (val === 'error' || val === 'ignore') {
-                    settings[name] = val;
-                }
-                return settings;
-            }, <Record<string, 'error' | 'ignore'>>{});
-    }
-}
+        const svelteCheck = new SvelteCheck(opts.workspaceUri.fsPath, {
+            compilerWarnings: opts.compilerWarnings,
+            diagnosticSources: opts.diagnosticSources,
+            tsconfig: opts.tsconfig
+        });
 
-(async () => {
-    const myArgs = argv(process.argv.slice(1));
-    let workspaceUri;
-
-    let workspacePath = myArgs['workspace'];
-    if (workspacePath) {
-        if (!path.isAbsolute(workspacePath)) {
-            workspacePath = path.resolve(process.cwd(), workspacePath);
-        }
-        workspaceUri = URI.file(workspacePath);
-    } else {
-        workspaceUri = URI.file(process.cwd());
-    }
-
-    const writer = instantiateWriter(myArgs);
-
-    const svelteCheck = new SvelteCheck(workspaceUri.fsPath, getOptions(myArgs));
-    const filePathsToIgnore = myArgs['ignore']?.split(',') || [];
-
-    if (myArgs['watch']) {
-        new DiagnosticsWatcher(workspaceUri, svelteCheck, writer, filePathsToIgnore);
-    } else {
-        await openAllDocuments(workspaceUri, filePathsToIgnore, svelteCheck);
-        const result = await getDiagnostics(workspaceUri, writer, svelteCheck);
-        if (
-            result &&
-            result.errorCount === 0 &&
-            (!myArgs['fail-on-warnings'] || result.warningCount === 0) &&
-            (!myArgs['fail-on-hints'] || result.hintCount === 0)
-        ) {
-            process.exit(0);
+        if (opts.watch) {
+            new DiagnosticsWatcher(
+                opts.workspaceUri,
+                svelteCheck,
+                writer,
+                opts.filePathsToIgnore,
+                !!opts.tsconfig
+            );
         } else {
-            process.exit(1);
+            if (!opts.tsconfig) {
+                await openAllDocuments(opts.workspaceUri, opts.filePathsToIgnore, svelteCheck);
+            }
+            const result = await getDiagnostics(opts.workspaceUri, writer, svelteCheck);
+            if (
+                result &&
+                result.errorCount === 0 &&
+                (!opts.failOnWarnings || result.warningCount === 0) &&
+                (!opts.failOnHints || result.hintCount === 0)
+            ) {
+                process.exit(0);
+            } else {
+                process.exit(1);
+            }
         }
+    } catch (_err) {
+        console.error(_err);
+        console.error('svelte-check failed');
     }
-})().catch((_err) => {
-    console.error(_err);
-    console.error('svelte-check failed');
 });

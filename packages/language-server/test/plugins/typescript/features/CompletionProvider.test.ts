@@ -12,7 +12,8 @@ import {
     Range,
     CompletionTriggerKind,
     MarkupKind,
-    TextEdit
+    TextEdit,
+    CancellationTokenSource
 } from 'vscode-languageserver';
 import {
     CompletionsProviderImpl,
@@ -268,10 +269,13 @@ describe('CompletionProviderImpl', () => {
         const { data } = completions!.items[0];
 
         assert.deepStrictEqual(data, {
+            data: undefined,
             hasAction: undefined,
             insertText: undefined,
             isPackageJsonImport: undefined,
+            isImportStatementCompletion: undefined,
             isRecommended: undefined,
+            isSnippet: undefined,
             kind: 'method',
             kindModifiers: '',
             name: 'b',
@@ -282,6 +286,7 @@ describe('CompletionProviderImpl', () => {
             replacementSpan: undefined,
             sortText: '1',
             source: undefined,
+            sourceDisplay: undefined,
             uri: fileNameToAbsoluteUri(filename)
         } as CompletionEntryWithIdentifer);
     });
@@ -524,6 +529,54 @@ describe('CompletionProviderImpl', () => {
         );
     });
 
+    it('resolve auto import completion in instance script (instance and module script present)', async () => {
+        const { completionProvider, document } = setup('importcompletions9.svelte');
+
+        const completions = await completionProvider.getCompletions(
+            document,
+            Position.create(5, 7)
+        );
+        document.version++;
+
+        const item = completions?.items.find((item) => item.label === 'onMount');
+        const { additionalTextEdits } = await completionProvider.resolveCompletion(document, item!);
+
+        assert.strictEqual(
+            harmonizeNewLines(additionalTextEdits![0]?.newText),
+            // " instead of ' because VSCode uses " by default when there are no other imports indicating otherwise
+            `${newLine}import { onMount } from "svelte";${newLine}${newLine}`
+        );
+
+        assert.deepEqual(
+            additionalTextEdits![0]?.range,
+            Range.create(Position.create(4, 8), Position.create(4, 8))
+        );
+    });
+
+    it('resolve auto import completion in module script (instance and module script present)', async () => {
+        const { completionProvider, document } = setup('importcompletions9.svelte');
+
+        const completions = await completionProvider.getCompletions(
+            document,
+            Position.create(1, 7)
+        );
+        document.version++;
+
+        const item = completions?.items.find((item) => item.label === 'onMount');
+        const { additionalTextEdits } = await completionProvider.resolveCompletion(document, item!);
+
+        assert.strictEqual(
+            harmonizeNewLines(additionalTextEdits![0]?.newText),
+            // " instead of ' because VSCode uses " by default when there are no other imports indicating otherwise
+            `${newLine}import { onMount } from "svelte";${newLine}${newLine}`
+        );
+
+        assert.deepEqual(
+            additionalTextEdits![0]?.range,
+            Range.create(Position.create(0, 25), Position.create(0, 25))
+        );
+    });
+
     async function openFileToBeImported(
         docManager: DocumentManager,
         completionProvider: CompletionsProviderImpl,
@@ -558,12 +611,12 @@ describe('CompletionProviderImpl', () => {
             item!
         );
 
-        assert.strictEqual(detail, 'Auto import from ./imported-file.svelte\nclass ImportedFile');
+        assert.strictEqual(detail, 'Auto import from ../imported-file.svelte\nclass ImportedFile');
 
         assert.strictEqual(
             harmonizeNewLines(additionalTextEdits![0]?.newText),
             // " instead of ' because VSCode uses " by default when there are no other imports indicating otherwise
-            `${newLine}import ImportedFile from "./imported-file.svelte";${newLine}`
+            `${newLine}import ImportedFile from "../imported-file.svelte";${newLine}`
         );
 
         assert.deepEqual(
@@ -593,12 +646,12 @@ describe('CompletionProviderImpl', () => {
             item!
         );
 
-        assert.strictEqual(detail, 'Auto import from ./imported-file.svelte\nclass ImportedFile');
+        assert.strictEqual(detail, 'Auto import from ../imported-file.svelte\nclass ImportedFile');
 
         assert.strictEqual(
             harmonizeNewLines(additionalTextEdits![0]?.newText),
             // " instead of ' because VSCode uses " by default when there are no other imports indicating otherwise
-            `<script>${newLine}import ImportedFile from "./imported-file.svelte";` +
+            `<script>${newLine}import ImportedFile from "../imported-file.svelte";` +
                 `${newLine}${newLine}</script>${newLine}`
         );
 
@@ -656,7 +709,7 @@ describe('CompletionProviderImpl', () => {
     });
 
     it('resolve auto completion in correct place when already imported in module script', async () => {
-        const { completionProvider, document } = setup('importCompletion8.svelte');
+        const { completionProvider, document } = setup('importcompletions8.svelte');
 
         const completions = await completionProvider.getCompletions(
             document,
@@ -673,6 +726,43 @@ describe('CompletionProviderImpl', () => {
                 range: Range.create(Position.create(1, 11), Position.create(1, 14))
             }
         ]);
+    });
+
+    it('can be canceled before promise resolved', async () => {
+        const { completionProvider, document } = setup('importcompletions1.svelte');
+        const cancellationTokenSource = new CancellationTokenSource();
+
+        const completionsPromise = completionProvider.getCompletions(
+            document,
+            Position.create(1, 3),
+            undefined,
+            cancellationTokenSource.token
+        );
+
+        cancellationTokenSource.cancel();
+
+        assert.deepStrictEqual(await completionsPromise, null);
+    });
+
+    it('can cancel completion resolving before promise resolved', async () => {
+        const { completionProvider, document } = setup('importcompletions1.svelte');
+        const cancellationTokenSource = new CancellationTokenSource();
+
+        const completions = await completionProvider.getCompletions(
+            document,
+            Position.create(1, 3)
+        );
+
+        const item = completions?.items.find((item) => item.label === 'blubb');
+
+        const completionResolvingPromise = completionProvider.resolveCompletion(
+            document,
+            item!,
+            cancellationTokenSource.token
+        );
+        cancellationTokenSource.cancel();
+
+        assert.deepStrictEqual((await completionResolvingPromise).additionalTextEdits, undefined);
     });
 
     const testForJsDocTemplateCompletion = async (position: Position, newText: string) => {

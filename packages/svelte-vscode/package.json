@@ -4,7 +4,7 @@
     "description": "Svelte language support for VS Code",
     "main": "dist/src/extension.js",
     "scripts": {
-        "build:grammar": "npx js-yaml syntaxes/svelte.tmLanguage.src.yaml > syntaxes/svelte.tmLanguage.json",
+        "build:grammar": "npx js-yaml syntaxes/svelte.tmLanguage.src.yaml > syntaxes/svelte.tmLanguage.json && npx js-yaml syntaxes/postcss.src.yaml > syntaxes/postcss.json",
         "build:ts": "tsc -p ./",
         "build": "npm run build:ts && npm run build:grammar",
         "vscode:prepublish": "npm run build && npm prune --production",
@@ -158,7 +158,7 @@
                     "type": "boolean",
                     "default": true,
                     "title": "TypeScript: Semantic Tokens",
-                    "description": "Enable semantic tokens (semantic highlight) for TypeScript. Doesn't apply to JavaScript"
+                    "description": "Enable semantic tokens (semantic highlight) for TypeScript."
                 },
                 "svelte.plugin.css.enable": {
                     "type": "boolean",
@@ -466,6 +466,13 @@
                 "embeddedLanguages": {
                     "meta.embedded.block.svelte": "svelte"
                 }
+            },
+            {
+                "scopeName": "source.css.postcss",
+                "path": "./syntaxes/postcss.json",
+                "injectTo": [
+                    "source.svelte"
+                ]
             }
         ],
         "commands": [

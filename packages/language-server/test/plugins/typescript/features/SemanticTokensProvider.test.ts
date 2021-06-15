@@ -1,7 +1,12 @@
 import path from 'path';
 import ts from 'typescript';
 import assert from 'assert';
-import { Position, Range, SemanticTokensBuilder } from 'vscode-languageserver';
+import {
+    CancellationTokenSource,
+    Position,
+    Range,
+    SemanticTokensBuilder
+} from 'vscode-languageserver';
 import { Document, DocumentManager } from '../../../../src/lib/documents';
 import { TokenModifier, TokenType } from '../../../../src/lib/semanticToken/semanticTokenLegend';
 import { LSConfigManager } from '../../../../src/ls-config';
@@ -12,11 +17,13 @@ import { pathToUrl } from '../../../../src/utils';
 const testDir = path.join(__dirname, '..');
 
 describe('SemanticTokensProvider', () => {
-    function setup() {
+    const tsFile = 'tokens.svelte';
+
+    function setup(filename: string) {
         const docManager = new DocumentManager(
             (textDocument) => new Document(textDocument.uri, textDocument.text)
         );
-        const filePath = path.join(testDir, 'testfiles', 'semantic-tokens', 'tokens.svelte');
+        const filePath = path.join(testDir, 'testfiles', 'semantic-tokens', filename);
         const lsAndTsDocResolver = new LSAndTSDocResolver(
             docManager,
             [pathToUrl(testDir)],
@@ -31,17 +38,17 @@ describe('SemanticTokensProvider', () => {
     }
 
     it('provides semantic token', async () => {
-        const { provider, document } = setup();
+        const { provider, document } = setup(tsFile);
 
         const { data } = (await provider.getSemanticTokens(document)) ?? {
             data: []
         };
 
-        assertResult(data, getExpected(/* isFull */ true));
+        assertResult(data, getTsExpected(/* isFull */ true));
     });
 
     it('provides partial semantic token', async () => {
-        const { provider, document } = setup();
+        const { provider, document } = setup(tsFile);
 
         const { data } = (await provider.getSemanticTokens(
             document,
@@ -50,17 +57,76 @@ describe('SemanticTokensProvider', () => {
             data: []
         };
 
-        assertResult(data, getExpected(/* isFull */ false));
+        assertResult(data, getTsExpected(/* isFull */ false));
     });
 
-    function getExpected(full: boolean) {
-        const tokenDataScript: Array<{
-            line: number;
-            character: number;
-            length: number;
-            type: number;
-            modifiers: number[];
-        }> = [
+    it('provides semantic token for js', async () => {
+        const { provider, document } = setup('jsToken.svelte');
+
+        const { data } = (await provider.getSemanticTokens(document)) ?? {
+            data: []
+        };
+
+        assertResult(
+            data,
+            buildExpected([
+                {
+                    character: 4,
+                    line: 1,
+                    length: 'console'.length,
+                    modifiers: [TokenModifier.defaultLibrary],
+                    type: TokenType.variable
+                },
+                {
+                    character: 12,
+                    line: 1,
+                    length: 'log'.length,
+                    modifiers: [TokenModifier.defaultLibrary],
+                    type: TokenType.member
+                }
+            ])
+        );
+    });
+
+    it('can cancel semantic token before promise resolved', async () => {
+        const { provider, document } = setup(tsFile);
+        const cancellationTokenSource = new CancellationTokenSource();
+        const tokenPromise = provider.getSemanticTokens(
+            document,
+            undefined,
+            cancellationTokenSource.token
+        );
+        cancellationTokenSource.cancel();
+
+        assert.deepStrictEqual(await tokenPromise, null);
+    });
+
+    interface TokenData {
+        line: number;
+        character: number;
+        length: number;
+        type: number;
+        modifiers: number[];
+    }
+
+    function buildExpected(tokenData: TokenData[]) {
+        const builder = new SemanticTokensBuilder();
+        for (const token of tokenData) {
+            builder.push(
+                token.line,
+                token.character,
+                token.length,
+                token.type,
+                token.modifiers.reduce((pre, next) => pre | (1 << next), 0)
+            );
+        }
+
+        const data = builder.build().data;
+        return data;
+    }
+
+    function getTsExpected(full: boolean) {
+        const tokenDataScript: TokenData[] = [
             {
                 line: 2,
                 character: 14,
@@ -157,19 +223,7 @@ describe('SemanticTokensProvider', () => {
             }
         ];
 
-        const builder = new SemanticTokensBuilder();
-        for (const token of full ? tokenDataAll : tokenDataScript) {
-            builder.push(
-                token.line,
-                token.character,
-                token.length,
-                token.type,
-                token.modifiers.reduce((pre, next) => pre | (1 << next), 0)
-            );
-        }
-
-        const data = builder.build().data;
-        return data;
+        return buildExpected(full ? tokenDataAll : tokenDataScript);
     }
 
     /**

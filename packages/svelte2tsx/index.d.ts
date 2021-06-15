@@ -21,10 +21,6 @@ export default function svelte2tsx(
          */
         filename?: string;
         /**
-         * Whether or not TS strictMode is enabled
-         */
-        strictMode?: boolean;
-        /**
          * If the given file uses TypeScript inside script.
          * This cannot be inferred from `svelte2tsx` by looking
          * at the attributes of the script tag because the
@@ -40,5 +36,13 @@ export default function svelte2tsx(
          * The namespace option from svelte config
          */
         namespace?: string;
+        /**
+         * When setting this to 'dts', all tsx/jsx code and the template code will be thrown out,
+         * all shims will be inlined and the component export is written differently.
+         * Only the `code` property will be set on the returned element.
+         * Use this as an intermediate step to generate type definitions from a component.
+         * It is expected to pass the result to TypeScript which should handle emitting the d.ts files.
+         */
+        mode?: 'tsx' | 'dts'
     }
 ): SvelteCompiledToTsx

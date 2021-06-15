@@ -23,16 +23,25 @@ export class HumanFriendlyWriter implements Writer {
     constructor(
         private stream: Writable,
         private isVerbose = true,
+        private isWatchMode = false,
         private diagnosticFilter: DiagnosticFilter = DEFAULT_FILTER
     ) {}
 
     start(workspaceDir: string) {
+        if (process.stdout.isTTY && this.isWatchMode) {
+            // Clear screen
+            const blank = '\n'.repeat(process.stdout.rows);
+            this.stream.write(blank);
+            process.stdout.cursorTo(0, 0);
+            process.stdout.clearScreenDown();
+        }
+
         if (this.isVerbose) {
             this.stream.write('\n');
+            this.stream.write('====================================\n');
             this.stream.write(`Loading svelte-check in workspace: ${workspaceDir}`);
             this.stream.write('\n');
             this.stream.write('Getting Svelte diagnostics...\n');
-            this.stream.write('====================================\n');
             this.stream.write('\n');
         }
     }
@@ -100,7 +109,7 @@ export class HumanFriendlyWriter implements Writer {
         const message = [
             'svelte-check found ',
             `${errorCount} ${errorCount === 1 ? 'error' : 'errors'}, `,
-            `${warningCount} ${warningCount === 1 ? 'warning' : 'warnings'} and `,
+            `${warningCount} ${warningCount === 1 ? 'warning' : 'warnings'}, and `,
             `${hintCount} ${hintCount === 1 ? 'hint' : 'hints'}\n`
         ].join('');
         if (errorCount !== 0) {
@@ -111,6 +120,9 @@ export class HumanFriendlyWriter implements Writer {
             this.stream.write(chalk.grey(message));
         } else {
             this.stream.write(chalk.green(message));
+        }
+        if (this.isWatchMode) {
+            this.stream.write('Watching for file changes...');
         }
     }
 

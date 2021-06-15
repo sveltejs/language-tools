@@ -95,4 +95,10 @@ export class ExportedNames
 
         return `{${returnElements.join(' , ')}} as {${returnElementsType.join(', ')}}`;
     }
+
+    createOptionalPropsArray() {
+        return Array.from(this.entries())
+            .filter(([_, entry]) => !entry.required)
+            .map(([name, entry]) => `'${entry.identifierText || name}'`);
+    }
 }

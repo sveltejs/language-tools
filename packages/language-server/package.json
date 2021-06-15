@@ -1,6 +1,6 @@
 {
     "name": "svelte-language-server",
-    "version": "0.13.0",
+    "version": "0.14.0",
     "description": "A language server for Svelte",
     "main": "dist/src/index.js",
     "typings": "dist/src/index",
@@ -58,12 +58,12 @@
         "source-map": "^0.7.3",
         "svelte": "~3.38.2",
         "svelte-preprocess": "~4.7.3",
-        "svelte2tsx": "*",
+        "svelte2tsx": "~0.2.0",
         "typescript": "*",
         "vscode-css-languageservice": "5.0.0",
         "vscode-emmet-helper": "2.1.2",
         "vscode-html-languageservice": "4.0.0",
-        "vscode-languageserver": "7.0.0",
+        "vscode-languageserver": "7.1.0-next.4",
         "vscode-languageserver-types": "3.16.0",
         "vscode-uri": "2.1.2"
     }

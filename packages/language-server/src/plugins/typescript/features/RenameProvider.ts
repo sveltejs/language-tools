@@ -1,11 +1,5 @@
 import { Position, WorkspaceEdit, Range } from 'vscode-languageserver';
-import {
-    Document,
-    mapRangeToOriginal,
-    positionAt,
-    offsetAt,
-    getLineAtPosition
-} from '../../../lib/documents';
+import { Document, mapRangeToOriginal, getLineAtPosition } from '../../../lib/documents';
 import { filterAsync, isNotNullOrUndefined, pathToUrl } from '../../../utils';
 import { RenameProvider } from '../../interfaces';
 import {
@@ -17,7 +11,7 @@ import { convertRange } from '../utils';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import ts from 'typescript';
 import { uniqWith, isEqual } from 'lodash';
-import { isNoTextSpanInGeneratedCode, SnapshotFragmentMap } from './utils';
+import { isComponentAtPosition, isNoTextSpanInGeneratedCode, SnapshotFragmentMap } from './utils';
 
 export class RenameProviderImpl implements RenameProvider {
     constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) { }
@@ -29,7 +23,7 @@ export class RenameProviderImpl implements RenameProvider {
         const fragment = await tsDoc.getFragment();
 
         const offset = fragment.offsetAt(fragment.getGeneratedPosition(position));
-        const renameInfo = this.getRenameInfo(lang, tsDoc, offset);
+        const renameInfo = this.getRenameInfo(lang, tsDoc, document, position, offset);
         if (!renameInfo) {
             return null;
         }
@@ -47,7 +41,7 @@ export class RenameProviderImpl implements RenameProvider {
 
         const offset = fragment.offsetAt(fragment.getGeneratedPosition(position));
 
-        if (!this.getRenameInfo(lang, tsDoc, offset)) {
+        if (!this.getRenameInfo(lang, tsDoc, document, position, offset)) {
             return null;
         }
 
@@ -127,7 +121,9 @@ export class RenameProviderImpl implements RenameProvider {
     private getRenameInfo(
         lang: ts.LanguageService,
         tsDoc: SvelteDocumentSnapshot,
-        offset: number
+        doc: Document,
+        originalPosition: Position,
+        generatedOffset: number
     ): {
         canRename: true;
         kind: ts.ScriptElementKind;
@@ -140,20 +136,18 @@ export class RenameProviderImpl implements RenameProvider {
         if (tsDoc.parserError) {
             return null;
         }
-        const renameInfo: any = lang.getRenameInfo(tsDoc.filePath, offset, {
+        const renameInfo: any = lang.getRenameInfo(tsDoc.filePath, generatedOffset, {
             allowRenameOfImportPath: false
         });
-        // TODO this will also forbid renames of svelte component properties
-        // in another component because the ScriptElementKind is a JSXAttribute.
-        // To fix this we would need to enhance svelte2tsx with info methods like
-        // "what props does this file have?"
         if (
             !renameInfo.canRename ||
-            renameInfo.kind === ts.ScriptElementKind.jsxAttribute ||
-            renameInfo.fullDisplayName?.includes('JSX.IntrinsicElements')
+            renameInfo.fullDisplayName?.includes('JSX.IntrinsicElements') ||
+            (renameInfo.kind === ts.ScriptElementKind.jsxAttribute &&
+                !isComponentAtPosition(doc, tsDoc, originalPosition))
         ) {
             return null;
         }
+
         return renameInfo;
     }
 
@@ -288,13 +282,9 @@ export class RenameProviderImpl implements RenameProvider {
 
     // --------> svelte2tsx?
     private isInSvelte2TsxPropLine(fragment: SvelteSnapshotFragment, loc: ts.RenameLocation) {
-        const pos = positionAt(loc.textSpan.start, fragment.text);
-        const textInLine = fragment.text.substring(
-            offsetAt({ ...pos, character: 0 }, fragment.text),
-            loc.textSpan.start
-        );
+        const textBeforeProp = fragment.text.substring(0, loc.textSpan.start);
         // This is how svelte2tsx writes out the props
-        if (textInLine.includes('return { props: {')) {
+        if (textBeforeProp.includes('\nreturn { props: {')) {
             return true;
         }
     }

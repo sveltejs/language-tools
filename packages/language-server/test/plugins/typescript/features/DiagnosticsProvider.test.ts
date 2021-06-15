@@ -1,11 +1,12 @@
 import * as assert from 'assert';
+import { existsSync, unlinkSync, writeFileSync } from 'fs';
 import * as path from 'path';
 import ts from 'typescript';
 import { Document, DocumentManager } from '../../../../src/lib/documents';
 import { LSConfigManager } from '../../../../src/ls-config';
 import { DiagnosticsProviderImpl } from '../../../../src/plugins/typescript/features/DiagnosticsProvider';
 import { LSAndTSDocResolver } from '../../../../src/plugins/typescript/LSAndTSDocResolver';
-import { pathToUrl } from '../../../../src/utils';
+import { normalizePath, pathToUrl } from '../../../../src/utils';
 
 const testDir = path.join(__dirname, '..', 'testfiles', 'diagnostics');
 
@@ -25,7 +26,7 @@ describe('DiagnosticsProvider', () => {
             uri: pathToUrl(filePath),
             text: ts.sys.readFile(filePath) || ''
         });
-        return { plugin, document, docManager };
+        return { plugin, document, docManager, lsAndTsDocResolver };
     }
 
     it('provides diagnostics', async () => {
@@ -935,5 +936,474 @@ describe('DiagnosticsProvider', () => {
         const { plugin, document } = setup('diagnostics-intrinsic.svelte');
         const diagnostics = await plugin.getDiagnostics(document);
         assert.deepStrictEqual(diagnostics, []);
+    });
+
+    it('notices creation and deletion of imported module', async () => {
+        const { plugin, document, lsAndTsDocResolver } = setup('unresolvedimport.svelte');
+
+        const diagnostics1 = await plugin.getDiagnostics(document);
+        assert.deepStrictEqual(diagnostics1.length, 1);
+
+        // back-and-forth-conversion normalizes slashes
+        const newFilePath = normalizePath(path.join(testDir, 'doesntexistyet.js')) || '';
+        writeFileSync(newFilePath, 'export default function foo() {}');
+        assert.ok(existsSync(newFilePath));
+        await lsAndTsDocResolver.getSnapshot(newFilePath);
+
+        try {
+            const diagnostics2 = await plugin.getDiagnostics(document);
+            assert.deepStrictEqual(diagnostics2.length, 0);
+            await lsAndTsDocResolver.deleteSnapshot(newFilePath);
+        } finally {
+            unlinkSync(newFilePath);
+        }
+
+        const diagnostics3 = await plugin.getDiagnostics(document);
+        assert.deepStrictEqual(diagnostics3.length, 1);
+    }).timeout(5000);
+
+    it('notices file changes in all services that reference that file', async () => {
+        const { plugin, document, docManager, lsAndTsDocResolver } = setup(
+            'different-ts-service.svelte'
+        );
+        const otherFilePath = path.join(
+            testDir,
+            'different-ts-service',
+            'different-ts-service.svelte'
+        );
+        const otherDocument = docManager.openDocument(<any>{
+            uri: pathToUrl(otherFilePath),
+            text: ts.sys.readFile(otherFilePath) || ''
+        });
+        // needed because tests have nasty dependencies between them. The ts service
+        // is cached and knows the docs already
+        const sharedFilePath = path.join(testDir, 'shared-comp.svelte');
+        docManager.openDocument(<any>{
+            uri: pathToUrl(sharedFilePath),
+            text: ts.sys.readFile(sharedFilePath) || ''
+        });
+
+        const diagnostics1 = await plugin.getDiagnostics(document);
+        assert.deepStrictEqual(diagnostics1.length, 2);
+        const diagnostics2 = await plugin.getDiagnostics(otherDocument);
+        assert.deepStrictEqual(diagnostics2.length, 2);
+
+        docManager.updateDocument(
+            { uri: pathToUrl(path.join(testDir, 'shared-comp.svelte')), version: 2 },
+            [
+                {
+                    range: { start: { line: 1, character: 19 }, end: { line: 1, character: 19 } },
+                    text: 'o'
+                }
+            ]
+        );
+        await lsAndTsDocResolver.updateExistingTsOrJsFile(path.join(testDir, 'shared-ts-file.ts'), [
+            {
+                range: { start: { line: 0, character: 18 }, end: { line: 0, character: 18 } },
+                text: 'r'
+            }
+        ]);
+        // Wait until the LsAndTsDocResolver notifies the services of the document update
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+
+        const diagnostics3 = await plugin.getDiagnostics(document);
+        assert.deepStrictEqual(diagnostics3.length, 0);
+        const diagnostics4 = await plugin.getDiagnostics(otherDocument);
+        assert.deepStrictEqual(diagnostics4.length, 0);
+    }).timeout(5000);
+
+    function assertPropsDiagnosticsStrict(diagnostics: any[], source: 'ts' | 'js') {
+        assert.deepStrictEqual(
+            diagnostics.map((d: any) => {
+                // irrelevant for this test, save some lines
+                delete d.range;
+                return d;
+            }),
+            [
+                {
+                    code: 2322,
+                    message:
+                        // eslint-disable-next-line max-len
+                        "Type '{}' is not assignable to type 'IntrinsicAttributes & { required: string; optional1?: string | undefined; optional2?: string | undefined; }'.\n  Property 'required' is missing in type '{}' but required in type '{ required: string; optional1?: string | undefined; optional2?: string | undefined; }'.",
+                    severity: 1,
+                    source,
+                    tags: []
+                },
+                {
+                    code: 2322,
+                    message: "Type 'undefined' is not assignable to type 'string'.",
+                    severity: 1,
+                    source,
+                    tags: []
+                },
+                {
+                    code: 2322,
+                    message:
+                        // eslint-disable-next-line max-len
+                        "Type '{ required: string; optional1: string; optional2: string; doesntExist: boolean; }' is not assignable to type 'IntrinsicAttributes & { required: string; optional1?: string | undefined; optional2?: string | undefined; }'.\n  Property 'doesntExist' does not exist on type 'IntrinsicAttributes & { required: string; optional1?: string | undefined; optional2?: string | undefined; }'.",
+                    severity: 1,
+                    source,
+                    tags: []
+                },
+                {
+                    code: 2322,
+                    message: "Type 'boolean' is not assignable to type 'string'.",
+                    severity: 1,
+                    source,
+                    tags: []
+                },
+                {
+                    code: 2322,
+                    message: "Type 'true' is not assignable to type 'string | undefined'.",
+                    severity: 1,
+                    source,
+                    tags: []
+                },
+                {
+                    code: 2322,
+                    message: "Type 'true' is not assignable to type 'string | undefined'.",
+                    severity: 1,
+                    source,
+                    tags: []
+                },
+                {
+                    code: 2322,
+                    message:
+                        // eslint-disable-next-line max-len
+                        "Type '{}' is not assignable to type 'IntrinsicAttributes & { required: string; optional1?: string | undefined; optional2?: string | undefined; }'.\n  Property 'required' is missing in type '{}' but required in type '{ required: string; optional1?: string | undefined; optional2?: string | undefined; }'.",
+                    severity: 1,
+                    source,
+                    tags: []
+                },
+                {
+                    code: 2322,
+                    message: "Type 'undefined' is not assignable to type 'string'.",
+                    severity: 1,
+                    source,
+                    tags: []
+                },
+                {
+                    code: 2322,
+                    message: "Type 'boolean' is not assignable to type 'string'.",
+                    severity: 1,
+                    source,
+                    tags: []
+                },
+                {
+                    code: 2322,
+                    message: "Type 'true' is not assignable to type 'string | undefined'.",
+                    severity: 1,
+                    source,
+                    tags: []
+                },
+                {
+                    code: 2322,
+                    message: "Type 'true' is not assignable to type 'string | undefined'.",
+                    severity: 1,
+                    source,
+                    tags: []
+                }
+            ]
+        );
+    }
+
+    it('checks prop types correctly (ts file, strict mode)', async () => {
+        const { plugin, document } = setup(path.join('checkJs', 'props_importer-ts.svelte'));
+        const diagnostics = await plugin.getDiagnostics(document);
+        assertPropsDiagnosticsStrict(diagnostics, 'ts');
+    });
+
+    it('checks prop types correctly (js file, strict mode)', async () => {
+        const { plugin, document } = setup(path.join('checkJs', 'props_importer-js.svelte'));
+        const diagnostics = await plugin.getDiagnostics(document);
+        assertPropsDiagnosticsStrict(diagnostics, 'js');
+    });
+
+    function assertPropsDiagnostics(diagnostics: any[], source: 'ts' | 'js') {
+        assert.deepStrictEqual(
+            diagnostics.map((d: any) => {
+                // irrelevant for this test, save some lines
+                delete d.range;
+                return d;
+            }),
+            [
+                {
+                    code: 2322,
+                    message:
+                        // eslint-disable-next-line max-len
+                        "Type '{}' is not assignable to type 'IntrinsicAttributes & { required: string; optional1?: string; optional2?: string; }'.\n  Property 'required' is missing in type '{}' but required in type '{ required: string; optional1?: string; optional2?: string; }'.",
+                    severity: 1,
+                    source,
+                    tags: []
+                },
+                {
+                    code: 2322,
+                    message:
+                        // eslint-disable-next-line max-len
+                        "Type '{ required: string; optional1: string; optional2: string; doesntExist: boolean; }' is not assignable to type 'IntrinsicAttributes & { required: string; optional1?: string; optional2?: string; }'.\n  Property 'doesntExist' does not exist on type 'IntrinsicAttributes & { required: string; optional1?: string; optional2?: string; }'.",
+                    severity: 1,
+                    source,
+                    tags: []
+                },
+                {
+                    code: 2322,
+                    message: "Type 'boolean' is not assignable to type 'string'.",
+                    severity: 1,
+                    source,
+                    tags: []
+                },
+                {
+                    code: 2322,
+                    message: "Type 'boolean' is not assignable to type 'string'.",
+                    severity: 1,
+                    source,
+                    tags: []
+                },
+                {
+                    code: 2322,
+                    message: "Type 'boolean' is not assignable to type 'string'.",
+                    severity: 1,
+                    source,
+                    tags: []
+                },
+                {
+                    code: 2322,
+                    message:
+                        // eslint-disable-next-line max-len
+                        "Type '{}' is not assignable to type 'IntrinsicAttributes & { required: string; optional1?: string; optional2?: string; }'.\n  Property 'required' is missing in type '{}' but required in type '{ required: string; optional1?: string; optional2?: string; }'.",
+                    severity: 1,
+                    source,
+                    tags: []
+                },
+                {
+                    code: 2322,
+                    message: "Type 'boolean' is not assignable to type 'string'.",
+                    severity: 1,
+                    source,
+                    tags: []
+                },
+                {
+                    code: 2322,
+                    message: "Type 'boolean' is not assignable to type 'string'.",
+                    severity: 1,
+                    source,
+                    tags: []
+                },
+                {
+                    code: 2322,
+                    message: "Type 'boolean' is not assignable to type 'string'.",
+                    severity: 1,
+                    source,
+                    tags: []
+                }
+            ]
+        );
+    }
+
+    it('checks prop types correctly (ts file, no strict mode)', async () => {
+        const { plugin, document } = setup(
+            path.join('checkJs-no-strict', 'props_importer-ts.svelte')
+        );
+        const diagnostics = await plugin.getDiagnostics(document);
+        assertPropsDiagnostics(diagnostics, 'ts');
+    });
+
+    it('checks prop types correctly (js file, no strict mode)', async () => {
+        const { plugin, document } = setup(
+            path.join('checkJs-no-strict', 'props_importer-js.svelte')
+        );
+        const diagnostics = await plugin.getDiagnostics(document);
+        assertPropsDiagnostics(diagnostics, 'js');
+    });
+
+    it('checks generics correctly', async () => {
+        const { plugin, document } = setup('diagnostics-generics.svelte');
+        const diagnostics = await plugin.getDiagnostics(document);
+        assert.deepStrictEqual(diagnostics, [
+            {
+                code: 2322,
+                message:
+                    'Type \'"asd"\' is not assignable to type \'number | unique symbol | "toString" | "charAt" | "charCodeAt" | "concat" | "indexOf" | "lastIndexOf" | "localeCompare" | "match" | "replace" | "search" | "slice" | "split" | "substring" | ... 34 more ... | "replaceAll"\'.',
+                range: {
+                    start: {
+                        character: 25,
+                        line: 10
+                    },
+                    end: {
+                        character: 26,
+                        line: 10
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            },
+            {
+                code: 2322,
+                message: "Type 'string' is not assignable to type 'boolean'.",
+                range: {
+                    start: {
+                        character: 35,
+                        line: 10
+                    },
+                    end: {
+                        character: 36,
+                        line: 10
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            },
+            {
+                code: 2367,
+                message:
+                    "This condition will always return 'false' since the types 'string' and 'boolean' have no overlap.",
+                range: {
+                    start: {
+                        character: 3,
+                        line: 11
+                    },
+                    end: {
+                        character: 13,
+                        line: 11
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            },
+            {
+                code: 2367,
+                message:
+                    "This condition will always return 'false' since the types 'string' and 'boolean' have no overlap.",
+                range: {
+                    end: {
+                        character: 72,
+                        line: 10
+                    },
+                    start: {
+                        character: 55,
+                        line: 10
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            }
+        ]);
+    });
+
+    it('checks $$Events usage', async () => {
+        const { plugin, document } = setup('$$events.svelte');
+        const diagnostics = await plugin.getDiagnostics(document);
+        assert.deepStrictEqual(diagnostics, [
+            {
+                code: 2345,
+                message:
+                    "Argument of type 'true' is not assignable to parameter of type 'string | undefined'.",
+                range: {
+                    start: {
+                        character: 20,
+                        line: 12
+                    },
+                    end: {
+                        character: 24,
+                        line: 12
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            },
+            {
+                code: 2345,
+                message:
+                    'Argument of type \'"click"\' is not assignable to parameter of type \'"foo"\'.',
+                range: {
+                    start: {
+                        character: 13,
+                        line: 13
+                    },
+                    end: {
+                        character: 20,
+                        line: 13
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            }
+        ]);
+    });
+
+    it('checks $$Events component usage', async () => {
+        const { plugin, document } = setup('diagnostics-$$events.svelte');
+        const diagnostics = await plugin.getDiagnostics(document);
+        assert.deepStrictEqual(diagnostics, [
+            {
+                code: 2345,
+                message:
+                    // Note: If you only run this test, the test message is slightly different for some reason
+                    'Argument of type \'"bar"\' is not assignable to parameter of type \'"foo" | "click"\'.',
+                range: {
+                    start: {
+                        character: 10,
+                        line: 7
+                    },
+                    end: {
+                        character: 15,
+                        line: 7
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            },
+            {
+                code: 2367,
+                message:
+                    "This condition will always return 'false' since the types 'string' and 'boolean' have no overlap.",
+                range: {
+                    start: {
+                        character: 37,
+                        line: 7
+                    },
+                    end: {
+                        character: 54,
+                        line: 7
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            }
+        ]);
+    });
+
+    it('checks strictEvents', async () => {
+        const { plugin, document } = setup('diagnostics-strictEvents.svelte');
+        const diagnostics = await plugin.getDiagnostics(document);
+        assert.deepStrictEqual(diagnostics, [
+            {
+                code: 2345,
+                message:
+                    // Note: If you only run this test, the test message is slightly different for some reason
+                    'Argument of type \'"bar"\' is not assignable to parameter of type \'"foo" | "click"\'.',
+                range: {
+                    start: {
+                        character: 16,
+                        line: 7
+                    },
+                    end: {
+                        character: 21,
+                        line: 7
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            }
+        ]);
     });
 });

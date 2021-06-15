@@ -1,12 +1,12 @@
 import ts from 'typescript';
 import { Position } from 'vscode-languageserver';
-import { Document, getNodeIfIsInComponentStartTag, isInTag } from '../../../lib/documents';
 import {
-    DocumentSnapshot,
-    SnapshotFragment,
-    SvelteDocumentSnapshot,
-    SvelteSnapshotFragment
-} from '../DocumentSnapshot';
+    Document,
+    getLineAtPosition,
+    getNodeIfIsInComponentStartTag,
+    isInTag
+} from '../../../lib/documents';
+import { DocumentSnapshot, SnapshotFragment, SvelteDocumentSnapshot } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 
 /**
@@ -18,7 +18,6 @@ export async function getComponentAtPosition(
     lang: ts.LanguageService,
     doc: Document,
     tsDoc: SvelteDocumentSnapshot,
-    fragment: SvelteSnapshotFragment,
     originalPosition: Position
 ): Promise<SvelteDocumentSnapshot | null> {
     if (tsDoc.parserError) {
@@ -38,6 +37,7 @@ export async function getComponentAtPosition(
         return null;
     }
 
+    const fragment = await tsDoc.getFragment();
     const generatedPosition = fragment.getGeneratedPosition(doc.positionAt(node.start + 1));
     const def = lang.getDefinitionAtPosition(
         tsDoc.filePath,
@@ -52,6 +52,26 @@ export async function getComponentAtPosition(
         return null;
     }
     return snapshot;
+}
+
+export function isComponentAtPosition(
+    doc: Document,
+    tsDoc: SvelteDocumentSnapshot,
+    originalPosition: Position
+): boolean {
+    if (tsDoc.parserError) {
+        return false;
+    }
+
+    if (
+        isInTag(originalPosition, doc.scriptInfo) ||
+        isInTag(originalPosition, doc.moduleScriptInfo)
+    ) {
+        // Inside script tags -> not a component
+        return false;
+    }
+
+    return !!getNodeIfIsInComponentStartTag(doc.html, doc.offsetAt(originalPosition));
 }
 
 /**
@@ -72,6 +92,11 @@ export function isInGeneratedCode(text: string, start: number, end: number) {
  */
 export function isNoTextSpanInGeneratedCode(text: string, span: ts.TextSpan) {
     return !isInGeneratedCode(text, span.start, span.start + span.length);
+}
+
+export function isPartOfImportStatement(text: string, position: Position): boolean {
+    const line = getLineAtPosition(position, text);
+    return /\s*from\s+["'][^"']*/.test(line.substr(0, position.character));
 }
 
 export class SnapshotFragmentMap {

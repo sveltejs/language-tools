@@ -18,6 +18,14 @@ export function pathToUrl(path: string) {
 }
 
 /**
+ * Some paths (on windows) start with a upper case driver letter, some don't.
+ * This is normalized here.
+ */
+export function normalizePath(path: string): string {
+    return urlToPath(pathToUrl(path)) ?? '';
+}
+
+/**
  * URIs coming from the client could be encoded in a different
  * way than expected / than the internal services create them.
  * This normalizes them to be the same as the internally generated ones.
@@ -43,6 +51,29 @@ export function isInRange(range: Range, positionToTest: Position): boolean {
         isBeforeOrEqualToPosition(range.end, positionToTest) &&
         isBeforeOrEqualToPosition(positionToTest, range.start)
     );
+}
+
+export function isRangeStartAfterEnd(range: Range): boolean {
+    return (
+        range.end.line < range.start.line ||
+        (range.end.line === range.start.line && range.end.character < range.start.character)
+    );
+}
+
+export function swapRangeStartEndIfNecessary(range: Range): Range {
+    if (isRangeStartAfterEnd(range)) {
+        const start = range.start;
+        range.start = range.end;
+        range.end = start;
+    }
+    return range;
+}
+
+export function moveRangeStartToEndIfNecessary(range: Range): Range {
+    if (isRangeStartAfterEnd(range)) {
+        range.start = range.end;
+    }
+    return range;
 }
 
 export function isBeforeOrEqualToPosition(position: Position, positionToTest: Position): boolean {
@@ -83,6 +114,35 @@ export function debounceSameArg<T>(
             prevArg = undefined;
         }, miliseconds);
     };
+}
+
+/**
+ * Debounces a function but also waits at minimum the specified number of miliseconds until
+ * the next invocation. This avoids needless calls when a synchronous call (like diagnostics)
+ * took too long and the whole timeout of the next call was eaten up already.
+ *
+ * @param fn The function with it's argument
+ * @param miliseconds Number of miliseconds to debounce/throttle
+ */
+export function debounceThrottle<T extends (...args: any) => void>(fn: T, miliseconds: number): T {
+    let timeout: any;
+    let lastInvocation = Date.now() - miliseconds;
+
+    function maybeCall(...args: any) {
+        clearTimeout(timeout);
+
+        timeout = setTimeout(() => {
+            if (Date.now() - lastInvocation < miliseconds) {
+                maybeCall(...args);
+                return;
+            }
+
+            fn(...args);
+            lastInvocation = Date.now();
+        }, miliseconds);
+    }
+
+    return maybeCall as any;
 }
 
 /**

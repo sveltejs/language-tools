@@ -1,4 +1,3 @@
-import _ from 'lodash';
 import {
     ApplyWorkspaceEditParams,
     ApplyWorkspaceEditRequest,
@@ -31,9 +30,10 @@ import {
     PluginHost,
     SveltePlugin,
     TypeScriptPlugin,
-    OnWatchFileChangesPara
+    OnWatchFileChangesPara,
+    LSAndTSDocResolver
 } from './plugins';
-import { isNotNullOrUndefined, urlToPath } from './utils';
+import { debounceThrottle, isNotNullOrUndefined, urlToPath } from './utils';
 import { FallbackWatcher } from './lib/FallbackWatcher';
 
 namespace TagCloseRequest {
@@ -132,7 +132,12 @@ export function startServer(options?: LSOptions) {
         pluginHost.register((sveltePlugin = new SveltePlugin(configManager)));
         pluginHost.register(new HTMLPlugin(docManager, configManager));
         pluginHost.register(new CSSPlugin(docManager, configManager));
-        pluginHost.register(new TypeScriptPlugin(docManager, configManager, workspaceUris));
+        pluginHost.register(
+            new TypeScriptPlugin(
+                configManager,
+                new LSAndTSDocResolver(docManager, workspaceUris, configManager)
+            )
+        );
 
         const clientSupportApplyEditCommand = !!evt.capabilities.workspace?.applyEdit;
 
@@ -201,7 +206,8 @@ export function startServer(options?: LSOptions) {
                               'constant_scope_1',
                               'constant_scope_2',
                               'constant_scope_3',
-                              'extract_to_svelte_component'
+                              'extract_to_svelte_component',
+                              'Infer function return type'
                           ]
                       }
                     : undefined,
@@ -250,8 +256,8 @@ export function startServer(options?: LSOptions) {
         docManager.updateDocument(evt.textDocument, evt.contentChanges)
     );
     connection.onHover((evt) => pluginHost.doHover(evt.textDocument, evt.position));
-    connection.onCompletion((evt) =>
-        pluginHost.getCompletions(evt.textDocument, evt.position, evt.context)
+    connection.onCompletion((evt, cancellationToken) =>
+        pluginHost.getCompletions(evt.textDocument, evt.position, evt.context, cancellationToken)
     );
     connection.onDocumentFormatting((evt) =>
         pluginHost.formatDocument(evt.textDocument, evt.options)
@@ -263,14 +269,16 @@ export function startServer(options?: LSOptions) {
     connection.onColorPresentation((evt) =>
         pluginHost.getColorPresentations(evt.textDocument, evt.range, evt.color)
     );
-    connection.onDocumentSymbol((evt) => pluginHost.getDocumentSymbols(evt.textDocument));
+    connection.onDocumentSymbol((evt, cancellationToken) =>
+        pluginHost.getDocumentSymbols(evt.textDocument, cancellationToken)
+    );
     connection.onDefinition((evt) => pluginHost.getDefinitions(evt.textDocument, evt.position));
     connection.onReferences((evt) =>
         pluginHost.findReferences(evt.textDocument, evt.position, evt.context)
     );
 
-    connection.onCodeAction((evt) =>
-        pluginHost.getCodeActions(evt.textDocument, evt.range, evt.context)
+    connection.onCodeAction((evt, cancellationToken) =>
+        pluginHost.getCodeActions(evt.textDocument, evt.range, evt.context, cancellationToken)
     );
     connection.onExecuteCommand(async (evt) => {
         const result = await pluginHost.executeCommand(
@@ -289,18 +297,18 @@ export function startServer(options?: LSOptions) {
         }
     });
 
-    connection.onCompletionResolve((completionItem) => {
+    connection.onCompletionResolve((completionItem, cancellationToken) => {
         const data = (completionItem as AppCompletionItem).data as TextDocumentIdentifier;
 
         if (!data) {
             return completionItem;
         }
 
-        return pluginHost.resolveCompletion(data, completionItem);
+        return pluginHost.resolveCompletion(data, completionItem, cancellationToken);
     });
 
-    connection.onSignatureHelp((evt) =>
-        pluginHost.getSignatureHelp(evt.textDocument, evt.position, evt.context)
+    connection.onSignatureHelp((evt, cancellationToken) =>
+        pluginHost.getSignatureHelp(evt.textDocument, evt.position, evt.context, cancellationToken)
     );
 
     connection.onSelectionRanges((evt) =>
@@ -313,7 +321,7 @@ export function startServer(options?: LSOptions) {
         pluginHost.getDiagnostics.bind(pluginHost)
     );
 
-    const updateAllDiagnostics = _.debounce(() => diagnosticsManager.updateAll(), 1000);
+    const updateAllDiagnostics = debounceThrottle(() => diagnosticsManager.updateAll(), 1000);
 
     connection.onDidChangeWatchedFiles(onDidChangeWatchedFiles);
     function onDidChangeWatchedFiles(para: DidChangeWatchedFilesParams) {
@@ -338,11 +346,11 @@ export function startServer(options?: LSOptions) {
         updateAllDiagnostics();
     });
 
-    connection.onRequest(SemanticTokensRequest.type, (evt) =>
-        pluginHost.getSemanticTokens(evt.textDocument)
+    connection.onRequest(SemanticTokensRequest.type, (evt, cancellationToken) =>
+        pluginHost.getSemanticTokens(evt.textDocument, undefined, cancellationToken)
     );
-    connection.onRequest(SemanticTokensRangeRequest.type, (evt) =>
-        pluginHost.getSemanticTokens(evt.textDocument, evt.range)
+    connection.onRequest(SemanticTokensRangeRequest.type, (evt, cancellationToken) =>
+        pluginHost.getSemanticTokens(evt.textDocument, evt.range, cancellationToken)
     );
 
     connection.onRequest(
@@ -352,7 +360,7 @@ export function startServer(options?: LSOptions) {
 
     docManager.on(
         'documentChange',
-        _.debounce(async (document: Document) => diagnosticsManager.update(document), 500)
+        debounceThrottle(async (document: Document) => diagnosticsManager.update(document), 1000)
     );
     docManager.on('documentClose', (document: Document) =>
         diagnosticsManager.removeDiagnostics(document)

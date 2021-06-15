@@ -6,5 +6,6 @@
           because TS does not look up other types.
         */
         "types": ["svelte"]
-    }
+    },
+    "exclude": ["different-ts-service/**"]
 }

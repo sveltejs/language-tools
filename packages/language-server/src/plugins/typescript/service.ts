@@ -1,21 +1,42 @@
 import { dirname, resolve } from 'path';
 import ts from 'typescript';
-import { Document } from '../../lib/documents';
-import { Logger } from '../../logger';
+import { TextDocumentContentChangeEvent } from 'vscode-languageserver-protocol';
 import { getPackageInfo } from '../../importPackage';
+import { Document } from '../../lib/documents';
+import { configLoader } from '../../lib/documents/configLoader';
+import { Logger } from '../../logger';
+import { normalizePath } from '../../utils';
 import { DocumentSnapshot } from './DocumentSnapshot';
 import { createSvelteModuleLoader } from './module-loader';
-import { ignoredBuildDirectories, SnapshotManager } from './SnapshotManager';
+import {
+    GlobalSnapshotsManager,
+    ignoredBuildDirectories,
+    SnapshotManager
+} from './SnapshotManager';
 import { ensureRealSvelteFilePath, findTsConfigPath } from './utils';
-import { configLoader } from '../../lib/documents/configLoader';
 
 export interface LanguageServiceContainer {
     readonly tsconfigPath: string;
     readonly compilerOptions: ts.CompilerOptions;
+    /**
+     * @internal Public for tests only
+     */
     readonly snapshotManager: SnapshotManager;
     getService(): ts.LanguageService;
     updateSnapshot(documentOrFilePath: Document | string): DocumentSnapshot;
     deleteSnapshot(filePath: string): void;
+    updateProjectFiles(): void;
+    updateTsOrJsFile(fileName: string, changes?: TextDocumentContentChangeEvent[]): void;
+    /**
+     * Checks if a file is present in the project.
+     * Unlike `fileBelongsToProject`, this doesn't run a file search on disk.
+     */
+    hasFile(filePath: string): boolean;
+    /**
+     * Careful, don't call often, or it will hurt performance.
+     * Only works for TS versions that have ScriptKind.Deferred
+     */
+    fileBelongsToProject(filePath: string): boolean;
 }
 
 const services = new Map<string, Promise<LanguageServiceContainer>>();
@@ -23,31 +44,34 @@ const services = new Map<string, Promise<LanguageServiceContainer>>();
 export interface LanguageServiceDocumentContext {
     transformOnTemplateError: boolean;
     createDocument: (fileName: string, content: string) => Document;
-}
-
-export async function getLanguageServiceForPath(
-    path: string,
-    workspaceUris: string[],
-    docContext: LanguageServiceDocumentContext
-): Promise<ts.LanguageService> {
-    return (await getService(path, workspaceUris, docContext)).getService();
-}
-
-export async function getLanguageServiceForDocument(
-    document: Document,
-    workspaceUris: string[],
-    docContext: LanguageServiceDocumentContext
-): Promise<ts.LanguageService> {
-    return getLanguageServiceForPath(document.getFilePath() || '', workspaceUris, docContext);
+    globalSnapshotsManager: GlobalSnapshotsManager;
 }
 
 export async function getService(
     path: string,
     workspaceUris: string[],
     docContext: LanguageServiceDocumentContext
-) {
+): Promise<LanguageServiceContainer> {
     const tsconfigPath = findTsConfigPath(path, workspaceUris);
+    return getServiceForTsconfig(tsconfigPath, docContext);
+}
 
+export async function forAllServices(
+    cb: (service: LanguageServiceContainer) => any
+): Promise<void> {
+    for (const service of services.values()) {
+        cb(await service);
+    }
+}
+
+/**
+ * @param tsconfigPath has to be absolute
+ * @param docContext
+ */
+export async function getServiceForTsconfig(
+    tsconfigPath: string,
+    docContext: LanguageServiceDocumentContext
+): Promise<LanguageServiceContainer> {
     let service: LanguageServiceContainer;
     if (services.has(tsconfigPath)) {
         service = await services.get(tsconfigPath)!;
@@ -70,7 +94,12 @@ async function createLanguageService(
     const { options: compilerOptions, fileNames: files, raw } = getParsedConfig();
     // raw is the tsconfig merged with extending config
     // see: https://github.com/microsoft/TypeScript/blob/08e4f369fbb2a5f0c30dee973618d65e6f7f09f8/src/compiler/commandLineParser.ts#L2537
-    const snapshotManager = new SnapshotManager(files, raw, workspacePath || process.cwd());
+    const snapshotManager = new SnapshotManager(
+        docContext.globalSnapshotsManager,
+        files,
+        raw,
+        workspacePath || process.cwd()
+    );
 
     // Load all configs within the tsconfig scope and the one above so that they are all loaded
     // by the time they need to be accessed synchronously by DocumentSnapshots to determine
@@ -117,7 +146,6 @@ async function createLanguageService(
     };
     let languageService = ts.createLanguageService(host);
     const transformationConfig = {
-        strictMode: !!compilerOptions.strict,
         transformOnTemplateError: docContext.transformOnTemplateError
     };
 
@@ -127,6 +155,10 @@ async function createLanguageService(
         getService: () => languageService,
         updateSnapshot,
         deleteSnapshot,
+        updateProjectFiles,
+        updateTsOrJsFile,
+        hasFile,
+        fileBelongsToProject,
         snapshotManager
     };
 
@@ -148,6 +180,10 @@ async function createLanguageService(
             return prevSnapshot;
         }
 
+        if (!prevSnapshot) {
+            svelteModuleLoader.deleteUnresolvedResolutionsFromCache(filePath);
+        }
+
         const newSnapshot = DocumentSnapshot.fromDocument(document, transformationConfig);
 
         snapshotManager.set(filePath, newSnapshot);
@@ -166,6 +202,7 @@ async function createLanguageService(
             return prevSnapshot;
         }
 
+        svelteModuleLoader.deleteUnresolvedResolutionsFromCache(filePath);
         const newSnapshot = DocumentSnapshot.fromFilePath(
             filePath,
             docContext.createDocument,
@@ -183,6 +220,7 @@ async function createLanguageService(
             return doc;
         }
 
+        svelteModuleLoader.deleteUnresolvedResolutionsFromCache(fileName);
         doc = DocumentSnapshot.fromFilePath(
             fileName,
             docContext.createDocument,
@@ -190,6 +228,26 @@ async function createLanguageService(
         );
         snapshotManager.set(fileName, doc);
         return doc;
+    }
+
+    function updateProjectFiles(): void {
+        snapshotManager.updateProjectFiles();
+    }
+
+    function hasFile(filePath: string): boolean {
+        return snapshotManager.has(filePath);
+    }
+
+    function fileBelongsToProject(filePath: string): boolean {
+        filePath = normalizePath(filePath);
+        return hasFile(filePath) || getParsedConfig().fileNames.includes(filePath);
+    }
+
+    function updateTsOrJsFile(fileName: string, changes?: TextDocumentContentChangeEvent[]): void {
+        if (!snapshotManager.has(fileName)) {
+            svelteModuleLoader.deleteUnresolvedResolutionsFromCache(fileName);
+        }
+        snapshotManager.updateTsOrJsFile(fileName, changes);
     }
 
     function getParsedConfig() {
@@ -228,7 +286,16 @@ async function createLanguageService(
             forcedCompilerOptions,
             tsconfigPath,
             undefined,
-            [{ extension: 'svelte', isMixedContent: false, scriptKind: ts.ScriptKind.TSX }]
+            [
+                {
+                    extension: 'svelte',
+                    isMixedContent: true,
+                    // Deferred was added in a later TS version, fall back to tsx
+                    // If Deferred exists, this means that all Svelte files are included
+                    // in parsedConfig.fileNames
+                    scriptKind: ts.ScriptKind.Deferred ?? ts.ScriptKind.TSX
+                }
+            ]
         );
 
         const compilerOptions: ts.CompilerOptions = {
@@ -256,6 +323,7 @@ async function createLanguageService(
 
         return {
             ...parsedConfig,
+            fileNames: parsedConfig.fileNames.map(normalizePath),
             options: compilerOptions
         };
     }

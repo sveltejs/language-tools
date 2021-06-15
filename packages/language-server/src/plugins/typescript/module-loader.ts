@@ -1,32 +1,38 @@
 import ts from 'typescript';
-import {
-    isVirtualSvelteFilePath,
-    ensureRealSvelteFilePath,
-    getExtensionFromScriptKind
-} from './utils';
+import { getLastPartOfPath } from '../../utils';
 import { DocumentSnapshot } from './DocumentSnapshot';
 import { createSvelteSys } from './svelte-sys';
+import {
+    ensureRealSvelteFilePath,
+    getExtensionFromScriptKind,
+    isVirtualSvelteFilePath
+} from './utils';
 
 /**
  * Caches resolved modules.
  */
 class ModuleResolutionCache {
-    private cache = new Map<string, ts.ResolvedModule>();
+    private cache = new Map<string, ts.ResolvedModule | undefined>();
 
     /**
      * Tries to get a cached module.
+     * Careful: `undefined` can mean either there's no match found, or that the result resolved to `undefined`.
      */
     get(moduleName: string, containingFile: string): ts.ResolvedModule | undefined {
         return this.cache.get(this.getKey(moduleName, containingFile));
     }
 
     /**
-     * Caches resolved module, if it is not undefined.
+     * Checks if has cached module.
+     */
+    has(moduleName: string, containingFile: string): boolean {
+        return this.cache.has(this.getKey(moduleName, containingFile));
+    }
+
+    /**
+     * Caches resolved module (or undefined).
      */
     set(moduleName: string, containingFile: string, resolvedModule: ts.ResolvedModule | undefined) {
-        if (!resolvedModule) {
-            return;
-        }
         this.cache.set(this.getKey(moduleName, containingFile), resolvedModule);
     }
 
@@ -36,7 +42,21 @@ class ModuleResolutionCache {
      */
     delete(resolvedModuleName: string): void {
         this.cache.forEach((val, key) => {
-            if (val.resolvedFileName === resolvedModuleName) {
+            if (val?.resolvedFileName === resolvedModuleName) {
+                this.cache.delete(key);
+            }
+        });
+    }
+
+    /**
+     * Deletes everything from cache that resolved to `undefined`
+     * and which might match the path.
+     */
+    deleteUnresolvedResolutionsFromCache(path: string): void {
+        const fileNameWithoutEnding = getLastPartOfPath(path).split('.').shift() || '';
+        this.cache.forEach((val, key) => {
+            const moduleName = key.split(':::').pop() || '';
+            if (!val && moduleName.includes(fileNameWithoutEnding)) {
                 this.cache.delete(key);
             }
         });
@@ -71,6 +91,8 @@ export function createSvelteModuleLoader(
         readFile: svelteSys.readFile,
         readDirectory: svelteSys.readDirectory,
         deleteFromModuleCache: (path: string) => moduleCache.delete(path),
+        deleteUnresolvedResolutionsFromCache: (path: string) =>
+            moduleCache.deleteUnresolvedResolutionsFromCache(path),
         resolveModuleNames
     };
 
@@ -79,9 +101,8 @@ export function createSvelteModuleLoader(
         containingFile: string
     ): Array<ts.ResolvedModule | undefined> {
         return moduleNames.map((moduleName) => {
-            const cachedModule = moduleCache.get(moduleName, containingFile);
-            if (cachedModule) {
-                return cachedModule;
+            if (moduleCache.has(moduleName, containingFile)) {
+                return moduleCache.get(moduleName, containingFile);
             }
 
             const resolvedModule = resolveModuleName(moduleName, containingFile);

@@ -76,7 +76,6 @@ export interface SnapshotFragment extends DocumentMapper {
  * Options that apply to svelte files.
  */
 export interface SvelteSnapshotOptions {
-    strictMode: boolean;
     transformOnTemplateError: boolean;
 }
 
@@ -173,7 +172,6 @@ function preprocessSvelteFile(document: Document, options: SvelteSnapshotOptions
 
     try {
         const tsx = svelte2tsx(text, {
-            strictMode: options.strictMode,
             filename: document.getFilePath() ?? undefined,
             isTsFile: scriptKind === ts.ScriptKind.TSX,
             emitOnTemplateError: options.transformOnTemplateError,

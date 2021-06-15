@@ -1,5 +1,6 @@
 import ts from 'typescript';
 import {
+    CancellationToken,
     CompletionContext,
     CompletionList,
     CompletionTriggerKind,
@@ -31,13 +32,19 @@ import {
     scriptElementKindToCompletionItemKind
 } from '../utils';
 import { getJsDocTemplateCompletion } from './getJsDocTemplateCompletion';
-import { getComponentAtPosition } from './utils';
+import { getComponentAtPosition, isPartOfImportStatement } from './utils';
 
 export interface CompletionEntryWithIdentifer extends ts.CompletionEntry, TextDocumentIdentifier {
     position: Position;
 }
 
 type validTriggerCharacter = '.' | '"' | "'" | '`' | '/' | '@' | '<' | '#';
+
+type LastCompletion = {
+    key: string;
+    position: Position;
+    completionList: AppCompletionList<CompletionEntryWithIdentifer> | null;
+};
 
 export class CompletionsProviderImpl implements CompletionsProvider<CompletionEntryWithIdentifer> {
     constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
@@ -48,6 +55,10 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
      * Therefore, only use the characters the typescript compiler treats as valid.
      */
     private readonly validTriggerCharacters = ['.', '"', "'", '`', '/', '@', '<', '#'] as const;
+    /**
+     * For performance reasons, try to reuse the last completion if possible.
+     */
+    private lastCompletion?: LastCompletion;
 
     private isValidTriggerCharacter(
         character: string | undefined
@@ -58,7 +69,8 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
     async getCompletions(
         document: Document,
         position: Position,
-        completionContext?: CompletionContext
+        completionContext?: CompletionContext,
+        cancellationToken?: CancellationToken
     ): Promise<AppCompletionList<CompletionEntryWithIdentifer> | null> {
         if (isInTag(position, document.styleInfo)) {
             return null;
@@ -94,6 +106,21 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             return null;
         }
 
+        if (
+            this.canReuseLastCompletion(
+                this.lastCompletion,
+                triggerKind,
+                triggerCharacter,
+                document,
+                position
+            )
+        ) {
+            this.lastCompletion.position = position;
+            return this.lastCompletion.completionList;
+        } else {
+            this.lastCompletion = undefined;
+        }
+
         const fragment = await tsDoc.getFragment();
         if (!fragment.isInGenerated(position)) {
             return null;
@@ -105,16 +132,18 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             return getJsDocTemplateCompletion(fragment, lang, filePath, offset);
         }
 
-        const eventCompletions = await this.getEventCompletions(
-            lang,
-            document,
-            tsDoc,
-            fragment,
-            position
-        );
+        if (cancellationToken?.isCancellationRequested) {
+            return null;
+        }
+
+        const eventCompletions = await this.getEventCompletions(lang, document, tsDoc, position);
 
         if (isEventTriggerCharacter) {
             return CompletionList.create(eventCompletions, !!tsDoc.parserError);
+        }
+
+        if (cancellationToken?.isCancellationRequested) {
+            return null;
         }
 
         const completions =
@@ -143,7 +172,28 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             .map((comp) => mapCompletionItemToOriginal(fragment, comp))
             .concat(eventCompletions);
 
-        return CompletionList.create(completionItems, !!tsDoc.parserError);
+        const completionList = CompletionList.create(completionItems, !!tsDoc.parserError);
+        this.lastCompletion = { key: document.getFilePath() || '', position, completionList };
+        return completionList;
+    }
+
+    private canReuseLastCompletion(
+        lastCompletion: LastCompletion | undefined,
+        triggerKind: number | undefined,
+        triggerCharacter: string | undefined,
+        document: Document,
+        position: Position
+    ): lastCompletion is LastCompletion {
+        return (
+            !!lastCompletion &&
+            lastCompletion.key === document.getFilePath() &&
+            lastCompletion.position.line === position.line &&
+            Math.abs(lastCompletion.position.character - position.character) < 2 &&
+            (triggerKind === CompletionTriggerKind.TriggerForIncompleteCompletions ||
+                // Special case: `.` is a trigger character, but inside import path completions
+                // it shouldn't trigger another completion because we can reuse the old one
+                (triggerCharacter === '.' && isPartOfImportStatement(document.getText(), position)))
+        );
     }
 
     private getExistingImports(document: Document) {
@@ -158,7 +208,6 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         lang: ts.LanguageService,
         doc: Document,
         tsDoc: SvelteDocumentSnapshot,
-        fragment: SvelteSnapshotFragment,
         originalPosition: Position
     ): Promise<Array<AppCompletionItem<CompletionEntryWithIdentifer>>> {
         const snapshot = await getComponentAtPosition(
@@ -166,7 +215,6 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             lang,
             doc,
             tsDoc,
-            fragment,
             originalPosition
         );
         if (!snapshot) {
@@ -248,9 +296,11 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         }
 
         if (isScriptElement && hasModifier) {
+            const label =
+                kindModifiers && !name.endsWith(kindModifiers) ? name + kindModifiers : name;
             return {
                 insertText: name,
-                label: name + kindModifiers,
+                label,
                 isSvelteComp
             };
         }
@@ -272,7 +322,8 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
 
     async resolveCompletion(
         document: Document,
-        completionItem: AppCompletionItem<CompletionEntryWithIdentifer>
+        completionItem: AppCompletionItem<CompletionEntryWithIdentifer>,
+        cancellationToken?: CancellationToken
     ): Promise<AppCompletionItem<CompletionEntryWithIdentifer>> {
         const { data: comp } = completionItem;
         const { tsDoc, lang, userPreferences } = await this.lsAndTsDocResolver.getLSAndTSDoc(
@@ -281,18 +332,20 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
 
         const filePath = tsDoc.filePath;
 
-        if (!comp || !filePath) {
+        if (!comp || !filePath || cancellationToken?.isCancellationRequested) {
             return completionItem;
         }
 
         const fragment = await tsDoc.getFragment();
+
         const detail = lang.getCompletionEntryDetails(
             filePath,
             fragment.offsetAt(fragment.getGeneratedPosition(comp.position)),
             comp.name,
             {},
             comp.source,
-            userPreferences
+            userPreferences,
+            comp.data
         );
 
         if (detail) {
@@ -317,8 +370,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
                             fragment,
                             change,
                             isImport,
-                            isInTag(comp.position, document.scriptInfo) ||
-                                isInTag(comp.position, document.moduleScriptInfo)
+                            comp.position
                         )
                     );
                 }
@@ -331,11 +383,11 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
     }
 
     private getCompletionDocument(compDetail: ts.CompletionEntryDetails) {
-        const { source, documentation: tsDocumentation, displayParts, tags } = compDetail;
+        const { sourceDisplay, documentation: tsDocumentation, displayParts, tags } = compDetail;
         let detail: string = this.changeSvelteComponentName(ts.displayPartsToString(displayParts));
 
-        if (source) {
-            const importPath = ts.displayPartsToString(source);
+        if (sourceDisplay) {
+            const importPath = ts.displayPartsToString(sourceDisplay);
             detail = `Auto import from ${importPath}\n${detail}`;
         }
 
@@ -355,7 +407,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         fragment: SvelteSnapshotFragment,
         changes: ts.FileTextChanges,
         isImport: boolean,
-        actionTriggeredInScript: boolean
+        originalTriggerPosition: Position
     ): TextEdit[] {
         return changes.textChanges.map((change) =>
             this.codeActionChangeToTextEdit(
@@ -363,7 +415,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
                 fragment,
                 change,
                 isImport,
-                actionTriggeredInScript
+                originalTriggerPosition
             )
         );
     }
@@ -373,9 +425,12 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         fragment: SvelteSnapshotFragment,
         change: ts.TextChange,
         isImport: boolean,
-        actionTriggeredInScript: boolean
+        originalTriggerPosition: Position
     ): TextEdit {
-        change.newText = this.changeComponentImport(change.newText, actionTriggeredInScript);
+        change.newText = this.changeComponentImport(
+            change.newText,
+            isInScript(originalTriggerPosition, doc)
+        );
 
         const scriptTagInfo = fragment.scriptInfo || fragment.moduleScriptInfo;
         if (!scriptTagInfo) {
@@ -410,7 +465,11 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             !isInScript(range.start, fragment)
         ) {
             range = convertRange(doc, {
-                start: scriptTagInfo.start,
+                start: isInTag(originalTriggerPosition, doc.scriptInfo)
+                    ? fragment.scriptInfo?.start || scriptTagInfo.start
+                    : isInTag(originalTriggerPosition, doc.moduleScriptInfo)
+                    ? fragment.moduleScriptInfo?.start || scriptTagInfo.start
+                    : scriptTagInfo.start,
                 length: span.length
             });
         }
@@ -469,8 +528,6 @@ const beginOfDocumentRange = Range.create(Position.create(0, 0), Position.create
 const scriptImportRegex =
     /\bimport\s+{([^}]*?)}\s+?from\s+['"`].+?['"`]|\bimport\s+(\w+?)\s+from\s+['"`].+?['"`]/g;
 
-const completionBlacklist = new Set(['sveltekitPrefetch', 'sveltekitNoscroll']);
-
 function isValidCompletion(
     document: Document,
     position: Position
@@ -483,10 +540,8 @@ function isValidCompletion(
         return () => true;
     }
     return (value) =>
-        !completionBlacklist.has(value.name) &&
-        // remove attribues starting with "on" because those are events.
-        // Svelte wants events of the form "on:X", but the suggestions
-        // are of the form "onX". Moreover, they are doubled by the HTML
-        // attribute suggestions. Therefore filter them out.
-        !value.name.startsWith('on');
+        // Remove jsx attributes on html tags because they are doubled by the HTML
+        // attribute suggestions, and for events they are wrong (onX instead of on:X).
+        // Therefore filter them out.
+        value.kind !== ts.ScriptElementKind.jsxAttribute;
 }

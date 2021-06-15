@@ -1,8 +1,10 @@
 import ts, { NavigationTree } from 'typescript';
 import {
+    CancellationToken,
     CodeAction,
     CodeActionContext,
     CompletionContext,
+    CompletionList,
     DefinitionLink,
     Diagnostic,
     FileChangeType,
@@ -12,21 +14,15 @@ import {
     Position,
     Range,
     ReferenceContext,
-    SymbolInformation,
-    WorkspaceEdit,
-    CompletionList,
     SelectionRange,
+    SemanticTokens,
     SignatureHelp,
     SignatureHelpContext,
-    SemanticTokens,
-    TextDocumentContentChangeEvent
+    SymbolInformation,
+    TextDocumentContentChangeEvent,
+    WorkspaceEdit
 } from 'vscode-languageserver';
-import {
-    Document,
-    DocumentManager,
-    mapSymbolInformationToOriginal,
-    getTextInRange
-} from '../../lib/documents';
+import { Document, getTextInRange, mapSymbolInformationToOriginal } from '../../lib/documents';
 import { LSConfigManager, LSTypescriptConfig } from '../../ls-config';
 import { isNotNullOrUndefined, pathToUrl } from '../../utils';
 import {
@@ -41,12 +37,12 @@ import {
     FindReferencesProvider,
     HoverProvider,
     OnWatchFileChanges,
+    OnWatchFileChangesPara,
     RenameProvider,
     SelectionRangeProvider,
+    SemanticTokensProvider,
     SignatureHelpProvider,
     UpdateImportsProvider,
-    OnWatchFileChangesPara,
-    SemanticTokensProvider,
     UpdateTsOrJsFile
 } from '../interfaces';
 import { CodeActionsProviderImpl } from './features/CodeActionsProvider';
@@ -55,18 +51,18 @@ import {
     CompletionsProviderImpl
 } from './features/CompletionProvider';
 import { DiagnosticsProviderImpl } from './features/DiagnosticsProvider';
+import { FindReferencesProviderImpl } from './features/FindReferencesProvider';
+import { getDirectiveCommentCompletions } from './features/getDirectiveCommentCompletions';
 import { HoverProviderImpl } from './features/HoverProvider';
 import { RenameProviderImpl } from './features/RenameProvider';
-import { UpdateImportsProviderImpl } from './features/UpdateImportsProvider';
-import { LSAndTSDocResolver } from './LSAndTSDocResolver';
-import { convertToLocationRange, getScriptKindFromFileName, symbolKindFromString } from './utils';
-import { getDirectiveCommentCompletions } from './features/getDirectiveCommentCompletions';
-import { FindReferencesProviderImpl } from './features/FindReferencesProvider';
 import { SelectionRangeProviderImpl } from './features/SelectionRangeProvider';
-import { SignatureHelpProviderImpl } from './features/SignatureHelpProvider';
-import { ignoredBuildDirectories, SnapshotManager } from './SnapshotManager';
 import { SemanticTokensProviderImpl } from './features/SemanticTokensProvider';
+import { SignatureHelpProviderImpl } from './features/SignatureHelpProvider';
+import { UpdateImportsProviderImpl } from './features/UpdateImportsProvider';
 import { isNoTextSpanInGeneratedCode, SnapshotFragmentMap } from './features/utils';
+import { LSAndTSDocResolver } from './LSAndTSDocResolver';
+import { ignoredBuildDirectories } from './SnapshotManager';
+import { convertToLocationRange, getScriptKindFromFileName, symbolKindFromString } from './utils';
 
 export class TypeScriptPlugin
     implements
@@ -98,19 +94,9 @@ export class TypeScriptPlugin
     private readonly signatureHelpProvider: SignatureHelpProviderImpl;
     private readonly semanticTokensProvider: SemanticTokensProviderImpl;
 
-    constructor(
-        docManager: DocumentManager,
-        configManager: LSConfigManager,
-        workspaceUris: string[],
-        isEditor = true
-    ) {
+    constructor(configManager: LSConfigManager, lsAndTsDocResolver: LSAndTSDocResolver) {
         this.configManager = configManager;
-        this.lsAndTsDocResolver = new LSAndTSDocResolver(
-            docManager,
-            workspaceUris,
-            configManager,
-            /**transformOnTemplateError */ isEditor
-        );
+        this.lsAndTsDocResolver = lsAndTsDocResolver;
         this.completionProvider = new CompletionsProviderImpl(this.lsAndTsDocResolver);
         this.codeActionsProvider = new CodeActionsProviderImpl(
             this.lsAndTsDocResolver,
@@ -126,12 +112,15 @@ export class TypeScriptPlugin
         this.semanticTokensProvider = new SemanticTokensProviderImpl(this.lsAndTsDocResolver);
     }
 
-    async getDiagnostics(document: Document): Promise<Diagnostic[]> {
+    async getDiagnostics(
+        document: Document,
+        cancellationToken?: CancellationToken
+    ): Promise<Diagnostic[]> {
         if (!this.featureEnabled('diagnostics')) {
             return [];
         }
 
-        return this.diagnosticsProvider.getDiagnostics(document);
+        return this.diagnosticsProvider.getDiagnostics(document, cancellationToken);
     }
 
     async doHover(document: Document, position: Position): Promise<Hover | null> {
@@ -142,13 +131,21 @@ export class TypeScriptPlugin
         return this.hoverProvider.doHover(document, position);
     }
 
-    async getDocumentSymbols(document: Document): Promise<SymbolInformation[]> {
+    async getDocumentSymbols(
+        document: Document,
+        cancellationToken?: CancellationToken
+    ): Promise<SymbolInformation[]> {
         if (!this.featureEnabled('documentSymbols')) {
             return [];
         }
 
         const { lang, tsDoc } = await this.getLSAndTSDoc(document);
         const fragment = await tsDoc.getFragment();
+
+        if (cancellationToken?.isCancellationRequested) {
+            return [];
+        }
+
         const navTree = lang.getNavigationTree(tsDoc.filePath);
 
         const symbols: SymbolInformation[] = [];
@@ -223,7 +220,8 @@ export class TypeScriptPlugin
     async getCompletions(
         document: Document,
         position: Position,
-        completionContext?: CompletionContext
+        completionContext?: CompletionContext,
+        cancellationToken?: CancellationToken
     ): Promise<AppCompletionList<CompletionEntryWithIdentifer> | null> {
         if (!this.featureEnabled('completions')) {
             return null;
@@ -238,7 +236,8 @@ export class TypeScriptPlugin
         const completions = await this.completionProvider.getCompletions(
             document,
             position,
-            completionContext
+            completionContext,
+            cancellationToken
         );
 
         if (completions && tsDirectiveCommentCompletions) {
@@ -253,9 +252,14 @@ export class TypeScriptPlugin
 
     async resolveCompletion(
         document: Document,
-        completionItem: AppCompletionItem<CompletionEntryWithIdentifer>
+        completionItem: AppCompletionItem<CompletionEntryWithIdentifer>,
+        cancellationToken?: CancellationToken
     ): Promise<AppCompletionItem<CompletionEntryWithIdentifer>> {
-        return this.completionProvider.resolveCompletion(document, completionItem);
+        return this.completionProvider.resolveCompletion(
+            document,
+            completionItem,
+            cancellationToken
+        );
     }
 
     async getDefinitions(document: Document, position: Position): Promise<DefinitionLink[]> {
@@ -318,13 +322,14 @@ export class TypeScriptPlugin
     async getCodeActions(
         document: Document,
         range: Range,
-        context: CodeActionContext
+        context: CodeActionContext,
+        cancellationToken?: CancellationToken
     ): Promise<CodeAction[]> {
         if (!this.featureEnabled('codeActions')) {
             return [];
         }
 
-        return this.codeActionsProvider.getCodeActions(document, range, context);
+        return this.codeActionsProvider.getCodeActions(document, range, context, cancellationToken);
     }
 
     async executeCommand(
@@ -365,7 +370,7 @@ export class TypeScriptPlugin
     }
 
     async onWatchFileChanges(onWatchFileChangesParas: OnWatchFileChangesPara[]): Promise<void> {
-        const doneUpdateProjectFiles = new Set<SnapshotManager>();
+        let doneUpdateProjectFiles = false;
 
         for (const { fileName, changeType } of onWatchFileChangesParas) {
             const pathParts = fileName.split(/\/|\\/);
@@ -380,19 +385,13 @@ export class TypeScriptPlugin
                 continue;
             }
 
-            const snapshotManager = await this.getSnapshotManager(fileName);
-            if (changeType === FileChangeType.Created) {
-                if (!doneUpdateProjectFiles.has(snapshotManager)) {
-                    snapshotManager.updateProjectFiles();
-                    doneUpdateProjectFiles.add(snapshotManager);
-                }
+            if (changeType === FileChangeType.Created && !doneUpdateProjectFiles) {
+                doneUpdateProjectFiles = true;
+                await this.lsAndTsDocResolver.updateProjectFiles();
             } else if (changeType === FileChangeType.Deleted) {
-                snapshotManager.delete(fileName);
-            } else if (snapshotManager.has(fileName)) {
-                // Only allow existing files to be update
-                // Otherwise, new files would still get loaded
-                // into snapshot manager after update
-                snapshotManager.updateTsOrJsFile(fileName);
+                await this.lsAndTsDocResolver.deleteSnapshot(fileName);
+            } else {
+                await this.lsAndTsDocResolver.updateExistingTsOrJsFile(fileName);
             }
         }
     }
@@ -401,8 +400,7 @@ export class TypeScriptPlugin
         fileName: string,
         changes: TextDocumentContentChangeEvent[]
     ): Promise<void> {
-        const snapshotManager = await this.getSnapshotManager(fileName);
-        snapshotManager.updateTsOrJsFile(fileName, changes);
+        await this.lsAndTsDocResolver.updateExistingTsOrJsFile(fileName, changes);
     }
 
     async getSelectionRange(
@@ -419,23 +417,37 @@ export class TypeScriptPlugin
     async getSignatureHelp(
         document: Document,
         position: Position,
-        context: SignatureHelpContext | undefined
+        context: SignatureHelpContext | undefined,
+        cancellationToken?: CancellationToken
     ): Promise<SignatureHelp | null> {
         if (!this.featureEnabled('signatureHelp')) {
             return null;
         }
 
-        return this.signatureHelpProvider.getSignatureHelp(document, position, context);
+        return this.signatureHelpProvider.getSignatureHelp(
+            document,
+            position,
+            context,
+            cancellationToken
+        );
     }
 
-    async getSemanticTokens(textDocument: Document, range?: Range): Promise<SemanticTokens | null> {
+    async getSemanticTokens(
+        textDocument: Document,
+        range?: Range,
+        cancellationToken?: CancellationToken
+    ): Promise<SemanticTokens | null> {
         if (!this.featureEnabled('semanticTokens')) {
             return {
                 data: []
             };
         }
 
-        return this.semanticTokensProvider.getSemanticTokens(textDocument, range);
+        return this.semanticTokensProvider.getSemanticTokens(
+            textDocument,
+            range,
+            cancellationToken
+        );
     }
 
     private async getLSAndTSDoc(document: Document) {
@@ -443,8 +455,7 @@ export class TypeScriptPlugin
     }
 
     /**
-     *
-     * @internal
+     * @internal Public for tests only
      */
     public getSnapshotManager(fileName: string) {
         return this.lsAndTsDocResolver.getSnapshotManager(fileName);
