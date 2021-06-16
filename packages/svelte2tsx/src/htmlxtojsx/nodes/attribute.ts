@@ -42,6 +42,11 @@ export function handleAttribute(
     parent: BaseNode,
     preserveCase: boolean
 ): void {
+    const shouldApplySlotCheck = parent.type === 'Slot' && attr.name !== 'name';
+    const slotName = shouldApplySlotCheck
+        ? parent.attributes?.find((a: BaseNode) => a.name === 'name')?.value[0]?.data || 'default'
+        : undefined;
+    const ensureSlotStr = `__sveltets_ensureSlot("${slotName}","${attr.name}",`;
     let transformedFromDirectiveOrNamespace = false;
 
     const transformAttributeCase = (name: string) => {
@@ -118,6 +123,10 @@ export function handleAttribute(
             }
 
             str.appendRight(attr.start, `${attrName}=`);
+            if (shouldApplySlotCheck) {
+                str.prependRight(attr.start + 1, ensureSlotStr);
+                str.prependLeft(attr.end - 1, `)`);
+            }
             return;
         }
 
@@ -145,25 +154,37 @@ export function handleAttribute(
                 !isNaN(attrVal.data);
 
             if (needsNumberConversion) {
+                const begin = '{' + (shouldApplySlotCheck ? ensureSlotStr : '');
+                const end = shouldApplySlotCheck ? `)}` : '}';
                 if (needsQuotes) {
-                    str.prependRight(equals + 1, '{');
-                    str.appendLeft(attr.end, '}');
+                    str.prependRight(equals + 1, begin);
+                    str.appendLeft(attr.end, end);
                 } else {
-                    str.overwrite(equals + 1, equals + 2, '{');
-                    str.overwrite(attr.end - 1, attr.end, '}');
+                    str.overwrite(equals + 1, equals + 2, begin);
+                    str.overwrite(attr.end - 1, attr.end, end);
                 }
             } else if (needsQuotes) {
-                str.prependRight(equals + 1, '"');
-                str.appendLeft(attr.end, '"');
+                const begin = shouldApplySlotCheck ? `{${ensureSlotStr}"` : '"';
+                const end = shouldApplySlotCheck ? `")}` : '"';
+                str.prependRight(equals + 1, begin);
+                str.appendLeft(attr.end, end);
+            } else if (shouldApplySlotCheck) {
+                str.prependRight(equals + 1, `{${ensureSlotStr}`);
+                str.appendLeft(attr.end, ')}');
             }
             return;
         }
 
         if (attrVal.type == 'MustacheTag') {
+            const isInQuotes = attrVal.end != attr.end;
             //if the end doesn't line up, we are wrapped in quotes
-            if (attrVal.end != attr.end) {
+            if (isInQuotes) {
                 str.remove(attrVal.start - 1, attrVal.start);
                 str.remove(attr.end - 1, attr.end);
+            }
+            if (shouldApplySlotCheck) {
+                str.prependRight(attrVal.start + 1, ensureSlotStr);
+                str.appendLeft(attr.end - (isInQuotes ? 2 : 1), ')');
             }
             return;
         }
@@ -171,7 +192,13 @@ export function handleAttribute(
     }
 
     // We have multiple attribute values, so we build a template string out of them.
-    buildTemplateString(attr, str, htmlx, '={`', '`}');
+    buildTemplateString(
+        attr,
+        str,
+        htmlx,
+        shouldApplySlotCheck ? `={${ensureSlotStr}\`` : '={`',
+        shouldApplySlotCheck ? '`)}' : '`}'
+    );
 }
 
 function buildTemplateString(

@@ -1,15 +1,16 @@
 import ts from 'typescript';
 import { EventHandler } from './event-handler';
-import { getVariableAtTopLevel, getLastLeadingDoc } from '../utils/tsAst';
+import {
+    getVariableAtTopLevel,
+    getLastLeadingDoc,
+    isInterfaceOrTypeDeclaration
+} from '../utils/tsAst';
 import MagicString from 'magic-string';
 
 export function is$$EventsDeclaration(
     node: ts.Node
 ): node is ts.TypeAliasDeclaration | ts.InterfaceDeclaration {
-    return (
-        (ts.isTypeAliasDeclaration(node) || ts.isInterfaceDeclaration(node)) &&
-        node.name.text === '$$Events'
-    );
+    return isInterfaceOrTypeDeclaration(node) && node.name.text === '$$Events';
 }
 
 /**

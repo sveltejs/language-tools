@@ -12,6 +12,8 @@ import TemplateScope from './TemplateScope';
 import { SvelteIdentifier, WithName } from '../../interfaces';
 import { getTypeForComponent } from '../../htmlxtojsx/utils/node-utils';
 import { Directive } from 'svelte/types/compiler/interfaces';
+import ts from 'typescript';
+import { isInterfaceOrTypeDeclaration } from '../utils/tsAst';
 
 function attributeStrValueAsJsExpression(attr: Node): string {
     if (attr.value.length == 0) return "''"; //wut?
@@ -28,6 +30,12 @@ function attributeStrValueAsJsExpression(attr: Node): string {
     // we have multiple attribute values, so we know we are building a string out of them.
     // so return a dummy string, it will typecheck the same :)
     return '"__svelte_ts_string"';
+}
+
+export function is$$SlotsDeclaration(
+    node: ts.Node
+): node is ts.TypeAliasDeclaration | ts.InterfaceDeclaration {
+    return isInterfaceOrTypeDeclaration(node) && node.name.text === '$$Slots';
 }
 
 export class SlotHandler {

@@ -6,7 +6,6 @@ import { ComponentDocumentation } from './nodes/ComponentDocumentation';
 import { ComponentEvents } from './nodes/ComponentEvents';
 import { EventHandler } from './nodes/event-handler';
 import { ExportedNames } from './nodes/ExportedNames';
-import { createRenderFunctionGetterStr } from './nodes/exportgetters';
 import {
     handleScopeAndResolveForSlot,
     handleScopeAndResolveLetVarForSlot
@@ -16,24 +15,13 @@ import { Scripts } from './nodes/Scripts';
 import { SlotHandler } from './nodes/slot';
 import { Stores } from './nodes/Stores';
 import TemplateScope from './nodes/TemplateScope';
-import {
-    InstanceScriptProcessResult,
-    processInstanceScriptContent
-} from './processInstanceScriptContent';
+import { processInstanceScriptContent } from './processInstanceScriptContent';
 import { processModuleScriptTag } from './processModuleScriptTag';
 import { ScopeStack } from './utils/Scope';
 import { svelteShims } from './svelteShims';
 import { Generics } from './nodes/Generics';
 import { addComponentExport } from './addComponentExport';
-
-interface CreateRenderFunctionPara extends InstanceScriptProcessResult {
-    str: MagicString;
-    scriptTag: Node;
-    scriptDestination: number;
-    slots: Map<string, Map<string, string>>;
-    events: ComponentEvents;
-    isTsFile: boolean;
-}
+import { createRenderFunction } from './createRenderFunction';
 
 type TemplateProcessResult = {
     uses$$props: boolean;
@@ -293,87 +281,6 @@ function processSvelteTemplate(
     };
 }
 
-function createRenderFunction({
-    str,
-    scriptTag,
-    scriptDestination,
-    slots,
-    getters,
-    events,
-    exportedNames,
-    isTsFile,
-    uses$$props,
-    uses$$restProps,
-    uses$$slots,
-    generics
-}: CreateRenderFunctionPara) {
-    const htmlx = str.original;
-    let propsDecl = '';
-
-    if (uses$$props) {
-        propsDecl += ' let $$props = __sveltets_allPropsType();';
-    }
-    if (uses$$restProps) {
-        propsDecl += ' let $$restProps = __sveltets_restPropsType();';
-    }
-
-    if (uses$$slots) {
-        propsDecl +=
-            ' let $$slots = __sveltets_slotsType({' +
-            Array.from(slots.keys())
-                .map((name) => `'${name}': ''`)
-                .join(', ') +
-            '});';
-    }
-
-    if (scriptTag) {
-        //I couldn't get magicstring to let me put the script before the <> we prepend during conversion of the template to jsx, so we just close it instead
-        const scriptTagEnd = htmlx.lastIndexOf('>', scriptTag.content.start) + 1;
-        str.overwrite(scriptTag.start, scriptTag.start + 1, '</>;');
-        str.overwrite(
-            scriptTag.start + 1,
-            scriptTagEnd,
-            `function render${generics.toDefinitionString(true)}() {${propsDecl}\n`
-        );
-
-        const scriptEndTagStart = htmlx.lastIndexOf('<', scriptTag.end - 1);
-        // wrap template with callback
-        str.overwrite(scriptEndTagStart, scriptTag.end, ';\n() => (<>', {
-            contentOnly: true
-        });
-    } else {
-        str.prependRight(
-            scriptDestination,
-            `</>;function render${generics.toDefinitionString(true)}() {${propsDecl}\n<>`
-        );
-    }
-
-    const slotsAsDef =
-        '{' +
-        Array.from(slots.entries())
-            .map(([name, attrs]) => {
-                const attrsAsString = Array.from(attrs.entries())
-                    .map(([exportName, expr]) => `${exportName}:${expr}`)
-                    .join(', ');
-                return `'${name}': {${attrsAsString}}`;
-            })
-            .join(', ') +
-        '}';
-
-    const returnString =
-        `\nreturn { props: ${exportedNames.createPropsStr(isTsFile)}` +
-        `, slots: ${slotsAsDef}` +
-        `, getters: ${createRenderFunctionGetterStr(getters)}` +
-        `, events: ${events.toDefString()} }}`;
-
-    // wrap template with callback
-    if (scriptTag) {
-        str.append(');');
-    }
-
-    str.append(returnString);
-}
-
 export function svelte2tsx(
     svelte: string,
     options: {
@@ -424,6 +331,7 @@ export function svelte2tsx(
     let exportedNames = new ExportedNames();
     let getters = new Set<string>();
     let generics = new Generics(str, 0);
+    let uses$$SlotsInterface = false;
     if (scriptTag) {
         //ensure it is between the module script and the rest of the template (the variables need to be declared before the jsx template)
         if (scriptTag.start != instanceScriptTarget) {
@@ -434,7 +342,7 @@ export function svelte2tsx(
         uses$$restProps = uses$$restProps || res.uses$$restProps;
         uses$$slots = uses$$slots || res.uses$$slots;
 
-        ({ exportedNames, events, getters, generics } = res);
+        ({ exportedNames, events, getters, generics, uses$$SlotsInterface } = res);
     }
 
     //wrap the script tag and template content in a function returning the slot and exports
@@ -450,7 +358,9 @@ export function svelte2tsx(
         uses$$props,
         uses$$restProps,
         uses$$slots,
-        generics
+        uses$$SlotsInterface,
+        generics,
+        mode: options.mode
     });
 
     // we need to process the module script after the instance script has moved otherwise we get warnings about moving edited items
