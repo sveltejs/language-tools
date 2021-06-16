@@ -1,3 +1,4 @@
+/// <reference lib="dom" />
 import { SvelteComponentTyped } from 'svelte';
 
 export class ComponentDef extends SvelteComponentTyped<
