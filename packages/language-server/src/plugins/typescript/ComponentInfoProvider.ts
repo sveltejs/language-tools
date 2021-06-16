@@ -22,13 +22,11 @@ export class JsOrTsComponentInfoProvider implements ComponentInfoProvider {
             return [];
         }
 
-        const eventType = this.typeChecker.getTypeOfSymbolAtLocation(
-            symbol,
-            declaration
-        );
+        const eventType = this.typeChecker.getTypeOfSymbolAtLocation(symbol, declaration);
 
-        return eventType.getProperties()
-            .map(prop => {
+        return eventType
+            .getProperties()
+            .map((prop) => {
                 if (!prop.valueDeclaration) {
                     return;
                 }
@@ -43,10 +41,7 @@ export class JsOrTsComponentInfoProvider implements ComponentInfoProvider {
             .filter(isNotNullOrUndefined);
     }
 
-    static create(
-        lang: ts.LanguageService,
-        def: ts.DefinitionInfo
-    ): ComponentInfoProvider | null {
+    static create(lang: ts.LanguageService, def: ts.DefinitionInfo): ComponentInfoProvider | null {
         const program = lang.getProgram();
         const sourceFile = program?.getSourceFile(def.fileName);
 
@@ -72,5 +67,5 @@ export class JsOrTsComponentInfoProvider implements ComponentInfoProvider {
 }
 
 export interface ComponentInfoProvider {
-    getEvents(): ComponentEventInfo
+    getEvents(): ComponentEventInfo;
 }

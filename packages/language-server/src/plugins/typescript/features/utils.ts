@@ -134,7 +134,6 @@ export class SnapshotFragmentMap {
     }
 }
 
-
 export function findContainingNode<T extends ts.Node>(
     node: ts.Node,
     textSpan: ts.TextSpan,
