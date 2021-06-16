@@ -253,7 +253,7 @@ describe('CompletionProviderImpl', () => {
         assert.deepStrictEqual(eventCompletions, <CompletionItem[]>[
             {
                 detail: 'event1: CustomEvent<null>',
-                documentation: undefined,
+                documentation: '',
                 label: 'on:event1',
                 sortText: '-1',
                 textEdit: {
@@ -272,7 +272,10 @@ describe('CompletionProviderImpl', () => {
             },
             {
                 detail: 'event2: CustomEvent<string>',
-                documentation: undefined,
+                documentation: {
+                    kind: 'markdown',
+                    value: 'documentation for event2'
+                },
                 label: 'on:event2',
                 sortText: '-1',
                 textEdit: {

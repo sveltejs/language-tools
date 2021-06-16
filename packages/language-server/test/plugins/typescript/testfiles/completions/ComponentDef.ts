@@ -2,6 +2,12 @@ import { SvelteComponentTyped } from 'svelte';
 
 export class ComponentDef extends SvelteComponentTyped<
     {},
-    { event1: CustomEvent<null>; event2: CustomEvent<string> },
+    {
+        event1: CustomEvent<null>;
+        /**
+         * documentation for event2
+         */
+        event2: CustomEvent<string>;
+    },
     {}
 > {}

@@ -35,7 +35,8 @@ export class JsOrTsComponentInfoProvider implements ComponentInfoProvider {
                     name: prop.name,
                     type: this.typeChecker.typeToString(
                         this.typeChecker.getTypeOfSymbolAtLocation(prop, prop.valueDeclaration)
-                    )
+                    ),
+                    doc: ts.displayPartsToString(prop.getDocumentationComment(this.typeChecker))
                 };
             })
             .filter(isNotNullOrUndefined);
