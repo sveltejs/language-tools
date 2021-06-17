@@ -125,7 +125,7 @@ export function handleAttribute(
             str.appendRight(attr.start, `${attrName}=`);
             if (shouldApplySlotCheck) {
                 str.prependRight(attr.start + 1, ensureSlotStr);
-                str.prependLeft(attr.end - 1, `)`);
+                str.prependLeft(attr.end - 1, ')');
             }
             return;
         }
@@ -155,7 +155,7 @@ export function handleAttribute(
 
             if (needsNumberConversion) {
                 const begin = '{' + (shouldApplySlotCheck ? ensureSlotStr : '');
-                const end = shouldApplySlotCheck ? `)}` : '}';
+                const end = shouldApplySlotCheck ? ')}' : '}';
                 if (needsQuotes) {
                     str.prependRight(equals + 1, begin);
                     str.appendLeft(attr.end, end);
@@ -165,7 +165,7 @@ export function handleAttribute(
                 }
             } else if (needsQuotes) {
                 const begin = shouldApplySlotCheck ? `{${ensureSlotStr}"` : '"';
-                const end = shouldApplySlotCheck ? `")}` : '"';
+                const end = shouldApplySlotCheck ? '")}' : '"';
                 str.prependRight(equals + 1, begin);
                 str.appendLeft(attr.end, end);
             } else if (shouldApplySlotCheck) {

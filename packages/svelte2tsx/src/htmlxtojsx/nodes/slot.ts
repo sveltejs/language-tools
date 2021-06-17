@@ -17,6 +17,9 @@ interface ComponentNode extends BaseNode {
     [shadowedPropsSymbol]?: PropsShadowedByLet[];
 }
 
+/**
+ * Transforms the usage of a slot (let:xx)
+ */
 export function handleSlot(
     htmlx: string,
     str: MagicString,
