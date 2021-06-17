@@ -14,6 +14,7 @@ import { Scope } from './utils/Scope';
 import { handleTypeAssertion } from './nodes/handleTypeAssertion';
 import { ImplicitStoreValues } from './nodes/ImplicitStoreValues';
 import { Generics } from './nodes/Generics';
+import { is$$SlotsDeclaration } from './nodes/slot';
 
 export interface InstanceScriptProcessResult {
     exportedNames: ExportedNames;
@@ -21,6 +22,7 @@ export interface InstanceScriptProcessResult {
     uses$$props: boolean;
     uses$$restProps: boolean;
     uses$$slots: boolean;
+    uses$$SlotsInterface: boolean;
     getters: Set<string>;
     generics: Generics;
 }
@@ -55,6 +57,7 @@ export function processInstanceScriptContent(
     let uses$$props = false;
     let uses$$restProps = false;
     let uses$$slots = false;
+    let uses$$SlotsInterface = false;
 
     //track if we are in a declaration scope
     let isDeclaration = false;
@@ -354,6 +357,9 @@ export function processInstanceScriptContent(
         if (is$$EventsDeclaration(node)) {
             events.setComponentEventsInterface(node, astOffset);
         }
+        if (is$$SlotsDeclaration(node)) {
+            uses$$SlotsInterface = true;
+        }
 
         if (ts.isVariableStatement(node)) {
             const exportModifier = findExportKeyword(node);
@@ -512,6 +518,7 @@ export function processInstanceScriptContent(
         uses$$props,
         uses$$restProps,
         uses$$slots,
+        uses$$SlotsInterface,
         getters,
         generics
     };

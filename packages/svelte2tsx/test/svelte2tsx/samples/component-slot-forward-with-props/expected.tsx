@@ -1,7 +1,8 @@
 ///<reference types="svelte" />
 <></>;function render() {
+/*Ωignore_startΩ*/;const __sveltets_ensureSlot = __sveltets_createEnsureSlot();/*Ωignore_endΩ*/
 <><Parent propA propB={propB} propC="val1" propD="val2" propE={`a${a}b${b}`} >{() => { let {foo} = /*Ωignore_startΩ*/new Parent({target: __sveltets_any(''), props: {'propA':true, 'propB':propB, 'propC':"", 'propD':"", 'propE':""}})/*Ωignore_endΩ*/.$$slot_def['default'];<>
-    <slot foo={foo} />
+    <slot foo={__sveltets_ensureSlot("default","foo",foo)} />
 </>}}</Parent></>
 return { props: {}, slots: {'default': {foo:__sveltets_instanceOf(Parent).$$slot_def['default'].foo}}, getters: {}, events: {} }}
 

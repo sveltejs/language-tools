@@ -2,10 +2,11 @@
 <></>;function render() {
 
     let b = 7;
-;
+
+/*Ωignore_startΩ*/;const __sveltets_ensureSlot = __sveltets_createEnsureSlot();/*Ωignore_endΩ*/;
 () => (<>
 <div>
-    <slot a={b}>Hello</slot>
+    <slot a={__sveltets_ensureSlot("default","a",b)}>Hello</slot>
 </div></>);
 return { props: {}, slots: {'default': {a:b}}, getters: {}, events: {} }}
 

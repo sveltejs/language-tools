@@ -1406,4 +1406,180 @@ describe('DiagnosticsProvider', () => {
             }
         ]);
     });
+
+    it('checks $$Slots usage', async () => {
+        const { plugin, document } = setup('$$slots.svelte');
+        const diagnostics = await plugin.getDiagnostics(document);
+        assert.deepStrictEqual(diagnostics, [
+            {
+                code: 2345,
+                message:
+                    "Argument of type 'boolean' is not assignable to parameter of type 'string'.",
+                range: {
+                    start: {
+                        character: 41,
+                        line: 13
+                    },
+                    end: {
+                        character: 45,
+                        line: 13
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            },
+            {
+                code: 2345,
+                message:
+                    'Argument of type \'"invalidProp1"\' is not assignable to parameter of type \'"valid1" | "validPropWrongType1"\'.',
+                range: {
+                    start: {
+                        character: 60,
+                        line: 13
+                    },
+                    end: {
+                        character: 60,
+                        line: 13
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            },
+            {
+                code: 2345,
+                message:
+                    "Argument of type 'boolean' is not assignable to parameter of type 'string'.",
+                range: {
+                    start: {
+                        character: 52,
+                        line: 14
+                    },
+                    end: {
+                        character: 56,
+                        line: 14
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            },
+            {
+                code: 2345,
+                message:
+                    'Argument of type \'"invalidProp2"\' is not assignable to parameter of type \'"valid2" | "validPropWrongType2"\'.',
+                range: {
+                    start: {
+                        character: 71,
+                        line: 14
+                    },
+                    end: {
+                        character: 71,
+                        line: 14
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            },
+            {
+                code: 2345,
+                message:
+                    "Argument of type '\"invalid\"' is not assignable to parameter of type 'keyof $$Slots'.",
+                range: {
+                    start: {
+                        character: 26,
+                        line: 15
+                    },
+                    end: {
+                        character: 26,
+                        line: 15
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            }
+        ]);
+    });
+
+    it('checks $$Slots component usage', async () => {
+        const { plugin, document } = setup('using-$$slots.svelte');
+        const diagnostics = await plugin.getDiagnostics(document);
+        assert.deepStrictEqual(diagnostics, [
+            {
+                code: 2339,
+                message:
+                    "Property 'invalidProp1' does not exist on type '{ valid1: boolean; validPropWrongType1: string; }'.",
+                range: {
+                    start: {
+                        character: 46,
+                        line: 4
+                    },
+                    end: {
+                        character: 58,
+                        line: 4
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            },
+            {
+                code: 2367,
+                message:
+                    "This condition will always return 'false' since the types 'string' and 'boolean' have no overlap.",
+                range: {
+                    start: {
+                        character: 5,
+                        line: 6
+                    },
+                    end: {
+                        character: 33,
+                        line: 6
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            },
+            {
+                code: 2339,
+                message:
+                    "Property 'invalidProp2' does not exist on type '{ valid2: boolean; validPropWrongType2: string; }'.",
+                range: {
+                    start: {
+                        character: 59,
+                        line: 8
+                    },
+                    end: {
+                        character: 71,
+                        line: 8
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            },
+            {
+                code: 2367,
+                message:
+                    "This condition will always return 'false' since the types 'string' and 'boolean' have no overlap.",
+                range: {
+                    start: {
+                        character: 9,
+                        line: 10
+                    },
+                    end: {
+                        character: 37,
+                        line: 10
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            }
+        ]);
+    });
 });
