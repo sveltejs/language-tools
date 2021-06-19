@@ -153,7 +153,7 @@ export class ExportedNames extends Map<string, ExportedName> implements IExporte
     }
 
     private createReturnElements(
-        names: [string, ExportedName][],
+        names: Array<[string, ExportedName]>,
         dontAddTypeDef: boolean
     ): string[] {
         return names.map(([key, value]) => {
@@ -164,7 +164,7 @@ export class ExportedNames extends Map<string, ExportedName> implements IExporte
         });
     }
 
-    private createReturnElementsType(names: [string, ExportedName][]) {
+    private createReturnElementsType(names: Array<[string, ExportedName]>) {
         return names.map(([key, value]) => {
             const identifier = `${value.doc ? `\n${value.doc}` : ''}${value.identifierText || key}${
                 value.required ? '' : '?'
