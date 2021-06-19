@@ -113,6 +113,7 @@ declare function __sveltets_ensureTransition(transitionCall: SvelteTransitionRet
 declare function __sveltets_ensureFunction(expression: (e: Event & { detail?: any }) => unknown ): {};
 declare function __sveltets_ensureType<T>(type: AConstructorTypeOf<T>, el: T): {};
 declare function __sveltets_createEnsureSlot<Slots = Record<string, Record<string, any>>>(): <K1 extends keyof Slots, K2 extends keyof Slots[K1]>(k1: K1, k2: K2, val: Slots[K1][K2]) => Slots[K1][K2];
+declare function __sveltets_ensureRightProps<Props>(props: Props): {};
 declare function __sveltets_cssProp(prop: Record<string, any>): {};
 declare function __sveltets_ctorOf<T>(type: T): AConstructorTypeOf<T>;
 declare function __sveltets_instanceOf<T = any>(type: AConstructorTypeOf<T>): T;

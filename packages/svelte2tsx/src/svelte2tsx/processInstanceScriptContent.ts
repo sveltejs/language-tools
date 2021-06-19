@@ -7,7 +7,7 @@ import {
     isFirstInAnExpressionStatement,
     isNotPropertyNameOfImport
 } from './utils/tsAst';
-import { ExportedNames } from './nodes/ExportedNames';
+import { ExportedNames, is$$PropsDeclaration } from './nodes/ExportedNames';
 import { ImplicitTopLevelNames } from './nodes/ImplicitTopLevelNames';
 import { ComponentEvents, is$$EventsDeclaration } from './nodes/ComponentEvents';
 import { Scope } from './utils/Scope';
@@ -143,7 +143,7 @@ export function processInstanceScriptContent(
 
         // Can't export default here
         if (node.name) {
-            exportedNames.addExport(node.name);
+            exportedNames.addExport(node.name, false);
         }
     };
 
@@ -309,18 +309,22 @@ export function processInstanceScriptContent(
         }
     };
 
-    const handleExportedVariableDeclarationList = (list: ts.VariableDeclarationList) => {
+    const handleExportedVariableDeclarationList = (
+        list: ts.VariableDeclarationList,
+        add: typeof exportedNames.addExport
+    ) => {
+        const isLet = list.flags === ts.NodeFlags.Let;
         ts.forEachChild(list, (node) => {
             if (ts.isVariableDeclaration(node)) {
                 if (ts.isIdentifier(node.name)) {
-                    exportedNames.addExport(node.name, node.name, node.type, !node.initializer);
+                    add(node.name, isLet, node.name, node.type, !node.initializer);
                 } else if (
                     ts.isObjectBindingPattern(node.name) ||
                     ts.isArrayBindingPattern(node.name)
                 ) {
                     ts.forEachChild(node.name, (element) => {
                         if (ts.isBindingElement(element)) {
-                            exportedNames.addExport(element.name);
+                            add(element.name, isLet);
                         }
                     });
                 }
@@ -360,6 +364,9 @@ export function processInstanceScriptContent(
         if (is$$SlotsDeclaration(node)) {
             uses$$SlotsInterface = true;
         }
+        if (is$$PropsDeclaration(node)) {
+            exportedNames.setUses$$Props();
+        }
 
         if (ts.isVariableStatement(node)) {
             const exportModifier = findExportKeyword(node);
@@ -367,7 +374,10 @@ export function processInstanceScriptContent(
                 const isLet = node.declarationList.flags === ts.NodeFlags.Let;
                 const isConst = node.declarationList.flags === ts.NodeFlags.Const;
 
-                handleExportedVariableDeclarationList(node.declarationList);
+                handleExportedVariableDeclarationList(
+                    node.declarationList,
+                    exportedNames.addExport.bind(exportedNames)
+                );
                 if (isLet) {
                     propTypeAssertToUserDefined(node.declarationList);
                 } else if (isConst) {
@@ -378,6 +388,12 @@ export function processInstanceScriptContent(
                     });
                 }
                 removeExport(exportModifier.getStart(), exportModifier.end);
+            }
+            if (ts.isSourceFile(parent)) {
+                handleExportedVariableDeclarationList(
+                    node.declarationList,
+                    exportedNames.addPossibleExport.bind(exportedNames)
+                );
             }
         }
 
@@ -407,9 +423,9 @@ export function processInstanceScriptContent(
             if (ts.isNamedExports(exportClause)) {
                 for (const ne of exportClause.elements) {
                     if (ne.propertyName) {
-                        exportedNames.addExport(ne.propertyName, ne.name);
+                        exportedNames.addExport(ne.propertyName, false, ne.name);
                     } else {
-                        exportedNames.addExport(ne.name);
+                        exportedNames.addExport(ne.name, false);
                     }
                 }
                 //we can remove entire statement

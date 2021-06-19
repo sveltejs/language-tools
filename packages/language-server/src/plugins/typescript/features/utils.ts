@@ -130,3 +130,11 @@ export class SnapshotFragmentMap {
         return (await this.retrieve(fileName)).fragment;
     }
 }
+
+export function isAfterSvelte2TsxPropsReturn(text: string, end: number) {
+    const textBeforeProp = text.substring(0, end);
+    // This is how svelte2tsx writes out the props
+    if (textBeforeProp.includes('\nreturn { props: {')) {
+        return true;
+    }
+}
