@@ -33,3 +33,7 @@ Then add it to your `tsconfig.json` or `jsconfig.json`:
 ## Limitations
 
 Changes to Svelte files are only recognized after they are saved to disk.
+
+## Credits
+
+-   [pushkine](https://github.com/pushkine) for his initial POC and the inspiration/discussion that stemmed from it
