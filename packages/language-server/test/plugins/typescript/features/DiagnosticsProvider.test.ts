@@ -1582,4 +1582,169 @@ describe('DiagnosticsProvider', () => {
             }
         ]);
     });
+
+    it('checks $$Props usage (valid)', async () => {
+        const { plugin, document } = setup('$$props-valid.svelte');
+        const diagnostics = await plugin.getDiagnostics(document);
+        assert.deepStrictEqual(diagnostics, []);
+    });
+
+    it('checks $$Props usage (invalid1)', async () => {
+        const { plugin, document } = setup('$$props-invalid1.svelte');
+        const diagnostics = await plugin.getDiagnostics(document);
+        assert.deepStrictEqual(diagnostics, [
+            {
+                code: 2345,
+                message:
+                    // eslint-disable-next-line max-len
+                    "Argument of type '$$Props' is not assignable to parameter of type '{ exported1: string; }'.\n  Types of property 'exported1' are incompatible.\n    Type 'string | undefined' is not assignable to type 'string'.\n      Type 'undefined' is not assignable to type 'string'.",
+                range: {
+                    end: {
+                        character: 18,
+                        line: 1
+                    },
+                    start: {
+                        character: 11,
+                        line: 1
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            }
+        ]);
+    });
+
+    it('checks $$Props usage (invalid2)', async () => {
+        const { plugin, document } = setup('$$props-invalid2.svelte');
+        const diagnostics = await plugin.getDiagnostics(document);
+        assert.deepStrictEqual(diagnostics, [
+            {
+                code: 2345,
+                message:
+                    // eslint-disable-next-line max-len
+                    "Argument of type '$$Props' is not assignable to parameter of type '{ exported1?: string | undefined; }'.\n  Types of property 'exported1' are incompatible.\n    Type 'boolean' is not assignable to type 'string | undefined'.",
+                range: {
+                    end: {
+                        character: 18,
+                        line: 1
+                    },
+                    start: {
+                        character: 11,
+                        line: 1
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            }
+        ]);
+    });
+
+    it('checks $$Props usage (invalid3)', async () => {
+        const { plugin, document } = setup('$$props-invalid3.svelte');
+        const diagnostics = await plugin.getDiagnostics(document);
+        assert.deepStrictEqual(diagnostics, [
+            {
+                code: 2345,
+                message:
+                    // eslint-disable-next-line max-len
+                    "Argument of type '$$Props' is not assignable to parameter of type '{ wrong: boolean; }'.\n  Property 'wrong' is missing in type '$$Props' but required in type '{ wrong: boolean; }'.",
+                range: {
+                    end: {
+                        character: 18,
+                        line: 1
+                    },
+                    start: {
+                        character: 11,
+                        line: 1
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            },
+            {
+                code: 2345,
+                message:
+                    // eslint-disable-next-line max-len
+                    "Argument of type '{ wrong: boolean; }' is not assignable to parameter of type 'Partial<$$Props>'.\n  Object literal may only specify known properties, and 'wrong' does not exist in type 'Partial<$$Props>'.",
+                range: {
+                    end: {
+                        character: 18,
+                        line: 1
+                    },
+                    start: {
+                        character: 11,
+                        line: 1
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            }
+        ]);
+    });
+
+    it('checks $$Props component usage', async () => {
+        const { plugin, document } = setup('using-$$props.svelte');
+        const diagnostics = await plugin.getDiagnostics(document);
+        assert.deepStrictEqual(diagnostics, [
+            {
+                code: 2322,
+                message: "Type 'boolean' is not assignable to type 'string'.",
+                range: {
+                    end: {
+                        character: 16,
+                        line: 9
+                    },
+                    start: {
+                        character: 7,
+                        line: 9
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            },
+            {
+                code: 2322,
+                message:
+                    // eslint-disable-next-line max-len
+                    "Type '{ exported1: string; exported2: string; invalidProp: boolean; }' is not assignable to type 'IntrinsicAttributes & { exported1: string; exported2?: string | undefined; }'.\n  Property 'invalidProp' does not exist on type 'IntrinsicAttributes & { exported1: string; exported2?: string | undefined; }'.",
+                range: {
+                    end: {
+                        character: 54,
+                        line: 10
+                    },
+                    start: {
+                        character: 43,
+                        line: 10
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            },
+            {
+                code: 2322,
+                message:
+                    // eslint-disable-next-line max-len
+                    "Type '{}' is not assignable to type 'IntrinsicAttributes & { exported1: string; exported2?: string | undefined; }'.\n  Property 'exported1' is missing in type '{}' but required in type '{ exported1: string; exported2?: string | undefined; }'.",
+                range: {
+                    end: {
+                        character: 6,
+                        line: 11
+                    },
+                    start: {
+                        character: 1,
+                        line: 11
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            }
+        ]);
+    });
 });

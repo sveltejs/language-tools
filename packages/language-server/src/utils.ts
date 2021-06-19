@@ -165,6 +165,19 @@ export function regexLastIndexOf(text: string, regex: RegExp, endPos?: number) {
 }
 
 /**
+ * Like str.indexOf, but for regular expressions.
+ */
+export function regexIndexOf(text: string, regex: RegExp, startPos?: number) {
+    if (startPos === undefined || startPos < 0) {
+        startPos = 0;
+    }
+
+    const stringToWorkWith = text.substring(startPos);
+    const result: RegExpExecArray | null = regex.exec(stringToWorkWith);
+    return result?.index ?? -1;
+}
+
+/**
  * Get all matches of a regexp.
  */
 export function getRegExpMatches(regex: RegExp, str: string) {
