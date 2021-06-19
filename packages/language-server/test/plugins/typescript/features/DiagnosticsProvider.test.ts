@@ -1294,6 +1294,12 @@ describe('DiagnosticsProvider', () => {
         ]);
     });
 
+    it('filters out unused $$Generic hint', async () => {
+        const { plugin, document } = setup('$$generic-unused.svelte');
+        const diagnostics = await plugin.getDiagnostics(document);
+        assert.deepStrictEqual(diagnostics, []);
+    });
+
     it('checks $$Events usage', async () => {
         const { plugin, document } = setup('$$events.svelte');
         const diagnostics = await plugin.getDiagnostics(document);

@@ -47,7 +47,7 @@ export class Generics {
 
     toDefinitionString(addIgnore = false) {
         const surround = addIgnore ? surroundWithIgnoreComments : (str: string) => str;
-        return this.definitions.length ? `<${surround(this.definitions.join(','))}>` : '';
+        return this.definitions.length ? surround(`<${this.definitions.join(',')}>`) : '';
     }
 
     toReferencesString() {

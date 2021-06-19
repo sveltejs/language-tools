@@ -207,7 +207,7 @@ declare function __sveltets_unwrapPromiseLike<T>(promise: PromiseLike<T> | T): T
 
 
 import { createEventDispatcher } from 'svelte';
-function render</*Ωignore_startΩ*/A,B extends keyof A,C extends boolean/*Ωignore_endΩ*/>() {
+function render/*Ωignore_startΩ*/<A,B extends keyof A,C extends boolean>/*Ωignore_endΩ*/() {
 
     
 
