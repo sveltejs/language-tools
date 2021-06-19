@@ -53,7 +53,7 @@ export function processInstanceScriptContent(
     const getters = new Set<string>();
     const generics = new Generics(str, astOffset);
 
-    const implicitTopLevelNames = new ImplicitTopLevelNames();
+    const implicitTopLevelNames = new ImplicitTopLevelNames(str, astOffset);
     let uses$$props = false;
     let uses$$restProps = false;
     let uses$$slots = false;
@@ -332,26 +332,6 @@ export function processInstanceScriptContent(
         });
     };
 
-    const wrapExpressionWithInvalidate = (expression: ts.Expression | undefined) => {
-        if (!expression) {
-            return;
-        }
-
-        const start = expression.getStart() + astOffset;
-        const end = expression.getEnd() + astOffset;
-
-        // () => ({})
-        if (ts.isObjectLiteralExpression(expression)) {
-            str.appendLeft(start, '(');
-            str.appendRight(end, ')');
-        }
-
-        str.prependLeft(start, '__sveltets_invalidate(() => ');
-        str.appendRight(end, ')');
-        // Not adding ';' at the end because right now this function is only invoked
-        // in situations where there is a line break of ; guaranteed to be present (else the code is invalid)
-    };
-
     const walk = (node: ts.Node, parent: ts.Node) => {
         type onLeaveCallback = () => void;
         const onLeaveCallbacks: onLeaveCallback[] = [];
@@ -489,14 +469,8 @@ export function processInstanceScriptContent(
             if (binaryExpression) {
                 implicitTopLevelNames.add(node);
                 implicitStoreValues.addReactiveDeclaration(node);
-                wrapExpressionWithInvalidate(binaryExpression.right);
-            } else {
-                const start = node.getStart() + astOffset;
-                const end = node.getEnd() + astOffset;
-
-                str.prependLeft(start, ';() => {');
-                str.appendRight(end, '}');
             }
+            implicitTopLevelNames.handleReactiveStatement(node, binaryExpression);
         }
 
         // Defensively call function (checking for undefined) because it got added only recently (TS 4.0)
@@ -518,7 +492,7 @@ export function processInstanceScriptContent(
     pendingStoreResolutions.map(resolveStore);
 
     // declare implicit reactive variables we found in the script
-    implicitTopLevelNames.modifyCode(rootScope.declared, astOffset, str);
+    implicitTopLevelNames.modifyCode(rootScope.declared);
     implicitStoreValues.modifyCode(astOffset, str);
 
     const firstImport = tsAst.statements
