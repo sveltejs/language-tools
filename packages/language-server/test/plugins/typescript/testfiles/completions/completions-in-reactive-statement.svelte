@@ -7,11 +7,11 @@
     const variable = prop;
     const store = writable(prop);
 
-    $: fun().
-    $: variable.
-    $: $store.
+    $: fun().;
+    $: variable.;
+    $: $store.;
 
-    $: a = fun().
-    $: b = variable.
-    $: c = $store.
+    $: a = fun().;
+    $: b = variable.;
+    $: c = $store.;
 </script>
