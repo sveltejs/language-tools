@@ -161,7 +161,7 @@ s
 //----------------------------------------------------------------------------------------------------------------------------------------------------
     ;() => {$: if (scrollable) chapter, scrollable.scrollTo(0, 0);}                                                                                   {/**
    ╚;()•=>•{$:•if•(scrollable)•chapter,•scrollable.scrollTo(0,•0);}↲    [generated] line 67                                                           
-   ╚        $:•if•(scrollable)•chapter,•scrollable.scrollTo(0,•0); ↲                                                                                  
+   ╚        $:•if•(scrollable)•chapter,•scrollable.scrollTo(0,•0);↲                                                                                   
    ╚$:•if•(scrollable)•chapter,•scrollable.scrollTo(0,•0);↲             [original] line 61                                                            
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
 
@@ -172,13 +172,13 @@ s
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
     let  selected = __sveltets_invalidate(() => lookup.get(slug));                                                                                    {/**
    ╚let••selected•=•__sveltets_invalidate(()•=>•lookup.get(slug));↲    [generated] line 73                                                            
-   ╚    •selected•=•                            lookup.get(slug) ;↲                                                                                   
+   ╚    •selected•=•                            lookup.get(slug); ↲                                                                                   
    ╚  •selected•=•lookup.get(slug);↲                                                                                                                  
    ╚$:•selected•=•lookup.get(slug);↲                                   [original] line 67                                                             
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
     let  improve_link = __sveltets_invalidate(() => `${tutorial_repo_link}/${selected.chapter.section_dir}/${selected.chapter.chapter_dir}`);         {/**
    ╚let••improve_link•=•__sveltets_invalidate(()•=>•`${tutorial_repo_link}/${selected.chapter.section_dir}/${selected.chapter.chapter_dir}`);↲    [generated] line 74
-   ╚    •improve_link•=•                            `${tutorial_repo_link}/${selected.chapter.section_dir}/${selected.chapter.chapter_dir}` ;↲        
+   ╚    •improve_link•=•                            `${tutorial_repo_link}/${selected.chapter.section_dir}/${selected.chapter.chapter_dir}`; ↲        
    ╚  •improve_link•=•`${tutorial_repo_link}/${selected.chapter.section_dir}/${selected.chapter.chapter_dir}`;↲                                       
    ╚$:•improve_link•=•`${tutorial_repo_link}/${selected.chapter.section_dir}/${selected.chapter.chapter_dir}`;↲                                   [original] line 68 
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
@@ -202,14 +202,13 @@ s
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
     }}                                                                                                                                                {/**
    ╚}}↲    [generated] line 87                                                                                                                        
-   ╚} ↲                                                                                                                                               
    ╚}↲     [original] line 81                                                                                                                         
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                                                                                                                                                       {/**
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
     let  mobile = __sveltets_invalidate(() => width < 768);                                                                                           {/**
    ╚let••mobile•=•__sveltets_invalidate(()•=>•width•<•768);↲    [generated] line 89                                                                   
-   ╚    •mobile•=•                            width•<•768 ;↲                                                                                          
+   ╚    •mobile•=•                            width•<•768; ↲                                                                                          
    ╚  •mobile•=•width•<•768;↲                                                                                                                         
    ╚$:•mobile•=•width•<•768;↲                                   [original] line 83                                                                    
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
