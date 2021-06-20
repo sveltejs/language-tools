@@ -22,7 +22,7 @@ export function pathToUrl(path: string) {
  * This is normalized here.
  */
 export function normalizePath(path: string): string {
-    return urlToPath(pathToUrl(path)) ?? '';
+    return URI.file(path).fsPath.replace(/\\/g, '/');
 }
 
 /**
