@@ -278,6 +278,10 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot, ComponentInfoPr
         return this.componentEvents?.getAll() || [];
     }
 
+    getSlotLets() {
+        return []; // TODO implement
+    }
+
     async getFragment() {
         if (!this.fragment) {
             const uri = pathToUrl(this.filePath);
@@ -325,8 +329,6 @@ export class JSOrTSDocumentSnapshot
 {
     scriptKind = getScriptKindFromFileName(this.filePath);
     scriptInfo = null;
-
-    private readonly componentInfos = new Map<ts.DefinitionInfo, ComponentInfoProvider | null>();
 
     constructor(public version: number, public readonly filePath: string, private text: string) {
         super(pathToUrl(filePath));
@@ -379,21 +381,6 @@ export class JSOrTSDocumentSnapshot
         }
 
         this.version++;
-    }
-
-    getComponentInfo(
-        lang: ts.LanguageService,
-        def: ts.DefinitionInfo
-    ): ComponentInfoProvider | null {
-        // there might multiple component class in a js or ts file
-        if (this.componentInfos.has(def)) {
-            return this.componentInfos.get(def) ?? null;
-        }
-
-        const componentInfoProvider = JsOrTsComponentInfoProvider.create(lang, def);
-        this.componentInfos.set(def, componentInfoProvider);
-
-        return componentInfoProvider;
     }
 }
 

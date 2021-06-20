@@ -872,6 +872,66 @@ describe('CompletionProviderImpl', () => {
             assert.strictEqual(item?.label, 'abc');
         }
     }).timeout(4000);
+
+    it('provides default slot-let completion for components with type definition', async () => {
+        const { completionProvider, document } = setup('component-events-completion-ts-def.svelte');
+
+        const completions = await completionProvider.getCompletions(
+            document,
+            Position.create(5, 18),
+            {
+                triggerKind: CompletionTriggerKind.Invoked
+            }
+        );
+
+        const slotLetCompletions = completions!.items.filter((item) =>
+            item.label.startsWith('let:')
+        );
+
+        assert.deepStrictEqual(slotLetCompletions, <CompletionItem[]>[
+            {
+                detail: 'let1: boolean',
+                documentation: '',
+                label: 'let:let1',
+                sortText: '-1',
+                textEdit: {
+                    newText: 'let:let1',
+                    range: {
+                        end: {
+                            character: 18,
+                            line: 5
+                        },
+                        start: {
+                            character: 14,
+                            line: 5
+                        }
+                    }
+                }
+            },
+            {
+                detail: 'let2: string',
+                documentation: {
+                    kind: 'markdown',
+                    value: 'documentation for let2'
+                },
+                label: 'let:let2',
+                sortText: '-1',
+                textEdit: {
+                    newText: 'let:let2',
+                    range: {
+                        end: {
+                            character: 18,
+                            line: 5
+                        },
+                        start: {
+                            character: 14,
+                            line: 5
+                        }
+                    }
+                }
+            }
+        ]);
+    });
 });
 
 function harmonizeNewLines(input?: string) {

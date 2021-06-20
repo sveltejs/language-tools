@@ -3,7 +3,12 @@ import ts from 'typescript';
 import { isNotNullOrUndefined } from '../../utils';
 import { findContainingNode } from './features/utils';
 
-type ComponentEventInfo = ReturnType<ComponentEvents['getAll']>;
+export type ComponentPartInfo = ReturnType<ComponentEvents['getAll']>;
+
+export interface ComponentInfoProvider {
+    getEvents(): ComponentPartInfo;
+    getSlotLets(slot?: string): ComponentPartInfo;
+}
 
 export class JsOrTsComponentInfoProvider implements ComponentInfoProvider {
     private constructor(
@@ -11,20 +16,45 @@ export class JsOrTsComponentInfoProvider implements ComponentInfoProvider {
         private readonly classType: ts.Type
     ) {}
 
-    getEvents(): ComponentEventInfo {
-        const symbol = this.classType.getProperty('$$events_def');
-        if (!symbol) {
+    getEvents(): ComponentPartInfo {
+        const eventType = this.getType('$$events_def');
+        if (!eventType) {
             return [];
         }
 
-        const declaration = symbol.valueDeclaration;
-        if (!declaration) {
+        return this.mapPropertiesOfType(eventType);
+    }
+
+    getSlotLets(slot = 'default'): ComponentPartInfo {
+        const slotType = this.getType('$$slot_def');
+        if (!slotType) {
             return [];
         }
 
-        const eventType = this.typeChecker.getTypeOfSymbolAtLocation(symbol, declaration);
+        const slotLets = slotType.getProperties().find((prop) => prop.name === slot);
+        if (!slotLets?.valueDeclaration) {
+            return [];
+        }
 
-        return eventType
+        const slotLetsType = this.typeChecker.getTypeOfSymbolAtLocation(
+            slotLets,
+            slotLets.valueDeclaration
+        );
+
+        return this.mapPropertiesOfType(slotLetsType);
+    }
+
+    private getType(classProperty: string) {
+        const symbol = this.classType.getProperty(classProperty);
+        if (!symbol?.valueDeclaration) {
+            return null;
+        }
+
+        return this.typeChecker.getTypeOfSymbolAtLocation(symbol, symbol.valueDeclaration);
+    }
+
+    private mapPropertiesOfType(type: ts.Type): ComponentPartInfo {
+        return type
             .getProperties()
             .map((prop) => {
                 if (!prop.valueDeclaration) {
@@ -42,6 +72,10 @@ export class JsOrTsComponentInfoProvider implements ComponentInfoProvider {
             .filter(isNotNullOrUndefined);
     }
 
+    /**
+     * The result of this shouldn't be cached as it could lead to memory leaks. The type checker
+     * could become old and then multiple versions of it could exist.
+     */
     static create(lang: ts.LanguageService, def: ts.DefinitionInfo): ComponentInfoProvider | null {
         const program = lang.getProgram();
         const sourceFile = program?.getSourceFile(def.fileName);
@@ -65,8 +99,4 @@ export class JsOrTsComponentInfoProvider implements ComponentInfoProvider {
 
         return new JsOrTsComponentInfoProvider(typeChecker, classType);
     }
-}
-
-export interface ComponentInfoProvider {
-    getEvents(): ComponentEventInfo;
 }
