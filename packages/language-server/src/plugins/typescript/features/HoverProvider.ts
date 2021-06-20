@@ -70,13 +70,7 @@ export class HoverProviderImpl implements HoverProvider {
             return null;
         }
 
-        const component = await getComponentAtPosition(
-            this.lsAndTsDocResolver,
-            lang,
-            doc,
-            tsDoc,
-            originalPosition
-        );
+        const component = await getComponentAtPosition(lang, doc, tsDoc, originalPosition);
         if (!component) {
             return null;
         }
