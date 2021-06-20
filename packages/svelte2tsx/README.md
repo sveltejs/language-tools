@@ -49,3 +49,4 @@ For more examples of the transformations, see the `test/**/samples` folders
 ## Credits
 
 -   [halfnelson](https://github.com/halfnelson) for creating `svelte2tsx`
+-   [pushkine](https://github.com/pushkine) for creating the source mapping test infrastructure
