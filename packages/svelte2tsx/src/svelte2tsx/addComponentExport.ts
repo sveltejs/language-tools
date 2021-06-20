@@ -1,7 +1,5 @@
 import { pascalCase } from 'pascal-case';
 import path from 'path';
-import { createClassGetters } from './nodes/exportgetters';
-import { createClassAccessors } from './nodes/exportaccessors';
 import MagicString from 'magic-string';
 import { ExportedNames } from './nodes/ExportedNames';
 import { ComponentDocumentation } from './nodes/ComponentDocumentation';
@@ -16,7 +14,6 @@ export interface AddComponentExportPara {
      * */
     strictEvents: boolean;
     isTsFile: boolean;
-    getters: Set<string>;
     usesAccessors: boolean;
     exportedNames: ExportedNames;
     fileName?: string;
@@ -47,7 +44,6 @@ function addGenericsComponentExport({
     componentDocumentation,
     fileName,
     mode,
-    getters,
     usesAccessors,
     str,
     generics
@@ -89,8 +85,8 @@ class __sveltets_Render${genericsDef} {
             `\n${doc}export default class${
                 className ? ` ${className}` : ''
             }${genericsDef} extends SvelteComponentTyped<${className}Props${genericsRef}, ${className}Events${genericsRef}, ${className}Slots${genericsRef}> {` + // eslint-disable-line max-len
-            createClassGetters(getters) +
-            (usesAccessors ? createClassAccessors(getters, exportedNames) : '') +
+            exportedNames.createClassGetters() +
+            (usesAccessors ? exportedNames.createClassAccessors() : '') +
             '\n}';
     } else {
         statement +=
@@ -99,8 +95,8 @@ class __sveltets_Render${genericsDef} {
             }${genericsDef} extends Svelte2TsxComponent<${returnType('props')}, ${returnType(
                 'events'
             )}, ${returnType('slots')}> {` +
-            createClassGetters(getters) +
-            (usesAccessors ? createClassAccessors(getters, exportedNames) : '') +
+            exportedNames.createClassGetters() +
+            (usesAccessors ? exportedNames.createClassAccessors() : '') +
             '\n}';
     }
 
@@ -115,7 +111,6 @@ function addSimpleComponentExport({
     componentDocumentation,
     fileName,
     mode,
-    getters,
     usesAccessors,
     str
 }: AddComponentExportPara) {
@@ -139,16 +134,16 @@ function addSimpleComponentExport({
             `\n${doc}export default class${
                 className ? ` ${className}` : ''
             } extends SvelteComponentTyped<${className}Props, ${className}Events, ${className}Slots> {` + // eslint-disable-line max-len
-            createClassGetters(getters) +
-            (usesAccessors ? createClassAccessors(getters, exportedNames) : '') +
+            exportedNames.createClassGetters() +
+            (usesAccessors ? exportedNames.createClassAccessors() : '') +
             '\n}';
     } else {
         statement =
             `\n\n${doc}export default class${
                 className ? ` ${className}` : ''
             } extends createSvelte2TsxComponent(${propDef}) {` +
-            createClassGetters(getters) +
-            (usesAccessors ? createClassAccessors(getters, exportedNames) : '') +
+            exportedNames.createClassGetters() +
+            (usesAccessors ? exportedNames.createClassAccessors() : '') +
             '\n}';
     }
 

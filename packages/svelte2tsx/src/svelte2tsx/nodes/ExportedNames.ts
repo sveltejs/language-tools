@@ -1,9 +1,6 @@
+import MagicString from 'magic-string';
 import ts from 'typescript';
-import { getLastLeadingDoc, isInterfaceOrTypeDeclaration } from '../utils/tsAst';
-
-export interface IExportedNames {
-    has(name: string): boolean;
-}
+import { findExportKeyword, getLastLeadingDoc, isInterfaceOrTypeDeclaration } from '../utils/tsAst';
 
 export function is$$PropsDeclaration(
     node: ts.Node
@@ -19,9 +16,184 @@ interface ExportedName {
     doc?: string;
 }
 
-export class ExportedNames extends Map<string, ExportedName> implements IExportedNames {
+export class ExportedNames {
     private uses$$Props = false;
+    private exports = new Map<string, ExportedName>();
     private possibleExports = new Map<string, ExportedName>();
+    private getters = new Set<string>();
+
+    constructor(private str: MagicString, private astOffset: number) {}
+
+    handleVariableStatement(node: ts.VariableStatement, parent: ts.Node): void {
+        const exportModifier = findExportKeyword(node);
+        if (exportModifier) {
+            const isLet = node.declarationList.flags === ts.NodeFlags.Let;
+            const isConst = node.declarationList.flags === ts.NodeFlags.Const;
+
+            this.handleExportedVariableDeclarationList(
+                node.declarationList,
+                this.addExport.bind(this)
+            );
+            if (isLet) {
+                this.propTypeAssertToUserDefined(node.declarationList);
+            } else if (isConst) {
+                node.declarationList.forEachChild((n) => {
+                    if (ts.isVariableDeclaration(n) && ts.isIdentifier(n.name)) {
+                        this.addGetter(n.name);
+                    }
+                });
+            }
+            this.removeExport(exportModifier.getStart(), exportModifier.end);
+        } else if (ts.isSourceFile(parent)) {
+            this.handleExportedVariableDeclarationList(
+                node.declarationList,
+                this.addPossibleExport.bind(this)
+            );
+        }
+    }
+
+    handleExportFunctionOrClass(node: ts.ClassDeclaration | ts.FunctionDeclaration): void {
+        const exportModifier = findExportKeyword(node);
+        if (!exportModifier) {
+            return;
+        }
+
+        this.removeExport(exportModifier.getStart(), exportModifier.end);
+        this.addGetter(node.name);
+
+        // Can't export default here
+        if (node.name) {
+            this.addExport(node.name, false);
+        }
+    }
+
+    handleExportDeclaration(node: ts.ExportDeclaration): void {
+        const { exportClause } = node;
+        if (ts.isNamedExports(exportClause)) {
+            for (const ne of exportClause.elements) {
+                if (ne.propertyName) {
+                    this.addExport(ne.propertyName, false, ne.name);
+                } else {
+                    this.addExport(ne.name, false);
+                }
+            }
+            //we can remove entire statement
+            this.removeExport(node.getStart(), node.end);
+        }
+    }
+
+    private removeExport(start: number, end: number) {
+        const exportStart = this.str.original.indexOf('export', start + this.astOffset);
+        const exportEnd = exportStart + (end - start);
+        this.str.remove(exportStart, exportEnd);
+    }
+
+    private propTypeAssertToUserDefined(node: ts.VariableDeclarationList) {
+        const hasInitializers = node.declarations.filter((declaration) => declaration.initializer);
+        const handleTypeAssertion = (declaration: ts.VariableDeclaration) => {
+            const identifier = declaration.name;
+            const tsType = declaration.type;
+            const jsDocType = ts.getJSDocType(declaration);
+            const type = tsType || jsDocType;
+
+            if (
+                !ts.isIdentifier(identifier) ||
+                (!type &&
+                    // Edge case: TS infers `export let bla = false` to type `false`.
+                    // prevent that by adding the any-wrap in this case, too.
+                    ![ts.SyntaxKind.FalseKeyword, ts.SyntaxKind.TrueKeyword].includes(
+                        declaration.initializer?.kind
+                    ))
+            ) {
+                return;
+            }
+            const name = identifier.getText();
+            const end = declaration.end + this.astOffset;
+
+            this.str.appendLeft(end, `;${name} = __sveltets_any(${name});`);
+        };
+
+        const findComma = (target: ts.Node) =>
+            target.getChildren().filter((child) => child.kind === ts.SyntaxKind.CommaToken);
+        const splitDeclaration = () => {
+            const commas = node
+                .getChildren()
+                .filter((child) => child.kind === ts.SyntaxKind.SyntaxList)
+                .map(findComma)
+                .reduce((current, previous) => [...current, ...previous], []);
+
+            commas.forEach((comma) => {
+                const start = comma.getStart() + this.astOffset;
+                const end = comma.getEnd() + this.astOffset;
+                this.str.overwrite(start, end, ';let ', { contentOnly: true });
+            });
+        };
+        splitDeclaration();
+
+        for (const declaration of hasInitializers) {
+            handleTypeAssertion(declaration);
+        }
+    }
+
+    private handleExportedVariableDeclarationList(
+        list: ts.VariableDeclarationList,
+        add: ExportedNames['addExport']
+    ) {
+        const isLet = list.flags === ts.NodeFlags.Let;
+        ts.forEachChild(list, (node) => {
+            if (ts.isVariableDeclaration(node)) {
+                if (ts.isIdentifier(node.name)) {
+                    add(node.name, isLet, node.name, node.type, !node.initializer);
+                } else if (
+                    ts.isObjectBindingPattern(node.name) ||
+                    ts.isArrayBindingPattern(node.name)
+                ) {
+                    ts.forEachChild(node.name, (element) => {
+                        if (ts.isBindingElement(element)) {
+                            add(element.name, isLet);
+                        }
+                    });
+                }
+            }
+        });
+    }
+
+    addGetter(node: ts.Identifier): void {
+        if (!node) {
+            return;
+        }
+        this.getters.add(node.text);
+    }
+
+    createClassGetters(): string {
+        return Array.from(this.getters)
+            .map((name) => `\n    get ${name}() { return render().getters.${name} }`)
+            .join('');
+    }
+
+    createRenderFunctionGetterStr(): string {
+        const properties = Array.from(this.getters).map((name) => `${name}: ${name}`);
+        return `{${properties.join(', ')}}`;
+    }
+
+    createClassAccessors(): string {
+        const accessors: string[] = [];
+        for (const value of this.exports.values()) {
+            if (this.getters.has(value.identifierText)) {
+                continue;
+            }
+
+            accessors.push(value.identifierText);
+        }
+
+        return accessors
+            .map(
+                (name) =>
+                    `\n    get ${name}() { return render().props.${name} }` +
+                    `\n    /**accessor*/\n    set ${name}(_) {}`
+            )
+            .join('');
+    }
 
     setUses$$Props(): void {
         this.uses$$Props = true;
@@ -76,7 +248,7 @@ export class ExportedNames extends Map<string, ExportedName> implements IExporte
 
         const existingDeclaration = this.possibleExports.get(name.text);
         if (target) {
-            this.set(name.text, {
+            this.exports.set(name.text, {
                 isLet: isLet || existingDeclaration?.isLet,
                 type: type?.getText() || existingDeclaration?.type,
                 identifierText: (target as ts.Identifier).text,
@@ -84,7 +256,7 @@ export class ExportedNames extends Map<string, ExportedName> implements IExporte
                 doc: this.getDoc(target) || existingDeclaration?.doc
             });
         } else {
-            this.set(name.text, {
+            this.exports.set(name.text, {
                 isLet: isLet || existingDeclaration?.isLet,
                 type: existingDeclaration?.type,
                 required: existingDeclaration?.required,
@@ -111,7 +283,7 @@ export class ExportedNames extends Map<string, ExportedName> implements IExporte
      * @param isTsFile Whether this is a TypeScript file or not.
      */
     createPropsStr(isTsFile: boolean): string {
-        const names = Array.from(this.entries());
+        const names = Array.from(this.exports.entries());
 
         if (this.uses$$Props) {
             const lets = names.filter(([, { isLet }]) => isLet);
@@ -178,8 +350,12 @@ export class ExportedNames extends Map<string, ExportedName> implements IExporte
     }
 
     createOptionalPropsArray(): string[] {
-        return Array.from(this.entries())
+        return Array.from(this.exports.entries())
             .filter(([_, entry]) => !entry.required)
             .map(([name, entry]) => `'${entry.identifierText || name}'`);
+    }
+
+    getExportsMap() {
+        return this.exports;
     }
 }
