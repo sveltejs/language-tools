@@ -14,7 +14,7 @@
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
     let  selected = __sveltets_invalidate(() => lookup.get(slug));                                                                                    {/**
 ••••let••selected•=•__sveltets_invalidate(()•=>•lookup.get(slug));↲    [generated] line 4                                                             
-••••    •selected•=•                            lookup.get(slug) ;↲                                                                                   
+••••    •selected•=•                            lookup.get(slug); ↲                                                                                   
 ••••  •selected•=•lookup.get(slug);↲                                                                                                                  
 ••••$:•selected•=•lookup.get(slug);↲                                   [original] line 2                                                              
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}

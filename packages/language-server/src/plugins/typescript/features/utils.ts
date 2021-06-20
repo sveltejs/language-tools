@@ -134,6 +134,14 @@ export class SnapshotFragmentMap {
     }
 }
 
+export function isAfterSvelte2TsxPropsReturn(text: string, end: number) {
+    const textBeforeProp = text.substring(0, end);
+    // This is how svelte2tsx writes out the props
+    if (textBeforeProp.includes('\nreturn { props: {')) {
+        return true;
+    }
+}
+
 export function findContainingNode<T extends ts.Node>(
     node: ts.Node,
     textSpan: ts.TextSpan,
@@ -157,3 +165,4 @@ export function findContainingNode<T extends ts.Node>(
         }
     }
 }
+

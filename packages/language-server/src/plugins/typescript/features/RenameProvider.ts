@@ -11,7 +11,12 @@ import { convertRange } from '../utils';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import ts from 'typescript';
 import { uniqWith, isEqual } from 'lodash';
-import { isComponentAtPosition, isNoTextSpanInGeneratedCode, SnapshotFragmentMap } from './utils';
+import {
+    isComponentAtPosition,
+    isAfterSvelte2TsxPropsReturn,
+    isNoTextSpanInGeneratedCode,
+    SnapshotFragmentMap
+} from './utils';
 
 export class RenameProviderImpl implements RenameProvider {
     constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
@@ -273,11 +278,7 @@ export class RenameProviderImpl implements RenameProvider {
 
     // --------> svelte2tsx?
     private isInSvelte2TsxPropLine(fragment: SvelteSnapshotFragment, loc: ts.RenameLocation) {
-        const textBeforeProp = fragment.text.substring(0, loc.textSpan.start);
-        // This is how svelte2tsx writes out the props
-        if (textBeforeProp.includes('\nreturn { props: {')) {
-            return true;
-        }
+        return isAfterSvelte2TsxPropsReturn(fragment.text, loc.textSpan.start);
     }
 
     /**

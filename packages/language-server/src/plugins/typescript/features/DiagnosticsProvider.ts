@@ -1,17 +1,12 @@
 import ts from 'typescript';
 import { CancellationToken, Diagnostic, DiagnosticSeverity } from 'vscode-languageserver';
-import {
-    Document,
-    mapObjWithRangeToOriginal,
-    getTextInRange,
-    isRangeInTag
-} from '../../../lib/documents';
+import { Document, getTextInRange, isRangeInTag, mapRangeToOriginal } from '../../../lib/documents';
 import { DiagnosticsProvider } from '../../interfaces';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { convertRange, getDiagnosticTag, mapSeverity } from '../utils';
-import { SvelteDocumentSnapshot } from '../DocumentSnapshot';
-import { isInGeneratedCode } from './utils';
-import { swapRangeStartEndIfNecessary } from '../../../utils';
+import { SvelteDocumentSnapshot, SvelteSnapshotFragment } from '../DocumentSnapshot';
+import { isInGeneratedCode, isAfterSvelte2TsxPropsReturn } from './utils';
+import { regexIndexOf, swapRangeStartEndIfNecessary } from '../../../utils';
 
 export class DiagnosticsProviderImpl implements DiagnosticsProvider {
     constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
@@ -62,7 +57,7 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
                 code: diagnostic.code,
                 tags: getDiagnosticTag(diagnostic)
             }))
-            .map((diagnostic) => mapObjWithRangeToOriginal(fragment, diagnostic))
+            .map(mapRange(fragment, document))
             .filter(hasNoNegativeLines)
             .filter(isNoFalsePositive(document, tsDoc))
             .map(enhanceIfNecessary)
@@ -72,6 +67,42 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
     private async getLSAndTSDoc(document: Document) {
         return this.lsAndTsDocResolver.getLSAndTSDoc(document);
     }
+}
+
+function mapRange(
+    fragment: SvelteSnapshotFragment,
+    document: Document
+): (value: Diagnostic) => Diagnostic {
+    return (diagnostic) => {
+        let range = mapRangeToOriginal(fragment, diagnostic.range);
+
+        if (range.start.line < 0) {
+            const is$$PropsError =
+                isAfterSvelte2TsxPropsReturn(
+                    fragment.text,
+                    fragment.offsetAt(diagnostic.range.start)
+                ) && diagnostic.message.includes('$$Props');
+
+            if (is$$PropsError) {
+                const propsStart = regexIndexOf(
+                    document.getText(),
+                    /(interface|type)\s+\$\$Props[\s{=]/
+                );
+
+                if (propsStart) {
+                    const start = document.positionAt(
+                        propsStart + document.getText().substring(propsStart).indexOf('$$Props')
+                    );
+                    range = {
+                        start,
+                        end: { ...start, character: start.character + '$$Props'.length }
+                    };
+                }
+            }
+        }
+
+        return { ...diagnostic, range };
+    };
 }
 
 /**

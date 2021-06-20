@@ -3,7 +3,8 @@
 
     let name = $$slots.foo;
     let dashedName = $$slots['dashed-name'];
-;
+
+/*Ωignore_startΩ*/;const __sveltets_ensureSlot = __sveltets_createEnsureSlot();/*Ωignore_endΩ*/;
 () => (<>
 
 <h1>{name}</h1>

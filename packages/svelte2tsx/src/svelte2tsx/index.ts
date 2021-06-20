@@ -1,15 +1,11 @@
 import { Node } from 'estree-walker';
 import MagicString from 'magic-string';
-import { pascalCase } from 'pascal-case';
-import path from 'path';
 import { convertHtmlxToJsx } from '../htmlxtojsx';
 import { parseHtmlx } from '../utils/htmlxparser';
 import { ComponentDocumentation } from './nodes/ComponentDocumentation';
 import { ComponentEvents } from './nodes/ComponentEvents';
 import { EventHandler } from './nodes/event-handler';
 import { ExportedNames } from './nodes/ExportedNames';
-import { createClassGetters, createRenderFunctionGetterStr } from './nodes/exportgetters';
-import { createClassAccessors } from './nodes/exportaccessors';
 import {
     handleScopeAndResolveForSlot,
     handleScopeAndResolveLetVarForSlot
@@ -19,39 +15,13 @@ import { Scripts } from './nodes/Scripts';
 import { SlotHandler } from './nodes/slot';
 import { Stores } from './nodes/Stores';
 import TemplateScope from './nodes/TemplateScope';
-import {
-    InstanceScriptProcessResult,
-    processInstanceScriptContent
-} from './processInstanceScriptContent';
+import { processInstanceScriptContent } from './processInstanceScriptContent';
 import { processModuleScriptTag } from './processModuleScriptTag';
 import { ScopeStack } from './utils/Scope';
 import { svelteShims } from './svelteShims';
-
-interface CreateRenderFunctionPara extends InstanceScriptProcessResult {
-    str: MagicString;
-    scriptTag: Node;
-    scriptDestination: number;
-    slots: Map<string, Map<string, string>>;
-    events: ComponentEvents;
-    isTsFile: boolean;
-}
-
-interface AddComponentExportPara {
-    str: MagicString;
-    uses$$propsOr$$restProps: boolean;
-    /**
-     * If true, not fallback to `any`
-     * -> all unknown events will throw a type error
-     * */
-    strictEvents: boolean;
-    isTsFile: boolean;
-    getters: Set<string>;
-    usesAccessors: boolean;
-    exportedNames: ExportedNames;
-    fileName?: string;
-    componentDocumentation: ComponentDocumentation;
-    mode: 'dts' | 'tsx';
-}
+import { Generics } from './nodes/Generics';
+import { addComponentExport } from './addComponentExport';
+import { createRenderFunction } from './createRenderFunction';
 
 type TemplateProcessResult = {
     uses$$props: boolean;
@@ -67,17 +37,11 @@ type TemplateProcessResult = {
     usesAccessors: boolean;
 };
 
-/**
- * A component class name suffix is necessary to prevent class name clashes
- * like reported in https://github.com/sveltejs/language-tools/issues/294
- */
-const COMPONENT_SUFFIX = '__SvelteComponent_';
-
 function processSvelteTemplate(
     str: MagicString,
     options?: { emitOnTemplateError?: boolean; namespace?: string }
 ): TemplateProcessResult {
-    const htmlxAst = parseHtmlx(str.original, options);
+    const { htmlxAst, tags } = parseHtmlx(str.original, options);
 
     let uses$$props = false;
     let uses$$restProps = false;
@@ -303,7 +267,11 @@ function processSvelteTemplate(
         moduleScriptTag,
         scriptTag,
         slots: slotHandler.getSlotDef(),
-        events: new ComponentEvents(eventHandler),
+        events: new ComponentEvents(
+            eventHandler,
+            tags.some((tag) => tag.attributes?.some((a) => a.name === 'strictEvents')),
+            str
+        ),
         uses$$props,
         uses$$restProps,
         uses$$slots,
@@ -311,162 +279,6 @@ function processSvelteTemplate(
         resolvedStores,
         usesAccessors
     };
-}
-
-function addComponentExport({
-    str,
-    uses$$propsOr$$restProps,
-    strictEvents,
-    isTsFile,
-    getters,
-    usesAccessors,
-    exportedNames,
-    fileName,
-    componentDocumentation,
-    mode
-}: AddComponentExportPara) {
-    const eventsDef = strictEvents ? 'render()' : '__sveltets_with_any_event(render())';
-    let propDef = '';
-    if (isTsFile) {
-        propDef = uses$$propsOr$$restProps ? `__sveltets_with_any(${eventsDef})` : eventsDef;
-    } else {
-        const optionalProps = exportedNames.createOptionalPropsArray();
-        const partial = `__sveltets_partial${uses$$propsOr$$restProps ? '_with_any' : ''}`;
-        propDef =
-            optionalProps.length > 0
-                ? `${partial}([${optionalProps.join(',')}], ${eventsDef})`
-                : `${partial}(${eventsDef})`;
-    }
-
-    const doc = componentDocumentation.getFormatted();
-    const className = fileName && classNameFromFilename(fileName, mode !== 'dts');
-
-    let statement: string;
-    if (mode === 'dts') {
-        statement =
-            `\nconst __propDef = ${propDef};\n` +
-            `export type ${className}Props = typeof __propDef.props;\n` +
-            `export type ${className}Events = typeof __propDef.events;\n` +
-            `export type ${className}Slots = typeof __propDef.slots;\n` +
-            `\n${doc}export default class${
-                className ? ` ${className}` : ''
-            } extends SvelteComponentTyped<${className}Props, ${className}Events, ${className}Slots> {` + // eslint-disable-line max-len
-            createClassGetters(getters) +
-            (usesAccessors ? createClassAccessors(getters, exportedNames) : '') +
-            '\n}';
-    } else {
-        statement =
-            `\n\n${doc}export default class${
-                className ? ` ${className}` : ''
-            } extends createSvelte2TsxComponent(${propDef}) {` +
-            createClassGetters(getters) +
-            (usesAccessors ? createClassAccessors(getters, exportedNames) : '') +
-            '\n}';
-    }
-
-    str.append(statement);
-}
-
-/**
- * Returns a Svelte-compatible component name from a filename. Svelte
- * components must use capitalized tags, so we try to transform the filename.
- *
- * https://svelte.dev/docs#Tags
- */
-function classNameFromFilename(filename: string, appendSuffix: boolean): string | undefined {
-    try {
-        const withoutExtensions = path.parse(filename).name?.split('.')[0];
-        const withoutInvalidCharacters = withoutExtensions
-            .split('')
-            // Although "-" is invalid, we leave it in, pascal-case-handling will throw it out later
-            .filter((char) => /[A-Za-z$_\d-]/.test(char))
-            .join('');
-        const firstValidCharIdx = withoutInvalidCharacters
-            .split('')
-            // Although _ and $ are valid first characters for classes, they are invalid first characters
-            // for tag names. For a better import autocompletion experience, we therefore throw them out.
-            .findIndex((char) => /[A-Za-z]/.test(char));
-        const withoutLeadingInvalidCharacters = withoutInvalidCharacters.substr(firstValidCharIdx);
-        const inPascalCase = pascalCase(withoutLeadingInvalidCharacters);
-        const finalName = firstValidCharIdx === -1 ? `A${inPascalCase}` : inPascalCase;
-        return `${finalName}${appendSuffix ? COMPONENT_SUFFIX : ''}`;
-    } catch (error) {
-        console.warn(`Failed to create a name for the component class from filename ${filename}`);
-        return undefined;
-    }
-}
-
-function createRenderFunction({
-    str,
-    scriptTag,
-    scriptDestination,
-    slots,
-    getters,
-    events,
-    exportedNames,
-    isTsFile,
-    uses$$props,
-    uses$$restProps,
-    uses$$slots
-}: CreateRenderFunctionPara) {
-    const htmlx = str.original;
-    let propsDecl = '';
-
-    if (uses$$props) {
-        propsDecl += ' let $$props = __sveltets_allPropsType();';
-    }
-    if (uses$$restProps) {
-        propsDecl += ' let $$restProps = __sveltets_restPropsType();';
-    }
-
-    if (uses$$slots) {
-        propsDecl +=
-            ' let $$slots = __sveltets_slotsType({' +
-            Array.from(slots.keys())
-                .map((name) => `'${name}': ''`)
-                .join(', ') +
-            '});';
-    }
-
-    if (scriptTag) {
-        //I couldn't get magicstring to let me put the script before the <> we prepend during conversion of the template to jsx, so we just close it instead
-        const scriptTagEnd = htmlx.lastIndexOf('>', scriptTag.content.start) + 1;
-        str.overwrite(scriptTag.start, scriptTag.start + 1, '</>;');
-        str.overwrite(scriptTag.start + 1, scriptTagEnd, `function render() {${propsDecl}\n`);
-
-        const scriptEndTagStart = htmlx.lastIndexOf('<', scriptTag.end - 1);
-        // wrap template with callback
-        str.overwrite(scriptEndTagStart, scriptTag.end, ';\n() => (<>', {
-            contentOnly: true
-        });
-    } else {
-        str.prependRight(scriptDestination, `</>;function render() {${propsDecl}\n<>`);
-    }
-
-    const slotsAsDef =
-        '{' +
-        Array.from(slots.entries())
-            .map(([name, attrs]) => {
-                const attrsAsString = Array.from(attrs.entries())
-                    .map(([exportName, expr]) => `${exportName}:${expr}`)
-                    .join(', ');
-                return `'${name}': {${attrsAsString}}`;
-            })
-            .join(', ') +
-        '}';
-
-    const returnString =
-        `\nreturn { props: ${exportedNames.createPropsStr(isTsFile)}` +
-        `, slots: ${slotsAsDef}` +
-        `, getters: ${createRenderFunctionGetterStr(getters)}` +
-        `, events: ${events.toDefString()} }}`;
-
-    // wrap template with callback
-    if (scriptTag) {
-        str.append(');');
-    }
-
-    str.append(returnString);
 }
 
 export function svelte2tsx(
@@ -516,8 +328,9 @@ export function svelte2tsx(
         : instanceScriptTarget;
     const implicitStoreValues = new ImplicitStoreValues(resolvedStores, renderFunctionStart);
     //move the instance script and process the content
-    let exportedNames = new ExportedNames();
-    let getters = new Set<string>();
+    let exportedNames = new ExportedNames(str, 0);
+    let generics = new Generics(str, 0);
+    let uses$$SlotsInterface = false;
     if (scriptTag) {
         //ensure it is between the module script and the rest of the template (the variables need to be declared before the jsx template)
         if (scriptTag.start != instanceScriptTarget) {
@@ -528,7 +341,7 @@ export function svelte2tsx(
         uses$$restProps = uses$$restProps || res.uses$$restProps;
         uses$$slots = uses$$slots || res.uses$$slots;
 
-        ({ exportedNames, events, getters } = res);
+        ({ exportedNames, events, generics, uses$$SlotsInterface } = res);
     }
 
     //wrap the script tag and template content in a function returning the slot and exports
@@ -538,12 +351,14 @@ export function svelte2tsx(
         scriptDestination: instanceScriptTarget,
         slots,
         events,
-        getters,
         exportedNames,
         isTsFile: options?.isTsFile,
         uses$$props,
         uses$$restProps,
-        uses$$slots
+        uses$$slots,
+        uses$$SlotsInterface,
+        generics,
+        mode: options.mode
     });
 
     // we need to process the module script after the instance script has moved otherwise we get warnings about moving edited items
@@ -558,14 +373,14 @@ export function svelte2tsx(
     addComponentExport({
         str,
         uses$$propsOr$$restProps: uses$$props || uses$$restProps,
-        strictEvents: events.hasInterface(),
+        strictEvents: events.hasStrictEvents(),
         isTsFile: options?.isTsFile,
-        getters,
         exportedNames,
         usesAccessors,
         fileName: options?.filename,
         componentDocumentation,
-        mode: options.mode
+        mode: options.mode,
+        generics
     });
 
     if (options.mode === 'dts') {
@@ -588,7 +403,7 @@ export function svelte2tsx(
         return {
             code: str.toString(),
             map: str.generateMap({ hires: true, source: options?.filename }),
-            exportedNames,
+            exportedNames: exportedNames.getExportsMap(),
             events: events.createAPI()
         };
     }

@@ -1,10 +1,11 @@
 ///<reference types="svelte" />
 <></>;function render() {
+/*Ωignore_startΩ*/;const __sveltets_ensureSlot = __sveltets_createEnsureSlot();/*Ωignore_endΩ*/
 <>{__sveltets_each(items, (item) => <>
-    <slot a={item}>Hello</slot>
+    <slot a={__sveltets_ensureSlot("default","a",item)}>Hello</slot>
 </>)}
 {__sveltets_each(items2, ({ a }) => <>
-    <slot name="second" a={a}>Hello</slot>
+    <slot name="second" a={__sveltets_ensureSlot("second","a",a)}>Hello</slot>
 </>)}</>
 return { props: {}, slots: {'default': {a:__sveltets_unwrapArr(items)}, 'second': {a:(({ a }) => a)(__sveltets_unwrapArr(items2))}}, getters: {}, events: {} }}
 

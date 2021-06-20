@@ -1,5 +1,5 @@
 <script lang="ts">
-    interface ComponentEvents {
+    interface $$Events {
         /**
          * Some *doc*
          */

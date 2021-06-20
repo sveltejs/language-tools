@@ -11,7 +11,7 @@
 </>);
 return { props: {foo: foo , foo2: foo2 , class: clazz , bar: bar}, slots: {}, getters: {bar: bar}, events: {} }}
 
-export default class Input__SvelteComponent_ extends createSvelte2TsxComponent(__sveltets_partial(['foo','foo2','class','bar'], __sveltets_with_any_event(render()))) {
+export default class Input__SvelteComponent_ extends createSvelte2TsxComponent(__sveltets_partial(['foo','foo2','bar'], __sveltets_with_any_event(render()))) {
     get bar() { return render().getters.bar }
     get foo() { return render().props.foo }
     /**accessor*/

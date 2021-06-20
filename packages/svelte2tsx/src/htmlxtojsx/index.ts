@@ -229,7 +229,7 @@ export function htmlx2jsx(
     htmlx: string,
     options?: { emitOnTemplateError?: boolean; preserveAttributeCase: boolean }
 ) {
-    const ast = parseHtmlx(htmlx, options);
+    const ast = parseHtmlx(htmlx, options).htmlxAst;
     const str = new MagicString(htmlx);
 
     convertHtmlxToJsx(str, ast, null, null, options);

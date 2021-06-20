@@ -852,6 +852,26 @@ describe('CompletionProviderImpl', () => {
             `/**${newLine} * $0${newLine} * @param parameter1${newLine} */`
         );
     });
+
+    it('shows completions in reactive statement', async () => {
+        const { completionProvider, document } = setup('completions-in-reactive-statement.svelte');
+
+        await checkCompletion(Position.create(9, 13));
+        await checkCompletion(Position.create(10, 16));
+        await checkCompletion(Position.create(11, 14));
+        await checkCompletion(Position.create(13, 17));
+        await checkCompletion(Position.create(14, 20));
+        await checkCompletion(Position.create(15, 18));
+
+        async function checkCompletion(position: Position) {
+            const completions = await completionProvider.getCompletions(document, position, {
+                triggerKind: CompletionTriggerKind.Invoked
+            });
+            assert.strictEqual(completions?.items.length, 1);
+            const item = completions?.items?.[0];
+            assert.strictEqual(item?.label, 'abc');
+        }
+    }).timeout(4000);
 });
 
 function harmonizeNewLines(input?: string) {
