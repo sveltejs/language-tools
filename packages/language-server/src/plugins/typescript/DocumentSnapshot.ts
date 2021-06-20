@@ -13,7 +13,7 @@ import {
     isInTag
 } from '../../lib/documents';
 import { pathToUrl } from '../../utils';
-import { ComponentInfoProvider, JsOrTsComponentInfoProvider } from './ComponentInfoProvider';
+import { ComponentInfoProvider } from './ComponentInfoProvider';
 import { ConsumerDocumentMapper } from './DocumentMapper';
 import {
     getScriptKindFromAttributes,
