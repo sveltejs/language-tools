@@ -14,10 +14,10 @@
      let exported1: string;
      let exported2: string = '';exported2 = __sveltets_any(exported2);;
 
-    let name1: string = "world"
+    let name1: string = "world";name1 = __sveltets_any(name1);
     let name2: string;
 
-    let rename1: string = '';
+    let rename1: string = '';rename1 = __sveltets_any(rename1);;
     let rename2: string;
 
     class Foo {}

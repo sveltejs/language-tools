@@ -19,7 +19,13 @@ interface ExportedName {
 export class ExportedNames {
     private uses$$Props = false;
     private exports = new Map<string, ExportedName>();
-    private possibleExports = new Map<string, ExportedName>();
+    private possibleExports = new Map<
+        string,
+        ExportedName & {
+            declaration: ts.VariableDeclarationList;
+        }
+    >();
+    private doneDeclarationTransformation = new Set<ts.VariableDeclarationList>();
     private getters = new Set<string>();
 
     constructor(private str: MagicString, private astOffset: number) {}
@@ -30,9 +36,8 @@ export class ExportedNames {
             const isLet = node.declarationList.flags === ts.NodeFlags.Let;
             const isConst = node.declarationList.flags === ts.NodeFlags.Const;
 
-            this.handleExportedVariableDeclarationList(
-                node.declarationList,
-                this.addExport.bind(this)
+            this.handleExportedVariableDeclarationList(node.declarationList, (_, ...args) =>
+                this.addExport(...args)
             );
             if (isLet) {
                 this.propTypeAssertToUserDefined(node.declarationList);
@@ -88,7 +93,16 @@ export class ExportedNames {
         this.str.remove(exportStart, exportEnd);
     }
 
+    /**
+     * Appends `prop = __sveltets_any(prop)`  to given declaration in order to
+     * trick TS into widening the type. Else for example `let foo: string | undefined = undefined`
+     * is narrowed to `undefined` by TS.
+     */
     private propTypeAssertToUserDefined(node: ts.VariableDeclarationList) {
+        if (this.doneDeclarationTransformation.has(node)) {
+            return;
+        }
+
         const hasInitializers = node.declarations.filter((declaration) => declaration.initializer);
         const handleTypeAssertion = (declaration: ts.VariableDeclaration) => {
             const identifier = declaration.name;
@@ -133,24 +147,25 @@ export class ExportedNames {
         for (const declaration of hasInitializers) {
             handleTypeAssertion(declaration);
         }
+        this.doneDeclarationTransformation.add(node);
     }
 
     private handleExportedVariableDeclarationList(
         list: ts.VariableDeclarationList,
-        add: ExportedNames['addExport']
+        add: ExportedNames['addPossibleExport']
     ) {
         const isLet = list.flags === ts.NodeFlags.Let;
         ts.forEachChild(list, (node) => {
             if (ts.isVariableDeclaration(node)) {
                 if (ts.isIdentifier(node.name)) {
-                    add(node.name, isLet, node.name, node.type, !node.initializer);
+                    add(list, node.name, isLet, node.name, node.type, !node.initializer);
                 } else if (
                     ts.isObjectBindingPattern(node.name) ||
                     ts.isArrayBindingPattern(node.name)
                 ) {
                     ts.forEachChild(node.name, (element) => {
                         if (ts.isBindingElement(element)) {
-                            add(element.name, isLet);
+                            add(list, element.name, isLet);
                         }
                     });
                 }
@@ -158,7 +173,7 @@ export class ExportedNames {
         });
     }
 
-    addGetter(node: ts.Identifier): void {
+    private addGetter(node: ts.Identifier): void {
         if (!node) {
             return;
         }
@@ -203,7 +218,8 @@ export class ExportedNames {
      * Marks a top level declaration as a possible export
      * which could be exported through `export { .. }` later.
      */
-    addPossibleExport(
+    private addPossibleExport(
+        declaration: ts.VariableDeclarationList,
         name: ts.BindingName,
         isLet: boolean,
         target: ts.BindingName = null,
@@ -216,6 +232,7 @@ export class ExportedNames {
 
         if (target && ts.isIdentifier(target)) {
             this.possibleExports.set(name.text, {
+                declaration,
                 isLet,
                 type: type?.getText(),
                 identifierText: (target as ts.Identifier).text,
@@ -224,6 +241,7 @@ export class ExportedNames {
             });
         } else {
             this.possibleExports.set(name.text, {
+                declaration,
                 isLet
             });
         }
@@ -232,7 +250,7 @@ export class ExportedNames {
     /**
      * Adds export to map
      */
-    addExport(
+    private addExport(
         name: ts.BindingName,
         isLet: boolean,
         target: ts.BindingName = null,
@@ -247,6 +265,7 @@ export class ExportedNames {
         }
 
         const existingDeclaration = this.possibleExports.get(name.text);
+
         if (target) {
             this.exports.set(name.text, {
                 isLet: isLet || existingDeclaration?.isLet,
@@ -262,6 +281,10 @@ export class ExportedNames {
                 required: existingDeclaration?.required,
                 doc: existingDeclaration?.doc
             });
+        }
+
+        if (existingDeclaration?.isLet) {
+            this.propTypeAssertToUserDefined(existingDeclaration.declaration);
         }
     }
 
