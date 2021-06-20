@@ -3,3 +3,4 @@
 </script>
 
 <ComponentDef on:></ComponentDef>
+<ComponentDef let:></ComponentDef>

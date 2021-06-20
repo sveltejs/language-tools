@@ -10,5 +10,13 @@ export class ComponentDef extends SvelteComponentTyped<
          */
         event2: CustomEvent<string>;
     },
-    {}
+    {
+        default: {
+            let1: boolean;
+            /**
+             * documentation for let2
+             */
+            let2: string;
+        }
+    }
 > {}
