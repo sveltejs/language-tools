@@ -38,8 +38,8 @@ export class ImplicitTopLevelNames {
         const start = expression.getStart() + this.astOffset;
         const end = expression.getEnd() + this.astOffset;
 
-        // () => ({})
-        if (ts.isObjectLiteralExpression(expression)) {
+        // $: a = { .. }  /  $: a = .. as ..  =>   () => ( .. )
+        if (ts.isObjectLiteralExpression(expression) || ts.isAsExpression(expression)) {
             this.str.appendLeft(start, '(');
             this.str.appendRight(end, ')');
         }
@@ -89,7 +89,7 @@ export class ImplicitTopLevelNames {
             const start = node.statement.expression.getStart() + this.astOffset;
             this.str.overwrite(start, start + 1, '', { contentOnly: true });
             const end = node.statement.expression.getEnd() + this.astOffset - 1;
-            // We need to keep the `)` of the "wrap with invalidate" expression above.
+            // We need to keep the `))` of the "wrap with invalidate" expression above.
             // We overwrite the same range so it's needed.
             this.str.overwrite(end, end + 1, ')', { contentOnly: true });
         }
