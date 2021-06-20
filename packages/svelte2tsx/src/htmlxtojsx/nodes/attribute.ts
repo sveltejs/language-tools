@@ -89,7 +89,7 @@ export function handleAttribute(
 
     // Custom CSS property
     if (parent.type === 'InlineComponent' && attr.name.startsWith('--') && attr.value !== true) {
-        str.prependRight(attr.start, '{...__sveltets_cssProp({"');
+        str.prependRight(attr.start, '{...__sveltets_1_cssProp({"');
         buildTemplateString(attr, str, htmlx, '": `', '`})}');
         return;
     }

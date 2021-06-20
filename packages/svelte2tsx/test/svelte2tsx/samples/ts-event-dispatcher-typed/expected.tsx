@@ -31,7 +31,7 @@ function render() {
 () => (<>
 
 <button onclick={() => dispatch('btn', '')}></button></>);
-return { props: {}, slots: {}, getters: {}, events: {...__sveltets_toEventTypings<{
+return { props: {}, slots: {}, getters: {}, events: {...__sveltets_1_toEventTypings<{
     /**
      * A DOC
      */
@@ -46,5 +46,5 @@ return { props: {}, slots: {}, getters: {}, events: {...__sveltets_toEventTyping
     // not this
     btn: string;}>()} }}
 
-export default class Input__SvelteComponent_ extends createSvelte2TsxComponent(__sveltets_with_any_event(render())) {
+export default class Input__SvelteComponent_ extends __sveltets_1_createSvelte2TsxComponent(__sveltets_1_with_any_event(render())) {
 }

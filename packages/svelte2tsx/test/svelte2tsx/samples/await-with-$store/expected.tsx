@@ -4,16 +4,16 @@ import { readable } from 'svelte/store';
 function render() {
 
 	
-	const store = readable(Promise.resolve('test'), () => {})/*Ωignore_startΩ*/;let $store = __sveltets_store_get(store);/*Ωignore_endΩ*/;
+	const store = readable(Promise.resolve('test'), () => {})/*Ωignore_startΩ*/;let $store = __sveltets_1_store_get(store);/*Ωignore_endΩ*/;
 ;
 () => (<>
 
-{() => {let _$$p = ((__sveltets_store_get(store), $store)); <>
+{() => {let _$$p = ((__sveltets_1_store_get(store), $store)); <>
 	<p>loading</p>
-</>; __sveltets_awaitThen(_$$p, (data) => {<>
+</>; __sveltets_1_awaitThen(_$$p, (data) => {<>
 	{data}
 </>})}}</>);
 return { props: {}, slots: {}, getters: {}, events: {} }}
 
-export default class Input__SvelteComponent_ extends createSvelte2TsxComponent(__sveltets_partial(__sveltets_with_any_event(render()))) {
+export default class Input__SvelteComponent_ extends __sveltets_1_createSvelte2TsxComponent(__sveltets_1_partial(__sveltets_1_with_any_event(render()))) {
 }

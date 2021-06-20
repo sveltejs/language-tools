@@ -94,7 +94,7 @@ export class ExportedNames {
     }
 
     /**
-     * Appends `prop = __sveltets_any(prop)`  to given declaration in order to
+     * Appends `prop = __sveltets_1_any(prop)`  to given declaration in order to
      * trick TS into widening the type. Else for example `let foo: string | undefined = undefined`
      * is narrowed to `undefined` by TS.
      */
@@ -124,7 +124,7 @@ export class ExportedNames {
             const name = identifier.getText();
             const end = declaration.end + this.astOffset;
 
-            this.str.appendLeft(end, `;${name} = __sveltets_any(${name});`);
+            this.str.appendLeft(end, `;${name} = __sveltets_1_any(${name});`);
         };
 
         const findComma = (target: ts.Node) =>
@@ -317,12 +317,12 @@ export class ExportedNames {
             //   count as optional, but semantically speaking it is still correctly implementing the interface
             // - The check if $$Props is assignable to exports is necessary to make sure no extraneous props
             //   are defined and that no props are required that should be optional
-            // __sveltets_ensureRightProps needs to be declared in a way that doesn't affect the type result of props
+            // __sveltets_1_ensureRightProps needs to be declared in a way that doesn't affect the type result of props
             return (
-                '{...__sveltets_ensureRightProps<{' +
+                '{...__sveltets_1_ensureRightProps<{' +
                 this.createReturnElementsType(lets).join(',') +
-                '}>(__sveltets_any("") as $$Props), ' +
-                '...__sveltets_ensureRightProps<Partial<$$Props>>({' +
+                '}>(__sveltets_1_any("") as $$Props), ' +
+                '...__sveltets_1_ensureRightProps<Partial<$$Props>>({' +
                 this.createReturnElements(lets, false).join(',') +
                 '}), ...{} as unknown as $$Props, ...{' +
                 this.createReturnElements(others, false).join(', ') +

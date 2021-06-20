@@ -1,5 +1,5 @@
 import { RawSourceMap, SourceMapConsumer } from 'source-map';
-import svelte2tsx, { IExportedNames } from 'svelte2tsx';
+import { svelte2tsx, IExportedNames } from 'svelte2tsx';
 import ts from 'typescript';
 import { Position, Range, TextDocumentContentChangeEvent } from 'vscode-languageserver';
 import {

@@ -3,7 +3,7 @@ import { isQuote } from '../utils/node-utils';
 import { BaseDirective, BaseNode } from '../../interfaces';
 
 /**
- * transition:xxx(yyy)   --->   {...__sveltets_ensureTransition(xxx(__sveltets_mapElementTag('..'),(yyy)))}
+ * transition:xxx(yyy)   --->   {...__sveltets_1_ensureTransition(xxx(__sveltets_1_mapElementTag('..'),(yyy)))}
  */
 export function handleTransitionDirective(
     htmlx: string,
@@ -14,7 +14,7 @@ export function handleTransitionDirective(
     str.overwrite(
         attr.start,
         htmlx.indexOf(':', attr.start) + 1,
-        '{...__sveltets_ensureTransition('
+        '{...__sveltets_1_ensureTransition('
     );
 
     if (attr.modifiers.length) {
@@ -22,7 +22,7 @@ export function handleTransitionDirective(
         str.remove(local, attr.expression ? attr.expression.start : attr.end);
     }
 
-    const nodeType = `__sveltets_mapElementTag('${parent.name}')`;
+    const nodeType = `__sveltets_1_mapElementTag('${parent.name}')`;
 
     if (!attr.expression) {
         str.appendLeft(attr.end, `(${nodeType},{}))}`);

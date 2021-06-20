@@ -20,12 +20,12 @@ function render() {
 () => (<>
 
 <button onclick={undefined}></button></>);
-return { props: {}, slots: {}, getters: {}, events: {...__sveltets_toEventTypings<{
+return { props: {}, slots: {}, getters: {}, events: {...__sveltets_1_toEventTypings<{
     /**
      * A DOC
      */
     hi: boolean;
-    }>(), ...__sveltets_toEventTypings<{hi: string;}>(), 'click':__sveltets_mapElementEvent('click'), 'hi': __sveltets_customEvent, 'bye': __sveltets_customEvent} }}
+    }>(), ...__sveltets_1_toEventTypings<{hi: string;}>(), 'click':__sveltets_1_mapElementEvent('click'), 'hi': __sveltets_1_customEvent, 'bye': __sveltets_1_customEvent} }}
 
-export default class Input__SvelteComponent_ extends createSvelte2TsxComponent(__sveltets_with_any_event(render())) {
+export default class Input__SvelteComponent_ extends __sveltets_1_createSvelte2TsxComponent(__sveltets_1_with_any_event(render())) {
 }

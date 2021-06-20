@@ -57,7 +57,7 @@ export function handleAwaitPending(
         return;
     }
     // no need to prepend ifcondition here as we know the then block is empty
-    str.appendLeft(pendingEnd, '__sveltets_awaitThen(_$$p, () => {<>');
+    str.appendLeft(pendingEnd, '__sveltets_1_awaitThen(_$$p, () => {<>');
 }
 
 export function handleAwaitThen(
@@ -71,7 +71,7 @@ export function handleAwaitThen(
     }
 
     // then value } | {:then value} | {await ..} .. {/await} ->
-    // __sveltets_awaitThen(_$$p, (value) => {(possibleIfCondition && )<>
+    // __sveltets_1_awaitThen(_$$p, (value) => {(possibleIfCondition && )<>
     let thenStart: number;
     let thenEnd: number;
     // then value } | {:then value}
@@ -93,10 +93,10 @@ export function handleAwaitThen(
     }
 
     if (awaitBlock.value) {
-        str.overwrite(thenStart, awaitBlock.value.start, '__sveltets_awaitThen(_$$p, (');
+        str.overwrite(thenStart, awaitBlock.value.start, '__sveltets_1_awaitThen(_$$p, (');
         str.overwrite(awaitBlock.value.end, thenEnd, `) => {${ifScope.addPossibleIfCondition()}<>`);
     } else {
-        const awaitThenFn = `__sveltets_awaitThen(_$$p, () => {${ifScope.addPossibleIfCondition()}<>`; // eslint-disable-line
+        const awaitThenFn = `__sveltets_1_awaitThen(_$$p, () => {${ifScope.addPossibleIfCondition()}<>`; // eslint-disable-line
         if (thenStart === thenEnd) {
             str.appendLeft(thenStart, awaitThenFn);
         } else {
