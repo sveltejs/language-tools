@@ -328,8 +328,7 @@ export function svelte2tsx(
         : instanceScriptTarget;
     const implicitStoreValues = new ImplicitStoreValues(resolvedStores, renderFunctionStart);
     //move the instance script and process the content
-    let exportedNames = new ExportedNames();
-    let getters = new Set<string>();
+    let exportedNames = new ExportedNames(str, 0);
     let generics = new Generics(str, 0);
     let uses$$SlotsInterface = false;
     if (scriptTag) {
@@ -342,7 +341,7 @@ export function svelte2tsx(
         uses$$restProps = uses$$restProps || res.uses$$restProps;
         uses$$slots = uses$$slots || res.uses$$slots;
 
-        ({ exportedNames, events, getters, generics, uses$$SlotsInterface } = res);
+        ({ exportedNames, events, generics, uses$$SlotsInterface } = res);
     }
 
     //wrap the script tag and template content in a function returning the slot and exports
@@ -352,7 +351,6 @@ export function svelte2tsx(
         scriptDestination: instanceScriptTarget,
         slots,
         events,
-        getters,
         exportedNames,
         isTsFile: options?.isTsFile,
         uses$$props,
@@ -377,7 +375,6 @@ export function svelte2tsx(
         uses$$propsOr$$restProps: uses$$props || uses$$restProps,
         strictEvents: events.hasStrictEvents(),
         isTsFile: options?.isTsFile,
-        getters,
         exportedNames,
         usesAccessors,
         fileName: options?.filename,
@@ -406,7 +403,7 @@ export function svelte2tsx(
         return {
             code: str.toString(),
             map: str.generateMap({ hires: true, source: options?.filename }),
-            exportedNames,
+            exportedNames: exportedNames.getExportsMap(),
             events: events.createAPI()
         };
     }

@@ -2,7 +2,6 @@ import MagicString from 'magic-string';
 import { Node } from 'estree-walker';
 import * as ts from 'typescript';
 import {
-    findExportKeyword,
     getBinaryAssignmentExpr,
     isFirstInAnExpressionStatement,
     isNotPropertyNameOfImport
@@ -23,7 +22,6 @@ export interface InstanceScriptProcessResult {
     uses$$restProps: boolean;
     uses$$slots: boolean;
     uses$$SlotsInterface: boolean;
-    getters: Set<string>;
     generics: Generics;
 }
 
@@ -49,8 +47,7 @@ export function processInstanceScriptContent(
         ts.ScriptKind.TS
     );
     const astOffset = script.content.start;
-    const exportedNames = new ExportedNames();
-    const getters = new Set<string>();
+    const exportedNames = new ExportedNames(str, astOffset);
     const generics = new Generics(str, astOffset);
 
     const implicitTopLevelNames = new ImplicitTopLevelNames(str, astOffset);
@@ -71,81 +68,6 @@ export function processInstanceScriptContent(
 
     const pushScope = () => (scope = new Scope(scope));
     const popScope = () => (scope = scope.parent);
-
-    const addGetter = (node: ts.Identifier) => {
-        if (!node) {
-            return;
-        }
-        getters.add(node.text);
-    };
-
-    const removeExport = (start: number, end: number) => {
-        const exportStart = str.original.indexOf('export', start + astOffset);
-        const exportEnd = exportStart + (end - start);
-        str.remove(exportStart, exportEnd);
-    };
-
-    const propTypeAssertToUserDefined = (node: ts.VariableDeclarationList) => {
-        const hasInitializers = node.declarations.filter((declaration) => declaration.initializer);
-        const handleTypeAssertion = (declaration: ts.VariableDeclaration) => {
-            const identifier = declaration.name;
-            const tsType = declaration.type;
-            const jsDocType = ts.getJSDocType(declaration);
-            const type = tsType || jsDocType;
-
-            if (
-                !ts.isIdentifier(identifier) ||
-                (!type &&
-                    // Edge case: TS infers `export let bla = false` to type `false`.
-                    // prevent that by adding the any-wrap in this case, too.
-                    ![ts.SyntaxKind.FalseKeyword, ts.SyntaxKind.TrueKeyword].includes(
-                        declaration.initializer?.kind
-                    ))
-            ) {
-                return;
-            }
-            const name = identifier.getText();
-            const end = declaration.end + astOffset;
-
-            str.appendLeft(end, `;${name} = __sveltets_any(${name});`);
-        };
-
-        const findComma = (target: ts.Node) =>
-            target.getChildren().filter((child) => child.kind === ts.SyntaxKind.CommaToken);
-        const splitDeclaration = () => {
-            const commas = node
-                .getChildren()
-                .filter((child) => child.kind === ts.SyntaxKind.SyntaxList)
-                .map(findComma)
-                .reduce((current, previous) => [...current, ...previous], []);
-
-            commas.forEach((comma) => {
-                const start = comma.getStart() + astOffset;
-                const end = comma.getEnd() + astOffset;
-                str.overwrite(start, end, ';let ', { contentOnly: true });
-            });
-        };
-        splitDeclaration();
-
-        for (const declaration of hasInitializers) {
-            handleTypeAssertion(declaration);
-        }
-    };
-
-    const handleExportFunctionOrClass = (node: ts.ClassDeclaration | ts.FunctionDeclaration) => {
-        const exportModifier = findExportKeyword(node);
-        if (!exportModifier) {
-            return;
-        }
-
-        removeExport(exportModifier.getStart(), exportModifier.end);
-        addGetter(node.name);
-
-        // Can't export default here
-        if (node.name) {
-            exportedNames.addExport(node.name, false);
-        }
-    };
 
     const handleStore = (ident: ts.Identifier, parent: ts.Node) => {
         // ignore "typeof $store"
@@ -309,29 +231,6 @@ export function processInstanceScriptContent(
         }
     };
 
-    const handleExportedVariableDeclarationList = (
-        list: ts.VariableDeclarationList,
-        add: typeof exportedNames.addExport
-    ) => {
-        const isLet = list.flags === ts.NodeFlags.Let;
-        ts.forEachChild(list, (node) => {
-            if (ts.isVariableDeclaration(node)) {
-                if (ts.isIdentifier(node.name)) {
-                    add(node.name, isLet, node.name, node.type, !node.initializer);
-                } else if (
-                    ts.isObjectBindingPattern(node.name) ||
-                    ts.isArrayBindingPattern(node.name)
-                ) {
-                    ts.forEachChild(node.name, (element) => {
-                        if (ts.isBindingElement(element)) {
-                            add(element.name, isLet);
-                        }
-                    });
-                }
-            }
-        });
-    };
-
     const walk = (node: ts.Node, parent: ts.Node) => {
         type onLeaveCallback = () => void;
         const onLeaveCallbacks: onLeaveCallback[] = [];
@@ -349,43 +248,18 @@ export function processInstanceScriptContent(
         }
 
         if (ts.isVariableStatement(node)) {
-            const exportModifier = findExportKeyword(node);
-            if (exportModifier) {
-                const isLet = node.declarationList.flags === ts.NodeFlags.Let;
-                const isConst = node.declarationList.flags === ts.NodeFlags.Const;
-
-                handleExportedVariableDeclarationList(
-                    node.declarationList,
-                    exportedNames.addExport.bind(exportedNames)
-                );
-                if (isLet) {
-                    propTypeAssertToUserDefined(node.declarationList);
-                } else if (isConst) {
-                    node.declarationList.forEachChild((n) => {
-                        if (ts.isVariableDeclaration(n) && ts.isIdentifier(n.name)) {
-                            addGetter(n.name);
-                        }
-                    });
-                }
-                removeExport(exportModifier.getStart(), exportModifier.end);
-            }
-            if (ts.isSourceFile(parent)) {
-                handleExportedVariableDeclarationList(
-                    node.declarationList,
-                    exportedNames.addPossibleExport.bind(exportedNames)
-                );
-            }
+            exportedNames.handleVariableStatement(node, parent);
         }
 
         if (ts.isFunctionDeclaration(node)) {
-            handleExportFunctionOrClass(node);
+            exportedNames.handleExportFunctionOrClass(node);
 
             pushScope();
             onLeaveCallbacks.push(() => popScope());
         }
 
         if (ts.isClassDeclaration(node)) {
-            handleExportFunctionOrClass(node);
+            exportedNames.handleExportFunctionOrClass(node);
         }
 
         if (ts.isBlock(node)) {
@@ -399,18 +273,7 @@ export function processInstanceScriptContent(
         }
 
         if (ts.isExportDeclaration(node)) {
-            const { exportClause } = node;
-            if (ts.isNamedExports(exportClause)) {
-                for (const ne of exportClause.elements) {
-                    if (ne.propertyName) {
-                        exportedNames.addExport(ne.propertyName, false, ne.name);
-                    } else {
-                        exportedNames.addExport(ne.name, false);
-                    }
-                }
-                //we can remove entire statement
-                removeExport(node.getStart(), node.end);
-            }
+            exportedNames.handleExportDeclaration(node);
         }
 
         if (ts.isImportDeclaration(node)) {
@@ -509,7 +372,6 @@ export function processInstanceScriptContent(
         uses$$restProps,
         uses$$slots,
         uses$$SlotsInterface,
-        getters,
         generics
     };
 }

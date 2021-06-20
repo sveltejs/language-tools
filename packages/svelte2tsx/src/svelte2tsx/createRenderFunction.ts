@@ -1,7 +1,6 @@
 import MagicString from 'magic-string';
 import { Node } from 'estree-walker';
 import { ComponentEvents } from './nodes/ComponentEvents';
-import { createRenderFunctionGetterStr } from './nodes/exportgetters';
 import { InstanceScriptProcessResult } from './processInstanceScriptContent';
 import { surroundWithIgnoreComments } from '../utils/ignore';
 
@@ -21,7 +20,6 @@ export function createRenderFunction({
     scriptTag,
     scriptDestination,
     slots,
-    getters,
     events,
     exportedNames,
     isTsFile,
@@ -100,7 +98,7 @@ export function createRenderFunction({
     const returnString =
         `\nreturn { props: ${exportedNames.createPropsStr(isTsFile)}` +
         `, slots: ${slotsAsDef}` +
-        `, getters: ${createRenderFunctionGetterStr(getters)}` +
+        `, getters: ${exportedNames.createRenderFunctionGetterStr()}` +
         `, events: ${events.toDefString()} }}`;
 
     // wrap template with callback
