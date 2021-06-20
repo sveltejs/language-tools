@@ -64,6 +64,7 @@ export class SvelteCheck {
                 this.docManager,
                 [pathToUrl(workspacePath)],
                 this.configManager,
+                true,
                 options.tsconfig
             );
             this.pluginHost.register(

@@ -2,7 +2,7 @@
 <></>;function render() {
 
     /**@type { string | number }*/
-     let name = "world";name = __sveltets_any(name);;let 
+     let name = "world";name = __sveltets_1_any(name);;let 
         world = '';
 ;
 () => (<></>);
@@ -10,5 +10,5 @@ return { props: {
 /**@type { string | number }*/name: name , 
 /**@type { string | number }*/world: world}, slots: {}, getters: {}, events: {} }}
 
-export default class Input__SvelteComponent_ extends createSvelte2TsxComponent(__sveltets_partial(['name','world'], __sveltets_with_any_event(render()))) {
+export default class Input__SvelteComponent_ extends __sveltets_1_createSvelte2TsxComponent(__sveltets_1_partial(['name','world'], __sveltets_1_with_any_event(render()))) {
 }

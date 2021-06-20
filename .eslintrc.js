@@ -18,7 +18,7 @@ module.exports = {
         'import/no-unused-modules': 'off',
         'import/no-deprecated': 'off',
         // project-specific settings
-        'max-len': ['error', { code: 100, ignoreComments: true, ignoreStrings: true }],
+        'max-len': 'off', // handled by prettier
         'no-trailing-spaces': 'error',
         'one-var': ['error', 'never'],
         '@typescript-eslint/no-unused-vars': ['error', { args: 'none' }],

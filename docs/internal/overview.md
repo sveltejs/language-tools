@@ -88,7 +88,7 @@ function render() {
     return { props: { world }, slots: {}, events: {} };
 }
 // -- generate a class
-export default class _World_ extends createSvelte2TsxComponent(__sveltets_partial(render)) {}
+export default class _World_ extends createSvelte2TsxComponent(__sveltets_1_partial(render)) {}
 ```
 
 3. Pass that result to the TypeScript language service

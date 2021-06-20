@@ -13,7 +13,7 @@ export interface ComponentEvents {
     getAll(): { name: string; type: string; doc?: string }[];
 }
 
-export default function svelte2tsx(
+export function svelte2tsx(
     svelte: string,
     options?: {
         /**

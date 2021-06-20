@@ -18,11 +18,11 @@
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                                                                                                                                                       {/**
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
-{((__sveltets_store_get(foo), $foo)) ? <><element /></> : <></>}                                                                                      {/**
-{((__sveltets_store_get(foo),•$foo))•?•<><element•/></>•:•<></>}↲    [generated] line 7                                                               
-{ $                     foo        }     <element•/>{           ↲                                                                                     
+{((__sveltets_1_store_get(foo), $foo)) ? <><element /></> : <></>}                                                                                    {/**
+{((__sveltets_1_store_get(foo),•$foo))•?•<><element•/></>•:•<></>}↲    [generated] line 7                                                             
+{ $                       foo        }     <element•/>{           ↲                                                                                   
 {    $foo}<element•/>{    ↲                                                                                                                           
-{#if•$foo}<element•/>{/if}↲                                          [original] line 5                                                                
+{#if•$foo}<element•/>{/if}↲                                            [original] line 5                                                              
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                                                                                                                                                       {/**
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
@@ -57,5 +57,5 @@
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
 return { props: {}, slots: {}, getters: {}, events: {} }}
 
-export default class Input__SvelteComponent_ extends createSvelte2TsxComponent(__sveltets_partial(__sveltets_with_any_event(render()))) {
+export default class Input__SvelteComponent_ extends __sveltets_1_createSvelte2TsxComponent(__sveltets_1_partial(__sveltets_1_with_any_event(render()))) {
 }

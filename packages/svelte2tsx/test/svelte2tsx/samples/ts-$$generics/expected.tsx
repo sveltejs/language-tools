@@ -15,17 +15,17 @@ function render/*Ωignore_startΩ*/<A,B extends keyof A,C extends boolean>/*Ωig
 
     const dispatch = createEventDispatcher<{a: A}>();
 
-/*Ωignore_startΩ*/;const __sveltets_ensureSlot = __sveltets_createEnsureSlot();/*Ωignore_endΩ*/;
+/*Ωignore_startΩ*/;const __sveltets_ensureSlot = __sveltets_1_createEnsureSlot();/*Ωignore_endΩ*/;
 () => (<>
 
 <slot c={__sveltets_ensureSlot("default","c",c)} /></>);
-return { props: {a: a , b: b , c: c} as {a: A, b: B, c: C}, slots: {'default': {c:c}}, getters: {}, events: {...__sveltets_toEventTypings<{a: A}>()} }}
+return { props: {a: a , b: b , c: c} as {a: A, b: B, c: C}, slots: {'default': {c:c}}, getters: {}, events: {...__sveltets_1_toEventTypings<{a: A}>()} }}
 class __sveltets_Render<A,B extends keyof A,C extends boolean> {
     props() {
         return render<A,B,C>().props;
     }
     events() {
-        return __sveltets_with_any_event(render<A,B,C>()).events;
+        return __sveltets_1_with_any_event(render<A,B,C>()).events;
     }
     slots() {
         return render<A,B,C>().slots;

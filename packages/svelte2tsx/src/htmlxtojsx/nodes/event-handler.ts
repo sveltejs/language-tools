@@ -5,7 +5,7 @@ import { BaseDirective, BaseNode } from '../../interfaces';
 /**
  * Transform on:xxx={yyy}
  * - For DOM elements: ---> onxxx={yyy}
- * - For Svelte components/special elements: ---> {__sveltets_instanceOf(..ComponentType..).$on("xxx", yyy)}
+ * - For Svelte components/special elements: ---> {__sveltets_1_instanceOf(..ComponentType..).$on("xxx", yyy)}
  */
 export function handleEventHandler(
     htmlx: string,
@@ -35,7 +35,7 @@ export function handleEventHandler(
     } else {
         if (attr.expression) {
             const on = 'on';
-            //for handler assignment, we change it to call to our __sveltets_ensureFunction
+            //for handler assignment, we change it to call to our __sveltets_1_ensureFunction
             str.appendRight(attr.start, `{${getInstanceType(parent, str.original)}.$`);
             const eventNameIndex = htmlx.indexOf(':', attr.start) + 1;
             str.overwrite(htmlx.indexOf(on, attr.start) + on.length, eventNameIndex, "('");

@@ -141,7 +141,7 @@ function addSimpleComponentExport({
         statement =
             `\n\n${doc}export default class${
                 className ? ` ${className}` : ''
-            } extends createSvelte2TsxComponent(${propDef}) {` +
+            } extends __sveltets_1_createSvelte2TsxComponent(${propDef}) {` +
             exportedNames.createClassGetters() +
             (usesAccessors ? exportedNames.createClassAccessors() : '') +
             '\n}';
@@ -151,7 +151,7 @@ function addSimpleComponentExport({
 }
 
 function events(strictEvents: boolean, renderStr: string) {
-    return strictEvents ? renderStr : `__sveltets_with_any_event(${renderStr})`;
+    return strictEvents ? renderStr : `__sveltets_1_with_any_event(${renderStr})`;
 }
 
 function props(
@@ -161,10 +161,10 @@ function props(
     renderStr: string
 ) {
     if (isTsFile) {
-        return uses$$propsOr$$restProps ? `__sveltets_with_any(${renderStr})` : renderStr;
+        return uses$$propsOr$$restProps ? `__sveltets_1_with_any(${renderStr})` : renderStr;
     } else {
         const optionalProps = exportedNames.createOptionalPropsArray();
-        const partial = `__sveltets_partial${uses$$propsOr$$restProps ? '_with_any' : ''}`;
+        const partial = `__sveltets_1_partial${uses$$propsOr$$restProps ? '_with_any' : ''}`;
         return optionalProps.length > 0
             ? `${partial}([${optionalProps.join(',')}], ${renderStr})`
             : `${partial}(${renderStr})`;

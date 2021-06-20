@@ -4,7 +4,7 @@ import { surroundWithIgnoreComments } from '../../utils/ignore';
 
 export function getTypeForComponent(node: Node): string {
     if (node.name === 'svelte:component' || node.name === 'svelte:self') {
-        return '__sveltets_componentType()';
+        return '__sveltets_1_componentType()';
     } else {
         return node.name;
     }
@@ -16,7 +16,7 @@ export function getInstanceType(
     replacedPropValues: PropsShadowedByLet[] = []
 ): string {
     if (node.name === 'svelte:component' || node.name === 'svelte:self') {
-        return '__sveltets_instanceOf(__sveltets_componentType())';
+        return '__sveltets_1_instanceOf(__sveltets_1_componentType())';
     }
 
     const propsStr = getNameValuePairsFromAttributes(node, originalStr)
@@ -28,7 +28,7 @@ export function getInstanceType(
         })
         .join(', ');
     return surroundWithIgnoreComments(
-        `new ${node.name}({target: __sveltets_any(''), props: {${propsStr}}})`
+        `new ${node.name}({target: __sveltets_1_any(''), props: {${propsStr}}})`
     );
 }
 
@@ -54,7 +54,7 @@ export function getInstanceTypeForDefaultSlot(
 ): { str: string; shadowedProps: PropsShadowedByLet[] } {
     if (node.name === 'svelte:component' || node.name === 'svelte:self') {
         return {
-            str: '__sveltets_instanceOf(__sveltets_componentType())',
+            str: '__sveltets_1_instanceOf(__sveltets_1_componentType())',
             shadowedProps: []
         };
     }
@@ -77,7 +77,7 @@ export function getInstanceTypeForDefaultSlot(
         })
         .join(', ');
     const str = surroundWithIgnoreComments(
-        `new ${node.name}({target: __sveltets_any(''), props: {${propsStr}}})`
+        `new ${node.name}({target: __sveltets_1_any(''), props: {${propsStr}}})`
     );
     return { str, shadowedProps };
 }
@@ -157,7 +157,7 @@ export function getThisType(node: Node): string | undefined {
         case 'InlineComponent':
             return getTypeForComponent(node);
         case 'Element':
-            return `__sveltets_ctorOf(__sveltets_mapElementTag('${node.name}'))`;
+            return `__sveltets_1_ctorOf(__sveltets_1_mapElementTag('${node.name}'))`;
         case 'Body':
             return 'HTMLBodyElement';
         case 'Slot': // Web Components only

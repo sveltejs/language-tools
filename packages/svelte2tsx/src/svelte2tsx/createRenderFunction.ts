@@ -34,15 +34,15 @@ export function createRenderFunction({
     let propsDecl = '';
 
     if (uses$$props) {
-        propsDecl += ' let $$props = __sveltets_allPropsType();';
+        propsDecl += ' let $$props = __sveltets_1_allPropsType();';
     }
     if (uses$$restProps) {
-        propsDecl += ' let $$restProps = __sveltets_restPropsType();';
+        propsDecl += ' let $$restProps = __sveltets_1_restPropsType();';
     }
 
     if (uses$$slots) {
         propsDecl +=
-            ' let $$slots = __sveltets_slotsType({' +
+            ' let $$slots = __sveltets_1_slotsType({' +
             Array.from(slots.keys())
                 .map((name) => `'${name}': ''`)
                 .join(', ') +
@@ -53,7 +53,7 @@ export function createRenderFunction({
         slots.size > 0 && mode !== 'dts'
             ? '\n' +
               surroundWithIgnoreComments(
-                  ';const __sveltets_ensureSlot = __sveltets_createEnsureSlot' +
+                  ';const __sveltets_ensureSlot = __sveltets_1_createEnsureSlot' +
                       (uses$$SlotsInterface ? '<$$Slots>' : '') +
                       '();'
               )

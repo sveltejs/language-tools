@@ -1,3 +1,3 @@
-<><div {...__sveltets_ensureTransition(slide(__sveltets_mapElementTag('div'),{}))}>
+<><div {...__sveltets_1_ensureTransition(slide(__sveltets_1_mapElementTag('div'),{}))}>
     {item}
 </div></>
