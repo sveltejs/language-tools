@@ -6,8 +6,13 @@ import {
     getNodeIfIsInComponentStartTag,
     isInTag
 } from '../../../lib/documents';
-import { ComponentInfoProvider, JsOrTsComponentInfoProvider } from '../ComponentInfoProvider';
-import { DocumentSnapshot, SnapshotFragment, SvelteDocumentSnapshot } from '../DocumentSnapshot';
+import { ComponentInfoProvider } from '../ComponentInfoProvider';
+import {
+    DocumentSnapshot,
+    JSOrTSDocumentSnapshot,
+    SnapshotFragment,
+    SvelteDocumentSnapshot
+} from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 
 /**
@@ -54,7 +59,11 @@ export async function getComponentAtPosition(
         return snapshot;
     }
 
-    return JsOrTsComponentInfoProvider.create(lang, def);
+    if (snapshot instanceof JSOrTSDocumentSnapshot) {
+        return snapshot.getComponentInfo(lang, def);
+    }
+
+    return null;
 }
 
 export function isComponentAtPosition(
@@ -165,4 +174,3 @@ export function findContainingNode<T extends ts.Node>(
         }
     }
 }
-
