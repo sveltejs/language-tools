@@ -38,8 +38,8 @@ export class ImplicitTopLevelNames {
         const start = expression.getStart() + this.astOffset;
         const end = expression.getEnd() + this.astOffset;
 
-        // () => ({})
-        if (ts.isObjectLiteralExpression(expression)) {
+        // $: a = { .. }  /  $: a = .. as ..  =>   () => ( .. )
+        if (ts.isObjectLiteralExpression(expression) || ts.isAsExpression(expression)) {
             this.str.appendLeft(start, '(');
             this.str.appendRight(end, ')');
         }
