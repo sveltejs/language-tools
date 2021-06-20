@@ -13,6 +13,7 @@ import {
     isInTag
 } from '../../lib/documents';
 import { pathToUrl } from '../../utils';
+import { ComponentInfoProvider, JsOrTsComponentInfoProvider } from './ComponentInfoProvider';
 import { ConsumerDocumentMapper } from './DocumentMapper';
 import {
     getScriptKindFromAttributes,
@@ -224,7 +225,7 @@ function preprocessSvelteFile(document: Document, options: SvelteSnapshotOptions
 /**
  * A svelte document snapshot suitable for the ts language service and the plugin.
  */
-export class SvelteDocumentSnapshot implements DocumentSnapshot {
+export class SvelteDocumentSnapshot implements DocumentSnapshot, ComponentInfoProvider {
     private fragment?: SvelteSnapshotFragment;
 
     version = this.parent.version;
@@ -325,6 +326,8 @@ export class JSOrTSDocumentSnapshot
     scriptKind = getScriptKindFromFileName(this.filePath);
     scriptInfo = null;
 
+    private readonly componentInfos = new Map<ts.DefinitionInfo, ComponentInfoProvider | null>();
+
     constructor(public version: number, public readonly filePath: string, private text: string) {
         super(pathToUrl(filePath));
     }
@@ -376,6 +379,21 @@ export class JSOrTSDocumentSnapshot
         }
 
         this.version++;
+    }
+
+    getComponentInfo(
+        lang: ts.LanguageService,
+        def: ts.DefinitionInfo
+    ): ComponentInfoProvider | null {
+        // there might multiple component class in a js or ts file
+        if (this.componentInfos.has(def)) {
+            return this.componentInfos.get(def) ?? null;
+        }
+
+        const componentInfoProvider = JsOrTsComponentInfoProvider.create(lang, def);
+        this.componentInfos.set(def, componentInfoProvider);
+
+        return componentInfoProvider;
     }
 }
 

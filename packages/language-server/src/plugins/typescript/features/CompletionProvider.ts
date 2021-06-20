@@ -210,14 +210,14 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         tsDoc: SvelteDocumentSnapshot,
         originalPosition: Position
     ): Promise<Array<AppCompletionItem<CompletionEntryWithIdentifer>>> {
-        const snapshot = await getComponentAtPosition(
+        const componentInfo = await getComponentAtPosition(
             this.lsAndTsDocResolver,
             lang,
             doc,
             tsDoc,
             originalPosition
         );
-        if (!snapshot) {
+        if (!componentInfo) {
             return [];
         }
 
@@ -227,7 +227,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             right: /[^\w$:]/
         });
 
-        return snapshot.getEvents().map((event) => {
+        return componentInfo.getEvents().map((event) => {
             const eventName = 'on:' + event.name;
             return {
                 label: eventName,

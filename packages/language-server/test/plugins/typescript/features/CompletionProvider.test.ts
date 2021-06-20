@@ -123,7 +123,6 @@ describe('CompletionProviderImpl', () => {
         );
         assert.ok(completions!.items.length > 0, 'Expected completions to have length');
 
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const eventCompletions = completions!.items.filter((item) => item.label.startsWith('on:'));
 
         assert.deepStrictEqual(eventCompletions, <CompletionItem[]>[
@@ -231,6 +230,64 @@ describe('CompletionProviderImpl', () => {
                         end: {
                             line: 4,
                             character: 10
+                        }
+                    }
+                }
+            }
+        ]);
+    });
+
+    it('provides event completion for components with type definition', async () => {
+        const { completionProvider, document } = setup('component-events-completion-ts-def.svelte');
+
+        const completions = await completionProvider.getCompletions(
+            document,
+            Position.create(4, 17),
+            {
+                triggerKind: CompletionTriggerKind.Invoked
+            }
+        );
+
+        const eventCompletions = completions!.items.filter((item) => item.label.startsWith('on:'));
+
+        assert.deepStrictEqual(eventCompletions, <CompletionItem[]>[
+            {
+                detail: 'event1: CustomEvent<null>',
+                documentation: '',
+                label: 'on:event1',
+                sortText: '-1',
+                textEdit: {
+                    newText: 'on:event1',
+                    range: {
+                        end: {
+                            character: 17,
+                            line: 4
+                        },
+                        start: {
+                            character: 14,
+                            line: 4
+                        }
+                    }
+                }
+            },
+            {
+                detail: 'event2: CustomEvent<string>',
+                documentation: {
+                    kind: 'markdown',
+                    value: 'documentation for event2'
+                },
+                label: 'on:event2',
+                sortText: '-1',
+                textEdit: {
+                    newText: 'on:event2',
+                    range: {
+                        end: {
+                            character: 17,
+                            line: 4
+                        },
+                        start: {
+                            character: 14,
+                            line: 4
                         }
                     }
                 }
