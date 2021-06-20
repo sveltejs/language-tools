@@ -128,7 +128,7 @@ describe('CompletionProviderImpl', () => {
         assert.deepStrictEqual(eventCompletions, <CompletionItem[]>[
             {
                 detail: 'a: CustomEvent<boolean>',
-                documentation: undefined,
+                documentation: '',
                 label: 'on:a',
                 sortText: '-1',
                 textEdit: undefined
@@ -137,15 +137,15 @@ describe('CompletionProviderImpl', () => {
                 detail: 'b: MouseEvent',
                 documentation: {
                     kind: 'markdown',
-                    value: '\nTEST\n'
+                    value: 'TEST'
                 },
                 label: 'on:b',
                 sortText: '-1',
                 textEdit: undefined
             },
             {
-                detail: 'c: Event',
-                documentation: undefined,
+                detail: 'c: any',
+                documentation: '',
                 label: 'on:c',
                 sortText: '-1',
                 textEdit: undefined
@@ -176,7 +176,7 @@ describe('CompletionProviderImpl', () => {
         assert.deepStrictEqual(eventCompletions, <CompletionItem[]>[
             {
                 detail: 'a: CustomEvent<boolean>',
-                documentation: undefined,
+                documentation: '',
                 label: 'on:a',
                 sortText: '-1',
                 textEdit: {
@@ -197,7 +197,7 @@ describe('CompletionProviderImpl', () => {
                 detail: 'b: MouseEvent',
                 documentation: {
                     kind: 'markdown',
-                    value: '\nTEST\n'
+                    value: 'TEST'
                 },
                 label: 'on:b',
                 sortText: '-1',
@@ -216,8 +216,8 @@ describe('CompletionProviderImpl', () => {
                 }
             },
             {
-                detail: 'c: Event',
-                documentation: undefined,
+                detail: 'c: any',
+                documentation: '',
                 label: 'on:c',
                 sortText: '-1',
                 textEdit: {

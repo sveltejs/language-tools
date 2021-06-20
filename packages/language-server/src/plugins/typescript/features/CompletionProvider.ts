@@ -216,13 +216,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         tsDoc: SvelteDocumentSnapshot,
         originalPosition: Position
     ): Promise<Array<AppCompletionItem<CompletionEntryWithIdentifer>>> {
-        const componentInfo = await getComponentAtPosition(
-            this.lsAndTsDocResolver,
-            lang,
-            doc,
-            tsDoc,
-            originalPosition
-        );
+        const componentInfo = await getComponentAtPosition(lang, doc, tsDoc, originalPosition);
         if (!componentInfo) {
             return [];
         }
