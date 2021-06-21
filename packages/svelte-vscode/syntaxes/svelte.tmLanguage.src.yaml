@@ -214,7 +214,9 @@ repository:
          { match: each|key,          name: keyword.control.svelte             },
          { match: await|then|catch,  name: keyword.control.flow.svelte        },
          { match: html,              name: keyword.other.svelte               },
-         { match: debug,             name: keyword.other.debugger.svelte      }]}
+         { match: debug,             name: keyword.other.debugger.svelte      },
+         { match: const,             name: keyword.other.svelte               },
+         ]}
 
   # Scopes special tag _block start nodes_ depending on what type they are, such as `#if` or `#await` blocks.
   special-tags-modes:

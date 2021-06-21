@@ -8,7 +8,7 @@ export type SvelteLogicTag = 'each' | 'if' | 'await' | 'key';
 /**
  * Special svelte syntax tags.
  */
-export type SvelteTag = SvelteLogicTag | 'html' | 'debug';
+export type SvelteTag = SvelteLogicTag | 'html' | 'debug' | 'const';
 
 /**
  * For each tag, a documentation in markdown format.
@@ -74,10 +74,16 @@ It logs the values of specific variables whenever they change, ` +
         `and pauses code execution if you have devtools open.
 It accepts a comma-separated list of variable names (not arbitrary expressions).
 #### Usage:
-\`{@debug\`}
+\`{@debug}\`
 \`{@debug var1, var2, ..., varN}\`\\
 \\
 https://svelte.dev/docs#debug
+`,
+    const:
+        `\`{@const ...}\`\\
+TODO
+#### Usage:
+\`{@const a = b + c}\`\\
 `
 };
 

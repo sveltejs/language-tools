@@ -84,6 +84,7 @@ const tagPossibilities: Array<{ tag: SvelteTag | ':else'; values: string[] }> = 
     // @
     { tag: 'html' as const, values: ['@html'] },
     { tag: 'debug' as const, values: ['@debug'] },
+    { tag: 'const' as const, values: ['@const'] },
     // this tag has multiple possibilities
     { tag: ':else' as const, values: [':else'] }
 ];

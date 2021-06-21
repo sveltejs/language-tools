@@ -4,7 +4,8 @@ import {
     TemplateNode,
     Transition,
     MustacheTag,
-    Text
+    Text,
+    ConstTag
 } from 'svelte/types/compiler/interfaces';
 
 export interface NodeRange {
@@ -23,10 +24,15 @@ export interface WithName {
     name: string;
 }
 
-export type BaseNode = Exclude<TemplateNode, Text | MustacheTag | Directive | Transition>;
+export type BaseNode = Exclude<
+    TemplateNode,
+    Text | MustacheTag | Directive | Transition | ConstTag | { type: 'DebugTag' }
+>;
 
 export type BaseDirective = Exclude<Directive, Transition>;
 
 export interface Attribute extends BaseNode {
     value: BaseNode[] | true;
 }
+
+export { ConstTag };

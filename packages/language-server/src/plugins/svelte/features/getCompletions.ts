@@ -89,7 +89,8 @@ function getCompletionsWithRegardToTriggerCharacter(
     if (triggerCharacter === '@') {
         return createCompletionItems([
             { tag: 'html', label: 'html' },
-            { tag: 'debug', label: 'debug' }
+            { tag: 'debug', label: 'debug' },
+            { tag: 'const', label: 'const' }
         ]);
     }
 

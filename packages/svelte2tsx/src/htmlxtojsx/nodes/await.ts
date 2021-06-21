@@ -3,6 +3,7 @@ import { IfScope } from './if-scope';
 import { TemplateScopeManager } from './template-scope';
 import { surroundWithIgnoreComments } from '../../utils/ignore';
 import { BaseNode } from '../../interfaces';
+import { extractConstTags } from './const-tag';
 
 /**
  * Transform {#await ...} into something JSX understands
@@ -94,14 +95,22 @@ export function handleAwaitThen(
 
     if (awaitBlock.value) {
         str.overwrite(thenStart, awaitBlock.value.start, '__sveltets_1_awaitThen(_$$p, (');
-        str.overwrite(awaitBlock.value.end, thenEnd, `) => {${ifScope.addPossibleIfCondition()}<>`);
+        str.overwrite(awaitBlock.value.end, thenEnd, ') => {');
+        extractConstTags(awaitBlock.then.children).forEach((insertion) => {
+            insertion(thenEnd, str);
+        });
+        str.appendRight(thenEnd, `${ifScope.addPossibleIfCondition()}<>`);
     } else {
-        const awaitThenFn = `__sveltets_1_awaitThen(_$$p, () => {${ifScope.addPossibleIfCondition()}<>`; // eslint-disable-line
+        const awaitThenFn = '__sveltets_1_awaitThen(_$$p, () => {';
         if (thenStart === thenEnd) {
             str.appendLeft(thenStart, awaitThenFn);
         } else {
             str.overwrite(thenStart, thenEnd, awaitThenFn);
         }
+        extractConstTags(awaitBlock.then.children).forEach(insertion => {
+            insertion(thenEnd, str);
+        });
+        str.appendRight(thenEnd, `${ifScope.addPossibleIfCondition()}<>`); // eslint-disable-line
     }
 }
 
@@ -113,15 +122,34 @@ export function handleAwaitCatch(
 ): void {
     //{:catch error} ->
     //</>}, (error) => {<>
-    if (!awaitBlock.catch.skip) {
-        //catch block includes the {:catch}
-        const catchStart = awaitBlock.catch.start;
-        const catchSymbolEnd = htmlx.indexOf(':catch', catchStart) + ':catch'.length;
-
-        const errorStart = awaitBlock.error ? awaitBlock.error.start : catchSymbolEnd;
-        const errorEnd = awaitBlock.error ? awaitBlock.error.end : errorStart;
-        const catchEnd = htmlx.indexOf('}', errorEnd) + 1;
-        str.overwrite(catchStart, errorStart, '</>}, (');
-        str.overwrite(errorEnd, catchEnd, `) => {${ifScope.addPossibleIfCondition()}<>`);
+    if (awaitBlock.catch.skip) {
+        return;
     }
+    //catch block includes the {:catch}
+    let catchStart: number;
+    let catchSymbolEnd: Number;
+
+    if (awaitBlock.pending.skip && awaitBlock.then.skip) {
+        catchStart = htmlx.indexOf('catch', awaitBlock.expression.end);
+        catchSymbolEnd = htmlx.indexOf('catch', catchStart) + 'catch'.length;
+    } else {
+        catchStart = awaitBlock.catch.start;
+        catchSymbolEnd = htmlx.indexOf(':catch', catchStart) + ':catch'.length;
+    }
+
+    const errorStart = awaitBlock.error ? awaitBlock.error.start : catchSymbolEnd;
+    const errorEnd = awaitBlock.error ? awaitBlock.error.end : errorStart;
+    const catchEnd = htmlx.indexOf('}', errorEnd) + 1;
+    if (awaitBlock.pending.skip) {
+        if (awaitBlock.then.skip) {
+            str.overwrite(catchStart, errorStart, '); __sveltets_awaitThen(_$$p, () => {}, (');
+        }
+    } else {
+        str.overwrite(catchStart, errorStart, '</>}, /* - */(');
+    }
+    str.overwrite(errorEnd, catchEnd, ') => {');
+    extractConstTags(awaitBlock.catch.children).forEach((insertion) => {
+        insertion(catchEnd, str);
+    });
+    str.appendRight(catchEnd, `${ifScope.addPossibleIfCondition()}<>`); // eslint-disable-line
 }
