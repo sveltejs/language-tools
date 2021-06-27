@@ -1,8 +1,8 @@
 import MagicString from 'magic-string';
 import { BaseNode, ConstTag } from '../../interfaces';
 
-export function extractConstTags(children: BaseNode[]): any[] {
-    const tags: any[] = [];
+export function extractConstTags(children: BaseNode[]) {
+    const tags: Array<(insertionPoint: number, str: MagicString) => void> = [];
     for (const child of children) {
         if (child.type === 'ConstTag') {
             const constTag = child as ConstTag;
