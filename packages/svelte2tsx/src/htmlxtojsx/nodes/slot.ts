@@ -38,9 +38,11 @@ export function handleSlot(
     let slotDefInsertionPoint: number;
     // lazily calculate insertion point only when needed
     const calculateSlotDefInsertionPoint = () => {
-        slotDefInsertionPoint = slotElIsComponent
-            ? htmlx.lastIndexOf('>', slotEl.children[0].start) + 1
-            : slotEl.start;
+        slotDefInsertionPoint =
+            slotDefInsertionPoint ||
+            (slotElIsComponent
+                ? htmlx.lastIndexOf('>', slotEl.children[0].start) + 1
+                : slotEl.start);
     };
 
     for (const attr of slotEl.attributes) {
@@ -77,9 +79,7 @@ export function handleSlot(
     if (!hasMovedLet && !hasConstTag) {
         return;
     }
-    if (!slotDefInsertionPoint) {
-        calculateSlotDefInsertionPoint();
-    }
+    calculateSlotDefInsertionPoint();
 
     const { singleSlotDef, constRedeclares } = getSingleSlotDefAndConstsRedeclaration(
         component,
@@ -111,7 +111,7 @@ export function handleSlot(
         );
         str.appendLeft(slotDefInsertionPoint + 1, '*/');
     } else {
-        str.appendRight(slotDefInsertionPoint + 1, `${ifScope.addPossibleIfCondition()}<>`);
+        str.appendRight(slotDefInsertionPoint, `${ifScope.addPossibleIfCondition()}<>`);
     }
 
     const closeSlotDefInsertionPoint = slotElIsComponent
