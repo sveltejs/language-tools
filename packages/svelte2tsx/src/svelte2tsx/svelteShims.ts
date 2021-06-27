@@ -154,7 +154,6 @@ declare function __sveltets_1_any(dummy: any): any;
 declare function __sveltets_1_empty(dummy: any): {};
 declare function __sveltets_1_componentType(): AConstructorTypeOf<Svelte2TsxComponent<any, any, any>>
 declare function __sveltets_1_invalidate<T>(getValue: () => T): T
-declare function __sveltets_1_const<T>(getValue: () => T): T
 
 declare function __sveltets_1_mapWindowEvent<K extends keyof HTMLBodyElementEventMap>(
     event: K

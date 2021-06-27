@@ -14,7 +14,7 @@
 ;
 () => (<>
 
-{__sveltets_1_each(boxes, (box) => {const {area, volume} = __sveltets_1_const(() => (calculate(box.width, box.height, constant)));const perimeter = __sveltets_1_const(() => ((box.width + box.height) * constant));const [width, height, sum] = __sveltets_1_const(() => ([box.width * constant, box.height, box.width * constant + box.height])); <>
+{__sveltets_1_each(boxes, (box) => {const {area, volume} = calculate(box.width, box.height, constant);const perimeter = (box.width + box.height) * constant;const [width, height, sum] = [box.width * constant, box.height, box.width * constant + box.height]; <>
 	{ }
 	{ }
 	{ }

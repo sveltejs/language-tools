@@ -14,8 +14,7 @@ export function extractConstTags(children: BaseNode[]) {
                     constTag.expression.right.end,
                     insertionPoint
                 );
-                str.appendLeft(constTag.expression.right.start, '__sveltets_1_const(() => (');
-                str.appendLeft(constTag.expression.right.end, '));');
+                str.appendLeft(constTag.expression.right.end, ';');
                 str.remove(constTag.start + 1, constTag.expression.left.start - 1);
             });
         }

@@ -11,14 +11,14 @@
 ;
 () => (<>
 
-{() => {let _$$p = (promise1); __sveltets_1_awaitThen(_$$p, (box) => {const {area, volume} = __sveltets_1_const(() => (calculate(box.width, box.height, constant)));const perimeter = __sveltets_1_const(() => ((box.width + box.height) * constant));const [width, height, sum] = __sveltets_1_const(() => ([box.width * constant, box.height, box.width * constant + box.height]));<>
+{() => {let _$$p = (promise1); __sveltets_1_awaitThen(_$$p, (box) => {const {area, volume} = calculate(box.width, box.height, constant);const perimeter = (box.width + box.height) * constant;const [width, height, sum] = [box.width * constant, box.height, box.width * constant + box.height];<>
 	{ }
 	{ }
 	{ }
 	<div>{area} {volume} {perimeter}, {width}+{height}={sum}</div>
 </>})}}
 
-{() => {let _$$p = (promise2 ); __sveltets_awaitThen(_$$p, () => {}, (box) => {const {area, volume} = __sveltets_1_const(() => (calculate(box.width, box.height, constant)));const perimeter = __sveltets_1_const(() => ((box.width + box.height) * constant));const [width, height, sum] = __sveltets_1_const(() => ([box.width * constant, box.height, box.width * constant + box.height]));<>
+{() => {let _$$p = (promise2 ); __sveltets_awaitThen(_$$p, () => {}, (box) => {const {area, volume} = calculate(box.width, box.height, constant);const perimeter = (box.width + box.height) * constant;const [width, height, sum] = [box.width * constant, box.height, box.width * constant + box.height];<>
 	{ }
 	{ }
 	{ }
