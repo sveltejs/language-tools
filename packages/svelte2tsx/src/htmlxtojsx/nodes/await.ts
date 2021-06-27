@@ -107,7 +107,7 @@ export function handleAwaitThen(
         } else {
             str.overwrite(thenStart, thenEnd, awaitThenFn);
         }
-        extractConstTags(awaitBlock.then.children).forEach(insertion => {
+        extractConstTags(awaitBlock.then.children).forEach((insertion) => {
             insertion(thenEnd, str);
         });
         str.appendRight(thenEnd, `${ifScope.addPossibleIfCondition()}<>`); // eslint-disable-line
@@ -140,12 +140,10 @@ export function handleAwaitCatch(
     const errorStart = awaitBlock.error ? awaitBlock.error.start : catchSymbolEnd;
     const errorEnd = awaitBlock.error ? awaitBlock.error.end : errorStart;
     const catchEnd = htmlx.indexOf('}', errorEnd) + 1;
-    if (awaitBlock.pending.skip) {
-        if (awaitBlock.then.skip) {
-            str.overwrite(catchStart, errorStart, '); __sveltets_awaitThen(_$$p, () => {}, (');
-        }
+    if (awaitBlock.pending.skip && awaitBlock.then.skip) {
+        str.overwrite(catchStart, errorStart, '); __sveltets_awaitThen(_$$p, () => {}, (');
     } else {
-        str.overwrite(catchStart, errorStart, '</>}, /* - */(');
+        str.overwrite(catchStart, errorStart, '</>}, (');
     }
     str.overwrite(errorEnd, catchEnd, ') => {');
     extractConstTags(awaitBlock.catch.children).forEach((insertion) => {
