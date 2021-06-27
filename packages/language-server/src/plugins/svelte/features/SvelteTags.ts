@@ -79,8 +79,7 @@ It accepts a comma-separated list of variable names (not arbitrary expressions).
 \\
 https://svelte.dev/docs#debug
 `,
-    const:
-        `\`{@const ...}\`\\
+    const: `\`{@const ...}\`\\
 TODO
 #### Usage:
 \`{@const a = b + c}\`\\
