@@ -38,7 +38,6 @@ export function addComponentExport(params: AddComponentExportPara) {
 
 function addGenericsComponentExport({
     strictEvents,
-    isTsFile,
     uses$$propsOr$$restProps,
     exportedNames,
     componentDocumentation,
@@ -62,7 +61,7 @@ function addGenericsComponentExport({
 class __sveltets_Render${genericsDef} {
     props() {
         return ${props(
-            isTsFile,
+            true,
             uses$$propsOr$$restProps,
             exportedNames,
             `render${genericsRef}()`
@@ -125,7 +124,7 @@ function addSimpleComponentExport({
     const className = fileName && classNameFromFilename(fileName, mode !== 'dts');
 
     let statement: string;
-    if (mode === 'dts') {
+    if (mode === 'dts' && isTsFile) {
         statement =
             `\nconst __propDef = ${propDef};\n` +
             `export type ${className}Props = typeof __propDef.props;\n` +
@@ -134,6 +133,18 @@ function addSimpleComponentExport({
             `\n${doc}export default class${
                 className ? ` ${className}` : ''
             } extends SvelteComponentTyped<${className}Props, ${className}Events, ${className}Slots> {` + // eslint-disable-line max-len
+            exportedNames.createClassGetters() +
+            (usesAccessors ? exportedNames.createClassAccessors() : '') +
+            '\n}';
+    } else if (mode === 'dts' && !isTsFile) {
+        statement =
+            `\nconst __propDef = ${propDef};\n` +
+            `/** @typedef {typeof __propDef.props}  ${className}Props */\n` +
+            `/** @typedef {typeof __propDef.events}  ${className}Events */\n` +
+            `/** @typedef {typeof __propDef.slots}  ${className}Slots */\n` +
+            `\n${doc}export default class${
+                className ? ` ${className}` : ''
+            } extends __sveltets_1_createSvelteComponentTyped(${propDef}) {` +
             exportedNames.createClassGetters() +
             (usesAccessors ? exportedNames.createClassAccessors() : '') +
             '\n}';

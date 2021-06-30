@@ -37,11 +37,12 @@ export function svelte2tsx(
          */
         namespace?: string;
         /**
-         * When setting this to 'dts', all tsx/jsx code and the template code will be thrown out,
-         * all shims will be inlined and the component export is written differently.
+         * When setting this to 'dts', all tsx/jsx code and the template code will be thrown out.
          * Only the `code` property will be set on the returned element.
          * Use this as an intermediate step to generate type definitions from a component.
          * It is expected to pass the result to TypeScript which should handle emitting the d.ts files.
+         * The shims need to be provided by the user ambient-style,
+         * for example through `filenames.push(require.resolve('svelte2tsx/svelte-shims.d.ts'))`.
          */
         mode?: 'tsx' | 'dts'
     }
