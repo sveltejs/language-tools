@@ -18,7 +18,6 @@ import TemplateScope from './nodes/TemplateScope';
 import { processInstanceScriptContent } from './processInstanceScriptContent';
 import { processModuleScriptTag } from './processModuleScriptTag';
 import { ScopeStack } from './utils/Scope';
-import { svelteShims } from './svelteShims';
 import { Generics } from './nodes/Generics';
 import { addComponentExport } from './addComponentExport';
 import { createRenderFunction } from './createRenderFunction';
@@ -384,9 +383,22 @@ export function svelte2tsx(
     });
 
     if (options.mode === 'dts') {
-        // Prepend the import and all shims so the file is self-contained.
-        // TypeScript's dts generation will remove the unused parts later.
-        str.prepend('import { SvelteComponentTyped } from "svelte"\n' + svelteShims + '\n');
+        // Prepend the import and for JS files a single definition.
+        // The other shims need to be provided by the user ambient-style,
+        // for example through filenames.push(require.resolve('svelte2tsx/svelte-shims.d.ts'))
+        str.prepend(
+            'import { SvelteComponentTyped } from "svelte"\n' +
+                (options?.isTsFile
+                    ? ''
+                    : // Not part of svelte-shims.d.ts because it would throw type errors as this function assumes
+                      // the presence of a SvelteComponentTyped import
+                      `
+declare function __sveltets_1_createSvelteComponentTyped<Props, Events, Slots>(
+    render: {props: Props, events: Events, slots: Slots }
+): SvelteComponentConstructor<SvelteComponentTyped<Props, Events, Slots>,Svelte2TsxComponentConstructorParameters<Props>>;
+`) +
+                '\n'
+        );
         let code = str.toString();
         // Remove all tsx occurences and the template part from the output
         code =

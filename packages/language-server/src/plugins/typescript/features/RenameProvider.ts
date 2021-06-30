@@ -29,7 +29,6 @@ export class RenameProviderImpl implements RenameProvider {
 
         const offset = fragment.offsetAt(fragment.getGeneratedPosition(position));
         const renameInfo = this.getRenameInfo(lang, tsDoc, document, position, offset);
-        console.log(position, fragment.getGeneratedPosition(position), offset);
         if (!renameInfo) {
             return null;
         }
@@ -46,7 +45,6 @@ export class RenameProviderImpl implements RenameProvider {
         const fragment = await tsDoc.getFragment();
 
         const offset = fragment.offsetAt(fragment.getGeneratedPosition(position));
-        console.log('rema,e', position, fragment.getGeneratedPosition(position), offset);
 
         if (!this.getRenameInfo(lang, tsDoc, document, position, offset)) {
             return null;
