@@ -23,7 +23,7 @@ export class TemplateScopeManager {
     eachEnter(node: BaseNode) {
         this.value = this.value.child();
         if (node.context) {
-            this.handleScope(node.context);
+            this.handleScope(node.context, node.children);
         }
         if (node.index) {
             this.value.inits.add(node.index);
@@ -39,10 +39,10 @@ export class TemplateScopeManager {
     awaitEnter(node: BaseNode) {
         this.value = this.value.child();
         if (node.value) {
-            this.handleScope(node.value);
+            this.handleScope(node.value, node.then?.children);
         }
         if (node.error) {
-            this.handleScope(node.error);
+            this.handleScope(node.error, []);
         }
     }
 
@@ -62,7 +62,7 @@ export class TemplateScopeManager {
         // scope into account.
         this.value.inits.clear();
         if (parent.value) {
-            this.handleScope(parent.value);
+            this.handleScope(parent.value, node.children);
         }
     }
 
@@ -74,7 +74,7 @@ export class TemplateScopeManager {
         // scope into account.
         this.value.inits.clear();
         if (parent.error) {
-            this.handleScope(parent.error);
+            this.handleScope(parent.error, node.children);
         }
     }
 
@@ -89,8 +89,10 @@ export class TemplateScopeManager {
     }
 
     componentOrSlotTemplateOrElementEnter(node: BaseNode) {
-        if (usesLet(node)) {
+        const hasConstTags = node.children?.some((child) => child.type === 'ConstTag');
+        if (usesLet(node) || hasConstTags) {
             this.value = this.value.child();
+            this.handleScope({} as any, node.children);
         }
     }
 
@@ -100,7 +102,7 @@ export class TemplateScopeManager {
         }
     }
 
-    private handleScope(identifierDef: BaseNode) {
+    private handleScope(identifierDef: BaseNode, children: BaseNode[]) {
         if (isIdentifier(identifierDef)) {
             this.value.inits.add(identifierDef.name);
         }
@@ -108,6 +110,16 @@ export class TemplateScopeManager {
             // the node object is returned as-it with no mutation
             const identifiers = extract_identifiers(identifierDef) as SvelteIdentifier[];
             identifiers.forEach((id) => this.value.inits.add(id.name));
+        }
+        if (children?.length) {
+            children.forEach((child) => {
+                if (child.type === 'ConstTag') {
+                    const identifiers = extract_identifiers(
+                        child.expression.left
+                    ) as SvelteIdentifier[];
+                    identifiers.forEach((id) => this.value.inits.add(id.name));
+                }
+            });
         }
     }
 }

@@ -23,7 +23,15 @@ export interface WithName {
     name: string;
 }
 
-export type BaseNode = Exclude<TemplateNode, Text | MustacheTag | Directive | Transition>;
+export interface ConstTag extends NodeRange {
+    type: 'ConstTag';
+    expression: any;
+}
+
+export type BaseNode = Exclude<
+    TemplateNode,
+    Text | MustacheTag | Directive | Transition | ConstTag | { type: 'DebugTag' }
+>;
 
 export type BaseDirective = Exclude<Directive, Transition>;
 

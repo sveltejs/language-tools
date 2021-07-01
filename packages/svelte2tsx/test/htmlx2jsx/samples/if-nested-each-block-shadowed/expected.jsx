@@ -7,6 +7,12 @@
                     {hello}
                 </> : <></>}
             </>)}}}
+            {() => {/*Ωignore_startΩ*/const ΩΩhello=hello;/*Ωignore_endΩ*/() => {__sveltets_1_each(items, (foo) => {const hello = foo; /*Ωignore_startΩ*/(((Ωhello))) && ((ΩΩhello)) && /*Ωignore_endΩ*/<>
+                { }
+                {(hello) ? <>
+                    {hello}
+                </> : <></>}
+            </>})}}}
         </> : <></>}
     </>)}}}
         {(hello) ? <>

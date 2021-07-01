@@ -7,6 +7,12 @@
                     {hello}
                 {/if}
             {/each}
+            {#each items as foo}
+                {@const hello = foo}
+                {#if hello}
+                    {hello}
+                {/if}
+            {/each}
         {/if}
     {:else}
         {#if hello}
