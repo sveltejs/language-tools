@@ -20,7 +20,8 @@
     "devDependencies": {
         "@tsconfig/node12": "^1.0.0",
         "@types/node": "^13.9.0",
-        "typescript": "*"
+        "typescript": "*",
+        "svelte": "*"
     },
     "dependencies": {
         "svelte2tsx": "~0.4.0",
