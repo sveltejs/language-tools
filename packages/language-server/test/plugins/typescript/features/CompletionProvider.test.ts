@@ -111,7 +111,7 @@ describe('CompletionProviderImpl', () => {
 
         const completions = await completionProvider.getCompletions(
             document,
-            Position.create(4, 5),
+            Position.create(5, 5),
             {
                 triggerKind: CompletionTriggerKind.Invoked
             }
@@ -158,7 +158,7 @@ describe('CompletionProviderImpl', () => {
 
         const completions = await completionProvider.getCompletions(
             document,
-            Position.create(4, 10),
+            Position.create(5, 10),
             {
                 triggerKind: CompletionTriggerKind.Invoked
             }
@@ -183,11 +183,11 @@ describe('CompletionProviderImpl', () => {
                     newText: 'on:a',
                     range: {
                         start: {
-                            line: 4,
+                            line: 5,
                             character: 7
                         },
                         end: {
-                            line: 4,
+                            line: 5,
                             character: 10
                         }
                     }
@@ -205,11 +205,11 @@ describe('CompletionProviderImpl', () => {
                     newText: 'on:b',
                     range: {
                         start: {
-                            line: 4,
+                            line: 5,
                             character: 7
                         },
                         end: {
-                            line: 4,
+                            line: 5,
                             character: 10
                         }
                     }
@@ -224,15 +224,42 @@ describe('CompletionProviderImpl', () => {
                     newText: 'on:c',
                     range: {
                         start: {
-                            line: 4,
+                            line: 5,
                             character: 7
                         },
                         end: {
-                            line: 4,
+                            line: 5,
                             character: 10
                         }
                     }
                 }
+            }
+        ]);
+    });
+
+    it('provides event completions from createEventDispatcher', async () => {
+        const { completionProvider, document } = setup('component-events-completion.svelte');
+
+        const completions = await completionProvider.getCompletions(
+            document,
+            Position.create(6, 5),
+            {
+                triggerKind: CompletionTriggerKind.Invoked
+            }
+        );
+
+        const eventCompletions = completions!.items.filter((item) => item.label.startsWith('on:'));
+
+        assert.deepStrictEqual(eventCompletions, <CompletionItem[]>[
+            {
+                detail: 'c: CustomEvent<boolean>',
+                documentation: {
+                    kind: 'markdown',
+                    value: 'abc'
+                },
+                label: 'on:c',
+                sortText: '-1',
+                textEdit: undefined
             }
         ]);
     });
