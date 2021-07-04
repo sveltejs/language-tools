@@ -99,6 +99,7 @@ type SvelteAnimationReturnType = {
 type SvelteWithOptionalProps<Props, Keys extends keyof Props> = Omit<Props, Keys> & Partial<Pick<Props, Keys>>;
 type SvelteAllProps = { [index: string]: any }
 type SveltePropsAnyFallback<Props> = {[K in keyof Props]: Props[K] extends undefined ? any : Props[K]}
+type SvelteSlotsAnyFallback<Slots> = {[K in keyof Slots]: {[S in keyof Slots[K]]: Slots[K][S] extends undefined ? any : Slots[K][S]}}
 type SvelteRestProps = { [index: string]: any }
 type SvelteSlots = { [index: string]: any }
 type SvelteStore<T> = { subscribe: (run: (value: T) => any, invalidate?: any) => any }
@@ -134,19 +135,19 @@ declare function __sveltets_1_slotsType<Slots, Key extends keyof Slots>(slots: S
 
 declare function __sveltets_1_partial<Props = {}, Events = {}, Slots = {}>(
     render: {props: Props, events: Events, slots: Slots }
-): {props: Expand<SveltePropsAnyFallback<Props>>, events: Events, slots: Slots }
+): {props: Expand<SveltePropsAnyFallback<Props>>, events: Events, slots: Expand<SvelteSlotsAnyFallback<Slots>> }
 declare function __sveltets_1_partial<Props = {}, Events = {}, Slots = {}, OptionalProps extends keyof Props = any>(
     optionalProps: OptionalProps[],
     render: {props: Props, events: Events, slots: Slots }
-): {props: Expand<SvelteWithOptionalProps<SveltePropsAnyFallback<Props>, OptionalProps>>, events: Events, slots: Slots }
+): {props: Expand<SvelteWithOptionalProps<SveltePropsAnyFallback<Props>, OptionalProps>>, events: Events, slots: Expand<SvelteSlotsAnyFallback<Slots>> }
 
 declare function __sveltets_1_partial_with_any<Props = {}, Events = {}, Slots = {}>(
     render: {props: Props, events: Events, slots: Slots }
-): {props: Expand<SveltePropsAnyFallback<Props> & SvelteAllProps>, events: Events, slots: Slots }
+): {props: Expand<SveltePropsAnyFallback<Props> & SvelteAllProps>, events: Events, slots: Expand<SvelteSlotsAnyFallback<Slots>> }
 declare function __sveltets_1_partial_with_any<Props = {}, Events = {}, Slots = {}, OptionalProps extends keyof Props = any>(
     optionalProps: OptionalProps[],
     render: {props: Props, events: Events, slots: Slots }
-): {props: Expand<SvelteWithOptionalProps<SveltePropsAnyFallback<Props>, OptionalProps> & SvelteAllProps>, events: Events, slots: Slots }
+): {props: Expand<SvelteWithOptionalProps<SveltePropsAnyFallback<Props>, OptionalProps> & SvelteAllProps>, events: Events, slots: Expand<SvelteSlotsAnyFallback<Slots>> }
 
 
 declare function __sveltets_1_with_any<Props = {}, Events = {}, Slots = {}>(
