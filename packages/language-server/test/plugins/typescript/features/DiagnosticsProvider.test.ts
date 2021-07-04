@@ -1753,4 +1753,10 @@ describe('DiagnosticsProvider', () => {
             }
         ]);
     });
+
+    it('falls back to any for untyped props and slots in js', async () => {
+        const { plugin, document } = setup('using-untyped-js.svelte');
+        const diagnostics = await plugin.getDiagnostics(document);
+        assert.deepStrictEqual(diagnostics, []);
+    });
 });
