@@ -47,3 +47,30 @@ export function svelte2tsx(
         mode?: 'tsx' | 'dts'
     }
 ): SvelteCompiledToTsx
+
+export interface EmitDtsConig {
+    /**
+     * Where to output the declaration files
+     */
+    declarationDir: string;
+    /**
+     * Path to `svelte-shims.d.ts` of `svelte2tsx`.
+     * Example: `require.resolve('svelte2tsx/svelte-shims.d.ts')`
+     */
+    svelteShimsPath: string;
+    /**
+     * If you want to emit types only for part of your project,
+     * then set this to the folder for which the types should be emitted.
+     * Most of the time you don't need this. For SvelteKit, this is for example
+     * set to `src/lib` by default.
+     */
+    libRoot?: string;
+}
+
+/**
+ * Searches for a jsconfig or tsconfig starting at `root` and emits d.ts files
+ * into `declarationDir` using the ambient file from `svelteShimsPath`.
+ * Note: Handwritten `d.ts` files are not copied over; TypeScript does not
+ * touch these files.
+ */
+export function emitDts(config: EmitDtsConig): Promise<void>;
