@@ -57,14 +57,16 @@ export class JsOrTsComponentInfoProvider implements ComponentInfoProvider {
         return type
             .getProperties()
             .map((prop) => {
-                if (!prop.valueDeclaration) {
+                // type would still be correct when there're multiple declarations
+                const declaration = prop.valueDeclaration ?? prop.declarations?.[0];
+                if (!declaration) {
                     return;
                 }
 
                 return {
                     name: prop.name,
                     type: this.typeChecker.typeToString(
-                        this.typeChecker.getTypeOfSymbolAtLocation(prop, prop.valueDeclaration)
+                        this.typeChecker.getTypeOfSymbolAtLocation(prop, declaration)
                     ),
                     doc: ts.displayPartsToString(prop.getDocumentationComment(this.typeChecker))
                 };

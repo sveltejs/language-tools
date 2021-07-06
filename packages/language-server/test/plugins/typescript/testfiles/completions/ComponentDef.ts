@@ -17,6 +17,17 @@ export class ComponentDef extends SvelteComponentTyped<
              * documentation for let2
              */
             let2: string;
-        }
+        };
     }
+> {}
+
+export class ComponentDef2 extends SvelteComponentTyped<
+    {},
+    | {
+          event1: CustomEvent<number>;
+      }
+    | {
+          event1: CustomEvent<string>;
+      },
+    {}
 > {}
