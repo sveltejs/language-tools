@@ -322,6 +322,42 @@ describe('CompletionProviderImpl', () => {
         ]);
     });
 
+    it('provides event completion for components with type definition having multiple declarations of the same event', async () => {
+        const { completionProvider, document } = setup('component-events-completion-ts-def.svelte');
+
+        const completions = await completionProvider.getCompletions(
+            document,
+            Position.create(6, 17),
+            {
+                triggerKind: CompletionTriggerKind.Invoked
+            }
+        );
+
+        const eventCompletions = completions!.items.filter((item) => item.label.startsWith('on:'));
+
+        assert.deepStrictEqual(eventCompletions, <CompletionItem[]>[
+            {
+                detail: 'event1: CustomEvent<string> | CustomEvent<number>',
+                label: 'on:event1',
+                sortText: '-1',
+                documentation: '',
+                textEdit: {
+                    newText: 'on:event1',
+                    range: {
+                        end: {
+                            character: 18,
+                            line: 6
+                        },
+                        start: {
+                            character: 15,
+                            line: 6
+                        }
+                    }
+                }
+            }
+        ]);
+    });
+
     it('does not provide completions inside style tag', async () => {
         const { completionProvider, document } = setup('completionsstyle.svelte');
 

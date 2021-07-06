@@ -57,8 +57,7 @@ export class JsOrTsComponentInfoProvider implements ComponentInfoProvider {
         return type
             .getProperties()
             .map((prop) => {
-                // currently there should only be one because svelte2tsx doesn't merge event dispatcher types
-                // And interface ($$Events) can't merge property type
+                // type would still be correct when there're multiple declarations
                 const declaration = prop.valueDeclaration ?? prop.declarations?.[0];
                 if (!declaration) {
                     return;
