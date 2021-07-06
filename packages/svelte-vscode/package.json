@@ -43,6 +43,15 @@
         "onLanguage:svelte",
         "onCommand:svelte.restartLanguageServer"
     ],
+    "capabilities": {
+        "untrustedWorkspaces": {
+            "supported": "limited",
+            "description": "The extension requires workspace trust because it executes code specified by the workspace. Setting a custom language-server runtime, loading the user's node_modules and loading the svelte config file is disabled when untrusted",
+            "restrictedConfigurations": [
+                "svelte.language-server.ls-path"
+            ]
+        }
+    },
     "contributes": {
         "typescriptServerPlugins-disabled": [
             {
@@ -67,7 +76,6 @@
                     "description": "- You normally don't need this - Path to the node executable to use to spawn the language server. This is useful when you depend on native modules such as node-sass as without this they will run in the context of vscode, meaning node version mismatch is likely. Minimum required node version is 12.17. This setting can only be changed in user settings for security reasons."
                 },
                 "svelte.language-server.ls-path": {
-                    "scope": "application",
                     "type": "string",
                     "title": "Language Server Path",
                     "description": "- You normally don't set this - Path to the language server executable. If you installed the \"svelte-language-server\" npm package, it's within there at \"bin/server.js\". Path can be either relative to your workspace root or absolute. Set this only if you want to use a custom version of the language server. This setting can only be changed in user settings for security reasons."

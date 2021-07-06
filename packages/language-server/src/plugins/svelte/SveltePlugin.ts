@@ -47,7 +47,7 @@ export class SveltePlugin
     constructor(private configManager: LSConfigManager) {}
 
     async getDiagnostics(document: Document): Promise<Diagnostic[]> {
-        if (!this.featureEnabled('diagnostics')) {
+        if (!this.featureEnabled('diagnostics') || !this.configManager.getIsTrusted()) {
             return [];
         }
 
