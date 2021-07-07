@@ -440,7 +440,7 @@ export class RenameProviderImpl implements RenameProvider {
             // somehow the mapping is one character before
             if (
                 isShortHandBinding ||
-                originalText.substring(document.offsetAt(newRange.start), originalStart) === ' {'
+                originalText.substring(document.offsetAt(newRange.start), originalStart).trimLeft() === '{'
             ) {
                 newRange.start.character++;
             }
