@@ -1,1 +1,1 @@
-<><Component type="radio" {...__sveltets_ensureType(Component, element)} value="Plain"/></>
+<><Component type="radio" {...__sveltets_1_ensureType(Component, element)} value="Plain"/></>

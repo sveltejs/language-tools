@@ -1,18 +1,18 @@
 /** tested-ranges: [[55,3,"foo"],[72,3,"baz"],[112,3,"foo"],[130,3,"baz"]] */                                                                         {/**
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
-<slot foo={foo} name="bar" baz={baz} leet>fallback</slot>                                                                                             {/**
-           1==                  2==                        [generated] line 7                                                                          */}
+<slot foo={__sveltets_ensureSlot("bar","foo",foo)} name="bar" baz={__sveltets_ensureSlot("bar","baz",baz)} leet>fallback</slot>                       {/**
+                                             1==                                                     2==                         [generated] line 8    */}
 <slot foo={foo} name="bar" {baz} leet>fallback</slot>                                                                                                 {/**
-           1==              2==                            [original] line 5                                                                          
+           1==              2==                                                                                                  [original] line 5    
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
+    foo={__sveltets_ensureSlot("bar","foo",foo)} name="bar"                                                                                           {/**
+                                           #==                                                                                   [generated] line 11   */}
     foo={foo} name="bar"                                                                                                                              {/**
-         #==                                               [generated] line 10                                                                         */}
-    foo={foo} name="bar"                                                                                                                              {/**
-         #==                                               [original] line 8                                                                          
+         #==                                                                                                                     [original] line 8    
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
-    baz={baz}                                                                                                                                         {/**
-         #==                                               [generated] line 11                                                                         */}
+    baz={__sveltets_ensureSlot("bar","baz",baz)}                                                                                                      {/**
+                                           #==                                                                                   [generated] line 12   */}
     {baz}                                                                                                                                             {/**
-     #==                                                   [original] line 9                                                                          
+     #==                                                                                                                         [original] line 9    
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
 /** origin-hash: 1pdpo7w */

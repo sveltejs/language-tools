@@ -1,6 +1,6 @@
 {
     "name": "svelte2tsx",
-    "version": "0.2.0",
+    "version": "0.4.0",
     "description": "Convert Svelte components to TSX for type checking",
     "author": "David Pershouse",
     "license": "MIT",
@@ -44,11 +44,10 @@
         "typescript": "^4.1.2"
     },
     "scripts": {
-        "build": "npm run create-files && rollup -c",
+        "build": "rollup -c",
         "prepublishOnly": "npm run build",
-        "dev": "npm run create-files && rollup -c -w",
-        "test": "npm run create-files && mocha test/test.ts",
-        "create-files": "node ./create-files.js"
+        "dev": "rollup -c -w",
+        "test": "mocha test/test.ts"
     },
     "files": [
         "index.mjs",

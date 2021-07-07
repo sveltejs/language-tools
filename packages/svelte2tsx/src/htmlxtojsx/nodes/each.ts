@@ -12,10 +12,10 @@ export function handleEach(
     ifScope: IfScope
 ): void {
     // {#each items as item,i (key)} ->
-    // {__sveltets_each(items, (item,i) => (key) && (possible if expression &&) <>
+    // {__sveltets_1_each(items, (item,i) => (key) && (possible if expression &&) <>
     const constRedeclares = ifScope.getConstDeclaration();
     const prefix = constRedeclares ? `{() => {${constRedeclares}() => ` : '';
-    str.overwrite(eachBlock.start, eachBlock.expression.start, `${prefix}{__sveltets_each(`);
+    str.overwrite(eachBlock.start, eachBlock.expression.start, `${prefix}{__sveltets_1_each(`);
     str.overwrite(eachBlock.expression.end, eachBlock.context.start, ', (');
 
     // {#each true, items as item}

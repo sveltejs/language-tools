@@ -1,7 +1,5 @@
 import { pascalCase } from 'pascal-case';
 import path from 'path';
-import { createClassGetters } from './nodes/exportgetters';
-import { createClassAccessors } from './nodes/exportaccessors';
 import MagicString from 'magic-string';
 import { ExportedNames } from './nodes/ExportedNames';
 import { ComponentDocumentation } from './nodes/ComponentDocumentation';
@@ -16,7 +14,6 @@ export interface AddComponentExportPara {
      * */
     strictEvents: boolean;
     isTsFile: boolean;
-    getters: Set<string>;
     usesAccessors: boolean;
     exportedNames: ExportedNames;
     fileName?: string;
@@ -41,13 +38,11 @@ export function addComponentExport(params: AddComponentExportPara) {
 
 function addGenericsComponentExport({
     strictEvents,
-    isTsFile,
     uses$$propsOr$$restProps,
     exportedNames,
     componentDocumentation,
     fileName,
     mode,
-    getters,
     usesAccessors,
     str,
     generics
@@ -66,7 +61,7 @@ function addGenericsComponentExport({
 class __sveltets_Render${genericsDef} {
     props() {
         return ${props(
-            isTsFile,
+            true,
             uses$$propsOr$$restProps,
             exportedNames,
             `render${genericsRef}()`
@@ -89,8 +84,8 @@ class __sveltets_Render${genericsDef} {
             `\n${doc}export default class${
                 className ? ` ${className}` : ''
             }${genericsDef} extends SvelteComponentTyped<${className}Props${genericsRef}, ${className}Events${genericsRef}, ${className}Slots${genericsRef}> {` + // eslint-disable-line max-len
-            createClassGetters(getters) +
-            (usesAccessors ? createClassAccessors(getters, exportedNames) : '') +
+            exportedNames.createClassGetters() +
+            (usesAccessors ? exportedNames.createClassAccessors() : '') +
             '\n}';
     } else {
         statement +=
@@ -99,8 +94,8 @@ class __sveltets_Render${genericsDef} {
             }${genericsDef} extends Svelte2TsxComponent<${returnType('props')}, ${returnType(
                 'events'
             )}, ${returnType('slots')}> {` +
-            createClassGetters(getters) +
-            (usesAccessors ? createClassAccessors(getters, exportedNames) : '') +
+            exportedNames.createClassGetters() +
+            (usesAccessors ? exportedNames.createClassAccessors() : '') +
             '\n}';
     }
 
@@ -115,7 +110,6 @@ function addSimpleComponentExport({
     componentDocumentation,
     fileName,
     mode,
-    getters,
     usesAccessors,
     str
 }: AddComponentExportPara) {
@@ -130,7 +124,7 @@ function addSimpleComponentExport({
     const className = fileName && classNameFromFilename(fileName, mode !== 'dts');
 
     let statement: string;
-    if (mode === 'dts') {
+    if (mode === 'dts' && isTsFile) {
         statement =
             `\nconst __propDef = ${propDef};\n` +
             `export type ${className}Props = typeof __propDef.props;\n` +
@@ -139,16 +133,28 @@ function addSimpleComponentExport({
             `\n${doc}export default class${
                 className ? ` ${className}` : ''
             } extends SvelteComponentTyped<${className}Props, ${className}Events, ${className}Slots> {` + // eslint-disable-line max-len
-            createClassGetters(getters) +
-            (usesAccessors ? createClassAccessors(getters, exportedNames) : '') +
+            exportedNames.createClassGetters() +
+            (usesAccessors ? exportedNames.createClassAccessors() : '') +
+            '\n}';
+    } else if (mode === 'dts' && !isTsFile) {
+        statement =
+            `\nconst __propDef = ${propDef};\n` +
+            `/** @typedef {typeof __propDef.props}  ${className}Props */\n` +
+            `/** @typedef {typeof __propDef.events}  ${className}Events */\n` +
+            `/** @typedef {typeof __propDef.slots}  ${className}Slots */\n` +
+            `\n${doc}export default class${
+                className ? ` ${className}` : ''
+            } extends __sveltets_1_createSvelteComponentTyped(${propDef}) {` +
+            exportedNames.createClassGetters() +
+            (usesAccessors ? exportedNames.createClassAccessors() : '') +
             '\n}';
     } else {
         statement =
             `\n\n${doc}export default class${
                 className ? ` ${className}` : ''
-            } extends createSvelte2TsxComponent(${propDef}) {` +
-            createClassGetters(getters) +
-            (usesAccessors ? createClassAccessors(getters, exportedNames) : '') +
+            } extends __sveltets_1_createSvelte2TsxComponent(${propDef}) {` +
+            exportedNames.createClassGetters() +
+            (usesAccessors ? exportedNames.createClassAccessors() : '') +
             '\n}';
     }
 
@@ -156,7 +162,7 @@ function addSimpleComponentExport({
 }
 
 function events(strictEvents: boolean, renderStr: string) {
-    return strictEvents ? renderStr : `__sveltets_with_any_event(${renderStr})`;
+    return strictEvents ? renderStr : `__sveltets_1_with_any_event(${renderStr})`;
 }
 
 function props(
@@ -166,10 +172,10 @@ function props(
     renderStr: string
 ) {
     if (isTsFile) {
-        return uses$$propsOr$$restProps ? `__sveltets_with_any(${renderStr})` : renderStr;
+        return uses$$propsOr$$restProps ? `__sveltets_1_with_any(${renderStr})` : renderStr;
     } else {
         const optionalProps = exportedNames.createOptionalPropsArray();
-        const partial = `__sveltets_partial${uses$$propsOr$$restProps ? '_with_any' : ''}`;
+        const partial = `__sveltets_1_partial${uses$$propsOr$$restProps ? '_with_any' : ''}`;
         return optionalProps.length > 0
             ? `${partial}([${optionalProps.join(',')}], ${renderStr})`
             : `${partial}(${renderStr})`;

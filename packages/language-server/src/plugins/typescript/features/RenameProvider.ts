@@ -11,7 +11,12 @@ import { convertRange } from '../utils';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import ts from 'typescript';
 import { uniqWith, isEqual } from 'lodash';
-import { isComponentAtPosition, isNoTextSpanInGeneratedCode, SnapshotFragmentMap } from './utils';
+import {
+    isComponentAtPosition,
+    isAfterSvelte2TsxPropsReturn,
+    isNoTextSpanInGeneratedCode,
+    SnapshotFragmentMap
+} from './utils';
 
 export class RenameProviderImpl implements RenameProvider {
     constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) { }
@@ -282,11 +287,7 @@ export class RenameProviderImpl implements RenameProvider {
 
     // --------> svelte2tsx?
     private isInSvelte2TsxPropLine(fragment: SvelteSnapshotFragment, loc: ts.RenameLocation) {
-        const textBeforeProp = fragment.text.substring(0, loc.textSpan.start);
-        // This is how svelte2tsx writes out the props
-        if (textBeforeProp.includes('\nreturn { props: {')) {
-            return true;
-        }
+        return isAfterSvelte2TsxPropsReturn(fragment.text, loc.textSpan.start);
     }
 
     /**
@@ -325,13 +326,13 @@ export class RenameProviderImpl implements RenameProvider {
 
             const content = snapshot.getText(0, snapshot.getLength());
             // When the user renames a Svelte component, ts will also want to rename
-            // `__sveltets_instanceOf(TheComponentToRename)` or
-            // `__sveltets_ensureType(TheComponentToRename,..`. Prevent that.
+            // `__sveltets_1_instanceOf(TheComponentToRename)` or
+            // `__sveltets_1_ensureType(TheComponentToRename,..`. Prevent that.
             // Additionally, we cannot rename the hidden variable containing the store value
             return (
-                notPrecededBy('__sveltets_instanceOf(') &&
-                notPrecededBy('__sveltets_ensureType(') &&
-                notPrecededBy('= __sveltets_store_get(')
+                notPrecededBy('__sveltets_1_instanceOf(') &&
+                notPrecededBy('__sveltets_1_ensureType(') &&
+                notPrecededBy('= __sveltets_1_store_get(')
             );
 
             function notPrecededBy(str: string) {

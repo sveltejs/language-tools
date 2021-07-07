@@ -55,11 +55,11 @@ export function handleStore(node: Node, parent: Node, str: MagicString): void {
         return;
     }
 
-    // we change "$store" references into "(__sveltets_store_get(store), $store)"
+    // we change "$store" references into "(__sveltets_1_store_get(store), $store)"
     // - in order to get ts errors if store is not assignable to SvelteStore
     // - use $store variable defined above to get ts flow control
     const dollar = str.original.indexOf('$', node.start);
-    str.overwrite(dollar, dollar + 1, '(__sveltets_store_get(');
+    str.overwrite(dollar, dollar + 1, '(__sveltets_1_store_get(', { contentOnly: true });
     str.prependLeft(node.end, `), $${storename})`);
 }
 

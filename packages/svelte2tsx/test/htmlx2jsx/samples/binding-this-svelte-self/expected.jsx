@@ -1,3 +1,3 @@
 <>{(false) ? <>
-    <svelteself {...__sveltets_ensureType(__sveltets_componentType(), element)} />
+    <svelteself {...__sveltets_1_ensureType(__sveltets_1_componentType(), element)} />
 </> : <></>}</>

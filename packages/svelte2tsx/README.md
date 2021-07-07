@@ -37,8 +37,8 @@ function render() {
     return { props: { world }, slots: {}, events: {} };
 }
 
-export default class _World_ extends createSvelte2TsxComponent(
-    __sveltets_partial(__sveltets_with_any_event(render))
+export default class _World_ extends __sveltets_1_createSvelte2TsxComponent(
+    __sveltets_1_partial(__sveltets_1_with_any_event(render))
 ) {}
 ```
 
@@ -49,3 +49,4 @@ For more examples of the transformations, see the `test/**/samples` folders
 ## Credits
 
 -   [halfnelson](https://github.com/halfnelson) for creating `svelte2tsx`
+-   [pushkine](https://github.com/pushkine) for creating the source mapping test infrastructure

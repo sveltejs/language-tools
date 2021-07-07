@@ -111,7 +111,7 @@ describe('CompletionProviderImpl', () => {
 
         const completions = await completionProvider.getCompletions(
             document,
-            Position.create(4, 5),
+            Position.create(5, 5),
             {
                 triggerKind: CompletionTriggerKind.Invoked
             }
@@ -123,13 +123,12 @@ describe('CompletionProviderImpl', () => {
         );
         assert.ok(completions!.items.length > 0, 'Expected completions to have length');
 
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const eventCompletions = completions!.items.filter((item) => item.label.startsWith('on:'));
 
         assert.deepStrictEqual(eventCompletions, <CompletionItem[]>[
             {
                 detail: 'a: CustomEvent<boolean>',
-                documentation: undefined,
+                documentation: '',
                 label: 'on:a',
                 sortText: '-1',
                 textEdit: undefined
@@ -138,15 +137,15 @@ describe('CompletionProviderImpl', () => {
                 detail: 'b: MouseEvent',
                 documentation: {
                     kind: 'markdown',
-                    value: '\nTEST\n'
+                    value: 'TEST'
                 },
                 label: 'on:b',
                 sortText: '-1',
                 textEdit: undefined
             },
             {
-                detail: 'c: Event',
-                documentation: undefined,
+                detail: 'c: any',
+                documentation: '',
                 label: 'on:c',
                 sortText: '-1',
                 textEdit: undefined
@@ -159,7 +158,7 @@ describe('CompletionProviderImpl', () => {
 
         const completions = await completionProvider.getCompletions(
             document,
-            Position.create(4, 10),
+            Position.create(5, 10),
             {
                 triggerKind: CompletionTriggerKind.Invoked
             }
@@ -177,18 +176,18 @@ describe('CompletionProviderImpl', () => {
         assert.deepStrictEqual(eventCompletions, <CompletionItem[]>[
             {
                 detail: 'a: CustomEvent<boolean>',
-                documentation: undefined,
+                documentation: '',
                 label: 'on:a',
                 sortText: '-1',
                 textEdit: {
                     newText: 'on:a',
                     range: {
                         start: {
-                            line: 4,
+                            line: 5,
                             character: 7
                         },
                         end: {
-                            line: 4,
+                            line: 5,
                             character: 10
                         }
                     }
@@ -198,7 +197,7 @@ describe('CompletionProviderImpl', () => {
                 detail: 'b: MouseEvent',
                 documentation: {
                     kind: 'markdown',
-                    value: '\nTEST\n'
+                    value: 'TEST'
                 },
                 label: 'on:b',
                 sortText: '-1',
@@ -206,31 +205,152 @@ describe('CompletionProviderImpl', () => {
                     newText: 'on:b',
                     range: {
                         start: {
-                            line: 4,
+                            line: 5,
                             character: 7
                         },
                         end: {
-                            line: 4,
+                            line: 5,
                             character: 10
                         }
                     }
                 }
             },
             {
-                detail: 'c: Event',
-                documentation: undefined,
+                detail: 'c: any',
+                documentation: '',
                 label: 'on:c',
                 sortText: '-1',
                 textEdit: {
                     newText: 'on:c',
                     range: {
                         start: {
-                            line: 4,
+                            line: 5,
                             character: 7
                         },
                         end: {
-                            line: 4,
+                            line: 5,
                             character: 10
+                        }
+                    }
+                }
+            }
+        ]);
+    });
+
+    it('provides event completions from createEventDispatcher', async () => {
+        const { completionProvider, document } = setup('component-events-completion.svelte');
+
+        const completions = await completionProvider.getCompletions(
+            document,
+            Position.create(6, 5),
+            {
+                triggerKind: CompletionTriggerKind.Invoked
+            }
+        );
+
+        const eventCompletions = completions!.items.filter((item) => item.label.startsWith('on:'));
+
+        assert.deepStrictEqual(eventCompletions, <CompletionItem[]>[
+            {
+                detail: 'c: CustomEvent<boolean>',
+                documentation: {
+                    kind: 'markdown',
+                    value: 'abc'
+                },
+                label: 'on:c',
+                sortText: '-1',
+                textEdit: undefined
+            }
+        ]);
+    });
+
+    it('provides event completion for components with type definition', async () => {
+        const { completionProvider, document } = setup('component-events-completion-ts-def.svelte');
+
+        const completions = await completionProvider.getCompletions(
+            document,
+            Position.create(4, 17),
+            {
+                triggerKind: CompletionTriggerKind.Invoked
+            }
+        );
+
+        const eventCompletions = completions!.items.filter((item) => item.label.startsWith('on:'));
+
+        assert.deepStrictEqual(eventCompletions, <CompletionItem[]>[
+            {
+                detail: 'event1: CustomEvent<null>',
+                documentation: '',
+                label: 'on:event1',
+                sortText: '-1',
+                textEdit: {
+                    newText: 'on:event1',
+                    range: {
+                        end: {
+                            character: 17,
+                            line: 4
+                        },
+                        start: {
+                            character: 14,
+                            line: 4
+                        }
+                    }
+                }
+            },
+            {
+                detail: 'event2: CustomEvent<string>',
+                documentation: {
+                    kind: 'markdown',
+                    value: 'documentation for event2'
+                },
+                label: 'on:event2',
+                sortText: '-1',
+                textEdit: {
+                    newText: 'on:event2',
+                    range: {
+                        end: {
+                            character: 17,
+                            line: 4
+                        },
+                        start: {
+                            character: 14,
+                            line: 4
+                        }
+                    }
+                }
+            }
+        ]);
+    });
+
+    it('provides event completion for components with type definition having multiple declarations of the same event', async () => {
+        const { completionProvider, document } = setup('component-events-completion-ts-def.svelte');
+
+        const completions = await completionProvider.getCompletions(
+            document,
+            Position.create(6, 17),
+            {
+                triggerKind: CompletionTriggerKind.Invoked
+            }
+        );
+
+        const eventCompletions = completions!.items.filter((item) => item.label.startsWith('on:'));
+
+        assert.deepStrictEqual(eventCompletions, <CompletionItem[]>[
+            {
+                detail: 'event1: CustomEvent<string> | CustomEvent<number>',
+                label: 'on:event1',
+                sortText: '-1',
+                documentation: '',
+                textEdit: {
+                    newText: 'on:event1',
+                    range: {
+                        end: {
+                            character: 18,
+                            line: 6
+                        },
+                        start: {
+                            character: 15,
+                            line: 6
                         }
                     }
                 }
@@ -794,6 +914,86 @@ describe('CompletionProviderImpl', () => {
             Position.create(4, 7),
             `/**${newLine} * $0${newLine} * @param parameter1${newLine} */`
         );
+    });
+
+    it('shows completions in reactive statement', async () => {
+        const { completionProvider, document } = setup('completions-in-reactive-statement.svelte');
+
+        await checkCompletion(Position.create(9, 13));
+        await checkCompletion(Position.create(10, 16));
+        await checkCompletion(Position.create(11, 14));
+        await checkCompletion(Position.create(13, 17));
+        await checkCompletion(Position.create(14, 20));
+        await checkCompletion(Position.create(15, 18));
+
+        async function checkCompletion(position: Position) {
+            const completions = await completionProvider.getCompletions(document, position, {
+                triggerKind: CompletionTriggerKind.Invoked
+            });
+            assert.strictEqual(completions?.items.length, 1);
+            const item = completions?.items?.[0];
+            assert.strictEqual(item?.label, 'abc');
+        }
+    }).timeout(4000);
+
+    it('provides default slot-let completion for components with type definition', async () => {
+        const { completionProvider, document } = setup('component-events-completion-ts-def.svelte');
+
+        const completions = await completionProvider.getCompletions(
+            document,
+            Position.create(5, 18),
+            {
+                triggerKind: CompletionTriggerKind.Invoked
+            }
+        );
+
+        const slotLetCompletions = completions!.items.filter((item) =>
+            item.label.startsWith('let:')
+        );
+
+        assert.deepStrictEqual(slotLetCompletions, <CompletionItem[]>[
+            {
+                detail: 'let1: boolean',
+                documentation: '',
+                label: 'let:let1',
+                sortText: '-1',
+                textEdit: {
+                    newText: 'let:let1',
+                    range: {
+                        end: {
+                            character: 18,
+                            line: 5
+                        },
+                        start: {
+                            character: 14,
+                            line: 5
+                        }
+                    }
+                }
+            },
+            {
+                detail: 'let2: string',
+                documentation: {
+                    kind: 'markdown',
+                    value: 'documentation for let2'
+                },
+                label: 'let:let2',
+                sortText: '-1',
+                textEdit: {
+                    newText: 'let:let2',
+                    range: {
+                        end: {
+                            character: 18,
+                            line: 5
+                        },
+                        start: {
+                            character: 14,
+                            line: 5
+                        }
+                    }
+                }
+            }
+        ]);
     });
 });
 

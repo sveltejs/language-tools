@@ -27,11 +27,11 @@
 
 <Component                                                                                                                                            {/**
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
-    {...__sveltets_ensureType(Component, bar)}                                                                                                        {/**
-   ╚{...__sveltets_ensureType(Component,•bar)}↲    [generated] line 18                                                                                
-   ╚                                     bar} ↲                                                                                                       
+    {...__sveltets_1_ensureType(Component, bar)}                                                                                                      {/**
+   ╚{...__sveltets_1_ensureType(Component,•bar)}↲    [generated] line 18                                                                              
+   ╚                                       bar} ↲                                                                                                     
    ╚           bar}↲                                                                                                                                  
-   ╚bind:this={bar}↲                               [original] line 16                                                                                 
+   ╚bind:this={bar}↲                                 [original] line 16                                                                               
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
 /></>                                                                                                                                                 {/**
 /></>↲    [generated] line 19                                                                                                                         
@@ -39,5 +39,5 @@
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
 return { props: {}, slots: {}, getters: {}, events: {} }}
 
-export default class Input__SvelteComponent_ extends createSvelte2TsxComponent(__sveltets_partial(__sveltets_with_any_event(render()))) {
+export default class Input__SvelteComponent_ extends __sveltets_1_createSvelte2TsxComponent(__sveltets_1_partial(__sveltets_1_with_any_event(render()))) {
 }

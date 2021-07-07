@@ -1,1 +1,1 @@
-<><sveltebody {...__sveltets_ensureType(HTMLBodyElement, element)} /></>
+<><sveltebody {...__sveltets_1_ensureType(HTMLBodyElement, element)} /></>

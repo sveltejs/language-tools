@@ -33,7 +33,7 @@ import {
     OnWatchFileChangesPara,
     LSAndTSDocResolver
 } from './plugins';
-import { debounceThrottle, isNotNullOrUndefined, urlToPath } from './utils';
+import { debounceThrottle, isNotNullOrUndefined, normalizeUri, urlToPath } from './utils';
 import { FallbackWatcher } from './lib/FallbackWatcher';
 
 namespace TagCloseRequest {
@@ -135,7 +135,7 @@ export function startServer(options?: LSOptions) {
         pluginHost.register(
             new TypeScriptPlugin(
                 configManager,
-                new LSAndTSDocResolver(docManager, workspaceUris, configManager)
+                new LSAndTSDocResolver(docManager, workspaceUris.map(normalizeUri), configManager)
             )
         );
 

@@ -1,15 +1,16 @@
 import ts from 'typescript';
 import { EventHandler } from './event-handler';
-import { getVariableAtTopLevel, getLastLeadingDoc } from '../utils/tsAst';
+import {
+    getVariableAtTopLevel,
+    getLastLeadingDoc,
+    isInterfaceOrTypeDeclaration
+} from '../utils/tsAst';
 import MagicString from 'magic-string';
 
 export function is$$EventsDeclaration(
     node: ts.Node
 ): node is ts.TypeAliasDeclaration | ts.InterfaceDeclaration {
-    return (
-        (ts.isTypeAliasDeclaration(node) || ts.isInterfaceDeclaration(node)) &&
-        node.name.text === '$$Events'
-    );
+    return isInterfaceOrTypeDeclaration(node) && node.name.text === '$$Events';
 }
 
 /**
@@ -139,7 +140,7 @@ class ComponentEventsFromInterface {
         if (!dispatcherTyping) {
             this.str.prependLeft(
                 dispatcherCreationExpr.expression.getEnd() + this.astOffset,
-                '<__Sveltets_CustomEvents<$$Events>>'
+                '<__sveltets_1_CustomEvents<$$Events>>'
             );
         }
     }
@@ -289,11 +290,11 @@ class ComponentEventsFromEventsMap {
                     .map(
                         (dispatcher) =>
                             dispatcher.typing &&
-                            `...__sveltets_toEventTypings<${dispatcher.typing}>()`
+                            `...__sveltets_1_toEventTypings<${dispatcher.typing}>()`
                     )
                     .filter((str) => !!str),
                 ...this.eventHandler.bubbledEventsAsStrings(),
-                ...[...this.dispatchedEvents.keys()].map((e) => `'${e}': __sveltets_customEvent`)
+                ...[...this.dispatchedEvents.keys()].map((e) => `'${e}': __sveltets_1_customEvent`)
             ].join(', ') +
             '}'
         );

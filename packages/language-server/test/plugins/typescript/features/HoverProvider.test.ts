@@ -79,7 +79,7 @@ describe('HoverProvider', () => {
 
         assert.deepStrictEqual(await provider.doHover(document, Position.create(12, 26)), <Hover>{
             contents:
-                '```typescript\nabc: MouseEvent\n```\n\nTEST\n```ts\nconst abc: boolean = true;\n```\n'
+                '```typescript\nabc: MouseEvent\n```\nTEST\n```ts\nconst abc: boolean = true;\n```'
         });
     });
 
