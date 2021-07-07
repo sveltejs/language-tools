@@ -409,6 +409,17 @@ export class RenameProviderImpl implements RenameProvider {
                 return location;
             }
 
+            const attributeName = possibleJsxAttribute.name.getText();
+            const { initializer } = possibleJsxAttribute;
+
+            // not props={props}
+            if (
+                !initializer ||
+                !ts.isJsxExpression(initializer) ||
+                attributeName !== initializer.expression?.getText()
+            ) {
+                return location;
+            }
             const originalStart = document.offsetAt(location.range.start);
 
             const isShortHandBinding = originalText.substr(
