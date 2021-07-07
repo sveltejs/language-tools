@@ -19,7 +19,7 @@ import {
 } from './utils';
 
 export class RenameProviderImpl implements RenameProvider {
-    constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) { }
+    constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
 
     // TODO props written as `export {x as y}` are not supported yet.
 
@@ -440,7 +440,9 @@ export class RenameProviderImpl implements RenameProvider {
             // somehow the mapping is one character before
             if (
                 isShortHandBinding ||
-                originalText.substring(document.offsetAt(newRange.start), originalStart).trimLeft() === '{'
+                originalText
+                    .substring(document.offsetAt(newRange.start), originalStart)
+                    .trimLeft() === '{'
             ) {
                 newRange.start.character++;
             }
