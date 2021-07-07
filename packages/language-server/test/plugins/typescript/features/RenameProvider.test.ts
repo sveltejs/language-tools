@@ -38,6 +38,8 @@ describe('RenameProvider', () => {
         const renameDocIgnoreGenerated = await openDoc('rename-ignore-generated.svelte');
         const renameDocSlotEventsImporter = await openDoc('rename-slot-events-importer.svelte');
         const renameDocPropWithSlotEvents = await openDoc('rename-prop-with-slot-events.svelte');
+        const renameDocShorthand = await openDoc('rename-shorthand.svelte');
+
         return {
             provider,
             renameDoc1,
@@ -49,6 +51,7 @@ describe('RenameProvider', () => {
             renameDocIgnoreGenerated,
             renameDocSlotEventsImporter,
             renameDocPropWithSlotEvents,
+            renameDocShorthand,
             docManager
         };
 
@@ -588,6 +591,88 @@ describe('RenameProvider', () => {
                             start: {
                                 character: 3,
                                 line: 4
+                            }
+                        }
+                    }
+                ]
+            }
+        });
+    });
+
+    it('should can rename shorthand props without breaking value-passing', async () => {
+        const { provider, renameDocShorthand } = await setup();
+
+        const result = await provider.rename(
+            renameDocShorthand,
+            Position.create(3, 9),
+            'newName'
+        );
+
+        assert.deepStrictEqual(result, {
+            changes: {
+                [getUri('rename-shorthand.svelte')]: [
+                    {
+                        newText: 'newName',
+                        range: {
+                            start: {
+                                line: 3,
+                                character: 8
+                            },
+                            end: {
+                                line: 3,
+                                character: 14
+                            }
+                        }
+                    },
+                    {
+                        newText: 'bind:props2={newName}',
+                        range: {
+                            start: {
+                                line: 6,
+                                character: 7
+                            },
+                            end: {
+                                line: 6,
+                                character: 18
+                            }
+                        }
+                    },
+                    {
+                        newText: 'props2={newName}',
+                        range: {
+                            start: {
+                                line: 7,
+                                character: 7
+                            },
+                            end: {
+                                line: 7,
+                                character: 15
+                            }
+                        }
+                    },
+                    {
+                        newText: 'props2={newName}',
+                        range: {
+                            start: {
+                                line: 8,
+                                character: 7
+                            },
+                            end: {
+                                line: 8,
+                                character: 22
+                            }
+                        }
+                    },
+                    {
+                        newText: 'newName',
+                        range: {
+                            start: {
+                                line: 9,
+                                character: 15
+                            },
+                            end: {
+                                line: 9,
+                                character: 21
                             }
                         }
                     }
