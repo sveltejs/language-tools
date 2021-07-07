@@ -93,10 +93,10 @@ export class RenameProviderImpl implements RenameProvider {
             additionalRenameForPropRenameInsideComponentWithProp.length > 0
                 ? []
                 : await this.getAdditionalLocationsForRenameOfPropInsideOtherComponent(
-                    convertedRenameLocations,
-                    docs,
-                    lang
-                );
+                      convertedRenameLocations,
+                      docs,
+                      lang
+                  );
         convertedRenameLocations = [
             ...convertedRenameLocations,
             ...additionalRenameForPropRenameInsideComponentWithProp,
@@ -420,24 +420,28 @@ export class RenameProviderImpl implements RenameProvider {
             ) {
                 return location;
             }
+
             const originalStart = document.offsetAt(location.range.start);
 
-            const isShortHandBinding = originalText.substr(
-                originalStart - bind.length, bind.length
-            ) === bind;
+            const isShortHandBinding =
+                originalText.substr(originalStart - bind.length, bind.length) === bind;
 
-            const directiveName = (isShortHandBinding ? bind : '') + possibleJsxAttribute.name.getText();
+            const directiveName = (isShortHandBinding ? bind : '') + attributeName;
             const prefixText = directiveName + '={';
 
             const newRange = mapRangeToOriginal(
                 fragment,
                 convertRange(fragment, {
-                start: possibleJsxAttribute.getStart(),
-                length: possibleJsxAttribute.getWidth()
-            }));
+                    start: possibleJsxAttribute.getStart(),
+                    length: possibleJsxAttribute.getWidth()
+                })
+            );
 
             // somehow the mapping is one character before
-            if (isShortHandBinding) {
+            if (
+                isShortHandBinding ||
+                originalText.substring(document.offsetAt(newRange.start), originalStart) === ' {'
+            ) {
                 newRange.start.character++;
             }
 
