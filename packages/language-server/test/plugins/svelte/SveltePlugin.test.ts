@@ -12,10 +12,11 @@ import * as importPackage from '../../../src/importPackage';
 import sinon from 'sinon';
 
 describe('Svelte Plugin', () => {
-    function setup(content: string, prettierConfig?: any) {
+    function setup(content: string, prettierConfig?: any, trusted = true) {
         const document = new Document('file:///hello.svelte', content);
         const docManager = new DocumentManager(() => document);
         const pluginManager = new LSConfigManager();
+        pluginManager.updateIsTrusted(trusted);
         pluginManager.updatePrettierConfig(prettierConfig);
         const plugin = new SveltePlugin(pluginManager);
         docManager.openDocument(<any>'some doc');
@@ -50,6 +51,14 @@ describe('Svelte Plugin', () => {
         );
 
         assert.deepStrictEqual(diagnostics, [diagnostic]);
+    });
+
+    it('provides no diagnostic errors when untrusted', async () => {
+        const { plugin, document } = setup('<div bind:whatever></div>', {}, false);
+
+        const diagnostics = await plugin.getDiagnostics(document);
+
+        assert.deepStrictEqual(diagnostics, []);
     });
 
     describe('#formatDocument', () => {

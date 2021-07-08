@@ -2,6 +2,7 @@ import { ConfigLoader } from '../../../src/lib/documents/configLoader';
 import path from 'path';
 import { pathToFileURL, URL } from 'url';
 import assert from 'assert';
+import { spy } from 'sinon';
 
 describe('ConfigLoader', () => {
     function configFrom(path: string) {
@@ -162,5 +163,18 @@ describe('ConfigLoader', () => {
             await configLoader.awaitConfig(normalizePath('some/file.svelte')),
             configFrom(normalizePath('some/svelte.config.js'))
         );
+    });
+
+    it('should not load config when disabled', async () => {
+        const moduleLoader = spy();
+        const configLoader = new ConfigLoader(
+            () => [],
+            { existsSync: () => true },
+            path,
+            moduleLoader
+        );
+        configLoader.setDisabled(true);
+        await configLoader.awaitConfig(normalizePath('some/file.svelte'));
+        assert.deepStrictEqual(moduleLoader.notCalled, true);
     });
 });

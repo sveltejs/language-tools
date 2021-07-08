@@ -35,6 +35,8 @@ import {
 } from './plugins';
 import { debounceThrottle, isNotNullOrUndefined, normalizeUri, urlToPath } from './utils';
 import { FallbackWatcher } from './lib/FallbackWatcher';
+import { configLoader } from './lib/documents/configLoader';
+import { setIsTrusted } from './importPackage';
 
 namespace TagCloseRequest {
     export const type: RequestType<TextDocumentPositionParams, string | null, any> =
@@ -100,6 +102,14 @@ export function startServer(options?: LSOptions) {
             const workspacePaths = workspaceUris.map(urlToPath).filter(isNotNullOrUndefined);
             watcher = new FallbackWatcher('**/*.{ts,js}', workspacePaths);
             watcher.onDidChangeWatchedFiles(onDidChangeWatchedFiles);
+        }
+
+        const isTrusted: boolean = evt.initializationOptions?.isTrusted ?? true;
+        configLoader.setDisabled(!isTrusted);
+        setIsTrusted(isTrusted);
+        configManager.updateIsTrusted(isTrusted);
+        if (!isTrusted) {
+            Logger.log('Workspace is not trusted, running with reduced capabilities.');
         }
 
         // Backwards-compatible way of setting initialization options (first `||` is the old style)

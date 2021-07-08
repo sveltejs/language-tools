@@ -5,6 +5,17 @@ import sveltePreprocess from 'svelte-preprocess';
 import { Logger } from './logger';
 
 /**
+ * Whether or not the current workspace can be trusted.
+ * TODO rework this to a class which depends on the LsConfigManager
+ * and inject that class into all places where it's needed (Document etc.)
+ */
+let isTrusted = true;
+
+export function setIsTrusted(_isTrusted: boolean) {
+    isTrusted = _isTrusted;
+}
+
+/**
  * This function encapsulates the require call in one place
  * so we can replace its content inside rollup builds
  * so it's not transformed.
@@ -15,8 +26,12 @@ function dynamicRequire(dynamicFileToRequire: string): any {
 }
 
 export function getPackageInfo(packageName: string, fromPath: string) {
+    const paths = [__dirname];
+    if (isTrusted) {
+        paths.unshift(fromPath);
+    }
     const packageJSONPath = require.resolve(`${packageName}/package.json`, {
-        paths: [fromPath, __dirname]
+        paths
     });
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { version } = dynamicRequire(packageJSONPath);
