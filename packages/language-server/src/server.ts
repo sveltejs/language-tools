@@ -105,7 +105,7 @@ export function startServer(options?: LSOptions) {
         }
 
         const isTrusted: boolean = evt.initializationOptions?.isTrusted ?? true;
-        configLoader.setDisabled(isTrusted);
+        configLoader.setDisabled(!isTrusted);
         setIsTrusted(isTrusted);
         configManager.updateIsTrusted(isTrusted);
         if (!isTrusted) {
