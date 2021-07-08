@@ -1,5 +1,5 @@
 import { Position, WorkspaceEdit, Range } from 'vscode-languageserver';
-import { Document, mapRangeToOriginal, getLineAtPosition } from '../../../lib/documents';
+import { Document, mapRangeToOriginal, getLineAtPosition, offsetAt } from '../../../lib/documents';
 import { filterAsync, isNotNullOrUndefined, pathToUrl } from '../../../utils';
 import { RenameProvider } from '../../interfaces';
 import {
@@ -70,13 +70,10 @@ export class RenameProviderImpl implements RenameProvider {
             }
         > = await this.mapAndFilterRenameLocations(renameLocations, docs);
 
-        const program = lang.getProgram();
-        const sourceFile = program?.getSourceFile(tsDoc.filePath);
         convertedRenameLocations = this.checkShortHandBindingLocation(
-            sourceFile,
+            lang,
             convertedRenameLocations,
-            document,
-            fragment
+            docs
         );
 
         const additionalRenameForPropRenameInsideComponentWithProp =
@@ -247,7 +244,12 @@ export class RenameProviderImpl implements RenameProvider {
         const idx = (match.index || 0) + match[0].lastIndexOf(match[1]);
         const replacementsForProp =
             lang.findRenameLocations(updatePropLocation.fileName, idx, false, false) || [];
-        return await this.mapAndFilterRenameLocations(replacementsForProp, fragments);
+
+        return this.checkShortHandBindingLocation(
+            lang,
+            await this.mapAndFilterRenameLocations(replacementsForProp, fragments),
+            fragments
+        );
     }
 
     // --------> svelte2tsx?
@@ -381,27 +383,30 @@ export class RenameProviderImpl implements RenameProvider {
     }
 
     private checkShortHandBindingLocation(
-        sourceFile: ts.SourceFile | undefined,
+        lang: ts.LanguageService,
         renameLocations: Array<ts.RenameLocation & { range: Range }>,
-        document: Document,
-        fragment: SvelteSnapshotFragment
+        fragments: SnapshotFragmentMap
     ): Array<ts.RenameLocation & { range: Range }> {
-        if (!sourceFile) {
-            return renameLocations;
-        }
-
-        const originalText = document.getText();
         const bind = 'bind:';
 
-        return unique(renameLocations).map((location) => {
-            // Don't check rename to other files or unmapped range
+        return renameLocations.map((location) => {
+            const sourceFile = lang.getProgram()?.getSourceFile(location.fileName);
+
             if (
+                !sourceFile ||
                 location.fileName !== sourceFile.fileName ||
                 location.range.start.line < 0 ||
                 location.range.end.line < 0
             ) {
                 return location;
             }
+
+            const fragment = fragments.getFragment(location.fileName);
+            if (!(fragment instanceof SvelteSnapshotFragment)) {
+                return location;
+            }
+
+            const { originalText } = fragment;
 
             const possibleJsxAttribute = findContainingNode(
                 sourceFile,
@@ -424,7 +429,7 @@ export class RenameProviderImpl implements RenameProvider {
                 return location;
             }
 
-            const originalStart = document.offsetAt(location.range.start);
+            const originalStart = offsetAt(location.range.start, originalText);
 
             const isShortHandBinding =
                 originalText.substr(originalStart - bind.length, bind.length) === bind;
@@ -444,7 +449,7 @@ export class RenameProviderImpl implements RenameProvider {
             if (
                 isShortHandBinding ||
                 originalText
-                    .substring(document.offsetAt(newRange.start), originalStart)
+                    .substring(offsetAt(newRange.start, originalText), originalStart)
                     .trimLeft() === '{'
             ) {
                 newRange.start.character++;

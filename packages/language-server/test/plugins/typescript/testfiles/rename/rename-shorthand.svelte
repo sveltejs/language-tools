@@ -1,7 +1,7 @@
 <script>
     import Child from './rename3.svelte';
 
-    let props2;
+    export let props2;
 </script>
 
 <Child bind:props2 />

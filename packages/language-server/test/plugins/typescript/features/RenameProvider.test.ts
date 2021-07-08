@@ -602,7 +602,7 @@ describe('RenameProvider', () => {
     it('should can rename shorthand props without breaking value-passing', async () => {
         const { provider, renameDocShorthand } = await setup();
 
-        const result = await provider.rename(renameDocShorthand, Position.create(3, 9), 'newName');
+        const result = await provider.rename(renameDocShorthand, Position.create(3, 16), 'newName');
 
         assert.deepStrictEqual(result, {
             changes: {
@@ -612,11 +612,11 @@ describe('RenameProvider', () => {
                         range: {
                             start: {
                                 line: 3,
-                                character: 8
+                                character: 15
                             },
                             end: {
                                 line: 3,
-                                character: 14
+                                character: 21
                             }
                         }
                     },
