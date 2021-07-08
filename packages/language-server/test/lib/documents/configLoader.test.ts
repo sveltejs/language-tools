@@ -174,7 +174,7 @@ describe('ConfigLoader', () => {
             moduleLoader
         );
         configLoader.setDisabled(true);
-        await configLoader.awaitConfig(normalizePath('some/file.svelte')),
-            assert.deepStrictEqual(moduleLoader.notCalled, true);
+        await configLoader.awaitConfig(normalizePath('some/file.svelte'));
+        assert.deepStrictEqual(moduleLoader.notCalled, true);
     });
 });
