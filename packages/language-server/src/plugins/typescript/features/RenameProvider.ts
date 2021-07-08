@@ -15,7 +15,8 @@ import {
     isComponentAtPosition,
     isAfterSvelte2TsxPropsReturn,
     isNoTextSpanInGeneratedCode,
-    SnapshotFragmentMap
+    SnapshotFragmentMap,
+    findContainingNode
 } from './utils';
 
 export class RenameProviderImpl implements RenameProvider {
@@ -402,9 +403,11 @@ export class RenameProviderImpl implements RenameProvider {
                 return location;
             }
 
-            const { start, length } = location.textSpan;
-            const end = start + length;
-            const possibleJsxAttribute = findJsxAttribute(sourceFile, start, end);
+            const possibleJsxAttribute = findContainingNode(
+                sourceFile,
+                location.textSpan,
+                ts.isJsxAttribute
+            );
             if (!possibleJsxAttribute) {
                 return location;
             }
@@ -459,21 +462,4 @@ export class RenameProviderImpl implements RenameProvider {
 
 function unique<T>(array: T[]): T[] {
     return uniqWith(array, isEqual);
-}
-
-function findJsxAttribute(sourceFile: ts.Node, start: number, end: number) {
-    let found: ts.JsxAttribute | undefined;
-    walk(sourceFile);
-
-    function walk(node: ts.Node) {
-        if (node.getStart() <= start && node.getEnd() >= end) {
-            if (ts.isJsxAttribute(node)) {
-                found = node;
-                return;
-            }
-            node.forEachChild(walk);
-        }
-    }
-
-    return found;
 }
