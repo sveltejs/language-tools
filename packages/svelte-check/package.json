@@ -33,7 +33,7 @@
         "svelte": "^3.24.0"
     },
     "scripts": {
-        "build": "rollup -c",
+        "build": "rollup -c && node ./dist/src/index.js --workspace ./test --tsconfig ./tsconfig.json",
         "prepublishOnly": "npm run build",
         "test": "echo 'NOOP'"
     },
