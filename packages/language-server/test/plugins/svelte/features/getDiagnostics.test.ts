@@ -310,6 +310,35 @@ describe('SveltePlugin#getDiagnostics', () => {
         ).toEqual([]);
     });
 
+    it('filter out false positive warning (export namespace)', async () => {
+        (
+            await expectDiagnosticsFor({
+                docText:
+                    '<script context="module">export namespace foo { export function bar() {} }</script>',
+                getTranspiled: () => ({
+                    getOriginalPosition: (pos: Position) => {
+                        return pos;
+                    }
+                }),
+                getCompiled: () =>
+                    Promise.resolve({
+                        stats: {
+                            warnings: [
+                                {
+                                    start: { line: 1, column: 43 },
+                                    end: { line: 1, column: 46 },
+                                    message:
+                                        "Component has unused export property 'foo'. If it is for external reference only, please consider using `export const foo`",
+                                    code: 'unused-export-let'
+                                }
+                            ]
+                        }
+                    }),
+                config: {}
+            })
+        ).toEqual([]);
+    });
+
     it('filter out warnings', async () => {
         (
             await expectDiagnosticsFor({
