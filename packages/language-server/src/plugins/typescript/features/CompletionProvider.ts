@@ -191,11 +191,12 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             )
             .filter(isNotNullOrUndefined)
             .map((comp) => mapCompletionItemToOriginal(fragment, comp))
-            .map((comp) => this.fixTextEditRange(line, wordRangeStart, comp, position))
+            .map((comp) => this.fixTextEditRange(wordRangeStart - 1, comp))
             .concat(eventAndSlotLetCompletions);
 
         const completionList = CompletionList.create(completionItems, !!tsDoc.parserError);
         this.lastCompletion = { key: document.getFilePath() || '', position, completionList };
+
         return completionList;
     }
 
@@ -384,7 +385,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         while (backwardIndex < character) {
             const pos = character - backwardIndex;
             if (charsNotInWord.test(line.charAt(pos))) {
-                return pos;
+                return pos - 1;
             }
             backwardIndex++;
         }
@@ -392,47 +393,37 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         return 0;
     }
 
-    /**
-     * adopted from https://github.com/microsoft/vscode/blob/b5b059d2e2b3fe8ff1ca5542b27347284a9fbb2e/extensions/typescript-language-features/src/languageFeatures/completions.ts#L408
-     */
-    private fixTextEditRange(
-        line: string,
-        wordRangeStart: number,
-        completionItem: CompletionItem,
-        position: Position
-    ) {
+    private fixTextEditRange(wordRangeStartCharacter: number, completionItem: CompletionItem) {
         const { textEdit } = completionItem;
         if (!textEdit || !TextEdit.is(textEdit)) {
             return completionItem;
         }
 
-        const text = line
-            .substring(
-                Math.max(0, position.character - completionItem.label.length),
-                position.character
-            )
-            .toLowerCase();
-
-        const entryName = completionItem.label.toLowerCase();
-        for (let index = entryName.length; index >= 0; --index) {
-            if (
-                text.endsWith(entryName.substr(0, index)) &&
-                (!wordRangeStart || wordRangeStart > position.character - 1)
-            ) {
-                const originalStart = textEdit.range.start.character;
-                const newStart = Math.max(0, position.character - index);
-                completionItem.textEdit = {
-                    range: {
-                        start: {
-                            line: position.line,
-                            character: newStart
-                        },
-                        end: textEdit.range.end
-                    },
-                    newText: textEdit.newText.substring(newStart - originalStart)
-                };
-            }
+        if (textEdit.range.start.character > wordRangeStartCharacter) {
+            return completionItem;
         }
+
+        const {
+            newText,
+            range: { start }
+        } = textEdit;
+        textEdit.newText = newText.substring(wordRangeStartCharacter - start.character);
+        textEdit.range.start = {
+            line: start.line,
+            character: wordRangeStartCharacter
+        };
+        completionItem.additionalTextEdits = [
+            TextEdit.replace(
+                {
+                    start,
+                    end: {
+                        line: start.line,
+                        character: wordRangeStartCharacter
+                    }
+                },
+                newText.substring(0, wordRangeStartCharacter - start.character)
+            )
+        ];
 
         return completionItem;
     }
