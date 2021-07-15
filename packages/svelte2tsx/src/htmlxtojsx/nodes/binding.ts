@@ -25,7 +25,7 @@ export function handleBinding(
     //bind group on input
     if (attr.name == 'group' && el.name == 'input') {
         str.remove(attr.start, attr.expression.start);
-        str.appendLeft(attr.expression.start, '{...__sveltets_empty(');
+        str.appendLeft(attr.expression.start, '{...__sveltets_1_empty(');
 
         const endBrackets = ')}';
         if (isShortHandAttribute(attr)) {
@@ -49,7 +49,7 @@ export function handleBinding(
 
         if (thisType) {
             str.remove(attr.start, attr.expression.start);
-            str.appendLeft(attr.expression.start, `{...__sveltets_ensureType(${thisType}, `);
+            str.appendLeft(attr.expression.start, `{...__sveltets_1_ensureType(${thisType}, `);
             str.overwrite(attr.expression.end, attr.end, ')}');
             return;
         }
@@ -58,19 +58,19 @@ export function handleBinding(
     //one way binding
     if (oneWayBindingAttributes.has(attr.name) && el.type === 'Element') {
         str.remove(attr.start, attr.expression.start);
-        str.appendLeft(attr.expression.start, '{...__sveltets_empty(');
+        str.appendLeft(attr.expression.start, '{...__sveltets_1_empty(');
         if (isShortHandAttribute(attr)) {
             // eslint-disable-next-line max-len
             str.appendLeft(
                 attr.end,
-                `=__sveltets_instanceOf(${oneWayBindingAttributes.get(attr.name)}).${attr.name})}`
+                `=__sveltets_1_instanceOf(${oneWayBindingAttributes.get(attr.name)}).${attr.name})}`
             );
         } else {
             // eslint-disable-next-line max-len
             str.overwrite(
                 attr.expression.end,
                 attr.end,
-                `=__sveltets_instanceOf(${oneWayBindingAttributes.get(attr.name)}).${attr.name})}`
+                `=__sveltets_1_instanceOf(${oneWayBindingAttributes.get(attr.name)}).${attr.name})}`
             );
         }
         return;

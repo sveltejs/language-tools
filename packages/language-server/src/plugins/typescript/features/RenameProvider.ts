@@ -1,5 +1,5 @@
 import { Position, WorkspaceEdit, Range } from 'vscode-languageserver';
-import { Document, mapRangeToOriginal, getLineAtPosition } from '../../../lib/documents';
+import { Document, mapRangeToOriginal, getLineAtPosition, offsetAt } from '../../../lib/documents';
 import { filterAsync, isNotNullOrUndefined, pathToUrl } from '../../../utils';
 import { RenameProvider } from '../../interfaces';
 import {
@@ -11,7 +11,13 @@ import { convertRange } from '../utils';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import ts from 'typescript';
 import { uniqWith, isEqual } from 'lodash';
-import { isComponentAtPosition, isNoTextSpanInGeneratedCode, SnapshotFragmentMap } from './utils';
+import {
+    isComponentAtPosition,
+    isAfterSvelte2TsxPropsReturn,
+    isNoTextSpanInGeneratedCode,
+    SnapshotFragmentMap,
+    findContainingNode
+} from './utils';
 
 export class RenameProviderImpl implements RenameProvider {
     constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
@@ -63,7 +69,13 @@ export class RenameProviderImpl implements RenameProvider {
                 range: Range;
             }
         > = await this.mapAndFilterRenameLocations(renameLocations, docs);
-        // eslint-disable-next-line max-len
+
+        convertedRenameLocations = this.checkShortHandBindingLocation(
+            lang,
+            convertedRenameLocations,
+            docs
+        );
+
         const additionalRenameForPropRenameInsideComponentWithProp =
             await this.getAdditionLocationsForRenameOfPropInsideComponentWithProp(
                 document,
@@ -232,7 +244,12 @@ export class RenameProviderImpl implements RenameProvider {
         const idx = (match.index || 0) + match[0].lastIndexOf(match[1]);
         const replacementsForProp =
             lang.findRenameLocations(updatePropLocation.fileName, idx, false, false) || [];
-        return await this.mapAndFilterRenameLocations(replacementsForProp, fragments);
+
+        return this.checkShortHandBindingLocation(
+            lang,
+            await this.mapAndFilterRenameLocations(replacementsForProp, fragments),
+            fragments
+        );
     }
 
     // --------> svelte2tsx?
@@ -273,11 +290,7 @@ export class RenameProviderImpl implements RenameProvider {
 
     // --------> svelte2tsx?
     private isInSvelte2TsxPropLine(fragment: SvelteSnapshotFragment, loc: ts.RenameLocation) {
-        const textBeforeProp = fragment.text.substring(0, loc.textSpan.start);
-        // This is how svelte2tsx writes out the props
-        if (textBeforeProp.includes('\nreturn { props: {')) {
-            return true;
-        }
+        return isAfterSvelte2TsxPropsReturn(fragment.text, loc.textSpan.start);
     }
 
     /**
@@ -316,13 +329,13 @@ export class RenameProviderImpl implements RenameProvider {
 
             const content = snapshot.getText(0, snapshot.getLength());
             // When the user renames a Svelte component, ts will also want to rename
-            // `__sveltets_instanceOf(TheComponentToRename)` or
-            // `__sveltets_ensureType(TheComponentToRename,..`. Prevent that.
+            // `__sveltets_1_instanceOf(TheComponentToRename)` or
+            // `__sveltets_1_ensureType(TheComponentToRename,..`. Prevent that.
             // Additionally, we cannot rename the hidden variable containing the store value
             return (
-                notPrecededBy('__sveltets_instanceOf(') &&
-                notPrecededBy('__sveltets_ensureType(') &&
-                notPrecededBy('= __sveltets_store_get(')
+                notPrecededBy('__sveltets_1_instanceOf(') &&
+                notPrecededBy('__sveltets_1_ensureType(') &&
+                notPrecededBy('= __sveltets_1_store_get(')
             );
 
             function notPrecededBy(str: string) {
@@ -367,6 +380,88 @@ export class RenameProviderImpl implements RenameProvider {
 
     private getSnapshot(filePath: string) {
         return this.lsAndTsDocResolver.getSnapshot(filePath);
+    }
+
+    private checkShortHandBindingLocation(
+        lang: ts.LanguageService,
+        renameLocations: Array<ts.RenameLocation & { range: Range }>,
+        fragments: SnapshotFragmentMap
+    ): Array<ts.RenameLocation & { range: Range }> {
+        const bind = 'bind:';
+
+        return renameLocations.map((location) => {
+            const sourceFile = lang.getProgram()?.getSourceFile(location.fileName);
+
+            if (
+                !sourceFile ||
+                location.fileName !== sourceFile.fileName ||
+                location.range.start.line < 0 ||
+                location.range.end.line < 0
+            ) {
+                return location;
+            }
+
+            const fragment = fragments.getFragment(location.fileName);
+            if (!(fragment instanceof SvelteSnapshotFragment)) {
+                return location;
+            }
+
+            const { originalText } = fragment;
+
+            const possibleJsxAttribute = findContainingNode(
+                sourceFile,
+                location.textSpan,
+                ts.isJsxAttribute
+            );
+            if (!possibleJsxAttribute) {
+                return location;
+            }
+
+            const attributeName = possibleJsxAttribute.name.getText();
+            const { initializer } = possibleJsxAttribute;
+
+            // not props={props}
+            if (
+                !initializer ||
+                !ts.isJsxExpression(initializer) ||
+                attributeName !== initializer.expression?.getText()
+            ) {
+                return location;
+            }
+
+            const originalStart = offsetAt(location.range.start, originalText);
+
+            const isShortHandBinding =
+                originalText.substr(originalStart - bind.length, bind.length) === bind;
+
+            const directiveName = (isShortHandBinding ? bind : '') + attributeName;
+            const prefixText = directiveName + '={';
+
+            const newRange = mapRangeToOriginal(
+                fragment,
+                convertRange(fragment, {
+                    start: possibleJsxAttribute.getStart(),
+                    length: possibleJsxAttribute.getWidth()
+                })
+            );
+
+            // somehow the mapping is one character before
+            if (
+                isShortHandBinding ||
+                originalText
+                    .substring(offsetAt(newRange.start, originalText), originalStart)
+                    .trimLeft() === '{'
+            ) {
+                newRange.start.character++;
+            }
+
+            return {
+                ...location,
+                prefixText,
+                suffixText: '}',
+                range: newRange
+            };
+        });
     }
 }
 

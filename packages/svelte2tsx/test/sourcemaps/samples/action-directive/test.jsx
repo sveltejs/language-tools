@@ -1,43 +1,43 @@
 /** tested-ranges: [[13,6,"action"],[37,6,"action"],[62,6,"action"],[69,6,"nested"],[76,6,"method"],[84,3,"foo"],[116,3,"foo"],[149,3,"foo"],[174,6,"action"],[190,4,"leet"],[204,3,"bar"]] */{/**
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
-<><element {...__sveltets_ensureAction(action(__sveltets_mapElementTag('element')))}/>                                                                {/**
-                                       #=====                                                                      [generated] line 3                  */}
+<><element {...__sveltets_1_ensureAction(action(__sveltets_1_mapElementTag('element')))}/>                                                            {/**
+                                         #=====                                                                          [generated] line 3            */}
 <element use:action/>                                                                                                                                 {/**
-             #=====                                                                                                [original] line 1                  
+             #=====                                                                                                      [original] line 1            
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
-    {...__sveltets_ensureAction(action(__sveltets_mapElementTag('element')))}                                                                         {/**
-                                #=====                                                                             [generated] line 6                  */}
+    {...__sveltets_1_ensureAction(action(__sveltets_1_mapElementTag('element')))}                                                                     {/**
+                                  #=====                                                                                 [generated] line 6            */}
     use:action                                                                                                                                        {/**
-        #=====                                                                                                     [original] line 4                  
+        #=====                                                                                                           [original] line 4            
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
-<element {...__sveltets_ensureAction(action.nested.method(__sveltets_mapElementTag('element'),(foo)))}/>                                              {/**
-                                     1===== 2===== 3=====                                      4==                 [generated] line 9                  */}
+<element {...__sveltets_1_ensureAction(action.nested.method(__sveltets_1_mapElementTag('element'),(foo)))}/>                                          {/**
+                                       1===== 2===== 3=====                                        4==                   [generated] line 9            */}
 <element use:action.nested.method={foo}/>                                                                                                             {/**
-             1===== 2===== 3=====  4==                                                                             [original] line 7                  
+             1===== 2===== 3=====  4==                                                                                   [original] line 7            
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
-    {...__sveltets_ensureAction(action(__sveltets_mapElementTag('element'),((__sveltets_store_get(foo), $foo))))}                                     {/**
-                                                                                                  #==              [generated] line 12                 */}
+    {...__sveltets_1_ensureAction(action(__sveltets_1_mapElementTag('element'),((__sveltets_1_store_get(foo), $foo))))}                               {/**
+                                                                                                        #==              [generated] line 12           */}
     use:action={$foo}                                                                                                                                 {/**
-                 #==                                                                                               [original] line 10                 
+                 #==                                                                                                     [original] line 10           
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
-    {...__sveltets_ensureAction(action(__sveltets_mapElementTag('element'),({ foo })))}                                                               {/**
-                                                                              #==                                  [generated] line 16                 */}
+    {...__sveltets_1_ensureAction(action(__sveltets_1_mapElementTag('element'),({ foo })))}                                                           {/**
+                                                                                  #==                                    [generated] line 16           */}
     use:action={{ foo }}                                                                                                                              {/**
-                  #==                                                                                              [original] line 14                 
+                  #==                                                                                                    [original] line 14           
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
-    {...__sveltets_ensureAction(action(__sveltets_mapElementTag('element'),({                                                                         {/**
-                                #=====                                                                             [generated] line 20                 */}
+    {...__sveltets_1_ensureAction(action(__sveltets_1_mapElementTag('element'),({                                                                     {/**
+                                  #=====                                                                                 [generated] line 20           */}
     use:action={{                                                                                                                                     {/**
-        #=====                                                                                                     [original] line 18                 
+        #=====                                                                                                           [original] line 18           
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
         ...leet,                                                                                                                                      {/**
-           #===                                                                                                    [generated] line 21                 */}
+           #===                                                                                                          [generated] line 21           */}
         ...leet,                                                                                                                                      {/**
-           #===                                                                                                    [original] line 19                 
+           #===                                                                                                          [original] line 19           
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
-        foo: (__sveltets_store_get(bar), $bar)                                                                                                        {/**
-                                   #==                                                                             [generated] line 22                 */}
+        foo: (__sveltets_1_store_get(bar), $bar)                                                                                                      {/**
+                                     #==                                                                                 [generated] line 22           */}
         foo: $bar                                                                                                                                     {/**
-              #==                                                                                                  [original] line 20                 
+              #==                                                                                                        [original] line 20           
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
 /** origin-hash: 1sz8xal */

@@ -321,7 +321,8 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                 .filter(
                     (refactor) =>
                         refactor.command?.command.includes('function_scope') ||
-                        refactor.command?.command.includes('constant_scope')
+                        refactor.command?.command.includes('constant_scope') ||
+                        refactor.command?.command === 'Infer function return type'
                 )
                 // The language server also proposes extraction into const/function in module scope,
                 // which is outside of the render function, which is svelte2tsx-specific and unmapped,

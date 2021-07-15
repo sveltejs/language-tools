@@ -1,9 +1,9 @@
 <>{() => {let _$$p = (aPromise); <>
     <div>Spinner...</div>
-</>; __sveltets_awaitThen(_$$p, () => {<></>})}}
+</>; __sveltets_1_awaitThen(_$$p, () => {<></>})}}
 
 {() => {let _$$p = (aPromise); <>
   <div>Spinner...</div>
-</>; __sveltets_awaitThen(_$$p, () => {<></>}, (error) => {<>
+</>; __sveltets_1_awaitThen(_$$p, () => {<></>}, (error) => {<>
   <div>Ups: {error}</div>
 </>})}}</>

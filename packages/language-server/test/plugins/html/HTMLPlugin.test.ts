@@ -123,7 +123,7 @@ describe('HTML Plugin', () => {
         assert.deepStrictEqual(plugin.rename(document, Position.create(0, 2), 'p'), null);
     });
 
-    it('does not provide rename for valid element but incorrect position', () => {
+    it('does not provide rename for valid element but incorrect position #1', () => {
         const { plugin, document } = setup('<div on:click={ab => ab}>asd</div>');
         const newName = 'p';
 
@@ -134,6 +134,17 @@ describe('HTML Plugin', () => {
         assert.deepStrictEqual(plugin.rename(document, Position.create(0, 16), newName), null);
         assert.deepStrictEqual(plugin.rename(document, Position.create(0, 5), newName), null);
         assert.deepStrictEqual(plugin.rename(document, Position.create(0, 26), newName), null);
+    });
+
+    it('does not provide rename for valid element but incorrect position #2', () => {
+        const { plugin, document } = setup('<svelte:window on:click={ab => ab} />');
+        const newName = 'p';
+
+        assert.deepStrictEqual(plugin.prepareRename(document, Position.create(0, 33)), null);
+        assert.deepStrictEqual(plugin.prepareRename(document, Position.create(0, 36)), null);
+
+        assert.deepStrictEqual(plugin.rename(document, Position.create(0, 33), newName), null);
+        assert.deepStrictEqual(plugin.rename(document, Position.create(0, 36), newName), null);
     });
 
     it('provides rename for element', () => {

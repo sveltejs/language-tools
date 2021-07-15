@@ -1,7 +1,7 @@
 ///<reference types="svelte" />
 <></>;function render() {
 
-    interface ComponentEvents {
+    interface $$Events {
         /**
          * Some doc
          */
@@ -11,7 +11,7 @@
     }
 ;
 () => (<></>);
-return { props: {}, slots: {}, getters: {}, events: {} as unknown as ComponentEvents }}
+return { props: {}, slots: {}, getters: {}, events: {} as unknown as $$Events }}
 
-export default class Input__SvelteComponent_ extends createSvelte2TsxComponent(__sveltets_partial(render())) {
+export default class Input__SvelteComponent_ extends __sveltets_1_createSvelte2TsxComponent(__sveltets_1_partial(render())) {
 }

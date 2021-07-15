@@ -31,7 +31,7 @@ export class HoverProviderImpl implements HoverProvider {
         // show docs of $store instead of store if necessary
         const is$store = fragment.text
             .substring(0, info.textSpan.start)
-            .endsWith('(__sveltets_store_get(');
+            .endsWith('(__sveltets_1_store_get(');
         if (is$store) {
             const infoFor$store = lang.getQuickInfoAtPosition(
                 tsDoc.filePath,
@@ -70,13 +70,7 @@ export class HoverProviderImpl implements HoverProvider {
             return null;
         }
 
-        const component = await getComponentAtPosition(
-            this.lsAndTsDocResolver,
-            lang,
-            doc,
-            tsDoc,
-            originalPosition
-        );
+        const component = await getComponentAtPosition(lang, doc, tsDoc, originalPosition);
         if (!component) {
             return null;
         }

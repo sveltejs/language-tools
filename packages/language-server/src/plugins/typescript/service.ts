@@ -42,6 +42,7 @@ export interface LanguageServiceContainer {
 const services = new Map<string, Promise<LanguageServiceContainer>>();
 
 export interface LanguageServiceDocumentContext {
+    ambientTypesSource: string;
     transformOnTemplateError: boolean;
     createDocument: (fileName: string, content: string) => Document;
     globalSnapshotsManager: GlobalSnapshotsManager;
@@ -110,10 +111,10 @@ async function createLanguageService(
 
     let svelteTsPath: string;
     try {
-        // For when svelte2tsx is part of node_modules, for example VS Code extension
-        svelteTsPath = dirname(require.resolve('svelte2tsx'));
+        // For when svelte2tsx/svelte-check is part of node_modules, for example VS Code extension
+        svelteTsPath = dirname(require.resolve(docContext.ambientTypesSource));
     } catch (e) {
-        // Fall back to dirname, for example for svelte-check
+        // Fall back to dirname
         svelteTsPath = __dirname;
     }
     const svelteTsxFiles = [

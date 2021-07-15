@@ -33,8 +33,10 @@ import {
     OnWatchFileChangesPara,
     LSAndTSDocResolver
 } from './plugins';
-import { debounceThrottle, isNotNullOrUndefined, urlToPath } from './utils';
+import { debounceThrottle, isNotNullOrUndefined, normalizeUri, urlToPath } from './utils';
 import { FallbackWatcher } from './lib/FallbackWatcher';
+import { configLoader } from './lib/documents/configLoader';
+import { setIsTrusted } from './importPackage';
 
 namespace TagCloseRequest {
     export const type: RequestType<TextDocumentPositionParams, string | null, any> =
@@ -102,6 +104,14 @@ export function startServer(options?: LSOptions) {
             watcher.onDidChangeWatchedFiles(onDidChangeWatchedFiles);
         }
 
+        const isTrusted: boolean = evt.initializationOptions?.isTrusted ?? true;
+        configLoader.setDisabled(!isTrusted);
+        setIsTrusted(isTrusted);
+        configManager.updateIsTrusted(isTrusted);
+        if (!isTrusted) {
+            Logger.log('Workspace is not trusted, running with reduced capabilities.');
+        }
+
         // Backwards-compatible way of setting initialization options (first `||` is the old style)
         configManager.update(
             evt.initializationOptions?.configuration?.svelte?.plugin ||
@@ -135,7 +145,7 @@ export function startServer(options?: LSOptions) {
         pluginHost.register(
             new TypeScriptPlugin(
                 configManager,
-                new LSAndTSDocResolver(docManager, workspaceUris, configManager)
+                new LSAndTSDocResolver(docManager, workspaceUris.map(normalizeUri), configManager)
             )
         );
 
@@ -207,7 +217,8 @@ export function startServer(options?: LSOptions) {
                               'constant_scope_1',
                               'constant_scope_2',
                               'constant_scope_3',
-                              'extract_to_svelte_component'
+                              'extract_to_svelte_component',
+                              'Infer function return type'
                           ]
                       }
                     : undefined,

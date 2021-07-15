@@ -52,6 +52,7 @@ export class ConfigLoader {
     private configFiles = new Map<string, SvelteConfig>();
     private configFilesAsync = new Map<string, Promise<SvelteConfig>>();
     private filePathToConfigPath = new Map<string, string>();
+    private disabled = false;
 
     constructor(
         private globSync: typeof _glob.sync,
@@ -59,6 +60,13 @@ export class ConfigLoader {
         private path: Pick<typeof _path, 'dirname' | 'relative' | 'join'>,
         private dynamicImport: typeof _dynamicImport
     ) {}
+
+    /**
+     * Enable/disable loading of configs (for security reasons for example)
+     */
+    setDisabled(disabled: boolean): void {
+        this.disabled = disabled;
+    }
 
     /**
      * Tries to load all `svelte.config.js` files below given directory
@@ -141,7 +149,9 @@ export class ConfigLoader {
 
     private async loadConfig(configPath: string, directory: string) {
         try {
-            let config = (await this.dynamicImport(pathToFileURL(configPath)))?.default;
+            let config = this.disabled
+                ? {}
+                : (await this.dynamicImport(pathToFileURL(configPath)))?.default;
             config = {
                 ...config,
                 compilerOptions: {

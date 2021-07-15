@@ -23,6 +23,7 @@ import {
 } from '../../../lib/documents';
 import { flatten, getRegExpMatches, isNotNullOrUndefined, pathToUrl } from '../../../utils';
 import { AppCompletionItem, AppCompletionList, CompletionsProvider } from '../../interfaces';
+import { ComponentPartInfo } from '../ComponentInfoProvider';
 import { SvelteDocumentSnapshot, SvelteSnapshotFragment } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { getMarkdownDocumentation } from '../previewer';
@@ -102,7 +103,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             : undefined;
         const isCustomTriggerCharacter = triggerKind === CompletionTriggerKind.TriggerCharacter;
         const isJsDocTriggerCharacter = triggerCharacter === '*';
-        const isEventTriggerCharacter = triggerCharacter === ':';
+        const isEventOrSlotLetTriggerCharacter = triggerCharacter === ':';
 
         // ignore any custom trigger character specified in server capabilities
         //  and is not allow by ts
@@ -110,7 +111,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             isCustomTriggerCharacter &&
             !validTriggerCharacter &&
             !isJsDocTriggerCharacter &&
-            !isEventTriggerCharacter
+            !isEventOrSlotLetTriggerCharacter
         ) {
             return null;
         }
@@ -149,10 +150,15 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             return null;
         }
 
-        const eventCompletions = await this.getEventCompletions(lang, document, tsDoc, position);
+        const eventAndSlotLetCompletions = await this.getEventAndSlotLetCompletions(
+            lang,
+            document,
+            tsDoc,
+            position
+        );
 
-        if (isEventTriggerCharacter) {
-            return CompletionList.create(eventCompletions, !!tsDoc.parserError);
+        if (isEventOrSlotLetTriggerCharacter) {
+            return CompletionList.create(eventAndSlotLetCompletions, !!tsDoc.parserError);
         }
 
         if (cancellationToken?.isCancellationRequested) {
@@ -165,7 +171,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
                 triggerCharacter: validTriggerCharacter
             })?.entries || [];
 
-        if (completions.length === 0 && eventCompletions.length === 0) {
+        if (completions.length === 0 && eventAndSlotLetCompletions.length === 0) {
             return tsDoc.parserError ? CompletionList.create([], true) : null;
         }
 
@@ -186,7 +192,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             .filter(isNotNullOrUndefined)
             .map((comp) => mapCompletionItemToOriginal(fragment, comp))
             .map((comp) => this.fixTextEditRange(line, wordRangeStart, comp, position))
-            .concat(eventCompletions);
+            .concat(eventAndSlotLetCompletions);
 
         const completionList = CompletionList.create(completionItems, !!tsDoc.parserError);
         this.lastCompletion = { key: document.getFilePath() || '', position, completionList };
@@ -241,20 +247,14 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         return new Set(tidiedImports);
     }
 
-    private async getEventCompletions(
+    private async getEventAndSlotLetCompletions(
         lang: ts.LanguageService,
         doc: Document,
         tsDoc: SvelteDocumentSnapshot,
         originalPosition: Position
     ): Promise<Array<AppCompletionItem<CompletionEntryWithIdentifer>>> {
-        const snapshot = await getComponentAtPosition(
-            this.lsAndTsDocResolver,
-            lang,
-            doc,
-            tsDoc,
-            originalPosition
-        );
-        if (!snapshot) {
+        const componentInfo = await getComponentAtPosition(lang, doc, tsDoc, originalPosition);
+        if (!componentInfo) {
             return [];
         }
 
@@ -264,19 +264,25 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             right: /[^\w$:]/
         });
 
-        return snapshot.getEvents().map((event) => {
-            const eventName = 'on:' + event.name;
+        const events = componentInfo.getEvents().map((event) => mapToCompletionEntry(event, 'on:'));
+        const slotLets = componentInfo
+            .getSlotLets()
+            .map((slot) => mapToCompletionEntry(slot, 'let:'));
+        return [...events, ...slotLets];
+
+        function mapToCompletionEntry(info: ComponentPartInfo[0], prefix: string) {
+            const slotName = prefix + info.name;
             return {
-                label: eventName,
+                label: slotName,
                 sortText: '-1',
-                detail: event.name + ': ' + event.type,
-                documentation: event.doc && { kind: MarkupKind.Markdown, value: event.doc },
+                detail: info.name + ': ' + info.type,
+                documentation: info.doc && { kind: MarkupKind.Markdown, value: info.doc },
                 textEdit:
                     start !== end
-                        ? TextEdit.replace(toRange(doc.getText(), start, end), eventName)
+                        ? TextEdit.replace(toRange(doc.getText(), start, end), slotName)
                         : undefined
             };
-        });
+        }
     }
 
     private toCompletionItem(

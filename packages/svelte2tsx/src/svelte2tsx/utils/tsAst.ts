@@ -1,5 +1,11 @@
 import ts from 'typescript';
 
+export function isInterfaceOrTypeDeclaration(
+    node: ts.Node
+): node is ts.TypeAliasDeclaration | ts.InterfaceDeclaration {
+    return ts.isTypeAliasDeclaration(node) || ts.isInterfaceDeclaration(node);
+}
+
 export function findExportKeyword(node: ts.Node) {
     return node.modifiers?.find((x) => x.kind == ts.SyntaxKind.ExportKeyword);
 }

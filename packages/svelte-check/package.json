@@ -33,7 +33,7 @@
         "svelte": "^3.24.0"
     },
     "scripts": {
-        "build": "rollup -c",
+        "build": "rollup -c && node ./dist/src/index.js --workspace ./test --tsconfig ./tsconfig.json",
         "prepublishOnly": "npm run build",
         "test": "echo 'NOOP'"
     },
@@ -47,7 +47,7 @@
         "@types/glob": "^7.1.1",
         "@types/minimist": "^1.2.0",
         "@types/sade": "^1.7.2",
-        "rollup": "^2.28.0",
+        "rollup": "2.52.7",
         "rollup-plugin-cleanup": "^3.0.0",
         "rollup-plugin-copy": "^3.0.0",
         "svelte-language-server": "*",

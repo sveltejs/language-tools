@@ -1,5 +1,5 @@
 import { RawSourceMap, SourceMapConsumer } from 'source-map';
-import svelte2tsx, { IExportedNames, ComponentEvents } from 'svelte2tsx';
+import { svelte2tsx, IExportedNames } from 'svelte2tsx';
 import ts from 'typescript';
 import { Position, Range, TextDocumentContentChangeEvent } from 'vscode-languageserver';
 import {
@@ -86,15 +86,8 @@ export namespace DocumentSnapshot {
      * @param options options that apply to the svelte document
      */
     export function fromDocument(document: Document, options: SvelteSnapshotOptions) {
-        const {
-            tsxMap,
-            text,
-            exportedNames,
-            componentEvents,
-            parserError,
-            nrPrependedLines,
-            scriptKind
-        } = preprocessSvelteFile(document, options);
+        const { tsxMap, text, exportedNames, parserError, nrPrependedLines, scriptKind } =
+            preprocessSvelteFile(document, options);
 
         return new SvelteDocumentSnapshot(
             document,
@@ -103,7 +96,6 @@ export namespace DocumentSnapshot {
             text,
             nrPrependedLines,
             exportedNames,
-            componentEvents,
             tsxMap
         );
     }
@@ -161,7 +153,6 @@ function preprocessSvelteFile(document: Document, options: SvelteSnapshotOptions
     let nrPrependedLines = 0;
     let text = document.getText();
     let exportedNames: IExportedNames = { has: () => false };
-    let componentEvents: ComponentEvents | undefined = undefined;
 
     const scriptKind = [
         getScriptKindFromAttributes(document.scriptInfo?.attributes ?? {}),
@@ -180,7 +171,6 @@ function preprocessSvelteFile(document: Document, options: SvelteSnapshotOptions
         text = tsx.code;
         tsxMap = tsx.map;
         exportedNames = tsx.exportedNames;
-        componentEvents = tsx.events;
         if (tsxMap) {
             tsxMap.sources = [document.uri];
 
@@ -214,7 +204,6 @@ function preprocessSvelteFile(document: Document, options: SvelteSnapshotOptions
         tsxMap,
         text,
         exportedNames,
-        componentEvents,
         parserError,
         nrPrependedLines,
         scriptKind
@@ -236,7 +225,6 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
         private readonly text: string,
         private readonly nrPrependedLines: number,
         private readonly exportedNames: IExportedNames,
-        private readonly componentEvents?: ComponentEvents,
         private readonly tsxMap?: RawSourceMap
     ) {}
 
@@ -271,10 +259,6 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
 
     hasProp(name: string): boolean {
         return this.exportedNames.has(name);
-    }
-
-    getEvents() {
-        return this.componentEvents?.getAll() || [];
     }
 
     async getFragment() {

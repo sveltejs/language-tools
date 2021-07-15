@@ -22,7 +22,7 @@ export function pathToUrl(path: string) {
  * This is normalized here.
  */
 export function normalizePath(path: string): string {
-    return urlToPath(pathToUrl(path)) ?? '';
+    return URI.file(path).fsPath.replace(/\\/g, '/');
 }
 
 /**
@@ -162,6 +162,19 @@ export function regexLastIndexOf(text: string, regex: RegExp, endPos?: number) {
         lastIndexOf = result.index;
     }
     return lastIndexOf;
+}
+
+/**
+ * Like str.indexOf, but for regular expressions.
+ */
+export function regexIndexOf(text: string, regex: RegExp, startPos?: number) {
+    if (startPos === undefined || startPos < 0) {
+        startPos = 0;
+    }
+
+    const stringToWorkWith = text.substring(startPos);
+    const result: RegExpExecArray | null = regex.exec(stringToWorkWith);
+    return result?.index ?? -1;
 }
 
 /**

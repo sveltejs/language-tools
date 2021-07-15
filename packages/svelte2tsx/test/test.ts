@@ -1,3 +1,6 @@
+const { dirname } = require('path');
+const { join } = require('path');
+
 require('ts-node').register({
     project: 'test/tsconfig.json',
     transpileOnly: true
@@ -13,7 +16,9 @@ if (process.env.CI) {
 }
 
 const test_folders = glob('*/index.ts', { cwd: 'test' });
-const solo_folders = test_folders.filter((folder) => /\.solo$/.test(folder));
+const solo_folders = test_folders.filter(
+    (folder) => glob('**/*.solo', { cwd: join('test', dirname(folder)) }).length
+);
 
 if (solo_folders.length) {
     solo_folders.forEach((name) => require('./' + name));

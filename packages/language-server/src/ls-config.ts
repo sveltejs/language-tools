@@ -254,6 +254,7 @@ export class LSConfigManager {
     };
     private prettierConfig: any = {};
     private emmetConfig: VSCodeEmmetConfig = {};
+    private isTrusted = true;
 
     /**
      * Updates config.
@@ -324,6 +325,18 @@ export class LSConfigManager {
                 this._updateTsUserPreferences(lang, config[lang]);
             }
         });
+    }
+
+    /**
+     * Whether or not the current workspace can be trusted.
+     * If not, certain operations should be disabled.
+     */
+    getIsTrusted(): boolean {
+        return this.isTrusted;
+    }
+
+    updateIsTrusted(isTrusted: boolean): void {
+        this.isTrusted = isTrusted;
     }
 
     private _updateTsUserPreferences(lang: TsUserConfigLang, config: TSUserConfig) {

@@ -100,7 +100,8 @@ export function activate(context: ExtensionContext) {
                 typescript: workspace.getConfiguration('typescript'),
                 javascript: workspace.getConfiguration('javascript')
             },
-            dontFilterIncompleteCompletions: true // VSCode filters client side and is smarter at it than us
+            dontFilterIncompleteCompletions: true, // VSCode filters client side and is smarter at it than us
+            isTrusted: (workspace as any).isTrusted
         }
     };
 

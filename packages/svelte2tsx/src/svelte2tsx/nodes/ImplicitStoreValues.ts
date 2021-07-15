@@ -7,7 +7,7 @@ import { extractIdentifiers, getNamesFromLabeledStatement } from '../utils/tsAst
  * Tracks all store-usages as well as all variable declarations and imports in the component.
  *
  * In the modification-step at the end, all variable declartaions and imports which
- * were used as stores are appended with `let $xx = __sveltets_store_get(xx)` to create the store variables.
+ * were used as stores are appended with `let $xx = __sveltets_1_store_get(xx)` to create the store variables.
  */
 export class ImplicitStoreValues {
     private accessedStores = new Set<string>();
@@ -26,7 +26,7 @@ export class ImplicitStoreValues {
 
     /**
      * All variable declartaions and imports which
-     * were used as stores are appended with `let $xx = __sveltets_store_get(xx)` to create the store variables.
+     * were used as stores are appended with `let $xx = __sveltets_1_store_get(xx)` to create the store variables.
      */
     public modifyCode(astOffset: number, str: MagicString) {
         this.variableDeclarations.forEach((node) =>
@@ -111,6 +111,6 @@ export class ImplicitStoreValues {
     }
 
     private createStoreDeclaration(storeName: string): string {
-        return `;let $${storeName} = __sveltets_store_get(${storeName});`;
+        return `;let $${storeName} = __sveltets_1_store_get(${storeName});`;
     }
 }

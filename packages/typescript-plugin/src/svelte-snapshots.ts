@@ -1,4 +1,4 @@
-import svelte2tsx from 'svelte2tsx';
+import { svelte2tsx } from 'svelte2tsx';
 import type ts from 'typescript/lib/tsserverlibrary';
 import { Logger } from './logger';
 import { SourceMapper } from './source-mapper';

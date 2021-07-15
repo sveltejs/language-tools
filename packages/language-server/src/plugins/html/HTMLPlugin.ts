@@ -295,9 +295,9 @@ export class HTMLPlugin
         }
 
         const startTagNameEnd = node.start + `<${node.tag}`.length;
-        const endTagNameStart = node.end - `${node.tag}>`.length;
         const isAtStartTag = offset > node.start && offset <= startTagNameEnd;
-        const isAtEndTag = offset >= endTagNameStart && offset < node.end;
+        const isAtEndTag =
+            node.endTagStart !== undefined && offset >= node.endTagStart && offset < node.end;
         return isAtStartTag || isAtEndTag;
     }
 

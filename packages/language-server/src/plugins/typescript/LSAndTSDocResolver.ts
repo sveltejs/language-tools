@@ -19,12 +19,14 @@ export class LSAndTSDocResolver {
      * @param docManager
      * @param workspaceUris
      * @param configManager
+     * @param isSvelteCheck True, if used in the context of svelte-check
      * @param tsconfigPath This should only be set via svelte-check. Makes sure all documents are resolved to that tsconfig. Has to be absolute.
      */
     constructor(
         private readonly docManager: DocumentManager,
         private readonly workspaceUris: string[],
         private readonly configManager: LSConfigManager,
+        private readonly isSvelteCheck = false,
         private readonly tsconfigPath?: string
     ) {
         const handleDocumentChange = (document: Document) => {
@@ -64,8 +66,9 @@ export class LSAndTSDocResolver {
 
     private get lsDocumentContext(): LanguageServiceDocumentContext {
         return {
+            ambientTypesSource: this.isSvelteCheck ? 'svelte-check' : 'svelte2tsx',
             createDocument: this.createDocument,
-            transformOnTemplateError: !this.tsconfigPath,
+            transformOnTemplateError: !this.isSvelteCheck,
             globalSnapshotsManager: this.globalSnapshotsManager
         };
     }

@@ -23,7 +23,7 @@
         "typescript": "*"
     },
     "dependencies": {
-        "svelte2tsx": "~0.2.0",
+        "svelte2tsx": "~0.4.0",
         "sourcemap-codec": "^1.4.8"
     }
 }

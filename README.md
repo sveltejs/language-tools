@@ -139,3 +139,4 @@ Funds donated via Open Collective will be used for compensating expenses related
 -   [UnwrittenFun](https://github.com/UnwrittenFun) for creating the foundation which this language server, and the extensions are built on
 -   Vue's [Vetur](https://github.com/vuejs/vetur) language server which heavily inspires this project
 -   [halfnelson](https://github.com/halfnelson) for creating `svelte2tsx`
+-   [jasonlyu123](https://github.com/jasonlyu123) for his ongoing work in all areas of the language-tools
