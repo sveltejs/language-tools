@@ -532,6 +532,7 @@ declare namespace svelte.JSX {
       preload?: string;
       radiogroup?: string;
       readonly?: boolean;
+      referrerpolicy?: string;
       rel?: string;
       required?: boolean;
       reversed?: boolean;
