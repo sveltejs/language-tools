@@ -23,7 +23,7 @@ To use TailwindCSS with the VSCode extension:
 
 1. Setup the `svelte.config.js` the same way you would for PostCSS - see the section above (first point) for more details
 2. Install the [Tailwind CSS VSCode extension](https://marketplace.visualstudio.com/items?itemName=bradlc.vscode-tailwindcss)
-3. Either add `lang="postcss"` to each of your `<style>` tags where you plan on using the Tailwind CSS directives such as `@apply`, or disable CSS diagnostics completely by adding `"svelte.plugin.css.diagnostics.enable": false` within your settings. If you still want diagnostics, install the [Stylelint VSCode extension](https://marketplace.visualstudio.com/items?itemName=stylelint.vscode-stylelint) and [configure it accordingly](https://scottspence.com/2021/03/15/stylelint-configuration-for-tailwindcss/). Note that within your config files you can only use node-syntax, things like `import ...` or `export const ...` are not allowed.
+3. Either add `lang="postcss"` to each of your `<style>` tags where you plan on using the Tailwind CSS directives such as `@apply`, or disable CSS diagnostics completely by adding `"svelte.plugin.css.diagnostics.enable": false` within your settings. If you still want diagnostics, install the [Stylelint VSCode extension](https://marketplace.visualstudio.com/items?itemName=stylelint.vscode-stylelint) and [configure it accordingly](https://scottspence.com/2021/03/15/stylelint-configuration-for-tailwindcss/). Note that within your config files you can only use node-syntax, things like `import ...` or `export const ...` are not allowed. To disable css checks for `svelte-check`, use the option `--diagnostic-sources "js,svelte"`.
 
 ## SASS
 

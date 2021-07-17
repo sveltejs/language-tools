@@ -266,7 +266,8 @@ function isNoFalsePositive(diag: Diagnostic, doc: Document): boolean {
         return true;
     }
 
-    // TypeScript transpiles `export enum A` to `export var A`, which the compiler will warn about.
+    // TypeScript transpiles `export enum A` and `export namespace A` to `export var A`,
+    // which the compiler will warn about.
     // Silence this edge case. We extract the property from the message and don't use the position
     // because that position could be wrong when source mapping trips up.
     const unusedExportName = diag.message.substring(
@@ -274,7 +275,7 @@ function isNoFalsePositive(diag: Diagnostic, doc: Document): boolean {
         diag.message.lastIndexOf("'")
     );
     const hasExportedEnumWithThatName = new RegExp(
-        `\\bexport\\s+?enum\\s+?${unusedExportName}\\b`
+        `\\bexport\\s+?(enum|namespace)\\s+?${unusedExportName}\\b`
     ).test(doc.getText());
     return !hasExportedEnumWithThatName;
 }
