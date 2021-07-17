@@ -146,7 +146,8 @@ export function createSvelteModuleLoader(
 
         const resolvedSvelteModule: ts.ResolvedModuleFull = {
             extension: getExtensionFromScriptKind(snapshot && snapshot.scriptKind),
-            resolvedFileName
+            resolvedFileName,
+            isExternalLibraryImport: svelteResolvedModule.isExternalLibraryImport
         };
         return resolvedSvelteModule;
     }

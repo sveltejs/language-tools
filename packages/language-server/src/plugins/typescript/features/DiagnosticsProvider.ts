@@ -15,6 +15,20 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
         document: Document,
         cancellationToken?: CancellationToken
     ): Promise<Diagnostic[]> {
+        if (
+            (document.getFilePath()?.includes('/node_modules/') ||
+                document.getFilePath()?.includes('\\node_modules\\')) &&
+            // Sapper convention: Put stuff inside node_modules below src
+            !(
+                document.getFilePath()?.includes('/src/node_modules/') ||
+                document.getFilePath()?.includes('\\src\\node_modules\\')
+            )
+        ) {
+            // Don't return diagnostics for files inside node_modules. These are considered read-only (cannot be changed)
+            // and in case of svelte-check they would pollute/skew the output
+            return [];
+        }
+
         const { lang, tsDoc } = await this.getLSAndTSDoc(document);
 
         if (
