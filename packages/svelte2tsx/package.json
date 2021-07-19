@@ -27,7 +27,7 @@
         "@types/unist": "^2.0.3",
         "@types/vfile": "^3.0.2",
         "magic-string": "^0.25.7",
-        "mocha": "^6.2.2",
+        "mocha": "^9.0.0",
         "periscopic": "^2.0.2",
         "rollup": "2.52.7",
         "rollup-plugin-delete": "^2.0.0",
