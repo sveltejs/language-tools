@@ -401,12 +401,7 @@ declare function __sveltets_1_createSvelteComponentTyped<Props, Events, Slots>(
         );
         let code = str.toString();
         // Remove all tsx occurences and the template part from the output
-        code =
-            code
-                .substr(0, code.indexOf('\n() => (<>'))
-                // prepended before each script block
-                .replace('<></>;', '')
-                .replace('<></>;', '') + code.substr(code.lastIndexOf('</>);') + '</>);'.length);
+        code = code.replace(/\<>.*?<\/>/gs, '').replace('() => ();', '')
         return {
             code
         };

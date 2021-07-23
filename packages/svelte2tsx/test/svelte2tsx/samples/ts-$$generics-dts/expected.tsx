@@ -1,6 +1,6 @@
 import { SvelteComponentTyped } from "svelte"
 
-
+;
 import { createEventDispatcher } from 'svelte';
 function render/*Ωignore_startΩ*/<A,B extends keyof A,C extends boolean>/*Ωignore_endΩ*/() {
 
@@ -16,6 +16,7 @@ function render/*Ωignore_startΩ*/<A,B extends keyof A,C extends boolean>/*Ωig
 
     const dispatch = createEventDispatcher<{a: A}>();
 ;
+
 return { props: {a: a , b: b , c: c} as {a: A, b: B, c: C}, slots: {'default': {c:c}}, getters: {}, events: {...__sveltets_1_toEventTypings<{a: A}>()} }}
 class __sveltets_Render<A,B extends keyof A,C extends boolean> {
     props() {
