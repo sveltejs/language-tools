@@ -142,11 +142,18 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             return null;
         }
 
+        const originalOffset = document.offsetAt(position);
+        const wordRange = getWordRangeAt(document.getText(), originalOffset, {
+            left: /\S+$/,
+            right: /[^\w$:]/
+        });
+
         const eventAndSlotLetCompletions = await this.getEventAndSlotLetCompletions(
             lang,
             document,
             tsDoc,
-            position
+            position,
+            wordRange
         );
 
         if (isEventOrSlotLetTriggerCharacter) {
@@ -167,9 +174,8 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             return tsDoc.parserError ? CompletionList.create([], true) : null;
         }
 
-        const line = document.getText().split('\n')[position.line] ?? '';
-        const wordRangeStart = this.getWordRangeStart(line, position);
         const existingImports = this.getExistingImports(document);
+        const wordRangeStartPosition = document.positionAt(wordRange.start);
         const completionItems = completions
             .filter(isValidCompletion(document, position))
             .map((comp) =>
@@ -183,7 +189,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             )
             .filter(isNotNullOrUndefined)
             .map((comp) => mapCompletionItemToOriginal(fragment, comp))
-            .map((comp) => this.fixTextEditRange(wordRangeStart - 1, comp))
+            .map((comp) => this.fixTextEditRange(wordRangeStartPosition, comp))
             .concat(eventAndSlotLetCompletions);
 
         const completionList = CompletionList.create(completionItems, !!tsDoc.parserError);
@@ -244,19 +250,15 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         lang: ts.LanguageService,
         doc: Document,
         tsDoc: SvelteDocumentSnapshot,
-        originalPosition: Position
+        originalPosition: Position,
+        wordRange: { start: number; end: number }
     ): Promise<Array<AppCompletionItem<CompletionEntryWithIdentifer>>> {
         const componentInfo = await getComponentAtPosition(lang, doc, tsDoc, originalPosition);
         if (!componentInfo) {
             return [];
         }
 
-        const offset = doc.offsetAt(originalPosition);
-        const { start, end } = getWordRangeAt(doc.getText(), offset, {
-            left: /\S+$/,
-            right: /[^\w$:]/
-        });
-
+        const { start, end } = wordRange;
         const events = componentInfo.getEvents().map((event) => mapToCompletionEntry(event, 'on:'));
         const slotLets = componentInfo
             .getSlotLets()
@@ -370,28 +372,9 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         return !!source && !!fragment.text.match(importStatement);
     }
 
-    private getWordRangeStart(line: string, position: Position) {
-        const { character } = position;
-        const charsNotInWord = /[~!@$^&*()=+[{\]}\\|;:'",.<>/\s]/;
-        let backwardIndex = 0;
-        while (backwardIndex < character) {
-            const pos = character - backwardIndex;
-            if (charsNotInWord.test(line.charAt(pos))) {
-                return pos - 1;
-            }
-            backwardIndex++;
-        }
-
-        return 0;
-    }
-
-    private fixTextEditRange(wordRangeStartCharacter: number, completionItem: CompletionItem) {
+    private fixTextEditRange(wordRangePosition: Position, completionItem: CompletionItem) {
         const { textEdit } = completionItem;
         if (!textEdit || !TextEdit.is(textEdit)) {
-            return completionItem;
-        }
-
-        if (textEdit.range.start.character > wordRangeStartCharacter) {
             return completionItem;
         }
 
@@ -399,6 +382,15 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             newText,
             range: { start }
         } = textEdit;
+
+        const wordRangeStartCharacter = wordRangePosition.character;
+        if (
+            wordRangePosition.line !== wordRangePosition.line ||
+            start.character > wordRangePosition.character
+        ) {
+            return completionItem;
+        }
+
         textEdit.newText = newText.substring(wordRangeStartCharacter - start.character);
         textEdit.range.start = {
             line: start.line,
