@@ -40,6 +40,8 @@ export interface CompletionEntryWithIdentifer extends ts.CompletionEntry, TextDo
     position: Position;
 }
 
+type validTriggerCharacter = '.' | '"' | "'" | '`' | '/' | '@' | '<' | '#';
+
 type LastCompletion = {
     key: string;
     position: Position;
@@ -54,17 +56,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
      * Also, the completions are worse.
      * Therefore, only use the characters the typescript compiler treats as valid.
      */
-    private readonly validTriggerCharacters = [
-        '.',
-        '"',
-        "'",
-        '`',
-        '/',
-        '@',
-        '<',
-        '#',
-        ' '
-    ] as const;
+    private readonly validTriggerCharacters = ['.', '"', "'", '`', '/', '@', '<', '#'] as const;
     /**
      * For performance reasons, try to reuse the last completion if possible.
      */
@@ -72,8 +64,8 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
 
     private isValidTriggerCharacter(
         character: string | undefined
-    ): character is ts.CompletionsTriggerCharacter {
-        return this.validTriggerCharacters.includes(character as ts.CompletionsTriggerCharacter);
+    ): character is validTriggerCharacter {
+        return this.validTriggerCharacters.includes(character as validTriggerCharacter);
     }
 
     async getCompletions(
