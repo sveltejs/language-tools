@@ -152,6 +152,12 @@ export class ConfigLoader {
             let config = this.disabled
                 ? {}
                 : (await this.dynamicImport(pathToFileURL(configPath)))?.default;
+
+            if (!config) {
+                throw new Error(
+                    'Missing exports in the config. Make sure to include "export default config" or "module.exports = config"'
+                );
+            }
             config = {
                 ...config,
                 compilerOptions: {
@@ -163,7 +169,7 @@ export class ConfigLoader {
             Logger.log('Loaded config at ', configPath);
             return config;
         } catch (err) {
-            Logger.error('Error while loading config');
+            Logger.error('Error while loading config at ', configPath);
             Logger.error(err);
             const config = {
                 ...this.useFallbackPreprocessor(directory, true),
