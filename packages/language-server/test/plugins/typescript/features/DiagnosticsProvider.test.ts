@@ -1223,7 +1223,7 @@ describe('DiagnosticsProvider', () => {
             {
                 code: 2322,
                 message:
-                    'Type \'"asd"\' is not assignable to type \'number | unique symbol | "toString" | "charAt" | "charCodeAt" | "concat" | "indexOf" | "lastIndexOf" | "localeCompare" | "match" | "replace" | "search" | "slice" | "split" | "substring" | ... 34 more ... | "replaceAll"\'.',
+                    'Type \'"asd"\' is not assignable to type \'number | unique symbol | "anchor" | "toString" | "charAt" | "charCodeAt" | "concat" | "indexOf" | "lastIndexOf" | "localeCompare" | "match" | "replace" | "search" | "slice" | ... 35 more ... | "replaceAll"\'.',
                 range: {
                     start: {
                         character: 25,
@@ -1290,6 +1290,24 @@ describe('DiagnosticsProvider', () => {
                 severity: 1,
                 source: 'ts',
                 tags: []
+            },
+            {
+                code: 2367,
+                message:
+                    "This condition will always return 'false' since the types '\"anchor\"' and '\"big\"' have no overlap.",
+                range: {
+                    end: {
+                        character: 16,
+                        line: 15
+                    },
+                    start: {
+                        character: 5,
+                        line: 15
+                    }
+                },
+                tags: [],
+                severity: 1,
+                source: 'ts'
             }
         ]);
     });
