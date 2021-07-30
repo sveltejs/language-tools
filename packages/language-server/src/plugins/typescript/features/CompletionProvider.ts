@@ -347,6 +347,11 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         return !!source && !!fragment.text.match(importStatement);
     }
 
+    /**
+     * If the textEdit is out of the word range of the triggered position
+     * vscode would refuse to show the completions
+     * split those edits into additionalTextEdit to fix it
+     */
     private fixTextEditRange(wordRangePosition: Position, completionItem: CompletionItem) {
         const { textEdit } = completionItem;
         if (!textEdit || !TextEdit.is(textEdit)) {
