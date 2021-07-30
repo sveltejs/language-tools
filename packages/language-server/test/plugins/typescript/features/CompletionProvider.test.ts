@@ -1053,6 +1053,62 @@ describe('CompletionProviderImpl', () => {
             }
         });
     });
+
+    it('provides optional chaining completion', async () => {
+        const { completionProvider, document } = setup('completions-auto-optional-chain.svelte');
+
+        const completions = await completionProvider.getCompletions(
+            document,
+            {
+                line: 3,
+                character: 6
+            },
+            {
+                triggerKind: CompletionTriggerKind.Invoked
+            }
+        );
+
+        const item = completions?.items.find((item) => item.label === 'toString');
+
+        delete item?.data;
+
+        assert.deepStrictEqual(item, {
+            additionalTextEdits: [
+                {
+                    newText: '?',
+                    range: {
+                        end: {
+                            character: 6,
+                            line: 3
+                        },
+                        start: {
+                            character: 5,
+                            line: 3
+                        }
+                    }
+                }
+            ],
+            label: 'toString',
+            insertText: '?.toString',
+            kind: CompletionItemKind.Method,
+            sortText: '1',
+            commitCharacters: ['.', ',', '('],
+            preselect: undefined,
+            textEdit: {
+                newText: '.toString',
+                range: {
+                    end: {
+                        character: 6,
+                        line: 3
+                    },
+                    start: {
+                        character: 6,
+                        line: 3
+                    }
+                }
+            }
+        });
+    });
 });
 
 function harmonizeNewLines(input?: string) {

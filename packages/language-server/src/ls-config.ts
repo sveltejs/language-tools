@@ -248,12 +248,14 @@ export class LSConfigManager {
         typescript: {
             includeCompletionsForModuleExports: true,
             includeCompletionsForImportStatements: true,
-            includeCompletionsWithInsertText: true
+            includeCompletionsWithInsertText: true,
+            includeAutomaticOptionalChainCompletions: true
         },
         javascript: {
             includeCompletionsForModuleExports: true,
             includeCompletionsForImportStatements: true,
-            includeCompletionsWithInsertText: true
+            includeCompletionsWithInsertText: true,
+            includeAutomaticOptionalChainCompletions: true
         }
     };
     private prettierConfig: any = {};
@@ -353,6 +355,8 @@ export class LSConfigManager {
             includeCompletionsForModuleExports: config.suggest?.autoImports ?? true,
             includeCompletionsForImportStatements:
                 config.suggest?.includeCompletionsForImportStatements ?? true,
+            includeAutomaticOptionalChainCompletions:
+                config.suggest?.includeAutomaticOptionalChainCompletions ?? true,
             includeCompletionsWithInsertText: true
         };
     }

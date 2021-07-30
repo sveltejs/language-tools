@@ -140,7 +140,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
 
         const originalOffset = document.offsetAt(position);
         const wordRange = getWordRangeAt(document.getText(), originalOffset, {
-            left: /\S+$/,
+            left: /[^\s.]+$/,
             right: /[^\w$:]/
         });
 
@@ -323,7 +323,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             };
         }
 
-        if (comp.isImportStatementCompletion && insertText) {
+        if (insertText && comp.replacementSpan) {
             return {
                 label: name,
                 isSvelteComp,
@@ -448,7 +448,9 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
                 }
             }
 
-            completionItem.additionalTextEdits = edit;
+            completionItem.additionalTextEdits = (completionItem.additionalTextEdits ?? []).concat(
+                edit
+            );
         }
 
         return completionItem;
