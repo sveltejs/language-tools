@@ -120,8 +120,7 @@ function getNameValuePairsFromAttributes(
                     return { name, value: name, identifier: name };
                 }
                 if (val.type === 'Text') {
-                    // Value not important, just that it's typeof text
-                    return { name, value: '""' };
+                    return { name, value: `'${val.data || val.raw}'` };
                 }
                 if (val.type === 'MustacheTag') {
                     const valueStr = originalStr.substring(val.start + 1, val.end - 1);
@@ -130,18 +129,30 @@ function getNameValuePairsFromAttributes(
                     }
                     if (val.expression.type === 'Literal') {
                         const value =
-                            typeof val.expression.value === 'string' ? '""' : val.expression.value;
+                            typeof val.expression.value === 'string'
+                                ? val.expression.raw
+                                : val.expression.value;
                         return { name, value };
                     }
                     return { name, value: valueStr, complexExpression: true };
                 }
             }
 
-            // In the case of zero values, the user did attr="", which is the empty string.
-            // In the case of multiple values, the user did put in a property value
-            // like a="a{b}c" which is a template literal string. Since we only care
-            // about the type of the expression in the end, we can simplify this
-            return { name, value: '""' };
+            if (!attr.value.length) {
+                return { name, value: '""' };
+            }
+
+            const value = attr.value
+                .map((val) =>
+                    val.type === 'Text'
+                        ? val.raw
+                        : val.type === 'MustacheTag'
+                        ? '$' + originalStr.substring(val.start, val.end)
+                        : ''
+                )
+                .join('');
+
+            return { name, value: `\`${value}\`` };
         });
 }
 

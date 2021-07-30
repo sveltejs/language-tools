@@ -13,4 +13,4 @@
   dispatch('b', a[0]);
 </script>
 
-<slot a={a[0]} />
+<slot a={a[0]} {b} />
