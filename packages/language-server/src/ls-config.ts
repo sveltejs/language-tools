@@ -246,10 +246,14 @@ export class LSConfigManager {
     private listeners: Array<(config: LSConfigManager) => void> = [];
     private tsUserPreferences: Record<TsUserConfigLang, UserPreferences> = {
         typescript: {
-            includeCompletionsForModuleExports: true
+            includeCompletionsForModuleExports: true,
+            includeCompletionsForImportStatements: true,
+            includeCompletionsWithInsertText: true
         },
         javascript: {
-            includeCompletionsForModuleExports: true
+            includeCompletionsForModuleExports: true,
+            includeCompletionsForImportStatements: true,
+            includeCompletionsWithInsertText: true
         }
     };
     private prettierConfig: any = {};
@@ -347,10 +351,8 @@ export class LSConfigManager {
             includePackageJsonAutoImports: config.preferences?.includePackageJsonAutoImports,
             quotePreference: config.preferences?.quoteStyle,
             includeCompletionsForModuleExports: config.suggest?.autoImports ?? true,
-            includeAutomaticOptionalChainCompletions:
-                config.suggest?.includeAutomaticOptionalChainCompletions,
             includeCompletionsForImportStatements:
-                config.suggest?.includeCompletionsForImportStatements,
+                config.suggest?.includeCompletionsForImportStatements ?? true,
             includeCompletionsWithInsertText: true
         };
     }
