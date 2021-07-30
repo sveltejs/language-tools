@@ -121,6 +121,32 @@ describe('CodeActionsProvider', () => {
             }
         );
 
+        testFixMissingFunctionQuickFix(codeActions);
+    });
+
+    it('provides quickfix for missing function called in the markup', async () => {
+        const { provider, document } = setup('codeactions.svelte');
+
+        const codeActions = await provider.getCodeActions(
+            document,
+            Range.create(Position.create(11, 1), Position.create(11, 4)),
+            {
+                diagnostics: [
+                    {
+                        code: 2304,
+                        message: "Cannot find name 'abc'.",
+                        range: Range.create(Position.create(11, 1), Position.create(11, 4)),
+                        source: 'ts'
+                    }
+                ],
+                only: [CodeActionKind.QuickFix]
+            }
+        );
+
+        testFixMissingFunctionQuickFix(codeActions);
+    });
+
+    function testFixMissingFunctionQuickFix(codeActions: CodeAction[]) {
         (<TextDocumentEdit>codeActions[0]?.edit?.documentChanges?.[0])?.edits.forEach(
             (edit) => (edit.newText = harmonizeNewLines(edit.newText))
         );
@@ -157,7 +183,7 @@ describe('CodeActionsProvider', () => {
                 title: "Add missing function declaration 'abc'"
             }
         ]);
-    });
+    }
 
     it('provides quickfix for ts-checked-js', async () => {
         const { provider, document } = setup('codeaction-checkJs.svelte');
