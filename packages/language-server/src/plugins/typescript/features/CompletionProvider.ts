@@ -134,10 +134,6 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             return getJsDocTemplateCompletion(fragment, lang, filePath, offset);
         }
 
-        if (!this.shouldTrigger(fragment.text, offset, validTriggerCharacter, userPreferences)) {
-            return null;
-        }
-
         if (cancellationToken?.isCancellationRequested) {
             return null;
         }
@@ -215,27 +211,6 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
                 // it shouldn't trigger another completion because we can reuse the old one
                 (triggerCharacter === '.' && isPartOfImportStatement(document.getText(), position)))
         );
-    }
-
-    /**
-     * Preventing typescript to rebuild program if there's probably
-     * no completions returns
-     */
-    private shouldTrigger(
-        text: string,
-        offset: number,
-        triggerCharacter: ts.CompletionsTriggerCharacter | undefined,
-        userPreferences: ts.UserPreferences
-    ) {
-        if (triggerCharacter === ' ') {
-            if (!userPreferences.includeCompletionsForImportStatements) {
-                return false;
-            }
-
-            return text.substring(offset, 'import'.length) === 'import';
-        }
-
-        return true;
     }
 
     private getExistingImports(document: Document) {
