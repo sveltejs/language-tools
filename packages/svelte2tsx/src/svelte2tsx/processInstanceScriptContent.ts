@@ -286,6 +286,15 @@ export function processInstanceScriptContent(
             events.checkIfImportIsEventDispatcher(node);
         }
 
+        // workaround for import statement completion
+        if (ts.isImportEqualsDeclaration(node)) {
+            const end = node.getEnd() + astOffset;
+
+            if (str.original[end - 1] !== ';') {
+                str.appendLeft(end, ';');
+            }
+        }
+
         if (ts.isVariableDeclaration(node)) {
             events.checkIfIsStringLiteralDeclaration(node);
             events.checkIfDeclarationInstantiatedEventDispatcher(node);

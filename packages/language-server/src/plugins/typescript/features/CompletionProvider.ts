@@ -2,6 +2,7 @@ import ts from 'typescript';
 import {
     CancellationToken,
     CompletionContext,
+    CompletionItem,
     CompletionList,
     CompletionTriggerKind,
     MarkupContent,
@@ -137,11 +138,18 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             return null;
         }
 
+        const originalOffset = document.offsetAt(position);
+        const wordRange = getWordRangeAt(document.getText(), originalOffset, {
+            left: /\S+$/,
+            right: /[^\w$:]/
+        });
+
         const eventAndSlotLetCompletions = await this.getEventAndSlotLetCompletions(
             lang,
             document,
             tsDoc,
-            position
+            position,
+            wordRange
         );
 
         if (isEventOrSlotLetTriggerCharacter) {
@@ -163,6 +171,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         }
 
         const existingImports = this.getExistingImports(document);
+        const wordRangeStartPosition = document.positionAt(wordRange.start);
         const completionItems = completions
             .filter(isValidCompletion(document, position))
             .map((comp) =>
@@ -176,10 +185,12 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             )
             .filter(isNotNullOrUndefined)
             .map((comp) => mapCompletionItemToOriginal(fragment, comp))
+            .map((comp) => this.fixTextEditRange(wordRangeStartPosition, comp))
             .concat(eventAndSlotLetCompletions);
 
         const completionList = CompletionList.create(completionItems, !!tsDoc.parserError);
         this.lastCompletion = { key: document.getFilePath() || '', position, completionList };
+
         return completionList;
     }
 
@@ -214,19 +225,15 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         lang: ts.LanguageService,
         doc: Document,
         tsDoc: SvelteDocumentSnapshot,
-        originalPosition: Position
+        originalPosition: Position,
+        wordRange: { start: number; end: number }
     ): Promise<Array<AppCompletionItem<CompletionEntryWithIdentifer>>> {
         const componentInfo = await getComponentAtPosition(lang, doc, tsDoc, originalPosition);
         if (!componentInfo) {
             return [];
         }
 
-        const offset = doc.offsetAt(originalPosition);
-        const { start, end } = getWordRangeAt(doc.getText(), offset, {
-            left: /\S+$/,
-            right: /[^\w$:]/
-        });
-
+        const { start, end } = wordRange;
         const events = componentInfo.getEvents().map((event) => mapToCompletionEntry(event, 'on:'));
         const slotLets = componentInfo
             .getSlotLets()
@@ -260,13 +267,17 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             return null;
         }
 
-        const { label, insertText, isSvelteComp } = completionLabelAndInsert;
+        const { label, insertText, isSvelteComp, replacementSpan } = completionLabelAndInsert;
         // TS may suggest another Svelte component even if there already exists an import
         // with the same name, because under the hood every Svelte component is postfixed
         // with `__SvelteComponent`. In this case, filter out this completion by returning null.
         if (isSvelteComp && existingImports.has(label)) {
             return null;
         }
+        const textEdit =
+            replacementSpan && insertText
+                ? TextEdit.replace(convertRange(fragment, replacementSpan), insertText)
+                : undefined;
 
         return {
             label,
@@ -276,6 +287,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             // Make sure svelte component takes precedence
             sortText: isSvelteComp ? '-1' : comp.sortText,
             preselect: isSvelteComp ? true : comp.isRecommended,
+            textEdit,
             // pass essential data for resolving completion
             data: {
                 ...comp,
@@ -289,14 +301,14 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         fragment: SvelteSnapshotFragment,
         comp: ts.CompletionEntry
     ) {
-        let { kind, kindModifiers, name, source } = comp;
-        const isScriptElement = kind === ts.ScriptElementKind.scriptElement;
+        let { name, insertText, kindModifiers } = comp;
+        const isScriptElement = comp.kind === ts.ScriptElementKind.scriptElement;
         const hasModifier = Boolean(comp.kindModifiers);
         const isSvelteComp = this.isSvelteComponentImport(name);
         if (isSvelteComp) {
             name = this.changeSvelteComponentName(name);
 
-            if (this.isExistingSvelteComponentImport(fragment, name, source)) {
+            if (this.isExistingSvelteComponentImport(fragment, name, comp.source)) {
                 return null;
             }
         }
@@ -308,6 +320,15 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
                 insertText: name,
                 label,
                 isSvelteComp
+            };
+        }
+
+        if (comp.isImportStatementCompletion && insertText) {
+            return {
+                label: name,
+                isSvelteComp,
+                insertText: this.changeSvelteComponentName(insertText),
+                replacementSpan: comp.replacementSpan
             };
         }
 
@@ -324,6 +345,51 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
     ): boolean {
         const importStatement = new RegExp(`import ${name} from ["'\`][\\s\\S]+\\.svelte["'\`]`);
         return !!source && !!fragment.text.match(importStatement);
+    }
+
+    /**
+     * If the textEdit is out of the word range of the triggered position
+     * vscode would refuse to show the completions
+     * split those edits into additionalTextEdit to fix it
+     */
+    private fixTextEditRange(wordRangePosition: Position, completionItem: CompletionItem) {
+        const { textEdit } = completionItem;
+        if (!textEdit || !TextEdit.is(textEdit)) {
+            return completionItem;
+        }
+
+        const {
+            newText,
+            range: { start }
+        } = textEdit;
+
+        const wordRangeStartCharacter = wordRangePosition.character;
+        if (
+            wordRangePosition.line !== wordRangePosition.line ||
+            start.character > wordRangePosition.character
+        ) {
+            return completionItem;
+        }
+
+        textEdit.newText = newText.substring(wordRangeStartCharacter - start.character);
+        textEdit.range.start = {
+            line: start.line,
+            character: wordRangeStartCharacter
+        };
+        completionItem.additionalTextEdits = [
+            TextEdit.replace(
+                {
+                    start,
+                    end: {
+                        line: start.line,
+                        character: wordRangeStartCharacter
+                    }
+                },
+                newText.substring(0, wordRangeStartCharacter - start.character)
+            )
+        ];
+
+        return completionItem;
     }
 
     async resolveCompletion(

@@ -43,7 +43,9 @@ describe('ts user preferences', () => {
                 quoteStyle: 'single'
             },
             suggest: {
-                autoImports: true
+                autoImports: true,
+                includeAutomaticOptionalChainCompletions: undefined,
+                includeCompletionsForImportStatements: undefined
             }
         };
     }
@@ -114,7 +116,11 @@ describe('ts user preferences', () => {
     it('provides auto import suggestions according to preferences', async () => {
         const { docManager, document } = setup('code-action.svelte');
         const lsAndTsDocResolver = createLSAndTSDocResolver(docManager, {
-            suggest: { autoImports: false }
+            suggest: {
+                autoImports: false,
+                includeAutomaticOptionalChainCompletions: undefined,
+                includeCompletionsForImportStatements: undefined
+            }
         });
         const completionProvider = new CompletionsProviderImpl(lsAndTsDocResolver);
 
