@@ -1816,9 +1816,11 @@ describe('DiagnosticsProvider', () => {
                 severity: 1,
                 source: 'ts',
                 tags: []
-            },            {
+            },
+            {
                 code: 2339,
-                message: "Property 'abc' does not exist on type 'AccessorsAndOption__SvelteComponent_'.",
+                message:
+                    "Property 'abc' does not exist on type 'AccessorsAndOption__SvelteComponent_'.",
                 range: {
                     end: {
                         character: 29,

@@ -38,7 +38,7 @@ type TemplateProcessResult = {
 
 function processSvelteTemplate(
     str: MagicString,
-    options?: { emitOnTemplateError?: boolean; namespace?: string, accessors?: boolean }
+    options?: { emitOnTemplateError?: boolean; namespace?: string; accessors?: boolean }
 ): TemplateProcessResult {
     const { htmlxAst, tags } = parseHtmlx(str.original, options);
 
