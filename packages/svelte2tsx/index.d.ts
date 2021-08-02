@@ -34,6 +34,7 @@ export function svelte2tsx(
         emitOnTemplateError?: boolean;
         /**
          * The namespace option from svelte config
+         * see https://svelte.dev/docs#svelte_compile for more info
          */
         namespace?: string;
         /**
@@ -44,7 +45,13 @@ export function svelte2tsx(
          * The shims need to be provided by the user ambient-style,
          * for example through `filenames.push(require.resolve('svelte2tsx/svelte-shims.d.ts'))`.
          */
-        mode?: 'tsx' | 'dts'
+        mode?: 'tsx' | 'dts',
+        /**
+         * The accessor option from svelte config. 
+         * Would be overridden by the same config in the svelte:option element if exist
+         * see https://svelte.dev/docs#svelte_compile for more info
+         */
+        accessors?: boolean
     }
 ): SvelteCompiledToTsx
 

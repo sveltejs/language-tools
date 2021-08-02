@@ -166,7 +166,10 @@ function preprocessSvelteFile(document: Document, options: SvelteSnapshotOptions
             filename: document.getFilePath() ?? undefined,
             isTsFile: scriptKind === ts.ScriptKind.TSX,
             emitOnTemplateError: options.transformOnTemplateError,
-            namespace: document.config?.compilerOptions?.namespace
+            namespace: document.config?.compilerOptions?.namespace,
+            accessors:
+                document.config?.compilerOptions?.accessors ??
+                document.config?.compilerOptions?.customElement
         });
         text = tsx.code;
         tsxMap = tsx.map;

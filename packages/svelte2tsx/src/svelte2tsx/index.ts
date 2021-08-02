@@ -38,14 +38,14 @@ type TemplateProcessResult = {
 
 function processSvelteTemplate(
     str: MagicString,
-    options?: { emitOnTemplateError?: boolean; namespace?: string }
+    options?: { emitOnTemplateError?: boolean; namespace?: string; accessors?: boolean }
 ): TemplateProcessResult {
     const { htmlxAst, tags } = parseHtmlx(str.original, options);
 
     let uses$$props = false;
     let uses$$restProps = false;
     let uses$$slots = false;
-    let usesAccessors = false;
+    let usesAccessors = !!options.accessors;
 
     const componentDocumentation = new ComponentDocumentation();
 
@@ -288,6 +288,7 @@ export function svelte2tsx(
         emitOnTemplateError?: boolean;
         namespace?: string;
         mode?: 'tsx' | 'dts';
+        accessors?: boolean;
     } = {}
 ) {
     const str = new MagicString(svelte);

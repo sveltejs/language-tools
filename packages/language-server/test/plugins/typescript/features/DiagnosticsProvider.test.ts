@@ -1777,4 +1777,64 @@ describe('DiagnosticsProvider', () => {
         const diagnostics = await plugin.getDiagnostics(document);
         assert.deepStrictEqual(diagnostics, []);
     });
+
+    it('checks component with accessors when configured in svelte.config.js', async () => {
+        const { plugin, document } = setup('with-svelte-config/accessors-consumer.svelte');
+
+        const diagnostics = await plugin.getDiagnostics(document);
+        assert.deepStrictEqual(diagnostics, <typeof diagnostics>[
+            {
+                code: 2322,
+                message: "Type '\"\"' is not assignable to type 'number | undefined'.",
+                range: {
+                    end: {
+                        character: 12,
+                        line: 9
+                    },
+                    start: {
+                        character: 7,
+                        line: 9
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            },
+            {
+                code: 2322,
+                message: "Type '\"\"' is not assignable to type 'number | undefined'.",
+                range: {
+                    end: {
+                        character: 20,
+                        line: 9
+                    },
+                    start: {
+                        character: 15,
+                        line: 9
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            },
+            {
+                code: 2339,
+                message:
+                    "Property 'abc' does not exist on type 'AccessorsAndOption__SvelteComponent_'.",
+                range: {
+                    end: {
+                        character: 29,
+                        line: 9
+                    },
+                    start: {
+                        character: 26,
+                        line: 9
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            }
+        ]);
+    });
 });

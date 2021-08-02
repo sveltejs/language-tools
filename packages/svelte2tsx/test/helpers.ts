@@ -309,7 +309,8 @@ export function get_svelte2tsx_config(base: BaseConfig, sampleName: string): Sve
         emitOnTemplateError: base.emitOnTemplateError,
         isTsFile: sampleName.startsWith('ts-'),
         namespace: sampleName.endsWith('-foreign-ns') ? 'foreign' : null,
-        mode: sampleName.endsWith('-dts') ? 'dts' : undefined
+        mode: sampleName.endsWith('-dts') ? 'dts' : undefined,
+        accessors: sampleName.startsWith('accessors-config')
     };
 }
 
