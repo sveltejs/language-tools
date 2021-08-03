@@ -253,7 +253,10 @@ export class ConfigLoader {
             preprocess: sveltePreprocess({
                 // 4.x does not have transpileOnly anymore, but if the user has version 3.x
                 // in his repo, that one is loaded instead, for which we still need this.
-                typescript: <any>{ transpileOnly: true, compilerOptions: { sourceMap: true } }
+                typescript: <any>{
+                    transpileOnly: true,
+                    compilerOptions: { sourceMap: true, inlineSourceMap: false }
+                }
             })
         };
     }
