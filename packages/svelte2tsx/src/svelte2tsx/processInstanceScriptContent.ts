@@ -14,6 +14,7 @@ import { handleTypeAssertion } from './nodes/handleTypeAssertion';
 import { ImplicitStoreValues } from './nodes/ImplicitStoreValues';
 import { Generics } from './nodes/Generics';
 import { is$$SlotsDeclaration } from './nodes/slot';
+import { preprendStr } from '../utils/magic-string';
 
 export interface InstanceScriptProcessResult {
     exportedNames: ExportedNames;
@@ -291,7 +292,7 @@ export function processInstanceScriptContent(
             const end = node.getEnd() + astOffset;
 
             if (str.original[end - 1] !== ';') {
-                str.appendLeft(end, ';');
+                preprendStr(str, end, ';');
             }
         }
 
