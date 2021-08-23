@@ -115,12 +115,17 @@ export class SveltePlugin
             parser: 'svelte' as any
         });
 
-        return [
-            TextEdit.replace(
-                Range.create(document.positionAt(0), document.positionAt(document.getTextLength())),
-                formattedCode
-            )
-        ];
+        return document.getText() === formattedCode
+            ? []
+            : [
+                  TextEdit.replace(
+                      Range.create(
+                          document.positionAt(0),
+                          document.positionAt(document.getTextLength())
+                      ),
+                      formattedCode
+                  )
+              ];
 
         function getSveltePlugin() {
             // Only provide our version of the svelte plugin if the user doesn't have one in
