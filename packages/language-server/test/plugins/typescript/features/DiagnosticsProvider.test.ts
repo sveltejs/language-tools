@@ -872,7 +872,7 @@ describe('DiagnosticsProvider', () => {
             },
             {
                 code: 2322,
-                message: `Type '"food"' is not assignable to type '"foo" | "bar"'.`,
+                message: 'Type \'"food"\' is not assignable to type \'"foo" | "bar"\'.',
                 range: {
                     start: {
                         character: 2,
