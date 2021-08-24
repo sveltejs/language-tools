@@ -1,4 +1,5 @@
 <script lang="ts">
+    import Comp from './diagnostics-ignore-generated-imported.svelte';
 </script>
 
 {#if typeof a === 'string'}
@@ -10,3 +11,11 @@
         {b}
     {/if}
 {/if}
+
+<Comp
+  variant="food"
+  style={`${
+    1
+  }`}
+  on:click={() => {}}
+/>
