@@ -808,11 +808,11 @@ describe('DiagnosticsProvider', () => {
                 range: {
                     end: {
                         character: 13,
-                        line: 3
+                        line: 4
                     },
                     start: {
                         character: 12,
-                        line: 3
+                        line: 4
                     }
                 },
                 severity: 1,
@@ -825,28 +825,11 @@ describe('DiagnosticsProvider', () => {
                 range: {
                     end: {
                         character: 6,
-                        line: 4
+                        line: 5
                     },
                     start: {
                         character: 5,
-                        line: 4
-                    }
-                },
-                severity: 1,
-                source: 'ts',
-                tags: []
-            },
-            {
-                code: 2304,
-                message: "Cannot find name 'b'.",
-                range: {
-                    end: {
-                        character: 10,
-                        line: 8
-                    },
-                    start: {
-                        character: 9,
-                        line: 8
+                        line: 5
                     }
                 },
                 severity: 1,
@@ -864,6 +847,40 @@ describe('DiagnosticsProvider', () => {
                     start: {
                         character: 9,
                         line: 9
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            },
+            {
+                code: 2304,
+                message: "Cannot find name 'b'.",
+                range: {
+                    end: {
+                        character: 10,
+                        line: 10
+                    },
+                    start: {
+                        character: 9,
+                        line: 10
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            },
+            {
+                code: 2322,
+                message: 'Type \'"food"\' is not assignable to type \'"foo" | "bar"\'.',
+                range: {
+                    start: {
+                        character: 2,
+                        line: 15
+                    },
+                    end: {
+                        character: 9,
+                        line: 15
                     }
                 },
                 severity: 1,

@@ -75,11 +75,10 @@ export function isComponentAtPosition(
  * because it's purely generated.
  */
 export function isInGeneratedCode(text: string, start: number, end: number) {
-    const lineStart = text.lastIndexOf('\n', start);
-    const lineEnd = text.indexOf('\n', end);
-    const lastStart = text.substring(lineStart, start).lastIndexOf('/*Ωignore_startΩ*/');
-    const lastEnd = text.substring(lineStart, start).lastIndexOf('/*Ωignore_endΩ*/');
-    return lastStart > lastEnd && text.substring(end, lineEnd).includes('/*Ωignore_endΩ*/');
+    const lastStart = text.lastIndexOf('/*Ωignore_startΩ*/', start);
+    const lastEnd = text.lastIndexOf('/*Ωignore_endΩ*/', start);
+    const nextEnd = text.indexOf('/*Ωignore_endΩ*/', end);
+    return lastStart > lastEnd && lastStart < nextEnd;
 }
 
 /**
