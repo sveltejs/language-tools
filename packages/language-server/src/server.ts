@@ -371,7 +371,7 @@ export function startServer(options?: LSOptions) {
 
     docManager.on(
         'documentChange',
-        debounceThrottle(async (document: Document) => diagnosticsManager.update(document), 1000)
+        debounceThrottle(async (document: Document) => diagnosticsManager.update(document), 750)
     );
     docManager.on('documentClose', (document: Document) =>
         diagnosticsManager.removeDiagnostics(document)
