@@ -53,6 +53,7 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         filterIncompleteCompletions: true,
         definitionLinkSupport: false
     };
+    private deferredRequests: Record<string, [number, Promise<any>]> = {};
 
     constructor(private documentsManager: DocumentManager) {}
 
@@ -64,6 +65,10 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         this.plugins.push(plugin);
     }
 
+    didUpdateDocument() {
+        this.deferredRequests = {};
+    }
+
     async getDiagnostics(textDocument: TextDocumentIdentifier): Promise<Diagnostic[]> {
         const document = this.getDocument(textDocument.uri);
         if (!document) {
@@ -71,7 +76,12 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         }
 
         return flatten(
-            await this.execute<Diagnostic[]>('getDiagnostics', [document], ExecuteMode.Collect)
+            await this.execute<Diagnostic[]>(
+                'getDiagnostics',
+                [document],
+                ExecuteMode.Collect,
+                'high'
+            )
         );
     }
 
@@ -81,7 +91,12 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
             throw new Error('Cannot call methods on an unopened document');
         }
 
-        return this.execute<Hover>('doHover', [document, position], ExecuteMode.FirstNonNull);
+        return this.execute<Hover>(
+            'doHover',
+            [document, position],
+            ExecuteMode.FirstNonNull,
+            'high'
+        );
     }
 
     async getCompletions(
@@ -99,7 +114,8 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
             await this.execute<CompletionList>(
                 'getCompletions',
                 [document, position, completionContext, cancellationToken],
-                ExecuteMode.Collect
+                ExecuteMode.Collect,
+                'high'
             )
         ).filter((completion) => completion != null);
 
@@ -141,7 +157,8 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         const result = await this.execute<CompletionItem>(
             'resolveCompletion',
             [document, completionItem, cancellationToken],
-            ExecuteMode.FirstNonNull
+            ExecuteMode.FirstNonNull,
+            'high'
         );
 
         return result ?? completionItem;
@@ -160,7 +177,8 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
             await this.execute<TextEdit[]>(
                 'formatDocument',
                 [document, options],
-                ExecuteMode.Collect
+                ExecuteMode.Collect,
+                'high'
             )
         );
     }
@@ -177,7 +195,8 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         return this.execute<string | null>(
             'doTagComplete',
             [document, position],
-            ExecuteMode.FirstNonNull
+            ExecuteMode.FirstNonNull,
+            'high'
         );
     }
 
@@ -191,7 +210,8 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
             await this.execute<ColorInformation[]>(
                 'getDocumentColors',
                 [document],
-                ExecuteMode.Collect
+                ExecuteMode.Collect,
+                'low'
             )
         );
     }
@@ -210,7 +230,8 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
             await this.execute<ColorPresentation[]>(
                 'getColorPresentations',
                 [document, range, color],
-                ExecuteMode.Collect
+                ExecuteMode.Collect,
+                'low'
             )
         );
     }
@@ -228,7 +249,8 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
             await this.execute<SymbolInformation[]>(
                 'getDocumentSymbols',
                 [document, cancellationToken],
-                ExecuteMode.Collect
+                ExecuteMode.Collect,
+                'low'
             )
         );
     }
@@ -246,7 +268,8 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
             await this.execute<DefinitionLink[]>(
                 'getDefinitions',
                 [document, position],
-                ExecuteMode.Collect
+                ExecuteMode.Collect,
+                'high'
             )
         );
 
@@ -274,7 +297,8 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
             await this.execute<CodeAction[]>(
                 'getCodeActions',
                 [document, range, context, cancellationToken],
-                ExecuteMode.Collect
+                ExecuteMode.Collect,
+                'high'
             )
         );
     }
@@ -292,7 +316,8 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         return await this.execute<WorkspaceEdit>(
             'executeCommand',
             [document, command, args],
-            ExecuteMode.FirstNonNull
+            ExecuteMode.FirstNonNull,
+            'high'
         );
     }
 
@@ -300,7 +325,8 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         return await this.execute<WorkspaceEdit>(
             'updateImports',
             [fileRename],
-            ExecuteMode.FirstNonNull
+            ExecuteMode.FirstNonNull,
+            'high'
         );
     }
 
@@ -316,7 +342,8 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         return await this.execute<any>(
             'prepareRename',
             [document, position],
-            ExecuteMode.FirstNonNull
+            ExecuteMode.FirstNonNull,
+            'high'
         );
     }
 
@@ -333,7 +360,8 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         return await this.execute<any>(
             'rename',
             [document, position, newName],
-            ExecuteMode.FirstNonNull
+            ExecuteMode.FirstNonNull,
+            'high'
         );
     }
 
@@ -350,7 +378,8 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         return await this.execute<any>(
             'findReferences',
             [document, position, context],
-            ExecuteMode.FirstNonNull
+            ExecuteMode.FirstNonNull,
+            'high'
         );
     }
 
@@ -368,7 +397,8 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         return await this.execute<any>(
             'getSignatureHelp',
             [document, position, context, cancellationToken],
-            ExecuteMode.FirstNonNull
+            ExecuteMode.FirstNonNull,
+            'high'
         );
     }
 
@@ -424,7 +454,8 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         return await this.execute<SemanticTokens>(
             'getSemanticTokens',
             [document, range, cancellationToken],
-            ExecuteMode.FirstNonNull
+            ExecuteMode.FirstNonNull,
+            'low'
         );
     }
 
@@ -440,7 +471,8 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         return await this.execute<LinkedEditingRanges>(
             'getLinkedEditingRanges',
             [document, position],
-            ExecuteMode.FirstNonNull
+            ExecuteMode.FirstNonNull,
+            'high'
         );
     }
 
@@ -463,20 +495,70 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
     private execute<T>(
         name: keyof LSProvider,
         args: any[],
-        mode: ExecuteMode.FirstNonNull
+        mode: ExecuteMode.FirstNonNull,
+        priority: 'low' | 'high'
     ): Promise<T | null>;
     private execute<T>(
         name: keyof LSProvider,
         args: any[],
-        mode: ExecuteMode.Collect
+        mode: ExecuteMode.Collect,
+        priority: 'low' | 'high'
     ): Promise<T[]>;
-    private execute(name: keyof LSProvider, args: any[], mode: ExecuteMode.None): Promise<void>;
+    private execute(
+        name: keyof LSProvider,
+        args: any[],
+        mode: ExecuteMode.None,
+        priority: 'low' | 'high'
+    ): Promise<void>;
     private async execute<T>(
         name: keyof LSProvider,
         args: any[],
-        mode: ExecuteMode
+        mode: ExecuteMode,
+        priority: 'low' | 'high'
     ): Promise<(T | null) | T[] | void> {
         const plugins = this.plugins.filter((plugin) => typeof plugin[name] === 'function');
+
+        if (priority === 'low') {
+            // If a request doesn't have priority, we first wait 1 second to
+            // 1. let higher priority requests get through first
+            // 2. wait for possible document changes, which make the request wait again
+            // Due to waiting, low priority items should preferrably be those who do not
+            // rely on positions or ranges and rather on the whole document only.
+            const debounce = async (): Promise<boolean> => {
+                const id = Math.random();
+                this.deferredRequests[name] = [
+                    id,
+                    new Promise<void>((resolve, reject) => {
+                        setTimeout(() => {
+                            if (
+                                !this.deferredRequests[name] ||
+                                this.deferredRequests[name][0] === id
+                            ) {
+                                resolve();
+                            } else {
+                                // We should not get into this case. According to the spec,
+                                // the language client // does not send another request
+                                // of the same type until the previous one is answered.
+                                reject();
+                            }
+                        }, 1000);
+                    })
+                ];
+                try {
+                    await this.deferredRequests[name][1];
+                    if (!this.deferredRequests[name]) {
+                        return debounce();
+                    }
+                    return true;
+                } catch (e) {
+                    return false;
+                }
+            };
+            const shouldContinue = await debounce();
+            if (!shouldContinue) {
+                return;
+            }
+        }
 
         switch (mode) {
             case ExecuteMode.FirstNonNull:

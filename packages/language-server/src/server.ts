@@ -262,9 +262,10 @@ export function startServer(options?: LSOptions) {
     });
 
     connection.onDidCloseTextDocument((evt) => docManager.closeDocument(evt.textDocument.uri));
-    connection.onDidChangeTextDocument((evt) =>
-        docManager.updateDocument(evt.textDocument, evt.contentChanges)
-    );
+    connection.onDidChangeTextDocument((evt) => {
+        docManager.updateDocument(evt.textDocument, evt.contentChanges);
+        pluginHost.didUpdateDocument();
+    });
     connection.onHover((evt) => pluginHost.doHover(evt.textDocument, evt.position));
     connection.onCompletion((evt, cancellationToken) =>
         pluginHost.getCompletions(evt.textDocument, evt.position, evt.context, cancellationToken)
