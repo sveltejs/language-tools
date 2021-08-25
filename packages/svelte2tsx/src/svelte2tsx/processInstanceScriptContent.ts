@@ -3,7 +3,7 @@ import { Node } from 'estree-walker';
 import * as ts from 'typescript';
 import {
     getBinaryAssignmentExpr,
-    isFirstInAnExpressionStatement,
+    isSafeToPrefixWithSemicolon,
     isNotPropertyNameOfImport
 } from './utils/tsAst';
 import { ExportedNames, is$$PropsDeclaration } from './nodes/ExportedNames';
@@ -164,7 +164,7 @@ export function processInstanceScriptContent(
         // - in order to get ts errors if store is not assignable to SvelteStore
         // - use $store variable defined above to get ts flow control
         const dollar = str.original.indexOf('$', ident.getStart() + astOffset);
-        const getPrefix = isFirstInAnExpressionStatement(ident) ? ';' : '';
+        const getPrefix = isSafeToPrefixWithSemicolon(ident) ? ';' : '';
         str.overwrite(dollar, dollar + 1, getPrefix + '(__sveltets_1_store_get(');
         str.prependLeft(ident.end + astOffset, `), $${storename})`);
     };
