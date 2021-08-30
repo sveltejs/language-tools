@@ -120,7 +120,10 @@ function getNameValuePairsFromAttributes(
                     return { name, value: name, identifier: name };
                 }
                 if (val.type === 'Text') {
-                    return { name, value: `'${val.data || val.raw}'` };
+                    const quote = ['"', "'"].includes(originalStr[val.start - 1])
+                        ? originalStr[val.start - 1]
+                        : "'";
+                    return { name, value: `${quote}${val.data || val.raw}${quote}` };
                 }
                 if (val.type === 'MustacheTag') {
                     const valueStr = originalStr.substring(val.start + 1, val.end - 1);
