@@ -602,20 +602,43 @@ const beginOfDocumentRange = Range.create(Position.create(0, 0), Position.create
 const scriptImportRegex =
     /\bimport\s+{([^}]*?)}\s+?from\s+['"`].+?['"`]|\bimport\s+(\w+?)\s+from\s+['"`].+?['"`]/g;
 
+// Type definitions from svelte-shims.d.ts that shouldn't appear in completion suggestions
+// because they are meant to be used "behind the scenes"
+const svelte2tsxTypes = new Set([
+    'Svelte2TsxComponent',
+    'Svelte2TsxComponentConstructorParameters',
+    'SvelteComponentConstructor',
+    'SvelteActionReturnType',
+    'SvelteTransitionConfig',
+    'SvelteTransitionReturnType',
+    'SvelteAnimationReturnType',
+    'SvelteWithOptionalProps',
+    'SvelteAllProps',
+    'SveltePropsAnyFallback',
+    'SvelteSlotsAnyFallback',
+    'SvelteRestProps',
+    'SvelteSlots',
+    'SvelteStore'
+]);
+
 function isValidCompletion(
     document: Document,
     position: Position
 ): (value: ts.CompletionEntry) => boolean {
+    const isNoSvelte2tsxCompletion = (value: ts.CompletionEntry) =>
+        value.kindModifiers !== 'declare' ||
+        (!value.name.startsWith('__sveltets_') && !svelte2tsxTypes.has(value.name));
+
     const isCompletionInHTMLStartTag = !!getNodeIfIsInHTMLStartTag(
         document.html,
         document.offsetAt(position)
     );
     if (!isCompletionInHTMLStartTag) {
-        return () => true;
+        return isNoSvelte2tsxCompletion;
     }
     return (value) =>
         // Remove jsx attributes on html tags because they are doubled by the HTML
         // attribute suggestions, and for events they are wrong (onX instead of on:X).
         // Therefore filter them out.
-        value.kind !== ts.ScriptElementKind.jsxAttribute;
+        value.kind !== ts.ScriptElementKind.jsxAttribute && isNoSvelte2tsxCompletion(value);
 }
