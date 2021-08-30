@@ -2,7 +2,7 @@ import { Logger } from '../../logger';
 import { CompileOptions } from 'svelte/types/compiler/interfaces';
 import { PreprocessorGroup } from 'svelte/types/compiler/preprocess/types';
 import { importSveltePreprocess } from '../../importPackage';
-import _glob from 'glob';
+import _glob from 'fast-glob';
 import _path from 'path';
 import _fs from 'fs';
 import { pathToFileURL, URL } from 'url';
@@ -80,7 +80,7 @@ export class ConfigLoader {
         try {
             const pathResults = this.globSync('**/svelte.config.{js,cjs,mjs}', {
                 cwd: directory,
-                ignore: 'node_modules/**'
+                ignore: ['**/node_modules/**']
             });
             const someConfigIsImmediateFileInDirectory =
                 pathResults.length > 0 && pathResults.some((res) => !this.path.dirname(res));
