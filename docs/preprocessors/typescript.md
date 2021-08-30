@@ -79,14 +79,13 @@ The first and possibly most often used way is to type the `createEventDispatcher
 <script lang="ts">
     import { createEventDispatcher } from 'svelte';
 
-    const dispatch =
-        createEventDispatcher<{
-            /**
-             * you can also add docs
-             */
-            checked: boolean; // Will translate to `CustomEvent<boolean>`
-            hello: string;
-        }>();
+    const dispatch = createEventDispatcher<{
+        /**
+         * you can also add docs
+         */
+        checked: boolean; // Will translate to `CustomEvent<boolean>`
+        hello: string;
+    }>();
 
     // ...
 </script>
