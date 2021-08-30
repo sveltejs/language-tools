@@ -36,7 +36,6 @@
     "devDependencies": {
         "@tsconfig/node12": "^1.0.0",
         "@types/estree": "^0.0.42",
-        "@types/glob": "^7.1.1",
         "@types/lodash": "^4.14.116",
         "@types/mocha": "^7.0.2",
         "@types/node": "^13.9.0",
@@ -51,7 +50,7 @@
     "dependencies": {
         "chokidar": "^3.4.1",
         "estree-walker": "^2.0.1",
-        "glob": "^7.1.6",
+        "fast-glob": "^3.2.7",
         "lodash": "^4.17.21",
         "prettier": "2.3.0",
         "prettier-plugin-svelte": "~2.3.0",

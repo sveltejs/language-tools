@@ -32,7 +32,7 @@ describe('ConfigLoader', () => {
 
     it('should load all config files below and the one inside/above given directory', async () => {
         const configLoader = new ConfigLoader(
-            () => ['svelte.config.js', 'below/svelte.config.js'],
+            (() => ['svelte.config.js', 'below/svelte.config.js']) as any,
             { existsSync: () => true },
             path,
             (module: URL) => Promise.resolve({ default: { preprocess: module.toString() } })
@@ -99,14 +99,14 @@ describe('ConfigLoader', () => {
         let firstGlobCall = true;
         let nrImportCalls = 0;
         const configLoader = new ConfigLoader(
-            () => {
+            (() => {
                 if (firstGlobCall) {
                     firstGlobCall = false;
                     return ['svelte.config.js'];
                 } else {
                     return [];
                 }
-            },
+            }) as any,
             {
                 existsSync: (p) =>
                     typeof p === 'string' &&

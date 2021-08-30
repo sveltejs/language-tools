@@ -50,24 +50,24 @@ When you provide a library, you also should provide type definitions alongside y
 import { SvelteComponentTyped } from 'svelte';
 
 export interface FooProps {
-  propA: string;
-  // ...
+    propA: string;
+    // ...
 }
 
 export interface FooEvents {
-  click: MouseEvent;
-  customEvent: CustomEvent<boolean>;
+    click: MouseEvent;
+    customEvent: CustomEvent<boolean>;
 }
 
 export interface FooSlots {
-  default: { slotValue: string };
-  named: { slotValue: string };
+    default: { slotValue: string };
+    named: { slotValue: string };
 }
 
 export default class Foo extends SvelteComponentTyped<FooProps, FooEvents, FooSlots> {}
 ```
 
-SvelteKit's `package` command will give you these capabilities - transpiling and creating type definitions - out of the box: https://kit.svelte.dev/docs#packaging 
+SvelteKit's `package` command will give you these capabilities - transpiling and creating type definitions - out of the box: https://kit.svelte.dev/docs#packaging
 
 ## Typing component events
 

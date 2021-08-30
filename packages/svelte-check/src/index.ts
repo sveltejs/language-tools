@@ -4,7 +4,7 @@
 
 import { watch } from 'chokidar';
 import * as fs from 'fs';
-import glob from 'glob';
+import glob from 'fast-glob';
 import * as path from 'path';
 import { SvelteCheck } from 'svelte-language-server';
 import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver-protocol';
@@ -30,37 +30,22 @@ async function openAllDocuments(
     filePathsToIgnore: string[],
     svelteCheck: SvelteCheck
 ) {
-    return new Promise<void>((resolve, reject) => {
-        glob(
-            '**/*.svelte',
-            {
-                cwd: workspaceUri.fsPath,
-                ignore: ['node_modules/**'].concat(
-                    filePathsToIgnore.map((ignore) => `${ignore}/**`)
-                )
-            },
-            (err, files) => {
-                if (err) {
-                    reject(err);
-                    return;
-                }
-
-                const absFilePaths = files.map((f) => path.resolve(workspaceUri.fsPath, f));
-
-                for (const absFilePath of absFilePaths) {
-                    const text = fs.readFileSync(absFilePath, 'utf-8');
-                    svelteCheck.upsertDocument(
-                        {
-                            uri: URI.file(absFilePath).toString(),
-                            text
-                        },
-                        true
-                    );
-                }
-                resolve();
-            }
-        );
+    const files = await glob('**/*.svelte', {
+        cwd: workspaceUri.fsPath,
+        ignore: ['node_modules/**'].concat(filePathsToIgnore.map((ignore) => `${ignore}/**`))
     });
+    const absFilePaths = files.map((f) => path.resolve(workspaceUri.fsPath, f));
+
+    for (const absFilePath of absFilePaths) {
+        const text = fs.readFileSync(absFilePath, 'utf-8');
+        svelteCheck.upsertDocument(
+            {
+                uri: URI.file(absFilePath).toString(),
+                text
+            },
+            true
+        );
+    }
 }
 
 async function getDiagnostics(
