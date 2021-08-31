@@ -1,12 +1,11 @@
 import { SvelteComponentTyped } from "svelte";
 import type { Foo } from './foo';
-interface Bar {
-    a: true;
-}
 declare const __propDef: {
     props: {
         foo: Foo;
-        bar: Bar;
+        bar: {
+            a: true;
+        };
     };
     events: {
         [evt: string]: CustomEvent<any>;
