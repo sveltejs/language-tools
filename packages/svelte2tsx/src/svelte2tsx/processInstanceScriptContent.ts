@@ -36,7 +36,8 @@ export function processInstanceScriptContent(
     str: MagicString,
     script: Node,
     events: ComponentEvents,
-    implicitStoreValues: ImplicitStoreValues
+    implicitStoreValues: ImplicitStoreValues,
+    mode: 'tsx' | 'dts'
 ): InstanceScriptProcessResult {
     const htmlx = str.original;
     const scriptContent = htmlx.substring(script.content.start, script.content.end);
@@ -375,6 +376,14 @@ export function processInstanceScriptContent(
         str.appendRight(firstImport.getStart() + astOffset, '\n');
     }
 
+    if (mode === 'dts') {
+        // Transform interface declarations to type declarations because indirectly
+        // using interfaces inside the return type of a function is forbidden.
+        // This is not a problem for intellisense/type inference but it will
+        // break dts generation (file will not be generated).
+        transformInterfacesToTypes(tsAst, str, astOffset);
+    }
+
     return {
         exportedNames,
         events,
@@ -384,4 +393,34 @@ export function processInstanceScriptContent(
         uses$$SlotsInterface,
         generics
     };
+}
+
+function transformInterfacesToTypes(tsAst: ts.SourceFile, str: MagicString, astOffset: any) {
+    tsAst.statements.filter(ts.isInterfaceDeclaration).forEach((node) => {
+        str.overwrite(
+            node.getStart() + astOffset,
+            node.getStart() + astOffset + 'interface'.length,
+            'type'
+        );
+
+        if (node.heritageClauses?.length) {
+            const extendsStart = str.original.indexOf('extends', node.getStart() + astOffset);
+            str.overwrite(extendsStart, extendsStart + 'extends'.length, '=');
+
+            const extendsList = node.heritageClauses[0].types;
+            let prev = extendsList[0];
+            extendsList.slice(1).forEach((heritageClause) => {
+                str.overwrite(
+                    prev.getEnd() + astOffset,
+                    heritageClause.getStart() + astOffset,
+                    ' & '
+                );
+                prev = heritageClause;
+            });
+
+            str.appendLeft(node.heritageClauses[0].getEnd() + astOffset, ' & ');
+        } else {
+            str.prependLeft(str.original.indexOf('{', node.getStart() + astOffset), '=');
+        }
+    });
 }
