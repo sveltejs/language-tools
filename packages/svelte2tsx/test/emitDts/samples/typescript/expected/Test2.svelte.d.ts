@@ -3,6 +3,9 @@ import type { Foo } from './foo';
 declare const __propDef: {
     props: {
         foo: Foo;
+        bar: {
+            a: true;
+        };
     };
     events: {
         [evt: string]: CustomEvent<any>;

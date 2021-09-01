@@ -336,7 +336,13 @@ export function svelte2tsx(
         if (scriptTag.start != instanceScriptTarget) {
             str.move(scriptTag.start, scriptTag.end, instanceScriptTarget);
         }
-        const res = processInstanceScriptContent(str, scriptTag, events, implicitStoreValues);
+        const res = processInstanceScriptContent(
+            str,
+            scriptTag,
+            events,
+            implicitStoreValues,
+            options.mode
+        );
         uses$$props = uses$$props || res.uses$$props;
         uses$$restProps = uses$$restProps || res.uses$$restProps;
         uses$$slots = uses$$slots || res.uses$$slots;
