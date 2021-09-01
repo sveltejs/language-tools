@@ -75,7 +75,7 @@ describe('CompletionProviderImpl', () => {
             label: 'b',
             insertText: undefined,
             kind: CompletionItemKind.Method,
-            sortText: '1',
+            sortText: '11',
             commitCharacters: ['.', ',', '('],
             preselect: undefined,
             textEdit: undefined
@@ -101,7 +101,7 @@ describe('CompletionProviderImpl', () => {
             label: 'b',
             insertText: undefined,
             kind: CompletionItemKind.Field,
-            sortText: '1',
+            sortText: '11',
             commitCharacters: ['.', ',', '('],
             preselect: undefined,
             textEdit: undefined
@@ -406,7 +406,7 @@ describe('CompletionProviderImpl', () => {
                 line: 0
             },
             replacementSpan: undefined,
-            sortText: '1',
+            sortText: '11',
             source: undefined,
             sourceDisplay: undefined,
             uri: fileNameToAbsoluteUri(filename)
@@ -1035,7 +1035,7 @@ describe('CompletionProviderImpl', () => {
             label: 'blubb',
             insertText: 'import { blubb } from "../definitions";',
             kind: CompletionItemKind.Function,
-            sortText: '1',
+            sortText: '11',
             commitCharacters: ['.', ',', '('],
             preselect: undefined,
             textEdit: {
@@ -1091,7 +1091,7 @@ describe('CompletionProviderImpl', () => {
             label: 'toString',
             insertText: '?.toString',
             kind: CompletionItemKind.Method,
-            sortText: '1',
+            sortText: '11',
             commitCharacters: ['.', ',', '('],
             preselect: undefined,
             textEdit: {

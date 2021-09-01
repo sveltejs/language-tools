@@ -1,4 +1,6 @@
 <script>
-const asd = 1;
-asd.bla;
+function a() {
+    return null;
+}
+a().b;
 </script>
