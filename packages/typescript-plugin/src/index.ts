@@ -66,7 +66,15 @@ function init(modules: { typescript: typeof ts }) {
             (!compilerOptions.jsxFactory || compilerOptions.jsxFactory.startsWith('svelte')) &&
             !compilerOptions.jsxFragmentFactory &&
             !compilerOptions.jsxImportSource;
-        return isNoJsxProject;
+        try {
+            const isSvelteProject =
+                typeof compilerOptions.configFilePath !== 'string' ||
+                require.resolve('svelte', { paths: [compilerOptions.configFilePath] });
+            return isNoJsxProject && isSvelteProject;
+        } catch (e) {
+            // If require.resolve fails, we end up here
+            return false;
+        }
     }
 
     return { create, getExternalFiles };
