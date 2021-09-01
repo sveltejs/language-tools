@@ -13,6 +13,7 @@ import {
 import {
     Document,
     getLineAtPosition,
+    isAtEndOfLine,
     isRangeInTag,
     mapRangeToOriginal
 } from '../../../lib/documents';
@@ -148,7 +149,10 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             range.end.character += 1;
             if (
                 fragment instanceof SvelteSnapshotFragment &&
-                getLineAtPosition(range.end, fragment.originalText).length <= range.end.character
+                isAtEndOfLine(
+                    getLineAtPosition(range.end, fragment.originalText),
+                    range.end.character
+                )
             ) {
                 range.end.line += 1;
                 range.end.character = 0;

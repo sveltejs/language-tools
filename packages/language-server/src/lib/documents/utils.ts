@@ -287,6 +287,14 @@ export function getLineAtPosition(position: Position, text: string) {
 }
 
 /**
+ * Assumption: Is called with a line. A line does only contain line break characters
+ * at its end.
+ */
+export function isAtEndOfLine(line: string, offset: number): boolean {
+    return [undefined, '\r', '\n'].includes(line[offset]);
+}
+
+/**
  * Updates a relative import
  *
  * @param oldPath Old absolute path
