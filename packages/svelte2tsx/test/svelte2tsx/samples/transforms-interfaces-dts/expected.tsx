@@ -19,6 +19,9 @@ function render() {
     type Bar3 = Bar1 & Bar2 &  {
         c: false;
     }
+    type Bar4<T extends boolean> = Bar1 & Bar2 &  {
+        c: false;
+    }
      let bar: Bar3;
 ;
 return { props: {foo: foo , bar: bar}, slots: {}, getters: {}, events: {} }}

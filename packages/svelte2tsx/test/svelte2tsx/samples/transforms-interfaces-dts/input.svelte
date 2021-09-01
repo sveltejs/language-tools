@@ -10,5 +10,8 @@
     interface Bar3 extends Bar1, Bar2 {
         c: false;
     }
+    interface Bar4<T extends boolean> extends Bar1, Bar2 {
+        c: false;
+    }
     export let bar: Bar3;
 </script>

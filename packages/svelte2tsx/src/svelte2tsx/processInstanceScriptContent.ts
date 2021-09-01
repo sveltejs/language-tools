@@ -404,7 +404,7 @@ function transformInterfacesToTypes(tsAst: ts.SourceFile, str: MagicString, astO
         );
 
         if (node.heritageClauses?.length) {
-            const extendsStart = str.original.indexOf('extends', node.getStart() + astOffset);
+            const extendsStart = node.heritageClauses[0].getStart() + astOffset;
             str.overwrite(extendsStart, extendsStart + 'extends'.length, '=');
 
             const extendsList = node.heritageClauses[0].types;
