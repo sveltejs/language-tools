@@ -66,6 +66,12 @@
                     "title": "Enable TypeScript Svelte plugin",
                     "description": "Enables a TypeScript plugin which provides intellisense for Svelte files inside TS/JS files."
                 },
+                "svelte.ask-to-enable-ts-plugin": {
+                    "type": "boolean",
+                    "default": true,
+                    "title": "Ask to enable TypeScript Svelte plugin",
+                    "description": "Ask on startup to enable the TypeScript plugin."
+                },
                 "svelte.language-server.runtime": {
                     "scope": "application",
                     "type": "string",
