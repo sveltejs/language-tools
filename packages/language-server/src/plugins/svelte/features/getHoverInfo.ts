@@ -2,12 +2,19 @@ import { Hover, Position } from 'vscode-languageserver';
 import { SvelteDocument } from '../SvelteDocument';
 import { documentation, SvelteTag, getLatestOpeningTag } from './SvelteTags';
 import { flatten } from '../../../utils';
-import { isInTag } from '../../../lib/documents';
+import { Document, isInTag } from '../../../lib/documents';
+import { AttributeContext, getAttributeContextAtPosition } from '../../../lib/documents/parseHtml';
+import { attributeCanHaveEventModifier } from './utils';
+import { getModifierData } from './getModifierData';
 
 /**
  * Get hover information for special svelte tags within moustache tags.
  */
-export function getHoverInfo(svelteDoc: SvelteDocument, position: Position): Hover | null {
+export function getHoverInfo(
+    document: Document,
+    svelteDoc: SvelteDocument,
+    position: Position
+): Hover | null {
     const offset = svelteDoc.offsetAt(position);
 
     const isInStyleOrScript =
@@ -20,13 +27,34 @@ export function getHoverInfo(svelteDoc: SvelteDocument, position: Position): Hov
         .getText()
         // use last 10 and next 10 characters, should cover 99% of all cases
         .substr(offsetStart, 20);
-    const isNoSvelteTag = !tagRegexp.test(charactersAroundOffset);
+    const isSvelteTag = tagRegexp.test(charactersAroundOffset);
 
-    if (isInStyleOrScript || isNoSvelteTag) {
+    if (isInStyleOrScript) {
         return null;
     }
 
-    const tag = getTagAtOffset(svelteDoc, offsetStart, charactersAroundOffset, offset);
+    if (isSvelteTag) {
+        return getTagHoverInfoAtOffset(svelteDoc, offsetStart, charactersAroundOffset, offset);
+    }
+
+    const attributeContext = getAttributeContextAtPosition(document, position);
+
+    if (!attributeContext || !attributeCanHaveEventModifier(attributeContext)) {
+        return null;
+    }
+
+    const attributeOffset = svelteDoc.getText().lastIndexOf(attributeContext.name, offset);
+
+    return getEventModifierHoverInfo(attributeContext, attributeOffset, offset);
+}
+
+function getTagHoverInfoAtOffset(
+    svelteDoc: SvelteDocument,
+    charactersOffset: number,
+    charactersAroundOffset: string,
+    offset: number
+): Hover | null {
+    const tag = getTagAtOffset(svelteDoc, charactersOffset, charactersAroundOffset, offset);
     if (!tag) {
         return null;
     }
@@ -91,3 +119,24 @@ const tagPossibilities: Array<{ tag: SvelteTag | ':else'; values: string[] }> = 
 const tagRegexp = new RegExp(
     `[\\s\\S]*{\\s*(${flatten(tagPossibilities.map((p) => p.values)).join('|')})(\\s|})`
 );
+function getEventModifierHoverInfo(
+    attributeContext: AttributeContext,
+    attributeOffset: number,
+    offset: number
+): Hover | null {
+    const { name } = attributeContext;
+
+    const modifierData = getModifierData();
+
+    const found = modifierData.find((modifier) =>
+        isAroundOffset(attributeOffset, name, modifier.modifier, offset)
+    );
+
+    if (!found) {
+        return null;
+    }
+
+    return {
+        contents: found.documentation
+    };
+}

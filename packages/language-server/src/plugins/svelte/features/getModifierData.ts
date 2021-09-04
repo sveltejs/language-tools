@@ -1,6 +1,8 @@
+import { MarkupContent, MarkupKind } from 'vscode-languageserver';
+
 export interface ModifierData {
     modifier: string;
-    documentation: string;
+    documentation: MarkupContent;
     modifiersInvalidWith?: string[];
 }
 
@@ -49,10 +51,13 @@ export function getModifierData(): ModifierData[] {
         }
     ].map((item) => ({
         ...item,
-        documentation: `\`${item.modifier}\` event modifier
+        documentation: {
+            kind: MarkupKind.Markdown,
+            value: `\`${item.modifier}\` event modifier
 
 ${item.documentation}
 
 https://svelte.dev/docs#on_element_event`
+        }
     }));
 }

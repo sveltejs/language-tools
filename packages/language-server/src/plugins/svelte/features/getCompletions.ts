@@ -12,7 +12,7 @@ import { SvelteTag, documentation, getLatestOpeningTag } from './SvelteTags';
 import { isInTag, Document } from '../../../lib/documents';
 import { AttributeContext, getAttributeContextAtPosition } from '../../../lib/documents/parseHtml';
 import { getModifierData } from './getModifierData';
-import { possiblyComponent } from '../../../utils';
+import { attributeCanHaveEventModifier } from './utils';
 
 const HTML_COMMENT_START = '<!--';
 
@@ -90,13 +90,7 @@ export function getCompletions(
 function getEventModifierCompletion(attributeContext: AttributeContext): CompletionList | null {
     const modifiers = getModifierData();
 
-    if (
-        !attributeContext ||
-        attributeContext.inValue ||
-        possiblyComponent(attributeContext.elementTag) ||
-        !attributeContext.name.startsWith('on:') ||
-        !attributeContext.name.includes('|')
-    ) {
+    if (!attributeContext || !attributeCanHaveEventModifier(attributeContext)) {
         return null;
     }
 
@@ -111,10 +105,7 @@ function getEventModifierCompletion(attributeContext: AttributeContext): Complet
         .map(
             (m): CompletionItem => ({
                 label: m.modifier,
-                documentation: {
-                    kind: MarkupKind.Markdown,
-                    value: m.documentation
-                },
+                documentation: m.documentation,
                 kind: CompletionItemKind.Event
             })
         );

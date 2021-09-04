@@ -168,7 +168,7 @@ export class SveltePlugin
             return null;
         }
 
-        return getHoverInfo(await this.getSvelteDoc(document), position);
+        return getHoverInfo(document, await this.getSvelteDoc(document), position);
     }
 
     async getCodeActions(

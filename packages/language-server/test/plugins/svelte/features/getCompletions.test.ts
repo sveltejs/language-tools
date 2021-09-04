@@ -140,7 +140,7 @@ describe('SveltePlugin#getCompletions', () => {
 
     describe('should return completion for event modifier', () => {
         const modifierData = getModifierData();
-        const allModifiers = modifierData.map(modifier => modifier.modifier);
+        const allModifiers = modifierData.map((modifier) => modifier.modifier);
 
         it('can provides modifiers', () => {
             expectCompletionsForModifier('<div on:click| />').toEqual(allModifiers);
@@ -148,17 +148,19 @@ describe('SveltePlugin#getCompletions', () => {
 
         it('can chain modifier and does not provide duplicated modifier', () => {
             expectCompletionsForModifier('<div on:click|stopPropagation| />').toEqual(
-                allModifiers.filter(modifier => modifier !== 'stopPropagation')
+                allModifiers.filter((modifier) => modifier !== 'stopPropagation')
             );
         });
 
-        it('can chain modifier and does not provide modifier that can\'t used together', () => {
+        it("can chain modifier and does not provide modifier that can't used together", () => {
             expectCompletionsForModifier('<div on:click|preventDefault| />').toEqual(
                 modifierData
-                    .filter(modifier =>
-                        modifier.modifier != 'preventDefault' &&
-                        !modifier.modifiersInvalidWith?.includes('preventDefault'))
-                    .map(modifier => modifier.modifier)
+                    .filter(
+                        (modifier) =>
+                            modifier.modifier != 'preventDefault' &&
+                            !modifier.modifiersInvalidWith?.includes('preventDefault')
+                    )
+                    .map((modifier) => modifier.modifier)
             );
         });
     });

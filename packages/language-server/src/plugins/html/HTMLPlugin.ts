@@ -256,12 +256,7 @@ export class HTMLPlugin
 
         const offset = document.offsetAt(position);
         const node = html.findNodeAt(offset);
-        if (
-            !node ||
-            possiblyComponent(node) ||
-            !node.tag ||
-            !this.isRenameAtTag(node, offset)
-        ) {
+        if (!node || possiblyComponent(node) || !node.tag || !this.isRenameAtTag(node, offset)) {
             return null;
         }
         const tagNameStart = node.start + '<'.length;

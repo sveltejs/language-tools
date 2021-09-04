@@ -4,11 +4,13 @@ import { getHoverInfo } from '../../../../src/plugins/svelte/features/getHoverIn
 import { SvelteDocument } from '../../../../src/plugins/svelte/SvelteDocument';
 import { documentation, SvelteTag } from '../../../../src/plugins/svelte/features/SvelteTags';
 import { Document } from '../../../../src/lib/documents';
+import { getModifierData } from '../../../../src/plugins/svelte/features/getModifierData';
 
 describe('SveltePlugin#getHoverInfo', () => {
     function expectHoverInfoFor(content: string, position: Position) {
-        const svelteDoc = new SvelteDocument(new Document('url', content));
-        const hover = getHoverInfo(svelteDoc, position);
+        const document = new Document('url', content);
+        const svelteDoc = new SvelteDocument(document);
+        const hover = getHoverInfo(document, svelteDoc, position);
         return {
             toEqual: (tag: SvelteTag | null) =>
                 assert.deepStrictEqual(hover, tag ? { contents: documentation[tag] } : null)
@@ -96,5 +98,26 @@ describe('SveltePlugin#getHoverInfo', () => {
                 expectHoverInfoFor(`{:${tag[1]} `, Position.create(0, 3)).toEqual(tag[0]);
             });
         });
+    });
+
+    function expectHoverInfoForEventModifier(content: string, position: Position) {
+        const document = new Document('url', content);
+        const svelteDoc = new SvelteDocument(document);
+        const hover = getHoverInfo(document, svelteDoc, position);
+        return {
+            toEqual: (expectedModifier: string) => {
+                const contents = getModifierData().find(
+                    (modifier) => modifier.modifier === expectedModifier
+                )?.documentation;
+                assert.deepStrictEqual(hover, { contents });
+            }
+        };
+    }
+
+    it('should return hover event modifier', () => {
+        expectHoverInfoForEventModifier(
+            '<div on:click|preventDefault />',
+            Position.create(0, 15)
+        ).toEqual('preventDefault');
     });
 });
