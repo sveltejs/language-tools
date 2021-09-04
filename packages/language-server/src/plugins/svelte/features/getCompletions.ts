@@ -112,7 +112,8 @@ function getEventModifierCompletion(attributeContext: AttributeContext): Complet
                 documentation: {
                     kind: MarkupKind.Markdown,
                     value: m.documentation
-                }
+                },
+                kind: CompletionItemKind.Event
             })
         );
 
