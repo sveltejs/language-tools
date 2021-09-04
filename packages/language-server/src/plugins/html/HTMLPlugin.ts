@@ -102,12 +102,23 @@ export class HTMLPlugin
                 )
             ]);
         }
+
         const results = this.isInComponentTag(html, document, position)
             ? // Only allow emmet inside component element tags.
               // Other attributes/events would be false positives.
               CompletionList.create([])
             : this.lang.doComplete(document, position, html);
         const items = this.toCompletionItems(results.items);
+
+        items.forEach((item) => {
+            if (item.label.startsWith('on:') && item.textEdit) {
+                item.textEdit = {
+                    ...item.textEdit,
+                    newText: item.textEdit.newText.replace('="$1"', '$2="$1"')
+                };
+            }
+        });
+
         return CompletionList.create(
             [
                 ...this.toCompletionItems(items),

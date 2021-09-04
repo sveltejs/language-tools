@@ -10,8 +10,9 @@ describe('SveltePlugin#getCompletions', () => {
         content: string,
         position: Position = Position.create(0, content.length)
     ) {
-        const svelteDoc = new SvelteDocument(new Document('url', content));
-        const completions = getCompletions(svelteDoc, position);
+        const document = new Document('url', content);
+        const svelteDoc = new SvelteDocument(document);
+        const completions = getCompletions(document, svelteDoc, position);
         return {
             toEqual: (expectedLabels: string[] | null) =>
                 assert.deepStrictEqual(
@@ -123,8 +124,9 @@ describe('SveltePlugin#getCompletions', () => {
 
     it('should return completion for component documentation comment', () => {
         const content = '<!--@';
-        const svelteDoc = new SvelteDocument(new Document('url', content));
-        const completions = getCompletions(svelteDoc, Position.create(0, content.length));
+        const document = new Document('url', content);
+        const svelteDoc = new SvelteDocument(document);
+        const completions = getCompletions(document, svelteDoc, Position.create(0, content.length));
         assert.deepStrictEqual(completions?.items?.[0].insertText, `component${EOL}$1${EOL}`);
     });
 });
