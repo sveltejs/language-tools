@@ -90,6 +90,7 @@ function preprocess(text: string) {
 export interface AttributeContext {
     name: string;
     inValue: boolean;
+    elementTag: Node;
     valueRange?: [number, number];
 }
 
@@ -122,6 +123,7 @@ export function getAttributeContextAtPosition(
 
             if (inTokenRange()) {
                 return {
+                    elementTag: tag,
                     name: currentAttributeName,
                     inValue: false
                 };
@@ -131,6 +133,7 @@ export function getAttributeContextAtPosition(
                 const nextToken = scanner.scan();
 
                 return {
+                    elementTag: tag,
                     name: currentAttributeName,
                     inValue: true,
                     valueRange: [
@@ -151,6 +154,7 @@ export function getAttributeContextAtPosition(
                 }
 
                 return {
+                    elementTag: tag,
                     name: currentAttributeName,
                     inValue: true,
                     valueRange: [start, end]

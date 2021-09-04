@@ -1,5 +1,6 @@
 import { URI } from 'vscode-uri';
 import { Position, Range } from 'vscode-languageserver';
+import { Node } from 'vscode-html-languageservice';
 
 export function clamp(num: number, min: number, max: number): number {
     return Math.max(min, Math.min(max, num));
@@ -225,4 +226,17 @@ export async function filterAsync<T>(
 
 export function getIndent(text: string) {
     return /^[ |\t]+/.exec(text)?.[0] ?? '';
+}
+
+/**
+ *
+ * The html language service is case insensitive, and would provide
+ * hover/ completion info for Svelte components like `Option` which have
+ * the same name like a html tag.
+ *
+ * Also, svelte directives like action and event modifier only work
+ * with element not component
+ */
+export function possiblyComponent(node: Node): boolean {
+    return !!node.tag?.[0].match(/[A-Z]/);
 }

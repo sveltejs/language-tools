@@ -12,6 +12,7 @@ import { SvelteTag, documentation, getLatestOpeningTag } from './SvelteTags';
 import { isInTag, Document } from '../../../lib/documents';
 import { AttributeContext, getAttributeContextAtPosition } from '../../../lib/documents/parseHtml';
 import { getModifierData } from './getModifierData';
+import { possiblyComponent } from '../../../utils';
 
 const HTML_COMMENT_START = '<!--';
 
@@ -92,6 +93,7 @@ function getEventModifierCompletion(attributeContext: AttributeContext): Complet
     if (
         !attributeContext ||
         attributeContext.inValue ||
+        possiblyComponent(attributeContext.elementTag) ||
         !attributeContext.name.startsWith('on:') ||
         !attributeContext.name.includes('|')
     ) {

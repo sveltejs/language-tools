@@ -32,6 +32,7 @@ import {
     LinkedEditingRangesProvider
 } from '../interfaces';
 import { isInsideMoustacheTag, toRange } from '../../lib/documents/utils';
+import { possiblyComponent } from '../../utils';
 
 export class HTMLPlugin
     implements HoverProvider, CompletionsProvider, RenameProvider, LinkedEditingRangesProvider
@@ -62,7 +63,7 @@ export class HTMLPlugin
         }
 
         const node = html.findNodeAt(document.offsetAt(position));
-        if (!node || this.possiblyComponent(node)) {
+        if (!node || possiblyComponent(node)) {
             return null;
         }
 
@@ -236,7 +237,7 @@ export class HTMLPlugin
         }
 
         const node = html.findNodeAt(document.offsetAt(position));
-        if (!node || this.possiblyComponent(node)) {
+        if (!node || possiblyComponent(node)) {
             return null;
         }
 
@@ -257,7 +258,7 @@ export class HTMLPlugin
         const node = html.findNodeAt(offset);
         if (
             !node ||
-            this.possiblyComponent(node) ||
+            possiblyComponent(node) ||
             !node.tag ||
             !this.isRenameAtTag(node, offset)
         ) {
@@ -285,16 +286,6 @@ export class HTMLPlugin
         }
 
         return { ranges };
-    }
-
-    /**
-     *
-     * The language service is case insensitive, and would provide
-     * hover info for Svelte components like `Option` which have
-     * the same name like a html tag.
-     */
-    private possiblyComponent(node: Node): boolean {
-        return !!node.tag?.[0].match(/[A-Z]/);
     }
 
     /**
