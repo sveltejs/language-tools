@@ -92,7 +92,9 @@ async function getDiagnostics(
         );
         return result;
     } catch (err) {
-        writer.failure(err);
+        if (err instanceof Error) {
+            writer.failure(err);
+        }
         return null;
     }
 }
