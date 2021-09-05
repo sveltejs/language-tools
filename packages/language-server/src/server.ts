@@ -188,7 +188,8 @@ export function startServer(options?: LSOptions) {
                         // of other completion providers
 
                         // Svelte
-                        ':'
+                        ':',
+                        '|'
                     ]
                 },
                 documentFormattingProvider: true,

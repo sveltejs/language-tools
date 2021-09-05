@@ -160,7 +160,7 @@ export class SveltePlugin
             return null;
         }
 
-        return getCompletions(svelteDoc, position);
+        return getCompletions(document, svelteDoc, position);
     }
 
     async doHover(document: Document, position: Position): Promise<Hover | null> {
@@ -168,7 +168,7 @@ export class SveltePlugin
             return null;
         }
 
-        return getHoverInfo(await this.getSvelteDoc(document), position);
+        return getHoverInfo(document, await this.getSvelteDoc(document), position);
     }
 
     async getCodeActions(

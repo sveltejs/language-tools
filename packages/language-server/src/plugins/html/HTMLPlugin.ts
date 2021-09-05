@@ -32,6 +32,7 @@ import {
     LinkedEditingRangesProvider
 } from '../interfaces';
 import { isInsideMoustacheTag, toRange } from '../../lib/documents/utils';
+import { possiblyComponent } from '../../utils';
 
 export class HTMLPlugin
     implements HoverProvider, CompletionsProvider, RenameProvider, LinkedEditingRangesProvider
@@ -62,7 +63,7 @@ export class HTMLPlugin
         }
 
         const node = html.findNodeAt(document.offsetAt(position));
-        if (!node || this.possiblyComponent(node)) {
+        if (!node || possiblyComponent(node)) {
             return null;
         }
 
@@ -102,12 +103,23 @@ export class HTMLPlugin
                 )
             ]);
         }
+
         const results = this.isInComponentTag(html, document, position)
             ? // Only allow emmet inside component element tags.
               // Other attributes/events would be false positives.
               CompletionList.create([])
             : this.lang.doComplete(document, position, html);
         const items = this.toCompletionItems(results.items);
+
+        items.forEach((item) => {
+            if (item.label.startsWith('on:') && item.textEdit) {
+                item.textEdit = {
+                    ...item.textEdit,
+                    newText: item.textEdit.newText.replace('="$1"', '$2="$1"')
+                };
+            }
+        });
+
         return CompletionList.create(
             [
                 ...this.toCompletionItems(items),
@@ -225,7 +237,7 @@ export class HTMLPlugin
         }
 
         const node = html.findNodeAt(document.offsetAt(position));
-        if (!node || this.possiblyComponent(node)) {
+        if (!node || possiblyComponent(node)) {
             return null;
         }
 
@@ -244,12 +256,7 @@ export class HTMLPlugin
 
         const offset = document.offsetAt(position);
         const node = html.findNodeAt(offset);
-        if (
-            !node ||
-            this.possiblyComponent(node) ||
-            !node.tag ||
-            !this.isRenameAtTag(node, offset)
-        ) {
+        if (!node || possiblyComponent(node) || !node.tag || !this.isRenameAtTag(node, offset)) {
             return null;
         }
         const tagNameStart = node.start + '<'.length;
@@ -274,16 +281,6 @@ export class HTMLPlugin
         }
 
         return { ranges };
-    }
-
-    /**
-     *
-     * The language service is case insensitive, and would provide
-     * hover info for Svelte components like `Option` which have
-     * the same name like a html tag.
-     */
-    private possiblyComponent(node: Node): boolean {
-        return !!node.tag?.[0].match(/[A-Z]/);
     }
 
     /**

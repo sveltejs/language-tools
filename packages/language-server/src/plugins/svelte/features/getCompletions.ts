@@ -5,10 +5,14 @@ import {
     CompletionList,
     CompletionItemKind,
     CompletionItem,
-    InsertTextFormat
+    InsertTextFormat,
+    MarkupKind
 } from 'vscode-languageserver';
 import { SvelteTag, documentation, getLatestOpeningTag } from './SvelteTags';
-import { isInTag } from '../../../lib/documents';
+import { isInTag, Document } from '../../../lib/documents';
+import { AttributeContext, getAttributeContextAtPosition } from '../../../lib/documents/parseHtml';
+import { getModifierData } from './getModifierData';
+import { attributeCanHaveEventModifier } from './utils';
 
 const HTML_COMMENT_START = '<!--';
 
@@ -26,6 +30,7 @@ const componentDocumentationCompletion: CompletionItem = {
 };
 
 export function getCompletions(
+    document: Document,
     svelteDoc: SvelteDocument,
     position: Position
 ): CompletionList | null {
@@ -39,18 +44,22 @@ export function getCompletions(
         .getText()
         // use last 10 characters, should cover 99% of all cases
         .substr(Math.max(offset - 10, 0), Math.min(offset, 10));
-    const notPreceededByOpeningBracket = !/[\s\S]*{\s*[#:/@]\w*$/.test(
-        lastCharactersBeforePosition
-    );
+    const precededByOpeningBracket = /[\s\S]*{\s*[#:/@]\w*$/.test(lastCharactersBeforePosition);
     if (isInStyleOrScript) {
         return null;
     }
 
-    if (notPreceededByOpeningBracket) {
-        return getComponentDocumentationCompletions();
+    if (precededByOpeningBracket) {
+        return getTagCompletionsWithinMoustache();
     }
 
-    return getTagCompletionsWithinMoustache();
+    const attributeContext = getAttributeContextAtPosition(document, position);
+
+    if (attributeContext) {
+        return getEventModifierCompletion(attributeContext);
+    }
+
+    return getComponentDocumentationCompletions();
 
     /**
      * Get completions for special svelte tags within moustache tags.
@@ -76,6 +85,32 @@ export function getCompletions(
         }
         return null;
     }
+}
+
+function getEventModifierCompletion(attributeContext: AttributeContext): CompletionList | null {
+    const modifiers = getModifierData();
+
+    if (!attributeContext || !attributeCanHaveEventModifier(attributeContext)) {
+        return null;
+    }
+
+    const items = modifiers
+        .filter(
+            (modifier) =>
+                !attributeContext.name.includes('|' + modifier.modifier) &&
+                !modifier.modifiersInvalidWith?.some((invalidWith) =>
+                    attributeContext.name.includes(invalidWith)
+                )
+        )
+        .map(
+            (m): CompletionItem => ({
+                label: m.modifier,
+                documentation: m.documentation,
+                kind: CompletionItemKind.Event
+            })
+        );
+
+    return CompletionList.create(items);
 }
 
 /**
@@ -207,7 +242,7 @@ function createCompletionItems(
                     kind: CompletionItemKind.Keyword,
                     preselect: true,
                     documentation: {
-                        kind: 'markdown',
+                        kind: MarkupKind.Markdown,
                         value: documentation[item.tag]
                     }
                 }
