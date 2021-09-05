@@ -87,6 +87,9 @@ export function extractIdentifiers(
             } else if (ts.isShorthandPropertyAssignment(child)) {
                 // in ts Ast { a = 1 } and { a } are both ShorthandPropertyAssignment
                 extractIdentifiers(child.name, identifiers);
+            } else if (ts.isPropertyAssignment(child)) {
+                // { a: b }
+                extractIdentifiers(child.initializer, identifiers);
             }
         });
     } else if (ts.isArrayLiteralExpression(node)) {
