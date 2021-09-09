@@ -1,0 +1,1 @@
+<svelte:body use:blink />
