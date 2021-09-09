@@ -290,10 +290,17 @@ export class ExportedNames {
 
     private getDoc(target: ts.BindingName) {
         let doc = undefined;
+        // Traverse `a` one up. If the declaration is part of a declaration list,
+        // the comment is at this point already
+        const variableDeclaration = target?.parent;
         // Traverse `a` up to `export let a`
         const exportExpr = target?.parent?.parent?.parent;
 
-        if (exportExpr) {
+        if (variableDeclaration) {
+            doc = getLastLeadingDoc(variableDeclaration);
+        }
+
+        if (exportExpr && !doc) {
             doc = getLastLeadingDoc(exportExpr);
         }
 
