@@ -21,7 +21,11 @@ export class ImplicitStoreValues {
     public addReactiveDeclaration = this.reactiveDeclarations.push.bind(this.reactiveDeclarations);
     public addImportStatement = this.importStatements.push.bind(this.importStatements);
 
-    constructor(storesResolvedInTemplate: string[] = [], private renderFunctionStart: number) {
+    constructor(
+        storesResolvedInTemplate: string[] = [],
+        private renderFunctionStart: number,
+        private storeFromImportsWrapper = (input: string) => input
+    ) {
         storesResolvedInTemplate.forEach(this.addStoreAcess);
     }
 
@@ -103,8 +107,8 @@ export class ImplicitStoreValues {
             return;
         }
 
-        const storeDeclarations = surroundWithIgnoreComments(
-            this.createStoreDeclarations(storeNames)
+        const storeDeclarations = this.storeFromImportsWrapper(
+            surroundWithIgnoreComments(this.createStoreDeclarations(storeNames))
         );
 
         str.appendRight(this.renderFunctionStart, storeDeclarations);
