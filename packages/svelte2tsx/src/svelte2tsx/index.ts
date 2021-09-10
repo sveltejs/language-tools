@@ -372,7 +372,11 @@ export function svelte2tsx(
         processModuleScriptTag(
             str,
             moduleScriptTag,
-            new ImplicitStoreValues(implicitStoreValues.getAccessedStores(), renderFunctionStart)
+            new ImplicitStoreValues(
+                implicitStoreValues.getAccessedStores(),
+                renderFunctionStart,
+                scriptTag ? undefined : (input) => `</>;${input}<>`
+            )
         );
     }
 
