@@ -16,7 +16,7 @@
         "lint": "prettier --check . && eslint \"packages/**/*.{ts,js}\""
     },
     "dependencies": {
-        "typescript": "^4.3.2"
+        "typescript": "^4.4.3"
     },
     "devDependencies": {
         "@sveltejs/eslint-config": "github:sveltejs/eslint-config#v5.2.0",

@@ -322,7 +322,7 @@ describe('DiagnosticsProvider', () => {
                 code: 2345,
                 message:
                     "Argument of type 'HTMLDivElement' is not assignable to parameter of type 'SVGElement & { getTotalLength(): number; }'.\n  " +
-                    "Type 'HTMLDivElement' is missing the following properties from type 'SVGElement': ownerSVGElement, viewportElement, correspondingElement, correspondingUseElement",
+                    "Type 'HTMLDivElement' is missing the following properties from type 'SVGElement': ownerSVGElement, viewportElement",
                 range: {
                     end: {
                         character: 19,
@@ -341,7 +341,7 @@ describe('DiagnosticsProvider', () => {
                 code: 2345,
                 message:
                     "Argument of type 'HTMLParagraphElement' is not assignable to parameter of type 'HTMLInputElement'.\n  " +
-                    "Type 'HTMLParagraphElement' is missing the following properties from type 'HTMLInputElement': accept, alt, autocomplete, checked, and 48 more.",
+                    "Type 'HTMLParagraphElement' is missing the following properties from type 'HTMLInputElement': accept, alt, autocomplete, capture, and 51 more.",
                 range: {
                     end: {
                         character: 12,
