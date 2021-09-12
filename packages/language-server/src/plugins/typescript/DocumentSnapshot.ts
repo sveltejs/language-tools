@@ -184,7 +184,7 @@ function preprocessSvelteFile(document: Document, options: SvelteSnapshotOptions
                 nrPrependedLines = 1;
             }
         }
-    } catch (e) {
+    } catch (e: any) {
         // Error start/end logic is different and has different offsets for line, so we need to convert that
         const start: Position = {
             line: e.start?.line - 1 ?? 0,

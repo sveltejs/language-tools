@@ -410,7 +410,7 @@ function wrapPreprocessors(preprocessors: PreprocessorGroup | PreprocessorGroup[
             wrappedPreprocessor.script = async (args: any) => {
                 try {
                     return await preprocessor.script!(args);
-                } catch (e) {
+                } catch (e: any) {
                     e.__source = TranspileErrorSource.Script;
                     throw e;
                 }
@@ -421,7 +421,7 @@ function wrapPreprocessors(preprocessors: PreprocessorGroup | PreprocessorGroup[
             wrappedPreprocessor.style = async (args: any) => {
                 try {
                     return await preprocessor.style!(args);
-                } catch (e) {
+                } catch (e: any) {
                     e.__source = TranspileErrorSource.Style;
                     throw e;
                 }
@@ -451,7 +451,7 @@ async function transpile(
                         processedScripts.push(res);
                     }
                     return res;
-                } catch (e) {
+                } catch (e: any) {
                     e.__source = TranspileErrorSource.Script;
                     throw e;
                 }
@@ -466,7 +466,7 @@ async function transpile(
                         processedStyles.push(res);
                     }
                     return res;
-                } catch (e) {
+                } catch (e: any) {
                     e.__source = TranspileErrorSource.Style;
                     throw e;
                 }
