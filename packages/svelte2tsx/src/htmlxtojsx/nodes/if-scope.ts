@@ -275,6 +275,9 @@ export class IfScope {
      * Adds a new child IfScope.
      */
     addNestedIf(expression: Node, str: MagicString): void {
+        if (!expression) {
+            return;
+        }
         const condition = this.getConditionInfo(str, expression);
         const ifScope = new IfScope(this.scope, { condition, type: IfType.If }, this);
         this.child = ifScope;
@@ -284,6 +287,9 @@ export class IfScope {
      * Adds a `else if` branch to the scope and enhances the condition accordingly.
      */
     addElseIf(expression: Node, str: MagicString): void {
+        if (!expression) {
+            return;
+        }
         const condition = this.getConditionInfo(str, expression);
         this.current = addElseIfCondition(this.current as IfCondition | ElseIfCondition, condition);
     }

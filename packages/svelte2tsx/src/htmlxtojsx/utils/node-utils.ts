@@ -225,3 +225,17 @@ export function getIdentifiersInIfExpression(
 export function usesLet(node: BaseNode): boolean {
     return node.attributes?.some((attr) => attr.type === 'Let');
 }
+
+export function fillMissingExpressionAndEnd<T extends BaseNode>(
+    node: T & { expression?: any },
+    blockStart: string,
+    originalStr: string
+): T & { expression: any } {
+    node.end = node.end || originalStr.length;
+    node.expression = node.expression || {};
+    node.expression.start =
+        node.expression?.start || originalStr.indexOf(blockStart, node.start) + blockStart.length;
+    node.expression.end =
+        node.expression?.end || originalStr.indexOf('}', node.start) || originalStr.length - 1;
+    return node as any;
+}
