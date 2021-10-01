@@ -39,7 +39,10 @@ export interface LanguageServiceContainer {
     fileBelongsToProject(filePath: string): boolean;
 }
 
+const maxProgramSizeForNonTsFiles = 20 * 1024 * 1024;
+
 const services = new Map<string, Promise<LanguageServiceContainer>>();
+const serviceSizeMap: Map<string, number> = new Map();
 
 export interface LanguageServiceDocumentContext {
     ambientTypesSource: string;
@@ -123,12 +126,14 @@ async function createLanguageService(
         './svelte-native-jsx.d.ts'
     ].map((f) => ts.sys.resolvePath(resolve(svelteTsPath, f)));
 
+    let languageServiceReducedMode = false;
+
     const host: ts.LanguageServiceHost = {
         getCompilationSettings: () => compilerOptions,
         getScriptFileNames: () =>
             Array.from(
                 new Set([
-                    ...snapshotManager.getProjectFileNames(),
+                    ...(languageServiceReducedMode ? [] : snapshotManager.getProjectFileNames()),
                     ...snapshotManager.getFileNames(),
                     ...svelteTsxFiles
                 ])
@@ -149,6 +154,16 @@ async function createLanguageService(
     const transformationConfig = {
         transformOnTemplateError: docContext.transformOnTemplateError
     };
+
+    const lastFileExceededProgramSize = getFilenameForExceededTotalSizeLimitForNonTsFiles(
+        compilerOptions,
+        tsconfigPath,
+        snapshotManager
+    );
+
+    if (lastFileExceededProgramSize) {
+        disableLanguageService();
+    }
 
     return {
         tsconfigPath,
@@ -233,6 +248,9 @@ async function createLanguageService(
 
     function updateProjectFiles(): void {
         snapshotManager.updateProjectFiles();
+        if (lastFileExceededProgramSize) {
+            disableLanguageService();
+        }
     }
 
     function hasFile(filePath: string): boolean {
@@ -350,4 +368,66 @@ async function createLanguageService(
     function getDefaultExclude() {
         return ['node_modules', ...ignoredBuildDirectories];
     }
+
+    function disableLanguageService() {
+        languageService.cleanupSemanticCache();
+        languageServiceReducedMode = true;
+    }
+}
+
+/**
+ * adopted from https://github.com/microsoft/TypeScript/blob/3c8e45b304b8572094c5d7fbb9cd768dbf6417c0/src/server/editorServices.ts#L1955
+ */
+function getFilenameForExceededTotalSizeLimitForNonTsFiles(
+    compilerOptions: ts.CompilerOptions,
+    tsconfigPath: string,
+    snapshotManager: SnapshotManager
+) {
+    if (compilerOptions.disableSizeLimit) {
+        return;
+    }
+
+    let availableSpace = maxProgramSizeForNonTsFiles;
+    serviceSizeMap.set(tsconfigPath, 0);
+
+    serviceSizeMap.forEach((size) => {
+        availableSpace -= size;
+    });
+
+    let totalNonTsFileSize = 0;
+
+    const filesNames = snapshotManager.getProjectFileNames();
+    for (const fileName of filesNames) {
+        if (
+            fileName.endsWith(ts.Extension.Dts) ||
+            fileName.endsWith(ts.Extension.Tsx) ||
+            fileName.endsWith(ts.Extension.Dts)
+        ) {
+            continue;
+        }
+
+        totalNonTsFileSize += ts.sys.getFileSize?.(fileName) ?? 0;
+
+        if (
+            totalNonTsFileSize > maxProgramSizeForNonTsFiles ||
+            totalNonTsFileSize > availableSpace
+        ) {
+            const top5LargestFiles = filesNames
+                .filter((name) => !name.endsWith('.ts'))
+                .map((name) => ({ name, size: ts.sys.getFileSize?.(name) ?? 0 }))
+                .sort((a, b) => b.size - a.size)
+                .slice(0, 5);
+
+            Logger.log(
+                `Non TS file size exceeded limit (${totalNonTsFileSize}). ` +
+                    `Largest files: ${top5LargestFiles
+                        .map((file) => `${file.name}:${file.size}`)
+                        .join(', ')}`
+            );
+
+            return fileName;
+        }
+    }
+
+    serviceSizeMap.set(tsconfigPath, totalNonTsFileSize);
 }
