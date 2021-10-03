@@ -71,9 +71,6 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
 
     async getDiagnostics(textDocument: TextDocumentIdentifier): Promise<Diagnostic[]> {
         const document = this.getDocument(textDocument.uri);
-        if (!document) {
-            throw new Error('Cannot call methods on an unopened document');
-        }
 
         if (
             (document.getFilePath()?.includes('/node_modules/') ||
@@ -101,9 +98,6 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
 
     async doHover(textDocument: TextDocumentIdentifier, position: Position): Promise<Hover | null> {
         const document = this.getDocument(textDocument.uri);
-        if (!document) {
-            throw new Error('Cannot call methods on an unopened document');
-        }
 
         return this.execute<Hover>(
             'doHover',
@@ -120,9 +114,6 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         cancellationToken?: CancellationToken
     ): Promise<CompletionList> {
         const document = this.getDocument(textDocument.uri);
-        if (!document) {
-            throw new Error('Cannot call methods on an unopened document');
-        }
 
         const completions = (
             await this.execute<CompletionList>(
@@ -164,10 +155,6 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
     ): Promise<CompletionItem> {
         const document = this.getDocument(textDocument.uri);
 
-        if (!document) {
-            throw new Error('Cannot call methods on an unopened document');
-        }
-
         const result = await this.execute<CompletionItem>(
             'resolveCompletion',
             [document, completionItem, cancellationToken],
@@ -183,9 +170,6 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         options: FormattingOptions
     ): Promise<TextEdit[]> {
         const document = this.getDocument(textDocument.uri);
-        if (!document) {
-            throw new Error('Cannot call methods on an unopened document');
-        }
 
         return flatten(
             await this.execute<TextEdit[]>(
@@ -202,9 +186,6 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         position: Position
     ): Promise<string | null> {
         const document = this.getDocument(textDocument.uri);
-        if (!document) {
-            throw new Error('Cannot call methods on an unopened document');
-        }
 
         return this.execute<string | null>(
             'doTagComplete',
@@ -216,9 +197,6 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
 
     async getDocumentColors(textDocument: TextDocumentIdentifier): Promise<ColorInformation[]> {
         const document = this.getDocument(textDocument.uri);
-        if (!document) {
-            throw new Error('Cannot call methods on an unopened document');
-        }
 
         return flatten(
             await this.execute<ColorInformation[]>(
@@ -236,9 +214,6 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         color: Color
     ): Promise<ColorPresentation[]> {
         const document = this.getDocument(textDocument.uri);
-        if (!document) {
-            throw new Error('Cannot call methods on an unopened document');
-        }
 
         return flatten(
             await this.execute<ColorPresentation[]>(
@@ -255,9 +230,6 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         cancellationToken: CancellationToken
     ): Promise<SymbolInformation[]> {
         const document = this.getDocument(textDocument.uri);
-        if (!document) {
-            throw new Error('Cannot call methods on an unopened document');
-        }
 
         return flatten(
             await this.execute<SymbolInformation[]>(
@@ -274,9 +246,6 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         position: Position
     ): Promise<DefinitionLink[] | Location[]> {
         const document = this.getDocument(textDocument.uri);
-        if (!document) {
-            throw new Error('Cannot call methods on an unopened document');
-        }
 
         const definitions = flatten(
             await this.execute<DefinitionLink[]>(
@@ -303,9 +272,6 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         cancellationToken: CancellationToken
     ): Promise<CodeAction[]> {
         const document = this.getDocument(textDocument.uri);
-        if (!document) {
-            throw new Error('Cannot call methods on an unopened document');
-        }
 
         return flatten(
             await this.execute<CodeAction[]>(
@@ -323,9 +289,6 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         args?: any[]
     ): Promise<WorkspaceEdit | string | null> {
         const document = this.getDocument(textDocument.uri);
-        if (!document) {
-            throw new Error('Cannot call methods on an unopened document');
-        }
 
         return await this.execute<WorkspaceEdit>(
             'executeCommand',
@@ -349,9 +312,6 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         position: Position
     ): Promise<Range | null> {
         const document = this.getDocument(textDocument.uri);
-        if (!document) {
-            throw new Error('Cannot call methods on an unopened document');
-        }
 
         return await this.execute<any>(
             'prepareRename',
@@ -367,9 +327,6 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         newName: string
     ): Promise<WorkspaceEdit | null> {
         const document = this.getDocument(textDocument.uri);
-        if (!document) {
-            throw new Error('Cannot call methods on an unopened document');
-        }
 
         return await this.execute<any>(
             'rename',
@@ -385,9 +342,6 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         context: ReferenceContext
     ): Promise<Location[] | null> {
         const document = this.getDocument(textDocument.uri);
-        if (!document) {
-            throw new Error('Cannot call methods on an unopened document');
-        }
 
         return await this.execute<any>(
             'findReferences',
@@ -404,9 +358,6 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         cancellationToken: CancellationToken
     ): Promise<SignatureHelp | null> {
         const document = this.getDocument(textDocument.uri);
-        if (!document) {
-            throw new Error('Cannot call methods on an unopened document');
-        }
 
         return await this.execute<any>(
             'getSignatureHelp',
@@ -432,9 +383,6 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         positions: Position[]
     ): Promise<SelectionRange[] | null> {
         const document = this.getDocument(textDocument.uri);
-        if (!document) {
-            throw new Error('Cannot call methods on an unopened document');
-        }
 
         try {
             return Promise.all(
@@ -461,9 +409,6 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         cancellationToken?: CancellationToken
     ) {
         const document = this.getDocument(textDocument.uri);
-        if (!document) {
-            throw new Error('Cannot call methods on an unopened document');
-        }
 
         return await this.execute<SemanticTokens>(
             'getSemanticTokens',
@@ -478,9 +423,6 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         position: Position
     ): Promise<LinkedEditingRanges | null> {
         const document = this.getDocument(textDocument.uri);
-        if (!document) {
-            throw new Error('Cannot call methods on an unopened document');
-        }
 
         return await this.execute<LinkedEditingRanges>(
             'getLinkedEditingRanges',
@@ -503,7 +445,11 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
     }
 
     private getDocument(uri: string) {
-        return this.documentsManager.get(uri);
+        const document = this.documentsManager.get(uri);
+        if (!document) {
+            throw new Error('Cannot call methods on an unopened document');
+        }
+        return document;
     }
 
     private execute<T>(
