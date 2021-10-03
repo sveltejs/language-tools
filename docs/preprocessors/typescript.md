@@ -20,9 +20,10 @@ To tell us to treat your script tags as typescript, add a `lang` attribute to yo
 </script>
 ```
 
-You may optionally want to add a `svelte.config.js` file - but it is not required as long as you only use TypeScript.Depending on your setup, this config file needs to be written either in ESM-style or CJS-Style.
+You may optionally want to add a `svelte.config.js` file - but it is not required as long as you only use TypeScript. Depending on your setup, this config file needs to be written either in ESM-style or CJS-Style.
 
 ESM-style (for everything with `"type": "module"` in its `package.json`, like SvelteKit):
+
 ```js
 import sveltePreprocess from 'svelte-preprocess';
 
@@ -30,7 +31,9 @@ export default {
     preprocess: sveltePreprocess()
 };
 ```
+
 CJS-style:
+
 ```js
 const sveltePreprocess = require('svelte-preprocess');
 
