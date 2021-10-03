@@ -20,6 +20,7 @@ import {
     isSvelteFilePath,
     getTsCheckComment
 } from './utils';
+import { performance } from 'perf_hooks';
 
 /**
  * An error which occured while trying to parse/preprocess the svelte file contents.
@@ -162,6 +163,7 @@ function preprocessSvelteFile(document: Document, options: SvelteSnapshotOptions
         : ts.ScriptKind.JSX;
 
     try {
+        performance.mark('svelte2tsx');
         const tsx = svelte2tsx(text, {
             filename: document.getFilePath() ?? undefined,
             isTsFile: scriptKind === ts.ScriptKind.TSX,
@@ -171,6 +173,8 @@ function preprocessSvelteFile(document: Document, options: SvelteSnapshotOptions
                 document.config?.compilerOptions?.accessors ??
                 document.config?.compilerOptions?.customElement
         });
+        performance.mark('svelte2tsx-end');
+        performance.measure('svelte2tsx', 'svelte2tsx', 'svelte2tsx-end');
         text = tsx.code;
         tsxMap = tsx.map;
         exportedNames = tsx.exportedNames;
@@ -187,7 +191,7 @@ function preprocessSvelteFile(document: Document, options: SvelteSnapshotOptions
     } catch (e: any) {
         // Error start/end logic is different and has different offsets for line, so we need to convert that
         const start: Position = {
-            line: (e.start?.line ?? 1) - 1,
+            line: e.start?.line - 1 ?? 0,
             character: e.start?.column ?? 0
         };
         const end: Position = e.end ? { line: e.end.line - 1, character: e.end.column } : start;
@@ -247,8 +251,15 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
         return this.text;
     }
 
-    getChangeRange() {
-        return undefined;
+    getChangeRange(oldSnapshot: SvelteDocumentSnapshot) {
+        if (
+            (oldSnapshot.parserError && !this.parserError) ||
+            (!oldSnapshot.parserError && this.parserError)
+        ) {
+            return undefined;
+        }
+
+        return getChangeRange(oldSnapshot, this);
     }
 
     positionAt(offset: number) {
@@ -328,8 +339,8 @@ export class JSOrTSDocumentSnapshot
         return this.text;
     }
 
-    getChangeRange() {
-        return undefined;
+    getChangeRange(oldSnapshot: JSOrTSDocumentSnapshot) {
+        return getChangeRange(oldSnapshot, this);
     }
 
     positionAt(offset: number) {
@@ -421,5 +432,61 @@ export class SvelteSnapshotFragment implements SnapshotFragment {
         if (this.mapper.destroy) {
             this.mapper.destroy();
         }
+    }
+}
+
+function getChangeRange(oldSnapshot: DocumentSnapshot, currentSnapshot: DocumentSnapshot) {
+    // TODO problem: doesn't work reliably, gets into a bad state seemingly random after some time
+    console.trace('version', oldSnapshot.version, '->', currentSnapshot.version);
+    try {
+        if (oldSnapshot.version >= currentSnapshot.version) {
+            return undefined;
+        }
+
+        performance.mark('oldnew');
+        const oldText = oldSnapshot.getFullText();
+        const currentText = currentSnapshot.getFullText();
+
+        let diffStart = 0;
+        for (let i = 0; i < currentText.length; i++) {
+            if (oldText.charAt(i) !== currentText.charAt(i)) {
+                diffStart = i;
+                break;
+            }
+        }
+
+        let lengthDiff = currentText.length - oldText.length;
+        let diffEnd = diffStart + 1;
+        for (let i = currentText.length; i > diffStart; i--) {
+            if (oldText.charAt(i - lengthDiff) !== currentText.charAt(i)) {
+                diffEnd = i;
+                break;
+            }
+        }
+
+        performance.mark('oldnewend');
+        performance.measure('oldnew', 'oldnew', 'oldnewend');
+        if (diffStart === 0 && diffEnd >= currentText.length - 1) {
+            return undefined;
+        } else {
+            console.log(
+                'diff is from',
+                diffStart,
+                'to',
+                diffEnd,
+                'with lengthdiff',
+                lengthDiff,
+                '::\n' + currentText.substring(diffStart, diffEnd)
+            );
+            if (oldSnapshot.version + 1 !== currentSnapshot.version) {
+                console.log('textnow:', currentText);
+            }
+            return ts.createTextChangeRange(
+                ts.createTextSpan(diffStart, diffEnd - diffStart),
+                diffEnd + lengthDiff - diffStart
+            );
+        }
+    } catch (e) {
+        return undefined;
     }
 }
