@@ -1,11 +1,5 @@
-import { ArrayPattern, ObjectPattern, Identifier } from 'estree';
-import {
-    Directive,
-    TemplateNode,
-    Transition,
-    MustacheTag,
-    Text
-} from 'svelte/types/compiler/interfaces';
+import { ArrayPattern, Identifier, ObjectPattern, Node } from 'estree';
+import { DirectiveType, TemplateNode } from 'svelte/types/compiler/interfaces';
 
 export interface NodeRange {
     start: number;
@@ -23,9 +17,21 @@ export interface WithName {
     name: string;
 }
 
-export type BaseNode = Exclude<TemplateNode, Text | MustacheTag | Directive | Transition>;
+// Copied from the Svelte type definitions
+export interface BaseNode {
+    start: number;
+    end: number;
+    type: string;
+    children?: TemplateNode[];
+    [prop_name: string]: any;
+}
 
-export type BaseDirective = Exclude<Directive, Transition>;
+export interface BaseDirective extends BaseNode {
+    type: DirectiveType;
+    expression: null | Node;
+    name: string;
+    modifiers: string[];
+}
 
 export interface Attribute extends BaseNode {
     value: BaseNode[] | true;
