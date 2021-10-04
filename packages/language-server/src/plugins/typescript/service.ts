@@ -163,7 +163,7 @@ async function createLanguageService(
     );
 
     if (lastFileExceededProgramSize) {
-        disableLanguageService();
+        reduceLanguageServiceCapability();
     }
 
     return {
@@ -251,11 +251,12 @@ async function createLanguageService(
         snapshotManager.updateProjectFiles();
         if (
             getFilenameForExceededTotalSizeLimitForNonTsFiles(
-            compilerOptions,
-            tsconfigPath,
-            snapshotManager
-        )) {
-            disableLanguageService();
+                compilerOptions,
+                tsconfigPath,
+                snapshotManager
+            )
+        ) {
+            reduceLanguageServiceCapability();
         }
     }
 
@@ -375,7 +376,12 @@ async function createLanguageService(
         return ['node_modules', ...ignoredBuildDirectories];
     }
 
-    function disableLanguageService() {
+    /**
+     * Disable usage of project files.
+     * running language service in a reduced mode for
+     * large projects with improperly excluded tsconfig.
+     */
+    function reduceLanguageServiceCapability() {
         languageService.cleanupSemanticCache();
         languageServiceReducedMode = true;
         docContext.notifyExceedSizeLimit?.();
