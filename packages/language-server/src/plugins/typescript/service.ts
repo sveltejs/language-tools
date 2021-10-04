@@ -249,7 +249,12 @@ async function createLanguageService(
 
     function updateProjectFiles(): void {
         snapshotManager.updateProjectFiles();
-        if (lastFileExceededProgramSize) {
+        if (
+            getFilenameForExceededTotalSizeLimitForNonTsFiles(
+            compilerOptions,
+            tsconfigPath,
+            snapshotManager
+        )) {
             disableLanguageService();
         }
     }
