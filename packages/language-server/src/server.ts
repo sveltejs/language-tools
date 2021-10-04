@@ -249,9 +249,9 @@ export function startServer(options?: LSOptions) {
     function notifyTsServiceExceedSizeLimit() {
         connection?.sendNotification(ShowMessageNotification.type, {
             message:
-                'Svelte language server detected large amount of js/svelte files. ' +
+                'Svelte language server detected a large amount of js/svelte files. ' +
                 'To enable project-wide JavaScript/TypeScript language features for svelte files,' +
-                'exclude large folders with source files that you do not work on.',
+                'exclude large folders in the tsconfig.json or jsconfig.json with source files that you do not work on.',
             type: MessageType.Warning
         });
     }
