@@ -13,7 +13,7 @@ import {
     ignoredBuildDirectories,
     SnapshotManager
 } from './SnapshotManager';
-import { ensureRealSvelteFilePath, findTsConfigPath } from './utils';
+import { ensureRealSvelteFilePath, findTsConfigPath, hasTsExtensions } from './utils';
 
 export interface LanguageServiceContainer {
     readonly tsconfigPath: string;
@@ -411,11 +411,7 @@ function getFilenameForExceededTotalSizeLimitForNonTsFiles(
 
     const filesNames = snapshotManager.getProjectFileNames();
     for (const fileName of filesNames) {
-        if (
-            fileName.endsWith(ts.Extension.Dts) ||
-            fileName.endsWith(ts.Extension.Tsx) ||
-            fileName.endsWith(ts.Extension.Dts)
-        ) {
+        if (hasTsExtensions(fileName)) {
             continue;
         }
 
@@ -426,7 +422,7 @@ function getFilenameForExceededTotalSizeLimitForNonTsFiles(
             totalNonTsFileSize > availableSpace
         ) {
             const top5LargestFiles = filesNames
-                .filter((name) => !name.endsWith('.ts'))
+                .filter((name) => !hasTsExtensions(name))
                 .map((name) => ({ name, size: ts.sys.getFileSize?.(name) ?? 0 }))
                 .sort((a, b) => b.size - a.size)
                 .slice(0, 5);
