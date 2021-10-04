@@ -64,6 +64,7 @@ export class SvelteCheck {
                 this.docManager,
                 [pathToUrl(workspacePath)],
                 this.configManager,
+                undefined,
                 true,
                 options.tsconfig
             );

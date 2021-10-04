@@ -49,6 +49,7 @@ export interface LanguageServiceDocumentContext {
     transformOnTemplateError: boolean;
     createDocument: (fileName: string, content: string) => Document;
     globalSnapshotsManager: GlobalSnapshotsManager;
+    notifyExceedSizeLimit: (() => void) | undefined;
 }
 
 export async function getService(
@@ -372,6 +373,7 @@ async function createLanguageService(
     function disableLanguageService() {
         languageService.cleanupSemanticCache();
         languageServiceReducedMode = true;
+        docContext.notifyExceedSizeLimit?.();
     }
 }
 

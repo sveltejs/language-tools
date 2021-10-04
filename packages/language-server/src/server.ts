@@ -145,7 +145,12 @@ export function startServer(options?: LSOptions) {
         pluginHost.register(
             new TypeScriptPlugin(
                 configManager,
-                new LSAndTSDocResolver(docManager, workspaceUris.map(normalizeUri), configManager)
+                new LSAndTSDocResolver(
+                    docManager,
+                    workspaceUris.map(normalizeUri),
+                    configManager,
+                    notifyTsServiceExceedSizeLimit
+                )
             )
         );
 
@@ -240,6 +245,16 @@ export function startServer(options?: LSOptions) {
             }
         };
     });
+
+    function notifyTsServiceExceedSizeLimit() {
+        connection?.sendNotification(ShowMessageNotification.type, {
+            message:
+                'Svelte language server detected large amount of js/svelte files. ' +
+                'To enable project-wide JavaScript/TypeScript language features for svelte files,' +
+                'exclude large folders with source files that you do not work on.',
+            type: MessageType.Warning
+        });
+    }
 
     connection.onExit(() => {
         watcher?.dispose();

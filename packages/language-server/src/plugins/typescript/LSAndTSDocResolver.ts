@@ -26,6 +26,7 @@ export class LSAndTSDocResolver {
         private readonly docManager: DocumentManager,
         private readonly workspaceUris: string[],
         private readonly configManager: LSConfigManager,
+        private readonly notifyExceedSizeLimit?: () => void,
         private readonly isSvelteCheck = false,
         private readonly tsconfigPath?: string
     ) {
@@ -69,7 +70,8 @@ export class LSAndTSDocResolver {
             ambientTypesSource: this.isSvelteCheck ? 'svelte-check' : 'svelte2tsx',
             createDocument: this.createDocument,
             transformOnTemplateError: !this.isSvelteCheck,
-            globalSnapshotsManager: this.globalSnapshotsManager
+            globalSnapshotsManager: this.globalSnapshotsManager,
+            notifyExceedSizeLimit: this.notifyExceedSizeLimit
         };
     }
 
