@@ -248,7 +248,14 @@ async function createLanguageService(
     }
 
     function updateProjectFiles(): void {
+        const projectFileCountBefore = snapshotManager.getProjectFileNames().length;
         snapshotManager.updateProjectFiles();
+        const projectFileCountAfter = snapshotManager.getProjectFileNames().length;
+
+        if (projectFileCountAfter <= projectFileCountBefore) {
+            return;
+        }
+
         if (
             getFilenameForExceededTotalSizeLimitForNonTsFiles(
                 compilerOptions,
