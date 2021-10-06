@@ -284,6 +284,11 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         );
     }
 
+    /**
+     * import quick fix requires the symbol name to be the same as where it's defined.
+     * But we have suffix on component default export to prevent conflict with
+     * a local variable. So we use auto-import completion as a workaround here.
+     */
     private getComponentImportQuickFix(
         start: number,
         end: number,
