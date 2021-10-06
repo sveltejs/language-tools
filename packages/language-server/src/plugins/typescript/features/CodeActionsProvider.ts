@@ -21,9 +21,9 @@ import { flatten, getIndent, isNotNullOrUndefined, modifyLines, pathToUrl } from
 import { CodeActionsProvider } from '../../interfaces';
 import { SnapshotFragment, SvelteSnapshotFragment } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
-import { convertRange } from '../utils';
+import { changeSvelteComponentName, convertRange } from '../utils';
 import { CompletionsProviderImpl } from './CompletionProvider';
-import { isNoTextSpanInGeneratedCode, SnapshotFragmentMap } from './utils';
+import { findContainingNode, isNoTextSpanInGeneratedCode, SnapshotFragmentMap } from './utils';
 
 interface RefactorArgs {
     type: 'refactor';
@@ -187,10 +187,15 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             userPreferences
         );
 
+        const componentQuickFix = errorCodes.includes(2304)
+            ? this.getComponentImportQuickFix(start, end, lang, tsDoc.filePath, userPreferences) ??
+              []
+            : [];
+
         const docs = new SnapshotFragmentMap(this.lsAndTsDocResolver);
         docs.set(tsDoc.filePath, { fragment, snapshot: tsDoc });
 
-        const codeActionsPromises = codeFixes.map(async (fix) => {
+        const codeActionsPromises = codeFixes.concat(componentQuickFix).map(async (fix) => {
             const documentChangesPromises = fix.changes.map(async (change) => {
                 const { snapshot, fragment } = await docs.retrieve(change.fileName);
                 return TextDocumentEdit.create(
@@ -276,6 +281,67 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             codeAction.edit?.documentChanges?.every(
                 (change) => (<TextDocumentEdit>change).edits.length > 0
             )
+        );
+    }
+
+    private getComponentImportQuickFix(
+        start: number,
+        end: number,
+        lang: ts.LanguageService,
+        filePath: string,
+        userPreferences: ts.UserPreferences
+    ): ts.CodeFixAction[] | undefined {
+        const sourceFile = lang.getProgram()?.getSourceFile(filePath);
+
+        if (!sourceFile) {
+            return;
+        }
+
+        const node = findContainingNode(
+            sourceFile,
+            {
+                start,
+                length: end - start
+            },
+            (node): node is ts.JsxOpeningLikeElement | ts.JsxClosingElement =>
+                ts.isJsxClosingElement(node) || ts.isJsxOpeningLikeElement(node)
+        );
+
+        if (!node) {
+            return;
+        }
+
+        const completion = lang.getCompletionsAtPosition(
+            filePath,
+            node.tagName.getEnd(),
+            userPreferences
+        );
+
+        if (!completion) {
+            return;
+        }
+
+        const name = node.tagName.getText();
+        const suffixedName = name + '__SvelteComponent_';
+        const toFix = (c: ts.CompletionEntry) =>
+            lang
+                .getCompletionEntryDetails(
+                    filePath,
+                    end,
+                    c.name,
+                    {},
+                    c.source,
+                    userPreferences,
+                    c.data
+                )
+                ?.codeActions?.map((a) => ({
+                    ...a,
+                    description: changeSvelteComponentName(a.description),
+                    fixName: 'import'
+                })) ?? [];
+
+        return flatten(
+            completion.entries.filter((c) => c.name === name || c.name === suffixedName).map(toFix)
         );
     }
 

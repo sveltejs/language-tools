@@ -313,3 +313,7 @@ export function getDiagnosticTag(diagnostic: ts.Diagnostic): DiagnosticTag[] {
     }
     return tags;
 }
+
+export function changeSvelteComponentName(name: string) {
+    return name.replace(/(\w+)__SvelteComponent_/, '$1');
+}

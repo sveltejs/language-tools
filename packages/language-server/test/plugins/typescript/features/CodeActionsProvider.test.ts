@@ -274,6 +274,52 @@ describe('CodeActionsProvider', () => {
         ]);
     });
 
+    it('provides quickfix for component import', async () => {
+        const { provider, document } = setup('codeactions.svelte');
+
+        const codeActions = await provider.getCodeActions(
+            document,
+            Range.create(Position.create(12, 1), Position.create(12, 1)),
+            {
+                diagnostics: [
+                    {
+                        code: 2304,
+                        message: "Cannot find name 'Empty'.",
+                        range: Range.create(Position.create(12, 1), Position.create(12, 6)),
+                        source: 'ts'
+                    }
+                ],
+                only: [CodeActionKind.QuickFix]
+            }
+        );
+
+        assert.deepStrictEqual(codeActions, <CodeAction[]>[
+            {
+                edit: {
+                    documentChanges: [
+                        {
+                            edits: [
+                                {
+                                    newText: "import Empty from '../empty.svelte';\r\n",
+                                    range: {
+                                        end: Position.create(5, 0),
+                                        start: Position.create(5, 0)
+                                    }
+                                }
+                            ],
+                            textDocument: {
+                                uri: getUri('codeactions.svelte'),
+                                version: null
+                            }
+                        }
+                    ]
+                },
+                kind: 'quickfix',
+                title: 'Import default \'Empty\' from module "../empty.svelte"'
+            }
+        ]);
+    });
+
     it('organizes imports', async () => {
         const { provider, document } = setup('codeactions.svelte');
 
