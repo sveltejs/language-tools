@@ -4,14 +4,14 @@ The svelte-language-server and therefore the VSCode extension can only handle CS
 
 ## PostCSS
 
-1. Setup you build and `svelte.config.js` ([general info](./in-general.md)) correctly and add a `postcss.config.js`. We recommend using [svelte-preprocess](https://github.com/sveltejs/svelte-preprocess/blob/master/docs/preprocessing.md#postcss). For the `svelte.config.js`, this should be enough:
+1. Setup you build and `svelte.config.js` ([general info](./in-general.md)) correctly and add a `postcss.config.cjs` (note the `cjs` ending; you need to write the config in CommonJS style currently, more on that below). We recommend using [svelte-preprocess](https://github.com/sveltejs/svelte-preprocess/blob/master/docs/preprocessing.md#postcss). For the `svelte.config.js`, this should be enough:
 
 ```js
-const sveltePreprocess = require('svelte-preprocess');
-module.exports = { preprocess: sveltePreprocess({ postcss: true }) };
+import sveltePreprocess from 'svelte-preprocess';
+export default { preprocess: sveltePreprocess({ postcss: true }) };
 ```
 
-Note that within your config files you can only use node-syntax, things like `import ...` or `export const ...` are not allowed.
+Note that this assumes that you have a ESM-style project, which means there's `"type": "module"` in your project's `package.json`. If not, you need to use CommonJS in your `svelte.config.js`, things like `import ...` or `export const ...` are not allowed. You then also switch the `postcss.config` `cjs` file ending to `js`.
 
 2. Either add `lang="postcss"` to each of your `<style>` tags where you plan on using PostCSS, or disable CSS diagnostics completely by adding `"svelte.plugin.css.diagnostics.enable": false` within your settings. If you still want diagnostics, install the [Stylelint VSCode extension](https://marketplace.visualstudio.com/items?itemName=stylelint.vscode-stylelint). If you want better syntax highlighting, install the [PostCSS VSCode extension](https://marketplace.visualstudio.com/items?itemName=csstools.postcss).
 
