@@ -313,3 +313,11 @@ export function getDiagnosticTag(diagnostic: ts.Diagnostic): DiagnosticTag[] {
     }
     return tags;
 }
+
+export function hasTsExtensions(fileName: string) {
+    return (
+        fileName.endsWith(ts.Extension.Dts) ||
+        fileName.endsWith(ts.Extension.Tsx) ||
+        fileName.endsWith(ts.Extension.Ts)
+    );
+}
