@@ -39,8 +39,7 @@ export interface LanguageServiceContainer {
     fileBelongsToProject(filePath: string): boolean;
 }
 
-const maxProgramSizeForNonTsFiles = 20 * 1024 * 1024;
-
+const maxProgramSizeForNonTsFiles = 20 * 1024 * 1024; // 20 MB
 const services = new Map<string, Promise<LanguageServiceContainer>>();
 const serviceSizeMap: Map<string, number> = new Map();
 
@@ -156,15 +155,7 @@ async function createLanguageService(
         transformOnTemplateError: docContext.transformOnTemplateError
     };
 
-    const lastFileExceededProgramSize = getFilenameForExceededTotalSizeLimitForNonTsFiles(
-        compilerOptions,
-        tsconfigPath,
-        snapshotManager
-    );
-
-    if (lastFileExceededProgramSize) {
-        reduceLanguageServiceCapability();
-    }
+    reduceLanguageServiceCapabilityIfFileSizeTooBig();
 
     return {
         tsconfigPath,
@@ -256,15 +247,7 @@ async function createLanguageService(
             return;
         }
 
-        if (
-            getFilenameForExceededTotalSizeLimitForNonTsFiles(
-                compilerOptions,
-                tsconfigPath,
-                snapshotManager
-            )
-        ) {
-            reduceLanguageServiceCapability();
-        }
+        reduceLanguageServiceCapabilityIfFileSizeTooBig();
     }
 
     function hasFile(filePath: string): boolean {
@@ -388,23 +371,25 @@ async function createLanguageService(
      * running language service in a reduced mode for
      * large projects with improperly excluded tsconfig.
      */
-    function reduceLanguageServiceCapability() {
-        languageService.cleanupSemanticCache();
-        languageServiceReducedMode = true;
-        docContext.notifyExceedSizeLimit?.();
+    function reduceLanguageServiceCapabilityIfFileSizeTooBig() {
+        if (exceedsTotalSizeLimitForNonTsFiles(compilerOptions, tsconfigPath, snapshotManager)) {
+            languageService.cleanupSemanticCache();
+            languageServiceReducedMode = true;
+            docContext.notifyExceedSizeLimit?.();
+        }
     }
 }
 
 /**
  * adopted from https://github.com/microsoft/TypeScript/blob/3c8e45b304b8572094c5d7fbb9cd768dbf6417c0/src/server/editorServices.ts#L1955
  */
-function getFilenameForExceededTotalSizeLimitForNonTsFiles(
+function exceedsTotalSizeLimitForNonTsFiles(
     compilerOptions: ts.CompilerOptions,
     tsconfigPath: string,
     snapshotManager: SnapshotManager
-) {
+): boolean {
     if (compilerOptions.disableSizeLimit) {
-        return;
+        return false;
     }
 
     let availableSpace = maxProgramSizeForNonTsFiles;
@@ -416,19 +401,16 @@ function getFilenameForExceededTotalSizeLimitForNonTsFiles(
 
     let totalNonTsFileSize = 0;
 
-    const filesNames = snapshotManager.getProjectFileNames();
-    for (const fileName of filesNames) {
+    const fileNames = snapshotManager.getProjectFileNames();
+    for (const fileName of fileNames) {
         if (hasTsExtensions(fileName)) {
             continue;
         }
 
         totalNonTsFileSize += ts.sys.getFileSize?.(fileName) ?? 0;
 
-        if (
-            totalNonTsFileSize > maxProgramSizeForNonTsFiles ||
-            totalNonTsFileSize > availableSpace
-        ) {
-            const top5LargestFiles = filesNames
+        if (totalNonTsFileSize > availableSpace) {
+            const top5LargestFiles = fileNames
                 .filter((name) => !hasTsExtensions(name))
                 .map((name) => ({ name, size: ts.sys.getFileSize?.(name) ?? 0 }))
                 .sort((a, b) => b.size - a.size)
@@ -441,9 +423,10 @@ function getFilenameForExceededTotalSizeLimitForNonTsFiles(
                         .join(', ')}`
             );
 
-            return fileName;
+            return true;
         }
     }
 
     serviceSizeMap.set(tsconfigPath, totalNonTsFileSize);
+    return false;
 }

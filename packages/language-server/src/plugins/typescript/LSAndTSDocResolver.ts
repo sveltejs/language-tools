@@ -19,6 +19,7 @@ export class LSAndTSDocResolver {
      * @param docManager
      * @param workspaceUris
      * @param configManager
+     * @param notifyExceedSizeLimit
      * @param isSvelteCheck True, if used in the context of svelte-check
      * @param tsconfigPath This should only be set via svelte-check. Makes sure all documents are resolved to that tsconfig. Has to be absolute.
      */
