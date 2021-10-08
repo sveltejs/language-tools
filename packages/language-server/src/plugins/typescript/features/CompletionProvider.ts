@@ -28,6 +28,7 @@ import { SvelteDocumentSnapshot, SvelteSnapshotFragment } from '../DocumentSnaps
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { getMarkdownDocumentation } from '../previewer';
 import {
+    changeSvelteComponentName,
     convertRange,
     getCommitCharactersForScriptElement,
     isInScript,
@@ -306,7 +307,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         const hasModifier = Boolean(comp.kindModifiers);
         const isSvelteComp = this.isSvelteComponentImport(name);
         if (isSvelteComp) {
-            name = this.changeSvelteComponentName(name);
+            name = changeSvelteComponentName(name);
 
             if (this.isExistingSvelteComponentImport(fragment, name, comp.source)) {
                 return null;
@@ -327,7 +328,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             return {
                 label: name,
                 isSvelteComp,
-                insertText: this.changeSvelteComponentName(insertText),
+                insertText: changeSvelteComponentName(insertText),
                 replacementSpan: comp.replacementSpan
             };
         }
@@ -458,7 +459,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
 
     private getCompletionDocument(compDetail: ts.CompletionEntryDetails) {
         const { sourceDisplay, documentation: tsDocumentation, displayParts, tags } = compDetail;
-        let detail: string = this.changeSvelteComponentName(ts.displayPartsToString(displayParts));
+        let detail: string = changeSvelteComponentName(ts.displayPartsToString(displayParts));
 
         if (sourceDisplay) {
             const importPath = ts.displayPartsToString(sourceDisplay);
@@ -578,12 +579,8 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         return className.endsWith('__SvelteComponent_');
     }
 
-    private changeSvelteComponentName(name: string) {
-        return name.replace(/(\w+)__SvelteComponent_/, '$1');
-    }
-
     private changeComponentImport(importText: string, actionTriggeredInScript: boolean) {
-        const changedName = this.changeSvelteComponentName(importText);
+        const changedName = changeSvelteComponentName(importText);
         if (importText !== changedName || !actionTriggeredInScript) {
             // For some reason, TS sometimes adds the `type` modifier. Remove it
             // in case of Svelte component imports or if import triggered from markup.

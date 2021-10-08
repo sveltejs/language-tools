@@ -314,6 +314,10 @@ export function getDiagnosticTag(diagnostic: ts.Diagnostic): DiagnosticTag[] {
     return tags;
 }
 
+export function changeSvelteComponentName(name: string) {
+    return name.replace(/(\w+)__SvelteComponent_/, '$1');
+}
+
 export function hasTsExtensions(fileName: string) {
     return (
         fileName.endsWith(ts.Extension.Dts) ||
