@@ -187,7 +187,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             userPreferences
         );
 
-        const componentQuickFix = errorCodes.includes(2304)
+        const componentQuickFix = errorCodes.includes(2304) // "Cannot find name '...'."
             ? this.getComponentImportQuickFix(start, end, lang, tsDoc.filePath, userPreferences) ??
               []
             : [];
