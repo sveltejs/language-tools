@@ -99,7 +99,7 @@ async function createParserErrorDiagnostic(error: any, document: Document) {
                     '\nIf you use typescript with `svelte-preprocess`, did you add `lang="ts"` to your `script` tag? ';
             } else {
                 diagnostic.message +=
-                    '\nIf you use less/SCSS with `svelte-preprocess`, did you add `lang="scss"`/`lang="less"` to you `style` tag? ' +
+                    '\nIf you use less/SCSS with `svelte-preprocess`, did you add `lang="scss"`/`lang="less"` to your `style` tag? ' +
                     scssNodeRuntimeHint;
             }
             diagnostic.message +=
