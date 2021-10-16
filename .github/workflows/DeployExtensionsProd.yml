@@ -36,7 +36,7 @@ jobs:
           yarn install
 
           # Just a hard constraint from the vscode marketplace's usage of azure tokens
-          echo "Once a year this expires, tell Orta to access https://dev.azure.com/ortatherox0608/_usersSettings/tokens to get a new one"
+          echo "Once a year this expires, tell Orta to access https://dev.azure.com/ortatherox0608/_usersSettings/tokens (logging in with GitHub) to get a new one"
 
           # Ship it
           npx vsce publish --yarn -p $VSCE_TOKEN
