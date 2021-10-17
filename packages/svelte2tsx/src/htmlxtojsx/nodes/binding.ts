@@ -47,7 +47,18 @@ export function handleBinding(
     if (attr.name === 'this' && supportsBindThis.includes(el.type)) {
         const thisType = getThisType(el);
 
-        if (thisType) {
+        if (el.type === 'InlineComponent') {
+            str.overwrite(attr.start, attr.expression.start, '{...__sveltets_1_empty((');
+            str.appendLeft(attr.expression.end, ' = __sveltets_1_instanceOf(');
+            if (el.name === 'svelte:component') {
+                str.copy(el.expression.start, el.expression.end, attr.expression.end);
+            } else {
+                str.appendLeft(attr.expression.end, thisType);
+            }
+            str.overwrite(attr.expression.end, attr.end, ') || null))}');
+
+            return;
+        } else if (thisType) {
             str.remove(attr.start, attr.expression.start);
             str.appendLeft(attr.expression.start, `{...__sveltets_1_ensureType(${thisType}, `);
             str.overwrite(attr.expression.end, attr.end, ')}');
