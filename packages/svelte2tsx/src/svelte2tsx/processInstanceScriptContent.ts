@@ -132,8 +132,12 @@ export function processInstanceScriptContent(
         // handle $store++, $store--, ++$store, --$store
         if (
             (ts.isPrefixUnaryExpression(parent) || ts.isPostfixUnaryExpression(parent)) &&
-            parent.operator !==
-                ts.SyntaxKind.ExclamationToken /* `!$store` does not need processing */
+            ![
+                ts.SyntaxKind.ExclamationToken, // !$store
+                ts.SyntaxKind.PlusToken, // +$store
+                ts.SyntaxKind.MinusToken, // -$store
+                ts.SyntaxKind.TildeToken // ~$store
+            ].includes(parent.operator) /* `!$store` etc does not need processing */
         ) {
             let simpleOperator: string;
             if (parent.operator === ts.SyntaxKind.PlusPlusToken) {
