@@ -59,11 +59,6 @@ declare namespace svelte.JSX {
     type TransitionEventHandler<T extends EventTarget> = EventHandler<TransitionEvent, T>;
     type MessageEventHandler<T extends EventTarget> = EventHandler<MessageEvent, T>;
 
-    type ClassNameBase = boolean | string | number | void | null;
-    type ClassName = string | Array<ClassNameBase | ClassNameBase[]> | {
-      [key: string]: boolean;
-    }
-
     // See CSS 3 CSS-wide keywords https://www.w3.org/TR/css3-values/#common-keywords
     // See CSS 3 Explicit Defaulting https://www.w3.org/TR/css-cascade-3/#defaulting-keywords
     // "all CSS properties can accept these values"
@@ -414,11 +409,9 @@ declare namespace svelte.JSX {
     }
 
     interface HTMLAttributes<T extends EventTarget> extends AriaAttributes, DOMAttributes<T> {
-      // jsx-dom-specific Attributes
-      class?: ClassName | undefined;
-      dataset?: object | undefined; // eslint-disable-line
-
       // Standard HTML Attributes
+      class?: string | undefined;
+      dataset?: object | undefined; // eslint-disable-line
       accept?: string | undefined;
       acceptcharset?: string | undefined;
       accesskey?: string | undefined;
@@ -441,7 +434,6 @@ declare namespace svelte.JSX {
       checked?: boolean | undefined;
       cite?: string | undefined;
       classid?: string | undefined;
-      classname?: ClassName | undefined;
       cols?: number | undefined;
       colspan?: number | undefined;
       content?: string | undefined;
