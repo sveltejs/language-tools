@@ -48,6 +48,16 @@ export function handleBinding(
         const thisType = getThisType(el);
 
         if (el.type === 'InlineComponent') {
+            // bind:this is effectively only works bottom up - the variable is updated by the element, not
+            // the other way round. So we check if the instance is assignable to the variable. We get the
+            // instance from the class with instanceOf. The class for svelte:component can be anything
+            // specified in the this={x} expression - so we copy its contents.
+            // TODO: For svelte:self, getThisType returns effectively nothing, so it's not typechecked
+            // In other cases, it's just the Component class.
+            //
+            // If the component unmounts (it's inside an if block, or svelte:component this={null},
+            // the value also becomes null, so we add that to the clause as well.
+
             str.overwrite(attr.start, attr.expression.start, '{...__sveltets_1_empty((');
             str.appendLeft(attr.expression.end, ' = __sveltets_1_instanceOf(');
             if (el.name === 'svelte:component') {

@@ -27,11 +27,11 @@
 
 <Component                                                                                                                                            {/**
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
-    {...__sveltets_1_ensureType(Component, bar)}                                                                                                      {/**
-   ╚{...__sveltets_1_ensureType(Component,•bar)}↲    [generated] line 18                                                                              
-   ╚                                       bar} ↲                                                                                                     
-   ╚           bar}↲                                                                                                                                  
-   ╚bind:this={bar}↲                                 [original] line 16                                                                               
+    {...__sveltets_1_empty((bar = __sveltets_1_instanceOf(Component) || null))}                                                                       {/**
+   ╚{...__sveltets_1_empty((bar•=•__sveltets_1_instanceOf(Component)•||•null))}↲    [generated] line 18                                               
+   ╚b                       bar                                    }           ↲                                                                      
+   ╚b          bar}↲                                                                                                                                  
+   ╚bind:this={bar}↲                                                                [original] line 16                                                
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
 /></>                                                                                                                                                 {/**
 /></>↲    [generated] line 19                                                                                                                         
