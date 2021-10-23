@@ -40,30 +40,12 @@ function parseAttributes(
 }
 
 const regexIf = new RegExp('{#if\\s.*?}', 'gms');
-const regexIfElseIf = new RegExp('{:else if\\s.*?}', 'gms');
 const regexIfEnd = new RegExp('{/if}', 'gms');
 const regexEach = new RegExp('{#each\\s.*?}', 'gms');
 const regexEachEnd = new RegExp('{/each}', 'gms');
 const regexAwait = new RegExp('{#await\\s.*?}', 'gms');
 const regexAwaitEnd = new RegExp('{/await}', 'gms');
 const regexHtml = new RegExp('{@html\\s.*?', 'gms');
-
-/**
- * if-blocks can contain the `<` operator, which mistakingly is
- * parsed as a "open tag" character by the html parser.
- * To prevent this, just replace the whole content inside the if with whitespace.
- */
-function blankIfBlocks(text: string): string {
-    return text
-        .replace(regexIf, (substr) => {
-            return '{#if' + substr.replace(/[^\n]/g, ' ').substring(4, substr.length - 1) + '}';
-        })
-        .replace(regexIfElseIf, (substr) => {
-            return (
-                '{:else if' + substr.replace(/[^\n]/g, ' ').substring(9, substr.length - 1) + '}'
-            );
-        });
-}
 
 /**
  * Extracts a tag (style or script) from the given text
@@ -77,7 +59,6 @@ function extractTags(
     tag: 'script' | 'style' | 'template',
     html?: HTMLDocument
 ): TagInformation[] {
-    text = blankIfBlocks(text);
     const rootNodes = html?.roots || parseHtml(text).roots;
     const matchedNodes = rootNodes
         .filter((node) => node.tag === tag)
@@ -404,7 +385,26 @@ export function getLangAttribute(...tags: Array<TagInformation | null>): string 
     return attribute.replace(/^text\//, '');
 }
 
-export function isInsideMoustacheTag(html: string, tagStart: number, position: number) {
-    const charactersInNode = html.substring(tagStart, position);
-    return charactersInNode.lastIndexOf('{') > charactersInNode.lastIndexOf('}');
+/**
+ * Checks whether given position is inside a moustache tag (which includes control flow tags)
+ * using a simple bracket matching heuristic which might fail under conditions like
+ * `{#if {a: true}.a}`
+ */
+export function isInsideMoustacheTag(html: string, tagStart: number | null, position: number) {
+    if (tagStart === null) {
+        // Not inside <tag ... >
+        const charactersBeforePosition = html.substring(0, position);
+        return (
+            Math.max(
+                // TODO make this just check for '{'?
+                // Theoretically, someone could do {a < b} in a simple moustache tag
+                charactersBeforePosition.lastIndexOf('{#'),
+                charactersBeforePosition.lastIndexOf('{:')
+            ) > charactersBeforePosition.lastIndexOf('}')
+        );
+    } else {
+        // Inside <tag ... >
+        const charactersInNode = html.substring(tagStart, position);
+        return charactersInNode.lastIndexOf('{') > charactersInNode.lastIndexOf('}');
+    }
 }
