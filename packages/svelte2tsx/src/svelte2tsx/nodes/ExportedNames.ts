@@ -10,6 +10,7 @@ export function is$$PropsDeclaration(
 
 interface ExportedName {
     isLet: boolean;
+    identifierEnd: number;
     type?: string;
     identifierText?: string;
     required?: boolean;
@@ -36,9 +37,17 @@ export class ExportedNames {
             const isLet = node.declarationList.flags === ts.NodeFlags.Let;
             const isConst = node.declarationList.flags === ts.NodeFlags.Const;
 
-            this.handleExportedVariableDeclarationList(node.declarationList, (_, ...args) =>
-                this.addExport(...args)
-            );
+            this.handleExportedVariableDeclarationList(node.declarationList, (_, ...args) => {
+                this.addExport(...args);
+                ts.forEachChild(_, (node) => {
+                    if (
+                        ts.isVariableDeclaration(node) &&
+                        ts.isIdentifier(node.name) &&
+                        !node.type
+                    ) {
+                    }
+                });
+            });
             if (isLet) {
                 this.propTypeAssertToUserDefined(node.declarationList);
             } else if (isConst) {
@@ -233,6 +242,7 @@ export class ExportedNames {
         if (target && ts.isIdentifier(target)) {
             this.possibleExports.set(name.text, {
                 declaration,
+                identifierEnd: name.getEnd() + this.astOffset,
                 isLet,
                 type: type?.getText(),
                 identifierText: (target as ts.Identifier).text,
@@ -241,6 +251,7 @@ export class ExportedNames {
             });
         } else {
             this.possibleExports.set(name.text, {
+                identifierEnd: name.getEnd() + this.astOffset,
                 declaration,
                 isLet
             });
@@ -269,6 +280,7 @@ export class ExportedNames {
         if (target) {
             this.exports.set(name.text, {
                 isLet: isLet || existingDeclaration?.isLet,
+                identifierEnd: name.getEnd() + this.astOffset,
                 type: type?.getText() || existingDeclaration?.type,
                 identifierText: (target as ts.Identifier).text,
                 required: required || existingDeclaration?.required,
@@ -277,6 +289,7 @@ export class ExportedNames {
         } else {
             this.exports.set(name.text, {
                 isLet: isLet || existingDeclaration?.isLet,
+                identifierEnd: name.getEnd() + this.astOffset,
                 type: existingDeclaration?.type,
                 required: existingDeclaration?.required,
                 doc: existingDeclaration?.doc
@@ -305,6 +318,21 @@ export class ExportedNames {
         }
 
         return doc;
+    }
+
+    addTypesToExportsIf$$PropsUsed(): void {
+        if (!this.uses$$Props) {
+            return;
+        }
+
+        for (const [name, { identifierEnd, type, isLet }] of this.exports.entries()) {
+            if (isLet && !type) {
+                // TODO: this makes rename behave buggy
+                // - you can't enter rename when the cursor is at the last char: export let foo|
+                // - renaming itself produces buggy results for export let: rename foo to fo1o --> fofo11o.
+                this.str.prependRight(identifierEnd, `: $$Props['${name}']`);
+            }
+        }
     }
 
     /**

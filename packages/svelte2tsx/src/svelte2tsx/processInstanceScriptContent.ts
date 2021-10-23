@@ -357,21 +357,24 @@ export function processInstanceScriptContent(
             handleTypeAssertion(str, node, astOffset);
         }
 
-        //to save a bunch of condition checks on each node, we recurse into processChild which skips all the checks for top level items
+        // to save a bunch of condition checks on each node, we recurse into processChild which skips all the checks for top level items
         ts.forEachChild(node, (n) => walk(n, node));
-        //fire off the on leave callbacks
+        // fire off the on leave callbacks
         onLeaveCallbacks.map((c) => c());
     };
 
-    //walk the ast and convert to tsx as we go
+    // walk the ast and convert to tsx as we go
     tsAst.forEachChild((n) => walk(n, tsAst));
 
-    //resolve stores
+    // resolve stores
     pendingStoreResolutions.map(resolveStore);
 
     // declare implicit reactive variables we found in the script
     implicitTopLevelNames.modifyCode(rootScope.declared);
     implicitStoreValues.modifyCode(astOffset, str);
+
+    // add types from $$Props to props that don't have a type defined
+    exportedNames.addTypesToExportsIf$$PropsUsed();
 
     const firstImport = tsAst.statements
         .filter(ts.isImportDeclaration)
