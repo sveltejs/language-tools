@@ -220,7 +220,7 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
                 'getColorPresentations',
                 [document, range, color],
                 ExecuteMode.Collect,
-                'low'
+                'high'
             )
         );
     }
