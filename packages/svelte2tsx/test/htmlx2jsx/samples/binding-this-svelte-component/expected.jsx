@@ -1,1 +1,1 @@
-<><sveltecomponent this={A} {...__sveltets_1_ensureType(__sveltets_1_componentType(), element)} /></>
+<><sveltecomponent this={A} {...__sveltets_1_empty((element = __sveltets_1_instanceOf(A) || null))} /></>
