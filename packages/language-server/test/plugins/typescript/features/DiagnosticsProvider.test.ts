@@ -805,7 +805,7 @@ describe('DiagnosticsProvider', () => {
             {
                 code: 2345,
                 message:
-                    "Argument of type '{}' is not assignable to parameter of type 'ArrayLike<any>'.\n  Property 'length' is missing in type '{}' but required in type 'ArrayLike<any>'.",
+                    "Argument of type '{}' is not assignable to parameter of type 'ArrayLike<unknown>'.\n  Property 'length' is missing in type '{}' but required in type 'ArrayLike<unknown>'.",
                 range: {
                     end: {
                         character: 24,
@@ -823,7 +823,7 @@ describe('DiagnosticsProvider', () => {
             {
                 code: 2345,
                 message:
-                    "Argument of type 'number' is not assignable to parameter of type 'ArrayLike<any>'.",
+                    "Argument of type 'number' is not assignable to parameter of type 'ArrayLike<unknown>'.",
                 range: {
                     end: {
                         character: 24,
