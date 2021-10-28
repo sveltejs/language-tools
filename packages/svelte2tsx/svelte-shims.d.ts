@@ -204,9 +204,9 @@ declare function __sveltets_1_awaitThen<T>(
     onrejected?: (value: T extends PromiseLike<any> ? any : never) => any
 ): any;
 
-declare function __sveltets_1_each<T>(
-    array: ArrayLike<T>,
-    callbackfn: (value: T, index: number) => any
+declare function __sveltets_1_each<T extends ArrayLike<unknown>>(
+    array: T,
+    callbackfn: (value: T extends ArrayLike<infer U> ? U : never, index: number) => any
 ): any;
 
 declare function __sveltets_1_createSvelte2TsxComponent<Props, Events, Slots>(

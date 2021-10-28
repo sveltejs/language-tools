@@ -797,6 +797,50 @@ describe('DiagnosticsProvider', () => {
         ]);
     });
 
+    it('properly handles complex types for `each` blocks (diagnostics-each)', async () => {
+        const { plugin, document } = setup('diagnostics-each.svelte');
+        const diagnostics = await plugin.getDiagnostics(document);
+
+        assert.deepStrictEqual(diagnostics, [
+            {
+                code: 2345,
+                message:
+                    "Argument of type '{}' is not assignable to parameter of type 'ArrayLike<unknown>'.\n  Property 'length' is missing in type '{}' but required in type 'ArrayLike<unknown>'.",
+                range: {
+                    end: {
+                        character: 24,
+                        line: 26
+                    },
+                    start: {
+                        character: 7,
+                        line: 26
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            },
+            {
+                code: 2345,
+                message:
+                    "Argument of type 'number' is not assignable to parameter of type 'ArrayLike<unknown>'.",
+                range: {
+                    end: {
+                        character: 24,
+                        line: 30
+                    },
+                    start: {
+                        character: 7,
+                        line: 30
+                    }
+                },
+                severity: 1,
+                source: 'ts',
+                tags: []
+            }
+        ]);
+    });
+
     it('ignores diagnostics in generated code', async () => {
         const { plugin, document } = setup('diagnostics-ignore-generated.svelte');
         const diagnostics = await plugin.getDiagnostics(document);
