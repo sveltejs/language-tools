@@ -133,6 +133,10 @@ export function startServer(options?: LSOptions) {
                 evt.initializationOptions?.prettierConfig ||
                 {}
         );
+        // no old style as these were added later
+        configManager.updateCssConfig(evt.initializationOptions?.configuration?.css);
+        configManager.updateScssConfig(evt.initializationOptions?.configuration?.scss);
+        configManager.updateLessConfig(evt.initializationOptions?.configuration?.less);
 
         pluginHost.initialize({
             filterIncompleteCompletions:
@@ -270,6 +274,9 @@ export function startServer(options?: LSOptions) {
         configManager.updateTsJsUserPreferences(settings);
         configManager.updateEmmetConfig(settings.emmet);
         configManager.updatePrettierConfig(settings.prettier);
+        configManager.updateCssConfig(settings.css);
+        configManager.updateScssConfig(settings.scss);
+        configManager.updateLessConfig(settings.less);
     });
 
     connection.onDidOpenTextDocument((evt) => {

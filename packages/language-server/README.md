@@ -54,7 +54,7 @@ Install a plugin for your editor:
 
 The language server has quite a few settings to toggle features. They are listed below. When using the VS Code extension, you can set these through the settings UI or in the `settings.json` using the keys mentioned below.
 
-When using the language server directly, put the settings as JSON inside `initializationOptions.configuration` for the [initialize command](https://microsoft.github.io/language-server-protocol/specification#initialize). When using the [didChangeConfiguration command](https://microsoft.github.io/language-server-protocol/specification#workspace_didChangeConfiguration), pass the JSON directly. The language server also accepts configuration for Emmet (key: `emmet`), Prettier (key: `prettier`) and TypeScript (keys: `javascript` and `typescript` for JS/TS config).
+When using the language server directly, put the settings as JSON inside `initializationOptions.configuration` for the [initialize command](https://microsoft.github.io/language-server-protocol/specification#initialize). When using the [didChangeConfiguration command](https://microsoft.github.io/language-server-protocol/specification#workspace_didChangeConfiguration), pass the JSON directly. The language server also accepts configuration for Emmet (key: `emmet`), Prettier (key: `prettier`), CSS (key: `css` / `less` / `scss`) and TypeScript (keys: `javascript` and `typescript` for JS/TS config).
 
 Example:
 
@@ -72,7 +72,7 @@ Init:
             },
             typescript: { /* .. */ },
             javascript: { /* .. */ },
-            prettierConfig: { /* .. */ },
+            prettier: { /* .. */ },
             // ...
         }
     }
@@ -91,7 +91,7 @@ Update:
     },
     typescript: { /* .. */ },
     javascript: { /* .. */ },
-    prettierConfig: { /* .. */ },
+    prettier: { /* .. */ },
     // ...
     }
 }
