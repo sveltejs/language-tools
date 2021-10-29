@@ -27,11 +27,11 @@
 
 <Component                                                                                                                                            {/**
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
-    {...__sveltets_1_empty((bar = __sveltets_1_instanceOf(Component) || null))}                                                                       {/**
-   ╚{...__sveltets_1_empty((bar•=•__sveltets_1_instanceOf(Component)•||•null))}↲    [generated] line 18                                               
-   ╚b                       bar                                    }           ↲                                                                      
+    {...__sveltets_1_empty((bar = /*Ωignore_startΩ*/new Component({target: __sveltets_1_any(''), props: __sveltets_1_any('')})/*Ωignore_endΩ*/))}     {/**
+   ╚{...__sveltets_1_empty((bar•=•/*Ωignore_startΩ*/new•Component({target:•__sveltets_1_any(''),•props:•__sveltets_1_any('')})/*Ωignore_endΩ*/))}↲    [generated] line 18
+   ╚b                       bar}                                                                                                                 ↲    
    ╚b          bar}↲                                                                                                                                  
-   ╚bind:this={bar}↲                                                                [original] line 16                                                
+   ╚bind:this={bar}↲                                                                                                                                  [original] line 16 
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
 /></>                                                                                                                                                 {/**
 /></>↲    [generated] line 19                                                                                                                         

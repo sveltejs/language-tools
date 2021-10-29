@@ -1,6 +1,7 @@
 import MagicString from 'magic-string';
-import { isShortHandAttribute, getThisType, isQuote } from '../utils/node-utils';
+import { isShortHandAttribute, getInstanceTypeSimple, isQuote } from '../utils/node-utils';
 import { BaseDirective, BaseNode } from '../../interfaces';
+import { surroundWithIgnoreComments } from '../../utils/ignore';
 
 const oneWayBindingAttributes: Map<string, string> = new Map(
     ['clientWidth', 'clientHeight', 'offsetWidth', 'offsetHeight']
@@ -45,33 +46,20 @@ export function handleBinding(
 
     //bind this
     if (attr.name === 'this' && supportsBindThis.includes(el.type)) {
-        const thisType = getThisType(el);
+        // bind:this is effectively only works bottom up - the variable is updated by the element, not
+        // the other way round. So we check if the instance is assignable to the variable.
+        // Some notes:
+        // - If the component unmounts (it's inside an if block, or svelte:component this={null},
+        //   the value becomes null, but we don't add it to the clause because it would introduce
+        //   worse DX for the 99% use case, and because null !== undefined which others might use to type the declaration.
+        // - This doesn't do a 100% correct job of infering the instance type in case someone used generics for input props.
+        //   For now it errs on the side of "no false positives" at the cost of maybe some missed type bugs
+        const thisType = getInstanceTypeSimple(el, str);
 
-        if (el.type === 'InlineComponent') {
-            // bind:this is effectively only works bottom up - the variable is updated by the element, not
-            // the other way round. So we check if the instance is assignable to the variable. We get the
-            // instance from the class with instanceOf. The class for svelte:component can be anything
-            // specified in the this={x} expression - so we copy its contents.
-            // TODO: For svelte:self, getThisType returns effectively nothing, so it's not typechecked
-            // In other cases, it's just the Component class.
-            //
-            // If the component unmounts (it's inside an if block, or svelte:component this={null},
-            // the value also becomes null, so we add that to the clause as well.
-
+        if (thisType) {
             str.overwrite(attr.start, attr.expression.start, '{...__sveltets_1_empty((');
-            str.appendLeft(attr.expression.end, ' = __sveltets_1_instanceOf(');
-            if (el.name === 'svelte:component') {
-                str.copy(el.expression.start, el.expression.end, attr.expression.end);
-            } else {
-                str.appendLeft(attr.expression.end, thisType);
-            }
-            str.overwrite(attr.expression.end, attr.end, ') || null))}');
-
-            return;
-        } else if (thisType) {
-            str.remove(attr.start, attr.expression.start);
-            str.appendLeft(attr.expression.start, `{...__sveltets_1_ensureType(${thisType}, `);
-            str.overwrite(attr.expression.end, attr.end, ')}');
+            const instanceOfThisAssignment = ' = ' + surroundWithIgnoreComments(thisType) + '))}';
+            str.overwrite(attr.expression.end, attr.end, instanceOfThisAssignment);
             return;
         }
     }
