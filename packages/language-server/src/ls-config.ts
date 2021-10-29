@@ -235,6 +235,16 @@ export interface TSSuggestConfig {
 
 export type TsUserConfigLang = 'typescript' | 'javascript';
 
+/**
+ * The config as the vscode-css-languageservice understands it
+ */
+export interface CssConfig {
+    validate?: boolean;
+    lint?: any;
+    completion?: any;
+    hover?: any;
+}
+
 type DeepPartial<T> = T extends CompilerWarningsSettings
     ? T
     : {
@@ -260,6 +270,9 @@ export class LSConfigManager {
     };
     private prettierConfig: any = {};
     private emmetConfig: VSCodeEmmetConfig = {};
+    private cssConfig: CssConfig | undefined;
+    private scssConfig: CssConfig | undefined;
+    private lessConfig: CssConfig | undefined;
     private isTrusted = true;
 
     /**
@@ -311,6 +324,7 @@ export class LSConfigManager {
 
     updateEmmetConfig(config: VSCodeEmmetConfig): void {
         this.emmetConfig = config || {};
+        this.listeners.forEach((listener) => listener(this));
     }
 
     getEmmetConfig(): VSCodeEmmetConfig {
@@ -319,6 +333,7 @@ export class LSConfigManager {
 
     updatePrettierConfig(config: any): void {
         this.prettierConfig = config || {};
+        this.listeners.forEach((listener) => listener(this));
     }
 
     getPrettierConfig(): any {
@@ -331,6 +346,7 @@ export class LSConfigManager {
                 this._updateTsUserPreferences(lang, config[lang]);
             }
         });
+        this.listeners.forEach((listener) => listener(this));
     }
 
     /**
@@ -343,6 +359,7 @@ export class LSConfigManager {
 
     updateIsTrusted(isTrusted: boolean): void {
         this.isTrusted = isTrusted;
+        this.listeners.forEach((listener) => listener(this));
     }
 
     private _updateTsUserPreferences(lang: TsUserConfigLang, config: TSUserConfig) {
@@ -363,6 +380,33 @@ export class LSConfigManager {
 
     getTsUserPreferences(lang: TsUserConfigLang) {
         return this.tsUserPreferences[lang];
+    }
+
+    updateCssConfig(config: CssConfig | undefined): void {
+        this.cssConfig = config;
+        this.listeners.forEach((listener) => listener(this));
+    }
+
+    getCssConfig(): CssConfig | undefined {
+        return this.cssConfig;
+    }
+
+    updateScssConfig(config: CssConfig | undefined): void {
+        this.scssConfig = config;
+        this.listeners.forEach((listener) => listener(this));
+    }
+
+    getScssConfig(): CssConfig | undefined {
+        return this.scssConfig;
+    }
+
+    updateLessConfig(config: CssConfig | undefined): void {
+        this.lessConfig = config;
+        this.listeners.forEach((listener) => listener(this));
+    }
+
+    getLessConfig(): CssConfig | undefined {
+        return this.lessConfig;
     }
 }
 

@@ -61,17 +61,20 @@ export class CSSPlugin
 
     constructor(docManager: DocumentManager, configManager: LSConfigManager) {
         this.configManager = configManager;
+        this.updateConfigs();
 
         this.globalVars.watchFiles(this.configManager.get('css.globals'));
-        this.configManager.onChange((config) =>
-            this.globalVars.watchFiles(config.get('css.globals'))
-        );
+        this.configManager.onChange((config) => {
+            this.globalVars.watchFiles(config.get('css.globals'));
+            this.updateConfigs();
+        });
 
         docManager.on('documentChange', (document) =>
             this.cssDocuments.set(document, new CSSDocument(document))
         );
         docManager.on('documentClose', (document) => this.cssDocuments.delete(document));
     }
+
     getSelectionRange(document: Document, position: Position): SelectionRange | null {
         if (!this.featureEnabled('selectionRange') || !isInTag(position, document.styleInfo)) {
             return null;
@@ -335,6 +338,12 @@ export class CSSPlugin
             this.cssDocuments.set(document, cssDoc);
         }
         return cssDoc;
+    }
+
+    private updateConfigs() {
+        getLanguageService('css')?.configure(this.configManager.getCssConfig());
+        getLanguageService('scss')?.configure(this.configManager.getScssConfig());
+        getLanguageService('less')?.configure(this.configManager.getLessConfig());
     }
 
     private featureEnabled(feature: keyof LSCSSConfig) {
