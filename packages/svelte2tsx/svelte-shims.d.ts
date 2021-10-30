@@ -160,7 +160,7 @@ declare function __sveltets_1_with_any_event<Props = {}, Events = {}, Slots = {}
 
 declare function __sveltets_1_store_get<T = any>(store: SvelteStore<T>): T
 declare function __sveltets_1_any(dummy: any): any;
-declare function __sveltets_1_empty(dummy: any): {};
+declare function __sveltets_1_empty(...dummy: any[]): {};
 declare function __sveltets_1_componentType(): AConstructorTypeOf<Svelte2TsxComponent<any, any, any>>
 declare function __sveltets_1_invalidate<T>(getValue: () => T): T
 

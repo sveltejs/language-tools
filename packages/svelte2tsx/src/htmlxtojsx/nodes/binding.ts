@@ -13,6 +13,11 @@ const oneWayBindingAttributes: Map<string, string> = new Map(
             ])
         )
 );
+/**
+ * List of all binding names that are transformed to sth like `binding = variable`.
+ * This applies to readonly bindings and the this binding.
+ */
+export const assignmentBindings = new Set([...oneWayBindingAttributes.keys(), 'this']);
 
 /**
  * Transform bind:xxx into something that conforms to JSX
@@ -57,8 +62,8 @@ export function handleBinding(
         const thisType = getInstanceTypeSimple(el, str);
 
         if (thisType) {
-            str.overwrite(attr.start, attr.expression.start, '{...__sveltets_1_empty((');
-            const instanceOfThisAssignment = ' = ' + surroundWithIgnoreComments(thisType) + '))}';
+            str.overwrite(attr.start, attr.expression.start, '{...__sveltets_1_empty(');
+            const instanceOfThisAssignment = ' = ' + surroundWithIgnoreComments(thisType) + ')}';
             str.overwrite(attr.expression.end, attr.end, instanceOfThisAssignment);
             return;
         }
