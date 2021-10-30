@@ -2,9 +2,11 @@ import MagicString from 'magic-string';
 import { Node } from 'estree-walker';
 import { ScopeStack, Scope } from '../utils/Scope';
 import { isObjectKey, isMember } from '../../utils/svelteAst';
+import { assignmentBindings } from '../../htmlxtojsx/nodes/binding';
 
 export function handleStore(node: Node, parent: Node, str: MagicString): void {
     const storename = node.name.slice(1);
+
     //handle assign to
     if (parent.type == 'AssignmentExpression' && parent.left == node && parent.operator == '=') {
         const dollar = str.original.indexOf('$', node.start);
@@ -13,6 +15,7 @@ export function handleStore(node: Node, parent: Node, str: MagicString): void {
         str.appendLeft(parent.end, ')');
         return;
     }
+
     // handle Assignment operators ($store +=, -=, *=, /=, %=, **=, etc.)
     // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Expressions_and_Operators#Assignment
     const operators = ['+=', '-=', '*=', '/=', '%=', '**=', '<<=', '>>=', '>>>=', '&=', '^=', '|='];
@@ -31,6 +34,7 @@ export function handleStore(node: Node, parent: Node, str: MagicString): void {
         str.appendLeft(parent.end, ')');
         return;
     }
+
     // handle $store++, $store--, ++$store, --$store
     if (parent.type == 'UpdateExpression') {
         let simpleOperator;
@@ -55,10 +59,21 @@ export function handleStore(node: Node, parent: Node, str: MagicString): void {
         return;
     }
 
+    const dollar = str.original.indexOf('$', node.start);
+
+    // handle bindings which are transformed to assignments. These need special treatment because
+    // `(__sveltets_1_store_get(foo), foo$) = something` is syntactically invalid
+    // Therefore remove the outer commas. Note: This relies on the binding expression wrapping
+    // this statement with __sveltets_1_empty
+    if (parent.type === 'Binding' && assignmentBindings.has(parent.name)) {
+        str.overwrite(dollar, dollar + 1, '__sveltets_1_store_get(', { contentOnly: true });
+        str.prependLeft(node.end, `), $${storename}`);
+        return;
+    }
+
     // we change "$store" references into "(__sveltets_1_store_get(store), $store)"
     // - in order to get ts errors if store is not assignable to SvelteStore
     // - use $store variable defined above to get ts flow control
-    const dollar = str.original.indexOf('$', node.start);
     str.overwrite(dollar, dollar + 1, '(__sveltets_1_store_get(', { contentOnly: true });
     str.prependLeft(node.end, `), $${storename})`);
 }
