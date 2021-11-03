@@ -1109,6 +1109,47 @@ describe('CompletionProviderImpl', () => {
             }
         });
     });
+
+    it('provide replacement for string completions', async () => {
+        const { completionProvider, document } = setup('string-completion.svelte');
+
+        const completions = await completionProvider.getCompletions(
+            document,
+            {
+                line: 1,
+                character: 10
+            },
+            {
+                triggerKind: CompletionTriggerKind.Invoked
+            }
+        );
+
+        const item = completions?.items.find((item) => item.label === '@hi');
+
+        delete item?.data;
+
+        assert.deepStrictEqual(item, {
+            label: '@hi',
+            kind: CompletionItemKind.Constant,
+            sortText: '11',
+            preselect: undefined,
+            insertText: undefined,
+            commitCharacters: undefined,
+            textEdit: {
+                newText: '@hi',
+                range: {
+                    end: {
+                        character: 10,
+                        line: 1
+                    },
+                    start: {
+                        character: 9,
+                        line: 1
+                    }
+                }
+            }
+        });
+    });
 });
 
 function harmonizeNewLines(input?: string) {
