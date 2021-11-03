@@ -275,10 +275,9 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         if (isSvelteComp && existingImports.has(label)) {
             return null;
         }
-        const textEdit =
-            replacementSpan && insertText
-                ? TextEdit.replace(convertRange(fragment, replacementSpan), insertText)
-                : undefined;
+        const textEdit = replacementSpan
+            ? TextEdit.replace(convertRange(fragment, replacementSpan), insertText ?? label)
+            : undefined;
 
         return {
             label,
@@ -324,11 +323,11 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             };
         }
 
-        if (insertText && comp.replacementSpan) {
+        if (comp.replacementSpan) {
             return {
                 label: name,
                 isSvelteComp,
-                insertText: changeSvelteComponentName(insertText),
+                insertText: insertText ? changeSvelteComponentName(insertText) : undefined,
                 replacementSpan: comp.replacementSpan
             };
         }
