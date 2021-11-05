@@ -127,6 +127,7 @@ async function createLanguageService(
     ].map((f) => ts.sys.resolvePath(resolve(svelteTsPath, f)));
 
     let languageServiceReducedMode = false;
+    let projectVersion = 0;
 
     const host: ts.LanguageServiceHost = {
         getCompilationSettings: () => compilerOptions,
@@ -148,12 +149,18 @@ async function createLanguageService(
         readDirectory: svelteModuleLoader.readDirectory,
         getDirectories: ts.sys.getDirectories,
         useCaseSensitiveFileNames: () => ts.sys.useCaseSensitiveFileNames,
-        getScriptKind: (fileName: string) => getSnapshot(fileName).scriptKind
+        getScriptKind: (fileName: string) => getSnapshot(fileName).scriptKind,
+        getProjectVersion: () => projectVersion.toString()
     };
+
     let languageService = ts.createLanguageService(host);
     const transformationConfig = {
         transformOnTemplateError: docContext.transformOnTemplateError
     };
+
+    docContext.globalSnapshotsManager.onChange(() => {
+        projectVersion++;
+    });
 
     reduceLanguageServiceCapabilityIfFileSizeTooBig();
 
@@ -171,6 +178,7 @@ async function createLanguageService(
     };
 
     function deleteSnapshot(filePath: string): void {
+        projectVersion++;
         svelteModuleLoader.deleteFromModuleCache(filePath);
         snapshotManager.delete(filePath);
     }
@@ -188,6 +196,7 @@ async function createLanguageService(
             return prevSnapshot;
         }
 
+        projectVersion++;
         if (!prevSnapshot) {
             svelteModuleLoader.deleteUnresolvedResolutionsFromCache(filePath);
         }
@@ -210,6 +219,7 @@ async function createLanguageService(
             return prevSnapshot;
         }
 
+        projectVersion++;
         svelteModuleLoader.deleteUnresolvedResolutionsFromCache(filePath);
         const newSnapshot = DocumentSnapshot.fromFilePath(
             filePath,
@@ -239,6 +249,7 @@ async function createLanguageService(
     }
 
     function updateProjectFiles(): void {
+        projectVersion++;
         const projectFileCountBefore = snapshotManager.getProjectFileNames().length;
         snapshotManager.updateProjectFiles();
         const projectFileCountAfter = snapshotManager.getProjectFileNames().length;
