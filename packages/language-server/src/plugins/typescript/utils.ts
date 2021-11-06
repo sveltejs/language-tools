@@ -1,4 +1,4 @@
-import { dirname } from 'path';
+import { dirname, basename } from 'path';
 import ts from 'typescript';
 import {
     CompletionItemKind,
@@ -106,8 +106,10 @@ export function convertToLocationRange(defDoc: SnapshotFragment, textSpan: ts.Te
 
 export function findTsConfigPath(fileName: string, rootUris: string[]) {
     const searchDir = dirname(fileName);
+    const configName = basename(fileName);
 
     const path =
+        configName.endsWith('.json') ? ts.findConfigFile(searchDir, ts.sys.fileExists, configName) : null ||
         ts.findConfigFile(searchDir, ts.sys.fileExists, 'tsconfig.json') ||
         ts.findConfigFile(searchDir, ts.sys.fileExists, 'jsconfig.json') ||
         '';
