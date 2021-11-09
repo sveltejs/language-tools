@@ -215,3 +215,8 @@ declare function __sveltets_1_createSvelte2TsxComponent<Props, Events, Slots>(
 
 declare function __sveltets_1_unwrapArr<T>(arr: ArrayLike<T>): T
 declare function __sveltets_1_unwrapPromiseLike<T>(promise: PromiseLike<T> | T): T
+
+// v2
+declare function __sveltets_2_createElement<Elements extends svelte.JSX.IntrinsicElements, Key extends keyof Elements>(element: Key, attrs: Elements[Key]): Elements[Key];
+declare function __sveltets_2_createElementAny<Elements extends svelteNative.JSX.IntrinsicElements, Key extends keyof Elements>(element: Key, attrs: Elements[Key]): Elements[Key];
+declare function __sveltets_2_any(...dummy: any[]): any;
