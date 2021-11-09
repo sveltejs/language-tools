@@ -5,6 +5,7 @@ import { Attribute, BaseNode, BaseDirective } from '../interfaces';
 import { parseHtmlx } from '../utils/htmlxparser';
 import { handleAttribute } from './nodes/Attribute';
 import { handleComment } from './nodes/Comment';
+import { handleEach } from './nodes/EachBlock';
 import { Element } from './nodes/Element';
 import { handleEventHandler } from './nodes/EventHandler';
 import { handleElse, handleIf } from './nodes/IfElseBlock';
@@ -47,6 +48,7 @@ export function convertHtmlxToJsx(
                         handleIf(str, node);
                         break;
                     case 'EachBlock':
+                        handleEach(str, node);
                         break;
                     case 'ElseBlock':
                         handleElse(str, node, parent);
