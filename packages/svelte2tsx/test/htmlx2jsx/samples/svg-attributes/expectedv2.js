@@ -1,0 +1,1 @@
+{ const $$_svg = __sveltets_2_createElement("svg", {"width":"12","height":"12","viewBox":"0 0 24 24",});}
