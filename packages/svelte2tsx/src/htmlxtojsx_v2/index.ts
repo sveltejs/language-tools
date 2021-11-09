@@ -7,6 +7,7 @@ import { handleAttribute } from './nodes/Attribute';
 import { handleComment } from './nodes/Comment';
 import { Element } from './nodes/Element';
 import { handleEventHandler } from './nodes/EventHandler';
+import { handleElse, handleIf } from './nodes/IfElseBlock';
 import { InlineComponent } from './nodes/InlineComponent';
 import { handleText } from './nodes/Text';
 
@@ -43,10 +44,12 @@ export function convertHtmlxToJsx(
             try {
                 switch (node.type) {
                     case 'IfBlock':
+                        handleIf(str, node);
                         break;
                     case 'EachBlock':
                         break;
                     case 'ElseBlock':
+                        handleElse(str, node, parent);
                         break;
                     case 'AwaitBlock':
                         break;
