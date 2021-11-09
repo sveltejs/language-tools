@@ -10,6 +10,7 @@ import { Element } from './nodes/Element';
 import { handleEventHandler } from './nodes/EventHandler';
 import { handleElse, handleIf } from './nodes/IfElseBlock';
 import { InlineComponent } from './nodes/InlineComponent';
+import { handleMustacheTag } from './nodes/MustacheTag';
 import { handleText } from './nodes/Text';
 
 type Walker = (node: TemplateNode, parent: BaseNode, prop: string, index: number) => void;
@@ -62,6 +63,9 @@ export function convertHtmlxToJsx(
                     case 'CatchBlock':
                         break;
                     case 'KeyBlock':
+                        break;
+                    case 'MustacheTag':
+                        handleMustacheTag(str, node, parent);
                         break;
                     case 'RawMustacheTag':
                         break;
