@@ -210,6 +210,7 @@ type TransformSampleFn = (
         sampleName: string;
         emitOnTemplateError: boolean;
         preserveAttributeCase: boolean;
+        useNewTransformation: boolean;
     }
 ) => ReturnType<typeof htmlx2jsx | typeof svelte2tsx>;
 
@@ -227,21 +228,32 @@ export function test_samples(dir: string, transform: TransformSampleFn, jsx: 'js
             sampleName: sample.name,
             emitOnTemplateError: false,
             preserveAttributeCase: sample.name.endsWith('-foreign-ns'),
-            mode: sample.name.endsWith('-dts') ? 'dts' : undefined
+            mode: sample.name.endsWith('-dts') ? 'dts' : undefined,
+            useNewTransformation: false
         };
 
         if (process.env.CI) {
             sample.checkDirectory({
-                required: ['*.svelte', `expected.${jsx}`],
+                required: ['*.svelte', `expected.${jsx}`, `expectedv2.${jsx}`],
                 allowed: ['expected.js', 'expected.error.json']
             });
         } else {
             sample.checkDirectory({
                 required: ['*.svelte'],
-                allowed: ['expected.js', `expected.${jsx}`, 'expected.error.json']
+                allowed: [
+                    'expected.js',
+                    `expected.${jsx}`,
+                    `expectedv2.${jsx}`,
+                    'expected.error.json'
+                ]
             });
 
-            if (sample.hasOnly(svelteFile) || sample.hasOnly(svelteFile, 'expected.js')) {
+            if (
+                sample.hasOnly(svelteFile) ||
+                sample.hasOnly(svelteFile, 'expected.js') ||
+                sample.hasOnly(svelteFile, 'expected.js', `expected.${jsx}`) ||
+                sample.hasOnly(svelteFile, `expected.${jsx}`)
+            ) {
                 sample.generateDeps((generate) => {
                     const input = sample.get(svelteFile);
                     try {
@@ -251,6 +263,10 @@ export function test_samples(dir: string, transform: TransformSampleFn, jsx: 'js
                         config.emitOnTemplateError = true;
                     }
                     generate(`expected.${jsx}`, transform(input, config).code);
+                    generate(
+                        `expectedv2.${jsx}`,
+                        transform(input, { ...config, useNewTransformation: true }).code
+                    );
                 });
             }
 
@@ -296,11 +312,21 @@ export function test_samples(dir: string, transform: TransformSampleFn, jsx: 'js
             if (sample.has('expected.js')) {
                 sample.eval('expected.js', output);
             }
+
+            assert.strictEqual(
+                transform(input, { ...config, useNewTransformation: true }).code,
+                sample.get(`expectedv2.${jsx}`),
+                TestError.WrongExpected
+            );
         });
     }
 }
 
-type BaseConfig = { emitOnTemplateError?: boolean; filename?: string };
+type BaseConfig = {
+    emitOnTemplateError?: boolean;
+    filename?: string;
+    useNewTransformation?: boolean;
+};
 type Svelte2TsxConfig = Required<Parameters<typeof svelte2tsx>[1]>;
 
 export function get_svelte2tsx_config(base: BaseConfig, sampleName: string): Svelte2TsxConfig {
@@ -310,7 +336,8 @@ export function get_svelte2tsx_config(base: BaseConfig, sampleName: string): Sve
         isTsFile: sampleName.startsWith('ts-'),
         namespace: sampleName.endsWith('-foreign-ns') ? 'foreign' : null,
         mode: sampleName.endsWith('-dts') ? 'dts' : undefined,
-        accessors: sampleName.startsWith('accessors-config')
+        accessors: sampleName.startsWith('accessors-config'),
+        useNewTransformation: base.useNewTransformation
     };
 }
 

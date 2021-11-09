@@ -305,7 +305,7 @@ export function svelte2tsx(
     } = {}
 ) {
     // TODO temporary
-    options.useNewTransformation = true;
+    options.useNewTransformation = options.useNewTransformation === false ? false : true;
 
     const str = new MagicString(svelte);
     // process the htmlx as a svelte template
