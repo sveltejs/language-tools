@@ -264,7 +264,7 @@ export function test_samples(dir: string, transform: TransformSampleFn, jsx: 'js
                     }
                     generate(`expected.${jsx}`, transform(input, config).code);
                     generate(
-                        `expectedv2.${jsx}`,
+                        `expectedv2.${jsx.slice(0, 2)}`,
                         transform(input, { ...config, useNewTransformation: true }).code
                     );
                 });
@@ -315,7 +315,7 @@ export function test_samples(dir: string, transform: TransformSampleFn, jsx: 'js
 
             assert.strictEqual(
                 transform(input, { ...config, useNewTransformation: true }).code,
-                sample.get(`expectedv2.${jsx}`),
+                sample.get(`expectedv2.${jsx.slice(0, 2)}`),
                 TestError.WrongExpected
             );
         });
