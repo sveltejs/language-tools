@@ -178,7 +178,6 @@ async function createLanguageService(
     };
 
     function deleteSnapshot(filePath: string): void {
-        projectVersion++;
         svelteModuleLoader.deleteFromModuleCache(filePath);
         snapshotManager.delete(filePath);
     }
@@ -196,7 +195,6 @@ async function createLanguageService(
             return prevSnapshot;
         }
 
-        projectVersion++;
         if (!prevSnapshot) {
             svelteModuleLoader.deleteUnresolvedResolutionsFromCache(filePath);
         }
@@ -219,7 +217,6 @@ async function createLanguageService(
             return prevSnapshot;
         }
 
-        projectVersion++;
         svelteModuleLoader.deleteUnresolvedResolutionsFromCache(filePath);
         const newSnapshot = DocumentSnapshot.fromFilePath(
             filePath,
