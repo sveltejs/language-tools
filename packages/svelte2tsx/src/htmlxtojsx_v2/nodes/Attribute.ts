@@ -47,8 +47,9 @@ export function handleAttribute(
     preserveCase: boolean,
     element: Element | InlineComponent
 ): void {
-    if (parent.name === '!DOCTYPE') {
+    if (parent.name === '!DOCTYPE' || ['Style', 'Script'].includes(parent.type)) {
         // <!DOCTYPE html> is already removed by now from MagicString
+        // Don't handle script / style tag attributes (context or lang for example)
         return;
     }
 
