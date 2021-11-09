@@ -1153,6 +1153,8 @@ declare namespace svelte.JSX {
       sveltewindow: HTMLProps<Window> & SvelteWindowProps;
       sveltebody: HTMLProps<HTMLElement>;
       sveltefragment: { slot?: string; };
+      svelteoptions: { [name: string]: any };
+      sveltehead: { [name: string]: any };
 
       [name: string]: { [name: string]: any };
     }

@@ -13,6 +13,7 @@ export interface CreateRenderFunctionPara extends InstanceScriptProcessResult {
     isTsFile: boolean;
     uses$$SlotsInterface: boolean;
     mode?: 'tsx' | 'dts';
+    useNewTransformation?: boolean;
 }
 
 export function createRenderFunction({
@@ -28,7 +29,8 @@ export function createRenderFunction({
     uses$$slots,
     uses$$SlotsInterface,
     generics,
-    mode
+    mode,
+    useNewTransformation
 }: CreateRenderFunctionPara) {
     const htmlx = str.original;
     let propsDecl = '';
@@ -62,7 +64,7 @@ export function createRenderFunction({
     if (scriptTag) {
         //I couldn't get magicstring to let me put the script before the <> we prepend during conversion of the template to jsx, so we just close it instead
         const scriptTagEnd = htmlx.lastIndexOf('>', scriptTag.content.start) + 1;
-        str.overwrite(scriptTag.start, scriptTag.start + 1, '</>;');
+        str.overwrite(scriptTag.start, scriptTag.start + 1, useNewTransformation ? ';' : '</>;');
         str.overwrite(
             scriptTag.start + 1,
             scriptTagEnd,
@@ -71,14 +73,22 @@ export function createRenderFunction({
 
         const scriptEndTagStart = htmlx.lastIndexOf('<', scriptTag.end - 1);
         // wrap template with callback
-        str.overwrite(scriptEndTagStart, scriptTag.end, `${slotsDeclaration};\n() => (<>`, {
-            contentOnly: true
-        });
+        str.overwrite(
+            scriptEndTagStart,
+            scriptTag.end,
+            useNewTransformation
+                ? `${slotsDeclaration};\n() => {`
+                : `${slotsDeclaration};\n() => (<>`,
+            {
+                contentOnly: true
+            }
+        );
     } else {
         str.prependRight(
             scriptDestination,
-            `</>;function render${generics.toDefinitionString(true)}() {` +
-                `${propsDecl}${slotsDeclaration}\n<>`
+            `${useNewTransformation ? '' : '</>'};function render${generics.toDefinitionString(
+                true
+            )}() {` + `${propsDecl}${slotsDeclaration}\n${useNewTransformation ? '' : '<>'}`
         );
     }
 
@@ -103,7 +113,7 @@ export function createRenderFunction({
 
     // wrap template with callback
     if (scriptTag) {
-        str.append(');');
+        str.append(useNewTransformation ? '};' : ');');
     }
 
     str.append(returnString);

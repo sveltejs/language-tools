@@ -1,6 +1,7 @@
 import { Node } from 'estree-walker';
 import MagicString from 'magic-string';
 import { convertHtmlxToJsx } from '../htmlxtojsx';
+import { convertHtmlxToJsx as convertHtmlxToJsxNew } from '../htmlxtojsx_v2';
 import { parseHtmlx } from '../utils/htmlxparser';
 import { ComponentDocumentation } from './nodes/ComponentDocumentation';
 import { ComponentEvents } from './nodes/ComponentEvents';
@@ -38,7 +39,12 @@ type TemplateProcessResult = {
 
 function processSvelteTemplate(
     str: MagicString,
-    options?: { emitOnTemplateError?: boolean; namespace?: string; accessors?: boolean }
+    options?: {
+        emitOnTemplateError?: boolean;
+        namespace?: string;
+        accessors?: boolean;
+        useNewTransformation?: boolean;
+    }
 ): TemplateProcessResult {
     const { htmlxAst, tags } = parseHtmlx(str.original, options);
 
@@ -251,9 +257,15 @@ function processSvelteTemplate(
         }
     };
 
-    convertHtmlxToJsx(str, htmlxAst, onHtmlxWalk, onHtmlxLeave, {
-        preserveAttributeCase: options?.namespace == 'foreign'
-    });
+    if (options.useNewTransformation) {
+        convertHtmlxToJsxNew(str, htmlxAst, onHtmlxWalk, onHtmlxLeave, {
+            preserveAttributeCase: options?.namespace == 'foreign'
+        });
+    } else {
+        convertHtmlxToJsx(str, htmlxAst, onHtmlxWalk, onHtmlxLeave, {
+            preserveAttributeCase: options?.namespace == 'foreign'
+        });
+    }
 
     // resolve scripts
     const { scriptTag, moduleScriptTag } = scripts.getTopLevelScriptTags();
@@ -289,8 +301,12 @@ export function svelte2tsx(
         namespace?: string;
         mode?: 'tsx' | 'dts';
         accessors?: boolean;
+        useNewTransformation?: boolean;
     } = {}
 ) {
+    // TODO temporary
+    options.useNewTransformation = true;
+
     const str = new MagicString(svelte);
     // process the htmlx as a svelte template
     let {
@@ -364,7 +380,8 @@ export function svelte2tsx(
         uses$$slots,
         uses$$SlotsInterface,
         generics,
-        mode: options.mode
+        mode: options.mode,
+        useNewTransformation: options.useNewTransformation
     });
 
     // we need to process the module script after the instance script has moved otherwise we get warnings about moving edited items
