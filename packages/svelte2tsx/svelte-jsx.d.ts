@@ -1,5 +1,101 @@
 /// <reference lib="dom" />
-/* eslint @typescript-eslint/no-unused-vars: off */
+
+declare namespace svelte {
+  export type Child = svelte.JSX.Child;
+  export type Children = svelte.JSX.Children;
+
+  type NativeElement = HTMLElement;
+
+  // TypeScript SVGElement has no `dataset` (Chrome 55+, Firefox 51+).
+  type Element = NativeElement & {
+    dataset: DOMStringMap;
+  };
+
+  //
+  // Event Handler Types
+  // ----------------------------------------------------------------------
+  type EventHandler<E extends Event = Event, T extends EventTarget = HTMLElement> =
+    svelte.JSX.EventHandler<E,T>;
+
+  type ClipboardEventHandler<T extends EventTarget> = svelte.JSX.ClipboardEventHandler<T>;
+  type CompositionEventHandler<T extends EventTarget> = svelte.JSX.CompositionEventHandler<T>;
+  type DragEventHandler<T extends EventTarget> = svelte.JSX.DragEventHandler<T>;
+  type FocusEventHandler<T extends EventTarget> = svelte.JSX.FocusEventHandler<T>;
+  type FormEventHandler<T extends EventTarget> = svelte.JSX.FormEventHandler<T>;
+  type ChangeEventHandler<T extends EventTarget> = svelte.JSX.ChangeEventHandler<T>;
+  type KeyboardEventHandler<T extends EventTarget> = svelte.JSX.KeyboardEventHandler<T>;
+  type MouseEventHandler<T extends EventTarget> = svelte.JSX.MouseEventHandler<T>;
+  type TouchEventHandler<T extends EventTarget> = svelte.JSX.TouchEventHandler<T>;
+  type PointerEventHandler<T extends EventTarget> = svelte.JSX.PointerEventHandler<T>;
+  type UIEventHandler<T extends EventTarget> = svelte.JSX.UIEventHandler<T>;
+  type WheelEventHandler<T extends EventTarget> = svelte.JSX.WheelEventHandler<T>;
+  type AnimationEventHandler<T extends EventTarget> = svelte.JSX.AnimationEventHandler<T>;
+  type TransitionEventHandler<T extends EventTarget> = svelte.JSX.TransitionEventHandler<T>;
+  type MessageEventHandler<T extends EventTarget> = svelte.JSX.MessageEventHandler<T>;
+
+  // See CSS 3 CSS-wide keywords https://www.w3.org/TR/css3-values/#common-keywords
+  // See CSS 3 Explicit Defaulting https://www.w3.org/TR/css-cascade-3/#defaulting-keywords
+  // "all CSS properties can accept these values"
+  type CSSWideKeyword = svelte.JSX.CSSWideKeyword;
+
+  // See CSS 3 <percentage> type https://drafts.csswg.org/css-values-3/#percentages
+  type CSSPercentage = svelte.JSX.CSSPercentage;
+
+  // See CSS 3 <length> type https://drafts.csswg.org/css-values-3/#lengths
+  type CSSLength = svelte.JSX.CSSLength;
+
+  // This interface is not complete. Only properties accepting
+  // unit-less numbers are listed here (see CSSProperty.js in React)
+
+  // eslint-disable-next-line @typescript-eslint/no-empty-interface
+  interface DOMAttributes<T extends EventTarget> extends svelte.JSX.DOMAttributes<T> {}
+
+  // eslint-disable-next-line @typescript-eslint/no-empty-interface
+  interface AriaAttributes extends svelte.JSX.AriaAttributes {}
+
+  // eslint-disable-next-line @typescript-eslint/no-empty-interface
+  interface HTMLAttributes<T extends EventTarget> extends svelte.JSX.HTMLAttributes<T> {}
+
+  // eslint-disable-next-line @typescript-eslint/no-empty-interface
+  interface SVGAttributes<T extends EventTarget> extends svelte.JSX.SVGAttributes<T> {}
+
+  // eslint-disable-next-line @typescript-eslint/no-empty-interface
+  interface HTMLProps<T extends EventTarget> extends HTMLAttributes<T> {}
+
+  // eslint-disable-next-line @typescript-eslint/no-empty-interface
+  interface SVGProps<T extends EventTarget> extends SVGAttributes<T> {}
+  
+  // eslint-disable-next-line @typescript-eslint/no-empty-interface
+  interface SvelteOptionProps extends svelte.JSX.SvelteOptionProps {}
+  
+  // eslint-disable-next-line @typescript-eslint/no-empty-interface
+  interface SvelteSelectProps extends svelte.JSX.SvelteSelectProps {}
+  
+  // eslint-disable-next-line @typescript-eslint/no-empty-interface
+  interface SvelteInputProps extends svelte.JSX.SvelteInputProps {}
+  
+  // eslint-disable-next-line @typescript-eslint/no-empty-interface
+  interface SvelteWindowProps extends svelte.JSX.SvelteWindowProps {}
+  
+  // eslint-disable-next-line @typescript-eslint/no-empty-interface
+  interface SapperAnchorProps extends svelte.JSX.SapperAnchorProps {}
+  
+  // eslint-disable-next-line @typescript-eslint/no-empty-interface
+  interface SvelteKitAnchorProps extends svelte.JSX.SvelteKitAnchorProps {}
+  
+  // eslint-disable-next-line @typescript-eslint/no-empty-interface
+  interface SvelteMediaTimeRange extends svelte.JSX.SvelteMediaTimeRange {}
+  
+  // eslint-disable-next-line @typescript-eslint/no-empty-interface
+  interface SvelteMediaProps extends svelte.JSX.SvelteMediaProps {}
+  
+  // eslint-disable-next-line @typescript-eslint/no-empty-interface
+  interface SvelteVideoProps extends svelte.JSX.SvelteVideoProps {}
+  
+  // eslint-disable-next-line @typescript-eslint/no-empty-interface
+  interface IntrinsicElements extends svelte.JSX.IntrinsicElements {}
+}
+
 /**
  * Adapted from jsx-dom
  * @see https://github.com/proteriax/jsx-dom/blob/be06937ba16908d87bf8aa4372a3583133e02b8a/index.d.ts
