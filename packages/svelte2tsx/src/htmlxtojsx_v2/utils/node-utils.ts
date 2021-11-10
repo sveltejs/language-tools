@@ -33,7 +33,9 @@ export function transform(
     let removeStart = start;
     const moves = transformations.filter((t) => typeof t !== 'string') as Array<[number, number]>;
     for (const transformation of moves.sort((t1, t2) => t1[0] - t2[0])) {
-        str.overwrite(removeStart, transformation[0], '', { contentOnly: true });
+        if (removeStart !== transformation[0]) {
+            str.overwrite(removeStart, transformation[0], '', { contentOnly: true });
+        }
         removeStart = transformation[1];
     }
 

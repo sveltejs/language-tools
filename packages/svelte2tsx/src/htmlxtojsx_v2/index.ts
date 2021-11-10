@@ -4,6 +4,7 @@ import { TemplateNode, Text } from 'svelte/types/compiler/interfaces';
 import { Attribute, BaseNode, BaseDirective } from '../interfaces';
 import { parseHtmlx } from '../utils/htmlxparser';
 import { handleAttribute } from './nodes/Attribute';
+import { handleAwait } from './nodes/AwaitPendingCatchBlock';
 import { handleComment } from './nodes/Comment';
 import { handleEach } from './nodes/EachBlock';
 import { Element } from './nodes/Element';
@@ -53,14 +54,6 @@ export function convertHtmlxToJsx(
                         break;
                     case 'ElseBlock':
                         handleElse(str, node, parent);
-                        break;
-                    case 'AwaitBlock':
-                        break;
-                    case 'PendingBlock':
-                        break;
-                    case 'ThenBlock':
-                        break;
-                    case 'CatchBlock':
                         break;
                     case 'KeyBlock':
                         break;
@@ -146,6 +139,7 @@ export function convertHtmlxToJsx(
                     case 'EachBlock':
                         break;
                     case 'AwaitBlock':
+                        handleAwait(str, node);
                         break;
                     case 'SlotTemplate':
                         break;

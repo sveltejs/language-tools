@@ -4,7 +4,7 @@ import { BaseNode } from '../../interfaces';
 
 /**
  * Handles a text node transformation.
- * Removes everything except a possible newline when it's normal HTML text for example inside an element
+ * Removes everything except whitespace (for better visual output) when it's normal HTML text for example inside an element
  * to not clutter up the output. For attributes it leaves the text as is.
  */
 export function handleText(str: MagicString, node: Text, parent: BaseNode): void {
@@ -12,7 +12,7 @@ export function handleText(str: MagicString, node: Text, parent: BaseNode): void
         return;
     }
 
-    str.overwrite(node.start, node.end, node.data.includes('\n') ? '\n' : '', {
+    str.overwrite(node.start, node.end, node.data.replace(/\S/g, ''), {
         contentOnly: true
     });
 }

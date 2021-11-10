@@ -1,0 +1,59 @@
+import MagicString from 'magic-string';
+import { BaseNode } from '../../interfaces';
+import { transform, TransformationArray } from '../utils/node-utils';
+
+// The await block consists of these blocks:
+// expression: the promise - has start and end
+// value: the result of the promise - has start and end
+// error: the error branch value - has start and end
+// pending: start/end of the pending block (if exists), with skip boolean
+// then: start/end of the then block (if exists), with skip boolean
+// catch: start/end of the catch block (if exists), with skip boolean
+
+/**
+ * This needs to be called on the way out, not on the way on, when walking,
+ * because else the order of moves might get messed up with moves in
+ * the children.
+ */
+export function handleAwait(str: MagicString, awaitBlock: BaseNode): void {
+    const transforms: TransformationArray = ['{ '];
+    if (!awaitBlock.pending.skip) {
+        transforms.push([awaitBlock.pending.start, awaitBlock.pending.end]);
+    }
+    if (awaitBlock.error || !awaitBlock.catch.skip) {
+        transforms.push('try { ');
+    }
+    if (awaitBlock.value) {
+        transforms.push('const ', [awaitBlock.value.start, awaitBlock.value.end], ' = ');
+    }
+    transforms.push('await (', [awaitBlock.expression.start, awaitBlock.expression.end], '); ');
+    if (!awaitBlock.then.skip) {
+        if (awaitBlock.pending.skip) {
+            transforms.push([awaitBlock.then.start, awaitBlock.then.end]);
+        } else if (awaitBlock.then.children?.length) {
+            transforms.push([
+                awaitBlock.then.children[0].start,
+                awaitBlock.then.children[awaitBlock.then.children.length - 1].end
+            ]);
+        }
+    }
+    if (awaitBlock.error || !awaitBlock.catch.skip) {
+        transforms.push('} catch($$_e) { ');
+        if (awaitBlock.error) {
+            transforms.push(
+                'const ',
+                [awaitBlock.error.start, awaitBlock.error.end],
+                ' = __sveltets_2_any();'
+            );
+        }
+        if (!awaitBlock.catch.skip && awaitBlock.catch.children?.length) {
+            transforms.push([
+                awaitBlock.catch.children[0].start,
+                awaitBlock.catch.children[awaitBlock.catch.children.length - 1].end
+            ]);
+        }
+        transforms.push('}');
+    }
+    transforms.push('}');
+    transform(str, awaitBlock.start, awaitBlock.end, awaitBlock.end, transforms);
+}
