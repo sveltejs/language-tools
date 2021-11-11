@@ -8,12 +8,15 @@ import { handleAnimateDirective } from './nodes/Animation';
 import { handleAttribute } from './nodes/Attribute';
 import { handleAwait } from './nodes/AwaitPendingCatchBlock';
 import { handleComment } from './nodes/Comment';
+import { handleDebug } from './nodes/DebugTag';
 import { handleEach } from './nodes/EachBlock';
 import { Element } from './nodes/Element';
 import { handleEventHandler } from './nodes/EventHandler';
 import { handleElse, handleIf } from './nodes/IfElseBlock';
 import { InlineComponent } from './nodes/InlineComponent';
+import { handleKey } from './nodes/Key';
 import { handleMustacheTag } from './nodes/MustacheTag';
+import { handleRawHtml } from './nodes/RawMustacheTag';
 import { handleText } from './nodes/Text';
 import { handleTransitionDirective } from './nodes/Transition';
 
@@ -59,13 +62,16 @@ export function convertHtmlxToJsx(
                         handleElse(str, node, parent);
                         break;
                     case 'KeyBlock':
+                        handleKey(str, node);
                         break;
                     case 'MustacheTag':
                         handleMustacheTag(str, node, parent);
                         break;
                     case 'RawMustacheTag':
+                        handleRawHtml(str, node);
                         break;
                     case 'DebugTag':
+                        handleDebug(str, node);
                         break;
                     case 'InlineComponent':
                         if (element) {
