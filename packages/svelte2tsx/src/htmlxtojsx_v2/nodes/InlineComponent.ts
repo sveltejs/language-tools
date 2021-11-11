@@ -23,15 +23,15 @@ import { transform, TransformationArray } from '../utils/node-utils';
  */
 export class InlineComponent {
     private startTransformation: TransformationArray = [];
-    private startEndTransformation: TransformationArray = [];
+    private startEndTransformation: TransformationArray = ['}});'];
     private propsTransformation: TransformationArray = [];
     private eventsTransformation: TransformationArray = [];
     private letBindingsTransformation: TransformationArray = [];
     private endTransformation: TransformationArray = [];
     private startTagStart: number;
     private startTagEnd: number;
-    private name: string;
     private isSelfclosing: boolean;
+    public name: string;
     public child?: any;
 
     constructor(private str: MagicString, private node: BaseNode, public parent?: any) {
@@ -78,8 +78,14 @@ export class InlineComponent {
         );
     }
 
+    /**
+     * Add something right after the start tag end.
+     */
+    appendToStartEnd(value: TransformationArray): void {
+        this.startEndTransformation.push(...value);
+    }
+
     performTransformation(): void {
-        this.startEndTransformation.push('}});');
         this.endTransformation.push('}');
 
         if (this.isSelfclosing) {

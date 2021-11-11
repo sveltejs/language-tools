@@ -1,0 +1,3 @@
+        { const $$_div = __sveltets_2_createElement("div", {"type":"text",});width= $$_div.clientWidth;height= $$_div.clientHeight;offsetWidth= $$_div.offsetWidth;offsetHeight= $$_div.offsetHeight;}
+
+          { const $$_video = __sveltets_2_createElement("video", {"src":clip,});duration= $$_video.duration;buffered= $$_video.buffered;seekable= $$_video.seekable;seeking= $$_video.seeking;played= $$_video.played;ended= $$_video.ended; }

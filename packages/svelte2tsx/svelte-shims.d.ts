@@ -218,8 +218,10 @@ declare function __sveltets_1_unwrapPromiseLike<T>(promise: PromiseLike<T> | T):
 
 // v2
 
-declare function __sveltets_2_createElement<Elements extends svelte.IntrinsicElements, Key extends keyof Elements>(element: Key, attrs: Elements[Key]): Elements[Key];
-declare function __sveltets_2_createElementNative<Elements extends svelteNative.JSX.IntrinsicElements, Key extends keyof Elements>(element: Key, attrs: Elements[Key]): Elements[Key];
+declare function __sveltets_2_createElement<Elements extends svelte.IntrinsicElements, Key extends keyof Elements>(
+    element: Key, attrs: Elements[Key]
+): Key extends keyof ElementTagNameMap ? ElementTagNameMap[Key] : Key extends keyof SVGElementTagNameMap ? SVGElementTagNameMap[Key] : HTMLElement;
+declare function __sveltets_2_createElementNative<Elements extends svelteNative.JSX.IntrinsicElements, Key extends keyof Elements>(element: Key, attrs: Elements[Key]): Record<string, any>;
 declare function __sveltets_2_createElementAny(element: string, attrs: Record<string, any>): Record<string, any>;
 
 declare function __sveltets_2_any(...dummy: any[]): any;
@@ -259,3 +261,5 @@ type __sveltets_2_SvelteTransitionConfig = {
 }
 type __sveltets_2_SvelteTransitionReturnType = __sveltets_2_SvelteTransitionConfig | (() => __sveltets_2_SvelteTransitionConfig)
 declare function __sveltets_2_ensureTransition(transitionCall: __sveltets_2_SvelteTransitionReturnType): {};
+
+declare function __sveltets_2_ensureType<T>(type: AConstructorTypeOf<T>, el: T): {};

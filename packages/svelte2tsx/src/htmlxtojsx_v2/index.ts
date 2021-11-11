@@ -7,6 +7,8 @@ import { handleActionDirective } from './nodes/Action';
 import { handleAnimateDirective } from './nodes/Animation';
 import { handleAttribute } from './nodes/Attribute';
 import { handleAwait } from './nodes/AwaitPendingCatchBlock';
+import { handleBinding } from './nodes/Binding';
+import { handleClassDirective } from './nodes/Class';
 import { handleComment } from './nodes/Comment';
 import { handleDebug } from './nodes/DebugTag';
 import { handleEach } from './nodes/EachBlock';
@@ -100,8 +102,10 @@ export function convertHtmlxToJsx(
                         handleComment(str, node);
                         break;
                     case 'Binding':
+                        handleBinding(str, node as BaseDirective, parent, element);
                         break;
                     case 'Class':
+                        handleClassDirective(str, node as BaseDirective, element as Element);
                         break;
                     case 'Action':
                         handleActionDirective(str, node as BaseDirective, element as Element);

@@ -30,10 +30,10 @@ export class Element {
     private endTransformation: TransformationArray = [];
     private startTagStart: number;
     private startTagEnd: number;
-    private name: string;
     private isSelfclosing: boolean;
-    public child?: any;
+    public name: string;
     public tagName: string;
+    public child?: any;
 
     /**
      * @param str The MagicString instance used to manipulate the text
