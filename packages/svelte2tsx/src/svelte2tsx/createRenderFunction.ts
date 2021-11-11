@@ -12,8 +12,7 @@ export interface CreateRenderFunctionPara extends InstanceScriptProcessResult {
     events: ComponentEvents;
     isTsFile: boolean;
     uses$$SlotsInterface: boolean;
-    mode?: 'tsx' | 'dts';
-    useNewTransformation?: boolean;
+    mode?: 'ts' | 'tsx' | 'dts';
 }
 
 export function createRenderFunction({
@@ -29,9 +28,9 @@ export function createRenderFunction({
     uses$$slots,
     uses$$SlotsInterface,
     generics,
-    mode,
-    useNewTransformation
+    mode
 }: CreateRenderFunctionPara) {
+    const useNewTransformation = mode === 'ts';
     const htmlx = str.original;
     let propsDecl = '';
 

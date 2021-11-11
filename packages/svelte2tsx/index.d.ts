@@ -44,8 +44,18 @@ export function svelte2tsx(
          * It is expected to pass the result to TypeScript which should handle emitting the d.ts files.
          * The shims need to be provided by the user ambient-style,
          * for example through `filenames.push(require.resolve('svelte2tsx/svelte-shims.d.ts'))`.
+         * If you pass 'ts', it uses the new transformation which will replace the now deprecated 'tsx'
+         * transformation soon.
          */
-        mode?: 'tsx' | 'dts',
+        mode?: 'ts' | 'tsx' | 'dts',
+        /**
+         * Takes effect when using the new 'ts' mode. Default 'html'.
+         * Tells svelte2tsx which function and corresponding typings to use when doing the transformation.
+         * - 'html' -> ..createElement<..>(..)
+         * - 'native' -> ..createElementNative<..>(..)
+         * - 'any' -> ..createElementAny<..>(..)
+         */
+        typingsNamespace?: 'html' | 'native' | 'any';
         /**
          * The accessor option from svelte config. 
          * Would be overridden by the same config in the svelte:option element if exist

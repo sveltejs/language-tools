@@ -33,10 +33,10 @@ export function convertHtmlxToJsx(
     ast: TemplateNode,
     onWalk: Walker = null,
     onLeave: Walker = null,
-    options: { preserveAttributeCase?: boolean; typings?: 'html' | 'any' } = {}
+    options: { preserveAttributeCase?: boolean; typingsNamespace?: 'html' | 'native' | 'any' } = {}
 ): void {
     const htmlx = str.original;
-    options = { preserveAttributeCase: false, typings: 'html', ...options };
+    options = { preserveAttributeCase: false, typingsNamespace: 'html', ...options };
     htmlx;
     stripDoctype(str);
 
@@ -75,10 +75,15 @@ export function convertHtmlxToJsx(
                     case 'Element':
                         if (node.name !== '!DOCTYPE') {
                             if (element) {
-                                element.child = new Element(str, node, options.typings, element);
+                                element.child = new Element(
+                                    str,
+                                    node,
+                                    options.typingsNamespace,
+                                    element
+                                );
                                 element = element.child;
                             } else {
-                                element = new Element(str, node, options.typings);
+                                element = new Element(str, node, options.typingsNamespace);
                             }
                         }
                         break;
@@ -167,7 +172,11 @@ export function convertHtmlxToJsx(
  */
 export function htmlx2jsx(
     htmlx: string,
-    options?: { emitOnTemplateError?: boolean; preserveAttributeCase: boolean }
+    options?: {
+        emitOnTemplateError?: boolean;
+        preserveAttributeCase: boolean;
+        typingsNamespace: 'html' | 'native' | 'any';
+    }
 ) {
     const ast = parseHtmlx(htmlx, options).htmlxAst;
     const str = new MagicString(htmlx);

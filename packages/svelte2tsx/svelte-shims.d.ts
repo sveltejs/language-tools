@@ -218,5 +218,6 @@ declare function __sveltets_1_unwrapPromiseLike<T>(promise: PromiseLike<T> | T):
 
 // v2
 declare function __sveltets_2_createElement<Elements extends svelte.IntrinsicElements, Key extends keyof Elements>(element: Key, attrs: Elements[Key]): Elements[Key];
-declare function __sveltets_2_createElementAny<Elements extends svelteNative.JSX.IntrinsicElements, Key extends keyof Elements>(element: Key, attrs: Elements[Key]): Elements[Key];
+declare function __sveltets_2_createElementNative<Elements extends svelteNative.JSX.IntrinsicElements, Key extends keyof Elements>(element: Key, attrs: Elements[Key]): Elements[Key];
+declare function __sveltets_2_createElementAny(element: string, attrs: Record<string, any>): Record<string, any>;
 declare function __sveltets_2_any(...dummy: any[]): any;

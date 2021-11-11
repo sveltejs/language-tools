@@ -6,7 +6,11 @@ describe('htmlx2jsx', () => {
         __dirname,
         (input, { emitOnTemplateError, preserveAttributeCase, useNewTransformation }) => {
             return useNewTransformation
-                ? htmlx2jsx_v2(input, { emitOnTemplateError, preserveAttributeCase })
+                ? htmlx2jsx_v2(input, {
+                      emitOnTemplateError,
+                      preserveAttributeCase,
+                      typingsNamespace: 'html'
+                  })
                 : htmlx2jsx(input, { emitOnTemplateError, preserveAttributeCase });
         },
         'jsx'

@@ -228,7 +228,6 @@ export function test_samples(dir: string, transform: TransformSampleFn, jsx: 'js
             sampleName: sample.name,
             emitOnTemplateError: false,
             preserveAttributeCase: sample.name.endsWith('-foreign-ns'),
-            mode: sample.name.endsWith('-dts') ? 'dts' : undefined,
             useNewTransformation: false
         };
 
@@ -335,9 +334,8 @@ export function get_svelte2tsx_config(base: BaseConfig, sampleName: string): Sve
         emitOnTemplateError: base.emitOnTemplateError,
         isTsFile: sampleName.startsWith('ts-'),
         namespace: sampleName.endsWith('-foreign-ns') ? 'foreign' : null,
-        mode: sampleName.endsWith('-dts') ? 'dts' : undefined,
-        accessors: sampleName.startsWith('accessors-config'),
-        useNewTransformation: base.useNewTransformation
+        mode: sampleName.endsWith('-dts') ? 'dts' : base.useNewTransformation ? 'ts' : 'tsx',
+        accessors: sampleName.startsWith('accessors-config')
     };
 }
 

@@ -43,7 +43,7 @@ function processSvelteTemplate(
         emitOnTemplateError?: boolean;
         namespace?: string;
         accessors?: boolean;
-        useNewTransformation?: boolean;
+        mode?: 'ts' | 'tsx' | 'dts';
     }
 ): TemplateProcessResult {
     const { htmlxAst, tags } = parseHtmlx(str.original, options);
@@ -257,7 +257,7 @@ function processSvelteTemplate(
         }
     };
 
-    if (options.useNewTransformation) {
+    if (options.mode === 'ts') {
         convertHtmlxToJsxNew(str, htmlxAst, onHtmlxWalk, onHtmlxLeave, {
             preserveAttributeCase: options?.namespace == 'foreign'
         });
@@ -299,13 +299,12 @@ export function svelte2tsx(
         isTsFile?: boolean;
         emitOnTemplateError?: boolean;
         namespace?: string;
-        mode?: 'tsx' | 'dts';
+        mode?: 'ts' | 'tsx' | 'dts';
         accessors?: boolean;
-        useNewTransformation?: boolean;
     } = {}
 ) {
     // TODO temporary
-    options.useNewTransformation = options.useNewTransformation === false ? false : true;
+    options.mode = options.mode || 'ts';
 
     const str = new MagicString(svelte);
     // process the htmlx as a svelte template
@@ -380,8 +379,7 @@ export function svelte2tsx(
         uses$$slots,
         uses$$SlotsInterface,
         generics,
-        mode: options.mode,
-        useNewTransformation: options.useNewTransformation
+        mode: options.mode
     });
 
     // we need to process the module script after the instance script has moved otherwise we get warnings about moving edited items
