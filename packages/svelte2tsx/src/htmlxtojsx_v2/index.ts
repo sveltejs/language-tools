@@ -3,6 +3,8 @@ import { walk } from 'svelte/compiler';
 import { TemplateNode, Text } from 'svelte/types/compiler/interfaces';
 import { Attribute, BaseNode, BaseDirective } from '../interfaces';
 import { parseHtmlx } from '../utils/htmlxparser';
+import { handleActionDirective } from './nodes/Action';
+import { handleAnimateDirective } from './nodes/Animation';
 import { handleAttribute } from './nodes/Attribute';
 import { handleAwait } from './nodes/AwaitPendingCatchBlock';
 import { handleComment } from './nodes/Comment';
@@ -13,6 +15,7 @@ import { handleElse, handleIf } from './nodes/IfElseBlock';
 import { InlineComponent } from './nodes/InlineComponent';
 import { handleMustacheTag } from './nodes/MustacheTag';
 import { handleText } from './nodes/Text';
+import { handleTransitionDirective } from './nodes/Transition';
 
 type Walker = (node: TemplateNode, parent: BaseNode, prop: string, index: number) => void;
 
@@ -95,10 +98,13 @@ export function convertHtmlxToJsx(
                     case 'Class':
                         break;
                     case 'Action':
+                        handleActionDirective(str, node as BaseDirective, element as Element);
                         break;
                     case 'Transition':
+                        handleTransitionDirective(str, node as BaseDirective, element as Element);
                         break;
                     case 'Animation':
+                        handleAnimateDirective(str, node as BaseDirective, element as Element);
                         break;
                     case 'Attribute':
                         handleAttribute(

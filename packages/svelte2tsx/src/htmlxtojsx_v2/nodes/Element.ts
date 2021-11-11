@@ -25,7 +25,7 @@ const voidTags = 'area,base,br,col,embed,hr,img,input,link,meta,param,source,tra
  */
 export class Element {
     private startTransformation: TransformationArray = [];
-    private startEndTransformation: TransformationArray = [];
+    private startEndTransformation: TransformationArray = ['});'];
     private attrsTransformation: TransformationArray = [];
     private endTransformation: TransformationArray = [];
     private startTagStart: number;
@@ -33,31 +33,33 @@ export class Element {
     private name: string;
     private isSelfclosing: boolean;
     public child?: any;
+    public tagName: string;
 
     /**
      * @param str The MagicString instance used to manipulate the text
      * @param node The Svelte AST node that represents this element
-     * @param typings Determines which createElement function to use. If 'html', it uses
-     *                a function which provides type-checks and errors on for example wrong
-     *                attributes. If 'any', it falls back to a "everything goes" function
-     *                which is needed for example for Svelte Native.
+     * @param typingsNamespace Determines which createElement function to use. If 'html'/'native', it uses
+     *                         a function which provides type-checks and errors on for example wrong
+     *                         attributes. If 'any', it falls back to a "everything goes" function
+     *                         which is needed for example for Svelte Native.
      * @param parent The Svelte AST parent node
      */
     constructor(
         private str: MagicString,
         private node: BaseNode,
-        private typings: 'html' | 'any',
+        private typingsNamespace: 'html' | 'native' | 'any',
         public parent?: any
     ) {
         if (parent) {
             parent.child = this;
         }
 
+        this.tagName = this.node.name;
         this.isSelfclosing = this.computeIsSelfclosing();
         this.startTagStart = this.node.start;
         this.startTagEnd = this.computeStartTagEnd();
         const createElement =
-            this.typings === 'html'
+            this.typingsNamespace === 'html'
                 ? '__sveltets_2_createElement'
                 : '__sveltets_2_createElementAny';
 
@@ -96,8 +98,14 @@ export class Element {
         this.attrsTransformation.push(...name, ':', ...value, ',');
     }
 
+    /**
+     * Add something right after the start tag end.
+     */
+    appendToStartEnd(value: TransformationArray): void {
+        this.startEndTransformation.push(...value);
+    }
+
     performTransformation(): void {
-        this.startEndTransformation.push('});');
         this.endTransformation.push('}');
 
         if (this.isSelfclosing) {

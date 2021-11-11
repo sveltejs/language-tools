@@ -1,6 +1,6 @@
 import { Node, walk } from 'estree-walker';
 import MagicString from 'magic-string';
-import { BaseNode } from '../../interfaces';
+import { BaseDirective, BaseNode } from '../../interfaces';
 import { surroundWithIgnoreComments } from '../../utils/ignore';
 
 export type TransformationArray = Array<string | [number, number]>;
@@ -42,6 +42,18 @@ export function transform(
     if (removeStart < end) {
         str.overwrite(removeStart, end, '', { contentOnly: true });
     }
+}
+
+/**
+ * Returns the [start, end] indexes of a directive (action,animation,etc) name.
+ * Example: use:foo --> [startOfFoo, endOfFoo]
+ */
+export function getDirectiveNameStartEndIdx(
+    str: MagicString,
+    node: BaseDirective
+): [number, number] {
+    const colonIdx = str.original.indexOf(':', node.start);
+    return [colonIdx + 1, colonIdx + 1 + `${node.name}`.length];
 }
 
 /**
