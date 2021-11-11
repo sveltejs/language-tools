@@ -217,7 +217,45 @@ declare function __sveltets_1_unwrapArr<T>(arr: ArrayLike<T>): T
 declare function __sveltets_1_unwrapPromiseLike<T>(promise: PromiseLike<T> | T): T
 
 // v2
+
 declare function __sveltets_2_createElement<Elements extends svelte.IntrinsicElements, Key extends keyof Elements>(element: Key, attrs: Elements[Key]): Elements[Key];
 declare function __sveltets_2_createElementNative<Elements extends svelteNative.JSX.IntrinsicElements, Key extends keyof Elements>(element: Key, attrs: Elements[Key]): Elements[Key];
 declare function __sveltets_2_createElementAny(element: string, attrs: Record<string, any>): Record<string, any>;
+
 declare function __sveltets_2_any(...dummy: any[]): any;
+
+declare function __sveltets_2_mapElementTag<K extends keyof ElementTagNameMap>(
+    tag: K
+): ElementTagNameMap[K];
+declare function __sveltets_2_mapElementTag<K extends keyof SVGElementTagNameMap>(
+    tag: K
+): SVGElementTagNameMap[K];
+declare function __sveltets_2_mapElementTag(
+    tag: any
+): HTMLElement;
+
+type __sveltets_2_SvelteAnimationReturnType = {
+    delay?: number,
+    duration?: number,
+    easing?: (t: number) => number,
+    css?: (t: number, u: number) => string,
+    tick?: (t: number, u: number) => void
+}
+declare var __sveltets_2_AnimationMove: { from: DOMRect, to: DOMRect }
+declare function __sveltets_2_ensureAnimation(animationCall: __sveltets_2_SvelteAnimationReturnType): {};
+
+type __sveltets_2_SvelteActionReturnType = {
+	update?: (args: any) => void,
+	destroy?: () => void
+} | void
+declare function __sveltets_2_ensureAction(actionCall: __sveltets_2_SvelteActionReturnType): {};
+
+type __sveltets_2_SvelteTransitionConfig = {
+    delay?: number,
+    duration?: number,
+    easing?: (t: number) => number,
+    css?: (t: number, u: number) => string,
+    tick?: (t: number, u: number) => void
+}
+type __sveltets_2_SvelteTransitionReturnType = __sveltets_2_SvelteTransitionConfig | (() => __sveltets_2_SvelteTransitionConfig)
+declare function __sveltets_2_ensureTransition(transitionCall: __sveltets_2_SvelteTransitionReturnType): {};

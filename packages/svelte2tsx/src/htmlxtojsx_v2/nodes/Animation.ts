@@ -1,6 +1,6 @@
 import MagicString from 'magic-string';
 import { BaseDirective } from '../../interfaces';
-import { getDirectiveNameStartEndIdx } from '../utils/node-utils';
+import { getDirectiveNameStartEndIdx, TransformationArray } from '../utils/node-utils';
 import { Element } from './Element';
 
 /**
@@ -11,11 +11,14 @@ export function handleAnimateDirective(
     attr: BaseDirective,
     element: Element
 ): void {
-    element.appendToStartEnd([
+    const transformations: TransformationArray = [
         '__sveltets_2_ensureAnimation(',
         getDirectiveNameStartEndIdx(str, attr),
-        `(__sveltets_2_mapElementTag('${element.tagName}'),__sveltets_2_AnimationMove,(`,
-        attr.expression ? [attr.expression.start, attr.expression.end] : '{}',
-        ')));'
-    ]);
+        `(__sveltets_2_mapElementTag('${element.tagName}'),__sveltets_2_AnimationMove,(`
+    ];
+    if (attr.expression) {
+        transformations.push(',(', [attr.expression.start, attr.expression.end], ')');
+    }
+    transformations.push('));');
+    element.appendToStartEnd(transformations);
 }
