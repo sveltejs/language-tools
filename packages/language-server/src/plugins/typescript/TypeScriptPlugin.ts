@@ -43,6 +43,7 @@ import {
     SemanticTokensProvider,
     SignatureHelpProvider,
     UpdateImportsProvider,
+    ImplementationProvider,
     UpdateTsOrJsFile
 } from '../interfaces';
 import { CodeActionsProviderImpl } from './features/CodeActionsProvider';
@@ -54,6 +55,7 @@ import { DiagnosticsProviderImpl } from './features/DiagnosticsProvider';
 import { FindReferencesProviderImpl } from './features/FindReferencesProvider';
 import { getDirectiveCommentCompletions } from './features/getDirectiveCommentCompletions';
 import { HoverProviderImpl } from './features/HoverProvider';
+import { ImplementationProviderImpl } from './features/ImplementationProvider';
 import { RenameProviderImpl } from './features/RenameProvider';
 import { SelectionRangeProviderImpl } from './features/SelectionRangeProvider';
 import { SemanticTokensProviderImpl } from './features/SemanticTokensProvider';
@@ -77,6 +79,7 @@ export class TypeScriptPlugin
         SelectionRangeProvider,
         SignatureHelpProvider,
         SemanticTokensProvider,
+        ImplementationProvider,
         OnWatchFileChanges,
         CompletionsProvider<CompletionEntryWithIdentifer>,
         UpdateTsOrJsFile
@@ -93,6 +96,7 @@ export class TypeScriptPlugin
     private readonly selectionRangeProvider: SelectionRangeProviderImpl;
     private readonly signatureHelpProvider: SignatureHelpProviderImpl;
     private readonly semanticTokensProvider: SemanticTokensProviderImpl;
+    private readonly implementationProvider: ImplementationProviderImpl;
 
     constructor(configManager: LSConfigManager, lsAndTsDocResolver: LSAndTSDocResolver) {
         this.configManager = configManager;
@@ -110,6 +114,7 @@ export class TypeScriptPlugin
         this.selectionRangeProvider = new SelectionRangeProviderImpl(this.lsAndTsDocResolver);
         this.signatureHelpProvider = new SignatureHelpProviderImpl(this.lsAndTsDocResolver);
         this.semanticTokensProvider = new SemanticTokensProviderImpl(this.lsAndTsDocResolver);
+        this.implementationProvider = new ImplementationProviderImpl(this.lsAndTsDocResolver);
     }
 
     async getDiagnostics(
@@ -448,6 +453,14 @@ export class TypeScriptPlugin
             range,
             cancellationToken
         );
+    }
+
+    async getImplementation(document: Document, position: Position): Promise<Location[] | null> {
+        if (!this.featureEnabled('implementation')) {
+            return null;
+        }
+
+        return this.implementationProvider.getImplementation(document, position);
     }
 
     private async getLSAndTSDoc(document: Document) {

@@ -172,6 +172,12 @@
                     "title": "TypeScript: Semantic Tokens",
                     "description": "Enable semantic tokens (semantic highlight) for TypeScript."
                 },
+                "svelte.plugin.typescript.implementation.enable": {
+                    "type": "boolean",
+                    "default": true,
+                    "title": "Typescript: Go to Implementation",
+                    "description": "Enable go to implementation for Typescript"
+                },
                 "svelte.plugin.css.enable": {
                     "type": "boolean",
                     "default": true,
