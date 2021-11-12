@@ -328,6 +328,9 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
 
         const name = node.tagName.getText();
         const suffixedName = name + '__SvelteComponent_';
+        const errorPreventingUserPreferences =
+            this.completionProvider.fixUserPreferencesForSvelteComponentImport(userPreferences);
+
         const toFix = (c: ts.CompletionEntry) =>
             lang
                 .getCompletionEntryDetails(
@@ -336,7 +339,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                     c.name,
                     {},
                     c.source,
-                    userPreferences,
+                    errorPreventingUserPreferences,
                     c.data
                 )
                 ?.codeActions?.map((a) => ({

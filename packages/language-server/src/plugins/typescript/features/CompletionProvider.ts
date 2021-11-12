@@ -392,6 +392,19 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         return completionItem;
     }
 
+    fixUserPreferencesForSvelteComponentImport(
+        userPreferences: ts.UserPreferences
+    ): ts.UserPreferences {
+        if (userPreferences.importModuleSpecifierEnding === 'js') {
+            return {
+                ...userPreferences,
+                importModuleSpecifierEnding: 'auto'
+            };
+        }
+
+        return userPreferences;
+    }
+
     async resolveCompletion(
         document: Document,
         completionItem: AppCompletionItem<CompletionEntryWithIdentifer>,
@@ -409,6 +422,9 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         }
 
         const fragment = await tsDoc.getFragment();
+        const errorPreventingUserPreferences = this.isSvelteComponentImport(comp.name)
+            ? this.fixUserPreferencesForSvelteComponentImport(userPreferences)
+            : userPreferences;
 
         const detail = lang.getCompletionEntryDetails(
             filePath,
@@ -416,7 +432,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             comp.name,
             {},
             comp.source,
-            userPreferences,
+            errorPreventingUserPreferences,
             comp.data
         );
 
