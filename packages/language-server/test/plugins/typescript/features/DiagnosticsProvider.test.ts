@@ -1023,6 +1023,32 @@ describe('DiagnosticsProvider', () => {
         assert.deepStrictEqual(diagnostics3.length, 1);
     }).timeout(5000);
 
+    it('notices update of imported module', async () => {
+        const { plugin, document, lsAndTsDocResolver } = setup(
+            'diagnostics-imported-js-update.svelte'
+        );
+
+        const newFilePath = normalizePath(path.join(testDir, 'empty-export.ts')) || '';
+        await lsAndTsDocResolver.getSnapshot(newFilePath);
+
+        const diagnostics1 = await plugin.getDiagnostics(document);
+        assert.deepStrictEqual(
+            diagnostics1[0]?.message,
+            "Module '\"./empty-export\"' has no exported member 'foo'."
+        );
+
+        await lsAndTsDocResolver.updateExistingTsOrJsFile(newFilePath, [
+            {
+                range: { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } },
+                text: 'export function foo() {}'
+            }
+        ]);
+
+        const diagnostics2 = await plugin.getDiagnostics(document);
+        assert.deepStrictEqual(diagnostics2.length, 0);
+        await lsAndTsDocResolver.deleteSnapshot(newFilePath);
+    }).timeout(5000);
+
     it('notices file changes in all services that reference that file', async () => {
         const { plugin, document, docManager, lsAndTsDocResolver } = setup(
             'different-ts-service.svelte'

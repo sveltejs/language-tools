@@ -48,6 +48,7 @@ export class GlobalSnapshotsManager {
                 return;
             }
             previousSnapshot.update(changes);
+            this.emitter.emit('change', fileName, previousSnapshot);
             return previousSnapshot;
         } else {
             const newSnapshot = DocumentSnapshot.fromNonSvelteFilePath(fileName);
