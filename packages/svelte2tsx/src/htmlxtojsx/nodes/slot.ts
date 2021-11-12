@@ -53,11 +53,11 @@ export function handleSlot(
         str.move(attr.start, attr.end, slotDefInsertionPoint);
 
         //remove let:
+        str.remove(attr.start, attr.start + 'let:'.length);
         if (hasMoved) {
-            str.overwrite(attr.start, attr.start + 'let:'.length, ', ');
-        } else {
-            str.remove(attr.start, attr.start + 'let:'.length);
+            str.appendRight(attr.start + 'let:'.length, ', ');
         }
+
         templateScope.inits.add(attr.expression?.name || attr.name);
         hasMoved = true;
         if (attr.expression) {
