@@ -39,6 +39,7 @@ describe('RenameProvider', () => {
         const renameDocSlotEventsImporter = await openDoc('rename-slot-events-importer.svelte');
         const renameDocPropWithSlotEvents = await openDoc('rename-prop-with-slot-events.svelte');
         const renameDocShorthand = await openDoc('rename-shorthand.svelte');
+        const renameSlotLet = await openDoc('rename-slot-let.svelte');
 
         return {
             provider,
@@ -52,6 +53,7 @@ describe('RenameProvider', () => {
             renameDocSlotEventsImporter,
             renameDocPropWithSlotEvents,
             renameDocShorthand,
+            renameSlotLet,
             docManager
         };
 
@@ -599,7 +601,7 @@ describe('RenameProvider', () => {
         });
     });
 
-    it('should can rename shorthand props without breaking value-passing', async () => {
+    it('can rename shorthand props without breaking value-passing', async () => {
         const { provider, renameDocShorthand } = await setup();
 
         const result = await provider.rename(renameDocShorthand, Position.create(3, 16), 'newName');
@@ -669,6 +671,45 @@ describe('RenameProvider', () => {
                             end: {
                                 line: 9,
                                 character: 21
+                            }
+                        }
+                    }
+                ]
+            }
+        });
+    });
+
+    it('can rename slot let to an alias', async () => {
+        const { provider, renameSlotLet } = await setup();
+
+        const result = await provider.rename(renameSlotLet, Position.create(4, 7), 'newName');
+
+        assert.deepStrictEqual(result, {
+            changes: {
+                [getUri('rename-slot-let.svelte')]: [
+                    {
+                        newText: 'aSlot={newName}',
+                        range: {
+                            end: {
+                                character: 12,
+                                line: 4
+                            },
+                            start: {
+                                character: 7,
+                                line: 4
+                            }
+                        }
+                    },
+                    {
+                        newText: 'newName',
+                        range: {
+                            end: {
+                                character: 26,
+                                line: 4
+                            },
+                            start: {
+                                character: 21,
+                                line: 4
                             }
                         }
                     }
