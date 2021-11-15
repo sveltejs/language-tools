@@ -55,9 +55,9 @@ export function handleAttribute(
 
     const addAttribute =
         element instanceof Element
-            ? (name: TransformationArray, value: TransformationArray) =>
+            ? (name: TransformationArray, value?: TransformationArray) =>
                   element.addAttribute(name, value)
-            : (name: TransformationArray, value: TransformationArray) =>
+            : (name: TransformationArray, value?: TransformationArray) =>
                   element.addProp(name, value);
 
     // TODO if it's a slot, transform to sth like const slot = component.$$slots[name];
@@ -91,21 +91,20 @@ export function handleAttribute(
         const name = parts[0] + parts[1][0].toUpperCase() + parts[1].substring(1);
         str.overwrite(attr.start, attr.start + attr.name.length, name);
         attributeName.push([attr.start, attr.start + attr.name.length]);
+    } else if (isAttributeShorthand) {
+        // For the attribute shorthand, the name will be the mapped part
+        addAttribute([[attr.value[0].start, attr.value[0].end]]);
+        return;
     } else {
         let name =
-            element instanceof Element && (attr.value === true || isAttributeShorthand)
+            element instanceof Element && attr.value === true
                 ? transformAttributeCase(attr.name)
                 : attr.name;
         if (name !== attr.name) {
             str.overwrite(attr.start, attr.start + attr.name.length, name);
         }
         // surround with quotes because dashes or other invalid property characters could be part of the name
-        if (isAttributeShorthand) {
-            // For the attribute shorthand, the value will be the mapped part
-            attributeName.push(`"${name}"`);
-        } else {
-            attributeName.push('"', [attr.start, attr.start + attr.name.length], '"');
-        }
+        attributeName.push('"', [attr.start, attr.start + attr.name.length], '"');
     }
     // Custom CSS property
     // TODO
@@ -126,11 +125,6 @@ export function handleAttribute(
     }
     if (attr.value.length == 0) {
         // this shouldn't be possible
-        return;
-    }
-    if (isAttributeShorthand) {
-        attributeValue.push([attr.value[0].start, attr.value[0].end]);
-        addAttribute(attributeName, attributeValue);
         return;
     }
     //handle single value

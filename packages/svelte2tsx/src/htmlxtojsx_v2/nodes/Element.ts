@@ -92,10 +92,14 @@ export class Element {
     /**
      * attribute={foo}  -->  "attribute": foo,
      * @param name Attribute name
-     * @param value Attribute value, if present. Falls back to undefined if not given.
+     * @param value Attribute value, if present. If not present, this is treated as a shorthand attribute
      */
-    addAttribute(name: TransformationArray, value: TransformationArray = ['undefined']): void {
-        this.attrsTransformation.push(...name, ':', ...value, ',');
+    addAttribute(name: TransformationArray, value?: TransformationArray): void {
+        if (value) {
+            this.attrsTransformation.push(...name, ':', ...value, ',');
+        } else {
+            this.attrsTransformation.push(...name, ',');
+        }
     }
 
     /**

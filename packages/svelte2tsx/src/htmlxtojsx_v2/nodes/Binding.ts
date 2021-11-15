@@ -72,9 +72,11 @@ export function handleBinding(
     // other bindings which are transformed to normal attributes/props
     const isShorthand = attr.expression.start === attr.start + 'bind:'.length;
     const name: TransformationArray = isShorthand
-        ? [attr.name]
+        ? [[attr.expression.start, attr.expression.end]]
         : [[attr.start + 'bind:'.length, str.original.lastIndexOf('=', attr.expression.start)]];
-    const value: TransformationArray = [[attr.expression.start, attr.expression.end]];
+    const value: TransformationArray | undefined = isShorthand
+        ? undefined
+        : [[attr.expression.start, attr.expression.end]];
     if (element instanceof Element) {
         element.addAttribute(name, value);
     } else {

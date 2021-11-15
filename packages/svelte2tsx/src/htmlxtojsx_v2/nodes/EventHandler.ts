@@ -20,7 +20,7 @@ export function handleEventHandler(
     if (element instanceof Element) {
         element.addAttribute(
             ['on', [nameStart, nameEnd]],
-            attr.expression ? [[attr.expression.start, attr.expression.end]] : undefined
+            attr.expression ? [[attr.expression.start, attr.expression.end]] : ['undefined']
         );
     } else {
         element.addEvent(

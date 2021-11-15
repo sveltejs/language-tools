@@ -48,8 +48,11 @@ export class InlineComponent {
             // TODO
         } else {
             this.name = '$$_' + this.node.name;
+            const nodeNameStart = this.str.original.indexOf(this.node.name, this.node.start);
             this.startTransformation.push(
-                `{ const ${this.name} = new ${this.node.name}({ target: __sveltets_2_any(), props: {`
+                `{ const ${this.name} = new `,
+                [nodeNameStart, nodeNameStart + this.node.name.length],
+                '({ target: __sveltets_2_any(), props: {'
             );
         }
     }
@@ -57,10 +60,14 @@ export class InlineComponent {
     /**
      * prop={foo}  -->  "prop": foo,
      * @param name Property name
-     * @param value Property value, if present. Falls back to undefined if not given.
+     * @param value Attribute value, if present. If not present, this is treated as a shorthand attribute
      */
-    addProp(name: TransformationArray, value: TransformationArray = ['undefined']): void {
-        this.propsTransformation.push(...name, ':', ...value, ',');
+    addProp(name: TransformationArray, value?: TransformationArray): void {
+        if (value) {
+            this.propsTransformation.push(...name, ':', ...value, ',');
+        } else {
+            this.propsTransformation.push(...name, ',');
+        }
     }
 
     /**
