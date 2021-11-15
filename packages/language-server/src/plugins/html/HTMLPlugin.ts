@@ -1,4 +1,4 @@
-import { getEmmetCompletionParticipants } from 'vscode-emmet-helper';
+import { doComplete as doEmmetComplete } from 'vscode-emmet-helper';
 import {
     getLanguageService,
     HTMLDocument,
@@ -88,21 +88,12 @@ export class HTMLPlugin
             return null;
         }
 
-        const emmetResults: CompletionList = {
-            isIncomplete: true,
+        const emmetResults: CompletionList = (this.configManager.getConfig().html.completions
+            .emmet &&
+            doEmmetComplete(document, position, 'html', this.configManager.getEmmetConfig())) || {
+            isIncomplete: false,
             items: []
         };
-        if (this.configManager.getConfig().html.completions.emmet) {
-            this.lang.setCompletionParticipants([
-                getEmmetCompletionParticipants(
-                    document,
-                    position,
-                    'html',
-                    this.configManager.getEmmetConfig(),
-                    emmetResults
-                )
-            ]);
-        }
 
         const results = this.isInComponentTag(html, document, position)
             ? // Only allow emmet inside component element tags.
