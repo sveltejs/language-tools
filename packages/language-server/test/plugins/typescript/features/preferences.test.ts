@@ -136,7 +136,7 @@ describe('ts user preferences', () => {
     const expectedComponentImportEdit = "import Imports from '~/imports.svelte';";
 
     function setupImportModuleSpecifierEndingJs() {
-        const { docManager, document } = setup('code-action.svelte');
+        const { docManager, document } = setup('module-specifier-js.svelte');
         const lsAndTsDocResolver = createLSAndTSDocResolver(docManager, {
             preferences: {
                 importModuleSpecifier: 'non-relative',
@@ -161,6 +161,24 @@ describe('ts user preferences', () => {
         const item = completions?.items.find((item) => item.label === 'Imports');
         const { additionalTextEdits } = await completionProvider.resolveCompletion(document, item!);
         assert.strictEqual(additionalTextEdits![0].newText.trim(), expectedComponentImportEdit);
+    });
+
+    it('provides auto import for context="module" export when importModuleSpecifierEnding is js', async () => {
+        const { document, lsAndTsDocResolver } = setupImportModuleSpecifierEndingJs();
+
+        const completionProvider = new CompletionsProviderImpl(lsAndTsDocResolver);
+
+        const completions = await completionProvider.getCompletions(
+            document,
+            Position.create(1, 6)
+        );
+
+        const item = completions?.items.find((item) => item.label === 'hi');
+        const { additionalTextEdits } = await completionProvider.resolveCompletion(document, item!);
+        assert.strictEqual(
+            additionalTextEdits![0].newText.trim(),
+            "import { hi } from '~/with-context-module.svelte';"
+        );
     });
 
     it('provides import code action for svelte component when importModuleSpecifierEnding is js', async () => {

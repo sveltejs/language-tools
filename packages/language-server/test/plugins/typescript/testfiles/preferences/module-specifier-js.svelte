@@ -1,3 +1,5 @@
 <script lang="ts">
-    definition
+    hi
 </script>
+
+<Imports></Imports>
