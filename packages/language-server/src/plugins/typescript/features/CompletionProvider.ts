@@ -392,6 +392,11 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         return completionItem;
     }
 
+    /**
+     * TypeScript throws a debug assertion error if the importModuleSpecifierEnding config is
+     * 'js' and there's an unknown file extension - which is the case for `.svelte`. Therefore
+     * rewrite the importModuleSpecifierEnding for this case to silence the error.
+     */
     fixUserPreferencesForSvelteComponentImport(
         userPreferences: ts.UserPreferences
     ): ts.UserPreferences {
