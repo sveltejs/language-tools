@@ -398,7 +398,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         if (userPreferences.importModuleSpecifierEnding === 'js') {
             return {
                 ...userPreferences,
-                importModuleSpecifierEnding: 'auto'
+                importModuleSpecifierEnding: 'index'
             };
         }
 
@@ -422,7 +422,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         }
 
         const fragment = await tsDoc.getFragment();
-        const errorPreventingUserPreferences = this.isSvelteComponentImport(comp.name)
+        const errorPreventingUserPreferences = comp.source?.endsWith('.svelte')
             ? this.fixUserPreferencesForSvelteComponentImport(userPreferences)
             : userPreferences;
 
