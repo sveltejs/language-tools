@@ -84,6 +84,10 @@ export function convertHtmlxToJsx(
                         }
                         break;
                     case 'Element':
+                    case 'Options':
+                    case 'Window':
+                    case 'Head':
+                    case 'Body':
                         if (node.name !== '!DOCTYPE') {
                             if (element) {
                                 element.child = new Element(
@@ -129,14 +133,6 @@ export function convertHtmlxToJsx(
                     case 'EventHandler':
                         handleEventHandler(str, node as BaseDirective, element);
                         break;
-                    case 'Options':
-                        break;
-                    case 'Window':
-                        break;
-                    case 'Head':
-                        break;
-                    case 'Body':
-                        break;
                     case 'SlotTemplate':
                         break;
                     case 'Text':
@@ -166,6 +162,10 @@ export function convertHtmlxToJsx(
                         break;
                     case 'InlineComponent':
                     case 'Element':
+                    case 'Options':
+                    case 'Window':
+                    case 'Head':
+                    case 'Body':
                         if (node.name !== '!DOCTYPE') {
                             element.performTransformation();
                             element = element.parent;
