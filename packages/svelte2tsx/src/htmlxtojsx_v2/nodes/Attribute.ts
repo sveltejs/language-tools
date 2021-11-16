@@ -47,9 +47,14 @@ export function handleAttribute(
     preserveCase: boolean,
     element: Element | InlineComponent
 ): void {
-    if (parent.name === '!DOCTYPE' || ['Style', 'Script'].includes(parent.type)) {
-        // <!DOCTYPE html> is already removed by now from MagicString
-        // Don't handle script / style tag attributes (context or lang for example)
+    if (
+        parent.name === '!DOCTYPE' ||
+        ['Style', 'Script'].includes(parent.type) ||
+        (attr.name === 'name' && parent.type === 'Slot')
+    ) {
+        // - <!DOCTYPE html> is already removed by now from MagicString
+        // - Don't handle script / style tag attributes (context or lang for example)
+        // - name=".." of <slot> tag is already handled in Element
         return;
     }
 
@@ -59,13 +64,6 @@ export function handleAttribute(
                   element.addAttribute(name, value)
             : (name: TransformationArray, value?: TransformationArray) =>
                   element.addProp(name, value);
-
-    // TODO if it's a slot, transform to sth like const slot = component.$$slots[name];
-    // const shouldApplySlotCheck = parent.type === 'Slot' && attr.name !== 'name';
-    // const slotName = shouldApplySlotCheck
-    //     ? parent.attributes?.find((a: BaseNode) => a.name === 'name')?.value[0]?.data || 'default'
-    //     : undefined;
-    // const ensureSlotStr = `__sveltets_ensureSlot("${slotName}","${attr.name}",`;
 
     /**
      * lowercase the attribute name to make it adhere to our intrinsic elements definition
@@ -78,12 +76,9 @@ export function handleAttribute(
         }
     };
 
-    const isAttributeShorthand =
-        attr.value !== true && attr.value.length == 1 && attr.value[0].type == 'AttributeShorthand';
+    // Handle attribute name
 
     const attributeName: TransformationArray = [];
-
-    // Handle attribute name
 
     if (sapperLinkActions.includes(attr.name) || sveltekitLinkActions.includes(attr.name)) {
         //strip ":" from out attribute name and uppercase the next letter to convert to jsx attribute
@@ -91,7 +86,11 @@ export function handleAttribute(
         const name = parts[0] + parts[1][0].toUpperCase() + parts[1].substring(1);
         str.overwrite(attr.start, attr.start + attr.name.length, name);
         attributeName.push([attr.start, attr.start + attr.name.length]);
-    } else if (isAttributeShorthand) {
+    } else if (
+        attr.value !== true &&
+        attr.value.length == 1 &&
+        attr.value[0].type == 'AttributeShorthand'
+    ) {
         // For the attribute shorthand, the name will be the mapped part
         addAttribute([[attr.value[0].start, attr.value[0].end]]);
         return;
@@ -131,12 +130,6 @@ export function handleAttribute(
     if (attr.value.length == 1) {
         const attrVal = attr.value[0];
 
-        // TODO slot
-        // if (attr.name == 'slot') {
-        //     str.remove(attr.start, attr.end);
-        //     return;
-        // }
-
         if (attrVal.type == 'Text') {
             const hasBrackets =
                 htmlx.lastIndexOf('}', attrVal.end) === attrVal.end - 1 ||
@@ -160,11 +153,6 @@ export function handleAttribute(
         } else if (attrVal.type == 'MustacheTag') {
             attributeValue.push([attrVal.expression.start, attrVal.expression.end]);
             addAttribute(attributeName, attributeValue);
-            // TODO
-            // if (shouldApplySlotCheck) {
-            //     str.prependRight(attrVal.start + 1, ensureSlotStr);
-            //     str.appendLeft(attr.end - (isInQuotes ? 2 : 1), ')');
-            // }
         }
         return;
     }

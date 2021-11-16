@@ -88,6 +88,7 @@ export function convertHtmlxToJsx(
                     case 'Window':
                     case 'Head':
                     case 'Body':
+                    case 'Slot':
                         if (node.name !== '!DOCTYPE') {
                             if (element) {
                                 element.child = new Element(
@@ -166,6 +167,7 @@ export function convertHtmlxToJsx(
                     case 'Window':
                     case 'Head':
                     case 'Body':
+                    case 'Slot':
                         if (node.name !== '!DOCTYPE') {
                             element.performTransformation();
                             element = element.parent;

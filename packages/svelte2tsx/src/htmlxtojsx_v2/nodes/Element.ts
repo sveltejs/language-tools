@@ -64,7 +64,8 @@ export class Element {
                 : '__sveltets_2_createElementAny';
 
         switch (this.node.name) {
-            // Although not everything that is valid on the special svelte elements,
+            // Although not everything that is possible to add to Element
+            // is valid on the special svelte elements,
             // we still also handle them here and let the Svelte parser handle invalid
             // cases. For us it doesn't make a difference to a normal HTML element.
             case 'svelte:options':
@@ -76,6 +77,21 @@ export class Element {
                 this.name = '$$_' + nodeName;
                 this.startTransformation.push(
                     `{ const ${this.name} = ${createElement}("${nodeName}", {`
+                );
+                break;
+            case 'slot':
+                // If the element is a <slot> tag, create the element with the createSlot-function
+                // which is created inside createRenderFunction.ts to check that the name and attributes
+                // of the slot tag are correct. The check will error if the user defined $$Slots
+                // and the slot definition or its attributes contradict that type definition.
+                this.name = '$$_slot';
+                const slotName =
+                    this.node.attributes?.find((a: BaseNode) => a.name === 'name')?.value[0] ||
+                    'default';
+                this.startTransformation.push(
+                    `{ const ${this.name} = __sveltets_createSlot("`,
+                    typeof slotName === 'string' ? slotName : [slotName.start, slotName.end],
+                    '", {'
                 );
                 break;
             default:

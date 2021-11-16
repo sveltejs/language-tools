@@ -54,9 +54,13 @@ export function createRenderFunction({
         slots.size > 0 && mode !== 'dts'
             ? '\n' +
               surroundWithIgnoreComments(
-                  ';const __sveltets_ensureSlot = __sveltets_1_createEnsureSlot' +
-                      (uses$$SlotsInterface ? '<$$Slots>' : '') +
-                      '();'
+                  useNewTransformation
+                      ? ';const __sveltets_createSlot = __sveltets_2_createCreateSlot' +
+                            (uses$$SlotsInterface ? '<$$Slots>' : '') +
+                            '();'
+                      : ';const __sveltets_ensureSlot = __sveltets_1_createEnsureSlot' +
+                            (uses$$SlotsInterface ? '<$$Slots>' : '') +
+                            '();'
               )
             : '';
 

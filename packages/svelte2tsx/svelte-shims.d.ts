@@ -223,6 +223,7 @@ declare function __sveltets_2_createElement<Elements extends svelte.IntrinsicEle
 ): Key extends keyof ElementTagNameMap ? ElementTagNameMap[Key] : Key extends keyof SVGElementTagNameMap ? SVGElementTagNameMap[Key] : HTMLElement;
 declare function __sveltets_2_createElementNative<Elements extends svelteNative.JSX.IntrinsicElements, Key extends keyof Elements>(element: Key, attrs: Elements[Key]): Record<string, any>;
 declare function __sveltets_2_createElementAny(element: string, attrs: Record<string, any>): Record<string, any>;
+declare function __sveltets_2_createCreateSlot<Slots = Record<string, Record<string, any>>>(): <SlotName extends keyof Slots>(slotName: SlotName, attrs: Slots[SlotName]) => Record<string, any>;
 
 declare function __sveltets_2_any(...dummy: any[]): any;
 
