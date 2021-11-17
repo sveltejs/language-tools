@@ -1,4 +1,4 @@
-import { getEmmetCompletionParticipants, doComplete as doEmmetComplete } from 'vscode-emmet-helper';
+import { doComplete as doEmmetComplete } from 'vscode-emmet-helper';
 import {
     Color,
     ColorInformation,
@@ -207,7 +207,10 @@ export class CSSPlugin
         if (isSASS(cssDocument)) {
             // the css language service does not support sass, still we can use
             // the emmet helper directly to at least get emmet completions
-            return doEmmetComplete(document, position, 'sass', this.configManager.getEmmetConfig());
+            return (
+                doEmmetComplete(document, position, 'sass', this.configManager.getEmmetConfig()) ||
+                null
+            );
         }
 
         const type = extractLanguage(cssDocument);
@@ -216,21 +219,42 @@ export class CSSPlugin
         }
 
         const lang = getLanguageService(type);
-        const emmetResults: CompletionList = {
-            isIncomplete: true,
+        let emmetResults: CompletionList = {
+            isIncomplete: false,
             items: []
         };
-        if (this.configManager.getConfig().css.completions.emmet) {
+        if (
+            this.configManager.getConfig().css.completions.emmet &&
+            this.configManager.getEmmetConfig().showExpandedAbbreviation !== 'never'
+        ) {
             lang.setCompletionParticipants([
-                getEmmetCompletionParticipants(
-                    cssDocument,
-                    cssDocument.getGeneratedPosition(position),
-                    getLanguage(type),
-                    this.configManager.getEmmetConfig(),
-                    emmetResults
-                )
+                {
+                    onCssProperty: (context) => {
+                        if (context?.propertyName) {
+                            emmetResults =
+                                doEmmetComplete(
+                                    cssDocument,
+                                    cssDocument.getGeneratedPosition(position),
+                                    getLanguage(type),
+                                    this.configManager.getEmmetConfig()
+                                ) || emmetResults;
+                        }
+                    },
+                    onCssPropertyValue: (context) => {
+                        if (context?.propertyValue) {
+                            emmetResults =
+                                doEmmetComplete(
+                                    cssDocument,
+                                    cssDocument.getGeneratedPosition(position),
+                                    getLanguage(type),
+                                    this.configManager.getEmmetConfig()
+                                ) || emmetResults;
+                        }
+                    }
+                }
             ]);
         }
+
         const results = lang.doComplete(
             cssDocument,
             cssDocument.getGeneratedPosition(position),
