@@ -88,12 +88,27 @@ export class HTMLPlugin
             return null;
         }
 
-        const emmetResults: CompletionList = (this.configManager.getConfig().html.completions
-            .emmet &&
-            doEmmetComplete(document, position, 'html', this.configManager.getEmmetConfig())) || {
+        let emmetResults: CompletionList = {
             isIncomplete: false,
             items: []
         };
+        if (
+            this.configManager.getConfig().html.completions.emmet &&
+            this.configManager.getEmmetConfig().showExpandedAbbreviation !== 'never'
+        ) {
+            this.lang.setCompletionParticipants([
+                {
+                    onHtmlContent: () =>
+                        (emmetResults =
+                            doEmmetComplete(
+                                document,
+                                position,
+                                'html',
+                                this.configManager.getEmmetConfig()
+                            ) || emmetResults)
+                }
+            ]);
+        }
 
         const results = this.isInComponentTag(html, document, position)
             ? // Only allow emmet inside component element tags.
