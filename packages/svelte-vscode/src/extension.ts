@@ -89,11 +89,13 @@ export function activate(context: ExtensionContext) {
         documentSelector: [{ scheme: 'file', language: 'svelte' }],
         revealOutputChannelOn: RevealOutputChannelOn.Never,
         synchronize: {
+            // TODO deprecated, rework upon next VS Code minimum version bump
             configurationSection: [
                 'svelte',
+                'prettier',
+                'emmet',
                 'javascript',
                 'typescript',
-                'prettier',
                 'css',
                 'less',
                 'scss'

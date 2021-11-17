@@ -219,17 +219,42 @@ export class CSSPlugin
         }
 
         const lang = getLanguageService(type);
-        const emmetResults: CompletionList = (this.configManager.getConfig().css.completions
-            .emmet &&
-            doEmmetComplete(
-                cssDocument,
-                cssDocument.getGeneratedPosition(position),
-                getLanguage(type),
-                this.configManager.getEmmetConfig()
-            )) || {
+        let emmetResults: CompletionList = {
             isIncomplete: false,
             items: []
         };
+        if (
+            this.configManager.getConfig().css.completions.emmet &&
+            this.configManager.getEmmetConfig().showExpandedAbbreviation !== 'never'
+        ) {
+            lang.setCompletionParticipants([
+                {
+                    onCssProperty: (context) => {
+                        if (context?.propertyName) {
+                            emmetResults =
+                                doEmmetComplete(
+                                    cssDocument,
+                                    cssDocument.getGeneratedPosition(position),
+                                    getLanguage(type),
+                                    this.configManager.getEmmetConfig()
+                                ) || emmetResults;
+                        }
+                    },
+                    onCssPropertyValue: (context) => {
+                        if (context?.propertyValue) {
+                            emmetResults =
+                                doEmmetComplete(
+                                    cssDocument,
+                                    cssDocument.getGeneratedPosition(position),
+                                    getLanguage(type),
+                                    this.configManager.getEmmetConfig()
+                                ) || emmetResults;
+                        }
+                    }
+                }
+            ]);
+        }
+
         const results = lang.doComplete(
             cssDocument,
             cssDocument.getGeneratedPosition(position),
