@@ -797,6 +797,13 @@ describe('DiagnosticsProvider', () => {
         ]);
     });
 
+    it('falls back to any for each entry with checkJs without strict', async () => {
+        const { plugin, document } = setup(path.join('checkJs-no-strict', 'each-any.svelte'));
+        const diagnostics = await plugin.getDiagnostics(document);
+
+        assert.deepStrictEqual(diagnostics, []);
+    });
+
     it('properly handles complex types for `each` blocks (diagnostics-each)', async () => {
         const { plugin, document } = setup('diagnostics-each.svelte');
         const diagnostics = await plugin.getDiagnostics(document);
