@@ -1,5 +1,6 @@
 import MagicString from 'magic-string';
 import { BaseNode } from '../../interfaces';
+import { surroundWithIgnoreComments } from '../../utils/ignore';
 import { transform, TransformationArray, sanitizePropName } from '../utils/node-utils';
 
 const voidTags = 'area,base,br,col,embed,hr,img,input,link,meta,param,source,track,wbr'.split(',');
@@ -149,11 +150,13 @@ export class Element {
 
         const namedSlotLetTransformation: TransformationArray = this.slotLetsTransformation
             ? [
-                  'const {',
+                  // add dummy destructuring parameter because if all parameters are unused,
+                  // the mapping will be confusing, because TS will highlight the whole destructuring
+                  `const {${surroundWithIgnoreComments('$$_$$')},`,
                   ...this.slotLetsTransformation[1],
                   `} = ${this.parent.name}.$$slot_def["`,
                   ...this.slotLetsTransformation[0],
-                  '"];'
+                  '"];$$_$$;'
               ]
             : [];
 

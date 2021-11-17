@@ -1,5 +1,6 @@
 import MagicString from 'magic-string';
 import { BaseNode } from '../../interfaces';
+import { surroundWithIgnoreComments } from '../../utils/ignore';
 import { transform, TransformationArray } from '../utils/node-utils';
 
 /**
@@ -119,17 +120,20 @@ export class InlineComponent {
         if (this.slotLetsTransformation) {
             if (this.slotLetsTransformation[0][0] === 'default') {
                 defaultSlotLetTransformation.push(
-                    'const {',
+                    // add dummy destructuring parameter because if all parameters are unused,
+                    // the mapping will be confusing, because TS will highlight the whole destructuring
+                    `const {${surroundWithIgnoreComments('$$_$$')},`,
                     ...this.slotLetsTransformation[1],
-                    `} = ${this.name}.$$slot_def.default;`
+                    `} = ${this.name}.$$slot_def.default;$$_$$;`
                 );
             } else {
                 namedSlotLetTransformation.push(
-                    'const {',
+                    // See comment above
+                    `const {${surroundWithIgnoreComments('$$_$$')},`,
                     ...this.slotLetsTransformation[1],
                     `} = ${this.parent.name}.$$slot_def["`,
                     ...this.slotLetsTransformation[0],
-                    '"];'
+                    '"];$$_$$;'
                 );
             }
         }
