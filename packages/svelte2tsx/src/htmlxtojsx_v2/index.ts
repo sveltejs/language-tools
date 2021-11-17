@@ -17,6 +17,7 @@ import { handleEventHandler } from './nodes/EventHandler';
 import { handleElse, handleIf } from './nodes/IfElseBlock';
 import { InlineComponent } from './nodes/InlineComponent';
 import { handleKey } from './nodes/Key';
+import { handleLet } from './nodes/Let';
 import { handleMustacheTag } from './nodes/MustacheTag';
 import { handleRawHtml } from './nodes/RawMustacheTag';
 import { handleText } from './nodes/Text';
@@ -123,7 +124,6 @@ export function convertHtmlxToJsx(
                         break;
                     case 'Attribute':
                         handleAttribute(
-                            str.original,
                             str,
                             node as Attribute,
                             parent,
@@ -134,6 +134,8 @@ export function convertHtmlxToJsx(
                     case 'EventHandler':
                         handleEventHandler(str, node as BaseDirective, element);
                         break;
+                    case 'Let':
+                        handleLet(str, node, parent, options.preserveAttributeCase, element);
                     case 'SlotTemplate':
                         break;
                     case 'Text':

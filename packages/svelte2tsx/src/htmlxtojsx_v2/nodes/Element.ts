@@ -27,6 +27,7 @@ export class Element {
     private startTransformation: TransformationArray = [];
     private startEndTransformation: TransformationArray = ['});'];
     private attrsTransformation: TransformationArray = [];
+    private slotLetsTransformation?: [TransformationArray, TransformationArray];
     private endTransformation: TransformationArray = [];
     private startTagStart: number;
     private startTagEnd: number;
@@ -74,9 +75,9 @@ export class Element {
             case 'svelte:body':
                 // remove the colon: svelte:xxx -> sveltexxx
                 const nodeName = `svelte${this.node.name.substring(7)}`;
-                this.name = '$$_' + nodeName;
+                this.name = '$$_' + nodeName + this.computeDepth();
                 this.startTransformation.push(
-                    `{ const ${this.name} = ${createElement}("${nodeName}", {`
+                    `const ${this.name} = ${createElement}("${nodeName}", {`
                 );
                 break;
             case 'slot':
@@ -84,20 +85,20 @@ export class Element {
                 // which is created inside createRenderFunction.ts to check that the name and attributes
                 // of the slot tag are correct. The check will error if the user defined $$Slots
                 // and the slot definition or its attributes contradict that type definition.
-                this.name = '$$_slot';
+                this.name = '$$_slot' + this.computeDepth();
                 const slotName =
                     this.node.attributes?.find((a: BaseNode) => a.name === 'name')?.value[0] ||
                     'default';
                 this.startTransformation.push(
-                    `{ const ${this.name} = __sveltets_createSlot("`,
+                    `const ${this.name} = __sveltets_createSlot("`,
                     typeof slotName === 'string' ? slotName : [slotName.start, slotName.end],
                     '", {'
                 );
                 break;
             default:
-                this.name = '$$_' + sanitizePropName(this.node.name);
+                this.name = '$$_' + sanitizePropName(this.node.name) + this.computeDepth();
                 this.startTransformation.push(
-                    `{ const ${this.name} = ${createElement}("`,
+                    `const ${this.name} = ${createElement}("`,
                     [this.node.start + 1, this.node.start + 1 + this.node.name.length],
                     '", {'
                 );
@@ -119,6 +120,24 @@ export class Element {
     }
 
     /**
+     * Handle the slot of `<... slot=".." />`
+     * @param transformation Slot name transformation
+     */
+    addSlotName(transformation: TransformationArray): void {
+        this.slotLetsTransformation = this.slotLetsTransformation || [[], []];
+        this.slotLetsTransformation[0] = transformation;
+    }
+
+    /**
+     * Handle the let: of `<... let:xx={yy} />`
+     * @param transformation Let transformation
+     */
+    addSlotLet(transformation: TransformationArray): void {
+        this.slotLetsTransformation = this.slotLetsTransformation || [[], []];
+        this.slotLetsTransformation[1].push(...transformation, ',');
+    }
+
+    /**
      * Add something right after the start tag end.
      */
     appendToStartEnd(value: TransformationArray): void {
@@ -128,8 +147,20 @@ export class Element {
     performTransformation(): void {
         this.endTransformation.push('}');
 
+        const namedSlotLetTransformation: TransformationArray = this.slotLetsTransformation
+            ? [
+                  'const {',
+                  ...this.slotLetsTransformation[1],
+                  `} = ${this.parent.name}.$$slot_def["`,
+                  ...this.slotLetsTransformation[0],
+                  '"];'
+              ]
+            : [];
+
         if (this.isSelfclosing) {
             transform(this.str, this.startTagStart, this.startTagEnd, this.startTagEnd, [
+                '{ ',
+                ...namedSlotLetTransformation,
                 ...this.startTransformation,
                 ...this.attrsTransformation,
                 ...this.startEndTransformation,
@@ -137,6 +168,8 @@ export class Element {
             ]);
         } else {
             transform(this.str, this.startTagStart, this.startTagEnd, this.startTagEnd, [
+                '{ ',
+                ...namedSlotLetTransformation,
                 ...this.startTransformation,
                 ...this.attrsTransformation,
                 ...this.startEndTransformation
@@ -166,5 +199,15 @@ export class Element {
         return !!this.str.original
             .substring(this.node.start, this.node.end)
             .match(new RegExp(`</${this.node.name}\s>$`));
+    }
+
+    private computeDepth() {
+        let idx = 0;
+        let parent = this.parent;
+        while (parent) {
+            parent = parent.parent;
+            idx++;
+        }
+        return idx;
     }
 }

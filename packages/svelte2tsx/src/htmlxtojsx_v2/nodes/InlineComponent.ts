@@ -26,6 +26,7 @@ export class InlineComponent {
     private startEndTransformation: TransformationArray = ['}});'];
     private propsTransformation: TransformationArray = [];
     private eventsTransformation: TransformationArray = [];
+    private slotLetsTransformation?: [TransformationArray, TransformationArray];
     private letBindingsTransformation: TransformationArray = [];
     private endTransformation: TransformationArray = [];
     private startTagStart: number;
@@ -47,10 +48,10 @@ export class InlineComponent {
         } else if (this.node.name === 'svelte:component') {
             // TODO
         } else {
-            this.name = '$$_' + this.node.name;
+            this.name = '$$_' + this.node.name + this.computeDepth();
             const nodeNameStart = this.str.original.indexOf(this.node.name, this.node.start);
             this.startTransformation.push(
-                `{ const ${this.name} = new `,
+                `const ${this.name} = new `,
                 [nodeNameStart, nodeNameStart + this.node.name.length],
                 '({ target: __sveltets_2_any(), props: {'
             );
@@ -86,6 +87,24 @@ export class InlineComponent {
     }
 
     /**
+     * Handle the slot of `<... slot=".." />`
+     * @param transformation Slot name transformation
+     */
+    addSlotName(transformation: TransformationArray): void {
+        this.slotLetsTransformation = this.slotLetsTransformation || [[], []];
+        this.slotLetsTransformation[0] = transformation;
+    }
+
+    /**
+     * Handle the let: of `<... let:xx={yy} />`
+     * @param transformation Let transformation
+     */
+    addSlotLet(transformation: TransformationArray): void {
+        this.slotLetsTransformation = this.slotLetsTransformation || [['default'], []];
+        this.slotLetsTransformation[1].push(...transformation, ',');
+    }
+
+    /**
      * Add something right after the start tag end.
      */
     appendToStartEnd(value: TransformationArray): void {
@@ -95,20 +114,46 @@ export class InlineComponent {
     performTransformation(): void {
         this.endTransformation.push('}');
 
+        const namedSlotLetTransformation: TransformationArray = [];
+        const defaultSlotLetTransformation: TransformationArray = [];
+        if (this.slotLetsTransformation) {
+            if (this.slotLetsTransformation[0][0] === 'default') {
+                defaultSlotLetTransformation.push(
+                    'const {',
+                    ...this.slotLetsTransformation[1],
+                    `} = ${this.name}.$$slot_def.default;`
+                );
+            } else {
+                namedSlotLetTransformation.push(
+                    'const {',
+                    ...this.slotLetsTransformation[1],
+                    `} = ${this.parent.name}.$$slot_def["`,
+                    ...this.slotLetsTransformation[0],
+                    '"];'
+                );
+            }
+        }
+
         if (this.isSelfclosing) {
             transform(this.str, this.startTagStart, this.startTagEnd, this.startTagEnd, [
+                '{ ',
+                ...namedSlotLetTransformation,
                 ...this.startTransformation,
                 ...this.propsTransformation,
                 ...this.startEndTransformation,
+                ...defaultSlotLetTransformation,
                 ...this.eventsTransformation,
                 ...this.letBindingsTransformation,
                 ...this.endTransformation
             ]);
         } else {
             transform(this.str, this.startTagStart, this.startTagEnd, this.startTagEnd, [
+                '{ ',
+                ...namedSlotLetTransformation,
                 ...this.startTransformation,
                 ...this.propsTransformation,
                 ...this.startEndTransformation,
+                ...defaultSlotLetTransformation,
                 ...this.eventsTransformation,
                 ...this.letBindingsTransformation
             ]);
@@ -137,5 +182,15 @@ export class InlineComponent {
         return !!this.str.original
             .substring(this.node.start, this.node.end)
             .match(new RegExp(`</${this.node.name}\s>$`));
+    }
+
+    private computeDepth() {
+        let idx = 0;
+        let parent = this.parent;
+        while (parent) {
+            parent = parent.parent;
+            idx++;
+        }
+        return idx;
     }
 }

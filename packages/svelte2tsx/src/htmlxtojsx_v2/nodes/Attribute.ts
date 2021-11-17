@@ -40,7 +40,6 @@ const sveltekitLinkActions = ['sveltekit:prefetch', 'sveltekit:noscroll'];
  * - multi-value handling
  */
 export function handleAttribute(
-    htmlx: string,
     str: MagicString,
     attr: Attribute,
     parent: BaseNode,
@@ -55,6 +54,16 @@ export function handleAttribute(
         // - <!DOCTYPE html> is already removed by now from MagicString
         // - Don't handle script / style tag attributes (context or lang for example)
         // - name=".." of <slot> tag is already handled in Element
+        return;
+    }
+
+    if (
+        attr.name === 'slot' &&
+        attributeValueIsOfType(attr.value, 'Text') &&
+        element.parent instanceof InlineComponent
+    ) {
+        // - slot=".." in context of slots with let:xx is handled differently
+        element.addSlotName([[attr.value[0].start, attr.value[0].end]]);
         return;
     }
 
@@ -86,11 +95,7 @@ export function handleAttribute(
         const name = parts[0] + parts[1][0].toUpperCase() + parts[1].substring(1);
         str.overwrite(attr.start, attr.start + attr.name.length, name);
         attributeName.push([attr.start, attr.start + attr.name.length]);
-    } else if (
-        attr.value !== true &&
-        attr.value.length == 1 &&
-        attr.value[0].type == 'AttributeShorthand'
-    ) {
+    } else if (attributeValueIsOfType(attr.value, 'AttributeShorthand')) {
         // For the attribute shorthand, the name will be the mapped part
         addAttribute([[attr.value[0].start, attr.value[0].end]]);
         return;
@@ -132,9 +137,9 @@ export function handleAttribute(
 
         if (attrVal.type == 'Text') {
             const hasBrackets =
-                htmlx.lastIndexOf('}', attrVal.end) === attrVal.end - 1 ||
-                htmlx.lastIndexOf('}"', attrVal.end) === attrVal.end - 1 ||
-                htmlx.lastIndexOf("}'", attrVal.end) === attrVal.end - 1;
+                str.original.lastIndexOf('}', attrVal.end) === attrVal.end - 1 ||
+                str.original.lastIndexOf('}"', attrVal.end) === attrVal.end - 1 ||
+                str.original.lastIndexOf("}'", attrVal.end) === attrVal.end - 1;
             const needsNumberConversion =
                 !hasBrackets &&
                 parent.type === 'Element' &&
@@ -164,4 +169,8 @@ export function handleAttribute(
     }
     attributeValue.push('`', [attr.expression.start, attr.expression.end], '`');
     addAttribute(attributeName, attributeValue);
+}
+
+function attributeValueIsOfType(value: true | BaseNode[], type: string): value is [BaseNode] {
+    return value !== true && value.length == 1 && value[0].type == type;
 }
