@@ -20,6 +20,13 @@ const oneWayBindingAttributes: Map<string, string> = new Map(
  */
 export const assignmentBindings = new Set([...oneWayBindingAttributes.keys(), 'this']);
 
+const supportsBindThis = [
+    'InlineComponent',
+    'Element',
+    'Body',
+    'Slot' // only valid for Web Components compile target
+];
+
 /**
  * Transform bind:xxx into something that conforms to JS/TS
  */
@@ -34,13 +41,6 @@ export function handleBinding(
         element.appendToStartEnd([[attr.expression.start, attr.expression.end], ';']);
         return;
     }
-
-    const supportsBindThis = [
-        'InlineComponent',
-        'Element',
-        'Body',
-        'Slot' // only valid for Web Components compile target
-    ];
 
     // bind this
     if (attr.name === 'this' && supportsBindThis.includes(parent.type)) {

@@ -24,7 +24,8 @@ import { transform, TransformationArray } from '../utils/node-utils';
  */
 export class InlineComponent {
     private startTransformation: TransformationArray = [];
-    private startEndTransformation: TransformationArray = ['}});'];
+    private startEndTransformation: TransformationArray =
+        this.node.name === 'svelte:self' ? ['});'] : ['}});'];
     private propsTransformation: TransformationArray = [];
     private eventsTransformation: TransformationArray = [];
     private slotLetsTransformation?: [TransformationArray, TransformationArray];
@@ -45,9 +46,17 @@ export class InlineComponent {
         this.startTagEnd = this.computeStartTagEnd();
 
         if (this.node.name === 'svelte:self') {
-            // TODO
+            // TODO try to get better typing here, maybe TS allows us to use the created class
+            // even if it's used in the function that is used to create it
+            this.name = '$$_svelteself' + this.computeDepth();
+            this.startTransformation.push(`const ${this.name} = __sveltets_2_createComponentAny({`);
         } else if (this.node.name === 'svelte:component') {
-            // TODO
+            this.name = '$$_sveltecomponent' + this.computeDepth();
+            this.startTransformation.push(
+                `const ${this.name} = new `,
+                [this.node.expression.start, this.node.expression.end],
+                '({ target: __sveltets_2_any(), props: {'
+            );
         } else {
             this.name = '$$_' + this.node.name + this.computeDepth();
             const nodeNameStart = this.str.original.indexOf(this.node.name, this.node.start);
