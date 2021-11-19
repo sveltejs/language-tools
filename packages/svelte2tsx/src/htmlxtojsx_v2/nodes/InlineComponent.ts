@@ -24,8 +24,7 @@ import { transform, TransformationArray } from '../utils/node-utils';
  */
 export class InlineComponent {
     private startTransformation: TransformationArray = [];
-    private startEndTransformation: TransformationArray =
-        this.node.name === 'svelte:self' ? ['});'] : ['}});'];
+    private startEndTransformation: TransformationArray = [];
     private propsTransformation: TransformationArray = [];
     private eventsTransformation: TransformationArray = [];
     private slotLetsTransformation?: [TransformationArray, TransformationArray];
@@ -50,12 +49,22 @@ export class InlineComponent {
             // even if it's used in the function that is used to create it
             this.name = '$$_svelteself' + this.computeDepth();
             this.startTransformation.push(`const ${this.name} = __sveltets_2_createComponentAny({`);
+            this.startEndTransformation.push('});');
         } else if (this.node.name === 'svelte:component') {
             this.name = '$$_sveltecomponent' + this.computeDepth();
             this.startTransformation.push(
-                `const ${this.name} = new `,
+                `const ${this.name}_ = new `,
                 [this.node.expression.start, this.node.expression.end],
                 '({ target: __sveltets_2_any(), props: {'
+            );
+            // We don't know if the thing we use to create the Svelte component with
+            // is actually a proper Svelte component, which would lead to errors
+            // when accessing things like $$prop_def. Therefore widen the type
+            // here, falling back to a any-typed component to ensure the user doesn't
+            // get weird follup-errors all over the place. The diagnostic error
+            // should still error on the new X() part.
+            this.startEndTransformation.push(
+                `}});const ${this.name} = __sveltets_2_typeAsComponent(${this.name}_);`
             );
         } else {
             this.name = '$$_' + this.node.name + this.computeDepth();
@@ -65,6 +74,7 @@ export class InlineComponent {
                 [nodeNameStart, nodeNameStart + this.node.name.length],
                 '({ target: __sveltets_2_any(), props: {'
             );
+            this.startEndTransformation.push('}});');
         }
     }
 

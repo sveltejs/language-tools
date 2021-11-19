@@ -265,3 +265,5 @@ type __sveltets_2_SvelteTransitionReturnType = __sveltets_2_SvelteTransitionConf
 declare function __sveltets_2_ensureTransition(transitionCall: __sveltets_2_SvelteTransitionReturnType): {};
 
 declare function __sveltets_2_ensureType<T>(type: AConstructorTypeOf<T>, el: T): {};
+
+declare function __sveltets_2_typeAsComponent<Component>(c: Component): Component extends Svelte2TsxComponent ? Component : Svelte2TsxComponent;

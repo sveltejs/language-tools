@@ -1,0 +1,1 @@
+  { const $$_sveltebody0 = __sveltets_2_createElement("sveltebody", {});__sveltets_2_ensureAction(blink(__sveltets_2_mapElementTag('body')));}

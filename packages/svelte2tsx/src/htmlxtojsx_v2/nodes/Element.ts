@@ -56,7 +56,7 @@ export class Element {
             parent.child = this;
         }
 
-        this.tagName = this.node.name;
+        this.tagName = this.node.name === 'svelte:body' ? 'body' : this.node.name;
         this.isSelfclosing = this.computeIsSelfclosing();
         this.startTagStart = this.node.start;
         this.startTagEnd = this.computeStartTagEnd();
