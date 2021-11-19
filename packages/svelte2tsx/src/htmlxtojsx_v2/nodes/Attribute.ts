@@ -145,13 +145,16 @@ export function handleAttribute(
                 parent.type === 'Element' &&
                 numberOnlyAttributes.has(attr.name.toLowerCase()) &&
                 !isNaN(attrVal.data);
+            const quote = ['"', "'"].includes(str.original[attrVal.start - 1])
+                ? str.original[attrVal.start - 1]
+                : '"';
 
             if (!needsNumberConversion) {
-                attributeValue.push('"');
+                attributeValue.push(quote);
             }
             attributeValue.push([attrVal.start, attrVal.end]);
             if (!needsNumberConversion) {
-                attributeValue.push('"');
+                attributeValue.push(quote);
             }
 
             addAttribute(attributeName, attributeValue);
