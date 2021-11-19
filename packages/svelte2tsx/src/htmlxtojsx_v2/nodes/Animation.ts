@@ -14,7 +14,7 @@ export function handleAnimateDirective(
     const transformations: TransformationArray = [
         '__sveltets_2_ensureAnimation(',
         getDirectiveNameStartEndIdx(str, attr),
-        `(__sveltets_2_mapElementTag('${element.tagName}'),__sveltets_2_AnimationMove,(`
+        `(__sveltets_2_mapElementTag('${element.tagName}'),__sveltets_2_AnimationMove`
     ];
     if (attr.expression) {
         transformations.push(',(', [attr.expression.start, attr.expression.end], ')');

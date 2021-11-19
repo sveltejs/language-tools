@@ -14,7 +14,7 @@ export function handleTransitionDirective(
     const transformations: TransformationArray = [
         '__sveltets_2_ensureTransition(',
         getDirectiveNameStartEndIdx(str, attr),
-        `(__sveltets_2_mapElementTag('${element.tagName}'),(`
+        `(__sveltets_2_mapElementTag('${element.tagName}')`
     ];
     if (attr.expression) {
         transformations.push(',(', [attr.expression.start, attr.expression.end], ')');
