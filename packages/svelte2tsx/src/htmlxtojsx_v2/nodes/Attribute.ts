@@ -71,8 +71,18 @@ export function handleAttribute(
         element instanceof Element
             ? (name: TransformationArray, value?: TransformationArray) =>
                   element.addAttribute(name, value)
-            : (name: TransformationArray, value?: TransformationArray) =>
+            : (name: TransformationArray, value?: TransformationArray) => {
+                  if (attr.name.startsWith('--') && attr.value !== true) {
+                      // CSS custom properties are not part of the props
+                      // definition, so wrap them to not get "--xx is invalid prop" errors
+                      name.unshift('...__sveltets_2_cssProp({');
+                      if (!value) {
+                          value = ['""'];
+                      }
+                      value.push('})');
+                  }
                   element.addProp(name, value);
+              };
 
     /**
      * lowercase the attribute name to make it adhere to our intrinsic elements definition
@@ -110,13 +120,6 @@ export function handleAttribute(
         // surround with quotes because dashes or other invalid property characters could be part of the name
         attributeName.push('"', [attr.start, attr.start + attr.name.length], '"');
     }
-    // Custom CSS property
-    // TODO
-    // if (parent.type === 'InlineComponent' && attr.name.startsWith('--') && attr.value !== true) {
-    //     str.prependRight(attr.start, '{...__sveltets_1_cssProp({"');
-    //     buildTemplateString(attr, str, htmlx, '": `', '`})}');
-    //     return;
-    // }
 
     // Handle attribute value
 
@@ -128,7 +131,8 @@ export function handleAttribute(
         return;
     }
     if (attr.value.length == 0) {
-        // this shouldn't be possible
+        // attr=""
+        addAttribute(attributeName, ['""']);
         return;
     }
     //handle single value
@@ -170,7 +174,7 @@ export function handleAttribute(
             str.appendRight(n.start, '$');
         }
     }
-    attributeValue.push('`', [attr.expression.start, attr.expression.end], '`');
+    attributeValue.push('`', [attr.value[0].start, attr.value[attr.value.length - 1].end], '`');
     addAttribute(attributeName, attributeValue);
 }
 

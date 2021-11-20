@@ -228,6 +228,8 @@ declare function __sveltets_2_createComponentAny(props: Record<string, any>): Sv
 
 declare function __sveltets_2_any(...dummy: any[]): any;
 
+declare function __sveltets_2_cssProp(prop: Record<string, any>): {};
+
 declare function __sveltets_2_mapElementTag<K extends keyof ElementTagNameMap>(
     tag: K
 ): ElementTagNameMap[K];
