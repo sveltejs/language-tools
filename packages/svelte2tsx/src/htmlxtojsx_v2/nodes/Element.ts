@@ -63,6 +63,8 @@ export class Element {
         const createElement =
             this.typingsNamespace === 'html'
                 ? '__sveltets_2_createElement'
+                : this.typingsNamespace === 'native'
+                ? '__sveltets_2_createElementNative'
                 : '__sveltets_2_createElementAny';
 
         switch (this.node.name) {
@@ -74,11 +76,12 @@ export class Element {
             case 'svelte:head':
             case 'svelte:window':
             case 'svelte:body':
+            case 'svelte:fragment':
                 // remove the colon: svelte:xxx -> sveltexxx
                 const nodeName = `svelte${this.node.name.substring(7)}`;
                 this.name = '$$_' + nodeName + this.computeDepth();
                 this.startTransformation.push(
-                    `const ${this.name} = ${createElement}("${nodeName}", {`
+                    `{ const ${this.name} = ${createElement}("${nodeName}", {`
                 );
                 break;
             case 'slot':
@@ -91,7 +94,7 @@ export class Element {
                     this.node.attributes?.find((a: BaseNode) => a.name === 'name')?.value[0] ||
                     'default';
                 this.startTransformation.push(
-                    `const ${this.name} = __sveltets_createSlot("`,
+                    `{ const ${this.name} = __sveltets_createSlot("`,
                     typeof slotName === 'string' ? slotName : [slotName.start, slotName.end],
                     '", {'
                 );
@@ -99,7 +102,7 @@ export class Element {
             default:
                 this.name = '$$_' + sanitizePropName(this.node.name) + this.computeDepth();
                 this.startTransformation.push(
-                    `const ${this.name} = ${createElement}("`,
+                    `{ const ${this.name} = ${createElement}("`,
                     [this.node.start + 1, this.node.start + 1 + this.node.name.length],
                     '", {'
                 );
@@ -148,21 +151,25 @@ export class Element {
     performTransformation(): void {
         this.endTransformation.push('}');
 
-        const namedSlotLetTransformation: TransformationArray = this.slotLetsTransformation
-            ? [
-                  // add dummy destructuring parameter because if all parameters are unused,
-                  // the mapping will be confusing, because TS will highlight the whole destructuring
-                  `const {${surroundWithIgnoreComments('$$_$$')},`,
-                  ...this.slotLetsTransformation[1],
-                  `} = ${this.parent.name}.$$slot_def["`,
-                  ...this.slotLetsTransformation[0],
-                  '"];$$_$$;'
-              ]
-            : [];
+        const namedSlotLetTransformation: TransformationArray = [];
+        if (this.slotLetsTransformation) {
+            namedSlotLetTransformation.push(
+                // add dummy destructuring parameter because if all parameters are unused,
+                // the mapping will be confusing, because TS will highlight the whole destructuring
+                `{ const {${surroundWithIgnoreComments('$$_$$')},`,
+                ...this.slotLetsTransformation[1],
+                `} = ${this.parent.name}.$$slot_def["`,
+                ...this.slotLetsTransformation[0],
+                '"];$$_$$;'
+            );
+            this.endTransformation.push('}');
+        }
 
         if (this.isSelfclosing) {
             transform(this.str, this.startTagStart, this.startTagEnd, this.startTagEnd, [
-                '{ ',
+                // Named slot transformations go first inside a outer block scope because
+                // <div let:xx {x} /> means "use the x of let:x", and without a separate
+                // block scope this would give a "used before defined" error
                 ...namedSlotLetTransformation,
                 ...this.startTransformation,
                 ...this.attrsTransformation,
@@ -171,7 +178,6 @@ export class Element {
             ]);
         } else {
             transform(this.str, this.startTagStart, this.startTagEnd, this.startTagEnd, [
-                '{ ',
                 ...namedSlotLetTransformation,
                 ...this.startTransformation,
                 ...this.attrsTransformation,

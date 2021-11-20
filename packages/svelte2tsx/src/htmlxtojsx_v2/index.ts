@@ -90,6 +90,7 @@ export function convertHtmlxToJsx(
                     case 'Head':
                     case 'Body':
                     case 'Slot':
+                    case 'SlotTemplate':
                         if (node.name !== '!DOCTYPE') {
                             if (element) {
                                 element.child = new Element(
@@ -136,8 +137,6 @@ export function convertHtmlxToJsx(
                         break;
                     case 'Let':
                         handleLet(str, node, parent, options.preserveAttributeCase, element);
-                    case 'SlotTemplate':
-                        break;
                     case 'Text':
                         handleText(str, node as Text, parent);
                         break;

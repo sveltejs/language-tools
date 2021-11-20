@@ -48,12 +48,14 @@ export class InlineComponent {
             // TODO try to get better typing here, maybe TS allows us to use the created class
             // even if it's used in the function that is used to create it
             this.name = '$$_svelteself' + this.computeDepth();
-            this.startTransformation.push(`const ${this.name} = __sveltets_2_createComponentAny({`);
+            this.startTransformation.push(
+                `{ const ${this.name} = __sveltets_2_createComponentAny({`
+            );
             this.startEndTransformation.push('});');
         } else if (this.node.name === 'svelte:component') {
             this.name = '$$_sveltecomponent' + this.computeDepth();
             this.startTransformation.push(
-                `const ${this.name}_ = new `,
+                `{ const ${this.name}_ = new `,
                 [this.node.expression.start, this.node.expression.end],
                 '({ target: __sveltets_2_any(), props: {'
             );
@@ -70,7 +72,7 @@ export class InlineComponent {
             this.name = '$$_' + this.node.name + this.computeDepth();
             const nodeNameStart = this.str.original.indexOf(this.node.name, this.node.start);
             this.startTransformation.push(
-                `const ${this.name} = new `,
+                `{ const ${this.name} = new `,
                 [nodeNameStart, nodeNameStart + this.node.name.length],
                 '({ target: __sveltets_2_any(), props: {'
             );
@@ -148,18 +150,21 @@ export class InlineComponent {
             } else {
                 namedSlotLetTransformation.push(
                     // See comment above
-                    `const {${surroundWithIgnoreComments('$$_$$')},`,
+                    `{const {${surroundWithIgnoreComments('$$_$$')},`,
                     ...this.slotLetsTransformation[1],
                     `} = ${this.parent.name}.$$slot_def["`,
                     ...this.slotLetsTransformation[0],
                     '"];$$_$$;'
                 );
+                this.endTransformation.push('}');
             }
         }
 
         if (this.isSelfclosing) {
             transform(this.str, this.startTagStart, this.startTagEnd, this.startTagEnd, [
-                '{ ',
+                // Named slot transformations go first inside a outer block scope because
+                // <Comp let:xx {x} /> means "use the x of let:x", and without a separate
+                // block scope this would give a "used before defined" error
                 ...namedSlotLetTransformation,
                 ...this.startTransformation,
                 ...this.propsTransformation,
@@ -171,7 +176,7 @@ export class InlineComponent {
             ]);
         } else {
             transform(this.str, this.startTagStart, this.startTagEnd, this.startTagEnd, [
-                '{ ',
+                // See comment above why this goes first
                 ...namedSlotLetTransformation,
                 ...this.startTransformation,
                 ...this.propsTransformation,
