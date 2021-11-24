@@ -28,7 +28,6 @@ export class InlineComponent {
     private propsTransformation: TransformationArray = [];
     private eventsTransformation: TransformationArray = [];
     private slotLetsTransformation?: [TransformationArray, TransformationArray];
-    private letBindingsTransformation: TransformationArray = [];
     private endTransformation: TransformationArray = [];
     private startTagStart: number;
     private startTagEnd: number;
@@ -143,7 +142,7 @@ export class InlineComponent {
                 defaultSlotLetTransformation.push(
                     // add dummy destructuring parameter because if all parameters are unused,
                     // the mapping will be confusing, because TS will highlight the whole destructuring
-                    `const {${surroundWithIgnoreComments('$$_$$')},`,
+                    `{const {${surroundWithIgnoreComments('$$_$$')},`,
                     ...this.slotLetsTransformation[1],
                     `} = ${this.name}.$$slot_def.default;$$_$$;`
                 );
@@ -156,8 +155,8 @@ export class InlineComponent {
                     ...this.slotLetsTransformation[0],
                     '"];$$_$$;'
                 );
-                this.endTransformation.push('}');
             }
+            this.endTransformation.push('}');
         }
 
         if (this.isSelfclosing) {
@@ -169,9 +168,8 @@ export class InlineComponent {
                 ...this.startTransformation,
                 ...this.propsTransformation,
                 ...this.startEndTransformation,
-                ...defaultSlotLetTransformation,
                 ...this.eventsTransformation,
-                ...this.letBindingsTransformation,
+                ...defaultSlotLetTransformation,
                 ...this.endTransformation
             ]);
         } else {
@@ -181,9 +179,8 @@ export class InlineComponent {
                 ...this.startTransformation,
                 ...this.propsTransformation,
                 ...this.startEndTransformation,
-                ...defaultSlotLetTransformation,
                 ...this.eventsTransformation,
-                ...this.letBindingsTransformation
+                ...defaultSlotLetTransformation
             ]);
 
             const endStart =

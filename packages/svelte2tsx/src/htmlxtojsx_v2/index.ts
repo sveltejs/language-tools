@@ -160,8 +160,6 @@ export function convertHtmlxToJsx(
                     case 'AwaitBlock':
                         handleAwait(str, node);
                         break;
-                    case 'SlotTemplate':
-                        break;
                     case 'InlineComponent':
                     case 'Element':
                     case 'Options':
@@ -169,6 +167,7 @@ export function convertHtmlxToJsx(
                     case 'Head':
                     case 'Body':
                     case 'Slot':
+                    case 'SlotTemplate':
                         if (node.name !== '!DOCTYPE') {
                             element.performTransformation();
                             element = element.parent;
