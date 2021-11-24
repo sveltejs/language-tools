@@ -15,7 +15,7 @@ export function handleEventHandler(
 ): void {
     const nameStart = str.original.indexOf(':', attr.start) + 1;
     // If there's no expression, it's event bubbling (on:click)
-    const nameEnd = attr.expression ? str.original.indexOf('=', attr.start) : attr.end;
+    const nameEnd = nameStart + attr.name.length;
 
     if (element instanceof Element) {
         element.addAttribute(
