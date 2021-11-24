@@ -4,6 +4,13 @@ import { transform, TransformationArray } from '../utils/node-utils';
 
 /**
  * Transform #each into a for-of loop
+ *
+ * Current limitation:
+ * `{#each foo as foo}` is valid Svelte code, but the transformation
+ * `for(const foo of foo){..}` is invalid ("variable used before declaration").
+ * Solving this would involve a separate temporary variable like
+ * `{const $$_foo = foo; {for(const foo of $$_foo){..}}}`, which would have problems
+ * with mappings for rename, diagnostics etc.
  */
 export function handleEach(str: MagicString, eachBlock: BaseNode): void {
     // {#each items as item,i (key)} ->

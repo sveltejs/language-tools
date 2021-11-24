@@ -2,18 +2,25 @@ import MagicString from 'magic-string';
 import { BaseNode } from '../../interfaces';
 import { transform, TransformationArray } from '../utils/node-utils';
 
-// The await block consists of these blocks:
-// expression: the promise - has start and end
-// value: the result of the promise - has start and end
-// error: the error branch value - has start and end
-// pending: start/end of the pending block (if exists), with skip boolean
-// then: start/end of the then block (if exists), with skip boolean
-// catch: start/end of the catch block (if exists), with skip boolean
-
 /**
  * This needs to be called on the way out, not on the way on, when walking,
  * because else the order of moves might get messed up with moves in
  * the children.
+ *
+ * The await block consists of these blocks:
+ *- expression: the promise - has start and end
+ *- value: the result of the promise - has start and end
+ *- error: the error branch value - has start and end
+ *- pending: start/end of the pending block (if exists), with skip boolean
+ *- then: start/end of the then block (if exists), with skip boolean
+ *- catch: start/end of the catch block (if exists), with skip boolean
+ *
+ * Current limitation:
+ * `{#await foo then foo}` or `{#await foo}..{:then foo}..` is valid Svelte code, but the transformation
+ * `const foo = await foo` is invalid ("variable used before declaration").
+ * Solving this would involve a separate temporary variable like
+ * `{const $$_foo = foo; {const foo = await $$_foo;..}}`, which would have problems
+ * with mappings for rename, diagnostics etc.
  */
 export function handleAwait(str: MagicString, awaitBlock: BaseNode): void {
     const transforms: TransformationArray = ['{ '];
