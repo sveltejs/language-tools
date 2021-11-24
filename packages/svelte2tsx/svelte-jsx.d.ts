@@ -54,7 +54,20 @@ declare namespace svelte {
   interface AriaAttributes extends svelte.JSX.AriaAttributes {}
 
   // eslint-disable-next-line @typescript-eslint/no-empty-interface
-  interface HTMLAttributes<T extends EventTarget> extends svelte.JSX.HTMLAttributes<T> {}
+  interface HTMLAttributes<T extends EventTarget> extends svelte.JSX.HTMLAttributes<T> {
+    'xlink:actuate'?: string | undefined;
+    'xlink:arcrole'?: string | undefined;
+    'xlink:href'?: string | undefined;
+    'xlink:role'?: string | undefined;
+    'xlink:show'?: string | undefined;
+    'xlink:title'?: string | undefined;
+    'xlink:type'?: string | undefined;
+    'xml:base'?: string | undefined;
+    'xml:lang'?: string | undefined;
+    'xml:space'?: string | undefined;
+    'xmlns'?: string | undefined;
+    'xmlns:xlink'?: string | undefined;
+  }
 
   // eslint-disable-next-line @typescript-eslint/no-empty-interface
   interface SVGAttributes<T extends EventTarget> extends svelte.JSX.SVGAttributes<T> {}

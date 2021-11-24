@@ -1,1 +1,2 @@
-<><use xlinkHref={test} /></>
+<>
+<use xlinkHref={test} /></>
