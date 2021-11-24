@@ -8,7 +8,7 @@ import { transform, TransformationArray } from '../utils/node-utils';
 export function handleEach(str: MagicString, eachBlock: BaseNode): void {
     // {#each items as item,i (key)} ->
     // for (const item of __sveltets_2_each(items)) { let i = 0;key;
-    const startEnd = str.original.indexOf('}', eachBlock.key?.start || eachBlock.context.start) + 1;
+    const startEnd = str.original.indexOf('}', eachBlock.key?.end || eachBlock.context.end) + 1;
     const transforms: TransformationArray = [
         'for(const ',
         [eachBlock.context.start, eachBlock.context.end],
