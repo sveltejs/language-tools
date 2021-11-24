@@ -197,7 +197,7 @@ export function htmlx2jsx(
         typingsNamespace: 'html' | 'native' | 'any';
     }
 ) {
-    const ast = parseHtmlx(htmlx, options).htmlxAst;
+    const ast = parseHtmlx(htmlx, { ...options, useNewTransformation: true }).htmlxAst;
     const str = new MagicString(htmlx);
 
     convertHtmlxToJsx(str, ast, null, null, options);

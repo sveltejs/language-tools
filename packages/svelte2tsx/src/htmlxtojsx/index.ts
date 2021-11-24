@@ -186,7 +186,7 @@ export function convertHtmlxToJsx(
                     onWalk(node, parent, prop, index);
                 }
             } catch (e) {
-                console.error('Error walking node ', node);
+                console.error('Error walking node ', node, e);
                 throw e;
             }
         },
@@ -229,7 +229,7 @@ export function htmlx2jsx(
     htmlx: string,
     options?: { emitOnTemplateError?: boolean; preserveAttributeCase: boolean }
 ) {
-    const ast = parseHtmlx(htmlx, options).htmlxAst;
+    const ast = parseHtmlx(htmlx, { ...options, useNewTransformation: false }).htmlxAst;
     const str = new MagicString(htmlx);
 
     convertHtmlxToJsx(str, ast, null, null, options);

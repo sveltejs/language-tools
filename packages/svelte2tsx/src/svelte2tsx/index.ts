@@ -46,7 +46,10 @@ function processSvelteTemplate(
         mode?: 'ts' | 'tsx' | 'dts';
     }
 ): TemplateProcessResult {
-    const { htmlxAst, tags } = parseHtmlx(str.original, options);
+    const { htmlxAst, tags } = parseHtmlx(str.original, {
+        ...options,
+        useNewTransformation: options?.mode === 'ts'
+    });
 
     let uses$$props = false;
     let uses$$restProps = false;
