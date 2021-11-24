@@ -184,10 +184,11 @@ export class Element {
                 ...this.startEndTransformation
             ]);
 
-            const endStart =
-                this.str.original
-                    .substring(this.node.start, this.node.end)
-                    .lastIndexOf(`</${this.node.name}`) + this.node.start;
+            const tagEndIdx = this.str.original
+                .substring(this.node.start, this.node.end)
+                .lastIndexOf(`</${this.node.name}`);
+            // tagEndIdx === -1 happens in situations of unclosed tags like `<p>fooo <p>anothertag</p>`
+            const endStart = tagEndIdx === -1 ? this.node.end : tagEndIdx + this.node.start;
             transform(this.str, endStart, this.node.end, this.node.end, this.endTransformation);
         }
     }
@@ -205,9 +206,12 @@ export class Element {
         if (this.str.original[this.node.end - 2] === '/' || voidTags.includes(this.node.name)) {
             return true;
         }
-        return !!this.str.original
-            .substring(this.node.start, this.node.end)
-            .match(new RegExp(`</${this.node.name}\s>$`));
+        return (
+            !this.node.children?.length &&
+            !this.str.original
+                .substring(this.node.start, this.node.end)
+                .match(new RegExp(`</${this.node.name}\s*>$`))
+        );
     }
 
     private computeDepth() {
