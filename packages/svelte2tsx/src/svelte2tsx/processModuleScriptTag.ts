@@ -12,7 +12,8 @@ import { is$$PropsDeclaration } from './nodes/ExportedNames';
 export function processModuleScriptTag(
     str: MagicString,
     script: Node,
-    implicitStoreValues: ImplicitStoreValues
+    implicitStoreValues: ImplicitStoreValues,
+    useNewTransformation: boolean
 ) {
     const htmlx = str.original;
     const scriptContent = htmlx.substring(script.content.start, script.content.end);
@@ -47,8 +48,8 @@ export function processModuleScriptTag(
     const scriptStartTagEnd = htmlx.indexOf('>', script.start) + 1;
     const scriptEndTagStart = htmlx.lastIndexOf('<', script.end - 1);
 
-    str.overwrite(script.start, scriptStartTagEnd, '</>;');
-    str.overwrite(scriptEndTagStart, script.end, ';<>');
+    str.overwrite(script.start, scriptStartTagEnd, useNewTransformation ? ';' : '</>;');
+    str.overwrite(scriptEndTagStart, script.end, useNewTransformation ? ';' : ';<>');
 }
 
 function resolveImplicitStoreValue(

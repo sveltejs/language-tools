@@ -1,9 +1,6 @@
 /// <reference lib="dom" />
 
 declare namespace svelte {
-  export type Child = svelte.JSX.Child;
-  export type Children = svelte.JSX.Children;
-
   type NativeElement = HTMLElement;
 
   // TypeScript SVGElement has no `dataset` (Chrome 55+, Firefox 51+).

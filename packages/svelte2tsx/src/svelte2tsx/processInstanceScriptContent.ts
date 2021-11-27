@@ -353,7 +353,8 @@ export function processInstanceScriptContent(
 
         // Defensively call function (checking for undefined) because it got added only recently (TS 4.0)
         // and therefore might break people using older TS versions
-        if (ts.isTypeAssertionExpression?.(node)) {
+        // Don't transform in ts mode because <type>value type assertions are valid in this case
+        if (mode !== 'ts' && ts.isTypeAssertionExpression?.(node)) {
             handleTypeAssertion(str, node, astOffset);
         }
 
