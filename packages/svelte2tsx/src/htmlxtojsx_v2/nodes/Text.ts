@@ -12,7 +12,13 @@ export function handleText(str: MagicString, node: Text, parent: BaseNode): void
         return;
     }
 
-    str.overwrite(node.start, node.end, node.data.replace(/\S/g, ''), {
+    let replacement = node.data.replace(/\S/g, '');
+    if (!replacement && node.data.length) {
+        // minimum of 1 whitespace which ensure hover or other things don't give weird results
+        // where for example you hover over a text and get a hover info about the containing tag.
+        replacement = ' ';
+    }
+    str.overwrite(node.start, node.end, replacement, {
         contentOnly: true
     });
 }
