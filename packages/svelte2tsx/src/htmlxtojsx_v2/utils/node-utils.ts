@@ -47,6 +47,12 @@ export function transform(
     }
 
     if (removeStart < end) {
+        // Completely delete the first character afterwards. This makes the mapping more correct,
+        // so that autocompletion triggered on the last character works correctly.
+        str.overwrite(removeStart, removeStart + 1, '', { contentOnly: true });
+        removeStart++;
+    }
+    if (removeStart < end) {
         // Use one space because of hover etc: This will make map deleted characters to the whitespace
         str.overwrite(removeStart, end, ' ', { contentOnly: true });
     }
