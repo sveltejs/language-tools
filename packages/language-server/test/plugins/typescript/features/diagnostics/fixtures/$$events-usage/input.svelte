@@ -1,5 +1,5 @@
 <script lang="ts">
-    import Events from './$$events.svelte';
+    import Events from '../$$events/input.svelte';
 </script>
 
 <!-- valid -->
