@@ -55,7 +55,7 @@ export function svelte2tsx(
     }
 ): SvelteCompiledToTsx
 
-export interface EmitDtsConig {
+export interface EmitDtsConfig {
     /**
      * Where to output the declaration files
      */
@@ -80,4 +80,4 @@ export interface EmitDtsConig {
  * Note: Handwritten `d.ts` files are not copied over; TypeScript does not
  * touch these files.
  */
-export function emitDts(config: EmitDtsConig): Promise<void>;
+export function emitDts(config: EmitDtsConfig): Promise<void>;
