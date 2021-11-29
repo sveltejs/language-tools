@@ -1,5 +1,5 @@
 <script lang="ts">
-    import Slots from './$$slots.svelte';
+    import Slots from '../$$slots/input.svelte';
 </script>
 
 <Slots let:valid1 let:validPropWrongType1 let:invalidProp1>

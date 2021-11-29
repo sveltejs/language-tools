@@ -1,5 +1,5 @@
 <script lang="ts">
-    import Props from './$$props-valid.svelte';
+    import Props from '../$$props-valid/input.svelte';
     import PropsInvalid3 from './$$props-invalid3.svelte';
 </script>
 
