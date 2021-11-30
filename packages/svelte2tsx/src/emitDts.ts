@@ -10,7 +10,7 @@ export interface EmitDtsConfig {
 
 // to make typo fix non-breaking, continue to export the old name but mark it as deprecated
 /**@deprecated*/
-export interface EmitDtsConig extends EmitDtsConfig {}
+export interface EmitDtsConig extends EmitDtsConfig {} /* eslint-disable-line @typescript-eslint/no-empty-interface */
 
 export async function emitDts(config: EmitDtsConfig) {
     const svelteMap = await createSvelteMap(config);
