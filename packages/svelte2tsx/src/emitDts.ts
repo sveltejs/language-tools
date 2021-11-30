@@ -8,6 +8,10 @@ export interface EmitDtsConfig {
     libRoot?: string;
 }
 
+// to make typo fix non-breaking, continue to export the old name but mark it as deprecated
+/**@deprecated*/
+export interface EmitDtsConig extends EmitDtsConfig {}
+
 export async function emitDts(config: EmitDtsConfig) {
     const svelteMap = await createSvelteMap(config);
     const { options, filenames } = loadTsconfig(config, svelteMap);
