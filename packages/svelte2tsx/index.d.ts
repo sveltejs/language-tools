@@ -74,6 +74,10 @@ export interface EmitDtsConfig {
     libRoot?: string;
 }
 
+// to make typo fix non-breaking, continue to export the old name but mark it as deprecated
+/**@deprecated*/
+export interface EmitDtsConig extends EmitDtsConfig {} /* eslint-disable-line @typescript-eslint/no-empty-interface */
+
 /**
  * Searches for a jsconfig or tsconfig starting at `root` and emits d.ts files
  * into `declarationDir` using the ambient file from `svelteShimsPath`.
