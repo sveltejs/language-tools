@@ -112,7 +112,7 @@ export function convertHtmlxToJsx(
                         handleBinding(str, node as BaseDirective, parent, element);
                         break;
                     case 'Class':
-                        handleClassDirective(str, node as BaseDirective, element as Element);
+                        handleClassDirective(node as BaseDirective, element as Element);
                         break;
                     case 'Action':
                         handleActionDirective(str, node as BaseDirective, element as Element);

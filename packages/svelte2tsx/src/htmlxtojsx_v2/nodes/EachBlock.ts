@@ -19,9 +19,9 @@ export function handleEach(str: MagicString, eachBlock: BaseNode): void {
     const transforms: TransformationArray = [
         'for(const ',
         [eachBlock.context.start, eachBlock.context.end],
-        ' of (',
+        ' of ',
         [eachBlock.expression.start, eachBlock.expression.end],
-        ')){'
+        '){'
     ];
     if (eachBlock.key) {
         transforms.push([eachBlock.key.start, eachBlock.key.end], ';');

@@ -80,7 +80,7 @@ export function createRenderFunction({
             scriptEndTagStart,
             scriptTag.end,
             useNewTransformation
-                ? `${slotsDeclaration};\n() => {`
+                ? `${slotsDeclaration};\nasync () => {`
                 : `${slotsDeclaration};\n() => (<>`,
             {
                 contentOnly: true
@@ -91,7 +91,8 @@ export function createRenderFunction({
             scriptDestination,
             `${useNewTransformation ? '' : '</>'};function render${generics.toDefinitionString(
                 true
-            )}() {` + `${propsDecl}${slotsDeclaration}\n${useNewTransformation ? '' : '<>'}`
+            )}() {` +
+                `${propsDecl}${slotsDeclaration}\n${useNewTransformation ? 'async () => {' : '<>'}`
         );
     }
 
@@ -115,8 +116,10 @@ export function createRenderFunction({
         `, events: ${events.toDefString()} }}`;
 
     // wrap template with callback
-    if (scriptTag) {
-        str.append(useNewTransformation ? '};' : ');');
+    if (useNewTransformation) {
+        str.append('};');
+    } else if (scriptTag) {
+        str.append(');');
     }
 
     str.append(returnString);
