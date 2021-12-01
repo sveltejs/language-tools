@@ -1,21 +1,21 @@
 if(hello){
-       { const y = await (hello.foo); 
+        { const y = await (hello.foo); 
         y;
     }
-       { const y = await (x); 
+        { const y = await (x); 
         y;
     }
-      { 
+       { 
       hello;
     await (aPromise); }
     if(hi && bye){
-            { try { const y = await (x); 
+             { try { const y = await (x); 
             y;
         } catch($$_e) { 
             
         }}
     } else if (cool){
-            { 
+              { 
             
         try { const y = await (x); 
             y;
@@ -23,7 +23,7 @@ if(hello){
             
         }}
     }else{
-           { const y = await (x); 
+            { const y = await (x); 
             y;
         }
     }

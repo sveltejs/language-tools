@@ -1,4 +1,4 @@
-{ 
+       { 
     
 try { const [ a, b ] = await (thePromise); 
     

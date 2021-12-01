@@ -1,1 +1,1 @@
-{ const $$_div = __sveltets_2_createElement("div", {});if(true){{ const $$_span = __sveltets_2_createElement("span", {});}} else if (!true){{ const $$_span = __sveltets_2_createElement("span", {});}}}
+ { __sveltets_2_createElement("div", {});if(true){ { __sveltets_2_createElement("span", {});  }} else if (!true){ { __sveltets_2_createElement("span", {});  }} }

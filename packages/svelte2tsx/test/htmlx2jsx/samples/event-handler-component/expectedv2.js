@@ -1,1 +1,1 @@
-{ const $$_Component = new Component({ target: __sveltets_2_any(), props: {}});$$_Component.$on("event", () => click());$$_Component.$on("UpperCaseEvent", () => log('hi'));}
+      { const $$_Component0 = new Component({ target: __sveltets_2_any(), props: {}});$$_Component0.$on("event", () => click());$$_Component0.$on("UpperCaseEvent", () => log('hi'));}

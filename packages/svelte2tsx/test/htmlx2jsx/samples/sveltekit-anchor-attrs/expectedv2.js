@@ -1,2 +1,2 @@
-{ const $$_a = __sveltets_2_createElement("a", {sveltekitNoscroll:true,});}
-{ const $$_a = __sveltets_2_createElement("a", {sveltekitPrefetch:true,});}
+  { __sveltets_2_createElement("a", {sveltekitNoscroll:true,}); }
+  { __sveltets_2_createElement("a", {sveltekitPrefetch:true,}); }

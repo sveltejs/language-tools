@@ -1,14 +1,14 @@
-{ const $$_area = __sveltets_2_createElement("area", {});}
-{ const $$_base = __sveltets_2_createElement("base", {});}
-{ const $$_br = __sveltets_2_createElement("br", {});}
-{ const $$_col = __sveltets_2_createElement("col", {});}
-{ const $$_embed = __sveltets_2_createElement("embed", {});}
-{ const $$_hr = __sveltets_2_createElement("hr", {});}
-{ const $$_img = __sveltets_2_createElement("img", {});}
-{ const $$_input = __sveltets_2_createElement("input", {});}
-{ const $$_link = __sveltets_2_createElement("link", {});}
-{ const $$_meta = __sveltets_2_createElement("meta", {});}
-{ const $$_param = __sveltets_2_createElement("param", {});}
-{ const $$_source = __sveltets_2_createElement("source", {});}
-{ const $$_track = __sveltets_2_createElement("track", {});}
-{ const $$_wbr = __sveltets_2_createElement("wbr", {});}
+ { __sveltets_2_createElement("area", {});}
+ { __sveltets_2_createElement("base", {});}
+ { __sveltets_2_createElement("br", {});}
+ { __sveltets_2_createElement("col", {});}
+ { __sveltets_2_createElement("embed", {});}
+ { __sveltets_2_createElement("hr", {});}
+ { __sveltets_2_createElement("img", {});}
+ { __sveltets_2_createElement("input", {});}
+ { __sveltets_2_createElement("link", {});}
+ { __sveltets_2_createElement("meta", {});}
+ { __sveltets_2_createElement("param", {});}
+ { __sveltets_2_createElement("source", {});}
+ { __sveltets_2_createElement("track", {});}
+ { __sveltets_2_createElement("wbr", {});}

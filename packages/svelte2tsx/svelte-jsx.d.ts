@@ -102,8 +102,189 @@ declare namespace svelte {
   // eslint-disable-next-line @typescript-eslint/no-empty-interface
   interface SvelteVideoProps extends svelte.JSX.SvelteVideoProps {}
   
-  // eslint-disable-next-line @typescript-eslint/no-empty-interface
-  interface IntrinsicElements extends svelte.JSX.IntrinsicElements {}
+  // no "extends svelte.JSX" because else we wouldn't get the references to the right interfaces
+  interface IntrinsicElements {
+    // HTML
+    a: HTMLProps<HTMLAnchorElement> & SapperAnchorProps & SvelteKitAnchorProps;
+    abbr: HTMLProps<HTMLElement>;
+    address: HTMLProps<HTMLElement>;
+    area: HTMLProps<HTMLAreaElement>;
+    article: HTMLProps<HTMLElement>;
+    aside: HTMLProps<HTMLElement>;
+    audio: HTMLProps<HTMLAudioElement> & SvelteMediaProps;
+    b: HTMLProps<HTMLElement>;
+    base: HTMLProps<HTMLBaseElement>;
+    bdi: HTMLProps<HTMLElement>;
+    bdo: HTMLProps<HTMLElement>;
+    big: HTMLProps<HTMLElement>;
+    blockquote: HTMLProps<HTMLElement>;
+    body: HTMLProps<HTMLBodyElement>;
+    br: HTMLProps<HTMLBRElement>;
+    button: HTMLProps<HTMLButtonElement>;
+    canvas: HTMLProps<HTMLCanvasElement>;
+    caption: HTMLProps<HTMLElement>;
+    cite: HTMLProps<HTMLElement>;
+    code: HTMLProps<HTMLElement>;
+    col: HTMLProps<HTMLTableColElement>;
+    colgroup: HTMLProps<HTMLTableColElement>;
+    data: HTMLProps<HTMLElement>;
+    datalist: HTMLProps<HTMLDataListElement>;
+    dd: HTMLProps<HTMLElement>;
+    del: HTMLProps<HTMLElement>;
+    details: HTMLProps<HTMLElement>;
+    dfn: HTMLProps<HTMLElement>;
+    dialog: HTMLProps<HTMLElement>;
+    div: HTMLProps<HTMLDivElement>;
+    dl: HTMLProps<HTMLDListElement>;
+    dt: HTMLProps<HTMLElement>;
+    em: HTMLProps<HTMLElement>;
+    embed: HTMLProps<HTMLEmbedElement>;
+    fieldset: HTMLProps<HTMLFieldSetElement>;
+    figcaption: HTMLProps<HTMLElement>;
+    figure: HTMLProps<HTMLElement>;
+    footer: HTMLProps<HTMLElement>;
+    form: HTMLProps<HTMLFormElement>;
+    h1: HTMLProps<HTMLHeadingElement>;
+    h2: HTMLProps<HTMLHeadingElement>;
+    h3: HTMLProps<HTMLHeadingElement>;
+    h4: HTMLProps<HTMLHeadingElement>;
+    h5: HTMLProps<HTMLHeadingElement>;
+    h6: HTMLProps<HTMLHeadingElement>;
+    head: HTMLProps<HTMLHeadElement>;
+    header: HTMLProps<HTMLElement>;
+    hgroup: HTMLProps<HTMLElement>;
+    hr: HTMLProps<HTMLHRElement>;
+    html: HTMLProps<HTMLHtmlElement>;
+    i: HTMLProps<HTMLElement>;
+    iframe: HTMLProps<HTMLIFrameElement>;
+    img: HTMLProps<HTMLImageElement>;
+    input: SvelteInputProps;
+    ins: HTMLProps<HTMLModElement>;
+    kbd: HTMLProps<HTMLElement>;
+    keygen: HTMLProps<HTMLElement>;
+    label: HTMLProps<HTMLLabelElement>;
+    legend: HTMLProps<HTMLLegendElement>;
+    li: HTMLProps<HTMLLIElement>;
+    link: HTMLProps<HTMLLinkElement>;
+    main: HTMLProps<HTMLElement>;
+    map: HTMLProps<HTMLMapElement>;
+    mark: HTMLProps<HTMLElement>;
+    menu: HTMLProps<HTMLElement>;
+    menuitem: HTMLProps<HTMLElement>;
+    meta: HTMLProps<HTMLMetaElement>;
+    meter: HTMLProps<HTMLElement>;
+    nav: HTMLProps<HTMLElement>;
+    noindex: HTMLProps<HTMLElement>;
+    noscript: HTMLProps<HTMLElement>;
+    object: HTMLProps<HTMLObjectElement>;
+    ol: HTMLProps<HTMLOListElement>;
+    optgroup: HTMLProps<HTMLOptGroupElement>;
+    option: SvelteOptionProps;
+    output: HTMLProps<HTMLElement>;
+    p: HTMLProps<HTMLParagraphElement>;
+    param: HTMLProps<HTMLParamElement>;
+    picture: HTMLProps<HTMLElement>;
+    pre: HTMLProps<HTMLPreElement>;
+    progress: HTMLProps<HTMLProgressElement>;
+    q: HTMLProps<HTMLQuoteElement>;
+    rp: HTMLProps<HTMLElement>;
+    rt: HTMLProps<HTMLElement>;
+    ruby: HTMLProps<HTMLElement>;
+    s: HTMLProps<HTMLElement>;
+    samp: HTMLProps<HTMLElement>;
+    script: HTMLProps<HTMLElement>;
+    section: HTMLProps<HTMLElement>;
+    select: SvelteSelectProps;
+    small: HTMLProps<HTMLElement>;
+    source: HTMLProps<HTMLSourceElement>;
+    span: HTMLProps<HTMLSpanElement>;
+    strong: HTMLProps<HTMLElement>;
+    style: HTMLProps<HTMLStyleElement>;
+    sub: HTMLProps<HTMLElement>;
+    summary: HTMLProps<HTMLElement>;
+    sup: HTMLProps<HTMLElement>;
+    table: HTMLProps<HTMLTableElement>;
+    tbody: HTMLProps<HTMLTableSectionElement>;
+    td: HTMLProps<HTMLTableDataCellElement>;
+    textarea: HTMLProps<HTMLTextAreaElement>;
+    tfoot: HTMLProps<HTMLTableSectionElement>;
+    th: HTMLProps<HTMLTableHeaderCellElement>;
+    thead: HTMLProps<HTMLTableSectionElement>;
+    time: HTMLProps<HTMLElement>;
+    title: HTMLProps<HTMLTitleElement>;
+    tr: HTMLProps<HTMLTableRowElement>;
+    track: HTMLProps<HTMLTrackElement>;
+    u: HTMLProps<HTMLElement>;
+    ul: HTMLProps<HTMLUListElement>;
+    var: HTMLProps<HTMLElement>;
+    video: HTMLProps<HTMLVideoElement> & SvelteVideoProps;
+    wbr: HTMLProps<HTMLElement>;
+
+    svg: SVGProps<SVGSVGElement>;
+
+    animate: SVGProps<SVGElement>; // @TODO: It is SVGAnimateElement but not in dom.d.ts for now.
+    circle: SVGProps<SVGCircleElement>;
+    clipPath: SVGProps<SVGClipPathElement>;
+    defs: SVGProps<SVGDefsElement>;
+    desc: SVGProps<SVGDescElement>;
+    ellipse: SVGProps<SVGEllipseElement>;
+    feBlend: SVGProps<SVGFEBlendElement>;
+    feColorMatrix: SVGProps<SVGFEColorMatrixElement>;
+    feComponentTransfer: SVGProps<SVGFEComponentTransferElement>;
+    feComposite: SVGProps<SVGFECompositeElement>;
+    feConvolveMatrix: SVGProps<SVGFEConvolveMatrixElement>;
+    feDiffuseLighting: SVGProps<SVGFEDiffuseLightingElement>;
+    feDisplacementMap: SVGProps<SVGFEDisplacementMapElement>;
+    feDistantLight: SVGProps<SVGFEDistantLightElement>;
+    feFlood: SVGProps<SVGFEFloodElement>;
+    feFuncA: SVGProps<SVGFEFuncAElement>;
+    feFuncB: SVGProps<SVGFEFuncBElement>;
+    feFuncG: SVGProps<SVGFEFuncGElement>;
+    feFuncR: SVGProps<SVGFEFuncRElement>;
+    feGaussianBlur: SVGProps<SVGFEGaussianBlurElement>;
+    feImage: SVGProps<SVGFEImageElement>;
+    feMerge: SVGProps<SVGFEMergeElement>;
+    feMergeNode: SVGProps<SVGFEMergeNodeElement>;
+    feMorphology: SVGProps<SVGFEMorphologyElement>;
+    feOffset: SVGProps<SVGFEOffsetElement>;
+    fePointLight: SVGProps<SVGFEPointLightElement>;
+    feSpecularLighting: SVGProps<SVGFESpecularLightingElement>;
+    feSpotLight: SVGProps<SVGFESpotLightElement>;
+    feTile: SVGProps<SVGFETileElement>;
+    feTurbulence: SVGProps<SVGFETurbulenceElement>;
+    filter: SVGProps<SVGFilterElement>;
+    foreignObject: SVGProps<SVGForeignObjectElement>;
+    g: SVGProps<SVGGElement>;
+    image: SVGProps<SVGImageElement>;
+    line: SVGProps<SVGLineElement>;
+    linearGradient: SVGProps<SVGLinearGradientElement>;
+    marker: SVGProps<SVGMarkerElement>;
+    mask: SVGProps<SVGMaskElement>;
+    metadata: SVGProps<SVGMetadataElement>;
+    path: SVGProps<SVGPathElement>;
+    pattern: SVGProps<SVGPatternElement>;
+    polygon: SVGProps<SVGPolygonElement>;
+    polyline: SVGProps<SVGPolylineElement>;
+    radialGradient: SVGProps<SVGRadialGradientElement>;
+    rect: SVGProps<SVGRectElement>;
+    stop: SVGProps<SVGStopElement>;
+    switch: SVGProps<SVGSwitchElement>;
+    symbol: SVGProps<SVGSymbolElement>;
+    text: SVGProps<SVGTextElement>;
+    textPath: SVGProps<SVGTextPathElement>;
+    tspan: SVGProps<SVGTSpanElement>;
+    use: SVGProps<SVGUseElement>;
+    view: SVGProps<SVGViewElement>;
+
+    // Svelte specific
+    sveltewindow: HTMLProps<Window> & SvelteWindowProps;
+    sveltebody: HTMLProps<HTMLElement>;
+    sveltefragment: { slot?: string; };
+    svelteoptions: { [name: string]: any };
+    sveltehead: { [name: string]: any };
+
+    [name: string]: { [name: string]: any };
+  }
 }
 
 /**

@@ -16,12 +16,16 @@ export function handleEach(str: MagicString, eachBlock: BaseNode): void {
     // {#each items as item,i (key)} ->
     // for (const item of __sveltets_2_each(items)) { let i = 0;key;
     const startEnd = str.original.indexOf('}', eachBlock.key?.end || eachBlock.context.end) + 1;
+    // {#each true, [1,2]} is valid but for (const x of true, [1,2]) is not if not wrapped with braces
+    const containsComma = str.original
+        .substring(eachBlock.expression.start, eachBlock.expression.end)
+        .includes(',');
     const transforms: TransformationArray = [
         'for(const ',
         [eachBlock.context.start, eachBlock.context.end],
-        ' of ',
+        ` of ${containsComma ? '(' : ''}`,
         [eachBlock.expression.start, eachBlock.expression.end],
-        '){'
+        `${containsComma ? ')' : ''}){`
     ];
     if (eachBlock.key) {
         transforms.push([eachBlock.key.start, eachBlock.key.end], ';');

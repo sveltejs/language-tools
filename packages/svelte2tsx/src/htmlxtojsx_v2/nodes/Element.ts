@@ -33,9 +33,20 @@ export class Element {
     private startTagStart: number;
     private startTagEnd: number;
     private isSelfclosing: boolean;
-    public name: string;
     public tagName: string;
     public child?: any;
+
+    // Add const $$xxx = ... only if the variable name is actually used
+    // in order to prevent "$$xxx is defined but never used" TS hints
+    private addNameConstDeclaration?: () => void;
+    private _name: string;
+    public get name(): string {
+        if (this.addNameConstDeclaration) {
+            this.addNameConstDeclaration();
+            this.addNameConstDeclaration = undefined;
+        }
+        return this._name;
+    }
 
     /**
      * @param str The MagicString instance used to manipulate the text
@@ -79,33 +90,37 @@ export class Element {
             case 'svelte:fragment':
                 // remove the colon: svelte:xxx -> sveltexxx
                 const nodeName = `svelte${this.node.name.substring(7)}`;
-                this.name = '$$_' + nodeName + this.computeDepth();
-                this.startTransformation.push(
-                    `{ const ${this.name} = ${createElement}("${nodeName}", {`
-                );
+                this._name = '$$_' + nodeName + this.computeDepth();
+                this.startTransformation.push(`{ ${createElement}("${nodeName}", {`);
+                this.addNameConstDeclaration = () =>
+                    (this.startTransformation[0] = `{ const ${this._name} = ${createElement}("${nodeName}", {`);
                 break;
             case 'slot':
                 // If the element is a <slot> tag, create the element with the createSlot-function
                 // which is created inside createRenderFunction.ts to check that the name and attributes
                 // of the slot tag are correct. The check will error if the user defined $$Slots
                 // and the slot definition or its attributes contradict that type definition.
-                this.name = '$$_slot' + this.computeDepth();
+                this._name = '$$_slot' + this.computeDepth();
                 const slotName =
                     this.node.attributes?.find((a: BaseNode) => a.name === 'name')?.value[0] ||
                     'default';
                 this.startTransformation.push(
-                    `{ const ${this.name} = __sveltets_createSlot("`,
+                    `{ __sveltets_createSlot("`,
                     typeof slotName === 'string' ? slotName : [slotName.start, slotName.end],
                     '", {'
                 );
+                this.addNameConstDeclaration = () =>
+                    (this.startTransformation[0] = `{ const ${this._name} = __sveltets_createSlot("`);
                 break;
             default:
-                this.name = '$$_' + sanitizePropName(this.node.name) + this.computeDepth();
+                this._name = '$$_' + sanitizePropName(this.node.name) + this.computeDepth();
                 this.startTransformation.push(
-                    `{ const ${this.name} = ${createElement}("`,
+                    `{ ${createElement}("`,
                     [this.node.start + 1, this.node.start + 1 + this.node.name.length],
                     '", {'
                 );
+                this.addNameConstDeclaration = () =>
+                    (this.startTransformation[0] = `{ const ${this._name} = ${createElement}("`);
                 break;
         }
     }

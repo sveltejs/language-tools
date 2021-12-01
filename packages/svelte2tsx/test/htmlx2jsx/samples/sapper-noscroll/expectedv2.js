@@ -1,1 +1,1 @@
-{ const $$_a = __sveltets_2_createElement("a", {sapperNoscroll:true,});}
+  { __sveltets_2_createElement("a", {sapperNoscroll:true,}); }

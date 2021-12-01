@@ -32,8 +32,19 @@ export class InlineComponent {
     private startTagStart: number;
     private startTagEnd: number;
     private isSelfclosing: boolean;
-    public name: string;
     public child?: any;
+
+    // Add const $$xxx = ... only if the variable name is actually used
+    // in order to prevent "$$xxx is defined but never used" TS hints
+    private addNameConstDeclaration?: () => void;
+    private _name: string;
+    public get name(): string {
+        if (this.addNameConstDeclaration) {
+            this.addNameConstDeclaration();
+            this.addNameConstDeclaration = undefined;
+        }
+        return this._name;
+    }
 
     constructor(private str: MagicString, private node: BaseNode, public parent?: any) {
         if (parent) {
@@ -46,15 +57,15 @@ export class InlineComponent {
         if (this.node.name === 'svelte:self') {
             // TODO try to get better typing here, maybe TS allows us to use the created class
             // even if it's used in the function that is used to create it
-            this.name = '$$_svelteself' + this.computeDepth();
-            this.startTransformation.push(
-                `{ const ${this.name} = __sveltets_2_createComponentAny({`
-            );
+            this._name = '$$_svelteself' + this.computeDepth();
+            this.startTransformation.push(`{ __sveltets_2_createComponentAny({`);
+            this.addNameConstDeclaration = () =>
+                (this.startTransformation[0] = `{ const ${this._name} = __sveltets_2_createComponentAny({`);
             this.startEndTransformation.push('});');
         } else if (this.node.name === 'svelte:component') {
-            this.name = '$$_sveltecomponent' + this.computeDepth();
+            this._name = '$$_sveltecomponent' + this.computeDepth();
             this.startTransformation.push(
-                `{ const ${this.name}_ = new `,
+                `{ const ${this._name}_ = new `,
                 [this.node.expression.start, this.node.expression.end],
                 '({ target: __sveltets_2_any(), props: {'
             );
@@ -64,17 +75,19 @@ export class InlineComponent {
             // here, falling back to a any-typed component to ensure the user doesn't
             // get weird follup-errors all over the place. The diagnostic error
             // should still error on the new X() part.
-            this.startEndTransformation.push(
-                `}});const ${this.name} = __sveltets_2_typeAsComponent(${this.name}_);`
-            );
+            this.startEndTransformation.push(`}});${this._name}_;`);
+            this.addNameConstDeclaration = () =>
+                (this.startEndTransformation[0] = `}});const ${this._name} = __sveltets_2_typeAsComponent(${this._name}_);`);
         } else {
-            this.name = '$$_' + this.node.name + this.computeDepth();
+            this._name = '$$_' + this.node.name + this.computeDepth();
             const nodeNameStart = this.str.original.indexOf(this.node.name, this.node.start);
             this.startTransformation.push(
-                `{ const ${this.name} = new `,
+                `{ new `,
                 [nodeNameStart, nodeNameStart + this.node.name.length],
                 '({ target: __sveltets_2_any(), props: {'
             );
+            this.addNameConstDeclaration = () =>
+                (this.startTransformation[0] = `{ const ${this._name} = new `);
             this.startEndTransformation.push('}});');
         }
     }

@@ -1,2 +1,2 @@
-   { const $$_SomeComponent0 = new SomeComponent({ target: __sveltets_2_any(), props: {"attrName":"text","attrCase":"text",}});}
-   { const $$_someelement0 = __sveltets_2_createElement("someelement", {"attrName":"text","attrCase":true,});}
+      { new SomeComponent({ target: __sveltets_2_any(), props: {"attrName":"text","attrCase":"text",}});}
+     { __sveltets_2_createElement("someelement", {"attrName":"text","attrCase":true,});}

@@ -1,1 +1,1 @@
-{ const $$_SomeComponent = new SomeComponent({ target: __sveltets_2_any(), props: {"shorthand":shorthand,}});}
+   { new SomeComponent({ target: __sveltets_2_any(), props: {shorthand,}});}

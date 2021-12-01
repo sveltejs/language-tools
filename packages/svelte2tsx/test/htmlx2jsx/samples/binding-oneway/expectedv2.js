@@ -1,3 +1,3 @@
-        { const $$_div = __sveltets_2_createElement("div", {"type":"text",});width= $$_div.clientWidth;height= $$_div.clientHeight;offsetWidth= $$_div.offsetWidth;offsetHeight= $$_div.offsetHeight;}
+        { const $$_div0 = __sveltets_2_createElement("div", {"type":"text",});width= $$_div0.clientWidth;height= $$_div0.clientHeight;offsetWidth= $$_div0.offsetWidth;offsetHeight= $$_div0.offsetHeight;}
 
-          { const $$_video = __sveltets_2_createElement("video", {"src":clip,});duration= $$_video.duration;buffered= $$_video.buffered;seekable= $$_video.seekable;seeking= $$_video.seeking;played= $$_video.played;ended= $$_video.ended; }
+         { const $$_video0 = __sveltets_2_createElement("video", {"src":clip,});duration= $$_video0.duration;buffered= $$_video0.buffered;seekable= $$_video0.seekable;seeking= $$_video0.seeking;played= $$_video0.played;ended= $$_video0.ended; }
