@@ -1,21 +1,22 @@
 import {
+    CancellationToken,
     CodeAction,
     CodeActionContext,
+    CompletionContext,
     CompletionList,
     Diagnostic,
     FormattingOptions,
     Hover,
     Position,
     Range,
-    TextEdit,
-    WorkspaceEdit,
     SelectionRange,
-    CancellationToken,
-    CompletionContext
+    TextEdit,
+    WorkspaceEdit
 } from 'vscode-languageserver';
-import { Document } from '../../lib/documents';
-import { LSConfigManager, LSSvelteConfig } from '../../ls-config';
 import { getPackageInfo, importPrettier } from '../../importPackage';
+import { Document } from '../../lib/documents';
+import { Logger } from '../../logger';
+import { LSConfigManager, LSSvelteConfig } from '../../ls-config';
 import {
     CodeActionsProvider,
     CompletionsProvider,
@@ -28,10 +29,8 @@ import { executeCommand, getCodeActions } from './features/getCodeActions';
 import { getCompletions } from './features/getCompletions';
 import { getDiagnostics } from './features/getDiagnostics';
 import { getHoverInfo } from './features/getHoverInfo';
-import { SvelteCompileResult, SvelteDocument } from './SvelteDocument';
-import { Logger } from '../../logger';
 import { getSelectionRange } from './features/getSelectionRanges';
-import { merge } from 'lodash';
+import { SvelteCompileResult, SvelteDocument } from './SvelteDocument';
 
 export class SveltePlugin
     implements
@@ -75,19 +74,14 @@ export class SveltePlugin
         const filePath = document.getFilePath()!;
         const prettier = importPrettier(filePath);
         // Try resolving the config through prettier and fall back to possible editor config
-        const config =
-            returnObjectIfHasKeys(await prettier.resolveConfig(filePath, { editorconfig: true })) ||
-            merge(
-                {}, // merge into empty obj to not manipulate own config
-                this.configManager.get('svelte.format.config'),
-                returnObjectIfHasKeys(this.configManager.getPrettierConfig()) ||
-                    // Be defensive here because IDEs other than VSCode might not have these settings
-                    (options && {
-                        tabWidth: options.tabSize,
-                        useTabs: !options.insertSpaces
-                    }) ||
-                    {}
-            );
+        const config = this.configManager.getMergedPrettierConfig(
+            await prettier.resolveConfig(filePath, { editorconfig: true }),
+            // Be defensive here because IDEs other than VSCode might not have these settings
+            options && {
+                tabWidth: options.tabSize,
+                useTabs: !options.insertSpaces
+            }
+        );
         // If user has prettier-plugin-svelte 1.x, then remove `options` from the sort
         // order or else it will throw a config error (`options` was not present back then).
         if (
@@ -136,12 +130,6 @@ export class SveltePlugin
                 .getSupportInfo()
                 .languages.some((l) => l.name === 'svelte');
             return hasPluginLoadedAlready ? [] : [require.resolve('prettier-plugin-svelte')];
-        }
-
-        function returnObjectIfHasKeys<T>(obj: T | undefined): T | undefined {
-            if (Object.keys(obj || {}).length > 0) {
-                return obj;
-            }
         }
     }
 

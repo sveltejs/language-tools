@@ -1,20 +1,20 @@
-import { DocumentManager, Document } from '../../../../src/lib/documents';
-import { LSAndTSDocResolver } from '../../../../src/plugins/typescript/LSAndTSDocResolver';
-import { CodeActionsProviderImpl } from '../../../../src/plugins/typescript/features/CodeActionsProvider';
-import { pathToUrl } from '../../../../src/utils';
-import ts from 'typescript';
-import * as path from 'path';
 import * as assert from 'assert';
+import * as path from 'path';
+import ts from 'typescript';
 import {
-    Range,
-    Position,
-    CodeActionKind,
-    TextDocumentEdit,
+    CancellationTokenSource,
     CodeAction,
-    CancellationTokenSource
+    CodeActionKind,
+    Position,
+    Range,
+    TextDocumentEdit
 } from 'vscode-languageserver';
-import { CompletionsProviderImpl } from '../../../../src/plugins/typescript/features/CompletionProvider';
+import { Document, DocumentManager } from '../../../../src/lib/documents';
 import { LSConfigManager } from '../../../../src/ls-config';
+import { CodeActionsProviderImpl } from '../../../../src/plugins/typescript/features/CodeActionsProvider';
+import { CompletionsProviderImpl } from '../../../../src/plugins/typescript/features/CompletionProvider';
+import { LSAndTSDocResolver } from '../../../../src/plugins/typescript/LSAndTSDocResolver';
+import { pathToUrl } from '../../../../src/utils';
 
 const testDir = path.join(__dirname, '..');
 
@@ -41,7 +41,11 @@ describe('CodeActionsProvider', () => {
             new LSConfigManager()
         );
         const completionProvider = new CompletionsProviderImpl(lsAndTsDocResolver);
-        const provider = new CodeActionsProviderImpl(lsAndTsDocResolver, completionProvider);
+        const provider = new CodeActionsProviderImpl(
+            lsAndTsDocResolver,
+            completionProvider,
+            new LSConfigManager()
+        );
         const filePath = getFullPath(filename);
         const document = docManager.openDocument(<any>{
             uri: pathToUrl(filePath),

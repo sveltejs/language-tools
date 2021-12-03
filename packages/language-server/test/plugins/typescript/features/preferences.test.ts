@@ -1,7 +1,6 @@
-import ts from 'typescript';
 import assert from 'assert';
 import { join } from 'path';
-
+import ts from 'typescript';
 import {
     CodeActionContext,
     Diagnostic,
@@ -11,11 +10,11 @@ import {
     TextDocumentEdit
 } from 'vscode-languageserver';
 import { Document, DocumentManager } from '../../../../src/lib/documents';
+import { LSConfigManager, TSUserConfig } from '../../../../src/ls-config';
+import { CodeActionsProviderImpl } from '../../../../src/plugins/typescript/features/CodeActionsProvider';
 import { CompletionsProviderImpl } from '../../../../src/plugins/typescript/features/CompletionProvider';
 import { LSAndTSDocResolver } from '../../../../src/plugins/typescript/LSAndTSDocResolver';
 import { pathToUrl } from '../../../../src/utils';
-import { CodeActionsProviderImpl } from '../../../../src/plugins/typescript/features/CodeActionsProvider';
-import { LSConfigManager, TSUserConfig } from '../../../../src/ls-config';
 
 const testFilesDir = join(__dirname, '..', 'testfiles', 'preferences');
 
@@ -88,7 +87,8 @@ describe('ts user preferences', () => {
         const completionProvider = new CompletionsProviderImpl(lsAndTsDocResolver);
         const codeActionProvider = new CodeActionsProviderImpl(
             lsAndTsDocResolver,
-            completionProvider
+            completionProvider,
+            new LSConfigManager()
         );
 
         const codeAction = await codeActionProvider.getCodeActions(document, range, context);
@@ -188,7 +188,8 @@ describe('ts user preferences', () => {
         const completionProvider = new CompletionsProviderImpl(lsAndTsDocResolver);
         const codeActionProvider = new CodeActionsProviderImpl(
             lsAndTsDocResolver,
-            completionProvider
+            completionProvider,
+            new LSConfigManager()
         );
 
         const codeAction = await codeActionProvider.getCodeActions(document, range, {

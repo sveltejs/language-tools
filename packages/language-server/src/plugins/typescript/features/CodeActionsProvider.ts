@@ -10,6 +10,7 @@ import {
     TextEdit,
     WorkspaceEdit
 } from 'vscode-languageserver';
+import { importPrettier } from '../../../importPackage';
 import {
     Document,
     getLineAtPosition,
@@ -17,6 +18,7 @@ import {
     isRangeInTag,
     mapRangeToOriginal
 } from '../../../lib/documents';
+import { LSConfigManager } from '../../../ls-config';
 import { flatten, getIndent, isNotNullOrUndefined, modifyLines, pathToUrl } from '../../../utils';
 import { CodeActionsProvider } from '../../interfaces';
 import { SnapshotFragment, SvelteSnapshotFragment } from '../DocumentSnapshot';
@@ -35,7 +37,8 @@ interface RefactorArgs {
 export class CodeActionsProviderImpl implements CodeActionsProvider {
     constructor(
         private readonly lsAndTsDocResolver: LSAndTSDocResolver,
-        private readonly completionProvider: CompletionsProviderImpl
+        private readonly completionProvider: CompletionsProviderImpl,
+        private readonly configManager: LSConfigManager
     ) {}
 
     async getCodeActions(
@@ -77,12 +80,19 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             return [];
         }
 
+        const prettierConfig = this.configManager.getMergedPrettierConfig(
+            await importPrettier(document.getFilePath()!).resolveConfig(document.getFilePath()!, {
+                editorconfig: true
+            })
+        );
         const changes = lang.organizeImports(
             {
                 fileName: tsDoc.filePath,
                 type: 'file'
             },
-            {},
+            {
+                semicolons: prettierConfig.semi ?? true
+            },
             userPreferences
         );
 
