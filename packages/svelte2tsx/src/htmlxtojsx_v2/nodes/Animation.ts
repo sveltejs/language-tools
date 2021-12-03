@@ -4,7 +4,7 @@ import { getDirectiveNameStartEndIdx, TransformationArray } from '../utils/node-
 import { Element } from './Element';
 
 /**
- * animate:xxx(yyy)   --->   __sveltets_2_ensureAnimation(xxx(__sveltets_1_mapElementTag('..'),__sveltets_2_AnimationMove,(yyy)));
+ * animate:xxx(yyy)   --->   __sveltets_2_ensureAnimation(xxx(__sveltets_2_mapElementTag('..'),__sveltets_2_AnimationMove,(yyy)));
  */
 export function handleAnimateDirective(
     str: MagicString,

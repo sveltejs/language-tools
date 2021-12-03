@@ -200,7 +200,6 @@ export function htmlx2jsx(
     const str = new MagicString(htmlx);
 
     convertHtmlxToJsx(str, ast, null, null, options);
-    console.log('after');
 
     return {
         map: str.generateMap({ hires: true }),

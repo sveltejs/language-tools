@@ -393,7 +393,7 @@ export function svelte2tsx(
             new ImplicitStoreValues(
                 implicitStoreValues.getAccessedStores(),
                 renderFunctionStart,
-                scriptTag ? undefined : (input) => `</>;${input}<>`
+                scriptTag || options.mode === 'ts' ? undefined : (input) => `</>;${input}<>`
             ),
             options.mode === 'ts'
         );
