@@ -80,18 +80,22 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             return [];
         }
 
-        const prettierConfig = this.configManager.getMergedPrettierConfig(
-            await importPrettier(document.getFilePath()!).resolveConfig(document.getFilePath()!, {
-                editorconfig: true
-            })
-        );
+        const useSemicolons =
+            this.configManager.getMergedPrettierConfig(
+                await importPrettier(document.getFilePath()!).resolveConfig(
+                    document.getFilePath()!,
+                    {
+                        editorconfig: true
+                    }
+                )
+            ).semi ?? true;
         const changes = lang.organizeImports(
             {
                 fileName: tsDoc.filePath,
                 type: 'file'
             },
             {
-                semicolons: prettierConfig.semi ?? true
+                semicolons: useSemicolons
             },
             userPreferences
         );
@@ -102,6 +106,13 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                 return TextDocumentEdit.create(
                     OptionalVersionedTextDocumentIdentifier.create(document.url, null),
                     change.textChanges.map((edit) => {
+                        if (!useSemicolons) {
+                            // For some reason the TS language service ignores the formatOptions
+                            // we set above, so remove possible semicolons here.
+                            edit.newText = edit.newText.replace(/(;(\n))|(;(\r\n))/g, (match) =>
+                                match.substring(1)
+                            );
+                        }
                         const range = this.checkRemoveImportCodeActionRange(
                             edit,
                             fragment,
