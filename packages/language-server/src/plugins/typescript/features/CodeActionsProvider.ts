@@ -109,7 +109,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                         if (!useSemicolons) {
                             // For some reason the TS language service ignores the formatOptions
                             // we set above, so remove possible semicolons here.
-                            edit.newText = edit.newText.replace(/(;(\n))|(;(\r\n))/g, (match) =>
+                            edit.newText = edit.newText.replace(/(;\n)|(;\r\n)/g, (match) =>
                                 match.substring(1)
                             );
                         }
