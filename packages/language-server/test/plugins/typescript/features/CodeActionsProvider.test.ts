@@ -300,7 +300,7 @@ describe('CodeActionsProvider', () => {
                         {
                             edits: [
                                 {
-                                    newText: "import Empty from '../empty.svelte';\r\n",
+                                    newText: harmonizeNewLines("import Empty from '../empty.svelte';\n"),
                                     range: {
                                         end: Position.create(5, 0),
                                         start: Position.create(5, 0)
