@@ -150,7 +150,8 @@ async function createLanguageService(
         getDirectories: ts.sys.getDirectories,
         useCaseSensitiveFileNames: () => ts.sys.useCaseSensitiveFileNames,
         getScriptKind: (fileName: string) => getSnapshot(fileName).scriptKind,
-        getProjectVersion: () => projectVersion.toString()
+        getProjectVersion: () => projectVersion.toString(),
+        getNewLine: () => ts.sys.newLine
     };
 
     let languageService = ts.createLanguageService(host);
