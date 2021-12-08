@@ -250,7 +250,7 @@ export function processInstanceScriptContent(
             uses$$SlotsInterface = true;
         }
         if (is$$PropsDeclaration(node)) {
-            exportedNames.setUses$$Props();
+            exportedNames.uses$$Props = true;
         }
 
         if (ts.isVariableStatement(node)) {
