@@ -100,7 +100,8 @@ export class TypeScriptPlugin
         this.completionProvider = new CompletionsProviderImpl(this.lsAndTsDocResolver);
         this.codeActionsProvider = new CodeActionsProviderImpl(
             this.lsAndTsDocResolver,
-            this.completionProvider
+            this.completionProvider,
+            configManager
         );
         this.updateImportsProvider = new UpdateImportsProviderImpl(this.lsAndTsDocResolver);
         this.diagnosticsProvider = new DiagnosticsProviderImpl(this.lsAndTsDocResolver);
