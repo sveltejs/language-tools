@@ -287,12 +287,14 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
     private async getMapper(uri: string) {
         const scriptInfo = this.parent.scriptInfo || this.parent.moduleScriptInfo;
 
-        if (!scriptInfo) {
-            return new IdentityMapper(uri);
-        }
         if (!this.tsxMap) {
+            if (!scriptInfo) {
+                return new IdentityMapper(uri);
+            }
+
             return new FragmentMapper(this.parent.getText(), scriptInfo, uri);
         }
+
         return new ConsumerDocumentMapper(
             await new SourceMapConsumer(this.tsxMap),
             uri,
