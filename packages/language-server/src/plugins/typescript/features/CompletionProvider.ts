@@ -51,7 +51,10 @@ type LastCompletion = {
 };
 
 export class CompletionsProviderImpl implements CompletionsProvider<CompletionEntryWithIdentifer> {
-    constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver, private readonly configManager: LSConfigManager) {}
+    constructor(
+        private readonly lsAndTsDocResolver: LSAndTSDocResolver,
+        private readonly configManager: LSConfigManager
+    ) {}
 
     /**
      * The language service throws an error if the character is not a valid trigger character.

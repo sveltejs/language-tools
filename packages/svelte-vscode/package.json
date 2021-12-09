@@ -388,7 +388,10 @@
                     "default": "none",
                     "title": "Svelte: Default Script Language",
                     "description": "The default language to use when generating new script tags",
-                    "enum": ["none", "ts"]
+                    "enum": [
+                        "none",
+                        "ts"
+                    ]
                 }
             }
         },

@@ -40,8 +40,10 @@ describe('CodeActionsProvider', () => {
             [pathToUrl(testDir)],
             new LSConfigManager()
         );
-        const completionProvider = new CompletionsProviderImpl(lsAndTsDocResolver, 
-            new LSConfigManager());
+        const completionProvider = new CompletionsProviderImpl(
+            lsAndTsDocResolver,
+            new LSConfigManager()
+        );
         const provider = new CodeActionsProviderImpl(
             lsAndTsDocResolver,
             completionProvider,
