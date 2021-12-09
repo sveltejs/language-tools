@@ -21,6 +21,7 @@ import {
     mapRangeToOriginal,
     toRange
 } from '../../../lib/documents';
+import { LSConfigManager } from '../../../ls-config';
 import { flatten, getRegExpMatches, isNotNullOrUndefined, pathToUrl } from '../../../utils';
 import { AppCompletionItem, AppCompletionList, CompletionsProvider } from '../../interfaces';
 import { ComponentPartInfo } from '../ComponentInfoProvider';
@@ -50,7 +51,7 @@ type LastCompletion = {
 };
 
 export class CompletionsProviderImpl implements CompletionsProvider<CompletionEntryWithIdentifer> {
-    constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
+    constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver, private readonly configManager: LSConfigManager) {}
 
     /**
      * The language service throws an error if the character is not a valid trigger character.
@@ -530,9 +531,12 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         const scriptTagInfo = fragment.scriptInfo || fragment.moduleScriptInfo;
         if (!scriptTagInfo) {
             // no script tag defined yet, add it.
+            const lang = this.configManager.getConfig().svelte.defaultScriptLanguage;
+            const scriptLang = lang === 'none' ? '' : ` lang="${lang}"`;
+
             return TextEdit.replace(
                 beginOfDocumentRange,
-                `<script>${ts.sys.newLine}${change.newText}</script>${ts.sys.newLine}`
+                `<script${scriptLang}>${ts.sys.newLine}${change.newText}</script>${ts.sys.newLine}`
             );
         }
 

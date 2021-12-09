@@ -97,7 +97,7 @@ export class TypeScriptPlugin
     constructor(configManager: LSConfigManager, lsAndTsDocResolver: LSAndTSDocResolver) {
         this.configManager = configManager;
         this.lsAndTsDocResolver = lsAndTsDocResolver;
-        this.completionProvider = new CompletionsProviderImpl(this.lsAndTsDocResolver);
+        this.completionProvider = new CompletionsProviderImpl(this.lsAndTsDocResolver, this.configManager);
         this.codeActionsProvider = new CodeActionsProviderImpl(
             this.lsAndTsDocResolver,
             this.completionProvider,

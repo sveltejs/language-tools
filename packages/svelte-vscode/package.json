@@ -382,6 +382,13 @@
                     "default": true,
                     "title": "Svelte: Rename",
                     "description": "Enable rename/move Svelte files functionality"
+                },
+                "svelte.plugin.svelte.defaultScriptLanguage": {
+                    "type": "string",
+                    "default": "none",
+                    "title": "Svelte: Default Script Language",
+                    "description": "The default language to use when generating new script tags",
+                    "enum": ["none", "ts"]
                 }
             }
         },
