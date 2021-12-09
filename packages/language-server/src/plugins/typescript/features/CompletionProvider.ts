@@ -532,7 +532,8 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         if (!scriptTagInfo) {
             // no script tag defined yet, add it.
             const lang = this.configManager.getConfig().svelte.defaultScriptLanguage;
-            const scriptLang = lang === 'none' ? '' : ` lang="${lang}"`;
+            const useLang = lang && lang !== 'none';
+            const scriptLang = useLang ? ` lang="${lang}"` : '';
 
             return TextEdit.replace(
                 beginOfDocumentRange,
