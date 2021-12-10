@@ -1,7 +1,6 @@
-import ts from 'typescript';
 import assert from 'assert';
 import { join } from 'path';
-
+import ts from 'typescript';
 import {
     CodeActionContext,
     Diagnostic,
@@ -11,11 +10,11 @@ import {
     TextDocumentEdit
 } from 'vscode-languageserver';
 import { Document, DocumentManager } from '../../../../src/lib/documents';
+import { LSConfigManager, TSUserConfig } from '../../../../src/ls-config';
+import { CodeActionsProviderImpl } from '../../../../src/plugins/typescript/features/CodeActionsProvider';
 import { CompletionsProviderImpl } from '../../../../src/plugins/typescript/features/CompletionProvider';
 import { LSAndTSDocResolver } from '../../../../src/plugins/typescript/LSAndTSDocResolver';
 import { pathToUrl } from '../../../../src/utils';
-import { CodeActionsProviderImpl } from '../../../../src/plugins/typescript/features/CodeActionsProvider';
-import { LSConfigManager, TSUserConfig } from '../../../../src/ls-config';
 
 const testFilesDir = join(__dirname, '..', 'testfiles', 'preferences');
 
@@ -65,7 +64,10 @@ describe('ts user preferences', () => {
     it('provides auto import completion according to preferences', async () => {
         const { docManager, document } = setup('code-action.svelte');
         const lsAndTsDocResolver = createLSAndTSDocResolver(docManager);
-        const completionProvider = new CompletionsProviderImpl(lsAndTsDocResolver);
+        const completionProvider = new CompletionsProviderImpl(
+            lsAndTsDocResolver,
+            new LSConfigManager()
+        );
 
         const completions = await completionProvider.getCompletions(
             document,
@@ -85,10 +87,14 @@ describe('ts user preferences', () => {
     ) {
         const { docManager, document } = setup(filename);
         const lsAndTsDocResolver = createLSAndTSDocResolver(docManager);
-        const completionProvider = new CompletionsProviderImpl(lsAndTsDocResolver);
+        const completionProvider = new CompletionsProviderImpl(
+            lsAndTsDocResolver,
+            new LSConfigManager()
+        );
         const codeActionProvider = new CodeActionsProviderImpl(
             lsAndTsDocResolver,
-            completionProvider
+            completionProvider,
+            new LSConfigManager()
         );
 
         const codeAction = await codeActionProvider.getCodeActions(document, range, context);
@@ -122,7 +128,10 @@ describe('ts user preferences', () => {
                 includeCompletionsForImportStatements: undefined
             }
         });
-        const completionProvider = new CompletionsProviderImpl(lsAndTsDocResolver);
+        const completionProvider = new CompletionsProviderImpl(
+            lsAndTsDocResolver,
+            new LSConfigManager()
+        );
 
         const completions = await completionProvider.getCompletions(
             document,
@@ -151,7 +160,10 @@ describe('ts user preferences', () => {
     it('provides auto import for svelte component when importModuleSpecifierEnding is js', async () => {
         const { document, lsAndTsDocResolver } = setupImportModuleSpecifierEndingJs();
 
-        const completionProvider = new CompletionsProviderImpl(lsAndTsDocResolver);
+        const completionProvider = new CompletionsProviderImpl(
+            lsAndTsDocResolver,
+            new LSConfigManager()
+        );
 
         const completions = await completionProvider.getCompletions(
             document,
@@ -166,7 +178,10 @@ describe('ts user preferences', () => {
     it('provides auto import for context="module" export when importModuleSpecifierEnding is js', async () => {
         const { document, lsAndTsDocResolver } = setupImportModuleSpecifierEndingJs();
 
-        const completionProvider = new CompletionsProviderImpl(lsAndTsDocResolver);
+        const completionProvider = new CompletionsProviderImpl(
+            lsAndTsDocResolver,
+            new LSConfigManager()
+        );
 
         const completions = await completionProvider.getCompletions(
             document,
@@ -185,10 +200,14 @@ describe('ts user preferences', () => {
         const range = Range.create(Position.create(4, 1), Position.create(4, 8));
         const { document, lsAndTsDocResolver } = setupImportModuleSpecifierEndingJs();
 
-        const completionProvider = new CompletionsProviderImpl(lsAndTsDocResolver);
+        const completionProvider = new CompletionsProviderImpl(
+            lsAndTsDocResolver,
+            new LSConfigManager()
+        );
         const codeActionProvider = new CodeActionsProviderImpl(
             lsAndTsDocResolver,
-            completionProvider
+            completionProvider,
+            new LSConfigManager()
         );
 
         const codeAction = await codeActionProvider.getCodeActions(document, range, {

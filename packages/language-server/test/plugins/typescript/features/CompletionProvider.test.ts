@@ -41,7 +41,10 @@ describe('CompletionProviderImpl', () => {
             [pathToUrl(testDir)],
             new LSConfigManager()
         );
-        const completionProvider = new CompletionsProviderImpl(lsAndTsDocResolver);
+        const completionProvider = new CompletionsProviderImpl(
+            lsAndTsDocResolver,
+            new LSConfigManager()
+        );
         const filePath = join(testFilesDir, filename);
         const document = docManager.openDocument(<any>{
             uri: pathToUrl(filePath),
@@ -1149,6 +1152,25 @@ describe('CompletionProviderImpl', () => {
                 }
             }
         });
+    });
+
+    it('auto import with system new line', async () => {
+        const { completionProvider, document } = setup('importcompletions-new-line.svelte');
+
+        const completions = await completionProvider.getCompletions(
+            document,
+            Position.create(1, 7)
+        );
+
+        const items = completions?.items.filter((item) => item.label === 'ScndImport');
+        const item = items?.[0];
+
+        const { additionalTextEdits } = await completionProvider.resolveCompletion(document, item!);
+
+        assert.strictEqual(
+            additionalTextEdits?.[0].newText,
+            `${newLine}import { ScndImport } from "./to-import";${newLine}${newLine}`
+        );
     });
 });
 

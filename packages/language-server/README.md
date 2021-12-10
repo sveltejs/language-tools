@@ -297,7 +297,11 @@ Enable code actions for Svelte. _Default_: `true`
 
 Enable selection range for Svelte. _Default_: `true`
 
+##### `svelte.plugin.svelte.defaultScriptLanguage`
+
+The default language to use when generating new script tags in Svelte. _Default_: `none`
+
 ## Credits
 
--   [UnwrittenFun](https://github.com/UnwrittenFun) for creating the foundation which this language server is built on
+-   [James Birtles](https://github.com/jamesbirtles) for creating the foundation which this language server is built on
 -   Vue's [Vetur](https://github.com/vuejs/vetur) language server which heavily inspires this project

@@ -1,6 +1,7 @@
-import { merge, get } from 'lodash';
+import { get, merge } from 'lodash';
 import { UserPreferences } from 'typescript';
 import { VSCodeEmmetConfig } from 'vscode-emmet-helper';
+import { returnObjectIfHasKeys } from './utils';
 
 /**
  * Default config for the language server.
@@ -60,7 +61,8 @@ const defaultLSConfig: LSConfig = {
         completions: { enable: true },
         hover: { enable: true },
         codeActions: { enable: true },
-        selectionRange: { enable: true }
+        selectionRange: { enable: true },
+        defaultScriptLanguage: 'none'
     }
 };
 
@@ -197,6 +199,7 @@ export interface LSSvelteConfig {
     selectionRange: {
         enable: boolean;
     };
+    defaultScriptLanguage: 'none' | 'ts';
 }
 
 /**
@@ -338,6 +341,29 @@ export class LSConfigManager {
 
     getPrettierConfig(): any {
         return this.prettierConfig;
+    }
+
+    /**
+     * Returns a merged Prettier config following these rules:
+     * - If `prettierFromFileConfig` exists, that one is returned
+     * - Else the Svelte extension's Prettier config is used as a starting point,
+     *   and overridden by a possible Prettier config from the Prettier extension,
+     *   or, if that doesn't exist, a possible fallback override.
+     */
+    getMergedPrettierConfig(
+        prettierFromFileConfig: any,
+        overridesWhenNoPrettierConfig: any = {}
+    ): any {
+        return (
+            returnObjectIfHasKeys(prettierFromFileConfig) ||
+            merge(
+                {}, // merge into empty obj to not manipulate own config
+                this.get('svelte.format.config'),
+                returnObjectIfHasKeys(this.getPrettierConfig()) ||
+                    overridesWhenNoPrettierConfig ||
+                    {}
+            )
+        );
     }
 
     updateTsJsUserPreferences(config: Record<TsUserConfigLang, TSUserConfig>): void {

@@ -141,12 +141,15 @@ export function activate(context: ExtensionContext) {
         const parts = doc.uri.toString(true).split(/\/|\\/);
         if (
             [
-                'tsconfig.json',
-                'jsconfig.json',
-                'svelte.config.js',
-                'svelte.config.cjs',
-                'svelte.config.mjs'
-            ].includes(parts[parts.length - 1])
+                /^tsconfig\.json$/,
+                /^jsconfig\.json$/,
+                /^svelte\.config\.(js|cjs|mjs)$/,
+                // https://prettier.io/docs/en/configuration.html
+                /^\.prettierrc$/,
+                /^\.prettierrc\.(json|yml|yaml|json5|toml)$/,
+                /^\.prettierrc\.(js|cjs)$/,
+                /^\.prettierrc\.config\.(js|cjs)$/
+            ].some((regex) => regex.test(parts[parts.length - 1]))
         ) {
             await restartLS(false);
         }

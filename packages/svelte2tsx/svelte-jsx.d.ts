@@ -389,7 +389,7 @@ declare namespace svelte.JSX {
       onreset?: FormEventHandler<T> | undefined;
       onsubmit?: FormEventHandler<T> | undefined;
       oninvalid?: EventHandler<Event, T> | undefined;
-      onbeforeinput?: EventHandler<Event, T> | undefined;
+      onbeforeinput?: EventHandler<InputEvent, T> | undefined;
 
       // Image Events
       onload?: EventHandler | undefined;

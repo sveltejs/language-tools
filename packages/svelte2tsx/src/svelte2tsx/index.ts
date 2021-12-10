@@ -401,7 +401,7 @@ export function svelte2tsx(
 
     addComponentExport({
         str,
-        uses$$propsOr$$restProps: uses$$props || uses$$restProps,
+        canHaveAnyProp: !exportedNames.uses$$Props && (uses$$props || uses$$restProps),
         strictEvents: events.hasStrictEvents(),
         isTsFile: options?.isTsFile,
         exportedNames,
