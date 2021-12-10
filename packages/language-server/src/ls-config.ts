@@ -61,7 +61,8 @@ const defaultLSConfig: LSConfig = {
         completions: { enable: true },
         hover: { enable: true },
         codeActions: { enable: true },
-        selectionRange: { enable: true }
+        selectionRange: { enable: true },
+        defaultScriptLanguage: 'none'
     }
 };
 
@@ -198,6 +199,7 @@ export interface LSSvelteConfig {
     selectionRange: {
         enable: boolean;
     };
+    defaultScriptLanguage: 'none' | 'ts';
 }
 
 /**
