@@ -104,6 +104,13 @@ export function convertToLocationRange(defDoc: SnapshotFragment, textSpan: ts.Te
     return range;
 }
 
+export function hasNonZeroRange({ range }: { range?: Range }) {
+    return (
+        range &&
+        (range.start.line !== range.end.line || range.start.character !== range.end.character)
+    );
+}
+
 export function findTsConfigPath(fileName: string, rootUris: string[]) {
     const searchDir = dirname(fileName);
 

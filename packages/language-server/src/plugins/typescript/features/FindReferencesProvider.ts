@@ -4,7 +4,7 @@ import { Document } from '../../../lib/documents';
 import { pathToUrl } from '../../../utils';
 import { FindReferencesProvider } from '../../interfaces';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
-import { convertToLocationRange } from '../utils';
+import { convertToLocationRange, hasNonZeroRange } from '../utils';
 import { isNoTextSpanInGeneratedCode, SnapshotFragmentMap } from './utils';
 
 export class FindReferencesProviderImpl implements FindReferencesProvider {
@@ -29,7 +29,7 @@ export class FindReferencesProviderImpl implements FindReferencesProvider {
         const docs = new SnapshotFragmentMap(this.lsAndTsDocResolver);
         docs.set(tsDoc.filePath, { fragment, snapshot: tsDoc });
 
-        return await Promise.all(
+        const locations = await Promise.all(
             references
                 .filter((ref) => context.includeDeclaration || !ref.isDefinition)
                 .filter(notInGeneratedCode(tsDoc.getFullText()))
@@ -42,6 +42,10 @@ export class FindReferencesProviderImpl implements FindReferencesProvider {
                     );
                 })
         );
+
+        const nonZeroLocations = locations.filter(hasNonZeroRange);
+
+        return nonZeroLocations.length > 0 ? nonZeroLocations : locations
     }
 
     private async getLSAndTSDoc(document: Document) {
