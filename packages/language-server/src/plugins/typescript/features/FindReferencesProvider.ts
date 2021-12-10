@@ -45,7 +45,7 @@ export class FindReferencesProviderImpl implements FindReferencesProvider {
 
         const nonZeroLocations = locations.filter(hasNonZeroRange);
 
-        return nonZeroLocations.length > 0 ? nonZeroLocations : locations
+        return nonZeroLocations.length > 0 ? nonZeroLocations : locations;
     }
 
     private async getLSAndTSDoc(document: Document) {
