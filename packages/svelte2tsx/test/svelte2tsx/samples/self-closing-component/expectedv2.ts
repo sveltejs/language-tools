@@ -1,7 +1,12 @@
 ///<reference types="svelte" />
-;function render() {
 ;
-async () => {
+import Test from './Test.svelte';
+function render() {
+
+
+let a = 'b';
+;
+async () => {    { new Test({ target: __sveltets_2_any(), props: {"b":"6",}});}
 };
 return { props: {}, slots: {}, getters: {}, events: {} }}
 

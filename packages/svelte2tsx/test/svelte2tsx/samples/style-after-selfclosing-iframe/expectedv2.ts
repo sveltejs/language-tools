@@ -1,7 +1,6 @@
 ///<reference types="svelte" />
 ;function render() {
-;
-async () => {
+async () => {   { __sveltets_2_createElement("iframe", {"src":"",});}
 };
 return { props: {}, slots: {}, getters: {}, events: {} }}
 
