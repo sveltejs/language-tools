@@ -114,14 +114,16 @@ export function handleAttribute(
             element instanceof Element && attr.value === true
                 ? transformAttributeCase(attr.name)
                 : attr.name;
-        if (name !== attr.name) {
-            str.overwrite(attr.start, attr.start + attr.name.length, name);
-        }
         // surround with quotes because dashes or other invalid property characters could be part of the name
         // Overwrite first char with "+char because TS will squiggle the whole "prop" including quotes when something is wrong
-        str.overwrite(attr.start, attr.start + 1, '"' + str.original.charAt(attr.start), {
-            contentOnly: true
-        });
+        if (name !== attr.name) {
+            name = '"' + name;
+            str.overwrite(attr.start, attr.start + attr.name.length, name);
+        } else {
+            str.overwrite(attr.start, attr.start + 1, '"' + str.original.charAt(attr.start), {
+                contentOnly: true
+            });
+        }
         attributeName.push([attr.start, attr.start + attr.name.length], '"');
     }
 

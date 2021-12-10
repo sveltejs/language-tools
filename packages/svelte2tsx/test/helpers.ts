@@ -221,6 +221,7 @@ const enum TestError {
 }
 
 export function test_samples(dir: string, transform: TransformSampleFn, jsx: 'jsx' | 'tsx') {
+    const js = jsx.slice(0, 2);
     for (const sample of each_sample(dir)) {
         const svelteFile = sample.find_file('*.svelte');
         const config = {
@@ -230,10 +231,11 @@ export function test_samples(dir: string, transform: TransformSampleFn, jsx: 'js
             preserveAttributeCase: sample.name.endsWith('-foreign-ns'),
             useNewTransformation: false
         };
+        let testingV2 = false;
 
         if (process.env.CI) {
             sample.checkDirectory({
-                required: ['*.svelte', `expected.${jsx}`, `expectedv2.${jsx}`],
+                required: ['*.svelte', `expected.${jsx}`, `expectedv2.${js}`],
                 allowed: ['expected.js', 'expected.error.json']
             });
         } else {
@@ -242,7 +244,7 @@ export function test_samples(dir: string, transform: TransformSampleFn, jsx: 'js
                 allowed: [
                     'expected.js',
                     `expected.${jsx}`,
-                    `expectedv2.${jsx}`,
+                    `expectedv2.${js}`,
                     'expected.error.json'
                 ]
             });
@@ -263,7 +265,7 @@ export function test_samples(dir: string, transform: TransformSampleFn, jsx: 'js
                     }
                     generate(`expected.${jsx}`, transform(input, config).code);
                     generate(
-                        `expectedv2.${jsx.slice(0, 2)}`,
+                        `expectedv2.${js}`,
                         transform(input, { ...config, useNewTransformation: true }).code
                     );
                 });
@@ -274,7 +276,7 @@ export function test_samples(dir: string, transform: TransformSampleFn, jsx: 'js
                 const { message, actual } = err;
                 switch (message) {
                     case TestError.WrongExpected: {
-                        generate(`expected.${jsx}`, actual);
+                        generate(testingV2 ? `expectedv2.${js}` : `expected.${jsx}`, actual);
                         break;
                     }
                     case TestError.WrongError: {
@@ -306,15 +308,20 @@ export function test_samples(dir: string, transform: TransformSampleFn, jsx: 'js
 
             const output = transform(input, config);
 
-            assert.strictEqual(output.code, sample.get(`expected.${jsx}`), TestError.WrongExpected);
+            assert.strictEqual(
+                normalize(output.code),
+                sample.get(`expected.${jsx}`),
+                TestError.WrongExpected
+            );
 
             if (sample.has('expected.js')) {
                 sample.eval('expected.js', output);
             }
 
+            testingV2 = true;
             assert.strictEqual(
-                transform(input, { ...config, useNewTransformation: true }).code,
-                sample.get(`expectedv2.${jsx.slice(0, 2)}`),
+                normalize(transform(input, { ...config, useNewTransformation: true }).code),
+                sample.get(`expectedv2.${js}`),
                 TestError.WrongExpected
             );
         });
