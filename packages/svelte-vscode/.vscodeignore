@@ -2,3 +2,17 @@
 /src
 /scripts
 /.vscode
+
+node_modules/@types
+node_modules/typescript/loc
+node_modules/typescript/lib/*/*
+node_modules/typescript/lib/tsc.js
+node_modules/typescript/lib/tsserver.js
+node_modules/typescript/lib/tsserverlibrary.js
+node_modules/typescript/lib/typescriptServices.js
+node_modules/typescript/lib/typingsInstaller.js
+node_modules/prettier/esm
+node_modules/svelte/compiler.mjs
+node_modules/svelte/compiler.mjs.map
+node_modules/vscode-css-languageservice/lib/esm
+node_modules/vscode-html-languageservice/lib/esm
