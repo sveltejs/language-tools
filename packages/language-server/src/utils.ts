@@ -2,6 +2,20 @@ import { Node } from 'vscode-html-languageservice';
 import { Position, Range } from 'vscode-languageserver';
 import { URI } from 'vscode-uri';
 
+type Predicate<T> = (x: T) => boolean;
+
+export function not<T>(predicate: Predicate<T>) {
+    return (x: T) => !predicate(x);
+}
+
+export function or<T>(...predicates: Predicate<T>[]) {
+    return (x: T) => predicates.some((predicate) => predicate(x));
+}
+
+export function and<T>(...predicates: Predicate<T>[]) {
+    return (x: T) => predicates.every((predicate) => predicate(x));
+}
+
 export function clamp(num: number, min: number, max: number): number {
     return Math.max(min, Math.min(max, num));
 }
@@ -43,8 +57,21 @@ export function getLastPartOfPath(path: string): string {
     return path.replace(/\\/g, '/').split('/').pop() || '';
 }
 
-export function flatten<T>(arr: T[][]): T[] {
-    return arr.reduce((all, item) => [...all, ...item], []);
+export function flatten<T>(arr: (T | T[])[]): T[] {
+    return arr.reduce(
+        (all: T[], item) => (Array.isArray(item) ? [...all, ...item] : [...all, item]),
+        []
+    );
+}
+
+/**
+ * Map or keep original (passthrough) if the mapper returns undefined.
+ */
+export function passMap<T>(array: T[], mapper: (x: T) => void | T[]) {
+    return array.map((x) => {
+        const mapped = mapper(x);
+        return mapped === undefined ? x : mapped;
+    });
 }
 
 export function isInRange(range: Range, positionToTest: Position): boolean {

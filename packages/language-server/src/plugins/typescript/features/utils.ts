@@ -9,6 +9,7 @@ import {
 import { ComponentInfoProvider, JsOrTsComponentInfoProvider } from '../ComponentInfoProvider';
 import { DocumentSnapshot, SnapshotFragment, SvelteDocumentSnapshot } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
+import { or } from '../../../utils';
 
 /**
  * If the given original position is within a Svelte starting tag,
@@ -91,7 +92,7 @@ export function isNoTextSpanInGeneratedCode(text: string, span: ts.TextSpan) {
 
 export function isPartOfImportStatement(text: string, position: Position): boolean {
     const line = getLineAtPosition(position, text);
-    return /\s*from\s+["'][^"']*/.test(line.substr(0, position.character));
+    return /\s*from\s+["'][^"']*/.test(line.slice(0, position.character));
 }
 
 export class SnapshotFragmentMap {
@@ -157,3 +158,103 @@ export function findContainingNode<T extends ts.Node>(
         }
     }
 }
+
+/**
+ * Finds node exactly matching span {start, length}.
+ */
+export function findNodeAtSpan<T extends ts.Node>(
+    node: ts.Node,
+    span: { start: number; length: number },
+    predicate?: (node: ts.Node) => node is T
+): T | void {
+    const { start, length } = span;
+
+    const end = start + length;
+
+    for (const child of node.getChildren()) {
+        const childStart = child.getStart();
+        if (end <= childStart) return;
+
+        const childEnd = child.getEnd();
+        if (start >= childEnd) continue;
+
+        if (start === childStart && end === childEnd) {
+            if (!predicate) return child as T;
+            if (predicate(child)) return child;
+        }
+
+        const foundInChildren = findNodeAtSpan(child, span, predicate);
+        if (foundInChildren) {
+            return foundInChildren;
+        }
+    }
+}
+
+type NodePredicate = (node: ts.Node) => boolean;
+
+type NodeTypePredicate<T extends ts.Node> = (node: ts.Node) => node is T;
+
+function isSomeAncestor(node: ts.Node, predicate: NodePredicate) {
+    for (let parent = node.parent; parent; parent = parent.parent) {
+        if (predicate(parent)) return true;
+    }
+    return false;
+}
+
+/**
+ * Tests a node then its parent and successive ancestors for some respective predicates.
+ */
+function isLineage<T extends ts.Node>(
+    selfPredicate: NodePredicate | NodeTypePredicate<T>,
+    ...predicates: NodePredicate[]
+) {
+    return (node: ts.Node): node is T => {
+        let next = node;
+        return [selfPredicate, ...predicates].every((predicate) => {
+            if (!next) return false;
+            const current = next;
+            next = next.parent;
+            return predicate(current);
+        });
+    };
+}
+
+const isRenderFunction = isLineage<ts.FunctionDeclaration & { name: ts.Identifier }>(
+    (node) => ts.isFunctionDeclaration(node) && node?.name?.getText() === 'render',
+    ts.isSourceFile
+);
+
+const isRenderFunctionBody = isLineage(ts.isBlock, isRenderFunction);
+
+export const isReactiveStatement = isLineage<ts.LabeledStatement>(
+    (node) => ts.isLabeledStatement(node) && node.label.getText() === '$',
+    or(
+        // function render() {
+        //     $: x2 = __sveltets_1_invalidate(() => x * x)
+        // }
+        isRenderFunctionBody,
+        // function render() {
+        //     ;() => {$: x, update();
+        // }
+        isLineage(ts.isBlock, ts.isArrowFunction, ts.isExpressionStatement, isRenderFunctionBody)
+    )
+);
+
+export const isInReactiveStatement = (node: ts.Node) => isSomeAncestor(node, isReactiveStatement);
+
+function gatherDescendants<T extends ts.Node>(
+    node: ts.Node,
+    predicate: NodePredicate | NodeTypePredicate<T>,
+    dest: T[] = []
+) {
+    if (predicate(node)) {
+        dest.push(node);
+    } else {
+        for (const child of node.getChildren()) {
+            gatherDescendants(child, predicate, dest);
+        }
+    }
+    return dest;
+}
+
+export const gatherIdentifiers = (node: ts.Node) => gatherDescendants(node, ts.isIdentifier);
