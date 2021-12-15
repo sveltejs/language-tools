@@ -1,6 +1,6 @@
-import { URI } from 'vscode-uri';
-import { Position, Range } from 'vscode-languageserver';
 import { Node } from 'vscode-html-languageservice';
+import { Position, Range } from 'vscode-languageserver';
+import { URI } from 'vscode-uri';
 
 export function clamp(num: number, min: number, max: number): number {
     return Math.max(min, Math.min(max, num));
@@ -239,4 +239,13 @@ export function getIndent(text: string) {
  */
 export function possiblyComponent(node: Node): boolean {
     return !!node.tag?.[0].match(/[A-Z]/);
+}
+
+/**
+ * If the object if it has entries, else undefined
+ */
+export function returnObjectIfHasKeys<T>(obj: T | undefined): T | undefined {
+    if (Object.keys(obj || {}).length > 0) {
+        return obj;
+    }
 }

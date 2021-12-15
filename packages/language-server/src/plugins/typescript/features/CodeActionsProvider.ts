@@ -10,6 +10,7 @@ import {
     TextEdit,
     WorkspaceEdit
 } from 'vscode-languageserver';
+import { importPrettier } from '../../../importPackage';
 import {
     Document,
     getLineAtPosition,
@@ -17,6 +18,7 @@ import {
     isRangeInTag,
     mapRangeToOriginal
 } from '../../../lib/documents';
+import { LSConfigManager } from '../../../ls-config';
 import { flatten, getIndent, isNotNullOrUndefined, modifyLines, pathToUrl } from '../../../utils';
 import { CodeActionsProvider } from '../../interfaces';
 import { SnapshotFragment, SvelteSnapshotFragment } from '../DocumentSnapshot';
@@ -35,7 +37,8 @@ interface RefactorArgs {
 export class CodeActionsProviderImpl implements CodeActionsProvider {
     constructor(
         private readonly lsAndTsDocResolver: LSAndTSDocResolver,
-        private readonly completionProvider: CompletionsProviderImpl
+        private readonly completionProvider: CompletionsProviderImpl,
+        private readonly configManager: LSConfigManager
     ) {}
 
     async getCodeActions(
@@ -77,12 +80,25 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             return [];
         }
 
+        const useSemicolons =
+            this.configManager.getMergedPrettierConfig(
+                await importPrettier(document.getFilePath()!).resolveConfig(
+                    document.getFilePath()!,
+                    {
+                        editorconfig: true
+                    }
+                )
+            ).semi ?? true;
         const changes = lang.organizeImports(
             {
                 fileName: tsDoc.filePath,
                 type: 'file'
             },
-            {},
+            {
+                semicolons: useSemicolons
+                    ? ts.SemicolonPreference.Insert
+                    : ts.SemicolonPreference.Remove
+            },
             userPreferences
         );
 
@@ -328,6 +344,9 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
 
         const name = node.tagName.getText();
         const suffixedName = name + '__SvelteComponent_';
+        const errorPreventingUserPreferences =
+            this.completionProvider.fixUserPreferencesForSvelteComponentImport(userPreferences);
+
         const toFix = (c: ts.CompletionEntry) =>
             lang
                 .getCompletionEntryDetails(
@@ -336,7 +355,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                     c.name,
                     {},
                     c.source,
-                    userPreferences,
+                    errorPreventingUserPreferences,
                     c.data
                 )
                 ?.codeActions?.map((a) => ({

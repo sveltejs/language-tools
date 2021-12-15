@@ -37,8 +37,12 @@ async function testEmitDts(sample: string) {
                 true,
                 `Did not expect file or folder ${file}`
             );
-            const expectedContent = fs.readFileSync(join(cwd, 'expected', file), 'utf-8');
-            const actualContent = fs.readFileSync(join(cwd, 'package', file), 'utf-8');
+            const expectedContent = fs
+                .readFileSync(join(cwd, 'expected', file), 'utf-8')
+                .replace(/\r\n/g, '\n');
+            const actualContent = fs
+                .readFileSync(join(cwd, 'package', file), 'utf-8')
+                .replace(/\r\n/g, '\n');
             assert.strictEqual(
                 actualContent,
                 expectedContent,

@@ -55,7 +55,7 @@ export function svelte2tsx(
     }
 ): SvelteCompiledToTsx
 
-export interface EmitDtsConig {
+export interface EmitDtsConfig {
     /**
      * Where to output the declaration files
      */
@@ -74,10 +74,14 @@ export interface EmitDtsConig {
     libRoot?: string;
 }
 
+// to make typo fix non-breaking, continue to export the old name but mark it as deprecated
+/**@deprecated*/
+export interface EmitDtsConig extends EmitDtsConfig {} /* eslint-disable-line @typescript-eslint/no-empty-interface */
+
 /**
  * Searches for a jsconfig or tsconfig starting at `root` and emits d.ts files
  * into `declarationDir` using the ambient file from `svelteShimsPath`.
  * Note: Handwritten `d.ts` files are not copied over; TypeScript does not
  * touch these files.
  */
-export function emitDts(config: EmitDtsConig): Promise<void>;
+export function emitDts(config: EmitDtsConfig): Promise<void>;

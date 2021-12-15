@@ -102,7 +102,7 @@ declare namespace svelte.JSX {
       onreset?: FormEventHandler<T> | undefined;
       onsubmit?: FormEventHandler<T> | undefined;
       oninvalid?: EventHandler<Event, T> | undefined;
-      onbeforeinput?: EventHandler<Event, T> | undefined;
+      onbeforeinput?: EventHandler<InputEvent, T> | undefined;
 
       // Image Events
       onload?: EventHandler | undefined;
@@ -469,6 +469,7 @@ declare namespace svelte.JSX {
       download?: any | undefined;
       draggable?: boolean | 'true' | 'false' | undefined;
       enctype?: string | undefined;
+      enterkeyhint?: 'enter' | 'done' | 'go' | 'next' | 'previous' | 'search' | 'send' | undefined;
       for?: string | undefined;
       form?: string | undefined;
       formaction?: string | undefined;

@@ -101,10 +101,14 @@ export class TypeScriptPlugin
     constructor(configManager: LSConfigManager, lsAndTsDocResolver: LSAndTSDocResolver) {
         this.configManager = configManager;
         this.lsAndTsDocResolver = lsAndTsDocResolver;
-        this.completionProvider = new CompletionsProviderImpl(this.lsAndTsDocResolver);
+        this.completionProvider = new CompletionsProviderImpl(
+            this.lsAndTsDocResolver,
+            this.configManager
+        );
         this.codeActionsProvider = new CodeActionsProviderImpl(
             this.lsAndTsDocResolver,
-            this.completionProvider
+            this.completionProvider,
+            configManager
         );
         this.updateImportsProvider = new UpdateImportsProviderImpl(this.lsAndTsDocResolver);
         this.diagnosticsProvider = new DiagnosticsProviderImpl(this.lsAndTsDocResolver);
