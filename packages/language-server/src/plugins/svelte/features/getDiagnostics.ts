@@ -64,9 +64,9 @@ async function tryGetDiagnostics(
             .map((diag) => adjustMappings(diag, document))
             .filter((diag) => isNoFalsePositive(diag, document));
     } catch (err) {
-        return (await createParserErrorDiagnostic(err, document)).map((diag) =>
-            mapObjWithRangeToOriginal(transpiled, diag)
-        );
+        return (await createParserErrorDiagnostic(err, document))
+            .map((diag) => mapObjWithRangeToOriginal(transpiled, diag))
+            .map((diag) => adjustMappings(diag, document));
     }
 }
 
