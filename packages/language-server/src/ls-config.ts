@@ -115,7 +115,7 @@ export interface LSTypescriptConfig {
     };
     implementation: {
         enable: boolean;
-    }
+    };
 }
 
 export interface LSCSSConfig {

@@ -168,10 +168,7 @@ export interface LinkedEditingRangesProvider {
 }
 
 export interface ImplementationProvider {
-    getImplementation(
-        document: Document,
-        position: Position
-    ): Resolvable<Location[] | null>
+    getImplementation(document: Document, position: Position): Resolvable<Location[] | null>;
 }
 
 export interface OnWatchFileChangesPara {
