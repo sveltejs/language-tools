@@ -133,6 +133,10 @@ export function startServer(options?: LSOptions) {
                 evt.initializationOptions?.prettierConfig ||
                 {}
         );
+        // no old style as these were added later
+        configManager.updateCssConfig(evt.initializationOptions?.configuration?.css);
+        configManager.updateScssConfig(evt.initializationOptions?.configuration?.scss);
+        configManager.updateLessConfig(evt.initializationOptions?.configuration?.less);
 
         pluginHost.initialize({
             filterIncompleteCompletions:
@@ -145,7 +149,12 @@ export function startServer(options?: LSOptions) {
         pluginHost.register(
             new TypeScriptPlugin(
                 configManager,
-                new LSAndTSDocResolver(docManager, workspaceUris.map(normalizeUri), configManager)
+                new LSAndTSDocResolver(
+                    docManager,
+                    workspaceUris.map(normalizeUri),
+                    configManager,
+                    notifyTsServiceExceedSizeLimit
+                )
             )
         );
 
@@ -241,6 +250,16 @@ export function startServer(options?: LSOptions) {
         };
     });
 
+    function notifyTsServiceExceedSizeLimit() {
+        connection?.sendNotification(ShowMessageNotification.type, {
+            message:
+                'Svelte language server detected a large amount of JS/Svelte files. ' +
+                'To enable project-wide JavaScript/TypeScript language features for Svelte files,' +
+                'exclude large folders in the tsconfig.json or jsconfig.json with source files that you do not work on.',
+            type: MessageType.Warning
+        });
+    }
+
     connection.onExit(() => {
         watcher?.dispose();
     });
@@ -255,6 +274,9 @@ export function startServer(options?: LSOptions) {
         configManager.updateTsJsUserPreferences(settings);
         configManager.updateEmmetConfig(settings.emmet);
         configManager.updatePrettierConfig(settings.prettier);
+        configManager.updateCssConfig(settings.css);
+        configManager.updateScssConfig(settings.scss);
+        configManager.updateLessConfig(settings.less);
     });
 
     connection.onDidOpenTextDocument((evt) => {

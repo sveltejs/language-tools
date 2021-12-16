@@ -37,6 +37,22 @@ describe('parseHtml', () => {
         );
     });
 
+    it('ignore less than operator inside control flow moustache', () => {
+        testRootElements(
+            parseHtml(
+                `<Foo>
+                    {#if 1 < 2 && innWidth <= 700}
+                        <Foo>
+                            <SelfClosing />
+                        </Foo>
+                        <div>hi</div>
+                    {/if}
+                </Foo>
+                <style></style>`
+            )
+        );
+    });
+
     it('ignore less than operator inside moustache with tag not self closed', () => {
         testRootElements(
             parseHtml(
@@ -60,6 +76,19 @@ describe('parseHtml', () => {
         testRootElements(
             parseHtml(
                 `<Foo checked={a} />
+                <style></style>`
+            )
+        );
+    });
+
+    it('parse baseline html with control flow moustache', () => {
+        testRootElements(
+            parseHtml(
+                `<Foo>
+                    {#if true}
+                        foo
+                    {/if}
+                </Foo>
                 <style></style>`
             )
         );

@@ -91,7 +91,7 @@ async function getDiagnostics(
             result.hintCount
         );
         return result;
-    } catch (err) {
+    } catch (err: any) {
         writer.failure(err);
         return null;
     }

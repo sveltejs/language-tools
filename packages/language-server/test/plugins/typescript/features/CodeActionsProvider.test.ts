@@ -1,20 +1,20 @@
-import { DocumentManager, Document } from '../../../../src/lib/documents';
-import { LSAndTSDocResolver } from '../../../../src/plugins/typescript/LSAndTSDocResolver';
-import { CodeActionsProviderImpl } from '../../../../src/plugins/typescript/features/CodeActionsProvider';
-import { pathToUrl } from '../../../../src/utils';
-import ts from 'typescript';
-import * as path from 'path';
 import * as assert from 'assert';
+import * as path from 'path';
+import ts from 'typescript';
 import {
-    Range,
-    Position,
-    CodeActionKind,
-    TextDocumentEdit,
+    CancellationTokenSource,
     CodeAction,
-    CancellationTokenSource
+    CodeActionKind,
+    Position,
+    Range,
+    TextDocumentEdit
 } from 'vscode-languageserver';
-import { CompletionsProviderImpl } from '../../../../src/plugins/typescript/features/CompletionProvider';
+import { Document, DocumentManager } from '../../../../src/lib/documents';
 import { LSConfigManager } from '../../../../src/ls-config';
+import { CodeActionsProviderImpl } from '../../../../src/plugins/typescript/features/CodeActionsProvider';
+import { CompletionsProviderImpl } from '../../../../src/plugins/typescript/features/CompletionProvider';
+import { LSAndTSDocResolver } from '../../../../src/plugins/typescript/LSAndTSDocResolver';
+import { pathToUrl } from '../../../../src/utils';
 
 const testDir = path.join(__dirname, '..');
 
@@ -40,8 +40,15 @@ describe('CodeActionsProvider', () => {
             [pathToUrl(testDir)],
             new LSConfigManager()
         );
-        const completionProvider = new CompletionsProviderImpl(lsAndTsDocResolver);
-        const provider = new CodeActionsProviderImpl(lsAndTsDocResolver, completionProvider);
+        const completionProvider = new CompletionsProviderImpl(
+            lsAndTsDocResolver,
+            new LSConfigManager()
+        );
+        const provider = new CodeActionsProviderImpl(
+            lsAndTsDocResolver,
+            completionProvider,
+            new LSConfigManager()
+        );
         const filePath = getFullPath(filename);
         const document = docManager.openDocument(<any>{
             uri: pathToUrl(filePath),
@@ -270,6 +277,58 @@ describe('CodeActionsProvider', () => {
 
                 kind: 'quickfix',
                 title: 'Disable checking for this file'
+            }
+        ]);
+    });
+
+    it('provides quickfix for component import', async () => {
+        const { provider, document } = setup('codeactions.svelte');
+
+        const codeActions = await provider.getCodeActions(
+            document,
+            Range.create(Position.create(12, 1), Position.create(12, 1)),
+            {
+                diagnostics: [
+                    {
+                        code: 2304,
+                        message: "Cannot find name 'Empty'.",
+                        range: Range.create(Position.create(12, 1), Position.create(12, 6)),
+                        source: 'ts'
+                    }
+                ],
+                only: [CodeActionKind.QuickFix]
+            }
+        );
+
+        (<TextDocumentEdit>codeActions[0]?.edit?.documentChanges?.[0])?.edits.forEach(
+            (edit) => (edit.newText = harmonizeNewLines(edit.newText))
+        );
+
+        assert.deepStrictEqual(codeActions, <CodeAction[]>[
+            {
+                edit: {
+                    documentChanges: [
+                        {
+                            edits: [
+                                {
+                                    newText: harmonizeNewLines(
+                                        "import Empty from '../empty.svelte';\n"
+                                    ),
+                                    range: {
+                                        end: Position.create(5, 0),
+                                        start: Position.create(5, 0)
+                                    }
+                                }
+                            ],
+                            textDocument: {
+                                uri: getUri('codeactions.svelte'),
+                                version: null
+                            }
+                        }
+                    ]
+                },
+                kind: 'quickfix',
+                title: 'Import default \'Empty\' from module "../empty.svelte"'
             }
         ]);
     });

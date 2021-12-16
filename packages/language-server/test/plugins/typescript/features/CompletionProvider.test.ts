@@ -41,7 +41,10 @@ describe('CompletionProviderImpl', () => {
             [pathToUrl(testDir)],
             new LSConfigManager()
         );
-        const completionProvider = new CompletionsProviderImpl(lsAndTsDocResolver);
+        const completionProvider = new CompletionsProviderImpl(
+            lsAndTsDocResolver,
+            new LSConfigManager()
+        );
         const filePath = join(testFilesDir, filename);
         const document = docManager.openDocument(<any>{
             uri: pathToUrl(filePath),
@@ -75,7 +78,7 @@ describe('CompletionProviderImpl', () => {
             label: 'b',
             insertText: undefined,
             kind: CompletionItemKind.Method,
-            sortText: '1',
+            sortText: '11',
             commitCharacters: ['.', ',', '('],
             preselect: undefined,
             textEdit: undefined
@@ -101,7 +104,7 @@ describe('CompletionProviderImpl', () => {
             label: 'b',
             insertText: undefined,
             kind: CompletionItemKind.Field,
-            sortText: '1',
+            sortText: '11',
             commitCharacters: ['.', ',', '('],
             preselect: undefined,
             textEdit: undefined
@@ -406,7 +409,7 @@ describe('CompletionProviderImpl', () => {
                 line: 0
             },
             replacementSpan: undefined,
-            sortText: '1',
+            sortText: '11',
             source: undefined,
             sourceDisplay: undefined,
             uri: fileNameToAbsoluteUri(filename)
@@ -1035,7 +1038,7 @@ describe('CompletionProviderImpl', () => {
             label: 'blubb',
             insertText: 'import { blubb } from "../definitions";',
             kind: CompletionItemKind.Function,
-            sortText: '1',
+            sortText: '11',
             commitCharacters: ['.', ',', '('],
             preselect: undefined,
             textEdit: {
@@ -1091,7 +1094,7 @@ describe('CompletionProviderImpl', () => {
             label: 'toString',
             insertText: '?.toString',
             kind: CompletionItemKind.Method,
-            sortText: '1',
+            sortText: '11',
             commitCharacters: ['.', ',', '('],
             preselect: undefined,
             textEdit: {
@@ -1108,6 +1111,66 @@ describe('CompletionProviderImpl', () => {
                 }
             }
         });
+    });
+
+    it('provide replacement for string completions', async () => {
+        const { completionProvider, document } = setup('string-completion.svelte');
+
+        const completions = await completionProvider.getCompletions(
+            document,
+            {
+                line: 1,
+                character: 10
+            },
+            {
+                triggerKind: CompletionTriggerKind.Invoked
+            }
+        );
+
+        const item = completions?.items.find((item) => item.label === '@hi');
+
+        delete item?.data;
+
+        assert.deepStrictEqual(item, {
+            label: '@hi',
+            kind: CompletionItemKind.Constant,
+            sortText: '11',
+            preselect: undefined,
+            insertText: undefined,
+            commitCharacters: undefined,
+            textEdit: {
+                newText: '@hi',
+                range: {
+                    end: {
+                        character: 10,
+                        line: 1
+                    },
+                    start: {
+                        character: 9,
+                        line: 1
+                    }
+                }
+            }
+        });
+    });
+
+    it('auto import with system new line', async () => {
+        const { completionProvider, document } = setup('importcompletions-new-line.svelte');
+
+        const completions = await completionProvider.getCompletions(
+            document,
+            Position.create(1, 7)
+        );
+
+        const items = completions?.items.filter((item) => item.label === 'ScndImport');
+        const item = items?.[0];
+
+        const { additionalTextEdits } = await completionProvider.resolveCompletion(document, item!);
+
+        assert.strictEqual(
+            additionalTextEdits?.[0].newText,
+            `${newLine}import { ScndImport } from "./to-import";${newLine}${newLine}`
+        );
     });
 });
 

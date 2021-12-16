@@ -382,7 +382,7 @@ function checkIfImportIsEventDispatcher(node: ts.ImportDeclaration): string | un
     }
 
     const namedImports = node.importClause?.namedBindings;
-    if (ts.isNamedImports(namedImports)) {
+    if (namedImports && ts.isNamedImports(namedImports)) {
         const eventDispatcherImport = namedImports.elements.find(
             // If it's an aliased import, propertyName is set
             (el) => (el.propertyName || el.name).text === 'createEventDispatcher'

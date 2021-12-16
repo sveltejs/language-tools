@@ -372,13 +372,17 @@ export function svelte2tsx(
         processModuleScriptTag(
             str,
             moduleScriptTag,
-            new ImplicitStoreValues(implicitStoreValues.getAccessedStores(), renderFunctionStart)
+            new ImplicitStoreValues(
+                implicitStoreValues.getAccessedStores(),
+                renderFunctionStart,
+                scriptTag ? undefined : (input) => `</>;${input}<>`
+            )
         );
     }
 
     addComponentExport({
         str,
-        uses$$propsOr$$restProps: uses$$props || uses$$restProps,
+        canHaveAnyProp: !exportedNames.uses$$Props && (uses$$props || uses$$restProps),
         strictEvents: events.hasStrictEvents(),
         isTsFile: options?.isTsFile,
         exportedNames,

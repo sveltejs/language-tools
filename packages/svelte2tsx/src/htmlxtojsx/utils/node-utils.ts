@@ -1,7 +1,14 @@
 import { Node, walk } from 'estree-walker';
+import MagicString from 'magic-string';
 import { BaseNode } from '../../interfaces';
 import { surroundWithIgnoreComments } from '../../utils/ignore';
 
+/**
+ * Get the constructor type of a component node
+ * @param node The component node to infer the this type from
+ * @param thisValue If node is svelte:component, you may pass the value
+ *                  of this={..} to use that instead of the more general componentType
+ */
 export function getTypeForComponent(node: Node): string {
     if (node.name === 'svelte:component' || node.name === 'svelte:self') {
         return '__sveltets_1_componentType()';
@@ -10,6 +17,36 @@ export function getTypeForComponent(node: Node): string {
     }
 }
 
+/**
+ * Get the instance type of a node from its constructor.
+ */
+export function getInstanceTypeSimple(node: Node, str: MagicString): string | undefined {
+    const instanceOf = (str: string) => `__sveltets_1_instanceOf(${str})`;
+
+    switch (node.type) {
+        case 'InlineComponent':
+            if (node.name === 'svelte:component' && node.expression) {
+                const thisVal = str.original.substring(node.expression.start, node.expression.end);
+                return `new (${thisVal})({target: __sveltets_1_any(''), props: __sveltets_1_any('')})`;
+            } else if (node.name === 'svelte:component' || node.name === 'svelte:self') {
+                return instanceOf('__sveltets_1_componentType()');
+            } else {
+                return `new ${node.name}({target: __sveltets_1_any(''), props: __sveltets_1_any('')})`;
+            }
+        case 'Element':
+            return instanceOf(`__sveltets_1_ctorOf(__sveltets_1_mapElementTag('${node.name}'))`);
+        case 'Body':
+            return instanceOf('HTMLBodyElement');
+        case 'Slot': // Web Components only
+            return instanceOf('HTMLSlotElement');
+    }
+}
+
+/**
+ * Get the instance type of a node from its constructor.
+ * If it's a component, pass in the exact props. This ensures that
+ * the component instance has the right type in case of generic prop types.
+ */
 export function getInstanceType(
     node: Node,
     originalStr: string,
@@ -164,19 +201,6 @@ function sanitizePropName(name: string): string {
         .split('')
         .map((char) => (/[0-9A-Za-z$_]/.test(char) ? char : '_'))
         .join('');
-}
-
-export function getThisType(node: Node): string | undefined {
-    switch (node.type) {
-        case 'InlineComponent':
-            return getTypeForComponent(node);
-        case 'Element':
-            return `__sveltets_1_ctorOf(__sveltets_1_mapElementTag('${node.name}'))`;
-        case 'Body':
-            return 'HTMLBodyElement';
-        case 'Slot': // Web Components only
-            return 'HTMLSlotElement';
-    }
 }
 
 export function beforeStart(start: number): number {

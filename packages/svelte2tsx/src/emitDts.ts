@@ -2,13 +2,13 @@ import * as path from 'path';
 import ts from 'typescript';
 import { svelte2tsx } from './svelte2tsx';
 
-export interface EmitDtsConig {
+export interface EmitDtsConfig {
     declarationDir: string;
     svelteShimsPath: string;
     libRoot?: string;
 }
 
-export async function emitDts(config: EmitDtsConig) {
+export async function emitDts(config: EmitDtsConfig) {
     const svelteMap = await createSvelteMap(config);
     const { options, filenames } = loadTsconfig(config, svelteMap);
     const host = await createTsCompilerHost(options, svelteMap);
@@ -16,7 +16,7 @@ export async function emitDts(config: EmitDtsConig) {
     program.emit();
 }
 
-function loadTsconfig(config: EmitDtsConig, svelteMap: SvelteMap) {
+function loadTsconfig(config: EmitDtsConfig, svelteMap: SvelteMap) {
     const libRoot = config.libRoot || process.cwd();
 
     const jsconfigFile = ts.findConfigFile(libRoot, ts.sys.fileExists, 'jsconfig.json');

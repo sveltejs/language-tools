@@ -70,7 +70,7 @@ export class RenameProviderImpl implements RenameProvider {
             }
         > = await this.mapAndFilterRenameLocations(renameLocations, docs);
 
-        convertedRenameLocations = this.checkShortHandBindingLocation(
+        convertedRenameLocations = this.checkShortHandBindingOrSlotLetLocation(
             lang,
             convertedRenameLocations,
             docs
@@ -245,7 +245,7 @@ export class RenameProviderImpl implements RenameProvider {
         const replacementsForProp =
             lang.findRenameLocations(updatePropLocation.fileName, idx, false, false) || [];
 
-        return this.checkShortHandBindingLocation(
+        return this.checkShortHandBindingOrSlotLetLocation(
             lang,
             await this.mapAndFilterRenameLocations(replacementsForProp, fragments),
             fragments
@@ -382,7 +382,7 @@ export class RenameProviderImpl implements RenameProvider {
         return this.lsAndTsDocResolver.getSnapshot(filePath);
     }
 
-    private checkShortHandBindingLocation(
+    private checkShortHandBindingOrSlotLetLocation(
         lang: ts.LanguageService,
         renameLocations: Array<ts.RenameLocation & { range: Range }>,
         fragments: SnapshotFragmentMap
@@ -408,40 +408,29 @@ export class RenameProviderImpl implements RenameProvider {
 
             const { originalText } = fragment;
 
-            const possibleJsxAttribute = findContainingNode(
-                sourceFile,
-                location.textSpan,
-                ts.isJsxAttribute
-            );
-            if (!possibleJsxAttribute) {
+            const renamingInfo =
+                this.getShorthandPropInfo(sourceFile, location) ??
+                this.getSlotLetInfo(sourceFile, location);
+
+            if (!renamingInfo) {
                 return location;
             }
 
-            const attributeName = possibleJsxAttribute.name.getText();
-            const { initializer } = possibleJsxAttribute;
-
-            // not props={props}
-            if (
-                !initializer ||
-                !ts.isJsxExpression(initializer) ||
-                attributeName !== initializer.expression?.getText()
-            ) {
-                return location;
-            }
+            const [renamingNode, identifierName] = renamingInfo;
 
             const originalStart = offsetAt(location.range.start, originalText);
 
             const isShortHandBinding =
                 originalText.substr(originalStart - bind.length, bind.length) === bind;
 
-            const directiveName = (isShortHandBinding ? bind : '') + attributeName;
+            const directiveName = (isShortHandBinding ? bind : '') + identifierName;
             const prefixText = directiveName + '={';
 
             const newRange = mapRangeToOriginal(
                 fragment,
                 convertRange(fragment, {
-                    start: possibleJsxAttribute.getStart(),
-                    length: possibleJsxAttribute.getWidth()
+                    start: renamingNode.getStart(),
+                    length: renamingNode.getWidth()
                 })
             );
 
@@ -462,6 +451,62 @@ export class RenameProviderImpl implements RenameProvider {
                 range: newRange
             };
         });
+    }
+
+    private getShorthandPropInfo(
+        sourceFile: ts.SourceFile,
+        location: ts.RenameLocation
+    ): [ts.Node, string] | null {
+        const possibleJsxAttribute = findContainingNode(
+            sourceFile,
+            location.textSpan,
+            ts.isJsxAttribute
+        );
+        if (!possibleJsxAttribute) {
+            return null;
+        }
+
+        const attributeName = possibleJsxAttribute.name.getText();
+        const { initializer } = possibleJsxAttribute;
+
+        // not props={props}
+        if (
+            !initializer ||
+            !ts.isJsxExpression(initializer) ||
+            attributeName !== initializer.expression?.getText()
+        ) {
+            return null;
+        }
+
+        return [possibleJsxAttribute, attributeName];
+    }
+
+    private getSlotLetInfo(
+        sourceFile: ts.SourceFile,
+        location: ts.RenameLocation
+    ): [ts.Node, string] | null {
+        const possibleSlotLet = findContainingNode(
+            sourceFile,
+            location.textSpan,
+            ts.isVariableDeclaration
+        );
+        if (!possibleSlotLet || !ts.isObjectBindingPattern(possibleSlotLet.name)) {
+            return null;
+        }
+
+        const bindingElement = findContainingNode(
+            possibleSlotLet.name,
+            location.textSpan,
+            ts.isBindingElement
+        );
+
+        if (!bindingElement || bindingElement.propertyName) {
+            return null;
+        }
+
+        const identifierName = bindingElement.name.getText();
+
+        return [bindingElement, identifierName];
     }
 }
 

@@ -184,10 +184,10 @@ function preprocessSvelteFile(document: Document, options: SvelteSnapshotOptions
                 nrPrependedLines = 1;
             }
         }
-    } catch (e) {
+    } catch (e: any) {
         // Error start/end logic is different and has different offsets for line, so we need to convert that
         const start: Position = {
-            line: e.start?.line - 1 ?? 0,
+            line: (e.start?.line ?? 1) - 1,
             character: e.start?.column ?? 0
         };
         const end: Position = e.end ? { line: e.end.line - 1, character: e.end.column } : start;
@@ -287,12 +287,14 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
     private async getMapper(uri: string) {
         const scriptInfo = this.parent.scriptInfo || this.parent.moduleScriptInfo;
 
-        if (!scriptInfo) {
-            return new IdentityMapper(uri);
-        }
         if (!this.tsxMap) {
+            if (!scriptInfo) {
+                return new IdentityMapper(uri);
+            }
+
             return new FragmentMapper(this.parent.getText(), scriptInfo, uri);
         }
+
         return new ConsumerDocumentMapper(
             await new SourceMapConsumer(this.tsxMap),
             uri,

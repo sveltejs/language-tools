@@ -52,18 +52,18 @@
         "estree-walker": "^2.0.1",
         "fast-glob": "^3.2.7",
         "lodash": "^4.17.21",
-        "prettier": "2.3.2",
-        "prettier-plugin-svelte": "~2.4.0",
+        "prettier": "2.5.0",
+        "prettier-plugin-svelte": "~2.5.0",
         "source-map": "^0.7.3",
         "svelte": "^3.38.2",
-        "svelte-preprocess": "~4.7.3",
+        "svelte-preprocess": "~4.9.8",
         "svelte2tsx": "~0.4.0",
         "typescript": "*",
-        "vscode-css-languageservice": "5.0.0",
-        "vscode-emmet-helper": "2.1.2",
-        "vscode-html-languageservice": "4.0.0",
+        "vscode-css-languageservice": "~5.1.0",
+        "vscode-emmet-helper": "~2.6.0",
+        "vscode-html-languageservice": "~4.1.0",
         "vscode-languageserver": "7.1.0-next.4",
         "vscode-languageserver-types": "3.16.0",
-        "vscode-uri": "2.1.2"
+        "vscode-uri": "~3.0.0"
     }
 }

@@ -96,10 +96,10 @@ async function createParserErrorDiagnostic(error: any, document: Document) {
                 '\n\nIf you expect this syntax to work, here are some suggestions: ';
             if (isInScript) {
                 diagnostic.message +=
-                    '\nIf you use typescript with `svelte-preprocess`, did you add `lang="typescript"` to your `script` tag? ';
+                    '\nIf you use typescript with `svelte-preprocess`, did you add `lang="ts"` to your `script` tag? ';
             } else {
                 diagnostic.message +=
-                    '\nIf you use less/SCSS with `svelte-preprocess`, did you add `lang="scss"`/`lang="less"` to you `style` tag? ' +
+                    '\nIf you use less/SCSS with `svelte-preprocess`, did you add `lang="scss"`/`lang="less"` to your `style` tag? ' +
                     scssNodeRuntimeHint;
             }
             diagnostic.message +=

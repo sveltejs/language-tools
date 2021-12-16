@@ -59,11 +59,6 @@ declare namespace svelte.JSX {
     type TransitionEventHandler<T extends EventTarget> = EventHandler<TransitionEvent, T>;
     type MessageEventHandler<T extends EventTarget> = EventHandler<MessageEvent, T>;
 
-    type ClassNameBase = boolean | string | number | void | null;
-    type ClassName = string | Array<ClassNameBase | ClassNameBase[]> | {
-      [key: string]: boolean;
-    }
-
     // See CSS 3 CSS-wide keywords https://www.w3.org/TR/css3-values/#common-keywords
     // See CSS 3 Explicit Defaulting https://www.w3.org/TR/css-cascade-3/#defaulting-keywords
     // "all CSS properties can accept these values"
@@ -86,516 +81,514 @@ declare namespace svelte.JSX {
       ref?: ((e: T) => void) | Ref<T>; */
 
       // Clipboard Events
-      oncopy?: ClipboardEventHandler<T>;
-      oncut?: ClipboardEventHandler<T>;
-      onpaste?: ClipboardEventHandler<T>;
+      oncopy?: ClipboardEventHandler<T> | undefined;
+      oncut?: ClipboardEventHandler<T> | undefined;
+      onpaste?: ClipboardEventHandler<T> | undefined;
 
       // Composition Events
-      oncompositionend?: CompositionEventHandler<T>;
-      oncompositionstart?: CompositionEventHandler<T>;
-      oncompositionupdate?: CompositionEventHandler<T>;
+      oncompositionend?: CompositionEventHandler<T> | undefined;
+      oncompositionstart?: CompositionEventHandler<T> | undefined;
+      oncompositionupdate?: CompositionEventHandler<T> | undefined;
 
       // Focus Events
-      onfocus?: FocusEventHandler<T>;
-      onfocusin?: FocusEventHandler<T>;
-      onfocusout?: FocusEventHandler<T>;
-      onblur?: FocusEventHandler<T>;
+      onfocus?: FocusEventHandler<T> | undefined;
+      onfocusin?: FocusEventHandler<T> | undefined;
+      onfocusout?: FocusEventHandler<T> | undefined;
+      onblur?: FocusEventHandler<T> | undefined;
 
       // Form Events
-      onchange?: FormEventHandler<T>;
-      oninput?: FormEventHandler<T>;
-      onreset?: FormEventHandler<T>;
-      onsubmit?: FormEventHandler<T>;
-      oninvalid?: EventHandler<Event, T>;
-      onbeforeinput?: EventHandler<Event, T>;
+      onchange?: FormEventHandler<T> | undefined;
+      oninput?: FormEventHandler<T> | undefined;
+      onreset?: FormEventHandler<T> | undefined;
+      onsubmit?: FormEventHandler<T> | undefined;
+      oninvalid?: EventHandler<Event, T> | undefined;
+      onbeforeinput?: EventHandler<InputEvent, T> | undefined;
 
       // Image Events
-      onload?: EventHandler;
-      onerror?: EventHandler; // also a Media Event
+      onload?: EventHandler | undefined;
+      onerror?: EventHandler | undefined; // also a Media Event
 
       // Detail Events
-      ontoggle?: EventHandler<Event, T>;
+      ontoggle?: EventHandler<Event, T> | undefined;
 
       // Keyboard Events
-      onkeydown?: KeyboardEventHandler<T>;
-      onkeypress?: KeyboardEventHandler<T>;
-      onkeyup?: KeyboardEventHandler<T>;
+      onkeydown?: KeyboardEventHandler<T> | undefined;
+      onkeypress?: KeyboardEventHandler<T> | undefined;
+      onkeyup?: KeyboardEventHandler<T> | undefined;
 
       // Media Events
-      onabort?: EventHandler<Event, T>;
-      oncanplay?: EventHandler<Event, T>;
-      oncanplaythrough?: EventHandler<Event, T>;
-      oncuechange?: EventHandler<Event, T>;
-      ondurationchange?: EventHandler<Event, T>;
-      onemptied?: EventHandler<Event, T>;
-      onencrypted?: EventHandler<Event, T>;
-      onended?: EventHandler<Event, T>;
-      onloadeddata?: EventHandler<Event, T>;
-      onloadedmetadata?: EventHandler<Event, T>;
-      onloadstart?: EventHandler<Event, T>;
-      onpause?: EventHandler<Event, T>;
-      onplay?: EventHandler<Event, T>;
-      onplaying?: EventHandler<Event, T>;
-      onprogress?: EventHandler<Event, T>;
-      onratechange?: EventHandler<Event, T>;
-      onseeked?: EventHandler<Event, T>;
-      onseeking?: EventHandler<Event, T>;
-      onstalled?: EventHandler<Event, T>;
-      onsuspend?: EventHandler<Event, T>;
-      ontimeupdate?: EventHandler<Event, T>;
-      onvolumechange?: EventHandler<Event, T>;
-      onwaiting?: EventHandler<Event, T>;
+      onabort?: EventHandler<Event, T> | undefined;
+      oncanplay?: EventHandler<Event, T> | undefined;
+      oncanplaythrough?: EventHandler<Event, T> | undefined;
+      oncuechange?: EventHandler<Event, T> | undefined;
+      ondurationchange?: EventHandler<Event, T> | undefined;
+      onemptied?: EventHandler<Event, T> | undefined;
+      onencrypted?: EventHandler<Event, T> | undefined;
+      onended?: EventHandler<Event, T> | undefined;
+      onloadeddata?: EventHandler<Event, T> | undefined;
+      onloadedmetadata?: EventHandler<Event, T> | undefined;
+      onloadstart?: EventHandler<Event, T> | undefined;
+      onpause?: EventHandler<Event, T> | undefined;
+      onplay?: EventHandler<Event, T> | undefined;
+      onplaying?: EventHandler<Event, T> | undefined;
+      onprogress?: EventHandler<Event, T> | undefined;
+      onratechange?: EventHandler<Event, T> | undefined;
+      onseeked?: EventHandler<Event, T> | undefined;
+      onseeking?: EventHandler<Event, T> | undefined;
+      onstalled?: EventHandler<Event, T> | undefined;
+      onsuspend?: EventHandler<Event, T> | undefined;
+      ontimeupdate?: EventHandler<Event, T> | undefined;
+      onvolumechange?: EventHandler<Event, T> | undefined;
+      onwaiting?: EventHandler<Event, T> | undefined;
 
       // MouseEvents
-      onauxclick?: MouseEventHandler<T>;
-      onclick?: MouseEventHandler<T>;
-      oncontextmenu?: MouseEventHandler<T>;
-      ondblclick?: MouseEventHandler<T>;
-      ondrag?: DragEventHandler<T>;
-      ondragend?: DragEventHandler<T>;
-      ondragenter?: DragEventHandler<T>;
-      ondragexit?: DragEventHandler<T>;
-      ondragleave?: DragEventHandler<T>;
-      ondragover?: DragEventHandler<T>;
-      ondragstart?: DragEventHandler<T>;
-      ondrop?: DragEventHandler<T>;
-      onmousedown?: MouseEventHandler<T>;
-      onmouseenter?: MouseEventHandler<T>;
-      onmouseleave?: MouseEventHandler<T>;
-      onmousemove?: MouseEventHandler<T>;
-      onmouseout?: MouseEventHandler<T>;
-      onmouseover?: MouseEventHandler<T>;
-      onmouseup?: MouseEventHandler<T>;
+      onauxclick?: MouseEventHandler<T> | undefined;
+      onclick?: MouseEventHandler<T> | undefined;
+      oncontextmenu?: MouseEventHandler<T> | undefined;
+      ondblclick?: MouseEventHandler<T> | undefined;
+      ondrag?: DragEventHandler<T> | undefined;
+      ondragend?: DragEventHandler<T> | undefined;
+      ondragenter?: DragEventHandler<T> | undefined;
+      ondragexit?: DragEventHandler<T> | undefined;
+      ondragleave?: DragEventHandler<T> | undefined;
+      ondragover?: DragEventHandler<T> | undefined;
+      ondragstart?: DragEventHandler<T> | undefined;
+      ondrop?: DragEventHandler<T> | undefined;
+      onmousedown?: MouseEventHandler<T> | undefined;
+      onmouseenter?: MouseEventHandler<T> | undefined;
+      onmouseleave?: MouseEventHandler<T> | undefined;
+      onmousemove?: MouseEventHandler<T> | undefined;
+      onmouseout?: MouseEventHandler<T> | undefined;
+      onmouseover?: MouseEventHandler<T> | undefined;
+      onmouseup?: MouseEventHandler<T> | undefined;
 
       // Selection Events
-      onselect?: EventHandler<Event, T>;
-      onselectionchange?: EventHandler<Event, T>;
-      onselectstart?: EventHandler<Event, T>;
+      onselect?: EventHandler<Event, T> | undefined;
+      onselectionchange?: EventHandler<Event, T> | undefined;
+      onselectstart?: EventHandler<Event, T> | undefined;
 
       // Touch Events
-      ontouchcancel?: TouchEventHandler<T>;
-      ontouchend?: TouchEventHandler<T>;
-      ontouchmove?: TouchEventHandler<T>;
-      ontouchstart?: TouchEventHandler<T>;
+      ontouchcancel?: TouchEventHandler<T> | undefined;
+      ontouchend?: TouchEventHandler<T> | undefined;
+      ontouchmove?: TouchEventHandler<T> | undefined;
+      ontouchstart?: TouchEventHandler<T> | undefined;
 
       // Pointer Events
-      ongotpointercapture?: PointerEventHandler<T>;
-      onpointercancel?: PointerEventHandler<T>;
-      onpointerdown?: PointerEventHandler<T>;
-      onpointerenter?: PointerEventHandler<T>;
-      onpointerleave?: PointerEventHandler<T>;
-      onpointermove?: PointerEventHandler<T>;
-      onpointerout?: PointerEventHandler<T>;
-      onpointerover?: PointerEventHandler<T>;
-      onpointerup?: PointerEventHandler<T>;
-      onlostpointercapture?: PointerEventHandler<T>;
+      ongotpointercapture?: PointerEventHandler<T> | undefined;
+      onpointercancel?: PointerEventHandler<T> | undefined;
+      onpointerdown?: PointerEventHandler<T> | undefined;
+      onpointerenter?: PointerEventHandler<T> | undefined;
+      onpointerleave?: PointerEventHandler<T> | undefined;
+      onpointermove?: PointerEventHandler<T> | undefined;
+      onpointerout?: PointerEventHandler<T> | undefined;
+      onpointerover?: PointerEventHandler<T> | undefined;
+      onpointerup?: PointerEventHandler<T> | undefined;
+      onlostpointercapture?: PointerEventHandler<T> | undefined;
 
       // UI Events
-      onscroll?: UIEventHandler<T>;
-      onresize?: UIEventHandler<T>;
+      onscroll?: UIEventHandler<T> | undefined;
+      onresize?: UIEventHandler<T> | undefined;
 
       // Wheel Events
-      onwheel?: WheelEventHandler<T>;
+      onwheel?: WheelEventHandler<T> | undefined;
 
       // Animation Events
-      onanimationstart?: AnimationEventHandler<T>;
-      onanimationend?: AnimationEventHandler<T>;
-      onanimationiteration?: AnimationEventHandler<T>;
+      onanimationstart?: AnimationEventHandler<T> | undefined;
+      onanimationend?: AnimationEventHandler<T> | undefined;
+      onanimationiteration?: AnimationEventHandler<T> | undefined;
 
       // Transition Events
-      ontransitionstart?: TransitionEventHandler<T>;
-      ontransitionrun?: TransitionEventHandler<T>;
-      ontransitionend?: TransitionEventHandler<T>;
-      ontransitioncancel?: TransitionEventHandler<T>;
+      ontransitionstart?: TransitionEventHandler<T> | undefined;
+      ontransitionrun?: TransitionEventHandler<T> | undefined;
+      ontransitionend?: TransitionEventHandler<T> | undefined;
+      ontransitioncancel?: TransitionEventHandler<T> | undefined;
 
       // Svelte Transition Events
-      onoutrostart?: EventHandler<CustomEvent<null>, T>;
-      onoutroend?: EventHandler<CustomEvent<null>, T>;
-      onintrostart?: EventHandler<CustomEvent<null>, T>;
-      onintroend?: EventHandler<CustomEvent<null>, T>;
+      onoutrostart?: EventHandler<CustomEvent<null>, T> | undefined;
+      onoutroend?: EventHandler<CustomEvent<null>, T> | undefined;
+      onintrostart?: EventHandler<CustomEvent<null>, T> | undefined;
+      onintroend?: EventHandler<CustomEvent<null>, T> | undefined;
 
       // Message Events
-      onmessage?: MessageEventHandler<T>;
-      onmessageerror?: MessageEventHandler<T>;
+      onmessage?: MessageEventHandler<T> | undefined;
+      onmessageerror?: MessageEventHandler<T> | undefined;
 
       // Global Events
-      oncancel?: EventHandler<Event, T>;
-      onclose?: EventHandler<Event, T>;
-      onfullscreenchange?: EventHandler<Event, T>;
-      onfullscreenerror?: EventHandler<Event, T>;
+      oncancel?: EventHandler<Event, T> | undefined;
+      onclose?: EventHandler<Event, T> | undefined;
+      onfullscreenchange?: EventHandler<Event, T> | undefined;
+      onfullscreenerror?: EventHandler<Event, T> | undefined;
     }
 
     // All the WAI-ARIA 1.1 attributes from https://www.w3.org/TR/wai-aria-1.1/
     interface AriaAttributes {
         /** Identifies the currently active element when DOM focus is on a composite widget, textbox, group, or application. */
-        'aria-activedescendant'?: string;
+        'aria-activedescendant'?: string | undefined;
         /** Indicates whether assistive technologies will present all, or only parts of, the changed region based on the change notifications defined by the aria-relevant attribute. */
-        'aria-atomic'?: boolean | 'false' | 'true';
+        'aria-atomic'?: boolean | 'false' | 'true' | undefined;
         /**
          * Indicates whether inputting text could trigger display of one or more predictions of the user's intended value for an input and specifies how predictions would be
          * presented if they are made.
          */
-        'aria-autocomplete'?: 'none' | 'inline' | 'list' | 'both';
+        'aria-autocomplete'?: 'none' | 'inline' | 'list' | 'both' | undefined;
         /** Indicates an element is being modified and that assistive technologies MAY want to wait until the modifications are complete before exposing them to the user. */
-        'aria-busy'?: boolean | 'false' | 'true';
+        'aria-busy'?: boolean | 'false' | 'true' | undefined;
         /**
          * Indicates the current "checked" state of checkboxes, radio buttons, and other widgets.
          * @see aria-pressed @see aria-selected.
          */
-        'aria-checked'?: boolean | 'false' | 'mixed' | 'true';
+        'aria-checked'?: boolean | 'false' | 'mixed' | 'true' | undefined;
         /**
          * Defines the total number of columns in a table, grid, or treegrid.
          * @see aria-colindex.
          */
-        'aria-colcount'?: number;
+        'aria-colcount'?: number | undefined;
         /**
          * Defines an element's column index or position with respect to the total number of columns within a table, grid, or treegrid.
          * @see aria-colcount @see aria-colspan.
          */
-        'aria-colindex'?: number;
+        'aria-colindex'?: number | undefined;
         /**
          * Defines the number of columns spanned by a cell or gridcell within a table, grid, or treegrid.
          * @see aria-colindex @see aria-rowspan.
          */
-        'aria-colspan'?: number;
+        'aria-colspan'?: number | undefined;
         /**
          * Identifies the element (or elements) whose contents or presence are controlled by the current element.
          * @see aria-owns.
          */
-        'aria-controls'?: string;
+        'aria-controls'?: string | undefined;
         /** Indicates the element that represents the current item within a container or set of related elements. */
-        'aria-current'?: boolean | 'false' | 'true' | 'page' | 'step' | 'location' | 'date' | 'time';
+        'aria-current'?: boolean | 'false' | 'true' | 'page' | 'step' | 'location' | 'date' | 'time' | undefined;
         /**
          * Identifies the element (or elements) that describes the object.
          * @see aria-labelledby
          */
-        'aria-describedby'?: string;
+        'aria-describedby'?: string | undefined;
         /**
          * Identifies the element that provides a detailed, extended description for the object.
          * @see aria-describedby.
          */
-        'aria-details'?: string;
+        'aria-details'?: string | undefined;
         /**
          * Indicates that the element is perceivable but disabled, so it is not editable or otherwise operable.
          * @see aria-hidden @see aria-readonly.
          */
-        'aria-disabled'?: boolean | 'false' | 'true';
+        'aria-disabled'?: boolean | 'false' | 'true' | undefined;
         /**
          * Indicates what functions can be performed when a dragged object is released on the drop target.
          * @deprecated in ARIA 1.1
          */
-        'aria-dropeffect'?: 'none' | 'copy' | 'execute' | 'link' | 'move' | 'popup';
+        'aria-dropeffect'?: 'none' | 'copy' | 'execute' | 'link' | 'move' | 'popup' | undefined;
         /**
          * Identifies the element that provides an error message for the object.
          * @see aria-invalid @see aria-describedby.
          */
-        'aria-errormessage'?: string;
+        'aria-errormessage'?: string | undefined;
         /** Indicates whether the element, or another grouping element it controls, is currently expanded or collapsed. */
-        'aria-expanded'?: boolean | 'false' | 'true';
+        'aria-expanded'?: boolean | 'false' | 'true' | undefined;
         /**
          * Identifies the next element (or elements) in an alternate reading order of content which, at the user's discretion,
          * allows assistive technology to override the general default of reading in document source order.
          */
-        'aria-flowto'?: string;
+        'aria-flowto'?: string | undefined;
         /**
          * Indicates an element's "grabbed" state in a drag-and-drop operation.
          * @deprecated in ARIA 1.1
          */
-        'aria-grabbed'?: boolean | 'false' | 'true';
+        'aria-grabbed'?: boolean | 'false' | 'true' | undefined;
         /** Indicates the availability and type of interactive popup element, such as menu or dialog, that can be triggered by an element. */
-        'aria-haspopup'?: boolean | 'false' | 'true' | 'menu' | 'listbox' | 'tree' | 'grid' | 'dialog';
+        'aria-haspopup'?: boolean | 'false' | 'true' | 'menu' | 'listbox' | 'tree' | 'grid' | 'dialog' | undefined;
         /**
          * Indicates whether the element is exposed to an accessibility API.
          * @see aria-disabled.
          */
-        'aria-hidden'?: boolean | 'false' | 'true';
+        'aria-hidden'?: boolean | 'false' | 'true' | undefined;
         /**
          * Indicates the entered value does not conform to the format expected by the application.
          * @see aria-errormessage.
          */
-        'aria-invalid'?: boolean | 'false' | 'true' | 'grammar' | 'spelling';
+        'aria-invalid'?: boolean | 'false' | 'true' | 'grammar' | 'spelling' | undefined;
         /** Indicates keyboard shortcuts that an author has implemented to activate or give focus to an element. */
-        'aria-keyshortcuts'?: string;
+        'aria-keyshortcuts'?: string | undefined;
         /**
          * Defines a string value that labels the current element.
          * @see aria-labelledby.
          */
-        'aria-label'?: string;
+        'aria-label'?: string | undefined;
         /**
          * Identifies the element (or elements) that labels the current element.
          * @see aria-describedby.
          */
-        'aria-labelledby'?: string;
+        'aria-labelledby'?: string | undefined;
         /** Defines the hierarchical level of an element within a structure. */
-        'aria-level'?: number;
+        'aria-level'?: number | undefined;
         /** Indicates that an element will be updated, and describes the types of updates the user agents, assistive technologies, and user can expect from the live region. */
-        'aria-live'?: 'off' | 'assertive' | 'polite';
+        'aria-live'?: 'off' | 'assertive' | 'polite' | undefined;
         /** Indicates whether an element is modal when displayed. */
-        'aria-modal'?: boolean | 'false' | 'true';
+        'aria-modal'?: boolean | 'false' | 'true' | undefined;
         /** Indicates whether a text box accepts multiple lines of input or only a single line. */
-        'aria-multiline'?: boolean | 'false' | 'true';
+        'aria-multiline'?: boolean | 'false' | 'true' | undefined;
         /** Indicates that the user may select more than one item from the current selectable descendants. */
-        'aria-multiselectable'?: boolean | 'false' | 'true';
+        'aria-multiselectable'?: boolean | 'false' | 'true' | undefined;
         /** Indicates whether the element's orientation is horizontal, vertical, or unknown/ambiguous. */
-        'aria-orientation'?: 'horizontal' | 'vertical';
+        'aria-orientation'?: 'horizontal' | 'vertical' | undefined;
         /**
          * Identifies an element (or elements) in order to define a visual, functional, or contextual parent/child relationship
          * between DOM elements where the DOM hierarchy cannot be used to represent the relationship.
          * @see aria-controls.
          */
-        'aria-owns'?: string;
+        'aria-owns'?: string | undefined;
         /**
          * Defines a short hint (a word or short phrase) intended to aid the user with data entry when the control has no value.
          * A hint could be a sample value or a brief description of the expected format.
          */
-        'aria-placeholder'?: string;
+        'aria-placeholder'?: string | undefined;
         /**
          * Defines an element's number or position in the current set of listitems or treeitems. Not required if all elements in the set are present in the DOM.
          * @see aria-setsize.
          */
-        'aria-posinset'?: number;
+        'aria-posinset'?: number | undefined;
         /**
          * Indicates the current "pressed" state of toggle buttons.
          * @see aria-checked @see aria-selected.
          */
-        'aria-pressed'?: boolean | 'false' | 'mixed' | 'true';
+        'aria-pressed'?: boolean | 'false' | 'mixed' | 'true' | undefined;
         /**
          * Indicates that the element is not editable, but is otherwise operable.
          * @see aria-disabled.
          */
-        'aria-readonly'?: boolean | 'false' | 'true';
+        'aria-readonly'?: boolean | 'false' | 'true' | undefined;
         /**
          * Indicates what notifications the user agent will trigger when the accessibility tree within a live region is modified.
          * @see aria-atomic.
          */
-        'aria-relevant'?: 'additions' | 'additions removals' | 'additions text' | 'all' | 'removals' | 'removals additions' | 'removals text' | 'text' | 'text additions' | 'text removals';
+        'aria-relevant'?: 'additions' | 'additions removals' | 'additions text' | 'all' | 'removals' | 'removals additions' | 'removals text' | 'text' | 'text additions' | 'text removals' | undefined;
         /** Indicates that user input is required on the element before a form may be submitted. */
-        'aria-required'?: boolean | 'false' | 'true';
+        'aria-required'?: boolean | 'false' | 'true' | undefined;
         /** Defines a human-readable, author-localized description for the role of an element. */
-        'aria-roledescription'?: string;
+        'aria-roledescription'?: string | undefined;
         /**
          * Defines the total number of rows in a table, grid, or treegrid.
          * @see aria-rowindex.
          */
-        'aria-rowcount'?: number;
+        'aria-rowcount'?: number | undefined;
         /**
          * Defines an element's row index or position with respect to the total number of rows within a table, grid, or treegrid.
          * @see aria-rowcount @see aria-rowspan.
          */
-        'aria-rowindex'?: number;
+        'aria-rowindex'?: number | undefined;
         /**
          * Defines the number of rows spanned by a cell or gridcell within a table, grid, or treegrid.
          * @see aria-rowindex @see aria-colspan.
          */
-        'aria-rowspan'?: number;
+        'aria-rowspan'?: number | undefined;
         /**
          * Indicates the current "selected" state of various widgets.
          * @see aria-checked @see aria-pressed.
          */
-        'aria-selected'?: boolean | 'false' | 'true';
+        'aria-selected'?: boolean | 'false' | 'true' | undefined;
         /**
          * Defines the number of items in the current set of listitems or treeitems. Not required if all elements in the set are present in the DOM.
          * @see aria-posinset.
          */
-        'aria-setsize'?: number;
+        'aria-setsize'?: number | undefined;
         /** Indicates if items in a table or grid are sorted in ascending or descending order. */
-        'aria-sort'?: 'none' | 'ascending' | 'descending' | 'other';
+        'aria-sort'?: 'none' | 'ascending' | 'descending' | 'other' | undefined;
         /** Defines the maximum allowed value for a range widget. */
-        'aria-valuemax'?: number;
+        'aria-valuemax'?: number | undefined;
         /** Defines the minimum allowed value for a range widget. */
-        'aria-valuemin'?: number;
+        'aria-valuemin'?: number | undefined;
         /**
          * Defines the current value for a range widget.
          * @see aria-valuetext.
          */
-        'aria-valuenow'?: number;
+        'aria-valuenow'?: number | undefined;
         /** Defines the human readable text alternative of aria-valuenow for a range widget. */
-        'aria-valuetext'?: string;
+        'aria-valuetext'?: string | undefined;
     }
 
     interface HTMLAttributes<T extends EventTarget> extends AriaAttributes, DOMAttributes<T> {
-      // jsx-dom-specific Attributes
-      class?: ClassName;
-      dataset?: object; // eslint-disable-line
-
       // Standard HTML Attributes
-      accept?: string;
-      acceptcharset?: string;
-      accesskey?: string;
-      action?: string;
-      allow?: string;
-      allowfullscreen?: boolean;
-      allowtransparency?: boolean;
-      allowpaymentrequest?: boolean;
-      alt?: string;
-      as?: string;
-      async?: boolean;
-      autocomplete?: string;
-      autofocus?: boolean;
-      autoplay?: boolean;
-      capture?: 'environment' | 'user' | boolean;
-      cellpadding?: number | string;
-      cellspacing?: number | string;
-      charset?: string;
-      challenge?: string;
-      checked?: boolean;
-      cite?: string;
-      classid?: string;
-      classname?: ClassName;
-      cols?: number;
-      colspan?: number;
-      content?: string;
-      contenteditable?: 'true' | 'false' | boolean;
+      class?: string | undefined;
+      dataset?: object | undefined; // eslint-disable-line
+      accept?: string | undefined;
+      acceptcharset?: string | undefined;
+      accesskey?: string | undefined;
+      action?: string | undefined;
+      allow?: string | undefined;
+      allowfullscreen?: boolean | undefined;
+      allowtransparency?: boolean | undefined;
+      allowpaymentrequest?: boolean | undefined;
+      alt?: string | undefined;
+      as?: string | undefined;
+      async?: boolean | undefined;
+      autocomplete?: string | undefined;
+      autofocus?: boolean | undefined;
+      autoplay?: boolean | undefined;
+      capture?: 'environment' | 'user' | boolean | undefined;
+      cellpadding?: number | string | undefined;
+      cellspacing?: number | string | undefined;
+      charset?: string | undefined;
+      challenge?: string | undefined;
+      checked?: boolean | undefined;
+      cite?: string | undefined;
+      classid?: string | undefined;
+      cols?: number | undefined;
+      colspan?: number | undefined;
+      content?: string | undefined;
+      contenteditable?: 'true' | 'false' | boolean | undefined;
 
       // Doesn't work when used as HTML attribute
       /**
        * Elements with the contenteditable attribute support innerHTML and textContent bindings.
        */
-      innerHTML?: string;
+      innerHTML?: string | undefined;
       // Doesn't work when used as HTML attribute
       /**
        * Elements with the contenteditable attribute support innerHTML and textContent bindings.
        */
 
-      textContent?: string;
+      textContent?: string | undefined;
 
-      contextmenu?: string;
-      controls?: boolean;
-      coords?: string;
-      crossorigin?: string;
-      currenttime?: number;
-      decoding?: 'async' | 'sync' | 'auto';
-      data?: string;
-      datetime?: string;
-      default?: boolean;
-      defaultmuted?: boolean;
-      defaultplaybackrate?: number;
-      defer?: boolean;
-      dir?: string;
-      dirname?: string;
-      disabled?: boolean;
-      download?: any;
-      draggable?: boolean | 'true' | 'false';
-      enctype?: string;
-      for?: string;
-      form?: string;
-      formaction?: string;
-      formenctype?: string;
-      formmethod?: string;
-      formnovalidate?: boolean;
-      formtarget?: string;
-      frameborder?: number | string;
-      headers?: string;
-      height?: number | string;
-      hidden?: boolean;
-      high?: number;
-      href?: string;
-      hreflang?: string;
-      htmlfor?: string;
-      httpequiv?: string;
-      id?: string;
-      inputmode?: string;
-      integrity?: string;
-      is?: string;
-      ismap?: boolean;
-      keyparams?: string;
-      keytype?: string;
-      kind?: string;
-      label?: string;
-      lang?: string;
-      list?: string;
-      loading?: string;
-      loop?: boolean;
-      low?: number;
-      manifest?: string;
-      marginheight?: number;
-      marginwidth?: number;
-      max?: number | string;
-      maxlength?: number;
-      media?: string;
-      mediagroup?: string;
-      method?: string;
-      min?: number | string;
-      minlength?: number;
-      multiple?: boolean;
-      muted?: boolean;
-      name?: string;
-      nonce?: string;
-      novalidate?: boolean;
-      open?: boolean;
-      optimum?: number;
-      part?: string;
-      pattern?: string;
-      placeholder?: string;
-      playsinline?: boolean;
-      poster?: string;
-      preload?: string;
-      radiogroup?: string;
-      readonly?: boolean;
-      referrerpolicy?: string;
-      rel?: string;
-      required?: boolean;
-      reversed?: boolean;
-      role?: string;
-      rows?: number;
-      rowspan?: number;
-      sandbox?: string;
-      scope?: string;
-      scoped?: boolean;
-      scrolling?: string;
-      seamless?: boolean;
-      selected?: boolean;
-      shape?: string;
-      size?: number;
-      sizes?: string;
-      slot?: string;
-      span?: number;
-      spellcheck?: boolean | 'true' | 'false';
-      src?: string;
-      srcdoc?: string;
-      srclang?: string;
-      srcset?: string;
-      start?: number;
-      step?: number | string;
-      style?: string;
-      summary?: string;
-      tabindex?: number;
-      target?: string;
-      title?: string;
-      type?: string;
-      usemap?: string;
-      value?: string | string[] | number | null;
+      contextmenu?: string | undefined;
+      controls?: boolean | undefined;
+      coords?: string | undefined;
+      crossorigin?: string | undefined;
+      currenttime?: number | undefined;
+      decoding?: 'async' | 'sync' | 'auto' | undefined;
+      data?: string | undefined;
+      datetime?: string | undefined;
+      default?: boolean | undefined;
+      defaultmuted?: boolean | undefined;
+      defaultplaybackrate?: number | undefined;
+      defer?: boolean | undefined;
+      dir?: string | undefined;
+      dirname?: string | undefined;
+      disabled?: boolean | undefined;
+      download?: any | undefined;
+      draggable?: boolean | 'true' | 'false' | undefined;
+      enctype?: string | undefined;
+      enterkeyhint?: 'enter' | 'done' | 'go' | 'next' | 'previous' | 'search' | 'send' | undefined;
+      for?: string | undefined;
+      form?: string | undefined;
+      formaction?: string | undefined;
+      formenctype?: string | undefined;
+      formmethod?: string | undefined;
+      formnovalidate?: boolean | undefined;
+      formtarget?: string | undefined;
+      frameborder?: number | string | undefined;
+      headers?: string | undefined;
+      height?: number | string | undefined;
+      hidden?: boolean | undefined;
+      high?: number | undefined;
+      href?: string | undefined;
+      hreflang?: string | undefined;
+      htmlfor?: string | undefined;
+      httpequiv?: string | undefined;
+      id?: string | undefined;
+      inputmode?: string | undefined;
+      integrity?: string | undefined;
+      is?: string | undefined;
+      ismap?: boolean | undefined;
+      keyparams?: string | undefined;
+      keytype?: string | undefined;
+      kind?: string | undefined;
+      label?: string | undefined;
+      lang?: string | undefined;
+      list?: string | undefined;
+      loading?: string | undefined;
+      loop?: boolean | undefined;
+      low?: number | undefined;
+      manifest?: string | undefined;
+      marginheight?: number | undefined;
+      marginwidth?: number | undefined;
+      max?: number | string | undefined;
+      maxlength?: number | undefined;
+      media?: string | undefined;
+      mediagroup?: string | undefined;
+      method?: string | undefined;
+      min?: number | string | undefined;
+      minlength?: number | undefined;
+      multiple?: boolean | undefined;
+      muted?: boolean | undefined;
+      name?: string | undefined;
+      nonce?: string | undefined;
+      novalidate?: boolean | undefined;
+      open?: boolean | undefined;
+      optimum?: number | undefined;
+      part?: string | undefined;
+      pattern?: string | undefined;
+      placeholder?: string | undefined;
+      playsinline?: boolean | undefined;
+      poster?: string | undefined;
+      preload?: string | undefined;
+      radiogroup?: string | undefined;
+      readonly?: boolean | undefined;
+      referrerpolicy?: string | undefined;
+      rel?: string | undefined;
+      required?: boolean | undefined;
+      reversed?: boolean | undefined;
+      role?: string | undefined;
+      rows?: number | undefined;
+      rowspan?: number | undefined;
+      sandbox?: string | undefined;
+      scope?: string | undefined;
+      scoped?: boolean | undefined;
+      scrolling?: string | undefined;
+      seamless?: boolean | undefined;
+      selected?: boolean | undefined;
+      shape?: string | undefined;
+      size?: number | undefined;
+      sizes?: string | undefined;
+      slot?: string | undefined;
+      span?: number | undefined;
+      spellcheck?: boolean | 'true' | 'false' | undefined;
+      src?: string | undefined;
+      srcdoc?: string | undefined;
+      srclang?: string | undefined;
+      srcset?: string | undefined;
+      start?: number | undefined;
+      step?: number | string | undefined;
+      style?: string | undefined;
+      summary?: string | undefined;
+      tabindex?: number | undefined;
+      target?: string | undefined;
+      title?: string | undefined;
+      type?: string | undefined;
+      usemap?: string | undefined;
+      value?: string | string[] | number | null | undefined;
       /**
        * a value between 0 and 1
       */
-      volume?: number;
-      width?: number | string;
-      wmode?: string;
-      wrap?: string;
+      volume?: number | undefined;
+      width?: number | string | undefined;
+      wmode?: string | undefined;
+      wrap?: string | undefined;
 
       // RDFa Attributes
-      about?: string;
-      datatype?: string;
-      inlist?: any;
-      prefix?: string;
-      property?: string;
-      resource?: string;
-      typeof?: string;
-      vocab?: string;
+      about?: string | undefined;
+      datatype?: string | undefined;
+      inlist?: any | undefined;
+      prefix?: string | undefined;
+      property?: string | undefined;
+      resource?: string | undefined;
+      typeof?: string | undefined;
+      vocab?: string | undefined;
 
       // Non-standard Attributes
-      autocapitalize?: string;
-      autocorrect?: string;
-      autosave?: string;
-      color?: string;
-      itemprop?: string;
-      itemscope?: boolean;
-      itemtype?: string;
-      itemid?: string;
-      itemref?: string;
-      results?: number;
-      security?: string;
-      unselectable?: boolean;
+      autocapitalize?: string | undefined;
+      autocorrect?: string | undefined;
+      autosave?: string | undefined;
+      color?: string | undefined;
+      itemprop?: string | undefined;
+      itemscope?: boolean | undefined;
+      itemtype?: string | undefined;
+      itemid?: string | undefined;
+      itemref?: string | undefined;
+      results?: number | undefined;
+      security?: string | undefined;
+      unselectable?: boolean | undefined;
     }
 
     // this list is "complete" in that it contains every SVG attribute
@@ -608,271 +601,271 @@ declare namespace svelte.JSX {
     //   - union of string literals
     interface SVGAttributes<T extends EventTarget> extends AriaAttributes, DOMAttributes<T> {
       // Attributes which also defined in HTMLAttributes
-      className?: string;
-      class?: string;
-      color?: string;
-      height?: number | string;
-      id?: string;
-      lang?: string;
-      max?: number | string;
-      media?: string;
-      method?: string;
-      min?: number | string;
-      name?: string;
-      style?: string;
-      target?: string;
-      type?: string;
-      width?: number | string;
+      className?: string | undefined;
+      class?: string | undefined;
+      color?: string | undefined;
+      height?: number | string | undefined;
+      id?: string | undefined;
+      lang?: string | undefined;
+      max?: number | string | undefined;
+      media?: string | undefined;
+      method?: string | undefined;
+      min?: number | string | undefined;
+      name?: string | undefined;
+      style?: string | undefined;
+      target?: string | undefined;
+      type?: string | undefined;
+      width?: number | string | undefined;
 
       // Other HTML properties supported by SVG elements in browsers
-      role?: string;
-      tabindex?: number;
-      crossorigin?: 'anonymous' | 'use-credentials' | '';
+      role?: string | undefined;
+      tabindex?: number | undefined;
+      crossorigin?: 'anonymous' | 'use-credentials' | '' | undefined;
 
       // SVG Specific attributes
-      'accent-height'?: number | string;
-      accumulate?: 'none' | 'sum';
-      additive?: 'replace' | 'sum';
+      'accent-height'?: number | string | undefined;
+      accumulate?: 'none' | 'sum' | undefined;
+      additive?: 'replace' | 'sum' | undefined;
       'alignment-baseline'?: 'auto' | 'baseline' | 'before-edge' | 'text-before-edge' | 'middle' |
         'central' | 'after-edge' | 'text-after-edge' | 'ideographic' | 'alphabetic' | 'hanging' |
-        'mathematical' | 'inherit';
-      allowReorder?: 'no' | 'yes';
-      alphabetic?: number | string;
-      amplitude?: number | string;
-      'arabic-form'?: 'initial' | 'medial' | 'terminal' | 'isolated';
-      ascent?: number | string;
-      attributeName?: string;
-      attributeType?: string;
-      autoReverse?: number | string;
-      azimuth?: number | string;
-      baseFrequency?: number | string;
-      'baseline-shift'?: number | string;
-      baseProfile?: number | string;
-      bbox?: number | string;
-      begin?: number | string;
-      bias?: number | string;
-      by?: number | string;
-      calcMode?: number | string;
-      'cap-height'?: number | string;
-      clip?: number | string;
-      'clip-path'?: string;
-      clipPathUnits?: number | string;
-      'clip-rule'?: number | string;
-      'color-interpolation'?: number | string;
-      'color-interpolation-filters'?: 'auto' | 'sRGB' | 'linearRGB' | 'inherit';
-      'color-profile'?: number | string;
-      'color-rendering'?: number | string;
-      contentScriptType?: number | string;
-      contentStyleType?: number | string;
-      cursor?: number | string;
-      cx?: number | string;
-      cy?: number | string;
-      d?: string;
-      decelerate?: number | string;
-      descent?: number | string;
-      diffuseConstant?: number | string;
-      direction?: number | string;
-      display?: number | string;
-      divisor?: number | string;
-      'dominant-baseline'?: number | string;
-      dur?: number | string;
-      dx?: number | string;
-      dy?: number | string;
-      edgeMode?: number | string;
-      elevation?: number | string;
-      'enable-background'?: number | string;
-      end?: number | string;
-      exponent?: number | string;
-      externalResourcesRequired?: number | string;
-      fill?: string;
-      'fill-opacity'?: number | string;
-      'fill-rule'?: 'nonzero' | 'evenodd' | 'inherit';
-      filter?: string;
-      filterRes?: number | string;
-      filterUnits?: number | string;
-      'flood-color'?: number | string;
-      'flood-opacity'?: number | string;
-      focusable?: number | string;
-      'font-family'?: string;
-      'font-size'?: number | string;
-      'font-size-adjust'?: number | string;
-      'font-stretch'?: number | string;
-      'font-style'?: number | string;
-      'font-variant'?: number | string;
-      'font-weight'?: number | string;
-      format?: number | string;
-      from?: number | string;
-      fx?: number | string;
-      fy?: number | string;
-      g1?: number | string;
-      g2?: number | string;
-      'glyph-name'?: number | string;
-      'glyph-orientation-horizontal'?: number | string;
-      'glyph-orientation-vertical'?: number | string;
-      glyphRef?: number | string;
-      gradientTransform?: string;
-      gradientUnits?: string;
-      hanging?: number | string;
-      href?: string;
-      'horiz-adv-x'?: number | string;
-      'horiz-origin-x'?: number | string;
-      ideographic?: number | string;
-      'image-rendering'?: number | string;
-      in2?: number | string;
-      in?: string;
-      intercept?: number | string;
-      k1?: number | string;
-      k2?: number | string;
-      k3?: number | string;
-      k4?: number | string;
-      k?: number | string;
-      kernelMatrix?: number | string;
-      kernelUnitLength?: number | string;
-      kerning?: number | string;
-      keyPoints?: number | string;
-      keySplines?: number | string;
-      keyTimes?: number | string;
-      lengthAdjust?: number | string;
-      'letter-spacing'?: number | string;
-      'lighting-color'?: number | string;
-      limitingConeAngle?: number | string;
-      local?: number | string;
-      'marker-end'?: string;
-      markerHeight?: number | string;
-      'marker-mid'?: string;
-      'marker-start'?: string;
-      markerUnits?: number | string;
-      markerWidth?: number | string;
-      mask?: string;
-      maskContentUnits?: number | string;
-      maskUnits?: number | string;
-      mathematical?: number | string;
-      mode?: number | string;
-      numOctaves?: number | string;
-      offset?: number | string;
-      opacity?: number | string;
-      operator?: number | string;
-      order?: number | string;
-      orient?: number | string;
-      orientation?: number | string;
-      origin?: number | string;
-      overflow?: number | string;
-      'overline-position'?: number | string;
-      'overline-thickness'?: number | string;
-      'paint-order'?: number | string;
-      'panose-1'?: number | string;
-      path?: string;
-      pathLength?: number | string;
-      patternContentUnits?: string;
-      patternTransform?: number | string;
-      patternUnits?: string;
-      'pointer-events'?: number | string;
-      points?: string;
-      pointsAtX?: number | string;
-      pointsAtY?: number | string;
-      pointsAtZ?: number | string;
-      preserveAlpha?: number | string;
-      preserveAspectRatio?: string;
-      primitiveUnits?: number | string;
-      r?: number | string;
-      radius?: number | string;
-      refX?: number | string;
-      refY?: number | string;
-      'rendering-intent'?: number | string;
-      repeatCount?: number | string;
-      repeatDur?: number | string;
-      requiredExtensions?: number | string;
-      requiredFeatures?: number | string;
-      restart?: number | string;
-      result?: string;
-      rotate?: number | string;
-      rx?: number | string;
-      ry?: number | string;
-      scale?: number | string;
-      seed?: number | string;
-      'shape-rendering'?: number | string;
-      slope?: number | string;
-      spacing?: number | string;
-      specularConstant?: number | string;
-      specularExponent?: number | string;
-      speed?: number | string;
-      spreadMethod?: string;
-      startOffset?: number | string;
-      stdDeviation?: number | string;
-      stemh?: number | string;
-      stemv?: number | string;
-      stitchTiles?: number | string;
-      'stop-color'?: string;
-      'stop-opacity'?: number | string;
-      'strikethrough-position'?: number | string;
-      'strikethrough-thickness'?: number | string;
-      string?: number | string;
-      stroke?: string;
-      'stroke-dasharray'?: string | number;
-      'stroke-dashoffset'?: string | number;
-      'stroke-linecap'?: 'butt' | 'round' | 'square' | 'inherit';
-      'stroke-linejoin'?: 'miter' | 'round' | 'bevel' | 'inherit';
-      'stroke-miterlimit'?: string;
-      'stroke-opacity'?: number | string;
-      'stroke-width'?: number | string;
-      surfaceScale?: number | string;
-      systemLanguage?: number | string;
-      tableValues?: number | string;
-      targetX?: number | string;
-      targetY?: number | string;
-      'text-anchor'?: string;
-      'text-decoration'?: number | string;
-      textLength?: number | string;
-      'text-rendering'?: number | string;
-      to?: number | string;
-      transform?: string;
-      u1?: number | string;
-      u2?: number | string;
-      'underline-position'?: number | string;
-      'underline-thickness'?: number | string;
-      unicode?: number | string;
-      'unicode-bidi'?: number | string;
-      'unicode-range'?: number | string;
-      'units-per-em'?: number | string;
-      'v-alphabetic'?: number | string;
-      values?: string;
-      'vector-effect'?: number | string;
-      version?: string;
-      'vert-adv-y'?: number | string;
-      'vert-origin-x'?: number | string;
-      'vert-origin-y'?: number | string;
-      'v-hanging'?: number | string;
-      'v-ideographic'?: number | string;
-      viewBox?: string;
-      viewTarget?: number | string;
-      visibility?: number | string;
-      'v-mathematical'?: number | string;
-      widths?: number | string;
-      'word-spacing'?: number | string;
-      'writing-mode'?: number | string;
-      x1?: number | string;
-      x2?: number | string;
-      x?: number | string;
-      xChannelSelector?: string;
-      'x-height'?: number | string;
-      xlinkActuate?: string;
-      xlinkArcrole?: string;
-      xlinkHref?: string;
-      xlinkRole?: string;
-      xlinkShow?: string;
-      xlinkTitle?: string;
-      xlinkType?: string;
-      xmlBase?: string;
-      xmlLang?: string;
-      xmlns?: string;
-      xmlnsXlink?: string;
-      xmlSpace?: string;
-      y1?: number | string;
-      y2?: number | string;
-      y?: number | string;
-      yChannelSelector?: string;
-      z?: number | string;
-      zoomAndPan?: string;
+        'mathematical' | 'inherit' | undefined;
+      allowReorder?: 'no' | 'yes' | undefined;
+      alphabetic?: number | string | undefined;
+      amplitude?: number | string | undefined;
+      'arabic-form'?: 'initial' | 'medial' | 'terminal' | 'isolated' | undefined;
+      ascent?: number | string | undefined;
+      attributeName?: string | undefined;
+      attributeType?: string | undefined;
+      autoReverse?: number | string | undefined;
+      azimuth?: number | string | undefined;
+      baseFrequency?: number | string | undefined;
+      'baseline-shift'?: number | string | undefined;
+      baseProfile?: number | string | undefined;
+      bbox?: number | string | undefined;
+      begin?: number | string | undefined;
+      bias?: number | string | undefined;
+      by?: number | string | undefined;
+      calcMode?: number | string | undefined;
+      'cap-height'?: number | string | undefined;
+      clip?: number | string | undefined;
+      'clip-path'?: string | undefined;
+      clipPathUnits?: number | string | undefined;
+      'clip-rule'?: number | string | undefined;
+      'color-interpolation'?: number | string | undefined;
+      'color-interpolation-filters'?: 'auto' | 'sRGB' | 'linearRGB' | 'inherit' | undefined;
+      'color-profile'?: number | string | undefined;
+      'color-rendering'?: number | string | undefined;
+      contentScriptType?: number | string | undefined;
+      contentStyleType?: number | string | undefined;
+      cursor?: number | string | undefined;
+      cx?: number | string | undefined;
+      cy?: number | string | undefined;
+      d?: string | undefined;
+      decelerate?: number | string | undefined;
+      descent?: number | string | undefined;
+      diffuseConstant?: number | string | undefined;
+      direction?: number | string | undefined;
+      display?: number | string | undefined;
+      divisor?: number | string | undefined;
+      'dominant-baseline'?: number | string | undefined;
+      dur?: number | string | undefined;
+      dx?: number | string | undefined;
+      dy?: number | string | undefined;
+      edgeMode?: number | string | undefined;
+      elevation?: number | string | undefined;
+      'enable-background'?: number | string | undefined;
+      end?: number | string | undefined;
+      exponent?: number | string | undefined;
+      externalResourcesRequired?: number | string | undefined;
+      fill?: string | undefined;
+      'fill-opacity'?: number | string | undefined;
+      'fill-rule'?: 'nonzero' | 'evenodd' | 'inherit' | undefined;
+      filter?: string | undefined;
+      filterRes?: number | string | undefined;
+      filterUnits?: number | string | undefined;
+      'flood-color'?: number | string | undefined;
+      'flood-opacity'?: number | string | undefined;
+      focusable?: number | string | undefined;
+      'font-family'?: string | undefined;
+      'font-size'?: number | string | undefined;
+      'font-size-adjust'?: number | string | undefined;
+      'font-stretch'?: number | string | undefined;
+      'font-style'?: number | string | undefined;
+      'font-variant'?: number | string | undefined;
+      'font-weight'?: number | string | undefined;
+      format?: number | string | undefined;
+      from?: number | string | undefined;
+      fx?: number | string | undefined;
+      fy?: number | string | undefined;
+      g1?: number | string | undefined;
+      g2?: number | string | undefined;
+      'glyph-name'?: number | string | undefined;
+      'glyph-orientation-horizontal'?: number | string | undefined;
+      'glyph-orientation-vertical'?: number | string | undefined;
+      glyphRef?: number | string | undefined;
+      gradientTransform?: string | undefined;
+      gradientUnits?: string | undefined;
+      hanging?: number | string | undefined;
+      href?: string | undefined;
+      'horiz-adv-x'?: number | string | undefined;
+      'horiz-origin-x'?: number | string | undefined;
+      ideographic?: number | string | undefined;
+      'image-rendering'?: number | string | undefined;
+      in2?: number | string | undefined;
+      in?: string | undefined;
+      intercept?: number | string | undefined;
+      k1?: number | string | undefined;
+      k2?: number | string | undefined;
+      k3?: number | string | undefined;
+      k4?: number | string | undefined;
+      k?: number | string | undefined;
+      kernelMatrix?: number | string | undefined;
+      kernelUnitLength?: number | string | undefined;
+      kerning?: number | string | undefined;
+      keyPoints?: number | string | undefined;
+      keySplines?: number | string | undefined;
+      keyTimes?: number | string | undefined;
+      lengthAdjust?: number | string | undefined;
+      'letter-spacing'?: number | string | undefined;
+      'lighting-color'?: number | string | undefined;
+      limitingConeAngle?: number | string | undefined;
+      local?: number | string | undefined;
+      'marker-end'?: string | undefined;
+      markerHeight?: number | string | undefined;
+      'marker-mid'?: string | undefined;
+      'marker-start'?: string | undefined;
+      markerUnits?: number | string | undefined;
+      markerWidth?: number | string | undefined;
+      mask?: string | undefined;
+      maskContentUnits?: number | string | undefined;
+      maskUnits?: number | string | undefined;
+      mathematical?: number | string | undefined;
+      mode?: number | string | undefined;
+      numOctaves?: number | string | undefined;
+      offset?: number | string | undefined;
+      opacity?: number | string | undefined;
+      operator?: number | string | undefined;
+      order?: number | string | undefined;
+      orient?: number | string | undefined;
+      orientation?: number | string | undefined;
+      origin?: number | string | undefined;
+      overflow?: number | string | undefined;
+      'overline-position'?: number | string | undefined;
+      'overline-thickness'?: number | string | undefined;
+      'paint-order'?: number | string | undefined;
+      'panose-1'?: number | string | undefined;
+      path?: string | undefined;
+      pathLength?: number | string | undefined;
+      patternContentUnits?: string | undefined;
+      patternTransform?: number | string | undefined;
+      patternUnits?: string | undefined;
+      'pointer-events'?: number | string | undefined;
+      points?: string | undefined;
+      pointsAtX?: number | string | undefined;
+      pointsAtY?: number | string | undefined;
+      pointsAtZ?: number | string | undefined;
+      preserveAlpha?: number | string | undefined;
+      preserveAspectRatio?: string | undefined;
+      primitiveUnits?: number | string | undefined;
+      r?: number | string | undefined;
+      radius?: number | string | undefined;
+      refX?: number | string | undefined;
+      refY?: number | string | undefined;
+      'rendering-intent'?: number | string | undefined;
+      repeatCount?: number | string | undefined;
+      repeatDur?: number | string | undefined;
+      requiredExtensions?: number | string | undefined;
+      requiredFeatures?: number | string | undefined;
+      restart?: number | string | undefined;
+      result?: string | undefined;
+      rotate?: number | string | undefined;
+      rx?: number | string | undefined;
+      ry?: number | string | undefined;
+      scale?: number | string | undefined;
+      seed?: number | string | undefined;
+      'shape-rendering'?: number | string | undefined;
+      slope?: number | string | undefined;
+      spacing?: number | string | undefined;
+      specularConstant?: number | string | undefined;
+      specularExponent?: number | string | undefined;
+      speed?: number | string | undefined;
+      spreadMethod?: string | undefined;
+      startOffset?: number | string | undefined;
+      stdDeviation?: number | string | undefined;
+      stemh?: number | string | undefined;
+      stemv?: number | string | undefined;
+      stitchTiles?: number | string | undefined;
+      'stop-color'?: string | undefined;
+      'stop-opacity'?: number | string | undefined;
+      'strikethrough-position'?: number | string | undefined;
+      'strikethrough-thickness'?: number | string | undefined;
+      string?: number | string | undefined;
+      stroke?: string | undefined;
+      'stroke-dasharray'?: string | number | undefined;
+      'stroke-dashoffset'?: string | number | undefined;
+      'stroke-linecap'?: 'butt' | 'round' | 'square' | 'inherit' | undefined;
+      'stroke-linejoin'?: 'miter' | 'round' | 'bevel' | 'inherit' | undefined;
+      'stroke-miterlimit'?: string | undefined;
+      'stroke-opacity'?: number | string | undefined;
+      'stroke-width'?: number | string | undefined;
+      surfaceScale?: number | string | undefined;
+      systemLanguage?: number | string | undefined;
+      tableValues?: number | string | undefined;
+      targetX?: number | string | undefined;
+      targetY?: number | string | undefined;
+      'text-anchor'?: string | undefined;
+      'text-decoration'?: number | string | undefined;
+      textLength?: number | string | undefined;
+      'text-rendering'?: number | string | undefined;
+      to?: number | string | undefined;
+      transform?: string | undefined;
+      u1?: number | string | undefined;
+      u2?: number | string | undefined;
+      'underline-position'?: number | string | undefined;
+      'underline-thickness'?: number | string | undefined;
+      unicode?: number | string | undefined;
+      'unicode-bidi'?: number | string | undefined;
+      'unicode-range'?: number | string | undefined;
+      'units-per-em'?: number | string | undefined;
+      'v-alphabetic'?: number | string | undefined;
+      values?: string | undefined;
+      'vector-effect'?: number | string | undefined;
+      version?: string | undefined;
+      'vert-adv-y'?: number | string | undefined;
+      'vert-origin-x'?: number | string | undefined;
+      'vert-origin-y'?: number | string | undefined;
+      'v-hanging'?: number | string | undefined;
+      'v-ideographic'?: number | string | undefined;
+      viewBox?: string | undefined;
+      viewTarget?: number | string | undefined;
+      visibility?: number | string | undefined;
+      'v-mathematical'?: number | string | undefined;
+      widths?: number | string | undefined;
+      'word-spacing'?: number | string | undefined;
+      'writing-mode'?: number | string | undefined;
+      x1?: number | string | undefined;
+      x2?: number | string | undefined;
+      x?: number | string | undefined;
+      xChannelSelector?: string | undefined;
+      'x-height'?: number | string | undefined;
+      xlinkActuate?: string | undefined;
+      xlinkArcrole?: string | undefined;
+      xlinkHref?: string | undefined;
+      xlinkRole?: string | undefined;
+      xlinkShow?: string | undefined;
+      xlinkTitle?: string | undefined;
+      xlinkType?: string | undefined;
+      xmlBase?: string | undefined;
+      xmlLang?: string | undefined;
+      xmlns?: string | undefined;
+      xmlnsXlink?: string | undefined;
+      xmlSpace?: string | undefined;
+      y1?: number | string | undefined;
+      y2?: number | string | undefined;
+      y?: number | string | undefined;
+      yChannelSelector?: string | undefined;
+      z?: number | string | undefined;
+      zoomAndPan?: string | undefined;
     }
 
     // eslint-disable-next-line @typescript-eslint/no-empty-interface
@@ -881,70 +874,70 @@ declare namespace svelte.JSX {
     interface SVGProps<T extends EventTarget> extends SVGAttributes<T> {}
 
     interface SvelteOptionProps extends HTMLProps<HTMLOptionElement> {
-        value?: any;
+        value?: any | undefined;
     }
 
     interface SvelteSelectProps extends HTMLProps<HTMLSelectElement> {
-      value?: any;
+      value?: any | undefined;
     }
 
     interface SvelteInputProps extends HTMLProps<HTMLInputElement> {
-      group?: any;
-      files?: FileList | null;
-      indeterminate?: boolean;
+      group?: any | undefined;
+      files?: FileList | null | undefined;
+      indeterminate?: boolean | undefined;
     }
 
     interface SvelteWindowProps  {
-      readonly innerWidth?: Window['innerWidth'];
-      readonly innerHeight?: Window['innerHeight'];
-      readonly outerWidth?: Window['outerWidth'];
-      readonly outerHeight?: Window['outerHeight'];
-      scrollX?: Window['scrollX'];
-      scrollY?: Window['scrollY'];
-      readonly online?: Window['navigator']['onLine'];
+      readonly innerWidth?: Window['innerWidth'] | undefined;
+      readonly innerHeight?: Window['innerHeight'] | undefined;
+      readonly outerWidth?: Window['outerWidth'] | undefined;
+      readonly outerHeight?: Window['outerHeight'] | undefined;
+      scrollX?: Window['scrollX'] | undefined;
+      scrollY?: Window['scrollY'] | undefined;
+      readonly online?: Window['navigator']['onLine'] | undefined;
 
       // Transformed from on:sveltekit:xy
-      'onsveltekit:start'?: EventHandler<CustomEvent, Window>;
-      'onsveltekit:navigation-start'?: EventHandler<CustomEvent, Window>;
-      'onsveltekit:navigation-end'?: EventHandler<CustomEvent, Window>;
+      'onsveltekit:start'?: EventHandler<CustomEvent, Window> | undefined;
+      'onsveltekit:navigation-start'?: EventHandler<CustomEvent, Window> | undefined;
+      'onsveltekit:navigation-end'?: EventHandler<CustomEvent, Window> | undefined;
 
-      ondevicelight?: EventHandler<Event, Window>;
-      onbeforeinstallprompt?: EventHandler<Event, Window>;
-      ondeviceproximity?: EventHandler<Event, Window>;
-      onpaint?: EventHandler<Event, Window>;
-      onuserproximity?: EventHandler<Event, Window>;
-      onbeforeprint?: EventHandler<Event, Window>;
-      onafterprint?: EventHandler<Event, Window>;
-      onlanguagechange?: EventHandler<Event, Window>;
-      onorientationchange?: EventHandler<Event, Window>;
-      onmessage?: EventHandler<MessageEvent, Window>;
-      onmessageerror?: EventHandler<MessageEvent, Window>;
-      onoffline?: EventHandler<Event, Window>;
-      ononline?: EventHandler<Event, Window>;
-      onbeforeunload?: EventHandler<BeforeUnloadEvent, Window>;
-      onunload?: EventHandler<Event, Window>;
-      onstorage?: EventHandler<StorageEvent, Window>;
-      onhashchange?: EventHandler<HashChangeEvent, Window>;
-      onpagehide?: EventHandler<PageTransitionEvent, Window>;
-      onpageshow?: EventHandler<PageTransitionEvent, Window>;
-      onpopstate?: EventHandler<PopStateEvent, Window>;
-      ondevicemotion?: EventHandler<DeviceMotionEvent>;
-      ondeviceorientation?: EventHandler<DeviceOrientationEvent, Window>;
-      ondeviceorientationabsolute?: EventHandler<DeviceOrientationEvent, Window>;
-      onunhandledrejection?: EventHandler<PromiseRejectionEvent, Window>;
-      onrejectionhandled?: EventHandler<PromiseRejectionEvent, Window>;
+      ondevicelight?: EventHandler<Event, Window> | undefined;
+      onbeforeinstallprompt?: EventHandler<Event, Window> | undefined;
+      ondeviceproximity?: EventHandler<Event, Window> | undefined;
+      onpaint?: EventHandler<Event, Window> | undefined;
+      onuserproximity?: EventHandler<Event, Window> | undefined;
+      onbeforeprint?: EventHandler<Event, Window> | undefined;
+      onafterprint?: EventHandler<Event, Window> | undefined;
+      onlanguagechange?: EventHandler<Event, Window> | undefined;
+      onorientationchange?: EventHandler<Event, Window> | undefined;
+      onmessage?: EventHandler<MessageEvent, Window> | undefined;
+      onmessageerror?: EventHandler<MessageEvent, Window> | undefined;
+      onoffline?: EventHandler<Event, Window> | undefined;
+      ononline?: EventHandler<Event, Window> | undefined;
+      onbeforeunload?: EventHandler<BeforeUnloadEvent, Window> | undefined;
+      onunload?: EventHandler<Event, Window> | undefined;
+      onstorage?: EventHandler<StorageEvent, Window> | undefined;
+      onhashchange?: EventHandler<HashChangeEvent, Window> | undefined;
+      onpagehide?: EventHandler<PageTransitionEvent, Window> | undefined;
+      onpageshow?: EventHandler<PageTransitionEvent, Window> | undefined;
+      onpopstate?: EventHandler<PopStateEvent, Window> | undefined;
+      ondevicemotion?: EventHandler<DeviceMotionEvent> | undefined;
+      ondeviceorientation?: EventHandler<DeviceOrientationEvent, Window> | undefined;
+      ondeviceorientationabsolute?: EventHandler<DeviceOrientationEvent, Window> | undefined;
+      onunhandledrejection?: EventHandler<PromiseRejectionEvent, Window> | undefined;
+      onrejectionhandled?: EventHandler<PromiseRejectionEvent, Window> | undefined;
     }
 
     interface SapperAnchorProps {
         // transformed from sapper:noscroll so it should be camel case
-        sapperNoscroll?: true;
-        sapperPrefetch?: true;
+        sapperNoscroll?: true | undefined;
+        sapperPrefetch?: true | undefined;
     }
 
     interface SvelteKitAnchorProps {
         // transformed from sveltekit:noscroll so it should be camel case
-        sveltekitNoscroll?: true;
-        sveltekitPrefetch?: true;
+        sveltekitNoscroll?: true | undefined;
+        sveltekitPrefetch?: true | undefined;
     }
 
     interface SvelteMediaTimeRange {
@@ -953,34 +946,34 @@ declare namespace svelte.JSX {
     }
 
     interface SvelteMediaProps {
-        readonly duration?: number;
-        readonly buffered?: SvelteMediaTimeRange[];
-        readonly played?: SvelteMediaTimeRange[];
-        readonly seekable?: SvelteMediaTimeRange[];
-        readonly seeking?: boolean;
-        readonly ended?: boolean;
+        readonly duration?: number | undefined;
+        readonly buffered?: SvelteMediaTimeRange[] | undefined;
+        readonly played?: SvelteMediaTimeRange[] | undefined;
+        readonly seekable?: SvelteMediaTimeRange[] | undefined;
+        readonly seeking?: boolean | undefined;
+        readonly ended?: boolean | undefined;
 
         /**
          * the current playback time in the video, in seconds
          */
-        currentTime?: number;
+        currentTime?: number | undefined;
         /**
          * the current playback time in the video, in seconds
          */
-        currenttime?: number;
+        currenttime?: number | undefined;
         // Doesn't work when used as HTML Attribute
         /**
          * how fast or slow to play the video, where 1 is 'normal'
          */
-        playbackRate?: number;
+        playbackRate?: number | undefined;
 
-        paused?: boolean;
+        paused?: boolean | undefined;
     }
 
     interface SvelteVideoProps extends SvelteMediaProps {
         // Binding only, don't need lowercase variant
-        readonly videoWidth?: number;
-        readonly videoHeight?: number;
+        readonly videoWidth?: number | undefined;
+        readonly videoHeight?: number | undefined;
     }
 
     interface IntrinsicElements {
