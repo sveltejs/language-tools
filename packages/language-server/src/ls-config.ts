@@ -19,7 +19,8 @@ const defaultLSConfig: LSConfig = {
         rename: { enable: true },
         selectionRange: { enable: true },
         signatureHelp: { enable: true },
-        semanticTokens: { enable: true }
+        semanticTokens: { enable: true },
+        implementation: { enable: true }
     },
     css: {
         enable: true,
@@ -110,6 +111,9 @@ export interface LSTypescriptConfig {
         enable: boolean;
     };
     semanticTokens: {
+        enable: boolean;
+    };
+    implementation: {
         enable: boolean;
     };
 }

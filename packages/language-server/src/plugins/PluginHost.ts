@@ -432,6 +432,20 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         );
     }
 
+    getImplementation(
+        textDocument: TextDocumentIdentifier,
+        position: Position
+    ): Promise<Location[] | null> {
+        const document = this.getDocument(textDocument.uri);
+
+        return this.execute<Location[] | null>(
+            'getImplementation',
+            [document, position],
+            ExecuteMode.FirstNonNull,
+            'high'
+        );
+    }
+
     onWatchFileChanges(onWatchFileChangesParas: OnWatchFileChangesPara[]): void {
         for (const support of this.plugins) {
             support.onWatchFileChanges?.(onWatchFileChangesParas);
