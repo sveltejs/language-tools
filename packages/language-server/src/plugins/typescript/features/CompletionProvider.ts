@@ -15,6 +15,7 @@ import {
 import {
     Document,
     getNodeIfIsInHTMLStartTag,
+    getNodeIfIsInStartTag,
     getWordRangeAt,
     isInTag,
     mapCompletionItemToOriginal,
@@ -210,13 +211,16 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             !!lastCompletion &&
             lastCompletion.key === document.getFilePath() &&
             lastCompletion.position.line === position.line &&
-            Math.abs(lastCompletion.position.character - position.character) < 2 &&
-            (triggerKind === CompletionTriggerKind.TriggerForIncompleteCompletions ||
-                // `let:` or `on:`
-                (triggerCharacter === ':' && isCompletionInHTMLStartTag(document, position)) ||
-                // Special case: `.` is a trigger character, but inside import path completions
-                // it shouldn't trigger another completion because we can reuse the old one
-                (triggerCharacter === '.' && isPartOfImportStatement(document.getText(), position)))
+            ((Math.abs(lastCompletion.position.character - position.character) < 2 &&
+                (triggerKind === CompletionTriggerKind.TriggerForIncompleteCompletions ||
+                    // Special case: `.` is a trigger character, but inside import path completions
+                    // it shouldn't trigger another completion because we can reuse the old one
+                    (triggerCharacter === '.' &&
+                        isPartOfImportStatement(document.getText(), position)))) ||
+                // `let:` or `on:` -> up to 3 previous characters allowed
+                (Math.abs(lastCompletion.position.character - position.character) < 4 &&
+                    triggerCharacter === ':' &&
+                    !!getNodeIfIsInStartTag(document.html, document.offsetAt(position))))
         );
     }
 
@@ -655,7 +659,11 @@ function isValidCompletion(
         value.kindModifiers !== 'declare' ||
         (!value.name.startsWith('__sveltets_') && !svelte2tsxTypes.has(value.name));
 
-    if (!isCompletionInHTMLStartTag(document, position)) {
+    const isCompletionInHTMLStartTag = !!getNodeIfIsInHTMLStartTag(
+        document.html,
+        document.offsetAt(position)
+    );
+    if (!isCompletionInHTMLStartTag) {
         return isNoSvelte2tsxCompletion;
     }
     return (value) =>
@@ -663,8 +671,4 @@ function isValidCompletion(
         // attribute suggestions, and for events they are wrong (onX instead of on:X).
         // Therefore filter them out.
         value.kind !== ts.ScriptElementKind.jsxAttribute && isNoSvelte2tsxCompletion(value);
-}
-
-function isCompletionInHTMLStartTag(document: Document, position: Position) {
-    return !!getNodeIfIsInHTMLStartTag(document.html, document.offsetAt(position));
 }
