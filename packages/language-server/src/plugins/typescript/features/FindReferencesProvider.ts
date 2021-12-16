@@ -42,7 +42,8 @@ export class FindReferencesProviderImpl implements FindReferencesProvider {
                     );
                 })
         );
-
+        // Some references are in generated code but not wrapped with explicit ignore comments.
+        // These show up as zero-length ranges, so filter them out.
         return locations.filter(hasNonZeroRange);
     }
 
