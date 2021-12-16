@@ -28,7 +28,8 @@ function setup(workspaceDir: string, filePath: string) {
 function executeTests(dir: string, workspaceDir: string) {
     const inputFile = join(dir, 'input.svelte');
     if (existsSync(inputFile)) {
-        it(dir.substring(__dirname.length), async () => {
+        const _it = dir.endsWith('.only') ? it.only : it;
+        _it(dir.substring(__dirname.length), async () => {
             const { plugin, document } = setup(workspaceDir, inputFile);
             const diagnostics = await plugin.getDiagnostics(document);
 
@@ -44,7 +45,8 @@ function executeTests(dir: string, workspaceDir: string) {
             }
         }).timeout(5000);
     } else {
-        describe(dir.substring(__dirname.length), () => {
+        const _describe = dir.endsWith('.only') ? describe.only : describe;
+        _describe(dir.substring(__dirname.length), () => {
             const subDirs = readdirSync(dir);
 
             for (const subDir of subDirs) {
