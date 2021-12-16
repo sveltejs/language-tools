@@ -11,6 +11,10 @@ import { DocumentSnapshot, SnapshotFragment, SvelteDocumentSnapshot } from '../D
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { or } from '../../../utils';
 
+type NodePredicate = (node: ts.Node) => boolean;
+
+type NodeTypePredicate<T extends ts.Node> = (node: ts.Node) => node is T;
+
 /**
  * If the given original position is within a Svelte starting tag,
  * return the snapshot of that component.
@@ -165,7 +169,7 @@ export function findContainingNode<T extends ts.Node>(
 export function findNodeAtSpan<T extends ts.Node>(
     node: ts.Node,
     span: { start: number; length: number },
-    predicate?: (node: ts.Node) => node is T
+    predicate?: NodeTypePredicate<T>
 ): T | void {
     const { start, length } = span;
 
@@ -189,10 +193,6 @@ export function findNodeAtSpan<T extends ts.Node>(
         }
     }
 }
-
-type NodePredicate = (node: ts.Node) => boolean;
-
-type NodeTypePredicate<T extends ts.Node> = (node: ts.Node) => node is T;
 
 function isSomeAncestor(node: ts.Node, predicate: NodePredicate) {
     for (let parent = node.parent; parent; parent = parent.parent) {
