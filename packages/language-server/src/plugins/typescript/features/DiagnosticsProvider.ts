@@ -16,10 +16,15 @@ import {
 import { not, flatten, passMap, regexIndexOf, swapRangeStartEndIfNecessary } from '../../../utils';
 
 enum DiagnosticCode {
-    // "Left side of comma operator is unused and has no side effects."
-    DIAGNOSTIC_CODE_NOOP_IN_COMMAS = 2695,
-    // "Unused label."
-    DIAGNOSTIC_CODE_UNUSED_LABEL = 7028
+    MODIFIERS_CANNOT_APPEAR_HERE = 1184, // "Modifiers cannot appear here."
+    USED_BEFORE_ASSIGNED = 2454, // "Variable '{0}' is used before being assigned."
+    JSX_ELEMENT_DOES_NOT_SUPPORT_ATTRIBUTES = 2607, // "JSX element class does not support attributes because it does not have a '{0}' property."
+    CANNOT_BE_USED_AS_JSX_COMPONENT = 2786, // "'{0}' cannot be used as a JSX component."
+    NOOP_IN_COMMAS = 2695, // "Left side of comma operator is unused and has no side effects."
+    NEVER_READ = 6133, // "'{0}' is declared but its value is never read."
+    ALL_IMPORTS_UNUSED = 6192, // "All imports in import declaration are unused."
+    UNUSED_LABEL = 7028, // "Unused label."
+    DUPLICATED_JSX_ATTRIBUTES = 17001 // "JSX elements cannot have multiple attributes with the same name."
 }
 
 export class DiagnosticsProviderImpl implements DiagnosticsProvider {
@@ -169,8 +174,8 @@ function isNoFalsePositive(document: Document, tsDoc: SvelteDocumentSnapshot) {
 function isNoPugFalsePositive(diagnostic: Diagnostic, document: Document): boolean {
     return (
         !isRangeInTag(diagnostic.range, document.templateInfo) &&
-        diagnostic.code !== 6133 &&
-        diagnostic.code !== 6192
+        diagnostic.code !== DiagnosticCode.NEVER_READ &&
+        diagnostic.code !== DiagnosticCode.ALL_IMPORTS_UNUSED
     );
 }
 
@@ -184,7 +189,7 @@ function isNoUsedBeforeAssigned(
     text: string,
     tsDoc: SvelteDocumentSnapshot
 ): boolean {
-    if (diagnostic.code !== 2454) {
+    if (diagnostic.code !== DiagnosticCode.USED_BEFORE_ASSIGNED) {
         return true;
     }
 
@@ -196,14 +201,14 @@ function isNoUsedBeforeAssigned(
  * but that's allowed for svelte
  */
 function isNoJsxCannotHaveMultipleAttrsError(diagnostic: Diagnostic) {
-    return diagnostic.code !== 17001;
+    return diagnostic.code !== DiagnosticCode.DUPLICATED_JSX_ATTRIBUTES;
 }
 
 /**
  * Some diagnostics have JSX-specific nomenclature. Enhance them for more clarity.
  */
 function enhanceIfNecessary(diagnostic: Diagnostic): Diagnostic {
-    if (diagnostic.code === 2786) {
+    if (diagnostic.code === DiagnosticCode.CANNOT_BE_USED_AS_JSX_COMPONENT) {
         return {
             ...diagnostic,
             message:
@@ -220,7 +225,7 @@ function enhanceIfNecessary(diagnostic: Diagnostic): Diagnostic {
         };
     }
 
-    if (diagnostic.code === 2607) {
+    if (diagnostic.code === DiagnosticCode.JSX_ELEMENT_DOES_NOT_SUPPORT_ATTRIBUTES) {
         return {
             ...diagnostic,
             message:
@@ -231,7 +236,7 @@ function enhanceIfNecessary(diagnostic: Diagnostic): Diagnostic {
         };
     }
 
-    if (diagnostic.code === 1184) {
+    if (diagnostic.code === DiagnosticCode.MODIFIERS_CANNOT_APPEAR_HERE) {
         return {
             ...diagnostic,
             message:
@@ -265,7 +270,7 @@ function isNotGenerated(text: string) {
 }
 
 function isUnusedReactiveStatementLabel(diagnostic: ts.Diagnostic) {
-    if (diagnostic.code !== DiagnosticCode.DIAGNOSTIC_CODE_UNUSED_LABEL) return false;
+    if (diagnostic.code !== DiagnosticCode.UNUSED_LABEL) return false;
 
     const diagNode = findDiagnosticNode(diagnostic);
     if (!diagNode) return false;
@@ -299,7 +304,7 @@ function resolveNoopsInReactiveStatements(lang: ts.LanguageService, diagnostics:
         if (!file) return;
 
         // guard: not target error
-        const isNoopDiag = code === DiagnosticCode.DIAGNOSTIC_CODE_NOOP_IN_COMMAS;
+        const isNoopDiag = code === DiagnosticCode.NOOP_IN_COMMAS;
         if (!isNoopDiag) return;
 
         const diagNode = findDiagnosticNode(diagnostic);
