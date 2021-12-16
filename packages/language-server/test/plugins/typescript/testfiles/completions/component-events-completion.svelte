@@ -3,5 +3,5 @@
     import CED from './component-events-event-dispatcher.svelte';
 </script>
 
-<CEI   on: />
-<CED   on: />
+<CEI   on:a />
+<CED   on />
