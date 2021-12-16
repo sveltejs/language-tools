@@ -191,4 +191,57 @@ describe('FindReferencesProvider', () => {
             }
         ]);
     });
+
+    it('ignores references inside generated TSX code', async () => {
+        const file = 'find-references-ignore-generated-tsx.svelte';
+        const uri = getUri(file);
+        const { provider, document } = setup(file);
+
+        const pos = Position.create(3, 15);
+        const results = await provider.findReferences(document, pos, {
+            includeDeclaration: true
+        });
+
+        assert.deepStrictEqual(results, [
+            {
+                uri,
+                range: {
+                    start: {
+                        line: 1,
+                        character: 13
+                    },
+                    end: {
+                        line: 1,
+                        character: 16
+                    }
+                }
+            },
+            {
+                uri,
+                range: {
+                    start: {
+                        line: 3,
+                        character: 14
+                    },
+                    end: {
+                        line: 3,
+                        character: 17
+                    }
+                }
+            },
+            {
+                uri,
+                range: {
+                    start: {
+                        line: 7,
+                        character: 4
+                    },
+                    end: {
+                        line: 7,
+                        character: 7
+                    }
+                }
+            }
+        ]);
+    });
 });
