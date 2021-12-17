@@ -238,6 +238,43 @@ describe('SveltePlugin#getDiagnostics', () => {
         ]);
     });
 
+    it('expect valid position for compilation error', async () => {
+        const message =
+            'Stores must be declared at the top level of the component (this may change in a future version of Svelte)';
+        (
+            await expectDiagnosticsFor({
+                getTranspiled: () => ({
+                    getOriginalPosition: () => Position.create(-1, -1)
+                }),
+                getCompiled: () => {
+                    const e: any = new Error();
+                    e.message = message;
+                    e.code = 123;
+                    e.start = { line: 1, column: 8 };
+                    throw e;
+                },
+                config: {}
+            })
+        ).toEqual([
+            {
+                code: 123,
+                message,
+                range: {
+                    start: {
+                        character: 0,
+                        line: 0
+                    },
+                    end: {
+                        character: 0,
+                        line: 0
+                    }
+                },
+                severity: DiagnosticSeverity.Error,
+                source: 'svelte'
+            }
+        ]);
+    });
+
     it('expect warnings', async () => {
         (
             await expectDiagnosticsFor({

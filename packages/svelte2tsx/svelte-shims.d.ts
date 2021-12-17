@@ -159,6 +159,7 @@ declare function __sveltets_1_with_any_event<Props = {}, Events = {}, Slots = {}
 ): {props: Props, events: Events & {[evt: string]: CustomEvent<any>;}, slots: Slots }
 
 declare function __sveltets_1_store_get<T = any>(store: SvelteStore<T>): T
+declare function __sveltets_1_store_get<Store extends SvelteStore<any> | undefined | null>(store: Store): Store extends SvelteStore<infer T> ? T : Store;
 declare function __sveltets_1_any(dummy: any): any;
 declare function __sveltets_1_empty(...dummy: any[]): {};
 declare function __sveltets_1_componentType(): AConstructorTypeOf<Svelte2TsxComponent<any, any, any>>
