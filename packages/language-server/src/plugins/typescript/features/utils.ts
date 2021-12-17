@@ -214,7 +214,7 @@ function isSomeAncestor(node: ts.Node, predicate: NodePredicate) {
 /**
  * Tests a node then its parent and successive ancestors for some respective predicates.
  */
-function isLineage<T extends ts.Node>(
+function nodeAndParentsSatisfyRespectivePredicates<T extends ts.Node>(
     selfPredicate: NodePredicate | NodeTypePredicate<T>,
     ...predicates: NodePredicate[]
 ) {
@@ -231,14 +231,16 @@ function isLineage<T extends ts.Node>(
     };
 }
 
-const isRenderFunction = isLineage<ts.FunctionDeclaration & { name: ts.Identifier }>(
-    (node) => ts.isFunctionDeclaration(node) && node?.name?.getText() === 'render',
-    ts.isSourceFile
+const isRenderFunction = nodeAndParentsSatisfyRespectivePredicates<
+    ts.FunctionDeclaration & { name: ts.Identifier }
+>((node) => ts.isFunctionDeclaration(node) && node?.name?.getText() === 'render', ts.isSourceFile);
+
+const isRenderFunctionBody = nodeAndParentsSatisfyRespectivePredicates(
+    ts.isBlock,
+    isRenderFunction
 );
 
-const isRenderFunctionBody = isLineage(ts.isBlock, isRenderFunction);
-
-export const isReactiveStatement = isLineage<ts.LabeledStatement>(
+export const isReactiveStatement = nodeAndParentsSatisfyRespectivePredicates<ts.LabeledStatement>(
     (node) => ts.isLabeledStatement(node) && node.label.getText() === '$',
     or(
         // function render() {
@@ -248,7 +250,12 @@ export const isReactiveStatement = isLineage<ts.LabeledStatement>(
         // function render() {
         //     ;() => {$: x, update();
         // }
-        isLineage(ts.isBlock, ts.isArrowFunction, ts.isExpressionStatement, isRenderFunctionBody)
+        nodeAndParentsSatisfyRespectivePredicates(
+            ts.isBlock,
+            ts.isArrowFunction,
+            ts.isExpressionStatement,
+            isRenderFunctionBody
+        )
     )
 );
 
