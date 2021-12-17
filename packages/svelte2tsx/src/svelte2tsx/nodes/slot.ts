@@ -16,7 +16,9 @@ import ts from 'typescript';
 import { isInterfaceOrTypeDeclaration } from '../utils/tsAst';
 
 function attributeStrValueAsJsExpression(attr: Node): string {
-    if (attr.value.length == 0) return "''"; //wut?
+    if (attr.value.length == 0) {
+        return "''"; //wut?
+    }
 
     //handle single value
     if (attr.value.length == 1) {
@@ -180,7 +182,9 @@ export class SlotHandler {
             enter(node, parent, prop) {
                 if (node.type === 'Identifier') {
                     if (parent) {
-                        if (isMember(parent, prop)) return;
+                        if (isMember(parent, prop)) {
+                            return;
+                        }
                         if (isObjectKey(parent, prop)) {
                             return;
                         }
@@ -227,8 +231,12 @@ export class SlotHandler {
         //collect attributes
         const attributes = new Map<string, string>();
         for (const attr of node.attributes) {
-            if (attr.name == 'name') continue;
-            if (!attr.value?.length) continue;
+            if (attr.name == 'name') {
+                continue;
+            }
+            if (!attr.value?.length) {
+                continue;
+            }
 
             if (attributeValueIsString(attr)) {
                 attributes.set(attr.name, attributeStrValueAsJsExpression(attr));

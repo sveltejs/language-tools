@@ -177,14 +177,22 @@ export function findNodeAtSpan<T extends ts.Node>(
 
     for (const child of node.getChildren()) {
         const childStart = child.getStart();
-        if (end <= childStart) return;
+        if (end <= childStart) {
+            return;
+        }
 
         const childEnd = child.getEnd();
-        if (start >= childEnd) continue;
+        if (start >= childEnd) {
+            continue;
+        }
 
         if (start === childStart && end === childEnd) {
-            if (!predicate) return child as T;
-            if (predicate(child)) return child;
+            if (!predicate) {
+                return child as T;
+            }
+            if (predicate(child)) {
+                return child;
+            }
         }
 
         const foundInChildren = findNodeAtSpan(child, span, predicate);
@@ -196,7 +204,9 @@ export function findNodeAtSpan<T extends ts.Node>(
 
 function isSomeAncestor(node: ts.Node, predicate: NodePredicate) {
     for (let parent = node.parent; parent; parent = parent.parent) {
-        if (predicate(parent)) return true;
+        if (predicate(parent)) {
+            return true;
+        }
     }
     return false;
 }
@@ -211,7 +221,9 @@ function isLineage<T extends ts.Node>(
     return (node: ts.Node): node is T => {
         let next = node;
         return [selfPredicate, ...predicates].every((predicate) => {
-            if (!next) return false;
+            if (!next) {
+                return false;
+            }
             const current = next;
             next = next.parent;
             return predicate(current);

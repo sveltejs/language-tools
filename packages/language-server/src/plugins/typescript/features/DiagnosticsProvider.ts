@@ -65,11 +65,9 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
             ...lang.getSuggestionDiagnostics(tsDoc.filePath),
             ...lang.getSemanticDiagnostics(tsDoc.filePath)
         ];
-
         diagnostics = diagnostics
             .filter(isNotGenerated(tsDoc.getText(0, tsDoc.getLength())))
             .filter(not(isUnusedReactiveStatementLabel));
-
         diagnostics = resolveNoopsInReactiveStatements(lang, diagnostics);
 
         return diagnostics
@@ -132,7 +130,9 @@ function mapRange(
 
 function findDiagnosticNode(diagnostic: ts.Diagnostic) {
     const { file, start, length } = diagnostic;
-    if (!file || !start || !length) return;
+    if (!file || !start || !length) {
+        return;
+    }
     const span = { start, length };
     return findNodeAtSpan(file, span);
 }
@@ -270,15 +270,23 @@ function isNotGenerated(text: string) {
 }
 
 function isUnusedReactiveStatementLabel(diagnostic: ts.Diagnostic) {
-    if (diagnostic.code !== DiagnosticCode.UNUSED_LABEL) return false;
+    if (diagnostic.code !== DiagnosticCode.UNUSED_LABEL) {
+        return false;
+    }
 
     const diagNode = findDiagnosticNode(diagnostic);
-    if (!diagNode) return false;
+    if (!diagNode) {
+        return false;
+    }
 
     // TS warning targets the identifier
-    if (!ts.isIdentifier(diagNode)) return false;
+    if (!ts.isIdentifier(diagNode)) {
+        return false;
+    }
 
-    if (!diagNode.parent) return false;
+    if (!diagNode.parent) {
+        return false;
+    }
     return isReactiveStatement(diagNode.parent);
 }
 
@@ -301,16 +309,24 @@ function resolveNoopsInReactiveStatements(lang: ts.LanguageService, diagnostics:
         const { code, file } = diagnostic;
 
         // guard: missing info
-        if (!file) return;
+        if (!file) {
+            return;
+        }
 
         // guard: not target error
         const isNoopDiag = code === DiagnosticCode.NOOP_IN_COMMAS;
-        if (!isNoopDiag) return;
+        if (!isNoopDiag) {
+            return;
+        }
 
         const diagNode = findDiagnosticNode(diagnostic);
-        if (!diagNode) return;
+        if (!diagNode) {
+            return;
+        }
 
-        if (!isInReactiveStatement(diagNode)) return;
+        if (!isInReactiveStatement(diagNode)) {
+            return;
+        }
 
         return (
             // for all identifiers in diagnostic node

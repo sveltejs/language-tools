@@ -8,11 +8,11 @@ export function not<T>(predicate: Predicate<T>) {
     return (x: T) => !predicate(x);
 }
 
-export function or<T>(...predicates: Predicate<T>[]) {
+export function or<T>(...predicates: Array<Predicate<T>>) {
     return (x: T) => predicates.some((predicate) => predicate(x));
 }
 
-export function and<T>(...predicates: Predicate<T>[]) {
+export function and<T>(...predicates: Array<Predicate<T>>) {
     return (x: T) => predicates.every((predicate) => predicate(x));
 }
 
@@ -57,7 +57,7 @@ export function getLastPartOfPath(path: string): string {
     return path.replace(/\\/g, '/').split('/').pop() || '';
 }
 
-export function flatten<T>(arr: (T | T[])[]): T[] {
+export function flatten<T>(arr: Array<T | T[]>): T[] {
     return arr.reduce(
         (all: T[], item) => (Array.isArray(item) ? [...all, ...item] : [...all, item]),
         []

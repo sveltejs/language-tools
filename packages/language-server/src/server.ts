@@ -408,7 +408,9 @@ export function startServer(options?: LSOptions) {
 
     connection.onRequest('$/getCompiledCode', async (uri: DocumentUri) => {
         const doc = docManager.get(uri);
-        if (!doc) return null;
+        if (!doc) {
+            return null;
+        }
 
         if (doc) {
             const compiled = await sveltePlugin.getCompiledResult(doc);
