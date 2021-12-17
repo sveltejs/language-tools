@@ -38,8 +38,12 @@ export function handleStore(node: Node, parent: Node, str: MagicString): void {
     // handle $store++, $store--, ++$store, --$store
     if (parent.type == 'UpdateExpression') {
         let simpleOperator;
-        if (parent.operator === '++') simpleOperator = '+';
-        if (parent.operator === '--') simpleOperator = '-';
+        if (parent.operator === '++') {
+            simpleOperator = '+';
+        }
+        if (parent.operator === '--') {
+            simpleOperator = '-';
+        }
         if (simpleOperator) {
             const storename = node.name.slice(1); // drop the $
             str.overwrite(
