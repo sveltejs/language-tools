@@ -83,8 +83,7 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
             .filter(hasNoNegativeLines)
             .filter(isNoFalsePositive(document, tsDoc))
             .map(enhanceIfNecessary)
-            .map(swapDiagRangeStartEndIfNecessary)
-            .filter(dedupDiagnostics());
+            .map(swapDiagRangeStartEndIfNecessary);
     }
 
     private async getLSAndTSDoc(document: Document) {
@@ -338,28 +337,22 @@ function resolveNoopsInReactiveStatements(lang: ts.LanguageService, diagnostics:
         );
     };
 
-    return flatten(passMap(diagnostics, expandRemainingNoopWarnings));
+    const expandedDiagnostics = flatten(passMap(diagnostics, expandRemainingNoopWarnings));
+    return expandedDiagnostics.length === diagnostics.length
+        ? expandedDiagnostics
+        : // This can generate duplicate diagnostics
+          expandedDiagnostics.filter(dedupDiagnostics());
 }
 
 function dedupDiagnostics() {
-    const hashDiagnostic = (diag: Diagnostic) =>
-        [
-            diag.range.start.line,
-            diag.range.start.character,
-            diag.range.end.line,
-            diag.range.end.character,
-            diag.severity,
-            diag.source,
-            diag.message,
-            diag.code,
-            diag.tags
-        ]
+    const hashDiagnostic = (diag: ts.Diagnostic) =>
+        [diag.start, diag.length, diag.category, diag.source, diag.code]
             .map((x) => JSON.stringify(x))
             .join(':');
 
     const known = new Set();
 
-    return (diag: Diagnostic) => {
+    return (diag: ts.Diagnostic) => {
         const key = hashDiagnostic(diag);
         if (known.has(key)) {
             return false;
