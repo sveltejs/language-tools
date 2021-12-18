@@ -106,7 +106,9 @@ export function handleAttribute(
         return;
     }
 
-    if (attr.value.length == 0) return; //wut?
+    if (attr.value.length == 0) {
+        return; //wut?
+    }
     //handle single value
     if (attr.value.length == 1) {
         const attrVal = attr.value[0];
