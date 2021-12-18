@@ -4,7 +4,6 @@ packages/svelte2tsx/test/*/samples/**/*
 packages/svelte2tsx/test/sourcemaps/samples/*
 packages/svelte2tsx/test/emitDts/samples/*/expected/**
 packages/language-server/test/**/*.svelte
-packages/language-server/test/**/expected.json
 packages/language-server/test/**/testfiles/**/*.ts
 packages/svelte-vscode/syntaxes/*.yaml
 packages/typescript-plugin/src/**/*.js
