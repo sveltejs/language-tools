@@ -28,7 +28,7 @@ describe('RenameProvider', () => {
             [pathToUrl(testDir)],
             new LSConfigManager()
         );
-        const provider = new RenameProviderImpl(lsAndTsDocResolver);
+        const provider = new RenameProviderImpl(lsAndTsDocResolver, new LSConfigManager());
         const renameDoc1 = await openDoc('rename.svelte');
         const renameDoc2 = await openDoc('rename2.svelte');
         const renameDoc3 = await openDoc('rename3.svelte');

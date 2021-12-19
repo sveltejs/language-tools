@@ -20,7 +20,7 @@ describe('DiagnosticsProvider', () => {
             [pathToUrl(testDir)],
             new LSConfigManager()
         );
-        const plugin = new DiagnosticsProviderImpl(lsAndTsDocResolver);
+        const plugin = new DiagnosticsProviderImpl(lsAndTsDocResolver, new LSConfigManager());
         const filePath = path.join(testDir, filename);
         const document = docManager.openDocument(<any>{
             uri: pathToUrl(filePath),

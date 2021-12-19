@@ -292,6 +292,12 @@
                     "title": "Svelte",
                     "description": "Enable the Svelte plugin"
                 },
+                "svelte.plugin.svelte.useNewTransformation": {
+                    "type": "boolean",
+                    "default": false,
+                    "title": "Use a new transformation for intellisense",
+                    "description": "Svelte files need to be transformed to something that TypeScript understands for intellisense. Version 2.0 of this transformation can be enabled with this setting. It will be the default, soon."
+                },
                 "svelte.plugin.svelte.diagnostics.enable": {
                     "type": "boolean",
                     "default": true,

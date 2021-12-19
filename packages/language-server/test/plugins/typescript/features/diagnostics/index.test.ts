@@ -12,12 +12,13 @@ function setup(workspaceDir: string, filePath: string) {
     const docManager = new DocumentManager(
         (textDocument) => new Document(textDocument.uri, textDocument.text)
     );
+    const configManager = new LSConfigManager();
     const lsAndTsDocResolver = new LSAndTSDocResolver(
         docManager,
         [pathToUrl(workspaceDir)],
-        new LSConfigManager()
+        configManager
     );
-    const plugin = new DiagnosticsProviderImpl(lsAndTsDocResolver);
+    const plugin = new DiagnosticsProviderImpl(lsAndTsDocResolver, configManager);
     const document = docManager.openDocument(<any>{
         uri: pathToUrl(filePath),
         text: ts.sys.readFile(filePath) || ''

@@ -16,11 +16,16 @@ import {
     isAfterSvelte2TsxPropsReturn,
     isNoTextSpanInGeneratedCode,
     SnapshotFragmentMap,
-    findContainingNode
+    findContainingNode,
+    isHTMLAttribute
 } from './utils';
+import { LSConfigManager } from '../../../ls-config';
 
 export class RenameProviderImpl implements RenameProvider {
-    constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
+    constructor(
+        private readonly lsAndTsDocResolver: LSAndTSDocResolver,
+        private readonly configManager: LSConfigManager
+    ) {}
 
     // TODO props written as `export {x as y}` are not supported yet.
 
@@ -139,9 +144,11 @@ export class RenameProviderImpl implements RenameProvider {
         if (tsDoc.parserError) {
             return null;
         }
-        const renameInfo: any = lang.getRenameInfo(tsDoc.filePath, generatedOffset, {
+
+        const renameInfo = lang.getRenameInfo(tsDoc.filePath, generatedOffset, {
             allowRenameOfImportPath: false
         });
+
         if (
             !renameInfo.canRename ||
             renameInfo.fullDisplayName?.includes('JSX.IntrinsicElements') ||
@@ -149,6 +156,17 @@ export class RenameProviderImpl implements RenameProvider {
                 !isComponentAtPosition(doc, tsDoc, originalPosition))
         ) {
             return null;
+        }
+
+        if (this.configManager.getConfig().svelte.useNewTransformation) {
+            const node = findContainingNode(
+                lang.getProgram()!.getSourceFile(tsDoc.filePath)!,
+                ts.createTextSpan(generatedOffset, 1),
+                ts.isIdentifier
+            );
+            if (isHTMLAttribute(node)) {
+                return null;
+            }
         }
 
         return renameInfo;
@@ -453,10 +471,20 @@ export class RenameProviderImpl implements RenameProvider {
         });
     }
 
+    /**
+     * In case of using JSX, it's not possible to write shorthands like `{foo}`, they are transformed
+     * to `foo={foo}` and need extra handling for renaming.
+     *
+     * In case of `useNewTransformation` - do nothing, as the property is already written in shorthand.
+     */
     private getShorthandPropInfo(
         sourceFile: ts.SourceFile,
         location: ts.RenameLocation
     ): [ts.Node, string] | null {
+        if (this.configManager.getConfig().svelte.useNewTransformation) {
+            return null;
+        }
+
         const possibleJsxAttribute = findContainingNode(
             sourceFile,
             location.textSpan,

@@ -218,7 +218,7 @@ function nodeAndParentsSatisfyRespectivePredicates<T extends ts.Node>(
     selfPredicate: NodePredicate | NodeTypePredicate<T>,
     ...predicates: NodePredicate[]
 ) {
-    return (node: ts.Node): node is T => {
+    return (node: ts.Node | undefined | void | null): node is T => {
         let next = node;
         return [selfPredicate, ...predicates].every((predicate) => {
             if (!next) {
@@ -277,3 +277,19 @@ function gatherDescendants<T extends ts.Node>(
 }
 
 export const gatherIdentifiers = (node: ts.Node) => gatherDescendants(node, ts.isIdentifier);
+
+/**
+ * Returns when given node represents an HTML Attribute. Example:
+ * The `class` in `<div class=".."`.
+ * Transformed code is `__sveltets_2_createElement("div", {"class": ".."})`.
+ * Only applies when `useNewTransformation` is `true`!
+ */
+export const isHTMLAttribute = nodeAndParentsSatisfyRespectivePredicates(
+    ts.isIdentifier,
+    ts.isPropertyAssignment,
+    ts.isObjectLiteralExpression,
+    (parent) =>
+        ts.isCallExpression(parent) &&
+        ts.isIdentifier(parent.expression) &&
+        parent.expression.text.startsWith('__sveltets_2_createElement')
+);

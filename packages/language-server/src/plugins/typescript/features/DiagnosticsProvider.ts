@@ -11,9 +11,11 @@ import {
     findNodeAtSpan,
     isReactiveStatement,
     isInReactiveStatement,
-    gatherIdentifiers
+    gatherIdentifiers,
+    isHTMLAttribute
 } from './utils';
 import { not, flatten, passMap, regexIndexOf, swapRangeStartEndIfNecessary } from '../../../utils';
+import { LSConfigManager } from '../../../ls-config';
 
 enum DiagnosticCode {
     MODIFIERS_CANNOT_APPEAR_HERE = 1184, // "Modifiers cannot appear here."
@@ -24,11 +26,16 @@ enum DiagnosticCode {
     NEVER_READ = 6133, // "'{0}' is declared but its value is never read."
     ALL_IMPORTS_UNUSED = 6192, // "All imports in import declaration are unused."
     UNUSED_LABEL = 7028, // "Unused label."
-    DUPLICATED_JSX_ATTRIBUTES = 17001 // "JSX elements cannot have multiple attributes with the same name."
+    DUPLICATED_JSX_ATTRIBUTES = 17001, // "JSX elements cannot have multiple attributes with the same name."
+    DUPLICATE_IDENTIFIER = 2300, // "Duplicate identifier 'xxx'"
+    MULTIPLE_PROPS_SAME_NAME = 1117 // "An object literal cannot have multiple properties with the same name in strict mode."
 }
 
 export class DiagnosticsProviderImpl implements DiagnosticsProvider {
-    constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
+    constructor(
+        private readonly lsAndTsDocResolver: LSAndTSDocResolver,
+        private configManager: LSConfigManager
+    ) {}
 
     async getDiagnostics(
         document: Document,
@@ -43,7 +50,8 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
             return [];
         }
 
-        const isTypescript = tsDoc.scriptKind === ts.ScriptKind.TSX;
+        const isTypescript =
+            tsDoc.scriptKind === ts.ScriptKind.TSX || tsDoc.scriptKind === ts.ScriptKind.TS;
 
         // Document preprocessing failed, show parser error instead
         if (tsDoc.parserError) {
@@ -67,7 +75,8 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
         ];
         diagnostics = diagnostics
             .filter(isNotGenerated(tsDoc.getText(0, tsDoc.getLength())))
-            .filter(not(isUnusedReactiveStatementLabel));
+            .filter(not(isUnusedReactiveStatementLabel))
+            .filter(isNoFalsePositive1(this.configManager.getConfig().svelte.useNewTransformation));
         diagnostics = resolveNoopsInReactiveStatements(lang, diagnostics);
 
         return diagnostics
@@ -81,7 +90,7 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
             }))
             .map(mapRange(fragment, document))
             .filter(hasNoNegativeLines)
-            .filter(isNoFalsePositive(document, tsDoc))
+            .filter(isNoFalsePositive2(document, tsDoc))
             .map(enhanceIfNecessary)
             .map(swapDiagRangeStartEndIfNecessary);
     }
@@ -144,6 +153,26 @@ function copyDiagnosticAndChangeNode(diagnostic: ts.Diagnostic) {
     });
 }
 
+function isNoFalsePositive1(useNewTransformation: boolean) {
+    if (!useNewTransformation) {
+        return () => true;
+    }
+
+    return (diagnostic: ts.Diagnostic) => {
+        if (
+            ![
+                DiagnosticCode.MULTIPLE_PROPS_SAME_NAME,
+                DiagnosticCode.DUPLICATE_IDENTIFIER
+            ].includes(diagnostic.code)
+        ) {
+            return true;
+        }
+
+        const node = findDiagnosticNode(diagnostic);
+        return !node || !isHTMLAttribute(node);
+    };
+}
+
 /**
  * In some rare cases mapping of diagnostics does not work and produces negative lines.
  * We filter out these diagnostics with negative lines because else the LSP
@@ -153,7 +182,7 @@ function hasNoNegativeLines(diagnostic: Diagnostic): boolean {
     return diagnostic.range.start.line >= 0 && diagnostic.range.end.line >= 0;
 }
 
-function isNoFalsePositive(document: Document, tsDoc: SvelteDocumentSnapshot) {
+function isNoFalsePositive2(document: Document, tsDoc: SvelteDocumentSnapshot) {
     const text = document.getText();
     const usesPug = document.getLanguageAttribute('template') === 'pug';
 

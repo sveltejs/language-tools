@@ -111,8 +111,11 @@ export class TypeScriptPlugin
             configManager
         );
         this.updateImportsProvider = new UpdateImportsProviderImpl(this.lsAndTsDocResolver);
-        this.diagnosticsProvider = new DiagnosticsProviderImpl(this.lsAndTsDocResolver);
-        this.renameProvider = new RenameProviderImpl(this.lsAndTsDocResolver);
+        this.diagnosticsProvider = new DiagnosticsProviderImpl(
+            this.lsAndTsDocResolver,
+            configManager
+        );
+        this.renameProvider = new RenameProviderImpl(this.lsAndTsDocResolver, configManager);
         this.hoverProvider = new HoverProviderImpl(this.lsAndTsDocResolver);
         this.findReferencesProvider = new FindReferencesProviderImpl(this.lsAndTsDocResolver);
         this.selectionRangeProvider = new SelectionRangeProviderImpl(this.lsAndTsDocResolver);

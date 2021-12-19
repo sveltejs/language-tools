@@ -70,6 +70,7 @@ export class LSAndTSDocResolver {
         return {
             ambientTypesSource: this.isSvelteCheck ? 'svelte-check' : 'svelte2tsx',
             createDocument: this.createDocument,
+            useNewTransformation: this.configManager.getConfig().svelte.useNewTransformation,
             transformOnTemplateError: !this.isSvelteCheck,
             globalSnapshotsManager: this.globalSnapshotsManager,
             notifyExceedSizeLimit: this.notifyExceedSizeLimit

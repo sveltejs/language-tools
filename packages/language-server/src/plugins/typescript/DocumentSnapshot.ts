@@ -77,6 +77,7 @@ export interface SnapshotFragment extends DocumentMapper {
  */
 export interface SvelteSnapshotOptions {
     transformOnTemplateError: boolean;
+    useNewTransformation: boolean;
 }
 
 export namespace DocumentSnapshot {
@@ -158,13 +159,20 @@ function preprocessSvelteFile(document: Document, options: SvelteSnapshotOptions
         getScriptKindFromAttributes(document.scriptInfo?.attributes ?? {}),
         getScriptKindFromAttributes(document.moduleScriptInfo?.attributes ?? {})
     ].includes(ts.ScriptKind.TSX)
-        ? ts.ScriptKind.TSX
+        ? options.useNewTransformation
+            ? ts.ScriptKind.TS
+            : ts.ScriptKind.TSX
+        : options.useNewTransformation
+        ? ts.ScriptKind.JS
         : ts.ScriptKind.JSX;
 
     try {
         const tsx = svelte2tsx(text, {
             filename: document.getFilePath() ?? undefined,
-            isTsFile: scriptKind === ts.ScriptKind.TSX,
+            isTsFile: options.useNewTransformation
+                ? scriptKind === ts.ScriptKind.TS
+                : scriptKind === ts.ScriptKind.TSX,
+            mode: options.useNewTransformation ? 'ts' : 'tsx',
             emitOnTemplateError: options.transformOnTemplateError,
             namespace: document.config?.compilerOptions?.namespace,
             accessors:
