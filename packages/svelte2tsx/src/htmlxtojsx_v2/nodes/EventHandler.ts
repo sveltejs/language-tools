@@ -18,8 +18,10 @@ export function handleEventHandler(
     const nameEnd = nameStart + attr.name.length;
 
     if (element instanceof Element) {
+        // For better mapping
+        str.overwrite(nameStart, nameStart + 1, 'on' + str.original.charAt(nameStart));
         element.addAttribute(
-            ['on', [nameStart, nameEnd]],
+            [[nameStart, nameEnd]],
             attr.expression ? [[attr.expression.start, attr.expression.end]] : ['undefined']
         );
     } else {
