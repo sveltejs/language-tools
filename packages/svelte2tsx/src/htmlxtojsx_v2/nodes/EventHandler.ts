@@ -19,7 +19,9 @@ export function handleEventHandler(
 
     if (element instanceof Element) {
         // For better mapping
-        str.overwrite(nameStart, nameStart + 1, 'on' + str.original.charAt(nameStart));
+        str.overwrite(nameStart, nameStart + 1, 'on' + str.original.charAt(nameStart), {
+            contentOnly: true
+        });
         element.addAttribute(
             [[nameStart, nameEnd]],
             attr.expression ? [[attr.expression.start, attr.expression.end]] : ['undefined']
