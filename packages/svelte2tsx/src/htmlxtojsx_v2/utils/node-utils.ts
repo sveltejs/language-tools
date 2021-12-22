@@ -33,6 +33,12 @@ export function transform(
         } else {
             let start = transformation[0];
             let end = transformation[1];
+            if (start === end) {
+                // zero-range selection, don't move, it would
+                // cause bugs and isn't necessary anyway
+                continue;
+            }
+
             if (
                 end < position - 1 &&
                 // TODO can we somehow make this more performant?
@@ -51,6 +57,7 @@ export function transform(
                 const overwrite = typeof next === 'string' ? next : '';
                 str.overwrite(end - 1, end, overwrite, { contentOnly: true });
             }
+
             str.move(start, end, position);
             appendPosition = ignoreNextString ? end : transformation[1];
             moves.push([start, end]);
