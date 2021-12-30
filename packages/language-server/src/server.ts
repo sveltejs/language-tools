@@ -245,7 +245,8 @@ export function startServer(options?: LSOptions) {
                     range: true,
                     full: true
                 },
-                linkedEditingRangeProvider: true
+                linkedEditingRangeProvider: true,
+                implementationProvider: true
             }
         };
     });
@@ -349,6 +350,10 @@ export function startServer(options?: LSOptions) {
         pluginHost.getSelectionRanges(evt.textDocument, evt.positions)
     );
 
+    connection.onImplementation((evt) =>
+        pluginHost.getImplementation(evt.textDocument, evt.position)
+    );
+
     const diagnosticsManager = new DiagnosticsManager(
         connection.sendDiagnostics,
         docManager,
@@ -408,7 +413,9 @@ export function startServer(options?: LSOptions) {
 
     connection.onRequest('$/getCompiledCode', async (uri: DocumentUri) => {
         const doc = docManager.get(uri);
-        if (!doc) return null;
+        if (!doc) {
+            return null;
+        }
 
         if (doc) {
             const compiled = await sveltePlugin.getCompiledResult(doc);

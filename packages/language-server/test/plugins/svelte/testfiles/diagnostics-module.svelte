@@ -1,3 +1,3 @@
-<script context="module" lang="typescript">
+<script context="module" lang="ts">
     export let name: string;
 </script>

@@ -11,4 +11,10 @@
     {defaultSlotProp}
   </p>
   {namedSlotProp}
+  <p slot="spread" let:a let:b={c} let:d>
+    {a === true}
+    {c === ''}
+    {a === ''}
+    {d}
+  </p>
 </Slots>

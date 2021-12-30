@@ -132,26 +132,26 @@ describe('CompletionProviderImpl', () => {
 
         assert.deepStrictEqual(eventCompletions, <CompletionItem[]>[
             {
-                detail: 'a: CustomEvent<boolean>',
+                detail: 'aa: CustomEvent<boolean>',
                 documentation: '',
-                label: 'on:a',
+                label: 'on:aa',
                 sortText: '-1',
                 textEdit: undefined
             },
             {
-                detail: 'b: MouseEvent',
+                detail: 'ab: MouseEvent',
                 documentation: {
                     kind: 'markdown',
                     value: 'TEST'
                 },
-                label: 'on:b',
+                label: 'on:ab',
                 sortText: '-1',
                 textEdit: undefined
             },
             {
-                detail: 'c: any',
+                detail: 'ac: any',
                 documentation: '',
-                label: 'on:c',
+                label: 'on:ac',
                 sortText: '-1',
                 textEdit: undefined
             }
@@ -163,7 +163,7 @@ describe('CompletionProviderImpl', () => {
 
         const completions = await completionProvider.getCompletions(
             document,
-            Position.create(5, 10),
+            Position.create(5, 11),
             {
                 triggerKind: CompletionTriggerKind.Invoked
             }
@@ -180,12 +180,12 @@ describe('CompletionProviderImpl', () => {
 
         assert.deepStrictEqual(eventCompletions, <CompletionItem[]>[
             {
-                detail: 'a: CustomEvent<boolean>',
+                detail: 'aa: CustomEvent<boolean>',
                 documentation: '',
-                label: 'on:a',
+                label: 'on:aa',
                 sortText: '-1',
                 textEdit: {
-                    newText: 'on:a',
+                    newText: 'on:aa',
                     range: {
                         start: {
                             line: 5,
@@ -193,21 +193,21 @@ describe('CompletionProviderImpl', () => {
                         },
                         end: {
                             line: 5,
-                            character: 10
+                            character: 11
                         }
                     }
                 }
             },
             {
-                detail: 'b: MouseEvent',
+                detail: 'ab: MouseEvent',
                 documentation: {
                     kind: 'markdown',
                     value: 'TEST'
                 },
-                label: 'on:b',
+                label: 'on:ab',
                 sortText: '-1',
                 textEdit: {
-                    newText: 'on:b',
+                    newText: 'on:ab',
                     range: {
                         start: {
                             line: 5,
@@ -215,18 +215,18 @@ describe('CompletionProviderImpl', () => {
                         },
                         end: {
                             line: 5,
-                            character: 10
+                            character: 11
                         }
                     }
                 }
             },
             {
-                detail: 'c: any',
+                detail: 'ac: any',
                 documentation: '',
-                label: 'on:c',
+                label: 'on:ac',
                 sortText: '-1',
                 textEdit: {
-                    newText: 'on:c',
+                    newText: 'on:ac',
                     range: {
                         start: {
                             line: 5,
@@ -234,7 +234,7 @@ describe('CompletionProviderImpl', () => {
                         },
                         end: {
                             line: 5,
-                            character: 10
+                            character: 11
                         }
                     }
                 }
@@ -274,7 +274,7 @@ describe('CompletionProviderImpl', () => {
 
         const completions = await completionProvider.getCompletions(
             document,
-            Position.create(4, 17),
+            Position.create(4, 16),
             {
                 triggerKind: CompletionTriggerKind.Invoked
             }
@@ -292,7 +292,7 @@ describe('CompletionProviderImpl', () => {
                     newText: 'on:event1',
                     range: {
                         end: {
-                            character: 17,
+                            character: 16,
                             line: 4
                         },
                         start: {
@@ -314,7 +314,7 @@ describe('CompletionProviderImpl', () => {
                     newText: 'on:event2',
                     range: {
                         end: {
-                            character: 17,
+                            character: 16,
                             line: 4
                         },
                         start: {
@@ -332,7 +332,7 @@ describe('CompletionProviderImpl', () => {
 
         const completions = await completionProvider.getCompletions(
             document,
-            Position.create(6, 17),
+            Position.create(6, 16),
             {
                 triggerKind: CompletionTriggerKind.Invoked
             }
@@ -350,7 +350,7 @@ describe('CompletionProviderImpl', () => {
                     newText: 'on:event1',
                     range: {
                         end: {
-                            character: 18,
+                            character: 17,
                             line: 6
                         },
                         start: {
@@ -946,7 +946,7 @@ describe('CompletionProviderImpl', () => {
 
         const completions = await completionProvider.getCompletions(
             document,
-            Position.create(5, 18),
+            Position.create(5, 17),
             {
                 triggerKind: CompletionTriggerKind.Invoked
             }
@@ -966,7 +966,7 @@ describe('CompletionProviderImpl', () => {
                     newText: 'let:let1',
                     range: {
                         end: {
-                            character: 18,
+                            character: 17,
                             line: 5
                         },
                         start: {
@@ -988,7 +988,7 @@ describe('CompletionProviderImpl', () => {
                     newText: 'let:let2',
                     range: {
                         end: {
-                            character: 18,
+                            character: 17,
                             line: 5
                         },
                         start: {

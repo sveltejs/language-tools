@@ -5,8 +5,27 @@ import { DiagnosticsProvider } from '../../interfaces';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { convertRange, getDiagnosticTag, mapSeverity } from '../utils';
 import { SvelteDocumentSnapshot, SvelteSnapshotFragment } from '../DocumentSnapshot';
-import { isInGeneratedCode, isAfterSvelte2TsxPropsReturn } from './utils';
-import { regexIndexOf, swapRangeStartEndIfNecessary } from '../../../utils';
+import {
+    isInGeneratedCode,
+    isAfterSvelte2TsxPropsReturn,
+    findNodeAtSpan,
+    isReactiveStatement,
+    isInReactiveStatement,
+    gatherIdentifiers
+} from './utils';
+import { not, flatten, passMap, regexIndexOf, swapRangeStartEndIfNecessary } from '../../../utils';
+
+enum DiagnosticCode {
+    MODIFIERS_CANNOT_APPEAR_HERE = 1184, // "Modifiers cannot appear here."
+    USED_BEFORE_ASSIGNED = 2454, // "Variable '{0}' is used before being assigned."
+    JSX_ELEMENT_DOES_NOT_SUPPORT_ATTRIBUTES = 2607, // "JSX element class does not support attributes because it does not have a '{0}' property."
+    CANNOT_BE_USED_AS_JSX_COMPONENT = 2786, // "'{0}' cannot be used as a JSX component."
+    NOOP_IN_COMMAS = 2695, // "Left side of comma operator is unused and has no side effects."
+    NEVER_READ = 6133, // "'{0}' is declared but its value is never read."
+    ALL_IMPORTS_UNUSED = 6192, // "All imports in import declaration are unused."
+    UNUSED_LABEL = 7028, // "Unused label."
+    DUPLICATED_JSX_ATTRIBUTES = 17001 // "JSX elements cannot have multiple attributes with the same name."
+}
 
 export class DiagnosticsProviderImpl implements DiagnosticsProvider {
     constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
@@ -39,16 +58,19 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
             ];
         }
 
-        const diagnostics: ts.Diagnostic[] = [
+        const fragment = await tsDoc.getFragment();
+
+        let diagnostics: ts.Diagnostic[] = [
             ...lang.getSyntacticDiagnostics(tsDoc.filePath),
             ...lang.getSuggestionDiagnostics(tsDoc.filePath),
             ...lang.getSemanticDiagnostics(tsDoc.filePath)
         ];
-
-        const fragment = await tsDoc.getFragment();
+        diagnostics = diagnostics
+            .filter(isNotGenerated(tsDoc.getText(0, tsDoc.getLength())))
+            .filter(not(isUnusedReactiveStatementLabel));
+        diagnostics = resolveNoopsInReactiveStatements(lang, diagnostics);
 
         return diagnostics
-            .filter(isNotGenerated(tsDoc.getText(0, tsDoc.getLength())))
             .map<Diagnostic>((diagnostic) => ({
                 range: convertRange(tsDoc, diagnostic),
                 severity: mapSeverity(diagnostic.category),
@@ -105,6 +127,23 @@ function mapRange(
     };
 }
 
+function findDiagnosticNode(diagnostic: ts.Diagnostic) {
+    const { file, start, length } = diagnostic;
+    if (!file || !start || !length) {
+        return;
+    }
+    const span = { start, length };
+    return findNodeAtSpan(file, span);
+}
+
+function copyDiagnosticAndChangeNode(diagnostic: ts.Diagnostic) {
+    return (node: ts.Node) => ({
+        ...diagnostic,
+        start: node.getStart(),
+        length: node.getWidth()
+    });
+}
+
 /**
  * In some rare cases mapping of diagnostics does not work and produces negative lines.
  * We filter out these diagnostics with negative lines because else the LSP
@@ -121,7 +160,6 @@ function isNoFalsePositive(document: Document, tsDoc: SvelteDocumentSnapshot) {
     return (diagnostic: Diagnostic) => {
         return (
             isNoJsxCannotHaveMultipleAttrsError(diagnostic) &&
-            isNoUnusedLabelWarningForReactiveStatement(diagnostic) &&
             isNoUsedBeforeAssigned(diagnostic, text, tsDoc) &&
             (!usesPug || isNoPugFalsePositive(diagnostic, document))
         );
@@ -135,8 +173,8 @@ function isNoFalsePositive(document: Document, tsDoc: SvelteDocumentSnapshot) {
 function isNoPugFalsePositive(diagnostic: Diagnostic, document: Document): boolean {
     return (
         !isRangeInTag(diagnostic.range, document.templateInfo) &&
-        diagnostic.code !== 6133 &&
-        diagnostic.code !== 6192
+        diagnostic.code !== DiagnosticCode.NEVER_READ &&
+        diagnostic.code !== DiagnosticCode.ALL_IMPORTS_UNUSED
     );
 }
 
@@ -150,7 +188,7 @@ function isNoUsedBeforeAssigned(
     text: string,
     tsDoc: SvelteDocumentSnapshot
 ): boolean {
-    if (diagnostic.code !== 2454) {
+    if (diagnostic.code !== DiagnosticCode.USED_BEFORE_ASSIGNED) {
         return true;
     }
 
@@ -158,28 +196,18 @@ function isNoUsedBeforeAssigned(
 }
 
 /**
- * Unused label warning when using reactive statement (`$: a = ...`)
- */
-function isNoUnusedLabelWarningForReactiveStatement(diagnostic: Diagnostic) {
-    return (
-        diagnostic.code !== 7028 ||
-        diagnostic.range.end.character - 1 !== diagnostic.range.start.character
-    );
-}
-
-/**
  * Jsx cannot have multiple attributes with same name,
  * but that's allowed for svelte
  */
 function isNoJsxCannotHaveMultipleAttrsError(diagnostic: Diagnostic) {
-    return diagnostic.code !== 17001;
+    return diagnostic.code !== DiagnosticCode.DUPLICATED_JSX_ATTRIBUTES;
 }
 
 /**
  * Some diagnostics have JSX-specific nomenclature. Enhance them for more clarity.
  */
 function enhanceIfNecessary(diagnostic: Diagnostic): Diagnostic {
-    if (diagnostic.code === 2786) {
+    if (diagnostic.code === DiagnosticCode.CANNOT_BE_USED_AS_JSX_COMPONENT) {
         return {
             ...diagnostic,
             message:
@@ -196,7 +224,7 @@ function enhanceIfNecessary(diagnostic: Diagnostic): Diagnostic {
         };
     }
 
-    if (diagnostic.code === 2607) {
+    if (diagnostic.code === DiagnosticCode.JSX_ELEMENT_DOES_NOT_SUPPORT_ATTRIBUTES) {
         return {
             ...diagnostic,
             message:
@@ -207,7 +235,7 @@ function enhanceIfNecessary(diagnostic: Diagnostic): Diagnostic {
         };
     }
 
-    if (diagnostic.code === 1184) {
+    if (diagnostic.code === DiagnosticCode.MODIFIERS_CANNOT_APPEAR_HERE) {
         return {
             ...diagnostic,
             message:
@@ -237,5 +265,100 @@ function isNotGenerated(text: string) {
             return true;
         }
         return !isInGeneratedCode(text, diagnostic.start, diagnostic.start + diagnostic.length);
+    };
+}
+
+function isUnusedReactiveStatementLabel(diagnostic: ts.Diagnostic) {
+    if (diagnostic.code !== DiagnosticCode.UNUSED_LABEL) {
+        return false;
+    }
+
+    const diagNode = findDiagnosticNode(diagnostic);
+    if (!diagNode) {
+        return false;
+    }
+
+    // TS warning targets the identifier
+    if (!ts.isIdentifier(diagNode)) {
+        return false;
+    }
+
+    if (!diagNode.parent) {
+        return false;
+    }
+    return isReactiveStatement(diagNode.parent);
+}
+
+/**
+ * Checks if diagnostics should be ignored because they report an unused expression* in
+ * a reactive statement, and those actually have side effects in Svelte (hinting deps).
+ *
+ *     $: x, update()
+ *
+ * Only `let` (i.e. reactive) variables are ignored. For the others, new diagnostics are
+ * emitted, centered on the (non reactive) identifiers in the initial warning.
+ */
+function resolveNoopsInReactiveStatements(lang: ts.LanguageService, diagnostics: ts.Diagnostic[]) {
+    const isLet = (file: ts.SourceFile) => (node: ts.Node) => {
+        const defs = lang.getDefinitionAtPosition(file.fileName, node.getStart());
+        return !!defs && defs.some((def) => def.fileName === file.fileName && def.kind === 'let');
+    };
+
+    const expandRemainingNoopWarnings = (diagnostic: ts.Diagnostic): void | ts.Diagnostic[] => {
+        const { code, file } = diagnostic;
+
+        // guard: missing info
+        if (!file) {
+            return;
+        }
+
+        // guard: not target error
+        const isNoopDiag = code === DiagnosticCode.NOOP_IN_COMMAS;
+        if (!isNoopDiag) {
+            return;
+        }
+
+        const diagNode = findDiagnosticNode(diagnostic);
+        if (!diagNode) {
+            return;
+        }
+
+        if (!isInReactiveStatement(diagNode)) {
+            return;
+        }
+
+        return (
+            // for all identifiers in diagnostic node
+            gatherIdentifiers(diagNode)
+                // ignore `let` (i.e. reactive) variables
+                .filter(not(isLet(file)))
+                // and create targeted diagnostics just for the remaining ids
+                .map(copyDiagnosticAndChangeNode(diagnostic))
+        );
+    };
+
+    const expandedDiagnostics = flatten(passMap(diagnostics, expandRemainingNoopWarnings));
+    return expandedDiagnostics.length === diagnostics.length
+        ? expandedDiagnostics
+        : // This can generate duplicate diagnostics
+          expandedDiagnostics.filter(dedupDiagnostics());
+}
+
+function dedupDiagnostics() {
+    const hashDiagnostic = (diag: ts.Diagnostic) =>
+        [diag.start, diag.length, diag.category, diag.source, diag.code]
+            .map((x) => JSON.stringify(x))
+            .join(':');
+
+    const known = new Set();
+
+    return (diag: ts.Diagnostic) => {
+        const key = hashDiagnostic(diag);
+        if (known.has(key)) {
+            return false;
+        } else {
+            known.add(key);
+            return true;
+        }
     };
 }

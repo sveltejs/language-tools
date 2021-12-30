@@ -268,6 +268,7 @@ const addAttributes: Record<string, IAttributeData[]> = {
     input: [
         { name: 'bind:value' },
         { name: 'bind:group', description: 'Available for type="radio" and type="checkbox"' },
+        { name: 'bind:files', description: 'Available for type="file" (readonly)' },
         indeterminateAttribute,
         { ...indeterminateAttribute, name: 'bind:indeterminate' }
     ],
@@ -286,6 +287,11 @@ const addAttributes: Record<string, IAttributeData[]> = {
             description:
                 "SvelteKit-specific attribute. Will cause SvelteKit to run the page's load function as soon as the user hovers over the link (on a desktop) or touches it (on mobile), rather than waiting for the click event to trigger navigation.",
             valueSet: 'v'
+        }
+    ],
+    details: [
+        {
+            name: 'bind:open'
         }
     ]
 };
