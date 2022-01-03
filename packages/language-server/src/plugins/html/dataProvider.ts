@@ -268,6 +268,7 @@ const addAttributes: Record<string, IAttributeData[]> = {
     input: [
         { name: 'bind:value' },
         { name: 'bind:group', description: 'Available for type="radio" and type="checkbox"' },
+        { name: 'bind:checked', description: 'Available for type="checkbox"' },
         { name: 'bind:files', description: 'Available for type="file" (readonly)' },
         indeterminateAttribute,
         { ...indeterminateAttribute, name: 'bind:indeterminate' }
