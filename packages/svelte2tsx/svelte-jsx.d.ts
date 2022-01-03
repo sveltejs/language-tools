@@ -100,7 +100,7 @@ declare namespace svelte.JSX {
       onchange?: FormEventHandler<T> | undefined | null;
       oninput?: FormEventHandler<T> | undefined | null;
       onreset?: FormEventHandler<T> | undefined | null;
-      onsubmit?: FormEventHandler<T> | undefined | null;
+      onsubmit?: EventHandler<SubmitEvent, T> | undefined | null;
       oninvalid?: EventHandler<Event, T> | undefined | null;
       onbeforeinput?: EventHandler<InputEvent, T> | undefined | null;
 
