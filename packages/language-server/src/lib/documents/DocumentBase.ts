@@ -1,6 +1,5 @@
-import { clamp } from '../../utils';
 import { Position, TextDocument } from 'vscode-languageserver';
-import { getLineOffsets } from './utils';
+import { getLineOffsets, offsetAt, positionAt } from './utils';
 
 /**
  * Represents a textual document.
@@ -43,32 +42,7 @@ export abstract class ReadableDocument implements TextDocument {
      * @param offset The index of the position
      */
     positionAt(offset: number): Position {
-        offset = clamp(offset, 0, this.getTextLength());
-
-        const lineOffsets = this.getLineOffsets();
-        let low = 0;
-        let high = lineOffsets.length;
-        if (high === 0) {
-            return Position.create(0, offset);
-        }
-
-        while (low <= high) {
-            const mid = Math.floor((low + high) / 2);
-            const lineOffset = lineOffsets[mid];
-
-            if (lineOffset === offset) {
-                return Position.create(mid, 0);
-            } else if (offset > lineOffset) {
-                low = mid + 1;
-            } else {
-                high = mid - 1;
-            }
-        }
-
-        // low is the least x for which the line offset is larger than the current offset
-        // or array.length if no line offset is larger than the current offset
-        const line = low - 1;
-        return Position.create(line, offset - lineOffsets[line]);
+        return positionAt(offset, this.getText(), this.getLineOffsets());
     }
 
     /**
@@ -76,21 +50,7 @@ export abstract class ReadableDocument implements TextDocument {
      * @param position Line and character position
      */
     offsetAt(position: Position): number {
-        const lineOffsets = this.getLineOffsets();
-
-        if (position.line >= lineOffsets.length) {
-            return this.getTextLength();
-        } else if (position.line < 0) {
-            return 0;
-        }
-
-        const lineOffset = lineOffsets[position.line];
-        const nextLineOffset =
-            position.line + 1 < lineOffsets.length
-                ? lineOffsets[position.line + 1]
-                : this.getTextLength();
-
-        return clamp(nextLineOffset, lineOffset, lineOffset + position.character);
+        return offsetAt(position, this.getText(), this.getLineOffsets());
     }
 
     private getLineOffsets() {
