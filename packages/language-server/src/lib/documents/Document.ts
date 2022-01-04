@@ -69,6 +69,7 @@ export class Document extends WritableDocument {
     setText(text: string) {
         this.content = text;
         this.version++;
+        this.lineOffsets = undefined;
         this.updateDocInfo();
     }
 

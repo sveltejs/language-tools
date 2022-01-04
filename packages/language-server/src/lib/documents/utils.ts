@@ -172,23 +172,31 @@ export function extractTemplateTag(source: string, html?: HTMLDocument): TagInfo
  * Get the line and character based on the offset
  * @param offset The index of the position
  * @param text The text for which the position should be retrived
+ * @param lineOffsets number Array with offsets for each line. Computed if not given
  */
-export function positionAt(offset: number, text: string): Position {
+export function positionAt(
+    offset: number,
+    text: string,
+    lineOffsets = getLineOffsets(text)
+): Position {
     offset = clamp(offset, 0, text.length);
 
-    const lineOffsets = getLineOffsets(text);
     let low = 0;
     let high = lineOffsets.length;
     if (high === 0) {
         return Position.create(0, offset);
     }
 
-    while (low < high) {
+    while (low <= high) {
         const mid = Math.floor((low + high) / 2);
-        if (lineOffsets[mid] > offset) {
-            high = mid;
-        } else {
+        const lineOffset = lineOffsets[mid];
+
+        if (lineOffset === offset) {
+            return Position.create(mid, 0);
+        } else if (offset > lineOffset) {
             low = mid + 1;
+        } else {
+            high = mid - 1;
         }
     }
 
@@ -202,10 +210,13 @@ export function positionAt(offset: number, text: string): Position {
  * Get the offset of the line and character position
  * @param position Line and character position
  * @param text The text for which the offset should be retrived
+ * @param lineOffsets number Array with offsets for each line. Computed if not given
  */
-export function offsetAt(position: Position, text: string): number {
-    const lineOffsets = getLineOffsets(text);
-
+export function offsetAt(
+    position: Position,
+    text: string,
+    lineOffsets = getLineOffsets(text)
+): number {
     if (position.line >= lineOffsets.length) {
         return text.length;
     } else if (position.line < 0) {
@@ -219,7 +230,7 @@ export function offsetAt(position: Position, text: string): number {
     return clamp(nextLineOffset, lineOffset, lineOffset + position.character);
 }
 
-function getLineOffsets(text: string) {
+export function getLineOffsets(text: string) {
     const lineOffsets = [];
     let isLineStart = true;
 
