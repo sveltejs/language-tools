@@ -19,7 +19,7 @@
     },
     "homepage": "https://github.com/sveltejs/language-tools#readme",
     "dependencies": {
-        "chalk": "^4.0.0",
+        "picocolors": "^1.0.0",
         "chokidar": "^3.4.1",
         "fast-glob": "^3.2.7",
         "import-fresh": "^3.2.1",
