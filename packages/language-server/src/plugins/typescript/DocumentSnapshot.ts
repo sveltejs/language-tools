@@ -10,7 +10,8 @@ import {
     offsetAt,
     positionAt,
     TagInformation,
-    isInTag
+    isInTag,
+    getLineOffsets
 } from '../../lib/documents';
 import { pathToUrl } from '../../utils';
 import { ConsumerDocumentMapper } from './DocumentMapper';
@@ -313,6 +314,7 @@ export class JSOrTSDocumentSnapshot
 {
     scriptKind = getScriptKindFromFileName(this.filePath);
     scriptInfo = null;
+    private lineOffsets?: number[];
 
     constructor(public version: number, public readonly filePath: string, private text: string) {
         super(pathToUrl(filePath));
@@ -335,11 +337,11 @@ export class JSOrTSDocumentSnapshot
     }
 
     positionAt(offset: number) {
-        return positionAt(offset, this.text);
+        return positionAt(offset, this.text, this.getLineOffsets());
     }
 
     offsetAt(position: Position): number {
-        return offsetAt(position, this.text);
+        return offsetAt(position, this.text, this.getLineOffsets());
     }
 
     async getFragment() {
@@ -365,6 +367,14 @@ export class JSOrTSDocumentSnapshot
         }
 
         this.version++;
+        this.lineOffsets = undefined;
+    }
+
+    private getLineOffsets() {
+        if (!this.lineOffsets) {
+            this.lineOffsets = getLineOffsets(this.text);
+        }
+        return this.lineOffsets;
     }
 }
 
@@ -373,6 +383,8 @@ export class JSOrTSDocumentSnapshot
  * to generated snapshot positions and vice versa.
  */
 export class SvelteSnapshotFragment implements SnapshotFragment {
+    private lineOffsets = getLineOffsets(this.text);
+
     constructor(
         private readonly mapper: DocumentMapper,
         public readonly text: string,
@@ -409,11 +421,11 @@ export class SvelteSnapshotFragment implements SnapshotFragment {
     }
 
     positionAt(offset: number) {
-        return positionAt(offset, this.text);
+        return positionAt(offset, this.text, this.lineOffsets);
     }
 
     offsetAt(position: Position) {
-        return offsetAt(position, this.text);
+        return offsetAt(position, this.text, this.lineOffsets);
     }
 
     /**

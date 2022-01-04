@@ -1,5 +1,6 @@
 import { clamp } from '../../utils';
 import { Position, TextDocument } from 'vscode-languageserver';
+import { getLineOffsets } from './utils';
 
 /**
  * Represents a textual document.
@@ -26,6 +27,11 @@ export abstract class ReadableDocument implements TextDocument {
     public version = 0;
 
     /**
+     * Should be cleared when there's an update to the text
+     */
+    protected lineOffsets?: number[];
+
+    /**
      * Get the length of the document's content
      */
     getTextLength(): number {
@@ -46,12 +52,16 @@ export abstract class ReadableDocument implements TextDocument {
             return Position.create(0, offset);
         }
 
-        while (low < high) {
+        while (low <= high) {
             const mid = Math.floor((low + high) / 2);
-            if (lineOffsets[mid] > offset) {
-                high = mid;
-            } else {
+            const lineOffset = lineOffsets[mid];
+
+            if (lineOffset === offset) {
+                return Position.create(mid, 0);
+            } else if (offset > lineOffset) {
                 low = mid + 1;
+            } else {
+                high = mid - 1;
             }
         }
 
@@ -84,27 +94,10 @@ export abstract class ReadableDocument implements TextDocument {
     }
 
     private getLineOffsets() {
-        const lineOffsets = [];
-        const text = this.getText();
-        let isLineStart = true;
-
-        for (let i = 0; i < text.length; i++) {
-            if (isLineStart) {
-                lineOffsets.push(i);
-                isLineStart = false;
-            }
-            const ch = text.charAt(i);
-            isLineStart = ch === '\r' || ch === '\n';
-            if (ch === '\r' && i + 1 < text.length && text.charAt(i + 1) === '\n') {
-                i++;
-            }
+        if (!this.lineOffsets) {
+            this.lineOffsets = getLineOffsets(this.getText());
         }
-
-        if (isLineStart && text.length > 0) {
-            lineOffsets.push(text.length);
-        }
-
-        return lineOffsets;
+        return this.lineOffsets;
     }
 
     /**
@@ -126,7 +119,8 @@ export abstract class ReadableDocument implements TextDocument {
  */
 export abstract class WritableDocument extends ReadableDocument {
     /**
-     * Set the text content of the document
+     * Set the text content of the document.
+     * Implementers should set `lineOffsets` to `undefined` here.
      * @param text The new text content
      */
     abstract setText(text: string): void;
@@ -138,6 +132,7 @@ export abstract class WritableDocument extends ReadableDocument {
      * @param end End offset of the new text
      */
     update(text: string, start: number, end: number): void {
+        this.lineOffsets = undefined;
         const content = this.getText();
         this.setText(content.slice(0, start) + text + content.slice(end));
     }
