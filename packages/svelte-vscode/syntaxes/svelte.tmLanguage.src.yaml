@@ -363,12 +363,9 @@ repository:
     # No quotes - just an interpolation expression.
     - include: '#interpolation'
     # Units, meaning digit characters and an optional unit string. e.g. `15px`
-    - match: (?:(['"])([0-9._]+[\w%]{,4})(\1))|(?:([0-9._]+[\w%]{,4})(?=\s|/?>))
-      captures:
-        1: { name: punctuation.definition.string.begin.svelte }
-        2: { name: constant.numeric.decimal.svelte }
-        3: { name: punctuation.definition.string.end.svelte }
-        4: { name: constant.numeric.decimal.svelte }
+    - match: ([0-9._]+[\w]{,4})(?=\s|/?>)
+      name: constant.numeric.decimal.svelte
+      patterns: [ include: '#interpolation' ]
     # Unquoted strings.
     - match: ([^\s"'=<>`/]|/(?!>))+
       name: string.unquoted.svelte
