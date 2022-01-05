@@ -339,24 +339,36 @@ repository:
   # Matches attribute keyvalues. (and boolean attributes as well)
   # e.g. `class="my-class"`
   attributes-keyvalue:
-    begin: ([_$[:alpha:]][_\-$[:alnum:]]*)
-    beginCaptures: { 1: { name: entity.other.attribute-name.svelte } }
+    begin: ((?:--)?[_$[:alpha:]][_\-$[:alnum:]]*)
+    beginCaptures:
+      0:
+        patterns:
+        # Matches if the key is a `--css-variable` attribute.
+        - match: --.*
+          name: support.type.property-name.svelte
+        # Matches everything else.
+        - match: .*
+          name: entity.other.attribute-name.svelte
     end: (?=\s*+[^=\s])
     name: 'meta.attribute.$1.svelte'
-    patterns: [ include: '#attributes-value' ]
+    patterns:
+    - begin: '='
+      beginCaptures: { 0: { name: punctuation.separator.key-value.svelte } }
+      end: (?<=[^\s=])(?!\s*=)|(?=/?>)
+      patterns: [include: '#attributes-value']
 
-  # The value part of attribute keyvalues. e.g. `="my-class"` in `class="my-class"`
+  # The value part of attribute keyvalues. e.g. `"my-class"` in `class="my-class"`
   attributes-value:
-    begin: '='
-    beginCaptures: { 0: { name: punctuation.separator.key-value.svelte } }
-    end: (?<=[^\s=])(?!\s*=)|(?=/?>)
     patterns:
     # No quotes - just an interpolation expression.
     - include: '#interpolation'
     # Units, meaning digit characters and an optional unit string. e.g. `15px`
-    - match: ([0-9._]+[\w]{,4})(?=\s|/?>)
-      name: constant.numeric.decimal.svelte
-      patterns: [ include: '#interpolation' ]
+    - match: (?:(['"])([0-9._]+[\w%]{,4})(\1))|(?:([0-9._]+[\w%]{,4})(?=\s|/?>))
+      captures:
+        1: { name: punctuation.definition.string.begin.svelte }
+        2: { name: constant.numeric.decimal.svelte }
+        3: { name: punctuation.definition.string.end.svelte }
+        4: { name: constant.numeric.decimal.svelte }
     # Unquoted strings.
     - match: ([^\s"'=<>`/]|/(?!>))+
       name: string.unquoted.svelte
@@ -365,7 +377,7 @@ repository:
     - begin: (['"])
       end: \1
       beginCaptures: { 0: { name: punctuation.definition.string.begin.svelte } }
-      endCaptures: { 0: { name: punctuation.definition.string.end.svelte } }
+      endCaptures:   { 0: { name: punctuation.definition.string.end.svelte } }
       name: string.quoted.svelte
       patterns: [ include: '#interpolation' ]
 
@@ -419,7 +431,10 @@ repository:
     end: (?=\s*+[^=\s])
     name: meta.directive.$1.svelte
     patterns:
-    - include: '#attributes-value'
+    - begin: '='
+      beginCaptures: { 0: { name: punctuation.separator.key-value.svelte } }
+      end: (?<=[^\s=])(?!\s*=)|(?=/?>)
+      patterns: [include: '#attributes-value']
 
   # ------
   #  TAGS
