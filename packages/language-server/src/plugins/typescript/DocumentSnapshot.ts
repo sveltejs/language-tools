@@ -450,18 +450,15 @@ export class SvelteSnapshotFragment implements SnapshotFragment {
 }
 
 function getChangeRange(oldSnapshot: DocumentSnapshot, currentSnapshot: DocumentSnapshot) {
-    // TODO problem: doesn't work reliably, gets into a bad state seemingly random after some time
-    console.trace('version', oldSnapshot.version, '->', currentSnapshot.version);
     try {
         if (oldSnapshot.version >= currentSnapshot.version) {
             return undefined;
         }
 
-        performance.mark('oldnew');
         const oldText = oldSnapshot.getFullText();
         const currentText = currentSnapshot.getFullText();
 
-        let diffStart = 0;
+        let diffStart = oldText.length - 1;
         for (let i = 0; i < currentText.length; i++) {
             if (oldText.charAt(i) !== currentText.charAt(i)) {
                 diffStart = i;
@@ -471,33 +468,19 @@ function getChangeRange(oldSnapshot: DocumentSnapshot, currentSnapshot: Document
 
         let lengthDiff = currentText.length - oldText.length;
         let diffEnd = diffStart + 1;
-        for (let i = currentText.length; i > diffStart; i--) {
+        for (let i = currentText.length - 1; i > diffStart; i--) {
             if (oldText.charAt(i - lengthDiff) !== currentText.charAt(i)) {
-                diffEnd = i;
+                diffEnd = i + 1;
                 break;
             }
         }
 
-        performance.mark('oldnewend');
-        performance.measure('oldnew', 'oldnew', 'oldnewend');
         if (diffStart === 0 && diffEnd >= currentText.length - 1) {
             return undefined;
         } else {
-            console.log(
-                'diff is from',
-                diffStart,
-                'to',
-                diffEnd,
-                'with lengthdiff',
-                lengthDiff,
-                '::\n' + currentText.substring(diffStart, diffEnd)
-            );
-            if (oldSnapshot.version + 1 !== currentSnapshot.version) {
-                console.log('textnow:', currentText);
-            }
             return ts.createTextChangeRange(
-                ts.createTextSpan(diffStart, diffEnd - diffStart),
-                diffEnd + lengthDiff - diffStart
+                ts.createTextSpan(diffStart, diffEnd - diffStart - lengthDiff),
+                diffEnd - diffStart
             );
         }
     } catch (e) {
