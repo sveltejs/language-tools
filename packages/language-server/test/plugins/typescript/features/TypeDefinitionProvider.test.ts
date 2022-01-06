@@ -1,18 +1,18 @@
-import path from 'path';
 import assert from 'assert';
+import path from 'path';
 import ts from 'typescript';
+import { Location } from 'vscode-languageserver-protocol';
 import { Document, DocumentManager } from '../../../../src/lib/documents';
 import { LSConfigManager } from '../../../../src/ls-config';
 import { LSAndTSDocResolver } from '../../../../src/plugins';
-import { ImplementationProviderImpl } from '../../../../src/plugins/typescript/features/ImplementationProvider';
+import { TypeDefinitionProviderImpl } from '../../../../src/plugins/typescript/features/TypeDefinitionProvider';
 import { pathToUrl } from '../../../../src/utils';
-import { Location } from 'vscode-languageserver-protocol';
 
 const testDir = path.join(__dirname, '..');
 
-describe('ImplementationProvider', () => {
+describe('TypeDefinitionProvider', () => {
     function getFullPath(filename: string) {
-        return path.join(testDir, 'testfiles', 'implementation', filename);
+        return path.join(testDir, 'testfiles', 'typedefinition', filename);
     }
 
     function getUri(filename: string) {
@@ -28,7 +28,7 @@ describe('ImplementationProvider', () => {
             [testDir],
             new LSConfigManager()
         );
-        const provider = new ImplementationProviderImpl(lsAndTsDocResolver);
+        const provider = new TypeDefinitionProviderImpl(lsAndTsDocResolver);
         const filePath = getFullPath(filename);
         const document = docManager.openDocument(<any>{
             uri: pathToUrl(filePath),
@@ -37,40 +37,52 @@ describe('ImplementationProvider', () => {
         return { provider, document };
     }
 
-    it('find implementations', async () => {
-        const { document, provider } = setup('implementation.svelte');
+    it('find type definition in TS file', async () => {
+        const { document, provider } = setup('typedefinition.svelte');
 
-        const implementations = await provider.getImplementation(document, {
-            line: 3,
-            character: 25
+        const typeDefs = await provider.getTypeDefinition(document, {
+            line: 5,
+            character: 15
         });
 
-        assert.deepStrictEqual(implementations, <Location[]>[
+        assert.deepStrictEqual(typeDefs, <Location[]>[
             {
                 range: {
                     start: {
-                        line: 5,
-                        character: 24
+                        line: 0,
+                        character: 13
                     },
                     end: {
-                        line: 7,
-                        character: 5
+                        line: 0,
+                        character: 30
                     }
                 },
-                uri: getUri('implementation.svelte')
-            },
+                uri: getUri('some-class.ts')
+            }
+        ]);
+    });
+
+    it('find type definition in same Svelte file', async () => {
+        const { document, provider } = setup('typedefinition.svelte');
+
+        const typeDefs = await provider.getTypeDefinition(document, {
+            line: 6,
+            character: 20
+        });
+
+        assert.deepStrictEqual(typeDefs, <Location[]>[
             {
                 range: {
                     start: {
-                        line: 5,
-                        character: 11
+                        line: 3,
+                        character: 10
                     },
                     end: {
-                        line: 7,
-                        character: 5
+                        line: 3,
+                        character: 19
                     }
                 },
-                uri: getUri('some-type.ts')
+                uri: getUri('typedefinition.svelte')
             }
         ]);
     });
