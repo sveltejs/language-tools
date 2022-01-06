@@ -104,6 +104,13 @@ export function convertToLocationRange(defDoc: SnapshotFragment, textSpan: ts.Te
     return range;
 }
 
+export function hasNonZeroRange({ range }: { range?: Range }) {
+    return (
+        range &&
+        (range.start.line !== range.end.line || range.start.character !== range.end.character)
+    );
+}
+
 export function findTsConfigPath(fileName: string, rootUris: string[]) {
     const searchDir = dirname(fileName);
 
@@ -312,4 +319,16 @@ export function getDiagnosticTag(diagnostic: ts.Diagnostic): DiagnosticTag[] {
         tags.push(DiagnosticTag.Deprecated);
     }
     return tags;
+}
+
+export function changeSvelteComponentName(name: string) {
+    return name.replace(/(\w+)__SvelteComponent_/, '$1');
+}
+
+export function hasTsExtensions(fileName: string) {
+    return (
+        fileName.endsWith(ts.Extension.Dts) ||
+        fileName.endsWith(ts.Extension.Tsx) ||
+        fileName.endsWith(ts.Extension.Ts)
+    );
 }

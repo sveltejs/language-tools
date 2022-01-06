@@ -323,11 +323,11 @@ s
             </div>
                                                                                                                                                       {/**
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
-            <div class="chapter-markup" {...__sveltets_1_ensureType(__sveltets_1_ctorOf(__sveltets_1_mapElementTag('div')), scrollable)}>             {/**
-         ╚╚╚<div•class="chapter-markup"•{...__sveltets_1_ensureType(__sveltets_1_ctorOf(__sveltets_1_mapElementTag('div')),•scrollable)}>↲    [generated] line 139
-         ╚╚╚<div•c    ="chapter-markup"•                                                                                    scrollable} >↲            
-         ╚╚╚<div•c    ="chapter-markup"•           scrollable}>↲                                                                                      
-         ╚╚╚<div•class="chapter-markup"•bind:this={scrollable}>↲                                                                              [original] line 278 
+            <div class="chapter-markup" {...__sveltets_1_empty(scrollable = /*Ωignore_startΩ*/__sveltets_1_instanceOf(__sveltets_1_ctorOf(__sveltets_1_mapElementTag('div')))/*Ωignore_endΩ*/)}>{/**
+         ╚╚╚<div•class="chapter-markup"•{...__sveltets_1_empty(scrollable•=•/*Ωignore_startΩ*/__sveltets_1_instanceOf(__sveltets_1_ctorOf(__sveltets_1_mapElementTag('div')))/*Ωignore_endΩ*/)}>↲    [generated] line 139
+         ╚╚╚<div•c    ="chapter-markup"•b                      scrollable}                                                                                                                     >↲    
+         ╚╚╚<div•c    ="chapter-markup"•b          scrollable}>↲                                                                                                                                     
+         ╚╚╚<div•class="chapter-markup"•bind:this={scrollable}>↲                                                                                                                                     [original] line 278 
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                 { chapter.html}                                                                                                                       {/**
             ╚╚╚╚{•chapter.html}↲         [generated] line 140                                                                                         
@@ -400,11 +400,11 @@ s
         <div class="tutorial-repl">
             <Repl                                                                                                                                     {/**
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
-                {...__sveltets_1_ensureType(Repl, repl)}                                                                                              {/**
-            ╚╚╚╚{...__sveltets_1_ensureType(Repl,•repl)}↲    [generated] line 163                                                                     
-            ╚╚╚╚                                  repl} ↲                                                                                             
-            ╚╚╚╚           repl}↲                                                                                                                     
-            ╚╚╚╚bind:this={repl}↲                            [original] line 303                                                                      
+                {...__sveltets_1_empty(repl = /*Ωignore_startΩ*/new Repl({target: __sveltets_1_any(''), props: __sveltets_1_any('')})/*Ωignore_endΩ*/)}{/**
+            ╚╚╚╚{...__sveltets_1_empty(repl•=•/*Ωignore_startΩ*/new•Repl({target:•__sveltets_1_any(''),•props:•__sveltets_1_any('')})/*Ωignore_endΩ*/)}↲    [generated] line 163
+            ╚╚╚╚b                      repl}                                                                                                           ↲    
+            ╚╚╚╚b          repl}↲                                                                                                                           
+            ╚╚╚╚bind:this={repl}↲                                                                                                                           [original] line 303 
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                 workersUrl="workers"                                                                                                                  {/**
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}

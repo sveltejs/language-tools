@@ -6,8 +6,19 @@ If a svelte file contains some language other than `html`, `css` or `javascript`
 
 > NOTE: Prior to `svelte-check 1.4.0` / `svelte-language-server 0.13.0` / `Svelte for VS Code 104.9.0` you **cannot** use the new `import x from y` and `export const` / `export default` syntax in `svelte.config.js`.
 
+ESM-style (for everything with `"type": "module"` in its `package.json`, like SvelteKit):
+
 ```js
-// svelte.config.js
+import sveltePreprocess from 'svelte-preprocess';
+
+export default {
+    preprocess: sveltePreprocess()
+};
+```
+
+CJS-style:
+
+```js
 const sveltePreprocess = require('svelte-preprocess');
 
 module.exports = {
@@ -42,7 +53,7 @@ If you use `svelte-preprocess` and [define the defaults](https://github.com/svel
 
 #### Deduplicating your configs
 
-Most of the preprocessor settings you write inside your `svelte.config.js` is likely duplicated in your build config. Here's how to deduplicate it (using rollup as an example):
+Most of the preprocessor settings you write inside your `svelte.config.js` is likely duplicated in your build config. Here's how to deduplicate it (using rollup and CJS-style config as an example):
 
 ```js
 // svelte.config.js:

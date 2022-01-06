@@ -16,7 +16,9 @@ import ts from 'typescript';
 import { isInterfaceOrTypeDeclaration } from '../utils/tsAst';
 
 function attributeStrValueAsJsExpression(attr: Node): string {
-    if (attr.value.length == 0) return "''"; //wut?
+    if (attr.value.length == 0) {
+        return "''"; //wut?
+    }
 
     //handle single value
     if (attr.value.length == 1) {
@@ -59,6 +61,12 @@ export class SlotHandler {
         return resolved;
     }
 
+    /**
+     * Returns a string which expresses the given identifier unpacked to
+     * the top level in order to express the slot types correctly later on.
+     *
+     * Example: {#each items as item} ---> __sveltets_1_unwrapArr(items)
+     */
     private getResolveExpressionStr(
         identifierDef: SvelteIdentifier,
         scope: TemplateScope,
@@ -166,6 +174,10 @@ export class SlotHandler {
         }));
     }
 
+    /**
+     * Resolves the slot expression to a string that can be used
+     * in the props-object in the return type of the render function
+     */
     private resolveExpression(expression: Node, scope: TemplateScope) {
         let resolved = this.resolvedExpression.get(expression);
         if (resolved) {
@@ -180,7 +192,9 @@ export class SlotHandler {
             enter(node, parent, prop) {
                 if (node.type === 'Identifier') {
                     if (parent) {
-                        if (isMember(parent, prop)) return;
+                        if (isMember(parent, prop)) {
+                            return;
+                        }
                         if (isObjectKey(parent, prop)) {
                             return;
                         }
@@ -227,8 +241,20 @@ export class SlotHandler {
         //collect attributes
         const attributes = new Map<string, string>();
         for (const attr of node.attributes) {
-            if (attr.name == 'name') continue;
-            if (!attr.value?.length) continue;
+            if (attr.name == 'name') {
+                continue;
+            }
+
+            if (attr.type === 'Spread') {
+                const rawName = attr.expression.name;
+                const init = scope.getInit(rawName);
+                const name = init ? this.resolved.get(init) : rawName;
+                attributes.set(`__spread__${name}`, name);
+            }
+
+            if (!attr.value?.length) {
+                continue;
+            }
 
             if (attributeValueIsString(attr)) {
                 attributes.set(attr.name, attributeStrValueAsJsExpression(attr));
@@ -260,6 +286,7 @@ export class SlotHandler {
         if (attrVal.type == 'MustacheTag') {
             return this.resolveExpression(attrVal.expression, scope);
         }
+
         throw Error('Unknown attribute value type:' + attrVal.type);
     }
 }

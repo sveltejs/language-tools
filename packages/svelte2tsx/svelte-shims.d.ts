@@ -55,7 +55,7 @@ interface Svelte2TsxComponentConstructorParameters<Props extends {}> {
     /**
      * An HTMLElement to render to. This option is required.
      */
-    target: Element;
+    target: Element | ShadowRoot;
     /**
      * A child of `target` to render the component immediately before.
      */
@@ -159,8 +159,9 @@ declare function __sveltets_1_with_any_event<Props = {}, Events = {}, Slots = {}
 ): {props: Props, events: Events & {[evt: string]: CustomEvent<any>;}, slots: Slots }
 
 declare function __sveltets_1_store_get<T = any>(store: SvelteStore<T>): T
+declare function __sveltets_1_store_get<Store extends SvelteStore<any> | undefined | null>(store: Store): Store extends SvelteStore<infer T> ? T : Store;
 declare function __sveltets_1_any(dummy: any): any;
-declare function __sveltets_1_empty(dummy: any): {};
+declare function __sveltets_1_empty(...dummy: any[]): {};
 declare function __sveltets_1_componentType(): AConstructorTypeOf<Svelte2TsxComponent<any, any, any>>
 declare function __sveltets_1_invalidate<T>(getValue: () => T): T
 
@@ -204,9 +205,9 @@ declare function __sveltets_1_awaitThen<T>(
     onrejected?: (value: T extends PromiseLike<any> ? any : never) => any
 ): any;
 
-declare function __sveltets_1_each<T>(
-    array: ArrayLike<T>,
-    callbackfn: (value: T, index: number) => any
+declare function __sveltets_1_each<T extends ArrayLike<unknown>>(
+    array: T,
+    callbackfn: (value: T extends ArrayLike<infer U> ? U : any, index: number) => any
 ): any;
 
 declare function __sveltets_1_createSvelte2TsxComponent<Props, Events, Slots>(

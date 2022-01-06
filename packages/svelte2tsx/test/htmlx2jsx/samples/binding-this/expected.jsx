@@ -1,1 +1,1 @@
-<><input type="radio" {...__sveltets_1_ensureType(__sveltets_1_ctorOf(__sveltets_1_mapElementTag('input')), element)} value="Plain"/></>
+<><input type="radio" {...__sveltets_1_empty(element = /*Ωignore_startΩ*/__sveltets_1_instanceOf(__sveltets_1_ctorOf(__sveltets_1_mapElementTag('input')))/*Ωignore_endΩ*/)} value="Plain"/></>

@@ -8,8 +8,7 @@ import type ts from 'typescript/lib/tsserverlibrary';
 function init(modules: { typescript: typeof ts }) {
     function create(info: ts.server.PluginCreateInfo) {
         const logger = new Logger(info.project.projectService.logger);
-
-        if (!isSvelteProject(info)) {
+        if (!isSvelteProject(info.project.getCompilerOptions())) {
             logger.log('Detected that this is not a Svelte project, abort patching TypeScript');
             return info.languageService;
         }
@@ -34,6 +33,10 @@ function init(modules: { typescript: typeof ts }) {
     }
 
     function getExternalFiles(project: ts.server.ConfiguredProject) {
+        if (!isSvelteProject(project.getCompilerOptions())) {
+            return [];
+        }
+
         // Needed so the ambient definitions are known inside the tsx files
         const svelteTsPath = dirname(require.resolve('svelte2tsx'));
         const svelteTsxFiles = [
@@ -58,9 +61,8 @@ function init(modules: { typescript: typeof ts }) {
         }
     }
 
-    function isSvelteProject(info: ts.server.PluginCreateInfo) {
+    function isSvelteProject(compilerOptions: ts.CompilerOptions) {
         // Add more checks like "no Svelte file found" or "no config file found"?
-        const compilerOptions = info.project.getCompilerOptions();
         const isNoJsxProject =
             (!compilerOptions.jsx || compilerOptions.jsx === modules.typescript.JsxEmit.Preserve) &&
             (!compilerOptions.jsxFactory || compilerOptions.jsxFactory.startsWith('svelte')) &&

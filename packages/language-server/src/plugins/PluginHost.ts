@@ -220,7 +220,7 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
                 'getColorPresentations',
                 [document, range, color],
                 ExecuteMode.Collect,
-                'low'
+                'high'
             )
         );
     }
@@ -426,6 +426,34 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
 
         return await this.execute<LinkedEditingRanges>(
             'getLinkedEditingRanges',
+            [document, position],
+            ExecuteMode.FirstNonNull,
+            'high'
+        );
+    }
+
+    getImplementation(
+        textDocument: TextDocumentIdentifier,
+        position: Position
+    ): Promise<Location[] | null> {
+        const document = this.getDocument(textDocument.uri);
+
+        return this.execute<Location[] | null>(
+            'getImplementation',
+            [document, position],
+            ExecuteMode.FirstNonNull,
+            'high'
+        );
+    }
+
+    getTypeDefinition(
+        textDocument: TextDocumentIdentifier,
+        position: Position
+    ): Promise<Location[] | null> {
+        const document = this.getDocument(textDocument.uri);
+
+        return this.execute<Location[] | null>(
+            'getTypeDefinition',
             [document, position],
             ExecuteMode.FirstNonNull,
             'high'

@@ -11,7 +11,12 @@ import {
     TextDocumentEdit,
     TextEdit
 } from 'vscode-languageserver';
-import { mapObjWithRangeToOriginal, offsetAt, positionAt } from '../../../../lib/documents';
+import {
+    getLineOffsets,
+    mapObjWithRangeToOriginal,
+    offsetAt,
+    positionAt
+} from '../../../../lib/documents';
 import { getIndent, pathToUrl } from '../../../../utils';
 import { SvelteDocument } from '../../SvelteDocument';
 import ts from 'typescript';
@@ -89,12 +94,13 @@ async function getSvelteIgnoreEdit(svelteDoc: SvelteDocument, ast: Ast, diagnost
     } = diagnostic;
     const transpiled = await svelteDoc.getTranspiled();
     const content = transpiled.getText();
+    const lineOffsets = getLineOffsets(content);
     const { html } = ast;
     const generatedStart = transpiled.getGeneratedPosition(start);
     const generatedEnd = transpiled.getGeneratedPosition(end);
 
-    const diagnosticStartOffset = offsetAt(generatedStart, transpiled.getText());
-    const diagnosticEndOffset = offsetAt(generatedEnd, transpiled.getText());
+    const diagnosticStartOffset = offsetAt(generatedStart, content, lineOffsets);
+    const diagnosticEndOffset = offsetAt(generatedEnd, content, lineOffsets);
     const offsetRange: ts.TextRange = {
         pos: diagnosticStartOffset,
         end: diagnosticEndOffset
@@ -102,13 +108,14 @@ async function getSvelteIgnoreEdit(svelteDoc: SvelteDocument, ast: Ast, diagnost
 
     const node = findTagForRange(html, offsetRange);
 
-    const nodeStartPosition = positionAt(node.start, content);
+    const nodeStartPosition = positionAt(node.start, content, lineOffsets);
     const nodeLineStart = offsetAt(
         {
             line: nodeStartPosition.line,
             character: 0
         },
-        transpiled.getText()
+        content,
+        lineOffsets
     );
     const afterStartLineStart = content.slice(nodeLineStart);
     const indent = getIndent(afterStartLineStart);

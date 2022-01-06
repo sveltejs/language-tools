@@ -19,7 +19,7 @@
     },
     "homepage": "https://github.com/sveltejs/language-tools#readme",
     "dependencies": {
-        "chalk": "^4.0.0",
+        "picocolors": "^1.0.0",
         "chokidar": "^3.4.1",
         "fast-glob": "^3.2.7",
         "import-fresh": "^3.2.1",
@@ -53,6 +53,6 @@
         "vscode-languageserver": "7.1.0-next.4",
         "vscode-languageserver-protocol": "3.16.0",
         "vscode-languageserver-types": "3.16.0",
-        "vscode-uri": "2.1.2"
+        "vscode-uri": "~3.0.0"
     }
 }

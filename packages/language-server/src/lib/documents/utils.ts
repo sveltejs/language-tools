@@ -40,30 +40,12 @@ function parseAttributes(
 }
 
 const regexIf = new RegExp('{#if\\s.*?}', 'gms');
-const regexIfElseIf = new RegExp('{:else if\\s.*?}', 'gms');
 const regexIfEnd = new RegExp('{/if}', 'gms');
 const regexEach = new RegExp('{#each\\s.*?}', 'gms');
 const regexEachEnd = new RegExp('{/each}', 'gms');
 const regexAwait = new RegExp('{#await\\s.*?}', 'gms');
 const regexAwaitEnd = new RegExp('{/await}', 'gms');
 const regexHtml = new RegExp('{@html\\s.*?', 'gms');
-
-/**
- * if-blocks can contain the `<` operator, which mistakingly is
- * parsed as a "open tag" character by the html parser.
- * To prevent this, just replace the whole content inside the if with whitespace.
- */
-function blankIfBlocks(text: string): string {
-    return text
-        .replace(regexIf, (substr) => {
-            return '{#if' + substr.replace(/[^\n]/g, ' ').substring(4, substr.length - 1) + '}';
-        })
-        .replace(regexIfElseIf, (substr) => {
-            return (
-                '{:else if' + substr.replace(/[^\n]/g, ' ').substring(9, substr.length - 1) + '}'
-            );
-        });
-}
 
 /**
  * Extracts a tag (style or script) from the given text
@@ -77,7 +59,6 @@ function extractTags(
     tag: 'script' | 'style' | 'template',
     html?: HTMLDocument
 ): TagInformation[] {
-    text = blankIfBlocks(text);
     const rootNodes = html?.roots || parseHtml(text).roots;
     const matchedNodes = rootNodes
         .filter((node) => node.tag === tag)
@@ -191,23 +172,31 @@ export function extractTemplateTag(source: string, html?: HTMLDocument): TagInfo
  * Get the line and character based on the offset
  * @param offset The index of the position
  * @param text The text for which the position should be retrived
+ * @param lineOffsets number Array with offsets for each line. Computed if not given
  */
-export function positionAt(offset: number, text: string): Position {
+export function positionAt(
+    offset: number,
+    text: string,
+    lineOffsets = getLineOffsets(text)
+): Position {
     offset = clamp(offset, 0, text.length);
 
-    const lineOffsets = getLineOffsets(text);
     let low = 0;
     let high = lineOffsets.length;
     if (high === 0) {
         return Position.create(0, offset);
     }
 
-    while (low < high) {
+    while (low <= high) {
         const mid = Math.floor((low + high) / 2);
-        if (lineOffsets[mid] > offset) {
-            high = mid;
-        } else {
+        const lineOffset = lineOffsets[mid];
+
+        if (lineOffset === offset) {
+            return Position.create(mid, 0);
+        } else if (offset > lineOffset) {
             low = mid + 1;
+        } else {
+            high = mid - 1;
         }
     }
 
@@ -221,10 +210,13 @@ export function positionAt(offset: number, text: string): Position {
  * Get the offset of the line and character position
  * @param position Line and character position
  * @param text The text for which the offset should be retrived
+ * @param lineOffsets number Array with offsets for each line. Computed if not given
  */
-export function offsetAt(position: Position, text: string): number {
-    const lineOffsets = getLineOffsets(text);
-
+export function offsetAt(
+    position: Position,
+    text: string,
+    lineOffsets = getLineOffsets(text)
+): number {
     if (position.line >= lineOffsets.length) {
         return text.length;
     } else if (position.line < 0) {
@@ -238,7 +230,7 @@ export function offsetAt(position: Position, text: string): number {
     return clamp(nextLineOffset, lineOffset, lineOffset + position.character);
 }
 
-function getLineOffsets(text: string) {
+export function getLineOffsets(text: string) {
     const lineOffsets = [];
     let isLineStart = true;
 
@@ -343,6 +335,16 @@ export function getNodeIfIsInHTMLStartTag(html: HTMLDocument, offset: number): N
 }
 
 /**
+ * Returns the node if offset is inside a starttag (HTML or component)
+ */
+export function getNodeIfIsInStartTag(html: HTMLDocument, offset: number): Node | undefined {
+    const node = html.findNodeAt(offset);
+    if (!!node.tag && (!node.startTagEnd || offset < node.startTagEnd)) {
+        return node;
+    }
+}
+
+/**
  * Gets word range at position.
  * Delimiter is by default a whitespace, but can be adjusted.
  */
@@ -404,7 +406,26 @@ export function getLangAttribute(...tags: Array<TagInformation | null>): string 
     return attribute.replace(/^text\//, '');
 }
 
-export function isInsideMoustacheTag(html: string, tagStart: number, position: number) {
-    const charactersInNode = html.substring(tagStart, position);
-    return charactersInNode.lastIndexOf('{') > charactersInNode.lastIndexOf('}');
+/**
+ * Checks whether given position is inside a moustache tag (which includes control flow tags)
+ * using a simple bracket matching heuristic which might fail under conditions like
+ * `{#if {a: true}.a}`
+ */
+export function isInsideMoustacheTag(html: string, tagStart: number | null, position: number) {
+    if (tagStart === null) {
+        // Not inside <tag ... >
+        const charactersBeforePosition = html.substring(0, position);
+        return (
+            Math.max(
+                // TODO make this just check for '{'?
+                // Theoretically, someone could do {a < b} in a simple moustache tag
+                charactersBeforePosition.lastIndexOf('{#'),
+                charactersBeforePosition.lastIndexOf('{:')
+            ) > charactersBeforePosition.lastIndexOf('}')
+        );
+    } else {
+        // Inside <tag ... >
+        const charactersInNode = html.substring(tagStart, position);
+        return charactersInNode.lastIndexOf('{') > charactersInNode.lastIndexOf('}');
+    }
 }

@@ -70,7 +70,7 @@ export function handleAwaitThen(
         return;
     }
 
-    // then value } | {:then value} | {await ..} .. {/await} ->
+    // then value } | then} | {:then value} | {await ..} .. {/await} ->
     // __sveltets_1_awaitThen(_$$p, (value) => {(possibleIfCondition && )<>
     let thenStart: number;
     let thenEnd: number;
@@ -111,9 +111,33 @@ export function handleAwaitCatch(
     str: MagicString,
     ifScope: IfScope
 ): void {
-    //{:catch error} ->
-    //</>}, (error) => {<>
-    if (!awaitBlock.catch.skip) {
+    if (awaitBlock.catch.skip) {
+        return;
+    }
+
+    if (awaitBlock.pending.skip && awaitBlock.then.skip) {
+        if (awaitBlock.error) {
+            // {#await ... catch ...}
+            const catchBegin = htmlx.indexOf('}', awaitBlock.error.end) + 1;
+            str.overwrite(
+                awaitBlock.expression.end,
+                awaitBlock.error.start,
+                '); __sveltets_1_awaitThen(_$$p, () => {}, ('
+            );
+            str.overwrite(awaitBlock.error.end, catchBegin, ') => {<>');
+        } else {
+            // {#await ... catch}
+            const catchBegin = htmlx.indexOf('}', awaitBlock.expression.end) + 1;
+            str.overwrite(
+                awaitBlock.expression.end,
+                catchBegin,
+                '); __sveltets_1_awaitThen(_$$p, () => {}, () => {<>'
+            );
+        }
+    } else {
+        //{:catch error} ->
+        //</>}, (error) => {<>
+
         //catch block includes the {:catch}
         const catchStart = awaitBlock.catch.start;
         const catchSymbolEnd = htmlx.indexOf(':catch', catchStart) + ':catch'.length;

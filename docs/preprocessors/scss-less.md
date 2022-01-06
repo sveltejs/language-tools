@@ -23,6 +23,18 @@ npm i -D svelte-preprocess sass
 
 You need a `svelte.config.js`. [Read here on how to set it up and also how it relates to your build config](./in-general.md). If you are using [svelte-preprocess](https://github.com/sveltejs/svelte-preprocess) (recommended), this is enough:
 
+ESM-style (for everything with `"type": "module"` in its `package.json`, like SvelteKit):
+
+```js
+import sveltePreprocess from 'svelte-preprocess';
+
+export default {
+    preprocess: sveltePreprocess()
+};
+```
+
+CJS-style:
+
 ```js
 const sveltePreprocess = require('svelte-preprocess');
 
@@ -69,7 +81,7 @@ The `node-sass` package is very sensitive to node versions. It may be possible t
 
 ### SCSS: Using `includePaths` does not work
 
-If you use `includePaths` with relative paths, those paths will be resolved relative to the node process, not relative to the config file. So if you `svelte.config.js` is within `frontend`, the path `theme` will _NOT_ resolve to `frontend/theme` but to `<node process root>/theme` (which might be the same as `frontend`). To ensure it always resolves relative to the config file, do this:
+If you use `includePaths` with relative paths, those paths will be resolved relative to the node process, not relative to the config file. So if you `svelte.config.js` is within `frontend`, the path `theme` will _NOT_ resolve to `frontend/theme` but to `<node process root>/theme` (which might be the same as `frontend`). To ensure it always resolves relative to the config file, do this (assuming a CJS-style config):
 
 ```js
 const sveltePreprocess = require('svelte-preprocess');
