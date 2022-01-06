@@ -695,6 +695,70 @@ describe('CodeActionsProvider', () => {
         ]);
     });
 
+    it('organizes imports and not remove the leading comment', async () => {
+        const { provider, document } = setup('organize-imports-leading-comment.svelte');
+
+        const codeActions = await provider.getCodeActions(
+            document,
+            Range.create(Position.create(1, 4), Position.create(1, 5)), // irrelevant
+            {
+                diagnostics: [],
+                only: [CodeActionKind.SourceOrganizeImports]
+            }
+        );
+        (<TextDocumentEdit>codeActions[0]?.edit?.documentChanges?.[0])?.edits.forEach(
+            (edit) => (edit.newText = harmonizeNewLines(edit.newText))
+        );
+
+        assert.deepStrictEqual(codeActions, [
+            {
+                edit: {
+                    documentChanges: [
+                        {
+                            edits: [
+                                {
+                                    newText:
+                                        '// @ts-ignore\n' +
+                                        "    import { } from './somepng.png';\n" +
+                                        "    import { } from './t.png';\n",
+                                    range: {
+                                        end: {
+                                            character: 4,
+                                            line: 2
+                                        },
+                                        start: {
+                                            character: 4,
+                                            line: 1
+                                        }
+                                    }
+                                },
+                                {
+                                    newText: '',
+                                    range: {
+                                        end: {
+                                            character: 0,
+                                            line: 4
+                                        },
+                                        start: {
+                                            character: 4,
+                                            line: 2
+                                        }
+                                    }
+                                }
+                            ],
+                            textDocument: {
+                                uri: getUri('organize-imports-leading-comment.svelte'),
+                                version: null
+                            }
+                        }
+                    ]
+                },
+                kind: 'source.organizeImports',
+                title: 'Organize Imports'
+            }
+        ]);
+    });
+
     it('should do extract into const refactor', async () => {
         const { provider, document } = setup('codeactions.svelte');
 
