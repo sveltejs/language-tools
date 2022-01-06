@@ -170,7 +170,12 @@ export function processInstanceScriptContent(
         // - in order to get ts errors if store is not assignable to SvelteStore
         // - use $store variable defined above to get ts flow control
         const dollar = str.original.indexOf('$', ident.getStart() + astOffset);
-        const getPrefix = isSafeToPrefixWithSemicolon(ident) ? ';' : '';
+        const getPrefix = isSafeToPrefixWithSemicolon(ident)
+            ? ';'
+            : ts.isShorthandPropertyAssignment(parent)
+            ? // { $store } --> { $store: __sveltets_1_store_get(..)}
+              ident.text + ': '
+            : '';
         str.overwrite(dollar, dollar + 1, getPrefix + '(__sveltets_1_store_get(');
         str.prependLeft(ident.end + astOffset, `), $${storename})`);
     };
