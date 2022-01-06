@@ -13,22 +13,23 @@ injections:
   #     patterns: [{begin: '(?<=>)(?!</)', end: '(?=</)', name: meta.embedded.block.svelte,
   #     contentName: source.<lang>, patterns: [{ include: source.<lang> }]}]
 
-  # Script Languages
+  # Style/Script Languages
   # JavaScript | 'javascript' | 'source.js'
-  'L:meta.script.svelte meta.lang.javascript - (meta source)':
+  'L:(meta.script.svelte | meta.style.svelte) (meta.lang.js | meta.lang.javascript) - (meta source)':
     patterns: [{begin: '(?<=>)(?!</)', end: '(?=</)', name: meta.embedded.block.svelte,
     contentName: source.js, patterns: [{ include: source.js }]}]
 
   # TypeScript | 'ts' 'typescript' | 'source.ts'
-  'L:meta.script.svelte (meta.lang.ts | meta.lang.typescript) - (meta source)':
+  'L:(meta.script.svelte | meta.style.svelte) (meta.lang.ts | meta.lang.typescript) - (meta source)':
     patterns: [{begin: '(?<=>)(?!</)', end: '(?=</)', name: meta.embedded.block.svelte,
     contentName: source.ts, patterns: [{ include: source.ts }]}]
 
   # CoffeeScript | 'coffee' | 'source.coffee'
-  'L:meta.script.svelte meta.lang.coffee - (meta source)':
+  'L:(meta.script.svelte | meta.style.svelte) meta.lang.coffee - (meta source)':
     patterns: [{begin: '(?<=>)(?!</)', end: '(?=</)', name: meta.embedded.block.svelte,
     contentName: source.coffee, patterns: [{ include: source.coffee }]}]
 
+  # Script Languages
   # Default (JavaScript)
   'L:meta.script.svelte - meta.lang - (meta source)':
     patterns: [{begin: '(?<=>)(?!</)', end: '(?=</)', name: meta.embedded.block.svelte,
