@@ -6,10 +6,15 @@ import { ensureRealSvelteFilePath, isVirtualSvelteFilePath, toRealSvelteFilePath
  * This should only be accessed by TS svelte module resolution.
  */
 export function createSvelteSys(getSnapshot: (fileName: string) => DocumentSnapshot) {
-    const svelteSys: ts.System = {
+    let fileExistsCache = new Map<string, boolean>();
+
+    const svelteSys: ts.System & { deleteFromCache: (path: string) => void } = {
         ...ts.sys,
         fileExists(path: string) {
-            return ts.sys.fileExists(ensureRealSvelteFilePath(path));
+            path = ensureRealSvelteFilePath(path);
+            const exists = fileExistsCache.get(path) ?? ts.sys.fileExists(path);
+            fileExistsCache.set(path, exists);
+            return exists;
         },
         readFile(path: string) {
             const snapshot = getSnapshot(path);
@@ -19,6 +24,13 @@ export function createSvelteSys(getSnapshot: (fileName: string) => DocumentSnaps
             const extensionsWithSvelte = (extensions ?? []).concat('.svelte');
 
             return ts.sys.readDirectory(path, extensionsWithSvelte, exclude, include, depth);
+        },
+        deleteFile(path) {
+            fileExistsCache.delete(ensureRealSvelteFilePath(path));
+            return ts.sys.deleteFile?.(path);
+        },
+        deleteFromCache(path) {
+            fileExistsCache.delete(ensureRealSvelteFilePath(path));
         }
     };
 
