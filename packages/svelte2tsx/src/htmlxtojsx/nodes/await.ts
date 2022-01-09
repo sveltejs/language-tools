@@ -3,6 +3,7 @@ import { IfScope } from './if-scope';
 import { TemplateScopeManager } from './template-scope';
 import { surroundWithIgnoreComments } from '../../utils/ignore';
 import { BaseNode } from '../../interfaces';
+import { fillMissingExpressionAndEnd } from '../utils/node-utils';
 
 /**
  * Transform {#await ...} into something JSX understands
@@ -14,6 +15,7 @@ export function handleAwait(
     ifScope: IfScope,
     templateScopeManager: TemplateScopeManager
 ): void {
+    fillMissingExpressionAndEnd(awaitBlock, 'await', htmlx);
     // {#await somePromise then value} ->
     // {() => {let _$$p = (somePromise);
     let ifCondition = ifScope.getFullCondition();

@@ -1,6 +1,7 @@
 import MagicString from 'magic-string';
 import { Node } from 'estree-walker';
 import { IfScope } from './if-scope';
+import { fillMissingExpressionAndEnd } from '../utils/node-utils';
 
 /**
  * Transform each block into something JSX can understand.
@@ -11,6 +12,7 @@ export function handleEach(
     eachBlock: Node,
     ifScope: IfScope
 ): void {
+    fillMissingExpressionAndEnd(eachBlock, 'each', htmlx);
     // {#each items as item,i (key)} ->
     // {__sveltets_1_each(items, (item,i) => (key) && (possible if expression &&) <>
     const constRedeclares = ifScope.getConstDeclaration();

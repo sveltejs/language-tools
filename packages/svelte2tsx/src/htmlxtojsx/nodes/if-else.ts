@@ -1,6 +1,7 @@
 import MagicString from 'magic-string';
 import { IfScope } from './if-scope';
 import { BaseNode } from '../../interfaces';
+import { fillMissingExpressionAndEnd } from '../utils/node-utils';
 
 /**
  * {# if ...}...{/if}   --->   {() => {if(...){<>...</>}}}
@@ -11,6 +12,7 @@ export function handleIf(
     ifBlock: BaseNode,
     ifScope: IfScope
 ): void {
+    fillMissingExpressionAndEnd(ifBlock, 'if', htmlx);
     const endIf = htmlx.lastIndexOf('{', ifBlock.end - 1);
 
     if (ifBlock.elseif) {
