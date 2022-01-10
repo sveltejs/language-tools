@@ -70,7 +70,7 @@ async () => {
  }
 
     { __sveltets_2_createElement("svg", {onclick:handleClick,});
-	  for(const circle of circles){
+	  for(const circle of __sveltets_2_ensureArray(circles)){
 		              { __sveltets_2_createElement("circle", {"cx":circle.cx,"cy":circle.cy,"r":circle.r,onclick:event => select(circle, event),oncontextmenu:() => {
 				adjusting = !adjusting;
 				if (adjusting) selected = circle;

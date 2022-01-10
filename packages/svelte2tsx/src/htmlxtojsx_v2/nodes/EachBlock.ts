@@ -5,28 +5,48 @@ import { transform, TransformationArray } from '../utils/node-utils';
 /**
  * Transform #each into a for-of loop
  *
- * Current limitation:
- * `{#each foo as foo}` is valid Svelte code, but the transformation
- * `for(const foo of foo){..}` is invalid ("variable used before declaration").
- * Solving this would involve a separate temporary variable like
- * `{const $$_foo = foo; {for(const foo of $$_foo){..}}}`, which would have problems
- * with mappings for rename, diagnostics etc.
+ * Implementation notes:
+ * - If code is
+ *   `{#each items as items,i (key)}`
+ *   then the transformation is
+ *   `{ const $$_each = __sveltets_2_ensureArray(items); for (const items of $$_each) { let i = 0;key;`.
+ *   Transform it this way because `{#each items as items}` is valid Svelte code, but the transformation
+ *   `for(const items of items){..}` is invalid ("variable used before declaration"). Don't do the transformation
+ *   like this everytime because `$$_each` could turn up in the auto completion.
+ *
+ * - The `ensureArray` method checks that only `ArrayLike` objects are passed to `#each`.
+ *   `for (const ..)` wouldn't error in this case because it accepts any kind of iterable.
+ *
+ * - `{#each true, items as item}` is valid, we need to add braces around that expression, else
+ *   `ensureArray` will error that there are more args than expected
  */
 export function handleEach(str: MagicString, eachBlock: BaseNode): void {
-    // {#each items as item,i (key)} ->
-    // for (const item of __sveltets_2_each(items)) { let i = 0;key;
     const startEnd = str.original.indexOf('}', eachBlock.key?.end || eachBlock.context.end) + 1;
+    let transforms: TransformationArray;
     // {#each true, [1,2]} is valid but for (const x of true, [1,2]) is not if not wrapped with braces
     const containsComma = str.original
         .substring(eachBlock.expression.start, eachBlock.expression.end)
         .includes(',');
-    const transforms: TransformationArray = [
-        'for(const ',
-        [eachBlock.context.start, eachBlock.context.end],
-        ` of ${containsComma ? '(' : ''}`,
-        [eachBlock.expression.start, eachBlock.expression.end],
-        `${containsComma ? ')' : ''}){`
-    ];
+    const arrayAndItemVarTheSame =
+        str.original.substring(eachBlock.expression.start, eachBlock.expression.end) ===
+        str.original.substring(eachBlock.context.start, eachBlock.context.end);
+    if (arrayAndItemVarTheSame) {
+        transforms = [
+            `{ const $$_each = __sveltets_2_ensureArray(${containsComma ? '(' : ''}`,
+            [eachBlock.expression.start, eachBlock.expression.end],
+            `${containsComma ? ')' : ''}); for(const `,
+            [eachBlock.context.start, eachBlock.context.end],
+            ' of $$_each){'
+        ];
+    } else {
+        transforms = [
+            'for(const ',
+            [eachBlock.context.start, eachBlock.context.end],
+            ` of __sveltets_2_ensureArray(${containsComma ? '(' : ''}`,
+            [eachBlock.expression.start, eachBlock.expression.end],
+            `${containsComma ? ')' : ''})){`
+        ];
+    }
     if (eachBlock.key) {
         transforms.push([eachBlock.key.start, eachBlock.key.end], ';');
     }
@@ -42,9 +62,13 @@ export function handleEach(str: MagicString, eachBlock: BaseNode): void {
     if (eachBlock.else) {
         const elseEnd = str.original.lastIndexOf('}', eachBlock.else.start);
         const elseStart = str.original.lastIndexOf('{', elseEnd);
-        str.overwrite(elseStart, elseEnd + 1, '}', { contentOnly: true });
+        str.overwrite(elseStart, elseEnd + 1, '}' + (arrayAndItemVarTheSame ? '}' : ''), {
+            contentOnly: true
+        });
         str.remove(endEach, eachBlock.end);
     } else {
-        str.overwrite(endEach, eachBlock.end, '}', { contentOnly: true });
+        str.overwrite(endEach, eachBlock.end, '}' + (arrayAndItemVarTheSame ? '}' : ''), {
+            contentOnly: true
+        });
     }
 }

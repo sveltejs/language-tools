@@ -1,8 +1,8 @@
 ///<reference types="svelte" />
 ;function render() {
 /*Ωignore_startΩ*/;const __sveltets_createSlot = __sveltets_2_createCreateSlot();/*Ωignore_endΩ*/
-async () => {  for(const item of items){
-      for(const { a } of item){
+async () => {  for(const item of __sveltets_2_ensureArray(items)){
+      for(const { a } of __sveltets_2_ensureArray(item)){
          { __sveltets_createSlot("default", {a,});  }
     }
        { __sveltets_createSlot("second", {a,}); }
