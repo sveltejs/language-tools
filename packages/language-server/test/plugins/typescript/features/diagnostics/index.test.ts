@@ -6,13 +6,15 @@ import { Document, DocumentManager } from '../../../../../src/lib/documents';
 import { LSConfigManager } from '../../../../../src/ls-config';
 import { LSAndTSDocResolver } from '../../../../../src/plugins';
 import { DiagnosticsProviderImpl } from '../../../../../src/plugins/typescript/features/DiagnosticsProvider';
+import { __resetCache } from '../../../../../src/plugins/typescript/service';
 import { pathToUrl } from '../../../../../src/utils';
 
-function setup(workspaceDir: string, filePath: string) {
+function setup(workspaceDir: string, filePath: string, useNewTransformation: boolean) {
     const docManager = new DocumentManager(
         (textDocument) => new Document(textDocument.uri, textDocument.text)
     );
     const configManager = new LSConfigManager();
+    configManager.getConfig().svelte.useNewTransformation = useNewTransformation;
     const lsAndTsDocResolver = new LSAndTSDocResolver(
         docManager,
         [pathToUrl(workspaceDir)],
@@ -26,25 +28,11 @@ function setup(workspaceDir: string, filePath: string) {
     return { plugin, document, docManager, lsAndTsDocResolver };
 }
 
-function executeTests(dir: string, workspaceDir: string) {
+function executeTests(dir: string, workspaceDir: string, useNewTransformation: boolean) {
     const inputFile = join(dir, 'input.svelte');
     if (existsSync(inputFile)) {
         const _it = dir.endsWith('.only') ? it.only : it;
-        _it(dir.substring(__dirname.length), async () => {
-            const { plugin, document } = setup(workspaceDir, inputFile);
-            const diagnostics = await plugin.getDiagnostics(document);
-
-            const expectedFile = join(dir, 'expected.json');
-            if (existsSync(expectedFile)) {
-                assert.deepStrictEqual(
-                    diagnostics,
-                    JSON.parse(readFileSync(expectedFile, 'UTF-8'))
-                );
-            } else {
-                console.info('Created expected.json for ', dir.substring(__dirname.length));
-                writeFileSync(expectedFile, JSON.stringify(diagnostics), 'UTF-8');
-            }
-        }).timeout(5000);
+        _it(dir.substring(__dirname.length), executeTest(useNewTransformation)).timeout(5000);
     } else {
         const _describe = dir.endsWith('.only') ? describe.only : describe;
         _describe(dir.substring(__dirname.length), () => {
@@ -52,13 +40,54 @@ function executeTests(dir: string, workspaceDir: string) {
 
             for (const subDir of subDirs) {
                 if (statSync(join(dir, subDir)).isDirectory()) {
-                    executeTests(join(dir, subDir), workspaceDir);
+                    executeTests(join(dir, subDir), workspaceDir, useNewTransformation);
                 }
             }
         });
     }
+
+    function executeTest(useNewTransformation: boolean) {
+        return async () => {
+            const expected = useNewTransformation ? 'expectedv2.json' : 'expected.json';
+            const { plugin, document } = setup(workspaceDir, inputFile, useNewTransformation);
+            const diagnostics = await plugin.getDiagnostics(document);
+
+            const expectedFile = join(dir, expected);
+            if (existsSync(expectedFile)) {
+                try {
+                    assert.deepStrictEqual(
+                        diagnostics,
+                        JSON.parse(readFileSync(expectedFile, 'UTF-8'))
+                    );
+                } catch (e) {
+                    if (process.argv.includes('--auto')) {
+                        writeFile(`Updated ${expected} for`);
+                    } else {
+                        throw e;
+                    }
+                }
+            } else {
+                writeFile(`Created ${expected} for`);
+            }
+
+            function writeFile(msg: string) {
+                console.info(msg, dir.substring(__dirname.length));
+                writeFileSync(expectedFile, JSON.stringify(diagnostics), 'UTF-8');
+            }
+        };
+    }
 }
 
-describe('DiagnosticsProvider', () => {
-    executeTests(join(__dirname, 'fixtures'), join(__dirname, 'fixtures'));
+describe.only('DiagnosticsProvider', () => {
+    describe('(old transformation)', () => {
+        executeTests(join(__dirname, 'fixtures'), join(__dirname, 'fixtures'), false);
+        // hacky, but it works for now
+        after(() => {
+            __resetCache();
+        });
+    });
+
+    describe('new transformation', () => {
+        executeTests(join(__dirname, 'fixtures'), join(__dirname, 'fixtures'), true);
+    });
 });

@@ -43,6 +43,16 @@ const maxProgramSizeForNonTsFiles = 20 * 1024 * 1024; // 20 MB
 const services = new Map<string, Promise<LanguageServiceContainer>>();
 const serviceSizeMap: Map<string, number> = new Map();
 
+/**
+ * For testing only: Reset the cache for services.
+ * Try to refactor this some day so that this file provides
+ * a setup function which creates all this nicely instead.
+ */
+export function __resetCache() {
+    services.clear();
+    serviceSizeMap.clear();
+}
+
 export interface LanguageServiceDocumentContext {
     ambientTypesSource: string;
     transformOnTemplateError: boolean;
