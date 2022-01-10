@@ -1,9 +1,15 @@
 import ts from 'typescript';
 import { CancellationToken, Diagnostic, DiagnosticSeverity } from 'vscode-languageserver';
-import { Document, getTextInRange, isRangeInTag, mapRangeToOriginal } from '../../../lib/documents';
+import {
+    Document,
+    getNodeIfIsInStartTag,
+    getTextInRange,
+    isRangeInTag,
+    mapRangeToOriginal
+} from '../../../lib/documents';
 import { DiagnosticsProvider } from '../../interfaces';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
-import { convertRange, getDiagnosticTag, mapSeverity } from '../utils';
+import { convertRange, getDiagnosticTag, hasNonZeroRange, mapSeverity } from '../utils';
 import { SvelteDocumentSnapshot, SvelteSnapshotFragment } from '../DocumentSnapshot';
 import {
     isInGeneratedCode,
@@ -28,7 +34,10 @@ enum DiagnosticCode {
     UNUSED_LABEL = 7028, // "Unused label."
     DUPLICATED_JSX_ATTRIBUTES = 17001, // "JSX elements cannot have multiple attributes with the same name."
     DUPLICATE_IDENTIFIER = 2300, // "Duplicate identifier 'xxx'"
-    MULTIPLE_PROPS_SAME_NAME = 1117 // "An object literal cannot have multiple properties with the same name in strict mode."
+    MULTIPLE_PROPS_SAME_NAME = 1117, // "An object literal cannot have multiple properties with the same name in strict mode."
+    TYPE_X_NOT_ASSIGNABLE_TO_TYPE_Y = 2345, // "Argument of type '..' is not assignable to parameter of type '..'."
+    MISSING_PROPS = 2739, // "Type '...' is missing the following properties from type '..': ..."
+    MISSING_PROP = 2741 // "Property '..' is missing in type '..' but required in type '..'."
 }
 
 export class DiagnosticsProviderImpl implements DiagnosticsProvider {
@@ -88,7 +97,13 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
                 code: diagnostic.code,
                 tags: getDiagnosticTag(diagnostic)
             }))
-            .map(mapRange(fragment, document))
+            .map(
+                mapRange(
+                    fragment,
+                    document,
+                    this.configManager.getConfig().svelte.useNewTransformation
+                )
+            )
             .filter(hasNoNegativeLines)
             .filter(isNoFalsePositive2(document, tsDoc))
             .map(enhanceIfNecessary)
@@ -102,7 +117,8 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
 
 function mapRange(
     fragment: SvelteSnapshotFragment,
-    document: Document
+    document: Document,
+    useNewTransformation: boolean
 ): (value: Diagnostic) => Diagnostic {
     return (diagnostic) => {
         let range = mapRangeToOriginal(fragment, diagnostic.range);
@@ -129,6 +145,21 @@ function mapRange(
                         end: { ...start, character: start.character + '$$Props'.length }
                     };
                 }
+            }
+        }
+
+        if (
+            useNewTransformation &&
+            [DiagnosticCode.MISSING_PROP, DiagnosticCode.MISSING_PROPS].includes(
+                diagnostic.code as number
+            ) &&
+            !hasNonZeroRange({ range })
+        ) {
+            const node = getNodeIfIsInStartTag(document.html, document.offsetAt(range.start));
+            if (node) {
+                // This is a "some prop missing" error on a component -> remap
+                range.start = document.positionAt(node.start + 1);
+                range.end = document.positionAt(node.start + 1 + (node.tag?.length || 1));
             }
         }
 
