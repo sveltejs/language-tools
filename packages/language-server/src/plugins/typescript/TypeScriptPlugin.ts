@@ -36,14 +36,15 @@ import {
     FileRename,
     FindReferencesProvider,
     HoverProvider,
+    ImplementationProvider,
     OnWatchFileChanges,
     OnWatchFileChangesPara,
     RenameProvider,
     SelectionRangeProvider,
     SemanticTokensProvider,
     SignatureHelpProvider,
+    TypeDefinitionProvider,
     UpdateImportsProvider,
-    ImplementationProvider,
     UpdateTsOrJsFile
 } from '../interfaces';
 import { CodeActionsProviderImpl } from './features/CodeActionsProvider';
@@ -60,6 +61,7 @@ import { RenameProviderImpl } from './features/RenameProvider';
 import { SelectionRangeProviderImpl } from './features/SelectionRangeProvider';
 import { SemanticTokensProviderImpl } from './features/SemanticTokensProvider';
 import { SignatureHelpProviderImpl } from './features/SignatureHelpProvider';
+import { TypeDefinitionProviderImpl } from './features/TypeDefinitionProvider';
 import { UpdateImportsProviderImpl } from './features/UpdateImportsProvider';
 import { isNoTextSpanInGeneratedCode, SnapshotFragmentMap } from './features/utils';
 import { LSAndTSDocResolver } from './LSAndTSDocResolver';
@@ -80,6 +82,7 @@ export class TypeScriptPlugin
         SignatureHelpProvider,
         SemanticTokensProvider,
         ImplementationProvider,
+        TypeDefinitionProvider,
         OnWatchFileChanges,
         CompletionsProvider<CompletionEntryWithIdentifer>,
         UpdateTsOrJsFile
@@ -97,6 +100,7 @@ export class TypeScriptPlugin
     private readonly signatureHelpProvider: SignatureHelpProviderImpl;
     private readonly semanticTokensProvider: SemanticTokensProviderImpl;
     private readonly implementationProvider: ImplementationProviderImpl;
+    private readonly typeDefinitionProvider: TypeDefinitionProviderImpl;
 
     constructor(configManager: LSConfigManager, lsAndTsDocResolver: LSAndTSDocResolver) {
         this.configManager = configManager;
@@ -122,6 +126,7 @@ export class TypeScriptPlugin
         this.signatureHelpProvider = new SignatureHelpProviderImpl(this.lsAndTsDocResolver);
         this.semanticTokensProvider = new SemanticTokensProviderImpl(this.lsAndTsDocResolver);
         this.implementationProvider = new ImplementationProviderImpl(this.lsAndTsDocResolver);
+        this.typeDefinitionProvider = new TypeDefinitionProviderImpl(this.lsAndTsDocResolver);
     }
 
     async getDiagnostics(
@@ -468,6 +473,14 @@ export class TypeScriptPlugin
         }
 
         return this.implementationProvider.getImplementation(document, position);
+    }
+
+    async getTypeDefinition(document: Document, position: Position): Promise<Location[] | null> {
+        if (!this.featureEnabled('typeDefinition')) {
+            return null;
+        }
+
+        return this.typeDefinitionProvider.getTypeDefinition(document, position);
     }
 
     private async getLSAndTSDoc(document: Document) {

@@ -387,7 +387,7 @@ declare namespace svelte.JSX {
       onchange?: FormEventHandler<T> | undefined | null;
       oninput?: FormEventHandler<T> | undefined | null;
       onreset?: FormEventHandler<T> | undefined | null;
-      onsubmit?: FormEventHandler<T> | undefined | null;
+      onsubmit?: EventHandler<SubmitEvent, T> | undefined | null;
       oninvalid?: EventHandler<Event, T> | undefined | null;
       onbeforeinput?: EventHandler<InputEvent, T> | undefined | null;
 
@@ -844,7 +844,7 @@ declare namespace svelte.JSX {
       title?: string | undefined | null;
       type?: string | undefined | null;
       usemap?: string | undefined | null;
-      value?: string | string[] | number | undefined | null;
+      value?: any | undefined | null;
       /**
        * a value between 0 and 1
       */
@@ -868,6 +868,7 @@ declare namespace svelte.JSX {
       autocorrect?: string | undefined | null;
       autosave?: string | undefined | null;
       color?: string | undefined | null;
+      controlslist?: 'nodownload' | 'nofullscreen' | 'noplaybackrate' | 'noremoteplayback';
       itemprop?: string | undefined | null;
       itemscope?: boolean | undefined | null;
       itemtype?: string | undefined | null;
@@ -1160,14 +1161,6 @@ declare namespace svelte.JSX {
     // eslint-disable-next-line @typescript-eslint/no-empty-interface
     interface SVGProps<T extends EventTarget> extends SVGAttributes<T> {}
 
-    interface SvelteOptionProps extends HTMLProps<HTMLOptionElement> {
-        value?: any | undefined | null;
-    }
-
-    interface SvelteSelectProps extends HTMLProps<HTMLSelectElement> {
-      value?: any | undefined | null;
-    }
-
     interface SvelteInputProps extends HTMLProps<HTMLInputElement> {
       group?: any | undefined | null;
       files?: FileList | undefined | null;
@@ -1339,7 +1332,7 @@ declare namespace svelte.JSX {
       object: HTMLProps<HTMLObjectElement>;
       ol: HTMLProps<HTMLOListElement>;
       optgroup: HTMLProps<HTMLOptGroupElement>;
-      option: SvelteOptionProps;
+      option: HTMLProps<HTMLOptionElement>;
       output: HTMLProps<HTMLElement>;
       p: HTMLProps<HTMLParagraphElement>;
       param: HTMLProps<HTMLParamElement>;
@@ -1354,7 +1347,7 @@ declare namespace svelte.JSX {
       samp: HTMLProps<HTMLElement>;
       script: HTMLProps<HTMLElement>;
       section: HTMLProps<HTMLElement>;
-      select: SvelteSelectProps;
+      select: HTMLProps<HTMLSelectElement>;
       small: HTMLProps<HTMLElement>;
       source: HTMLProps<HTMLSourceElement>;
       span: HTMLProps<HTMLSpanElement>;

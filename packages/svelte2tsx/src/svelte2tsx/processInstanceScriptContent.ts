@@ -15,6 +15,7 @@ import { ImplicitStoreValues } from './nodes/ImplicitStoreValues';
 import { Generics } from './nodes/Generics';
 import { is$$SlotsDeclaration } from './nodes/slot';
 import { preprendStr } from '../utils/magic-string';
+import { handleImportDeclaration } from './nodes/handleImportDeclaration';
 
 export interface InstanceScriptProcessResult {
     exportedNames: ExportedNames;
@@ -169,7 +170,12 @@ export function processInstanceScriptContent(
         // - in order to get ts errors if store is not assignable to SvelteStore
         // - use $store variable defined above to get ts flow control
         const dollar = str.original.indexOf('$', ident.getStart() + astOffset);
-        const getPrefix = isSafeToPrefixWithSemicolon(ident) ? ';' : '';
+        const getPrefix = isSafeToPrefixWithSemicolon(ident)
+            ? ';'
+            : ts.isShorthandPropertyAssignment(parent)
+            ? // { $store } --> { $store: __sveltets_1_store_get(..)}
+              ident.text + ': '
+            : '';
         str.overwrite(dollar, dollar + 1, getPrefix + '(__sveltets_1_store_get(');
         str.prependLeft(ident.end + astOffset, `), $${storename})`);
     };
@@ -283,11 +289,8 @@ export function processInstanceScriptContent(
         }
 
         if (ts.isImportDeclaration(node)) {
-            //move imports to top of script so they appear outside our render function
-            str.move(node.getStart() + astOffset, node.end + astOffset, script.start + 1);
-            //add in a \n
-            const originalEndChar = str.original[node.end + astOffset - 1];
-            str.overwrite(node.end + astOffset - 1, node.end + astOffset, originalEndChar + '\n');
+            handleImportDeclaration(node, str, astOffset, script.start);
+
             // Check if import is the event dispatcher
             events.checkIfImportIsEventDispatcher(node);
         }

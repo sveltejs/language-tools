@@ -102,7 +102,11 @@ export function createRenderFunction({
           Array.from(slots.entries())
               .map(([name, attrs]) => {
                   const attrsAsString = Array.from(attrs.entries())
-                      .map(([exportName, expr]) => `${exportName}:${expr}`)
+                      .map(([exportName, expr]) =>
+                          exportName.startsWith('__spread__')
+                              ? `...${expr}`
+                              : `${exportName}:${expr}`
+                      )
                       .join(', ');
                   return `'${name}': {${attrsAsString}}`;
               })
