@@ -111,10 +111,15 @@ export class InlineComponent {
      * @param expression Event handler, if present
      */
     addEvent(name: [number, number], expression?: [number, number]): void {
+        // This ensures a better mapping as TS will also add the quotes
+        // to the range if the event doesn't exist
+        this.str.overwrite(name[0], name[1], `"${this.str.original.substring(name[0], name[1])}"`, {
+            contentOnly: true
+        });
         this.eventsTransformation.push(
-            `${this.name}.$on("`,
+            `${this.name}.$on(`,
             name,
-            '", ',
+            ', ',
             expression ? expression : '() => {}',
             ');'
         );
