@@ -1,30 +1,30 @@
 if(hello){
-        { const y = await (hello.foo); 
+        { const $$_value = await (hello.foo); { const y = $$_value; 
         y;
-    }
-        { const y = await (x); 
+    }}
+        { const $$_value = await (x); { const y = $$_value; 
         y;
-    }
+    }}
        { 
       hello;
     await (aPromise); }
     if(hi && bye){
-             { try { const y = await (x); 
+             { try { const $$_value = await (x); { const y = $$_value; 
             y;
-        } catch($$_e) { 
+        }} catch($$_e) { 
             
         }}
     } else if (cool){
               { 
             
-        try { const y = await (x); 
+        try { const $$_value = await (x); { const y = $$_value; 
             y;
-        } catch($$_e) { 
+        }} catch($$_e) { 
             
         }}
     }else{
-            { const y = await (x); 
+            { const $$_value = await (x); { const y = $$_value; 
             y;
-        }
+        }}
     }
 }

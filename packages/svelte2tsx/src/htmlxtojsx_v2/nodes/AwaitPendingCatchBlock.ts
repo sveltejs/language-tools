@@ -15,12 +15,15 @@ import { transform, TransformationArray } from '../utils/node-utils';
  *- then: start/end of the then block (if exists), with skip boolean
  *- catch: start/end of the catch block (if exists), with skip boolean
  *
- * Current limitation:
- * `{#await foo then foo}` or `{#await foo}..{:then foo}..` is valid Svelte code, but the transformation
- * `const foo = await foo` is invalid ("variable used before declaration").
- * Solving this would involve a separate temporary variable like
- * `{const $$_foo = foo; {const foo = await $$_foo;..}}`, which would have problems
- * with mappings for rename, diagnostics etc.
+ * Implementation note:
+ * As soon there's a `then` with a value, we transform that to
+ * `{const $$_value = foo; {const foo = await $$_value;..}}` because
+ *
+ * - `{#await foo then foo}` or `{#await foo}..{:then foo}..` is valid Svelte code
+ * - `{#await foo} {bar} {:then bar} {bar} {/await} is valid Svelte code`
+ *
+ *  Both would throw "variable used before declaration" if we didn't do the
+ * transformation this way.
  */
 export function handleAwait(str: MagicString, awaitBlock: BaseNode): void {
     const transforms: TransformationArray = ['{ '];
@@ -31,9 +34,16 @@ export function handleAwait(str: MagicString, awaitBlock: BaseNode): void {
         transforms.push('try { ');
     }
     if (awaitBlock.value) {
-        transforms.push('const ', [awaitBlock.value.start, awaitBlock.value.end], ' = ');
+        transforms.push('const $$_value = ');
     }
     transforms.push('await (', [awaitBlock.expression.start, awaitBlock.expression.end], '); ');
+    if (awaitBlock.value) {
+        transforms.push(
+            '{ const ',
+            [awaitBlock.value.start, awaitBlock.value.end],
+            ' = $$_value; '
+        );
+    }
     if (!awaitBlock.then.skip) {
         if (awaitBlock.pending.skip) {
             transforms.push([awaitBlock.then.start, awaitBlock.then.end]);
@@ -43,6 +53,9 @@ export function handleAwait(str: MagicString, awaitBlock: BaseNode): void {
                 awaitBlock.then.children[awaitBlock.then.children.length - 1].end
             ]);
         }
+    }
+    if (awaitBlock.value) {
+        transforms.push('}');
     }
     if (awaitBlock.error || !awaitBlock.catch.skip) {
         transforms.push('} catch($$_e) { ');
