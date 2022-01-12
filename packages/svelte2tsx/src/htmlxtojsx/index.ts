@@ -12,6 +12,7 @@ import { handleBinding } from './nodes/binding';
 import { handleClassDirective } from './nodes/class-directive';
 import { handleComment } from './nodes/comment';
 import { handleComponent } from './nodes/component';
+import { handleConstTag } from './nodes/const';
 import { handleDebug } from './nodes/debug';
 import { handleEach } from './nodes/each';
 import { handleElement } from './nodes/element';
@@ -95,6 +96,9 @@ export function convertHtmlxToJsx(
                         break;
                     case 'RawMustacheTag':
                         handleRawHtml(htmlx, str, node);
+                        break;
+                    case 'ConstTag':
+                        handleConstTag(htmlx, str, node);
                         break;
                     case 'DebugTag':
                         handleDebug(htmlx, str, node);
