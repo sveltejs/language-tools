@@ -32,6 +32,12 @@
                     {hello}
                 {/if}
             </Comp>
+            <Comp let:foo>
+                {@const hello = foo}
+                {#if hello}
+                    {hello}
+                {/if}
+            </Comp>
         {/if}
     </Comp>
     {#if hi && bye}
@@ -71,6 +77,16 @@
         {/if}
     </svelte:fragment>
     <p slot="named2" let:hello>
+        {#if hello && bye}
+            {hello} {bye}
+        {:else if hello && bye}
+            {hello} {bye}
+        {:else}
+            {hello} {bye}
+        {/if}
+    </p>
+    <p slot="named3" let:foo>
+        {@const hello = foo}
         {#if hello && bye}
             {hello} {bye}
         {:else if hello && bye}

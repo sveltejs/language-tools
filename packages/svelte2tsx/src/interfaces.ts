@@ -17,6 +17,11 @@ export interface WithName {
     name: string;
 }
 
+export interface ConstTag extends NodeRange {
+    type: 'ConstTag';
+    expression: any;
+}
+
 // Copied from the Svelte type definitions
 export interface BaseNode {
     start: number;
