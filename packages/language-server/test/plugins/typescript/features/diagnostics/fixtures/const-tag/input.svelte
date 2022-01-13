@@ -1,5 +1,7 @@
 <script lang="ts">
     const promise = Promise.resolve({foo: true});
+    const shadowed = true;
+    shadowed;
 </script>
 
 <!-- valid -->
