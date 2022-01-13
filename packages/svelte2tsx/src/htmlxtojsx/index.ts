@@ -1,7 +1,7 @@
 import MagicString from 'magic-string';
 import { walk } from 'svelte/compiler';
 import { TemplateNode, Text } from 'svelte/types/compiler/interfaces';
-import { Attribute, BaseDirective, BaseNode } from '../interfaces';
+import { Attribute, BaseDirective, BaseNode, StyleDirective } from '../interfaces';
 import { parseHtmlx } from '../utils/htmlxparser';
 import { getSlotName } from '../utils/svelteAst';
 import { handleActionDirective } from './nodes/action-directive';
@@ -21,6 +21,7 @@ import { IfScope } from './nodes/if-scope';
 import { handleKey } from './nodes/key';
 import { handleRawHtml } from './nodes/raw-html';
 import { handleSlot } from './nodes/slot';
+import { handleStyleDirective } from './nodes/style-directive';
 import { handleSvelteTag } from './nodes/svelte-tag';
 import { TemplateScopeManager } from './nodes/template-scope';
 import { handleText } from './nodes/text';
@@ -129,6 +130,9 @@ export function convertHtmlxToJsx(
                         break;
                     case 'Class':
                         handleClassDirective(str, node as BaseDirective);
+                        break;
+                    case 'StyleDirective':
+                        handleStyleDirective(str, node as StyleDirective);
                         break;
                     case 'Action':
                         handleActionDirective(htmlx, str, node as BaseDirective, parent);
