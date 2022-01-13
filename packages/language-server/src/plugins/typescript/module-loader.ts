@@ -90,9 +90,14 @@ export function createSvelteModuleLoader(
         fileExists: svelteSys.fileExists,
         readFile: svelteSys.readFile,
         readDirectory: svelteSys.readDirectory,
-        deleteFromModuleCache: (path: string) => moduleCache.delete(path),
-        deleteUnresolvedResolutionsFromCache: (path: string) =>
-            moduleCache.deleteUnresolvedResolutionsFromCache(path),
+        deleteFromModuleCache: (path: string) => {
+            svelteSys.deleteFromCache(path);
+            moduleCache.delete(path);
+        },
+        deleteUnresolvedResolutionsFromCache: (path: string) => {
+            svelteSys.deleteFromCache(path);
+            moduleCache.deleteUnresolvedResolutionsFromCache(path);
+        },
         resolveModuleNames
     };
 

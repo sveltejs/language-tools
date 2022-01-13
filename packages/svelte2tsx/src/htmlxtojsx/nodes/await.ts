@@ -3,6 +3,7 @@ import { IfScope } from './if-scope';
 import { TemplateScopeManager } from './template-scope';
 import { surroundWithIgnoreComments } from '../../utils/ignore';
 import { BaseNode } from '../../interfaces';
+import { extractConstTags } from './const-tag';
 
 /**
  * Transform {#await ...} into something JSX understands
@@ -94,14 +95,22 @@ export function handleAwaitThen(
 
     if (awaitBlock.value) {
         str.overwrite(thenStart, awaitBlock.value.start, '__sveltets_1_awaitThen(_$$p, (');
-        str.overwrite(awaitBlock.value.end, thenEnd, `) => {${ifScope.addPossibleIfCondition()}<>`);
+        str.overwrite(awaitBlock.value.end, thenEnd, ') => {');
+        extractConstTags(awaitBlock.then.children).forEach((insertion) => {
+            insertion(thenEnd, str);
+        });
+        str.appendRight(thenEnd, `${ifScope.addPossibleIfCondition()}<>`);
     } else {
-        const awaitThenFn = `__sveltets_1_awaitThen(_$$p, () => {${ifScope.addPossibleIfCondition()}<>`; // eslint-disable-line
+        const awaitThenFn = '__sveltets_1_awaitThen(_$$p, () => {';
         if (thenStart === thenEnd) {
             str.appendLeft(thenStart, awaitThenFn);
         } else {
             str.overwrite(thenStart, thenEnd, awaitThenFn);
         }
+        extractConstTags(awaitBlock.then.children).forEach((insertion) => {
+            insertion(thenEnd, str);
+        });
+        str.appendRight(thenEnd, `${ifScope.addPossibleIfCondition()}<>`); // eslint-disable-line
     }
 }
 
@@ -124,15 +133,23 @@ export function handleAwaitCatch(
                 awaitBlock.error.start,
                 '); __sveltets_1_awaitThen(_$$p, () => {}, ('
             );
-            str.overwrite(awaitBlock.error.end, catchBegin, ') => {<>');
+            str.overwrite(awaitBlock.error.end, catchBegin, ') => {');
+            extractConstTags(awaitBlock.catch.children).forEach((insertion) => {
+                insertion(catchBegin, str);
+            });
+            str.appendRight(catchBegin, '<>');
         } else {
             // {#await ... catch}
             const catchBegin = htmlx.indexOf('}', awaitBlock.expression.end) + 1;
             str.overwrite(
                 awaitBlock.expression.end,
                 catchBegin,
-                '); __sveltets_1_awaitThen(_$$p, () => {}, () => {<>'
+                '); __sveltets_1_awaitThen(_$$p, () => {}, () => {'
             );
+            extractConstTags(awaitBlock.catch.children).forEach((insertion) => {
+                insertion(catchBegin, str);
+            });
+            str.appendRight(catchBegin, '<>');
         }
     } else {
         //{:catch error} ->
@@ -146,6 +163,10 @@ export function handleAwaitCatch(
         const errorEnd = awaitBlock.error ? awaitBlock.error.end : errorStart;
         const catchEnd = htmlx.indexOf('}', errorEnd) + 1;
         str.overwrite(catchStart, errorStart, '</>}, (');
-        str.overwrite(errorEnd, catchEnd, `) => {${ifScope.addPossibleIfCondition()}<>`);
+        str.overwrite(errorEnd, catchEnd, ') => {');
+        extractConstTags(awaitBlock.catch.children).forEach((insertion) => {
+            insertion(catchEnd, str);
+        });
+        str.appendRight(catchEnd, `${ifScope.addPossibleIfCondition()}<>`);
     }
 }
