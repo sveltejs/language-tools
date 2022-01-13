@@ -33,8 +33,10 @@ import {
     OnWatchFileChangesPara,
     LSAndTSDocResolver
 } from './plugins';
-import { debounceThrottle, isNotNullOrUndefined, urlToPath } from './utils';
+import { debounceThrottle, isNotNullOrUndefined, normalizeUri, urlToPath } from './utils';
 import { FallbackWatcher } from './lib/FallbackWatcher';
+import { configLoader } from './lib/documents/configLoader';
+import { setIsTrusted } from './importPackage';
 
 namespace TagCloseRequest {
     export const type: RequestType<TextDocumentPositionParams, string | null, any> =
@@ -102,6 +104,14 @@ export function startServer(options?: LSOptions) {
             watcher.onDidChangeWatchedFiles(onDidChangeWatchedFiles);
         }
 
+        const isTrusted: boolean = evt.initializationOptions?.isTrusted ?? true;
+        configLoader.setDisabled(!isTrusted);
+        setIsTrusted(isTrusted);
+        configManager.updateIsTrusted(isTrusted);
+        if (!isTrusted) {
+            Logger.log('Workspace is not trusted, running with reduced capabilities.');
+        }
+
         // Backwards-compatible way of setting initialization options (first `||` is the old style)
         configManager.update(
             evt.initializationOptions?.configuration?.svelte?.plugin ||
@@ -123,6 +133,10 @@ export function startServer(options?: LSOptions) {
                 evt.initializationOptions?.prettierConfig ||
                 {}
         );
+        // no old style as these were added later
+        configManager.updateCssConfig(evt.initializationOptions?.configuration?.css);
+        configManager.updateScssConfig(evt.initializationOptions?.configuration?.scss);
+        configManager.updateLessConfig(evt.initializationOptions?.configuration?.less);
 
         pluginHost.initialize({
             filterIncompleteCompletions:
@@ -135,7 +149,12 @@ export function startServer(options?: LSOptions) {
         pluginHost.register(
             new TypeScriptPlugin(
                 configManager,
-                new LSAndTSDocResolver(docManager, workspaceUris, configManager)
+                new LSAndTSDocResolver(
+                    docManager,
+                    workspaceUris.map(normalizeUri),
+                    configManager,
+                    notifyTsServiceExceedSizeLimit
+                )
             )
         );
 
@@ -178,7 +197,8 @@ export function startServer(options?: LSOptions) {
                         // of other completion providers
 
                         // Svelte
-                        ':'
+                        ':',
+                        '|'
                     ]
                 },
                 documentFormattingProvider: true,
@@ -225,10 +245,22 @@ export function startServer(options?: LSOptions) {
                     range: true,
                     full: true
                 },
-                linkedEditingRangeProvider: true
+                linkedEditingRangeProvider: true,
+                implementationProvider: true,
+                typeDefinitionProvider: true
             }
         };
     });
+
+    function notifyTsServiceExceedSizeLimit() {
+        connection?.sendNotification(ShowMessageNotification.type, {
+            message:
+                'Svelte language server detected a large amount of JS/Svelte files. ' +
+                'To enable project-wide JavaScript/TypeScript language features for Svelte files,' +
+                'exclude large folders in the tsconfig.json or jsconfig.json with source files that you do not work on.',
+            type: MessageType.Warning
+        });
+    }
 
     connection.onExit(() => {
         watcher?.dispose();
@@ -244,6 +276,9 @@ export function startServer(options?: LSOptions) {
         configManager.updateTsJsUserPreferences(settings);
         configManager.updateEmmetConfig(settings.emmet);
         configManager.updatePrettierConfig(settings.prettier);
+        configManager.updateCssConfig(settings.css);
+        configManager.updateScssConfig(settings.scss);
+        configManager.updateLessConfig(settings.less);
     });
 
     connection.onDidOpenTextDocument((evt) => {
@@ -252,9 +287,10 @@ export function startServer(options?: LSOptions) {
     });
 
     connection.onDidCloseTextDocument((evt) => docManager.closeDocument(evt.textDocument.uri));
-    connection.onDidChangeTextDocument((evt) =>
-        docManager.updateDocument(evt.textDocument, evt.contentChanges)
-    );
+    connection.onDidChangeTextDocument((evt) => {
+        docManager.updateDocument(evt.textDocument, evt.contentChanges);
+        pluginHost.didUpdateDocument();
+    });
     connection.onHover((evt) => pluginHost.doHover(evt.textDocument, evt.position));
     connection.onCompletion((evt, cancellationToken) =>
         pluginHost.getCompletions(evt.textDocument, evt.position, evt.context, cancellationToken)
@@ -315,6 +351,14 @@ export function startServer(options?: LSOptions) {
         pluginHost.getSelectionRanges(evt.textDocument, evt.positions)
     );
 
+    connection.onImplementation((evt) =>
+        pluginHost.getImplementation(evt.textDocument, evt.position)
+    );
+
+    connection.onTypeDefinition((evt) =>
+        pluginHost.getTypeDefinition(evt.textDocument, evt.position)
+    );
+
     const diagnosticsManager = new DiagnosticsManager(
         connection.sendDiagnostics,
         docManager,
@@ -360,7 +404,7 @@ export function startServer(options?: LSOptions) {
 
     docManager.on(
         'documentChange',
-        debounceThrottle(async (document: Document) => diagnosticsManager.update(document), 1000)
+        debounceThrottle(async (document: Document) => diagnosticsManager.update(document), 750)
     );
     docManager.on('documentClose', (document: Document) =>
         diagnosticsManager.removeDiagnostics(document)
@@ -374,7 +418,9 @@ export function startServer(options?: LSOptions) {
 
     connection.onRequest('$/getCompiledCode', async (uri: DocumentUri) => {
         const doc = docManager.get(uri);
-        if (!doc) return null;
+        if (!doc) {
+            return null;
+        }
 
         if (doc) {
             const compiled = await sveltePlugin.getCompiledResult(doc);

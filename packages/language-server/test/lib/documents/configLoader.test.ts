@@ -2,6 +2,7 @@ import { ConfigLoader } from '../../../src/lib/documents/configLoader';
 import path from 'path';
 import { pathToFileURL, URL } from 'url';
 import assert from 'assert';
+import { spy } from 'sinon';
 
 describe('ConfigLoader', () => {
     function configFrom(path: string) {
@@ -31,7 +32,7 @@ describe('ConfigLoader', () => {
 
     it('should load all config files below and the one inside/above given directory', async () => {
         const configLoader = new ConfigLoader(
-            () => ['svelte.config.js', 'below/svelte.config.js'],
+            (() => ['svelte.config.js', 'below/svelte.config.js']) as any,
             { existsSync: () => true },
             path,
             (module: URL) => Promise.resolve({ default: { preprocess: module.toString() } })
@@ -98,14 +99,14 @@ describe('ConfigLoader', () => {
         let firstGlobCall = true;
         let nrImportCalls = 0;
         const configLoader = new ConfigLoader(
-            () => {
+            (() => {
                 if (firstGlobCall) {
                     firstGlobCall = false;
                     return ['svelte.config.js'];
                 } else {
                     return [];
                 }
-            },
+            }) as any,
             {
                 existsSync: (p) =>
                     typeof p === 'string' &&
@@ -162,5 +163,18 @@ describe('ConfigLoader', () => {
             await configLoader.awaitConfig(normalizePath('some/file.svelte')),
             configFrom(normalizePath('some/svelte.config.js'))
         );
+    });
+
+    it('should not load config when disabled', async () => {
+        const moduleLoader = spy();
+        const configLoader = new ConfigLoader(
+            () => [],
+            { existsSync: () => true },
+            path,
+            moduleLoader
+        );
+        configLoader.setDisabled(true);
+        await configLoader.awaitConfig(normalizePath('some/file.svelte'));
+        assert.deepStrictEqual(moduleLoader.notCalled, true);
     });
 });

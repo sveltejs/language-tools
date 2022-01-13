@@ -1,5 +1,5 @@
 import { Position, WorkspaceEdit, Range } from 'vscode-languageserver';
-import { Document, mapRangeToOriginal, getLineAtPosition } from '../../../lib/documents';
+import { Document, mapRangeToOriginal, getLineAtPosition, offsetAt } from '../../../lib/documents';
 import { filterAsync, isNotNullOrUndefined, pathToUrl } from '../../../utils';
 import { RenameProvider } from '../../interfaces';
 import {
@@ -15,7 +15,8 @@ import {
     isComponentAtPosition,
     isAfterSvelte2TsxPropsReturn,
     isNoTextSpanInGeneratedCode,
-    SnapshotFragmentMap
+    SnapshotFragmentMap,
+    findContainingNode
 } from './utils';
 
 export class RenameProviderImpl implements RenameProvider {
@@ -68,7 +69,13 @@ export class RenameProviderImpl implements RenameProvider {
                 range: Range;
             }
         > = await this.mapAndFilterRenameLocations(renameLocations, docs);
-        // eslint-disable-next-line max-len
+
+        convertedRenameLocations = this.checkShortHandBindingOrSlotLetLocation(
+            lang,
+            convertedRenameLocations,
+            docs
+        );
+
         const additionalRenameForPropRenameInsideComponentWithProp =
             await this.getAdditionLocationsForRenameOfPropInsideComponentWithProp(
                 document,
@@ -237,7 +244,12 @@ export class RenameProviderImpl implements RenameProvider {
         const idx = (match.index || 0) + match[0].lastIndexOf(match[1]);
         const replacementsForProp =
             lang.findRenameLocations(updatePropLocation.fileName, idx, false, false) || [];
-        return await this.mapAndFilterRenameLocations(replacementsForProp, fragments);
+
+        return this.checkShortHandBindingOrSlotLetLocation(
+            lang,
+            await this.mapAndFilterRenameLocations(replacementsForProp, fragments),
+            fragments
+        );
     }
 
     // --------> svelte2tsx?
@@ -368,6 +380,133 @@ export class RenameProviderImpl implements RenameProvider {
 
     private getSnapshot(filePath: string) {
         return this.lsAndTsDocResolver.getSnapshot(filePath);
+    }
+
+    private checkShortHandBindingOrSlotLetLocation(
+        lang: ts.LanguageService,
+        renameLocations: Array<ts.RenameLocation & { range: Range }>,
+        fragments: SnapshotFragmentMap
+    ): Array<ts.RenameLocation & { range: Range }> {
+        const bind = 'bind:';
+
+        return renameLocations.map((location) => {
+            const sourceFile = lang.getProgram()?.getSourceFile(location.fileName);
+
+            if (
+                !sourceFile ||
+                location.fileName !== sourceFile.fileName ||
+                location.range.start.line < 0 ||
+                location.range.end.line < 0
+            ) {
+                return location;
+            }
+
+            const fragment = fragments.getFragment(location.fileName);
+            if (!(fragment instanceof SvelteSnapshotFragment)) {
+                return location;
+            }
+
+            const { originalText } = fragment;
+
+            const renamingInfo =
+                this.getShorthandPropInfo(sourceFile, location) ??
+                this.getSlotLetInfo(sourceFile, location);
+
+            if (!renamingInfo) {
+                return location;
+            }
+
+            const [renamingNode, identifierName] = renamingInfo;
+
+            const originalStart = offsetAt(location.range.start, originalText);
+
+            const isShortHandBinding =
+                originalText.substr(originalStart - bind.length, bind.length) === bind;
+
+            const directiveName = (isShortHandBinding ? bind : '') + identifierName;
+            const prefixText = directiveName + '={';
+
+            const newRange = mapRangeToOriginal(
+                fragment,
+                convertRange(fragment, {
+                    start: renamingNode.getStart(),
+                    length: renamingNode.getWidth()
+                })
+            );
+
+            // somehow the mapping is one character before
+            if (
+                isShortHandBinding ||
+                originalText
+                    .substring(offsetAt(newRange.start, originalText), originalStart)
+                    .trimLeft() === '{'
+            ) {
+                newRange.start.character++;
+            }
+
+            return {
+                ...location,
+                prefixText,
+                suffixText: '}',
+                range: newRange
+            };
+        });
+    }
+
+    private getShorthandPropInfo(
+        sourceFile: ts.SourceFile,
+        location: ts.RenameLocation
+    ): [ts.Node, string] | null {
+        const possibleJsxAttribute = findContainingNode(
+            sourceFile,
+            location.textSpan,
+            ts.isJsxAttribute
+        );
+        if (!possibleJsxAttribute) {
+            return null;
+        }
+
+        const attributeName = possibleJsxAttribute.name.getText();
+        const { initializer } = possibleJsxAttribute;
+
+        // not props={props}
+        if (
+            !initializer ||
+            !ts.isJsxExpression(initializer) ||
+            attributeName !== initializer.expression?.getText()
+        ) {
+            return null;
+        }
+
+        return [possibleJsxAttribute, attributeName];
+    }
+
+    private getSlotLetInfo(
+        sourceFile: ts.SourceFile,
+        location: ts.RenameLocation
+    ): [ts.Node, string] | null {
+        const possibleSlotLet = findContainingNode(
+            sourceFile,
+            location.textSpan,
+            ts.isVariableDeclaration
+        );
+        if (!possibleSlotLet || !ts.isObjectBindingPattern(possibleSlotLet.name)) {
+            return null;
+        }
+
+        const bindingElement = findContainingNode(
+            possibleSlotLet.name,
+            location.textSpan,
+            ts.isBindingElement
+        );
+
+        if (!bindingElement || bindingElement.propertyName) {
+            return null;
+        }
+
+        const identifierName = bindingElement.name.getText();
+
+        return [bindingElement, identifierName];
     }
 }
 

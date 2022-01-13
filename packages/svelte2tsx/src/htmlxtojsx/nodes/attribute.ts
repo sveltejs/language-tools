@@ -1,6 +1,6 @@
 import MagicString from 'magic-string';
 import svgAttributes from '../svgattributes';
-import { isQuote } from '../utils/node-utils';
+import { buildTemplateString } from '../utils/node-utils';
 import { Attribute, BaseNode } from '../../interfaces';
 
 /**
@@ -106,7 +106,10 @@ export function handleAttribute(
         return;
     }
 
-    if (attr.value.length == 0) return; //wut?
+    if (attr.value.length == 0) {
+        return; //wut?
+    }
+
     //handle single value
     if (attr.value.length == 1) {
         const attrVal = attr.value[0];
@@ -199,29 +202,6 @@ export function handleAttribute(
         shouldApplySlotCheck ? `={${ensureSlotStr}\`` : '={`',
         shouldApplySlotCheck ? '`)}' : '`}'
     );
-}
-
-function buildTemplateString(
-    attr: Attribute,
-    str: MagicString,
-    htmlx: string,
-    leadingOverride: string,
-    trailingOverride: string
-) {
-    const equals = htmlx.lastIndexOf('=', attr.value[0].start);
-    str.overwrite(equals, attr.value[0].start, leadingOverride);
-
-    for (const n of attr.value as BaseNode[]) {
-        if (n.type == 'MustacheTag') {
-            str.appendRight(n.start, '$');
-        }
-    }
-
-    if (isQuote(htmlx[attr.end - 1])) {
-        str.overwrite(attr.end - 1, attr.end, trailingOverride);
-    } else {
-        str.appendLeft(attr.end, trailingOverride);
-    }
 }
 
 function sanitizeLeadingChars(attrName: string): string {

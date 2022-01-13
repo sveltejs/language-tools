@@ -46,7 +46,9 @@ function repl() {
                 map.sources = ['index.svelte'];
                 map.sourcesContent = [input_content];
 
-                if (!fs.existsSync(OUTDIR)) fs.mkdirSync(OUTDIR);
+                if (!fs.existsSync(OUTDIR)) {
+                    fs.mkdirSync(OUTDIR);
+                }
                 fs.writeFileSync(OUTPUT, code);
                 fs.writeFileSync(MAP, map.toString());
 

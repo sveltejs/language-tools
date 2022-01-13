@@ -1,6 +1,7 @@
 import MagicString from 'magic-string';
 import ts from 'typescript';
 import { surroundWithIgnoreComments } from '../../utils/ignore';
+import { preprendStr } from '../../utils/magic-string';
 import { extractIdentifiers, getNamesFromLabeledStatement } from '../utils/tsAst';
 
 /**
@@ -20,7 +21,11 @@ export class ImplicitStoreValues {
     public addReactiveDeclaration = this.reactiveDeclarations.push.bind(this.reactiveDeclarations);
     public addImportStatement = this.importStatements.push.bind(this.importStatements);
 
-    constructor(storesResolvedInTemplate: string[] = [], private renderFunctionStart: number) {
+    constructor(
+        storesResolvedInTemplate: string[] = [],
+        private renderFunctionStart: number,
+        private storeFromImportsWrapper = (input: string) => input
+    ) {
         storesResolvedInTemplate.forEach(this.addStoreAcess);
     }
 
@@ -84,7 +89,14 @@ export class ImplicitStoreValues {
         );
         const endPos = node.getEnd() + astOffset;
 
-        str.appendRight(endPos, storeDeclarations);
+        // Hack for quick-fixing https://github.com/sveltejs/language-tools/issues/1097
+        // TODO think about a SourceMap-wrapper that does these things for us,
+        // or investigate altering the inner workings of SourceMap
+        if (str.original.charAt(endPos - 1) !== ';') {
+            preprendStr(str, endPos, storeDeclarations);
+        } else {
+            str.appendRight(endPos, storeDeclarations);
+        }
     }
 
     private attachStoreValueDeclarationOfImportsToRenderFn(str: MagicString) {
@@ -95,8 +107,8 @@ export class ImplicitStoreValues {
             return;
         }
 
-        const storeDeclarations = surroundWithIgnoreComments(
-            this.createStoreDeclarations(storeNames)
+        const storeDeclarations = this.storeFromImportsWrapper(
+            surroundWithIgnoreComments(this.createStoreDeclarations(storeNames))
         );
 
         str.appendRight(this.renderFunctionStart, storeDeclarations);

@@ -11,6 +11,7 @@ export class TsPlugin {
 
     private constructor(context: ExtensionContext) {
         this.enabled = this.getEnabledState();
+        this.askToEnable(this.enabled);
         this.toggleTsPlugin(this.enabled);
 
         context.subscriptions.push(
@@ -59,15 +60,41 @@ export class TsPlugin {
     }
 
     private async showReload(enabled: boolean) {
-        // Restarting the TSServer via a commend isn't enough, the whole VS Code window needs to reload
-        const reload = await window.showInformationMessage(
-            ` TypeScript Svelte Plugin ${
-                enabled ? 'enabled' : 'disabled'
-            }, please reload VS Code to restart the TS Server.`,
-            'Reload Window'
-        );
+        // Restarting the TSServer via a command isn't enough, the whole VS Code window needs to reload
+        let message = `TypeScript Svelte Plugin ${enabled ? 'enabled' : 'disabled'}.`;
+        if (enabled) {
+            message +=
+                ' Note that changes of Svelte files are only noticed by TS/JS files after they are saved to disk.';
+        }
+        message += ' Please reload VS Code to restart the TS Server.';
+
+        const reload = await window.showInformationMessage(message, 'Reload Window');
         if (reload) {
             commands.executeCommand('workbench.action.reloadWindow');
+        }
+    }
+
+    private async askToEnable(enabled: boolean) {
+        const shouldAsk = workspace
+            .getConfiguration('svelte')
+            .get<boolean>('ask-to-enable-ts-plugin');
+        if (enabled || !shouldAsk) {
+            return;
+        }
+
+        const answers = ['Ask again later', "Don't show this message again", 'Enable Plugin'];
+        const response = await window.showInformationMessage(
+            'The Svelte for VS Code extension now contains a TypeScript plugin. ' +
+                'Enabling it will provide intellisense for Svelte files from TS/JS files. ' +
+                'Would you like to enable it? ' +
+                'You can always enable/disable it later on through the extension settings.',
+            ...answers
+        );
+
+        if (response === answers[2]) {
+            workspace.getConfiguration('svelte').update('enable-ts-plugin', true, true);
+        } else if (response === answers[1]) {
+            workspace.getConfiguration('svelte').update('ask-to-enable-ts-plugin', false, true);
         }
     }
 }

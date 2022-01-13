@@ -167,6 +167,14 @@ export interface LinkedEditingRangesProvider {
     ): Resolvable<LinkedEditingRanges | null>;
 }
 
+export interface ImplementationProvider {
+    getImplementation(document: Document, position: Position): Resolvable<Location[] | null>;
+}
+
+export interface TypeDefinitionProvider {
+    getTypeDefinition(document: Document, position: Position): Resolvable<Location[] | null>;
+}
+
 export interface OnWatchFileChangesPara {
     fileName: string;
     changeType: FileChangeType;
@@ -194,7 +202,9 @@ type ProviderBase = DiagnosticsProvider &
     RenameProvider &
     SignatureHelpProvider &
     SemanticTokensProvider &
-    LinkedEditingRangesProvider;
+    LinkedEditingRangesProvider &
+    ImplementationProvider &
+    TypeDefinitionProvider;
 
 export type LSProvider = ProviderBase & BackwardsCompatibleDefinitionsProvider;
 

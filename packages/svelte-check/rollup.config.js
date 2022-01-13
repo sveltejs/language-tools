@@ -57,7 +57,7 @@ export default [
             ...builtins,
             // svelte-check dependencies that are system-dependent and should
             // be installed as dependencies through npm
-            'chalk',
+            'picocolors',
             'chokidar',
             // Dependencies of svelte-language-server
             // we don't want to bundle and instead require them as dependencies

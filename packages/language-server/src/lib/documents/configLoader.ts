@@ -2,7 +2,7 @@ import { Logger } from '../../logger';
 import { CompileOptions } from 'svelte/types/compiler/interfaces';
 import { PreprocessorGroup } from 'svelte/types/compiler/preprocess/types';
 import { importSveltePreprocess } from '../../importPackage';
-import _glob from 'glob';
+import _glob from 'fast-glob';
 import _path from 'path';
 import _fs from 'fs';
 import { pathToFileURL, URL } from 'url';
@@ -52,6 +52,7 @@ export class ConfigLoader {
     private configFiles = new Map<string, SvelteConfig>();
     private configFilesAsync = new Map<string, Promise<SvelteConfig>>();
     private filePathToConfigPath = new Map<string, string>();
+    private disabled = false;
 
     constructor(
         private globSync: typeof _glob.sync,
@@ -59,6 +60,13 @@ export class ConfigLoader {
         private path: Pick<typeof _path, 'dirname' | 'relative' | 'join'>,
         private dynamicImport: typeof _dynamicImport
     ) {}
+
+    /**
+     * Enable/disable loading of configs (for security reasons for example)
+     */
+    setDisabled(disabled: boolean): void {
+        this.disabled = disabled;
+    }
 
     /**
      * Tries to load all `svelte.config.js` files below given directory
@@ -72,7 +80,7 @@ export class ConfigLoader {
         try {
             const pathResults = this.globSync('**/svelte.config.{js,cjs,mjs}', {
                 cwd: directory,
-                ignore: 'node_modules/**'
+                ignore: ['**/node_modules/**']
             });
             const someConfigIsImmediateFileInDirectory =
                 pathResults.length > 0 && pathResults.some((res) => !this.path.dirname(res));
@@ -141,7 +149,15 @@ export class ConfigLoader {
 
     private async loadConfig(configPath: string, directory: string) {
         try {
-            let config = (await this.dynamicImport(pathToFileURL(configPath)))?.default;
+            let config = this.disabled
+                ? {}
+                : (await this.dynamicImport(pathToFileURL(configPath)))?.default;
+
+            if (!config) {
+                throw new Error(
+                    'Missing exports in the config. Make sure to include "export default config" or "module.exports = config"'
+                );
+            }
             config = {
                 ...config,
                 compilerOptions: {
@@ -153,7 +169,7 @@ export class ConfigLoader {
             Logger.log('Loaded config at ', configPath);
             return config;
         } catch (err) {
-            Logger.error('Error while loading config');
+            Logger.error('Error while loading config at ', configPath);
             Logger.error(err);
             const config = {
                 ...this.useFallbackPreprocessor(directory, true),
@@ -237,7 +253,10 @@ export class ConfigLoader {
             preprocess: sveltePreprocess({
                 // 4.x does not have transpileOnly anymore, but if the user has version 3.x
                 // in his repo, that one is loaded instead, for which we still need this.
-                typescript: <any>{ transpileOnly: true, compilerOptions: { sourceMap: true } }
+                typescript: <any>{
+                    transpileOnly: true,
+                    compilerOptions: { sourceMap: true, inlineSourceMap: false }
+                }
             })
         };
     }

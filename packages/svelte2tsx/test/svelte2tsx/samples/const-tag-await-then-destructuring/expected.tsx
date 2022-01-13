@@ -18,7 +18,7 @@
 	<div>{area} {volume} {perimeter}, {_width}+{_height}={sum}</div>
 </>})}}
 
-{() => {let _$$p = (promise2 ); __sveltets_awaitThen(_$$p, () => {}, ({ width, height }) => {const {area, volume} = calculate(width, height, constant);const perimeter = (width + height) * constant;const [_width, _height, sum] = [width * constant, height, width * constant + height];<>
+{() => {let _$$p = (promise2); __sveltets_1_awaitThen(_$$p, () => {}, ({ width, height }) => {const {area, volume} = calculate(width, height, constant);const perimeter = (width + height) * constant;const [_width, _height, sum] = [width * constant, height, width * constant + height];<>
 	{ }
 	{ }
 	{ }

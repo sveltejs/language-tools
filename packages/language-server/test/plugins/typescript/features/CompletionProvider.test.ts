@@ -41,7 +41,10 @@ describe('CompletionProviderImpl', () => {
             [pathToUrl(testDir)],
             new LSConfigManager()
         );
-        const completionProvider = new CompletionsProviderImpl(lsAndTsDocResolver);
+        const completionProvider = new CompletionsProviderImpl(
+            lsAndTsDocResolver,
+            new LSConfigManager()
+        );
         const filePath = join(testFilesDir, filename);
         const document = docManager.openDocument(<any>{
             uri: pathToUrl(filePath),
@@ -75,9 +78,10 @@ describe('CompletionProviderImpl', () => {
             label: 'b',
             insertText: undefined,
             kind: CompletionItemKind.Method,
-            sortText: '1',
+            sortText: '11',
             commitCharacters: ['.', ',', '('],
-            preselect: undefined
+            preselect: undefined,
+            textEdit: undefined
         });
     });
 
@@ -100,9 +104,10 @@ describe('CompletionProviderImpl', () => {
             label: 'b',
             insertText: undefined,
             kind: CompletionItemKind.Field,
-            sortText: '1',
+            sortText: '11',
             commitCharacters: ['.', ',', '('],
-            preselect: undefined
+            preselect: undefined,
+            textEdit: undefined
         });
     });
 
@@ -111,7 +116,7 @@ describe('CompletionProviderImpl', () => {
 
         const completions = await completionProvider.getCompletions(
             document,
-            Position.create(4, 5),
+            Position.create(5, 5),
             {
                 triggerKind: CompletionTriggerKind.Invoked
             }
@@ -127,26 +132,26 @@ describe('CompletionProviderImpl', () => {
 
         assert.deepStrictEqual(eventCompletions, <CompletionItem[]>[
             {
-                detail: 'a: CustomEvent<boolean>',
+                detail: 'aa: CustomEvent<boolean>',
                 documentation: '',
-                label: 'on:a',
+                label: 'on:aa',
                 sortText: '-1',
                 textEdit: undefined
             },
             {
-                detail: 'b: MouseEvent',
+                detail: 'ab: MouseEvent',
                 documentation: {
                     kind: 'markdown',
                     value: 'TEST'
                 },
-                label: 'on:b',
+                label: 'on:ab',
                 sortText: '-1',
                 textEdit: undefined
             },
             {
-                detail: 'c: any',
+                detail: 'ac: any',
                 documentation: '',
-                label: 'on:c',
+                label: 'on:ac',
                 sortText: '-1',
                 textEdit: undefined
             }
@@ -158,7 +163,7 @@ describe('CompletionProviderImpl', () => {
 
         const completions = await completionProvider.getCompletions(
             document,
-            Position.create(4, 10),
+            Position.create(5, 11),
             {
                 triggerKind: CompletionTriggerKind.Invoked
             }
@@ -175,64 +180,91 @@ describe('CompletionProviderImpl', () => {
 
         assert.deepStrictEqual(eventCompletions, <CompletionItem[]>[
             {
-                detail: 'a: CustomEvent<boolean>',
+                detail: 'aa: CustomEvent<boolean>',
                 documentation: '',
-                label: 'on:a',
+                label: 'on:aa',
                 sortText: '-1',
                 textEdit: {
-                    newText: 'on:a',
+                    newText: 'on:aa',
                     range: {
                         start: {
-                            line: 4,
+                            line: 5,
                             character: 7
                         },
                         end: {
-                            line: 4,
-                            character: 10
+                            line: 5,
+                            character: 11
                         }
                     }
                 }
             },
             {
-                detail: 'b: MouseEvent',
+                detail: 'ab: MouseEvent',
                 documentation: {
                     kind: 'markdown',
                     value: 'TEST'
                 },
-                label: 'on:b',
+                label: 'on:ab',
                 sortText: '-1',
                 textEdit: {
-                    newText: 'on:b',
+                    newText: 'on:ab',
                     range: {
                         start: {
-                            line: 4,
+                            line: 5,
                             character: 7
                         },
                         end: {
-                            line: 4,
-                            character: 10
+                            line: 5,
+                            character: 11
                         }
                     }
                 }
             },
             {
-                detail: 'c: any',
+                detail: 'ac: any',
                 documentation: '',
-                label: 'on:c',
+                label: 'on:ac',
                 sortText: '-1',
                 textEdit: {
-                    newText: 'on:c',
+                    newText: 'on:ac',
                     range: {
                         start: {
-                            line: 4,
+                            line: 5,
                             character: 7
                         },
                         end: {
-                            line: 4,
-                            character: 10
+                            line: 5,
+                            character: 11
                         }
                     }
                 }
+            }
+        ]);
+    });
+
+    it('provides event completions from createEventDispatcher', async () => {
+        const { completionProvider, document } = setup('component-events-completion.svelte');
+
+        const completions = await completionProvider.getCompletions(
+            document,
+            Position.create(6, 5),
+            {
+                triggerKind: CompletionTriggerKind.Invoked
+            }
+        );
+
+        const eventCompletions = completions!.items.filter((item) => item.label.startsWith('on:'));
+
+        assert.deepStrictEqual(eventCompletions, <CompletionItem[]>[
+            {
+                detail: 'c: CustomEvent<boolean>',
+                documentation: {
+                    kind: 'markdown',
+                    value: 'abc'
+                },
+                label: 'on:c',
+                sortText: '-1',
+                textEdit: undefined
             }
         ]);
     });
@@ -242,7 +274,7 @@ describe('CompletionProviderImpl', () => {
 
         const completions = await completionProvider.getCompletions(
             document,
-            Position.create(4, 17),
+            Position.create(4, 16),
             {
                 triggerKind: CompletionTriggerKind.Invoked
             }
@@ -260,7 +292,7 @@ describe('CompletionProviderImpl', () => {
                     newText: 'on:event1',
                     range: {
                         end: {
-                            character: 17,
+                            character: 16,
                             line: 4
                         },
                         start: {
@@ -282,12 +314,48 @@ describe('CompletionProviderImpl', () => {
                     newText: 'on:event2',
                     range: {
                         end: {
-                            character: 17,
+                            character: 16,
                             line: 4
                         },
                         start: {
                             character: 14,
                             line: 4
+                        }
+                    }
+                }
+            }
+        ]);
+    });
+
+    it('provides event completion for components with type definition having multiple declarations of the same event', async () => {
+        const { completionProvider, document } = setup('component-events-completion-ts-def.svelte');
+
+        const completions = await completionProvider.getCompletions(
+            document,
+            Position.create(6, 16),
+            {
+                triggerKind: CompletionTriggerKind.Invoked
+            }
+        );
+
+        const eventCompletions = completions!.items.filter((item) => item.label.startsWith('on:'));
+
+        assert.deepStrictEqual(eventCompletions, <CompletionItem[]>[
+            {
+                detail: 'event1: CustomEvent<string> | CustomEvent<number>',
+                label: 'on:event1',
+                sortText: '-1',
+                documentation: '',
+                textEdit: {
+                    newText: 'on:event1',
+                    range: {
+                        end: {
+                            character: 17,
+                            line: 6
+                        },
+                        start: {
+                            character: 15,
+                            line: 6
                         }
                     }
                 }
@@ -341,7 +409,7 @@ describe('CompletionProviderImpl', () => {
                 line: 0
             },
             replacementSpan: undefined,
-            sortText: '1',
+            sortText: '11',
             source: undefined,
             sourceDisplay: undefined,
             uri: fileNameToAbsoluteUri(filename)
@@ -878,7 +946,7 @@ describe('CompletionProviderImpl', () => {
 
         const completions = await completionProvider.getCompletions(
             document,
-            Position.create(5, 18),
+            Position.create(5, 17),
             {
                 triggerKind: CompletionTriggerKind.Invoked
             }
@@ -898,7 +966,7 @@ describe('CompletionProviderImpl', () => {
                     newText: 'let:let1',
                     range: {
                         end: {
-                            character: 18,
+                            character: 17,
                             line: 5
                         },
                         start: {
@@ -920,7 +988,7 @@ describe('CompletionProviderImpl', () => {
                     newText: 'let:let2',
                     range: {
                         end: {
-                            character: 18,
+                            character: 17,
                             line: 5
                         },
                         start: {
@@ -931,6 +999,178 @@ describe('CompletionProviderImpl', () => {
                 }
             }
         ]);
+    });
+
+    it('provides import statement completion', async () => {
+        const { completionProvider, document } = setup('importstatementcompletions.svelte');
+
+        const completions = await completionProvider.getCompletions(
+            document,
+            {
+                line: 1,
+                character: 14
+            },
+            {
+                triggerKind: CompletionTriggerKind.Invoked
+            }
+        );
+
+        const item = completions?.items.find((item) => item.label === 'blubb');
+
+        delete item?.data;
+
+        assert.deepStrictEqual(item, {
+            additionalTextEdits: [
+                {
+                    newText: 'import ',
+                    range: {
+                        end: {
+                            character: 11,
+                            line: 1
+                        },
+                        start: {
+                            character: 4,
+                            line: 1
+                        }
+                    }
+                }
+            ],
+            label: 'blubb',
+            insertText: 'import { blubb } from "../definitions";',
+            kind: CompletionItemKind.Function,
+            sortText: '11',
+            commitCharacters: ['.', ',', '('],
+            preselect: undefined,
+            textEdit: {
+                newText: '{ blubb } from "../definitions";',
+                range: {
+                    end: {
+                        character: 15,
+                        line: 1
+                    },
+                    start: {
+                        character: 11,
+                        line: 1
+                    }
+                }
+            }
+        });
+    });
+
+    it('provides optional chaining completion', async () => {
+        const { completionProvider, document } = setup('completions-auto-optional-chain.svelte');
+
+        const completions = await completionProvider.getCompletions(
+            document,
+            {
+                line: 3,
+                character: 6
+            },
+            {
+                triggerKind: CompletionTriggerKind.Invoked
+            }
+        );
+
+        const item = completions?.items.find((item) => item.label === 'toString');
+
+        delete item?.data;
+
+        assert.deepStrictEqual(item, {
+            additionalTextEdits: [
+                {
+                    newText: '?',
+                    range: {
+                        end: {
+                            character: 6,
+                            line: 3
+                        },
+                        start: {
+                            character: 5,
+                            line: 3
+                        }
+                    }
+                }
+            ],
+            label: 'toString',
+            insertText: '?.toString',
+            kind: CompletionItemKind.Method,
+            sortText: '11',
+            commitCharacters: ['.', ',', '('],
+            preselect: undefined,
+            textEdit: {
+                newText: '.toString',
+                range: {
+                    end: {
+                        character: 6,
+                        line: 3
+                    },
+                    start: {
+                        character: 6,
+                        line: 3
+                    }
+                }
+            }
+        });
+    });
+
+    it('provide replacement for string completions', async () => {
+        const { completionProvider, document } = setup('string-completion.svelte');
+
+        const completions = await completionProvider.getCompletions(
+            document,
+            {
+                line: 1,
+                character: 10
+            },
+            {
+                triggerKind: CompletionTriggerKind.Invoked
+            }
+        );
+
+        const item = completions?.items.find((item) => item.label === '@hi');
+
+        delete item?.data;
+
+        assert.deepStrictEqual(item, {
+            label: '@hi',
+            kind: CompletionItemKind.Constant,
+            sortText: '11',
+            preselect: undefined,
+            insertText: undefined,
+            commitCharacters: undefined,
+            textEdit: {
+                newText: '@hi',
+                range: {
+                    end: {
+                        character: 10,
+                        line: 1
+                    },
+                    start: {
+                        character: 9,
+                        line: 1
+                    }
+                }
+            }
+        });
+    });
+
+    it('auto import with system new line', async () => {
+        const { completionProvider, document } = setup('importcompletions-new-line.svelte');
+
+        const completions = await completionProvider.getCompletions(
+            document,
+            Position.create(1, 7)
+        );
+
+        const items = completions?.items.filter((item) => item.label === 'ScndImport');
+        const item = items?.[0];
+
+        const { additionalTextEdits } = await completionProvider.resolveCompletion(document, item!);
+
+        assert.strictEqual(
+            additionalTextEdits?.[0].newText,
+            `${newLine}import { ScndImport } from "./to-import";${newLine}${newLine}`
+        );
     });
 });
 

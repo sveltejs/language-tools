@@ -12,21 +12,27 @@ Adding it to an existing project? [The official blog post explains how to do it]
 
 #### 2. Getting it to work in the editor
 
-To tell us to treat your script tags as typescript, add a `type` or `lang` attribute to your script tags like so:
+To tell us to treat your script tags as typescript, add a `lang` attribute to your script tags like so:
 
 ```html
-<!-- Add type="text/typescript" -->
-<script type="text/typescript">
-    export let name: string;
-</script>
-
-<!-- Or add lang="typescript" or lang="ts" -->
-<script lang="typescript">
+<script lang="ts">
     export let name: string;
 </script>
 ```
 
-You may optionally want to add a `svelte.config.js` file - but it is not required as long as you only use TypeScript.
+You may optionally want to add a `svelte.config.js` file - but it is not required as long as you only use TypeScript. Depending on your setup, this config file needs to be written either in ESM-style or CJS-Style.
+
+ESM-style (for everything with `"type": "module"` in its `package.json`, like SvelteKit):
+
+```js
+import sveltePreprocess from 'svelte-preprocess';
+
+export default {
+    preprocess: sveltePreprocess()
+};
+```
+
+CJS-style:
 
 ```js
 const sveltePreprocess = require('svelte-preprocess');
@@ -42,6 +48,33 @@ You will need to tell svelte-vscode to restart the svelte language server in ord
 
 Hit `ctrl-shift-p` or `cmd-shift-p` on mac, type `svelte restart`, and select `Svelte: Restart Language Server`. Any errors you were seeing should now go away and you're now all set up!
 
+## Typing components, authoring packages
+
+When you provide a library, you also should provide type definitions alongside your code. You should not provide Svelte files that need preprocessors. So when you author a Svelte component library and write it in TypeScript, you should transpile the Svelte TS Code to JavaScript to provide JS/HTML/CSS-Svelte files. To type these components, place `d.ts` files next to their implementation. So for example when you have `Foo.svelte`, place `Foo.svelte.d.ts` next to it and tooling will aquire the types from the `d.ts` file. This is in line with how it works for regular TypeScript/JavaScript. Your `Foo.svelte.d.ts` should look something like this:
+
+```typescript
+import { SvelteComponentTyped } from 'svelte';
+
+export interface FooProps {
+    propA: string;
+    // ...
+}
+
+export interface FooEvents {
+    click: MouseEvent;
+    customEvent: CustomEvent<boolean>;
+}
+
+export interface FooSlots {
+    default: { slotValue: string };
+    named: { slotValue: string };
+}
+
+export default class Foo extends SvelteComponentTyped<FooProps, FooEvents, FooSlots> {}
+```
+
+SvelteKit's `package` command will give you these capabilities - transpiling and creating type definitions - out of the box: https://kit.svelte.dev/docs#packaging
+
 ## Typing component events
 
 When you are using TypeScript, you can type which events your component has in two ways:
@@ -52,14 +85,13 @@ The first and possibly most often used way is to type the `createEventDispatcher
 <script lang="ts">
     import { createEventDispatcher } from 'svelte';
 
-    const dispatch =
-        createEventDispatcher<{
-            /**
-             * you can also add docs
-             */
-            checked: boolean; // Will translate to `CustomEvent<boolean>`
-            hello: string;
-        }>();
+    const dispatch = createEventDispatcher<{
+        /**
+         * you can also add docs
+         */
+        checked: boolean; // Will translate to `CustomEvent<boolean>`
+        hello: string;
+    }>();
 
     // ...
 </script>

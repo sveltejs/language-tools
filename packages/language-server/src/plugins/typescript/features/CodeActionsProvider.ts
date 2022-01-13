@@ -10,19 +10,22 @@ import {
     TextEdit,
     WorkspaceEdit
 } from 'vscode-languageserver';
+import { importPrettier } from '../../../importPackage';
 import {
     Document,
     getLineAtPosition,
+    isAtEndOfLine,
     isRangeInTag,
     mapRangeToOriginal
 } from '../../../lib/documents';
+import { LSConfigManager } from '../../../ls-config';
 import { flatten, getIndent, isNotNullOrUndefined, modifyLines, pathToUrl } from '../../../utils';
 import { CodeActionsProvider } from '../../interfaces';
 import { SnapshotFragment, SvelteSnapshotFragment } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
-import { convertRange } from '../utils';
+import { changeSvelteComponentName, convertRange } from '../utils';
 import { CompletionsProviderImpl } from './CompletionProvider';
-import { isNoTextSpanInGeneratedCode, SnapshotFragmentMap } from './utils';
+import { findContainingNode, isNoTextSpanInGeneratedCode, SnapshotFragmentMap } from './utils';
 
 interface RefactorArgs {
     type: 'refactor';
@@ -34,7 +37,8 @@ interface RefactorArgs {
 export class CodeActionsProviderImpl implements CodeActionsProvider {
     constructor(
         private readonly lsAndTsDocResolver: LSAndTSDocResolver,
-        private readonly completionProvider: CompletionsProviderImpl
+        private readonly completionProvider: CompletionsProviderImpl,
+        private readonly configManager: LSConfigManager
     ) {}
 
     async getCodeActions(
@@ -76,12 +80,25 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             return [];
         }
 
+        const useSemicolons =
+            this.configManager.getMergedPrettierConfig(
+                await importPrettier(document.getFilePath()!).resolveConfig(
+                    document.getFilePath()!,
+                    {
+                        editorconfig: true
+                    }
+                )
+            ).semi ?? true;
         const changes = lang.organizeImports(
             {
                 fileName: tsDoc.filePath,
                 type: 'file'
             },
-            {},
+            {
+                semicolons: useSemicolons
+                    ? ts.SemicolonPreference.Insert
+                    : ts.SemicolonPreference.Remove
+            },
             userPreferences
         );
 
@@ -148,7 +165,10 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             range.end.character += 1;
             if (
                 fragment instanceof SvelteSnapshotFragment &&
-                getLineAtPosition(range.end, fragment.originalText).length <= range.end.character
+                isAtEndOfLine(
+                    getLineAtPosition(range.end, fragment.originalText),
+                    range.end.character
+                )
             ) {
                 range.end.line += 1;
                 range.end.character = 0;
@@ -183,10 +203,15 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             userPreferences
         );
 
+        const componentQuickFix = errorCodes.includes(2304) // "Cannot find name '...'."
+            ? this.getComponentImportQuickFix(start, end, lang, tsDoc.filePath, userPreferences) ??
+              []
+            : [];
+
         const docs = new SnapshotFragmentMap(this.lsAndTsDocResolver);
         docs.set(tsDoc.filePath, { fragment, snapshot: tsDoc });
 
-        const codeActionsPromises = codeFixes.map(async (fix) => {
+        const codeActionsPromises = codeFixes.concat(componentQuickFix).map(async (fix) => {
             const documentChangesPromises = fix.changes.map(async (change) => {
                 const { snapshot, fragment } = await docs.retrieve(change.fileName);
                 return TextDocumentEdit.create(
@@ -272,6 +297,75 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             codeAction.edit?.documentChanges?.every(
                 (change) => (<TextDocumentEdit>change).edits.length > 0
             )
+        );
+    }
+
+    /**
+     * import quick fix requires the symbol name to be the same as where it's defined.
+     * But we have suffix on component default export to prevent conflict with
+     * a local variable. So we use auto-import completion as a workaround here.
+     */
+    private getComponentImportQuickFix(
+        start: number,
+        end: number,
+        lang: ts.LanguageService,
+        filePath: string,
+        userPreferences: ts.UserPreferences
+    ): ts.CodeFixAction[] | undefined {
+        const sourceFile = lang.getProgram()?.getSourceFile(filePath);
+
+        if (!sourceFile) {
+            return;
+        }
+
+        const node = findContainingNode(
+            sourceFile,
+            {
+                start,
+                length: end - start
+            },
+            (node): node is ts.JsxOpeningLikeElement | ts.JsxClosingElement =>
+                ts.isJsxClosingElement(node) || ts.isJsxOpeningLikeElement(node)
+        );
+
+        if (!node) {
+            return;
+        }
+
+        const completion = lang.getCompletionsAtPosition(
+            filePath,
+            node.tagName.getEnd(),
+            userPreferences
+        );
+
+        if (!completion) {
+            return;
+        }
+
+        const name = node.tagName.getText();
+        const suffixedName = name + '__SvelteComponent_';
+        const errorPreventingUserPreferences =
+            this.completionProvider.fixUserPreferencesForSvelteComponentImport(userPreferences);
+
+        const toFix = (c: ts.CompletionEntry) =>
+            lang
+                .getCompletionEntryDetails(
+                    filePath,
+                    end,
+                    c.name,
+                    {},
+                    c.source,
+                    errorPreventingUserPreferences,
+                    c.data
+                )
+                ?.codeActions?.map((a) => ({
+                    ...a,
+                    description: changeSvelteComponentName(a.description),
+                    fixName: 'import'
+                })) ?? [];
+
+        return flatten(
+            completion.entries.filter((c) => c.name === name || c.name === suffixedName).map(toFix)
         );
     }
 
@@ -435,15 +529,18 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
      */
     private checkEndOfFileCodeInsert(resultRange: Range, targetRange: Range, document: Document) {
         if (resultRange.start.line < 0 || resultRange.end.line < 0) {
-            if (isRangeInTag(targetRange, document.scriptInfo)) {
-                resultRange = Range.create(document.scriptInfo.endPos, document.scriptInfo.endPos);
-            } else if (isRangeInTag(targetRange, document.moduleScriptInfo)) {
-                resultRange = Range.create(
+            if (isRangeInTag(targetRange, document.moduleScriptInfo)) {
+                return Range.create(
                     document.moduleScriptInfo.endPos,
                     document.moduleScriptInfo.endPos
                 );
             }
+
+            if (document.scriptInfo) {
+                return Range.create(document.scriptInfo.endPos, document.scriptInfo.endPos);
+            }
         }
+
         return resultRange;
     }
 

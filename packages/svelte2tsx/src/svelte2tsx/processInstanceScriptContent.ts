@@ -3,7 +3,7 @@ import { Node } from 'estree-walker';
 import * as ts from 'typescript';
 import {
     getBinaryAssignmentExpr,
-    isFirstInAnExpressionStatement,
+    isSafeToPrefixWithSemicolon,
     isNotPropertyNameOfImport
 } from './utils/tsAst';
 import { ExportedNames, is$$PropsDeclaration } from './nodes/ExportedNames';
@@ -14,6 +14,8 @@ import { handleTypeAssertion } from './nodes/handleTypeAssertion';
 import { ImplicitStoreValues } from './nodes/ImplicitStoreValues';
 import { Generics } from './nodes/Generics';
 import { is$$SlotsDeclaration } from './nodes/slot';
+import { preprendStr } from '../utils/magic-string';
+import { handleImportDeclaration } from './nodes/handleImportDeclaration';
 
 export interface InstanceScriptProcessResult {
     exportedNames: ExportedNames;
@@ -35,7 +37,8 @@ export function processInstanceScriptContent(
     str: MagicString,
     script: Node,
     events: ComponentEvents,
-    implicitStoreValues: ImplicitStoreValues
+    implicitStoreValues: ImplicitStoreValues,
+    mode: 'tsx' | 'dts'
 ): InstanceScriptProcessResult {
     const htmlx = str.original;
     const scriptContent = htmlx.substring(script.content.start, script.content.end);
@@ -130,8 +133,12 @@ export function processInstanceScriptContent(
         // handle $store++, $store--, ++$store, --$store
         if (
             (ts.isPrefixUnaryExpression(parent) || ts.isPostfixUnaryExpression(parent)) &&
-            parent.operator !==
-                ts.SyntaxKind.ExclamationToken /* `!$store` does not need processing */
+            ![
+                ts.SyntaxKind.ExclamationToken, // !$store
+                ts.SyntaxKind.PlusToken, // +$store
+                ts.SyntaxKind.MinusToken, // -$store
+                ts.SyntaxKind.TildeToken // ~$store
+            ].includes(parent.operator) /* `!$store` etc does not need processing */
         ) {
             let simpleOperator: string;
             if (parent.operator === ts.SyntaxKind.PlusPlusToken) {
@@ -163,7 +170,12 @@ export function processInstanceScriptContent(
         // - in order to get ts errors if store is not assignable to SvelteStore
         // - use $store variable defined above to get ts flow control
         const dollar = str.original.indexOf('$', ident.getStart() + astOffset);
-        const getPrefix = isFirstInAnExpressionStatement(ident) ? ';' : '';
+        const getPrefix = isSafeToPrefixWithSemicolon(ident)
+            ? ';'
+            : ts.isShorthandPropertyAssignment(parent)
+            ? // { $store } --> { $store: __sveltets_1_store_get(..)}
+              ident.text + ': '
+            : '';
         str.overwrite(dollar, dollar + 1, getPrefix + '(__sveltets_1_store_get(');
         str.prependLeft(ident.end + astOffset, `), $${storename})`);
     };
@@ -244,7 +256,7 @@ export function processInstanceScriptContent(
             uses$$SlotsInterface = true;
         }
         if (is$$PropsDeclaration(node)) {
-            exportedNames.setUses$$Props();
+            exportedNames.uses$$Props = true;
         }
 
         if (ts.isVariableStatement(node)) {
@@ -277,13 +289,19 @@ export function processInstanceScriptContent(
         }
 
         if (ts.isImportDeclaration(node)) {
-            //move imports to top of script so they appear outside our render function
-            str.move(node.getStart() + astOffset, node.end + astOffset, script.start + 1);
-            //add in a \n
-            const originalEndChar = str.original[node.end + astOffset - 1];
-            str.overwrite(node.end + astOffset - 1, node.end + astOffset, originalEndChar + '\n');
+            handleImportDeclaration(node, str, astOffset, script.start);
+
             // Check if import is the event dispatcher
             events.checkIfImportIsEventDispatcher(node);
+        }
+
+        // workaround for import statement completion
+        if (ts.isImportEqualsDeclaration(node)) {
+            const end = node.getEnd() + astOffset;
+
+            if (str.original[end - 1] !== ';') {
+                preprendStr(str, end, ';');
+            }
         }
 
         if (ts.isVariableDeclaration(node)) {
@@ -365,6 +383,14 @@ export function processInstanceScriptContent(
         str.appendRight(firstImport.getStart() + astOffset, '\n');
     }
 
+    if (mode === 'dts') {
+        // Transform interface declarations to type declarations because indirectly
+        // using interfaces inside the return type of a function is forbidden.
+        // This is not a problem for intellisense/type inference but it will
+        // break dts generation (file will not be generated).
+        transformInterfacesToTypes(tsAst, str, astOffset);
+    }
+
     return {
         exportedNames,
         events,
@@ -374,4 +400,34 @@ export function processInstanceScriptContent(
         uses$$SlotsInterface,
         generics
     };
+}
+
+function transformInterfacesToTypes(tsAst: ts.SourceFile, str: MagicString, astOffset: any) {
+    tsAst.statements.filter(ts.isInterfaceDeclaration).forEach((node) => {
+        str.overwrite(
+            node.getStart() + astOffset,
+            node.getStart() + astOffset + 'interface'.length,
+            'type'
+        );
+
+        if (node.heritageClauses?.length) {
+            const extendsStart = node.heritageClauses[0].getStart() + astOffset;
+            str.overwrite(extendsStart, extendsStart + 'extends'.length, '=');
+
+            const extendsList = node.heritageClauses[0].types;
+            let prev = extendsList[0];
+            extendsList.slice(1).forEach((heritageClause) => {
+                str.overwrite(
+                    prev.getEnd() + astOffset,
+                    heritageClause.getStart() + astOffset,
+                    ' & '
+                );
+                prev = heritageClause;
+            });
+
+            str.appendLeft(node.heritageClauses[0].getEnd() + astOffset, ' & ');
+        } else {
+            str.prependLeft(str.original.indexOf('{', node.getStart() + astOffset), '=');
+        }
+    });
 }

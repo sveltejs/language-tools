@@ -43,6 +43,12 @@
         "onLanguage:svelte",
         "onCommand:svelte.restartLanguageServer"
     ],
+    "capabilities": {
+        "untrustedWorkspaces": {
+            "supported": "limited",
+            "description": "The extension requires workspace trust because it executes code specified by the workspace. Loading the user's node_modules and loading svelte config files is disabled when untrusted"
+        }
+    },
     "contributes": {
         "typescriptServerPlugins-disabled": [
             {
@@ -60,6 +66,12 @@
                     "title": "Enable TypeScript Svelte plugin",
                     "description": "Enables a TypeScript plugin which provides intellisense for Svelte files inside TS/JS files."
                 },
+                "svelte.ask-to-enable-ts-plugin": {
+                    "type": "boolean",
+                    "default": true,
+                    "title": "Ask to enable TypeScript Svelte plugin",
+                    "description": "Ask on startup to enable the TypeScript plugin."
+                },
                 "svelte.language-server.runtime": {
                     "scope": "application",
                     "type": "string",
@@ -70,7 +82,7 @@
                     "scope": "application",
                     "type": "string",
                     "title": "Language Server Path",
-                    "description": "- You normally don't set this - Path to the language server executable. If you installed the \"svelte-language-server\" npm package, it's within there at \"bin/server.js\". Path can be either relative to your workspace root or absolute. Set this only if you want to use a custom version of the language server. This setting can only be changed in user settings for security reasons."
+                    "description": "- You normally don't set this - Path to the language server executable. If you installed the \"svelte-language-server\" npm package, it's within there at \"bin/server.js\". Path can be either relative to your workspace root or absolute. Set this only if you want to use a custom version of the language server. This will then also use the workspace version of TypeScript. This setting can only be changed in user settings for security reasons."
                 },
                 "svelte.language-server.port": {
                     "type": "number",
@@ -159,6 +171,18 @@
                     "default": true,
                     "title": "TypeScript: Semantic Tokens",
                     "description": "Enable semantic tokens (semantic highlight) for TypeScript."
+                },
+                "svelte.plugin.typescript.implementation.enable": {
+                    "type": "boolean",
+                    "default": true,
+                    "title": "Typescript: Go to Implementation",
+                    "description": "Enable go to implementation for Typescript"
+                },
+                "svelte.plugin.typescript.typeDefinition.enable": {
+                    "type": "boolean",
+                    "default": true,
+                    "title": "Typescript: Go to Type Definition",
+                    "description": "Enable go to Type Definition for Typescript"
                 },
                 "svelte.plugin.css.enable": {
                     "type": "boolean",
@@ -370,6 +394,16 @@
                     "default": true,
                     "title": "Svelte: Rename",
                     "description": "Enable rename/move Svelte files functionality"
+                },
+                "svelte.plugin.svelte.defaultScriptLanguage": {
+                    "type": "string",
+                    "default": "none",
+                    "title": "Svelte: Default Script Language",
+                    "description": "The default language to use when generating new script tags",
+                    "enum": [
+                        "none",
+                        "ts"
+                    ]
                 }
             }
         },
@@ -422,7 +456,8 @@
                     "source.sass": "sass",
                     "source.stylus": "stylus",
                     "source.js": "javascript",
-                    "source.ts": "typescript"
+                    "source.ts": "typescript",
+                    "source.coffee": "coffeescript"
                 }
             },
             {

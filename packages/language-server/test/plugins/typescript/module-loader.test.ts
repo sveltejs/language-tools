@@ -114,7 +114,8 @@ describe('createSvelteModuleLoader', () => {
         assert.deepStrictEqual(result, [
             <ts.ResolvedModuleFull>{
                 extension: ts.Extension.Jsx,
-                resolvedFileName: 'filename.svelte'
+                resolvedFileName: 'filename.svelte',
+                isExternalLibraryImport: undefined
             }
         ]);
         assert.deepStrictEqual(lastCall(resolveStub).args, [
@@ -141,7 +142,8 @@ describe('createSvelteModuleLoader', () => {
         assert.deepStrictEqual(result, [
             <ts.ResolvedModuleFull>{
                 extension: ts.Extension.Jsx,
-                resolvedFileName: 'filename.svelte'
+                resolvedFileName: 'filename.svelte',
+                isExternalLibraryImport: undefined
             }
         ]);
         assert.deepStrictEqual(lastCall(resolveStub).args, [

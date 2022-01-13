@@ -1,5 +1,20 @@
-import { URI } from 'vscode-uri';
+import { Node } from 'vscode-html-languageservice';
 import { Position, Range } from 'vscode-languageserver';
+import { URI } from 'vscode-uri';
+
+type Predicate<T> = (x: T) => boolean;
+
+export function not<T>(predicate: Predicate<T>) {
+    return (x: T) => !predicate(x);
+}
+
+export function or<T>(...predicates: Array<Predicate<T>>) {
+    return (x: T) => predicates.some((predicate) => predicate(x));
+}
+
+export function and<T>(...predicates: Array<Predicate<T>>) {
+    return (x: T) => predicates.every((predicate) => predicate(x));
+}
 
 export function clamp(num: number, min: number, max: number): number {
     return Math.max(min, Math.min(max, num));
@@ -42,8 +57,21 @@ export function getLastPartOfPath(path: string): string {
     return path.replace(/\\/g, '/').split('/').pop() || '';
 }
 
-export function flatten<T>(arr: T[][]): T[] {
-    return arr.reduce((all, item) => [...all, ...item], []);
+export function flatten<T>(arr: Array<T | T[]>): T[] {
+    return arr.reduce(
+        (all: T[], item) => (Array.isArray(item) ? [...all, ...item] : [...all, item]),
+        []
+    );
+}
+
+/**
+ * Map or keep original (passthrough) if the mapper returns undefined.
+ */
+export function passMap<T>(array: T[], mapper: (x: T) => void | T[]) {
+    return array.map((x) => {
+        const mapped = mapper(x);
+        return mapped === undefined ? x : mapped;
+    });
 }
 
 export function isInRange(range: Range, positionToTest: Position): boolean {
@@ -225,4 +253,26 @@ export async function filterAsync<T>(
 
 export function getIndent(text: string) {
     return /^[ |\t]+/.exec(text)?.[0] ?? '';
+}
+
+/**
+ *
+ * The html language service is case insensitive, and would provide
+ * hover/ completion info for Svelte components like `Option` which have
+ * the same name like a html tag.
+ *
+ * Also, svelte directives like action and event modifier only work
+ * with element not component
+ */
+export function possiblyComponent(node: Node): boolean {
+    return !!node.tag?.[0].match(/[A-Z]/);
+}
+
+/**
+ * If the object if it has entries, else undefined
+ */
+export function returnObjectIfHasKeys<T>(obj: T | undefined): T | undefined {
+    if (Object.keys(obj || {}).length > 0) {
+        return obj;
+    }
 }

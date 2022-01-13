@@ -71,7 +71,7 @@ export function handleAwaitThen(
         return;
     }
 
-    // then value } | {:then value} | {await ..} .. {/await} ->
+    // then value } | then} | {:then value} | {await ..} .. {/await} ->
     // __sveltets_1_awaitThen(_$$p, (value) => {(possibleIfCondition && )<>
     let thenStart: number;
     let thenEnd: number;
@@ -120,34 +120,53 @@ export function handleAwaitCatch(
     str: MagicString,
     ifScope: IfScope
 ): void {
-    //{:catch error} ->
-    //</>}, (error) => {<>
     if (awaitBlock.catch.skip) {
         return;
     }
-    //catch block includes the {:catch}
-    let catchStart: number;
-    let catchSymbolEnd: Number;
 
     if (awaitBlock.pending.skip && awaitBlock.then.skip) {
-        catchStart = htmlx.indexOf('catch', awaitBlock.expression.end);
-        catchSymbolEnd = htmlx.indexOf('catch', catchStart) + 'catch'.length;
+        if (awaitBlock.error) {
+            // {#await ... catch ...}
+            const catchBegin = htmlx.indexOf('}', awaitBlock.error.end) + 1;
+            str.overwrite(
+                awaitBlock.expression.end,
+                awaitBlock.error.start,
+                '); __sveltets_1_awaitThen(_$$p, () => {}, ('
+            );
+            str.overwrite(awaitBlock.error.end, catchBegin, ') => {');
+            extractConstTags(awaitBlock.catch.children).forEach((insertion) => {
+                insertion(catchBegin, str);
+            });
+            str.appendRight(catchBegin, '<>');
+        } else {
+            // {#await ... catch}
+            const catchBegin = htmlx.indexOf('}', awaitBlock.expression.end) + 1;
+            str.overwrite(
+                awaitBlock.expression.end,
+                catchBegin,
+                '); __sveltets_1_awaitThen(_$$p, () => {}, () => {'
+            );
+            extractConstTags(awaitBlock.catch.children).forEach((insertion) => {
+                insertion(catchBegin, str);
+            });
+            str.appendRight(catchBegin, '<>');
+        }
     } else {
-        catchStart = awaitBlock.catch.start;
-        catchSymbolEnd = htmlx.indexOf(':catch', catchStart) + ':catch'.length;
-    }
+        //{:catch error} ->
+        //</>}, (error) => {<>
 
-    const errorStart = awaitBlock.error ? awaitBlock.error.start : catchSymbolEnd;
-    const errorEnd = awaitBlock.error ? awaitBlock.error.end : errorStart;
-    const catchEnd = htmlx.indexOf('}', errorEnd) + 1;
-    if (awaitBlock.pending.skip && awaitBlock.then.skip) {
-        str.overwrite(catchStart, errorStart, '); __sveltets_awaitThen(_$$p, () => {}, (');
-    } else {
+        //catch block includes the {:catch}
+        const catchStart = awaitBlock.catch.start;
+        const catchSymbolEnd = htmlx.indexOf(':catch', catchStart) + ':catch'.length;
+
+        const errorStart = awaitBlock.error ? awaitBlock.error.start : catchSymbolEnd;
+        const errorEnd = awaitBlock.error ? awaitBlock.error.end : errorStart;
+        const catchEnd = htmlx.indexOf('}', errorEnd) + 1;
         str.overwrite(catchStart, errorStart, '</>}, (');
+        str.overwrite(errorEnd, catchEnd, ') => {');
+        extractConstTags(awaitBlock.catch.children).forEach((insertion) => {
+            insertion(catchEnd, str);
+        });
+        str.appendRight(catchEnd, `${ifScope.addPossibleIfCondition()}<>`);
     }
-    str.overwrite(errorEnd, catchEnd, ') => {');
-    extractConstTags(awaitBlock.catch.children).forEach((insertion) => {
-        insertion(catchEnd, str);
-    });
-    str.appendRight(catchEnd, `${ifScope.addPossibleIfCondition()}<>`); // eslint-disable-line
 }

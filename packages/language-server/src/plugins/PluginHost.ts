@@ -53,6 +53,7 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         filterIncompleteCompletions: true,
         definitionLinkSupport: false
     };
+    private deferredRequests: Record<string, [number, Promise<any>]> = {};
 
     constructor(private documentsManager: DocumentManager) {}
 
@@ -64,24 +65,46 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         this.plugins.push(plugin);
     }
 
+    didUpdateDocument() {
+        this.deferredRequests = {};
+    }
+
     async getDiagnostics(textDocument: TextDocumentIdentifier): Promise<Diagnostic[]> {
         const document = this.getDocument(textDocument.uri);
-        if (!document) {
-            throw new Error('Cannot call methods on an unopened document');
+
+        if (
+            (document.getFilePath()?.includes('/node_modules/') ||
+                document.getFilePath()?.includes('\\node_modules\\')) &&
+            // Sapper convention: Put stuff inside node_modules below src
+            !(
+                document.getFilePath()?.includes('/src/node_modules/') ||
+                document.getFilePath()?.includes('\\src\\node_modules\\')
+            )
+        ) {
+            // Don't return diagnostics for files inside node_modules. These are considered read-only (cannot be changed)
+            // and in case of svelte-check they would pollute/skew the output
+            return [];
         }
 
         return flatten(
-            await this.execute<Diagnostic[]>('getDiagnostics', [document], ExecuteMode.Collect)
+            await this.execute<Diagnostic[]>(
+                'getDiagnostics',
+                [document],
+                ExecuteMode.Collect,
+                'high'
+            )
         );
     }
 
     async doHover(textDocument: TextDocumentIdentifier, position: Position): Promise<Hover | null> {
         const document = this.getDocument(textDocument.uri);
-        if (!document) {
-            throw new Error('Cannot call methods on an unopened document');
-        }
 
-        return this.execute<Hover>('doHover', [document, position], ExecuteMode.FirstNonNull);
+        return this.execute<Hover>(
+            'doHover',
+            [document, position],
+            ExecuteMode.FirstNonNull,
+            'high'
+        );
     }
 
     async getCompletions(
@@ -91,15 +114,13 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         cancellationToken?: CancellationToken
     ): Promise<CompletionList> {
         const document = this.getDocument(textDocument.uri);
-        if (!document) {
-            throw new Error('Cannot call methods on an unopened document');
-        }
 
         const completions = (
             await this.execute<CompletionList>(
                 'getCompletions',
                 [document, position, completionContext, cancellationToken],
-                ExecuteMode.Collect
+                ExecuteMode.Collect,
+                'high'
             )
         ).filter((completion) => completion != null);
 
@@ -134,14 +155,11 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
     ): Promise<CompletionItem> {
         const document = this.getDocument(textDocument.uri);
 
-        if (!document) {
-            throw new Error('Cannot call methods on an unopened document');
-        }
-
         const result = await this.execute<CompletionItem>(
             'resolveCompletion',
             [document, completionItem, cancellationToken],
-            ExecuteMode.FirstNonNull
+            ExecuteMode.FirstNonNull,
+            'high'
         );
 
         return result ?? completionItem;
@@ -152,15 +170,13 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         options: FormattingOptions
     ): Promise<TextEdit[]> {
         const document = this.getDocument(textDocument.uri);
-        if (!document) {
-            throw new Error('Cannot call methods on an unopened document');
-        }
 
         return flatten(
             await this.execute<TextEdit[]>(
                 'formatDocument',
                 [document, options],
-                ExecuteMode.Collect
+                ExecuteMode.Collect,
+                'high'
             )
         );
     }
@@ -170,28 +186,24 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         position: Position
     ): Promise<string | null> {
         const document = this.getDocument(textDocument.uri);
-        if (!document) {
-            throw new Error('Cannot call methods on an unopened document');
-        }
 
         return this.execute<string | null>(
             'doTagComplete',
             [document, position],
-            ExecuteMode.FirstNonNull
+            ExecuteMode.FirstNonNull,
+            'high'
         );
     }
 
     async getDocumentColors(textDocument: TextDocumentIdentifier): Promise<ColorInformation[]> {
         const document = this.getDocument(textDocument.uri);
-        if (!document) {
-            throw new Error('Cannot call methods on an unopened document');
-        }
 
         return flatten(
             await this.execute<ColorInformation[]>(
                 'getDocumentColors',
                 [document],
-                ExecuteMode.Collect
+                ExecuteMode.Collect,
+                'low'
             )
         );
     }
@@ -202,15 +214,13 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         color: Color
     ): Promise<ColorPresentation[]> {
         const document = this.getDocument(textDocument.uri);
-        if (!document) {
-            throw new Error('Cannot call methods on an unopened document');
-        }
 
         return flatten(
             await this.execute<ColorPresentation[]>(
                 'getColorPresentations',
                 [document, range, color],
-                ExecuteMode.Collect
+                ExecuteMode.Collect,
+                'high'
             )
         );
     }
@@ -220,15 +230,13 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         cancellationToken: CancellationToken
     ): Promise<SymbolInformation[]> {
         const document = this.getDocument(textDocument.uri);
-        if (!document) {
-            throw new Error('Cannot call methods on an unopened document');
-        }
 
         return flatten(
             await this.execute<SymbolInformation[]>(
                 'getDocumentSymbols',
                 [document, cancellationToken],
-                ExecuteMode.Collect
+                ExecuteMode.Collect,
+                'low'
             )
         );
     }
@@ -238,15 +246,13 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         position: Position
     ): Promise<DefinitionLink[] | Location[]> {
         const document = this.getDocument(textDocument.uri);
-        if (!document) {
-            throw new Error('Cannot call methods on an unopened document');
-        }
 
         const definitions = flatten(
             await this.execute<DefinitionLink[]>(
                 'getDefinitions',
                 [document, position],
-                ExecuteMode.Collect
+                ExecuteMode.Collect,
+                'high'
             )
         );
 
@@ -266,15 +272,13 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         cancellationToken: CancellationToken
     ): Promise<CodeAction[]> {
         const document = this.getDocument(textDocument.uri);
-        if (!document) {
-            throw new Error('Cannot call methods on an unopened document');
-        }
 
         return flatten(
             await this.execute<CodeAction[]>(
                 'getCodeActions',
                 [document, range, context, cancellationToken],
-                ExecuteMode.Collect
+                ExecuteMode.Collect,
+                'high'
             )
         );
     }
@@ -285,14 +289,12 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         args?: any[]
     ): Promise<WorkspaceEdit | string | null> {
         const document = this.getDocument(textDocument.uri);
-        if (!document) {
-            throw new Error('Cannot call methods on an unopened document');
-        }
 
         return await this.execute<WorkspaceEdit>(
             'executeCommand',
             [document, command, args],
-            ExecuteMode.FirstNonNull
+            ExecuteMode.FirstNonNull,
+            'high'
         );
     }
 
@@ -300,7 +302,8 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         return await this.execute<WorkspaceEdit>(
             'updateImports',
             [fileRename],
-            ExecuteMode.FirstNonNull
+            ExecuteMode.FirstNonNull,
+            'high'
         );
     }
 
@@ -309,14 +312,12 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         position: Position
     ): Promise<Range | null> {
         const document = this.getDocument(textDocument.uri);
-        if (!document) {
-            throw new Error('Cannot call methods on an unopened document');
-        }
 
         return await this.execute<any>(
             'prepareRename',
             [document, position],
-            ExecuteMode.FirstNonNull
+            ExecuteMode.FirstNonNull,
+            'high'
         );
     }
 
@@ -326,14 +327,12 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         newName: string
     ): Promise<WorkspaceEdit | null> {
         const document = this.getDocument(textDocument.uri);
-        if (!document) {
-            throw new Error('Cannot call methods on an unopened document');
-        }
 
         return await this.execute<any>(
             'rename',
             [document, position, newName],
-            ExecuteMode.FirstNonNull
+            ExecuteMode.FirstNonNull,
+            'high'
         );
     }
 
@@ -343,14 +342,12 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         context: ReferenceContext
     ): Promise<Location[] | null> {
         const document = this.getDocument(textDocument.uri);
-        if (!document) {
-            throw new Error('Cannot call methods on an unopened document');
-        }
 
         return await this.execute<any>(
             'findReferences',
             [document, position, context],
-            ExecuteMode.FirstNonNull
+            ExecuteMode.FirstNonNull,
+            'high'
         );
     }
 
@@ -361,14 +358,12 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         cancellationToken: CancellationToken
     ): Promise<SignatureHelp | null> {
         const document = this.getDocument(textDocument.uri);
-        if (!document) {
-            throw new Error('Cannot call methods on an unopened document');
-        }
 
         return await this.execute<any>(
             'getSignatureHelp',
             [document, position, context, cancellationToken],
-            ExecuteMode.FirstNonNull
+            ExecuteMode.FirstNonNull,
+            'high'
         );
     }
 
@@ -388,9 +383,6 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         positions: Position[]
     ): Promise<SelectionRange[] | null> {
         const document = this.getDocument(textDocument.uri);
-        if (!document) {
-            throw new Error('Cannot call methods on an unopened document');
-        }
 
         try {
             return Promise.all(
@@ -417,14 +409,12 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         cancellationToken?: CancellationToken
     ) {
         const document = this.getDocument(textDocument.uri);
-        if (!document) {
-            throw new Error('Cannot call methods on an unopened document');
-        }
 
         return await this.execute<SemanticTokens>(
             'getSemanticTokens',
             [document, range, cancellationToken],
-            ExecuteMode.FirstNonNull
+            ExecuteMode.FirstNonNull,
+            'low'
         );
     }
 
@@ -433,14 +423,40 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         position: Position
     ): Promise<LinkedEditingRanges | null> {
         const document = this.getDocument(textDocument.uri);
-        if (!document) {
-            throw new Error('Cannot call methods on an unopened document');
-        }
 
         return await this.execute<LinkedEditingRanges>(
             'getLinkedEditingRanges',
             [document, position],
-            ExecuteMode.FirstNonNull
+            ExecuteMode.FirstNonNull,
+            'high'
+        );
+    }
+
+    getImplementation(
+        textDocument: TextDocumentIdentifier,
+        position: Position
+    ): Promise<Location[] | null> {
+        const document = this.getDocument(textDocument.uri);
+
+        return this.execute<Location[] | null>(
+            'getImplementation',
+            [document, position],
+            ExecuteMode.FirstNonNull,
+            'high'
+        );
+    }
+
+    getTypeDefinition(
+        textDocument: TextDocumentIdentifier,
+        position: Position
+    ): Promise<Location[] | null> {
+        const document = this.getDocument(textDocument.uri);
+
+        return this.execute<Location[] | null>(
+            'getTypeDefinition',
+            [document, position],
+            ExecuteMode.FirstNonNull,
+            'high'
         );
     }
 
@@ -457,26 +473,80 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
     }
 
     private getDocument(uri: string) {
-        return this.documentsManager.get(uri);
+        const document = this.documentsManager.get(uri);
+        if (!document) {
+            throw new Error('Cannot call methods on an unopened document');
+        }
+        return document;
     }
 
     private execute<T>(
         name: keyof LSProvider,
         args: any[],
-        mode: ExecuteMode.FirstNonNull
+        mode: ExecuteMode.FirstNonNull,
+        priority: 'low' | 'high'
     ): Promise<T | null>;
     private execute<T>(
         name: keyof LSProvider,
         args: any[],
-        mode: ExecuteMode.Collect
+        mode: ExecuteMode.Collect,
+        priority: 'low' | 'high'
     ): Promise<T[]>;
-    private execute(name: keyof LSProvider, args: any[], mode: ExecuteMode.None): Promise<void>;
+    private execute(
+        name: keyof LSProvider,
+        args: any[],
+        mode: ExecuteMode.None,
+        priority: 'low' | 'high'
+    ): Promise<void>;
     private async execute<T>(
         name: keyof LSProvider,
         args: any[],
-        mode: ExecuteMode
+        mode: ExecuteMode,
+        priority: 'low' | 'high'
     ): Promise<(T | null) | T[] | void> {
         const plugins = this.plugins.filter((plugin) => typeof plugin[name] === 'function');
+
+        if (priority === 'low') {
+            // If a request doesn't have priority, we first wait 1 second to
+            // 1. let higher priority requests get through first
+            // 2. wait for possible document changes, which make the request wait again
+            // Due to waiting, low priority items should preferrably be those who do not
+            // rely on positions or ranges and rather on the whole document only.
+            const debounce = async (): Promise<boolean> => {
+                const id = Math.random();
+                this.deferredRequests[name] = [
+                    id,
+                    new Promise<void>((resolve, reject) => {
+                        setTimeout(() => {
+                            if (
+                                !this.deferredRequests[name] ||
+                                this.deferredRequests[name][0] === id
+                            ) {
+                                resolve();
+                            } else {
+                                // We should not get into this case. According to the spec,
+                                // the language client // does not send another request
+                                // of the same type until the previous one is answered.
+                                reject();
+                            }
+                        }, 1000);
+                    })
+                ];
+                try {
+                    await this.deferredRequests[name][1];
+                    if (!this.deferredRequests[name]) {
+                        return debounce();
+                    }
+                    return true;
+                } catch (e) {
+                    return false;
+                }
+            };
+            const shouldContinue = await debounce();
+            if (!shouldContinue) {
+                return;
+            }
+        }
 
         switch (mode) {
             case ExecuteMode.FirstNonNull:

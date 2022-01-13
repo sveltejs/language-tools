@@ -55,7 +55,7 @@ interface Svelte2TsxComponentConstructorParameters<Props extends {}> {
     /**
      * An HTMLElement to render to. This option is required.
      */
-    target: Element;
+    target: Element | ShadowRoot;
     /**
      * A child of `target` to render the component immediately before.
      */
@@ -64,6 +64,7 @@ interface Svelte2TsxComponentConstructorParameters<Props extends {}> {
      * An object of properties to supply to the component.
      */
     props?: Props;
+    context?: Map<any, any>;
     hydrate?: boolean;
     intro?: boolean;
     $$inline?: boolean;
@@ -98,12 +99,14 @@ type SvelteAnimationReturnType = {
 type SvelteWithOptionalProps<Props, Keys extends keyof Props> = Omit<Props, Keys> & Partial<Pick<Props, Keys>>;
 type SvelteAllProps = { [index: string]: any }
 type SveltePropsAnyFallback<Props> = {[K in keyof Props]: Props[K] extends undefined ? any : Props[K]}
+type SvelteSlotsAnyFallback<Slots> = {[K in keyof Slots]: {[S in keyof Slots[K]]: Slots[K][S] extends undefined ? any : Slots[K][S]}}
 type SvelteRestProps = { [index: string]: any }
 type SvelteSlots = { [index: string]: any }
 type SvelteStore<T> = { subscribe: (run: (value: T) => any, invalidate?: any) => any }
 
 // Forces TypeScript to look into the type which results in a better representation of it
-// which helps for error messages
+// which helps for error messages and is necessary for d.ts file transformation so that
+// no ambient type references are left in the output
 type Expand<T> = T extends infer O ? { [K in keyof O]: O[K] } : never;
 
 type KeysMatching<Obj, V> = {[K in keyof Obj]-?: Obj[K] extends V ? K : never}[keyof Obj]
@@ -132,32 +135,33 @@ declare function __sveltets_1_slotsType<Slots, Key extends keyof Slots>(slots: S
 
 declare function __sveltets_1_partial<Props = {}, Events = {}, Slots = {}>(
     render: {props: Props, events: Events, slots: Slots }
-): {props: SveltePropsAnyFallback<Props>, events: Events, slots: Slots }
+): {props: Expand<SveltePropsAnyFallback<Props>>, events: Events, slots: Expand<SvelteSlotsAnyFallback<Slots>> }
 declare function __sveltets_1_partial<Props = {}, Events = {}, Slots = {}, OptionalProps extends keyof Props = any>(
     optionalProps: OptionalProps[],
     render: {props: Props, events: Events, slots: Slots }
-): {props: Expand<SvelteWithOptionalProps<SveltePropsAnyFallback<Props>, OptionalProps>>, events: Events, slots: Slots }
+): {props: Expand<SvelteWithOptionalProps<SveltePropsAnyFallback<Props>, OptionalProps>>, events: Events, slots: Expand<SvelteSlotsAnyFallback<Slots>> }
 
 declare function __sveltets_1_partial_with_any<Props = {}, Events = {}, Slots = {}>(
     render: {props: Props, events: Events, slots: Slots }
-): {props: SveltePropsAnyFallback<Props> & SvelteAllProps, events: Events, slots: Slots }
+): {props: Expand<SveltePropsAnyFallback<Props> & SvelteAllProps>, events: Events, slots: Expand<SvelteSlotsAnyFallback<Slots>> }
 declare function __sveltets_1_partial_with_any<Props = {}, Events = {}, Slots = {}, OptionalProps extends keyof Props = any>(
     optionalProps: OptionalProps[],
     render: {props: Props, events: Events, slots: Slots }
-): {props: Expand<SvelteWithOptionalProps<SveltePropsAnyFallback<Props>, OptionalProps>> & SvelteAllProps, events: Events, slots: Slots }
+): {props: Expand<SvelteWithOptionalProps<SveltePropsAnyFallback<Props>, OptionalProps> & SvelteAllProps>, events: Events, slots: Expand<SvelteSlotsAnyFallback<Slots>> }
 
 
 declare function __sveltets_1_with_any<Props = {}, Events = {}, Slots = {}>(
     render: {props: Props, events: Events, slots: Slots }
-): {props: Props & SvelteAllProps, events: Events, slots: Slots }
+): {props: Expand<Props & SvelteAllProps>, events: Events, slots: Slots }
 
 declare function __sveltets_1_with_any_event<Props = {}, Events = {}, Slots = {}>(
     render: {props: Props, events: Events, slots: Slots }
 ): {props: Props, events: Events & {[evt: string]: CustomEvent<any>;}, slots: Slots }
 
 declare function __sveltets_1_store_get<T = any>(store: SvelteStore<T>): T
+declare function __sveltets_1_store_get<Store extends SvelteStore<any> | undefined | null>(store: Store): Store extends SvelteStore<infer T> ? T : Store;
 declare function __sveltets_1_any(dummy: any): any;
-declare function __sveltets_1_empty(dummy: any): {};
+declare function __sveltets_1_empty(...dummy: any[]): {};
 declare function __sveltets_1_componentType(): AConstructorTypeOf<Svelte2TsxComponent<any, any, any>>
 declare function __sveltets_1_invalidate<T>(getValue: () => T): T
 
@@ -201,9 +205,9 @@ declare function __sveltets_1_awaitThen<T>(
     onrejected?: (value: T extends PromiseLike<any> ? any : never) => any
 ): any;
 
-declare function __sveltets_1_each<T>(
-    array: ArrayLike<T>,
-    callbackfn: (value: T, index: number) => any
+declare function __sveltets_1_each<T extends ArrayLike<unknown>>(
+    array: T,
+    callbackfn: (value: T extends ArrayLike<infer U> ? U : any, index: number) => any
 ): any;
 
 declare function __sveltets_1_createSvelte2TsxComponent<Props, Events, Slots>(

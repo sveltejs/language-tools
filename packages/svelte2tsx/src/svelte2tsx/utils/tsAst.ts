@@ -87,6 +87,9 @@ export function extractIdentifiers(
             } else if (ts.isShorthandPropertyAssignment(child)) {
                 // in ts Ast { a = 1 } and { a } are both ShorthandPropertyAssignment
                 extractIdentifiers(child.name, identifiers);
+            } else if (ts.isPropertyAssignment(child)) {
+                // { a: b }
+                extractIdentifiers(child.initializer, identifiers);
             }
         });
     } else if (ts.isArrayLiteralExpression(node)) {
@@ -181,7 +184,7 @@ export function getNamesFromLabeledStatement(node: ts.LabeledStatement): string[
     );
 }
 
-export function isFirstInAnExpressionStatement(node: ts.Identifier): boolean {
+export function isSafeToPrefixWithSemicolon(node: ts.Identifier): boolean {
     let parent = node.parent;
     while (parent && !ts.isExpressionStatement(parent)) {
         parent = parent.parent;
@@ -189,5 +192,15 @@ export function isFirstInAnExpressionStatement(node: ts.Identifier): boolean {
     if (!parent) {
         return false;
     }
-    return parent.getStart() === node.getStart();
+    return (
+        parent.getStart() === node.getStart() &&
+        !(
+            parent.parent &&
+            (ts.isIfStatement(parent.parent) ||
+                ts.isForStatement(parent.parent) ||
+                ts.isForInStatement(parent.parent) ||
+                ts.isForOfStatement(parent.parent) ||
+                ts.isWhileStatement(parent.parent))
+        )
+    );
 }

@@ -4,7 +4,7 @@ import {
     isParenthesizedObjectOrArrayLiteralExpression,
     getNamesFromLabeledStatement
 } from '../utils/tsAst';
-import { preprendStr } from '../../utils/magic-string';
+import { overwriteStr, preprendStr } from '../../utils/magic-string';
 
 export class ImplicitTopLevelNames {
     private map = new Set<ts.LabeledStatement>();
@@ -38,8 +38,13 @@ export class ImplicitTopLevelNames {
         const start = expression.getStart() + this.astOffset;
         const end = expression.getEnd() + this.astOffset;
 
-        // $: a = { .. }  /  $: a = .. as ..  =>   () => ( .. )
-        if (ts.isObjectLiteralExpression(expression) || ts.isAsExpression(expression)) {
+        // $: a = { .. }..  /  $: a = .. as ..  =>   () => ( .. )
+        if (
+            ts.isObjectLiteralExpression(expression) ||
+            (expression.getText().startsWith('{') &&
+                this.isNodeStartsWithObjectLiteral(expression)) ||
+            ts.isAsExpression(expression)
+        ) {
             this.str.appendLeft(start, '(');
             this.str.appendRight(end, ')');
         }
@@ -48,6 +53,29 @@ export class ImplicitTopLevelNames {
         preprendStr(this.str, end, ')');
         // Not adding ';' at the end because right now this function is only invoked
         // in situations where there is a line break of ; guaranteed to be present (else the code is invalid)
+    }
+
+    private isNodeStartsWithObjectLiteral(node: ts.Node) {
+        if (ts.isObjectLiteralExpression(node)) {
+            return true;
+        }
+
+        if (ts.isElementAccessExpression(node)) {
+            return this.isNodeStartsWithObjectLiteral(node.expression);
+        }
+
+        if (ts.isBinaryExpression(node)) {
+            return this.isNodeStartsWithObjectLiteral(node.left);
+        }
+
+        if (ts.isConditionalExpression(node)) {
+            return this.isNodeStartsWithObjectLiteral(node.condition);
+        }
+
+        return node
+            .getChildren()
+            .filter((e) => e.pos === node.pos)
+            .some((child) => this.isNodeStartsWithObjectLiteral(child));
     }
 
     modifyCode(rootVariables: Set<string>) {
@@ -91,7 +119,7 @@ export class ImplicitTopLevelNames {
             const end = node.statement.expression.getEnd() + this.astOffset - 1;
             // We need to keep the `)` of the "wrap with invalidate" expression above.
             // We overwrite the same range so it's needed.
-            this.str.overwrite(end, end + 1, ')', { contentOnly: true });
+            overwriteStr(this.str, end, ')', true);
         }
     }
 }

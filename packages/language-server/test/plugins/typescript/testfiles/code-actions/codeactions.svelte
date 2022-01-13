@@ -9,3 +9,5 @@ A;C;
 let b = Math.random() > 0.5 ? true : false;
 abc();
 </script>
+{abc()}
+<Empty />

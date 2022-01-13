@@ -1,6 +1,7 @@
 import MagicString from 'magic-string';
-import { isShortHandAttribute, getThisType, isQuote } from '../utils/node-utils';
+import { isShortHandAttribute, getInstanceTypeSimple, isQuote } from '../utils/node-utils';
 import { BaseDirective, BaseNode } from '../../interfaces';
+import { surroundWithIgnoreComments } from '../../utils/ignore';
 
 const oneWayBindingAttributes: Map<string, string> = new Map(
     ['clientWidth', 'clientHeight', 'offsetWidth', 'offsetHeight']
@@ -12,6 +13,11 @@ const oneWayBindingAttributes: Map<string, string> = new Map(
             ])
         )
 );
+/**
+ * List of all binding names that are transformed to sth like `binding = variable`.
+ * This applies to readonly bindings and the this binding.
+ */
+export const assignmentBindings = new Set([...oneWayBindingAttributes.keys(), 'this']);
 
 /**
  * Transform bind:xxx into something that conforms to JSX
@@ -45,12 +51,20 @@ export function handleBinding(
 
     //bind this
     if (attr.name === 'this' && supportsBindThis.includes(el.type)) {
-        const thisType = getThisType(el);
+        // bind:this is effectively only works bottom up - the variable is updated by the element, not
+        // the other way round. So we check if the instance is assignable to the variable.
+        // Some notes:
+        // - If the component unmounts (it's inside an if block, or svelte:component this={null},
+        //   the value becomes null, but we don't add it to the clause because it would introduce
+        //   worse DX for the 99% use case, and because null !== undefined which others might use to type the declaration.
+        // - This doesn't do a 100% correct job of infering the instance type in case someone used generics for input props.
+        //   For now it errs on the side of "no false positives" at the cost of maybe some missed type bugs
+        const thisType = getInstanceTypeSimple(el, str);
 
         if (thisType) {
-            str.remove(attr.start, attr.expression.start);
-            str.appendLeft(attr.expression.start, `{...__sveltets_1_ensureType(${thisType}, `);
-            str.overwrite(attr.expression.end, attr.end, ')}');
+            str.overwrite(attr.start, attr.expression.start, '{...__sveltets_1_empty(');
+            const instanceOfThisAssignment = ' = ' + surroundWithIgnoreComments(thisType) + ')}';
+            str.overwrite(attr.expression.end, attr.end, instanceOfThisAssignment);
             return;
         }
     }

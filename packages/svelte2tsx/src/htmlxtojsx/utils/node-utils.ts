@@ -1,7 +1,14 @@
 import { Node, walk } from 'estree-walker';
-import { BaseNode } from '../../interfaces';
+import MagicString from 'magic-string';
+import { Attribute, BaseNode } from '../../interfaces';
 import { surroundWithIgnoreComments } from '../../utils/ignore';
 
+/**
+ * Get the constructor type of a component node
+ * @param node The component node to infer the this type from
+ * @param thisValue If node is svelte:component, you may pass the value
+ *                  of this={..} to use that instead of the more general componentType
+ */
 export function getTypeForComponent(node: Node): string {
     if (node.name === 'svelte:component' || node.name === 'svelte:self') {
         return '__sveltets_1_componentType()';
@@ -10,6 +17,36 @@ export function getTypeForComponent(node: Node): string {
     }
 }
 
+/**
+ * Get the instance type of a node from its constructor.
+ */
+export function getInstanceTypeSimple(node: Node, str: MagicString): string | undefined {
+    const instanceOf = (str: string) => `__sveltets_1_instanceOf(${str})`;
+
+    switch (node.type) {
+        case 'InlineComponent':
+            if (node.name === 'svelte:component' && node.expression) {
+                const thisVal = str.original.substring(node.expression.start, node.expression.end);
+                return `new (${thisVal})({target: __sveltets_1_any(''), props: __sveltets_1_any('')})`;
+            } else if (node.name === 'svelte:component' || node.name === 'svelte:self') {
+                return instanceOf('__sveltets_1_componentType()');
+            } else {
+                return `new ${node.name}({target: __sveltets_1_any(''), props: __sveltets_1_any('')})`;
+            }
+        case 'Element':
+            return instanceOf(`__sveltets_1_ctorOf(__sveltets_1_mapElementTag('${node.name}'))`);
+        case 'Body':
+            return instanceOf('HTMLBodyElement');
+        case 'Slot': // Web Components only
+            return instanceOf('HTMLSlotElement');
+    }
+}
+
+/**
+ * Get the instance type of a node from its constructor.
+ * If it's a component, pass in the exact props. This ensures that
+ * the component instance has the right type in case of generic prop types.
+ */
 export function getInstanceType(
     node: Node,
     originalStr: string,
@@ -120,8 +157,10 @@ function getNameValuePairsFromAttributes(
                     return { name, value: name, identifier: name };
                 }
                 if (val.type === 'Text') {
-                    // Value not important, just that it's typeof text
-                    return { name, value: '""' };
+                    const quote = ['"', "'"].includes(originalStr[val.start - 1])
+                        ? originalStr[val.start - 1]
+                        : "'";
+                    return { name, value: `${quote}${val.data || val.raw}${quote}` };
                 }
                 if (val.type === 'MustacheTag') {
                     const valueStr = originalStr.substring(val.start + 1, val.end - 1);
@@ -130,18 +169,30 @@ function getNameValuePairsFromAttributes(
                     }
                     if (val.expression.type === 'Literal') {
                         const value =
-                            typeof val.expression.value === 'string' ? '""' : val.expression.value;
+                            typeof val.expression.value === 'string'
+                                ? val.expression.raw
+                                : val.expression.value;
                         return { name, value };
                     }
                     return { name, value: valueStr, complexExpression: true };
                 }
             }
 
-            // In the case of zero values, the user did attr="", which is the empty string.
-            // In the case of multiple values, the user did put in a property value
-            // like a="a{b}c" which is a template literal string. Since we only care
-            // about the type of the expression in the end, we can simplify this
-            return { name, value: '""' };
+            if (!attr.value.length) {
+                return { name, value: '""' };
+            }
+
+            const value = attr.value
+                .map((val) =>
+                    val.type === 'Text'
+                        ? val.raw
+                        : val.type === 'MustacheTag'
+                        ? '$' + originalStr.substring(val.start, val.end)
+                        : ''
+                )
+                .join('');
+
+            return { name, value: `\`${value}\`` };
         });
 }
 
@@ -150,19 +201,6 @@ function sanitizePropName(name: string): string {
         .split('')
         .map((char) => (/[0-9A-Za-z$_]/.test(char) ? char : '_'))
         .join('');
-}
-
-export function getThisType(node: Node): string | undefined {
-    switch (node.type) {
-        case 'InlineComponent':
-            return getTypeForComponent(node);
-        case 'Element':
-            return `__sveltets_1_ctorOf(__sveltets_1_mapElementTag('${node.name}'))`;
-        case 'Body':
-            return 'HTMLBodyElement';
-        case 'Slot': // Web Components only
-            return 'HTMLSlotElement';
-    }
 }
 
 export function beforeStart(start: number): number {
@@ -210,4 +248,28 @@ export function getIdentifiersInIfExpression(
 
 export function usesLet(node: BaseNode): boolean {
     return node.attributes?.some((attr) => attr.type === 'Let');
+}
+
+export function buildTemplateString(
+    attr: Attribute,
+    str: MagicString,
+    htmlx: string,
+    leadingOverride: string,
+    trailingOverride: string,
+    overrideStart?: number
+) {
+    overrideStart = overrideStart ?? htmlx.lastIndexOf('=', attr.value[0].start);
+    str.overwrite(overrideStart, attr.value[0].start, leadingOverride);
+
+    for (const n of attr.value as BaseNode[]) {
+        if (n.type == 'MustacheTag') {
+            str.appendRight(n.start, '$');
+        }
+    }
+
+    if (isQuote(htmlx[attr.end - 1])) {
+        str.overwrite(attr.end - 1, attr.end, trailingOverride);
+    } else {
+        str.appendLeft(attr.end, trailingOverride);
+    }
 }

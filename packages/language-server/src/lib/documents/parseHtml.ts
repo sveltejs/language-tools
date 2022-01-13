@@ -42,7 +42,11 @@ function preprocess(text: string) {
         const offset = scanner.getTokenOffset();
 
         if (token === TokenType.StartTagOpen) {
-            currentStartTagStart = offset;
+            if (shouldBlankStartOrEndTagLike(offset)) {
+                blankStartOrEndTagLike(offset);
+            } else {
+                currentStartTagStart = offset;
+            }
         }
 
         if (token === TokenType.StartTagClose) {
@@ -74,11 +78,7 @@ function preprocess(text: string) {
     return text;
 
     function shouldBlankStartOrEndTagLike(offset: number) {
-        // not null rather than falsy, otherwise it won't work on first tag(0)
-        return (
-            currentStartTagStart !== null &&
-            isInsideMoustacheTag(text, currentStartTagStart, offset)
-        );
+        return isInsideMoustacheTag(text, currentStartTagStart, offset);
     }
 
     function blankStartOrEndTagLike(offset: number) {
@@ -90,6 +90,7 @@ function preprocess(text: string) {
 export interface AttributeContext {
     name: string;
     inValue: boolean;
+    elementTag: Node;
     valueRange?: [number, number];
 }
 
@@ -122,6 +123,7 @@ export function getAttributeContextAtPosition(
 
             if (inTokenRange()) {
                 return {
+                    elementTag: tag,
                     name: currentAttributeName,
                     inValue: false
                 };
@@ -131,6 +133,7 @@ export function getAttributeContextAtPosition(
                 const nextToken = scanner.scan();
 
                 return {
+                    elementTag: tag,
                     name: currentAttributeName,
                     inValue: true,
                     valueRange: [
@@ -151,6 +154,7 @@ export function getAttributeContextAtPosition(
                 }
 
                 return {
+                    elementTag: tag,
                     name: currentAttributeName,
                     inValue: true,
                     valueRange: [start, end]

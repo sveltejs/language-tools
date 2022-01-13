@@ -7,7 +7,7 @@ import { Generics } from './nodes/Generics';
 
 export interface AddComponentExportPara {
     str: MagicString;
-    uses$$propsOr$$restProps: boolean;
+    canHaveAnyProp: boolean;
     /**
      * If true, not fallback to `any`
      * -> all unknown events will throw a type error
@@ -38,8 +38,7 @@ export function addComponentExport(params: AddComponentExportPara) {
 
 function addGenericsComponentExport({
     strictEvents,
-    isTsFile,
-    uses$$propsOr$$restProps,
+    canHaveAnyProp,
     exportedNames,
     componentDocumentation,
     fileName,
@@ -61,12 +60,7 @@ function addGenericsComponentExport({
     let statement = `
 class __sveltets_Render${genericsDef} {
     props() {
-        return ${props(
-            isTsFile,
-            uses$$propsOr$$restProps,
-            exportedNames,
-            `render${genericsRef}()`
-        )}.props;
+        return ${props(true, canHaveAnyProp, exportedNames, `render${genericsRef}()`)}.props;
     }
     events() {
         return ${events(strictEvents, `render${genericsRef}()`)}.events;
@@ -106,7 +100,7 @@ class __sveltets_Render${genericsDef} {
 function addSimpleComponentExport({
     strictEvents,
     isTsFile,
-    uses$$propsOr$$restProps,
+    canHaveAnyProp,
     exportedNames,
     componentDocumentation,
     fileName,
@@ -116,7 +110,7 @@ function addSimpleComponentExport({
 }: AddComponentExportPara) {
     const propDef = props(
         isTsFile,
-        uses$$propsOr$$restProps,
+        canHaveAnyProp,
         exportedNames,
         events(strictEvents, 'render()')
     );
@@ -125,7 +119,7 @@ function addSimpleComponentExport({
     const className = fileName && classNameFromFilename(fileName, mode !== 'dts');
 
     let statement: string;
-    if (mode === 'dts') {
+    if (mode === 'dts' && isTsFile) {
         statement =
             `\nconst __propDef = ${propDef};\n` +
             `export type ${className}Props = typeof __propDef.props;\n` +
@@ -134,6 +128,18 @@ function addSimpleComponentExport({
             `\n${doc}export default class${
                 className ? ` ${className}` : ''
             } extends SvelteComponentTyped<${className}Props, ${className}Events, ${className}Slots> {` + // eslint-disable-line max-len
+            exportedNames.createClassGetters() +
+            (usesAccessors ? exportedNames.createClassAccessors() : '') +
+            '\n}';
+    } else if (mode === 'dts' && !isTsFile) {
+        statement =
+            `\nconst __propDef = ${propDef};\n` +
+            `/** @typedef {typeof __propDef.props}  ${className}Props */\n` +
+            `/** @typedef {typeof __propDef.events}  ${className}Events */\n` +
+            `/** @typedef {typeof __propDef.slots}  ${className}Slots */\n` +
+            `\n${doc}export default class${
+                className ? ` ${className}` : ''
+            } extends __sveltets_1_createSvelteComponentTyped(${propDef}) {` +
             exportedNames.createClassGetters() +
             (usesAccessors ? exportedNames.createClassAccessors() : '') +
             '\n}';
@@ -156,15 +162,15 @@ function events(strictEvents: boolean, renderStr: string) {
 
 function props(
     isTsFile: boolean,
-    uses$$propsOr$$restProps: boolean,
+    canHaveAnyProp: boolean,
     exportedNames: ExportedNames,
     renderStr: string
 ) {
     if (isTsFile) {
-        return uses$$propsOr$$restProps ? `__sveltets_1_with_any(${renderStr})` : renderStr;
+        return canHaveAnyProp ? `__sveltets_1_with_any(${renderStr})` : renderStr;
     } else {
         const optionalProps = exportedNames.createOptionalPropsArray();
-        const partial = `__sveltets_1_partial${uses$$propsOr$$restProps ? '_with_any' : ''}`;
+        const partial = `__sveltets_1_partial${canHaveAnyProp ? '_with_any' : ''}`;
         return optionalProps.length > 0
             ? `${partial}([${optionalProps.join(',')}], ${renderStr})`
             : `${partial}(${renderStr})`;

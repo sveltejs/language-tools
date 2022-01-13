@@ -18,7 +18,6 @@ import TemplateScope from './nodes/TemplateScope';
 import { processInstanceScriptContent } from './processInstanceScriptContent';
 import { processModuleScriptTag } from './processModuleScriptTag';
 import { ScopeStack } from './utils/Scope';
-import { svelteShims } from './svelteShims';
 import { Generics } from './nodes/Generics';
 import { addComponentExport } from './addComponentExport';
 import { createRenderFunction } from './createRenderFunction';
@@ -39,14 +38,14 @@ type TemplateProcessResult = {
 
 function processSvelteTemplate(
     str: MagicString,
-    options?: { emitOnTemplateError?: boolean; namespace?: string }
+    options?: { emitOnTemplateError?: boolean; namespace?: string; accessors?: boolean }
 ): TemplateProcessResult {
     const { htmlxAst, tags } = parseHtmlx(str.original, options);
 
     let uses$$props = false;
     let uses$$restProps = false;
     let uses$$slots = false;
-    let usesAccessors = false;
+    let usesAccessors = !!options.accessors;
 
     const componentDocumentation = new ComponentDocumentation();
 
@@ -289,6 +288,7 @@ export function svelte2tsx(
         emitOnTemplateError?: boolean;
         namespace?: string;
         mode?: 'tsx' | 'dts';
+        accessors?: boolean;
     } = {}
 ) {
     const str = new MagicString(svelte);
@@ -336,7 +336,13 @@ export function svelte2tsx(
         if (scriptTag.start != instanceScriptTarget) {
             str.move(scriptTag.start, scriptTag.end, instanceScriptTarget);
         }
-        const res = processInstanceScriptContent(str, scriptTag, events, implicitStoreValues);
+        const res = processInstanceScriptContent(
+            str,
+            scriptTag,
+            events,
+            implicitStoreValues,
+            options.mode
+        );
         uses$$props = uses$$props || res.uses$$props;
         uses$$restProps = uses$$restProps || res.uses$$restProps;
         uses$$slots = uses$$slots || res.uses$$slots;
@@ -366,13 +372,17 @@ export function svelte2tsx(
         processModuleScriptTag(
             str,
             moduleScriptTag,
-            new ImplicitStoreValues(implicitStoreValues.getAccessedStores(), renderFunctionStart)
+            new ImplicitStoreValues(
+                implicitStoreValues.getAccessedStores(),
+                renderFunctionStart,
+                scriptTag ? undefined : (input) => `</>;${input}<>`
+            )
         );
     }
 
     addComponentExport({
         str,
-        uses$$propsOr$$restProps: uses$$props || uses$$restProps,
+        canHaveAnyProp: !exportedNames.uses$$Props && (uses$$props || uses$$restProps),
         strictEvents: events.hasStrictEvents(),
         isTsFile: options?.isTsFile,
         exportedNames,
@@ -384,17 +394,32 @@ export function svelte2tsx(
     });
 
     if (options.mode === 'dts') {
-        // Prepend the import and all shims so the file is self-contained.
-        // TypeScript's dts generation will remove the unused parts later.
-        str.prepend('import { SvelteComponentTyped } from "svelte"\n' + svelteShims + '\n');
+        // Prepend the import and for JS files a single definition.
+        // The other shims need to be provided by the user ambient-style,
+        // for example through filenames.push(require.resolve('svelte2tsx/svelte-shims.d.ts'))
+        str.prepend(
+            'import { SvelteComponentTyped } from "svelte"\n' +
+                (options?.isTsFile
+                    ? ''
+                    : // Not part of svelte-shims.d.ts because it would throw type errors as this function assumes
+                      // the presence of a SvelteComponentTyped import
+                      `
+declare function __sveltets_1_createSvelteComponentTyped<Props, Events, Slots>(
+    render: {props: Props, events: Events, slots: Slots }
+): SvelteComponentConstructor<SvelteComponentTyped<Props, Events, Slots>,Svelte2TsxComponentConstructorParameters<Props>>;
+`) +
+                '\n'
+        );
         let code = str.toString();
         // Remove all tsx occurences and the template part from the output
-        code =
-            code
-                .substr(0, code.indexOf('\n() => (<>'))
-                // prepended before each script block
-                .replace('<></>;', '')
-                .replace('<></>;', '') + code.substr(code.lastIndexOf('</>);') + '</>);'.length);
+        code = code
+            // prepended before each script block
+            .replace('<></>;', '')
+            .replace('<></>;', '')
+            // tsx in render function
+            .replace(/<>.*<\/>/s, '')
+            .replace('\n() => ();', '');
+
         return {
             code
         };

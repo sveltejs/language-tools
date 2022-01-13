@@ -1,6 +1,7 @@
-import { merge, get } from 'lodash';
+import { get, merge } from 'lodash';
 import { UserPreferences } from 'typescript';
 import { VSCodeEmmetConfig } from 'vscode-emmet-helper';
+import { returnObjectIfHasKeys } from './utils';
 
 /**
  * Default config for the language server.
@@ -18,7 +19,9 @@ const defaultLSConfig: LSConfig = {
         rename: { enable: true },
         selectionRange: { enable: true },
         signatureHelp: { enable: true },
-        semanticTokens: { enable: true }
+        semanticTokens: { enable: true },
+        implementation: { enable: true },
+        typeDefinition: { enable: true }
     },
     css: {
         enable: true,
@@ -60,7 +63,8 @@ const defaultLSConfig: LSConfig = {
         completions: { enable: true },
         hover: { enable: true },
         codeActions: { enable: true },
-        selectionRange: { enable: true }
+        selectionRange: { enable: true },
+        defaultScriptLanguage: 'none'
     }
 };
 
@@ -108,6 +112,12 @@ export interface LSTypescriptConfig {
         enable: boolean;
     };
     semanticTokens: {
+        enable: boolean;
+    };
+    implementation: {
+        enable: boolean;
+    };
+    typeDefinition: {
         enable: boolean;
     };
 }
@@ -197,6 +207,7 @@ export interface LSSvelteConfig {
     selectionRange: {
         enable: boolean;
     };
+    defaultScriptLanguage: 'none' | 'ts';
 }
 
 /**
@@ -229,9 +240,21 @@ export interface TsUserPreferencesConfig {
  */
 export interface TSSuggestConfig {
     autoImports: UserPreferences['includeCompletionsForModuleExports'];
+    includeAutomaticOptionalChainCompletions: boolean | undefined;
+    includeCompletionsForImportStatements: boolean | undefined;
 }
 
 export type TsUserConfigLang = 'typescript' | 'javascript';
+
+/**
+ * The config as the vscode-css-languageservice understands it
+ */
+export interface CssConfig {
+    validate?: boolean;
+    lint?: any;
+    completion?: any;
+    hover?: any;
+}
 
 type DeepPartial<T> = T extends CompilerWarningsSettings
     ? T
@@ -244,14 +267,24 @@ export class LSConfigManager {
     private listeners: Array<(config: LSConfigManager) => void> = [];
     private tsUserPreferences: Record<TsUserConfigLang, UserPreferences> = {
         typescript: {
-            includeCompletionsForModuleExports: true
+            includeCompletionsForModuleExports: true,
+            includeCompletionsForImportStatements: true,
+            includeCompletionsWithInsertText: true,
+            includeAutomaticOptionalChainCompletions: true
         },
         javascript: {
-            includeCompletionsForModuleExports: true
+            includeCompletionsForModuleExports: true,
+            includeCompletionsForImportStatements: true,
+            includeCompletionsWithInsertText: true,
+            includeAutomaticOptionalChainCompletions: true
         }
     };
     private prettierConfig: any = {};
     private emmetConfig: VSCodeEmmetConfig = {};
+    private cssConfig: CssConfig | undefined;
+    private scssConfig: CssConfig | undefined;
+    private lessConfig: CssConfig | undefined;
+    private isTrusted = true;
 
     /**
      * Updates config.
@@ -302,6 +335,7 @@ export class LSConfigManager {
 
     updateEmmetConfig(config: VSCodeEmmetConfig): void {
         this.emmetConfig = config || {};
+        this.listeners.forEach((listener) => listener(this));
     }
 
     getEmmetConfig(): VSCodeEmmetConfig {
@@ -310,10 +344,34 @@ export class LSConfigManager {
 
     updatePrettierConfig(config: any): void {
         this.prettierConfig = config || {};
+        this.listeners.forEach((listener) => listener(this));
     }
 
     getPrettierConfig(): any {
         return this.prettierConfig;
+    }
+
+    /**
+     * Returns a merged Prettier config following these rules:
+     * - If `prettierFromFileConfig` exists, that one is returned
+     * - Else the Svelte extension's Prettier config is used as a starting point,
+     *   and overridden by a possible Prettier config from the Prettier extension,
+     *   or, if that doesn't exist, a possible fallback override.
+     */
+    getMergedPrettierConfig(
+        prettierFromFileConfig: any,
+        overridesWhenNoPrettierConfig: any = {}
+    ): any {
+        return (
+            returnObjectIfHasKeys(prettierFromFileConfig) ||
+            merge(
+                {}, // merge into empty obj to not manipulate own config
+                this.get('svelte.format.config'),
+                returnObjectIfHasKeys(this.getPrettierConfig()) ||
+                    overridesWhenNoPrettierConfig ||
+                    {}
+            )
+        );
     }
 
     updateTsJsUserPreferences(config: Record<TsUserConfigLang, TSUserConfig>): void {
@@ -322,6 +380,20 @@ export class LSConfigManager {
                 this._updateTsUserPreferences(lang, config[lang]);
             }
         });
+        this.listeners.forEach((listener) => listener(this));
+    }
+
+    /**
+     * Whether or not the current workspace can be trusted.
+     * If not, certain operations should be disabled.
+     */
+    getIsTrusted(): boolean {
+        return this.isTrusted;
+    }
+
+    updateIsTrusted(isTrusted: boolean): void {
+        this.isTrusted = isTrusted;
+        this.listeners.forEach((listener) => listener(this));
     }
 
     private _updateTsUserPreferences(lang: TsUserConfigLang, config: TSUserConfig) {
@@ -331,12 +403,44 @@ export class LSConfigManager {
             importModuleSpecifierEnding: config.preferences?.importModuleSpecifierEnding,
             includePackageJsonAutoImports: config.preferences?.includePackageJsonAutoImports,
             quotePreference: config.preferences?.quoteStyle,
-            includeCompletionsForModuleExports: config.suggest?.autoImports ?? true
+            includeCompletionsForModuleExports: config.suggest?.autoImports ?? true,
+            includeCompletionsForImportStatements:
+                config.suggest?.includeCompletionsForImportStatements ?? true,
+            includeAutomaticOptionalChainCompletions:
+                config.suggest?.includeAutomaticOptionalChainCompletions ?? true,
+            includeCompletionsWithInsertText: true
         };
     }
 
     getTsUserPreferences(lang: TsUserConfigLang) {
         return this.tsUserPreferences[lang];
+    }
+
+    updateCssConfig(config: CssConfig | undefined): void {
+        this.cssConfig = config;
+        this.listeners.forEach((listener) => listener(this));
+    }
+
+    getCssConfig(): CssConfig | undefined {
+        return this.cssConfig;
+    }
+
+    updateScssConfig(config: CssConfig | undefined): void {
+        this.scssConfig = config;
+        this.listeners.forEach((listener) => listener(this));
+    }
+
+    getScssConfig(): CssConfig | undefined {
+        return this.scssConfig;
+    }
+
+    updateLessConfig(config: CssConfig | undefined): void {
+        this.lessConfig = config;
+        this.listeners.forEach((listener) => listener(this));
+    }
+
+    getLessConfig(): CssConfig | undefined {
+        return this.lessConfig;
     }
 }
 

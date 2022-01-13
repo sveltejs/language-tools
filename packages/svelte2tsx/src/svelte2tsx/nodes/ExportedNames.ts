@@ -17,7 +17,7 @@ interface ExportedName {
 }
 
 export class ExportedNames {
-    private uses$$Props = false;
+    public uses$$Props = false;
     private exports = new Map<string, ExportedName>();
     private possibleExports = new Map<
         string,
@@ -210,10 +210,6 @@ export class ExportedNames {
             .join('');
     }
 
-    setUses$$Props(): void {
-        this.uses$$Props = true;
-    }
-
     /**
      * Marks a top level declaration as a possible export
      * which could be exported through `export { .. }` later.
@@ -290,10 +286,17 @@ export class ExportedNames {
 
     private getDoc(target: ts.BindingName) {
         let doc = undefined;
+        // Traverse `a` one up. If the declaration is part of a declaration list,
+        // the comment is at this point already
+        const variableDeclaration = target?.parent;
         // Traverse `a` up to `export let a`
         const exportExpr = target?.parent?.parent?.parent;
 
-        if (exportExpr) {
+        if (variableDeclaration) {
+            doc = getLastLeadingDoc(variableDeclaration);
+        }
+
+        if (exportExpr && !doc) {
             doc = getLastLeadingDoc(exportExpr);
         }
 
@@ -325,6 +328,9 @@ export class ExportedNames {
                 '...__sveltets_1_ensureRightProps<Partial<$$Props>>({' +
                 this.createReturnElements(lets, false).join(',') +
                 '}), ...{} as unknown as $$Props, ...{' +
+                // We add other exports of classes and functions here because
+                // they need to appear in the props object in order to properly
+                // type bind:xx but they are not needed to be part of $$Props
                 this.createReturnElements(others, false).join(', ') +
                 '} as {' +
                 this.createReturnElementsType(others).join(',') +

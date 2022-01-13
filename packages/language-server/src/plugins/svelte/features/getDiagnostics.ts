@@ -64,9 +64,9 @@ async function tryGetDiagnostics(
             .map((diag) => adjustMappings(diag, document))
             .filter((diag) => isNoFalsePositive(diag, document));
     } catch (err) {
-        return (await createParserErrorDiagnostic(err, document)).map((diag) =>
-            mapObjWithRangeToOriginal(transpiled, diag)
-        );
+        return (await createParserErrorDiagnostic(err, document))
+            .map((diag) => mapObjWithRangeToOriginal(transpiled, diag))
+            .map((diag) => adjustMappings(diag, document));
     }
 }
 
@@ -96,10 +96,10 @@ async function createParserErrorDiagnostic(error: any, document: Document) {
                 '\n\nIf you expect this syntax to work, here are some suggestions: ';
             if (isInScript) {
                 diagnostic.message +=
-                    '\nIf you use typescript with `svelte-preprocess`, did you add `lang="typescript"` to your `script` tag? ';
+                    '\nIf you use typescript with `svelte-preprocess`, did you add `lang="ts"` to your `script` tag? ';
             } else {
                 diagnostic.message +=
-                    '\nIf you use less/SCSS with `svelte-preprocess`, did you add `lang="scss"`/`lang="less"` to you `style` tag? ' +
+                    '\nIf you use less/SCSS with `svelte-preprocess`, did you add `lang="scss"`/`lang="less"` to your `style` tag? ' +
                     scssNodeRuntimeHint;
             }
             diagnostic.message +=
@@ -266,7 +266,8 @@ function isNoFalsePositive(diag: Diagnostic, doc: Document): boolean {
         return true;
     }
 
-    // TypeScript transpiles `export enum A` to `export var A`, which the compiler will warn about.
+    // TypeScript transpiles `export enum A` and `export namespace A` to `export var A`,
+    // which the compiler will warn about.
     // Silence this edge case. We extract the property from the message and don't use the position
     // because that position could be wrong when source mapping trips up.
     const unusedExportName = diag.message.substring(
@@ -274,7 +275,7 @@ function isNoFalsePositive(diag: Diagnostic, doc: Document): boolean {
         diag.message.lastIndexOf("'")
     );
     const hasExportedEnumWithThatName = new RegExp(
-        `\\bexport\\s+?enum\\s+?${unusedExportName}\\b`
+        `\\bexport\\s+?(enum|namespace)\\s+?${unusedExportName}\\b`
     ).test(doc.getText());
     return !hasExportedEnumWithThatName;
 }

@@ -17,6 +17,11 @@ export class Document extends WritableDocument {
     configPromise: Promise<SvelteConfig | undefined>;
     config?: SvelteConfig;
     html!: HTMLDocument;
+    /**
+     * Compute and cache directly because of performance reasons
+     * and it will be called anyway.
+     */
+    private path = urlToPath(this.url);
 
     constructor(public url: string, public content: string) {
         super();
@@ -69,6 +74,7 @@ export class Document extends WritableDocument {
     setText(text: string) {
         this.content = text;
         this.version++;
+        this.lineOffsets = undefined;
         this.updateDocInfo();
     }
 
@@ -76,7 +82,7 @@ export class Document extends WritableDocument {
      * Returns the file path if the url scheme is file
      */
     getFilePath(): string | null {
-        return urlToPath(this.url);
+        return this.path;
     }
 
     /**
