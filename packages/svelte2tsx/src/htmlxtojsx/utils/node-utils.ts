@@ -1,6 +1,6 @@
 import { Node, walk } from 'estree-walker';
 import MagicString from 'magic-string';
-import { BaseNode } from '../../interfaces';
+import { Attribute, BaseNode } from '../../interfaces';
 import { surroundWithIgnoreComments } from '../../utils/ignore';
 
 /**
@@ -248,4 +248,28 @@ export function getIdentifiersInIfExpression(
 
 export function usesLet(node: BaseNode): boolean {
     return node.attributes?.some((attr) => attr.type === 'Let');
+}
+
+export function buildTemplateString(
+    attr: Attribute,
+    str: MagicString,
+    htmlx: string,
+    leadingOverride: string,
+    trailingOverride: string,
+    overrideStart?: number
+) {
+    overrideStart = overrideStart ?? htmlx.lastIndexOf('=', attr.value[0].start);
+    str.overwrite(overrideStart, attr.value[0].start, leadingOverride);
+
+    for (const n of attr.value as BaseNode[]) {
+        if (n.type == 'MustacheTag') {
+            str.appendRight(n.start, '$');
+        }
+    }
+
+    if (isQuote(htmlx[attr.end - 1])) {
+        str.overwrite(attr.end - 1, attr.end, trailingOverride);
+    } else {
+        str.appendLeft(attr.end, trailingOverride);
+    }
 }

@@ -36,3 +36,7 @@ export interface BaseDirective extends BaseNode {
 export interface Attribute extends BaseNode {
     value: BaseNode[] | true;
 }
+
+export interface StyleDirective extends BaseNode {
+    value: BaseNode[] | true;
+}
