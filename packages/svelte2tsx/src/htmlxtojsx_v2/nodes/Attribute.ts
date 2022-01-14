@@ -175,8 +175,8 @@ export function handleAttribute(
         return;
     }
     // We have multiple attribute values, so we build a template string out of them.
-    for (const n of attr.value as BaseNode[]) {
-        if (n.type == 'MustacheTag') {
+    for (const n of attr.value) {
+        if (n.type === 'MustacheTag') {
             str.appendRight(n.start, '$');
         }
     }

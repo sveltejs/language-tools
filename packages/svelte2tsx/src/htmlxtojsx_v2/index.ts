@@ -1,7 +1,7 @@
 import MagicString from 'magic-string';
 import { walk } from 'svelte/compiler';
 import { TemplateNode, Text } from 'svelte/types/compiler/interfaces';
-import { Attribute, BaseNode, BaseDirective } from '../interfaces';
+import { Attribute, BaseNode, BaseDirective, StyleDirective, ConstTag } from '../interfaces';
 import { parseHtmlx } from '../utils/htmlxparser';
 import { handleActionDirective } from './nodes/Action';
 import { handleAnimateDirective } from './nodes/Animation';
@@ -10,6 +10,7 @@ import { handleAwait } from './nodes/AwaitPendingCatchBlock';
 import { handleBinding } from './nodes/Binding';
 import { handleClassDirective } from './nodes/Class';
 import { handleComment } from './nodes/Comment';
+import { handleConstTag } from './nodes/ConstTag';
 import { handleDebug } from './nodes/DebugTag';
 import { handleEach } from './nodes/EachBlock';
 import { Element } from './nodes/Element';
@@ -20,6 +21,7 @@ import { handleKey } from './nodes/Key';
 import { handleLet } from './nodes/Let';
 import { handleMustacheTag } from './nodes/MustacheTag';
 import { handleRawHtml } from './nodes/RawMustacheTag';
+import { handleStyleDirective } from './nodes/StyleDirective';
 import { handleText } from './nodes/Text';
 import { handleTransitionDirective } from './nodes/Transition';
 
@@ -76,6 +78,9 @@ export function convertHtmlxToJsx(
                     case 'DebugTag':
                         handleDebug(str, node);
                         break;
+                    case 'ConstTag':
+                        handleConstTag(str, node as ConstTag);
+                        break;
                     case 'InlineComponent':
                         if (element) {
                             element.child = new InlineComponent(str, node, element);
@@ -114,6 +119,9 @@ export function convertHtmlxToJsx(
                     case 'Class':
                         handleClassDirective(node as BaseDirective, element as Element);
                         break;
+                    case 'StyleDirective':
+                        handleStyleDirective(str, node as StyleDirective, element as Element);
+                        break;
                     case 'Action':
                         handleActionDirective(str, node as BaseDirective, element as Element);
                         break;
@@ -137,6 +145,7 @@ export function convertHtmlxToJsx(
                         break;
                     case 'Let':
                         handleLet(str, node, parent, options.preserveAttributeCase, element);
+                        break;
                     case 'Text':
                         handleText(str, node as Text, parent);
                         break;

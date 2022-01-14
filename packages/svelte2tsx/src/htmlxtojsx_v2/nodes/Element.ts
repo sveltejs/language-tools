@@ -105,7 +105,7 @@ export class Element {
                     this.node.attributes?.find((a: BaseNode) => a.name === 'name')?.value[0] ||
                     'default';
                 this.startTransformation.push(
-                    `{ __sveltets_createSlot("`,
+                    '{ __sveltets_createSlot("',
                     typeof slotName === 'string' ? slotName : [slotName.start, slotName.end],
                     '", {'
                 );
@@ -152,7 +152,7 @@ export class Element {
      * @param transformation Let transformation
      */
     addSlotLet(transformation: TransformationArray): void {
-        this.slotLetsTransformation = this.slotLetsTransformation || [[], []];
+        this.slotLetsTransformation = this.slotLetsTransformation || [['default'], []];
         this.slotLetsTransformation[1].push(...transformation, ',');
     }
 
@@ -166,17 +166,26 @@ export class Element {
     performTransformation(): void {
         this.endTransformation.push('}');
 
-        const namedSlotLetTransformation: TransformationArray = [];
+        const slotLetTransformation: TransformationArray = [];
         if (this.slotLetsTransformation) {
-            namedSlotLetTransformation.push(
-                // add dummy destructuring parameter because if all parameters are unused,
-                // the mapping will be confusing, because TS will highlight the whole destructuring
-                `{ const {${surroundWithIgnoreComments('$$_$$')},`,
-                ...this.slotLetsTransformation[1],
-                `} = ${this.parent.name}.$$slot_def["`,
-                ...this.slotLetsTransformation[0],
-                '"];$$_$$;'
-            );
+            if (this.slotLetsTransformation[0][0] === 'default') {
+                slotLetTransformation.push(
+                    // add dummy destructuring parameter because if all parameters are unused,
+                    // the mapping will be confusing, because TS will highlight the whole destructuring
+                    `{const {${surroundWithIgnoreComments('$$_$$')},`,
+                    ...this.slotLetsTransformation[1],
+                    `} = ${this.parent.name}.$$slot_def.default;$$_$$;`
+                );
+            } else {
+                slotLetTransformation.push(
+                    // See comment above
+                    `{const {${surroundWithIgnoreComments('$$_$$')},`,
+                    ...this.slotLetsTransformation[1],
+                    `} = ${this.parent.name}.$$slot_def["`,
+                    ...this.slotLetsTransformation[0],
+                    '"];$$_$$;'
+                );
+            }
             this.endTransformation.push('}');
         }
 
@@ -185,7 +194,7 @@ export class Element {
                 // Named slot transformations go first inside a outer block scope because
                 // <div let:xx {x} /> means "use the x of let:x", and without a separate
                 // block scope this would give a "used before defined" error
-                ...namedSlotLetTransformation,
+                ...slotLetTransformation,
                 ...this.startTransformation,
                 ...this.attrsTransformation,
                 ...this.startEndTransformation,
@@ -193,7 +202,7 @@ export class Element {
             ]);
         } else {
             transform(this.str, this.startTagStart, this.startTagEnd, this.startTagEnd, [
-                ...namedSlotLetTransformation,
+                ...slotLetTransformation,
                 ...this.startTransformation,
                 ...this.attrsTransformation,
                 ...this.startEndTransformation
@@ -225,7 +234,7 @@ export class Element {
             !this.node.children?.length &&
             !this.str.original
                 .substring(this.node.start, this.node.end)
-                .match(new RegExp(`</${this.node.name}\s*>$`))
+                .match(new RegExp(`</${this.node.name}\\s*>$`))
         );
     }
 

@@ -58,7 +58,7 @@ export class InlineComponent {
             // TODO try to get better typing here, maybe TS allows us to use the created class
             // even if it's used in the function that is used to create it
             this._name = '$$_svelteself' + this.computeDepth();
-            this.startTransformation.push(`{ __sveltets_2_createComponentAny({`);
+            this.startTransformation.push('{ __sveltets_2_createComponentAny({');
             this.addNameConstDeclaration = () =>
                 (this.startTransformation[0] = `{ const ${this._name} = __sveltets_2_createComponentAny({`);
             this.startEndTransformation.push('});');
@@ -82,7 +82,7 @@ export class InlineComponent {
             this._name = '$$_' + this.node.name + this.computeDepth();
             const nodeNameStart = this.str.original.indexOf(this.node.name, this.node.start);
             this.startTransformation.push(
-                `{ new `,
+                '{ new ',
                 [nodeNameStart, nodeNameStart + this.node.name.length],
                 '({ target: __sveltets_2_any(), props: {'
             );
@@ -224,7 +224,7 @@ export class InlineComponent {
         }
         return !!this.str.original
             .substring(this.node.start, this.node.end)
-            .match(new RegExp(`</${this.node.name}\s>$`));
+            .match(new RegExp(`</${this.node.name}\\s>$`));
     }
 
     private computeDepth() {

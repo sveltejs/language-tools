@@ -31,7 +31,7 @@ export function transform(
             }
             ignoreNextString = false;
         } else {
-            let start = transformation[0];
+            const start = transformation[0];
             let end = transformation[1];
             if (start === end) {
                 // zero-range selection, don't move, it would

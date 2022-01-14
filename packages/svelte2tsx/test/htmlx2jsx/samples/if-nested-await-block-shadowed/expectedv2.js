@@ -4,6 +4,12 @@ if(hello){
     }} catch($$_e) { 
         hello;
     }}
+         { try { const $$_value = await (aPromise); { const foo = $$_value; 
+         const hello = foo;
+        hello;
+    }} catch($$_e) { 
+        hello;
+    }}
           { try { const $$_value = await (aPromise); { const hi = $$_value; 
         hello;
     }} catch($$_e) { const hello = __sveltets_2_any();
@@ -21,6 +27,12 @@ if(hello){
                 hello;
             }}
                 { const $$_value = await (x); { const hello = $$_value; 
+                if(hello){
+                    hello;
+                }
+            }}
+                { const $$_value = await (x); { const foo = $$_value; 
+                 const hello = foo;
                 if(hello){
                     hello;
                 }

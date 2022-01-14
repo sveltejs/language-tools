@@ -22,11 +22,8 @@ export function handleLet(
         // which is determined in Attribute.ts
         addSlotLet(node, element);
     } else {
-        if (
-            parent.attributes?.some((attr) => attr.name === 'slot') &&
-            element.parent instanceof InlineComponent
-        ) {
-            // let:xx is on a HTML element and belongs to a named slot of a parent component
+        if (element.parent instanceof InlineComponent) {
+            // let:xx is on a HTML element and belongs to a (named slot of a parent component
             addSlotLet(node, element);
         } else {
             // let:xx is a regular HTML attribute (probably a mistake by the user)
