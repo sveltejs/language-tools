@@ -14,7 +14,7 @@ function setup(workspaceDir: string, filePath: string, useNewTransformation: boo
         (textDocument) => new Document(textDocument.uri, textDocument.text)
     );
     const configManager = new LSConfigManager();
-    configManager.getConfig().svelte.useNewTransformation = useNewTransformation;
+    configManager.update({ svelte: { useNewTransformation } });
     const lsAndTsDocResolver = new LSAndTSDocResolver(
         docManager,
         [pathToUrl(workspaceDir)],
@@ -78,7 +78,7 @@ function executeTests(dir: string, workspaceDir: string, useNewTransformation: b
     }
 }
 
-describe.only('DiagnosticsProvider', () => {
+describe('DiagnosticsProvider', () => {
     describe('(old transformation)', () => {
         executeTests(join(__dirname, 'fixtures'), join(__dirname, 'fixtures'), false);
         // hacky, but it works for now
@@ -89,5 +89,9 @@ describe.only('DiagnosticsProvider', () => {
 
     describe('new transformation', () => {
         executeTests(join(__dirname, 'fixtures'), join(__dirname, 'fixtures'), true);
+        // hacky, but it works for now
+        after(() => {
+            __resetCache();
+        });
     });
 });
