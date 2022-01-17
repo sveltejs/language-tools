@@ -87,7 +87,7 @@ export class Element {
             case 'svelte:head':
             case 'svelte:window':
             case 'svelte:body':
-            case 'svelte:fragment':
+            case 'svelte:fragment': {
                 // remove the colon: svelte:xxx -> sveltexxx
                 const nodeName = `svelte${this.node.name.substring(7)}`;
                 this._name = '$$_' + nodeName + this.computeDepth();
@@ -95,7 +95,8 @@ export class Element {
                 this.addNameConstDeclaration = () =>
                     (this.startTransformation[0] = `{ const ${this._name} = ${createElement}("${nodeName}", {`);
                 break;
-            case 'slot':
+            }
+            case 'slot': {
                 // If the element is a <slot> tag, create the element with the createSlot-function
                 // which is created inside createRenderFunction.ts to check that the name and attributes
                 // of the slot tag are correct. The check will error if the user defined $$Slots
@@ -112,7 +113,8 @@ export class Element {
                 this.addNameConstDeclaration = () =>
                     (this.startTransformation[0] = `{ const ${this._name} = __sveltets_createSlot("`);
                 break;
-            default:
+            }
+            default: {
                 this._name = '$$_' + sanitizePropName(this.node.name) + this.computeDepth();
                 this.startTransformation.push(
                     `{ ${createElement}("`,
@@ -122,6 +124,7 @@ export class Element {
                 this.addNameConstDeclaration = () =>
                     (this.startTransformation[0] = `{ const ${this._name} = ${createElement}("`);
                 break;
+            }
         }
     }
 
