@@ -303,7 +303,10 @@ export class TypeScriptPlugin
             defs.definitions.map(async (def) => {
                 const { fragment, snapshot } = await docs.retrieve(def.fileName);
 
-                if (isNoTextSpanInGeneratedCode(snapshot.getFullText(), def.textSpan)) {
+                if (
+                    !def.fileName.endsWith('svelte-shims.d.ts') &&
+                    isNoTextSpanInGeneratedCode(snapshot.getFullText(), def.textSpan)
+                ) {
                     return LocationLink.create(
                         pathToUrl(def.fileName),
                         convertToLocationRange(fragment, def.textSpan),
