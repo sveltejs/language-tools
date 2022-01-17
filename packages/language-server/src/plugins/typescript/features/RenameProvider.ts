@@ -24,7 +24,7 @@ import {
     isNoTextSpanInGeneratedCode,
     SnapshotFragmentMap,
     findContainingNode,
-    isHTMLAttribute
+    isHTMLAttributeName
 } from './utils';
 import { LSConfigManager } from '../../../ls-config';
 
@@ -171,21 +171,10 @@ export class RenameProviderImpl implements RenameProvider {
                 !!findContainingNode(
                     lang.getProgram()!.getSourceFile(tsDoc.filePath)!,
                     { start: generatedOffset, length: 0 },
-                    isHTMLAttribute
+                    isHTMLAttributeName
                 ))
         ) {
             return null;
-        }
-
-        if (this.configManager.getConfig().svelte.useNewTransformation) {
-            const node = findContainingNode(
-                lang.getProgram()!.getSourceFile(tsDoc.filePath)!,
-                ts.createTextSpan(generatedOffset, 1),
-                ts.isIdentifier
-            );
-            if (isHTMLAttribute(node)) {
-                return null;
-            }
         }
 
         return renameInfo;

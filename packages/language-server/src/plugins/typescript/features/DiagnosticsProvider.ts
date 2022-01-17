@@ -18,7 +18,7 @@ import {
     isReactiveStatement,
     isInReactiveStatement,
     gatherIdentifiers,
-    isHTMLAttribute
+    isHTMLAttributeName
 } from './utils';
 import { not, flatten, passMap, regexIndexOf, swapRangeStartEndIfNecessary } from '../../../utils';
 import { LSConfigManager } from '../../../ls-config';
@@ -200,7 +200,7 @@ function isNoFalsePositive1(useNewTransformation: boolean) {
         }
 
         const node = findDiagnosticNode(diagnostic);
-        return !node || !isHTMLAttribute(node);
+        return !node || !isHTMLAttributeName(node);
     };
 }
 

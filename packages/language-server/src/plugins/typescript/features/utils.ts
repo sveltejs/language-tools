@@ -282,10 +282,11 @@ export const gatherIdentifiers = (node: ts.Node) => gatherDescendants(node, ts.i
  * Returns when given node represents an HTML Attribute. Example:
  * The `class` in `<div class=".."`.
  * Transformed code is `__sveltets_2_createElement("div", {"class": ".."})`.
+ * Note: This method returns `false` for shorthands like `__sveltets_2_createElement("div", {shorthand})`.
  * Only applies when `useNewTransformation` is `true`!
  */
-export const isHTMLAttribute = nodeAndParentsSatisfyRespectivePredicates(
-    or(ts.isIdentifier, ts.isStringLiteral),
+export const isHTMLAttributeName = nodeAndParentsSatisfyRespectivePredicates(
+    (node) => ts.isPropertyAssignment(node.parent) && node.parent.name === node,
     ts.isPropertyAssignment,
     ts.isObjectLiteralExpression,
     (parent) =>
