@@ -6,6 +6,7 @@ import { Document, DocumentManager } from '../../../../src/lib/documents';
 import { LSConfigManager } from '../../../../src/ls-config';
 import { DiagnosticsProviderImpl } from '../../../../src/plugins/typescript/features/DiagnosticsProvider';
 import { LSAndTSDocResolver } from '../../../../src/plugins/typescript/LSAndTSDocResolver';
+import { __resetCache } from '../../../../src/plugins/typescript/service';
 import { normalizePath, pathToUrl } from '../../../../src/utils';
 
 const testDir = path.join(__dirname, '..', 'testfiles', 'diagnostics');
@@ -80,6 +81,9 @@ describe('DiagnosticsProvider', () => {
     }).timeout(5000);
 
     it('notices file changes in all services that reference that file', async () => {
+        // Hacky but ensures that this tests is not interfered with by other tests
+        // which could make it fail.
+        __resetCache();
         const { plugin, document, docManager, lsAndTsDocResolver } = setup(
             'different-ts-service.svelte'
         );
