@@ -396,7 +396,7 @@ export class SvelteSnapshotFragment implements SnapshotFragment {
     constructor(
         private readonly mapper: DocumentMapper,
         public readonly text: string,
-        private readonly parent: Document,
+        public readonly parent: Document,
         private readonly url: string
     ) {}
 

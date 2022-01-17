@@ -285,7 +285,7 @@ export const gatherIdentifiers = (node: ts.Node) => gatherDescendants(node, ts.i
  * Only applies when `useNewTransformation` is `true`!
  */
 export const isHTMLAttribute = nodeAndParentsSatisfyRespectivePredicates(
-    ts.isIdentifier,
+    or(ts.isIdentifier, ts.isStringLiteral),
     ts.isPropertyAssignment,
     ts.isObjectLiteralExpression,
     (parent) =>
