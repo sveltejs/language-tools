@@ -76,12 +76,6 @@ declare namespace svelte {
   interface SVGProps<T extends EventTarget> extends SVGAttributes<T> {}
   
   // eslint-disable-next-line @typescript-eslint/no-empty-interface
-  interface SvelteOptionProps extends svelte.JSX.SvelteOptionProps {}
-  
-  // eslint-disable-next-line @typescript-eslint/no-empty-interface
-  interface SvelteSelectProps extends svelte.JSX.SvelteSelectProps {}
-  
-  // eslint-disable-next-line @typescript-eslint/no-empty-interface
   interface SvelteInputProps extends svelte.JSX.SvelteInputProps {}
   
   // eslint-disable-next-line @typescript-eslint/no-empty-interface
@@ -179,7 +173,7 @@ declare namespace svelte {
     object: HTMLProps<HTMLObjectElement>;
     ol: HTMLProps<HTMLOListElement>;
     optgroup: HTMLProps<HTMLOptGroupElement>;
-    option: SvelteOptionProps;
+    option: HTMLProps<HTMLOptionElement>;
     output: HTMLProps<HTMLElement>;
     p: HTMLProps<HTMLParagraphElement>;
     param: HTMLProps<HTMLParamElement>;
@@ -194,7 +188,7 @@ declare namespace svelte {
     samp: HTMLProps<HTMLElement>;
     script: HTMLProps<HTMLElement>;
     section: HTMLProps<HTMLElement>;
-    select: SvelteSelectProps;
+    select: HTMLProps<HTMLSelectElement>;
     small: HTMLProps<HTMLElement>;
     source: HTMLProps<HTMLSourceElement>;
     span: HTMLProps<HTMLSpanElement>;
