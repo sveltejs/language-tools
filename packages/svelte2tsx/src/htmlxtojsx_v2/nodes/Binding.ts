@@ -1,5 +1,5 @@
 import MagicString from 'magic-string';
-import { getInstanceTypeSimple, TransformationArray } from '../utils/node-utils';
+import { TransformationArray } from '../utils/node-utils';
 import { BaseDirective, BaseNode } from '../../interfaces';
 import { Element } from './Element';
 import { InlineComponent } from './InlineComponent';
@@ -49,15 +49,11 @@ export function handleBinding(
         // Note: If the component unmounts (it's inside an if block, or svelte:component this={null},
         // the value becomes null, but we don't add it to the clause because it would introduce
         // worse DX for the 99% use case, and because null !== undefined which others might use to type the declaration.
-        const thisType = getInstanceTypeSimple(parent, str);
-
-        if (thisType) {
-            element.appendToStartEnd([
-                [attr.expression.start, attr.expression.end],
-                ` = ${element.name};`
-            ]);
-            return;
-        }
+        element.appendToStartEnd([
+            [attr.expression.start, attr.expression.end],
+            ` = ${element.name};`
+        ]);
+        return;
     }
 
     // one way binding
