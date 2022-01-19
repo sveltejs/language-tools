@@ -240,7 +240,7 @@ export class InlineComponent {
         }
         return !!this.str.original
             .substring(this.node.start, this.node.end)
-            .match(new RegExp(`</${this.node.name}\\s>$`));
+            .match(new RegExp(`</${this.node.name}\\s*>$`));
     }
 
     private computeDepth() {
