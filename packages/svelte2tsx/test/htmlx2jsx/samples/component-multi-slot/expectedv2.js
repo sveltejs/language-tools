@@ -8,4 +8,4 @@
       {const {/*Ωignore_startΩ*/$$_$$/*Ωignore_endΩ*/,} = $$_Component0.$$slot_def["desc"];$$_$$;{ __sveltets_2_createElement("p", {});
         
      }}
- }}
+ }Component}

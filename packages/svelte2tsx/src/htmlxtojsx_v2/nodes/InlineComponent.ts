@@ -167,8 +167,6 @@ export class InlineComponent {
     }
 
     performTransformation(): void {
-        this.endTransformation.push('}');
-
         const namedSlotLetTransformation: TransformationArray = [];
         const defaultSlotLetTransformation: TransformationArray = [];
         if (this.slotLetsTransformation) {
@@ -194,6 +192,7 @@ export class InlineComponent {
         }
 
         if (this.isSelfclosing) {
+            this.endTransformation.push('}');
             transform(this.str, this.startTagStart, this.startTagEnd, this.startTagEnd, [
                 // Named slot transformations go first inside a outer block scope because
                 // <Comp let:xx {x} /> means "use the x of let:x", and without a separate
@@ -207,6 +206,16 @@ export class InlineComponent {
                 ...this.endTransformation
             ]);
         } else {
+            const endStart =
+                this.str.original
+                    .substring(this.node.start, this.node.end)
+                    .lastIndexOf(`</${this.node.name}`) + this.node.start;
+            if (!this.node.name.startsWith('svelte:')) {
+                // Ensure the end tag is mapped, too. </Component> -> Component}
+                this.endTransformation.push([endStart + 2, endStart + this.node.name.length + 2]);
+            }
+            this.endTransformation.push('}');
+
             transform(this.str, this.startTagStart, this.startTagEnd, this.startTagEnd, [
                 // See comment above why this goes first
                 ...namedSlotLetTransformation,
@@ -216,11 +225,6 @@ export class InlineComponent {
                 ...this.eventsTransformation,
                 ...defaultSlotLetTransformation
             ]);
-
-            const endStart =
-                this.str.original
-                    .substring(this.node.start, this.node.end)
-                    .lastIndexOf(`</${this.node.name}`) + this.node.start;
             transform(this.str, endStart, this.node.end, this.node.end, this.endTransformation);
         }
     }

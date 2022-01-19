@@ -7,7 +7,7 @@ async () => {
 
  { new Script({ target: __sveltets_2_any(), props: {}});
      { __sveltets_2_createElement("p", {}); }
- }
+ Script}
   { new Style({ target: __sveltets_2_any(), props: {}});}};
 return { props: {}, slots: {}, getters: {}, events: {} }}
 

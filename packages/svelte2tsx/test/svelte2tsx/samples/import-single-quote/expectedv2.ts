@@ -5,7 +5,7 @@ function render() {
 
      
 ;
-async () => {    { new Test({ target: __sveltets_2_any(), props: {"b":"6",}}); } 
+async () => {    { new Test({ target: __sveltets_2_any(), props: {"b":"6",}}); Test} 
 };
 return { props: {}, slots: {}, getters: {}, events: {} }}
 

@@ -5,7 +5,7 @@ async () => { { const $$_Component0 = new Component({ target: __sveltets_2_any()
        {const {/*Ωignore_startΩ*/$$_$$/*Ωignore_endΩ*/,a,} = $$_Component0.$$slot_def["b"];$$_$$;{ __sveltets_2_createElement("div", {});
          { __sveltets_createSlot("default", {a,}); }
      }}
- }};
+ Component}};
 return { props: {}, slots: {'default': {a:__sveltets_1_instanceOf(Component).$$slot_def['b'].a}}, getters: {}, events: {} }}
 
 export default class Input__SvelteComponent_ extends __sveltets_1_createSvelte2TsxComponent(__sveltets_1_partial(__sveltets_1_with_any_event(render()))) {
