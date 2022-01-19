@@ -235,6 +235,8 @@ export class Element {
         }
         return (
             !this.node.children?.length &&
+            // Paranoid check because theoretically there could be other void
+            // tags in different namespaces other than HTML
             !this.str.original
                 .substring(this.node.start, this.node.end)
                 .match(new RegExp(`</${this.node.name}\\s*>$`))

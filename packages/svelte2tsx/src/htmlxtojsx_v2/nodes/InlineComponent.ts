@@ -235,12 +235,7 @@ export class InlineComponent {
     }
 
     private computeIsSelfclosing() {
-        if (this.str.original[this.node.end - 2] === '/') {
-            return true;
-        }
-        return !!this.str.original
-            .substring(this.node.start, this.node.end)
-            .match(new RegExp(`</${this.node.name}\\s*>$`));
+        return this.str.original[this.node.end - 2] === '/';
     }
 
     private computeDepth() {
