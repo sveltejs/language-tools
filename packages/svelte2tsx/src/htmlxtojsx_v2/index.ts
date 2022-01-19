@@ -21,6 +21,7 @@ import { handleKey } from './nodes/Key';
 import { handleLet } from './nodes/Let';
 import { handleMustacheTag } from './nodes/MustacheTag';
 import { handleRawHtml } from './nodes/RawMustacheTag';
+import { handleSpread } from './nodes/Spread';
 import { handleStyleDirective } from './nodes/StyleDirective';
 import { handleText } from './nodes/Text';
 import { handleTransitionDirective } from './nodes/Transition';
@@ -139,6 +140,9 @@ export function convertHtmlxToJsx(
                             options.preserveAttributeCase,
                             element
                         );
+                        break;
+                    case 'Spread':
+                        handleSpread(node, element);
                         break;
                     case 'EventHandler':
                         handleEventHandler(str, node as BaseDirective, element);
