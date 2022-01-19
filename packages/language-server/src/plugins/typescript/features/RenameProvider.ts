@@ -439,7 +439,7 @@ export class RenameProviderImpl implements RenameProvider {
                 if (!prefixText || prefixText.slice(-1) !== ':') {
                     return location;
                 }
-                // prefix is of the form `oldVarName: ` -> hints at a shortand
+                // prefix is of the form `oldVarName: ` -> hints at a shorthand
                 let rangeStart = parent.offsetAt(location.range.start);
                 // we need to make sure we only adjust shorthands on elements/components
                 if (
