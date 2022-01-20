@@ -39,67 +39,512 @@ function test(useNewTransformation: boolean) {
 
         it('provides document symbols', async () => {
             const { plugin, document } = setup('documentsymbols.svelte');
-            const symbols = await plugin.getDocumentSymbols(document);
+            let symbols = await plugin.getDocumentSymbols(document);
+            symbols = symbols
+                .map((s) => ({ ...s, name: harmonizeNewLines(s.name) }))
+                .sort(
+                    (s1, s2) =>
+                        s1.location.range.start.line * 100 +
+                        s1.location.range.start.character -
+                        (s2.location.range.start.line * 100 + s2.location.range.start.character)
+                );
 
-            assert.deepStrictEqual(
-                symbols.map((s) => ({ ...s, name: harmonizeNewLines(s.name) })),
-                [
+            if (useNewTransformation) {
+                assert.deepStrictEqual(symbols, [
                     {
-                        containerName: 'render',
+                        name: 'bla',
                         kind: 12,
                         location: {
-                            range: {
-                                start: {
-                                    line: 6,
-                                    character: 3
-                                },
-                                end: {
-                                    line: 8,
-                                    character: 5
-                                }
-                            },
-                            uri: getUri('documentsymbols.svelte')
-                        },
-                        name: "$: if (hello) {\n        console.log('hi');\n    }"
-                    },
-                    {
-                        containerName: 'render',
-                        kind: 12,
-                        location: {
+                            uri: getUri('documentsymbols.svelte'),
                             range: {
                                 start: {
                                     line: 1,
-                                    character: 4
+                                    character: 2
                                 },
                                 end: {
                                     line: 3,
-                                    character: 5
+                                    character: 3
                                 }
-                            },
-                            uri: getUri('documentsymbols.svelte')
+                            }
                         },
-                        name: 'bla'
+                        containerName: 'render'
                     },
                     {
-                        containerName: 'render',
+                        name: 'hello',
                         kind: 13,
                         location: {
+                            uri: getUri('documentsymbols.svelte'),
                             range: {
                                 start: {
                                     line: 5,
-                                    character: 7
+                                    character: 5
                                 },
                                 end: {
                                     line: 5,
+                                    character: 14
+                                }
+                            }
+                        },
+                        containerName: 'render'
+                    },
+                    {
+                        name: "$: if (hello) {\n    console.log('hi');\n  }",
+                        kind: 12,
+                        location: {
+                            uri: getUri('documentsymbols.svelte'),
+                            range: {
+                                start: {
+                                    line: 6,
+                                    character: 1
+                                },
+                                end: {
+                                    line: 8,
+                                    character: 3
+                                }
+                            }
+                        },
+                        containerName: 'render'
+                    },
+                    {
+                        name: '$on("click") callback',
+                        kind: 12,
+                        location: {
+                            uri: getUri('documentsymbols.svelte'),
+                            range: {
+                                start: {
+                                    line: 12,
+                                    character: 39
+                                },
+                                end: {
+                                    line: 12,
+                                    character: 47
+                                }
+                            }
+                        },
+                        containerName: '<function>'
+                    },
+                    {
+                        name: 'x',
+                        kind: 14,
+                        location: {
+                            uri: getUri('documentsymbols.svelte'),
+                            range: {
+                                start: {
+                                    line: 13,
+                                    character: 15
+                                },
+                                end: {
+                                    line: 13,
                                     character: 16
                                 }
-                            },
-                            uri: getUri('documentsymbols.svelte')
+                            }
                         },
-                        name: 'hello'
+                        containerName: '<function>'
+                    },
+                    {
+                        name: 'b',
+                        kind: 14,
+                        location: {
+                            uri: getUri('documentsymbols.svelte'),
+                            range: {
+                                start: {
+                                    line: 13,
+                                    character: 21
+                                },
+                                end: {
+                                    line: 13,
+                                    character: 25
+                                }
+                            }
+                        },
+                        containerName: '<function>'
+                    },
+                    {
+                        name: 'x',
+                        kind: 14,
+                        location: {
+                            uri: getUri('documentsymbols.svelte'),
+                            range: {
+                                start: {
+                                    line: 14,
+                                    character: 21
+                                },
+                                end: {
+                                    line: 14,
+                                    character: 22
+                                }
+                            }
+                        },
+                        containerName: '<function>'
+                    },
+                    {
+                        name: 'b',
+                        kind: 14,
+                        location: {
+                            uri: getUri('documentsymbols.svelte'),
+                            range: {
+                                start: {
+                                    line: 14,
+                                    character: 27
+                                },
+                                end: {
+                                    line: 14,
+                                    character: 31
+                                }
+                            }
+                        },
+                        containerName: '<function>'
+                    },
+                    {
+                        name: 'foo',
+                        kind: 14,
+                        location: {
+                            uri: getUri('documentsymbols.svelte'),
+                            range: {
+                                start: {
+                                    line: 16,
+                                    character: 17
+                                },
+                                end: {
+                                    line: 16,
+                                    character: 20
+                                }
+                            }
+                        },
+                        containerName: '<function>'
+                    },
+                    {
+                        name: 'bar',
+                        kind: 14,
+                        location: {
+                            uri: getUri('documentsymbols.svelte'),
+                            range: {
+                                start: {
+                                    line: 17,
+                                    character: 10
+                                },
+                                end: {
+                                    line: 17,
+                                    character: 19
+                                }
+                            }
+                        },
+                        containerName: '<function>'
+                    },
+                    {
+                        name: 'result',
+                        kind: 14,
+                        location: {
+                            uri: getUri('documentsymbols.svelte'),
+                            range: {
+                                start: {
+                                    line: 20,
+                                    character: 15
+                                },
+                                end: {
+                                    line: 20,
+                                    character: 20
+                                }
+                            }
+                        },
+                        containerName: '<function>'
+                    },
+                    {
+                        name: 'bar',
+                        kind: 14,
+                        location: {
+                            uri: getUri('documentsymbols.svelte'),
+                            range: {
+                                start: {
+                                    line: 21,
+                                    character: 10
+                                },
+                                end: {
+                                    line: 21,
+                                    character: 22
+                                }
+                            }
+                        },
+                        containerName: '<function>'
+                    },
+                    {
+                        name: 'error',
+                        kind: 14,
+                        location: {
+                            uri: getUri('documentsymbols.svelte'),
+                            range: {
+                                start: {
+                                    line: 23,
+                                    character: 8
+                                },
+                                end: {
+                                    line: 23,
+                                    character: 12
+                                }
+                            }
+                        },
+                        containerName: '<function>'
                     }
-                ]
-            );
+                ]);
+            } else {
+                // Obviously not a very good symbols tree - but don't
+                // put work into it as it's going to be gone anyway,
+                // when the new transformation will be the new default
+                assert.deepStrictEqual(symbols, [
+                    {
+                        name: 'bla',
+                        kind: 12,
+                        location: {
+                            uri: getUri('documentsymbols.svelte'),
+                            range: {
+                                start: {
+                                    line: 1,
+                                    character: 2
+                                },
+                                end: {
+                                    line: 3,
+                                    character: 3
+                                }
+                            }
+                        },
+                        containerName: 'render'
+                    },
+                    {
+                        name: 'hello',
+                        kind: 13,
+                        location: {
+                            uri: getUri('documentsymbols.svelte'),
+                            range: {
+                                start: {
+                                    line: 5,
+                                    character: 5
+                                },
+                                end: {
+                                    line: 5,
+                                    character: 14
+                                }
+                            }
+                        },
+                        containerName: 'render'
+                    },
+                    {
+                        name: "$: if (hello) {\n    console.log('hi');\n  }",
+                        kind: 12,
+                        location: {
+                            uri: getUri('documentsymbols.svelte'),
+                            range: {
+                                start: {
+                                    line: 6,
+                                    character: 1
+                                },
+                                end: {
+                                    line: 8,
+                                    character: 3
+                                }
+                            }
+                        },
+                        containerName: 'render'
+                    },
+                    {
+                        name: "() => ''",
+                        kind: 12,
+                        location: {
+                            uri: getUri('documentsymbols.svelte'),
+                            range: {
+                                start: {
+                                    line: 11,
+                                    character: 33
+                                },
+                                end: {
+                                    line: 11,
+                                    character: 41
+                                }
+                            }
+                        },
+                        containerName: '<function>'
+                    },
+                    {
+                        name: "$on('click') callback",
+                        kind: 12,
+                        location: {
+                            uri: getUri('documentsymbols.svelte'),
+                            range: {
+                                start: {
+                                    line: 12,
+                                    character: 39
+                                },
+                                end: {
+                                    line: 12,
+                                    character: 47
+                                }
+                            }
+                        },
+                        containerName: '<function>'
+                    },
+                    {
+                        name: 'x',
+                        kind: 13,
+                        location: {
+                            uri: getUri('documentsymbols.svelte'),
+                            range: {
+                                start: {
+                                    line: 13,
+                                    character: 15
+                                },
+                                end: {
+                                    line: 13,
+                                    character: 16
+                                }
+                            }
+                        },
+                        containerName: '<function>'
+                    },
+                    {
+                        name: 'b',
+                        kind: 13,
+                        location: {
+                            uri: getUri('documentsymbols.svelte'),
+                            range: {
+                                start: {
+                                    line: 13,
+                                    character: 21
+                                },
+                                end: {
+                                    line: 13,
+                                    character: 24
+                                }
+                            }
+                        },
+                        containerName: '<function>'
+                    },
+                    {
+                        name: '<div slot="fo" let:x let:a={b} /',
+                        kind: 12,
+                        location: {
+                            uri: getUri('documentsymbols.svelte'),
+                            range: {
+                                start: {
+                                    line: 14,
+                                    character: 1
+                                },
+                                end: {
+                                    line: 14,
+                                    character: 34
+                                }
+                            }
+                        },
+                        containerName: '<function>'
+                    },
+                    {
+                        name: 'x',
+                        kind: 13,
+                        location: {
+                            uri: getUri('documentsymbols.svelte'),
+                            range: {
+                                start: {
+                                    line: 14,
+                                    character: 21
+                                },
+                                end: {
+                                    line: 14,
+                                    character: 22
+                                }
+                            }
+                        },
+                        containerName: '<function>'
+                    },
+                    {
+                        name: 'b',
+                        kind: 13,
+                        location: {
+                            uri: getUri('documentsymbols.svelte'),
+                            range: {
+                                start: {
+                                    line: 14,
+                                    character: 27
+                                },
+                                end: {
+                                    line: 14,
+                                    character: 30
+                                }
+                            }
+                        },
+                        containerName: '<function>'
+                    },
+                    {
+                        name: 'bar',
+                        kind: 14,
+                        location: {
+                            uri: getUri('documentsymbols.svelte'),
+                            range: {
+                                start: {
+                                    line: 17,
+                                    character: 10
+                                },
+                                end: {
+                                    line: 17,
+                                    character: 19
+                                }
+                            }
+                        },
+                        containerName: '__sveltets_1_each() callback'
+                    },
+                    {
+                        name: '{#await x then result}\n  {@const bar = result}\n ...',
+                        kind: 12,
+                        location: {
+                            uri: getUri('documentsymbols.svelte'),
+                            range: {
+                                start: {
+                                    line: 20,
+                                    character: 0
+                                },
+                                end: {
+                                    line: 25,
+                                    character: 0
+                                }
+                            }
+                        },
+                        containerName: '<function>'
+                    },
+                    {
+                        name: '_$$p',
+                        kind: 13,
+                        location: {
+                            uri: getUri('documentsymbols.svelte'),
+                            range: {
+                                start: {
+                                    line: 20,
+                                    character: 0
+                                },
+                                end: {
+                                    line: 20,
+                                    character: 10
+                                }
+                            }
+                        },
+                        containerName: '<function>'
+                    },
+                    {
+                        name: 'bar',
+                        kind: 14,
+                        location: {
+                            uri: getUri('documentsymbols.svelte'),
+                            range: {
+                                start: {
+                                    line: 21,
+                                    character: 10
+                                },
+                                end: {
+                                    line: 21,
+                                    character: 22
+                                }
+                            }
+                        },
+                        containerName: '__sveltets_1_awaitThen() callback'
+                    }
+                ]);
+            }
         });
 
         it('can cancel document symbols before promise resolved', async () => {

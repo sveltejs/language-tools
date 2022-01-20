@@ -19,12 +19,13 @@ import {
     SignatureHelp,
     SignatureHelpContext,
     SymbolInformation,
+    SymbolKind,
     TextDocumentContentChangeEvent,
     WorkspaceEdit
 } from 'vscode-languageserver';
 import { Document, getTextInRange, mapSymbolInformationToOriginal } from '../../lib/documents';
 import { LSConfigManager, LSTypescriptConfig } from '../../ls-config';
-import { isNotNullOrUndefined, pathToUrl } from '../../utils';
+import { isNotNullOrUndefined, isZeroLengthRange, pathToUrl } from '../../utils';
 import {
     AppCompletionItem,
     AppCompletionList,
@@ -63,10 +64,23 @@ import { SemanticTokensProviderImpl } from './features/SemanticTokensProvider';
 import { SignatureHelpProviderImpl } from './features/SignatureHelpProvider';
 import { TypeDefinitionProviderImpl } from './features/TypeDefinitionProvider';
 import { UpdateImportsProviderImpl } from './features/UpdateImportsProvider';
-import { isNoTextSpanInGeneratedCode, SnapshotFragmentMap } from './features/utils';
+import {
+    findNodeAtSpan,
+    isComponentProp,
+    isHTMLAttributeName,
+    isHTMLAttributeShorthand,
+    isNoTextSpanInGeneratedCode,
+    SnapshotFragmentMap
+} from './features/utils';
 import { LSAndTSDocResolver } from './LSAndTSDocResolver';
 import { ignoredBuildDirectories } from './SnapshotManager';
-import { convertToLocationRange, getScriptKindFromFileName, symbolKindFromString } from './utils';
+import {
+    convertToLocationRange,
+    getScriptKindFromFileName,
+    isInScript,
+    rangeToTextSpan,
+    symbolKindFromString
+} from './utils';
 
 export class TypeScriptPlugin
     implements
@@ -169,41 +183,77 @@ export class TypeScriptPlugin
         collectSymbols(navTree, undefined, (symbol) => symbols.push(symbol));
 
         const topContainerName = symbols[0].name;
-        return (
-            symbols
-                .slice(1)
-                .map((symbol) => {
-                    if (symbol.containerName === topContainerName) {
-                        return { ...symbol, containerName: 'script' };
-                    }
+        const sourceFile = lang.getProgram()!.getSourceFile(tsDoc.filePath)!;
+        const result: SymbolInformation[] = [];
 
-                    return symbol;
-                })
-                .map((symbol) => mapSymbolInformationToOriginal(fragment, symbol))
-                // Due to svelte2tsx, there will also be some symbols that are unmapped.
-                // Filter those out to keep the lsp from throwing errors.
-                // Also filter out transformation artifacts
-                .filter(
-                    (symbol) =>
-                        symbol.location.range.start.line >= 0 &&
-                        symbol.location.range.end.line >= 0 &&
-                        !symbol.name.startsWith('__sveltets_')
-                )
-                .map((symbol) => {
-                    if (symbol.name !== '<function>') {
-                        return symbol;
-                    }
+        for (let symbol of symbols.slice(1)) {
+            if (symbol.containerName === topContainerName) {
+                symbol.containerName = 'script';
+            }
 
-                    let name = getTextInRange(symbol.location.range, document.getText()).trimLeft();
-                    if (name.length > 50) {
-                        name = name.substring(0, 50) + '...';
-                    }
-                    return {
-                        ...symbol,
-                        name
-                    };
-                })
-        );
+            const generatedRange = symbol.location.range;
+
+            symbol = mapSymbolInformationToOriginal(fragment, symbol);
+
+            if (
+                symbol.location.range.start.line < 0 ||
+                symbol.location.range.end.line < 0 ||
+                isZeroLengthRange(symbol.location.range) ||
+                symbol.name.startsWith('__sveltets_')
+            ) {
+                continue;
+            }
+
+            if (
+                (symbol.kind === SymbolKind.Property || symbol.kind === SymbolKind.Method) &&
+                !isInScript(symbol.location.range.start, document)
+            ) {
+                if (
+                    symbol.name === 'props' &&
+                    document.getText().charAt(document.offsetAt(symbol.location.range.start)) !==
+                        'p'
+                ) {
+                    // This is the "props" of a generated component constructor
+                    continue;
+                }
+                const node = findNodeAtSpan(
+                    sourceFile,
+                    rangeToTextSpan(generatedRange, fragment),
+                    (node): node is ts.ShorthandPropertyAssignment | ts.PropertyAssignment =>
+                        ts.isPropertyAssignment(node) || ts.isShorthandPropertyAssignment(node)
+                );
+                if (
+                    node &&
+                    (isComponentProp(node.name) ||
+                        isHTMLAttributeName(node.name) ||
+                        isHTMLAttributeShorthand(node.name))
+                ) {
+                    // This is a html or component property, they are not treated as a new symbol
+                    // in JSX and so we do the same for the new transformation.
+                    continue;
+                }
+            }
+
+            if (symbol.name === '<function>') {
+                let name = getTextInRange(symbol.location.range, document.getText()).trimLeft();
+                if (name.length > 50) {
+                    name = name.substring(0, 50) + '...';
+                }
+                symbol.name = name;
+            }
+
+            if (symbol.name.startsWith('$$_')) {
+                if (!symbol.name.includes('$on')) {
+                    continue;
+                }
+                // on:foo={() => ''}   ->   $on("foo") callback
+                symbol.name = symbol.name.substring(symbol.name.indexOf('$on'));
+            }
+
+            result.push(symbol);
+        }
+
+        return result;
 
         function collectSymbols(
             tree: NavigationTree,

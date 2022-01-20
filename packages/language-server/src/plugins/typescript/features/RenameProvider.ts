@@ -360,7 +360,7 @@ export class RenameProviderImpl implements RenameProvider {
             // Additionally, we cannot rename the hidden variable containing the store value
             return (
                 notPrecededBy('__sveltets_1_instanceOf(') &&
-                notPrecededBy('__sveltets_1_ensureType(') &&
+                notPrecededBy('__sveltets_1_ensureType(') && // no longer necessary for new transformation
                 notPrecededBy('= __sveltets_1_store_get(')
             );
 

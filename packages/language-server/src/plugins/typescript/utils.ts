@@ -111,6 +111,15 @@ export function hasNonZeroRange({ range }: { range?: Range }): boolean {
     );
 }
 
+export function rangeToTextSpan(
+    range: Range,
+    document: { offsetAt: (position: Position) => number }
+): ts.TextSpan {
+    const start = document.offsetAt(range.start);
+    const end = document.offsetAt(range.end);
+    return { start, length: end - start };
+}
+
 export function findTsConfigPath(fileName: string, rootUris: string[]) {
     const searchDir = dirname(fileName);
 
