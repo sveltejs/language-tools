@@ -79,6 +79,7 @@ export interface SnapshotFragment extends DocumentMapper {
 export interface SvelteSnapshotOptions {
     transformOnTemplateError: boolean;
     useNewTransformation: boolean;
+    typingsNamespace: string;
 }
 
 export namespace DocumentSnapshot {
@@ -174,6 +175,7 @@ function preprocessSvelteFile(document: Document, options: SvelteSnapshotOptions
                 ? scriptKind === ts.ScriptKind.TS
                 : scriptKind === ts.ScriptKind.TSX,
             mode: options.useNewTransformation ? 'ts' : 'tsx',
+            typingsNamespace: options.useNewTransformation ? options.typingsNamespace : undefined,
             emitOnTemplateError: options.transformOnTemplateError,
             namespace: document.config?.compilerOptions?.namespace,
             accessors:

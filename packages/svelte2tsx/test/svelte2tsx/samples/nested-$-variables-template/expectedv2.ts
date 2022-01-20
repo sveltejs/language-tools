@@ -1,6 +1,6 @@
 ///<reference types="svelte" />
 ;function render() {
-async () => {   { __sveltets_2_createElement("h1", {onclick:() => {
+async () => {   { svelteHTML.createElement("h1", {onclick:() => {
 
     // TODO: this is invalid Svelte right now, stores have to be top level 
     // it's therefore okay to not append "let top1$/top2$ = __svelte_store_get(..)"

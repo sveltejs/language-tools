@@ -218,28 +218,12 @@ declare function __sveltets_1_unwrapArr<T>(arr: ArrayLike<T>): T
 declare function __sveltets_1_unwrapPromiseLike<T>(promise: PromiseLike<T> | T): T
 
 // v2
-
-declare function __sveltets_2_createElement<Elements extends svelte.IntrinsicElements, Key extends keyof Elements>(
-    element: Key, attrs: Elements[Key]
-): Key extends keyof ElementTagNameMap ? ElementTagNameMap[Key] : Key extends keyof SVGElementTagNameMap ? SVGElementTagNameMap[Key] : HTMLElement;
-declare function __sveltets_2_createElementNative<Elements extends svelteNative.JSX.IntrinsicElements, Key extends keyof Elements>(element: Key, attrs: Elements[Key]): Record<string, any>;
-declare function __sveltets_2_createElementAny(element: string, attrs: Record<string, any>): Record<string, any>;
 declare function __sveltets_2_createCreateSlot<Slots = Record<string, Record<string, any>>>(): <SlotName extends keyof Slots>(slotName: SlotName, attrs: Slots[SlotName]) => Record<string, any>;
 declare function __sveltets_2_createComponentAny(props: Record<string, any>): Svelte2TsxComponent<any, any, any>;
 
 declare function __sveltets_2_any(...dummy: any[]): any;
 
 declare function __sveltets_2_cssProp(prop: Record<string, any>): {};
-
-declare function __sveltets_2_mapElementTag<K extends keyof ElementTagNameMap>(
-    tag: K
-): ElementTagNameMap[K];
-declare function __sveltets_2_mapElementTag<K extends keyof SVGElementTagNameMap>(
-    tag: K
-): SVGElementTagNameMap[K];
-declare function __sveltets_2_mapElementTag(
-    tag: any
-): HTMLElement;
 
 type __sveltets_2_SvelteAnimationReturnType = {
     delay?: number,

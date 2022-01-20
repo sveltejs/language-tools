@@ -4,7 +4,7 @@
 	 let foo: number = undefined;foo = __sveltets_1_any(foo);
 	 const bar: string = ''
 ;
-async () => { { __sveltets_2_createElement("svelteoptions", {});}
+async () => { { svelteHTML.createElement("svelteoptions", {});}
 };
 return { props: {foo: foo , bar: bar}, slots: {}, getters: {bar: bar}, events: {} }}
 

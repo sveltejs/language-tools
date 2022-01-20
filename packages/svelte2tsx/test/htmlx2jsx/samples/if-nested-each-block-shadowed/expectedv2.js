@@ -1,6 +1,6 @@
 if(hello){
         for(const hello of __sveltets_2_ensureArray(items)){hello.id;let i = 1;
-         { __sveltets_2_createElement("div", {});hello;i; }
+         { svelteHTML.createElement("div", {});hello;i; }
         if(hello){
               for(const hello of __sveltets_2_ensureArray(items)){
                 if(hello){
@@ -21,7 +21,7 @@ if(hello){
     
     if(hi && bye){
           for(const bye of __sveltets_2_ensureArray(items)){
-             { __sveltets_2_createElement("div", {});bye; }
+             { svelteHTML.createElement("div", {});bye; }
         }
             if(bye){
                 bye;
@@ -29,11 +29,11 @@ if(hello){
         
     } else if (cool){
            for(const item of __sveltets_2_ensureArray(items)){let cool = 1;
-             { __sveltets_2_createElement("div", {});item;cool; }
+             { svelteHTML.createElement("div", {});item;cool; }
         }
     }else{
           for(const hello of __sveltets_2_ensureArray(items)){
-             { __sveltets_2_createElement("div", {});hello; }
+             { svelteHTML.createElement("div", {});hello; }
         }
     }
 }

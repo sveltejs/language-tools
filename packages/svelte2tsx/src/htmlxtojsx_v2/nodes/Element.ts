@@ -51,16 +51,13 @@ export class Element {
     /**
      * @param str The MagicString instance used to manipulate the text
      * @param node The Svelte AST node that represents this element
-     * @param typingsNamespace Determines which createElement function to use. If 'html'/'native', it uses
-     *                         a function which provides type-checks and errors on for example wrong
-     *                         attributes. If 'any', it falls back to a "everything goes" function
-     *                         which is needed for example for Svelte Native.
+     * @param typingsNamespace Determines which namespace to use for the createElement function
      * @param parent The Svelte AST parent node
      */
     constructor(
         private str: MagicString,
         private node: BaseNode,
-        private typingsNamespace: 'html' | 'native' | 'any',
+        public typingsNamespace: string,
         public parent?: any
     ) {
         if (parent) {
@@ -71,12 +68,7 @@ export class Element {
         this.isSelfclosing = this.computeIsSelfclosing();
         this.startTagStart = this.node.start;
         this.startTagEnd = this.computeStartTagEnd();
-        const createElement =
-            this.typingsNamespace === 'html'
-                ? '__sveltets_2_createElement'
-                : this.typingsNamespace === 'native'
-                ? '__sveltets_2_createElementNative'
-                : '__sveltets_2_createElementAny';
+        const createElement = `${this.typingsNamespace}.createElement`;
 
         switch (this.node.name) {
             // Although not everything that is possible to add to Element

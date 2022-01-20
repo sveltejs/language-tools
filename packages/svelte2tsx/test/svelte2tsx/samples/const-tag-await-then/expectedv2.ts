@@ -15,14 +15,14 @@ async () => {
 	 const {area, volume} = calculate(box.width, box.height, constant);
 	 const perimeter = (box.width + box.height) * constant;
 	 const [width, height, sum] = [box.width * constant, box.height, box.width * constant + box.height];
-	 { __sveltets_2_createElement("div", {});area; volume; perimeter; width; height; sum; }
+	 { svelteHTML.createElement("div", {});area; volume; perimeter; width; height; sum; }
 }}
 
     { try { await (promise2); } catch($$_e) { const box = __sveltets_2_any();
 	 const {area, volume} = calculate(box.width, box.height, constant);
 	 const perimeter = (box.width + box.height) * constant;
 	 const [width, height, sum] = [box.width * constant, box.height, box.width * constant + box.height];
-	 { __sveltets_2_createElement("div", {});area; volume; perimeter; width; height; sum; }
+	 { svelteHTML.createElement("div", {});area; volume; perimeter; width; height; sum; }
 }}};
 return { props: {promise1: promise1 , promise2: promise2 , constant: constant}, slots: {}, getters: {}, events: {} }}
 

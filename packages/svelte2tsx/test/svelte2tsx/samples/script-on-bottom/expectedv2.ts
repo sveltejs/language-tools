@@ -3,7 +3,7 @@
 
      let world = "name"
 ;
-async () => { { __sveltets_2_createElement("h1", {}); world; }
+async () => { { svelteHTML.createElement("h1", {}); world; }
 };
 return { props: {world: world}, slots: {}, getters: {}, events: {} }}
 

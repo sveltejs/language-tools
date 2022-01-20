@@ -11,12 +11,12 @@ if(hello && hello1){
                 hello;
             }
          }Comp}
-          {const {/*Ωignore_startΩ*/$$_$$/*Ωignore_endΩ*/,hello,} = $$_Comp0.$$slot_def["named1"];$$_$$;{ __sveltets_2_createElement("sveltefragment", {});
+          {const {/*Ωignore_startΩ*/$$_$$/*Ωignore_endΩ*/,hello,} = $$_Comp0.$$slot_def["named1"];$$_$$;{ svelteHTML.createElement("sveltefragment", {});
             if(hello){
                 hello;
             }
          }}
-           {const {/*Ωignore_startΩ*/$$_$$/*Ωignore_endΩ*/,hello,} = $$_Comp0.$$slot_def["named2"];$$_$$;{ __sveltets_2_createElement("p", {});
+           {const {/*Ωignore_startΩ*/$$_$$/*Ωignore_endΩ*/,hello,} = $$_Comp0.$$slot_def["named2"];$$_$$;{ svelteHTML.createElement("p", {});
             if(hello){
                 hello;
             }
@@ -46,13 +46,13 @@ if(hello && hello1){
          }Comp}
     } else if (cool){
          { const $$_Comp0 = new Comp({ target: __sveltets_2_any(), props: {}});
-                {const {/*Ωignore_startΩ*/$$_$$/*Ωignore_endΩ*/,cool,hello,} = $$_Comp0.$$slot_def["named"];$$_$$;{ __sveltets_2_createElement("div", {});
+                {const {/*Ωignore_startΩ*/$$_$$/*Ωignore_endΩ*/,cool,hello,} = $$_Comp0.$$slot_def["named"];$$_$$;{ svelteHTML.createElement("div", {});
                 hello;
              }}
          Comp}
     }else{
          { const $$_Comp0 = new Comp({ target: __sveltets_2_any(), props: {}});
-                  {const {/*Ωignore_startΩ*/$$_$$/*Ωignore_endΩ*/,foo:hello,hello1:other,} = $$_Comp0.$$slot_def["named"];$$_$$;{ __sveltets_2_createElement("div", {});
+                  {const {/*Ωignore_startΩ*/$$_$$/*Ωignore_endΩ*/,foo:hello,hello1:other,} = $$_Comp0.$$slot_def["named"];$$_$$;{ svelteHTML.createElement("div", {});
                 hello;
              }}
          Comp}
@@ -67,7 +67,7 @@ if(hello && hello1){
     }else{
         hello; bye;
     }
-      {const {/*Ωignore_startΩ*/$$_$$/*Ωignore_endΩ*/,hello,} = $$_Comp0.$$slot_def["named1"];$$_$$;{ __sveltets_2_createElement("sveltefragment", {});
+      {const {/*Ωignore_startΩ*/$$_$$/*Ωignore_endΩ*/,hello,} = $$_Comp0.$$slot_def["named1"];$$_$$;{ svelteHTML.createElement("sveltefragment", {});
         if(hello && bye){
             hello; bye;
         } else if (hello && bye){
@@ -76,7 +76,7 @@ if(hello && hello1){
             hello; bye;
         }
      }}
-       {const {/*Ωignore_startΩ*/$$_$$/*Ωignore_endΩ*/,hello,} = $$_Comp0.$$slot_def["named2"];$$_$$;{ __sveltets_2_createElement("p", {});
+       {const {/*Ωignore_startΩ*/$$_$$/*Ωignore_endΩ*/,hello,} = $$_Comp0.$$slot_def["named2"];$$_$$;{ svelteHTML.createElement("p", {});
         if(hello && bye){
             hello; bye;
         } else if (hello && bye){
@@ -85,7 +85,7 @@ if(hello && hello1){
             hello; bye;
         }
      }}
-       {const {/*Ωignore_startΩ*/$$_$$/*Ωignore_endΩ*/,foo,} = $$_Comp0.$$slot_def["named3"];$$_$$;{ __sveltets_2_createElement("p", {});
+       {const {/*Ωignore_startΩ*/$$_$$/*Ωignore_endΩ*/,foo,} = $$_Comp0.$$slot_def["named3"];$$_$$;{ svelteHTML.createElement("p", {});
          const hello = foo;
         if(hello && bye){
             hello; bye;

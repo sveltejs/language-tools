@@ -1,2 +1,2 @@
 
-    { __sveltets_2_createElement("use", {"xlink:href":test,});}
+    { svelteHTML.createElement("use", {"xlink:href":test,});}

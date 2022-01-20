@@ -4,7 +4,7 @@ import { getDirectiveNameStartEndIdx, TransformationArray } from '../utils/node-
 import { Element } from './Element';
 
 /**
- * use:xxx={params}   --->    __sveltets_2_ensureAction(xxx(__sveltets_2_mapElementTag('ParentNodeName'),(params)));
+ * use:xxx={params}   --->    __sveltets_2_ensureAction(xxx(svelte.mapElementTag('ParentNodeName'),(params)));
  */
 export function handleActionDirective(
     str: MagicString,
@@ -14,7 +14,7 @@ export function handleActionDirective(
     const transformations: TransformationArray = [
         '__sveltets_2_ensureAction(',
         getDirectiveNameStartEndIdx(str, attr),
-        `(__sveltets_2_mapElementTag('${element.tagName}')`
+        `(${element.typingsNamespace}.mapElementTag('${element.tagName}')`
     ];
     if (attr.expression) {
         transformations.push(',(', [attr.expression.start, attr.expression.end], ')');

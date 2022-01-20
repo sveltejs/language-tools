@@ -1,1 +1,1 @@
-     { __sveltets_2_createElement("h1", {onclick:()=>console.log("click"),onUpperCaseEvent:() => log('hi'),});  }
+     { svelteHTML.createElement("h1", {onclick:()=>console.log("click"),onUpperCaseEvent:() => log('hi'),});  }

@@ -1,6 +1,6 @@
 
-   { __sveltets_2_createElement("html", {"lang":"en",});
- { __sveltets_2_createElement("body", {});
-     { __sveltets_2_createElement("h1", {});  }
+   { svelteHTML.createElement("html", {"lang":"en",});
+ { svelteHTML.createElement("body", {});
+     { svelteHTML.createElement("h1", {});  }
  }
  }

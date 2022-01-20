@@ -11,9 +11,9 @@ function render() {
 ;
 async () => {
 
- { __sveltets_2_createElement("p", {});(__sveltets_1_store_get(storeA), $storeA); }
- { __sveltets_2_createElement("p", {});(__sveltets_1_store_get(storeB), $storeB); }
- { __sveltets_2_createElement("p", {});(__sveltets_1_store_get(storeC), $storeC); }};
+ { svelteHTML.createElement("p", {});(__sveltets_1_store_get(storeA), $storeA); }
+ { svelteHTML.createElement("p", {});(__sveltets_1_store_get(storeB), $storeB); }
+ { svelteHTML.createElement("p", {});(__sveltets_1_store_get(storeC), $storeC); }};
 return { props: {}, slots: {}, getters: {}, events: {} }}
 
 export default class Input__SvelteComponent_ extends __sveltets_1_createSvelte2TsxComponent(__sveltets_1_partial(__sveltets_1_with_any_event(render()))) {

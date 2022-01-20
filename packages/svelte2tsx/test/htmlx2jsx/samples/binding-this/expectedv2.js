@@ -1,1 +1,1 @@
-       { const $$_input0 = __sveltets_2_createElement("input", {"type":"radio","value":"Plain",});element = $$_input0;}
+       { const $$_input0 = svelteHTML.createElement("input", {"type":"radio","value":"Plain",});element = $$_input0;}

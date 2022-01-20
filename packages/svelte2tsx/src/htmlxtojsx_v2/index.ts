@@ -45,10 +45,11 @@ export function convertHtmlxToJsx(
     ast: TemplateNode,
     onWalk: Walker = null,
     onLeave: Walker = null,
-    options: { preserveAttributeCase?: boolean; typingsNamespace?: 'html' | 'native' | 'any' } = {}
+    options: { preserveAttributeCase?: boolean; typingsNamespace?: string } = {}
 ): void {
     const htmlx = str.original;
-    options = { preserveAttributeCase: false, typingsNamespace: 'html', ...options };
+    options = { preserveAttributeCase: false, ...options };
+    options.typingsNamespace = options.typingsNamespace || 'svelteHTML';
     htmlx;
     stripDoctype(str);
 
@@ -206,7 +207,7 @@ export function htmlx2jsx(
     options?: {
         emitOnTemplateError?: boolean;
         preserveAttributeCase: boolean;
-        typingsNamespace: 'html' | 'native' | 'any';
+        typingsNamespace: string;
     }
 ) {
     const ast = parseHtmlx(htmlx, { ...options, useNewTransformation: true }).htmlxAst;

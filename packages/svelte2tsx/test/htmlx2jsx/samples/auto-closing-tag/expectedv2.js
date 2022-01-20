@@ -1,4 +1,4 @@
- { __sveltets_2_createElement("article", {});
-     { __sveltets_2_createElement("p", {});
-    } { __sveltets_2_createElement("p", {});
+ { svelteHTML.createElement("article", {});
+     { svelteHTML.createElement("p", {});
+    } { svelteHTML.createElement("p", {});
 } }

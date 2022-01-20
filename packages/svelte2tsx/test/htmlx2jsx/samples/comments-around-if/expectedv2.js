@@ -1,1 +1,1 @@
- { __sveltets_2_createElement("div", {});if(true){ { __sveltets_2_createElement("span", {});  }} else if (!true){ { __sveltets_2_createElement("span", {});  }} }
+ { svelteHTML.createElement("div", {});if(true){ { svelteHTML.createElement("span", {});  }} else if (!true){ { svelteHTML.createElement("span", {});  }} }

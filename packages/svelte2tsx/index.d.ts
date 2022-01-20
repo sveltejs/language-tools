@@ -49,13 +49,16 @@ export function svelte2tsx(
          */
         mode?: 'ts' | 'tsx' | 'dts',
         /**
-         * Takes effect when using the new 'ts' mode. Default 'html'.
-         * Tells svelte2tsx which function and corresponding typings to use when doing the transformation.
-         * - 'html' -> ..createElement<..>(..)
-         * - 'native' -> ..createElementNative<..>(..)
-         * - 'any' -> ..createElementAny<..>(..)
+         * Takes effect when using the new 'ts' mode. Default 'svelteHTML'.
+         * Tells svelte2tsx from which namespace some specific functions to use.
+         * 
+         * Example: 'svelteHTML' -> svelteHTML.createElement<..>(..)
+         * 
+         * A namespace needs to implement the following functions:
+         * - `createElement(str: string, validAttributes: ..): Element`
+         * - `mapElementTag<Key extends keyof YourElements>(str: Key): YourElements[Key]`
          */
-        typingsNamespace?: 'html' | 'native' | 'any';
+        typingsNamespace?: string;
         /**
          * The accessor option from svelte config. 
          * Would be overridden by the same config in the svelte:option element if exist

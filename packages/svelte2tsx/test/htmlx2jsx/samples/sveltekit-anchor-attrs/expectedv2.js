@@ -1,2 +1,2 @@
-  { __sveltets_2_createElement("a", {sveltekitNoscroll:true,}); }
-  { __sveltets_2_createElement("a", {sveltekitPrefetch:true,}); }
+  { svelteHTML.createElement("a", {sveltekitNoscroll:true,}); }
+  { svelteHTML.createElement("a", {sveltekitPrefetch:true,}); }

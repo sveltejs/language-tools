@@ -3,14 +3,14 @@
 
   let b = 'top level';
 ;
-async () => { { __sveltets_2_createElement("div", {});
+async () => { { svelteHTML.createElement("div", {});
   
  }
 
 
 
- { __sveltets_2_createElement("sveltehead", {});
-        { __sveltets_2_createElement("link", {"rel":"stylesheet","href":"/lib/jodit.es2018.min.css",});}
+ { svelteHTML.createElement("sveltehead", {});
+        { svelteHTML.createElement("link", {"rel":"stylesheet","href":"/lib/jodit.es2018.min.css",});}
   
  }};
 return { props: {}, slots: {}, getters: {}, events: {} }}

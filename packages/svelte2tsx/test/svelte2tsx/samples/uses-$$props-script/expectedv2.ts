@@ -3,7 +3,7 @@
 
     let name = $$props['name'];
 ;
-async () => { { __sveltets_2_createElement("h1", {});name; }
+async () => { { svelteHTML.createElement("h1", {});name; }
 };
 return { props: {}, slots: {}, getters: {}, events: {} }}
 

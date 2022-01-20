@@ -1,8 +1,8 @@
 ///<reference types="svelte" />
 ;function render() { let $$slots = __sveltets_1_slotsType({'foo': '', 'dashed-name': '', 'default': ''});
 /*Ωignore_startΩ*/;const __sveltets_createSlot = __sveltets_2_createCreateSlot();/*Ωignore_endΩ*/
-async () => { { __sveltets_2_createElement("h1", {});$$slots.foo; }
- { __sveltets_2_createElement("h1", {});$$slots['dashed-name']; }
+async () => { { svelteHTML.createElement("h1", {});$$slots.foo; }
+ { svelteHTML.createElement("h1", {});$$slots['dashed-name']; }
 
   { __sveltets_createSlot("foo", {});}
   { __sveltets_createSlot("dashed-name", {});}

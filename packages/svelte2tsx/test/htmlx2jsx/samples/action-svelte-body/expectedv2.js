@@ -1,1 +1,1 @@
-  { __sveltets_2_createElement("sveltebody", {});__sveltets_2_ensureAction(blink(__sveltets_2_mapElementTag('body')));}
+  { svelteHTML.createElement("sveltebody", {});__sveltets_2_ensureAction(blink(svelteHTML.mapElementTag('body')));}

@@ -9,7 +9,7 @@ describe('htmlx2jsx', () => {
                 ? htmlx2jsx_v2(input, {
                       emitOnTemplateError,
                       preserveAttributeCase,
-                      typingsNamespace: 'html'
+                      typingsNamespace: 'svelteHTML'
                   })
                 : htmlx2jsx(input, { emitOnTemplateError, preserveAttributeCase });
         },

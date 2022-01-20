@@ -1,1 +1,1 @@
-  { __sveltets_2_createElement("a", {sapperPrefetch:true,}); }
+  { svelteHTML.createElement("a", {sapperPrefetch:true,}); }

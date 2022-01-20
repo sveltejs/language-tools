@@ -7,7 +7,7 @@
 /*Ωignore_startΩ*/;const __sveltets_createSlot = __sveltets_2_createCreateSlot();/*Ωignore_endΩ*/;
 async () => {
 
- { __sveltets_2_createElement("h1", {});name; }
+ { svelteHTML.createElement("h1", {});name; }
   { __sveltets_createSlot("foo", {});}
   { __sveltets_createSlot("dashed-name", {});}
  { __sveltets_createSlot("default", {});}};

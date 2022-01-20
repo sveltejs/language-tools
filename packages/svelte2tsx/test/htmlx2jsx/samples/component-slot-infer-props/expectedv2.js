@@ -2,7 +2,7 @@
        {const {/*Ωignore_startΩ*/$$_$$/*Ωignore_endΩ*/,bar,} = $$_Parent0.$$slot_def["named"];$$_$$;{ new Component({ target: __sveltets_2_any(), props: {}});
         foo; bar;
      }Component}
-     { __sveltets_2_createElement("div", {});
+     { svelteHTML.createElement("div", {});
         foo;
      }
  }Parent}

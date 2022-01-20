@@ -1,3 +1,3 @@
    { await (somePromise); 
-     { __sveltets_2_createElement("h1", {});  }
+     { svelteHTML.createElement("h1", {});  }
 }

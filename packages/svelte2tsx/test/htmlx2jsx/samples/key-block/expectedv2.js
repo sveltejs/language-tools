@@ -1,8 +1,8 @@
 value; 
-     { __sveltets_2_createElement("p", {});  }
+     { svelteHTML.createElement("p", {});  }
 
 $store; 
-     { __sveltets_2_createElement("p", {});  }
+     { svelteHTML.createElement("p", {});  }
 
 expr.obj; 
-     { __sveltets_2_createElement("p", {});  }
+     { svelteHTML.createElement("p", {});  }

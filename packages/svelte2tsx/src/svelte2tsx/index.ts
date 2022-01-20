@@ -44,6 +44,7 @@ function processSvelteTemplate(
         namespace?: string;
         accessors?: boolean;
         mode?: 'ts' | 'tsx' | 'dts';
+        typingsNamespace?: string;
     }
 ): TemplateProcessResult {
     const { htmlxAst, tags } = parseHtmlx(str.original, {
@@ -262,7 +263,8 @@ function processSvelteTemplate(
 
     if (options.mode === 'ts') {
         convertHtmlxToJsxNew(str, htmlxAst, onHtmlxWalk, onHtmlxLeave, {
-            preserveAttributeCase: options?.namespace == 'foreign'
+            preserveAttributeCase: options?.namespace == 'foreign',
+            typingsNamespace: options.typingsNamespace
         });
     } else {
         convertHtmlxToJsx(str, htmlxAst, onHtmlxWalk, onHtmlxLeave, {
@@ -304,6 +306,7 @@ export function svelte2tsx(
         namespace?: string;
         mode?: 'ts' | 'tsx' | 'dts';
         accessors?: boolean;
+        typingsNamespace?: string;
     } = {}
 ) {
     // TODO temporary

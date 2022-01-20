@@ -2,7 +2,7 @@
 ;function render() {
 async () => {
 
- { __sveltets_2_createElement("main", {});     }};
+ { svelteHTML.createElement("main", {});     }};
 return { props: {}, slots: {}, getters: {}, events: {} }}
 
 /**

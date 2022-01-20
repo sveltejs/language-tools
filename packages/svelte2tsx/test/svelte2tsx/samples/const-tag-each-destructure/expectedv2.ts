@@ -18,7 +18,7 @@ async () => {
 	 const {area, volume} = calculate(width, height, constant);
 	 const perimeter = (width + height) * constant;
 	 const [_width, _height, sum] = [width * constant, height, width * constant + height];
-	 { __sveltets_2_createElement("div", {});area; volume; perimeter; _width; _height; sum; }
+	 { svelteHTML.createElement("div", {});area; volume; perimeter; _width; _height; sum; }
 }};
 return { props: {boxes: boxes , constant: constant}, slots: {}, getters: {}, events: {} }}
 

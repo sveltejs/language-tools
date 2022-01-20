@@ -1,6 +1,23 @@
 /// <reference lib="dom" />
 
-declare namespace svelte {
+declare namespace svelteHTML {
+
+  // Every namespace eligible for use needs to implement the following two functions
+  function mapElementTag<K extends keyof ElementTagNameMap>(
+    tag: K
+  ): ElementTagNameMap[K];
+  function mapElementTag<K extends keyof SVGElementTagNameMap>(
+    tag: K
+  ): SVGElementTagNameMap[K];
+  function mapElementTag(
+    tag: any
+  ): HTMLElement;
+
+  function createElement<Elements extends IntrinsicElements, Key extends keyof Elements>(
+    element: Key, attrs: Elements[Key]
+  ): Key extends keyof ElementTagNameMap ? ElementTagNameMap[Key] : Key extends keyof SVGElementTagNameMap ? SVGElementTagNameMap[Key] : HTMLElement;
+
+
   type NativeElement = HTMLElement;
 
   // TypeScript SVGElement has no `dataset` (Chrome 55+, Firefox 51+).
