@@ -23,7 +23,9 @@ function test(useNewTransformation: boolean) {
         }
 
         function setup(filename: string) {
-            const docManager = new DocumentManager(() => document);
+            const docManager = new DocumentManager((args) =>
+                args.uri.includes('.svelte') ? new Document(args.uri, args.text) : document
+            );
             const testDir = path.join(__dirname, 'testfiles');
             const filePath = path.join(testDir, filename);
             const document = new Document(pathToUrl(filePath), ts.sys.readFile(filePath) || '');
@@ -37,7 +39,7 @@ function test(useNewTransformation: boolean) {
             return { plugin, document };
         }
 
-        it('provides document symbols', async () => {
+        it.only('provides document symbols', async () => {
             const { plugin, document } = setup('documentsymbols.svelte');
             let symbols = await plugin.getDocumentSymbols(document);
             symbols = symbols
@@ -964,4 +966,4 @@ function test(useNewTransformation: boolean) {
 }
 
 describe('TypescriptPlugin (old transformation)', test(false));
-describe('TypescriptPlugin (old transformation)', test(true));
+describe('TypescriptPlugin (new transformation)', test(true));
