@@ -24,7 +24,9 @@ function test(useNewTransformation: boolean) {
 
         function setup(filename: string) {
             const docManager = new DocumentManager((args) =>
-                args.uri.includes('.svelte') ? new Document(args.uri, args.text) : document
+                args.uri.includes('.svelte')
+                    ? new Document(args.uri, harmonizeNewLines(args.text))
+                    : document
             );
             const testDir = path.join(__dirname, 'testfiles');
             const filePath = path.join(testDir, filename);
@@ -39,7 +41,7 @@ function test(useNewTransformation: boolean) {
             return { plugin, document };
         }
 
-        it.only('provides document symbols', async () => {
+        it('provides document symbols', async () => {
             const { plugin, document } = setup('documentsymbols.svelte');
             let symbols = await plugin.getDocumentSymbols(document);
             symbols = symbols

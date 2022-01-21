@@ -114,11 +114,11 @@ export class InlineComponent {
         // This ensures a better mapping as TS will also add the quotes
         // to the range if the event doesn't exist
         // Complicated mapping necessary to preserve better range mappings
-        if (nameStart + 1 === nameEnd)
+        if (nameStart + 1 === nameEnd) {
             this.str.overwrite(nameStart, nameEnd, `"${this.str.original.charAt(nameStart)}"`, {
                 contentOnly: true
             });
-        else {
+        } else {
             this.str.overwrite(
                 nameStart,
                 nameStart + 1,
