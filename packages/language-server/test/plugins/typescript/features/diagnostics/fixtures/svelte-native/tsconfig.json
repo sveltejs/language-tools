@@ -8,6 +8,6 @@
         "types": ["svelte"]
     },
     "svelteOptions": {
-      "namespace": "svelteNative"
+        "namespace": "svelteNative"
     }
 }
