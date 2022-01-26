@@ -1,5 +1,6 @@
 import MagicString from 'magic-string';
 import { BaseNode, ConstTag } from '../../interfaces';
+import { getNodeEndIncludingTrailingPropertyAccess } from '../utils/node-utils';
 
 export function extractConstTags(children: BaseNode[]) {
     const tags: Array<(insertionPoint: number, str: MagicString) => void> = [];
@@ -9,12 +10,14 @@ export function extractConstTags(children: BaseNode[]) {
 
             tags.push((insertionPoint: number, str: MagicString) => {
                 str.appendRight(constTag.expression.left.start, 'const ');
+
+                const expressionEnd = getNodeEndIncludingTrailingPropertyAccess(str.original, constTag.expression.right.end);
                 str.move(
                     constTag.expression.left.start,
-                    constTag.expression.right.end,
+                    expressionEnd,
                     insertionPoint
                 );
-                str.appendLeft(constTag.expression.right.end, ';');
+                str.appendLeft(expressionEnd, ';');
                 str.overwrite(constTag.start + 1, constTag.expression.left.start - 1, '', {
                     contentOnly: true
                 });

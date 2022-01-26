@@ -1,0 +1,1 @@
+<div class:abc={obj.}></div>

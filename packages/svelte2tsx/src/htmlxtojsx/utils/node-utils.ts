@@ -273,3 +273,36 @@ export function buildTemplateString(
         str.appendLeft(attr.end, trailingOverride);
     }
 }
+
+/*
+* Found if there's a member access trailing behind an expression
+* Usually it's there because of the preprocess we have before svelte parses
+* the template
+*/
+export function getNodeEndIncludingTrailingPropertyAccess(
+   originalText: string,
+   position: number
+): number {
+   let index = position;
+
+   while (index < originalText.length) {
+       const char = originalText[index];
+
+       if (!char.trim()) {
+           index++;
+           continue;
+       }
+
+       if (char === '.') {
+           return index + 1;
+       }
+
+       if (char === '?' && originalText[index + 1] === '.') {
+           return index + 2;
+       }
+
+       break;
+   }
+
+   return position;
+}

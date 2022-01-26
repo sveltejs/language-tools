@@ -1,0 +1,16 @@
+{
+    "name": "ParseError",
+    "code": "parse-error",
+    "start": {
+        "line": 2,
+        "column": 24,
+        "character": 44
+    },
+    "end": {
+        "line": 2,
+        "column": 24,
+        "character": 44
+    },
+    "pos": 44,
+    "frame": "1: {#each [''] as str}\n2:     {@const lower = str.}\n                           ^\n3: {/each}"
+}

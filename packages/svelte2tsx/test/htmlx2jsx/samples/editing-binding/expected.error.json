@@ -1,0 +1,16 @@
+{
+    "name": "ParseError",
+    "code": "parse-error",
+    "start": {
+        "line": 1,
+        "column": 23,
+        "character": 23
+    },
+    "end": {
+        "line": 1,
+        "column": 23,
+        "character": 23
+    },
+    "pos": 23,
+    "frame": "1: <input bind:group={obj.}>\n                          ^\n2: <input bind:value={obj.}>\n3: <Input bind:value={obj.} />"
+}
