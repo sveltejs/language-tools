@@ -1,7 +1,7 @@
 import MagicString from 'magic-string';
 import { BaseNode } from '../../interfaces';
 import { surroundWithIgnoreComments } from '../../utils/ignore';
-import { transform, TransformationArray } from '../utils/node-utils';
+import { surroundWith, transform, TransformationArray } from '../utils/node-utils';
 
 /**
  * Handles Svelte components as well as svelte:self and svelte:component
@@ -121,30 +121,9 @@ export class InlineComponent {
      * @param expression Event handler, if present
      */
     addEvent([nameStart, nameEnd]: [number, number], expression?: [number, number]): void {
-        // This ensures a better mapping as TS will also add the quotes
-        // to the range if the event doesn't exist
-        // Complicated mapping necessary to preserve better range mappings
-        if (nameStart + 1 === nameEnd) {
-            this.str.overwrite(nameStart, nameEnd, `"${this.str.original.charAt(nameStart)}"`, {
-                contentOnly: true
-            });
-        } else {
-            this.str.overwrite(
-                nameStart,
-                nameStart + 1,
-                `"${this.str.original.charAt(nameStart)}`,
-                {
-                    contentOnly: true
-                }
-            );
-            this.str.overwrite(nameEnd - 1, nameEnd, `${this.str.original.charAt(nameEnd - 1)}"`, {
-                contentOnly: true
-            });
-        }
-
         this.eventsTransformation.push(
             `${this.name}.$on(`,
-            [nameStart, nameEnd],
+            surroundWith(this.str, [nameStart, nameEnd], '"', '"'),
             ', ',
             expression ? expression : '() => {}',
             ');'

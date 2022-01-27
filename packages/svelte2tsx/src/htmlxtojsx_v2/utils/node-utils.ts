@@ -116,6 +116,34 @@ export function transform(
 }
 
 /**
+ * Surrounds given range with a prefix and suffix. This is benefitial
+ * for better mappings in some cases. Example: If we transform `foo` to `"foo"`
+ * and if TS underlines the whole `"foo"`, we need to make sure that the quotes
+ * are also mapped to the correct positions.
+ * Returns the input start/end transformation for convenience.
+ */
+export function surroundWith(
+    str: MagicString,
+    [start, end]: [number, number],
+    prefix: string,
+    suffix: string
+): [number, number] {
+    if (start + 1 === end) {
+        str.overwrite(start, end, `${prefix}${str.original.charAt(start)}${suffix}`, {
+            contentOnly: true
+        });
+    } else {
+        str.overwrite(start, start + 1, `${prefix}${str.original.charAt(start)}`, {
+            contentOnly: true
+        });
+        str.overwrite(end - 1, end, `${str.original.charAt(end - 1)}${suffix}`, {
+            contentOnly: true
+        });
+    }
+    return [start, end];
+}
+
+/**
  * Returns the [start, end] indexes of a directive (action,animation,etc) name.
  * Example: use:foo --> [startOfFoo, endOfFoo]
  */

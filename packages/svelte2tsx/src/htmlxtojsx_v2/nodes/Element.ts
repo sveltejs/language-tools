@@ -1,7 +1,12 @@
 import MagicString from 'magic-string';
 import { BaseNode } from '../../interfaces';
 import { surroundWithIgnoreComments } from '../../utils/ignore';
-import { transform, TransformationArray, sanitizePropName } from '../utils/node-utils';
+import {
+    transform,
+    TransformationArray,
+    sanitizePropName,
+    surroundWith
+} from '../utils/node-utils';
 
 const voidTags = 'area,base,br,col,embed,hr,img,input,link,meta,param,source,track,wbr'.split(',');
 
@@ -108,12 +113,14 @@ export class Element {
                     this.node.attributes?.find((a: BaseNode) => a.name === 'name')?.value[0] ||
                     'default';
                 this.startTransformation.push(
-                    '{ __sveltets_createSlot("',
-                    typeof slotName === 'string' ? slotName : [slotName.start, slotName.end],
-                    '", {'
+                    '{ __sveltets_createSlot(',
+                    typeof slotName === 'string'
+                        ? `"${slotName}"`
+                        : surroundWith(this.str, [slotName.start, slotName.end], '"', '"'),
+                    ', {'
                 );
                 this.addNameConstDeclaration = () =>
-                    (this.startTransformation[0] = `{ const ${this._name} = __sveltets_createSlot("`);
+                    (this.startTransformation[0] = `{ const ${this._name} = __sveltets_createSlot(`);
                 break;
             }
             default: {

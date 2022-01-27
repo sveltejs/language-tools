@@ -45,8 +45,8 @@
     },
     {
         "range": {
-            "start": { "line": 17, "character": 19 },
-            "end": { "line": 17, "character": 33 }
+            "start": { "line": 17, "character": 12 },
+            "end": { "line": 17, "character": 19 }
         },
         "severity": 1,
         "source": "ts",
