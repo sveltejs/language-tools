@@ -101,6 +101,7 @@ export class TypeScriptPlugin
         CompletionsProvider<CompletionEntryWithIdentifer>,
         UpdateTsOrJsFile
 {
+    __name = 'ts';
     private readonly configManager: LSConfigManager;
     private readonly lsAndTsDocResolver: LSAndTSDocResolver;
     private readonly completionProvider: CompletionsProviderImpl;
