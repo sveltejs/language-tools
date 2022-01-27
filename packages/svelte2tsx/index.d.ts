@@ -3,11 +3,24 @@ export interface SvelteCompiledToTsx {
     map: import("magic-string").SourceMap;
     exportedNames: IExportedNames;
     events: ComponentEvents;
+    componentDocumentation: string;
+    slots: Map<string, Map<string, string>>;
+    generics: {
+        definitions: string;
+        references: string;
+    };
 }
 
-export interface IExportedNames {
-    has(name: string): boolean;
-}
+export type IExportedNames = Map<
+    string,
+    {
+        isLet: boolean;
+        type?: string;
+        identifierText?: string;
+        required?: boolean;
+        doc?: string;
+    }
+>;
 
 export interface ComponentEvents {
     getAll(): { name: string; type: string; doc?: string }[];
@@ -51,16 +64,16 @@ export function svelte2tsx(
         /**
          * Takes effect when using the new 'ts' mode. Default 'svelteHTML'.
          * Tells svelte2tsx from which namespace some specific functions to use.
-         * 
+         *
          * Example: 'svelteHTML' -> svelteHTML.createElement<..>(..)
-         * 
+         *
          * A namespace needs to implement the following functions:
          * - `createElement(str: string, validAttributes: ..): Element`
          * - `mapElementTag<Key extends keyof YourElements>(str: Key): YourElements[Key]`
          */
         typingsNamespace?: string;
         /**
-         * The accessor option from svelte config. 
+         * The accessor option from svelte config.
          * Would be overridden by the same config in the svelte:option element if exist
          * see https://svelte.dev/docs#svelte_compile for more info
          */

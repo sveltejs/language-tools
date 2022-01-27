@@ -451,7 +451,13 @@ declare function __sveltets_1_createSvelteComponentTyped<Props, Events, Slots>(
             code: str.toString(),
             map: str.generateMap({ hires: true, source: options?.filename }),
             exportedNames: exportedNames.getExportsMap(),
-            events: events.createAPI()
+            events: events.createAPI(),
+            componentDocumentation: componentDocumentation.getFormatted(),
+            slots,
+            generics: {
+                definition: generics.toDefinitionString(),
+                references: generics.toReferencesString()
+            }
         };
     }
 }
