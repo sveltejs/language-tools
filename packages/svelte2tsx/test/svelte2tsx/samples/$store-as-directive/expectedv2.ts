@@ -9,7 +9,7 @@
 ;
 async () => {
 
-       { svelteHTML.createElement("div", {});__sveltets_2_ensureTransition((__sveltets_1_store_get(transitionStore), $transitionStore)(svelteHTML.mapElementTag('div'),({ y: 100 })));__sveltets_2_ensureAction((__sveltets_1_store_get(actionStore), $actionStore)(svelteHTML.mapElementTag('div')));__sveltets_2_ensureTransition((__sveltets_1_store_get(inStore), $inStore)(svelteHTML.mapElementTag('div')));__sveltets_2_ensureTransition((__sveltets_1_store_get(outStore), $outStore)(svelteHTML.mapElementTag('div')));__sveltets_2_ensureAnimation((__sveltets_1_store_get(animateStore), $animateStore)(svelteHTML.mapElementTag('div'),__sveltets_2_AnimationMove));
+ { svelteHTML.createElement("div", {      });__sveltets_2_ensureTransition((__sveltets_1_store_get(transitionStore), $transitionStore)(svelteHTML.mapElementTag('div'),({ y: 100 })));__sveltets_2_ensureAction((__sveltets_1_store_get(actionStore), $actionStore)(svelteHTML.mapElementTag('div')));__sveltets_2_ensureTransition((__sveltets_1_store_get(inStore), $inStore)(svelteHTML.mapElementTag('div')));__sveltets_2_ensureTransition((__sveltets_1_store_get(outStore), $outStore)(svelteHTML.mapElementTag('div')));__sveltets_2_ensureAnimation((__sveltets_1_store_get(animateStore), $animateStore)(svelteHTML.mapElementTag('div'),__sveltets_2_AnimationMove));
  }};
 return { props: {}, slots: {}, getters: {}, events: {} }}
 

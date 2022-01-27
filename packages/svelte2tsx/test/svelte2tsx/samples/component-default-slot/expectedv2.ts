@@ -6,7 +6,7 @@
 /*Ωignore_startΩ*/;const __sveltets_createSlot = __sveltets_2_createCreateSlot();/*Ωignore_endΩ*/;
 async () => {
  { svelteHTML.createElement("div", {});
-      { __sveltets_createSlot("default", {"a":b,});  }
+     { __sveltets_createSlot("default", { "a":b,});  }
  }};
 return { props: {}, slots: {'default': {a:b}}, getters: {}, events: {} }}
 

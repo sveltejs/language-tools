@@ -13,22 +13,22 @@ function render() {
 ;
 async () => {
 
-  { const $$_Component0 = new Component({ target: __sveltets_2_any(), props: {box,}});
-	  {const {/*Ωignore_startΩ*/$$_$$/*Ωignore_endΩ*/,box,} = $$_Component0.$$slot_def["box1"];$$_$$;{ svelteHTML.createElement("sveltefragment", {});
+ { const $$_Component0 = new Component({ target: __sveltets_2_any(), props: { box,}});
+	 {const {/*Ωignore_startΩ*/$$_$$/*Ωignore_endΩ*/,box,} = $$_Component0.$$slot_def["box1"];$$_$$;{ svelteHTML.createElement("sveltefragment", {  });
 		 const {area, volume} = calculate(box.width, box.height, constant);
 		 const perimeter = (box.width + box.height) * constant;
 		 const [width, height, sum] = [box.width * constant, box.height, box.width * constant + box.height];	
 		 { svelteHTML.createElement("div", {});area; volume; perimeter; width; height; sum; }
 	 }}
 
-	   {const {/*Ωignore_startΩ*/$$_$$/*Ωignore_endΩ*/,width,height,} = $$_Component0.$$slot_def["box2"];$$_$$;{ svelteHTML.createElement("sveltefragment", {});
+	 {const {/*Ωignore_startΩ*/$$_$$/*Ωignore_endΩ*/,width,height,} = $$_Component0.$$slot_def["box2"];$$_$$;{ svelteHTML.createElement("sveltefragment", {   });
 		 const {area, volume} = calculate(width, height, constant);
 		 const perimeter = (width + height) * constant;
 		 const [_width, _height, sum] = [width * constant, height, width * constant + height];	
 		 { svelteHTML.createElement("div", {});area; volume; perimeter; _width; _height; sum; }
 	 }}
 
-	  {const {/*Ωignore_startΩ*/$$_$$/*Ωignore_endΩ*/,box:{width, height},} = $$_Component0.$$slot_def.default;$$_$$;{ svelteHTML.createElement("sveltefragment", {});
+	 {const {/*Ωignore_startΩ*/$$_$$/*Ωignore_endΩ*/,box:{width, height},} = $$_Component0.$$slot_def.default;$$_$$;{ svelteHTML.createElement("sveltefragment", {  });
 		 const {area, volume} = calculate(width, height, constant);
 		 const perimeter = (width + height) * constant;
 		 const [_width, _height, sum] = [width * constant, height, width * constant + height];	
@@ -36,15 +36,15 @@ async () => {
 	 }}
  Component}
 
-   { const $$_Component0 = new Component({ target: __sveltets_2_any(), props: {box,}});{const {/*Ωignore_startΩ*/$$_$$/*Ωignore_endΩ*/,box,} = $$_Component0.$$slot_def.default;$$_$$;
-	   {const {/*Ωignore_startΩ*/$$_$$/*Ωignore_endΩ*/,box,} = $$_Component0.$$slot_def["box1"];$$_$$;{ svelteHTML.createElement("div", {});
+ { const $$_Component0 = new Component({ target: __sveltets_2_any(), props: {  box,}});{const {/*Ωignore_startΩ*/$$_$$/*Ωignore_endΩ*/,box,} = $$_Component0.$$slot_def.default;$$_$$;
+	 {const {/*Ωignore_startΩ*/$$_$$/*Ωignore_endΩ*/,box,} = $$_Component0.$$slot_def["box1"];$$_$$;{ svelteHTML.createElement("div", {  });
 		 const {area, volume} = calculate(box.width, box.height, constant);
 		 const perimeter = (box.width + box.height) * constant;
 		 const [width, height, sum] = [box.width * constant, box.height, box.width * constant + box.height];	
 		 { svelteHTML.createElement("div", {});area; volume; perimeter; width; height; sum; }
 	 }}
 
-	    {const {/*Ωignore_startΩ*/$$_$$/*Ωignore_endΩ*/,width,height,} = $$_Component0.$$slot_def["box2"];$$_$$;{ svelteHTML.createElement("div", {});
+	 {const {/*Ωignore_startΩ*/$$_$$/*Ωignore_endΩ*/,width,height,} = $$_Component0.$$slot_def["box2"];$$_$$;{ svelteHTML.createElement("div", {   });
 		 const {area, volume} = calculate(width, height, constant);
 		 const perimeter = (width + height) * constant;
 		 const [_width, _height, sum] = [width * constant, height, width * constant + height];	
@@ -57,7 +57,7 @@ async () => {
 	 { svelteHTML.createElement("div", {});area; volume; perimeter; width; height; sum; }
  }Component}
 
-    { const $$_Component0 = new Component({ target: __sveltets_2_any(), props: {box,}});{const {/*Ωignore_startΩ*/$$_$$/*Ωignore_endΩ*/,box:{width, height},} = $$_Component0.$$slot_def.default;$$_$$;
+ { const $$_Component0 = new Component({ target: __sveltets_2_any(), props: {   box,}});{const {/*Ωignore_startΩ*/$$_$$/*Ωignore_endΩ*/,box:{width, height},} = $$_Component0.$$slot_def.default;$$_$$;
 	 const {area, volume} = calculate(width, height, constant);
 	 const perimeter = (width + height) * constant;
 	 const [_width, _height, sum] = [width * constant, height, width * constant + height];	

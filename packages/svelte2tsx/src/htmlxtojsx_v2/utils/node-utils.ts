@@ -2,50 +2,63 @@ import { Node } from 'estree-walker';
 import MagicString from 'magic-string';
 import { BaseDirective } from '../../interfaces';
 
-export type TransformationArray = Array<string | [number, number]>;
+/**
+ * A transformation array consists of three types:
+ * - string: a generated code that is appended
+ * - [number, number]: original code that is included in the transformation as-is
+ * - number: a position after which things that should be deleted are moved to the end first
+ */
+export type TransformationArray = Array<string | [number, number] | number>;
 
 /**
- * Moves or inserts text to a specific location in order.
+ * Moves or inserts text to the specified end in order.
  * "In order" means that the transformation of the text before
  * the given position reads exactly what was moved/inserted
  * from left to right.
  * After the transformation is done, everything inside the start-end-range that was
- * not moved will be removed.
+ * not moved will be removed. If there's a delete position given, things will be moved
+ * to the end first before getting deleted. This may ensure better mappings for auto completion
+ * for example.
  */
 export function transform(
     str: MagicString,
     start: number,
     end: number,
-    position: number,
+    _xxx: number, // TODO
     transformations: TransformationArray
 ) {
     const moves: Array<[number, number]> = [];
-    let appendPosition = position;
+    let appendPosition = end;
     let ignoreNextString = false;
+    let deletePos: number | undefined;
+    let deleteDest: number | undefined;
     for (let i = 0; i < transformations.length; i++) {
         const transformation = transformations[i];
-        if (typeof transformation === 'string') {
+        if (typeof transformation === 'number') {
+            deletePos = moves.length;
+            deleteDest = transformation;
+        } else if (typeof transformation === 'string') {
             if (!ignoreNextString) {
                 str.appendLeft(appendPosition, transformation);
             }
             ignoreNextString = false;
         } else {
-            const start = transformation[0];
-            let end = transformation[1];
-            if (start === end) {
+            const tStart = transformation[0];
+            let tEnd = transformation[1];
+            if (tStart === tEnd) {
                 // zero-range selection, don't move, it would
                 // cause bugs and isn't necessary anyway
                 continue;
             }
 
             if (
-                end < position - 1 &&
+                tEnd < end - 1 &&
                 // TODO can we somehow make this more performant?
                 !transformations.some(
-                    (t) => typeof t !== 'string' && (t[0] === end + 1 || t[0] === end)
+                    (t) => typeof t !== 'string' && (t[0] === tEnd + 1 || t[0] === tEnd)
                 )
             ) {
-                end += 1;
+                tEnd += 1;
                 const next = transformations[i + 1];
                 ignoreNextString = typeof next === 'string';
                 // Do not append the next string, rather overwrite the next character. This ensures
@@ -54,18 +67,25 @@ export function transform(
                 // completely delete the first character afterwards. This also makes the mapping more correct,
                 // so that autocompletion triggered on the last character works correctly.
                 const overwrite = typeof next === 'string' ? next : '';
-                str.overwrite(end - 1, end, overwrite, { contentOnly: true });
+                str.overwrite(tEnd - 1, tEnd, overwrite, { contentOnly: true });
             }
 
-            str.move(start, end, position);
-            appendPosition = ignoreNextString ? end : transformation[1];
-            moves.push([start, end]);
+            appendPosition = ignoreNextString ? tEnd : transformation[1];
+            moves.push([tStart, tEnd]);
         }
     }
 
+    deletePos = deletePos ?? moves.length;
+    for (let i = 0; i < deletePos; i++) {
+        str.move(moves[i][0], moves[i][1], end);
+    }
+
     let removeStart = start;
-    for (const transformation of moves.sort((t1, t2) => t1[0] - t2[0])) {
+    for (const transformation of [...moves].sort((t1, t2) => t1[0] - t2[0])) {
         if (removeStart < transformation[0]) {
+            if (deletePos !== moves.length && removeStart > deleteDest) {
+                str.move(removeStart, transformation[0], end);
+            }
             // Use one space because of hover etc: This will make map deleted characters to the whitespace
             str.overwrite(removeStart, transformation[0], ' ', { contentOnly: true });
         }
@@ -79,8 +99,19 @@ export function transform(
         removeStart++;
     }
     if (removeStart < end) {
-        // Use one space because of hover etc: This will make map deleted characters to the whitespace
-        str.overwrite(removeStart, end, ' ', { contentOnly: true });
+        // Use one space because of hover etc: This will map deleted characters to the whitespace
+        if (deletePos !== moves.length && removeStart > deleteDest && removeStart + 1 < end) {
+            // Can only move stuff up to the end, not including, else we get a "cannot move inside itself" error
+            str.move(removeStart, end - 1, end);
+            str.overwrite(removeStart, end - 1, ' ', { contentOnly: true });
+            str.overwrite(end - 1, end, '', { contentOnly: true });
+        } else {
+            str.overwrite(removeStart, end, ' ', { contentOnly: true });
+        }
+    }
+
+    for (let i = deletePos; i < moves.length; i++) {
+        str.move(moves[i][0], moves[i][1], end);
     }
 }
 

@@ -2,7 +2,7 @@
 ;function render() {
 async () => {
 
- { svelteHTML.createElement("main", {});     }};
+{ svelteHTML.createElement("main", { });     }};
 return { props: {}, slots: {}, getters: {}, events: {} }}
 
 /** This component does nothing at all */

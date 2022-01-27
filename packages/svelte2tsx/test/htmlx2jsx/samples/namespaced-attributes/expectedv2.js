@@ -1,2 +1,2 @@
 
-    { svelteHTML.createElement("use", {"xlink:href":test,});}
+ { svelteHTML.createElement("use", {  "xlink:href":test,});}

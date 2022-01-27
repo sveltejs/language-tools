@@ -15,8 +15,8 @@
 async () => {
 
  { svelteHTML.createElement("div", {});
-       { __sveltets_createSlot("default", {"a":b,});}
-       { __sveltets_createSlot("foo", {b,});}
+     { __sveltets_createSlot("default", {  "a":b,});}
+     { __sveltets_createSlot("foo", {   b,});}
  }};
 return { props: {}, slots: {} as unknown as $$Slots, getters: {}, events: {} }}
 

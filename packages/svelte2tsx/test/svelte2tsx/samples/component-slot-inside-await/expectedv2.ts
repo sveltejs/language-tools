@@ -2,12 +2,12 @@
 ;function render() {
 /*Ωignore_startΩ*/;const __sveltets_createSlot = __sveltets_2_createCreateSlot();/*Ωignore_endΩ*/
 async () => {      { try { const $$_value = await (promise); { const value = $$_value; 
-      { __sveltets_createSlot("default", {"a":value,});  }
+    { __sveltets_createSlot("default", {   "a":value,});  }
 }} catch($$_e) { const err = __sveltets_2_any();
-       { __sveltets_createSlot("err", {"err":err,});  }
+    { __sveltets_createSlot("err", {    "err":err,});  }
 }}
     { const $$_value = await (promise2); { const { b } = $$_value; 
-       { __sveltets_createSlot("second", {"a":b,});  }
+    { __sveltets_createSlot("second", {    "a":b,});  }
 }}};
 return { props: {}, slots: {'default': {a:__sveltets_1_unwrapPromiseLike(promise)}, 'err': {err:__sveltets_1_any({})}, 'second': {a:(({ b }) => b)(__sveltets_1_unwrapPromiseLike(promise2))}}, getters: {}, events: {} }}
 

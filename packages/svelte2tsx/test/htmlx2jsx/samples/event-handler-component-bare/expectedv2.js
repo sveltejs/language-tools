@@ -1,1 +1,1 @@
-   { const $$_Component0 = new Component({ target: __sveltets_2_any(), props: {}});$$_Component0.$on("click", () => {});}
+  { const $$_Component0 = new Component({ target: __sveltets_2_any(), props: { }});$$_Component0.$on("click", () => {});}

@@ -30,7 +30,7 @@ function render() {
 ;
 async () => {
 
-   { svelteHTML.createElement("button", {onclick:() => dispatch('btn', ''),}); }};
+ { svelteHTML.createElement("button", {  onclick:() => dispatch('btn', ''),}); }};
 return { props: {}, slots: {}, getters: {}, events: {...__sveltets_1_toEventTypings<{
     /**
      * A DOC

@@ -54,6 +54,16 @@ export class InlineComponent {
         this.startTagStart = this.node.start;
         this.startTagEnd = this.computeStartTagEnd();
 
+        const tagEnd = this.startTagStart + this.node.name.length + 1;
+        // Ensure deleted characters are mapped to the attributes object so we
+        // get autocompletion when triggering it on a whitespace.
+        if (/\s/.test(str.original.charAt(tagEnd))) {
+            this.propsTransformation.push(tagEnd);
+            this.propsTransformation.push([tagEnd, tagEnd + 1]);
+            // Overwrite necessary or else we get really weird mappings
+            this.str.overwrite(tagEnd, tagEnd + 1, '', { contentOnly: true });
+        }
+
         if (this.node.name === 'svelte:self') {
             // TODO try to get better typing here, maybe TS allows us to use the created class
             // even if it's used in the function that is used to create it

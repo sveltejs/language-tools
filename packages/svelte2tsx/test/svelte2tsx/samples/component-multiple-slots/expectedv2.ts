@@ -8,9 +8,9 @@
 /*Ωignore_startΩ*/;const __sveltets_createSlot = __sveltets_2_createCreateSlot();/*Ωignore_endΩ*/;
 async () => {
  { svelteHTML.createElement("div", {});
-      { __sveltets_createSlot("default", {"a":b,});  }
-        { __sveltets_createSlot("test", {"c":d,e,}); }
-     { __sveltets_createSlot("abc-cde.113", {}); }
+     { __sveltets_createSlot("default", { "a":b,});  }
+     { __sveltets_createSlot("test", {    "c":d,e,}); }
+     { __sveltets_createSlot("abc-cde.113", { }); }
  }};
 return { props: {}, slots: {'default': {a:b}, 'test': {c:d, e:e}, 'abc-cde.113': {}}, getters: {}, events: {} }}
 

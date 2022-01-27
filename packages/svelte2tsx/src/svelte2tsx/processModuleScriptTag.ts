@@ -48,8 +48,12 @@ export function processModuleScriptTag(
     const scriptStartTagEnd = htmlx.indexOf('>', script.start) + 1;
     const scriptEndTagStart = htmlx.lastIndexOf('<', script.end - 1);
 
-    str.overwrite(script.start, scriptStartTagEnd, useNewTransformation ? ';' : '</>;');
-    str.overwrite(scriptEndTagStart, script.end, useNewTransformation ? ';' : ';<>');
+    str.overwrite(script.start, scriptStartTagEnd, useNewTransformation ? ';' : '</>;', {
+        contentOnly: true
+    });
+    str.overwrite(scriptEndTagStart, script.end, useNewTransformation ? ';' : ';<>', {
+        contentOnly: true
+    });
 }
 
 function resolveImplicitStoreValue(

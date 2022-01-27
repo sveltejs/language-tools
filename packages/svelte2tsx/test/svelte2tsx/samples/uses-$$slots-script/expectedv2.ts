@@ -8,8 +8,8 @@
 async () => {
 
  { svelteHTML.createElement("h1", {});name; }
-  { __sveltets_createSlot("foo", {});}
-  { __sveltets_createSlot("dashed-name", {});}
+ { __sveltets_createSlot("foo", {  });}
+ { __sveltets_createSlot("dashed-name", {  });}
  { __sveltets_createSlot("default", {});}};
 return { props: {}, slots: {'foo': {}, 'dashed-name': {}, 'default': {}}, getters: {}, events: {} }}
 

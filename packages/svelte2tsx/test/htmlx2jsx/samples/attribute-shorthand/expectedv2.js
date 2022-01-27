@@ -1,1 +1,1 @@
-   { new SomeComponent({ target: __sveltets_2_any(), props: {shorthand,}});}
+ { new SomeComponent({ target: __sveltets_2_any(), props: {  shorthand,}});}

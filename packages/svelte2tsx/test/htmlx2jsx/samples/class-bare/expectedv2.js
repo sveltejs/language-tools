@@ -1,1 +1,1 @@
-  { svelteHTML.createElement("h1", {});active;  }
+ { svelteHTML.createElement("h1", { });active;  }

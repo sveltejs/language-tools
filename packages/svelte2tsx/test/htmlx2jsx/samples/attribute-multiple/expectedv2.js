@@ -1,1 +1,1 @@
-        { new SomeComponent({ target: __sveltets_2_any(), props: {"attr":`text ${value}`,"attrd":`t${thing}`,"attrdd":`t${thing}`,}});}
+ { new SomeComponent({ target: __sveltets_2_any(), props: {      "attr":`text ${value}`,"attrd":`t${thing}`,"attrdd":`t${thing}`,}});}

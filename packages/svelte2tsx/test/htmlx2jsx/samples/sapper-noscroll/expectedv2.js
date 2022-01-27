@@ -1,1 +1,1 @@
-  { svelteHTML.createElement("a", {sapperNoscroll:true,}); }
+ { svelteHTML.createElement("a", {sapperNoscroll:true,}); }

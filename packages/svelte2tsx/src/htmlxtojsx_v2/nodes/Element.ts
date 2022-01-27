@@ -70,6 +70,16 @@ export class Element {
         this.startTagEnd = this.computeStartTagEnd();
         const createElement = `${this.typingsNamespace}.createElement`;
 
+        const tagEnd = this.startTagStart + this.node.name.length + 1;
+        // Ensure deleted characters are mapped to the attributes object so we
+        // get autocompletion when triggering it on a whitespace.
+        if (/\s/.test(str.original.charAt(tagEnd))) {
+            this.attrsTransformation.push(tagEnd);
+            this.attrsTransformation.push([tagEnd, tagEnd + 1]);
+            // Overwrite necessary or else we get really weird mappings
+            this.str.overwrite(tagEnd, tagEnd + 1, '', { contentOnly: true });
+        }
+
         switch (this.node.name) {
             // Although not everything that is possible to add to Element
             // is valid on the special svelte elements,

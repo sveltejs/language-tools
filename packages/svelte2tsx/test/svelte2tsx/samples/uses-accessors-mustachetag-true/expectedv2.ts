@@ -7,7 +7,7 @@
 	
 	 const bar: string = ''
 ;
-async () => {   { svelteHTML.createElement("svelteoptions", {"accessors":true,});}
+async () => { { svelteHTML.createElement("svelteoptions", {  "accessors":true,});}
 };
 return { props: {foo: foo , foo2: foo2 , class: clazz , bar: bar}, slots: {}, getters: {bar: bar}, events: {} }}
 
