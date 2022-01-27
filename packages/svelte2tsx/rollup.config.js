@@ -32,7 +32,7 @@ function repl() {
                 const BUILD_TEST = require.resolve('./test/build.ts');
 
                 delete require.cache[BUILD];
-                const svelte2tsx = require('./index.js');
+                const { svelte2tsx } = require('./index.js');
 
                 delete require.cache[BUILD_TEST];
                 require.cache[BUILD_TEST] = require.cache[BUILD];
