@@ -232,6 +232,7 @@ export class SvelteSnapshotManager {
     constructor(
         private typescript: typeof ts,
         private projectService: ts.server.ProjectService,
+        private svelteOptions: { namespace: string },
         private logger: Logger
     ) {
         this.patchProjectServiceReadFile();
@@ -284,7 +285,9 @@ export class SvelteSnapshotManager {
                     const isTsFile = true; // TODO check file contents? TS might be okay with importing ts into js.
                     const result = svelte2tsx(svelteCode, {
                         filename: path.split('/').pop(),
-                        isTsFile
+                        isTsFile,
+                        mode: 'ts', // useNewTransformation
+                        typingsNamespace: this.svelteOptions.namespace
                     });
                     const existingSnapshot = this.snapshots.get(path);
                     if (existingSnapshot) {

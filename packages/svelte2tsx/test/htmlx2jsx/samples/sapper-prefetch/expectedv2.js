@@ -1,0 +1,1 @@
+ { svelteHTML.createElement("a", {sapperPrefetch:true,}); }

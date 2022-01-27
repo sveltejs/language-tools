@@ -2,7 +2,8 @@ import { Node } from 'estree-walker';
 import MagicString from 'magic-string';
 
 export class Scripts {
-    // All script tags, no matter at what level, are listed within the root children.
+    // All script tags, no matter at what level, are listed within the root children, because
+    // of the logic in htmlxparser.ts
     // To get the top level scripts, filter out all those that are part of children's children.
     // Those have another type ('Element' with name 'script').
     private scriptTags = (this.htmlxAst.children as Node[]).filter(

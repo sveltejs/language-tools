@@ -81,6 +81,10 @@ export function isInRange(range: Range, positionToTest: Position): boolean {
     );
 }
 
+export function isZeroLengthRange(range: Range): boolean {
+    return isPositionEqual(range.start, range.end);
+}
+
 export function isRangeStartAfterEnd(range: Range): boolean {
     return (
         range.end.line < range.start.line ||
@@ -109,6 +113,10 @@ export function isBeforeOrEqualToPosition(position: Position, positionToTest: Po
         positionToTest.line < position.line ||
         (positionToTest.line === position.line && positionToTest.character <= position.character)
     );
+}
+
+export function isPositionEqual(position1: Position, position2: Position): boolean {
+    return position1.line === position2.line && position1.character === position2.character;
 }
 
 export function isNotNullOrUndefined<T>(val: T | undefined | null): val is T {

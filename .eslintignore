@@ -4,3 +4,4 @@ packages/svelte2tsx/test/**/*
 packages/svelte2tsx/index.*
 declare module '*.svelte'
 packages/svelte2tsx/svelte-shims.d.ts
+packages/svelte2tsx/svelte-jsx.d.ts

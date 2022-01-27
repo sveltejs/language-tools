@@ -5,7 +5,7 @@
     "main": "dist/src/index.js",
     "typings": "dist/src/index",
     "scripts": {
-        "test": "cross-env TS_NODE_TRANSPILE_ONLY=true mocha --require ts-node/register \"test/**/*.ts\"",
+        "test": "cross-env TS_NODE_TRANSPILE_ONLY=true mocha --require ts-node/register \"test/**/*.ts\" --exclude \"test/**/*.d.ts\"",
         "build": "tsc",
         "prepublishOnly": "npm run build",
         "watch": "tsc -w"
@@ -57,7 +57,7 @@
         "source-map": "^0.7.3",
         "svelte": "^3.46.1",
         "svelte-preprocess": "~4.10.1",
-        "svelte2tsx": "~0.4.0",
+        "svelte2tsx": "~0.5.0",
         "typescript": "*",
         "vscode-css-languageservice": "~5.1.0",
         "vscode-emmet-helper": "~2.6.0",

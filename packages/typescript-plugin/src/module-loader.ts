@@ -137,7 +137,7 @@ export function patchModuleLoader(
         }
 
         const resolvedSvelteModule: ts.ResolvedModuleFull = {
-            extension: snapshot.isTsFile ? typescript.Extension.Tsx : typescript.Extension.Jsx,
+            extension: snapshot.isTsFile ? typescript.Extension.Ts : typescript.Extension.Js,
             resolvedFileName
         };
         return resolvedSvelteModule;

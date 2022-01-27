@@ -324,17 +324,20 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                 start,
                 length: end - start
             },
-            (node): node is ts.JsxOpeningLikeElement | ts.JsxClosingElement =>
-                ts.isJsxClosingElement(node) || ts.isJsxOpeningLikeElement(node)
+            (node): node is ts.JsxOpeningLikeElement | ts.JsxClosingElement | ts.Identifier =>
+                this.configManager.getConfig().svelte.useNewTransformation
+                    ? ts.isNewExpression(node.parent) && ts.isIdentifier(node)
+                    : ts.isJsxClosingElement(node) || ts.isJsxOpeningLikeElement(node)
         );
 
         if (!node) {
             return;
         }
 
+        const tagName = ts.isIdentifier(node) ? node : node.tagName;
         const completion = lang.getCompletionsAtPosition(
             filePath,
-            node.tagName.getEnd(),
+            tagName.getEnd(),
             userPreferences
         );
 
@@ -342,7 +345,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             return;
         }
 
-        const name = node.tagName.getText();
+        const name = tagName.getText();
         const suffixedName = name + '__SvelteComponent_';
         const errorPreventingUserPreferences =
             this.completionProvider.fixUserPreferencesForSvelteComponentImport(userPreferences);

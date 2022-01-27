@@ -1,9 +1,15 @@
 import ts from 'typescript';
 import { CancellationToken, Diagnostic, DiagnosticSeverity } from 'vscode-languageserver';
-import { Document, getTextInRange, isRangeInTag, mapRangeToOriginal } from '../../../lib/documents';
+import {
+    Document,
+    getNodeIfIsInStartTag,
+    getTextInRange,
+    isRangeInTag,
+    mapRangeToOriginal
+} from '../../../lib/documents';
 import { DiagnosticsProvider } from '../../interfaces';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
-import { convertRange, getDiagnosticTag, mapSeverity } from '../utils';
+import { convertRange, getDiagnosticTag, hasNonZeroRange, mapSeverity } from '../utils';
 import { SvelteDocumentSnapshot, SvelteSnapshotFragment } from '../DocumentSnapshot';
 import {
     isInGeneratedCode,
@@ -11,9 +17,11 @@ import {
     findNodeAtSpan,
     isReactiveStatement,
     isInReactiveStatement,
-    gatherIdentifiers
+    gatherIdentifiers,
+    isHTMLAttributeName
 } from './utils';
 import { not, flatten, passMap, regexIndexOf, swapRangeStartEndIfNecessary } from '../../../utils';
+import { LSConfigManager } from '../../../ls-config';
 
 enum DiagnosticCode {
     MODIFIERS_CANNOT_APPEAR_HERE = 1184, // "Modifiers cannot appear here."
@@ -24,11 +32,19 @@ enum DiagnosticCode {
     NEVER_READ = 6133, // "'{0}' is declared but its value is never read."
     ALL_IMPORTS_UNUSED = 6192, // "All imports in import declaration are unused."
     UNUSED_LABEL = 7028, // "Unused label."
-    DUPLICATED_JSX_ATTRIBUTES = 17001 // "JSX elements cannot have multiple attributes with the same name."
+    DUPLICATED_JSX_ATTRIBUTES = 17001, // "JSX elements cannot have multiple attributes with the same name."
+    DUPLICATE_IDENTIFIER = 2300, // "Duplicate identifier 'xxx'"
+    MULTIPLE_PROPS_SAME_NAME = 1117, // "An object literal cannot have multiple properties with the same name in strict mode."
+    TYPE_X_NOT_ASSIGNABLE_TO_TYPE_Y = 2345, // "Argument of type '..' is not assignable to parameter of type '..'."
+    MISSING_PROPS = 2739, // "Type '...' is missing the following properties from type '..': ..."
+    MISSING_PROP = 2741 // "Property '..' is missing in type '..' but required in type '..'."
 }
 
 export class DiagnosticsProviderImpl implements DiagnosticsProvider {
-    constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
+    constructor(
+        private readonly lsAndTsDocResolver: LSAndTSDocResolver,
+        private configManager: LSConfigManager
+    ) {}
 
     async getDiagnostics(
         document: Document,
@@ -43,7 +59,8 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
             return [];
         }
 
-        const isTypescript = tsDoc.scriptKind === ts.ScriptKind.TSX;
+        const isTypescript =
+            tsDoc.scriptKind === ts.ScriptKind.TSX || tsDoc.scriptKind === ts.ScriptKind.TS;
 
         // Document preprocessing failed, show parser error instead
         if (tsDoc.parserError) {
@@ -67,7 +84,8 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
         ];
         diagnostics = diagnostics
             .filter(isNotGenerated(tsDoc.getText(0, tsDoc.getLength())))
-            .filter(not(isUnusedReactiveStatementLabel));
+            .filter(not(isUnusedReactiveStatementLabel))
+            .filter(isNoFalsePositive1(this.configManager.getConfig().svelte.useNewTransformation));
         diagnostics = resolveNoopsInReactiveStatements(lang, diagnostics);
 
         return diagnostics
@@ -79,9 +97,15 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
                 code: diagnostic.code,
                 tags: getDiagnosticTag(diagnostic)
             }))
-            .map(mapRange(fragment, document))
+            .map(
+                mapRange(
+                    fragment,
+                    document,
+                    this.configManager.getConfig().svelte.useNewTransformation
+                )
+            )
             .filter(hasNoNegativeLines)
-            .filter(isNoFalsePositive(document, tsDoc))
+            .filter(isNoFalsePositive2(document, tsDoc))
             .map(enhanceIfNecessary)
             .map(swapDiagRangeStartEndIfNecessary);
     }
@@ -93,7 +117,8 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
 
 function mapRange(
     fragment: SvelteSnapshotFragment,
-    document: Document
+    document: Document,
+    useNewTransformation: boolean
 ): (value: Diagnostic) => Diagnostic {
     return (diagnostic) => {
         let range = mapRangeToOriginal(fragment, diagnostic.range);
@@ -123,6 +148,21 @@ function mapRange(
             }
         }
 
+        if (
+            useNewTransformation &&
+            [DiagnosticCode.MISSING_PROP, DiagnosticCode.MISSING_PROPS].includes(
+                diagnostic.code as number
+            ) &&
+            !hasNonZeroRange({ range })
+        ) {
+            const node = getNodeIfIsInStartTag(document.html, document.offsetAt(range.start));
+            if (node) {
+                // This is a "some prop missing" error on a component -> remap
+                range.start = document.positionAt(node.start + 1);
+                range.end = document.positionAt(node.start + 1 + (node.tag?.length || 1));
+            }
+        }
+
         return { ...diagnostic, range };
     };
 }
@@ -144,6 +184,26 @@ function copyDiagnosticAndChangeNode(diagnostic: ts.Diagnostic) {
     });
 }
 
+function isNoFalsePositive1(useNewTransformation: boolean) {
+    if (!useNewTransformation) {
+        return () => true;
+    }
+
+    return (diagnostic: ts.Diagnostic) => {
+        if (
+            ![
+                DiagnosticCode.MULTIPLE_PROPS_SAME_NAME,
+                DiagnosticCode.DUPLICATE_IDENTIFIER
+            ].includes(diagnostic.code)
+        ) {
+            return true;
+        }
+
+        const node = findDiagnosticNode(diagnostic);
+        return !node || !isHTMLAttributeName(node);
+    };
+}
+
 /**
  * In some rare cases mapping of diagnostics does not work and produces negative lines.
  * We filter out these diagnostics with negative lines because else the LSP
@@ -153,7 +213,7 @@ function hasNoNegativeLines(diagnostic: Diagnostic): boolean {
     return diagnostic.range.start.line >= 0 && diagnostic.range.end.line >= 0;
 }
 
-function isNoFalsePositive(document: Document, tsDoc: SvelteDocumentSnapshot) {
+function isNoFalsePositive2(document: Document, tsDoc: SvelteDocumentSnapshot) {
     const text = document.getText();
     const usesPug = document.getLanguageAttribute('template') === 'pug';
 

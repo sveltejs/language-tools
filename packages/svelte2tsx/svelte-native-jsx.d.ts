@@ -1,6 +1,16 @@
 /* eslint @typescript-eslint/no-unused-vars: off */
 declare namespace svelteNative.JSX {
 
+    // Every namespace eligible for use needs to implement the following two functions
+    function mapElementTag(
+        tag: string
+    ): any;
+
+    function createElement<Elements extends IntrinsicElements, Key extends keyof Elements>(
+        element: Key, attrs: Elements[Key]
+    ): any;
+
+
     /* svelte specific */
     interface ElementClass {
         $$prop_def: any;

@@ -1,6 +1,7 @@
 import { Node } from 'estree-walker';
 import MagicString from 'magic-string';
 import { convertHtmlxToJsx } from '../htmlxtojsx';
+import { convertHtmlxToJsx as convertHtmlxToJsxNew } from '../htmlxtojsx_v2';
 import { parseHtmlx } from '../utils/htmlxparser';
 import { ComponentDocumentation } from './nodes/ComponentDocumentation';
 import { ComponentEvents } from './nodes/ComponentEvents';
@@ -38,9 +39,18 @@ type TemplateProcessResult = {
 
 function processSvelteTemplate(
     str: MagicString,
-    options?: { emitOnTemplateError?: boolean; namespace?: string; accessors?: boolean }
+    options?: {
+        emitOnTemplateError?: boolean;
+        namespace?: string;
+        accessors?: boolean;
+        mode?: 'ts' | 'tsx' | 'dts';
+        typingsNamespace?: string;
+    }
 ): TemplateProcessResult {
-    const { htmlxAst, tags } = parseHtmlx(str.original, options);
+    const { htmlxAst, tags } = parseHtmlx(str.original, {
+        ...options,
+        useNewTransformation: options?.mode === 'ts'
+    });
 
     let uses$$props = false;
     let uses$$restProps = false;
@@ -251,9 +261,16 @@ function processSvelteTemplate(
         }
     };
 
-    convertHtmlxToJsx(str, htmlxAst, onHtmlxWalk, onHtmlxLeave, {
-        preserveAttributeCase: options?.namespace == 'foreign'
-    });
+    if (options.mode === 'ts') {
+        convertHtmlxToJsxNew(str, htmlxAst, onHtmlxWalk, onHtmlxLeave, {
+            preserveAttributeCase: options?.namespace == 'foreign',
+            typingsNamespace: options.typingsNamespace
+        });
+    } else {
+        convertHtmlxToJsx(str, htmlxAst, onHtmlxWalk, onHtmlxLeave, {
+            preserveAttributeCase: options?.namespace == 'foreign'
+        });
+    }
 
     // resolve scripts
     const { scriptTag, moduleScriptTag } = scripts.getTopLevelScriptTags();
@@ -287,10 +304,14 @@ export function svelte2tsx(
         isTsFile?: boolean;
         emitOnTemplateError?: boolean;
         namespace?: string;
-        mode?: 'tsx' | 'dts';
+        mode?: 'ts' | 'tsx' | 'dts';
         accessors?: boolean;
+        typingsNamespace?: string;
     } = {}
 ) {
+    // TODO temporary
+    options.mode = options.mode || 'ts';
+
     const str = new MagicString(svelte);
     // process the htmlx as a svelte template
     let {
@@ -375,8 +396,9 @@ export function svelte2tsx(
             new ImplicitStoreValues(
                 implicitStoreValues.getAccessedStores(),
                 renderFunctionStart,
-                scriptTag ? undefined : (input) => `</>;${input}<>`
-            )
+                scriptTag || options.mode === 'ts' ? undefined : (input) => `</>;${input}<>`
+            ),
+            options.mode === 'ts'
         );
     }
 

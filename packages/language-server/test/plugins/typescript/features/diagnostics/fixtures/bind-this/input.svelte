@@ -39,7 +39,7 @@
 <ComponentWithFunction1 bind:this={componentWithFunction1} />
 <ComponentWithFunction2 bind:this={componentWithFunction1} />
 <ComponentWithGeneric prop={''} bind:this={componentWithGeneric} />
-<svelte:component this={Component} bind:this={component} />
+<svelte:component this={Component} bind:this={component} prop={true} />
 
 <!-- errors -->
 <div bind:this={element} />
@@ -47,5 +47,6 @@
 <ComponentWithFunction1 bind:this={componentWithFunction2} />
 <svelte:component this={Component} bind:this={otherComponent} />
 
-<!-- ideally throws an error, but for now the generated code isn't in a way which makes it throw an error -->
+<!-- only throws an error with new transformation -->
 <ComponentWithGeneric prop={true} bind:this={componentWithGeneric} />
+<svelte:component this={Component} bind:this={component} />

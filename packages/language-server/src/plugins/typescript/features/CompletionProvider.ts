@@ -666,6 +666,10 @@ function isValidCompletion(
     if (!isCompletionInHTMLStartTag) {
         return isNoSvelte2tsxCompletion;
     }
+    // TODO with the new transformation this is ts.ScriptElementKind.memberVariableElement
+    // which is also true for all properties of any other object -> how reliably filter this out?
+    // ---> another /*ignore*/ pragma?
+    // ---> OR: make these lower priority if we find out they are inside a html start tag
     return (value) =>
         // Remove jsx attributes on html tags because they are doubled by the HTML
         // attribute suggestions, and for events they are wrong (onX instead of on:X).

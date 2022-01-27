@@ -1,0 +1,1 @@
+  { const $$_input0 = svelteHTML.createElement("input", {    "type":"radio","value":"Plain",});element = $$_input0;}
