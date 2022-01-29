@@ -23,6 +23,10 @@ export interface SvelteCheckOptions {
      * Path has to be absolute
      */
     tsconfig?: string;
+    /**
+     * Whether or not to use the new transformation of svelte2tsx
+     */
+    useNewTransformation?: boolean;
 }
 
 /**
@@ -49,7 +53,8 @@ export class SvelteCheck {
 
         this.configManager.update({
             svelte: {
-                compilerWarnings: options.compilerWarnings
+                compilerWarnings: options.compilerWarnings,
+                useNewTransformation: options.useNewTransformation ?? false
             }
         });
         // No HTMLPlugin, it does not provide diagnostics
