@@ -95,6 +95,7 @@ export function convertHtmlxToJsx(
                     case 'Options':
                     case 'Window':
                     case 'Head':
+                    case 'Title':
                     case 'Body':
                     case 'Slot':
                     case 'SlotTemplate':
@@ -179,6 +180,7 @@ export function convertHtmlxToJsx(
                     case 'Options':
                     case 'Window':
                     case 'Head':
+                    case 'Title':
                     case 'Body':
                     case 'Slot':
                     case 'SlotTemplate':

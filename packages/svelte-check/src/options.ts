@@ -13,6 +13,7 @@ export interface SvelteCheckCliOptions {
     compilerWarnings: Record<string, 'error' | 'ignore'>;
     diagnosticSources: DiagnosticSource[];
     threshold: Threshold;
+    useNewTransformation: boolean;
 }
 
 // eslint-disable max-len
@@ -60,6 +61,11 @@ export function parseOptions(cb: (opts: SvelteCheckCliOptions) => any) {
             'Filters the diagnostics to display. `error` will output only errors while `warning` will output warnings and errors.',
             'hint'
         )
+        .option(
+            '--use-new-transformation',
+            'Svelte files need to be transformed to something that TypeScript understands for intellisense. Version 2.0 of this transformation can be enabled with this setting. It will be the default, soon.',
+            false
+        )
         .action((opts) => {
             const workspaceUri = getWorkspaceUri(opts);
             cb({
@@ -72,7 +78,9 @@ export function parseOptions(cb: (opts: SvelteCheckCliOptions) => any) {
                 failOnHints: !!opts['fail-on-hints'],
                 compilerWarnings: getCompilerWarnings(opts),
                 diagnosticSources: getDiagnosticSources(opts),
-                threshold: getThreshold(opts)
+                threshold: getThreshold(opts),
+                useNewTransformation:
+                    opts['use-new-transformation'] && opts['use-new-transformation'] !== 'false'
             });
         });
 
