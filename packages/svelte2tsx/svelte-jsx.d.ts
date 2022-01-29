@@ -853,6 +853,7 @@ declare namespace svelte.JSX {
       tabindex?: number | undefined | null;
       target?: string | undefined | null;
       title?: string | undefined | null;
+      translate?: "yes" | "no" | "" | undefined | null;
       type?: string | undefined | null;
       usemap?: string | undefined | null;
       value?: any | undefined | null;
