@@ -97,7 +97,7 @@ Settings to toggle specific features of the extension. The full list of all sett
 ### Usage with Yarn 2 PnP
 
 1. Run `yarn add -D svelte-language-server` to install svelte-language-server as a dev dependency
-2. Run `yarn dlx @yarnpkg/pnpify --sdk vscode` to generate or update the VSCode/Yarn integration SDKs.
+2. Run `yarn dlx @yarnpkg/sdks vscode` to generate or update the VSCode/Yarn integration SDKs.
 3. Set the `svelte.language-server.ls-path` setting in your user configuration, pointing it to the workspace-installed language server.
 4. Restart VSCode.
 5. Commit the changes to `.yarn/sdks`
