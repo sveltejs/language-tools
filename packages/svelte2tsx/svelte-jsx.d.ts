@@ -1,5 +1,7 @@
 /// <reference lib="dom" />
 
+type FalsyType = false | '' | 0 | null | undefined
+
 declare namespace svelteHTML {
 
   // Every namespace eligible for use needs to implement the following two functions
@@ -290,6 +292,7 @@ declare namespace svelteHTML {
     // Svelte specific
     sveltewindow: HTMLProps<Window> & SvelteWindowProps;
     sveltebody: HTMLProps<HTMLElement>;
+    sveltecomponent: { this: object | FalsyType, [name: string]: any };
     sveltefragment: { slot?: string; };
     svelteoptions: { [name: string]: any };
     sveltehead: { [name: string]: any };
@@ -1444,6 +1447,7 @@ declare namespace svelte.JSX {
       // Svelte specific
       sveltewindow: HTMLProps<Window> & SvelteWindowProps;
       sveltebody: HTMLProps<HTMLElement>;
+      sveltecomponent: { this: object | FalsyType, [name: string]: any };
       sveltefragment: { slot?: string; };
       svelteoptions: { [name: string]: any };
       sveltehead: { [name: string]: any };
