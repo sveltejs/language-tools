@@ -222,6 +222,7 @@ declare function __sveltets_2_createCreateSlot<Slots = Record<string, Record<str
 declare function __sveltets_2_createComponentAny(props: Record<string, any>): Svelte2TsxComponent<any, any, any>;
 
 declare function __sveltets_2_any(...dummy: any[]): any;
+declare function __sveltets_2_empty(...dummy: any[]): {};
 
 declare function __sveltets_2_cssProp(prop: Record<string, any>): {};
 

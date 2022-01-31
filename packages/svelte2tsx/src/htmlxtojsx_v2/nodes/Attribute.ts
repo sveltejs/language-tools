@@ -69,8 +69,18 @@ export function handleAttribute(
 
     const addAttribute =
         element instanceof Element
-            ? (name: TransformationArray, value?: TransformationArray) =>
-                  element.addAttribute(name, value)
+            ? (name: TransformationArray, value?: TransformationArray) => {
+                  if (attr.name.startsWith('data-')) {
+                      // any attribute prefixed with data- is valid, but we can't
+                      // type that statically, so we need this workaround
+                      name.unshift('...__sveltets_2_empty({');
+                      if (!value) {
+                          value = ['__sveltets_2_any()'];
+                      }
+                      value.push('})');
+                  }
+                  element.addAttribute(name, value);
+              }
             : (name: TransformationArray, value?: TransformationArray) => {
                   if (attr.name.startsWith('--') && attr.value !== true) {
                       // CSS custom properties are not part of the props
