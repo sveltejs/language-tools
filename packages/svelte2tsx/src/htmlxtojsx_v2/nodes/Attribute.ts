@@ -110,10 +110,7 @@ export function handleAttribute(
         addAttribute([[attr.value[0].start, attr.value[0].end]]);
         return;
     } else {
-        let name =
-            element instanceof Element && attr.value === true
-                ? transformAttributeCase(attr.name)
-                : attr.name;
+        let name = element instanceof Element ? transformAttributeCase(attr.name) : attr.name;
         // surround with quotes because dashes or other invalid property characters could be part of the name
         // Overwrite first char with "+char because TS will squiggle the whole "prop" including quotes when something is wrong
         if (name !== attr.name) {
