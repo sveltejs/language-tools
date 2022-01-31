@@ -1,5 +1,6 @@
 import MagicString from 'magic-string';
 import { BaseDirective } from '../../interfaces';
+import { surroundWith } from '../utils/node-utils';
 import { Element } from './Element';
 import { InlineComponent } from './InlineComponent';
 
@@ -18,10 +19,9 @@ export function handleEventHandler(
     const nameEnd = nameStart + attr.name.length;
 
     if (element instanceof Element) {
-        // For better mapping
-        str.overwrite(nameStart, nameStart + 1, 'on' + str.original.charAt(nameStart), {
-            contentOnly: true
-        });
+        // Prefix with "on" for better mapping.
+        // Surround with quotes because event name could contain invalid prop chars.
+        surroundWith(str, [nameStart, nameEnd], '"on', '"');
         element.addAttribute(
             [[nameStart, nameEnd]],
             attr.expression ? [[attr.expression.start, attr.expression.end]] : ['undefined']

@@ -86,15 +86,6 @@ export class SemanticTokensProviderImpl implements SemanticTokensProvider {
                 continue;
             }
 
-            if (
-                (classificationType === ts.ClassificationType.className ||
-                    classificationType === ts.ClassificationType.text) &&
-                textDocument.getText().substring(start - 3, start) === 'on:'
-            ) {
-                // Don't give semantic highlighting for the click in on:click
-                continue;
-            }
-
             const modifier = this.getTokenModifierFromClassification(encodedClassification);
 
             data.push([line, character, length, classificationType, modifier]);

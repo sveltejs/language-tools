@@ -6,8 +6,8 @@ async () => {if(true){
  { const $$_sveltecomponent0_ = new testComponent({ target: __sveltets_2_any(), props: {   "propa":5,}});$$_sveltecomponent0_;
      { svelteHTML.createElement("h1", {});  }
  }
- { svelteHTML.createElement("sveltewindow", {   onclick:e => {},});}
- { svelteHTML.createElement("sveltebody", {   onclick:e => {},});}
+ { svelteHTML.createElement("sveltewindow", {   "onclick":e => {},});}
+ { svelteHTML.createElement("sveltebody", {   "onclick":e => {},});}
  { svelteHTML.createElement("sveltehead", {});
      { svelteHTML.createElement("h1", {});  }
  }

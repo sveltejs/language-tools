@@ -65,13 +65,13 @@ async () => {
 
 
  { svelteHTML.createElement("div", { "class":"controls",});
-	  { svelteHTML.createElement("button", {    onclick:() => travel(-1),"disabled":i === 0,});  }
-	  { svelteHTML.createElement("button", {    onclick:() => travel(+1),"disabled":i === undoStack.length -1,});  }
+	  { svelteHTML.createElement("button", {    "onclick":() => travel(-1),"disabled":i === 0,});  }
+	  { svelteHTML.createElement("button", {    "onclick":() => travel(+1),"disabled":i === undoStack.length -1,});  }
  }
 
-  { svelteHTML.createElement("svg", {  onclick:handleClick,});
+  { svelteHTML.createElement("svg", {  "onclick":handleClick,});
 	  for(const circle of __sveltets_2_ensureArray(circles)){
-		 { svelteHTML.createElement("circle", {            "cx":circle.cx,"cy":circle.cy,"r":circle.r,onclick:event => select(circle, event),oncontextmenu:() => {
+		 { svelteHTML.createElement("circle", {            "cx":circle.cx,"cy":circle.cy,"r":circle.r,"onclick":event => select(circle, event),"oncontextmenu":() => {
 				adjusting = !adjusting;
 				if (adjusting) selected = circle;
 			},"fill":circle === selected ? '#ccc': 'white',});}
@@ -81,7 +81,7 @@ async () => {
 if(adjusting){
 	 { svelteHTML.createElement("div", { "class":"adjuster",});
 		 { svelteHTML.createElement("p", {});     selected.cx; selected.cy; }
-		 { svelteHTML.createElement("input", {     "type":"range","value":selected.r,oninput:adjust,});}
+		 { svelteHTML.createElement("input", {     "type":"range","value":selected.r,"oninput":adjust,});}
 	 }
 }};
 return { props: {}, slots: {}, getters: {}, events: {} }}
