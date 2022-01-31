@@ -3,10 +3,10 @@ import { StyleDirective } from '../../interfaces';
 import { buildTemplateString } from '../utils/node-utils';
 
 /**
- * style:xx         --->  __sveltets_1_ensureType(String, xx);
- * style:xx={yy}    --->  __sveltets_1_ensureType(String, yy);
- * style:xx="yy"    --->  __sveltets_1_ensureType(String, "yy");
- * style:xx="a{b}"  --->  __sveltets_1_ensureType(String, `a${b}`);
+ * style:xx         --->  __sveltets_1_ensureType(String, Number, xx);
+ * style:xx={yy}    --->  __sveltets_1_ensureType(String, Number, yy);
+ * style:xx="yy"    --->  __sveltets_1_ensureType(String, Number, "yy");
+ * style:xx="a{b}"  --->  __sveltets_1_ensureType(String, Number, `a${b}`);
  */
 export function handleStyleDirective(str: MagicString, style: StyleDirective): void {
     const htmlx = str.original;
@@ -14,7 +14,7 @@ export function handleStyleDirective(str: MagicString, style: StyleDirective): v
         str.overwrite(
             style.start,
             htmlx.indexOf(':', style.start) + 1,
-            '{...__sveltets_1_ensureType(String, '
+            '{...__sveltets_1_ensureType(String, Number, '
         );
         str.appendLeft(style.end, ')}');
         return;
@@ -25,7 +25,7 @@ export function handleStyleDirective(str: MagicString, style: StyleDirective): v
             style,
             str,
             htmlx,
-            '{...__sveltets_1_ensureType(String, `',
+            '{...__sveltets_1_ensureType(String, Number, `',
             '`)}',
             style.start
         );
@@ -34,7 +34,7 @@ export function handleStyleDirective(str: MagicString, style: StyleDirective): v
 
     const styleVal = style.value[0];
     if (styleVal.type === 'Text') {
-        str.overwrite(style.start, styleVal.start, '{...__sveltets_1_ensureType(String, "');
+        str.overwrite(style.start, styleVal.start, '{...__sveltets_1_ensureType(String, Number, "');
         if (styleVal.end === style.end) {
             str.appendLeft(style.end, '")}');
         } else {
@@ -42,7 +42,11 @@ export function handleStyleDirective(str: MagicString, style: StyleDirective): v
         }
     } else {
         // MustacheTag
-        str.overwrite(style.start, styleVal.start + 1, '{...__sveltets_1_ensureType(String, ');
+        str.overwrite(
+            style.start,
+            styleVal.start + 1,
+            '{...__sveltets_1_ensureType(String, Number, '
+        );
         str.overwrite(styleVal.end - 1, style.end, ')}');
     }
 }

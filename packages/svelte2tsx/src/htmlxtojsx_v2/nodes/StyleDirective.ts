@@ -3,10 +3,10 @@ import { StyleDirective } from '../../interfaces';
 import { Element } from './Element';
 
 /**
- * style:xx         --->  __sveltets_2_ensureType(String, xx);
- * style:xx={yy}    --->  __sveltets_2_ensureType(String, yy);
- * style:xx="yy"    --->  __sveltets_2_ensureType(String, "yy");
- * style:xx="a{b}"  --->  __sveltets_2_ensureType(String, `a${b}`);
+ * style:xx         --->  __sveltets_2_ensureType(String, Number, xx);
+ * style:xx={yy}    --->  __sveltets_2_ensureType(String, Number, yy);
+ * style:xx="yy"    --->  __sveltets_2_ensureType(String, Number, "yy");
+ * style:xx="a{b}"  --->  __sveltets_2_ensureType(String, Number, `a${b}`);
  */
 export function handleStyleDirective(
     str: MagicString,
@@ -16,7 +16,7 @@ export function handleStyleDirective(
     const htmlx = str.original;
     if (style.value === true || style.value.length === 0) {
         element.appendToStartEnd([
-            '__sveltets_2_ensureType(String, ',
+            '__sveltets_2_ensureType(String, Number, ',
             [htmlx.indexOf(':', style.start) + 1, style.end],
             ');'
         ]);
@@ -40,7 +40,11 @@ export function handleStyleDirective(
                 str.appendRight(n.start, '$');
             }
         }
-        element.appendToStartEnd(['__sveltets_2_ensureType(String, `', [start, end], '`);']);
+        element.appendToStartEnd([
+            '__sveltets_2_ensureType(String, Number, `',
+            [start, end],
+            '`);'
+        ]);
         return;
     }
 
@@ -50,12 +54,12 @@ export function handleStyleDirective(
             ? str.original[styleVal.start - 1]
             : '"';
         element.appendToStartEnd([
-            `__sveltets_2_ensureType(String, ${quote}`,
+            `__sveltets_2_ensureType(String, Number, ${quote}`,
             [start, end],
             `${quote});`
         ]);
     } else {
         // MustacheTag
-        element.appendToStartEnd(['__sveltets_2_ensureType(String, ', [start, end], ');']);
+        element.appendToStartEnd(['__sveltets_2_ensureType(String, Number, ', [start, end], ');']);
     }
 }
