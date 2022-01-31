@@ -1,6 +1,6 @@
 ///<reference types="svelte" />
 ;function render() {
-async () => { { const $$_Component0 = new Component({ target: __sveltets_2_any(), props: {   }});$$_Component0.$on("click", (__sveltets_1_store_get(check), $check) ? method1 : method2);}
+async () => { { const $$_Component0C = __sveltets_2_ensureComponent(Component); const $$_Component0 = new $$_Component0C({ target: __sveltets_2_any(), props: {   }});$$_Component0.$on("click", (__sveltets_1_store_get(check), $check) ? method1 : method2);}
   { svelteHTML.createElement("button", {  "onclick":(__sveltets_1_store_get(check), $check) ? method1 : method2,});  }};
 return { props: {}, slots: {}, getters: {}, events: {} }}
 
