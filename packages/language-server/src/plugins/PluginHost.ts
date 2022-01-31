@@ -141,7 +141,9 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
                     return false;
                 }
                 if (label[0] === '"' && label[label.length - 1] === '"') {
-                    if (htmlCompletions.has(label.slice(1, -1))) {
+                    // this will result in a wrong completion regardless, remove the quotes
+                    item.label = item.label.slice(1, -1);
+                    if (htmlCompletions.has(item.label)) {
                         // "aria-label" -> aria-label -> exists in html completions
                         return false;
                     }

@@ -111,7 +111,7 @@ export function handleAttribute(
         return;
     } else {
         let name =
-            element instanceof Element && attr.value === true
+            element instanceof Element && parent.type === 'Element'
                 ? transformAttributeCase(attr.name)
                 : attr.name;
         // surround with quotes because dashes or other invalid property characters could be part of the name
