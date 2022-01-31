@@ -72,32 +72,32 @@ export class InlineComponent {
             this.addNameConstDeclaration = () =>
                 (this.startTransformation[0] = `{ const ${this._name} = __sveltets_2_createComponentAny({`);
             this.startEndTransformation.push('});');
-        } else if (this.node.name === 'svelte:component') {
-            this._name = '$$_sveltecomponent' + this.computeDepth();
-            this.startTransformation.push(
-                `{ const ${this._name}_ = new `,
-                [this.node.expression.start, this.node.expression.end],
-                '({ target: __sveltets_2_any(), props: {'
-            );
+        } else {
+            const isSvelteComponentTag = this.node.name === 'svelte:component';
             // We don't know if the thing we use to create the Svelte component with
             // is actually a proper Svelte component, which would lead to errors
             // when accessing things like $$prop_def. Therefore widen the type
             // here, falling back to a any-typed component to ensure the user doesn't
             // get weird follup-errors all over the place. The diagnostic error
-            // should still error on the new X() part.
-            this.startEndTransformation.push(`}});${this._name}_;`);
-            this.addNameConstDeclaration = () =>
-                (this.startEndTransformation[0] = `}});const ${this._name} = __sveltets_2_typeAsComponent(${this._name}_);`);
-        } else {
-            this._name = '$$_' + this.node.name + this.computeDepth();
-            const nodeNameStart = this.str.original.indexOf(this.node.name, this.node.start);
+            // will be on the __sveltets_2_ensureComponent part, giving a more helpful message
+            this._name =
+                '$$_' +
+                (isSvelteComponentTag ? 'sveltecomponent' : this.node.name) +
+                this.computeDepth();
+            const constructorName = this._name + 'C';
+            const nodeNameStart = isSvelteComponentTag
+                ? this.node.expression.start
+                : this.str.original.indexOf(this.node.name, this.node.start);
+            const nodeNameEnd = isSvelteComponentTag
+                ? this.node.expression.end
+                : nodeNameStart + this.node.name.length;
             this.startTransformation.push(
-                '{ new ',
-                [nodeNameStart, nodeNameStart + this.node.name.length],
-                '({ target: __sveltets_2_any(), props: {'
+                `{ const ${constructorName} = __sveltets_2_ensureComponent(`,
+                [nodeNameStart, nodeNameEnd],
+                `); new ${constructorName}({ target: __sveltets_2_any(), props: {`
             );
             this.addNameConstDeclaration = () =>
-                (this.startTransformation[0] = `{ const ${this._name} = new `);
+                (this.startTransformation[2] = `); const ${this._name} = new ${constructorName}({ target: __sveltets_2_any(), props: {`);
             this.startEndTransformation.push('}});');
         }
     }

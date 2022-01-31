@@ -267,16 +267,16 @@ function isNoJsxCannotHaveMultipleAttrsError(diagnostic: Diagnostic) {
  * Some diagnostics have JSX-specific nomenclature. Enhance them for more clarity.
  */
 function enhanceIfNecessary(diagnostic: Diagnostic): Diagnostic {
-    if (diagnostic.code === DiagnosticCode.CANNOT_BE_USED_AS_JSX_COMPONENT) {
+    if (
+        diagnostic.code === DiagnosticCode.CANNOT_BE_USED_AS_JSX_COMPONENT ||
+        (diagnostic.code === DiagnosticCode.TYPE_X_NOT_ASSIGNABLE_TO_TYPE_Y &&
+            diagnostic.message.includes('Svelte2TsxComponent'))
+    ) {
         return {
             ...diagnostic,
             message:
                 'Type definitions are missing for this Svelte Component. ' +
-                // eslint-disable-next-line max-len
-                "It needs a class definition with at least the property '$$prop_def' which should contain a map of input property definitions.\n" +
-                'Example:\n' +
-                '  class ComponentName { $$prop_def: { propertyName: string; } }\n' +
-                'If you are using Svelte 3.31+, use SvelteComponentTyped:\n' +
+                'If you are using Svelte 3.31+, use SvelteComponentTyped to add a definition:\n' +
                 '  import type { SvelteComponentTyped } from "svelte";\n' +
                 '  class ComponentName extends SvelteComponentTyped<{propertyName: string;}> {}\n\n' +
                 'Underlying error:\n' +
