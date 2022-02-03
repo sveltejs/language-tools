@@ -178,7 +178,7 @@ export function handleAttribute(
             if (includesTemplateLiteralQuote && attrVal.data.split('\n').length > 1) {
                 // Multiline attribute value text which can't be wrapped in a template literal
                 // -> ensure it's still a valid transformation by transforming the actual line break
-                str.overwrite(attrVal.start, attrVal.end, attrVal.data.split('\n').join(`\\n`), {
+                str.overwrite(attrVal.start, attrVal.end, attrVal.data.split('\n').join('\\n'), {
                     contentOnly: true
                 });
             }
