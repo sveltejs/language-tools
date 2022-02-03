@@ -1,6 +1,6 @@
 ///<reference types="svelte" />
 ;function render() {
-async () => { { svelteHTML.createElement("iframe", { "src":"",});}
+async () => { { svelteHTML.createElement("iframe", { "src":``,});}
 };
 return { props: {}, slots: {}, getters: {}, events: {} }}
 

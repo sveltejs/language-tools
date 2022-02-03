@@ -1,2 +1,2 @@
- { const $$_Hello0C = __sveltets_2_ensureComponent(Hello); new $$_Hello0C({ target: __sveltets_2_any(), props: { "|-wtf":"foo",}}); Hello}
- { svelteHTML.createElement("div", { "--custom-prop":"foo",}); }
+ { const $$_Hello0C = __sveltets_2_ensureComponent(Hello); new $$_Hello0C({ target: __sveltets_2_any(), props: { "|-wtf":`foo`,}}); Hello}
+ { svelteHTML.createElement("div", { "--custom-prop":`foo`,}); }

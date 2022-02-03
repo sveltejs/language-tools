@@ -165,12 +165,22 @@ export function handleAttribute(
                 parent.type === 'Element' &&
                 numberOnlyAttributes.has(attr.name.toLowerCase()) &&
                 !isNaN(attrVal.data);
-            const quote = ['"', "'"].includes(str.original[attrVal.start - 1])
+            const includesTemplateLiteralQuote = attrVal.data.includes('`');
+            const quote = !includesTemplateLiteralQuote
+                ? '`'
+                : ['"', "'"].includes(str.original[attrVal.start - 1])
                 ? str.original[attrVal.start - 1]
                 : '"';
 
             if (!needsNumberConversion) {
                 attributeValue.push(quote);
+            }
+            if (includesTemplateLiteralQuote && attrVal.data.split('\n').length > 1) {
+                // Multiline attribute value text which can't be wrapped in a template literal
+                // -> ensure it's still a valid transformation by transforming the actual line break
+                str.overwrite(attrVal.start, attrVal.end, attrVal.data.split('\n').join(`\\n`), {
+                    contentOnly: true
+                });
             }
             attributeValue.push([attrVal.start, attrVal.end]);
             if (!needsNumberConversion) {

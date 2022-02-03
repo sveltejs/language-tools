@@ -64,7 +64,7 @@ async () => {
 
 
 
- { svelteHTML.createElement("div", { "class":"controls",});
+ { svelteHTML.createElement("div", { "class":`controls`,});
 	  { svelteHTML.createElement("button", {    "onclick":() => travel(-1),"disabled":i === 0,});  }
 	  { svelteHTML.createElement("button", {    "onclick":() => travel(+1),"disabled":i === undoStack.length -1,});  }
  }
@@ -79,9 +79,9 @@ async () => {
  }
 
 if(adjusting){
-	 { svelteHTML.createElement("div", { "class":"adjuster",});
+	 { svelteHTML.createElement("div", { "class":`adjuster`,});
 		 { svelteHTML.createElement("p", {});     selected.cx; selected.cy; }
-		 { svelteHTML.createElement("input", {     "type":"range","value":selected.r,"oninput":adjust,});}
+		 { svelteHTML.createElement("input", {     "type":`range`,"value":selected.r,"oninput":adjust,});}
 	 }
 }};
 return { props: {}, slots: {}, getters: {}, events: {} }}
