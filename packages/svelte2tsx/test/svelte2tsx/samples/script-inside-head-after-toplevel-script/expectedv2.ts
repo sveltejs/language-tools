@@ -10,7 +10,7 @@ async () => { { svelteHTML.createElement("div", {});
 
 
  { svelteHTML.createElement("sveltehead", {});
-   { svelteHTML.createElement("link", {    "rel":"stylesheet","href":"/lib/jodit.es2018.min.css",});}
+   { svelteHTML.createElement("link", {    "rel":`stylesheet`,"href":`/lib/jodit.es2018.min.css`,});}
   
  }};
 return { props: {}, slots: {}, getters: {}, events: {} }}
