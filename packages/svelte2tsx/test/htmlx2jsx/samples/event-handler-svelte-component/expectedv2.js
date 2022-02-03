@@ -1,1 +1,1 @@
- { const $$_sveltecomponent0C = __sveltets_2_ensureComponent(Whatever); const $$_sveltecomponent0 = new $$_sveltecomponent0C({ target: __sveltets_2_any(), props: {    }});$$_sveltecomponent0.$on("submit", handleSubmit);}
+ { const $$_svelte_component0C = __sveltets_2_ensureComponent(Whatever); const $$_svelte_component0 = new $$_svelte_component0C({ target: __sveltets_2_any(), props: {    }});$$_svelte_component0.$on("submit", handleSubmit);}
