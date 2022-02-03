@@ -6,7 +6,7 @@ async () => {if(true){
      { __sveltets_createSlot("default", {  prop,});}
  }}
 }
- { const $$_sveltecomponent0C = __sveltets_2_ensureComponent(testComponent); const $$_sveltecomponent0 = new $$_sveltecomponent0C({ target: __sveltets_2_any(), props: {  }});{const {/*Ωignore_startΩ*/$$_$$/*Ωignore_endΩ*/,prop,} = $$_sveltecomponent0.$$slot_def.default;$$_$$;
+ { const $$_svelte_component0C = __sveltets_2_ensureComponent(testComponent); const $$_svelte_component0 = new $$_svelte_component0C({ target: __sveltets_2_any(), props: {  }});{const {/*Ωignore_startΩ*/$$_$$/*Ωignore_endΩ*/,prop,} = $$_svelte_component0.$$slot_def.default;$$_$$;
      { __sveltets_createSlot("default", {  prop,});}
  }}};
 return { props: {}, slots: {'default': {prop:__sveltets_1_instanceOf(__sveltets_1_componentType()).$$slot_def['default'].prop}}, getters: {}, events: {} }}

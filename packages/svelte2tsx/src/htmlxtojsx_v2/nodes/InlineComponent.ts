@@ -1,7 +1,12 @@
 import MagicString from 'magic-string';
 import { BaseNode } from '../../interfaces';
 import { surroundWithIgnoreComments } from '../../utils/ignore';
-import { surroundWith, transform, TransformationArray } from '../utils/node-utils';
+import {
+    sanitizePropName,
+    surroundWith,
+    transform,
+    TransformationArray
+} from '../utils/node-utils';
 
 /**
  * Handles Svelte components as well as svelte:self and svelte:component
@@ -80,10 +85,7 @@ export class InlineComponent {
             // here, falling back to a any-typed component to ensure the user doesn't
             // get weird follup-errors all over the place. The diagnostic error
             // will be on the __sveltets_2_ensureComponent part, giving a more helpful message
-            this._name =
-                '$$_' +
-                (isSvelteComponentTag ? 'sveltecomponent' : this.node.name) +
-                this.computeDepth();
+            this._name = '$$_' + sanitizePropName(this.node.name) + this.computeDepth();
             const constructorName = this._name + 'C';
             const nodeNameStart = isSvelteComponentTag
                 ? this.node.expression.start
