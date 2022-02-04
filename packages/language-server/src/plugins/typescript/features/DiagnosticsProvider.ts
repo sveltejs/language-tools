@@ -17,11 +17,11 @@ import {
     findNodeAtSpan,
     isReactiveStatement,
     isInReactiveStatement,
-    gatherIdentifiers,
-    isHTMLAttributeName
+    gatherIdentifiers
 } from './utils';
 import { not, flatten, passMap, regexIndexOf, swapRangeStartEndIfNecessary } from '../../../utils';
 import { LSConfigManager } from '../../../ls-config';
+import { isAttributeName, isEventHandler } from '../svelte-ast-utils';
 
 enum DiagnosticCode {
     MODIFIERS_CANNOT_APPEAR_HERE = 1184, // "Modifiers cannot appear here."
@@ -84,8 +84,7 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
         ];
         diagnostics = diagnostics
             .filter(isNotGenerated(tsDoc.getText(0, tsDoc.getLength())))
-            .filter(not(isUnusedReactiveStatementLabel))
-            .filter(isNoFalsePositive1(this.configManager.getConfig().svelte.useNewTransformation));
+            .filter(not(isUnusedReactiveStatementLabel));
         diagnostics = resolveNoopsInReactiveStatements(lang, diagnostics);
 
         return diagnostics
@@ -105,7 +104,13 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
                 )
             )
             .filter(hasNoNegativeLines)
-            .filter(isNoFalsePositive2(document, tsDoc))
+            .filter(
+                isNoFalsePositive(
+                    this.configManager.getConfig().svelte.useNewTransformation,
+                    document,
+                    tsDoc
+                )
+            )
             .map(enhanceIfNecessary)
             .map(swapDiagRangeStartEndIfNecessary);
     }
@@ -184,26 +189,6 @@ function copyDiagnosticAndChangeNode(diagnostic: ts.Diagnostic) {
     });
 }
 
-function isNoFalsePositive1(useNewTransformation: boolean) {
-    if (!useNewTransformation) {
-        return () => true;
-    }
-
-    return (diagnostic: ts.Diagnostic) => {
-        if (
-            ![
-                DiagnosticCode.MULTIPLE_PROPS_SAME_NAME,
-                DiagnosticCode.DUPLICATE_IDENTIFIER
-            ].includes(diagnostic.code)
-        ) {
-            return true;
-        }
-
-        const node = findDiagnosticNode(diagnostic);
-        return !node || !isHTMLAttributeName(node);
-    };
-}
-
 /**
  * In some rare cases mapping of diagnostics does not work and produces negative lines.
  * We filter out these diagnostics with negative lines because else the LSP
@@ -213,11 +198,27 @@ function hasNoNegativeLines(diagnostic: Diagnostic): boolean {
     return diagnostic.range.start.line >= 0 && diagnostic.range.end.line >= 0;
 }
 
-function isNoFalsePositive2(document: Document, tsDoc: SvelteDocumentSnapshot) {
+function isNoFalsePositive(
+    useNewTransformation: boolean,
+    document: Document,
+    tsDoc: SvelteDocumentSnapshot
+) {
     const text = document.getText();
     const usesPug = document.getLanguageAttribute('template') === 'pug';
 
     return (diagnostic: Diagnostic) => {
+        if (
+            useNewTransformation &&
+            [DiagnosticCode.MULTIPLE_PROPS_SAME_NAME, DiagnosticCode.DUPLICATE_IDENTIFIER].includes(
+                diagnostic.code as number
+            )
+        ) {
+            const node = tsDoc.svelteNodeAt(diagnostic.range.start);
+            if (isAttributeName(node, 'Element') || isEventHandler(node, 'Element')) {
+                return false;
+            }
+        }
+
         return (
             isNoJsxCannotHaveMultipleAttrsError(diagnostic) &&
             isNoUsedBeforeAssigned(diagnostic, text, tsDoc) &&

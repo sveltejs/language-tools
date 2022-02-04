@@ -134,17 +134,30 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             return null;
         }
 
+        const originalOffset = document.offsetAt(position);
         const offset = fragment.offsetAt(fragment.getGeneratedPosition(position));
 
         if (isJsDocTriggerCharacter) {
             return getJsDocTemplateCompletion(fragment, lang, filePath, offset);
         }
 
+        const svelteNode = tsDoc.svelteNodeAt(originalOffset);
+        if (
+            // Cursor is somewhere in regular HTML text
+            (svelteNode?.type === 'Text' &&
+                ['Element', 'InlineComponent', 'Fragment', 'SlotTemplate'].includes(
+                    svelteNode.parent?.type!
+                )) ||
+            // Cursor is at <div>|</div> in which case there's no TextNode inbetween
+            document.getText().substring(originalOffset - 1, originalOffset + 2) === '></'
+        ) {
+            return null;
+        }
+
         if (cancellationToken?.isCancellationRequested) {
             return null;
         }
 
-        const originalOffset = document.offsetAt(position);
         const wordRange = getWordRangeAt(document.getText(), originalOffset, {
             left: /[^\s.]+$/,
             right: /[^\w$:]/
