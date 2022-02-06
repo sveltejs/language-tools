@@ -560,6 +560,12 @@
             {
                 "language": "svelte"
             }
+        ],
+        "snippets": [
+            {
+                "language": "svelte",
+                "path": "./snippets/svelte.json"
+            }
         ]
     },
     "devDependencies": {
