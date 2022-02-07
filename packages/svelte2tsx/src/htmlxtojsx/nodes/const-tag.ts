@@ -11,12 +11,11 @@ export function extractConstTags(children: BaseNode[]) {
             tags.push((insertionPoint: number, str: MagicString) => {
                 str.appendRight(constTag.expression.left.start, 'const ');
 
-                const expressionEnd = getNodeEndIncludingTrailingPropertyAccess(str.original, constTag.expression.right.end);
-                str.move(
-                    constTag.expression.left.start,
-                    expressionEnd,
-                    insertionPoint
+                const expressionEnd = getNodeEndIncludingTrailingPropertyAccess(
+                    str.original,
+                    constTag.expression.right.end
                 );
+                str.move(constTag.expression.left.start, expressionEnd, insertionPoint);
                 str.appendLeft(expressionEnd, ';');
                 str.overwrite(constTag.start + 1, constTag.expression.left.start - 1, '', {
                     contentOnly: true

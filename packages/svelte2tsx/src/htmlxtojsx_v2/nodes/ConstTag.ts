@@ -1,6 +1,6 @@
 import MagicString from 'magic-string';
 import { ConstTag } from '../../interfaces';
-import { transform } from '../utils/node-utils';
+import { getNodeRangeIncludingTrailingPropertyAccess, transform } from '../utils/node-utils';
 
 /**
  * `{@const x = y}` --> `const x = y;`
@@ -14,7 +14,7 @@ import { transform } from '../utils/node-utils';
 export function handleConstTag(str: MagicString, constTag: ConstTag): void {
     transform(str, constTag.start, constTag.end, constTag.end, [
         'const ',
-        [constTag.expression.start, constTag.expression.end],
+        getNodeRangeIncludingTrailingPropertyAccess(str.original, constTag.expression),
         ';'
     ]);
 }

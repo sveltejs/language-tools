@@ -1,1 +1,1 @@
-  { svelteHTML.createElement("div", { });obj.; }
+ { svelteHTML.createElement("div", { });obj.; }

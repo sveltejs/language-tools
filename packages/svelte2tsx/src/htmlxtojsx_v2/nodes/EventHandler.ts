@@ -1,6 +1,6 @@
 import MagicString from 'magic-string';
 import { BaseDirective } from '../../interfaces';
-import { surroundWith } from '../utils/node-utils';
+import { getNodeRangeIncludingTrailingPropertyAccess, surroundWith } from '../utils/node-utils';
 import { Element } from './Element';
 import { InlineComponent } from './InlineComponent';
 
@@ -24,12 +24,16 @@ export function handleEventHandler(
         surroundWith(str, [nameStart, nameEnd], '"on', '"');
         element.addAttribute(
             [[nameStart, nameEnd]],
-            attr.expression ? [[attr.expression.start, attr.expression.end]] : ['undefined']
+            attr.expression
+                ? [getNodeRangeIncludingTrailingPropertyAccess(str.original, attr.expression)]
+                : ['undefined']
         );
     } else {
         element.addEvent(
             [nameStart, nameEnd],
-            attr.expression ? [attr.expression.start, attr.expression.end] : undefined
+            attr.expression
+                ? getNodeRangeIncludingTrailingPropertyAccess(str.original, attr.expression)
+                : undefined
         );
     }
 }
