@@ -18,7 +18,7 @@ export interface AddComponentExportPara {
     exportedNames: ExportedNames;
     fileName?: string;
     componentDocumentation: ComponentDocumentation;
-    mode: 'dts' | 'tsx';
+    mode: 'ts' | 'dts' | 'tsx';
     generics: Generics;
 }
 

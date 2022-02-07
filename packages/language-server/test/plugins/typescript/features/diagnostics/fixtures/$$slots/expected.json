@@ -12,8 +12,8 @@
     },
     {
         "range": {
-            "start": { "line": 13, "character": 60 },
-            "end": { "line": 13, "character": 60 }
+            "start": { "line": 14, "character": 33 },
+            "end": { "line": 14, "character": 33 }
         },
         "severity": 1,
         "source": "ts",
@@ -23,8 +23,8 @@
     },
     {
         "range": {
-            "start": { "line": 14, "character": 52 },
-            "end": { "line": 14, "character": 56 }
+            "start": { "line": 15, "character": 52 },
+            "end": { "line": 15, "character": 56 }
         },
         "severity": 1,
         "source": "ts",
@@ -34,8 +34,8 @@
     },
     {
         "range": {
-            "start": { "line": 14, "character": 71 },
-            "end": { "line": 14, "character": 71 }
+            "start": { "line": 16, "character": 44 },
+            "end": { "line": 16, "character": 44 }
         },
         "severity": 1,
         "source": "ts",
@@ -45,8 +45,8 @@
     },
     {
         "range": {
-            "start": { "line": 15, "character": 26 },
-            "end": { "line": 15, "character": 26 }
+            "start": { "line": 17, "character": 26 },
+            "end": { "line": 17, "character": 26 }
         },
         "severity": 1,
         "source": "ts",

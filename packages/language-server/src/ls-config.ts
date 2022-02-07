@@ -45,6 +45,7 @@ const defaultLSConfig: LSConfig = {
     },
     svelte: {
         enable: true,
+        useNewTransformation: false,
         compilerWarnings: {},
         diagnostics: { enable: true },
         rename: { enable: true },
@@ -176,6 +177,7 @@ export type CompilerWarningsSettings = Record<string, 'ignore' | 'error'>;
 
 export interface LSSvelteConfig {
     enable: boolean;
+    useNewTransformation: boolean;
     compilerWarnings: CompilerWarningsSettings;
     diagnostics: {
         enable: boolean;

@@ -194,24 +194,25 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         const start = fragment.offsetAt(fragment.getGeneratedPosition(range.start));
         const end = fragment.offsetAt(fragment.getGeneratedPosition(range.end));
         const errorCodes: number[] = context.diagnostics.map((diag) => Number(diag.code));
-        const codeFixes = lang.getCodeFixesAtPosition(
-            tsDoc.filePath,
-            start,
-            end,
-            errorCodes,
-            {},
-            userPreferences
-        );
-
-        const componentQuickFix = errorCodes.includes(2304) // "Cannot find name '...'."
-            ? this.getComponentImportQuickFix(start, end, lang, tsDoc.filePath, userPreferences) ??
-              []
-            : [];
+        let codeFixes = errorCodes.includes(2304) // "Cannot find name '...'."
+            ? this.getComponentImportQuickFix(start, end, lang, tsDoc.filePath, userPreferences)
+            : undefined;
+        codeFixes =
+            // either-or situation
+            codeFixes ||
+            lang.getCodeFixesAtPosition(
+                tsDoc.filePath,
+                start,
+                end,
+                errorCodes,
+                {},
+                userPreferences
+            );
 
         const docs = new SnapshotFragmentMap(this.lsAndTsDocResolver);
         docs.set(tsDoc.filePath, { fragment, snapshot: tsDoc });
 
-        const codeActionsPromises = codeFixes.concat(componentQuickFix).map(async (fix) => {
+        const codeActionsPromises = codeFixes.map(async (fix) => {
             const documentChangesPromises = fix.changes.map(async (change) => {
                 const { snapshot, fragment } = await docs.retrieve(change.fileName);
                 return TextDocumentEdit.create(
@@ -311,7 +312,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         lang: ts.LanguageService,
         filePath: string,
         userPreferences: ts.UserPreferences
-    ): ts.CodeFixAction[] | undefined {
+    ): readonly ts.CodeFixAction[] | undefined {
         const sourceFile = lang.getProgram()?.getSourceFile(filePath);
 
         if (!sourceFile) {
@@ -324,17 +325,23 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                 start,
                 length: end - start
             },
-            (node): node is ts.JsxOpeningLikeElement | ts.JsxClosingElement =>
-                ts.isJsxClosingElement(node) || ts.isJsxOpeningLikeElement(node)
+            (node): node is ts.JsxOpeningLikeElement | ts.JsxClosingElement | ts.Identifier =>
+                this.configManager.getConfig().svelte.useNewTransformation
+                    ? ts.isCallExpression(node.parent) &&
+                      ts.isIdentifier(node.parent.expression) &&
+                      node.parent.expression.text === '__sveltets_2_ensureComponent' &&
+                      ts.isIdentifier(node)
+                    : ts.isJsxClosingElement(node) || ts.isJsxOpeningLikeElement(node)
         );
 
         if (!node) {
             return;
         }
 
+        const tagName = ts.isIdentifier(node) ? node : node.tagName;
         const completion = lang.getCompletionsAtPosition(
             filePath,
-            node.tagName.getEnd(),
+            tagName.getEnd(),
             userPreferences
         );
 
@@ -342,7 +349,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             return;
         }
 
-        const name = node.tagName.getText();
+        const name = tagName.getText();
         const suffixedName = name + '__SvelteComponent_';
         const errorPreventingUserPreferences =
             this.completionProvider.fixUserPreferencesForSvelteComponentImport(userPreferences);

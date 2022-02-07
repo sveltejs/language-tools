@@ -229,6 +229,10 @@ Enable rename tags for the opening/closing tag pairs in HTML. _Default_: `true`
 
 Enable the Svelte plugin. _Default_: `true`
 
+##### `svelte.plugin.svelte.useNewTransformation`
+
+Svelte files need to be transformed to something that TypeScript understands for intellisense. Version 2.0 of this transformation can be enabled with this setting. It will be the default, soon.
+
 ##### `svelte.plugin.svelte.diagnostics.enable`
 
 Enable diagnostic messages for Svelte. _Default_: `true`

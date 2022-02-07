@@ -54,6 +54,7 @@ export class CSSPlugin
         DocumentSymbolsProvider,
         SelectionRangeProvider
 {
+    __name = 'css';
     private configManager: LSConfigManager;
     private cssDocuments = new WeakMap<Document, CSSDocument>();
     private triggerCharacters = ['.', ':', '-', '/'];

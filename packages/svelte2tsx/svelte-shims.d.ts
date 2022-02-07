@@ -120,6 +120,7 @@ declare function __sveltets_1_ensureAction(actionCall: SvelteActionReturnType): 
 declare function __sveltets_1_ensureTransition(transitionCall: SvelteTransitionReturnType): {};
 declare function __sveltets_1_ensureFunction(expression: (e: Event & { detail?: any }) => unknown ): {};
 declare function __sveltets_1_ensureType<T>(type: AConstructorTypeOf<T>, el: T): {};
+declare function __sveltets_1_ensureType<T1, T2>(type1: AConstructorTypeOf<T1>, type2: AConstructorTypeOf<T2>, el: T1 | T2): {};
 declare function __sveltets_1_createEnsureSlot<Slots = Record<string, Record<string, any>>>(): <K1 extends keyof Slots, K2 extends keyof Slots[K1]>(k1: K1, k2: K2, val: Slots[K1][K2]) => Slots[K1][K2];
 declare function __sveltets_1_ensureRightProps<Props>(props: Props): {};
 declare function __sveltets_1_cssProp(prop: Record<string, any>): {};
@@ -216,3 +217,45 @@ declare function __sveltets_1_createSvelte2TsxComponent<Props, Events, Slots>(
 
 declare function __sveltets_1_unwrapArr<T>(arr: ArrayLike<T>): T
 declare function __sveltets_1_unwrapPromiseLike<T>(promise: PromiseLike<T> | T): T
+
+// v2
+declare function __sveltets_2_createCreateSlot<Slots = Record<string, Record<string, any>>>(): <SlotName extends keyof Slots>(slotName: SlotName, attrs: Slots[SlotName]) => Record<string, any>;
+declare function __sveltets_2_createComponentAny(props: Record<string, any>): Svelte2TsxComponent<any, any, any>;
+
+declare function __sveltets_2_any(...dummy: any[]): any;
+declare function __sveltets_2_empty(...dummy: any[]): {};
+
+declare function __sveltets_2_cssProp(prop: Record<string, any>): {};
+
+type __sveltets_2_SvelteAnimationReturnType = {
+    delay?: number,
+    duration?: number,
+    easing?: (t: number) => number,
+    css?: (t: number, u: number) => string,
+    tick?: (t: number, u: number) => void
+}
+declare var __sveltets_2_AnimationMove: { from: DOMRect, to: DOMRect }
+declare function __sveltets_2_ensureAnimation(animationCall: __sveltets_2_SvelteAnimationReturnType): {};
+
+type __sveltets_2_SvelteActionReturnType = {
+	update?: (args: any) => void,
+	destroy?: () => void
+} | void
+declare function __sveltets_2_ensureAction(actionCall: __sveltets_2_SvelteActionReturnType): {};
+
+type __sveltets_2_SvelteTransitionConfig = {
+    delay?: number,
+    duration?: number,
+    easing?: (t: number) => number,
+    css?: (t: number, u: number) => string,
+    tick?: (t: number, u: number) => void
+}
+type __sveltets_2_SvelteTransitionReturnType = __sveltets_2_SvelteTransitionConfig | (() => __sveltets_2_SvelteTransitionConfig)
+declare function __sveltets_2_ensureTransition(transitionCall: __sveltets_2_SvelteTransitionReturnType): {};
+
+declare function __sveltets_2_ensureType<T>(type: AConstructorTypeOf<T>, el: T): {};
+declare function __sveltets_2_ensureType<T1, T2>(type1: AConstructorTypeOf<T1>, type2: AConstructorTypeOf<T2>, el: T1 | T2): {};
+
+declare function __sveltets_2_ensureComponent<T extends new (args: {target: any, props?: any}) => Svelte2TsxComponent<any, any, any>>(type: T): T extends never ? Svelte2TsxComponent<any, any, any> : T;
+
+declare function __sveltets_2_ensureArray<T extends ArrayLike<unknown>>(array: T): T extends ArrayLike<infer U> ? U[] : any[];

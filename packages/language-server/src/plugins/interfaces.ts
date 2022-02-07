@@ -226,4 +226,4 @@ export type Plugin = Partial<
         OnWatchFileChanges &
         SelectionRangeProvider &
         UpdateTsOrJsFile
->;
+> & { __name: string };
