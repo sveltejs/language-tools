@@ -1,12 +1,12 @@
 [
     {
         "range": {
-            "start": { "line": 13, "character": 1 },
-            "end": { "line": 13, "character": 11 }
+            "start": { "line": 25, "character": 1 },
+            "end": { "line": 25, "character": 11 }
         },
         "severity": 1,
         "source": "ts",
-        "message": "Type definitions are missing for this Svelte Component. If you are using Svelte 3.31+, use SvelteComponentTyped to add a definition:\n  import type { SvelteComponentTyped } from \"svelte\";\n  class ComponentName extends SvelteComponentTyped<{propertyName: string;}> {}\n\nUnderlying error:\nArgument of type 'typeof DoesntWork' is not assignable to parameter of type 'new (args: { target: any; props?: any; }) => Svelte2TsxComponent<any, any, any>'.\n  Type 'DoesntWork' is missing the following properties from type 'Svelte2TsxComponent<any, any, any>': $$prop_def, $$events_def, $$slot_def, $on, and 5 more.",
+        "message": "Type definitions are missing for this Svelte Component. If you are using Svelte 3.31+, use SvelteComponentTyped to add a definition:\n  import type { SvelteComponentTyped } from \"svelte\";\n  class ComponentName extends SvelteComponentTyped<{propertyName: string;}> {}\n\nUnderlying error:\nArgument of type 'typeof DoesntWork' is not assignable to parameter of type 'new (args: { target: any; props?: any; }) => Svelte2TsxComponent<any, {}, any>'.\n  Type 'DoesntWork' is missing the following properties from type 'Svelte2TsxComponent<any, {}, any>': $$prop_def, $$events_def, $$slot_def, $on, and 5 more.",
         "code": 2345,
         "tags": []
     }
