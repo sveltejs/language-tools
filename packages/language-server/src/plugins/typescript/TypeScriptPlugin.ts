@@ -72,7 +72,6 @@ import {
     convertToLocationRange,
     getScriptKindFromFileName,
     isInScript,
-    rangeToTextSpan,
     symbolKindFromString
 } from './utils';
 
@@ -178,15 +177,12 @@ export class TypeScriptPlugin
         collectSymbols(navTree, undefined, (symbol) => symbols.push(symbol));
 
         const topContainerName = symbols[0].name;
-        const sourceFile = lang.getProgram()!.getSourceFile(tsDoc.filePath)!;
         const result: SymbolInformation[] = [];
 
         for (let symbol of symbols.slice(1)) {
             if (symbol.containerName === topContainerName) {
                 symbol.containerName = 'script';
             }
-
-            const generatedRange = symbol.location.range;
 
             symbol = mapSymbolInformationToOriginal(fragment, symbol);
 

@@ -296,7 +296,7 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
 
         let foundNode: SvelteNode | null = null;
         walk(this.htmlAst, {
-            enter: function (node) {
+            enter(node) {
                 // In case the offset is at a point where a node ends and a new one begins,
                 // the node where the code ends is used. If this introduces problems, introduce
                 // an affinity parameter to prefer the node where it ends/starts.
@@ -304,7 +304,7 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
                     this.skip();
                     return;
                 }
-                let parent = foundNode;
+                const parent = foundNode;
                 // Spread so the "parent" property isn't added to the original ast,
                 // causing an infinite loop
                 foundNode = { ...node } as SvelteNode;

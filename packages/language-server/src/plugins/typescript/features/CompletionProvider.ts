@@ -146,7 +146,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             // Cursor is somewhere in regular HTML text
             (svelteNode?.type === 'Text' &&
                 ['Element', 'InlineComponent', 'Fragment', 'SlotTemplate'].includes(
-                    svelteNode.parent?.type!
+                    svelteNode.parent?.type as any
                 )) ||
             // Cursor is at <div>|</div> in which case there's no TextNode inbetween
             document.getText().substring(originalOffset - 1, originalOffset + 2) === '></'
