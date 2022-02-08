@@ -115,6 +115,42 @@ function test(useNewTransformation: boolean) {
             });
         });
 
+        const editingTestPositions: Array<[number, number, string]> = [
+            [4, 3, 'mustache'],
+            [6, 10, '#await'],
+            [10, 8, '#key'],
+            [14, 9, '@html'],
+            [16, 7, '#if'],
+            [20, 19, 'action directive'],
+            [22, 24, 'transition directive'],
+            [24, 26, 'element event handler'],
+            [26, 21, 'binding'],
+            [28, 16, 'element props'],
+            [30, 21, 'class directive'],
+            [32, 23, 'style directive'],
+            [34, 24, 'animate'],
+            [36, 17, 'component props'],
+            [38, 22, 'component binding'],
+            [40, 29, 'component event handler']
+        ];
+
+        async function testEditingCompletion(position: Position) {
+            const { completionProvider, document } = setup('editingCompletion.svelte');
+
+            const completions = await completionProvider.getCompletions(document, position, {
+                triggerKind: CompletionTriggerKind.TriggerCharacter,
+                triggerCharacter: '.'
+            });
+
+            assert.equal(completions?.items?.[0]?.label, 'c', 'expected to provide property c');
+        }
+
+        for (const [line, character, type] of editingTestPositions) {
+            it(`provides completions on simple property access in ${type}`, async () => {
+                await testEditingCompletion({ line, character });
+            });
+        }
+
         it('provides event completions', async () => {
             const { completionProvider, document } = setup('component-events-completion.svelte');
 
