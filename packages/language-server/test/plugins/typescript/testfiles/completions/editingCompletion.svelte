@@ -18,6 +18,10 @@
     
 {/if}
 
+{#each [b] as _b}
+    {@const _hi2 = _b.}
+{/each}
+
 <div use:action={b.}></div>
 
 <div transition:fade={b.}></div>

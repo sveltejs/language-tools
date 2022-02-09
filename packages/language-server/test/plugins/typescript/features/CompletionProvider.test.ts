@@ -121,17 +121,18 @@ function test(useNewTransformation: boolean) {
             [10, 8, '#key'],
             [14, 9, '@html'],
             [16, 7, '#if'],
-            [20, 19, 'action directive'],
-            [22, 24, 'transition directive'],
-            [24, 26, 'element event handler'],
-            [26, 21, 'binding'],
-            [28, 16, 'element props'],
-            [30, 21, 'class directive'],
-            [32, 23, 'style directive'],
-            [34, 24, 'animate'],
-            [36, 17, 'component props'],
-            [38, 22, 'component binding'],
-            [40, 29, 'component event handler']
+            [21, 23, '@const'],
+            [24, 19, 'action directive'],
+            [26, 24, 'transition directive'],
+            [28, 26, 'element event handler'],
+            [30, 21, 'binding'],
+            [32, 16, 'element props'],
+            [34, 21, 'class directive'],
+            [36, 23, 'style directive'],
+            [38, 24, 'animate'],
+            [40, 17, 'component props'],
+            [42, 22, 'component binding'],
+            [44, 29, 'component event handler']
         ];
 
         async function testEditingCompletion(position: Position) {

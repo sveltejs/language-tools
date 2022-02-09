@@ -207,6 +207,7 @@ export function getNodeEndIncludingTrailingPropertyAccess(
 
     return position;
 }
+
 export function getNodeRangeIncludingTrailingPropertyAccess(
     originalText: string,
     node: { start: number; end: number }
