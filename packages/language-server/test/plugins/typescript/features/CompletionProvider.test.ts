@@ -115,6 +115,13 @@ function test(useNewTransformation: boolean) {
             });
         });
 
+        const editingTestPositionsNewOnly: Array<[number, number, string]> = [
+            [21, 22, '@const'],
+            [24, 19, 'action directive'],
+            [26, 24, 'transition directive'],
+            [38, 24, 'animate']
+        ];
+
         const editingTestPositions: Array<[number, number, string]> = [
             [4, 3, 'mustache'],
             [6, 10, '#await'],
@@ -128,14 +135,8 @@ function test(useNewTransformation: boolean) {
             [36, 23, 'style directive'],
             [40, 17, 'component props'],
             [42, 22, 'component binding'],
-            [44, 29, 'component event handler']
-        ];
-
-        const editingTestPositionsNewOnly: Array<[number, number, string]> = [
-            [21, 22, '@const'],
-            [24, 19, 'action directive'],
-            [26, 24, 'transition directive'],
-            [38, 24, 'animate']
+            [44, 29, 'component event handler'],
+            ...(useNewTransformation ? editingTestPositionsNewOnly : [])
         ];
 
         async function testEditingCompletion(position: Position) {
@@ -146,13 +147,15 @@ function test(useNewTransformation: boolean) {
                 triggerCharacter: '.'
             });
 
-            assert.equal(completions?.items?.[0]?.label, 'c', 'expected to provide property c');
+            assert.ok(
+                completions?.items?.find(
+                    (item) => item.label === 'c' && item.kind === CompletionItemKind.Field
+                )
+            );
         }
 
-        for (const [line, character, type] of editingTestPositions.concat(
-            useNewTransformation ? editingTestPositionsNewOnly : []
-        )) {
-            it.only(`provides completions on simple property access in ${type}`, async () => {
+        for (const [line, character, type] of editingTestPositions) {
+            it(`provides completions on simple property access in ${type}`, async () => {
                 await testEditingCompletion({ line, character });
             });
         }
