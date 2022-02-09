@@ -10,7 +10,7 @@ function render() {
   
   
 
-   let bar: Bar;
+   let bar: Bar/*Ωignore_startΩ*/;bar = __sveltets_1_any(bar);/*Ωignore_endΩ*/;
    let foobar = '';
 
   const dispatch = createEventDispatcher<{swipe: string}>();

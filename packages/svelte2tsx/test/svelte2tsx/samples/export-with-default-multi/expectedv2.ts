@@ -2,7 +2,7 @@
 ;function render() {
 
     /**@type { string | number }*/
-     let name = "world";name = __sveltets_1_any(name);;let 
+     let name = "world"/*Ωignore_startΩ*/;name = __sveltets_1_any(name);/*Ωignore_endΩ*/;let 
         world = '';
 ;
 async () => {};
