@@ -8,7 +8,7 @@ if(hello){
                 }
             }
               for(const foo of __sveltets_2_ensureArray(items)){
-                 const hello = foo;
+                const hello = foo;
                 if(hello){
                     hello;
                 }

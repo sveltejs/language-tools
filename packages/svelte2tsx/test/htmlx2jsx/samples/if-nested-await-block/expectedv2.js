@@ -5,7 +5,7 @@ if(hello){
         { const $$_value = await (x); { const y = $$_value; 
         y;
     }}
-       { 
+      { 
       hello;
     await (aPromise); }
     if(hi && bye){
@@ -15,7 +15,7 @@ if(hello){
             
         }}
     } else if (cool){
-              { 
+             { 
             
         try { const $$_value = await (x); { const y = $$_value; 
             y;

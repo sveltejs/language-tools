@@ -33,7 +33,7 @@ if(hello && hello1){
                 }
              }Comp}
              { const $$_Comp1C = __sveltets_2_ensureComponent(Comp); const $$_Comp1 = new $$_Comp1C({ target: __sveltets_2_any(), props: { }});{const {/*Ωignore_startΩ*/$$_$$/*Ωignore_endΩ*/,foo,} = $$_Comp1.$$slot_def.default;$$_$$;
-                 const hello = foo;
+                const hello = foo;
                 if(hello){
                     hello;
                 }
@@ -86,7 +86,7 @@ if(hello && hello1){
         }
      }}
      {const {/*Ωignore_startΩ*/$$_$$/*Ωignore_endΩ*/,foo,} = $$_Comp0.$$slot_def["named3"];$$_$$;{ svelteHTML.createElement("p", {  });
-         const hello = foo;
+        const hello = foo;
         if(hello && bye){
             hello; bye;
         } else if (hello && bye){

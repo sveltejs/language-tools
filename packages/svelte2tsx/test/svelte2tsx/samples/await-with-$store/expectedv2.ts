@@ -8,7 +8,7 @@ function render() {
 ;
 async () => {
 
-     { 
+    { 
 	 { svelteHTML.createElement("p", {});  }
 const $$_value = await ((__sveltets_1_store_get(store), $store)); { const data = $$_value; 
 	data;

@@ -2,7 +2,7 @@
      { svelteHTML.createElement("h1", {});  }
 }}
 
-    { 
+   { 
      { svelteHTML.createElement("h1", {});  }
 await (somePromise); 
      { svelteHTML.createElement("h1", {});  }
