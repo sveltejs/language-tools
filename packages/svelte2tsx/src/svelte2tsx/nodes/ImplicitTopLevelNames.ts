@@ -119,7 +119,7 @@ export class ImplicitTopLevelNames {
             const end = node.statement.expression.getEnd() + this.astOffset - 1;
             // We need to keep the `)` of the "wrap with invalidate" expression above.
             // We overwrite the same range so it's needed.
-            overwriteStr(this.str, end, ')', true);
+            overwriteStr(this.str, end, end + 1, ')', true);
         }
     }
 }

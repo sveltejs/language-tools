@@ -1,7 +1,7 @@
 ///<reference types="svelte" />
 <></>;function render() {
 
-     let foo:string;
+     let foo:string/*Ωignore_startΩ*/;foo = __sveltets_1_any(foo);/*Ωignore_endΩ*/;
 ;
 () => (<>
 </>);
