@@ -1,7 +1,7 @@
 import MagicString from 'magic-string';
 import { BaseNode } from '../../interfaces';
 import {
-    getNodeRangeIncludingTrailingPropertyAccess,
+    getNodeEndIncludingTrailingPropertyAccess,
     transform,
     TransformationArray
 } from '../utils/node-utils';
@@ -41,11 +41,20 @@ export function handleAwait(str: MagicString, awaitBlock: BaseNode): void {
         transforms.push('const $$_value = ');
     }
 
-    transforms.push(
-        'await (',
-        getNodeRangeIncludingTrailingPropertyAccess(str.original, awaitBlock.expression),
-        '); '
+    const expressionEnd = getNodeEndIncludingTrailingPropertyAccess(
+        str.original,
+        awaitBlock.expression.end
     );
+    transforms.push('await (');
+
+    if (awaitBlock.pending.skip) {
+        transforms.push([awaitBlock.expression.start, expressionEnd]);
+    } else {
+        transforms.push([awaitBlock.expression.start, awaitBlock.pending.start]);
+        str.overwrite(expressionEnd, awaitBlock.pending.start, '); ');
+    }
+
+    transforms.push('); ');
 
     if (awaitBlock.value) {
         transforms.push(
