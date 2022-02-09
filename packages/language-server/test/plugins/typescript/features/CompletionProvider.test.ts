@@ -121,18 +121,21 @@ function test(useNewTransformation: boolean) {
             [10, 8, '#key'],
             [14, 9, '@html'],
             [16, 7, '#if'],
-            [21, 23, '@const'],
-            [24, 19, 'action directive'],
-            [26, 24, 'transition directive'],
             [28, 26, 'element event handler'],
             [30, 21, 'binding'],
             [32, 16, 'element props'],
             [34, 21, 'class directive'],
             [36, 23, 'style directive'],
-            [38, 24, 'animate'],
             [40, 17, 'component props'],
             [42, 22, 'component binding'],
             [44, 29, 'component event handler']
+        ];
+
+        const editingTestPositionsNewOnly: Array<[number, number, string]> = [
+            [21, 22, '@const'],
+            [24, 19, 'action directive'],
+            [26, 24, 'transition directive'],
+            [38, 24, 'animate']
         ];
 
         async function testEditingCompletion(position: Position) {
@@ -146,8 +149,10 @@ function test(useNewTransformation: boolean) {
             assert.equal(completions?.items?.[0]?.label, 'c', 'expected to provide property c');
         }
 
-        for (const [line, character, type] of editingTestPositions) {
-            it(`provides completions on simple property access in ${type}`, async () => {
+        for (const [line, character, type] of editingTestPositions.concat(
+            useNewTransformation ? editingTestPositionsNewOnly : []
+        )) {
+            it.only(`provides completions on simple property access in ${type}`, async () => {
                 await testEditingCompletion({ line, character });
             });
         }
