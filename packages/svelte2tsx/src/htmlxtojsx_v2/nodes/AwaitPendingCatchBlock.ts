@@ -49,12 +49,11 @@ export function handleAwait(str: MagicString, awaitBlock: BaseNode): void {
 
     if (awaitBlock.pending.skip) {
         transforms.push([awaitBlock.expression.start, expressionEnd]);
+        transforms.push('); ');
     } else {
         transforms.push([awaitBlock.expression.start, awaitBlock.pending.start]);
         str.overwrite(expressionEnd, awaitBlock.pending.start, '); ');
     }
-
-    transforms.push('); ');
 
     if (awaitBlock.value) {
         transforms.push(
