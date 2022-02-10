@@ -22,8 +22,13 @@ import { ScopeStack } from './utils/Scope';
 import { Generics } from './nodes/Generics';
 import { addComponentExport } from './addComponentExport';
 import { createRenderFunction } from './createRenderFunction';
+import { TemplateNode } from 'svelte/types/compiler/interfaces';
 
 type TemplateProcessResult = {
+    /**
+     * The HTML part of the Svelte AST.
+     */
+    htmlAst: TemplateNode;
     uses$$props: boolean;
     uses$$restProps: boolean;
     uses$$slots: boolean;
@@ -280,6 +285,7 @@ function processSvelteTemplate(
     const resolvedStores = stores.resolveStores();
 
     return {
+        htmlAst: htmlxAst,
         moduleScriptTag,
         scriptTag,
         slots: slotHandler.getSlotDef(),
@@ -315,6 +321,7 @@ export function svelte2tsx(
     const str = new MagicString(svelte);
     // process the htmlx as a svelte template
     let {
+        htmlAst,
         moduleScriptTag,
         scriptTag,
         slots,
@@ -451,7 +458,9 @@ declare function __sveltets_1_createSvelteComponentTyped<Props, Events, Slots>(
             code: str.toString(),
             map: str.generateMap({ hires: true, source: options?.filename }),
             exportedNames: exportedNames.getExportsMap(),
-            events: events.createAPI()
+            events: events.createAPI(),
+            // not part of the public API so people don't start using it
+            htmlAst
         };
     }
 }

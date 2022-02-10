@@ -79,11 +79,13 @@ export function isComponentAtPosition(
  * Checks if this a section that should be completely ignored
  * because it's purely generated.
  */
-export function isInGeneratedCode(text: string, start: number, end: number) {
+export function isInGeneratedCode(text: string, start: number, end: number = start) {
     const lastStart = text.lastIndexOf('/*Ωignore_startΩ*/', start);
     const lastEnd = text.lastIndexOf('/*Ωignore_endΩ*/', start);
     const nextEnd = text.indexOf('/*Ωignore_endΩ*/', end);
-    return lastStart > lastEnd && lastStart < nextEnd;
+    // if lastEnd === nextEnd, this means that the str was found at the index
+    // up to which is searched for it
+    return (lastStart > lastEnd || lastEnd === nextEnd) && lastStart < nextEnd;
 }
 
 /**
@@ -277,54 +279,3 @@ function gatherDescendants<T extends ts.Node>(
 }
 
 export const gatherIdentifiers = (node: ts.Node) => gatherDescendants(node, ts.isIdentifier);
-
-/**
- * Returns when given node represents an HTML Attribute. Example:
- * The `class` in `<div class=".."`.
- * Transformed code is `svelte.createElement("div", {"class": ".."})`.
- * Note: This method returns `false` for shorthands like `svelte.createElement("div", {shorthand})`.
- * Only applies when `useNewTransformation` is `true`!
- */
-export const isHTMLAttributeName = nodeAndParentsSatisfyRespectivePredicates(
-    (node) => ts.isPropertyAssignment(node.parent) && node.parent.name === node,
-    Boolean,
-    ts.isObjectLiteralExpression,
-    (parent) =>
-        ts.isCallExpression(parent) &&
-        ts.isPropertyAccessExpression(parent.expression) &&
-        ts.isIdentifier(parent.expression.name) &&
-        parent.expression.name.text === 'createElement'
-);
-
-/**
- * Returns when given node represents an HTML Attribute shorthand. Example:
- * The `{foo}` in `<div {foo}`.
- * Transformed code is `svelte.createElement("div", {foo})`.
- * Only applies when `useNewTransformation` is `true`!
- */
-export const isHTMLAttributeShorthand = nodeAndParentsSatisfyRespectivePredicates(
-    ts.isIdentifier,
-    ts.isShorthandPropertyAssignment,
-    ts.isObjectLiteralExpression,
-    (parent) =>
-        ts.isCallExpression(parent) &&
-        ts.isPropertyAccessExpression(parent.expression) &&
-        ts.isIdentifier(parent.expression.name) &&
-        parent.expression.name.text === 'createElement'
-);
-
-/**
- * Returns `true` if node is a component prop (for both the property name and shorthands).
- * Example: the `foo` in `new Component({target:.., props: {foo: bar}})`
- */
-export const isComponentProp = nodeAndParentsSatisfyRespectivePredicates(
-    (node) =>
-        ts.isShorthandPropertyAssignment(node.parent) ||
-        (ts.isPropertyAssignment(node.parent) && node.parent.name === node),
-    Boolean,
-    ts.isObjectLiteralExpression,
-    (node) =>
-        ts.isPropertyAssignment(node) && ts.isIdentifier(node.name) && node.name.text === 'props',
-    ts.isObjectLiteralExpression,
-    ts.isNewExpression
-);

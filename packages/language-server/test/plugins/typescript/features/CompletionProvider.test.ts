@@ -1278,6 +1278,34 @@ function test(useNewTransformation: boolean) {
             );
         });
 
+        it('shouldnt do completions in text', async () => {
+            const { completionProvider, document } = setup('importcompletions-text.svelte');
+
+            await expectNoCompletions(4, 1);
+            await expectNoCompletions(5, 5);
+            await expectNoCompletions(5, 6);
+            await expectNoCompletions(6, 0);
+            await expectNoCompletions(6, 1);
+            await expectNoCompletions(7, 5);
+            await expectNoCompletions(8, 7);
+            await expectNoCompletions(8, 8);
+            await expectNoCompletions(9, 0);
+            await expectNoCompletions(9, 1);
+            await expectNoCompletions(10, 6);
+
+            async function expectNoCompletions(line: number, char: number) {
+                const completions = await completionProvider.getCompletions(
+                    document,
+                    Position.create(line, char)
+                );
+                assert.strictEqual(
+                    completions,
+                    null,
+                    `expected no completions for ${line},${char}`
+                );
+            }
+        });
+
         // Hacky, but it works. Needed due to testing both new and old transformation
         after(() => {
             __resetCache();
