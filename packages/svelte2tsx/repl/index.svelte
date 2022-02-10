@@ -1,14 +1,7 @@
-<script lang="ts">
-    import Form from './Form.svelte';
-
-    type TValues = $$Generic;
-
-    export let values: TValues;
+<script>
+    export let value;
 </script>
 
-<Form
-    {values}
-    let:errors
->
-    <slot {errors} />
-</Form>
+{#if value}
+    <input bind:value on:change />
+{/if}
