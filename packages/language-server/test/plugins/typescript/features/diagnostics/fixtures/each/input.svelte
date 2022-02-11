@@ -17,6 +17,9 @@ const badOptions = {
 {#each simpleOptions as option, i}
   <div>{option}, {i}</div>
 {/each}
+{#each simpleOptions as option, i (i)}
+  <div>{option}, {i}</div>
+{/each}
 
 <!-- Unions of Arrays work fine -->
 {#each complexOptions as option, i (typeof option === "string" ? option : option.value)}

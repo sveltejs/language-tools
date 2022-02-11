@@ -47,13 +47,13 @@ export function handleEach(str: MagicString, eachBlock: BaseNode): void {
             `${containsComma ? ')' : ''})){`
         ];
     }
-    if (eachBlock.key) {
-        transforms.push([eachBlock.key.start, eachBlock.key.end], ';');
-    }
     if (eachBlock.index) {
         const indexStart = str.original.indexOf(eachBlock.index, eachBlock.context.end);
         const indexEnd = indexStart + eachBlock.index.length;
         transforms.push('let ', [indexStart, indexEnd], ' = 1;');
+    }
+    if (eachBlock.key) {
+        transforms.push([eachBlock.key.start, eachBlock.key.end], ';');
     }
     transform(str, eachBlock.start, startEnd, startEnd, transforms);
 

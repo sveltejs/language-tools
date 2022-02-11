@@ -1,8 +1,8 @@
 [
     {
         "range": {
-            "start": { "line": 26, "character": 7 },
-            "end": { "line": 26, "character": 24 }
+            "start": { "line": 29, "character": 7 },
+            "end": { "line": 29, "character": 24 }
         },
         "severity": 1,
         "source": "ts",
@@ -12,8 +12,8 @@
     },
     {
         "range": {
-            "start": { "line": 30, "character": 7 },
-            "end": { "line": 30, "character": 24 }
+            "start": { "line": 33, "character": 7 },
+            "end": { "line": 33, "character": 24 }
         },
         "severity": 1,
         "source": "ts",
