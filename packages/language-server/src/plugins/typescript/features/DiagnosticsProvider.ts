@@ -271,17 +271,18 @@ function enhanceIfNecessary(diagnostic: Diagnostic): Diagnostic {
     if (
         diagnostic.code === DiagnosticCode.CANNOT_BE_USED_AS_JSX_COMPONENT ||
         (diagnostic.code === DiagnosticCode.TYPE_X_NOT_ASSIGNABLE_TO_TYPE_Y &&
-            diagnostic.message.includes('Svelte2TsxComponent'))
+            diagnostic.message.includes('ConstructorOfATypedSvelteComponent'))
     ) {
         return {
             ...diagnostic,
             message:
-                'Type definitions are missing for this Svelte Component. ' +
+                diagnostic.message +
+                '\n\nPossible causes:\n' +
+                '- You use the instance type of a component where you should use the constructor type\n' +
+                '- Type definitions are missing for this Svelte Component. ' +
                 'If you are using Svelte 3.31+, use SvelteComponentTyped to add a definition:\n' +
                 '  import type { SvelteComponentTyped } from "svelte";\n' +
-                '  class ComponentName extends SvelteComponentTyped<{propertyName: string;}> {}\n\n' +
-                'Underlying error:\n' +
-                diagnostic.message
+                '  class ComponentName extends SvelteComponentTyped<{propertyName: string;}> {}'
         };
     }
 
