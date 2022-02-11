@@ -1,12 +1,12 @@
 ///<reference types="svelte" />
 <></>;function render() {
 
-    let name1: string = "world";name1 = __sveltets_1_any(name1);
-    let name2: string;
-    let name3: string = '';name3 = __sveltets_1_any(name3);;let  name4: string;
+    let name1: string = "world"/*Ωignore_startΩ*/;name1 = __sveltets_1_any(name1);/*Ωignore_endΩ*/
+    let name2: string/*Ωignore_startΩ*/;name2 = __sveltets_1_any(name2);/*Ωignore_endΩ*/;
+    let name3: string = ''/*Ωignore_startΩ*/;name3 = __sveltets_1_any(name3);/*Ωignore_endΩ*/;let  name4: string/*Ωignore_startΩ*/;name4 = __sveltets_1_any(name4);/*Ωignore_endΩ*/;
 
-    let rename1: string = '';rename1 = __sveltets_1_any(rename1);;
-    let rename2: string;
+    let rename1: string = ''/*Ωignore_startΩ*/;rename1 = __sveltets_1_any(rename1);/*Ωignore_endΩ*/;
+    let rename2: string/*Ωignore_startΩ*/;rename2 = __sveltets_1_any(rename2);/*Ωignore_endΩ*/;
 
     class Foo {}
     function bar() {}

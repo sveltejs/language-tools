@@ -11,14 +11,14 @@
         renamed2: string;
     }
 
-     let exported1: string;
-     let exported2: string = '';exported2 = __sveltets_1_any(exported2);;
+     let exported1: string/*Ωignore_startΩ*/;exported1 = __sveltets_1_any(exported1);/*Ωignore_endΩ*/;
+     let exported2: string = ''/*Ωignore_startΩ*/;exported2 = __sveltets_1_any(exported2);/*Ωignore_endΩ*/;
 
-    let name1: string = "world";name1 = __sveltets_1_any(name1);
-    let name2: string;
+    let name1: string = "world"/*Ωignore_startΩ*/;name1 = __sveltets_1_any(name1);/*Ωignore_endΩ*/
+    let name2: string/*Ωignore_startΩ*/;name2 = __sveltets_1_any(name2);/*Ωignore_endΩ*/;
 
-    let rename1: string = '';rename1 = __sveltets_1_any(rename1);;
-    let rename2: string;
+    let rename1: string = ''/*Ωignore_startΩ*/;rename1 = __sveltets_1_any(rename1);/*Ωignore_endΩ*/;
+    let rename2: string/*Ωignore_startΩ*/;rename2 = __sveltets_1_any(rename2);/*Ωignore_endΩ*/;
 
     class Foo {}
     function bar() {}

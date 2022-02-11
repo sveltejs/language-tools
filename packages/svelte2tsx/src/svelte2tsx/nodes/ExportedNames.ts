@@ -1,5 +1,7 @@
 import MagicString from 'magic-string';
 import ts from 'typescript';
+import { surroundWithIgnoreComments } from '../../utils/ignore';
+import { preprendStr, overwriteStr } from '../../utils/magic-string';
 import { findExportKeyword, getLastLeadingDoc, isInterfaceOrTypeDeclaration } from '../utils/tsAst';
 
 export function is$$PropsDeclaration(
@@ -103,28 +105,23 @@ export class ExportedNames {
             return;
         }
 
-        const hasInitializers = node.declarations.filter((declaration) => declaration.initializer);
         const handleTypeAssertion = (declaration: ts.VariableDeclaration) => {
             const identifier = declaration.name;
             const tsType = declaration.type;
             const jsDocType = ts.getJSDocType(declaration);
             const type = tsType || jsDocType;
 
-            if (
-                !ts.isIdentifier(identifier) ||
-                (!type &&
-                    // Edge case: TS infers `export let bla = false` to type `false`.
-                    // prevent that by adding the any-wrap in this case, too.
-                    ![ts.SyntaxKind.FalseKeyword, ts.SyntaxKind.TrueKeyword].includes(
-                        declaration.initializer?.kind
-                    ))
-            ) {
+            if (!ts.isIdentifier(identifier) || !type) {
                 return;
             }
             const name = identifier.getText();
             const end = declaration.end + this.astOffset;
 
-            this.str.appendLeft(end, `;${name} = __sveltets_1_any(${name});`);
+            preprendStr(
+                this.str,
+                end,
+                surroundWithIgnoreComments(`;${name} = __sveltets_1_any(${name});`)
+            );
         };
 
         const findComma = (target: ts.Node) =>
@@ -139,14 +136,18 @@ export class ExportedNames {
             commas.forEach((comma) => {
                 const start = comma.getStart() + this.astOffset;
                 const end = comma.getEnd() + this.astOffset;
-                this.str.overwrite(start, end, ';let ', { contentOnly: true });
+
+                overwriteStr(this.str, start, end, ';let ');
             });
         };
-        splitDeclaration();
 
-        for (const declaration of hasInitializers) {
+        for (const declaration of node.declarations) {
             handleTypeAssertion(declaration);
         }
+
+        // need to be append after the type assert treatment
+        splitDeclaration();
+
         this.doneDeclarationTransformation.add(node);
     }
 
