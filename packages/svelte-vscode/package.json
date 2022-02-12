@@ -50,7 +50,7 @@
         }
     },
     "contributes": {
-        "typescriptServerPlugins": [
+        "typescriptServerPlugins-disabled": [
             {
                 "name": "typescript-svelte-plugin",
                 "enableForWorkspaceTypeScriptVersions": true
