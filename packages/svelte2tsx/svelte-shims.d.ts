@@ -256,6 +256,39 @@ declare function __sveltets_2_ensureTransition(transitionCall: __sveltets_2_Svel
 declare function __sveltets_2_ensureType<T>(type: AConstructorTypeOf<T>, el: T): {};
 declare function __sveltets_2_ensureType<T1, T2>(type1: AConstructorTypeOf<T1>, type2: AConstructorTypeOf<T2>, el: T1 | T2): {};
 
-declare function __sveltets_2_ensureComponent<T extends new (args: {target: any, props?: any}) => Svelte2TsxComponent<any, {}, any>>(type: T): T extends never ? Svelte2TsxComponent<any, any, any> : T;
+// The following is necessary because there are two clashing errors that can't be solved at the same time
+// when using Svelte2TsxComponent, more precisely the event typings in
+// __sveltets_2_ensureComponent<T extends new (..) => Svelte2TsxComponent<any,||any||<-this,any>>(type: T): T;
+// If we type it as "any", we have an error when using sth like {a: CustomEvent<any>}
+// If we type it as "{}", we have an error when using sth like {[evt: string]: CustomEvent<any>}
+// If we type it as "unknown", we get all kinds of follow up errors which we want to avoid
+// Therefore introduce two more base classes just for this case.
+/**
+ * Ambient type only used for intellisense, DO NOT USE IN YOUR PROJECT
+ */
+declare type ATypedSvelteComponent = {
+    /**
+     * @internal This is for type checking capabilities only
+     * and does not exist at runtime. Don't use this property.
+     */
+    $$prop_def: any;
+    /**
+     * @internal This is for type checking capabilities only
+     * and does not exist at runtime. Don't use this property.
+     */
+    $$events_def: any;
+    /**
+     * @internal This is for type checking capabilities only
+     * and does not exist at runtime. Don't use this property.
+     */
+    $$slot_def: any;
+
+    $on(event: string, handler: (e: any) => any): () => void;
+}
+/**
+ * Ambient type only used for intellisense, DO NOT USE IN YOUR PROJECT
+ */
+declare type ConstructorOfATypedSvelteComponent = new (args: {target: any, props?: any}) => ATypedSvelteComponent
+declare function __sveltets_2_ensureComponent<T extends ConstructorOfATypedSvelteComponent>(type: T): T;
 
 declare function __sveltets_2_ensureArray<T extends ArrayLike<unknown>>(array: T): T extends ArrayLike<infer U> ? U[] : any[];
