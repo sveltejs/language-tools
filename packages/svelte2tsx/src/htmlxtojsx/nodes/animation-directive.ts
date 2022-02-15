@@ -1,5 +1,5 @@
 import MagicString from 'magic-string';
-import { getNodeEndIncludingTrailingPropertyAccess, isQuote } from '../utils/node-utils';
+import { withTrailingPropertyAccess, isQuote } from '../utils/node-utils';
 import { BaseDirective, BaseNode } from '../../interfaces';
 
 /**
@@ -28,10 +28,7 @@ export function handleAnimateDirective(
         attr.expression.start,
         `(${nodeType},__sveltets_1_AnimationMove,(`
     );
-    str.appendLeft(
-        getNodeEndIncludingTrailingPropertyAccess(str.original, attr.expression.end),
-        ')))'
-    );
+    str.appendLeft(withTrailingPropertyAccess(str.original, attr.expression.end), ')))');
     if (isQuote(htmlx[attr.end - 1])) {
         str.remove(attr.end - 1, attr.end);
     }

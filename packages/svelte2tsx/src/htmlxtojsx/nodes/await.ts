@@ -4,7 +4,7 @@ import { TemplateScopeManager } from './template-scope';
 import { surroundWithIgnoreComments } from '../../utils/ignore';
 import { BaseNode } from '../../interfaces';
 import { extractConstTags } from './const-tag';
-import { getNodeEndIncludingTrailingPropertyAccess } from '../utils/node-utils';
+import { withTrailingPropertyAccess } from '../utils/node-utils';
 
 /**
  * Transform {#await ...} into something JSX understands
@@ -52,7 +52,7 @@ export function handleAwaitPending(
         ? awaitBlock.catch.start
         : htmlx.lastIndexOf('{', awaitBlock.end);
     str.overwrite(
-        getNodeEndIncludingTrailingPropertyAccess(str.original, awaitBlock.expression.end),
+        withTrailingPropertyAccess(str.original, awaitBlock.expression.end),
         pendingStart + 1,
         ');'
     );

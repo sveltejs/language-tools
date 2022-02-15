@@ -1,10 +1,6 @@
 import MagicString from 'magic-string';
 import { BaseNode } from '../../interfaces';
-import {
-    getNodeEndIncludingTrailingPropertyAccess,
-    transform,
-    TransformationArray
-} from '../utils/node-utils';
+import { withTrailingPropertyAccess, transform, TransformationArray } from '../utils/node-utils';
 
 /**
  * This needs to be called on the way out, not on the way on, when walking,
@@ -41,10 +37,7 @@ export function handleAwait(str: MagicString, awaitBlock: BaseNode): void {
         transforms.push('const $$_value = ');
     }
 
-    const expressionEnd = getNodeEndIncludingTrailingPropertyAccess(
-        str.original,
-        awaitBlock.expression.end
-    );
+    const expressionEnd = withTrailingPropertyAccess(str.original, awaitBlock.expression.end);
     transforms.push('await (');
 
     if (awaitBlock.pending.skip) {

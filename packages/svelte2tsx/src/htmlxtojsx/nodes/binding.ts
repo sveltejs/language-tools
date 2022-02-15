@@ -3,7 +3,7 @@ import {
     isShortHandAttribute,
     getInstanceTypeSimple,
     isQuote,
-    getNodeEndIncludingTrailingPropertyAccess
+    withTrailingPropertyAccess
 } from '../utils/node-utils';
 import { BaseDirective, BaseNode } from '../../interfaces';
 import { surroundWithIgnoreComments } from '../../utils/ignore';
@@ -43,7 +43,7 @@ export function handleBinding(
             str.prependRight(attr.end, endBrackets);
         } else {
             str.overwrite(
-                getNodeEndIncludingTrailingPropertyAccess(str.original, attr.expression.end),
+                withTrailingPropertyAccess(str.original, attr.expression.end),
                 attr.end,
                 endBrackets
             );

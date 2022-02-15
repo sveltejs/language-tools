@@ -175,15 +175,12 @@ export function isQuote(str: string): boolean {
     return str === '"' || str === "'";
 }
 
-/*
- * Found if there's a member access trailing behind an expression
- * Usually it's there because of the preprocess we have before svelte parses
- * the template
+/**
+ * Check if there's a member access trailing behind given expression and if yes,
+ * bump the position to include it.
+ * Usually it's there because of the preprocessing we do before we let Svelte parse the template.
  */
-export function getNodeEndIncludingTrailingPropertyAccess(
-    originalText: string,
-    position: number
-): number {
+export function withTrailingPropertyAccess(originalText: string, position: number): number {
     let index = position;
 
     while (index < originalText.length) {
@@ -208,9 +205,9 @@ export function getNodeEndIncludingTrailingPropertyAccess(
     return position;
 }
 
-export function getNodeRangeIncludingTrailingPropertyAccess(
+export function rangeWithTrailingPropertyAccess(
     originalText: string,
     node: { start: number; end: number }
 ): [start: number, end: number] {
-    return [node.start, getNodeEndIncludingTrailingPropertyAccess(originalText, node.end)];
+    return [node.start, withTrailingPropertyAccess(originalText, node.end)];
 }

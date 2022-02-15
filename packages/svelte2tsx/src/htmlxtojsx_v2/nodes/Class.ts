@@ -1,6 +1,6 @@
 import MagicString from 'magic-string';
 import { BaseDirective } from '../../interfaces';
-import { getNodeRangeIncludingTrailingPropertyAccess } from '../utils/node-utils';
+import { rangeWithTrailingPropertyAccess } from '../utils/node-utils';
 import { Element } from './Element';
 
 /**
@@ -11,8 +11,5 @@ export function handleClassDirective(
     attr: BaseDirective,
     element: Element
 ): void {
-    element.appendToStartEnd([
-        getNodeRangeIncludingTrailingPropertyAccess(str.original, attr.expression),
-        ';'
-    ]);
+    element.appendToStartEnd([rangeWithTrailingPropertyAccess(str.original, attr.expression), ';']);
 }

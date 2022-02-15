@@ -1,9 +1,5 @@
 import MagicString from 'magic-string';
-import {
-    getInstanceType,
-    getNodeEndIncludingTrailingPropertyAccess,
-    isQuote
-} from '../utils/node-utils';
+import { getInstanceType, withTrailingPropertyAccess, isQuote } from '../utils/node-utils';
 import { BaseDirective, BaseNode } from '../../interfaces';
 
 /**
@@ -46,7 +42,7 @@ export function handleEventHandler(
             const eventEnd = htmlx.lastIndexOf('=', attr.expression.start);
             str.overwrite(eventEnd, attr.expression.start, "', ");
             str.overwrite(
-                getNodeEndIncludingTrailingPropertyAccess(str.original, attr.expression.end),
+                withTrailingPropertyAccess(str.original, attr.expression.end),
                 attr.end,
                 ')}'
             );

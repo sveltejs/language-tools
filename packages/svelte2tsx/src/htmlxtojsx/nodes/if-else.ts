@@ -1,7 +1,7 @@
 import MagicString from 'magic-string';
 import { IfScope } from './if-scope';
 import { BaseNode } from '../../interfaces';
-import { getNodeEndIncludingTrailingPropertyAccess } from '../utils/node-utils';
+import { withTrailingPropertyAccess } from '../utils/node-utils';
 
 /**
  * {# if ...}...{/if}   --->   {() => {if(...){<>...</>}}}
@@ -20,7 +20,7 @@ export function handleIf(
         const elseIfConditionEnd = htmlx.indexOf('}', ifBlock.expression.end) + 1;
         str.overwrite(elseIfStart, ifBlock.expression.start, '</> : (', { contentOnly: true });
         str.overwrite(
-            getNodeEndIncludingTrailingPropertyAccess(str.original, ifBlock.expression.end),
+            withTrailingPropertyAccess(str.original, ifBlock.expression.end),
             elseIfConditionEnd,
             ') ? <>'
         );
@@ -37,7 +37,7 @@ export function handleIf(
     str.overwrite(ifBlock.start, ifBlock.expression.start, '{(', { contentOnly: true });
     const end = htmlx.indexOf('}', ifBlock.expression.end);
     str.overwrite(
-        getNodeEndIncludingTrailingPropertyAccess(str.original, ifBlock.expression.end),
+        withTrailingPropertyAccess(str.original, ifBlock.expression.end),
         end + 1,
         ') ? <>',
         { contentOnly: true }

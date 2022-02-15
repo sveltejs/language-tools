@@ -2,7 +2,7 @@ import MagicString from 'magic-string';
 import { BaseDirective } from '../../interfaces';
 import {
     getDirectiveNameStartEndIdx,
-    getNodeRangeIncludingTrailingPropertyAccess,
+    rangeWithTrailingPropertyAccess,
     TransformationArray
 } from '../utils/node-utils';
 import { Element } from './Element';
@@ -23,7 +23,7 @@ export function handleTransitionDirective(
     if (attr.expression) {
         transformations.push(
             ',(',
-            getNodeRangeIncludingTrailingPropertyAccess(str.original, attr.expression),
+            rangeWithTrailingPropertyAccess(str.original, attr.expression),
             ')'
         );
     }

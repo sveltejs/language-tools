@@ -1,5 +1,5 @@
 import MagicString from 'magic-string';
-import { getNodeEndIncludingTrailingPropertyAccess, isQuote } from '../utils/node-utils';
+import { withTrailingPropertyAccess, isQuote } from '../utils/node-utils';
 import { BaseDirective, BaseNode } from '../../interfaces';
 
 /**
@@ -24,10 +24,7 @@ export function handleActionDirective(
         attr.expression.start,
         `(__sveltets_1_mapElementTag('${name}'),(`
     );
-    str.appendLeft(
-        getNodeEndIncludingTrailingPropertyAccess(str.original, attr.expression.end),
-        ')))'
-    );
+    str.appendLeft(withTrailingPropertyAccess(str.original, attr.expression.end), ')))');
     const lastChar = htmlx[attr.end - 1];
     if (isQuote(lastChar)) {
         str.remove(attr.end - 1, attr.end);

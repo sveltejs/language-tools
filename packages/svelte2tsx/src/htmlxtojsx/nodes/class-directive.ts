@@ -1,6 +1,6 @@
 import MagicString from 'magic-string';
 import { BaseDirective } from '../../interfaces';
-import { getNodeEndIncludingTrailingPropertyAccess } from '../utils/node-utils';
+import { withTrailingPropertyAccess } from '../utils/node-utils';
 
 /**
  * class:xx={yyy}   --->   {...__sveltets_1_ensureType(Boolean, !!(yyy))}
@@ -10,7 +10,7 @@ export function handleClassDirective(str: MagicString, attr: BaseDirective): voi
     const endBrackets = '))}';
     if (attr.end !== attr.expression.end) {
         str.overwrite(
-            getNodeEndIncludingTrailingPropertyAccess(str.original, attr.expression.end),
+            withTrailingPropertyAccess(str.original, attr.expression.end),
             attr.end,
             endBrackets
         );

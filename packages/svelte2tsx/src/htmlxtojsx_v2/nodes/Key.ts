@@ -1,6 +1,6 @@
 import MagicString from 'magic-string';
 import { BaseNode } from '../../interfaces';
-import { getNodeEndIncludingTrailingPropertyAccess } from '../utils/node-utils';
+import { withTrailingPropertyAccess } from '../utils/node-utils';
 
 /**
  * {#key expr}content{/key}   --->   expr; content
@@ -8,10 +8,7 @@ import { getNodeEndIncludingTrailingPropertyAccess } from '../utils/node-utils';
 export function handleKey(str: MagicString, keyBlock: BaseNode): void {
     // {#key expr}   ->   expr;
     str.overwrite(keyBlock.start, keyBlock.expression.start, '', { contentOnly: true });
-    const expressionEnd = getNodeEndIncludingTrailingPropertyAccess(
-        str.original,
-        keyBlock.expression.end
-    );
+    const expressionEnd = withTrailingPropertyAccess(str.original, keyBlock.expression.end);
     const end = str.original.indexOf('}', expressionEnd);
     str.overwrite(expressionEnd, end + 1, '; ');
 
