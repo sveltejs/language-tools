@@ -9,7 +9,7 @@ import type { Foo } from './foo';
 function render() {
 
     
-     let foo: Foo;
+     let foo: Foo/*Ωignore_startΩ*/;foo = __sveltets_1_any(foo);/*Ωignore_endΩ*/;
     type Bar1 ={
         a: true;
     }
@@ -22,7 +22,7 @@ function render() {
     type Bar4<T extends boolean> = Bar1 & Bar2 &  {
         c: false;
     }
-     let bar: Bar3;
+     let bar: Bar3/*Ωignore_startΩ*/;bar = __sveltets_1_any(bar);/*Ωignore_endΩ*/;
 ;
 return { props: {foo: foo , bar: bar}, slots: {}, getters: {}, events: {} }}
 const __propDef = __sveltets_1_partial(__sveltets_1_with_any_event(render()));

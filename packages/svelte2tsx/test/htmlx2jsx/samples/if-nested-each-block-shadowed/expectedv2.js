@@ -1,5 +1,5 @@
 if(hello){
-       for(const hello of __sveltets_2_ensureArray(items)){hello.id;let i = 1;
+       for(const hello of __sveltets_2_ensureArray(items)){let i = 1;hello.id;
          { svelteHTML.createElement("div", {});hello;i; }
         if(hello){
               for(const hello of __sveltets_2_ensureArray(items)){

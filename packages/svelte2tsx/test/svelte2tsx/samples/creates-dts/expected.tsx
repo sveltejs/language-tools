@@ -13,7 +13,7 @@ function render() {
   
 
   /** @type {boolean} */
-   let bar;
+   let bar/*Ωignore_startΩ*/;bar = __sveltets_1_any(bar);/*Ωignore_endΩ*/;
    let foobar = '';
 
   const dispatch = createEventDispatcher();
