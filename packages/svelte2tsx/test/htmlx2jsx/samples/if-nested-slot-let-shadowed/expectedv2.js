@@ -6,7 +6,7 @@ if(hello && hello1){
                 hello;
             }
          }Comp}
-         { const $$_Comp1C = __sveltets_2_ensureComponent(Comp); const $$_Comp1 = new $$_Comp1C({ target: __sveltets_2_any(), props: {  hello,}});{const {/*Ωignore_startΩ*/$$_$$/*Ωignore_endΩ*/,hello,} = $$_Comp1.$$slot_def.default;$$_$$;
+         { const $$_Comp1C = __sveltets_2_ensureComponent(Comp); const $$_Comp1 = new $$_Comp1C({ target: __sveltets_2_any(), props: { hello,}});{const {/*Ωignore_startΩ*/$$_$$/*Ωignore_endΩ*/,hello,} = $$_Comp1.$$slot_def.default;$$_$$;
             if(hello){
                 hello;
             }

@@ -13,7 +13,7 @@ function render() {
 ;
 async () => {
 
- { const $$_Component0C = __sveltets_2_ensureComponent(Component); const $$_Component0 = new $$_Component0C({ target: __sveltets_2_any(), props: { box,}});
+ { const $$_Component0C = __sveltets_2_ensureComponent(Component); const $$_Component0 = new $$_Component0C({ target: __sveltets_2_any(), props: {box,}});
 	 {const {/*Ωignore_startΩ*/$$_$$/*Ωignore_endΩ*/,box,} = $$_Component0.$$slot_def["box1"];$$_$$;{ svelteHTML.createElement("sveltefragment", {  });
 		const {area, volume} = calculate(box.width, box.height, constant);
 		const perimeter = (box.width + box.height) * constant;
@@ -36,7 +36,7 @@ async () => {
 	 }}
  Component}
 
- { const $$_Component0C = __sveltets_2_ensureComponent(Component); const $$_Component0 = new $$_Component0C({ target: __sveltets_2_any(), props: {  box,}});{const {/*Ωignore_startΩ*/$$_$$/*Ωignore_endΩ*/,box,} = $$_Component0.$$slot_def.default;$$_$$;
+ { const $$_Component0C = __sveltets_2_ensureComponent(Component); const $$_Component0 = new $$_Component0C({ target: __sveltets_2_any(), props: { box,}});{const {/*Ωignore_startΩ*/$$_$$/*Ωignore_endΩ*/,box,} = $$_Component0.$$slot_def.default;$$_$$;
 	 {const {/*Ωignore_startΩ*/$$_$$/*Ωignore_endΩ*/,box,} = $$_Component0.$$slot_def["box1"];$$_$$;{ svelteHTML.createElement("div", {  });
 		const {area, volume} = calculate(box.width, box.height, constant);
 		const perimeter = (box.width + box.height) * constant;
@@ -57,7 +57,7 @@ async () => {
 	 { svelteHTML.createElement("div", {});area; volume; perimeter; width; height; sum; }
  }Component}
 
- { const $$_Component0C = __sveltets_2_ensureComponent(Component); const $$_Component0 = new $$_Component0C({ target: __sveltets_2_any(), props: {   box,}});{const {/*Ωignore_startΩ*/$$_$$/*Ωignore_endΩ*/,box:{width, height},} = $$_Component0.$$slot_def.default;$$_$$;
+ { const $$_Component0C = __sveltets_2_ensureComponent(Component); const $$_Component0 = new $$_Component0C({ target: __sveltets_2_any(), props: {  box,}});{const {/*Ωignore_startΩ*/$$_$$/*Ωignore_endΩ*/,box:{width, height},} = $$_Component0.$$slot_def.default;$$_$$;
 	const {area, volume} = calculate(width, height, constant);
 	const perimeter = (width + height) * constant;
 	const [_width, _height, sum] = [width * constant, height, width * constant + height];	

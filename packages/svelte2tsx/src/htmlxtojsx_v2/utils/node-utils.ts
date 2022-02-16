@@ -54,9 +54,7 @@ export function transform(
             if (
                 tEnd < end - 1 &&
                 // TODO can we somehow make this more performant?
-                !transformations.some(
-                    (t) => typeof t !== 'string' && (t[0] === tEnd + 1 || t[0] === tEnd)
-                )
+                !transformations.some((t) => typeof t !== 'string' && t[0] === tEnd)
             ) {
                 tEnd += 1;
                 const next = transformations[i + 1];
@@ -70,7 +68,7 @@ export function transform(
                 str.overwrite(tEnd - 1, tEnd, overwrite, { contentOnly: true });
             }
 
-            appendPosition = ignoreNextString ? tEnd : transformation[1];
+            appendPosition = tEnd;
             moves.push([tStart, tEnd]);
         }
     }

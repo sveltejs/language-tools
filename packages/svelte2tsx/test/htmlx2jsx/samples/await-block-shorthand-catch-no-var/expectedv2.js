@@ -1,3 +1,3 @@
-   { try { await (somePromise); } catch($$_e) { 
+   { try { await (somePromise);} catch($$_e) { 
     
 }}

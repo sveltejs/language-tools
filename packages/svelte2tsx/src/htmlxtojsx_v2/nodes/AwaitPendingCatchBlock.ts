@@ -38,15 +38,7 @@ export function handleAwait(str: MagicString, awaitBlock: BaseNode): void {
     }
 
     const expressionEnd = withTrailingPropertyAccess(str.original, awaitBlock.expression.end);
-    transforms.push('await (');
-
-    if (awaitBlock.pending.skip) {
-        transforms.push([awaitBlock.expression.start, expressionEnd]);
-        transforms.push('); ');
-    } else {
-        transforms.push([awaitBlock.expression.start, awaitBlock.pending.start]);
-        str.overwrite(expressionEnd, awaitBlock.pending.start, '); ');
-    }
+    transforms.push('await (', [awaitBlock.expression.start, expressionEnd], ');');
 
     if (awaitBlock.value) {
         transforms.push(

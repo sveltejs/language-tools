@@ -3,5 +3,5 @@
     
      {const {/*Ωignore_startΩ*/$$_$$/*Ωignore_endΩ*/,subthing,othersubthing,} = $$_Component0.$$slot_def["sub2"];$$_$$;{ const $$_Sub1C = __sveltets_2_ensureComponent(Sub); new $$_Sub1C({ target: __sveltets_2_any(), props: {    subthing,}});thing;subthing; }Sub}
     
-     { const $$_Sub1C = __sveltets_2_ensureComponent(Sub); const $$_Sub1 = new $$_Sub1C({ target: __sveltets_2_any(), props: {   subthing,}});{const {/*Ωignore_startΩ*/$$_$$/*Ωignore_endΩ*/,subthing,othersubthing,} = $$_Sub1.$$slot_def.default;$$_$$;thing;subthing; }Sub}
+     { const $$_Sub1C = __sveltets_2_ensureComponent(Sub); const $$_Sub1 = new $$_Sub1C({ target: __sveltets_2_any(), props: {  subthing,}});{const {/*Ωignore_startΩ*/$$_$$/*Ωignore_endΩ*/,subthing,othersubthing,} = $$_Sub1.$$slot_def.default;$$_$$;thing;subthing; }Sub}
  }Component}
