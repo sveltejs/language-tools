@@ -19,6 +19,9 @@ export type TransformationArray = Array<string | [number, number] | number>;
  * not moved will be removed. If there's a delete position given, things will be moved
  * to the end first before getting deleted. This may ensure better mappings for auto completion
  * for example.
+ * Note: If you need the last char to be mapped so that it follows the previous character,
+ * you may need to find a different way because MagicString does not allow us to move a range
+ * that goes from `start` to `end` to the `end` position.
  */
 export function transform(
     str: MagicString,
