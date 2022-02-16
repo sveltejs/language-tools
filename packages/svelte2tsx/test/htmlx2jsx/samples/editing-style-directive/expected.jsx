@@ -1,0 +1,1 @@
+<><div {...__sveltets_1_ensureType(String, Number, styles.)}></div></>

@@ -19,6 +19,9 @@ export type TransformationArray = Array<string | [number, number] | number>;
  * not moved will be removed. If there's a delete position given, things will be moved
  * to the end first before getting deleted. This may ensure better mappings for auto completion
  * for example.
+ * Note: If you need the last char to be mapped so that it follows the previous character,
+ * you may need to find a different way because MagicString does not allow us to move a range
+ * that goes from `start` to `end` to the `end` position.
  */
 export function transform(
     str: MagicString,
@@ -54,9 +57,7 @@ export function transform(
             if (
                 tEnd < end - 1 &&
                 // TODO can we somehow make this more performant?
-                !transformations.some(
-                    (t) => typeof t !== 'string' && (t[0] === tEnd + 1 || t[0] === tEnd)
-                )
+                !transformations.some((t) => typeof t !== 'string' && t[0] === tEnd)
             ) {
                 tEnd += 1;
                 const next = transformations[i + 1];
@@ -70,7 +71,7 @@ export function transform(
                 str.overwrite(tEnd - 1, tEnd, overwrite, { contentOnly: true });
             }
 
-            appendPosition = ignoreNextString ? tEnd : transformation[1];
+            appendPosition = tEnd;
             moves.push([tStart, tEnd]);
         }
     }
@@ -173,4 +174,41 @@ export function isShortHandAttribute(attr: Node): boolean {
 
 export function isQuote(str: string): boolean {
     return str === '"' || str === "'";
+}
+
+/**
+ * Check if there's a member access trailing behind given expression and if yes,
+ * bump the position to include it.
+ * Usually it's there because of the preprocessing we do before we let Svelte parse the template.
+ */
+export function withTrailingPropertyAccess(originalText: string, position: number): number {
+    let index = position;
+
+    while (index < originalText.length) {
+        const char = originalText[index];
+
+        if (!char.trim()) {
+            index++;
+            continue;
+        }
+
+        if (char === '.') {
+            return index + 1;
+        }
+
+        if (char === '?' && originalText[index + 1] === '.') {
+            return index + 2;
+        }
+
+        break;
+    }
+
+    return position;
+}
+
+export function rangeWithTrailingPropertyAccess(
+    originalText: string,
+    node: { start: number; end: number }
+): [start: number, end: number] {
+    return [node.start, withTrailingPropertyAccess(originalText, node.end)];
 }

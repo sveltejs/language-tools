@@ -1,5 +1,5 @@
 import MagicString from 'magic-string';
-import { getInstanceType, isQuote } from '../utils/node-utils';
+import { getInstanceType, withTrailingPropertyAccess, isQuote } from '../utils/node-utils';
 import { BaseDirective, BaseNode } from '../../interfaces';
 
 /**
@@ -41,7 +41,11 @@ export function handleEventHandler(
             str.overwrite(htmlx.indexOf(on, attr.start) + on.length, eventNameIndex, "('");
             const eventEnd = htmlx.lastIndexOf('=', attr.expression.start);
             str.overwrite(eventEnd, attr.expression.start, "', ");
-            str.overwrite(attr.expression.end, attr.end, ')}');
+            str.overwrite(
+                withTrailingPropertyAccess(str.original, attr.expression.end),
+                attr.end,
+                ')}'
+            );
             str.move(attr.start, attr.end, parent.end);
         } else {
             //for passthrough handlers, we just remove

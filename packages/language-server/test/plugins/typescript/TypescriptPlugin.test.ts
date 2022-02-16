@@ -249,7 +249,7 @@ function test(useNewTransformation: boolean) {
                                 },
                                 end: {
                                     line: 20,
-                                    character: 20
+                                    character: useNewTransformation ? 21 : 20
                                 }
                             }
                         },
@@ -285,7 +285,7 @@ function test(useNewTransformation: boolean) {
                                 },
                                 end: {
                                     line: 23,
-                                    character: 12
+                                    character: useNewTransformation ? 13 : 12
                                 }
                             }
                         },

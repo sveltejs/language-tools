@@ -1,6 +1,6 @@
 import MagicString from 'magic-string';
 import svgAttributes from '../svgattributes';
-import { TransformationArray } from '../utils/node-utils';
+import { rangeWithTrailingPropertyAccess, TransformationArray } from '../utils/node-utils';
 import { Attribute, BaseNode } from '../../interfaces';
 import { Element } from './Element';
 import { InlineComponent } from './InlineComponent';
@@ -189,7 +189,7 @@ export function handleAttribute(
 
             addAttribute(attributeName, attributeValue);
         } else if (attrVal.type == 'MustacheTag') {
-            attributeValue.push([attrVal.expression.start, attrVal.expression.end]);
+            attributeValue.push(rangeWithTrailingPropertyAccess(str.original, attrVal.expression));
             addAttribute(attributeName, attributeValue);
         }
         return;

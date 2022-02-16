@@ -1,0 +1,16 @@
+{
+    "name": "ParseError",
+    "code": "parse-error",
+    "start": {
+        "line": 1,
+        "column": 21,
+        "character": 21
+    },
+    "end": {
+        "line": 1,
+        "column": 21,
+        "character": 21
+    },
+    "pos": 21,
+    "frame": "1: <div use:action={opt.}></div>\n                        ^"
+}

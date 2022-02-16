@@ -1,5 +1,5 @@
 import MagicString from 'magic-string';
-import { TransformationArray } from '../utils/node-utils';
+import { rangeWithTrailingPropertyAccess, TransformationArray } from '../utils/node-utils';
 import { BaseDirective, BaseNode } from '../../interfaces';
 import { Element } from './Element';
 import { InlineComponent } from './InlineComponent';
@@ -38,7 +38,10 @@ export function handleBinding(
 ): void {
     // bind group on input
     if (element instanceof Element && attr.name == 'group' && parent.name == 'input') {
-        element.appendToStartEnd([[attr.expression.start, attr.expression.end], ';']);
+        element.appendToStartEnd([
+            rangeWithTrailingPropertyAccess(str.original, attr.expression),
+            ';'
+        ]);
         return;
     }
 
@@ -72,7 +75,7 @@ export function handleBinding(
         : [[attr.start + 'bind:'.length, str.original.lastIndexOf('=', attr.expression.start)]];
     const value: TransformationArray | undefined = isShorthand
         ? undefined
-        : [[attr.expression.start, attr.expression.end]];
+        : [rangeWithTrailingPropertyAccess(str.original, attr.expression)];
     if (element instanceof Element) {
         element.addAttribute(name, value);
     } else {

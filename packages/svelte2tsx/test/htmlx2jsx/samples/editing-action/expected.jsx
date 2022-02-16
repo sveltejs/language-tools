@@ -1,0 +1,1 @@
+<><div {...__sveltets_1_ensureAction(action(__sveltets_1_mapElementTag('div'),(opt.)))}></div></>

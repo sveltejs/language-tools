@@ -1,3 +1,3 @@
-    { try { await (somePromise); } catch($$_e) { const error = __sveltets_2_any();
+   { try { await (somePromise);} catch($$_e) { const error = __sveltets_2_any();
     
 }}
