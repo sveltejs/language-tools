@@ -9,7 +9,7 @@
         "build": "npm run build:ts && npm run build:grammar",
         "vscode:prepublish": "npm run build && npm prune --production",
         "watch": "npm run build:grammar && tsc -w -p ./",
-        "test": "echo 'NOOP'"
+        "test": "npm run build:grammar && node test/grammar/test.js"
     },
     "repository": {
         "type": "git",
@@ -556,7 +556,8 @@
         "@types/node": "^13.9.0",
         "@types/vscode": "*",
         "js-yaml": "^3.14.0",
-        "typescript": "*"
+        "typescript": "*",
+        "vscode-tmgrammar-test": "^0.0.10"
     },
     "dependencies": {
         "lodash": "^4.17.21",
