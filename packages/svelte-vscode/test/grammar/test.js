@@ -26,7 +26,7 @@ function promisifySpawn(...arg) {
 }
 
 async function snapShotTest() {
-    const extraArgs = process.argv.slice(3);
+    const extraArgs = process.argv.slice(2);
     const args = [
         'vscode-tmgrammar-snap',
         '-s',
@@ -34,7 +34,7 @@ async function snapShotTest() {
         '-g',
         './syntaxes/svelte.tmLanguage.json',
         '-t',
-        './test/grammar/**/*.svelte',
+        './test/grammar/sample/**/*.svelte',
         ...dummyGrammars.reduce((previous, path) => [...previous, '-g', path], []),
         ...extraArgs
     ];
