@@ -9,8 +9,7 @@
         "build": "npm run build:ts && npm run build:grammar",
         "vscode:prepublish": "npm run build && npm prune --production",
         "watch": "npm run build:grammar && tsc -w -p ./",
-        "test": "npm run build:grammar && node test/grammar/test.js",
-        "validate:grammar": "npm run build:grammar && vscode-tmgrammar-test --validate"
+        "test": "npm run build:grammar && node test/grammar/test.js"
     },
     "repository": {
         "type": "git",
