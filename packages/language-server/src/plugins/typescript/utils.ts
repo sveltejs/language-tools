@@ -104,11 +104,20 @@ export function convertToLocationRange(defDoc: SnapshotFragment, textSpan: ts.Te
     return range;
 }
 
-export function hasNonZeroRange({ range }: { range?: Range }) {
+export function hasNonZeroRange({ range }: { range?: Range }): boolean {
     return (
-        range &&
+        !!range &&
         (range.start.line !== range.end.line || range.start.character !== range.end.character)
     );
+}
+
+export function rangeToTextSpan(
+    range: Range,
+    document: { offsetAt: (position: Position) => number }
+): ts.TextSpan {
+    const start = document.offsetAt(range.start);
+    const end = document.offsetAt(range.end);
+    return { start, length: end - start };
 }
 
 export function findTsConfigPath(fileName: string, rootUris: string[]) {

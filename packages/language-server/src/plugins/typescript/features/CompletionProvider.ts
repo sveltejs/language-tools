@@ -134,17 +134,30 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             return null;
         }
 
+        const originalOffset = document.offsetAt(position);
         const offset = fragment.offsetAt(fragment.getGeneratedPosition(position));
 
         if (isJsDocTriggerCharacter) {
             return getJsDocTemplateCompletion(fragment, lang, filePath, offset);
         }
 
+        const svelteNode = tsDoc.svelteNodeAt(originalOffset);
+        if (
+            // Cursor is somewhere in regular HTML text
+            (svelteNode?.type === 'Text' &&
+                ['Element', 'InlineComponent', 'Fragment', 'SlotTemplate'].includes(
+                    svelteNode.parent?.type as any
+                )) ||
+            // Cursor is at <div>|</div> in which case there's no TextNode inbetween
+            document.getText().substring(originalOffset - 1, originalOffset + 2) === '></'
+        ) {
+            return null;
+        }
+
         if (cancellationToken?.isCancellationRequested) {
             return null;
         }
 
-        const originalOffset = document.offsetAt(position);
         const wordRange = getWordRangeAt(document.getText(), originalOffset, {
             left: /[^\s.]+$/,
             right: /[^\w$:]/
@@ -666,6 +679,10 @@ function isValidCompletion(
     if (!isCompletionInHTMLStartTag) {
         return isNoSvelte2tsxCompletion;
     }
+    // TODO with the new transformation this is ts.ScriptElementKind.memberVariableElement
+    // which is also true for all properties of any other object -> how reliably filter this out?
+    // ---> another /*ignore*/ pragma?
+    // ---> OR: make these lower priority if we find out they are inside a html start tag
     return (value) =>
         // Remove jsx attributes on html tags because they are doubled by the HTML
         // attribute suggestions, and for events they are wrong (onX instead of on:X).

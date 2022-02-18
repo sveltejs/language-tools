@@ -6,7 +6,7 @@ import { Document } from '../../lib/documents';
 import { configLoader } from '../../lib/documents/configLoader';
 import { Logger } from '../../logger';
 import { normalizePath } from '../../utils';
-import { DocumentSnapshot } from './DocumentSnapshot';
+import { DocumentSnapshot, SvelteSnapshotOptions } from './DocumentSnapshot';
 import { createSvelteModuleLoader } from './module-loader';
 import {
     GlobalSnapshotsManager,
@@ -43,9 +43,20 @@ const maxProgramSizeForNonTsFiles = 20 * 1024 * 1024; // 20 MB
 const services = new Map<string, Promise<LanguageServiceContainer>>();
 const serviceSizeMap: Map<string, number> = new Map();
 
+/**
+ * For testing only: Reset the cache for services.
+ * Try to refactor this some day so that this file provides
+ * a setup function which creates all this nicely instead.
+ */
+export function __resetCache() {
+    services.clear();
+    serviceSizeMap.clear();
+}
+
 export interface LanguageServiceDocumentContext {
     ambientTypesSource: string;
     transformOnTemplateError: boolean;
+    useNewTransformation: boolean;
     createDocument: (fileName: string, content: string) => Document;
     globalSnapshotsManager: GlobalSnapshotsManager;
     notifyExceedSizeLimit: (() => void) | undefined;
@@ -155,8 +166,10 @@ async function createLanguageService(
     };
 
     let languageService = ts.createLanguageService(host);
-    const transformationConfig = {
-        transformOnTemplateError: docContext.transformOnTemplateError
+    const transformationConfig: SvelteSnapshotOptions = {
+        transformOnTemplateError: docContext.transformOnTemplateError,
+        useNewTransformation: docContext.useNewTransformation,
+        typingsNamespace: raw?.svelteOptions?.namespace || 'svelteHTML'
     };
 
     docContext.globalSnapshotsManager.onChange(() => {
@@ -284,10 +297,12 @@ async function createLanguageService(
             allowJs: true,
             noEmit: true,
             declaration: false,
-            skipLibCheck: true,
-            // these are needed to handle the results of svelte2tsx preprocessing:
-            jsx: ts.JsxEmit.Preserve
+            skipLibCheck: true
         };
+        if (!docContext.useNewTransformation) {
+            // these are needed to handle the results of svelte2tsx preprocessing:
+            forcedCompilerOptions.jsx = ts.JsxEmit.Preserve;
+        }
 
         // always let ts parse config to get default compilerOption
         let configJson =
@@ -318,7 +333,9 @@ async function createLanguageService(
                     // Deferred was added in a later TS version, fall back to tsx
                     // If Deferred exists, this means that all Svelte files are included
                     // in parsedConfig.fileNames
-                    scriptKind: ts.ScriptKind.Deferred ?? ts.ScriptKind.TSX
+                    scriptKind:
+                        ts.ScriptKind.Deferred ??
+                        (docContext.useNewTransformation ? ts.ScriptKind.TS : ts.ScriptKind.TSX)
                 }
             ]
         );
@@ -330,15 +347,23 @@ async function createLanguageService(
 
         // detect which JSX namespace to use (svelte | svelteNative) if not specified or not compatible
         if (!compilerOptions.jsxFactory || !compilerOptions.jsxFactory.startsWith('svelte')) {
-            //default to regular svelte, this causes the usage of the "svelte.JSX" namespace
-            compilerOptions.jsxFactory = 'svelte.createElement';
+            if (!docContext.useNewTransformation) {
+                //default to regular svelte, this causes the usage of the "svelte.JSX" namespace
+                compilerOptions.jsxFactory = 'svelte.createElement';
+            }
 
             //override if we detect svelte-native
             if (workspacePath) {
                 try {
                     const svelteNativePkgInfo = getPackageInfo('svelte-native', workspacePath);
                     if (svelteNativePkgInfo.path) {
-                        compilerOptions.jsxFactory = 'svelteNative.createElement';
+                        if (docContext.useNewTransformation) {
+                            // For backwards compatibility
+                            parsedConfig.raw.svelteOptions = parsedConfig.raw.svelteOptions || {};
+                            parsedConfig.raw.svelteOptions.namespace = 'svelteNative.JSX';
+                        } else {
+                            compilerOptions.jsxFactory = 'svelteNative.createElement';
+                        }
                     }
                 } catch (e) {
                     //we stay regular svelte

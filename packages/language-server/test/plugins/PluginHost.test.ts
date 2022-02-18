@@ -33,7 +33,8 @@ describe('PluginHost', () => {
 
         const pluginHost = new PluginHost(docManager);
         const plugin = {
-            ...pluginProviderStubs
+            ...pluginProviderStubs,
+            __name: 'test'
         };
 
         pluginHost.initialize(config);

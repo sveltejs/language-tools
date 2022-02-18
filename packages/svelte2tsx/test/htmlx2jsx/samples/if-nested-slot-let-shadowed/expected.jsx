@@ -32,6 +32,13 @@
                     {hello}
                 </> : <></>}
             </>}}}</Comp>
+            <Comp >{() => {/*Ωignore_startΩ*/const ΩΩhello=hello;/*Ωignore_endΩ*/() => { let {foo} = /*Ωignore_startΩ*/new Comp({target: __sveltets_1_any(''), props: {}})/*Ωignore_endΩ*/.$$slot_def['default'];/*
+*/const hello = foo;/*Ωignore_startΩ*/(((Ωhello && hello1))) && ((ΩΩhello)) && /*Ωignore_endΩ*/<>
+                { }
+                {(hello) ? <>
+                    {hello}
+                </> : <></>}
+            </>}}}</Comp>
         </> : <></>}
     </>}}}</Comp>
     {(hi && bye) ? <>
@@ -71,6 +78,16 @@
         </> }
     </sveltefragment></>}}
     {() => { let {hello} = /*Ωignore_startΩ*/new Comp({target: __sveltets_1_any(''), props: {}})/*Ωignore_endΩ*/.$$slot_def['named2'];<><p  >
+        {(hello && bye) ? <>
+            {hello} {bye}
+        </> : (hello && bye) ? <>
+            {hello} {bye}
+        </> : <>
+            {hello} {bye}
+        </> }
+    </p></>}}
+    {() => { let {foo} = /*Ωignore_startΩ*/new Comp({target: __sveltets_1_any(''), props: {}})/*Ωignore_endΩ*/.$$slot_def['named3'];/*<*/const hello = foo;<><p  >
+        { }
         {(hello && bye) ? <>
             {hello} {bye}
         </> : (hello && bye) ? <>

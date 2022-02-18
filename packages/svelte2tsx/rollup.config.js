@@ -27,19 +27,19 @@ function repl() {
             this.addWatchFile(INPUT);
         },
         writeBundle() {
-            const BUILD = require.resolve('./index.js');
-            const BUILD_TEST = require.resolve('./test/build.ts');
-
-            delete require.cache[BUILD];
-            const { svelte2tsx } = require('./index.js');
-
-            delete require.cache[BUILD_TEST];
-            require.cache[BUILD_TEST] = require.cache[BUILD];
-            const { process_transformed_text } = require('./test/sourcemaps/process');
-
-            const input_content = fs.readFileSync(INPUT, 'utf-8');
-
             try {
+                const BUILD = require.resolve('./index.js');
+                const BUILD_TEST = require.resolve('./test/build.ts');
+
+                delete require.cache[BUILD];
+                const { svelte2tsx } = require('./index.js');
+
+                delete require.cache[BUILD_TEST];
+                require.cache[BUILD_TEST] = require.cache[BUILD];
+                const { process_transformed_text } = require('./test/sourcemaps/process');
+
+                const input_content = fs.readFileSync(INPUT, 'utf-8');
+
                 const { code, map } = svelte2tsx(input_content);
 
                 map.file = 'code.tsx';

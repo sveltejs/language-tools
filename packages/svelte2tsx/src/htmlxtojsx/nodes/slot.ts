@@ -9,6 +9,7 @@ import { IfScope } from './if-scope';
 import { TemplateScope } from '../nodes/template-scope';
 import { BaseNode } from '../../interfaces';
 import { surroundWithIgnoreComments } from '../../utils/ignore';
+import { extractConstTags } from './const-tag';
 
 const shadowedPropsSymbol = Symbol('shadowedProps');
 
@@ -18,7 +19,8 @@ interface ComponentNode extends BaseNode {
 }
 
 /**
- * Transforms the usage of a slot (let:xx)
+ * Transforms the usage of a slot (slot="xxx")
+ * - transforms let:xx, {@const xx}
  */
 export function handleSlot(
     htmlx: string,
@@ -31,8 +33,18 @@ export function handleSlot(
 ): void {
     //collect "let" definitions
     const slotElIsComponent = slotEl === component;
-    let hasMoved = false;
+    let hasMovedLet = false;
+
     let slotDefInsertionPoint: number;
+    // lazily calculate insertion point only when needed
+    const calculateSlotDefInsertionPoint = () => {
+        slotDefInsertionPoint =
+            slotDefInsertionPoint ||
+            (slotElIsComponent
+                ? htmlx.lastIndexOf('>', slotEl.children[0].start) + 1
+                : slotEl.start);
+    };
+
     for (const attr of slotEl.attributes) {
         if (attr.type != 'Let') {
             continue;
@@ -44,22 +56,17 @@ export function handleSlot(
             continue;
         }
 
-        slotDefInsertionPoint =
-            slotDefInsertionPoint ||
-            (slotElIsComponent
-                ? htmlx.lastIndexOf('>', slotEl.children[0].start) + 1
-                : slotEl.start);
-
+        calculateSlotDefInsertionPoint();
         str.move(attr.start, attr.end, slotDefInsertionPoint);
 
         //remove let:
         str.remove(attr.start, attr.start + 'let:'.length);
-        if (hasMoved) {
+        if (hasMovedLet) {
             str.appendRight(attr.start + 'let:'.length, ', ');
         }
 
         templateScope.inits.add(attr.expression?.name || attr.name);
-        hasMoved = true;
+        hasMovedLet = true;
         if (attr.expression) {
             //overwrite the = as a :
             const equalSign = htmlx.lastIndexOf('=', attr.expression.start);
@@ -68,9 +75,11 @@ export function handleSlot(
             str.remove(attr.expression.end, attr.end);
         }
     }
-    if (!hasMoved) {
+    const hasConstTag = slotEl.children.some((child) => child.type === 'ConstTag');
+    if (!hasMovedLet && !hasConstTag) {
         return;
     }
+    calculateSlotDefInsertionPoint();
 
     const { singleSlotDef, constRedeclares } = getSingleSlotDefAndConstsRedeclaration(
         component,
@@ -80,11 +89,30 @@ export function handleSlot(
         slotElIsComponent
     );
     const prefix = constRedeclares ? `() => {${constRedeclares}` : '';
-    str.appendLeft(slotDefInsertionPoint, `{${prefix}() => { let {`);
-    str.appendRight(
-        slotDefInsertionPoint,
-        `} = ${singleSlotDef}` + `;${ifScope.addPossibleIfCondition()}<>`
-    );
+    str.appendLeft(slotDefInsertionPoint, `{${prefix}() => { `);
+    if (hasMovedLet) {
+        str.appendLeft(slotDefInsertionPoint, 'let {');
+        str.appendRight(slotDefInsertionPoint, `} = ${singleSlotDef};`);
+    }
+
+    if (hasConstTag) {
+        // unable to move multiple codes to the same place while insert code in between
+        // NOTE: cheat by move to `slotDefInsertionPoint + 1` position
+        // then copy the character in str[slotDefInsertionPoint...slotDefInsertionPoint + 1] to the back
+        // and comment out the original str[slotDefInsertionPoint...slotDefInsertionPoint + 1]
+        str.appendRight(slotDefInsertionPoint, '/*');
+        extractConstTags(slotEl.children).forEach((insertion) => {
+            insertion(slotDefInsertionPoint + 1, str);
+        });
+        str.appendRight(slotDefInsertionPoint + 1, `${ifScope.addPossibleIfCondition()}<>`);
+        str.appendRight(
+            slotDefInsertionPoint + 1,
+            str.original.slice(slotDefInsertionPoint, slotDefInsertionPoint + 1)
+        );
+        str.appendLeft(slotDefInsertionPoint + 1, '*/');
+    } else {
+        str.appendRight(slotDefInsertionPoint, `${ifScope.addPossibleIfCondition()}<>`);
+    }
 
     const closeSlotDefInsertionPoint = slotElIsComponent
         ? htmlx.lastIndexOf('<', slotEl.end - 1)

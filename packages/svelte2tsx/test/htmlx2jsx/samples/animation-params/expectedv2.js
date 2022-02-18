@@ -1,0 +1,3 @@
+ { svelteHTML.createElement("h1", {  });__sveltets_2_ensureAnimation(blink(svelteHTML.mapElementTag('h1'),__sveltets_2_AnimationMove,({y: 50, duration: 500})));  }
+  { svelteHTML.createElement("h1", {  });__sveltets_2_ensureAnimation(blink(svelteHTML.mapElementTag('h1'),__sveltets_2_AnimationMove,({y: 50, duration: 500})));  }
+  { svelteHTML.createElement("h1", {  });__sveltets_2_ensureAnimation(blink(svelteHTML.mapElementTag('h1'),__sveltets_2_AnimationMove,({y: 50, duration: 500})));  }

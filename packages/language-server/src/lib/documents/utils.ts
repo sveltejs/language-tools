@@ -345,6 +345,19 @@ export function getNodeIfIsInStartTag(html: HTMLDocument, offset: number): Node 
 }
 
 /**
+ * Returns `true` if `offset` is a html tag and within the name of the start tag or end tag
+ */
+export function isInHTMLTagRange(html: HTMLDocument, offset: number): boolean {
+    const node = html.findNodeAt(offset);
+    return (
+        !!node.tag &&
+        node.tag[0] === node.tag[0].toLowerCase() &&
+        (node.start + node.tag.length + 1 >= offset ||
+            (!!node.endTagStart && node.endTagStart <= offset))
+    );
+}
+
+/**
  * Gets word range at position.
  * Delimiter is by default a whitespace, but can be adjusted.
  */

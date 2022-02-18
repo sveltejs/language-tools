@@ -246,7 +246,8 @@ export function startServer(options?: LSOptions) {
                     full: true
                 },
                 linkedEditingRangeProvider: true,
-                implementationProvider: true
+                implementationProvider: true,
+                typeDefinitionProvider: true
             }
         };
     });
@@ -352,6 +353,10 @@ export function startServer(options?: LSOptions) {
 
     connection.onImplementation((evt) =>
         pluginHost.getImplementation(evt.textDocument, evt.position)
+    );
+
+    connection.onTypeDefinition((evt) =>
+        pluginHost.getTypeDefinition(evt.textDocument, evt.position)
     );
 
     const diagnosticsManager = new DiagnosticsManager(

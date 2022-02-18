@@ -179,6 +179,12 @@
                     "title": "Typescript: Go to Implementation",
                     "description": "Enable go to implementation for Typescript"
                 },
+                "svelte.plugin.typescript.typeDefinition.enable": {
+                    "type": "boolean",
+                    "default": true,
+                    "title": "Typescript: Go to Type Definition",
+                    "description": "Enable go to Type Definition for Typescript"
+                },
                 "svelte.plugin.css.enable": {
                     "type": "boolean",
                     "default": true,
@@ -292,6 +298,12 @@
                     "default": true,
                     "title": "Svelte",
                     "description": "Enable the Svelte plugin"
+                },
+                "svelte.plugin.svelte.useNewTransformation": {
+                    "type": "boolean",
+                    "default": false,
+                    "title": "Use a new transformation for intellisense",
+                    "description": "Svelte files need to be transformed to something that TypeScript understands for intellisense. Version 2.0 of this transformation can be enabled with this setting. It will be the default, soon."
                 },
                 "svelte.plugin.svelte.diagnostics.enable": {
                     "type": "boolean",

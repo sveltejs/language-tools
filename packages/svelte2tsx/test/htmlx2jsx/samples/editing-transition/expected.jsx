@@ -1,0 +1,1 @@
+<><div {...__sveltets_1_ensureTransition(fade(__sveltets_1_mapElementTag('div'),(option.)))}></div></>

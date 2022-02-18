@@ -108,7 +108,7 @@ export class SemanticTokensProviderImpl implements SemanticTokensProvider {
         fragment: SvelteSnapshotFragment,
         generatedOffset: number,
         generatedLength: number
-    ): [line: number, character: number, length: number] | undefined {
+    ): [line: number, character: number, length: number, start: number] | undefined {
         if (isInGeneratedCode(fragment.text, generatedOffset, generatedOffset + generatedLength)) {
             return;
         }
@@ -126,7 +126,7 @@ export class SemanticTokensProviderImpl implements SemanticTokensProvider {
         const startOffset = document.offsetAt(startPosition);
         const endOffset = document.offsetAt(endPosition);
 
-        return [startPosition.line, startPosition.character, endOffset - startOffset];
+        return [startPosition.line, startPosition.character, endOffset - startOffset, startOffset];
     }
 
     /**

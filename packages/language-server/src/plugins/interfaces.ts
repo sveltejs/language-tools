@@ -171,6 +171,10 @@ export interface ImplementationProvider {
     getImplementation(document: Document, position: Position): Resolvable<Location[] | null>;
 }
 
+export interface TypeDefinitionProvider {
+    getTypeDefinition(document: Document, position: Position): Resolvable<Location[] | null>;
+}
+
 export interface OnWatchFileChangesPara {
     fileName: string;
     changeType: FileChangeType;
@@ -199,7 +203,8 @@ type ProviderBase = DiagnosticsProvider &
     SignatureHelpProvider &
     SemanticTokensProvider &
     LinkedEditingRangesProvider &
-    ImplementationProvider;
+    ImplementationProvider &
+    TypeDefinitionProvider;
 
 export type LSProvider = ProviderBase & BackwardsCompatibleDefinitionsProvider;
 
@@ -221,4 +226,4 @@ export type Plugin = Partial<
         OnWatchFileChanges &
         SelectionRangeProvider &
         UpdateTsOrJsFile
->;
+> & { __name: string };

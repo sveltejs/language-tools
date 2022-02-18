@@ -44,8 +44,21 @@ export function svelte2tsx(
          * It is expected to pass the result to TypeScript which should handle emitting the d.ts files.
          * The shims need to be provided by the user ambient-style,
          * for example through `filenames.push(require.resolve('svelte2tsx/svelte-shims.d.ts'))`.
+         * If you pass 'ts', it uses the new transformation which will replace the now deprecated 'tsx'
+         * transformation soon.
          */
-        mode?: 'tsx' | 'dts',
+        mode?: 'ts' | 'tsx' | 'dts',
+        /**
+         * Takes effect when using the new 'ts' mode. Default 'svelteHTML'.
+         * Tells svelte2tsx from which namespace some specific functions to use.
+         * 
+         * Example: 'svelteHTML' -> svelteHTML.createElement<..>(..)
+         * 
+         * A namespace needs to implement the following functions:
+         * - `createElement(str: string, validAttributes: ..): Element`
+         * - `mapElementTag<Key extends keyof YourElements>(str: Key): YourElements[Key]`
+         */
+        typingsNamespace?: string;
         /**
          * The accessor option from svelte config. 
          * Would be overridden by the same config in the svelte:option element if exist

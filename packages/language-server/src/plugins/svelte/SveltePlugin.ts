@@ -41,6 +41,7 @@ export class SveltePlugin
         CodeActionsProvider,
         SelectionRangeProvider
 {
+    __name = 'svelte';
     private docManager = new Map<Document, SvelteDocument>();
 
     constructor(private configManager: LSConfigManager) {}

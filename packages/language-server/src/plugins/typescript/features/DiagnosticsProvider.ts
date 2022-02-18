@@ -1,9 +1,15 @@
 import ts from 'typescript';
 import { CancellationToken, Diagnostic, DiagnosticSeverity } from 'vscode-languageserver';
-import { Document, getTextInRange, isRangeInTag, mapRangeToOriginal } from '../../../lib/documents';
+import {
+    Document,
+    getNodeIfIsInStartTag,
+    getTextInRange,
+    isRangeInTag,
+    mapRangeToOriginal
+} from '../../../lib/documents';
 import { DiagnosticsProvider } from '../../interfaces';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
-import { convertRange, getDiagnosticTag, mapSeverity } from '../utils';
+import { convertRange, getDiagnosticTag, hasNonZeroRange, mapSeverity } from '../utils';
 import { SvelteDocumentSnapshot, SvelteSnapshotFragment } from '../DocumentSnapshot';
 import {
     isInGeneratedCode,
@@ -14,6 +20,8 @@ import {
     gatherIdentifiers
 } from './utils';
 import { not, flatten, passMap, regexIndexOf, swapRangeStartEndIfNecessary } from '../../../utils';
+import { LSConfigManager } from '../../../ls-config';
+import { isAttributeName, isEventHandler } from '../svelte-ast-utils';
 
 enum DiagnosticCode {
     MODIFIERS_CANNOT_APPEAR_HERE = 1184, // "Modifiers cannot appear here."
@@ -24,11 +32,19 @@ enum DiagnosticCode {
     NEVER_READ = 6133, // "'{0}' is declared but its value is never read."
     ALL_IMPORTS_UNUSED = 6192, // "All imports in import declaration are unused."
     UNUSED_LABEL = 7028, // "Unused label."
-    DUPLICATED_JSX_ATTRIBUTES = 17001 // "JSX elements cannot have multiple attributes with the same name."
+    DUPLICATED_JSX_ATTRIBUTES = 17001, // "JSX elements cannot have multiple attributes with the same name."
+    DUPLICATE_IDENTIFIER = 2300, // "Duplicate identifier 'xxx'"
+    MULTIPLE_PROPS_SAME_NAME = 1117, // "An object literal cannot have multiple properties with the same name in strict mode."
+    TYPE_X_NOT_ASSIGNABLE_TO_TYPE_Y = 2345, // "Argument of type '..' is not assignable to parameter of type '..'."
+    MISSING_PROPS = 2739, // "Type '...' is missing the following properties from type '..': ..."
+    MISSING_PROP = 2741 // "Property '..' is missing in type '..' but required in type '..'."
 }
 
 export class DiagnosticsProviderImpl implements DiagnosticsProvider {
-    constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
+    constructor(
+        private readonly lsAndTsDocResolver: LSAndTSDocResolver,
+        private configManager: LSConfigManager
+    ) {}
 
     async getDiagnostics(
         document: Document,
@@ -43,7 +59,8 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
             return [];
         }
 
-        const isTypescript = tsDoc.scriptKind === ts.ScriptKind.TSX;
+        const isTypescript =
+            tsDoc.scriptKind === ts.ScriptKind.TSX || tsDoc.scriptKind === ts.ScriptKind.TS;
 
         // Document preprocessing failed, show parser error instead
         if (tsDoc.parserError) {
@@ -79,9 +96,21 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
                 code: diagnostic.code,
                 tags: getDiagnosticTag(diagnostic)
             }))
-            .map(mapRange(fragment, document))
+            .map(
+                mapRange(
+                    fragment,
+                    document,
+                    this.configManager.getConfig().svelte.useNewTransformation
+                )
+            )
             .filter(hasNoNegativeLines)
-            .filter(isNoFalsePositive(document, tsDoc))
+            .filter(
+                isNoFalsePositive(
+                    this.configManager.getConfig().svelte.useNewTransformation,
+                    document,
+                    tsDoc
+                )
+            )
             .map(enhanceIfNecessary)
             .map(swapDiagRangeStartEndIfNecessary);
     }
@@ -93,7 +122,8 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
 
 function mapRange(
     fragment: SvelteSnapshotFragment,
-    document: Document
+    document: Document,
+    useNewTransformation: boolean
 ): (value: Diagnostic) => Diagnostic {
     return (diagnostic) => {
         let range = mapRangeToOriginal(fragment, diagnostic.range);
@@ -120,6 +150,21 @@ function mapRange(
                         end: { ...start, character: start.character + '$$Props'.length }
                     };
                 }
+            }
+        }
+
+        if (
+            useNewTransformation &&
+            [DiagnosticCode.MISSING_PROP, DiagnosticCode.MISSING_PROPS].includes(
+                diagnostic.code as number
+            ) &&
+            !hasNonZeroRange({ range })
+        ) {
+            const node = getNodeIfIsInStartTag(document.html, document.offsetAt(range.start));
+            if (node) {
+                // This is a "some prop missing" error on a component -> remap
+                range.start = document.positionAt(node.start + 1);
+                range.end = document.positionAt(node.start + 1 + (node.tag?.length || 1));
             }
         }
 
@@ -153,11 +198,27 @@ function hasNoNegativeLines(diagnostic: Diagnostic): boolean {
     return diagnostic.range.start.line >= 0 && diagnostic.range.end.line >= 0;
 }
 
-function isNoFalsePositive(document: Document, tsDoc: SvelteDocumentSnapshot) {
+function isNoFalsePositive(
+    useNewTransformation: boolean,
+    document: Document,
+    tsDoc: SvelteDocumentSnapshot
+) {
     const text = document.getText();
     const usesPug = document.getLanguageAttribute('template') === 'pug';
 
     return (diagnostic: Diagnostic) => {
+        if (
+            useNewTransformation &&
+            [DiagnosticCode.MULTIPLE_PROPS_SAME_NAME, DiagnosticCode.DUPLICATE_IDENTIFIER].includes(
+                diagnostic.code as number
+            )
+        ) {
+            const node = tsDoc.svelteNodeAt(diagnostic.range.start);
+            if (isAttributeName(node, 'Element') || isEventHandler(node, 'Element')) {
+                return false;
+            }
+        }
+
         return (
             isNoJsxCannotHaveMultipleAttrsError(diagnostic) &&
             isNoUsedBeforeAssigned(diagnostic, text, tsDoc) &&
@@ -207,20 +268,21 @@ function isNoJsxCannotHaveMultipleAttrsError(diagnostic: Diagnostic) {
  * Some diagnostics have JSX-specific nomenclature. Enhance them for more clarity.
  */
 function enhanceIfNecessary(diagnostic: Diagnostic): Diagnostic {
-    if (diagnostic.code === DiagnosticCode.CANNOT_BE_USED_AS_JSX_COMPONENT) {
+    if (
+        diagnostic.code === DiagnosticCode.CANNOT_BE_USED_AS_JSX_COMPONENT ||
+        (diagnostic.code === DiagnosticCode.TYPE_X_NOT_ASSIGNABLE_TO_TYPE_Y &&
+            diagnostic.message.includes('ConstructorOfATypedSvelteComponent'))
+    ) {
         return {
             ...diagnostic,
             message:
-                'Type definitions are missing for this Svelte Component. ' +
-                // eslint-disable-next-line max-len
-                "It needs a class definition with at least the property '$$prop_def' which should contain a map of input property definitions.\n" +
-                'Example:\n' +
-                '  class ComponentName { $$prop_def: { propertyName: string; } }\n' +
-                'If you are using Svelte 3.31+, use SvelteComponentTyped:\n' +
+                diagnostic.message +
+                '\n\nPossible causes:\n' +
+                '- You use the instance type of a component where you should use the constructor type\n' +
+                '- Type definitions are missing for this Svelte Component. ' +
+                'If you are using Svelte 3.31+, use SvelteComponentTyped to add a definition:\n' +
                 '  import type { SvelteComponentTyped } from "svelte";\n' +
-                '  class ComponentName extends SvelteComponentTyped<{propertyName: string;}> {}\n\n' +
-                'Underlying error:\n' +
-                diagnostic.message
+                '  class ComponentName extends SvelteComponentTyped<{propertyName: string;}> {}'
         };
     }
 

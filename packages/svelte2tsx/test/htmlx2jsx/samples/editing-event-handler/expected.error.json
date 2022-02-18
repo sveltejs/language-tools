@@ -1,0 +1,16 @@
+{
+    "name": "ParseError",
+    "code": "parse-error",
+    "start": {
+        "line": 1,
+        "column": 24,
+        "character": 24
+    },
+    "end": {
+        "line": 1,
+        "column": 24,
+        "character": 24
+    },
+    "pos": 24,
+    "frame": "1: <div on:click={handlers.}></div>\n                           ^\n2: \n3: <Component on:click={handlers.} />"
+}

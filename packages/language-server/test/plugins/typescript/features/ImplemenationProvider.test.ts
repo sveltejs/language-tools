@@ -10,7 +10,7 @@ import { Location } from 'vscode-languageserver-protocol';
 
 const testDir = path.join(__dirname, '..');
 
-describe('FindReferencesProvider', () => {
+describe('ImplementationProvider', () => {
     function getFullPath(filename: string) {
         return path.join(testDir, 'testfiles', 'implementation', filename);
     }

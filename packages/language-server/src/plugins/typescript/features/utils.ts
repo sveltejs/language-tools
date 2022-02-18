@@ -79,11 +79,13 @@ export function isComponentAtPosition(
  * Checks if this a section that should be completely ignored
  * because it's purely generated.
  */
-export function isInGeneratedCode(text: string, start: number, end: number) {
+export function isInGeneratedCode(text: string, start: number, end: number = start) {
     const lastStart = text.lastIndexOf('/*Ωignore_startΩ*/', start);
     const lastEnd = text.lastIndexOf('/*Ωignore_endΩ*/', start);
     const nextEnd = text.indexOf('/*Ωignore_endΩ*/', end);
-    return lastStart > lastEnd && lastStart < nextEnd;
+    // if lastEnd === nextEnd, this means that the str was found at the index
+    // up to which is searched for it
+    return (lastStart > lastEnd || lastEnd === nextEnd) && lastStart < nextEnd;
 }
 
 /**
@@ -218,7 +220,7 @@ function nodeAndParentsSatisfyRespectivePredicates<T extends ts.Node>(
     selfPredicate: NodePredicate | NodeTypePredicate<T>,
     ...predicates: NodePredicate[]
 ) {
-    return (node: ts.Node): node is T => {
+    return (node: ts.Node | undefined | void | null): node is T => {
         let next = node;
         return [selfPredicate, ...predicates].every((predicate) => {
             if (!next) {

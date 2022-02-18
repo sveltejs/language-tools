@@ -37,7 +37,7 @@ export class ImplementationProviderImpl implements ImplementationProvider {
                     convertRange(fragment, implementation.textSpan)
                 );
 
-                if (range.start.line > 0 && range.end.line > 0) {
+                if (range.start.line >= 0 && range.end.line >= 0) {
                     return Location.create(pathToUrl(implementation.fileName), range);
                 }
             })

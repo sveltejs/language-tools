@@ -15,6 +15,7 @@ import { ImplicitStoreValues } from './nodes/ImplicitStoreValues';
 import { Generics } from './nodes/Generics';
 import { is$$SlotsDeclaration } from './nodes/slot';
 import { preprendStr } from '../utils/magic-string';
+import { handleImportDeclaration } from './nodes/handleImportDeclaration';
 
 export interface InstanceScriptProcessResult {
     exportedNames: ExportedNames;
@@ -37,7 +38,7 @@ export function processInstanceScriptContent(
     script: Node,
     events: ComponentEvents,
     implicitStoreValues: ImplicitStoreValues,
-    mode: 'tsx' | 'dts'
+    mode: 'ts' | 'tsx' | 'dts'
 ): InstanceScriptProcessResult {
     const htmlx = str.original;
     const scriptContent = htmlx.substring(script.content.start, script.content.end);
@@ -169,7 +170,12 @@ export function processInstanceScriptContent(
         // - in order to get ts errors if store is not assignable to SvelteStore
         // - use $store variable defined above to get ts flow control
         const dollar = str.original.indexOf('$', ident.getStart() + astOffset);
-        const getPrefix = isSafeToPrefixWithSemicolon(ident) ? ';' : '';
+        const getPrefix = isSafeToPrefixWithSemicolon(ident)
+            ? ';'
+            : ts.isShorthandPropertyAssignment(parent)
+            ? // { $store } --> { $store: __sveltets_1_store_get(..)}
+              ident.text + ': '
+            : '';
         str.overwrite(dollar, dollar + 1, getPrefix + '(__sveltets_1_store_get(');
         str.prependLeft(ident.end + astOffset, `), $${storename})`);
     };
@@ -268,12 +274,7 @@ export function processInstanceScriptContent(
             exportedNames.handleExportFunctionOrClass(node);
         }
 
-        if (ts.isBlock(node)) {
-            pushScope();
-            onLeaveCallbacks.push(() => popScope());
-        }
-
-        if (ts.isArrowFunction(node)) {
+        if (ts.isBlock(node) || ts.isArrowFunction(node) || ts.isFunctionExpression(node)) {
             pushScope();
             onLeaveCallbacks.push(() => popScope());
         }
@@ -283,11 +284,8 @@ export function processInstanceScriptContent(
         }
 
         if (ts.isImportDeclaration(node)) {
-            //move imports to top of script so they appear outside our render function
-            str.move(node.getStart() + astOffset, node.end + astOffset, script.start + 1);
-            //add in a \n
-            const originalEndChar = str.original[node.end + astOffset - 1];
-            str.overwrite(node.end + astOffset - 1, node.end + astOffset, originalEndChar + '\n');
+            handleImportDeclaration(node, str, astOffset, script.start);
+
             // Check if import is the event dispatcher
             events.checkIfImportIsEventDispatcher(node);
         }
@@ -353,7 +351,8 @@ export function processInstanceScriptContent(
 
         // Defensively call function (checking for undefined) because it got added only recently (TS 4.0)
         // and therefore might break people using older TS versions
-        if (ts.isTypeAssertionExpression?.(node)) {
+        // Don't transform in ts mode because <type>value type assertions are valid in this case
+        if (mode !== 'ts' && ts.isTypeAssertionExpression?.(node)) {
             handleTypeAssertion(str, node, astOffset);
         }
 

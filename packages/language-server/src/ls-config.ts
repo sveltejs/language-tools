@@ -20,7 +20,8 @@ const defaultLSConfig: LSConfig = {
         selectionRange: { enable: true },
         signatureHelp: { enable: true },
         semanticTokens: { enable: true },
-        implementation: { enable: true }
+        implementation: { enable: true },
+        typeDefinition: { enable: true }
     },
     css: {
         enable: true,
@@ -44,6 +45,7 @@ const defaultLSConfig: LSConfig = {
     },
     svelte: {
         enable: true,
+        useNewTransformation: false,
         compilerWarnings: {},
         diagnostics: { enable: true },
         rename: { enable: true },
@@ -116,6 +118,9 @@ export interface LSTypescriptConfig {
     implementation: {
         enable: boolean;
     };
+    typeDefinition: {
+        enable: boolean;
+    };
 }
 
 export interface LSCSSConfig {
@@ -172,6 +177,7 @@ export type CompilerWarningsSettings = Record<string, 'ignore' | 'error'>;
 
 export interface LSSvelteConfig {
     enable: boolean;
+    useNewTransformation: boolean;
     compilerWarnings: CompilerWarningsSettings;
     diagnostics: {
         enable: boolean;
