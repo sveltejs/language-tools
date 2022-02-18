@@ -4,9 +4,9 @@
 #      ^ source.svelte meta.tag.void.svelte
 #       ^^^^^ source.svelte meta.tag.void.svelte meta.attribute.value.svelte entity.other.attribute-name.svelte
 #            ^ source.svelte meta.tag.void.svelte meta.attribute.value.svelte punctuation.separator.key-value.svelte
-#             ^ source.svelte meta.tag.void.svelte meta.attribute.value.svelte string.quoted.svelte punctuation.definition.string.begin.svelte
-#              ^ source.svelte meta.tag.void.svelte meta.attribute.value.svelte string.quoted.svelte
-#               ^ source.svelte meta.tag.void.svelte meta.attribute.value.svelte string.quoted.svelte punctuation.definition.string.end.svelte
+#             ^ source.svelte meta.tag.void.svelte meta.attribute.value.svelte punctuation.definition.string.begin.svelte
+#              ^ source.svelte meta.tag.void.svelte meta.attribute.value.svelte constant.numeric.decimal.svelte
+#               ^ source.svelte meta.tag.void.svelte meta.attribute.value.svelte punctuation.definition.string.end.svelte
 #                ^ source.svelte meta.tag.void.svelte punctuation.definition.tag.begin.svelte
 ><input value={1}>
 #^ source.svelte meta.tag.void.svelte punctuation.definition.tag.begin.svelte
@@ -33,9 +33,9 @@
 #      ^ source.svelte meta.scope.tag.Input.svelte meta.tag.start.svelte
 #       ^^^^^ source.svelte meta.scope.tag.Input.svelte meta.tag.start.svelte meta.attribute.value.svelte entity.other.attribute-name.svelte
 #            ^ source.svelte meta.scope.tag.Input.svelte meta.tag.start.svelte meta.attribute.value.svelte punctuation.separator.key-value.svelte
-#             ^ source.svelte meta.scope.tag.Input.svelte meta.tag.start.svelte meta.attribute.value.svelte string.quoted.svelte punctuation.definition.string.begin.svelte
-#              ^ source.svelte meta.scope.tag.Input.svelte meta.tag.start.svelte meta.attribute.value.svelte string.quoted.svelte
-#               ^ source.svelte meta.scope.tag.Input.svelte meta.tag.start.svelte meta.attribute.value.svelte string.quoted.svelte punctuation.definition.string.end.svelte
+#             ^ source.svelte meta.scope.tag.Input.svelte meta.tag.start.svelte meta.attribute.value.svelte punctuation.definition.string.begin.svelte
+#              ^ source.svelte meta.scope.tag.Input.svelte meta.tag.start.svelte meta.attribute.value.svelte constant.numeric.decimal.svelte
+#               ^ source.svelte meta.scope.tag.Input.svelte meta.tag.start.svelte meta.attribute.value.svelte punctuation.definition.string.end.svelte
 #                ^ source.svelte meta.scope.tag.Input.svelte meta.tag.start.svelte
 #                 ^^ source.svelte meta.scope.tag.Input.svelte meta.tag.start.svelte punctuation.definition.tag.end.svelte
 ><Input value={1} />

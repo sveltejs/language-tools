@@ -12,8 +12,11 @@
 #^^^^ source.svelte text.svelte
 #    ^ source.svelte meta.special.const.svelte punctuation.definition.block.begin.svelte
 #     ^ source.svelte meta.special.const.svelte punctuation.definition.keyword.svelte
-#      ^^^^^ source.svelte meta.special.const.svelte
-#           ^^^^^^^^^^^^^ source.svelte meta.special.const.svelte
+#      ^^^^^ source.svelte meta.special.const.svelte storage.type.svelte
+#           ^ source.svelte meta.special.const.svelte
+#            ^^^^^ source.svelte meta.special.const.svelte variable.other.constant.svelte
+#                 ^ source.svelte meta.special.const.svelte
+#                  ^^^^^^ source.svelte meta.special.const.svelte
 #                        ^ source.svelte meta.special.const.svelte punctuation.definition.block.end.svelte
 >    {item}
 #^^^^ source.svelte text.svelte
