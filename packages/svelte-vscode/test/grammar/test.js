@@ -6,6 +6,16 @@ const { join, resolve } = require('path');
 const dummyGrammarDir = resolve(__dirname, './dummy');
 const dummyGrammars = readdirSync(dummyGrammarDir).map((file) => join(dummyGrammarDir, file));
 
+const grammarDir = resolve(__dirname, '../../syntaxes');
+const grammars = readdirSync(grammarDir)
+    .filter((file) => file.endsWith('.json'))
+    .map((file) => join(grammarDir, file));
+
+const allGrammars = [
+    ...grammars,
+    ...dummyGrammars
+];
+
 /**
  *
  * @param  {Parameters<typeof spawn>} arg
@@ -31,11 +41,9 @@ async function snapShotTest() {
         'vscode-tmgrammar-snap',
         '-s',
         'source.svelte',
-        '-g',
-        './syntaxes/svelte.tmLanguage.json',
         '-t',
         './test/grammar/sample/**/*.svelte',
-        ...dummyGrammars.reduce((previous, path) => [...previous, '-g', path], []),
+        ...allGrammars.reduce((previous, path) => [...previous, '-g', path], []),
         ...extraArgs
     ];
 
