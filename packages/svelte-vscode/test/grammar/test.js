@@ -11,10 +11,7 @@ const grammars = readdirSync(grammarDir)
     .filter((file) => file.endsWith('.json'))
     .map((file) => join(grammarDir, file));
 
-const allGrammars = [
-    ...grammars,
-    ...dummyGrammars
-];
+const allGrammars = [...grammars, ...dummyGrammars];
 
 /**
  *
