@@ -32,3 +32,26 @@
 #  ^^ source.svelte meta.special.if.svelte meta.special.end.svelte keyword.control.conditional.svelte
 #    ^ source.svelte meta.special.if.svelte meta.special.end.svelte punctuation.definition.block.end.svelte
 >
+>
+>{#if asd}
+#^ source.svelte meta.special.if.svelte meta.special.start.svelte punctuation.definition.block.begin.svelte
+# ^ source.svelte meta.special.if.svelte meta.special.start.svelte punctuation.definition.keyword.svelte
+#  ^^ source.svelte meta.special.if.svelte meta.special.start.svelte keyword.control.conditional.svelte
+#    ^^^^ source.svelte meta.special.if.svelte meta.special.start.svelte meta.embedded.expression.svelte source.ts
+#        ^ source.svelte meta.special.if.svelte meta.special.start.svelte punctuation.definition.block.end.svelte
+>  asdddddddddddddddd
+#^^^^^^^^^^^^^^^^^^^^^ source.svelte text.svelte
+>  dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.svelte text.svelte
+>{:else if asd}dddddd{/if}
+#^ source.svelte meta.special.else if.svelte punctuation.definition.block.begin.svelte
+# ^ source.svelte meta.special.else if.svelte punctuation.definition.keyword.svelte
+#  ^^^^^^^ source.svelte meta.special.else if.svelte keyword.control.conditional.svelte
+#         ^^^^ source.svelte meta.special.else if.svelte meta.embedded.expression.svelte source.ts
+#             ^ source.svelte meta.special.else if.svelte punctuation.definition.block.end.svelte
+#              ^^^^^^ source.svelte text.svelte
+#                    ^ source.svelte meta.special.if.svelte meta.special.end.svelte punctuation.definition.block.begin.svelte
+#                     ^ source.svelte meta.special.if.svelte meta.special.end.svelte punctuation.definition.keyword.svelte
+#                      ^^ source.svelte meta.special.if.svelte meta.special.end.svelte keyword.control.conditional.svelte
+#                        ^ source.svelte meta.special.if.svelte meta.special.end.svelte punctuation.definition.block.end.svelte
+>

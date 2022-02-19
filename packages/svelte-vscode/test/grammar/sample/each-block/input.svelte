@@ -3,3 +3,7 @@
 {:else}
     <div></div>
 {/each}
+
+{#each showGroups as [key, items] (key)}
+
+{/each}
