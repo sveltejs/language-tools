@@ -59,6 +59,10 @@ More docs and troubleshooting: [See here](/docs/README.md).
 
 ### Settings
 
+##### `svelte.enable-ts-plugin`
+
+Enables a TypeScript plugin which provides intellisense for Svelte files inside TS/JS files. _Default_: `false`
+
 ##### `svelte.language-server.runtime`
 
 Path to the node executable you would like to use to run the language server.
@@ -68,7 +72,7 @@ This setting can only be changed in user settings for security reasons.
 
 ##### `svelte.language-server.ls-path`
 
-You normally don't set this. Path to the language server executable. If you installed the `svelte-language-server` npm package, it's within there at `bin/server.js`. Path can be either relative to your workspace root or absolute. Set this only if you want to use a custom version of the language server.
+You normally don't set this. Path to the language server executable. If you installed the `svelte-language-server` npm package, it's within there at `bin/server.js`. Path can be either relative to your workspace root or absolute. Set this only if you want to use a custom version of the language server. This will then also use the workspace version of TypeScript.
 This setting can only be changed in user settings for security reasons.
 
 ##### `svelte.language-server.port`
@@ -93,7 +97,11 @@ Settings to toggle specific features of the extension. The full list of all sett
 ### Usage with Yarn 2 PnP
 
 1. Run `yarn add -D svelte-language-server` to install svelte-language-server as a dev dependency
-2. Run `yarn dlx @yarnpkg/pnpify --sdk vscode` to generate or update the VSCode/Yarn integration SDKs.
+2. Run `yarn dlx @yarnpkg/sdks vscode` to generate or update the VSCode/Yarn integration SDKs.
 3. Set the `svelte.language-server.ls-path` setting in your user configuration, pointing it to the workspace-installed language server.
 4. Restart VSCode.
 5. Commit the changes to `.yarn/sdks`
+
+### Credits
+
+-   The PostCSS grammar is based on [hudochenkov/Syntax-highlighting-for-PostCSS](https://github.com/hudochenkov/Syntax-highlighting-for-PostCSS)

@@ -2,9 +2,10 @@ import { Position, WorkspaceEdit, Range } from 'vscode-languageserver';
 import {
     Document,
     mapRangeToOriginal,
-    positionAt,
+    getLineAtPosition,
     offsetAt,
-    getLineAtPosition
+    getNodeIfIsInStartTag,
+    isInHTMLTagRange
 } from '../../../lib/documents';
 import { filterAsync, isNotNullOrUndefined, pathToUrl } from '../../../utils';
 import { RenameProvider } from '../../interfaces';
@@ -17,10 +18,21 @@ import { convertRange } from '../utils';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import ts from 'typescript';
 import { uniqWith, isEqual } from 'lodash';
-import { isNoTextSpanInGeneratedCode, SnapshotFragmentMap } from './utils';
+import {
+    isComponentAtPosition,
+    isAfterSvelte2TsxPropsReturn,
+    isNoTextSpanInGeneratedCode,
+    SnapshotFragmentMap,
+    findContainingNode
+} from './utils';
+import { LSConfigManager } from '../../../ls-config';
+import { isAttributeName, isEventHandler } from '../svelte-ast-utils';
 
 export class RenameProviderImpl implements RenameProvider {
-    constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
+    constructor(
+        private readonly lsAndTsDocResolver: LSAndTSDocResolver,
+        private readonly configManager: LSConfigManager
+    ) {}
 
     // TODO props written as `export {x as y}` are not supported yet.
 
@@ -29,7 +41,7 @@ export class RenameProviderImpl implements RenameProvider {
         const fragment = await tsDoc.getFragment();
 
         const offset = fragment.offsetAt(fragment.getGeneratedPosition(position));
-        const renameInfo = this.getRenameInfo(lang, tsDoc, offset);
+        const renameInfo = this.getRenameInfo(lang, tsDoc, document, position, offset);
         if (!renameInfo) {
             return null;
         }
@@ -47,7 +59,7 @@ export class RenameProviderImpl implements RenameProvider {
 
         const offset = fragment.offsetAt(fragment.getGeneratedPosition(position));
 
-        if (!this.getRenameInfo(lang, tsDoc, offset)) {
+        if (!this.getRenameInfo(lang, tsDoc, document, position, offset)) {
             return null;
         }
 
@@ -69,16 +81,23 @@ export class RenameProviderImpl implements RenameProvider {
                 range: Range;
             }
         > = await this.mapAndFilterRenameLocations(renameLocations, docs);
-        // eslint-disable-next-line max-len
-        const additionalRenameForPropRenameInsideComponentWithProp = await this.getAdditionLocationsForRenameOfPropInsideComponentWithProp(
-            document,
-            tsDoc,
-            fragment,
-            position,
+
+        convertedRenameLocations = this.checkShortHandBindingOrSlotLetLocation(
+            lang,
             convertedRenameLocations,
-            docs,
-            lang
+            docs
         );
+
+        const additionalRenameForPropRenameInsideComponentWithProp =
+            await this.getAdditionLocationsForRenameOfPropInsideComponentWithProp(
+                document,
+                tsDoc,
+                fragment,
+                position,
+                convertedRenameLocations,
+                docs,
+                lang
+            );
         const additionalRenamesForPropRenameOutsideComponentWithProp =
             // This is an either-or-situation, don't do both
             additionalRenameForPropRenameInsideComponentWithProp.length > 0
@@ -117,7 +136,9 @@ export class RenameProviderImpl implements RenameProvider {
     private getRenameInfo(
         lang: ts.LanguageService,
         tsDoc: SvelteDocumentSnapshot,
-        offset: number
+        doc: Document,
+        originalPosition: Position,
+        generatedOffset: number
     ): {
         canRename: true;
         kind: ts.ScriptElementKind;
@@ -130,20 +151,30 @@ export class RenameProviderImpl implements RenameProvider {
         if (tsDoc.parserError) {
             return null;
         }
-        const renameInfo: any = lang.getRenameInfo(tsDoc.filePath, offset, {
+
+        const renameInfo = lang.getRenameInfo(tsDoc.filePath, generatedOffset, {
             allowRenameOfImportPath: false
         });
-        // TODO this will also forbid renames of svelte component properties
-        // in another component because the ScriptElementKind is a JSXAttribute.
-        // To fix this we would need to enhance svelte2tsx with info methods like
-        // "what props does this file have?"
+
         if (
             !renameInfo.canRename ||
-            renameInfo.kind === ts.ScriptElementKind.jsxAttribute ||
-            renameInfo.fullDisplayName?.includes('JSX.IntrinsicElements')
+            renameInfo.fullDisplayName?.includes('JSX.IntrinsicElements') ||
+            (renameInfo.kind === ts.ScriptElementKind.jsxAttribute &&
+                !isComponentAtPosition(doc, tsDoc, originalPosition))
         ) {
             return null;
         }
+
+        const svelteNode = tsDoc.svelteNodeAt(originalPosition);
+        if (
+            this.configManager.getConfig().svelte.useNewTransformation &&
+            (isInHTMLTagRange(doc.html, doc.offsetAt(originalPosition)) ||
+                isAttributeName(svelteNode, 'Element') ||
+                isEventHandler(svelteNode, 'Element'))
+        ) {
+            return null;
+        }
+
         return renameInfo;
     }
 
@@ -237,7 +268,12 @@ export class RenameProviderImpl implements RenameProvider {
         const idx = (match.index || 0) + match[0].lastIndexOf(match[1]);
         const replacementsForProp =
             lang.findRenameLocations(updatePropLocation.fileName, idx, false, false) || [];
-        return await this.mapAndFilterRenameLocations(replacementsForProp, fragments);
+
+        return this.checkShortHandBindingOrSlotLetLocation(
+            lang,
+            await this.mapAndFilterRenameLocations(replacementsForProp, fragments),
+            fragments
+        );
     }
 
     // --------> svelte2tsx?
@@ -278,15 +314,7 @@ export class RenameProviderImpl implements RenameProvider {
 
     // --------> svelte2tsx?
     private isInSvelte2TsxPropLine(fragment: SvelteSnapshotFragment, loc: ts.RenameLocation) {
-        const pos = positionAt(loc.textSpan.start, fragment.text);
-        const textInLine = fragment.text.substring(
-            offsetAt({ ...pos, character: 0 }, fragment.text),
-            loc.textSpan.start
-        );
-        // This is how svelte2tsx writes out the props
-        if (textInLine.includes('return { props: {')) {
-            return true;
-        }
+        return isAfterSvelte2TsxPropsReturn(fragment.text, loc.textSpan.start);
     }
 
     /**
@@ -325,13 +353,13 @@ export class RenameProviderImpl implements RenameProvider {
 
             const content = snapshot.getText(0, snapshot.getLength());
             // When the user renames a Svelte component, ts will also want to rename
-            // `__sveltets_instanceOf(TheComponentToRename)` or
-            // `__sveltets_ensureType(TheComponentToRename,..`. Prevent that.
+            // `__sveltets_1_instanceOf(TheComponentToRename)` or
+            // `__sveltets_1_ensureType(TheComponentToRename,..`. Prevent that.
             // Additionally, we cannot rename the hidden variable containing the store value
             return (
-                notPrecededBy('__sveltets_instanceOf(') &&
-                notPrecededBy('__sveltets_ensureType(') &&
-                notPrecededBy('= __sveltets_store_get(')
+                notPrecededBy('__sveltets_1_instanceOf(') &&
+                notPrecededBy('__sveltets_1_ensureType(') && // no longer necessary for new transformation
+                notPrecededBy('= __sveltets_1_store_get(')
             );
 
             function notPrecededBy(str: string) {
@@ -376,6 +404,174 @@ export class RenameProviderImpl implements RenameProvider {
 
     private getSnapshot(filePath: string) {
         return this.lsAndTsDocResolver.getSnapshot(filePath);
+    }
+
+    private checkShortHandBindingOrSlotLetLocation(
+        lang: ts.LanguageService,
+        renameLocations: Array<ts.RenameLocation & { range: Range }>,
+        fragments: SnapshotFragmentMap
+    ): Array<ts.RenameLocation & { range: Range }> {
+        const bind = 'bind:';
+
+        return renameLocations.map((location) => {
+            const sourceFile = lang.getProgram()?.getSourceFile(location.fileName);
+
+            if (
+                !sourceFile ||
+                location.fileName !== sourceFile.fileName ||
+                location.range.start.line < 0 ||
+                location.range.end.line < 0
+            ) {
+                return location;
+            }
+
+            const fragment = fragments.getFragment(location.fileName);
+            if (!(fragment instanceof SvelteSnapshotFragment)) {
+                return location;
+            }
+
+            const { originalText, parent } = fragment;
+
+            if (this.configManager.getConfig().svelte.useNewTransformation) {
+                let prefixText = location.prefixText?.trimRight();
+                if (!prefixText || prefixText.slice(-1) !== ':') {
+                    return location;
+                }
+                // prefix is of the form `oldVarName: ` -> hints at a shorthand
+                let rangeStart = parent.offsetAt(location.range.start);
+                // we need to make sure we only adjust shorthands on elements/components
+                if (
+                    !getNodeIfIsInStartTag(parent.html, rangeStart) ||
+                    // shorthands: let:xx, bind:xx, {xx}
+                    (parent.getText().charAt(rangeStart - 1) !== ':' &&
+                        // not use:action={{foo}}
+                        !/[^{]\s+{$/.test(parent.getText().substring(0, rangeStart)))
+                ) {
+                    return location;
+                }
+                prefixText = prefixText.slice(0, -1) + '={';
+                location = {
+                    ...location,
+                    prefixText,
+                    suffixText: '}'
+                };
+                // rename range needs to be adjusted in case of an attribute shortand
+                if (originalText.charAt(rangeStart - 1) === '{') {
+                    rangeStart--;
+                    const rangeEnd = parent.offsetAt(location.range.end) + 1;
+                    location.range = {
+                        start: parent.positionAt(rangeStart),
+                        end: parent.positionAt(rangeEnd)
+                    };
+                }
+                return location;
+            }
+
+            const renamingInfo =
+                this.getShorthandPropInfo(sourceFile, location) ??
+                this.getSlotLetInfo(sourceFile, location);
+
+            if (!renamingInfo) {
+                return location;
+            }
+
+            const [renamingNode, identifierName] = renamingInfo;
+
+            const originalStart = offsetAt(location.range.start, originalText);
+
+            const isShortHandBinding =
+                originalText.substr(originalStart - bind.length, bind.length) === bind;
+
+            const directiveName = (isShortHandBinding ? bind : '') + identifierName;
+            const prefixText = directiveName + '={';
+
+            const newRange = mapRangeToOriginal(
+                fragment,
+                convertRange(fragment, {
+                    start: renamingNode.getStart(),
+                    length: renamingNode.getWidth()
+                })
+            );
+
+            // somehow the mapping is one character before
+            if (
+                isShortHandBinding ||
+                originalText
+                    .substring(offsetAt(newRange.start, originalText), originalStart)
+                    .trimLeft() === '{'
+            ) {
+                newRange.start.character++;
+            }
+
+            return {
+                ...location,
+                prefixText,
+                suffixText: '}',
+                range: newRange
+            };
+        });
+    }
+
+    /**
+     * In case of using JSX, it's not possible to write shorthands like `{foo}`, they are transformed
+     * to `foo={foo}` and need extra handling for renaming.
+     *
+     * In case of `useNewTransformation` - do nothing, as the property is already written in shorthand.
+     */
+    private getShorthandPropInfo(
+        sourceFile: ts.SourceFile,
+        location: ts.RenameLocation
+    ): [ts.Node, string] | null {
+        const possibleJsxAttribute = findContainingNode(
+            sourceFile,
+            location.textSpan,
+            ts.isJsxAttribute
+        );
+        if (!possibleJsxAttribute) {
+            return null;
+        }
+
+        const attributeName = possibleJsxAttribute.name.getText();
+        const { initializer } = possibleJsxAttribute;
+
+        // not props={props}
+        if (
+            !initializer ||
+            !ts.isJsxExpression(initializer) ||
+            attributeName !== initializer.expression?.getText()
+        ) {
+            return null;
+        }
+
+        return [possibleJsxAttribute, attributeName];
+    }
+
+    private getSlotLetInfo(
+        sourceFile: ts.SourceFile,
+        location: ts.RenameLocation
+    ): [ts.Node, string] | null {
+        const possibleSlotLet = findContainingNode(
+            sourceFile,
+            location.textSpan,
+            ts.isVariableDeclaration
+        );
+        if (!possibleSlotLet || !ts.isObjectBindingPattern(possibleSlotLet.name)) {
+            return null;
+        }
+
+        const bindingElement = findContainingNode(
+            possibleSlotLet.name,
+            location.textSpan,
+            ts.isBindingElement
+        );
+
+        if (!bindingElement || bindingElement.propertyName) {
+            return null;
+        }
+
+        const identifierName = bindingElement.name.getText();
+
+        return [bindingElement, identifierName];
     }
 }
 

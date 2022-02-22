@@ -2,14 +2,84 @@ import ts from 'typescript';
 import { DocumentSnapshot, JSOrTSDocumentSnapshot } from './DocumentSnapshot';
 import { Logger } from '../../logger';
 import { TextDocumentContentChangeEvent } from 'vscode-languageserver';
+import { normalizePath } from '../../utils';
+import { EventEmitter } from 'events';
+
+/**
+ * Every snapshot corresponds to a unique file on disk.
+ * A snapshot can be part of multiple projects, but for a given file path
+ * there can be only one snapshot.
+ */
+export class GlobalSnapshotsManager {
+    private emitter = new EventEmitter();
+    private documents = new Map<string, DocumentSnapshot>();
+
+    get(fileName: string) {
+        fileName = normalizePath(fileName);
+        return this.documents.get(fileName);
+    }
+
+    set(fileName: string, document: DocumentSnapshot) {
+        fileName = normalizePath(fileName);
+        const prev = this.get(fileName);
+        if (prev) {
+            prev.destroyFragment();
+        }
+
+        this.documents.set(fileName, document);
+        this.emitter.emit('change', fileName, document);
+    }
+
+    delete(fileName: string) {
+        fileName = normalizePath(fileName);
+        this.documents.delete(fileName);
+        this.emitter.emit('change', fileName, undefined);
+    }
+
+    updateTsOrJsFile(
+        fileName: string,
+        changes?: TextDocumentContentChangeEvent[]
+    ): JSOrTSDocumentSnapshot | undefined {
+        fileName = normalizePath(fileName);
+        const previousSnapshot = this.get(fileName);
+
+        if (changes) {
+            if (!(previousSnapshot instanceof JSOrTSDocumentSnapshot)) {
+                return;
+            }
+            previousSnapshot.update(changes);
+            this.emitter.emit('change', fileName, previousSnapshot);
+            return previousSnapshot;
+        } else {
+            const newSnapshot = DocumentSnapshot.fromNonSvelteFilePath(fileName);
+
+            if (previousSnapshot) {
+                newSnapshot.version = previousSnapshot.version + 1;
+            } else {
+                // ensure it's greater than initial version
+                // so that ts server picks up the change
+                newSnapshot.version += 1;
+            }
+            this.set(fileName, newSnapshot);
+            return newSnapshot;
+        }
+    }
+
+    onChange(listener: (fileName: string, newDocument: DocumentSnapshot | undefined) => void) {
+        this.emitter.on('change', listener);
+    }
+}
 
 export interface TsFilesSpec {
     include?: readonly string[];
     exclude?: readonly string[];
 }
 
+/**
+ * Should only be used by `service.ts`
+ */
 export class SnapshotManager {
-    private documents: Map<string, DocumentSnapshot> = new Map();
+    private documents = new Map<string, DocumentSnapshot>();
     private lastLogged = new Date(new Date().getTime() - 60_001);
 
     private readonly watchExtensions = [
@@ -22,12 +92,26 @@ export class SnapshotManager {
     ];
 
     constructor(
+        private globalSnapshotsManager: GlobalSnapshotsManager,
         private projectFiles: string[],
         private fileSpec: TsFilesSpec,
         private workspaceRoot: string
-    ) {}
+    ) {
+        this.globalSnapshotsManager.onChange((fileName, document) => {
+            // Only delete/update snapshots, don't add new ones,
+            // as they could be from another TS service and this
+            // snapshot manager can't reach this file.
+            // For these, instead wait on a `get` method invocation
+            // and set them "manually" in the set/update methods.
+            if (!document) {
+                this.documents.delete(fileName);
+            } else if (this.documents.has(fileName)) {
+                this.documents.set(fileName, document);
+            }
+        });
+    }
 
-    updateProjectFiles() {
+    updateProjectFiles(): void {
         const { include, exclude } = this.fileSpec;
 
         // Since we default to not include anything,
@@ -36,67 +120,58 @@ export class SnapshotManager {
             return;
         }
 
-        const projectFiles = ts.sys.readDirectory(
-            this.workspaceRoot,
-            this.watchExtensions,
-            exclude,
-            include
-        );
+        const projectFiles = ts.sys
+            .readDirectory(this.workspaceRoot, this.watchExtensions, exclude, include)
+            .map(normalizePath);
 
         this.projectFiles = Array.from(new Set([...this.projectFiles, ...projectFiles]));
     }
 
     updateTsOrJsFile(fileName: string, changes?: TextDocumentContentChangeEvent[]): void {
-        const previousSnapshot = this.get(fileName);
-
-        if (changes) {
-            if (!(previousSnapshot instanceof JSOrTSDocumentSnapshot)) {
-                return;
-            }
-            previousSnapshot.update(changes);
-        } else {
-            const newSnapshot = DocumentSnapshot.fromNonSvelteFilePath(fileName);
-
-            if (previousSnapshot) {
-                newSnapshot.version = previousSnapshot.version + 1;
-            } else {
-                // ensure it's greater than initial version
-                // so that ts server picks up the change
-                newSnapshot.version += 1;
-            }
-            this.set(fileName, newSnapshot);
+        const snapshot = this.globalSnapshotsManager.updateTsOrJsFile(fileName, changes);
+        // This isn't duplicated logic to the listener, because this could
+        // be a new snapshot which the listener wouldn't add.
+        if (snapshot) {
+            this.documents.set(normalizePath(fileName), snapshot);
         }
     }
 
-    has(fileName: string) {
+    has(fileName: string): boolean {
+        fileName = normalizePath(fileName);
         return this.projectFiles.includes(fileName) || this.getFileNames().includes(fileName);
     }
 
-    set(fileName: string, snapshot: DocumentSnapshot) {
-        const prev = this.get(fileName);
-        if (prev) {
-            prev.destroyFragment();
-        }
-
+    set(fileName: string, snapshot: DocumentSnapshot): void {
+        this.globalSnapshotsManager.set(fileName, snapshot);
+        // This isn't duplicated logic to the listener, because this could
+        // be a new snapshot which the listener wouldn't add.
+        this.documents.set(normalizePath(fileName), snapshot);
         this.logStatistics();
-
-        return this.documents.set(fileName, snapshot);
     }
 
-    get(fileName: string) {
-        return this.documents.get(fileName);
+    get(fileName: string): DocumentSnapshot | undefined {
+        fileName = normalizePath(fileName);
+        let snapshot = this.documents.get(fileName);
+        if (!snapshot) {
+            snapshot = this.globalSnapshotsManager.get(fileName);
+            if (snapshot) {
+                this.documents.set(fileName, snapshot);
+            }
+        }
+        return snapshot;
     }
 
-    delete(fileName: string) {
+    delete(fileName: string): void {
+        fileName = normalizePath(fileName);
         this.projectFiles = this.projectFiles.filter((s) => s !== fileName);
-        return this.documents.delete(fileName);
+        this.globalSnapshotsManager.delete(fileName);
     }
 
-    getFileNames() {
+    getFileNames(): string[] {
         return Array.from(this.documents.keys());
     }
 
-    getProjectFileNames() {
+    getProjectFileNames(): string[] {
         return [...this.projectFiles];
     }
 
@@ -122,3 +197,5 @@ export class SnapshotManager {
         }
     }
 }
+
+export const ignoredBuildDirectories = ['__sapper__', '.svelte-kit'];

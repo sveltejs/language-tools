@@ -1,5 +1,7 @@
 import { RawSourceMap, SourceMapConsumer } from 'source-map';
-import svelte2tsx, { IExportedNames, ComponentEvents } from 'svelte2tsx';
+import { walk } from 'svelte/compiler';
+import { TemplateNode } from 'svelte/types/compiler/interfaces';
+import { svelte2tsx, IExportedNames } from 'svelte2tsx';
 import ts from 'typescript';
 import { Position, Range, TextDocumentContentChangeEvent } from 'vscode-languageserver';
 import {
@@ -10,10 +12,12 @@ import {
     offsetAt,
     positionAt,
     TagInformation,
-    isInTag
+    isInTag,
+    getLineOffsets
 } from '../../lib/documents';
 import { pathToUrl } from '../../utils';
 import { ConsumerDocumentMapper } from './DocumentMapper';
+import { SvelteNode } from './svelte-ast-utils';
 import {
     getScriptKindFromAttributes,
     getScriptKindFromFileName,
@@ -76,8 +80,9 @@ export interface SnapshotFragment extends DocumentMapper {
  * Options that apply to svelte files.
  */
 export interface SvelteSnapshotOptions {
-    strictMode: boolean;
     transformOnTemplateError: boolean;
+    useNewTransformation: boolean;
+    typingsNamespace: string;
 }
 
 export namespace DocumentSnapshot {
@@ -87,15 +92,8 @@ export namespace DocumentSnapshot {
      * @param options options that apply to the svelte document
      */
     export function fromDocument(document: Document, options: SvelteSnapshotOptions) {
-        const {
-            tsxMap,
-            text,
-            exportedNames,
-            componentEvents,
-            parserError,
-            nrPrependedLines,
-            scriptKind
-        } = preprocessSvelteFile(document, options);
+        const { tsxMap, htmlAst, text, exportedNames, parserError, nrPrependedLines, scriptKind } =
+            preprocessSvelteFile(document, options);
 
         return new SvelteDocumentSnapshot(
             document,
@@ -104,8 +102,8 @@ export namespace DocumentSnapshot {
             text,
             nrPrependedLines,
             exportedNames,
-            componentEvents,
-            tsxMap
+            tsxMap,
+            htmlAst
         );
     }
 
@@ -162,27 +160,39 @@ function preprocessSvelteFile(document: Document, options: SvelteSnapshotOptions
     let nrPrependedLines = 0;
     let text = document.getText();
     let exportedNames: IExportedNames = { has: () => false };
-    let componentEvents: ComponentEvents | undefined = undefined;
+    let htmlAst: TemplateNode | undefined;
 
     const scriptKind = [
         getScriptKindFromAttributes(document.scriptInfo?.attributes ?? {}),
         getScriptKindFromAttributes(document.moduleScriptInfo?.attributes ?? {})
     ].includes(ts.ScriptKind.TSX)
-        ? ts.ScriptKind.TSX
+        ? options.useNewTransformation
+            ? ts.ScriptKind.TS
+            : ts.ScriptKind.TSX
+        : options.useNewTransformation
+        ? ts.ScriptKind.JS
         : ts.ScriptKind.JSX;
 
     try {
         const tsx = svelte2tsx(text, {
-            strictMode: options.strictMode,
             filename: document.getFilePath() ?? undefined,
-            isTsFile: scriptKind === ts.ScriptKind.TSX,
+            isTsFile: options.useNewTransformation
+                ? scriptKind === ts.ScriptKind.TS
+                : scriptKind === ts.ScriptKind.TSX,
+            mode: options.useNewTransformation ? 'ts' : 'tsx',
+            typingsNamespace: options.useNewTransformation ? options.typingsNamespace : undefined,
             emitOnTemplateError: options.transformOnTemplateError,
-            namespace: document.config?.compilerOptions?.namespace
+            namespace: document.config?.compilerOptions?.namespace,
+            accessors:
+                document.config?.compilerOptions?.accessors ??
+                document.config?.compilerOptions?.customElement
         });
         text = tsx.code;
         tsxMap = tsx.map;
         exportedNames = tsx.exportedNames;
-        componentEvents = tsx.events;
+        // We know it's there, it's not part of the public API so people don't start using it
+        htmlAst = (tsx as any).htmlAst;
+
         if (tsxMap) {
             tsxMap.sources = [document.uri];
 
@@ -193,10 +203,10 @@ function preprocessSvelteFile(document: Document, options: SvelteSnapshotOptions
                 nrPrependedLines = 1;
             }
         }
-    } catch (e) {
+    } catch (e: any) {
         // Error start/end logic is different and has different offsets for line, so we need to convert that
         const start: Position = {
-            line: e.start?.line - 1 ?? 0,
+            line: (e.start?.line ?? 1) - 1,
             character: e.start?.column ?? 0
         };
         const end: Position = e.end ? { line: e.end.line - 1, character: e.end.column } : start;
@@ -216,7 +226,7 @@ function preprocessSvelteFile(document: Document, options: SvelteSnapshotOptions
         tsxMap,
         text,
         exportedNames,
-        componentEvents,
+        htmlAst,
         parserError,
         nrPrependedLines,
         scriptKind
@@ -238,8 +248,8 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
         private readonly text: string,
         private readonly nrPrependedLines: number,
         private readonly exportedNames: IExportedNames,
-        private readonly componentEvents?: ComponentEvents,
-        private readonly tsxMap?: RawSourceMap
+        private readonly tsxMap?: RawSourceMap,
+        private readonly htmlAst?: TemplateNode
     ) {}
 
     get filePath() {
@@ -275,8 +285,36 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
         return this.exportedNames.has(name);
     }
 
-    getEvents() {
-        return this.componentEvents?.getAll() || [];
+    svelteNodeAt(postionOrOffset: number | Position): SvelteNode | null {
+        if (!this.htmlAst) {
+            return null;
+        }
+        const offset =
+            typeof postionOrOffset === 'number'
+                ? postionOrOffset
+                : this.parent.offsetAt(postionOrOffset);
+
+        let foundNode: SvelteNode | null = null;
+        walk(this.htmlAst, {
+            enter(node) {
+                // In case the offset is at a point where a node ends and a new one begins,
+                // the node where the code ends is used. If this introduces problems, introduce
+                // an affinity parameter to prefer the node where it ends/starts.
+                if ((node as SvelteNode).start > offset || (node as SvelteNode).end < offset) {
+                    this.skip();
+                    return;
+                }
+                const parent = foundNode;
+                // Spread so the "parent" property isn't added to the original ast,
+                // causing an infinite loop
+                foundNode = { ...node } as SvelteNode;
+                if (parent) {
+                    foundNode.parent = parent;
+                }
+            }
+        });
+
+        return foundNode;
     }
 
     async getFragment() {
@@ -302,12 +340,14 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
     private async getMapper(uri: string) {
         const scriptInfo = this.parent.scriptInfo || this.parent.moduleScriptInfo;
 
-        if (!scriptInfo) {
-            return new IdentityMapper(uri);
-        }
         if (!this.tsxMap) {
+            if (!scriptInfo) {
+                return new IdentityMapper(uri);
+            }
+
             return new FragmentMapper(this.parent.getText(), scriptInfo, uri);
         }
+
         return new ConsumerDocumentMapper(
             await new SourceMapConsumer(this.tsxMap),
             uri,
@@ -322,9 +362,11 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
  */
 export class JSOrTSDocumentSnapshot
     extends IdentityMapper
-    implements DocumentSnapshot, SnapshotFragment {
+    implements DocumentSnapshot, SnapshotFragment
+{
     scriptKind = getScriptKindFromFileName(this.filePath);
     scriptInfo = null;
+    private lineOffsets?: number[];
 
     constructor(public version: number, public readonly filePath: string, private text: string) {
         super(pathToUrl(filePath));
@@ -347,11 +389,11 @@ export class JSOrTSDocumentSnapshot
     }
 
     positionAt(offset: number) {
-        return positionAt(offset, this.text);
+        return positionAt(offset, this.text, this.getLineOffsets());
     }
 
     offsetAt(position: Position): number {
-        return offsetAt(position, this.text);
+        return offsetAt(position, this.text, this.getLineOffsets());
     }
 
     async getFragment() {
@@ -377,6 +419,14 @@ export class JSOrTSDocumentSnapshot
         }
 
         this.version++;
+        this.lineOffsets = undefined;
+    }
+
+    private getLineOffsets() {
+        if (!this.lineOffsets) {
+            this.lineOffsets = getLineOffsets(this.text);
+        }
+        return this.lineOffsets;
     }
 }
 
@@ -385,15 +435,25 @@ export class JSOrTSDocumentSnapshot
  * to generated snapshot positions and vice versa.
  */
 export class SvelteSnapshotFragment implements SnapshotFragment {
+    private lineOffsets = getLineOffsets(this.text);
+
     constructor(
         private readonly mapper: DocumentMapper,
         public readonly text: string,
-        private readonly parent: Document,
+        public readonly parent: Document,
         private readonly url: string
     ) {}
 
     get scriptInfo() {
-        return this.parent.scriptInfo || this.parent.moduleScriptInfo;
+        return this.parent.scriptInfo;
+    }
+
+    get moduleScriptInfo() {
+        return this.parent.moduleScriptInfo;
+    }
+
+    get originalText() {
+        return this.parent.getText();
     }
 
     getOriginalPosition(pos: Position): Position {
@@ -413,11 +473,11 @@ export class SvelteSnapshotFragment implements SnapshotFragment {
     }
 
     positionAt(offset: number) {
-        return positionAt(offset, this.text);
+        return positionAt(offset, this.text, this.lineOffsets);
     }
 
     offsetAt(position: Position) {
-        return offsetAt(position, this.text);
+        return offsetAt(position, this.text, this.lineOffsets);
     }
 
     /**

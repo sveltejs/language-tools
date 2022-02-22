@@ -6,8 +6,19 @@ If a svelte file contains some language other than `html`, `css` or `javascript`
 
 > NOTE: Prior to `svelte-check 1.4.0` / `svelte-language-server 0.13.0` / `Svelte for VS Code 104.9.0` you **cannot** use the new `import x from y` and `export const` / `export default` syntax in `svelte.config.js`.
 
+ESM-style (for everything with `"type": "module"` in its `package.json`, like SvelteKit):
+
 ```js
-// svelte.config.js
+import sveltePreprocess from 'svelte-preprocess';
+
+export default {
+    preprocess: sveltePreprocess()
+};
+```
+
+CJS-style:
+
+```js
 const sveltePreprocess = require('svelte-preprocess');
 
 module.exports = {
@@ -38,23 +49,11 @@ It's also necessary to add a `type="text/language-name"` or `lang="language-name
 
 #### Using language defaults
 
-If you use `svelte-preprocess` and define the defaults inside `svelte.config.js`, you can in some cases omit the `type`/`lang` attributes. While these defaults get picked up by the language server, this may break your syntax highlighting and your code is no longer colored the right way, so use with caution - we recommend to always type the attributes. Reason: we have to tell VSCode which part of the Svelte file is written in which language through providing static regexes, which rely on the `type`/`lang` attribute.
-
-```js
-const sveltePreprocess = require('svelte-preprocess');
-
-module.exports = {
-    preprocess: sveltePreprocess({
-        defaults: {
-            script: 'typescript' // <-- now you can just write <script>let typingsAllowed: string;</script>
-        }
-    })
-};
-```
+If you use `svelte-preprocess` and [define the defaults](https://github.com/sveltejs/svelte-preprocess/blob/main/docs/preprocessing.md#auto-preprocessing-options) inside `svelte.config.js`, you can in some cases omit the `type`/`lang` attributes. While these defaults get picked up by the language server, this may break your syntax highlighting and your code is no longer colored the right way, so use with caution - reason: we have to tell VSCode which part of the Svelte file is written in which language through providing static regexes, which rely on the `type`/`lang` attribute. It will also likely not work for other tooling in the ecosystem, for example `eslint-plugin-svelte3` or `prettier-plugin-svelte`. **We therefore recommend to always type the attributes.**
 
 #### Deduplicating your configs
 
-Most of the preprocessor settings you write inside your `svelte.config.js` is likely duplicated in your build config. Here's how to deduplicate it (using rollup as an example):
+Most of the preprocessor settings you write inside your `svelte.config.js` is likely duplicated in your build config. Here's how to deduplicate it (using rollup and CJS-style config as an example):
 
 ```js
 // svelte.config.js:

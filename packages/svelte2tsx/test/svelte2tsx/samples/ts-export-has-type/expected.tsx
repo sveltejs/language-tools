@@ -2,11 +2,11 @@
 <></>;function render() {
 
     interface A {}
-     let a: A;
-     let b: A = {};b = __sveltets_any(b);;
+     let a: A/*Ωignore_startΩ*/;a = __sveltets_1_any(a);/*Ωignore_endΩ*/;
+     let b: A = {}/*Ωignore_startΩ*/;b = __sveltets_1_any(b);/*Ωignore_endΩ*/;
 ;
 () => (<></>);
 return { props: {a: a , b: b} as {a: A, b?: A}, slots: {}, getters: {}, events: {} }}
 
-export default class Input__SvelteComponent_ extends createSvelte2TsxComponent(__sveltets_partial_ts(__sveltets_with_any_event(render))) {
+export default class Input__SvelteComponent_ extends __sveltets_1_createSvelte2TsxComponent(__sveltets_1_with_any_event(render())) {
 }

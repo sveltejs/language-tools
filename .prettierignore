@@ -1,7 +1,8 @@
 packages/svelte2tsx/*.d.ts
-packages/svelte2tsx/test/*/samples/*/*sx
-packages/svelte2tsx/test/*/samples/*/*.svelte
+packages/svelte2tsx/repl/*
+packages/svelte2tsx/test/*/samples/**/*
 packages/svelte2tsx/test/sourcemaps/samples/*
+packages/svelte2tsx/test/emitDts/samples/*/expected/**
 packages/language-server/test/**/*.svelte
 packages/language-server/test/**/testfiles/**/*.ts
 packages/svelte-vscode/syntaxes/*.yaml

@@ -3,13 +3,14 @@ import ts from 'typescript';
 import {
     CompletionItemKind,
     DiagnosticSeverity,
+    DiagnosticTag,
     Position,
     Range,
     SymbolKind
 } from 'vscode-languageserver';
-import { mapRangeToOriginal } from '../../lib/documents';
+import { Document, isInTag, mapRangeToOriginal } from '../../lib/documents';
 import { pathToUrl } from '../../utils';
-import { SnapshotFragment } from './DocumentSnapshot';
+import { SnapshotFragment, SvelteSnapshotFragment } from './DocumentSnapshot';
 
 export function getScriptKindFromFileName(fileName: string): ts.ScriptKind {
     const ext = fileName.substr(fileName.lastIndexOf('.'));
@@ -101,6 +102,22 @@ export function convertToLocationRange(defDoc: SnapshotFragment, textSpan: ts.Te
     }
 
     return range;
+}
+
+export function hasNonZeroRange({ range }: { range?: Range }): boolean {
+    return (
+        !!range &&
+        (range.start.line !== range.end.line || range.start.character !== range.end.character)
+    );
+}
+
+export function rangeToTextSpan(
+    range: Range,
+    document: { offsetAt: (position: Position) => number }
+): ts.TextSpan {
+    const start = document.offsetAt(range.start);
+    const end = document.offsetAt(range.end);
+    return { start, length: end - start };
 }
 
 export function findTsConfigPath(fileName: string, rootUris: string[]) {
@@ -270,7 +287,8 @@ const commentsRegex = /^(\s*\/\/.*\s*)*/;
 // [ \t\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff]
 // is just \s (a.k.a any whitespace character) without linebreak and vertical tab
 // eslint-disable-next-line max-len
-const tsCheckRegex = /\/\/[ \t\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff]*(@ts-(no)?check)($|\s)/;
+const tsCheckRegex =
+    /\/\/[ \t\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff]*(@ts-(no)?check)($|\s)/;
 
 /**
  * Returns `// @ts-check` or `// @ts-nocheck` if content starts with comments and has one of these
@@ -295,4 +313,31 @@ export function convertToTextSpan(range: Range, fragment: SnapshotFragment): ts.
         start,
         length: end - start
     };
+}
+
+export function isInScript(position: Position, fragment: SvelteSnapshotFragment | Document) {
+    return isInTag(position, fragment.scriptInfo) || isInTag(position, fragment.moduleScriptInfo);
+}
+
+export function getDiagnosticTag(diagnostic: ts.Diagnostic): DiagnosticTag[] {
+    const tags: DiagnosticTag[] = [];
+    if (diagnostic.reportsUnnecessary) {
+        tags.push(DiagnosticTag.Unnecessary);
+    }
+    if (diagnostic.reportsDeprecated) {
+        tags.push(DiagnosticTag.Deprecated);
+    }
+    return tags;
+}
+
+export function changeSvelteComponentName(name: string) {
+    return name.replace(/(\w+)__SvelteComponent_/, '$1');
+}
+
+export function hasTsExtensions(fileName: string) {
+    return (
+        fileName.endsWith(ts.Extension.Dts) ||
+        fileName.endsWith(ts.Extension.Tsx) ||
+        fileName.endsWith(ts.Extension.Ts)
+    );
 }

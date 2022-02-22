@@ -5,9 +5,10 @@ import { Document } from '../../../src/lib/documents';
 import * as importPackage from '../../../src/importPackage';
 import {
     SvelteDocument,
-    TranspiledSvelteDocument
+    ITranspiledSvelteDocument
 } from '../../../src/plugins/svelte/SvelteDocument';
 import { configLoader, SvelteConfig } from '../../../src/lib/documents/configLoader';
+import { Preprocessor } from 'svelte/types/compiler/preprocess/types';
 
 describe('Svelte Document', () => {
     function getSourceCode(transpiled: boolean): string {
@@ -32,13 +33,45 @@ describe('Svelte Document', () => {
         assert.strictEqual(svelteDoc.getText(), parent.getText());
     });
 
-    describe('#transpiled', () => {
-        async function setupTranspiled() {
-            const { parent, svelteDoc } = setup({
-                preprocess: {
-                    script: () => ({
-                        code: '',
-                        map: JSON.stringify({
+    describe('#transpiled (fallback)', () => {
+        async function setupTranspiledWithStringSourceMap() {
+            const stringSourceMapScript = () => ({
+                code: '',
+                map: JSON.stringify({
+                    version: 3,
+                    file: '',
+                    names: [],
+                    sources: [],
+                    sourceRoot: '',
+                    mappings: ''
+                })
+            });
+
+            return setupTranspiled(stringSourceMapScript);
+        }
+
+        async function setupTranspiledWithObjectSourceMap() {
+            const rawObjectSourceMapScript = () => ({
+                code: '',
+                map: {
+                    version: 3,
+                    file: '',
+                    names: [],
+                    sources: [],
+                    sourceRoot: '',
+                    mappings: ''
+                }
+            });
+
+            return setupTranspiled(rawObjectSourceMapScript);
+        }
+
+        async function setupTranspiledWithClassSourceMap() {
+            const rawObjectSourceMapScript = () => ({
+                code: '',
+                map: {
+                    toString: () =>
+                        JSON.stringify({
                             version: 3,
                             file: '',
                             names: [],
@@ -46,12 +79,24 @@ describe('Svelte Document', () => {
                             sourceRoot: '',
                             mappings: ''
                         })
-                    })
+                }
+            });
+
+            return setupTranspiled(rawObjectSourceMapScript);
+        }
+
+        async function setupTranspiled(sourceMapPreProcessor: Preprocessor) {
+            const { parent, svelteDoc } = setup({
+                preprocess: {
+                    script: sourceMapPreProcessor
                 }
             });
 
             // stub svelte preprocess and getOriginalPosition
-            // to fake a source mapping process
+            // to fake a source mapping process with the fallback version
+            sinon
+                .stub(importPackage, 'getPackageInfo')
+                .returns({ path: '', version: { full: '', major: 3, minor: 31, patch: 0 } });
             sinon.stub(importPackage, 'importSvelte').returns({
                 preprocess: (text, preprocessor) => {
                     preprocessor = Array.isArray(preprocessor) ? preprocessor : [preprocessor];
@@ -69,7 +114,7 @@ describe('Svelte Document', () => {
                 parse: <any>null
             });
             const transpiled = await svelteDoc.getTranspiled();
-            const scriptSourceMapper = (<any>transpiled.scriptMapper).sourceMapper;
+            const scriptSourceMapper = (<any>transpiled).scriptMapper.sourceMapper;
             // hacky reset of method because mocking the SourceMap constructor is an impossible task
             scriptSourceMapper.getOriginalPosition = ({ line, character }: Position) => ({
                 line: line - 1,
@@ -85,7 +130,7 @@ describe('Svelte Document', () => {
         }
 
         function assertCanMapBackAndForth(
-            transpiled: TranspiledSvelteDocument,
+            transpiled: ITranspiledSvelteDocument,
             generatedPosition: Position,
             originalPosition: Position
         ) {
@@ -102,26 +147,38 @@ describe('Svelte Document', () => {
             );
         }
 
-        it('should map correctly within sourcemapped script', async () => {
-            const { transpiled } = await setupTranspiled();
+        it('should map correctly within string valued sourcemapped script', async () => {
+            const { transpiled } = await setupTranspiledWithStringSourceMap();
+
+            assertCanMapBackAndForth(transpiled, Position.create(3, 2), Position.create(2, 18));
+        });
+
+        it('should map correctly within object valued sourcemapped script', async () => {
+            const { transpiled } = await setupTranspiledWithObjectSourceMap();
+
+            assertCanMapBackAndForth(transpiled, Position.create(3, 2), Position.create(2, 18));
+        });
+
+        it('should map correctly within class valued sourcemapped script', async () => {
+            const { transpiled } = await setupTranspiledWithClassSourceMap();
 
             assertCanMapBackAndForth(transpiled, Position.create(3, 2), Position.create(2, 18));
         });
 
         it('should map correctly in template before script', async () => {
-            const { transpiled } = await setupTranspiled();
+            const { transpiled } = await setupTranspiledWithStringSourceMap();
 
             assertCanMapBackAndForth(transpiled, Position.create(1, 1), Position.create(1, 1));
         });
 
         it('should map correctly in template after script', async () => {
-            const { transpiled } = await setupTranspiled();
+            const { transpiled } = await setupTranspiledWithStringSourceMap();
 
             assertCanMapBackAndForth(transpiled, Position.create(4, 1), Position.create(3, 1));
         });
 
         it('should map correctly in style', async () => {
-            const { transpiled } = await setupTranspiled();
+            const { transpiled } = await setupTranspiledWithStringSourceMap();
 
             assertCanMapBackAndForth(transpiled, Position.create(5, 18), Position.create(4, 18));
         });

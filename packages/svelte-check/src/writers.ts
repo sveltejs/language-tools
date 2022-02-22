@@ -1,4 +1,4 @@
-import chalk from 'chalk';
+import pc from 'picocolors';
 import { sep } from 'path';
 import { Writable } from 'stream';
 import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver-protocol';
@@ -23,16 +23,25 @@ export class HumanFriendlyWriter implements Writer {
     constructor(
         private stream: Writable,
         private isVerbose = true,
+        private isWatchMode = false,
         private diagnosticFilter: DiagnosticFilter = DEFAULT_FILTER
     ) {}
 
     start(workspaceDir: string) {
+        if (process.stdout.isTTY && this.isWatchMode) {
+            // Clear screen
+            const blank = '\n'.repeat(process.stdout.rows);
+            this.stream.write(blank);
+            process.stdout.cursorTo(0, 0);
+            process.stdout.clearScreenDown();
+        }
+
         if (this.isVerbose) {
             this.stream.write('\n');
+            this.stream.write('====================================\n');
             this.stream.write(`Loading svelte-check in workspace: ${workspaceDir}`);
             this.stream.write('\n');
             this.stream.write('Getting Svelte diagnostics...\n');
-            this.stream.write('====================================\n');
             this.stream.write('\n');
         }
     }
@@ -45,7 +54,7 @@ export class HumanFriendlyWriter implements Writer {
             const { line, character } = diagnostic.range.start;
             // eslint-disable-next-line max-len
             this.stream.write(
-                `${workspaceDir}${sep}${chalk.green(filename)}:${line + 1}:${character + 1}\n`
+                `${workspaceDir}${sep}${pc.green(filename)}:${line + 1}:${character + 1}\n`
             );
 
             // Show some context around diagnostic range
@@ -56,17 +65,17 @@ export class HumanFriendlyWriter implements Writer {
 
             let msg;
             if (this.isVerbose) {
-                msg = `${diagnostic.message} ${source}\n${chalk.cyan(code)}`;
+                msg = `${diagnostic.message} ${source}\n${pc.cyan(code)}`;
             } else {
                 msg = `${diagnostic.message} ${source}`;
             }
 
             if (diagnostic.severity === DiagnosticSeverity.Error) {
-                this.stream.write(`${chalk.red('Error')}: ${msg}\n`);
+                this.stream.write(`${pc.red('Error')}: ${msg}\n`);
             } else if (diagnostic.severity === DiagnosticSeverity.Warning) {
-                this.stream.write(`${chalk.yellow('Warn')}: ${msg}\n`);
+                this.stream.write(`${pc.yellow('Warn')}: ${msg}\n`);
             } else {
-                this.stream.write(`${chalk.gray('Hint')}: ${msg}\n`);
+                this.stream.write(`${pc.gray('Hint')}: ${msg}\n`);
             }
 
             this.stream.write('\n');
@@ -80,7 +89,7 @@ export class HumanFriendlyWriter implements Writer {
             offsetAt({ line: diagnostic.range.start.line, character: 0 }, text),
             startOffset
         );
-        const codeHighlight = chalk.magenta(text.substring(startOffset, endOffset));
+        const codeHighlight = pc.magenta(text.substring(startOffset, endOffset));
         const codePost = text.substring(
             endOffset,
             offsetAt({ line: diagnostic.range.end.line, character: Number.MAX_SAFE_INTEGER }, text)
@@ -100,17 +109,20 @@ export class HumanFriendlyWriter implements Writer {
         const message = [
             'svelte-check found ',
             `${errorCount} ${errorCount === 1 ? 'error' : 'errors'}, `,
-            `${warningCount} ${warningCount === 1 ? 'warning' : 'warnings'} and `,
+            `${warningCount} ${warningCount === 1 ? 'warning' : 'warnings'}, and `,
             `${hintCount} ${hintCount === 1 ? 'hint' : 'hints'}\n`
         ].join('');
         if (errorCount !== 0) {
-            this.stream.write(chalk.red(message));
+            this.stream.write(pc.red(message));
         } else if (warningCount !== 0) {
-            this.stream.write(chalk.yellow(message));
+            this.stream.write(pc.yellow(message));
         } else if (hintCount !== 0) {
-            this.stream.write(chalk.grey(message));
+            this.stream.write(pc.gray(message));
         } else {
-            this.stream.write(chalk.green(message));
+            this.stream.write(pc.green(message));
+        }
+        if (this.isWatchMode) {
+            this.stream.write('Watching for file changes...');
         }
     }
 

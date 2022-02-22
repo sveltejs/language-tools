@@ -11,4 +11,12 @@
      */
     export let b;
     export let c;
+    /**
+     * d
+     */
+    export let d,
+    /**
+     * e
+     */
+     e;
 </script>

@@ -219,7 +219,7 @@ describe('SveltePlugin#getDiagnostics', () => {
                 message:
                     'expected x to not be here' +
                     '\n\nIf you expect this syntax to work, here are some suggestions: ' +
-                    '\nIf you use typescript with `svelte-preprocess`, did you add `lang="typescript"` to your `script` tag? ' +
+                    '\nIf you use typescript with `svelte-preprocess`, did you add `lang="ts"` to your `script` tag? ' +
                     '\nDid you setup a `svelte.config.js`? ' +
                     '\nSee https://github.com/sveltejs/language-tools/tree/master/docs#using-with-preprocessors for more info.',
                 range: {
@@ -229,6 +229,43 @@ describe('SveltePlugin#getDiagnostics', () => {
                     },
                     end: {
                         character: 8,
+                        line: 0
+                    }
+                },
+                severity: DiagnosticSeverity.Error,
+                source: 'svelte'
+            }
+        ]);
+    });
+
+    it('expect valid position for compilation error', async () => {
+        const message =
+            'Stores must be declared at the top level of the component (this may change in a future version of Svelte)';
+        (
+            await expectDiagnosticsFor({
+                getTranspiled: () => ({
+                    getOriginalPosition: () => Position.create(-1, -1)
+                }),
+                getCompiled: () => {
+                    const e: any = new Error();
+                    e.message = message;
+                    e.code = 123;
+                    e.start = { line: 1, column: 8 };
+                    throw e;
+                },
+                config: {}
+            })
+        ).toEqual([
+            {
+                code: 123,
+                message,
+                range: {
+                    start: {
+                        character: 0,
+                        line: 0
+                    },
+                    end: {
+                        character: 0,
                         line: 0
                     }
                 },
@@ -300,6 +337,35 @@ describe('SveltePlugin#getDiagnostics', () => {
                                     end: { line: 1, column: 33 },
                                     message:
                                         "Component has unused export property 'A'. If it is for external reference only, please consider using `export const A`",
+                                    code: 'unused-export-let'
+                                }
+                            ]
+                        }
+                    }),
+                config: {}
+            })
+        ).toEqual([]);
+    });
+
+    it('filter out false positive warning (export namespace)', async () => {
+        (
+            await expectDiagnosticsFor({
+                docText:
+                    '<script context="module">export namespace foo { export function bar() {} }</script>',
+                getTranspiled: () => ({
+                    getOriginalPosition: (pos: Position) => {
+                        return pos;
+                    }
+                }),
+                getCompiled: () =>
+                    Promise.resolve({
+                        stats: {
+                            warnings: [
+                                {
+                                    start: { line: 1, column: 43 },
+                                    end: { line: 1, column: 46 },
+                                    message:
+                                        "Component has unused export property 'foo'. If it is for external reference only, please consider using `export const foo`",
                                     code: 'unused-export-let'
                                 }
                             ]
@@ -425,13 +491,13 @@ describe('SveltePlugin#getDiagnostics', () => {
                 message:
                     "Component has unused export property 'unused1'. If it is for external reference only, please consider using `export const unused1`",
                 range: {
-                    end: {
-                        line: 4,
-                        character: 18
-                    },
                     start: {
-                        line: 4,
-                        character: 18
+                        line: 5,
+                        character: 13
+                    },
+                    end: {
+                        line: 5,
+                        character: 27
                     }
                 },
                 severity: 2,
@@ -442,13 +508,13 @@ describe('SveltePlugin#getDiagnostics', () => {
                 message:
                     "Component has unused export property 'unused2'. If it is for external reference only, please consider using `export const unused2`",
                 range: {
-                    end: {
-                        line: 6,
-                        character: 28
-                    },
                     start: {
                         line: 6,
-                        character: 8
+                        character: 13
+                    },
+                    end: {
+                        line: 6,
+                        character: 27
                     }
                 },
                 severity: 2,

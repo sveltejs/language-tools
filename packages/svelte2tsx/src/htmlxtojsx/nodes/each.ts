@@ -1,6 +1,7 @@
 import MagicString from 'magic-string';
 import { Node } from 'estree-walker';
 import { IfScope } from './if-scope';
+import { extractConstTags } from './const-tag';
 
 /**
  * Transform each block into something JSX can understand.
@@ -12,10 +13,10 @@ export function handleEach(
     ifScope: IfScope
 ): void {
     // {#each items as item,i (key)} ->
-    // {__sveltets_each(items, (item,i) => (key) && (possible if expression &&) <>
-    const constRedeclares = ifScope.getConstsToRedeclare();
+    // {__sveltets_1_each(items, (item,i) => (key) && (possible if expression &&) <>
+    const constRedeclares = ifScope.getConstDeclaration();
     const prefix = constRedeclares ? `{() => {${constRedeclares}() => ` : '';
-    str.overwrite(eachBlock.start, eachBlock.expression.start, `${prefix}{__sveltets_each(`);
+    str.overwrite(eachBlock.start, eachBlock.expression.start, `${prefix}{__sveltets_1_each(`);
     str.overwrite(eachBlock.expression.end, eachBlock.context.start, ', (');
 
     // {#each true, items as item}
@@ -29,7 +30,13 @@ export function handleEach(
         const idxLoc = htmlx.indexOf(eachBlock.index, contextEnd);
         contextEnd = idxLoc + eachBlock.index.length;
     }
-    str.prependLeft(contextEnd, ') =>');
+
+    const constTags = extractConstTags(eachBlock.children);
+    str.prependLeft(contextEnd, ') =>' + (constTags.length ? ' {' : ''));
+    constTags.forEach((insertion) => {
+        insertion(contextEnd, str);
+    });
+
     if (eachBlock.key) {
         const endEachStart = htmlx.indexOf('}', eachBlock.key.end);
         str.overwrite(endEachStart, endEachStart + 1, ` && ${ifScope.addPossibleIfCondition()}<>`);
@@ -39,8 +46,8 @@ export function handleEach(
     }
 
     const endEach = htmlx.lastIndexOf('{', eachBlock.end - 1);
-    const suffix = constRedeclares ? '</>)}}}' : '</>)}';
-    // {/each} -> </>)} or {:else} -> </>)}
+    const suffix = '</>' + (constTags.length ? '}' : '') + (constRedeclares ? ')}}}' : ')}');
+    // {/each} -> </>})} or {:else} -> </>})}
     if (eachBlock.else) {
         const elseEnd = htmlx.lastIndexOf('}', eachBlock.else.start);
         const elseStart = htmlx.lastIndexOf('{', elseEnd);

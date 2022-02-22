@@ -1,4 +1,4 @@
-import { getEmmetCompletionParticipants } from 'vscode-emmet-helper';
+import { doComplete as doEmmetComplete } from 'vscode-emmet-helper';
 import {
     getLanguageService,
     HTMLDocument,
@@ -34,14 +34,18 @@ import {
     DocumentHighlightProvider
 } from '../interfaces';
 import { isInsideMoustacheTag, toRange } from '../../lib/documents/utils';
+import { possiblyComponent } from '../../utils';
 
 export class HTMLPlugin
+
     implements
         HoverProvider,
         CompletionsProvider,
         RenameProvider,
         LinkedEditingRangesProvider,
-        DocumentHighlightProvider {
+        DocumentHighlightProvider
+{
+    __name = 'html';
     private configManager: LSConfigManager;
     private lang = getLanguageService({
         customDataProviders: [svelteHtmlDataProvider],
@@ -68,7 +72,7 @@ export class HTMLPlugin
         }
 
         const node = html.findNodeAt(document.offsetAt(position));
-        if (!node || this.possiblyComponent(node)) {
+        if (!node || possiblyComponent(node)) {
             return null;
         }
 
@@ -93,27 +97,44 @@ export class HTMLPlugin
             return null;
         }
 
-        const emmetResults: CompletionList = {
-            isIncomplete: true,
+        let emmetResults: CompletionList = {
+            isIncomplete: false,
             items: []
         };
-        if (this.configManager.getConfig().html.completions.emmet) {
+        if (
+            this.configManager.getConfig().html.completions.emmet &&
+            this.configManager.getEmmetConfig().showExpandedAbbreviation !== 'never'
+        ) {
             this.lang.setCompletionParticipants([
-                getEmmetCompletionParticipants(
-                    document,
-                    position,
-                    'html',
-                    this.configManager.getEmmetConfig(),
-                    emmetResults
-                )
+                {
+                    onHtmlContent: () =>
+                        (emmetResults =
+                            doEmmetComplete(
+                                document,
+                                position,
+                                'html',
+                                this.configManager.getEmmetConfig()
+                            ) || emmetResults)
+                }
             ]);
         }
+
         const results = this.isInComponentTag(html, document, position)
             ? // Only allow emmet inside component element tags.
               // Other attributes/events would be false positives.
               CompletionList.create([])
             : this.lang.doComplete(document, position, html);
         const items = this.toCompletionItems(results.items);
+
+        items.forEach((item) => {
+            if (item.label.startsWith('on:') && item.textEdit) {
+                item.textEdit = {
+                    ...item.textEdit,
+                    newText: item.textEdit.newText.replace('="$1"', '$2="$1"')
+                };
+            }
+        });
+
         return CompletionList.create(
             [
                 ...this.toCompletionItems(items),
@@ -231,7 +252,7 @@ export class HTMLPlugin
         }
 
         const node = html.findNodeAt(document.offsetAt(position));
-        if (!node || this.possiblyComponent(node)) {
+        if (!node || possiblyComponent(node)) {
             return null;
         }
 
@@ -250,12 +271,7 @@ export class HTMLPlugin
 
         const offset = document.offsetAt(position);
         const node = html.findNodeAt(offset);
-        if (
-            !node ||
-            this.possiblyComponent(node) ||
-            !node.tag ||
-            !this.isRenameAtTag(node, offset)
-        ) {
+        if (!node || possiblyComponent(node) || !node.tag || !this.isRenameAtTag(node, offset)) {
             return null;
         }
         const tagNameStart = node.start + '<'.length;
@@ -306,16 +322,6 @@ export class HTMLPlugin
     }
 
     /**
-     *
-     * The language service is case insensitive, and would provide
-     * hover info for Svelte components like `Option` which have
-     * the same name like a html tag.
-     */
-    private possiblyComponent(node: Node): boolean {
-        return !!node.tag?.[0].match(/[A-Z]/);
-    }
-
-    /**
      * Returns true if rename happens at the tag name, not anywhere inbetween.
      */
     private isRenameAtTag(node: Node, offset: number): boolean {
@@ -324,9 +330,9 @@ export class HTMLPlugin
         }
 
         const startTagNameEnd = node.start + `<${node.tag}`.length;
-        const endTagNameStart = node.end - `${node.tag}>`.length;
         const isAtStartTag = offset > node.start && offset <= startTagNameEnd;
-        const isAtEndTag = offset >= endTagNameStart && offset < node.end;
+        const isAtEndTag =
+            node.endTagStart !== undefined && offset >= node.endTagStart && offset < node.end;
         return isAtStartTag || isAtEndTag;
     }
 

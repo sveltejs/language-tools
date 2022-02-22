@@ -1,2 +1,2 @@
-<Hello --custom-prop="foo"></Hello>
+<Hello |-wtf="foo"></Hello>
 <div --custom-prop="foo"></div>

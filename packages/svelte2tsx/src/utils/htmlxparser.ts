@@ -32,7 +32,7 @@ function parseAttributes(str: string, start: number) {
     return attrs;
 }
 
-function extractTag(htmlx: string, tag: 'script' | 'style') {
+function extractTag(htmlx: string, tag: 'script' | 'style', useNewTransformation: boolean) {
     const exp = new RegExp(`(<!--[^]*?-->)|(<${tag}([\\S\\s]*?)>)([\\S\\s]*?)<\\/${tag}>`, 'g');
     const matches: Node[] = [];
 
@@ -43,10 +43,15 @@ function extractTag(htmlx: string, tag: 'script' | 'style') {
             continue;
         }
 
-        const content = match[4];
+        let content = match[4];
         if (!content) {
-            // Self-closing/empty tags don't need replacement
-            continue;
+            if (useNewTransformation) {
+                // Keep tag and transform it properly by removing it
+                content = '';
+            } else {
+                // Self-closing/empty tags don't need replacement
+                continue;
+            }
         }
 
         const start = match.index + match[2].length;
@@ -73,8 +78,11 @@ function extractTag(htmlx: string, tag: 'script' | 'style') {
     return matches;
 }
 
-function findVerbatimElements(htmlx: string) {
-    return [...extractTag(htmlx, 'script'), ...extractTag(htmlx, 'style')];
+function findVerbatimElements(htmlx: string, useNewTransformation: boolean) {
+    return [
+        ...extractTag(htmlx, 'script', useNewTransformation),
+        ...extractTag(htmlx, 'style', useNewTransformation)
+    ];
 }
 
 function blankVerbatimContent(htmlx: string, verbatimElements: Node[]) {
@@ -96,25 +104,28 @@ function blankVerbatimContent(htmlx: string, verbatimElements: Node[]) {
     return output;
 }
 
-export function parseHtmlx(htmlx: string, options?: { emitOnTemplateError?: boolean }) {
+export function parseHtmlx(
+    htmlx: string,
+    options?: { emitOnTemplateError?: boolean; useNewTransformation?: boolean }
+) {
     //Svelte tries to parse style and script tags which doesn't play well with typescript, so we blank them out.
     //HTMLx spec says they should just be retained after processing as is, so this is fine
-    const verbatimElements = findVerbatimElements(htmlx);
+    const verbatimElements = findVerbatimElements(htmlx, options?.useNewTransformation);
     const deconstructed = blankVerbatimContent(htmlx, verbatimElements);
 
     //extract the html content parsed as htmlx this excludes our script and style tags
     const parsingCode = options?.emitOnTemplateError
         ? blankPossiblyErrorOperatorOrPropertyAccess(deconstructed)
         : deconstructed;
-    const svelteHtmlxAst = parse(parsingCode).html;
+    const htmlxAst = parse(parsingCode).html;
 
     //restore our script and style tags as nodes to maintain validity with HTMLx
     for (const s of verbatimElements) {
-        svelteHtmlxAst.children.push(s);
-        svelteHtmlxAst.start = Math.min(svelteHtmlxAst.start, s.start);
-        svelteHtmlxAst.end = Math.max(svelteHtmlxAst.end, s.end);
+        htmlxAst.children.push(s);
+        htmlxAst.start = Math.min(htmlxAst.start, s.start);
+        htmlxAst.end = Math.max(htmlxAst.end, s.end);
     }
-    return svelteHtmlxAst;
+    return { htmlxAst, tags: verbatimElements };
 }
 
 const possibleOperatorOrPropertyAccess = new Set([

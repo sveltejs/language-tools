@@ -1,0 +1,16 @@
+{
+    "name": "ParseError",
+    "code": "parse-error",
+    "start": {
+        "line": 2,
+        "column": 24,
+        "character": 52
+    },
+    "end": {
+        "line": 2,
+        "column": 24,
+        "character": 52
+    },
+    "pos": 52,
+    "frame": "1: {#each list as item (item)}\n2:   <li animate:flip={opt?.}>{item}</li>\n                            ^\n3: {/each}"
+}

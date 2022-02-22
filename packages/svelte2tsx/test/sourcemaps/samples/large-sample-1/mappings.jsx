@@ -161,7 +161,7 @@ s
 //----------------------------------------------------------------------------------------------------------------------------------------------------
     ;() => {$: if (scrollable) chapter, scrollable.scrollTo(0, 0);}                                                                                   {/**
    ╚;()•=>•{$:•if•(scrollable)•chapter,•scrollable.scrollTo(0,•0);}↲    [generated] line 67                                                           
-   ╚        $:•if•(scrollable)•chapter,•scrollable.scrollTo(0,•0); ↲                                                                                  
+   ╚        $:•if•(scrollable)•chapter,•scrollable.scrollTo(0,•0);↲                                                                                   
    ╚$:•if•(scrollable)•chapter,•scrollable.scrollTo(0,•0);↲             [original] line 61                                                            
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
 
@@ -170,17 +170,17 @@ s
     const tutorial_repo_link = 'https://github.com/sveltejs/svelte/tree/master/site/content/tutorial';
                                                                                                                                                       {/**
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
-    let  selected = __sveltets_invalidate(() => lookup.get(slug));                                                                                    {/**
-   ╚let••selected•=•__sveltets_invalidate(()•=>•lookup.get(slug));↲    [generated] line 73                                                            
-   ╚    •selected•=•                            lookup.get(slug) ;↲                                                                                   
+    let  selected = __sveltets_1_invalidate(() => lookup.get(slug));                                                                                  {/**
+   ╚let••selected•=•__sveltets_1_invalidate(()•=>•lookup.get(slug));↲    [generated] line 73                                                          
+   ╚    •selected•=•                              lookup.get(slug); ↲                                                                                 
    ╚  •selected•=•lookup.get(slug);↲                                                                                                                  
-   ╚$:•selected•=•lookup.get(slug);↲                                   [original] line 67                                                             
+   ╚$:•selected•=•lookup.get(slug);↲                                     [original] line 67                                                           
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
-    let  improve_link = __sveltets_invalidate(() => `${tutorial_repo_link}/${selected.chapter.section_dir}/${selected.chapter.chapter_dir}`);         {/**
-   ╚let••improve_link•=•__sveltets_invalidate(()•=>•`${tutorial_repo_link}/${selected.chapter.section_dir}/${selected.chapter.chapter_dir}`);↲    [generated] line 74
-   ╚    •improve_link•=•                            `${tutorial_repo_link}/${selected.chapter.section_dir}/${selected.chapter.chapter_dir}` ;↲        
+    let  improve_link = __sveltets_1_invalidate(() => `${tutorial_repo_link}/${selected.chapter.section_dir}/${selected.chapter.chapter_dir}`);       {/**
+   ╚let••improve_link•=•__sveltets_1_invalidate(()•=>•`${tutorial_repo_link}/${selected.chapter.section_dir}/${selected.chapter.chapter_dir}`);↲    [generated] line 74
+   ╚    •improve_link•=•                              `${tutorial_repo_link}/${selected.chapter.section_dir}/${selected.chapter.chapter_dir}`; ↲      
    ╚  •improve_link•=•`${tutorial_repo_link}/${selected.chapter.section_dir}/${selected.chapter.chapter_dir}`;↲                                       
-   ╚$:•improve_link•=•`${tutorial_repo_link}/${selected.chapter.section_dir}/${selected.chapter.chapter_dir}`;↲                                   [original] line 68 
+   ╚$:•improve_link•=•`${tutorial_repo_link}/${selected.chapter.section_dir}/${selected.chapter.chapter_dir}`;↲                                     [original] line 68 
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
 
     const clone = file => ({
@@ -202,16 +202,15 @@ s
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
     }}                                                                                                                                                {/**
    ╚}}↲    [generated] line 87                                                                                                                        
-   ╚} ↲                                                                                                                                               
    ╚}↲     [original] line 81                                                                                                                         
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                                                                                                                                                       {/**
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
-    let  mobile = __sveltets_invalidate(() => width < 768);                                                                                           {/**
-   ╚let••mobile•=•__sveltets_invalidate(()•=>•width•<•768);↲    [generated] line 89                                                                   
-   ╚    •mobile•=•                            width•<•768 ;↲                                                                                          
+    let  mobile = __sveltets_1_invalidate(() => width < 768);                                                                                         {/**
+   ╚let••mobile•=•__sveltets_1_invalidate(()•=>•width•<•768);↲    [generated] line 89                                                                 
+   ╚    •mobile•=•                              width•<•768; ↲                                                                                        
    ╚  •mobile•=•width•<•768;↲                                                                                                                         
-   ╚$:•mobile•=•width•<•768;↲                                   [original] line 83                                                                    
+   ╚$:•mobile•=•width•<•768;↲                                     [original] line 83                                                                  
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
 
     function reset() {
@@ -324,11 +323,11 @@ s
             </div>
                                                                                                                                                       {/**
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
-            <div class="chapter-markup" {...__sveltets_ensureType(__sveltets_ctorOf(__sveltets_mapElementTag('div')), scrollable)}>                   {/**
-         ╚╚╚<div•class="chapter-markup"•{...__sveltets_ensureType(__sveltets_ctorOf(__sveltets_mapElementTag('div')),•scrollable)}>↲    [generated] line 139
-         ╚╚╚<div•c    ="chapter-markup"•                                                                              scrollable} >↲                  
-         ╚╚╚<div•c    ="chapter-markup"•           scrollable}>↲                                                                                      
-         ╚╚╚<div•class="chapter-markup"•bind:this={scrollable}>↲                                                                        [original] line 278 
+            <div class="chapter-markup" {...__sveltets_1_empty(scrollable = /*Ωignore_startΩ*/__sveltets_1_instanceOf(__sveltets_1_ctorOf(__sveltets_1_mapElementTag('div')))/*Ωignore_endΩ*/)}>{/**
+         ╚╚╚<div•class="chapter-markup"•{...__sveltets_1_empty(scrollable•=•/*Ωignore_startΩ*/__sveltets_1_instanceOf(__sveltets_1_ctorOf(__sveltets_1_mapElementTag('div')))/*Ωignore_endΩ*/)}>↲    [generated] line 139
+         ╚╚╚<div•c    ="chapter-markup"•b                      scrollable}                                                                                                                     >↲    
+         ╚╚╚<div•c    ="chapter-markup"•b          scrollable}>↲                                                                                                                                     
+         ╚╚╚<div•class="chapter-markup"•bind:this={scrollable}>↲                                                                                                                                     [original] line 278 
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                 { chapter.html}                                                                                                                       {/**
             ╚╚╚╚{•chapter.html}↲         [generated] line 140                                                                                         
@@ -401,11 +400,11 @@ s
         <div class="tutorial-repl">
             <Repl                                                                                                                                     {/**
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
-                {...__sveltets_ensureType(Repl, repl)}                                                                                                {/**
-            ╚╚╚╚{...__sveltets_ensureType(Repl,•repl)}↲    [generated] line 163                                                                       
-            ╚╚╚╚                                repl} ↲                                                                                               
-            ╚╚╚╚           repl}↲                                                                                                                     
-            ╚╚╚╚bind:this={repl}↲                          [original] line 303                                                                        
+                {...__sveltets_1_empty(repl = /*Ωignore_startΩ*/new Repl({target: __sveltets_1_any(''), props: __sveltets_1_any('')})/*Ωignore_endΩ*/)}{/**
+            ╚╚╚╚{...__sveltets_1_empty(repl•=•/*Ωignore_startΩ*/new•Repl({target:•__sveltets_1_any(''),•props:•__sveltets_1_any('')})/*Ωignore_endΩ*/)}↲    [generated] line 163
+            ╚╚╚╚b                      repl}                                                                                                           ↲    
+            ╚╚╚╚b          repl}↲                                                                                                                           
+            ╚╚╚╚bind:this={repl}↲                                                                                                                           [original] line 303 
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                 workersUrl="workers"                                                                                                                  {/**
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
@@ -430,17 +429,17 @@ s
                 injectedJS={mapbox_setup}
                 relaxed                                                                                                                               {/**
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
-            />{__sveltets_instanceOf(Repl).$on('change', handle_change)}                                                                              {/**
-         ╚╚╚/>{__sveltets_instanceOf(Repl).$on('change',•handle_change)}↲    [generated] line 172                                                     
-                                            on('change',•handle_change)}     [generated] subset                                                       
-                                            on: change=  handle_change}                                                                               
-             on:change= handle_change}                                                                                                                
-         ╚╚╚╚on:change={handle_change}↲                                      [original] line 309 (rest generated at line 169)                         
-                                                                                                                                                      
-         ╚╚╚/>{__sveltets_instanceOf(Repl).$on('change',•handle_change)}↲    [generated] line 172                                                     
-         ╚╚╚/>{__sveltets_instanceOf(Repl).$                            ↲    [generated] subset                                                       
-         ╚╚╚/>                                                          ↲                                                                             
-         ╚╚╚/>↲                                                              [original] line 312                                                      
+            />{/*Ωignore_startΩ*/new Repl({target: __sveltets_1_any(''), props: {'workersUrl':"workers", 'svelteUrl':svelteUrl, 'rollupUrl':rollupUrl, 'orientation':mobile ? 'columns' : 'rows', 'fixed':mobile, 'injectedJS':mapbox_setup, 'relaxed':true}})/*Ωignore_endΩ*/.$on('change', handle_change)}{/**
+         ╚╚╚/>{/*Ωignore_startΩ*/new•Repl({target:•__sveltets_1_any(''),•props:•{'workersUrl':"workers",•'svelteUrl':svelteUrl,•'rollupUrl':rollupUrl,•'orientation':mobile•?•'columns'•:•'rows',•'fixed':mobile,•'injectedJS':mapbox_setup,•'relaxed':true}})/*Ωignore_endΩ*/.$on('change',•handle_change)}↲    [generated] line 172
+                                                                                                                                                                                                                                                                                on('change',•handle_change)}     [generated] subset
+                                                                                                                                                                                                                                                                                on: change=  handle_change}      
+             on:change= handle_change}                                                                                                                                                                                                                                                                           
+         ╚╚╚╚on:change={handle_change}↲                                                                                                                                                                                                                                                                          [original] line 309 (rest generated at line 169)
+                                                                                                                                                                                                                                                                                                                 
+         ╚╚╚/>{/*Ωignore_startΩ*/new•Repl({target:•__sveltets_1_any(''),•props:•{'workersUrl':"workers",•'svelteUrl':svelteUrl,•'rollupUrl':rollupUrl,•'orientation':mobile•?•'columns'•:•'rows',•'fixed':mobile,•'injectedJS':mapbox_setup,•'relaxed':true}})/*Ωignore_endΩ*/.$on('change',•handle_change)}↲    [generated] line 172
+         ╚╚╚/>{/*Ωignore_startΩ*/new•Repl({target:•__sveltets_1_any(''),•props:•{'workersUrl':"workers",•'svelteUrl':svelteUrl,•'rollupUrl':rollupUrl,•'orientation':mobile•?•'columns'•:•'rows',•'fixed':mobile,•'injectedJS':mapbox_setup,•'relaxed':true}})/*Ωignore_endΩ*/.$                            ↲    [generated] subset
+         ╚╚╚/>                                                                                                                                                                                                                                                                                              ↲    
+         ╚╚╚/>↲                                                                                                                                                                                                                                                                                                  [original] line 312 
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
         </div>
     </div>
@@ -470,5 +469,5 @@ s
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
 return { props: {slug: slug , chapter: chapter}, slots: {}, getters: {}, events: {} }}
 
-export default class Input__SvelteComponent_ extends createSvelte2TsxComponent(__sveltets_partial(__sveltets_with_any_event(render))) {
+export default class Input__SvelteComponent_ extends __sveltets_1_createSvelte2TsxComponent(__sveltets_1_partial(__sveltets_1_with_any_event(render()))) {
 }

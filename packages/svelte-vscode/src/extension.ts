@@ -1,33 +1,34 @@
+import * as path from 'path';
 import {
-    workspace,
-    ExtensionContext,
-    TextDocument,
-    Position,
-    Range,
     commands,
-    window,
-    WorkspaceEdit,
-    Uri,
-    ProgressLocation,
-    ViewColumn,
-    languages,
+    ExtensionContext,
+    extensions,
     IndentAction,
-    extensions
+    languages,
+    Position,
+    ProgressLocation,
+    Range,
+    TextDocument,
+    Uri,
+    ViewColumn,
+    window,
+    workspace,
+    WorkspaceEdit
 } from 'vscode';
 import {
+    ExecuteCommandRequest,
     LanguageClientOptions,
-    TextDocumentPositionParams,
     RequestType,
     RevealOutputChannelOn,
-    WorkspaceEdit as LSWorkspaceEdit,
     TextDocumentEdit,
-    ExecuteCommandRequest
+    TextDocumentPositionParams,
+    WorkspaceEdit as LSWorkspaceEdit
 } from 'vscode-languageclient';
 import { LanguageClient, ServerOptions, TransportKind } from 'vscode-languageclient/node';
+import CompiledCodeContentProvider from './CompiledCodeContentProvider';
 import { activateTagClosing } from './html/autoClose';
 import { EMPTY_ELEMENTS } from './html/htmlEmptyTagsShared';
-import CompiledCodeContentProvider from './CompiledCodeContentProvider';
-import * as path from 'path';
+import { TsPlugin } from './tsplugin';
 
 namespace TagCloseRequest {
     export const type: RequestType<TextDocumentPositionParams, string, any> = new RequestType(
@@ -88,7 +89,17 @@ export function activate(context: ExtensionContext) {
         documentSelector: [{ scheme: 'file', language: 'svelte' }],
         revealOutputChannelOn: RevealOutputChannelOn.Never,
         synchronize: {
-            configurationSection: ['svelte', 'javascript', 'typescript', 'prettier'],
+            // TODO deprecated, rework upon next VS Code minimum version bump
+            configurationSection: [
+                'svelte',
+                'prettier',
+                'emmet',
+                'javascript',
+                'typescript',
+                'css',
+                'less',
+                'scss'
+            ],
             fileEvents: workspace.createFileSystemWatcher('{**/*.js,**/*.ts}', false, false, false)
         },
         initializationOptions: {
@@ -97,9 +108,13 @@ export function activate(context: ExtensionContext) {
                 prettier: workspace.getConfiguration('prettier'),
                 emmet: workspace.getConfiguration('emmet'),
                 typescript: workspace.getConfiguration('typescript'),
-                javascript: workspace.getConfiguration('javascript')
+                javascript: workspace.getConfiguration('javascript'),
+                css: workspace.getConfiguration('css'),
+                less: workspace.getConfiguration('less'),
+                scss: workspace.getConfiguration('scss')
             },
-            dontFilterIncompleteCompletions: true // VSCode filters client side and is smarter at it than us
+            dontFilterIncompleteCompletions: true, // VSCode filters client side and is smarter at it than us
+            isTrusted: (workspace as any).isTrusted
         }
     };
 
@@ -126,12 +141,15 @@ export function activate(context: ExtensionContext) {
         const parts = doc.uri.toString(true).split(/\/|\\/);
         if (
             [
-                'tsconfig.json',
-                'jsconfig.json',
-                'svelte.config.js',
-                'svelte.config.cjs',
-                'svelte.config.mjs'
-            ].includes(parts[parts.length - 1])
+                /^tsconfig\.json$/,
+                /^jsconfig\.json$/,
+                /^svelte\.config\.(js|cjs|mjs)$/,
+                // https://prettier.io/docs/en/configuration.html
+                /^\.prettierrc$/,
+                /^\.prettierrc\.(json|yml|yaml|json5|toml)$/,
+                /^\.prettierrc\.(js|cjs)$/,
+                /^\.prettierrc\.config\.(js|cjs)$/
+            ].some((regex) => regex.test(parts[parts.length - 1]))
         ) {
             await restartLS(false);
         }
@@ -143,7 +161,13 @@ export function activate(context: ExtensionContext) {
         })
     );
 
+    let restartingLs = false;
     async function restartLS(showNotification: boolean) {
+        if (restartingLs) {
+            return;
+        }
+
+        restartingLs = true;
         await ls.stop();
         ls = createLanguageServer(serverOptions, clientOptions);
         context.subscriptions.push(ls.start());
@@ -151,6 +175,7 @@ export function activate(context: ExtensionContext) {
         if (showNotification) {
             window.showInformationMessage('Svelte language server restarted.');
         }
+        restartingLs = false;
     }
 
     function getLS() {
@@ -165,6 +190,8 @@ export function activate(context: ExtensionContext) {
 
     addExtracComponentCommand(getLS, context);
 
+    TsPlugin.create(context);
+
     languages.setLanguageConfiguration('svelte', {
         indentationRules: {
             // Matches a valid opening tag that is:
@@ -175,8 +202,9 @@ export function activate(context: ExtensionContext) {
             // Or matches `<!--`
             // Or matches open curly brace
             //
-            // eslint-disable-next-line max-len, no-useless-escape
-            increaseIndentPattern: /<(?!\?|(?:area|base|br|col|frame|hr|html|img|input|link|meta|param)\b|[^>]*\/>)([-_\.A-Za-z0-9]+)(?=\s|>)\b[^>]*>(?!.*<\/\1>)|<!--(?!.*-->)|\{[^}"']*$/,
+            increaseIndentPattern:
+                // eslint-disable-next-line max-len, no-useless-escape
+                /<(?!\?|(?:area|base|br|col|frame|hr|html|img|input|link|meta|param)\b|[^>]*\/>)([-_\.A-Za-z0-9]+)(?=\s|>)\b[^>]*>(?!.*<\/\1>)|<!--(?!.*-->)|\{[^}"']*$/,
             // Matches a closing tag that:
             //  - Follows optional whitespace
             //  - Is not `</html>`
@@ -192,8 +220,9 @@ export function activate(context: ExtensionContext) {
         //  - Is a sequence of characters without spaces and not containing
         //    any of the following: `~!@$^&*()=+[{]}\|;:'",.<>/
         //
-        // eslint-disable-next-line max-len, no-useless-escape
-        wordPattern: /(-?\d*\.\d\w*)|([^\`\~\!\@\$\#\^\&\*\(\)\=\+\[\{\]\}\\\|\;\:\'\"\,\.\<\>\/\s]+)/g,
+        wordPattern:
+            // eslint-disable-next-line max-len, no-useless-escape
+            /(-?\d*\.\d\w*)|([^\`\~\!\@\$\#\^\&\*\(\)\=\+\[\{\]\}\\\|\;\:\'\"\,\.\<\>\/\s]+)/g,
         onEnterRules: [
             {
                 // Matches an opening tag that:

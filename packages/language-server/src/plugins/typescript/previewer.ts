@@ -73,19 +73,19 @@ function getTagBodyText(tag: ts.JSDocTagInfo): string | undefined {
 
     switch (tag.name) {
         case 'example':
-            return makeExampleTag(tag.text);
+            return makeExampleTag(ts.displayPartsToString(tag.text));
         case 'author':
-            return makeEmailTag(tag.text);
+            return makeEmailTag(ts.displayPartsToString(tag.text));
         case 'default':
-            return makeCodeblock(tag.text);
+            return makeCodeblock(ts.displayPartsToString(tag.text));
     }
 
-    return processInlineTags(tag.text);
+    return processInlineTags(ts.displayPartsToString(tag.text));
 }
 
 export function getTagDocumentation(tag: ts.JSDocTagInfo): string | undefined {
     function getWithType() {
-        const body = (tag.text || '').split(/^(\S+)\s*-?\s*/);
+        const body = (ts.displayPartsToString(tag.text) || '').split(/^(\S+)\s*-?\s*/);
         if (body?.length === 3) {
             const param = body[1];
             const doc = body[2];

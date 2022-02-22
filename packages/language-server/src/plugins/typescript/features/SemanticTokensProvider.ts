@@ -1,22 +1,40 @@
 import ts from 'typescript';
-import { Range, SemanticTokens, SemanticTokensBuilder } from 'vscode-languageserver';
+import {
+    CancellationToken,
+    Range,
+    SemanticTokens,
+    SemanticTokensBuilder
+} from 'vscode-languageserver';
 import { Document, mapRangeToOriginal } from '../../../lib/documents';
 import { SemanticTokensProvider } from '../../interfaces';
-import { SnapshotFragment } from '../DocumentSnapshot';
+import { SvelteSnapshotFragment } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { convertToTextSpan } from '../utils';
+import { isInGeneratedCode } from './utils';
 
 const CONTENT_LENGTH_LIMIT = 50000;
 
 export class SemanticTokensProviderImpl implements SemanticTokensProvider {
     constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
 
-    async getSemanticTokens(textDocument: Document, range?: Range): Promise<SemanticTokens | null> {
+    async getSemanticTokens(
+        textDocument: Document,
+        range?: Range,
+        cancellationToken?: CancellationToken
+    ): Promise<SemanticTokens | null> {
         const { lang, tsDoc } = await this.lsAndTsDocResolver.getLSAndTSDoc(textDocument);
         const fragment = await tsDoc.getFragment();
 
         // for better performance, don't do full-file semantic tokens when the file is too big
-        if (!range && fragment.text.length > CONTENT_LENGTH_LIMIT) {
+        if (
+            (!range && fragment.text.length > CONTENT_LENGTH_LIMIT) ||
+            cancellationToken?.isCancellationRequested
+        ) {
+            return null;
+        }
+
+        // No script tags -> nothing to analyse semantic tokens for
+        if (!textDocument.scriptInfo && !textDocument.moduleScriptInfo) {
             return null;
         }
 
@@ -87,10 +105,14 @@ export class SemanticTokensProviderImpl implements SemanticTokensProvider {
 
     private mapToOrigin(
         document: Document,
-        fragment: SnapshotFragment,
+        fragment: SvelteSnapshotFragment,
         generatedOffset: number,
         generatedLength: number
-    ): [line: number, character: number, length: number] | undefined {
+    ): [line: number, character: number, length: number, start: number] | undefined {
+        if (isInGeneratedCode(fragment.text, generatedOffset, generatedOffset + generatedLength)) {
+            return;
+        }
+
         const range = {
             start: fragment.positionAt(generatedOffset),
             end: fragment.positionAt(generatedOffset + generatedLength)
@@ -104,7 +126,7 @@ export class SemanticTokensProviderImpl implements SemanticTokensProvider {
         const startOffset = document.offsetAt(startPosition);
         const endOffset = document.offsetAt(endPosition);
 
-        return [startPosition.line, startPosition.character, endOffset - startOffset];
+        return [startPosition.line, startPosition.character, endOffset - startOffset, startOffset];
     }
 
     /**

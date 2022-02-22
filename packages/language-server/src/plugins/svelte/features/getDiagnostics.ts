@@ -1,8 +1,14 @@
 import { Warning } from 'svelte/types/compiler/interfaces';
 import { Diagnostic, DiagnosticSeverity, Position, Range } from 'vscode-languageserver';
-import { Document, isInTag, mapObjWithRangeToOriginal } from '../../../lib/documents';
+import {
+    Document,
+    isInTag,
+    mapObjWithRangeToOriginal,
+    TagInformation
+} from '../../../lib/documents';
 import { Logger } from '../../../logger';
 import { CompilerWarningsSettings } from '../../../ls-config';
+import { getLastPartOfPath, moveRangeStartToEndIfNecessary } from '../../../utils';
 import { SvelteDocument, TranspileErrorSource } from '../SvelteDocument';
 
 /**
@@ -55,11 +61,12 @@ async function tryGetDiagnostics(
                 };
             })
             .map((diag) => mapObjWithRangeToOriginal(transpiled, diag))
+            .map((diag) => adjustMappings(diag, document))
             .filter((diag) => isNoFalsePositive(diag, document));
     } catch (err) {
-        return (await createParserErrorDiagnostic(err, document)).map((diag) =>
-            mapObjWithRangeToOriginal(transpiled, diag)
-        );
+        return (await createParserErrorDiagnostic(err, document))
+            .map((diag) => mapObjWithRangeToOriginal(transpiled, diag))
+            .map((diag) => adjustMappings(diag, document));
     }
 }
 
@@ -89,10 +96,10 @@ async function createParserErrorDiagnostic(error: any, document: Document) {
                 '\n\nIf you expect this syntax to work, here are some suggestions: ';
             if (isInScript) {
                 diagnostic.message +=
-                    '\nIf you use typescript with `svelte-preprocess`, did you add `lang="typescript"` to your `script` tag? ';
+                    '\nIf you use typescript with `svelte-preprocess`, did you add `lang="ts"` to your `script` tag? ';
             } else {
                 diagnostic.message +=
-                    '\nIf you use less/SCSS with `svelte-preprocess`, did you add `lang="scss"`/`lang="less"` to you `style` tag? ' +
+                    '\nIf you use less/SCSS with `svelte-preprocess`, did you add `lang="scss"`/`lang="less"` to your `style` tag? ' +
                     scssNodeRuntimeHint;
             }
             diagnostic.message +=
@@ -140,6 +147,12 @@ function getConfigLoadErrorDiagnostics(error: any): Diagnostic[] {
  * Try to infer a nice diagnostic error message from the transpilation error.
  */
 function getStyleErrorDiagnostics(error: any, document: Document): Diagnostic[] {
+    // Error could be from another file that was mixed into the Svelte file as part of preprocessing.
+    // Some preprocessors set the file property from which we can infer that
+    const isErrorFromOtherFile =
+        typeof error?.file === 'string' &&
+        getLastPartOfPath(error.file) !== getLastPartOfPath(document.getFilePath() || '');
+
     return [
         {
             message: getStyleErrorMessage(),
@@ -155,20 +168,22 @@ function getStyleErrorDiagnostics(error: any, document: Document): Diagnostic[] 
             return getErrorMessage(error.message, 'style', hint);
         }
 
-        return (
+        const msg =
             error.formatted /* sass error messages have this */ ||
             error.message ||
-            'Style error. Transpilation failed.'
-        );
+            'Style error. Transpilation failed.';
+        return isErrorFromOtherFile ? 'Error in referenced file\n\n' + msg : msg;
     }
 
     function getStyleErrorRange() {
         const lineOffset = document.styleInfo?.startPos.line || 0;
         const position =
-            typeof error?.column === 'number' && typeof error?.line === 'number'
-                ? // Some preprocessors like sass or less return error objects with these attributes.
-                  // Use it to display a nice error message.
-                  Position.create(lineOffset + error.line - 1, error.column)
+            !isErrorFromOtherFile &&
+            // Some preprocessors like sass or less return error objects with these attributes.
+            // Use it to display message at better position.
+            typeof error?.column === 'number' &&
+            typeof error?.line === 'number'
+                ? Position.create(lineOffset + error.line - 1, error.column)
                 : document.styleInfo?.startPos || Position.create(0, 0);
         return Range.create(position, position);
     }
@@ -251,7 +266,8 @@ function isNoFalsePositive(diag: Diagnostic, doc: Document): boolean {
         return true;
     }
 
-    // TypeScript transpiles `export enum A` to `export var A`, which the compiler will warn about.
+    // TypeScript transpiles `export enum A` and `export namespace A` to `export var A`,
+    // which the compiler will warn about.
     // Silence this edge case. We extract the property from the message and don't use the position
     // because that position could be wrong when source mapping trips up.
     const unusedExportName = diag.message.substring(
@@ -259,9 +275,39 @@ function isNoFalsePositive(diag: Diagnostic, doc: Document): boolean {
         diag.message.lastIndexOf("'")
     );
     const hasExportedEnumWithThatName = new RegExp(
-        `\\bexport\\s+?enum\\s+?${unusedExportName}\\b`
+        `\\bexport\\s+?(enum|namespace)\\s+?${unusedExportName}\\b`
     ).test(doc.getText());
     return !hasExportedEnumWithThatName;
+}
+
+/**
+ * Some mappings might be invalid. Try to catch these cases here.
+ */
+function adjustMappings(diag: Diagnostic, doc: Document): Diagnostic {
+    if (diag.range.start.character < 0) {
+        diag.range.start.character = 0;
+    }
+    if (diag.range.end.character < 0) {
+        diag.range.end.character = 0;
+    }
+    if (diag.range.start.line < 0) {
+        diag.range.start = { line: 0, character: 0 };
+    }
+    if (diag.range.end.line < 0) {
+        diag.range.end = { line: 0, character: 0 };
+    }
+    diag.range = moveRangeStartToEndIfNecessary(diag.range);
+
+    if (
+        diag.code === 'css-unused-selector' &&
+        doc.styleInfo &&
+        !isInTag(diag.range.start, doc.styleInfo)
+    ) {
+        diag.range.start = (doc.styleInfo as TagInformation).startPos;
+        diag.range.end = diag.range.start;
+    }
+
+    return diag;
 }
 
 const scssNodeRuntimeHint =

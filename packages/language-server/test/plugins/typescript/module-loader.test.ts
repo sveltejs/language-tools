@@ -104,13 +104,8 @@ describe('createSvelteModuleLoader', () => {
             extension: ts.Extension.Ts,
             resolvedFileName: 'filename.svelte.ts'
         };
-        const {
-            resolveStub,
-            svelteSys,
-            moduleResolver,
-            compilerOptions,
-            getSvelteSnapshotStub
-        } = setup(resolvedModule);
+        const { resolveStub, svelteSys, moduleResolver, compilerOptions, getSvelteSnapshotStub } =
+            setup(resolvedModule);
         const result = moduleResolver.resolveModuleNames(
             ['./svelte.svelte'],
             'C:/somerepo/somefile.svelte'
@@ -119,7 +114,8 @@ describe('createSvelteModuleLoader', () => {
         assert.deepStrictEqual(result, [
             <ts.ResolvedModuleFull>{
                 extension: ts.Extension.Jsx,
-                resolvedFileName: 'filename.svelte'
+                resolvedFileName: 'filename.svelte',
+                isExternalLibraryImport: undefined
             }
         ]);
         assert.deepStrictEqual(lastCall(resolveStub).args, [
@@ -136,13 +132,8 @@ describe('createSvelteModuleLoader', () => {
             extension: ts.Extension.Ts,
             resolvedFileName: 'filename.svelte.ts'
         };
-        const {
-            resolveStub,
-            svelteSys,
-            moduleResolver,
-            compilerOptions,
-            getSvelteSnapshotStub
-        } = setup(resolvedModule);
+        const { resolveStub, svelteSys, moduleResolver, compilerOptions, getSvelteSnapshotStub } =
+            setup(resolvedModule);
         const result = moduleResolver.resolveModuleNames(
             ['/@/svelte.svelte'],
             'C:/somerepo/somefile.svelte'
@@ -151,7 +142,8 @@ describe('createSvelteModuleLoader', () => {
         assert.deepStrictEqual(result, [
             <ts.ResolvedModuleFull>{
                 extension: ts.Extension.Jsx,
-                resolvedFileName: 'filename.svelte'
+                resolvedFileName: 'filename.svelte',
+                isExternalLibraryImport: undefined
             }
         ]);
         assert.deepStrictEqual(lastCall(resolveStub).args, [

@@ -1,10 +1,10 @@
 <script lang="ts">
-    interface ComponentEvents {
-        a: CustomEvent<boolean>;
+    interface $$Events {
+        aa: CustomEvent<boolean>;
         /**
          * TEST
          */
-        b: MouseEvent;
-        c;
+        ab: MouseEvent;
+        ac;
     }
 </script>

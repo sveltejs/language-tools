@@ -1,7 +1,7 @@
 import MagicString from 'magic-string';
 import { walk } from 'svelte/compiler';
 import { TemplateNode, Text } from 'svelte/types/compiler/interfaces';
-import { Attribute, BaseDirective, BaseNode } from '../interfaces';
+import { Attribute, BaseDirective, BaseNode, StyleDirective } from '../interfaces';
 import { parseHtmlx } from '../utils/htmlxparser';
 import { getSlotName } from '../utils/svelteAst';
 import { handleActionDirective } from './nodes/action-directive';
@@ -21,11 +21,11 @@ import { IfScope } from './nodes/if-scope';
 import { handleKey } from './nodes/key';
 import { handleRawHtml } from './nodes/raw-html';
 import { handleSlot } from './nodes/slot';
+import { handleStyleDirective } from './nodes/style-directive';
 import { handleSvelteTag } from './nodes/svelte-tag';
 import { TemplateScopeManager } from './nodes/template-scope';
 import { handleText } from './nodes/text';
 import { handleTransitionDirective } from './nodes/transition-directive';
-import { usesLet } from './utils/node-utils';
 
 type Walker = (node: TemplateNode, parent: BaseNode, prop: string, index: number) => void;
 
@@ -130,6 +130,9 @@ export function convertHtmlxToJsx(
                     case 'Class':
                         handleClassDirective(str, node as BaseDirective);
                         break;
+                    case 'StyleDirective':
+                        handleStyleDirective(str, node as StyleDirective);
+                        break;
                     case 'Action':
                         handleActionDirective(htmlx, str, node as BaseDirective, parent);
                         break;
@@ -166,17 +169,15 @@ export function convertHtmlxToJsx(
                     case 'SlotTemplate':
                         handleSvelteTag(htmlx, str, node);
                         templateScopeManager.componentOrSlotTemplateOrElementEnter(node);
-                        if (usesLet(node)) {
-                            handleSlot(
-                                htmlx,
-                                str,
-                                node,
-                                parent,
-                                getSlotName(node) || 'default',
-                                ifScope,
-                                templateScopeManager.value
-                            );
-                        }
+                        handleSlot(
+                            htmlx,
+                            str,
+                            node,
+                            parent,
+                            getSlotName(node) || 'default',
+                            ifScope,
+                            templateScopeManager.value
+                        );
                         break;
                     case 'Text':
                         handleText(str, node as Text);
@@ -186,7 +187,7 @@ export function convertHtmlxToJsx(
                     onWalk(node, parent, prop, index);
                 }
             } catch (e) {
-                console.error('Error walking node ', node);
+                console.error('Error walking node ', node, e);
                 throw e;
             }
         },
@@ -229,7 +230,7 @@ export function htmlx2jsx(
     htmlx: string,
     options?: { emitOnTemplateError?: boolean; preserveAttributeCase: boolean }
 ) {
-    const ast = parseHtmlx(htmlx, options);
+    const ast = parseHtmlx(htmlx, { ...options, useNewTransformation: false }).htmlxAst;
     const str = new MagicString(htmlx);
 
     convertHtmlxToJsx(str, ast, null, null, options);

@@ -12,9 +12,13 @@ import TemplateScope from './TemplateScope';
 import { SvelteIdentifier, WithName } from '../../interfaces';
 import { getTypeForComponent } from '../../htmlxtojsx/utils/node-utils';
 import { Directive } from 'svelte/types/compiler/interfaces';
+import ts from 'typescript';
+import { isInterfaceOrTypeDeclaration } from '../utils/tsAst';
 
 function attributeStrValueAsJsExpression(attr: Node): string {
-    if (attr.value.length == 0) return "''"; //wut?
+    if (attr.value.length == 0) {
+        return "''"; //wut?
+    }
 
     //handle single value
     if (attr.value.length == 1) {
@@ -28,6 +32,12 @@ function attributeStrValueAsJsExpression(attr: Node): string {
     // we have multiple attribute values, so we know we are building a string out of them.
     // so return a dummy string, it will typecheck the same :)
     return '"__svelte_ts_string"';
+}
+
+export function is$$SlotsDeclaration(
+    node: ts.Node
+): node is ts.TypeAliasDeclaration | ts.InterfaceDeclaration {
+    return isInterfaceOrTypeDeclaration(node) && node.name.text === '$$Slots';
 }
 
 export class SlotHandler {
@@ -51,6 +61,12 @@ export class SlotHandler {
         return resolved;
     }
 
+    /**
+     * Returns a string which expresses the given identifier unpacked to
+     * the top level in order to express the slot types correctly later on.
+     *
+     * Example: {#each items as item} ---> __sveltets_1_unwrapArr(items)
+     */
     private getResolveExpressionStr(
         identifierDef: SvelteIdentifier,
         scope: TemplateScope,
@@ -61,7 +77,7 @@ export class SlotHandler {
         const owner = scope.getOwner(name);
 
         if (owner?.type === 'CatchBlock') {
-            return '__sveltets_any({})';
+            return '__sveltets_1_any({})';
         }
 
         // list.map(list => list.someProperty)
@@ -69,11 +85,11 @@ export class SlotHandler {
         else if (owner?.type === 'ThenBlock') {
             const resolvedExpression = this.resolveExpression(initExpression, scope.parent);
 
-            return `__sveltets_unwrapPromiseLike(${resolvedExpression})`;
+            return `__sveltets_1_unwrapPromiseLike(${resolvedExpression})`;
         } else if (owner?.type === 'EachBlock') {
             const resolvedExpression = this.resolveExpression(initExpression, scope.parent);
 
-            return `__sveltets_unwrapArr(${resolvedExpression})`;
+            return `__sveltets_1_unwrapArr(${resolvedExpression})`;
         }
         return null;
     }
@@ -158,6 +174,10 @@ export class SlotHandler {
         }));
     }
 
+    /**
+     * Resolves the slot expression to a string that can be used
+     * in the props-object in the return type of the render function
+     */
     private resolveExpression(expression: Node, scope: TemplateScope) {
         let resolved = this.resolvedExpression.get(expression);
         if (resolved) {
@@ -172,7 +192,9 @@ export class SlotHandler {
             enter(node, parent, prop) {
                 if (node.type === 'Identifier') {
                     if (parent) {
-                        if (isMember(parent, prop)) return;
+                        if (isMember(parent, prop)) {
+                            return;
+                        }
                         if (isObjectKey(parent, prop)) {
                             return;
                         }
@@ -219,8 +241,20 @@ export class SlotHandler {
         //collect attributes
         const attributes = new Map<string, string>();
         for (const attr of node.attributes) {
-            if (attr.name == 'name') continue;
-            if (!attr.value?.length) continue;
+            if (attr.name == 'name') {
+                continue;
+            }
+
+            if (attr.type === 'Spread') {
+                const rawName = attr.expression.name;
+                const init = scope.getInit(rawName);
+                const name = init ? this.resolved.get(init) : rawName;
+                attributes.set(`__spread__${name}`, name);
+            }
+
+            if (!attr.value?.length) {
+                continue;
+            }
 
             if (attributeValueIsString(attr)) {
                 attributes.set(attr.name, attributeStrValueAsJsExpression(attr));
@@ -252,11 +286,18 @@ export class SlotHandler {
         if (attrVal.type == 'MustacheTag') {
             return this.resolveExpression(attrVal.expression, scope);
         }
+
         throw Error('Unknown attribute value type:' + attrVal.type);
     }
 }
 
-export function getSingleSlotDef(componentNode: Node, slotName: string) {
+function getSingleSlotDef(componentNode: Node, slotName: string) {
+    // In contrast to getSingleSlotDef in htmlx2jsx, use a simple instanceOf-transformation here.
+    // This means that if someone forwards a slot whose type can only be infered from the input properties
+    // because there's a generic relationship, then that slot type is of type any or unknown.
+    // This is a limitation which could be tackled later. The problem is that in contrast to the transformation
+    // in htmlx2jsx, we cannot know for sure that all properties we would generate the component with exist
+    // in this scope, some could have been generated through each/await blocks or other lets.
     const componentType = getTypeForComponent(componentNode);
-    return `__sveltets_instanceOf(${componentType}).$$slot_def['${slotName}']`;
+    return `__sveltets_1_instanceOf(${componentType}).$$slot_def['${slotName}']`;
 }

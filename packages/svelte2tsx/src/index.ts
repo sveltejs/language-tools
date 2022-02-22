@@ -1,1 +1,2 @@
-export { svelte2tsx as default } from './svelte2tsx';
+export { svelte2tsx } from './svelte2tsx';
+export { emitDts } from './emitDts';

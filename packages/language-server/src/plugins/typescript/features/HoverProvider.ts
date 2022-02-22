@@ -2,7 +2,7 @@ import ts from 'typescript';
 import { Hover, Position } from 'vscode-languageserver';
 import { Document, getWordAt, mapObjWithRangeToOriginal } from '../../../lib/documents';
 import { HoverProvider } from '../../interfaces';
-import { SvelteDocumentSnapshot, SvelteSnapshotFragment } from '../DocumentSnapshot';
+import { SvelteDocumentSnapshot } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { getMarkdownDocumentation } from '../previewer';
 import { convertRange } from '../utils';
@@ -15,13 +15,7 @@ export class HoverProviderImpl implements HoverProvider {
         const { lang, tsDoc } = await this.getLSAndTSDoc(document);
         const fragment = await tsDoc.getFragment();
 
-        const eventHoverInfo = await this.getEventHoverInfo(
-            lang,
-            document,
-            tsDoc,
-            fragment,
-            position
-        );
+        const eventHoverInfo = await this.getEventHoverInfo(lang, document, tsDoc, position);
         if (eventHoverInfo) {
             return eventHoverInfo;
         }
@@ -37,7 +31,7 @@ export class HoverProviderImpl implements HoverProvider {
         // show docs of $store instead of store if necessary
         const is$store = fragment.text
             .substring(0, info.textSpan.start)
-            .endsWith('(__sveltets_store_get(');
+            .endsWith('(__sveltets_1_store_get(');
         if (is$store) {
             const infoFor$store = lang.getQuickInfoAtPosition(
                 tsDoc.filePath,
@@ -66,7 +60,6 @@ export class HoverProviderImpl implements HoverProvider {
         lang: ts.LanguageService,
         doc: Document,
         tsDoc: SvelteDocumentSnapshot,
-        fragment: SvelteSnapshotFragment,
         originalPosition: Position
     ): Promise<Hover | null> {
         const possibleEventName = getWordAt(doc.getText(), doc.offsetAt(originalPosition), {
@@ -77,14 +70,7 @@ export class HoverProviderImpl implements HoverProvider {
             return null;
         }
 
-        const component = await getComponentAtPosition(
-            this.lsAndTsDocResolver,
-            lang,
-            doc,
-            tsDoc,
-            fragment,
-            originalPosition
-        );
+        const component = await getComponentAtPosition(lang, doc, tsDoc, originalPosition);
         if (!component) {
             return null;
         }

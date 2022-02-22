@@ -1,11 +1,13 @@
 {
     "name": "typescript-svelte-plugin",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "description": "A TypeScript Plugin providing Svelte intellisense",
-    "main": "src/index.js",
+    "main": "dist/src/index.js",
     "scripts": {
         "build": "tsc -p ./",
-        "test": "echo 'NOOP'"
+        "watch": "tsc -w -p ./",
+        "test": "echo 'NOOP'",
+        "prepublishOnly": "npm run build"
     },
     "keywords": [
         "svelte",
@@ -19,5 +21,9 @@
         "@tsconfig/node12": "^1.0.0",
         "@types/node": "^13.9.0",
         "typescript": "*"
+    },
+    "dependencies": {
+        "svelte2tsx": "~0.5.0",
+        "sourcemap-codec": "^1.4.8"
     }
 }

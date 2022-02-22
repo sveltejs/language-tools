@@ -1,20 +1,23 @@
 import {
+    CancellationToken,
     CodeAction,
     CodeActionContext,
+    CompletionContext,
     CompletionList,
     Diagnostic,
+    DocumentHighlight,
     FormattingOptions,
     Hover,
     Position,
     Range,
     TextEdit,
     WorkspaceEdit,
-    SelectionRange,
-    DocumentHighlight
+    SelectionRange
 } from 'vscode-languageserver';
-import { Document } from '../../lib/documents';
-import { LSConfigManager, LSSvelteConfig } from '../../ls-config';
 import { getPackageInfo, importPrettier } from '../../importPackage';
+import { Document } from '../../lib/documents';
+import { Logger } from '../../logger';
+import { LSConfigManager, LSSvelteConfig } from '../../ls-config';
 import {
     CodeActionsProvider,
     CompletionsProvider,
@@ -28,9 +31,8 @@ import { executeCommand, getCodeActions } from './features/getCodeActions';
 import { getCompletions } from './features/getCompletions';
 import { getDiagnostics } from './features/getDiagnostics';
 import { getHoverInfo } from './features/getHoverInfo';
-import { SvelteCompileResult, SvelteDocument } from './SvelteDocument';
-import { Logger } from '../../logger';
 import { getSelectionRange } from './features/getSelectionRanges';
+import { SvelteCompileResult, SvelteDocument } from './SvelteDocument';
 import { merge } from 'lodash';
 import { getDocumentHighlight } from './features/getDocumentHighlight';
 
@@ -42,13 +44,15 @@ export class SveltePlugin
         HoverProvider,
         CodeActionsProvider,
         SelectionRangeProvider,
-        DocumentHighlightProvider {
+        DocumentHighlightProvider
+{
+    __name = 'svelte';
     private docManager = new Map<Document, SvelteDocument>();
 
     constructor(private configManager: LSConfigManager) {}
 
     async getDiagnostics(document: Document): Promise<Diagnostic[]> {
-        if (!this.featureEnabled('diagnostics')) {
+        if (!this.featureEnabled('diagnostics') || !this.configManager.getIsTrusted()) {
             return [];
         }
 
@@ -76,19 +80,14 @@ export class SveltePlugin
         const filePath = document.getFilePath()!;
         const prettier = importPrettier(filePath);
         // Try resolving the config through prettier and fall back to possible editor config
-        const config =
-            returnObjectIfHasKeys(await prettier.resolveConfig(filePath, { editorconfig: true })) ||
-            merge(
-                {}, // merge into empty obj to not manipulate own config
-                this.configManager.get('svelte.format.config'),
-                returnObjectIfHasKeys(this.configManager.getPrettierConfig()) ||
-                    // Be defensive here because IDEs other than VSCode might not have these settings
-                    (options && {
-                        tabWidth: options.tabSize,
-                        useTabs: !options.insertSpaces
-                    }) ||
-                    {}
-            );
+        const config = this.configManager.getMergedPrettierConfig(
+            await prettier.resolveConfig(filePath, { editorconfig: true }),
+            // Be defensive here because IDEs other than VSCode might not have these settings
+            options && {
+                tabWidth: options.tabSize,
+                useTabs: !options.insertSpaces
+            }
+        );
         // If user has prettier-plugin-svelte 1.x, then remove `options` from the sort
         // order or else it will throw a config error (`options` was not present back then).
         if (
@@ -116,12 +115,17 @@ export class SveltePlugin
             parser: 'svelte' as any
         });
 
-        return [
-            TextEdit.replace(
-                Range.create(document.positionAt(0), document.positionAt(document.getTextLength())),
-                formattedCode
-            )
-        ];
+        return document.getText() === formattedCode
+            ? []
+            : [
+                  TextEdit.replace(
+                      Range.create(
+                          document.positionAt(0),
+                          document.positionAt(document.getTextLength())
+                      ),
+                      formattedCode
+                  )
+              ];
 
         function getSveltePlugin() {
             // Only provide our version of the svelte plugin if the user doesn't have one in
@@ -133,20 +137,24 @@ export class SveltePlugin
                 .languages.some((l) => l.name === 'svelte');
             return hasPluginLoadedAlready ? [] : [require.resolve('prettier-plugin-svelte')];
         }
-
-        function returnObjectIfHasKeys<T>(obj: T | undefined): T | undefined {
-            if (Object.keys(obj || {}).length > 0) {
-                return obj;
-            }
-        }
     }
 
-    async getCompletions(document: Document, position: Position): Promise<CompletionList | null> {
+    async getCompletions(
+        document: Document,
+        position: Position,
+        _?: CompletionContext,
+        cancellationToken?: CancellationToken
+    ): Promise<CompletionList | null> {
         if (!this.featureEnabled('completions')) {
             return null;
         }
 
-        return getCompletions(await this.getSvelteDoc(document), position);
+        const svelteDoc = await this.getSvelteDoc(document);
+        if (cancellationToken?.isCancellationRequested) {
+            return null;
+        }
+
+        return getCompletions(document, svelteDoc, position);
     }
 
     async doHover(document: Document, position: Position): Promise<Hover | null> {
@@ -154,19 +162,25 @@ export class SveltePlugin
             return null;
         }
 
-        return getHoverInfo(await this.getSvelteDoc(document), position);
+        return getHoverInfo(document, await this.getSvelteDoc(document), position);
     }
 
     async getCodeActions(
         document: Document,
         range: Range,
-        context: CodeActionContext
+        context: CodeActionContext,
+        cancellationToken?: CancellationToken
     ): Promise<CodeAction[]> {
         if (!this.featureEnabled('codeActions')) {
             return [];
         }
 
         const svelteDoc = await this.getSvelteDoc(document);
+
+        if (cancellationToken?.isCancellationRequested) {
+            return [];
+        }
+
         try {
             return getCodeActions(svelteDoc, range, context);
         } catch (error) {

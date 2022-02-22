@@ -1,16 +1,22 @@
 import * as assert from 'assert';
 import { SveltePlugin } from '../../../src/plugins';
 import { DocumentManager, Document } from '../../../src/lib/documents';
-import { Diagnostic, Range, DiagnosticSeverity } from 'vscode-languageserver';
+import {
+    Diagnostic,
+    Range,
+    DiagnosticSeverity,
+    CancellationTokenSource
+} from 'vscode-languageserver';
 import { LSConfigManager } from '../../../src/ls-config';
 import * as importPackage from '../../../src/importPackage';
 import sinon from 'sinon';
 
 describe('Svelte Plugin', () => {
-    function setup(content: string, prettierConfig?: any) {
+    function setup(content: string, prettierConfig?: any, trusted = true) {
         const document = new Document('file:///hello.svelte', content);
         const docManager = new DocumentManager(() => document);
         const pluginManager = new LSConfigManager();
+        pluginManager.updateIsTrusted(trusted);
         pluginManager.updatePrettierConfig(prettierConfig);
         const plugin = new SveltePlugin(pluginManager);
         docManager.openDocument(<any>'some doc');
@@ -45,6 +51,14 @@ describe('Svelte Plugin', () => {
         );
 
         assert.deepStrictEqual(diagnostics, [diagnostic]);
+    });
+
+    it('provides no diagnostic errors when untrusted', async () => {
+        const { plugin, document } = setup('<div bind:whatever></div>', {}, false);
+
+        const diagnostics = await plugin.getDiagnostics(document);
+
+        assert.deepStrictEqual(diagnostics, []);
     });
 
     describe('#formatDocument', () => {
@@ -142,5 +156,51 @@ describe('Svelte Plugin', () => {
                 ...defaultSettings
             });
         });
+    });
+
+    it('can cancel completion before promise resolved', async () => {
+        const { plugin, document } = setup('{#');
+        const cancellationTokenSource = new CancellationTokenSource();
+
+        const completionsPromise = plugin.getCompletions(
+            document,
+            { line: 0, character: 2 },
+            undefined,
+            cancellationTokenSource.token
+        );
+
+        cancellationTokenSource.cancel();
+
+        assert.deepStrictEqual(await completionsPromise, null);
+    });
+
+    it('can cancel code action before promise resolved', async () => {
+        const { plugin, document } = setup('<a></a>');
+        const cancellationTokenSource = new CancellationTokenSource();
+        const range = {
+            start: { line: 0, character: 0 },
+            end: { line: 0, character: 7 }
+        };
+
+        const codeActionPromise = plugin.getCodeActions(
+            document,
+            range,
+            {
+                diagnostics: [
+                    {
+                        message: 'A11y: <a> element should have child content',
+                        code: 'a11y-missing-content',
+                        range,
+                        severity: DiagnosticSeverity.Warning,
+                        source: 'svelte'
+                    }
+                ]
+            },
+            cancellationTokenSource.token
+        );
+
+        cancellationTokenSource.cancel();
+
+        assert.deepStrictEqual(await codeActionPromise, []);
     });
 });

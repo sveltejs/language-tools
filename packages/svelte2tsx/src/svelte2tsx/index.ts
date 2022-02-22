@@ -1,15 +1,12 @@
 import { Node } from 'estree-walker';
 import MagicString from 'magic-string';
-import { pascalCase } from 'pascal-case';
-import path from 'path';
 import { convertHtmlxToJsx } from '../htmlxtojsx';
+import { convertHtmlxToJsx as convertHtmlxToJsxNew } from '../htmlxtojsx_v2';
 import { parseHtmlx } from '../utils/htmlxparser';
 import { ComponentDocumentation } from './nodes/ComponentDocumentation';
 import { ComponentEvents } from './nodes/ComponentEvents';
 import { EventHandler } from './nodes/event-handler';
 import { ExportedNames } from './nodes/ExportedNames';
-import { createClassGetters, createRenderFunctionGetterStr } from './nodes/exportgetters';
-import { createClassAccessors } from './nodes/exportaccessors';
 import {
     handleScopeAndResolveForSlot,
     handleScopeAndResolveLetVarForSlot
@@ -19,40 +16,19 @@ import { Scripts } from './nodes/Scripts';
 import { SlotHandler } from './nodes/slot';
 import { Stores } from './nodes/Stores';
 import TemplateScope from './nodes/TemplateScope';
-import {
-    InstanceScriptProcessResult,
-    processInstanceScriptContent
-} from './processInstanceScriptContent';
+import { processInstanceScriptContent } from './processInstanceScriptContent';
 import { processModuleScriptTag } from './processModuleScriptTag';
 import { ScopeStack } from './utils/Scope';
-
-interface CreateRenderFunctionPara extends InstanceScriptProcessResult {
-    str: MagicString;
-    scriptTag: Node;
-    scriptDestination: number;
-    slots: Map<string, Map<string, string>>;
-    events: ComponentEvents;
-    isTsFile: boolean;
-}
-
-interface AddComponentExportPara {
-    str: MagicString;
-    uses$$propsOr$$restProps: boolean;
-    strictMode: boolean;
-    /**
-     * If true, not fallback to `any`
-     * -> all unknown events will throw a type error
-     * */
-    strictEvents: boolean;
-    isTsFile: boolean;
-    getters: Set<string>;
-    usesAccessors: boolean;
-    exportedNames: ExportedNames;
-    fileName?: string;
-    componentDocumentation: ComponentDocumentation;
-}
+import { Generics } from './nodes/Generics';
+import { addComponentExport } from './addComponentExport';
+import { createRenderFunction } from './createRenderFunction';
+import { TemplateNode } from 'svelte/types/compiler/interfaces';
 
 type TemplateProcessResult = {
+    /**
+     * The HTML part of the Svelte AST.
+     */
+    htmlAst: TemplateNode;
     uses$$props: boolean;
     uses$$restProps: boolean;
     uses$$slots: boolean;
@@ -66,22 +42,25 @@ type TemplateProcessResult = {
     usesAccessors: boolean;
 };
 
-/**
- * A component class name suffix is necessary to prevent class name clashes
- * like reported in https://github.com/sveltejs/language-tools/issues/294
- */
-const COMPONENT_SUFFIX = '__SvelteComponent_';
-
 function processSvelteTemplate(
     str: MagicString,
-    options?: { emitOnTemplateError?: boolean; namespace?: string }
+    options?: {
+        emitOnTemplateError?: boolean;
+        namespace?: string;
+        accessors?: boolean;
+        mode?: 'ts' | 'tsx' | 'dts';
+        typingsNamespace?: string;
+    }
 ): TemplateProcessResult {
-    const htmlxAst = parseHtmlx(str.original, options);
+    const { htmlxAst, tags } = parseHtmlx(str.original, {
+        ...options,
+        useNewTransformation: options?.mode === 'ts'
+    });
 
     let uses$$props = false;
     let uses$$restProps = false;
     let uses$$slots = false;
-    let usesAccessors = false;
+    let usesAccessors = !!options.accessors;
 
     const componentDocumentation = new ComponentDocumentation();
 
@@ -287,9 +266,16 @@ function processSvelteTemplate(
         }
     };
 
-    convertHtmlxToJsx(str, htmlxAst, onHtmlxWalk, onHtmlxLeave, {
-        preserveAttributeCase: options?.namespace == 'foreign'
-    });
+    if (options.mode === 'ts') {
+        convertHtmlxToJsxNew(str, htmlxAst, onHtmlxWalk, onHtmlxLeave, {
+            preserveAttributeCase: options?.namespace == 'foreign',
+            typingsNamespace: options.typingsNamespace
+        });
+    } else {
+        convertHtmlxToJsx(str, htmlxAst, onHtmlxWalk, onHtmlxLeave, {
+            preserveAttributeCase: options?.namespace == 'foreign'
+        });
+    }
 
     // resolve scripts
     const { scriptTag, moduleScriptTag } = scripts.getTopLevelScriptTags();
@@ -299,10 +285,15 @@ function processSvelteTemplate(
     const resolvedStores = stores.resolveStores();
 
     return {
+        htmlAst: htmlxAst,
         moduleScriptTag,
         scriptTag,
         slots: slotHandler.getSlotDef(),
-        events: new ComponentEvents(eventHandler),
+        events: new ComponentEvents(
+            eventHandler,
+            tags.some((tag) => tag.attributes?.some((a) => a.name === 'strictEvents')),
+            str
+        ),
         uses$$props,
         uses$$restProps,
         uses$$slots,
@@ -312,160 +303,25 @@ function processSvelteTemplate(
     };
 }
 
-function addComponentExport({
-    str,
-    uses$$propsOr$$restProps,
-    strictMode,
-    strictEvents,
-    isTsFile,
-    getters,
-    usesAccessors,
-    exportedNames,
-    fileName,
-    componentDocumentation
-}: AddComponentExportPara) {
-    const eventsDef = strictEvents ? 'render' : '__sveltets_with_any_event(render)';
-    const propDef =
-        // Omit partial-wrapper only if both strict mode and ts file, because
-        // in a js file the user has no way of telling the language that
-        // the prop is optional
-        strictMode && isTsFile
-            ? uses$$propsOr$$restProps
-                ? `__sveltets_with_any(${eventsDef})`
-                : eventsDef
-            : `__sveltets_partial${isTsFile ? '_ts' : ''}${
-                  uses$$propsOr$$restProps ? '_with_any' : ''
-              }(${eventsDef})`;
-
-    const doc = componentDocumentation.getFormatted();
-    const className = fileName && classNameFromFilename(fileName);
-
-    const statement =
-        `\n\n${doc}export default class${
-            className ? ` ${className}` : ''
-        } extends createSvelte2TsxComponent(${propDef}) {` +
-        createClassGetters(getters) +
-        (usesAccessors ? createClassAccessors(getters, exportedNames) : '') +
-        '\n}';
-
-    str.append(statement);
-}
-
-/**
- * Returns a Svelte-compatible component name from a filename. Svelte
- * components must use capitalized tags, so we try to transform the filename.
- *
- * https://svelte.dev/docs#Tags
- */
-function classNameFromFilename(filename: string): string | undefined {
-    try {
-        const withoutExtensions = path.parse(filename).name?.split('.')[0];
-        const withoutInvalidCharacters = withoutExtensions
-            .split('')
-            // Although "-" is invalid, we leave it in, pascal-case-handling will throw it out later
-            .filter((char) => /[A-Za-z$_\d-]/.test(char))
-            .join('');
-        const firstValidCharIdx = withoutInvalidCharacters
-            .split('')
-            // Although _ and $ are valid first characters for classes, they are invalid first characters
-            // for tag names. For a better import autocompletion experience, we therefore throw them out.
-            .findIndex((char) => /[A-Za-z]/.test(char));
-        const withoutLeadingInvalidCharacters = withoutInvalidCharacters.substr(firstValidCharIdx);
-        const inPascalCase = pascalCase(withoutLeadingInvalidCharacters);
-        const finalName = firstValidCharIdx === -1 ? `A${inPascalCase}` : inPascalCase;
-        return `${finalName}${COMPONENT_SUFFIX}`;
-    } catch (error) {
-        console.warn(`Failed to create a name for the component class from filename ${filename}`);
-        return undefined;
-    }
-}
-
-function createRenderFunction({
-    str,
-    scriptTag,
-    scriptDestination,
-    slots,
-    getters,
-    events,
-    exportedNames,
-    isTsFile,
-    uses$$props,
-    uses$$restProps,
-    uses$$slots
-}: CreateRenderFunctionPara) {
-    const htmlx = str.original;
-    let propsDecl = '';
-
-    if (uses$$props) {
-        propsDecl += ' let $$props = __sveltets_allPropsType();';
-    }
-    if (uses$$restProps) {
-        propsDecl += ' let $$restProps = __sveltets_restPropsType();';
-    }
-
-    if (uses$$slots) {
-        propsDecl +=
-            ' let $$slots = __sveltets_slotsType({' +
-            Array.from(slots.keys())
-                .map((name) => `'${name}': ''`)
-                .join(', ') +
-            '});';
-    }
-
-    if (scriptTag) {
-        //I couldn't get magicstring to let me put the script before the <> we prepend during conversion of the template to jsx, so we just close it instead
-        const scriptTagEnd = htmlx.lastIndexOf('>', scriptTag.content.start) + 1;
-        str.overwrite(scriptTag.start, scriptTag.start + 1, '</>;');
-        str.overwrite(scriptTag.start + 1, scriptTagEnd, `function render() {${propsDecl}\n`);
-
-        const scriptEndTagStart = htmlx.lastIndexOf('<', scriptTag.end - 1);
-        // wrap template with callback
-        str.overwrite(scriptEndTagStart, scriptTag.end, ';\n() => (<>', {
-            contentOnly: true
-        });
-    } else {
-        str.prependRight(scriptDestination, `</>;function render() {${propsDecl}\n<>`);
-    }
-
-    const slotsAsDef =
-        '{' +
-        Array.from(slots.entries())
-            .map(([name, attrs]) => {
-                const attrsAsString = Array.from(attrs.entries())
-                    .map(([exportName, expr]) => `${exportName}:${expr}`)
-                    .join(', ');
-                return `'${name}': {${attrsAsString}}`;
-            })
-            .join(', ') +
-        '}';
-
-    const returnString =
-        `\nreturn { props: ${exportedNames.createPropsStr(isTsFile)}` +
-        `, slots: ${slotsAsDef}` +
-        `, getters: ${createRenderFunctionGetterStr(getters)}` +
-        `, events: ${events.toDefString()} }}`;
-
-    // wrap template with callback
-    if (scriptTag) {
-        str.append(');');
-    }
-
-    str.append(returnString);
-}
-
 export function svelte2tsx(
     svelte: string,
-    options?: {
+    options: {
         filename?: string;
-        strictMode?: boolean;
         isTsFile?: boolean;
         emitOnTemplateError?: boolean;
         namespace?: string;
-    }
+        mode?: 'ts' | 'tsx' | 'dts';
+        accessors?: boolean;
+        typingsNamespace?: string;
+    } = {}
 ) {
+    // TODO temporary
+    options.mode = options.mode || 'ts';
+
     const str = new MagicString(svelte);
     // process the htmlx as a svelte template
     let {
+        htmlAst,
         moduleScriptTag,
         scriptTag,
         slots,
@@ -500,19 +356,26 @@ export function svelte2tsx(
         : instanceScriptTarget;
     const implicitStoreValues = new ImplicitStoreValues(resolvedStores, renderFunctionStart);
     //move the instance script and process the content
-    let exportedNames = new ExportedNames();
-    let getters = new Set<string>();
+    let exportedNames = new ExportedNames(str, 0);
+    let generics = new Generics(str, 0);
+    let uses$$SlotsInterface = false;
     if (scriptTag) {
         //ensure it is between the module script and the rest of the template (the variables need to be declared before the jsx template)
         if (scriptTag.start != instanceScriptTarget) {
             str.move(scriptTag.start, scriptTag.end, instanceScriptTarget);
         }
-        const res = processInstanceScriptContent(str, scriptTag, events, implicitStoreValues);
+        const res = processInstanceScriptContent(
+            str,
+            scriptTag,
+            events,
+            implicitStoreValues,
+            options.mode
+        );
         uses$$props = uses$$props || res.uses$$props;
         uses$$restProps = uses$$restProps || res.uses$$restProps;
         uses$$slots = uses$$slots || res.uses$$slots;
 
-        ({ exportedNames, events, getters } = res);
+        ({ exportedNames, events, generics, uses$$SlotsInterface } = res);
     }
 
     //wrap the script tag and template content in a function returning the slot and exports
@@ -522,12 +385,14 @@ export function svelte2tsx(
         scriptDestination: instanceScriptTarget,
         slots,
         events,
-        getters,
         exportedNames,
         isTsFile: options?.isTsFile,
         uses$$props,
         uses$$restProps,
-        uses$$slots
+        uses$$slots,
+        uses$$SlotsInterface,
+        generics,
+        mode: options.mode
     });
 
     // we need to process the module script after the instance script has moved otherwise we get warnings about moving edited items
@@ -535,29 +400,67 @@ export function svelte2tsx(
         processModuleScriptTag(
             str,
             moduleScriptTag,
-            new ImplicitStoreValues(implicitStoreValues.getAccessedStores(), renderFunctionStart)
+            new ImplicitStoreValues(
+                implicitStoreValues.getAccessedStores(),
+                renderFunctionStart,
+                scriptTag || options.mode === 'ts' ? undefined : (input) => `</>;${input}<>`
+            ),
+            options.mode === 'ts'
         );
     }
 
     addComponentExport({
         str,
-        uses$$propsOr$$restProps: uses$$props || uses$$restProps,
-        strictMode: !!options?.strictMode,
-        strictEvents: events.hasInterface(),
+        canHaveAnyProp: !exportedNames.uses$$Props && (uses$$props || uses$$restProps),
+        strictEvents: events.hasStrictEvents(),
         isTsFile: options?.isTsFile,
-        getters,
         exportedNames,
         usesAccessors,
         fileName: options?.filename,
-        componentDocumentation
+        componentDocumentation,
+        mode: options.mode,
+        generics
     });
 
-    str.prepend('///<reference types="svelte" />\n');
+    if (options.mode === 'dts') {
+        // Prepend the import and for JS files a single definition.
+        // The other shims need to be provided by the user ambient-style,
+        // for example through filenames.push(require.resolve('svelte2tsx/svelte-shims.d.ts'))
+        str.prepend(
+            'import { SvelteComponentTyped } from "svelte"\n' +
+                (options?.isTsFile
+                    ? ''
+                    : // Not part of svelte-shims.d.ts because it would throw type errors as this function assumes
+                      // the presence of a SvelteComponentTyped import
+                      `
+declare function __sveltets_1_createSvelteComponentTyped<Props, Events, Slots>(
+    render: {props: Props, events: Events, slots: Slots }
+): SvelteComponentConstructor<SvelteComponentTyped<Props, Events, Slots>,Svelte2TsxComponentConstructorParameters<Props>>;
+`) +
+                '\n'
+        );
+        let code = str.toString();
+        // Remove all tsx occurences and the template part from the output
+        code = code
+            // prepended before each script block
+            .replace('<></>;', '')
+            .replace('<></>;', '')
+            // tsx in render function
+            .replace(/<>.*<\/>/s, '')
+            .replace('\n() => ();', '');
 
-    return {
-        code: str.toString(),
-        map: str.generateMap({ hires: true, source: options?.filename }),
-        exportedNames,
-        events: events.createAPI()
-    };
+        return {
+            code
+        };
+    } else {
+        str.prepend('///<reference types="svelte" />\n');
+        return {
+            code: str.toString(),
+            map: str.generateMap({ hires: true, source: options?.filename }),
+            exportedNames: exportedNames.getExportsMap(),
+            events: events.createAPI(),
+            // not part of the public API so people don't start using it
+            htmlAst
+        };
+    }
 }

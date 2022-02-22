@@ -1,10 +1,13 @@
 import ts, { NavigationTree } from 'typescript';
 import {
+    CancellationToken,
     CodeAction,
     CodeActionContext,
     CompletionContext,
+    CompletionList,
     DefinitionLink,
     Diagnostic,
+    DocumentHighlight,
     FileChangeType,
     Hover,
     Location,
@@ -12,24 +15,18 @@ import {
     Position,
     Range,
     ReferenceContext,
-    SymbolInformation,
-    WorkspaceEdit,
-    CompletionList,
     SelectionRange,
+    SemanticTokens,
     SignatureHelp,
     SignatureHelpContext,
-    SemanticTokens,
+    SymbolInformation,
+    SymbolKind,
     TextDocumentContentChangeEvent,
-    DocumentHighlight
+    WorkspaceEdit
 } from 'vscode-languageserver';
-import {
-    Document,
-    DocumentManager,
-    mapSymbolInformationToOriginal,
-    getTextInRange
-} from '../../lib/documents';
+import { Document, getTextInRange, mapSymbolInformationToOriginal } from '../../lib/documents';
 import { LSConfigManager, LSTypescriptConfig } from '../../ls-config';
-import { isNotNullOrUndefined, pathToUrl } from '../../utils';
+import { isNotNullOrUndefined, isZeroLengthRange, pathToUrl } from '../../utils';
 import {
     AppCompletionItem,
     AppCompletionList,
@@ -41,15 +38,16 @@ import {
     FileRename,
     FindReferencesProvider,
     HoverProvider,
+    ImplementationProvider,
     OnWatchFileChanges,
+    OnWatchFileChangesPara,
     RenameProvider,
     SelectionRangeProvider,
-    SignatureHelpProvider,
-    UpdateImportsProvider,
-    OnWatchFileChangesPara,
     SemanticTokensProvider,
-    UpdateTsOrJsFile,
-    DocumentHighlightProvider
+    SignatureHelpProvider,
+    TypeDefinitionProvider,
+    UpdateImportsProvider,
+    UpdateTsOrJsFile
 } from '../interfaces';
 import { CodeActionsProviderImpl } from './features/CodeActionsProvider';
 import {
@@ -57,19 +55,27 @@ import {
     CompletionsProviderImpl
 } from './features/CompletionProvider';
 import { DiagnosticsProviderImpl } from './features/DiagnosticsProvider';
-import { HoverProviderImpl } from './features/HoverProvider';
-import { RenameProviderImpl } from './features/RenameProvider';
-import { UpdateImportsProviderImpl } from './features/UpdateImportsProvider';
-import { LSAndTSDocResolver } from './LSAndTSDocResolver';
-import { convertToLocationRange, getScriptKindFromFileName, symbolKindFromString } from './utils';
-import { getDirectiveCommentCompletions } from './features/getDirectiveCommentCompletions';
 import { FindReferencesProviderImpl } from './features/FindReferencesProvider';
+import { getDirectiveCommentCompletions } from './features/getDirectiveCommentCompletions';
+import { HoverProviderImpl } from './features/HoverProvider';
+import { ImplementationProviderImpl } from './features/ImplementationProvider';
+import { RenameProviderImpl } from './features/RenameProvider';
 import { SelectionRangeProviderImpl } from './features/SelectionRangeProvider';
-import { SignatureHelpProviderImpl } from './features/SignatureHelpProvider';
-import { SnapshotManager } from './SnapshotManager';
 import { SemanticTokensProviderImpl } from './features/SemanticTokensProvider';
+import { SignatureHelpProviderImpl } from './features/SignatureHelpProvider';
+import { TypeDefinitionProviderImpl } from './features/TypeDefinitionProvider';
+import { UpdateImportsProviderImpl } from './features/UpdateImportsProvider';
 import { isNoTextSpanInGeneratedCode, SnapshotFragmentMap } from './features/utils';
 import { DocumentHighlightProviderImpl } from './features/DocumentHighlightProvider';
+import { LSAndTSDocResolver } from './LSAndTSDocResolver';
+import { ignoredBuildDirectories } from './SnapshotManager';
+import { isAttributeName, isAttributeShorthand, isEventHandler } from './svelte-ast-utils';
+import {
+    convertToLocationRange,
+    getScriptKindFromFileName,
+    isInScript,
+    symbolKindFromString
+} from './utils';
 
 export class TypeScriptPlugin
     implements
@@ -85,9 +91,13 @@ export class TypeScriptPlugin
         SignatureHelpProvider,
         SemanticTokensProvider,
         DocumentHighlightProvider,
+        ImplementationProvider,
+        TypeDefinitionProvider,
         OnWatchFileChanges,
         CompletionsProvider<CompletionEntryWithIdentifer>,
-        UpdateTsOrJsFile {
+        UpdateTsOrJsFile
+{
+    __name = 'ts';
     private readonly configManager: LSConfigManager;
     private readonly lsAndTsDocResolver: LSAndTSDocResolver;
     private readonly completionProvider: CompletionsProviderImpl;
@@ -100,43 +110,47 @@ export class TypeScriptPlugin
     private readonly selectionRangeProvider: SelectionRangeProviderImpl;
     private readonly signatureHelpProvider: SignatureHelpProviderImpl;
     private readonly semanticTokensProvider: SemanticTokensProviderImpl;
+    private readonly implementationProvider: ImplementationProviderImpl;
+    private readonly typeDefinitionProvider: TypeDefinitionProviderImpl;
     private readonly documentHeightProvider: DocumentHighlightProviderImpl;
 
-    constructor(
-        docManager: DocumentManager,
-        configManager: LSConfigManager,
-        workspaceUris: string[],
-        isEditor = true
-    ) {
+    constructor(configManager: LSConfigManager, lsAndTsDocResolver: LSAndTSDocResolver) {
         this.configManager = configManager;
-        this.lsAndTsDocResolver = new LSAndTSDocResolver(
-            docManager,
-            workspaceUris,
-            configManager,
-            /**transformOnTemplateError */ isEditor
+        this.lsAndTsDocResolver = lsAndTsDocResolver;
+        this.completionProvider = new CompletionsProviderImpl(
+            this.lsAndTsDocResolver,
+            this.configManager
         );
-        this.completionProvider = new CompletionsProviderImpl(this.lsAndTsDocResolver);
         this.codeActionsProvider = new CodeActionsProviderImpl(
             this.lsAndTsDocResolver,
-            this.completionProvider
+            this.completionProvider,
+            configManager
         );
         this.updateImportsProvider = new UpdateImportsProviderImpl(this.lsAndTsDocResolver);
-        this.diagnosticsProvider = new DiagnosticsProviderImpl(this.lsAndTsDocResolver);
-        this.renameProvider = new RenameProviderImpl(this.lsAndTsDocResolver);
+        this.diagnosticsProvider = new DiagnosticsProviderImpl(
+            this.lsAndTsDocResolver,
+            configManager
+        );
+        this.renameProvider = new RenameProviderImpl(this.lsAndTsDocResolver, configManager);
         this.hoverProvider = new HoverProviderImpl(this.lsAndTsDocResolver);
         this.findReferencesProvider = new FindReferencesProviderImpl(this.lsAndTsDocResolver);
         this.selectionRangeProvider = new SelectionRangeProviderImpl(this.lsAndTsDocResolver);
         this.signatureHelpProvider = new SignatureHelpProviderImpl(this.lsAndTsDocResolver);
         this.semanticTokensProvider = new SemanticTokensProviderImpl(this.lsAndTsDocResolver);
+        this.implementationProvider = new ImplementationProviderImpl(this.lsAndTsDocResolver);
+        this.typeDefinitionProvider = new TypeDefinitionProviderImpl(this.lsAndTsDocResolver);
         this.documentHeightProvider = new DocumentHighlightProviderImpl(this.lsAndTsDocResolver);
     }
 
-    async getDiagnostics(document: Document): Promise<Diagnostic[]> {
+    async getDiagnostics(
+        document: Document,
+        cancellationToken?: CancellationToken
+    ): Promise<Diagnostic[]> {
         if (!this.featureEnabled('diagnostics')) {
             return [];
         }
 
-        return this.diagnosticsProvider.getDiagnostics(document);
+        return this.diagnosticsProvider.getDiagnostics(document, cancellationToken);
     }
 
     async doHover(document: Document, position: Position): Promise<Hover | null> {
@@ -147,54 +161,88 @@ export class TypeScriptPlugin
         return this.hoverProvider.doHover(document, position);
     }
 
-    async getDocumentSymbols(document: Document): Promise<SymbolInformation[]> {
+    async getDocumentSymbols(
+        document: Document,
+        cancellationToken?: CancellationToken
+    ): Promise<SymbolInformation[]> {
         if (!this.featureEnabled('documentSymbols')) {
             return [];
         }
 
         const { lang, tsDoc } = await this.getLSAndTSDoc(document);
         const fragment = await tsDoc.getFragment();
+
+        if (cancellationToken?.isCancellationRequested) {
+            return [];
+        }
+
         const navTree = lang.getNavigationTree(tsDoc.filePath);
 
         const symbols: SymbolInformation[] = [];
         collectSymbols(navTree, undefined, (symbol) => symbols.push(symbol));
 
         const topContainerName = symbols[0].name;
-        return (
-            symbols
-                .slice(1)
-                .map((symbol) => {
-                    if (symbol.containerName === topContainerName) {
-                        return { ...symbol, containerName: 'script' };
-                    }
+        const result: SymbolInformation[] = [];
 
-                    return symbol;
-                })
-                .map((symbol) => mapSymbolInformationToOriginal(fragment, symbol))
-                // Due to svelte2tsx, there will also be some symbols that are unmapped.
-                // Filter those out to keep the lsp from throwing errors.
-                // Also filter out transformation artifacts
-                .filter(
-                    (symbol) =>
-                        symbol.location.range.start.line >= 0 &&
-                        symbol.location.range.end.line >= 0 &&
-                        !symbol.name.startsWith('__sveltets_')
-                )
-                .map((symbol) => {
-                    if (symbol.name !== '<function>') {
-                        return symbol;
-                    }
+        for (let symbol of symbols.slice(1)) {
+            if (symbol.containerName === topContainerName) {
+                symbol.containerName = 'script';
+            }
 
-                    let name = getTextInRange(symbol.location.range, document.getText()).trimLeft();
-                    if (name.length > 50) {
-                        name = name.substring(0, 50) + '...';
-                    }
-                    return {
-                        ...symbol,
-                        name
-                    };
-                })
-        );
+            symbol = mapSymbolInformationToOriginal(fragment, symbol);
+
+            if (
+                symbol.location.range.start.line < 0 ||
+                symbol.location.range.end.line < 0 ||
+                isZeroLengthRange(symbol.location.range) ||
+                symbol.name.startsWith('__sveltets_')
+            ) {
+                continue;
+            }
+
+            if (
+                (symbol.kind === SymbolKind.Property || symbol.kind === SymbolKind.Method) &&
+                !isInScript(symbol.location.range.start, document)
+            ) {
+                if (
+                    symbol.name === 'props' &&
+                    document.getText().charAt(document.offsetAt(symbol.location.range.start)) !==
+                        'p'
+                ) {
+                    // This is the "props" of a generated component constructor
+                    continue;
+                }
+                const node = tsDoc.svelteNodeAt(symbol.location.range.start);
+                if (
+                    (node && (isAttributeName(node) || isAttributeShorthand(node))) ||
+                    isEventHandler(node)
+                ) {
+                    // This is a html or component property, they are not treated as a new symbol
+                    // in JSX and so we do the same for the new transformation.
+                    continue;
+                }
+            }
+
+            if (symbol.name === '<function>') {
+                let name = getTextInRange(symbol.location.range, document.getText()).trimLeft();
+                if (name.length > 50) {
+                    name = name.substring(0, 50) + '...';
+                }
+                symbol.name = name;
+            }
+
+            if (symbol.name.startsWith('$$_')) {
+                if (!symbol.name.includes('$on')) {
+                    continue;
+                }
+                // on:foo={() => ''}   ->   $on("foo") callback
+                symbol.name = symbol.name.substring(symbol.name.indexOf('$on'));
+            }
+
+            result.push(symbol);
+        }
+
+        return result;
 
         function collectSymbols(
             tree: NavigationTree,
@@ -228,7 +276,8 @@ export class TypeScriptPlugin
     async getCompletions(
         document: Document,
         position: Position,
-        completionContext?: CompletionContext
+        completionContext?: CompletionContext,
+        cancellationToken?: CancellationToken
     ): Promise<AppCompletionList<CompletionEntryWithIdentifer> | null> {
         if (!this.featureEnabled('completions')) {
             return null;
@@ -243,7 +292,8 @@ export class TypeScriptPlugin
         const completions = await this.completionProvider.getCompletions(
             document,
             position,
-            completionContext
+            completionContext,
+            cancellationToken
         );
 
         if (completions && tsDirectiveCommentCompletions) {
@@ -258,9 +308,14 @@ export class TypeScriptPlugin
 
     async resolveCompletion(
         document: Document,
-        completionItem: AppCompletionItem<CompletionEntryWithIdentifer>
+        completionItem: AppCompletionItem<CompletionEntryWithIdentifer>,
+        cancellationToken?: CancellationToken
     ): Promise<AppCompletionItem<CompletionEntryWithIdentifer>> {
-        return this.completionProvider.resolveCompletion(document, completionItem);
+        return this.completionProvider.resolveCompletion(
+            document,
+            completionItem,
+            cancellationToken
+        );
     }
 
     async getDefinitions(document: Document, position: Position): Promise<DefinitionLink[]> {
@@ -287,7 +342,10 @@ export class TypeScriptPlugin
             defs.definitions.map(async (def) => {
                 const { fragment, snapshot } = await docs.retrieve(def.fileName);
 
-                if (isNoTextSpanInGeneratedCode(snapshot.getFullText(), def.textSpan)) {
+                if (
+                    !def.fileName.endsWith('svelte-shims.d.ts') &&
+                    isNoTextSpanInGeneratedCode(snapshot.getFullText(), def.textSpan)
+                ) {
                     return LocationLink.create(
                         pathToUrl(def.fileName),
                         convertToLocationRange(fragment, def.textSpan),
@@ -323,13 +381,14 @@ export class TypeScriptPlugin
     async getCodeActions(
         document: Document,
         range: Range,
-        context: CodeActionContext
+        context: CodeActionContext,
+        cancellationToken?: CancellationToken
     ): Promise<CodeAction[]> {
         if (!this.featureEnabled('codeActions')) {
             return [];
         }
 
-        return this.codeActionsProvider.getCodeActions(document, range, context);
+        return this.codeActionsProvider.getCodeActions(document, range, context, cancellationToken);
     }
 
     async executeCommand(
@@ -370,28 +429,29 @@ export class TypeScriptPlugin
     }
 
     async onWatchFileChanges(onWatchFileChangesParas: OnWatchFileChangesPara[]): Promise<void> {
-        const doneUpdateProjectFiles = new Set<SnapshotManager>();
+        let doneUpdateProjectFiles = false;
 
         for (const { fileName, changeType } of onWatchFileChangesParas) {
-            const scriptKind = getScriptKindFromFileName(fileName);
+            const pathParts = fileName.split(/\/|\\/);
+            const dirPathParts = pathParts.slice(0, pathParts.length - 1);
+            if (ignoredBuildDirectories.some((dir) => dirPathParts.includes(dir))) {
+                continue;
+            }
 
+            const scriptKind = getScriptKindFromFileName(fileName);
             if (scriptKind === ts.ScriptKind.Unknown) {
                 // We don't deal with svelte files here
                 continue;
             }
 
-            const snapshotManager = await this.getSnapshotManager(fileName);
-            if (changeType === FileChangeType.Created) {
-                if (!doneUpdateProjectFiles.has(snapshotManager)) {
-                    snapshotManager.updateProjectFiles();
-                    doneUpdateProjectFiles.add(snapshotManager);
-                }
+            if (changeType === FileChangeType.Created && !doneUpdateProjectFiles) {
+                doneUpdateProjectFiles = true;
+                await this.lsAndTsDocResolver.updateProjectFiles();
             } else if (changeType === FileChangeType.Deleted) {
-                snapshotManager.delete(fileName);
-                return;
+                await this.lsAndTsDocResolver.deleteSnapshot(fileName);
+            } else {
+                await this.lsAndTsDocResolver.updateExistingTsOrJsFile(fileName);
             }
-
-            snapshotManager.updateTsOrJsFile(fileName);
         }
     }
 
@@ -399,8 +459,7 @@ export class TypeScriptPlugin
         fileName: string,
         changes: TextDocumentContentChangeEvent[]
     ): Promise<void> {
-        const snapshotManager = await this.getSnapshotManager(fileName);
-        snapshotManager.updateTsOrJsFile(fileName, changes);
+        await this.lsAndTsDocResolver.updateExistingTsOrJsFile(fileName, changes);
     }
 
     async getSelectionRange(
@@ -417,23 +476,53 @@ export class TypeScriptPlugin
     async getSignatureHelp(
         document: Document,
         position: Position,
-        context: SignatureHelpContext | undefined
+        context: SignatureHelpContext | undefined,
+        cancellationToken?: CancellationToken
     ): Promise<SignatureHelp | null> {
         if (!this.featureEnabled('signatureHelp')) {
             return null;
         }
 
-        return this.signatureHelpProvider.getSignatureHelp(document, position, context);
+        return this.signatureHelpProvider.getSignatureHelp(
+            document,
+            position,
+            context,
+            cancellationToken
+        );
     }
 
-    async getSemanticTokens(textDocument: Document, range?: Range): Promise<SemanticTokens | null> {
+    async getSemanticTokens(
+        textDocument: Document,
+        range?: Range,
+        cancellationToken?: CancellationToken
+    ): Promise<SemanticTokens | null> {
         if (!this.featureEnabled('semanticTokens')) {
             return {
                 data: []
             };
         }
 
-        return this.semanticTokensProvider.getSemanticTokens(textDocument, range);
+        return this.semanticTokensProvider.getSemanticTokens(
+            textDocument,
+            range,
+            cancellationToken
+        );
+    }
+
+    async getImplementation(document: Document, position: Position): Promise<Location[] | null> {
+        if (!this.featureEnabled('implementation')) {
+            return null;
+        }
+
+        return this.implementationProvider.getImplementation(document, position);
+    }
+
+    async getTypeDefinition(document: Document, position: Position): Promise<Location[] | null> {
+        if (!this.featureEnabled('typeDefinition')) {
+            return null;
+        }
+
+        return this.typeDefinitionProvider.getTypeDefinition(document, position);
     }
 
     async findDocumentHighlight(
@@ -448,8 +537,7 @@ export class TypeScriptPlugin
     }
 
     /**
-     *
-     * @internal
+     * @internal Public for tests only
      */
     public getSnapshotManager(fileName: string) {
         return this.lsAndTsDocResolver.getSnapshotManager(fileName);

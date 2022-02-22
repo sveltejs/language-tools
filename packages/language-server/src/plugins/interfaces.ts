@@ -1,4 +1,5 @@
 import {
+    CancellationToken,
     CompletionContext,
     FileChangeType,
     LinkedEditingRanges,
@@ -54,12 +55,14 @@ export interface CompletionsProvider<T extends TextDocumentIdentifier = any> {
     getCompletions(
         document: Document,
         position: Position,
-        completionContext?: CompletionContext
+        completionContext?: CompletionContext,
+        cancellationToken?: CancellationToken
     ): Resolvable<AppCompletionList<T> | null>;
 
     resolveCompletion?(
         document: Document,
-        completionItem: AppCompletionItem<T>
+        completionItem: AppCompletionItem<T>,
+        cancellationToken?: CancellationToken
     ): Resolvable<AppCompletionItem<T>>;
 }
 
@@ -84,7 +87,10 @@ export interface ColorPresentationsProvider {
 }
 
 export interface DocumentSymbolsProvider {
-    getDocumentSymbols(document: Document): Resolvable<SymbolInformation[]>;
+    getDocumentSymbols(
+        document: Document,
+        cancellationToken?: CancellationToken
+    ): Resolvable<SymbolInformation[]>;
 }
 
 export interface DefinitionsProvider {
@@ -102,7 +108,8 @@ export interface CodeActionsProvider {
     getCodeActions(
         document: Document,
         range: Range,
-        context: CodeActionContext
+        context: CodeActionContext,
+        cancellationToken?: CancellationToken
     ): Resolvable<CodeAction[]>;
     executeCommand?(
         document: Document,
@@ -141,7 +148,8 @@ export interface SignatureHelpProvider {
     getSignatureHelp(
         document: Document,
         position: Position,
-        context: SignatureHelpContext | undefined
+        context: SignatureHelpContext | undefined,
+        cancellationToken?: CancellationToken
     ): Resolvable<SignatureHelp | null>;
 }
 
@@ -158,6 +166,14 @@ export interface LinkedEditingRangesProvider {
         document: Document,
         position: Position
     ): Resolvable<LinkedEditingRanges | null>;
+}
+
+export interface ImplementationProvider {
+    getImplementation(document: Document, position: Position): Resolvable<Location[] | null>;
+}
+
+export interface TypeDefinitionProvider {
+    getTypeDefinition(document: Document, position: Position): Resolvable<Location[] | null>;
 }
 
 export interface DocumentHighlightProvider {
@@ -195,6 +211,8 @@ type ProviderBase = DiagnosticsProvider &
     SignatureHelpProvider &
     SemanticTokensProvider &
     LinkedEditingRangesProvider &
+    ImplementationProvider &
+    TypeDefinitionProvider &
     DocumentHighlightProvider;
 
 export type LSProvider = ProviderBase & BackwardsCompatibleDefinitionsProvider;
@@ -217,4 +235,4 @@ export type Plugin = Partial<
         OnWatchFileChanges &
         SelectionRangeProvider &
         UpdateTsOrJsFile
->;
+> & { __name: string };

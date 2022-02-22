@@ -1,0 +1,1 @@
+<h1 on:click-outside on:click-outside2={() => 'hi'}>Hello</h1>

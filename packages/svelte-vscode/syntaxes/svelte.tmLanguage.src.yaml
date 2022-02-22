@@ -13,22 +13,23 @@ injections:
   #     patterns: [{begin: '(?<=>)(?!</)', end: '(?=</)', name: meta.embedded.block.svelte,
   #     contentName: source.<lang>, patterns: [{ include: source.<lang> }]}]
 
-  # Script Languages
+  # Style/Script Languages
   # JavaScript | 'javascript' | 'source.js'
-  'L:meta.script.svelte meta.lang.javascript - (meta source)':
+  'L:(meta.script.svelte | meta.style.svelte) (meta.lang.js | meta.lang.javascript) - (meta source)':
     patterns: [{begin: '(?<=>)(?!</)', end: '(?=</)', name: meta.embedded.block.svelte,
     contentName: source.js, patterns: [{ include: source.js }]}]
 
   # TypeScript | 'ts' 'typescript' | 'source.ts'
-  'L:meta.script.svelte (meta.lang.ts | meta.lang.typescript) - (meta source)':
+  'L:(meta.script.svelte | meta.style.svelte) (meta.lang.ts | meta.lang.typescript) - (meta source)':
     patterns: [{begin: '(?<=>)(?!</)', end: '(?=</)', name: meta.embedded.block.svelte,
     contentName: source.ts, patterns: [{ include: source.ts }]}]
 
   # CoffeeScript | 'coffee' | 'source.coffee'
-  'L:meta.script.svelte meta.lang.coffee - (meta source)':
+  'L:(meta.script.svelte | meta.style.svelte) meta.lang.coffee - (meta source)':
     patterns: [{begin: '(?<=>)(?!</)', end: '(?=</)', name: meta.embedded.block.svelte,
     contentName: source.coffee, patterns: [{ include: source.coffee }]}]
 
+  # Script Languages
   # Default (JavaScript)
   'L:meta.script.svelte - meta.lang - (meta source)':
     patterns: [{begin: '(?<=>)(?!</)', end: '(?=</)', name: meta.embedded.block.svelte,
@@ -214,7 +215,8 @@ repository:
          { match: each|key,          name: keyword.control.svelte             },
          { match: await|then|catch,  name: keyword.control.flow.svelte        },
          { match: html,              name: keyword.other.svelte               },
-         { match: debug,             name: keyword.other.debugger.svelte      }]}
+         { match: debug,             name: keyword.other.debugger.svelte      },
+         { match: const,             name: storage.type.svelte                }]}
 
   # Scopes special tag _block start nodes_ depending on what type they are, such as `#if` or `#await` blocks.
   special-tags-modes:
@@ -224,6 +226,19 @@ repository:
       end: (?=})
       name: meta.embedded.expression.svelte source.ts
       patterns: [ include: source.ts ]
+
+    # Const.
+    - begin: (?<=const.*?)\G
+      end: (?=})
+      patterns:
+      # Variable.
+      - begin: \G\s*([_$[:alpha:]][_$[:alnum:]]+)\s*
+        end: (?=\=)
+        beginCaptures: { 1: { name: variable.other.constant.svelte } }
+      # Expression (starting with "=").
+      - begin: (?=\=)
+        end: (?=})
+        patterns: [ include: source.ts#variable-initializer ]
 
     # Each.
     - begin: (?<=each.*?)\G
@@ -339,24 +354,36 @@ repository:
   # Matches attribute keyvalues. (and boolean attributes as well)
   # e.g. `class="my-class"`
   attributes-keyvalue:
-    begin: ([_$[:alpha:]][_\-$[:alnum:]]*)
-    beginCaptures: { 1: { name: entity.other.attribute-name.svelte } }
+    begin: ((?:--)?[_$[:alpha:]][_\-$[:alnum:]]*)
+    beginCaptures:
+      0:
+        patterns:
+        # Matches if the key is a `--css-variable` attribute.
+        - match: --.*
+          name: support.type.property-name.svelte
+        # Matches everything else.
+        - match: .*
+          name: entity.other.attribute-name.svelte
     end: (?=\s*+[^=\s])
     name: 'meta.attribute.$1.svelte'
-    patterns: [ include: '#attributes-value' ]
+    patterns:
+    - begin: '='
+      beginCaptures: { 0: { name: punctuation.separator.key-value.svelte } }
+      end: (?<=[^\s=])(?!\s*=)|(?=/?>)
+      patterns: [include: '#attributes-value']
 
-  # The value part of attribute keyvalues. e.g. `="my-class"` in `class="my-class"`
+  # The value part of attribute keyvalues. e.g. `"my-class"` in `class="my-class"`
   attributes-value:
-    begin: '='
-    beginCaptures: { 0: { name: punctuation.separator.key-value.svelte } }
-    end: (?<=[^\s=])(?!\s*=)|(?=/?>)
     patterns:
     # No quotes - just an interpolation expression.
     - include: '#interpolation'
     # Units, meaning digit characters and an optional unit string. e.g. `15px`
-    - match: ([0-9._]+[\w]{,4})(?=\s|/?>)
-      name: constant.numeric.decimal.svelte
-      patterns: [ include: '#interpolation' ]
+    - match: (?:(['"])([0-9._]+[\w%]{,4})(\1))|(?:([0-9._]+[\w%]{,4})(?=\s|/?>))
+      captures:
+        1: { name: punctuation.definition.string.begin.svelte }
+        2: { name: constant.numeric.decimal.svelte }
+        3: { name: punctuation.definition.string.end.svelte }
+        4: { name: constant.numeric.decimal.svelte }
     # Unquoted strings.
     - match: ([^\s"'=<>`/]|/(?!>))+
       name: string.unquoted.svelte
@@ -365,7 +392,7 @@ repository:
     - begin: (['"])
       end: \1
       beginCaptures: { 0: { name: punctuation.definition.string.begin.svelte } }
-      endCaptures: { 0: { name: punctuation.definition.string.end.svelte } }
+      endCaptures:   { 0: { name: punctuation.definition.string.end.svelte } }
       name: string.quoted.svelte
       patterns: [ include: '#interpolation' ]
 
@@ -377,7 +404,7 @@ repository:
     - { match: on|use|bind,               name: keyword.control.svelte             }
     - { match: transition|in|out|animate, name: keyword.other.animation.svelte     }
     - { match: let,                       name: storage.type.svelte                }
-    - { match: class,                     name: entity.other.attribute-name.svelte }
+    - { match: class|style,               name: entity.other.attribute-name.svelte }
 
   # For Svelte element directives. Scopes the 'click' part in `on:click`.
   # The scope of the variable should represent what data type it generally is.
@@ -387,7 +414,7 @@ repository:
     - { match: '(?<=(on):).*$',                            name: entity.name.type.svelte   }
     - { match: '(?<=(bind):).*$',                          name: variable.parameter.svelte }
     - { match: '(?<=(use|transition|in|out|animate):).*$', name: variable.function.svelte  }
-    - { match: '(?<=(let|class):).*$',                     name: variable.parameter.svelte }
+    - { match: '(?<=(let|class|style):).*$',               name: variable.parameter.svelte }
 
   # For directives that may be better suited using different scopes if assigned to something.
   # e.g. `class:var={var}` is different to `class:var`.
@@ -398,15 +425,16 @@ repository:
     # Makes 'bind:this' display like `this` would in JS.
     - { match: '(?<=(bind):)this$', name: variable.language.svelte }
     # If other keywords are patched in in the future, they can easily be added here.
-    - { match: '(?<=(bind):).*$',  name: entity.name.type.svelte                  }
-    - { match: '(?<=(class):).*$', name: entity.other.attribute-name.class.svelte }
+    - { match: '(?<=(bind):).*$',   name: entity.name.type.svelte                  }
+    - { match: '(?<=(class):).*$',  name: entity.other.attribute-name.class.svelte }
+    - { match: '(?<=(style):).*$',  name: support.type.property-name.svelte        }
     # Defaults to the non-assignment version for everything else.
     - include: '#attributes-directives-types'
 
   # Matches Svelte element directives, e.g. `on:click|preventDefault={var}`
   attributes-directives:
     # If something is added to attributes-directives-keywords, it must be added to the begin-regex, too.
-    begin: (?<!<)(on|use|bind|transition|in|out|animate|let|class)(:)(?:([_$[:alpha:]][_\-$[:alnum:]]*(?=\s*=))|([_$[:alpha:]][_\-$[:alnum:]]*))((\|\w+)*)
+    begin: (?<!<)(on|use|bind|transition|in|out|animate|let|class|style)(:)(?:((?:--)?[_$[:alpha:]][_\-$[:alnum:]]*(?=\s*=))|((?:--)?[_$[:alpha:]][_\-$[:alnum:]]*))((\|\w+)*)
     beginCaptures:
       1: { patterns: [ include: '#attributes-directives-keywords' ] }
       2: { name: punctuation.definition.keyword.svelte }
@@ -419,7 +447,10 @@ repository:
     end: (?=\s*+[^=\s])
     name: meta.directive.$1.svelte
     patterns:
-    - include: '#attributes-value'
+    - begin: '='
+      beginCaptures: { 0: { name: punctuation.separator.key-value.svelte } }
+      end: (?<=[^\s=])(?!\s*=)|(?=/?>)
+      patterns: [include: '#attributes-value']
 
   # ------
   #  TAGS
@@ -496,7 +527,7 @@ repository:
     name: meta.$1.svelte
     patterns:
     # Tags with a language specified.
-    - begin: \G(?=\s*(type|lang)\s*=\s*(['"]|)(?:text/)?(\w+)\2)
+    - begin: \G(?=\s*[^>]*?(type|lang)\s*=\s*(['"]|)(?:text/)?(\w+)\2)
       end: (?=</|/>)
       name: meta.lang.$3.svelte
       patterns: [ include: '#tags-lang-start-attributes' ]

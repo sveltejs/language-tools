@@ -54,7 +54,7 @@ Install a plugin for your editor:
 
 The language server has quite a few settings to toggle features. They are listed below. When using the VS Code extension, you can set these through the settings UI or in the `settings.json` using the keys mentioned below.
 
-When using the language server directly, put the settings as JSON inside `initializationOptions.configuration` for the [initialize command](https://microsoft.github.io/language-server-protocol/specification#initialize). When using the [didChangeConfiguration command](https://microsoft.github.io/language-server-protocol/specification#workspace_didChangeConfiguration), pass the JSON directly. The language server also accepts configuration for Emmet (key: `emmet`), Prettier (key: `prettier`) and TypeScript (keys: `javascript` and `typescript` for JS/TS config).
+When using the language server directly, put the settings as JSON inside `initializationOptions.configuration` for the [initialize command](https://microsoft.github.io/language-server-protocol/specification#initialize). When using the [didChangeConfiguration command](https://microsoft.github.io/language-server-protocol/specification#workspace_didChangeConfiguration), pass the JSON directly. The language server also accepts configuration for Emmet (key: `emmet`), Prettier (key: `prettier`), CSS (key: `css` / `less` / `scss`) and TypeScript (keys: `javascript` and `typescript` for JS/TS config).
 
 Example:
 
@@ -72,7 +72,7 @@ Init:
             },
             typescript: { /* .. */ },
             javascript: { /* .. */ },
-            prettierConfig: { /* .. */ },
+            prettier: { /* .. */ },
             // ...
         }
     }
@@ -91,7 +91,7 @@ Update:
     },
     typescript: { /* .. */ },
     javascript: { /* .. */ },
-    prettierConfig: { /* .. */ },
+    prettier: { /* .. */ },
     // ...
     }
 }
@@ -145,7 +145,11 @@ Enable signature help (parameter hints) for JS/TS. _Default_: `true`
 
 ##### `svelte.plugin.typescript.semanticTokens.enable`
 
-Enable semantic tokens (semantic highlight) for TypeScript. Doesn't apply to JavaScript. _Default_: `true`
+Enable semantic tokens (semantic highlight) for TypeScript. _Default_: `true`
+
+##### `svelte.plugin.typescript.implementation.enable`
+
+Enable go to implementation for Typescript. _Default_: `true`
 
 ##### `svelte.plugin.css.enable`
 
@@ -225,6 +229,10 @@ Enable rename tags for the opening/closing tag pairs in HTML. _Default_: `true`
 
 Enable the Svelte plugin. _Default_: `true`
 
+##### `svelte.plugin.svelte.useNewTransformation`
+
+Svelte files need to be transformed to something that TypeScript understands for intellisense. Version 2.0 of this transformation can be enabled with this setting. It will be the default, soon.
+
 ##### `svelte.plugin.svelte.diagnostics.enable`
 
 Enable diagnostic messages for Svelte. _Default_: `true`
@@ -297,7 +305,11 @@ Enable code actions for Svelte. _Default_: `true`
 
 Enable selection range for Svelte. _Default_: `true`
 
+##### `svelte.plugin.svelte.defaultScriptLanguage`
+
+The default language to use when generating new script tags in Svelte. _Default_: `none`
+
 ## Credits
 
--   [UnwrittenFun](https://github.com/UnwrittenFun) for creating the foundation which this language server is built on
+-   [James Birtles](https://github.com/jamesbirtles) for creating the foundation which this language server is built on
 -   Vue's [Vetur](https://github.com/vuejs/vetur) language server which heavily inspires this project

@@ -1,12 +1,12 @@
 ///<reference types="svelte" />
 <></>;function render() {                                                                                                                             {/**
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
-<>{() => {let _$$p = (promise); __sveltets_awaitThen(_$$p, (value) => {<>                                                                             {/**
-=#                                                                            Originless mappings                                                     
-<>{()•=>•{let•_$$p•=•(promise);•__sveltets_awaitThen(_$$p,•(value)•=>•{<>↲    [generated] line 3                                                      
-  {                   promise•  t                           value}       ↲                                                                            
+<>{() => {let _$$p = (promise); __sveltets_1_awaitThen(_$$p, (value) => {<>                                                                           {/**
+=#                                                                              Originless mappings                                                   
+<>{()•=>•{let•_$$p•=•(promise);•__sveltets_1_awaitThen(_$$p,•(value)•=>•{<>↲    [generated] line 3                                                    
+  {                   promise•  t                             value}       ↲                                                                          
 {       promise•t    value}↲                                                                                                                          
-{#await•promise•then•value}↲                                                  [original] line 1                                                       
+{#await•promise•then•value}↲                                                    [original] line 1                                                     
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
     <element foo={value.bar}/>                                                                                                                        {/**
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
@@ -26,12 +26,12 @@
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
     <element />                                                                                                                                       {/**
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
-</>; __sveltets_awaitThen(_$$p, () => {<>                                                                                                             {/**
-====#                                         Originless mappings                                                                                     
-</>;•__sveltets_awaitThen(_$$p,•()•=>•{<>↲    [generated] line 9                                                                                      
-     {                                   ↲                                                                                                            
+</>; __sveltets_1_awaitThen(_$$p, () => {<>                                                                                                           {/**
+====#                                           Originless mappings                                                                                   
+</>;•__sveltets_1_awaitThen(_$$p,•()•=>•{<>↲    [generated] line 9                                                                                    
+     {                                     ↲                                                                                                          
 {      ↲                                                                                                                                              
-{:then}↲                                      [original] line 7                                                                                       
+{:then}↲                                        [original] line 7                                                                                     
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
     <element />                                                                                                                                       {/**
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
@@ -43,22 +43,22 @@
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                                                                                                                                                       {/**
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
-{() => {let _$$p = ((__sveltets_store_get(promise), $promise)); <>                                                                                    {/**
-{()•=>•{let•_$$p•=•((__sveltets_store_get(promise),•$promise));•<>↲    [generated] line 13                                                            
-{                   $                     promise            }    ↲                                                                                   
+{() => {let _$$p = ((__sveltets_1_store_get(promise), $promise)); <>                                                                                  {/**
+{()•=>•{let•_$$p•=•((__sveltets_1_store_get(promise),•$promise));•<>↲    [generated] line 13                                                          
+{                   $                       promise            }    ↲                                                                                 
 {       $promise}↲                                                                                                                                    
-{#await•$promise}↲                                                     [original] line 11                                                             
+{#await•$promise}↲                                                       [original] line 11                                                           
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
     <element />                                                                                                                                       {/**
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
-</>; __sveltets_awaitThen(_$$p, () => {<></>})}}</>                                                                                                   {/**
-========================================#               Originless mappings                                                                           
-</>;•__sveltets_awaitThen(_$$p,•()•=>•{<></>})}}</>↲    [generated] line 15                                                                           
-                                         {                                                                                                            
+</>; __sveltets_1_awaitThen(_$$p, () => {<></>})}}</>                                                                                                 {/**
+==========================================#               Originless mappings                                                                         
+</>;•__sveltets_1_awaitThen(_$$p,•()•=>•{<></>})}}</>↲    [generated] line 15                                                                         
+                                           {                                                                                                          
 {                                                                                                                                                     
-{/await}                                                [original] line 13                                                                            
+{/await}                                                  [original] line 13                                                                          
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
 return { props: {}, slots: {}, getters: {}, events: {} }}
 
-export default class Input__SvelteComponent_ extends createSvelte2TsxComponent(__sveltets_partial(__sveltets_with_any_event(render))) {
+export default class Input__SvelteComponent_ extends __sveltets_1_createSvelte2TsxComponent(__sveltets_1_partial(__sveltets_1_with_any_event(render()))) {
 }

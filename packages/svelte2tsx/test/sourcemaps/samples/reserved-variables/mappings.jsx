@@ -1,11 +1,11 @@
 ///<reference types="svelte" />
 //----------------------------------------------------------------------------------------------------------------------------------------------------
-<></>;function render() { let $$props = __sveltets_allPropsType(); let $$restProps = __sveltets_restPropsType(); let $$slots = __sveltets_slotsType({});{/**
-=#                                                                                                                                                           Originless mappings
-<></>;function•render()•{•let•$$props•=•__sveltets_allPropsType();•let•$$restProps•=•__sveltets_restPropsType();•let•$$slots•=•__sveltets_slotsType({});↲    [generated] line 2
-  <   s                                                                                                                                                      
-<s                                                                                                                                                           
-<script>↲                                                                                                                                                    [original] line 1 (rest generated at line 3)
+<></>;function render() { let $$props = __sveltets_1_allPropsType(); let $$restProps = __sveltets_1_restPropsType(); let $$slots = __sveltets_1_slotsType({});{/**
+=#                                                                                                                                                                 Originless mappings
+<></>;function•render()•{•let•$$props•=•__sveltets_1_allPropsType();•let•$$restProps•=•__sveltets_1_restPropsType();•let•$$slots•=•__sveltets_1_slotsType({});↲    [generated] line 2
+  <   s                                                                                                                                                            
+<s                                                                                                                                                                 
+<script>↲                                                                                                                                                          [original] line 1 (rest generated at line 3)
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                                                                                                                                                       {/**
 ↲            [generated] line 3                                                                                                                       
@@ -16,11 +16,11 @@
     $$restProps;
     $$props;                                                                                                                                          {/**
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
-    let  foo = __sveltets_invalidate(() => ({...$$slots, ...$$restProps, ...$$props}));                                                               {/**
-   ╚let••foo•=•__sveltets_invalidate(()•=>•({...$$slots,•...$$restProps,•...$$props}));↲    [generated] line 7                                        
-   ╚    •foo•=•                             {...$$slots,•...$$restProps,•...$$props}  ;↲                                                              
+    let  foo = __sveltets_1_invalidate(() => ({...$$slots, ...$$restProps, ...$$props}));                                                             {/**
+   ╚let••foo•=•__sveltets_1_invalidate(()•=>•({...$$slots,•...$$restProps,•...$$props}));↲    [generated] line 7                                      
+   ╚    •foo•=•                               {...$$slots,•...$$restProps,•...$$props} ; ↲                                                            
    ╚  •foo•=•{...$$slots,•...$$restProps,•...$$props};↲                                                                                               
-   ╚$:•foo•=•{...$$slots,•...$$restProps,•...$$props};↲                                     [original] line 5                                         
+   ╚$:•foo•=•{...$$slots,•...$$restProps,•...$$props};↲                                       [original] line 5                                       
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
 ;                                                                                                                                                     {/**
 ;↲            [generated] line 8                                                                                                                      
@@ -53,5 +53,5 @@
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
 return { props: {}, slots: {}, getters: {}, events: {} }}
 
-export default class Input__SvelteComponent_ extends createSvelte2TsxComponent(__sveltets_partial_with_any(__sveltets_with_any_event(render))) {
+export default class Input__SvelteComponent_ extends __sveltets_1_createSvelte2TsxComponent(__sveltets_1_partial_with_any(__sveltets_1_with_any_event(render()))) {
 }

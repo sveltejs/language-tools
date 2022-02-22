@@ -1,4 +1,3 @@
-import _ from 'lodash';
 import {
     ApplyWorkspaceEditParams,
     ApplyWorkspaceEditRequest,
@@ -31,17 +30,17 @@ import {
     PluginHost,
     SveltePlugin,
     TypeScriptPlugin,
-    OnWatchFileChangesPara
+    OnWatchFileChangesPara,
+    LSAndTSDocResolver
 } from './plugins';
-import { isNotNullOrUndefined, urlToPath } from './utils';
+import { debounceThrottle, isNotNullOrUndefined, normalizeUri, urlToPath } from './utils';
 import { FallbackWatcher } from './lib/FallbackWatcher';
+import { configLoader } from './lib/documents/configLoader';
+import { setIsTrusted } from './importPackage';
 
 namespace TagCloseRequest {
-    export const type: RequestType<
-        TextDocumentPositionParams,
-        string | null,
-        any
-    > = new RequestType('html/tag');
+    export const type: RequestType<TextDocumentPositionParams, string | null, any> =
+        new RequestType('html/tag');
 }
 
 export interface LSOptions {
@@ -105,6 +104,14 @@ export function startServer(options?: LSOptions) {
             watcher.onDidChangeWatchedFiles(onDidChangeWatchedFiles);
         }
 
+        const isTrusted: boolean = evt.initializationOptions?.isTrusted ?? true;
+        configLoader.setDisabled(!isTrusted);
+        setIsTrusted(isTrusted);
+        configManager.updateIsTrusted(isTrusted);
+        if (!isTrusted) {
+            Logger.log('Workspace is not trusted, running with reduced capabilities.');
+        }
+
         // Backwards-compatible way of setting initialization options (first `||` is the old style)
         configManager.update(
             evt.initializationOptions?.configuration?.svelte?.plugin ||
@@ -126,16 +133,30 @@ export function startServer(options?: LSOptions) {
                 evt.initializationOptions?.prettierConfig ||
                 {}
         );
+        // no old style as these were added later
+        configManager.updateCssConfig(evt.initializationOptions?.configuration?.css);
+        configManager.updateScssConfig(evt.initializationOptions?.configuration?.scss);
+        configManager.updateLessConfig(evt.initializationOptions?.configuration?.less);
 
         pluginHost.initialize({
-            filterIncompleteCompletions: !evt.initializationOptions
-                ?.dontFilterIncompleteCompletions,
+            filterIncompleteCompletions:
+                !evt.initializationOptions?.dontFilterIncompleteCompletions,
             definitionLinkSupport: !!evt.capabilities.textDocument?.definition?.linkSupport
         });
         pluginHost.register((sveltePlugin = new SveltePlugin(configManager)));
         pluginHost.register(new HTMLPlugin(docManager, configManager));
         pluginHost.register(new CSSPlugin(docManager, configManager));
-        pluginHost.register(new TypeScriptPlugin(docManager, configManager, workspaceUris));
+        pluginHost.register(
+            new TypeScriptPlugin(
+                configManager,
+                new LSAndTSDocResolver(
+                    docManager,
+                    workspaceUris.map(normalizeUri),
+                    configManager,
+                    notifyTsServiceExceedSizeLimit
+                )
+            )
+        );
 
         const clientSupportApplyEditCommand = !!evt.capabilities.workspace?.applyEdit;
 
@@ -176,7 +197,8 @@ export function startServer(options?: LSOptions) {
                         // of other completion providers
 
                         // Svelte
-                        ':'
+                        ':',
+                        '|'
                     ]
                 },
                 documentFormattingProvider: true,
@@ -204,7 +226,8 @@ export function startServer(options?: LSOptions) {
                               'constant_scope_1',
                               'constant_scope_2',
                               'constant_scope_3',
-                              'extract_to_svelte_component'
+                              'extract_to_svelte_component',
+                              'Infer function return type'
                           ]
                       }
                     : undefined,
@@ -223,10 +246,22 @@ export function startServer(options?: LSOptions) {
                     full: true
                 },
                 linkedEditingRangeProvider: true,
+                implementationProvider: true,
+                typeDefinitionProvider: true,
                 documentHighlightProvider: true
             }
         };
     });
+
+    function notifyTsServiceExceedSizeLimit() {
+        connection?.sendNotification(ShowMessageNotification.type, {
+            message:
+                'Svelte language server detected a large amount of JS/Svelte files. ' +
+                'To enable project-wide JavaScript/TypeScript language features for Svelte files,' +
+                'exclude large folders in the tsconfig.json or jsconfig.json with source files that you do not work on.',
+            type: MessageType.Warning
+        });
+    }
 
     connection.onExit(() => {
         watcher?.dispose();
@@ -242,6 +277,9 @@ export function startServer(options?: LSOptions) {
         configManager.updateTsJsUserPreferences(settings);
         configManager.updateEmmetConfig(settings.emmet);
         configManager.updatePrettierConfig(settings.prettier);
+        configManager.updateCssConfig(settings.css);
+        configManager.updateScssConfig(settings.scss);
+        configManager.updateLessConfig(settings.less);
     });
 
     connection.onDidOpenTextDocument((evt) => {
@@ -250,12 +288,13 @@ export function startServer(options?: LSOptions) {
     });
 
     connection.onDidCloseTextDocument((evt) => docManager.closeDocument(evt.textDocument.uri));
-    connection.onDidChangeTextDocument((evt) =>
-        docManager.updateDocument(evt.textDocument, evt.contentChanges)
-    );
+    connection.onDidChangeTextDocument((evt) => {
+        docManager.updateDocument(evt.textDocument, evt.contentChanges);
+        pluginHost.didUpdateDocument();
+    });
     connection.onHover((evt) => pluginHost.doHover(evt.textDocument, evt.position));
-    connection.onCompletion((evt) =>
-        pluginHost.getCompletions(evt.textDocument, evt.position, evt.context)
+    connection.onCompletion((evt, cancellationToken) =>
+        pluginHost.getCompletions(evt.textDocument, evt.position, evt.context, cancellationToken)
     );
     connection.onDocumentFormatting((evt) =>
         pluginHost.formatDocument(evt.textDocument, evt.options)
@@ -267,14 +306,16 @@ export function startServer(options?: LSOptions) {
     connection.onColorPresentation((evt) =>
         pluginHost.getColorPresentations(evt.textDocument, evt.range, evt.color)
     );
-    connection.onDocumentSymbol((evt) => pluginHost.getDocumentSymbols(evt.textDocument));
+    connection.onDocumentSymbol((evt, cancellationToken) =>
+        pluginHost.getDocumentSymbols(evt.textDocument, cancellationToken)
+    );
     connection.onDefinition((evt) => pluginHost.getDefinitions(evt.textDocument, evt.position));
     connection.onReferences((evt) =>
         pluginHost.findReferences(evt.textDocument, evt.position, evt.context)
     );
 
-    connection.onCodeAction((evt) =>
-        pluginHost.getCodeActions(evt.textDocument, evt.range, evt.context)
+    connection.onCodeAction((evt, cancellationToken) =>
+        pluginHost.getCodeActions(evt.textDocument, evt.range, evt.context, cancellationToken)
     );
     connection.onExecuteCommand(async (evt) => {
         const result = await pluginHost.executeCommand(
@@ -293,27 +334,34 @@ export function startServer(options?: LSOptions) {
         }
     });
 
-    connection.onCompletionResolve((completionItem) => {
+    connection.onCompletionResolve((completionItem, cancellationToken) => {
         const data = (completionItem as AppCompletionItem).data as TextDocumentIdentifier;
 
         if (!data) {
             return completionItem;
         }
 
-        return pluginHost.resolveCompletion(data, completionItem);
+        return pluginHost.resolveCompletion(data, completionItem, cancellationToken);
     });
 
-    connection.onSignatureHelp((evt) =>
-        pluginHost.getSignatureHelp(evt.textDocument, evt.position, evt.context)
+    connection.onSignatureHelp((evt, cancellationToken) =>
+        pluginHost.getSignatureHelp(evt.textDocument, evt.position, evt.context, cancellationToken)
     );
 
     connection.onSelectionRanges((evt) =>
         pluginHost.getSelectionRanges(evt.textDocument, evt.positions)
     );
 
-    connection.onDocumentHighlight((evt) =>
-        pluginHost.findDocumentHighlight(evt.textDocument, evt.position)
+    connection.onImplementation((evt) =>
+    pluginHost.getImplementation(evt.textDocument, evt.position)
     );
+
+    connection.onTypeDefinition((evt) =>
+    pluginHost.getTypeDefinition(evt.textDocument, evt.position)
+    );
+
+    connection.onDocumentHighlight((evt) =>
+        pluginHost.findDocumentHighlight(evt.textDocument, evt.position));
 
     const diagnosticsManager = new DiagnosticsManager(
         connection.sendDiagnostics,
@@ -321,7 +369,7 @@ export function startServer(options?: LSOptions) {
         pluginHost.getDiagnostics.bind(pluginHost)
     );
 
-    const updateAllDiagnostics = _.debounce(() => diagnosticsManager.updateAll(), 1000);
+    const updateAllDiagnostics = debounceThrottle(() => diagnosticsManager.updateAll(), 1000);
 
     connection.onDidChangeWatchedFiles(onDidChangeWatchedFiles);
     function onDidChangeWatchedFiles(para: DidChangeWatchedFilesParams) {
@@ -346,11 +394,11 @@ export function startServer(options?: LSOptions) {
         updateAllDiagnostics();
     });
 
-    connection.onRequest(SemanticTokensRequest.type, (evt) =>
-        pluginHost.getSemanticTokens(evt.textDocument)
+    connection.onRequest(SemanticTokensRequest.type, (evt, cancellationToken) =>
+        pluginHost.getSemanticTokens(evt.textDocument, undefined, cancellationToken)
     );
-    connection.onRequest(SemanticTokensRangeRequest.type, (evt) =>
-        pluginHost.getSemanticTokens(evt.textDocument, evt.range)
+    connection.onRequest(SemanticTokensRangeRequest.type, (evt, cancellationToken) =>
+        pluginHost.getSemanticTokens(evt.textDocument, evt.range, cancellationToken)
     );
 
     connection.onRequest(
@@ -360,7 +408,7 @@ export function startServer(options?: LSOptions) {
 
     docManager.on(
         'documentChange',
-        _.debounce(async (document: Document) => diagnosticsManager.update(document), 500)
+        debounceThrottle(async (document: Document) => diagnosticsManager.update(document), 750)
     );
     docManager.on('documentClose', (document: Document) =>
         diagnosticsManager.removeDiagnostics(document)
@@ -374,7 +422,9 @@ export function startServer(options?: LSOptions) {
 
     connection.onRequest('$/getCompiledCode', async (uri: DocumentUri) => {
         const doc = docManager.get(uri);
-        if (!doc) return null;
+        if (!doc) {
+            return null;
+        }
 
         if (doc) {
             const compiled = await sveltePlugin.getCompiledResult(doc);

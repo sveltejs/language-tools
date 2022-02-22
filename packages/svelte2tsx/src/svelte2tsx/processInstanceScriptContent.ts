@@ -2,17 +2,20 @@ import MagicString from 'magic-string';
 import { Node } from 'estree-walker';
 import * as ts from 'typescript';
 import {
-    findExportKeyword,
     getBinaryAssignmentExpr,
-    isFirstInAnExpressionStatement,
+    isSafeToPrefixWithSemicolon,
     isNotPropertyNameOfImport
 } from './utils/tsAst';
-import { ExportedNames } from './nodes/ExportedNames';
+import { ExportedNames, is$$PropsDeclaration } from './nodes/ExportedNames';
 import { ImplicitTopLevelNames } from './nodes/ImplicitTopLevelNames';
-import { ComponentEvents } from './nodes/ComponentEvents';
+import { ComponentEvents, is$$EventsDeclaration } from './nodes/ComponentEvents';
 import { Scope } from './utils/Scope';
 import { handleTypeAssertion } from './nodes/handleTypeAssertion';
 import { ImplicitStoreValues } from './nodes/ImplicitStoreValues';
+import { Generics } from './nodes/Generics';
+import { is$$SlotsDeclaration } from './nodes/slot';
+import { preprendStr } from '../utils/magic-string';
+import { handleImportDeclaration } from './nodes/handleImportDeclaration';
 
 export interface InstanceScriptProcessResult {
     exportedNames: ExportedNames;
@@ -20,7 +23,8 @@ export interface InstanceScriptProcessResult {
     uses$$props: boolean;
     uses$$restProps: boolean;
     uses$$slots: boolean;
-    getters: Set<string>;
+    uses$$SlotsInterface: boolean;
+    generics: Generics;
 }
 
 interface PendingStoreResolution {
@@ -33,7 +37,8 @@ export function processInstanceScriptContent(
     str: MagicString,
     script: Node,
     events: ComponentEvents,
-    implicitStoreValues: ImplicitStoreValues
+    implicitStoreValues: ImplicitStoreValues,
+    mode: 'ts' | 'tsx' | 'dts'
 ): InstanceScriptProcessResult {
     const htmlx = str.original;
     const scriptContent = htmlx.substring(script.content.start, script.content.end);
@@ -45,13 +50,14 @@ export function processInstanceScriptContent(
         ts.ScriptKind.TS
     );
     const astOffset = script.content.start;
-    const exportedNames = new ExportedNames();
-    const getters = new Set<string>();
+    const exportedNames = new ExportedNames(str, astOffset);
+    const generics = new Generics(str, astOffset);
 
-    const implicitTopLevelNames = new ImplicitTopLevelNames();
+    const implicitTopLevelNames = new ImplicitTopLevelNames(str, astOffset);
     let uses$$props = false;
     let uses$$restProps = false;
     let uses$$slots = false;
+    let uses$$SlotsInterface = false;
 
     //track if we are in a declaration scope
     let isDeclaration = false;
@@ -65,81 +71,6 @@ export function processInstanceScriptContent(
 
     const pushScope = () => (scope = new Scope(scope));
     const popScope = () => (scope = scope.parent);
-
-    const addGetter = (node: ts.Identifier) => {
-        if (!node) {
-            return;
-        }
-        getters.add(node.text);
-    };
-
-    const removeExport = (start: number, end: number) => {
-        const exportStart = str.original.indexOf('export', start + astOffset);
-        const exportEnd = exportStart + (end - start);
-        str.remove(exportStart, exportEnd);
-    };
-
-    const propTypeAssertToUserDefined = (node: ts.VariableDeclarationList) => {
-        const hasInitializers = node.declarations.filter((declaration) => declaration.initializer);
-        const handleTypeAssertion = (declaration: ts.VariableDeclaration) => {
-            const identifier = declaration.name;
-            const tsType = declaration.type;
-            const jsDocType = ts.getJSDocType(declaration);
-            const type = tsType || jsDocType;
-
-            if (
-                !ts.isIdentifier(identifier) ||
-                (!type &&
-                    // Edge case: TS infers `export let bla = false` to type `false`.
-                    // prevent that by adding the any-wrap in this case, too.
-                    ![ts.SyntaxKind.FalseKeyword, ts.SyntaxKind.TrueKeyword].includes(
-                        declaration.initializer?.kind
-                    ))
-            ) {
-                return;
-            }
-            const name = identifier.getText();
-            const end = declaration.end + astOffset;
-
-            str.appendLeft(end, `;${name} = __sveltets_any(${name});`);
-        };
-
-        const findComma = (target: ts.Node) =>
-            target.getChildren().filter((child) => child.kind === ts.SyntaxKind.CommaToken);
-        const splitDeclaration = () => {
-            const commas = node
-                .getChildren()
-                .filter((child) => child.kind === ts.SyntaxKind.SyntaxList)
-                .map(findComma)
-                .reduce((current, previous) => [...current, ...previous], []);
-
-            commas.forEach((comma) => {
-                const start = comma.getStart() + astOffset;
-                const end = comma.getEnd() + astOffset;
-                str.overwrite(start, end, ';let ', { contentOnly: true });
-            });
-        };
-        splitDeclaration();
-
-        for (const declaration of hasInitializers) {
-            handleTypeAssertion(declaration);
-        }
-    };
-
-    const handleExportFunctionOrClass = (node: ts.ClassDeclaration | ts.FunctionDeclaration) => {
-        const exportModifier = findExportKeyword(node);
-        if (!exportModifier) {
-            return;
-        }
-
-        removeExport(exportModifier.getStart(), exportModifier.end);
-        addGetter(node.name);
-
-        // Can't export default here
-        if (node.name) {
-            exportedNames.addExport(node.name);
-        }
-    };
 
     const handleStore = (ident: ts.Identifier, parent: ts.Node) => {
         // ignore "typeof $store"
@@ -202,8 +133,12 @@ export function processInstanceScriptContent(
         // handle $store++, $store--, ++$store, --$store
         if (
             (ts.isPrefixUnaryExpression(parent) || ts.isPostfixUnaryExpression(parent)) &&
-            parent.operator !==
-                ts.SyntaxKind.ExclamationToken /* `!$store` does not need processing */
+            ![
+                ts.SyntaxKind.ExclamationToken, // !$store
+                ts.SyntaxKind.PlusToken, // +$store
+                ts.SyntaxKind.MinusToken, // -$store
+                ts.SyntaxKind.TildeToken // ~$store
+            ].includes(parent.operator) /* `!$store` etc does not need processing */
         ) {
             let simpleOperator: string;
             if (parent.operator === ts.SyntaxKind.PlusPlusToken) {
@@ -217,7 +152,7 @@ export function processInstanceScriptContent(
                 str.overwrite(
                     parent.getStart() + astOffset,
                     parent.end + astOffset,
-                    `${storename}.set( $${storename} ${simpleOperator} 1)`
+                    `(${storename}.set( $${storename} ${simpleOperator} 1), $${storename})`
                 );
                 return;
             } else {
@@ -231,12 +166,17 @@ export function processInstanceScriptContent(
             }
         }
 
-        // we change "$store" references into "(__sveltets_store_get(store), $store)"
+        // we change "$store" references into "(__sveltets_1_store_get(store), $store)"
         // - in order to get ts errors if store is not assignable to SvelteStore
         // - use $store variable defined above to get ts flow control
         const dollar = str.original.indexOf('$', ident.getStart() + astOffset);
-        const getPrefix = isFirstInAnExpressionStatement(ident) ? ';' : '';
-        str.overwrite(dollar, dollar + 1, getPrefix + '(__sveltets_store_get(');
+        const getPrefix = isSafeToPrefixWithSemicolon(ident)
+            ? ';'
+            : ts.isShorthandPropertyAssignment(parent)
+            ? // { $store } --> { $store: __sveltets_1_store_get(..)}
+              ident.text + ': '
+            : '';
+        str.overwrite(dollar, dollar + 1, getPrefix + '(__sveltets_1_store_get(');
         str.prependLeft(ident.end + astOffset, `), $${storename})`);
     };
 
@@ -292,7 +232,10 @@ export function processInstanceScriptContent(
                     (!ts.isPropertyAccessExpression(parent) || parent.expression == ident) &&
                     (!ts.isPropertyAssignment(parent) || parent.initializer == ident) &&
                     !ts.isPropertySignature(parent) &&
-                    !ts.isPropertyDeclaration(parent)
+                    !ts.isPropertyDeclaration(parent) &&
+                    !ts.isTypeReferenceNode(parent) &&
+                    !ts.isTypeAliasDeclaration(parent) &&
+                    !ts.isInterfaceDeclaration(parent)
                 ) {
                     pendingStoreResolutions.push({ node: ident, parent, scope });
                 }
@@ -300,117 +243,60 @@ export function processInstanceScriptContent(
         }
     };
 
-    const handleExportedVariableDeclarationList = (list: ts.VariableDeclarationList) => {
-        ts.forEachChild(list, (node) => {
-            if (ts.isVariableDeclaration(node)) {
-                if (ts.isIdentifier(node.name)) {
-                    exportedNames.addExport(node.name, node.name, node.type, !node.initializer);
-                } else if (
-                    ts.isObjectBindingPattern(node.name) ||
-                    ts.isArrayBindingPattern(node.name)
-                ) {
-                    ts.forEachChild(node.name, (element) => {
-                        if (ts.isBindingElement(element)) {
-                            exportedNames.addExport(element.name);
-                        }
-                    });
-                }
-            }
-        });
-    };
-
-    const wrapExpressionWithInvalidate = (expression: ts.Expression | undefined) => {
-        if (!expression) {
-            return;
-        }
-
-        const start = expression.getStart() + astOffset;
-        const end = expression.getEnd() + astOffset;
-
-        // () => ({})
-        if (ts.isObjectLiteralExpression(expression)) {
-            str.appendLeft(start, '(');
-            str.appendRight(end, ')');
-        }
-
-        str.prependLeft(start, '__sveltets_invalidate(() => ');
-        str.appendRight(end, ')');
-        // Not adding ';' at the end because right now this function is only invoked
-        // in situations where there is a line break of ; guaranteed to be present (else the code is invalid)
-    };
-
     const walk = (node: ts.Node, parent: ts.Node) => {
         type onLeaveCallback = () => void;
         const onLeaveCallbacks: onLeaveCallback[] = [];
 
-        if (ts.isInterfaceDeclaration(node) && node.name.text === 'ComponentEvents') {
-            events.setComponentEventsInterface(node);
+        generics.addIfIsGeneric(node);
+
+        if (is$$EventsDeclaration(node)) {
+            events.setComponentEventsInterface(node, astOffset);
+        }
+        if (is$$SlotsDeclaration(node)) {
+            uses$$SlotsInterface = true;
+        }
+        if (is$$PropsDeclaration(node)) {
+            exportedNames.uses$$Props = true;
         }
 
         if (ts.isVariableStatement(node)) {
-            const exportModifier = findExportKeyword(node);
-            if (exportModifier) {
-                const isLet = node.declarationList.flags === ts.NodeFlags.Let;
-                const isConst = node.declarationList.flags === ts.NodeFlags.Const;
-
-                handleExportedVariableDeclarationList(node.declarationList);
-                if (isLet) {
-                    propTypeAssertToUserDefined(node.declarationList);
-                } else if (isConst) {
-                    node.declarationList.forEachChild((n) => {
-                        if (ts.isVariableDeclaration(n) && ts.isIdentifier(n.name)) {
-                            addGetter(n.name);
-                        }
-                    });
-                }
-                removeExport(exportModifier.getStart(), exportModifier.end);
-            }
+            exportedNames.handleVariableStatement(node, parent);
         }
 
         if (ts.isFunctionDeclaration(node)) {
-            handleExportFunctionOrClass(node);
+            exportedNames.handleExportFunctionOrClass(node);
 
             pushScope();
             onLeaveCallbacks.push(() => popScope());
         }
 
         if (ts.isClassDeclaration(node)) {
-            handleExportFunctionOrClass(node);
+            exportedNames.handleExportFunctionOrClass(node);
         }
 
-        if (ts.isBlock(node)) {
-            pushScope();
-            onLeaveCallbacks.push(() => popScope());
-        }
-
-        if (ts.isArrowFunction(node)) {
+        if (ts.isBlock(node) || ts.isArrowFunction(node) || ts.isFunctionExpression(node)) {
             pushScope();
             onLeaveCallbacks.push(() => popScope());
         }
 
         if (ts.isExportDeclaration(node)) {
-            const { exportClause } = node;
-            if (ts.isNamedExports(exportClause)) {
-                for (const ne of exportClause.elements) {
-                    if (ne.propertyName) {
-                        exportedNames.addExport(ne.propertyName, ne.name);
-                    } else {
-                        exportedNames.addExport(ne.name);
-                    }
-                }
-                //we can remove entire statement
-                removeExport(node.getStart(), node.end);
-            }
+            exportedNames.handleExportDeclaration(node);
         }
 
         if (ts.isImportDeclaration(node)) {
-            //move imports to top of script so they appear outside our render function
-            str.move(node.getStart() + astOffset, node.end + astOffset, script.start + 1);
-            //add in a \n
-            const originalEndChar = str.original[node.end + astOffset - 1];
-            str.overwrite(node.end + astOffset - 1, node.end + astOffset, originalEndChar + '\n');
+            handleImportDeclaration(node, str, astOffset, script.start);
+
             // Check if import is the event dispatcher
             events.checkIfImportIsEventDispatcher(node);
+        }
+
+        // workaround for import statement completion
+        if (ts.isImportEqualsDeclaration(node)) {
+            const end = node.getEnd() + astOffset;
+
+            if (str.original[end - 1] !== ';') {
+                preprendStr(str, end, ';');
+            }
         }
 
         if (ts.isVariableDeclaration(node)) {
@@ -459,19 +345,14 @@ export function processInstanceScriptContent(
             if (binaryExpression) {
                 implicitTopLevelNames.add(node);
                 implicitStoreValues.addReactiveDeclaration(node);
-                wrapExpressionWithInvalidate(binaryExpression.right);
-            } else {
-                const start = node.getStart() + astOffset;
-                const end = node.getEnd() + astOffset;
-
-                str.prependLeft(start, ';() => {');
-                str.appendRight(end, '}');
             }
+            implicitTopLevelNames.handleReactiveStatement(node, binaryExpression);
         }
 
         // Defensively call function (checking for undefined) because it got added only recently (TS 4.0)
         // and therefore might break people using older TS versions
-        if (ts.isTypeAssertionExpression?.(node)) {
+        // Don't transform in ts mode because <type>value type assertions are valid in this case
+        if (mode !== 'ts' && ts.isTypeAssertionExpression?.(node)) {
             handleTypeAssertion(str, node, astOffset);
         }
 
@@ -488,7 +369,7 @@ export function processInstanceScriptContent(
     pendingStoreResolutions.map(resolveStore);
 
     // declare implicit reactive variables we found in the script
-    implicitTopLevelNames.modifyCode(rootScope.declared, astOffset, str);
+    implicitTopLevelNames.modifyCode(rootScope.declared);
     implicitStoreValues.modifyCode(astOffset, str);
 
     const firstImport = tsAst.statements
@@ -498,12 +379,51 @@ export function processInstanceScriptContent(
         str.appendRight(firstImport.getStart() + astOffset, '\n');
     }
 
+    if (mode === 'dts') {
+        // Transform interface declarations to type declarations because indirectly
+        // using interfaces inside the return type of a function is forbidden.
+        // This is not a problem for intellisense/type inference but it will
+        // break dts generation (file will not be generated).
+        transformInterfacesToTypes(tsAst, str, astOffset);
+    }
+
     return {
         exportedNames,
         events,
         uses$$props,
         uses$$restProps,
         uses$$slots,
-        getters
+        uses$$SlotsInterface,
+        generics
     };
+}
+
+function transformInterfacesToTypes(tsAst: ts.SourceFile, str: MagicString, astOffset: any) {
+    tsAst.statements.filter(ts.isInterfaceDeclaration).forEach((node) => {
+        str.overwrite(
+            node.getStart() + astOffset,
+            node.getStart() + astOffset + 'interface'.length,
+            'type'
+        );
+
+        if (node.heritageClauses?.length) {
+            const extendsStart = node.heritageClauses[0].getStart() + astOffset;
+            str.overwrite(extendsStart, extendsStart + 'extends'.length, '=');
+
+            const extendsList = node.heritageClauses[0].types;
+            let prev = extendsList[0];
+            extendsList.slice(1).forEach((heritageClause) => {
+                str.overwrite(
+                    prev.getEnd() + astOffset,
+                    heritageClause.getStart() + astOffset,
+                    ' & '
+                );
+                prev = heritageClause;
+            });
+
+            str.appendLeft(node.heritageClauses[0].getEnd() + astOffset, ' & ');
+        } else {
+            str.prependLeft(str.original.indexOf('{', node.getStart() + astOffset), '=');
+        }
+    });
 }

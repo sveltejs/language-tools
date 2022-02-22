@@ -4,14 +4,16 @@ import { Position } from 'vscode-languageserver';
 import { getCompletions } from '../../../../src/plugins/svelte/features/getCompletions';
 import { SvelteDocument } from '../../../../src/plugins/svelte/SvelteDocument';
 import { Document } from '../../../../src/lib/documents';
+import { getModifierData } from '../../../../src/plugins/svelte/features/getModifierData';
 
 describe('SveltePlugin#getCompletions', () => {
     function expectCompletionsFor(
         content: string,
         position: Position = Position.create(0, content.length)
     ) {
-        const svelteDoc = new SvelteDocument(new Document('url', content));
-        const completions = getCompletions(svelteDoc, position);
+        const document = new Document('url', content);
+        const svelteDoc = new SvelteDocument(document);
+        const completions = getCompletions(document, svelteDoc, position);
         return {
             toEqual: (expectedLabels: string[] | null) =>
                 assert.deepStrictEqual(
@@ -54,7 +56,7 @@ describe('SveltePlugin#getCompletions', () => {
     });
 
     it('should return completions for @', () => {
-        expectCompletionsFor('{@').toEqual(['html', 'debug']);
+        expectCompletionsFor('{@').toEqual(['html', 'debug', 'const']);
     });
 
     describe('should return no completions for :', () => {
@@ -123,8 +125,43 @@ describe('SveltePlugin#getCompletions', () => {
 
     it('should return completion for component documentation comment', () => {
         const content = '<!--@';
-        const svelteDoc = new SvelteDocument(new Document('url', content));
-        const completions = getCompletions(svelteDoc, Position.create(0, content.length));
+        const document = new Document('url', content);
+        const svelteDoc = new SvelteDocument(document);
+        const completions = getCompletions(document, svelteDoc, Position.create(0, content.length));
         assert.deepStrictEqual(completions?.items?.[0].insertText, `component${EOL}$1${EOL}`);
+    });
+
+    function expectCompletionsForModifier(
+        content: string,
+        position = Position.create(0, content.lastIndexOf('|') + 1)
+    ) {
+        return expectCompletionsFor(content, position);
+    }
+
+    describe('should return completion for event modifier', () => {
+        const modifierData = getModifierData();
+        const allModifiers = modifierData.map((modifier) => modifier.modifier);
+
+        it('can provides modifiers', () => {
+            expectCompletionsForModifier('<div on:click| />').toEqual(allModifiers);
+        });
+
+        it('can chain modifier and does not provide duplicated modifier', () => {
+            expectCompletionsForModifier('<div on:click|stopPropagation| />').toEqual(
+                allModifiers.filter((modifier) => modifier !== 'stopPropagation')
+            );
+        });
+
+        it("can chain modifier and does not provide modifier that can't used together", () => {
+            expectCompletionsForModifier('<div on:click|preventDefault| />').toEqual(
+                modifierData
+                    .filter(
+                        (modifier) =>
+                            modifier.modifier != 'preventDefault' &&
+                            !modifier.modifiersInvalidWith?.includes('preventDefault')
+                    )
+                    .map((modifier) => modifier.modifier)
+            );
+        });
     });
 });

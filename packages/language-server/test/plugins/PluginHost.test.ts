@@ -33,7 +33,8 @@ describe('PluginHost', () => {
 
         const pluginHost = new PluginHost(docManager);
         const plugin = {
-            ...pluginProviderStubs
+            ...pluginProviderStubs,
+            __name: 'test'
         };
 
         pluginHost.initialize(config);
@@ -80,10 +81,16 @@ describe('PluginHost', () => {
         });
 
         sinon.assert.calledOnce(plugin.getCompletions);
-        sinon.assert.calledWithExactly(plugin.getCompletions, document, pos, {
-            triggerKind: CompletionTriggerKind.TriggerCharacter,
-            triggerCharacter: '.'
-        });
+        sinon.assert.calledWithExactly(
+            plugin.getCompletions,
+            document,
+            pos,
+            {
+                triggerKind: CompletionTriggerKind.TriggerCharacter,
+                triggerCharacter: '.'
+            },
+            undefined
+        );
     });
 
     describe('getCompletions (incomplete)', () => {
