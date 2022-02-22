@@ -152,7 +152,7 @@ export function processInstanceScriptContent(
                 str.overwrite(
                     parent.getStart() + astOffset,
                     parent.end + astOffset,
-                    `${storename}.set( $${storename} ${simpleOperator} 1)`
+                    `(${storename}.set( $${storename} ${simpleOperator} 1), $${storename})`
                 );
                 return;
             } else {
