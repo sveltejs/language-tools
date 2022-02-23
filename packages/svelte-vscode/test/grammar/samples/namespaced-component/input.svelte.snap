@@ -1,0 +1,11 @@
+><Hi.Input></Hi.Input>
+#^ source.svelte meta.scope.tag.Hi.Input.svelte meta.tag.start.svelte punctuation.definition.tag.begin.svelte
+# ^^ source.svelte meta.scope.tag.Hi.Input.svelte meta.tag.start.svelte support.class.component.svelte
+#   ^ source.svelte meta.scope.tag.Hi.Input.svelte meta.tag.start.svelte
+#    ^^^^^ source.svelte meta.scope.tag.Hi.Input.svelte meta.tag.start.svelte support.class.component.svelte
+#         ^ source.svelte meta.scope.tag.Hi.Input.svelte meta.tag.start.svelte punctuation.definition.tag.end.svelte
+#          ^^ source.svelte meta.scope.tag.Hi.Input.svelte meta.tag.end.svelte punctuation.definition.tag.begin.svelte
+#            ^^ source.svelte meta.scope.tag.Hi.Input.svelte meta.tag.end.svelte support.class.component.svelte
+#              ^ source.svelte meta.scope.tag.Hi.Input.svelte meta.tag.end.svelte
+#               ^^^^^ source.svelte meta.scope.tag.Hi.Input.svelte meta.tag.end.svelte support.class.component.svelte
+#                    ^ source.svelte meta.scope.tag.Hi.Input.svelte meta.tag.end.svelte punctuation.definition.tag.end.svelte

@@ -1,0 +1,9 @@
+><input use:action>
+#^ source.svelte meta.tag.void.svelte punctuation.definition.tag.begin.svelte
+# ^^^^^ source.svelte meta.tag.void.svelte entity.name.tag.svelte
+#      ^ source.svelte meta.tag.void.svelte
+#       ^^^ source.svelte meta.tag.void.svelte meta.directive.use.svelte keyword.control.svelte
+#          ^ source.svelte meta.tag.void.svelte meta.directive.use.svelte punctuation.definition.keyword.svelte
+#           ^^^^^^ source.svelte meta.tag.void.svelte meta.directive.use.svelte variable.function.svelte
+#                 ^ source.svelte meta.tag.void.svelte punctuation.definition.tag.begin.svelte
+>
