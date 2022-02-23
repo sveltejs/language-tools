@@ -14,7 +14,7 @@ export class DocumentHighlightProviderImpl implements DocumentHighlightProvider 
         document: Document,
         position: Position
     ): Promise<DocumentHighlight[] | null> {
-        const { lang, tsDoc } = this.lsAndTsDocResolver.getLSAndTSDoc(document);
+        const { lang, tsDoc } = await this.lsAndTsDocResolver.getLSAndTSDoc(document);
         const fragment = await tsDoc.getFragment();
 
         const offset = fragment.offsetAt(fragment.getGeneratedPosition(position));

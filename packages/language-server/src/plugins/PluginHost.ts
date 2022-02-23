@@ -511,7 +511,8 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         return this.execute<DocumentHighlight[] | null>(
             'findDocumentHighlight',
             [document, position],
-            ExecuteMode.FirstNonNull
+            ExecuteMode.FirstNonNull,
+            'high'
         );
     }
 

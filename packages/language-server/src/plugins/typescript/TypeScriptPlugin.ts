@@ -34,6 +34,7 @@ import {
     CompletionsProvider,
     DefinitionsProvider,
     DiagnosticsProvider,
+    DocumentHighlightProvider,
     DocumentSymbolsProvider,
     FileRename,
     FindReferencesProvider,

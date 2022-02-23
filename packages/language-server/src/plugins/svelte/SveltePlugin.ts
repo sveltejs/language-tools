@@ -33,7 +33,6 @@ import { getDiagnostics } from './features/getDiagnostics';
 import { getHoverInfo } from './features/getHoverInfo';
 import { getSelectionRange } from './features/getSelectionRanges';
 import { SvelteCompileResult, SvelteDocument } from './SvelteDocument';
-import { merge } from 'lodash';
 import { getDocumentHighlight } from './features/getDocumentHighlight';
 
 export class SveltePlugin
