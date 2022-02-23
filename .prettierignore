@@ -6,6 +6,7 @@ packages/svelte2tsx/test/emitDts/samples/*/expected/**
 packages/language-server/test/**/*.svelte
 packages/language-server/test/**/testfiles/**/*.ts
 packages/svelte-vscode/syntaxes/*.yaml
+packages/svelte-vscode/test/*/samples/**/*
 packages/typescript-plugin/src/**/*.js
 packages/typescript-plugin/src/**/*.d.ts
 **/dist
