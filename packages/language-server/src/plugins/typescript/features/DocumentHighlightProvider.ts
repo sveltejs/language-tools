@@ -18,7 +18,10 @@ export class DocumentHighlightProviderImpl implements DocumentHighlightProvider 
         const fragment = await tsDoc.getFragment();
 
         const offset = fragment.offsetAt(fragment.getGeneratedPosition(position));
-        const highlights = lang.getDocumentHighlights(tsDoc.filePath, offset, [tsDoc.filePath]);
+        const highlights = lang
+            .getDocumentHighlights(tsDoc.filePath, offset, [tsDoc.filePath])
+            ?.filter((highlight) => highlight.fileName === tsDoc.filePath);
+
         if (!highlights?.length) {
             return null;
         }
