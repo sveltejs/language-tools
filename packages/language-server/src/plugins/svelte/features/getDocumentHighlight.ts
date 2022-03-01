@@ -32,23 +32,23 @@ export async function getDocumentHighlight(
         return null;
     }
 
-    const nearest = findNearestSvelteTag(html, offset);
+    const candidate = findCandidateSvelteTag(html, offset);
 
-    if (!nearest) {
+    if (!candidate) {
         return null;
     }
 
-    if (nearest.type.endsWith('Tag')) {
+    if (candidate.type.endsWith('Tag')) {
         return (
-            getTagHighlight(offset, content, nearest)?.map((highlight) =>
+            getTagHighlight(offset, content, candidate)?.map((highlight) =>
                 mapObjWithRangeToOriginal(transpiled, highlight)
             ) ?? null
         );
     }
 
-    if (nearest.type.endsWith('Block')) {
+    if (candidate.type.endsWith('Block')) {
         return (
-            getBlockHighlight(offset, content, nearest)?.map((highlight) =>
+            getBlockHighlight(offset, content, candidate)?.map((highlight) =>
                 mapObjWithRangeToOriginal(transpiled, highlight)
             ) ?? null
         );
@@ -57,54 +57,46 @@ export async function getDocumentHighlight(
     return null;
 }
 
-function findNearestSvelteTag(html: TemplateNode, offset: number) {
-    let nearest: TemplateNode | undefined;
-    const independentBlocks = ['EachBlock', 'IfBlock', 'AwaitBlock', 'KeyBlock'];
+function findCandidateSvelteTag(html: TemplateNode, offset: number) {
+    let candidate: TemplateNode | undefined;
 
     walk(html, {
-        enter(node, parent, key) {
+        enter(node, _, key) {
             if (node.type === 'Fragment') {
                 return;
             }
 
             const templateNode = node as TemplateNode;
             const isWithin = templateNode.start <= offset && templateNode.end >= offset;
-            if (!isWithin) {
+            if (!isWithin || key !== 'children') {
                 this.skip();
                 return;
             }
 
-            if (
-                (node.type.endsWith('Block') && independentBlocks.includes(node.type)) ||
-                node.type.endsWith('Tag')
-            ) {
-                nearest = templateNode;
+            if (node.type.endsWith('Block') || node.type.endsWith('Tag')) {
+                candidate = templateNode;
                 return;
-            }
-
-            if (key === 'attributes') {
-                this.skip();
             }
         }
     });
 
-    return nearest;
+    return candidate;
 }
 
 function getTagHighlight(
     offset: number,
     content: string,
-    nearest: TemplateNode
+    candidate: TemplateNode
 ): DocumentHighlight[] | null {
     const name =
-        nearest.type === 'RawMustacheTag'
+        candidate.type === 'RawMustacheTag'
             ? 'html'
-            : nearest.type.replace('Tag', '').toLocaleLowerCase();
+            : candidate.type.replace('Tag', '').toLocaleLowerCase();
 
     const startTag = '@' + name;
-    const indexOfName = content.indexOf(startTag, nearest.start);
+    const indexOfName = content.indexOf(startTag, candidate.start);
 
-    if (indexOfName < 0 || indexOfName > offset || nearest.start + startTag.length < offset) {
+    if (indexOfName < 0 || indexOfName > offset || candidate.start + startTag.length < offset) {
         return null;
     }
 
@@ -121,12 +113,12 @@ function getTagHighlight(
 function getBlockHighlight(
     offset: number,
     content: string,
-    nearest: TemplateNode
+    candidate: TemplateNode
 ): DocumentHighlight[] | null {
-    const name = nearest.type.replace('Block', '').toLowerCase();
+    const name = candidate.type.replace('Block', '').toLowerCase();
 
     const startTag = '#' + name;
-    const startTagStart = content.indexOf(startTag, nearest.start);
+    const startTagStart = content.indexOf(startTag, candidate.start);
 
     if (startTagStart < 0) {
         return null;
@@ -137,15 +129,17 @@ function getBlockHighlight(
     ranges.push([startTagStart, startTagStart + startTag.length]);
 
     const endTag = '/' + name;
-    const endTagStart = content.lastIndexOf(endTag, nearest.end);
+    const endTagStart = content.lastIndexOf(endTag, candidate.end);
 
     ranges.push([endTagStart, endTagStart + endTag.length]);
 
-    if (nearest.type === 'EachBlock' && nearest.else) {
-        const elseStart = content.lastIndexOf(':else', nearest.else.start);
+    if (candidate.type === 'EachBlock' && candidate.else) {
+        const elseStart = content.lastIndexOf(':else', candidate.else.start);
 
         ranges.push([elseStart, elseStart + ':else'.length]);
     }
+
+    ranges.push(...gatherElseHighlightsForIfBlock(candidate, content));
 
     if (!ranges.some(([start, end]) => offset >= start && offset <= end)) {
         return null;
@@ -155,4 +149,38 @@ function getBlockHighlight(
         range: Range.create(positionAt(start, content), positionAt(end, content)),
         kind: DocumentHighlightKind.Read
     }));
+}
+
+function gatherElseHighlightsForIfBlock(
+    candidate: TemplateNode,
+    content: string
+): Array<[start: number, end: number]> {
+    if (candidate.type !== 'IfBlock' || !candidate.else) {
+        return [];
+    }
+
+    const ranges: Array<[start: number, end: number]> = [];
+
+    walk(candidate.else, {
+        enter(node) {
+            const templateNode = node as TemplateNode;
+            if (templateNode.type === 'IfBlock' && templateNode.elseif) {
+                const elseIfStart = content.lastIndexOf(':else if', templateNode.expression.start);
+
+                if (elseIfStart > 0) {
+                    ranges.push([elseIfStart, elseIfStart + ':else if'.length]);
+                }
+            }
+
+            if (templateNode.type === 'ElseBlock') {
+                const elseStart = content.lastIndexOf(':else', templateNode.start);
+
+                if (elseStart > 0) {
+                    ranges.push([elseStart, elseStart + ':else'.length]);
+                }
+            }
+        }
+    });
+
+    return ranges;
 }
