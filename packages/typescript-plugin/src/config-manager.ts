@@ -21,7 +21,7 @@ export class ConfigManager {
             ...this.config,
             ...config
         };
-        this.emitter.emit(configurationEventName);
+        this.emitter.emit(configurationEventName, config);
     }
 
     getConfig() {
