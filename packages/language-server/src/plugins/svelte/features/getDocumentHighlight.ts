@@ -6,6 +6,8 @@ import { Document, mapObjWithRangeToOriginal, offsetAt, positionAt } from '../..
 import { SvelteDocument } from '../SvelteDocument';
 import { inStyleOrScript } from '../utils';
 
+type RangeTupleArray = Array<[start: number, end: number]>;
+
 export async function getDocumentHighlight(
     document: Document,
     svelteDoc: SvelteDocument,
@@ -28,7 +30,11 @@ export async function getDocumentHighlight(
         // use last 10 and next 10 characters, should cover 99% of all cases
         .substr(offsetStart, 20);
 
-    if (!['#', '/', ':', '@'].some((char) => charactersAroundOffset.includes(char))) {
+    if (
+        !['#', '/', ':', '@', 'then', 'catch'].some((keyword) =>
+            charactersAroundOffset.includes(keyword)
+        )
+    ) {
         return null;
     }
 
@@ -124,7 +130,7 @@ function getBlockHighlight(
         return null;
     }
 
-    const ranges: Array<[start: number, end: number]> = [];
+    const ranges: RangeTupleArray = [];
 
     ranges.push([startTagStart, startTagStart + startTag.length]);
 
@@ -139,7 +145,10 @@ function getBlockHighlight(
         ranges.push([elseStart, elseStart + ':else'.length]);
     }
 
-    ranges.push(...gatherElseHighlightsForIfBlock(candidate, content));
+    ranges.push(
+        ...getElseHighlightsForIfBlock(candidate, content),
+        ...getAwaitBlockHighlight(candidate, content)
+    );
 
     if (!ranges.some(([start, end]) => offset >= start && offset <= end)) {
         return null;
@@ -151,15 +160,12 @@ function getBlockHighlight(
     }));
 }
 
-function gatherElseHighlightsForIfBlock(
-    candidate: TemplateNode,
-    content: string
-): Array<[start: number, end: number]> {
+function getElseHighlightsForIfBlock(candidate: TemplateNode, content: string): RangeTupleArray {
     if (candidate.type !== 'IfBlock' || !candidate.else) {
         return [];
     }
 
-    const ranges: Array<[start: number, end: number]> = [];
+    const ranges: RangeTupleArray = [];
 
     walk(candidate.else, {
         enter(node) {
@@ -181,6 +187,39 @@ function gatherElseHighlightsForIfBlock(
             }
         }
     });
+
+    return ranges;
+}
+
+function getAwaitBlockHighlight(candidate: TemplateNode, content: string): RangeTupleArray {
+    if (candidate.type !== 'AwaitBlock' || (candidate.then.skip && candidate.catch.skip)) {
+        return [];
+    }
+
+    const ranges: RangeTupleArray = [];
+
+    if (candidate.value) {
+        const thenKeyword = candidate.pending.skip ? 'then' : ':then';
+
+        const thenStart = content.lastIndexOf(thenKeyword, candidate.value.start);
+
+        ranges.push([thenStart, thenStart + thenKeyword.length]);
+    }
+
+    // {#await promise catch error} or {:catch error}
+    if (candidate.error) {
+        const catchKeyword = candidate.pending.skip && candidate.then.skip ? 'catch' : ':catch';
+
+        const catchStart = content.lastIndexOf(catchKeyword, candidate.error.start);
+
+        ranges.push([catchStart, catchStart + catchKeyword.length]);
+    } else if (!candidate.catch.skip) {
+        // {:catch}
+
+        const catchStart = content.indexOf(':catch', candidate.catch.start);
+
+        ranges.push([catchStart, catchStart + ':catch'.length]);
+    }
 
     return ranges;
 }
