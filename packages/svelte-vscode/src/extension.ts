@@ -37,6 +37,9 @@ namespace TagCloseRequest {
 }
 
 export function activate(context: ExtensionContext) {
+    // The extension is activated on TS/JS/Svelte files because else it might be too late to configure the TS plugin:
+    // If we only activate on Svelte file and the user opens a TS file first, the configuration command is issued too late.
+    // We wait until there's a Svelte file open and only then start the actual language client.
     const tsPlugin = new TsPlugin(context);
     let lsApi: { getLS(): LanguageClient } | undefined;
 
