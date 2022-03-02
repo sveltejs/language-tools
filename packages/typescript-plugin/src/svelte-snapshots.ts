@@ -308,8 +308,11 @@ export class SvelteSnapshotManager {
                     this.logger.log('Successfully read Svelte file contents of', path);
                     return result.code;
                 } catch (e) {
-                    this.logger.log('Error loading Svelte file:', path);
+                    this.logger.log('Error loading Svelte file:', path, ' Using fallback.');
                     this.logger.debug('Error:', e);
+                    // Return something either way, else "X is not a module" errors will appear
+                    // in the TS files that use this file.
+                    return 'export default class extends Svelte2TsxComponent<any,any,any> {}';
                 }
             } else {
                 return readFile(path);
