@@ -16,6 +16,8 @@ The last step is to enhance the language service. For that, we patch the desired
 
 Along the way, we need to patch some internal methods, which is brittly and hacky, but to our knowledge there currently is no other way.
 
+To make it work with the VS Code extension we need to provide the plugin within `contributes.typescriptServerPlugins`. That way the plugin is always loaded. To enable/disable it, we use a semi-public command that tells TypeScript to configure the plugin. That configuration then tells this plugin whether or not it is enabled.
+
 ## Limitations
 
 Currently, changes to Svelte files are only recognized after they are saved to disk. That could be changed by adding `"languages": ["svelte"]` to the plugin provide options. The huge disadvantage is that diagnostics, rename etc within Svelte files no longer stay in the control of the language-server, instead TS/JS starts interacting with Svelte files on a much deeper level, which would mean patching many more undocumented/private methods, and having less control of the situation overall.

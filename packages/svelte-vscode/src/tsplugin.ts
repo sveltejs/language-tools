@@ -1,5 +1,3 @@
-// import { readFileSync, writeFileSync } from 'fs';
-// import { join } from 'path';
 import { commands, ExtensionContext, extensions, window, workspace } from 'vscode';
 
 export class TsPlugin {
@@ -31,53 +29,14 @@ export class TsPlugin {
             return;
         }
 
+        // This somewhat semi-public command configures our TypeScript plugin.
+        // The plugin itself is always present, but enabled/disabled depending on this config.
+        // It is done this way because it allows us to toggle the plugin without restarting VS Code
+        // and without having to do hacks like updating the extension's package.json.
         commands.executeCommand('_typescript.configurePlugin', 'typescript-svelte-plugin', {
             enable
         });
-
-        // const extension = extensions.getExtension('svelte.svelte-vscode');
-        // if (!extension) {
-        //     // This shouldn't be possible
-        //     return;
-        // }
-
-        // const packageJson = join(extension.extensionPath, 'package.json');
-        // const enabled = '"typescriptServerPlugins"';
-        // const disabled = '"typescriptServerPlugins-disabled"';
-        // try {
-        //     const packageText = readFileSync(packageJson, 'utf8');
-        //     if (packageText.includes(disabled) && enable) {
-        //         const newText = packageText.replace(disabled, enabled);
-        //         writeFileSync(packageJson, newText, 'utf8');
-        //         this.showReload(true);
-        //     } else if (packageText.includes(enabled) && !enable) {
-        //         const newText = packageText.replace(enabled, disabled);
-        //         writeFileSync(packageJson, newText, 'utf8');
-        //         this.showReload(false);
-        //     } else if (!packageText.includes(enabled) && !packageText.includes(disabled)) {
-        //         window.showWarningMessage('Unknown Svelte for VS Code package.json status.');
-        //     }
-        // } catch (err) {
-        //     window.showWarningMessage(
-        //         'Svelte for VS Code package.json update failed, TypeScript plugin could not be toggled.'
-        //     );
-        // }
     }
-
-    // private async showReload(enabled: boolean) {
-    //     // Restarting the TSServer via a command isn't enough, the whole VS Code window needs to reload
-    //     let message = `TypeScript Svelte Plugin ${enabled ? 'enabled' : 'disabled'}.`;
-    //     if (enabled) {
-    //         message +=
-    //             ' Note that changes of Svelte files are only noticed by TS/JS files after they are saved to disk.';
-    //     }
-    //     message += ' Please reload VS Code to restart the TS Server.';
-
-    //     const reload = await window.showInformationMessage(message, 'Reload Window');
-    //     if (reload) {
-    //         commands.executeCommand('workbench.action.reloadWindow');
-    //     }
-    // }
 
     async askToEnable() {
         const shouldAsk = workspace

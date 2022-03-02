@@ -49,6 +49,7 @@ function init(modules: { typescript: typeof ts }) {
         );
 
         configManager.onConfigurationChanged(() => {
+            // enabling/disabling the plugin means TS has to recompute stuff
             info.languageService.cleanupSemanticCache();
             info.project.markAsDirty();
         });

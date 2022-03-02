@@ -16,10 +16,10 @@ export function decorateLanguageService(
     logger: Logger,
     configManager: ConfigManager
 ) {
+    // Decorate using a proxy so we can dynamically enable/disable method
+    // patches depending on the enabled state of our config
     const proxy = new Proxy(ls, createProxyHandler(configManager));
-
     decorateLanguageServiceInner(proxy, snapshotManager, logger);
-
     return proxy;
 }
 
