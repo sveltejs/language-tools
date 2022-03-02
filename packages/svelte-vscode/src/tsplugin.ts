@@ -5,13 +5,8 @@ import { commands, ExtensionContext, extensions, window, workspace } from 'vscod
 export class TsPlugin {
     private enabled: boolean;
 
-    static create(context: ExtensionContext) {
-        new TsPlugin(context);
-    }
-
-    private constructor(context: ExtensionContext) {
+    constructor(context: ExtensionContext) {
         this.enabled = this.getEnabledState();
-        this.askToEnable(this.enabled);
         this.toggleTsPlugin(this.enabled);
 
         context.subscriptions.push(
@@ -84,11 +79,11 @@ export class TsPlugin {
     //     }
     // }
 
-    private async askToEnable(enabled: boolean) {
+    async askToEnable() {
         const shouldAsk = workspace
             .getConfiguration('svelte')
             .get<boolean>('ask-to-enable-ts-plugin');
-        if (enabled || !shouldAsk) {
+        if (this.enabled || !shouldAsk) {
             return;
         }
 

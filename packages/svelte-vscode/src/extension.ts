@@ -45,6 +45,7 @@ export function activate(context: ExtensionContext) {
         const onTextDocumentListener = workspace.onDidOpenTextDocument((doc) => {
             if (doc.languageId === 'svelte') {
                 lsApi = activateSvelteLanguageServer(context);
+                tsPlugin.askToEnable();
                 onTextDocumentListener.dispose();
             }
         });
@@ -52,7 +53,11 @@ export function activate(context: ExtensionContext) {
         context.subscriptions.push(onTextDocumentListener);
     }
 
-    TsPlugin.create(context);
+    const tsPlugin = new TsPlugin(context);
+
+    if (lsApi) {
+        tsPlugin.askToEnable();
+    }
 
     // This API is considered private and only exposed for experimenting.
     // Interface may change at any time. Use at your own risk!
