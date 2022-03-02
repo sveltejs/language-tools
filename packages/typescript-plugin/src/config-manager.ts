@@ -3,13 +3,13 @@ import { EventEmitter } from 'events';
 const configurationEventName = 'configuration-changed';
 
 export interface Configuration {
-    enable: false;
+    enable: boolean;
 }
 
 export class ConfigManager {
     private emitter = new EventEmitter();
     private config: Configuration = {
-        enable: false
+        enable: true
     };
 
     onConfigurationChanged(listener: (config: Configuration) => void) {
