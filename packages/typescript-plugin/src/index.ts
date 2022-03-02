@@ -4,8 +4,11 @@ import { Logger } from './logger';
 import { patchModuleLoader } from './module-loader';
 import { SvelteSnapshotManager } from './svelte-snapshots';
 import type ts from 'typescript/lib/tsserverlibrary';
+import { ConfigManager, Configuration } from './config-manager';
 
 function init(modules: { typescript: typeof ts }) {
+    const configManager = new ConfigManager();
+
     function create(info: ts.server.PluginCreateInfo) {
         const logger = new Logger(info.project.projectService.logger);
         if (!isSvelteProject(info.project.getCompilerOptions())) {
@@ -13,7 +16,14 @@ function init(modules: { typescript: typeof ts }) {
             return info.languageService;
         }
 
-        logger.log('Starting Svelte plugin');
+        configManager.updateConfigFromPluginConfig(info.config);
+        if (configManager.getConfig().enable) {
+            logger.log('Starting Svelte plugin');
+        } else {
+            logger.log('Svelte plugin disabled');
+            logger.log(info.config);
+        }
+
         // If someone knows a better/more performant way to get svelteOptions,
         // please tell us :)
         const svelteOptions = info.languageServiceHost.getParsedCommandLine?.(
@@ -25,7 +35,8 @@ function init(modules: { typescript: typeof ts }) {
             modules.typescript,
             info.project.projectService,
             svelteOptions,
-            logger
+            logger,
+            configManager
         );
 
         patchModuleLoader(
@@ -33,9 +44,22 @@ function init(modules: { typescript: typeof ts }) {
             snapshotManager,
             modules.typescript,
             info.languageServiceHost,
-            info.project
+            info.project,
+            configManager
         );
-        return decorateLanguageService(info.languageService, snapshotManager, logger);
+
+        configManager.onConfigurationChanged(() => {
+            // enabling/disabling the plugin means TS has to recompute stuff
+            info.languageService.cleanupSemanticCache();
+            info.project.markAsDirty();
+        });
+
+        return decorateLanguageService(
+            info.languageService,
+            snapshotManager,
+            logger,
+            configManager
+        );
     }
 
     function getExternalFiles(project: ts.server.ConfiguredProject) {
@@ -66,7 +90,11 @@ function init(modules: { typescript: typeof ts }) {
         }
     }
 
-    return { create, getExternalFiles };
+    function onConfigurationChanged(config: Configuration) {
+        configManager.updateConfigFromPluginConfig(config);
+    }
+
+    return { create, getExternalFiles, onConfigurationChanged };
 }
 
 export = init;

@@ -41,7 +41,9 @@
     },
     "activationEvents": [
         "onLanguage:svelte",
-        "onCommand:svelte.restartLanguageServer"
+        "onCommand:svelte.restartLanguageServer",
+        "onLanguage:javascript",
+        "onLanguage:typescript"
     ],
     "capabilities": {
         "untrustedWorkspaces": {
@@ -50,7 +52,7 @@
         }
     },
     "contributes": {
-        "typescriptServerPlugins-disabled": [
+        "typescriptServerPlugins": [
             {
                 "name": "typescript-svelte-plugin",
                 "enableForWorkspaceTypeScriptVersions": true

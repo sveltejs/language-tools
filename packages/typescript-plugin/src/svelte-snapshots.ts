@@ -1,5 +1,6 @@
 import { svelte2tsx } from 'svelte2tsx';
 import type ts from 'typescript/lib/tsserverlibrary';
+import { ConfigManager } from './config-manager';
 import { Logger } from './logger';
 import { SourceMapper } from './source-mapper';
 import { isNoTextSpanInGeneratedCode, isSvelteFilePath } from './utils';
@@ -233,7 +234,8 @@ export class SvelteSnapshotManager {
         private typescript: typeof ts,
         private projectService: ts.server.ProjectService,
         private svelteOptions: { namespace: string },
-        private logger: Logger
+        private logger: Logger,
+        private configManager: ConfigManager
     ) {
         this.patchProjectServiceReadFile();
     }
@@ -278,7 +280,7 @@ export class SvelteSnapshotManager {
     private patchProjectServiceReadFile() {
         const readFile = this.projectService.host.readFile;
         this.projectService.host.readFile = (path: string) => {
-            if (isSvelteFilePath(path)) {
+            if (isSvelteFilePath(path) && this.configManager.getConfig().enable) {
                 this.logger.debug('Read Svelte file:', path);
                 const svelteCode = readFile(path) || '';
                 try {
