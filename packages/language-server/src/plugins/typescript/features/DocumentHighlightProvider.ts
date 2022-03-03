@@ -2,7 +2,7 @@ import ts from 'typescript';
 import { Position, DocumentHighlight } from 'vscode-languageserver-protocol';
 import { DocumentHighlightKind } from 'vscode-languageserver-types';
 import { Document } from '../../../lib/documents';
-import { flatten, isInRange, isSamePosition } from '../../../utils';
+import { flatten, isSamePosition } from '../../../utils';
 import { DocumentHighlightProvider } from '../../interfaces';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { convertToLocationRange } from '../utils';
@@ -36,18 +36,11 @@ export class DocumentHighlightProviderImpl implements DocumentHighlightProvider 
             )
             .filter((highlight) => !isSamePosition(highlight.range.start, highlight.range.end));
 
-        if (!result.length || !this.containsOriginalPosition(result, position)) {
+        if (!result.length) {
             return null;
         }
 
         return result;
-    }
-
-    /**
-     * If position in not in any of the ranges. It's probably got a generated position in a weird places
-     */
-    private containsOriginalPosition(result: DocumentHighlight[], position: Position): boolean {
-        return result.some((highlight) => isInRange(highlight.range, position));
     }
 
     private convertHighlightKind(highlight: ts.HighlightSpan): DocumentHighlightKind | undefined {
