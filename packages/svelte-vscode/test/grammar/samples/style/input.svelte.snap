@@ -1,0 +1,11 @@
+><style>
+#^ source.svelte meta.style.svelte meta.tag.start.svelte punctuation.definition.tag.begin.svelte
+# ^^^^^ source.svelte meta.style.svelte meta.tag.start.svelte entity.name.tag.svelte
+#      ^ source.svelte meta.style.svelte meta.tag.start.svelte punctuation.definition.tag.end.svelte
+>    .container {}
+#^^^^^^^^^^^^^^^^^^ source.svelte meta.style.svelte meta.embedded.block.svelte source.css
+></style>
+#^^ source.svelte meta.style.svelte meta.tag.end.svelte punctuation.definition.tag.begin.svelte
+#  ^^^^^ source.svelte meta.style.svelte meta.tag.end.svelte entity.name.tag.svelte
+#       ^ source.svelte meta.style.svelte meta.tag.end.svelte punctuation.definition.tag.end.svelte
+>

@@ -1,0 +1,13 @@
+>{#key hi}
+#^ source.svelte meta.special.key.svelte meta.special.start.svelte punctuation.definition.block.begin.svelte
+# ^ source.svelte meta.special.key.svelte meta.special.start.svelte punctuation.definition.keyword.svelte
+#  ^^^ source.svelte meta.special.key.svelte meta.special.start.svelte keyword.control.svelte
+#     ^^^ source.svelte meta.special.key.svelte meta.special.start.svelte meta.embedded.expression.svelte source.ts
+#        ^ source.svelte meta.special.key.svelte meta.special.start.svelte punctuation.definition.block.end.svelte
+>
+>{/key}
+#^ source.svelte meta.special.key.svelte meta.special.end.svelte punctuation.definition.block.begin.svelte
+# ^ source.svelte meta.special.key.svelte meta.special.end.svelte punctuation.definition.keyword.svelte
+#  ^^^ source.svelte meta.special.key.svelte meta.special.end.svelte keyword.control.svelte
+#     ^ source.svelte meta.special.key.svelte meta.special.end.svelte punctuation.definition.block.end.svelte
+>

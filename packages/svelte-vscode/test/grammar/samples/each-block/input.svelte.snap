@@ -1,0 +1,64 @@
+>{#each items as item}
+#^ source.svelte meta.special.each.svelte meta.special.start.svelte punctuation.definition.block.begin.svelte
+# ^ source.svelte meta.special.each.svelte meta.special.start.svelte punctuation.definition.keyword.svelte
+#  ^^^^ source.svelte meta.special.each.svelte meta.special.start.svelte keyword.control.svelte
+#      ^ source.svelte meta.special.each.svelte meta.special.start.svelte
+#       ^^^^^ source.svelte meta.special.each.svelte meta.special.start.svelte meta.embedded.expression.svelte source.ts
+#            ^ source.svelte meta.special.each.svelte meta.special.start.svelte
+#             ^^ source.svelte meta.special.each.svelte meta.special.start.svelte keyword.control.as.svelte
+#               ^^^^^ source.svelte meta.special.each.svelte meta.special.start.svelte meta.embedded.expression.svelte source.ts
+#                    ^ source.svelte meta.special.each.svelte meta.special.start.svelte punctuation.definition.block.end.svelte
+>    <div>{item}</div>
+#^^^^ source.svelte text.svelte
+#    ^ source.svelte meta.scope.tag.div.svelte meta.tag.start.svelte punctuation.definition.tag.begin.svelte
+#     ^^^ source.svelte meta.scope.tag.div.svelte meta.tag.start.svelte entity.name.tag.svelte
+#        ^ source.svelte meta.scope.tag.div.svelte meta.tag.start.svelte punctuation.definition.tag.end.svelte
+#         ^ source.svelte punctuation.section.embedded.begin.svelte
+#          ^^^^ source.svelte meta.embedded.expression.svelte source.ts
+#              ^ source.svelte punctuation.section.embedded.end.svelte
+#               ^^ source.svelte meta.scope.tag.div.svelte meta.tag.end.svelte punctuation.definition.tag.begin.svelte
+#                 ^^^ source.svelte meta.scope.tag.div.svelte meta.tag.end.svelte entity.name.tag.svelte
+#                    ^ source.svelte meta.scope.tag.div.svelte meta.tag.end.svelte punctuation.definition.tag.end.svelte
+>{:else}
+#^ source.svelte meta.special.else.svelte punctuation.definition.block.begin.svelte
+# ^ source.svelte meta.special.else.svelte punctuation.definition.keyword.svelte
+#  ^^^^ source.svelte meta.special.else.svelte keyword.control.conditional.svelte
+#      ^ source.svelte meta.special.else.svelte punctuation.definition.block.end.svelte
+>    <div></div>
+#^^^^ source.svelte text.svelte
+#    ^ source.svelte meta.scope.tag.div.svelte meta.tag.start.svelte punctuation.definition.tag.begin.svelte
+#     ^^^ source.svelte meta.scope.tag.div.svelte meta.tag.start.svelte entity.name.tag.svelte
+#        ^ source.svelte meta.scope.tag.div.svelte meta.tag.start.svelte punctuation.definition.tag.end.svelte
+#         ^^ source.svelte meta.scope.tag.div.svelte meta.tag.end.svelte punctuation.definition.tag.begin.svelte
+#           ^^^ source.svelte meta.scope.tag.div.svelte meta.tag.end.svelte entity.name.tag.svelte
+#              ^ source.svelte meta.scope.tag.div.svelte meta.tag.end.svelte punctuation.definition.tag.end.svelte
+>{/each}
+#^ source.svelte meta.special.each.svelte meta.special.end.svelte punctuation.definition.block.begin.svelte
+# ^ source.svelte meta.special.each.svelte meta.special.end.svelte punctuation.definition.keyword.svelte
+#  ^^^^ source.svelte meta.special.each.svelte meta.special.end.svelte keyword.control.svelte
+#      ^ source.svelte meta.special.each.svelte meta.special.end.svelte punctuation.definition.block.end.svelte
+>
+>{#each showGroups as [key, items] (key)}
+#^ source.svelte meta.special.each.svelte meta.special.start.svelte punctuation.definition.block.begin.svelte
+# ^ source.svelte meta.special.each.svelte meta.special.start.svelte punctuation.definition.keyword.svelte
+#  ^^^^ source.svelte meta.special.each.svelte meta.special.start.svelte keyword.control.svelte
+#      ^ source.svelte meta.special.each.svelte meta.special.start.svelte
+#       ^^^^^^^^^^ source.svelte meta.special.each.svelte meta.special.start.svelte meta.embedded.expression.svelte source.ts
+#                 ^ source.svelte meta.special.each.svelte meta.special.start.svelte
+#                  ^^ source.svelte meta.special.each.svelte meta.special.start.svelte keyword.control.as.svelte
+#                    ^^ source.svelte meta.special.each.svelte meta.special.start.svelte
+#                      ^^^ source.svelte meta.special.each.svelte meta.special.start.svelte meta.embedded.expression.svelte source.ts
+#                         ^ source.svelte meta.special.each.svelte meta.special.start.svelte punctuation.separator.svelte
+#                          ^^^^^^ source.svelte meta.special.each.svelte meta.special.start.svelte meta.embedded.expression.svelte source.ts
+#                                ^^ source.svelte meta.special.each.svelte meta.special.start.svelte
+#                                  ^ source.svelte meta.special.each.svelte meta.special.start.svelte meta.brace.round.svelte
+#                                   ^^^ source.svelte meta.special.each.svelte meta.special.start.svelte meta.embedded.expression.svelte source.ts
+#                                      ^ source.svelte meta.special.each.svelte meta.special.start.svelte meta.brace.round.svelte
+#                                       ^ source.svelte meta.special.each.svelte meta.special.start.svelte punctuation.definition.block.end.svelte
+>
+>{/each}
+#^ source.svelte meta.special.each.svelte meta.special.end.svelte punctuation.definition.block.begin.svelte
+# ^ source.svelte meta.special.each.svelte meta.special.end.svelte punctuation.definition.keyword.svelte
+#  ^^^^ source.svelte meta.special.each.svelte meta.special.end.svelte keyword.control.svelte
+#      ^ source.svelte meta.special.each.svelte meta.special.end.svelte punctuation.definition.block.end.svelte
+>

@@ -1,4 +1,5 @@
 import type ts from 'typescript/lib/tsserverlibrary';
+import { ConfigManager } from '../config-manager';
 import { Logger } from '../logger';
 import { SvelteSnapshotManager } from '../svelte-snapshots';
 import { isSvelteFilePath } from '../utils';
@@ -12,6 +13,19 @@ import { decorateRename } from './rename';
 export function decorateLanguageService(
     ls: ts.LanguageService,
     snapshotManager: SvelteSnapshotManager,
+    logger: Logger,
+    configManager: ConfigManager
+) {
+    // Decorate using a proxy so we can dynamically enable/disable method
+    // patches depending on the enabled state of our config
+    const proxy = new Proxy(ls, createProxyHandler(configManager));
+    decorateLanguageServiceInner(proxy, snapshotManager, logger);
+    return proxy;
+}
+
+function decorateLanguageServiceInner(
+    ls: ts.LanguageService,
+    snapshotManager: SvelteSnapshotManager,
     logger: Logger
 ): ts.LanguageService {
     patchLineColumnOffset(ls, snapshotManager);
@@ -22,6 +36,27 @@ export function decorateLanguageService(
     decorateGetDefinition(ls, snapshotManager, logger);
     decorateGetImplementation(ls, snapshotManager, logger);
     return ls;
+}
+
+function createProxyHandler(configManager: ConfigManager): ProxyHandler<ts.LanguageService> {
+    const decorated: Partial<ts.LanguageService> = {};
+
+    return {
+        get(target, p) {
+            if (!configManager.getConfig().enable) {
+                return target[p as keyof ts.LanguageService];
+            }
+
+            return (
+                decorated[p as keyof ts.LanguageService] ?? target[p as keyof ts.LanguageService]
+            );
+        },
+        set(_, p, value) {
+            decorated[p as keyof ts.LanguageService] = value;
+
+            return true;
+        }
+    };
 }
 
 function patchLineColumnOffset(ls: ts.LanguageService, snapshotManager: SvelteSnapshotManager) {

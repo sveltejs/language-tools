@@ -1,0 +1,81 @@
+>{#await Promise.resolve('') then v}
+#^ source.svelte meta.special.await.svelte meta.special.start.svelte punctuation.definition.block.begin.svelte
+# ^ source.svelte meta.special.await.svelte meta.special.start.svelte punctuation.definition.keyword.svelte
+#  ^^^^^ source.svelte meta.special.await.svelte meta.special.start.svelte keyword.control.flow.svelte
+#       ^ source.svelte meta.special.await.svelte meta.special.start.svelte
+#        ^^^^^^^^^^^^^^^^^^^ source.svelte meta.special.await.svelte meta.special.start.svelte meta.embedded.expression.svelte source.ts
+#                           ^ source.svelte meta.special.await.svelte meta.special.start.svelte
+#                            ^^^^ source.svelte meta.special.await.svelte meta.special.start.svelte keyword.control.flow.svelte
+#                                ^^ source.svelte meta.special.await.svelte meta.special.start.svelte meta.embedded.expression.svelte source.ts
+#                                  ^ source.svelte meta.special.await.svelte meta.special.start.svelte punctuation.definition.block.end.svelte
+>    {v}
+#^^^^ source.svelte text.svelte
+#    ^ source.svelte punctuation.section.embedded.begin.svelte
+#     ^ source.svelte meta.embedded.expression.svelte source.ts
+#      ^ source.svelte punctuation.section.embedded.end.svelte
+>{/await}
+#^ source.svelte meta.special.await.svelte meta.special.end.svelte punctuation.definition.block.begin.svelte
+# ^ source.svelte meta.special.await.svelte meta.special.end.svelte punctuation.definition.keyword.svelte
+#  ^^^^^ source.svelte meta.special.await.svelte meta.special.end.svelte keyword.control.flow.svelte
+#       ^ source.svelte meta.special.await.svelte meta.special.end.svelte punctuation.definition.block.end.svelte
+>
+>{#await Promise.resolve('')}
+#^ source.svelte meta.special.await.svelte meta.special.start.svelte punctuation.definition.block.begin.svelte
+# ^ source.svelte meta.special.await.svelte meta.special.start.svelte punctuation.definition.keyword.svelte
+#  ^^^^^ source.svelte meta.special.await.svelte meta.special.start.svelte keyword.control.flow.svelte
+#       ^ source.svelte meta.special.await.svelte meta.special.start.svelte
+#        ^^^^^^^^^^^^^^^^^^^ source.svelte meta.special.await.svelte meta.special.start.svelte meta.embedded.expression.svelte source.ts
+#                           ^ source.svelte meta.special.await.svelte meta.special.start.svelte punctuation.definition.block.end.svelte
+>{:then}
+#^ source.svelte meta.special.then.svelte punctuation.definition.block.begin.svelte
+# ^ source.svelte meta.special.then.svelte punctuation.definition.keyword.svelte
+#  ^^^^ source.svelte meta.special.then.svelte keyword.control.flow.svelte
+#      ^ source.svelte meta.special.then.svelte punctuation.definition.block.end.svelte
+>    {v}
+#^^^^ source.svelte text.svelte
+#    ^ source.svelte punctuation.section.embedded.begin.svelte
+#     ^ source.svelte meta.embedded.expression.svelte source.ts
+#      ^ source.svelte punctuation.section.embedded.end.svelte
+>{/await}
+#^ source.svelte meta.special.await.svelte meta.special.end.svelte punctuation.definition.block.begin.svelte
+# ^ source.svelte meta.special.await.svelte meta.special.end.svelte punctuation.definition.keyword.svelte
+#  ^^^^^ source.svelte meta.special.await.svelte meta.special.end.svelte keyword.control.flow.svelte
+#       ^ source.svelte meta.special.await.svelte meta.special.end.svelte punctuation.definition.block.end.svelte
+>
+>{#await Promise.reject('')}
+#^ source.svelte meta.special.await.svelte meta.special.start.svelte punctuation.definition.block.begin.svelte
+# ^ source.svelte meta.special.await.svelte meta.special.start.svelte punctuation.definition.keyword.svelte
+#  ^^^^^ source.svelte meta.special.await.svelte meta.special.start.svelte keyword.control.flow.svelte
+#       ^ source.svelte meta.special.await.svelte meta.special.start.svelte
+#        ^^^^^^^^^^^^^^^^^^ source.svelte meta.special.await.svelte meta.special.start.svelte meta.embedded.expression.svelte source.ts
+#                          ^ source.svelte meta.special.await.svelte meta.special.start.svelte punctuation.definition.block.end.svelte
+>{:catch err}
+#^ source.svelte meta.special.catch.svelte punctuation.definition.block.begin.svelte
+# ^ source.svelte meta.special.catch.svelte punctuation.definition.keyword.svelte
+#  ^^^^^ source.svelte meta.special.catch.svelte keyword.control.flow.svelte
+#       ^^^^ source.svelte meta.special.catch.svelte meta.embedded.expression.svelte source.ts
+#           ^ source.svelte meta.special.catch.svelte punctuation.definition.block.end.svelte
+>    {err}
+#^^^^ source.svelte text.svelte
+#    ^ source.svelte punctuation.section.embedded.begin.svelte
+#     ^^^ source.svelte meta.embedded.expression.svelte source.ts
+#        ^ source.svelte punctuation.section.embedded.end.svelte
+>{/await}
+#^ source.svelte meta.special.await.svelte meta.special.end.svelte punctuation.definition.block.begin.svelte
+# ^ source.svelte meta.special.await.svelte meta.special.end.svelte punctuation.definition.keyword.svelte
+#  ^^^^^ source.svelte meta.special.await.svelte meta.special.end.svelte keyword.control.flow.svelte
+#       ^ source.svelte meta.special.await.svelte meta.special.end.svelte punctuation.definition.block.end.svelte
+>
+>{#await Promise.reject('') catch name}...{/await}
+#^ source.svelte meta.special.await.svelte meta.special.start.svelte punctuation.definition.block.begin.svelte
+# ^ source.svelte meta.special.await.svelte meta.special.start.svelte punctuation.definition.keyword.svelte
+#  ^^^^^ source.svelte meta.special.await.svelte meta.special.start.svelte keyword.control.flow.svelte
+#       ^ source.svelte meta.special.await.svelte meta.special.start.svelte
+#        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.svelte meta.special.await.svelte meta.special.start.svelte meta.embedded.expression.svelte source.ts
+#                                     ^ source.svelte meta.special.await.svelte meta.special.start.svelte punctuation.definition.block.end.svelte
+#                                      ^^^ source.svelte text.svelte
+#                                         ^ source.svelte meta.special.await.svelte meta.special.end.svelte punctuation.definition.block.begin.svelte
+#                                          ^ source.svelte meta.special.await.svelte meta.special.end.svelte punctuation.definition.keyword.svelte
+#                                           ^^^^^ source.svelte meta.special.await.svelte meta.special.end.svelte keyword.control.flow.svelte
+#                                                ^ source.svelte meta.special.await.svelte meta.special.end.svelte punctuation.definition.block.end.svelte
+>

@@ -9,7 +9,7 @@
         "build": "npm run build:ts && npm run build:grammar",
         "vscode:prepublish": "npm run build && npm prune --production",
         "watch": "npm run build:grammar && tsc -w -p ./",
-        "test": "echo 'NOOP'"
+        "test": "npm run build:grammar && node test/grammar/test.js"
     },
     "repository": {
         "type": "git",
@@ -41,7 +41,9 @@
     },
     "activationEvents": [
         "onLanguage:svelte",
-        "onCommand:svelte.restartLanguageServer"
+        "onCommand:svelte.restartLanguageServer",
+        "onLanguage:javascript",
+        "onLanguage:typescript"
     ],
     "capabilities": {
         "untrustedWorkspaces": {
@@ -50,7 +52,7 @@
         }
     },
     "contributes": {
-        "typescriptServerPlugins-disabled": [
+        "typescriptServerPlugins": [
             {
                 "name": "typescript-svelte-plugin",
                 "enableForWorkspaceTypeScriptVersions": true
@@ -568,7 +570,8 @@
         "@types/node": "^13.9.0",
         "@types/vscode": "*",
         "js-yaml": "^3.14.0",
-        "typescript": "*"
+        "typescript": "*",
+        "vscode-tmgrammar-test": "^0.0.11"
     },
     "dependencies": {
         "lodash": "^4.17.21",
