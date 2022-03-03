@@ -391,11 +391,17 @@ export class CSSPlugin
 
         const kind = extractLanguage(cssDocument);
 
-        const result = getLanguageService(kind).findDocumentHighlights(
-            cssDocument,
-            cssDocument.getGeneratedPosition(position),
-            cssDocument.stylesheet
-        ).map(highlight => mapObjWithRangeToOriginal(cssDocument, highlight));
+        if (shouldExcludeDocumentHighlights(cssDocument)) {
+            return null;
+        }
+
+        const result = getLanguageService(kind)
+            .findDocumentHighlights(
+                cssDocument,
+                cssDocument.getGeneratedPosition(position),
+                cssDocument.stylesheet
+            )
+            .map((highlight) => mapObjWithRangeToOriginal(cssDocument, highlight));
 
         return result;
     }
@@ -468,6 +474,17 @@ function shouldExcludeHover(document: CSSDocument) {
 }
 
 function shouldExcludeColor(document: CSSDocument) {
+    switch (extractLanguage(document)) {
+        case 'sass':
+        case 'stylus':
+        case 'styl':
+            return true;
+        default:
+            return false;
+    }
+}
+
+function shouldExcludeDocumentHighlights(document: CSSDocumentBase) {
     switch (extractLanguage(document)) {
         case 'sass':
         case 'stylus':
