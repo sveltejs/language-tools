@@ -362,6 +362,29 @@ export class CSSPlugin
     findDocumentHighlight(document: Document, position: Position): DocumentHighlight[] | null {
         const cssDocument = this.getCSSDoc(document);
 
+        if (cssDocument.isInGenerated(position)) {
+            return this.findDocumentHighlightInternal(cssDocument, position);
+        }
+
+        const attributeContext = getAttributeContextAtPosition(document, position);
+        if (
+            attributeContext &&
+            this.inStyleAttributeWithoutInterpolation(attributeContext, document.getText())
+        ) {
+            const [start, end] = attributeContext.valueRange;
+            return this.findDocumentHighlightInternal(
+                new StyleAttributeDocument(document, start, end),
+                position
+            );
+        }
+
+        return null;
+    }
+
+    findDocumentHighlightInternal(
+        cssDocument: CSSDocumentBase,
+        position: Position
+    ): DocumentHighlight[] | null {
         if (!cssDocument.isInGenerated(position)) {
             return null;
         }
