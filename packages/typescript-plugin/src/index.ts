@@ -1,5 +1,5 @@
 import { dirname, resolve } from 'path';
-import { decorateLanguageService } from './language-service';
+import { decorateLanguageService, isPatched } from './language-service';
 import { Logger } from './logger';
 import { patchModuleLoader } from './module-loader';
 import { SvelteSnapshotManager } from './svelte-snapshots';
@@ -18,6 +18,11 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
         const logger = new Logger(info.project.projectService.logger);
         if (!isSvelteProject(info.project.getCompilerOptions())) {
             logger.log('Detected that this is not a Svelte project, abort patching TypeScript');
+            return info.languageService;
+        }
+
+        if (isPatched(info.languageService)) {
+            logger.log('Already patched');
             return info.languageService;
         }
 
