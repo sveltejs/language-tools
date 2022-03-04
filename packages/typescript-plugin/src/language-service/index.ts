@@ -49,6 +49,7 @@ function createProxyHandler(configManager: ConfigManager): ProxyHandler<ts.Langu
 
     return {
         get(target, p) {
+            // always return patch symbol whether the plugin is enabled or not
             if (p === sveltePluginPatchSymbol) {
                 return true;
             }
