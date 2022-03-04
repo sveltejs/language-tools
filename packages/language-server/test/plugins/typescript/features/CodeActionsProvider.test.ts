@@ -316,7 +316,7 @@ function test(useNewTransformation: boolean) {
                                 edits: [
                                     {
                                         newText: harmonizeNewLines(
-                                            "Add import from '../empty.svelte';\n"
+                                            "import Empty from '../empty.svelte';\n"
                                         ),
                                         range: {
                                             end: Position.create(5, 0),
