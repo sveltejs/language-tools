@@ -10,6 +10,12 @@ import { decorateFindReferences } from './find-references';
 import { decorateGetImplementation } from './implementation';
 import { decorateRename } from './rename';
 
+const sveltePluginPatchSymbol = Symbol('sveltePluginPatchSymbol');
+
+export function isPatched(ls: ts.LanguageService) {
+    return (ls as any)[sveltePluginPatchSymbol] === true;
+}
+
 export function decorateLanguageService(
     ls: ts.LanguageService,
     snapshotManager: SvelteSnapshotManager,
@@ -43,6 +49,10 @@ function createProxyHandler(configManager: ConfigManager): ProxyHandler<ts.Langu
 
     return {
         get(target, p) {
+            if (p === sveltePluginPatchSymbol) {
+                return true;
+            }
+
             if (!configManager.getConfig().enable) {
                 return target[p as keyof ts.LanguageService];
             }
