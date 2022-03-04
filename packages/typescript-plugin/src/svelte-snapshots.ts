@@ -9,6 +9,7 @@ export class SvelteSnapshot {
     private scriptInfo?: ts.server.ScriptInfo;
     private lineOffsets?: number[];
     private convertInternalCodePositions = false;
+    private scriptInfoPatched = false;
 
     constructor(
         private typescript: typeof ts,
@@ -68,6 +69,22 @@ export class SvelteSnapshot {
         return originalOffset;
     }
 
+    ensurePatchScriptInfo(projectService: ts.server.ProjectService) {
+        if (this.scriptInfoPatched) {
+            return;
+        }
+
+        const scriptInfo = projectService.getScriptInfo(this.fileName);
+
+        if (scriptInfo) {
+            this.setAndPatchScriptInfo(scriptInfo);
+        }
+
+        this.scriptInfoPatched = true;
+
+        return;
+    }
+
     setAndPatchScriptInfo(scriptInfo: ts.server.ScriptInfo) {
         // @ts-expect-error
         scriptInfo.scriptKind = this.typescript.ScriptKind.TSX;
@@ -118,6 +135,7 @@ export class SvelteSnapshot {
         // };
 
         this.scriptInfo = scriptInfo;
+        this.scriptInfoPatched = true;
         this.log('patched scriptInfo');
     }
 
@@ -241,7 +259,13 @@ export class SvelteSnapshotManager {
     }
 
     get(fileName: string) {
-        return this.snapshots.get(fileName);
+        const result = this.snapshots.get(fileName);
+
+        if (result) {
+            result.ensurePatchScriptInfo(this.projectService);
+        }
+
+        return result;
     }
 
     create(fileName: string): SvelteSnapshot | undefined {

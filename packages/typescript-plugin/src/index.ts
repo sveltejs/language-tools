@@ -5,8 +5,13 @@ import { patchModuleLoader } from './module-loader';
 import { SvelteSnapshotManager } from './svelte-snapshots';
 import type ts from 'typescript/lib/tsserverlibrary';
 import { ConfigManager, Configuration } from './config-manager';
+import {
+    getProjectSvelteFiles,
+    updateProjectSvelteFiles,
+    watchDirectoryForNewSvelteFiles
+} from './project-svelte-files';
 
-function init(modules: { typescript: typeof ts }) {
+function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
     const configManager = new ConfigManager();
 
     function create(info: ts.server.PluginCreateInfo) {
@@ -26,10 +31,25 @@ function init(modules: { typescript: typeof ts }) {
 
         // If someone knows a better/more performant way to get svelteOptions,
         // please tell us :)
-        const svelteOptions = info.languageServiceHost.getParsedCommandLine?.(
-            (info.project.getCompilerOptions() as any).configFilePath
-        )?.raw?.svelteOptions || { namespace: 'svelteHTML' };
+        const parsedCommandLine = info.languageServiceHost.getParsedCommandLine?.(
+            (info.project as ts.server.ConfiguredProject).canonicalConfigFilePath ??
+                (info.project.getCompilerOptions() as any).configFilePath
+        );
+
+        const svelteOptions = parsedCommandLine?.raw?.svelteOptions || { namespace: 'svelteHTML' };
         logger.log('svelteOptions:', svelteOptions);
+
+        logger.log(parsedCommandLine?.wildcardDirectories);
+        const watcher = watchDirectoryForNewSvelteFiles(
+            parsedCommandLine,
+            info,
+            modules.typescript,
+            configManager
+        );
+
+        if (parsedCommandLine) {
+            updateProjectSvelteFiles(modules.typescript, info.project, parsedCommandLine);
+        }
 
         const snapshotManager = new SvelteSnapshotManager(
             modules.typescript,
@@ -54,16 +74,14 @@ function init(modules: { typescript: typeof ts }) {
             info.project.markAsDirty();
         });
 
-        return decorateLanguageService(
-            info.languageService,
-            snapshotManager,
-            logger,
-            configManager
+        return decorateLanguageServiceDispose(
+            decorateLanguageService(info.languageService, snapshotManager, logger, configManager),
+            watcher
         );
     }
 
     function getExternalFiles(project: ts.server.ConfiguredProject) {
-        if (!isSvelteProject(project.getCompilerOptions())) {
+        if (!isSvelteProject(project.getCompilerOptions()) || !configManager.getConfig().enable) {
             return [];
         }
 
@@ -74,7 +92,8 @@ function init(modules: { typescript: typeof ts }) {
             './svelte-jsx.d.ts',
             './svelte-native-jsx.d.ts'
         ].map((f) => modules.typescript.sys.resolvePath(resolve(svelteTsPath, f)));
-        return svelteTsxFiles;
+
+        return svelteTsxFiles.concat(getProjectSvelteFiles(project) ?? []);
     }
 
     function isSvelteProject(compilerOptions: ts.CompilerOptions) {
@@ -92,6 +111,20 @@ function init(modules: { typescript: typeof ts }) {
 
     function onConfigurationChanged(config: Configuration) {
         configManager.updateConfigFromPluginConfig(config);
+    }
+
+    function decorateLanguageServiceDispose(
+        languageService: ts.LanguageService,
+        disposable: { dispose(): void }
+    ) {
+        const dispose = languageService.dispose;
+
+        languageService.dispose = () => {
+            disposable.dispose();
+            dispose();
+        };
+
+        return languageService;
     }
 
     return { create, getExternalFiles, onConfigurationChanged };
