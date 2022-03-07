@@ -1,5 +1,6 @@
 import type ts from 'typescript/lib/tsserverlibrary';
 import { ConfigManager } from './config-manager';
+import { isSvelteFilePath } from './utils';
 
 const projectSvelteFilesMap = new Map<string, string[]>();
 
@@ -94,7 +95,11 @@ function setupWatcher(
 
         const watcher = info.serverHost.watchDirectory(
             directory,
-            () => {
+            (fileName) => {
+                if (!isSvelteFilePath(fileName)) {
+                    return;
+                }
+
                 const projectName = info.project.getProjectName();
                 const fileAmount = projectSvelteFilesMap.get(projectName)?.length;
                 updateProjectSvelteFiles(typescript, info.project, parsedCommandLine);
