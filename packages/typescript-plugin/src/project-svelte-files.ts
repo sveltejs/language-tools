@@ -86,7 +86,7 @@ function setupWatcher(
     const watchers: ts.FileWatcher[] = [];
     for (const directory in parsedCommandLine.wildcardDirectories) {
         if (
-            Object.prototype.hasOwnProperty.call(parsedCommandLine.wildcardDirectories, directory)
+            !Object.prototype.hasOwnProperty.call(parsedCommandLine.wildcardDirectories, directory)
         ) {
             continue;
         }
