@@ -9,7 +9,6 @@ export class SvelteSnapshot {
     private scriptInfo?: ts.server.ScriptInfo;
     private lineOffsets?: number[];
     private convertInternalCodePositions = false;
-    private scriptInfoPatched = false;
 
     constructor(
         private typescript: typeof ts,
@@ -119,7 +118,6 @@ export class SvelteSnapshot {
         // };
 
         this.scriptInfo = scriptInfo;
-        this.scriptInfoPatched = true;
         this.log('patched scriptInfo');
     }
 
