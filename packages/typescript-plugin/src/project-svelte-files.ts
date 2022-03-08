@@ -107,7 +107,7 @@ export class ProjectSvelteFilesManager {
 
         for (const newFile of newFiles) {
             this.addFileToProject(newFile);
-            this.files?.add(newFile);
+            this.files.add(newFile);
         }
     }
 
