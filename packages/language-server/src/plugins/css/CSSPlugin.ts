@@ -385,7 +385,7 @@ export class CSSPlugin
         return null;
     }
 
-    findDocumentHighlightInternal(
+    private findDocumentHighlightInternal(
         cssDocument: CSSDocumentBase,
         position: Position
     ): DocumentHighlight[] | null {

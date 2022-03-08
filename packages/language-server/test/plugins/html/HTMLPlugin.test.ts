@@ -6,11 +6,13 @@ import {
     CompletionItem,
     TextEdit,
     CompletionItemKind,
-    InsertTextFormat
+    InsertTextFormat,
+    DocumentHighlightKind
 } from 'vscode-languageserver';
 import { HTMLPlugin } from '../../../src/plugins';
 import { DocumentManager, Document } from '../../../src/lib/documents';
 import { LSConfigManager } from '../../../src/ls-config';
+import { DocumentHighlight } from 'vscode-languageserver-types';
 
 describe('HTML Plugin', () => {
     function setup(content: string) {
@@ -198,5 +200,40 @@ describe('HTML Plugin', () => {
                 { start: { line: 0, character: 7 }, end: { line: 0, character: 10 } }
             ]
         });
+    });
+
+    it('provide document highlight', () => {
+        const { plugin, document } = setup('<div></div>');
+
+        const highlight = plugin.findDocumentHighlight(document, Position.create(0, 1));
+
+        assert.deepStrictEqual(highlight, <DocumentHighlight[]>[
+            {
+                range: {
+                    start: {
+                        line: 0,
+                        character: 1
+                    },
+                    end: {
+                        line: 0,
+                        character: 4
+                    }
+                },
+                kind: DocumentHighlightKind.Read
+            },
+            {
+                range: {
+                    start: {
+                        line: 0,
+                        character: 7
+                    },
+                    end: {
+                        line: 0,
+                        character: 10
+                    }
+                },
+                kind: DocumentHighlightKind.Read
+            }
+        ]);
     });
 });

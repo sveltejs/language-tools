@@ -8,7 +8,9 @@ import {
     TextEdit,
     CompletionContext,
     SelectionRange,
-    CompletionTriggerKind
+    CompletionTriggerKind,
+    DocumentHighlight,
+    DocumentHighlightKind
 } from 'vscode-languageserver';
 import { DocumentManager, Document } from '../../../src/lib/documents';
 import { CSSPlugin } from '../../../src/plugins';
@@ -406,5 +408,64 @@ describe('CSS Plugin', () => {
         const selectionRange = plugin.getSelectionRange(document, Position.create(0, 10));
 
         assert.equal(selectionRange, null);
+    });
+
+    describe('document highlight', () => {
+        it('provide document highlight', () => {
+            const { plugin, document } = setup('<style>.hi {} button.hi {}</style>');
+
+            const highlight = plugin.findDocumentHighlight(document, Position.create(0, 9));
+
+            assert.deepStrictEqual(highlight, <DocumentHighlight[]>[
+                {
+                    range: {
+                        start: {
+                            line: 0,
+                            character: 7
+                        },
+                        end: {
+                            line: 0,
+                            character: 10
+                        }
+                    },
+                    kind: DocumentHighlightKind.Write
+                },
+                {
+                    range: {
+                        start: {
+                            line: 0,
+                            character: 20
+                        },
+                        end: {
+                            line: 0,
+                            character: 23
+                        }
+                    },
+                    kind: DocumentHighlightKind.Read
+                }
+            ]);
+        });
+
+        it('provide document highlight for style attribute', () => {
+            const { plugin, document } = setup('<div style="position: relative"></div>');
+
+            const highlight = plugin.findDocumentHighlight(document, Position.create(0, 13));
+
+            assert.deepStrictEqual(highlight, <DocumentHighlight[]>[
+                {
+                    range: {
+                        start: {
+                            line: 0,
+                            character: 12
+                        },
+                        end: {
+                            line: 0,
+                            character: 20
+                        }
+                    },
+                    kind: DocumentHighlightKind.Read
+                }
+            ]);
+        });
     });
 });
