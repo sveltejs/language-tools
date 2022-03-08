@@ -145,12 +145,13 @@ export class ProjectSvelteFilesManager {
             }
 
             this.updateProjectSvelteFiles();
-        } else {
-            this.disposeWatcher();
-
-            this.files?.forEach((file) => this.removeFileFromProject(file));
-            this.files = undefined;
+            return;
         }
+
+        this.disposeWatcher();
+
+        this.files?.forEach((file) => this.removeFileFromProject(file));
+        this.files = undefined;
     }
 
     private removeFileFromProject(file: string) {
