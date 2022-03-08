@@ -1,5 +1,6 @@
 import type ts from 'typescript/lib/tsserverlibrary';
 import { ConfigManager } from './config-manager';
+import { SvelteSnapshotManager } from './svelte-snapshots';
 import { isSvelteFilePath } from './utils';
 
 const projectSvelteFilesMap = new Map<string, string[]>();
@@ -44,13 +45,14 @@ export function watchDirectoryForNewSvelteFiles(
     parsedCommandLine: ts.ParsedCommandLine | undefined,
     info: ts.server.PluginCreateInfo,
     typescript: typeof ts,
-    configManager: ConfigManager
+    configManager: ConfigManager,
+    snapshotManager: SvelteSnapshotManager
 ) {
     let watchers: ts.FileWatcher[] = [];
     let watcherCreated = false;
 
     if (configManager.getConfig().enable) {
-        watchers = setupWatcher(parsedCommandLine, info, typescript);
+        watchers = setupWatcher(parsedCommandLine, info, typescript, snapshotManager);
 
         watcherCreated = true;
     }
@@ -58,7 +60,7 @@ export function watchDirectoryForNewSvelteFiles(
     configManager.onConfigurationChanged((config) => {
         if (config.enable) {
             if (!watcherCreated) {
-                watchers = setupWatcher(parsedCommandLine, info, typescript);
+                watchers = setupWatcher(parsedCommandLine, info, typescript, snapshotManager);
             }
         } else {
             dispose();
@@ -78,7 +80,8 @@ export function watchDirectoryForNewSvelteFiles(
 function setupWatcher(
     parsedCommandLine: ts.ParsedCommandLine | undefined,
     info: ts.server.PluginCreateInfo,
-    typescript: typeof ts
+    typescript: typeof ts,
+    snapshotManager: SvelteSnapshotManager
 ) {
     if (!parsedCommandLine?.wildcardDirectories) {
         return [];
@@ -101,13 +104,26 @@ function setupWatcher(
                 }
 
                 const projectName = info.project.getProjectName();
-                const fileAmount = projectSvelteFilesMap.get(projectName)?.length;
+                const fileNamesBefore = projectSvelteFilesMap.get(projectName);
                 updateProjectSvelteFiles(typescript, info.project, parsedCommandLine);
-                const fileAmountAfter = projectSvelteFilesMap.get(projectName)?.length;
+                const fileNamesAfter = projectSvelteFilesMap.get(projectName);
+                const newFiles =
+                    (fileNamesBefore
+                        ? fileNamesAfter?.filter((fileName) => !fileNamesBefore.includes(fileName))
+                        : fileNamesAfter) ?? [];
 
-                if (fileAmount !== fileAmountAfter) {
-                    info.project.updateGraph();
+                for (const newFile of newFiles) {
+                    snapshotManager.create(newFile);
+                    const snapshot = info.project.projectService.getScriptInfoForNormalizedPath(
+                        typescript.server.toNormalizedPath(newFile)
+                    );
+
+                    if (snapshot) {
+                        info.project.addRoot(snapshot);
+                    }
                 }
+
+                info.project.markAsDirty();
             },
             watchDirectoryFlags === typescript.WatchDirectoryFlags.Recursive,
             parsedCommandLine.watchOptions

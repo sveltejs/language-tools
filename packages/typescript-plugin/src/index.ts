@@ -45,16 +45,6 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
         logger.log('svelteOptions:', svelteOptions);
 
         logger.log(parsedCommandLine?.wildcardDirectories);
-        const watcher = watchDirectoryForNewSvelteFiles(
-            parsedCommandLine,
-            info,
-            modules.typescript,
-            configManager
-        );
-
-        if (parsedCommandLine) {
-            updateProjectSvelteFiles(modules.typescript, info.project, parsedCommandLine);
-        }
 
         const snapshotManager = new SvelteSnapshotManager(
             modules.typescript,
@@ -63,6 +53,18 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
             logger,
             configManager
         );
+
+        const watcher = watchDirectoryForNewSvelteFiles(
+            parsedCommandLine,
+            info,
+            modules.typescript,
+            configManager,
+            snapshotManager
+        );
+
+        if (parsedCommandLine) {
+            updateProjectSvelteFiles(modules.typescript, info.project, parsedCommandLine);
+        }
 
         patchModuleLoader(
             logger,
