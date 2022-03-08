@@ -221,6 +221,10 @@ export class SveltePlugin
         document: Document,
         position: Position
     ): Promise<DocumentHighlight[] | null> {
+        if (!this.featureEnabled('documentHighlight')) {
+            return null;
+        }
+
         const svelteDoc = await this.getSvelteDoc(document);
 
         return getDocumentHighlight(document, svelteDoc, position);

@@ -302,15 +302,14 @@ export class HTMLPlugin
         document: Document,
         position: Position
     ): DocumentHighlight[] | null {
+        if (!this.featureEnabled('documentHighlight')) {
+            return null;
+        }
+
         const html = this.documents.get(document);
         if (!html) {
             return null;
         }
-
-        // const node = html.findNodeAt(document.offsetAt(position));
-        // if (!node || this.possiblyComponent(node)) {
-        //     return null;
-        // }
 
         const result = this.lang.findDocumentHighlights(document, position, html);
 

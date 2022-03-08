@@ -360,6 +360,10 @@ export class CSSPlugin
     }
 
     findDocumentHighlight(document: Document, position: Position): DocumentHighlight[] | null {
+        if (!this.featureEnabled('documentHighlight')) {
+            return null;
+        }
+
         const cssDocument = this.getCSSDoc(document);
 
         if (cssDocument.isInGenerated(position)) {

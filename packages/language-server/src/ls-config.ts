@@ -21,7 +21,8 @@ const defaultLSConfig: LSConfig = {
         signatureHelp: { enable: true },
         semanticTokens: { enable: true },
         implementation: { enable: true },
-        typeDefinition: { enable: true }
+        typeDefinition: { enable: true },
+        documentHighlight: { enable: true }
     },
     css: {
         enable: true,
@@ -32,7 +33,8 @@ const defaultLSConfig: LSConfig = {
         documentColors: { enable: true },
         colorPresentations: { enable: true },
         documentSymbols: { enable: true },
-        selectionRange: { enable: true }
+        selectionRange: { enable: true },
+        documentHighlight: { enable: true }
     },
     html: {
         enable: true,
@@ -41,7 +43,8 @@ const defaultLSConfig: LSConfig = {
         tagComplete: { enable: true },
         documentSymbols: { enable: true },
         renameTags: { enable: true },
-        linkedEditing: { enable: true }
+        linkedEditing: { enable: true },
+        documentHighlight: { enable: true }
     },
     svelte: {
         enable: true,
@@ -65,6 +68,7 @@ const defaultLSConfig: LSConfig = {
         hover: { enable: true },
         codeActions: { enable: true },
         selectionRange: { enable: true },
+        documentHighlight: { enable: true },
         defaultScriptLanguage: 'none'
     }
 };
@@ -121,6 +125,9 @@ export interface LSTypescriptConfig {
     typeDefinition: {
         enable: boolean;
     };
+    documentHighlight: {
+        enable: boolean;
+    };
 }
 
 export interface LSCSSConfig {
@@ -148,6 +155,9 @@ export interface LSCSSConfig {
     selectionRange: {
         enable: boolean;
     };
+    documentHighlight: {
+        enable: boolean;
+    };
 }
 
 export interface LSHTMLConfig {
@@ -169,6 +179,9 @@ export interface LSHTMLConfig {
         enable: boolean;
     };
     linkedEditing: {
+        enable: boolean;
+    };
+    documentHighlight: {
         enable: boolean;
     };
 }
@@ -207,6 +220,9 @@ export interface LSSvelteConfig {
         enable: boolean;
     };
     selectionRange: {
+        enable: boolean;
+    };
+    documentHighlight: {
         enable: boolean;
     };
     defaultScriptLanguage: 'none' | 'ts';

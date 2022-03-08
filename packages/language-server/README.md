@@ -151,6 +151,14 @@ Enable semantic tokens (semantic highlight) for TypeScript. _Default_: `true`
 
 Enable go to implementation for Typescript. _Default_: `true`
 
+#### `svelte.plugin.typescript.typeDefinition.enable`
+
+Enable go to Type Definition for Typescript. _Default_: `true`
+
+#### `svelte.plugin.typescript.documentHighlight.enable`
+
+Enable document highlight for Typescript. _Default_: `true`
+
 ##### `svelte.plugin.css.enable`
 
 Enable the CSS plugin. _Default_: `true`
@@ -192,6 +200,10 @@ Enable document symbols for CSS. _Default_: `true`
 
 Enable selection range for CSS. _Default_: `true`
 
+#### `svelte.plugin.css.documentHighlight.enable`
+
+Enable document highlight for CSS. _Default_: `true`
+
 ##### `svelte.plugin.html.enable`
 
 Enable the HTML plugin. _Default_: `true`
@@ -224,6 +236,10 @@ Enable Linked Editing for HTML. _Default_: `true`
 ##### `svelte.plugin.html.renameTags.enable`
 
 Enable rename tags for the opening/closing tag pairs in HTML. _Default_: `true`
+
+#### `svelte.plugin.html.documentHighlight.enable`
+
+Enable document highlight for HTML. _Default_: `true`
 
 ##### `svelte.plugin.svelte.enable`
 
@@ -304,6 +320,10 @@ Enable code actions for Svelte. _Default_: `true`
 ##### `svelte.plugin.svelte.selectionRange.enable`
 
 Enable selection range for Svelte. _Default_: `true`
+
+#### `svelte.plugin.svelte.documentHighlight.enable`
+
+Enable document highlight for Svelte tags or block. _Default_: `true`
 
 ##### `svelte.plugin.svelte.defaultScriptLanguage`
 

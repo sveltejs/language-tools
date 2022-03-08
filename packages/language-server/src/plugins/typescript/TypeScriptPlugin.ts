@@ -530,6 +530,10 @@ export class TypeScriptPlugin
         document: Document,
         position: Position
     ): Promise<DocumentHighlight[] | null> {
+        if (!this.featureEnabled('documentHighlight')) {
+            return null;
+        }
+
         return this.documentHeightProvider.findDocumentHighlight(document, position);
     }
 
