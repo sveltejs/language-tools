@@ -1,3 +1,5 @@
+import type ts from 'typescript/lib/tsserverlibrary';
+
 export function isSvelteFilePath(filePath: string) {
     return filePath.endsWith('.svelte');
 }
@@ -63,4 +65,11 @@ export function replaceDeep<T extends Record<string, any>>(
         }
         return _obj;
     }
+}
+
+export function getConfigPathForProject(project: ts.server.Project) {
+    return (
+        (project as ts.server.ConfiguredProject).canonicalConfigFilePath ??
+        (project.getCompilerOptions() as any).configFilePath
+    );
 }

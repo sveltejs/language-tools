@@ -5,11 +5,8 @@ import { patchModuleLoader } from './module-loader';
 import { SvelteSnapshotManager } from './svelte-snapshots';
 import type ts from 'typescript/lib/tsserverlibrary';
 import { ConfigManager, Configuration } from './config-manager';
-import {
-    getProjectSvelteFiles,
-    updateProjectSvelteFiles,
-    watchDirectoryForNewSvelteFiles
-} from './project-svelte-files';
+import { ProjectSvelteFilesManager } from './project-svelte-files';
+import { getConfigPathForProject } from './utils';
 
 function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
     const configManager = new ConfigManager();
@@ -22,7 +19,12 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
         }
 
         if (isPatched(info.languageService)) {
-            logger.log('Already patched');
+            logger.log('Already patched. Checking tsconfig updates.');
+
+            ProjectSvelteFilesManager.getInstance(
+                info.project.getProjectName()
+            )?.updateProjectConfig(info.languageServiceHost);
+
             return info.languageService;
         }
 
@@ -34,11 +36,10 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
             logger.log(info.config);
         }
 
-        // If someone knows a better/more performant way to get svelteOptions,
-        // please tell us :)
+        // This called the ConfiguredProject.getParsedCommandLine
+        // where it'll try to load the cached version of the parsedCommandLine
         const parsedCommandLine = info.languageServiceHost.getParsedCommandLine?.(
-            (info.project as ts.server.ConfiguredProject).canonicalConfigFilePath ??
-                (info.project.getCompilerOptions() as any).configFilePath
+            getConfigPathForProject(info.project)
         );
 
         const svelteOptions = parsedCommandLine?.raw?.svelteOptions || { namespace: 'svelteHTML' };
@@ -54,17 +55,16 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
             configManager
         );
 
-        const watcher = watchDirectoryForNewSvelteFiles(
-            parsedCommandLine,
-            info,
-            modules.typescript,
-            configManager,
-            snapshotManager
-        );
-
-        if (parsedCommandLine) {
-            updateProjectSvelteFiles(modules.typescript, info.project, parsedCommandLine);
-        }
+        const projectSvelteFilesManager = parsedCommandLine
+            ? new ProjectSvelteFilesManager(
+                  modules.typescript,
+                  info.project,
+                  info.serverHost,
+                  snapshotManager,
+                  parsedCommandLine,
+                  configManager
+              )
+            : undefined;
 
         patchModuleLoader(
             logger,
@@ -79,15 +79,23 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
             // enabling/disabling the plugin means TS has to recompute stuff
             info.languageService.cleanupSemanticCache();
             info.project.markAsDirty();
+
+            // updateGraph checks for new root files
+            // if there's no tsconfig there isn't root files to check
+            if (projectSvelteFilesManager) {
+                info.project.updateGraph();
+            }
         });
 
         return decorateLanguageServiceDispose(
             decorateLanguageService(info.languageService, snapshotManager, logger, configManager),
-            watcher
+            projectSvelteFilesManager ?? {
+                dispose() {}
+            }
         );
     }
 
-    function getExternalFiles(project: ts.server.ConfiguredProject) {
+    function getExternalFiles(project: ts.server.Project) {
         if (!isSvelteProject(project.getCompilerOptions()) || !configManager.getConfig().enable) {
             return [];
         }
@@ -100,7 +108,10 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
             './svelte-native-jsx.d.ts'
         ].map((f) => modules.typescript.sys.resolvePath(resolve(svelteTsPath, f)));
 
-        return svelteTsxFiles.concat(getProjectSvelteFiles(project) ?? []);
+        // let ts know project svelte files to do its optimization
+        return svelteTsxFiles.concat(
+            ProjectSvelteFilesManager.getInstance(project.getProjectName())?.getFiles() ?? []
+        );
     }
 
     function isSvelteProject(compilerOptions: ts.CompilerOptions) {

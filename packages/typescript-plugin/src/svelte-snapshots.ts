@@ -69,25 +69,9 @@ export class SvelteSnapshot {
         return originalOffset;
     }
 
-    ensurePatchScriptInfo(projectService: ts.server.ProjectService) {
-        if (this.scriptInfoPatched) {
-            return;
-        }
-
-        const scriptInfo = projectService.getScriptInfo(this.fileName);
-
-        if (scriptInfo) {
-            this.setAndPatchScriptInfo(scriptInfo);
-        }
-
-        this.scriptInfoPatched = true;
-
-        return;
-    }
-
     setAndPatchScriptInfo(scriptInfo: ts.server.ScriptInfo) {
-        // // @ts-expect-error
-        // scriptInfo.scriptKind = this.typescript.ScriptKind.TSX;
+        // @ts-expect-error
+        scriptInfo.scriptKind = this.typescript.ScriptKind.TSX;
 
         const positionToLineOffset = scriptInfo.positionToLineOffset.bind(scriptInfo);
         scriptInfo.positionToLineOffset = (position) => {
@@ -259,13 +243,7 @@ export class SvelteSnapshotManager {
     }
 
     get(fileName: string) {
-        const result = this.snapshots.get(fileName);
-
-        if (result) {
-            result.ensurePatchScriptInfo(this.projectService);
-        }
-
-        return result;
+        return this.snapshots.get(fileName);
     }
 
     create(fileName: string): SvelteSnapshot | undefined {
