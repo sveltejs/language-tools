@@ -36,7 +36,7 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
             logger.log(info.config);
         }
 
-        // This called the ConfiguredProject.getParsedCommandLine
+        // This call the ConfiguredProject.getParsedCommandLine
         // where it'll try to load the cached version of the parsedCommandLine
         const parsedCommandLine = info.languageServiceHost.getParsedCommandLine?.(
             getConfigPathForProject(info.project)
