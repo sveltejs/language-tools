@@ -10,9 +10,9 @@ import {
     Hover,
     Position,
     Range,
+    SelectionRange,
     TextEdit,
-    WorkspaceEdit,
-    SelectionRange
+    WorkspaceEdit
 } from 'vscode-languageserver';
 import { getPackageInfo, importPrettier } from '../../importPackage';
 import { Document } from '../../lib/documents';
