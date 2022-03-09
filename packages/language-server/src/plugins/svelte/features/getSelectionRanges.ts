@@ -2,7 +2,7 @@ import { walk } from 'estree-walker';
 import { Position, SelectionRange } from 'vscode-languageserver';
 import { mapSelectionRangeToParent, offsetAt, toRange } from '../../../lib/documents';
 import { SvelteDocument } from '../SvelteDocument';
-import { inStyleOrScript } from '../utils';
+import { inStyleOrScript } from './utils';
 
 // estree does not have start/end in their public Node interface,
 // but the AST returned by svelte/compiler does. Type as any as a workaround.

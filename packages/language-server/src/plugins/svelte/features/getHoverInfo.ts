@@ -2,10 +2,9 @@ import { Hover, Position } from 'vscode-languageserver';
 import { SvelteDocument } from '../SvelteDocument';
 import { documentation, SvelteTag, getLatestOpeningTag } from './SvelteTags';
 import { flatten } from '../../../utils';
-import { inStyleOrScript } from '../utils';
 import { Document } from '../../../lib/documents';
 import { AttributeContext, getAttributeContextAtPosition } from '../../../lib/documents/parseHtml';
-import { attributeCanHaveEventModifier } from './utils';
+import { attributeCanHaveEventModifier, inStyleOrScript } from './utils';
 import { getModifierData } from './getModifierData';
 
 /**
@@ -18,8 +17,6 @@ export function getHoverInfo(
 ): Hover | null {
     const offset = svelteDoc.offsetAt(position);
 
-    const isInStyleOrScript = inStyleOrScript(svelteDoc, position);
-
     const offsetStart = Math.max(offset - 10, 0);
     const charactersAroundOffset = svelteDoc
         .getText()
@@ -27,7 +24,7 @@ export function getHoverInfo(
         .substr(offsetStart, 20);
     const isSvelteTag = tagRegexp.test(charactersAroundOffset);
 
-    if (isInStyleOrScript) {
+    if (inStyleOrScript(svelteDoc, position)) {
         return null;
     }
 

@@ -4,7 +4,7 @@ import { Range } from 'vscode-languageserver';
 import { Position, DocumentHighlight, DocumentHighlightKind } from 'vscode-languageserver-types';
 import { mapObjWithRangeToOriginal, offsetAt, positionAt } from '../../../lib/documents';
 import { SvelteDocument } from '../SvelteDocument';
-import { inStyleOrScript } from '../utils';
+import { inStyleOrScript } from './utils';
 
 type RangeTupleArray = Array<[start: number, end: number]>;
 
