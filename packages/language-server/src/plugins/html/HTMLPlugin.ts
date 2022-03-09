@@ -37,7 +37,6 @@ import { isInsideMoustacheTag, toRange } from '../../lib/documents/utils';
 import { possiblyComponent } from '../../utils';
 
 export class HTMLPlugin
-
     implements
         HoverProvider,
         CompletionsProvider,
@@ -298,10 +297,7 @@ export class HTMLPlugin
         return { ranges };
     }
 
-    findDocumentHighlight(
-        document: Document,
-        position: Position
-    ): DocumentHighlight[] | null {
+    findDocumentHighlight(document: Document, position: Position): DocumentHighlight[] | null {
         if (!this.featureEnabled('documentHighlight')) {
             return null;
         }

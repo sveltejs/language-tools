@@ -353,15 +353,16 @@ export function startServer(options?: LSOptions) {
     );
 
     connection.onImplementation((evt) =>
-    pluginHost.getImplementation(evt.textDocument, evt.position)
+        pluginHost.getImplementation(evt.textDocument, evt.position)
     );
 
     connection.onTypeDefinition((evt) =>
-    pluginHost.getTypeDefinition(evt.textDocument, evt.position)
+        pluginHost.getTypeDefinition(evt.textDocument, evt.position)
     );
 
     connection.onDocumentHighlight((evt) =>
-        pluginHost.findDocumentHighlight(evt.textDocument, evt.position));
+        pluginHost.findDocumentHighlight(evt.textDocument, evt.position)
+    );
 
     const diagnosticsManager = new DiagnosticsManager(
         connection.sendDiagnostics,

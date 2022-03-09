@@ -180,7 +180,7 @@ export interface DocumentHighlightProvider {
     findDocumentHighlight(
         document: Document,
         position: Position
-    ): Resolvable<DocumentHighlight[] | null>
+    ): Resolvable<DocumentHighlight[] | null>;
 }
 
 export interface OnWatchFileChangesPara {
