@@ -227,7 +227,7 @@ export class SveltePlugin
 
         const svelteDoc = await this.getSvelteDoc(document);
 
-        return getDocumentHighlight(document, svelteDoc, position);
+        return getDocumentHighlight(svelteDoc, position);
     }
 
     private featureEnabled(feature: keyof LSSvelteConfig) {

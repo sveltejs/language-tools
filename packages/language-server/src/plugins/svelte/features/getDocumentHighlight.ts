@@ -2,14 +2,13 @@ import { walk } from 'svelte/compiler';
 import { TemplateNode } from 'svelte/types/compiler/interfaces';
 import { Range } from 'vscode-languageserver';
 import { Position, DocumentHighlight, DocumentHighlightKind } from 'vscode-languageserver-types';
-import { Document, mapObjWithRangeToOriginal, offsetAt, positionAt } from '../../../lib/documents';
+import { mapObjWithRangeToOriginal, offsetAt, positionAt } from '../../../lib/documents';
 import { SvelteDocument } from '../SvelteDocument';
 import { inStyleOrScript } from '../utils';
 
 type RangeTupleArray = Array<[start: number, end: number]>;
 
 export async function getDocumentHighlight(
-    document: Document,
     svelteDoc: SvelteDocument,
     position: Position
 ): Promise<DocumentHighlight[] | null> {
@@ -108,6 +107,7 @@ function getTagHighlight(
 
     return [
         {
+            kind: DocumentHighlightKind.Read,
             range: Range.create(
                 positionAt(indexOfName, content),
                 positionAt(indexOfName + startTag.length, content)
@@ -181,7 +181,10 @@ function getElseHighlightsForIfBlock(candidate: TemplateNode, content: string): 
             if (templateNode.type === 'ElseBlock') {
                 const elseStart = content.lastIndexOf(':else', templateNode.start);
 
-                if (elseStart > 0) {
+                if (
+                    elseStart > 0 &&
+                    content.slice(elseStart, elseStart + ':else if'.length) !== ':else if'
+                ) {
                     ranges.push([elseStart, elseStart + ':else'.length]);
                 }
             }
