@@ -3,7 +3,7 @@
         "range": { "start": { "line": 9, "character": 7 }, "end": { "line": 9, "character": 12 } },
         "severity": 1,
         "source": "ts",
-        "message": "Type '\"\"' is not assignable to type 'number | undefined'.",
+        "message": "Type 'string' is not assignable to type 'number'.",
         "code": 2322,
         "tags": []
     },
@@ -11,7 +11,7 @@
         "range": { "start": { "line": 9, "character": 15 }, "end": { "line": 9, "character": 20 } },
         "severity": 1,
         "source": "ts",
-        "message": "Type '\"\"' is not assignable to type 'number | undefined'.",
+        "message": "Type 'string' is not assignable to type 'number'.",
         "code": 2322,
         "tags": []
     },

@@ -239,7 +239,7 @@ function test(useNewTransformation: boolean) {
                         ]
                     },
                     kind: 'quickfix',
-                    title: 'Import \'blubb\' from module "../definitions"'
+                    title: 'Add import from "../definitions"'
                 },
                 {
                     edit: {
@@ -332,7 +332,7 @@ function test(useNewTransformation: boolean) {
                         ]
                     },
                     kind: 'quickfix',
-                    title: 'Import default \'Empty\' from module "../empty.svelte"'
+                    title: 'Add import from "../empty.svelte"'
                 }
             ]);
         });

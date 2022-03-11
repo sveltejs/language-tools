@@ -35,7 +35,7 @@
         "range": { "start": { "line": 9, "character": 26 }, "end": { "line": 9, "character": 35 } },
         "severity": 1,
         "source": "ts",
-        "message": "Type 'true' is not assignable to type 'string | undefined'.",
+        "message": "Type 'boolean' is not assignable to type 'string'.",
         "code": 2322,
         "tags": []
     },
@@ -43,7 +43,7 @@
         "range": { "start": { "line": 9, "character": 43 }, "end": { "line": 9, "character": 52 } },
         "severity": 1,
         "source": "ts",
-        "message": "Type 'true' is not assignable to type 'string | undefined'.",
+        "message": "Type 'boolean' is not assignable to type 'string'.",
         "code": 2322,
         "tags": []
     },
@@ -84,7 +84,7 @@
         },
         "severity": 1,
         "source": "ts",
-        "message": "Type 'true' is not assignable to type 'string | undefined'.",
+        "message": "Type 'boolean' is not assignable to type 'string'.",
         "code": 2322,
         "tags": []
     },
@@ -95,7 +95,7 @@
         },
         "severity": 1,
         "source": "ts",
-        "message": "Type 'true' is not assignable to type 'string | undefined'.",
+        "message": "Type 'boolean' is not assignable to type 'string'.",
         "code": 2322,
         "tags": []
     }
