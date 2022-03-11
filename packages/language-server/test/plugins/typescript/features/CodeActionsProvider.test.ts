@@ -316,7 +316,7 @@ function test(useNewTransformation: boolean) {
                                 edits: [
                                     {
                                         newText: harmonizeNewLines(
-                                            "Add import from '../empty.svelte';\n"
+                                            "import Empty from '../empty.svelte';\n"
                                         ),
                                         range: {
                                             end: Position.create(5, 0),
@@ -332,7 +332,7 @@ function test(useNewTransformation: boolean) {
                         ]
                     },
                     kind: 'quickfix',
-                    title: 'Import default \'Empty\' from module "../empty.svelte"'
+                    title: 'Add import from "../empty.svelte"'
                 }
             ]);
         });
