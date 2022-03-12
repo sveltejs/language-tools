@@ -9,8 +9,8 @@ export interface TsFilesSpec {
 }
 
 export class ProjectSvelteFilesManager {
-    private files: Set<string> | undefined;
-    private directoryWatchers: Set<ts.FileWatcher> | undefined;
+    private files = new Set<string>();
+    private directoryWatchers = new Set<ts.FileWatcher>();
 
     private static instances = new Map<string, ProjectSvelteFilesManager>();
 
@@ -28,10 +28,10 @@ export class ProjectSvelteFilesManager {
     ) {
         if (configManager.getConfig().enable) {
             this.setupWatchers();
+            this.updateProjectSvelteFiles();
         }
 
         configManager.onConfigurationChanged(this.onConfigChanged.bind(this));
-        this.updateProjectSvelteFiles();
         ProjectSvelteFilesManager.instances.set(project.getProjectName(), this);
     }
 
@@ -44,14 +44,14 @@ export class ProjectSvelteFilesManager {
             return;
         }
 
+        this.disposeWatchersAndFiles();
         this.parsedCommandLine = parsedCommandLine;
-        this.updateProjectSvelteFiles();
-        this.disposeWatcher();
         this.setupWatchers();
+        this.updateProjectSvelteFiles();
     }
 
     getFiles() {
-        return this.files ? Array.from(this.files) : [];
+        return Array.from(this.files);
     }
 
     /**
@@ -60,10 +60,6 @@ export class ProjectSvelteFilesManager {
      * It won't add new created svelte file to root
      */
     private setupWatchers() {
-        if (!this.directoryWatchers) {
-            this.directoryWatchers = new Set();
-        }
-
         for (const directory in this.parsedCommandLine.wildcardDirectories) {
             if (
                 !Object.prototype.hasOwnProperty.call(
@@ -91,23 +87,30 @@ export class ProjectSvelteFilesManager {
             return;
         }
 
+        // We can't just add the file to the project directly, because
+        // - the casing of fileName is different
+        // - we don't know whether the file was added or deleted
         this.updateProjectSvelteFiles();
     }
 
     private updateProjectSvelteFiles() {
         const fileNamesAfter = this.readProjectSvelteFilesFromFs();
-        const filesBefore = this.files;
-        const newFiles = filesBefore
-            ? fileNamesAfter.filter((fileName) => !filesBefore.has(fileName))
-            : fileNamesAfter;
-
-        if (!this.files) {
-            this.files = new Set();
-        }
+        const removedFiles = new Set(...this.files);
+        const newFiles = fileNamesAfter.filter((fileName) => {
+            const has = this.files.has(fileName);
+            if (has) {
+                removedFiles.delete(fileName);
+            }
+            return !has;
+        });
 
         for (const newFile of newFiles) {
             this.addFileToProject(newFile);
             this.files.add(newFile);
+        }
+        for (const removedFile of removedFiles) {
+            this.removeFileFromProject(removedFile, false);
+            this.files.delete(removedFile);
         }
     }
 
@@ -139,40 +142,32 @@ export class ProjectSvelteFilesManager {
     }
 
     private onConfigChanged(config: Configuration) {
+        this.disposeWatchersAndFiles();
+
         if (config.enable) {
-            if (!this.directoryWatchers) {
-                this.setupWatchers();
-            }
-
+            this.setupWatchers();
             this.updateProjectSvelteFiles();
-            return;
         }
-
-        this.disposeWatcher();
-
-        this.files?.forEach((file) => this.removeFileFromProject(file));
-        this.files = undefined;
     }
 
-    private removeFileFromProject(file: string) {
+    private removeFileFromProject(file: string, exists = true) {
         const info = this.project.getScriptInfo(file);
 
         if (info) {
-            this.project.removeFile(info, true, true);
+            this.project.removeFile(info, exists, true);
         }
     }
 
-    private disposeWatcher() {
-        if (!this.directoryWatchers) {
-            return;
-        }
-
+    private disposeWatchersAndFiles() {
         this.directoryWatchers.forEach((watcher) => watcher.close());
-        this.directoryWatchers = undefined;
+        this.directoryWatchers.clear();
+
+        this.files.forEach((file) => this.removeFileFromProject(file));
+        this.files.clear();
     }
 
     dispose() {
-        this.disposeWatcher();
+        this.disposeWatchersAndFiles();
 
         ProjectSvelteFilesManager.instances.delete(this.project.getProjectName());
     }
