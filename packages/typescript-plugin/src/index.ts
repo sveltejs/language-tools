@@ -44,8 +44,7 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
 
         const svelteOptions = parsedCommandLine?.raw?.svelteOptions || { namespace: 'svelteHTML' };
         logger.log('svelteOptions:', svelteOptions);
-
-        logger.log(parsedCommandLine?.wildcardDirectories);
+        logger.debug(parsedCommandLine?.wildcardDirectories);
 
         const snapshotManager = new SvelteSnapshotManager(
             modules.typescript,
