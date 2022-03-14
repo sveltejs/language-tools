@@ -2,10 +2,10 @@
 ;function render() {
 
     let name1 = "world"
-    let name2
+    let name2/*Ωignore_startΩ*/;name2 = __sveltets_1_any(name2);/*Ωignore_endΩ*/
 
     let rename1 = '';
-    let rename2;
+    let rename2/*Ωignore_startΩ*/;rename2 = __sveltets_1_any(rename2);/*Ωignore_endΩ*/;
 
     class Foo {}
     function bar() {}

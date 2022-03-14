@@ -112,24 +112,28 @@ export class ExportedNames {
             const type = tsType || jsDocType;
 
             if (
-                !ts.isIdentifier(identifier) ||
-                (!type &&
+                ts.isIdentifier(identifier) &&
+                // Ensure initialization for proper control flow and to avoid "possibly undefined" type errors.
+                // Also ensure prop is typed as any with a type annotation in TS strict mode
+                (!declaration.initializer ||
+                    // Widen the type, else it's narrowed to the initializer
+                    type ||
                     // Edge case: TS infers `export let bla = false` to type `false`.
                     // prevent that by adding the any-wrap in this case, too.
-                    ![ts.SyntaxKind.FalseKeyword, ts.SyntaxKind.TrueKeyword].includes(
-                        declaration.initializer?.kind
-                    ))
+                    (!type &&
+                        [ts.SyntaxKind.FalseKeyword, ts.SyntaxKind.TrueKeyword].includes(
+                            declaration.initializer.kind
+                        )))
             ) {
-                return;
-            }
-            const name = identifier.getText();
-            const end = declaration.end + this.astOffset;
+                const name = identifier.getText();
+                const end = declaration.end + this.astOffset;
 
-            preprendStr(
-                this.str,
-                end,
-                surroundWithIgnoreComments(`;${name} = __sveltets_1_any(${name});`)
-            );
+                preprendStr(
+                    this.str,
+                    end,
+                    surroundWithIgnoreComments(`;${name} = __sveltets_1_any(${name});`)
+                );
+            }
         };
 
         const findComma = (target: ts.Node) =>
