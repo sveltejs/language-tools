@@ -1,0 +1,36 @@
+><div on:click="{(e) => {console.log(e)}}"></div>
+#^ source.svelte meta.scope.tag.div.svelte meta.tag.start.svelte punctuation.definition.tag.begin.svelte
+# ^^^ source.svelte meta.scope.tag.div.svelte meta.tag.start.svelte entity.name.tag.svelte
+#    ^ source.svelte meta.scope.tag.div.svelte meta.tag.start.svelte
+#     ^^ source.svelte meta.scope.tag.div.svelte meta.tag.start.svelte meta.directive.on.svelte keyword.control.svelte
+#       ^ source.svelte meta.scope.tag.div.svelte meta.tag.start.svelte meta.directive.on.svelte punctuation.definition.keyword.svelte
+#        ^^^^^ source.svelte meta.scope.tag.div.svelte meta.tag.start.svelte meta.directive.on.svelte entity.name.type.svelte
+#             ^ source.svelte meta.scope.tag.div.svelte meta.tag.start.svelte meta.directive.on.svelte punctuation.separator.key-value.svelte
+#              ^ source.svelte meta.scope.tag.div.svelte meta.tag.start.svelte meta.directive.on.svelte string.quoted.svelte punctuation.definition.string.begin.svelte
+#               ^ source.svelte meta.scope.tag.div.svelte meta.tag.start.svelte meta.directive.on.svelte string.quoted.svelte punctuation.section.embedded.begin.svelte
+#                ^^^^^^^^^^^^^^^^^^^^^^ source.svelte meta.scope.tag.div.svelte meta.tag.start.svelte meta.directive.on.svelte string.quoted.svelte meta.embedded.expression.svelte source.ts
+#                                      ^ source.svelte meta.scope.tag.div.svelte meta.tag.start.svelte meta.directive.on.svelte string.quoted.svelte punctuation.section.embedded.end.svelte
+#                                       ^ source.svelte meta.scope.tag.div.svelte meta.tag.start.svelte meta.directive.on.svelte string.quoted.svelte
+#                                        ^ source.svelte meta.scope.tag.div.svelte meta.tag.start.svelte meta.directive.on.svelte string.quoted.svelte punctuation.definition.string.end.svelte
+#                                         ^ source.svelte meta.scope.tag.div.svelte meta.tag.start.svelte punctuation.definition.tag.end.svelte
+#                                          ^^ source.svelte meta.scope.tag.div.svelte meta.tag.end.svelte punctuation.definition.tag.begin.svelte
+#                                            ^^^ source.svelte meta.scope.tag.div.svelte meta.tag.end.svelte entity.name.tag.svelte
+#                                               ^ source.svelte meta.scope.tag.div.svelte meta.tag.end.svelte punctuation.definition.tag.end.svelte
+>
+><Component on:click={(e) => {console.log(e)}}></Component>
+#^ source.svelte meta.scope.tag.Component.svelte meta.tag.start.svelte punctuation.definition.tag.begin.svelte
+# ^^^^^^^^^ source.svelte meta.scope.tag.Component.svelte meta.tag.start.svelte support.class.component.svelte
+#          ^ source.svelte meta.scope.tag.Component.svelte meta.tag.start.svelte
+#           ^^ source.svelte meta.scope.tag.Component.svelte meta.tag.start.svelte meta.directive.on.svelte keyword.control.svelte
+#             ^ source.svelte meta.scope.tag.Component.svelte meta.tag.start.svelte meta.directive.on.svelte punctuation.definition.keyword.svelte
+#              ^^^^^ source.svelte meta.scope.tag.Component.svelte meta.tag.start.svelte meta.directive.on.svelte entity.name.type.svelte
+#                   ^ source.svelte meta.scope.tag.Component.svelte meta.tag.start.svelte meta.directive.on.svelte punctuation.separator.key-value.svelte
+#                    ^ source.svelte meta.scope.tag.Component.svelte meta.tag.start.svelte meta.directive.on.svelte punctuation.section.embedded.begin.svelte
+#                     ^^^^^^^^^^^^^^^^^^^^^^ source.svelte meta.scope.tag.Component.svelte meta.tag.start.svelte meta.directive.on.svelte meta.embedded.expression.svelte source.ts
+#                                           ^ source.svelte meta.scope.tag.Component.svelte meta.tag.start.svelte meta.directive.on.svelte punctuation.section.embedded.end.svelte
+#                                            ^ source.svelte meta.scope.tag.Component.svelte meta.tag.start.svelte
+#                                             ^ source.svelte meta.scope.tag.Component.svelte meta.tag.start.svelte punctuation.definition.tag.end.svelte
+#                                              ^^ source.svelte meta.scope.tag.Component.svelte meta.tag.end.svelte punctuation.definition.tag.begin.svelte
+#                                                ^^^^^^^^^ source.svelte meta.scope.tag.Component.svelte meta.tag.end.svelte support.class.component.svelte
+#                                                         ^ source.svelte meta.scope.tag.Component.svelte meta.tag.end.svelte punctuation.definition.tag.end.svelte
+>

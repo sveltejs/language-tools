@@ -23,10 +23,10 @@ import {
     isAfterSvelte2TsxPropsReturn,
     isNoTextSpanInGeneratedCode,
     SnapshotFragmentMap,
-    findContainingNode,
-    isHTMLAttributeName
+    findContainingNode
 } from './utils';
 import { LSConfigManager } from '../../../ls-config';
+import { isAttributeName, isEventHandler } from '../svelte-ast-utils';
 
 export class RenameProviderImpl implements RenameProvider {
     constructor(
@@ -165,14 +165,12 @@ export class RenameProviderImpl implements RenameProvider {
             return null;
         }
 
+        const svelteNode = tsDoc.svelteNodeAt(originalPosition);
         if (
             this.configManager.getConfig().svelte.useNewTransformation &&
             (isInHTMLTagRange(doc.html, doc.offsetAt(originalPosition)) ||
-                !!findContainingNode(
-                    lang.getProgram()!.getSourceFile(tsDoc.filePath)!,
-                    { start: generatedOffset, length: 0 },
-                    isHTMLAttributeName
-                ))
+                isAttributeName(svelteNode, 'Element') ||
+                isEventHandler(svelteNode, 'Element'))
         ) {
             return null;
         }

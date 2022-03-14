@@ -1,5 +1,6 @@
 import { svelte2tsx } from 'svelte2tsx';
 import type ts from 'typescript/lib/tsserverlibrary';
+import { ConfigManager } from './config-manager';
 import { Logger } from './logger';
 import { SourceMapper } from './source-mapper';
 import { isNoTextSpanInGeneratedCode, isSvelteFilePath } from './utils';
@@ -233,7 +234,8 @@ export class SvelteSnapshotManager {
         private typescript: typeof ts,
         private projectService: ts.server.ProjectService,
         private svelteOptions: { namespace: string },
-        private logger: Logger
+        private logger: Logger,
+        private configManager: ConfigManager
     ) {
         this.patchProjectServiceReadFile();
     }
@@ -278,7 +280,7 @@ export class SvelteSnapshotManager {
     private patchProjectServiceReadFile() {
         const readFile = this.projectService.host.readFile;
         this.projectService.host.readFile = (path: string) => {
-            if (isSvelteFilePath(path)) {
+            if (isSvelteFilePath(path) && this.configManager.getConfig().enable) {
                 this.logger.debug('Read Svelte file:', path);
                 const svelteCode = readFile(path) || '';
                 try {
@@ -308,8 +310,11 @@ export class SvelteSnapshotManager {
                     this.logger.log('Successfully read Svelte file contents of', path);
                     return result.code;
                 } catch (e) {
-                    this.logger.log('Error loading Svelte file:', path);
+                    this.logger.log('Error loading Svelte file:', path, ' Using fallback.');
                     this.logger.debug('Error:', e);
+                    // Return something either way, else "X is not a module" errors will appear
+                    // in the TS files that use this file.
+                    return 'export default class extends Svelte2TsxComponent<any,any,any> {}';
                 }
             } else {
                 return readFile(path);

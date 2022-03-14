@@ -19,7 +19,7 @@ export interface SvelteCheckCliOptions {
 // eslint-disable max-len
 export function parseOptions(cb: (opts: SvelteCheckCliOptions) => any) {
     const prog = sade('svelte-check', true)
-        .version('1.x')
+        .version('2.x')
         .option(
             '--workspace',
             'Path to your workspace. All subdirectories except node_modules and those listed in `--ignore` are checked'

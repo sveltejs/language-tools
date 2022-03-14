@@ -1,0 +1,30 @@
+><script>
+#^ source.svelte meta.script.svelte meta.tag.start.svelte punctuation.definition.tag.begin.svelte
+# ^^^^^^ source.svelte meta.script.svelte meta.tag.start.svelte entity.name.tag.svelte
+#       ^ source.svelte meta.script.svelte meta.tag.start.svelte punctuation.definition.tag.end.svelte
+>    let value;
+#^^^^^^^^^^^^^^^ source.svelte meta.script.svelte meta.embedded.block.svelte source.js
+></script>
+#^^ source.svelte meta.script.svelte meta.tag.end.svelte punctuation.definition.tag.begin.svelte
+#  ^^^^^^ source.svelte meta.script.svelte meta.tag.end.svelte entity.name.tag.svelte
+#        ^ source.svelte meta.script.svelte meta.tag.end.svelte punctuation.definition.tag.end.svelte
+>
+><input bind:value>
+#^ source.svelte meta.tag.void.svelte punctuation.definition.tag.begin.svelte
+# ^^^^^ source.svelte meta.tag.void.svelte entity.name.tag.svelte
+#      ^ source.svelte meta.tag.void.svelte
+#       ^^^^ source.svelte meta.tag.void.svelte meta.directive.bind.svelte keyword.control.svelte
+#           ^ source.svelte meta.tag.void.svelte meta.directive.bind.svelte punctuation.definition.keyword.svelte
+#            ^^^^^ source.svelte meta.tag.void.svelte meta.directive.bind.svelte variable.parameter.svelte
+#                 ^ source.svelte meta.tag.void.svelte punctuation.definition.tag.begin.svelte
+>
+><Input bind:value />
+#^ source.svelte meta.scope.tag.Input.svelte meta.tag.start.svelte punctuation.definition.tag.begin.svelte
+# ^^^^^ source.svelte meta.scope.tag.Input.svelte meta.tag.start.svelte support.class.component.svelte
+#      ^ source.svelte meta.scope.tag.Input.svelte meta.tag.start.svelte
+#       ^^^^ source.svelte meta.scope.tag.Input.svelte meta.tag.start.svelte meta.directive.bind.svelte keyword.control.svelte
+#           ^ source.svelte meta.scope.tag.Input.svelte meta.tag.start.svelte meta.directive.bind.svelte punctuation.definition.keyword.svelte
+#            ^^^^^ source.svelte meta.scope.tag.Input.svelte meta.tag.start.svelte meta.directive.bind.svelte variable.parameter.svelte
+#                 ^ source.svelte meta.scope.tag.Input.svelte meta.tag.start.svelte
+#                  ^^ source.svelte meta.scope.tag.Input.svelte meta.tag.start.svelte punctuation.definition.tag.end.svelte
+>

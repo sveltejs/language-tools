@@ -15,9 +15,9 @@
 async () => {
 
   for(const box of __sveltets_2_ensureArray(boxes)){
-	 const {area, volume} = calculate(box.width, box.height, constant);
-	 const perimeter = (box.width + box.height) * constant;
-	 const [width, height, sum] = [box.width * constant, box.height, box.width * constant + box.height];
+	const {area, volume} = calculate(box.width, box.height, constant);
+	const perimeter = (box.width + box.height) * constant;
+	const [width, height, sum] = [box.width * constant, box.height, box.width * constant + box.height];
 	 { svelteHTML.createElement("div", {});area; volume; perimeter; width; height; sum; }
 }};
 return { props: {boxes: boxes , constant: constant}, slots: {}, getters: {}, events: {} }}

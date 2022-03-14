@@ -1,6 +1,6 @@
 import MagicString from 'magic-string';
 import svgAttributes from '../svgattributes';
-import { TransformationArray } from '../utils/node-utils';
+import { rangeWithTrailingPropertyAccess, TransformationArray } from '../utils/node-utils';
 import { Attribute, BaseNode } from '../../interfaces';
 import { Element } from './Element';
 import { InlineComponent } from './InlineComponent';
@@ -69,8 +69,18 @@ export function handleAttribute(
 
     const addAttribute =
         element instanceof Element
-            ? (name: TransformationArray, value?: TransformationArray) =>
-                  element.addAttribute(name, value)
+            ? (name: TransformationArray, value?: TransformationArray) => {
+                  if (attr.name.startsWith('data-')) {
+                      // any attribute prefixed with data- is valid, but we can't
+                      // type that statically, so we need this workaround
+                      name.unshift('...__sveltets_2_empty({');
+                      if (!value) {
+                          value = ['__sveltets_2_any()'];
+                      }
+                      value.push('})');
+                  }
+                  element.addAttribute(name, value);
+              }
             : (name: TransformationArray, value?: TransformationArray) => {
                   if (attr.name.startsWith('--') && attr.value !== true) {
                       // CSS custom properties are not part of the props
@@ -111,7 +121,7 @@ export function handleAttribute(
         return;
     } else {
         let name =
-            element instanceof Element && attr.value === true
+            element instanceof Element && parent.type === 'Element'
                 ? transformAttributeCase(attr.name)
                 : attr.name;
         // surround with quotes because dashes or other invalid property characters could be part of the name
@@ -155,12 +165,22 @@ export function handleAttribute(
                 parent.type === 'Element' &&
                 numberOnlyAttributes.has(attr.name.toLowerCase()) &&
                 !isNaN(attrVal.data);
-            const quote = ['"', "'"].includes(str.original[attrVal.start - 1])
+            const includesTemplateLiteralQuote = attrVal.data.includes('`');
+            const quote = !includesTemplateLiteralQuote
+                ? '`'
+                : ['"', "'"].includes(str.original[attrVal.start - 1])
                 ? str.original[attrVal.start - 1]
                 : '"';
 
             if (!needsNumberConversion) {
                 attributeValue.push(quote);
+            }
+            if (includesTemplateLiteralQuote && attrVal.data.split('\n').length > 1) {
+                // Multiline attribute value text which can't be wrapped in a template literal
+                // -> ensure it's still a valid transformation by transforming the actual line break
+                str.overwrite(attrVal.start, attrVal.end, attrVal.data.split('\n').join('\\n'), {
+                    contentOnly: true
+                });
             }
             attributeValue.push([attrVal.start, attrVal.end]);
             if (!needsNumberConversion) {
@@ -169,7 +189,7 @@ export function handleAttribute(
 
             addAttribute(attributeName, attributeValue);
         } else if (attrVal.type == 'MustacheTag') {
-            attributeValue.push([attrVal.expression.start, attrVal.expression.end]);
+            attributeValue.push(rangeWithTrailingPropertyAccess(str.original, attrVal.expression));
             addAttribute(attributeName, attributeValue);
         }
         return;

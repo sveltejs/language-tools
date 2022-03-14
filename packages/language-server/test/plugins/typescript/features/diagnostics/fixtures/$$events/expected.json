@@ -6,7 +6,7 @@
         },
         "severity": 1,
         "source": "ts",
-        "message": "Argument of type 'true' is not assignable to parameter of type 'string | undefined'.",
+        "message": "Argument of type 'boolean' is not assignable to parameter of type 'string'.",
         "code": 2345,
         "tags": []
     },

@@ -152,7 +152,7 @@ export function processInstanceScriptContent(
                 str.overwrite(
                     parent.getStart() + astOffset,
                     parent.end + astOffset,
-                    `${storename}.set( $${storename} ${simpleOperator} 1)`
+                    `(${storename}.set( $${storename} ${simpleOperator} 1), $${storename})`
                 );
                 return;
             } else {
@@ -274,12 +274,7 @@ export function processInstanceScriptContent(
             exportedNames.handleExportFunctionOrClass(node);
         }
 
-        if (ts.isBlock(node)) {
-            pushScope();
-            onLeaveCallbacks.push(() => popScope());
-        }
-
-        if (ts.isArrowFunction(node)) {
+        if (ts.isBlock(node) || ts.isArrowFunction(node) || ts.isFunctionExpression(node)) {
             pushScope();
             onLeaveCallbacks.push(() => popScope());
         }

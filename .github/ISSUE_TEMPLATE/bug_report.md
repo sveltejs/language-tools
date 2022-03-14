@@ -26,7 +26,7 @@ For example a code snippet that is treated in a way you don't expect.
 A clear and concise description of what you expected to happen.
 
 **Screenshots**
-If applicable, add screenshots to help explain your problem.
+If applicable, add screenshots to help explain your problem. We prefer copy-pasteable code snippets over screenshots of code snippets.
 
 **System (please complete the following information):**
  - OS: [e.g. Windows]

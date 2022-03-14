@@ -1,3 +1,3 @@
-   { await (somePromise); 
+   { await (somePromise);
      { svelteHTML.createElement("h1", {});  }
 }

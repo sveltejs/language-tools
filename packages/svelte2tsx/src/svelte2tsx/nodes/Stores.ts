@@ -49,7 +49,7 @@ export function handleStore(node: Node, parent: Node, str: MagicString): void {
             str.overwrite(
                 parent.start,
                 parent.end,
-                `${storename}.set( $${storename} ${simpleOperator} 1)`
+                `(${storename}.set( $${storename} ${simpleOperator} 1), $${storename})`
             );
         } else {
             console.warn(

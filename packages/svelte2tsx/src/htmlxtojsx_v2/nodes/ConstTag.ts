@@ -1,6 +1,6 @@
 import MagicString from 'magic-string';
 import { ConstTag } from '../../interfaces';
-import { transform } from '../utils/node-utils';
+import { withTrailingPropertyAccess } from '../utils/node-utils';
 
 /**
  * `{@const x = y}` --> `const x = y;`
@@ -12,9 +12,10 @@ import { transform } from '../utils/node-utils';
  * than what the Svelte compiler does.
  */
 export function handleConstTag(str: MagicString, constTag: ConstTag): void {
-    transform(str, constTag.start, constTag.end, constTag.end, [
-        'const ',
-        [constTag.expression.start, constTag.expression.end],
+    str.overwrite(constTag.start, constTag.expression.start, 'const ');
+    str.overwrite(
+        withTrailingPropertyAccess(str.original, constTag.expression.end),
+        constTag.end,
         ';'
-    ]);
+    );
 }

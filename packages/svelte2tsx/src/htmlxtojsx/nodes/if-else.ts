@@ -1,6 +1,7 @@
 import MagicString from 'magic-string';
 import { IfScope } from './if-scope';
 import { BaseNode } from '../../interfaces';
+import { withTrailingPropertyAccess } from '../utils/node-utils';
 
 /**
  * {# if ...}...{/if}   --->   {() => {if(...){<>...</>}}}
@@ -18,7 +19,11 @@ export function handleIf(
         const elseIfStart = htmlx.lastIndexOf('{', ifBlock.expression.start);
         const elseIfConditionEnd = htmlx.indexOf('}', ifBlock.expression.end) + 1;
         str.overwrite(elseIfStart, ifBlock.expression.start, '</> : (', { contentOnly: true });
-        str.overwrite(ifBlock.expression.end, elseIfConditionEnd, ') ? <>');
+        str.overwrite(
+            withTrailingPropertyAccess(str.original, ifBlock.expression.end),
+            elseIfConditionEnd,
+            ') ? <>'
+        );
 
         ifScope.addElseIf(ifBlock.expression, str);
 
@@ -31,7 +36,12 @@ export function handleIf(
     // {#if expr}  ->  {(expr) ? <>
     str.overwrite(ifBlock.start, ifBlock.expression.start, '{(', { contentOnly: true });
     const end = htmlx.indexOf('}', ifBlock.expression.end);
-    str.overwrite(ifBlock.expression.end, end + 1, ') ? <>', { contentOnly: true });
+    str.overwrite(
+        withTrailingPropertyAccess(str.original, ifBlock.expression.end),
+        end + 1,
+        ') ? <>',
+        { contentOnly: true }
+    );
 
     ifScope.addNestedIf(ifBlock.expression, str);
 

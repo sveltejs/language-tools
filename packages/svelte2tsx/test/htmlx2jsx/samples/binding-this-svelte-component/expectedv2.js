@@ -1,1 +1,1 @@
- { const $$_sveltecomponent0_ = new A({ target: __sveltets_2_any(), props: {   }});const $$_sveltecomponent0 = __sveltets_2_typeAsComponent($$_sveltecomponent0_);element = $$_sveltecomponent0;}
+ { const $$_svelte_component0C = __sveltets_2_ensureComponent(A); const $$_svelte_component0 = new $$_svelte_component0C({ target: __sveltets_2_any(), props: {   }});element = $$_svelte_component0;}

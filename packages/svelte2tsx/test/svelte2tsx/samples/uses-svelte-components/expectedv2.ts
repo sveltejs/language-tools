@@ -3,11 +3,11 @@
 async () => {if(true){
  { __sveltets_2_createComponentAny({  "prop1":1,});}
 }
- { const $$_sveltecomponent0_ = new testComponent({ target: __sveltets_2_any(), props: {   "propa":5,}});$$_sveltecomponent0_;
+ { const $$_svelte_component0C = __sveltets_2_ensureComponent(testComponent); new $$_svelte_component0C({ target: __sveltets_2_any(), props: {   "propa":5,}});
      { svelteHTML.createElement("h1", {});  }
  }
- { svelteHTML.createElement("sveltewindow", {   onclick:e => {},});}
- { svelteHTML.createElement("sveltebody", {   onclick:e => {},});}
+ { svelteHTML.createElement("sveltewindow", {   "onclick":e => {},});}
+ { svelteHTML.createElement("sveltebody", {   "onclick":e => {},});}
  { svelteHTML.createElement("sveltehead", {});
      { svelteHTML.createElement("h1", {});  }
  }

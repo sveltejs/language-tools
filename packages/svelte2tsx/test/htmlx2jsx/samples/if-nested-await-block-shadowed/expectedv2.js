@@ -1,38 +1,38 @@
 if(hello){
-         { try { const $$_value = await (aPromise); { const hello = $$_value; 
+        { try { const $$_value = await (aPromise);{ const hello = $$_value; 
         hello;
     }} catch($$_e) { 
         hello;
     }}
-         { try { const $$_value = await (aPromise); { const foo = $$_value; 
-         const hello = foo;
+        { try { const $$_value = await (aPromise);{ const foo = $$_value; 
+        const hello = foo;
         hello;
     }} catch($$_e) { 
         hello;
     }}
-          { try { const $$_value = await (aPromise); { const hi = $$_value; 
+        { try { const $$_value = await (aPromise);{ const hi = $$_value; 
         hello;
     }} catch($$_e) { const hello = __sveltets_2_any();
         hello;
     }}
-        { const $$_value = await (hello); { const hello = $$_value; 
+       { const $$_value = await (hello);{ const hello = $$_value; 
         hello;
         if(hello){
+              { 
+                hello;
+            await (aPromise);}
                { 
                 hello;
-            await (aPromise); }
-                 { 
-                hello;
-            try { await (aPromise); } catch($$_e) { const hello = __sveltets_2_any();
+            try { await (aPromise);} catch($$_e) { const hello = __sveltets_2_any();
                 hello;
             }}
-                { const $$_value = await (x); { const hello = $$_value; 
+               { const $$_value = await (x);{ const hello = $$_value; 
                 if(hello){
                     hello;
                 }
             }}
-                { const $$_value = await (x); { const foo = $$_value; 
-                 const hello = foo;
+               { const $$_value = await (x);{ const foo = $$_value; 
+                const hello = foo;
                 if(hello){
                     hello;
                 }
@@ -40,7 +40,7 @@ if(hello){
         }
     }}
     if(hi && bye){
-              { try { const $$_value = await (x); { const bye = $$_value; 
+            { try { const $$_value = await (x);{ const bye = $$_value; 
             bye;
         }} catch($$_e) { const hello = __sveltets_2_any();
             if(hello){
@@ -48,22 +48,22 @@ if(hello){
             }
         }}
     } else if (cool){
-               { 
+            { 
             
-        try { const $$_value = await (cool); { const cool = $$_value; 
+        try { const $$_value = await (cool);{ const cool = $$_value; 
             if(cool){
                 cool;
             }
         }} catch($$_e) { const cool = __sveltets_2_any();
             
         }}
-             { 
+           { 
             
-        const $$_value = await (aPromise); { const cool = $$_value; 
+        const $$_value = await (aPromise);{ const cool = $$_value; 
             cool;
         }}
     }else{
-            { const $$_value = await (x); { const hello = $$_value; 
+           { const $$_value = await (x);{ const hello = $$_value; 
             if(hello){
                 hello;
             }
@@ -71,13 +71,13 @@ if(hello){
     }
 }
 
-       { 
+    { 
     if(cool){
         cool;
     } else if (hello){
         hello;
     }
-try { const $$_value = await (cool); { const cool = $$_value; 
+try { const $$_value = await (cool);{ const cool = $$_value; 
     if(cool){
         cool;
     } else if (hello){

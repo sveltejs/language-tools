@@ -77,21 +77,12 @@ export class SemanticTokensProviderImpl implements SemanticTokensProvider {
                 continue;
             }
 
-            const [line, character, length, start] = originalPosition;
+            const [line, character, length] = originalPosition;
 
             // remove identifiers whose start and end mapped to the same location,
             // like the svelte2tsx inserted render function,
             // or reversed like Component.$on
             if (length <= 0) {
-                continue;
-            }
-
-            if (
-                (classificationType === ts.ClassificationType.className ||
-                    classificationType === ts.ClassificationType.text) &&
-                textDocument.getText().substring(start - 3, start) === 'on:'
-            ) {
-                // Don't give semantic highlighting for the click in on:click
                 continue;
             }
 

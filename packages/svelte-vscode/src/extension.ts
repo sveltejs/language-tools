@@ -37,6 +37,45 @@ namespace TagCloseRequest {
 }
 
 export function activate(context: ExtensionContext) {
+    // The extension is activated on TS/JS/Svelte files because else it might be too late to configure the TS plugin:
+    // If we only activate on Svelte file and the user opens a TS file first, the configuration command is issued too late.
+    // We wait until there's a Svelte file open and only then start the actual language client.
+    const tsPlugin = new TsPlugin(context);
+    let lsApi: { getLS(): LanguageClient } | undefined;
+
+    if (workspace.textDocuments.some((doc) => doc.languageId === 'svelte')) {
+        lsApi = activateSvelteLanguageServer(context);
+        tsPlugin.askToEnable();
+    } else {
+        const onTextDocumentListener = workspace.onDidOpenTextDocument((doc) => {
+            if (doc.languageId === 'svelte') {
+                lsApi = activateSvelteLanguageServer(context);
+                tsPlugin.askToEnable();
+                onTextDocumentListener.dispose();
+            }
+        });
+
+        context.subscriptions.push(onTextDocumentListener);
+    }
+
+    // This API is considered private and only exposed for experimenting.
+    // Interface may change at any time. Use at your own risk!
+    return {
+        /**
+         * As a function, because restarting the server
+         * will result in another instance.
+         */
+        getLanguageServer() {
+            if (!lsApi) {
+                lsApi = activateSvelteLanguageServer(context);
+            }
+
+            return lsApi.getLS();
+        }
+    };
+}
+
+export function activateSvelteLanguageServer(context: ExtensionContext) {
     warnIfOldExtensionInstalled();
 
     const runtimeConfig = workspace.getConfiguration('svelte.language-server');
@@ -190,8 +229,6 @@ export function activate(context: ExtensionContext) {
 
     addExtracComponentCommand(getLS, context);
 
-    TsPlugin.create(context);
-
     languages.setLanguageConfiguration('svelte', {
         indentationRules: {
             // Matches a valid opening tag that is:
@@ -261,14 +298,8 @@ export function activate(context: ExtensionContext) {
         ]
     });
 
-    // This API is considered private and only exposed for experimenting.
-    // Interface may change at any time. Use at your own risk!
     return {
-        /**
-         * As a function, because restarting the server
-         * will result in another instance.
-         */
-        getLanguageServer: getLS
+        getLS
     };
 }
 

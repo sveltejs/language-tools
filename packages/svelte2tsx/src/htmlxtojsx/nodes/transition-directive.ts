@@ -1,5 +1,5 @@
 import MagicString from 'magic-string';
-import { isQuote } from '../utils/node-utils';
+import { withTrailingPropertyAccess, isQuote } from '../utils/node-utils';
 import { BaseDirective, BaseNode } from '../../interfaces';
 
 /**
@@ -34,7 +34,7 @@ export function handleTransitionDirective(
         attr.expression.start,
         `(${nodeType},(`
     );
-    str.appendLeft(attr.expression.end, ')))');
+    str.appendLeft(withTrailingPropertyAccess(str.original, attr.expression.end), ')))');
     if (isQuote(htmlx[attr.end - 1])) {
         str.remove(attr.end - 1, attr.end);
     }

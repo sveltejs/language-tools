@@ -64,21 +64,14 @@ import { SemanticTokensProviderImpl } from './features/SemanticTokensProvider';
 import { SignatureHelpProviderImpl } from './features/SignatureHelpProvider';
 import { TypeDefinitionProviderImpl } from './features/TypeDefinitionProvider';
 import { UpdateImportsProviderImpl } from './features/UpdateImportsProvider';
-import {
-    findNodeAtSpan,
-    isComponentProp,
-    isHTMLAttributeName,
-    isHTMLAttributeShorthand,
-    isNoTextSpanInGeneratedCode,
-    SnapshotFragmentMap
-} from './features/utils';
+import { isNoTextSpanInGeneratedCode, SnapshotFragmentMap } from './features/utils';
 import { LSAndTSDocResolver } from './LSAndTSDocResolver';
 import { ignoredBuildDirectories } from './SnapshotManager';
+import { isAttributeName, isAttributeShorthand, isEventHandler } from './svelte-ast-utils';
 import {
     convertToLocationRange,
     getScriptKindFromFileName,
     isInScript,
-    rangeToTextSpan,
     symbolKindFromString
 } from './utils';
 
@@ -184,15 +177,12 @@ export class TypeScriptPlugin
         collectSymbols(navTree, undefined, (symbol) => symbols.push(symbol));
 
         const topContainerName = symbols[0].name;
-        const sourceFile = lang.getProgram()!.getSourceFile(tsDoc.filePath)!;
         const result: SymbolInformation[] = [];
 
         for (let symbol of symbols.slice(1)) {
             if (symbol.containerName === topContainerName) {
                 symbol.containerName = 'script';
             }
-
-            const generatedRange = symbol.location.range;
 
             symbol = mapSymbolInformationToOriginal(fragment, symbol);
 
@@ -217,17 +207,10 @@ export class TypeScriptPlugin
                     // This is the "props" of a generated component constructor
                     continue;
                 }
-                const node = findNodeAtSpan(
-                    sourceFile,
-                    rangeToTextSpan(generatedRange, fragment),
-                    (node): node is ts.ShorthandPropertyAssignment | ts.PropertyAssignment =>
-                        ts.isPropertyAssignment(node) || ts.isShorthandPropertyAssignment(node)
-                );
+                const node = tsDoc.svelteNodeAt(symbol.location.range.start);
                 if (
-                    node &&
-                    (isComponentProp(node.name) ||
-                        isHTMLAttributeName(node.name) ||
-                        isHTMLAttributeShorthand(node.name))
+                    (node && (isAttributeName(node) || isAttributeShorthand(node))) ||
+                    isEventHandler(node)
                 ) {
                     // This is a html or component property, they are not treated as a new symbol
                     // in JSX and so we do the same for the new transformation.

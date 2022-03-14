@@ -1,1 +1,1 @@
- { svelteHTML.createElement("h1", { onclick:undefined,});  }
+ { svelteHTML.createElement("h1", { "onclick":undefined,});  }

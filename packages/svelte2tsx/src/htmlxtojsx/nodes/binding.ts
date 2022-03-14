@@ -1,5 +1,10 @@
 import MagicString from 'magic-string';
-import { isShortHandAttribute, getInstanceTypeSimple, isQuote } from '../utils/node-utils';
+import {
+    isShortHandAttribute,
+    getInstanceTypeSimple,
+    isQuote,
+    withTrailingPropertyAccess
+} from '../utils/node-utils';
 import { BaseDirective, BaseNode } from '../../interfaces';
 import { surroundWithIgnoreComments } from '../../utils/ignore';
 
@@ -37,7 +42,11 @@ export function handleBinding(
         if (isShortHandAttribute(attr)) {
             str.prependRight(attr.end, endBrackets);
         } else {
-            str.overwrite(attr.expression.end, attr.end, endBrackets);
+            str.overwrite(
+                withTrailingPropertyAccess(str.original, attr.expression.end),
+                attr.end,
+                endBrackets
+            );
         }
         return;
     }

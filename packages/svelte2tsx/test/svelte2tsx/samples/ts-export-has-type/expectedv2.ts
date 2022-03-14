@@ -2,8 +2,8 @@
 ;function render() {
 
     interface A {}
-     let a: A;
-     let b: A = {};b = __sveltets_1_any(b);;
+     let a: A/*Ωignore_startΩ*/;a = __sveltets_1_any(a);/*Ωignore_endΩ*/;
+     let b: A = {}/*Ωignore_startΩ*/;b = __sveltets_1_any(b);/*Ωignore_endΩ*/;
 ;
 async () => {};
 return { props: {a: a , b: b} as {a: A, b?: A}, slots: {}, getters: {}, events: {} }}

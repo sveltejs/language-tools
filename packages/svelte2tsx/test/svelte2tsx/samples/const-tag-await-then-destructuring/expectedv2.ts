@@ -11,17 +11,17 @@
 ;
 async () => {
 
-    { const $$_value = await (promise1); { const { width, height } = $$_value; 
-	 const {area, volume} = calculate(width, height, constant);
-	 const perimeter = (width + height) * constant;
-	 const [_width, _height, sum] = [width * constant, height, width * constant + height];
+   { const $$_value = await (promise1);{ const { width, height } = $$_value; 
+	const {area, volume} = calculate(width, height, constant);
+	const perimeter = (width + height) * constant;
+	const [_width, _height, sum] = [width * constant, height, width * constant + height];
 	 { svelteHTML.createElement("div", {});area; volume; perimeter; _width; _height; sum; }
 }}
 
-    { try { await (promise2); } catch($$_e) { const { width, height } = __sveltets_2_any();
-	 const {area, volume} = calculate(width, height, constant);
-	 const perimeter = (width + height) * constant;
-	 const [_width, _height, sum] = [width * constant, height, width * constant + height];
+   { try { await (promise2);} catch($$_e) { const { width, height } = __sveltets_2_any();
+	const {area, volume} = calculate(width, height, constant);
+	const perimeter = (width + height) * constant;
+	const [_width, _height, sum] = [width * constant, height, width * constant + height];
 	 { svelteHTML.createElement("div", {});area; volume; perimeter; _width; _height; sum; }
 }}};
 return { props: {promise1: promise1 , promise2: promise2 , constant: constant}, slots: {}, getters: {}, events: {} }}
