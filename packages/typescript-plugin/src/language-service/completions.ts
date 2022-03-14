@@ -47,7 +47,15 @@ export function decorateCompletions(ls: ts.LanguageService, logger: Logger): voi
             preferences,
             data
         );
-        if (details || !isSvelteFilePath(source || '')) {
+        if (details) {
+            if (isSvelteFilePath(source || '')) {
+                logger.debug('TS found Svelte Component import completion details');
+                return replaceDeep(details, componentPostfix, '');
+            } else {
+                return details;
+            }
+        }
+        if (!isSvelteFilePath(source || '')) {
             return details;
         }
 
