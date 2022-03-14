@@ -5,6 +5,7 @@ import { svelte2tsx } from './svelte2tsx';
 export interface EmitDtsConfig {
     declarationDir: string;
     svelteShimsPath: string;
+    additionalPaths?: string[];
     libRoot?: string;
 }
 
@@ -72,6 +73,7 @@ function loadTsconfig(config: EmitDtsConfig, svelteMap: SvelteMap) {
     // Add ambient functions so TS knows how to resolve its invocations in the
     // code output of svelte2tsx.
     filenames.push(config.svelteShimsPath);
+    filenames.push(...(config.additionalPaths || []));
 
     return {
         options: {
