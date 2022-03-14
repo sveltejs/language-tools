@@ -9,10 +9,10 @@
      * MORE DOCS!
      */
      let b = 1;
-     let c;
+     let c/*Ωignore_startΩ*/;c = __sveltets_1_any(c);/*Ωignore_endΩ*/;
 
     // not this one
-     let d;
+     let d/*Ωignore_startΩ*/;d = __sveltets_1_any(d);/*Ωignore_endΩ*/;
 ;
 async () => {};
 return { props: {a: a , b: b , c: c , d: d} as {

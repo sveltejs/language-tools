@@ -1,8 +1,8 @@
 ///<reference types="svelte" />
 <></>;function render() {
 
-     let a;
-     let b;
+     let a/*Ωignore_startΩ*/;a = __sveltets_1_any(a);/*Ωignore_endΩ*/;
+     let b/*Ωignore_startΩ*/;b = __sveltets_1_any(b);/*Ωignore_endΩ*/;
      let c = 123;
 ;
 () => (<></>);
