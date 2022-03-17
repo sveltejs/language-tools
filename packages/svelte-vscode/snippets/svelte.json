@@ -1,6 +1,5 @@
 {
 	"if": {
-		"prefix": "#if",
 		"body": [
 			"{#if ${1:condition}}",
 			"\t$TM_SELECTED_TEXT$0",
@@ -9,7 +8,6 @@
 		"description": "if block"
 	},
 	"await": {
-		"prefix": "#await",
 		"body": [
 			"{#await ${1:promise}}",
 			"\t$TM_SELECTED_TEXT$0",
@@ -17,8 +15,7 @@
 		],
 		"description": "await block"
 	},
-	"await then": {
-		"prefix": "#await then",
+	"await then shorthand": {
 		"body": [
 			"{#await ${1:promise} then $2}",
 			"\t$TM_SELECTED_TEXT$0",
@@ -27,7 +24,6 @@
 		"description": "await block without pending state"
 	},
 	"each": {
-		"prefix": "#each",
 		"body": [
 			"{#each ${1:array} as ${2:item}}",
 			"\t$TM_SELECTED_TEXT$0",
@@ -36,7 +32,6 @@
 		"description": "each block"
 	},
 	"key": {
-		"prefix": "#key",
 		"body": [
 			"{#key ${1:key}}",
 			"\t$TM_SELECTED_TEXT$0",
