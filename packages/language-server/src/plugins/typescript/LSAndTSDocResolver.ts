@@ -194,7 +194,7 @@ export class LSAndTSDocResolver {
         return getService(filePath, this.workspaceUris, this.lsDocumentContext);
     }
 
-    private getUserPreferences(scriptKind: ts.ScriptKind): ts.UserPreferences {
+    private getUserPreferences(scriptKind: ts.ScriptKind): ts.InlayHintsOptions {
         const configLang =
             scriptKind === ts.ScriptKind.TS || scriptKind === ts.ScriptKind.TSX
                 ? 'typescript'

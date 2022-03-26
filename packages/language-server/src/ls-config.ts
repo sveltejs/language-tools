@@ -199,6 +199,7 @@ export interface TSUserConfig {
     preferences?: TsUserPreferencesConfig;
     suggest?: TSSuggestConfig;
     format?: TsFormatConfig;
+    inlayHints?: TsInalyHintsConfig;
 }
 
 /**
@@ -229,6 +230,19 @@ export type TsFormatConfig = Omit<
     ts.FormatCodeSettings,
     'indentMultiLineObjectLiteralBeginningOnBlankLine' | keyof ts.EditorSettings
 >;
+export interface TsInalyHintsConfig {
+    enumMemberValues: { enabled: boolean } | undefined;
+    functionLikeReturnTypes: { enabled: boolean } | undefined;
+    parameterNames:
+        | {
+              enabled: InlayHintsOptions['includeInlayParameterNameHints'];
+              suppressWhenArgumentMatchesName: boolean;
+          }
+        | undefined;
+    parameterTypes: { enabled: boolean } | undefined;
+    propertyDeclarationTypes: { enabled: boolean } | undefined;
+    variableTypes: { enabled: boolean } | undefined;
+}
 
 export type TsUserConfigLang = 'typescript' | 'javascript';
 
@@ -389,6 +403,8 @@ export class LSConfigManager {
     }
 
     private _updateTsUserPreferences(lang: TsUserConfigLang, config: TSUserConfig) {
+        const { inlayHints } = config;
+
         this.tsUserPreferences[lang] = {
             ...this.tsUserPreferences[lang],
             importModuleSpecifierPreference: config.preferences?.importModuleSpecifier,
@@ -400,7 +416,14 @@ export class LSConfigManager {
                 config.suggest?.includeCompletionsForImportStatements ?? true,
             includeAutomaticOptionalChainCompletions:
                 config.suggest?.includeAutomaticOptionalChainCompletions ?? true,
-            includeCompletionsWithInsertText: true
+            includeCompletionsWithInsertText: true,
+            includeInlayEnumMemberValueHints: inlayHints?.enumMemberValues?.enabled,
+            includeInlayFunctionLikeReturnTypeHints: inlayHints?.functionLikeReturnTypes?.enabled,
+            includeInlayParameterNameHints: inlayHints?.parameterNames?.enabled,
+            includeInlayParameterNameHintsWhenArgumentMatchesName:
+                inlayHints?.parameterNames?.suppressWhenArgumentMatchesName,
+            includeInlayFunctionParameterTypeHints: inlayHints?.parameterTypes?.enabled,
+            includeInlayVariableTypeHints: inlayHints?.variableTypes?.enabled
         };
     }
 

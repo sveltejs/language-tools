@@ -9,6 +9,7 @@ import {
     Diagnostic,
     FileChangeType,
     Hover,
+    InlayHint,
     Location,
     LocationLink,
     Position,
@@ -40,6 +41,7 @@ import {
     FindComponentReferencesProvider,
     HoverProvider,
     ImplementationProvider,
+    InlayHintProvider,
     OnWatchFileChanges,
     OnWatchFileChangesPara,
     RenameProvider,
@@ -62,6 +64,7 @@ import { FindReferencesProviderImpl } from './features/FindReferencesProvider';
 import { getDirectiveCommentCompletions } from './features/getDirectiveCommentCompletions';
 import { HoverProviderImpl } from './features/HoverProvider';
 import { ImplementationProviderImpl } from './features/ImplementationProvider';
+import { InlayHintProviderImpl } from './features/InlayHintProvider';
 import { RenameProviderImpl } from './features/RenameProvider';
 import { SelectionRangeProviderImpl } from './features/SelectionRangeProvider';
 import { SemanticTokensProviderImpl } from './features/SemanticTokensProvider';
@@ -100,6 +103,7 @@ export class TypeScriptPlugin
         SemanticTokensProvider,
         ImplementationProvider,
         TypeDefinitionProvider,
+        InlayHintProvider,
         OnWatchFileChanges,
         CompletionsProvider<CompletionEntryWithIdentifier>,
         UpdateTsOrJsFile
@@ -122,6 +126,7 @@ export class TypeScriptPlugin
     private readonly semanticTokensProvider: SemanticTokensProviderImpl;
     private readonly implementationProvider: ImplementationProviderImpl;
     private readonly typeDefinitionProvider: TypeDefinitionProviderImpl;
+    private readonly inlayHintProvider: InlayHintProviderImpl;
 
     constructor(configManager: LSConfigManager, lsAndTsDocResolver: LSAndTSDocResolver) {
         this.configManager = configManager;
@@ -154,6 +159,7 @@ export class TypeScriptPlugin
         this.semanticTokensProvider = new SemanticTokensProviderImpl(this.lsAndTsDocResolver);
         this.implementationProvider = new ImplementationProviderImpl(this.lsAndTsDocResolver);
         this.typeDefinitionProvider = new TypeDefinitionProviderImpl(this.lsAndTsDocResolver);
+        this.inlayHintProvider = new InlayHintProviderImpl(this.lsAndTsDocResolver);
     }
 
     async getDiagnostics(
@@ -547,6 +553,10 @@ export class TypeScriptPlugin
 
     async getTypeDefinition(document: Document, position: Position): Promise<Location[] | null> {
         return this.typeDefinitionProvider.getTypeDefinition(document, position);
+    }
+
+    async getInlayHints(document: Document, range: Range): Promise<InlayHint[] | null> {
+        return this.inlayHintProvider.getInlayHints(document, range);
     }
 
     private async getLSAndTSDoc(document: Document) {
