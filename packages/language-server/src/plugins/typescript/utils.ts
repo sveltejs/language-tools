@@ -13,7 +13,7 @@ import { pathToUrl } from '../../utils';
 import { SnapshotFragment, SvelteSnapshotFragment } from './DocumentSnapshot';
 
 export function getScriptKindFromFileName(fileName: string): ts.ScriptKind {
-    const ext = fileName.substr(fileName.lastIndexOf('.'));
+    const ext = fileName.slice(fileName.lastIndexOf('.'));
     switch (ext.toLowerCase()) {
         case ts.Extension.Js:
             return ts.ScriptKind.JS;

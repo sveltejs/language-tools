@@ -53,7 +53,7 @@ function getTagBodyText(tag: ts.JSDocTagInfo): string | undefined {
             return (
                 captionTagMatches[1] +
                 '\n\n' +
-                makeCodeblock(text.substr(captionTagMatches[0].length))
+                makeCodeblock(text.slice(captionTagMatches[0].length))
             );
         } else {
             return makeCodeblock(text);

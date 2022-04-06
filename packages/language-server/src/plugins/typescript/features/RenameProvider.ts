@@ -283,9 +283,9 @@ export class RenameProviderImpl implements RenameProvider {
     ) {
         const regex = new RegExp(
             // no 'export let', only 'let', because that's what it's translated to in svelte2tsx
-            `\\s+let\\s+(${fragment.text.substr(
+            `\\s+let\\s+(${fragment.text.slice(
                 updatePropLocation.textSpan.start,
-                updatePropLocation.textSpan.length
+                updatePropLocation.textSpan.start + updatePropLocation.textSpan.length
             )})($|\\s|;|:)`
         );
         const match = fragment.text.match(regex);
@@ -480,7 +480,7 @@ export class RenameProviderImpl implements RenameProvider {
             const originalStart = offsetAt(location.range.start, originalText);
 
             const isShortHandBinding =
-                originalText.substr(originalStart - bind.length, bind.length) === bind;
+                originalText.slice(originalStart - bind.length, originalStart) === bind;
 
             const directiveName = (isShortHandBinding ? bind : '') + identifierName;
             const prefixText = directiveName + '={';

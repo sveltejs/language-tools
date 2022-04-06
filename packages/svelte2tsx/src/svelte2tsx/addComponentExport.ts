@@ -196,7 +196,7 @@ function classNameFromFilename(filename: string, appendSuffix: boolean): string 
             // Although _ and $ are valid first characters for classes, they are invalid first characters
             // for tag names. For a better import autocompletion experience, we therefore throw them out.
             .findIndex((char) => /[A-Za-z]/.test(char));
-        const withoutLeadingInvalidCharacters = withoutInvalidCharacters.substr(firstValidCharIdx);
+        const withoutLeadingInvalidCharacters = withoutInvalidCharacters.slice(firstValidCharIdx);
         const inPascalCase = pascalCase(withoutLeadingInvalidCharacters);
         const finalName = firstValidCharIdx === -1 ? `A${inPascalCase}` : inPascalCase;
         return `${finalName}${appendSuffix ? COMPONENT_SUFFIX : ''}`;

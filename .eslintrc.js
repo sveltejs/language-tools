@@ -20,6 +20,10 @@ module.exports = {
         // project-specific settings
         curly: [2, 'all'],
         'max-len': 'off', // handled by prettier
+        'no-restricted-properties': [
+            'error',
+            { property: 'substr', message: 'Use .slice instead of .substr.' },
+        ],
         'no-trailing-spaces': 'error',
         'one-var': ['error', 'never'],
         '@typescript-eslint/no-unused-vars': ['error', { args: 'none' }],
