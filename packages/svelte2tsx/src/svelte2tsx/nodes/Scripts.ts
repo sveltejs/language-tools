@@ -13,13 +13,19 @@ export class Scripts {
 
     constructor(private htmlxAst: Node) {}
 
-    handleScriptTag = (node: Node, parent: Node) => {
+    checkIfElementIsScriptTag(node: Node, parent: Node) {
         if (parent !== this.htmlxAst && node.name === 'script') {
             this.topLevelScripts = this.topLevelScripts.filter(
                 (tag) => tag.start !== node.start || tag.end !== node.end
             );
         }
-    };
+    }
+
+    checkIfContainsScriptTag(node: Node) {
+        this.topLevelScripts = this.topLevelScripts.filter(
+            (tag) => !(node.start <= tag.start && node.end >= tag.end)
+        );
+    }
 
     getTopLevelScriptTags(): { scriptTag: Node; moduleScriptTag: Node } {
         let scriptTag: Node = null;

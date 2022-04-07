@@ -200,7 +200,10 @@ function processSvelteTemplate(
                 handleStyleTag(node);
                 break;
             case 'Element':
-                scripts.handleScriptTag(node, parent);
+                scripts.checkIfElementIsScriptTag(node, parent);
+                break;
+            case 'RawMustacheTag':
+                scripts.checkIfContainsScriptTag(node);
                 break;
             case 'BlockStatement':
                 scopeStack.push();
