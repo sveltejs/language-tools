@@ -10,6 +10,8 @@
 <div style:right="right" />
 <div style:right={`right${right}`} />
 <div style:right=right{right} />
+<div style:undefined={undefined} />
+<div style:null={null} />
 
 <!-- error -->
 <div style:wrong />
