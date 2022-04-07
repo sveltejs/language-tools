@@ -60,7 +60,11 @@ export function handleAttribute(
     //if we are on an "element" we are case insensitive, lowercase to match our JSX
     if (parent.type == 'Element') {
         const sapperLinkActions = ['sapper:prefetch', 'sapper:noscroll'];
-        const sveltekitLinkActions = ['sveltekit:prefetch', 'sveltekit:noscroll'];
+        const sveltekitLinkActions = [
+            'sveltekit:prefetch',
+            'sveltekit:noscroll',
+            'sveltekit:reload'
+        ];
         // skip Attribute shorthand, that is handled below
         if (
             (attr.value !== true &&

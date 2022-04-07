@@ -1,2 +1,3 @@
- { svelteHTML.createElement("a", {sveltekitNoscroll:true,}); }
- { svelteHTML.createElement("a", {sveltekitPrefetch:true,}); }
+ { svelteHTML.createElement("a", {"sveltekit:noscroll":true,}); }
+ { svelteHTML.createElement("a", {"sveltekit:prefetch":true,}); }
+ { svelteHTML.createElement("a", {"sveltekit:reload":true,}); }

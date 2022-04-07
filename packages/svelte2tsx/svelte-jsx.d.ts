@@ -98,11 +98,16 @@ declare namespace svelteHTML {
   // eslint-disable-next-line @typescript-eslint/no-empty-interface
   interface SvelteWindowProps extends svelte.JSX.SvelteWindowProps {}
   
-  // eslint-disable-next-line @typescript-eslint/no-empty-interface
-  interface SapperAnchorProps extends svelte.JSX.SapperAnchorProps {}
-  
-  // eslint-disable-next-line @typescript-eslint/no-empty-interface
-  interface SvelteKitAnchorProps extends svelte.JSX.SvelteKitAnchorProps {}
+  interface SapperAnchorProps {
+    "sapper:noscroll"?: true | undefined | null;
+    "sapper:prefetch"?: true | undefined | null;
+  }
+
+  interface SvelteKitAnchorProps {
+    "sveltekit:noscroll"?: true | undefined | null;
+    "sveltekit:prefetch"?: true | undefined | null;
+    "sveltekit:reload"?: true | undefined | null;
+  }
   
   // eslint-disable-next-line @typescript-eslint/no-empty-interface
   interface SvelteMediaTimeRange extends svelte.JSX.SvelteMediaTimeRange {}
@@ -1230,6 +1235,7 @@ declare namespace svelte.JSX {
         // transformed from sveltekit:noscroll so it should be camel case
         sveltekitNoscroll?: true | undefined | null;
         sveltekitPrefetch?: true | undefined | null;
+        sveltekitReload?: true | undefined | null;
     }
 
     interface SvelteMediaTimeRange {
