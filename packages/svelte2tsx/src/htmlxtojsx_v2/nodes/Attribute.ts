@@ -29,8 +29,6 @@ const numberOnlyAttributes = new Set([
     'results',
     'volume'
 ]);
-const sapperLinkActions = ['sapper:prefetch', 'sapper:noscroll'];
-const sveltekitLinkActions = ['sveltekit:prefetch', 'sveltekit:noscroll'];
 
 /**
  * Handle various kinds of attributes and make them conform to being valid in context of a object definition
@@ -109,13 +107,7 @@ export function handleAttribute(
 
     const attributeName: TransformationArray = [];
 
-    if (sapperLinkActions.includes(attr.name) || sveltekitLinkActions.includes(attr.name)) {
-        //strip ":" from out attribute name and uppercase the next letter to convert to jsx attribute
-        const parts = attr.name.split(':');
-        const name = parts[0] + parts[1][0].toUpperCase() + parts[1].substring(1);
-        str.overwrite(attr.start, attr.start + attr.name.length, name);
-        attributeName.push([attr.start, attr.start + attr.name.length]);
-    } else if (attributeValueIsOfType(attr.value, 'AttributeShorthand')) {
+    if (attributeValueIsOfType(attr.value, 'AttributeShorthand')) {
         // For the attribute shorthand, the name will be the mapped part
         addAttribute([[attr.value[0].start, attr.value[0].end]]);
         return;
