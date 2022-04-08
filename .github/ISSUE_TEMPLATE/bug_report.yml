@@ -35,13 +35,15 @@ body:
     attributes:
       label: Expected behaviour
       placeholder: "A clear and concise description of what you expected to happen."
+    validations:
+      required: true
 
   - type: textarea
     id: system-info
     attributes:
       label: System Info
       description: "Your operating system, editor, extension version etc."
-      placeholder: |
+      value: |
         - OS: [e.g. Windows]
         - IDE: [e.g. VSCode, Atom]
     validations:
