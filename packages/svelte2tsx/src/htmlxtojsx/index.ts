@@ -111,6 +111,9 @@ export function convertHtmlxToJsx(
                         );
                         break;
                     case 'Element':
+                        if (node.name === 'svelte:element') {
+                            handleSvelteTag(htmlx, str, node);
+                        }
                         templateScopeManager.componentOrSlotTemplateOrElementEnter(node);
                         handleElement(
                             htmlx,

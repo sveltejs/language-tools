@@ -298,6 +298,7 @@ declare namespace svelteHTML {
     sveltefragment: { slot?: string; };
     svelteoptions: { [name: string]: any };
     sveltehead: { [name: string]: any };
+    svelteelement: { 'this': string | undefined | null; } & HTMLProps<any> & SVGProps<any>;
 
     [name: string]: { [name: string]: any };
   }
@@ -1453,6 +1454,7 @@ declare namespace svelte.JSX {
       sveltefragment: { slot?: string; };
       svelteoptions: { [name: string]: any };
       sveltehead: { [name: string]: any };
+      svelteelement: { 'this': string | undefined | null; } & HTMLProps<any> & SVGProps<any>;
 
       [name: string]: { [name: string]: any };
     }

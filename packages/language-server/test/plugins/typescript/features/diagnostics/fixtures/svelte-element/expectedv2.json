@@ -1,0 +1,9 @@
+[
+    {
+        "range": { "start": { "line": 10, "character": 0 }, "end": { "line": 10, "character": 0 } },
+        "severity": 1,
+        "source": "js",
+        "message": "<svelte:element> must have a 'this' attribute",
+        "code": -1
+    }
+]
