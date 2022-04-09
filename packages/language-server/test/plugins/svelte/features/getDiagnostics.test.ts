@@ -471,12 +471,11 @@ describe('SveltePlugin#getDiagnostics', () => {
 
         assert.deepStrictEqual(diagnostics, [
             {
-                range: { start: { line: 1, character: 15 }, end: { line: 1, character: 27 } },
-                message:
-                    "Component has unused export property 'name'. If it is for external reference only, please consider using `export const name`",
+                range: { start: { line: 1, character: 4 }, end: { line: 1, character: 26 } },
+                message: '$: has no effect in a module script',
                 severity: 2,
                 source: 'svelte',
-                code: 'unused-export-let'
+                code: 'module-script-reactive-declaration'
             }
         ]);
     });

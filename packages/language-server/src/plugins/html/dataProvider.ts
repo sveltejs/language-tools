@@ -86,6 +86,18 @@ const svelteTags: ITagData[] = [
         ]
     },
     {
+        name: 'svelte:element',
+        description:
+            'Renders a DOM element dynamically, using the string as the this property. When the property changes, the element is destroyed and recreated.\n\nIf this is falsy, no element is rendered.',
+        attributes: [
+            {
+                name: 'this',
+                description:
+                    'DOM element to render.\n\nWhen this property changes, the element is destroyed and recreated.\nIf this is falsy, no element is rendered.'
+            }
+        ]
+    },
+    {
         name: 'svelte:window',
         description:
             'Allows you to add event listeners to the window object without worrying about removing them when the component is destroyed, or checking for the existence of window when server-side rendering.',

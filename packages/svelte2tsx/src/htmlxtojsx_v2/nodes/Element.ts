@@ -11,7 +11,7 @@ import {
 const voidTags = 'area,base,br,col,embed,hr,img,input,link,meta,param,source,track,wbr'.split(',');
 
 /**
- * Handles HTML elements as well as svelte:options, svelte:head, svelte:window, svelte:body
+ * Handles HTML elements as well as svelte:options, svelte:head, svelte:window, svelte:body, svelte:element
  *
  * Children of this element should call the methods on this class to add themselves to the correct
  * position within the transformation.
@@ -94,6 +94,7 @@ export class Element {
             case 'svelte:head':
             case 'svelte:window':
             case 'svelte:body':
+            case 'svelte:element':
             case 'svelte:fragment': {
                 // remove the colon: svelte:xxx -> sveltexxx
                 const nodeName = `svelte${this.node.name.substring(7)}`;
