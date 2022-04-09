@@ -1,3 +1,3 @@
 <script context="module" lang="ts">
-    export let name: string;
+  $: console.log('foo');
 </script>
