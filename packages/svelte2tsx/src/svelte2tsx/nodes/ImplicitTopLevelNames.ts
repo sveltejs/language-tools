@@ -114,12 +114,17 @@ export class ImplicitTopLevelNames {
             ts.isExpressionStatement(node.statement) &&
             isParenthesizedObjectOrArrayLiteralExpression(node.statement.expression)
         ) {
-            const start = node.statement.expression.getStart() + this.astOffset;
-            this.str.overwrite(start, start + 1, '', { contentOnly: true });
-            const end = node.statement.expression.getEnd() + this.astOffset - 1;
+            const parenthesizedExpression = node.statement.expression;
+
+            const parenthesisStart = parenthesizedExpression.getStart() + this.astOffset;
+            const expressionStart = parenthesizedExpression.expression.getStart() + this.astOffset;
+            this.str.overwrite(parenthesisStart, expressionStart, '', { contentOnly: true });
+
+            const parenthesisEnd = parenthesizedExpression.getEnd() + this.astOffset;
+            const expressionEnd = parenthesizedExpression.expression.getEnd() + this.astOffset;
             // We need to keep the `)` of the "wrap with invalidate" expression above.
             // We overwrite the same range so it's needed.
-            overwriteStr(this.str, end, end + 1, ')', true);
+            overwriteStr(this.str, expressionEnd, parenthesisEnd, ')', true);
         }
     }
 }
