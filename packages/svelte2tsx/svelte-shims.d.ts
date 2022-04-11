@@ -185,7 +185,7 @@ declare function __sveltets_1_mapElementTag<K extends keyof SVGElementTagNameMap
 ): SVGElementTagNameMap[K];
 declare function __sveltets_1_mapElementTag(
     tag: any
-): HTMLElement;
+): any; // needs to be any because used in context of <svelte:element>
 
 declare function __sveltets_1_bubbleEventDef<Events, K extends keyof Events>(
     events: Events, eventKey: K

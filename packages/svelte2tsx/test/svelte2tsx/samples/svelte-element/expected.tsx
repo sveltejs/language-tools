@@ -6,6 +6,8 @@
 () => (<>
 
 <svelteelement this={tag} />
+<svelteelement this="tag" />
+<svelteelement this={tag ? 'a' : 'b'} />
 <svelteelement this={tag}>{tag}</svelteelement>
 <svelteelement this={tag} onclick={() => tag} /></>);
 return { props: {}, slots: {}, getters: {}, events: {} }}
