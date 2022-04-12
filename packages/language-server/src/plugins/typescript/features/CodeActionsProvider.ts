@@ -27,6 +27,11 @@ import { changeSvelteComponentName, convertRange } from '../utils';
 import { CompletionsProviderImpl } from './CompletionProvider';
 import { findContainingNode, isNoTextSpanInGeneratedCode, SnapshotFragmentMap } from './utils';
 
+/**
+ * TODO change this to protocol constant if it's part of the protocol
+ */
+export const SORT_IMPORT_CODE_ACTION_KIND = 'source.sortImports';
+
 interface RefactorArgs {
     type: 'refactor';
     refactorName: string;
@@ -51,6 +56,27 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             return await this.organizeImports(document, cancellationToken);
         }
 
+        if (context.only?.[0] === SORT_IMPORT_CODE_ACTION_KIND) {
+            return await this.organizeImports(
+                document,
+                cancellationToken,
+                /**skipDestructiveCodeActions */ true
+            );
+        }
+
+        // for source action command (all source.xxx)
+        // vscode would show different source code action kinds to choose from
+        if (context.only?.[0] === CodeActionKind.Source) {
+            return [
+                ...(await this.organizeImports(document, cancellationToken)),
+                ...(await this.organizeImports(
+                    document,
+                    cancellationToken,
+                    /**skipDestructiveCodeActions */ true
+                ))
+            ];
+        }
+
         if (
             context.diagnostics.length &&
             (!context.only || context.only.includes(CodeActionKind.QuickFix))
@@ -67,7 +93,8 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
 
     private async organizeImports(
         document: Document,
-        cancellationToken: CancellationToken | undefined
+        cancellationToken: CancellationToken | undefined,
+        skipDestructiveCodeActions = false
     ): Promise<CodeAction[]> {
         if (!document.scriptInfo && !document.moduleScriptInfo) {
             return [];
@@ -92,7 +119,8 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         const changes = lang.organizeImports(
             {
                 fileName: tsDoc.filePath,
-                type: 'file'
+                type: 'file',
+                skipDestructiveCodeActions
             },
             {
                 semicolons: useSemicolons
@@ -125,9 +153,11 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
 
         return [
             CodeAction.create(
-                'Organize Imports',
+                skipDestructiveCodeActions ? 'Sort Imports' : 'Organize Imports',
                 { documentChanges },
-                CodeActionKind.SourceOrganizeImports
+                skipDestructiveCodeActions
+                    ? SORT_IMPORT_CODE_ACTION_KIND
+                    : CodeActionKind.SourceOrganizeImports
             )
         ];
     }
