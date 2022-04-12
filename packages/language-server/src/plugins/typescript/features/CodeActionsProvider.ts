@@ -28,7 +28,7 @@ import { CompletionsProviderImpl } from './CompletionProvider';
 import { findContainingNode, isNoTextSpanInGeneratedCode, SnapshotFragmentMap } from './utils';
 
 /**
- * TODO change this to protocol constant once it's part of the protocol
+ * TODO change this to protocol constant if it's part of the protocol
  */
 export const SORT_IMPORT_CODE_ACTION_KIND = 'source.sortImports';
 

@@ -11,7 +11,10 @@ import {
 } from 'vscode-languageserver';
 import { Document, DocumentManager } from '../../../../src/lib/documents';
 import { LSConfigManager } from '../../../../src/ls-config';
-import { CodeActionsProviderImpl } from '../../../../src/plugins/typescript/features/CodeActionsProvider';
+import {
+    CodeActionsProviderImpl,
+    SORT_IMPORT_CODE_ACTION_KIND
+} from '../../../../src/plugins/typescript/features/CodeActionsProvider';
 import { CompletionsProviderImpl } from '../../../../src/plugins/typescript/features/CompletionProvider';
 import { LSAndTSDocResolver } from '../../../../src/plugins/typescript/LSAndTSDocResolver';
 import { __resetCache } from '../../../../src/plugins/typescript/service';
@@ -422,6 +425,98 @@ function test(useNewTransformation: boolean) {
                     },
                     kind: CodeActionKind.SourceOrganizeImports,
                     title: 'Organize Imports'
+                }
+            ]);
+        });
+
+        it('sort imports', async () => {
+            const { provider, document } = setup('codeactions.svelte');
+
+            const codeActions = await provider.getCodeActions(
+                document,
+                Range.create(Position.create(1, 4), Position.create(1, 5)),
+                {
+                    diagnostics: [],
+                    only: [SORT_IMPORT_CODE_ACTION_KIND]
+                }
+            );
+            (<TextDocumentEdit>codeActions[0]?.edit?.documentChanges?.[0])?.edits.forEach(
+                (edit) => (edit.newText = harmonizeNewLines(edit.newText))
+            );
+
+            assert.deepStrictEqual(codeActions, [
+                {
+                    edit: {
+                        documentChanges: [
+                            {
+                                edits: [
+                                    {
+                                        // eslint-disable-next-line max-len
+                                        newText:
+                                            "import { A,B } from 'bla';\n" +
+                                            "import { C } from 'blubb';\n" +
+                                            "import { D } from 'd';\n",
+
+                                        range: {
+                                            start: {
+                                                character: 0,
+                                                line: 1
+                                            },
+                                            end: {
+                                                character: 0,
+                                                line: 2
+                                            }
+                                        }
+                                    },
+                                    {
+                                        newText: '',
+                                        range: {
+                                            start: {
+                                                character: 0,
+                                                line: 2
+                                            },
+                                            end: {
+                                                character: 0,
+                                                line: 3
+                                            }
+                                        }
+                                    },
+                                    {
+                                        newText: '',
+                                        range: {
+                                            start: {
+                                                character: 0,
+                                                line: 3
+                                            },
+                                            end: {
+                                                character: 0,
+                                                line: 4
+                                            }
+                                        }
+                                    },
+                                    {
+                                        newText: '',
+                                        range: {
+                                            start: {
+                                                character: 0,
+                                                line: 4
+                                            },
+                                            end: {
+                                                character: 0,
+                                                line: 5
+                                            }
+                                        }
+                                    }
+                                ],
+                                textDocument: {
+                                    uri: getUri('codeactions.svelte'),
+                                    version: null
+                                }
+                            }
+                        ]
+                    },
+                    kind: SORT_IMPORT_CODE_ACTION_KIND,
+                    title: 'Sort Imports'
                 }
             ]);
         });
