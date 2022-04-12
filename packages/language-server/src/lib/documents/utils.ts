@@ -39,13 +39,13 @@ function parseAttributes(
     }
 }
 
-const regexIf = new RegExp('{#if\\s.*?}', 'gms');
-const regexIfEnd = new RegExp('{/if}', 'gms');
-const regexEach = new RegExp('{#each\\s.*?}', 'gms');
-const regexEachEnd = new RegExp('{/each}', 'gms');
-const regexAwait = new RegExp('{#await\\s.*?}', 'gms');
-const regexAwaitEnd = new RegExp('{/await}', 'gms');
-const regexHtml = new RegExp('{@html\\s.*?', 'gms');
+const regexIf = new RegExp('{\\s*#if\\s.*?}', 'gms');
+const regexIfEnd = new RegExp('{\\s*/if}', 'gms');
+const regexEach = new RegExp('{\\s*#each\\s.*?}', 'gms');
+const regexEachEnd = new RegExp('{\\s*/each}', 'gms');
+const regexAwait = new RegExp('{\\s*#await\\s.*?}', 'gms');
+const regexAwaitEnd = new RegExp('{\\s*/await}', 'gms');
+const regexHtml = new RegExp('{\\s*@html\\s.*?', 'gms');
 
 /**
  * Extracts a tag (style or script) from the given text

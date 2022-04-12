@@ -195,7 +195,8 @@ describe('document/utils', () => {
                 p{ color: blue; }
                 </script> -->
                 <scrit>blah</scrit>
-                <script>top level script</script>
+                <script>top level script</script>                
+                {  #if myvar } {/if}
             `;
 
             assert.deepStrictEqual(extractScriptTags(text)?.script, {
