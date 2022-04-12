@@ -177,7 +177,8 @@ parseOptions(async (opts) => {
         const svelteCheck = new SvelteCheck(opts.workspaceUri.fsPath, {
             compilerWarnings: opts.compilerWarnings,
             diagnosticSources: opts.diagnosticSources,
-            tsconfig: opts.tsconfig
+            tsconfig: opts.tsconfig,
+            useNewTransformation: opts.useNewTransformation
         });
 
         if (opts.watch) {

@@ -4,23 +4,23 @@
     /**
      * DOCS!
      */
-     let a;
+     let a/*Ωignore_startΩ*/;a = __sveltets_1_any(a);/*Ωignore_endΩ*/;
     /**
      * not this
      */
     /**
      * MORE DOCS!
      */
-     let b;
-     let c;
+     let b/*Ωignore_startΩ*/;b = __sveltets_1_any(b);/*Ωignore_endΩ*/;
+     let c/*Ωignore_startΩ*/;c = __sveltets_1_any(c);/*Ωignore_endΩ*/;
     /**
      * d
      */
-     let d;let 
+     let d/*Ωignore_startΩ*/;d = __sveltets_1_any(d);/*Ωignore_endΩ*/;let 
     /**
      * e
      */
-     e;
+     e/*Ωignore_startΩ*/;e = __sveltets_1_any(e);/*Ωignore_endΩ*/;
 ;
 () => (<></>);
 return { props: {

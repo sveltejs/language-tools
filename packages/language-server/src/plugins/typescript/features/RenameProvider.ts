@@ -1,5 +1,12 @@
 import { Position, WorkspaceEdit, Range } from 'vscode-languageserver';
-import { Document, mapRangeToOriginal, getLineAtPosition, offsetAt } from '../../../lib/documents';
+import {
+    Document,
+    mapRangeToOriginal,
+    getLineAtPosition,
+    offsetAt,
+    getNodeIfIsInStartTag,
+    isInHTMLTagRange
+} from '../../../lib/documents';
 import { filterAsync, isNotNullOrUndefined, pathToUrl } from '../../../utils';
 import { RenameProvider } from '../../interfaces';
 import {
@@ -18,9 +25,14 @@ import {
     SnapshotFragmentMap,
     findContainingNode
 } from './utils';
+import { LSConfigManager } from '../../../ls-config';
+import { isAttributeName, isEventHandler } from '../svelte-ast-utils';
 
 export class RenameProviderImpl implements RenameProvider {
-    constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
+    constructor(
+        private readonly lsAndTsDocResolver: LSAndTSDocResolver,
+        private readonly configManager: LSConfigManager
+    ) {}
 
     // TODO props written as `export {x as y}` are not supported yet.
 
@@ -139,14 +151,26 @@ export class RenameProviderImpl implements RenameProvider {
         if (tsDoc.parserError) {
             return null;
         }
-        const renameInfo: any = lang.getRenameInfo(tsDoc.filePath, generatedOffset, {
+
+        const renameInfo = lang.getRenameInfo(tsDoc.filePath, generatedOffset, {
             allowRenameOfImportPath: false
         });
+
         if (
             !renameInfo.canRename ||
             renameInfo.fullDisplayName?.includes('JSX.IntrinsicElements') ||
             (renameInfo.kind === ts.ScriptElementKind.jsxAttribute &&
                 !isComponentAtPosition(doc, tsDoc, originalPosition))
+        ) {
+            return null;
+        }
+
+        const svelteNode = tsDoc.svelteNodeAt(originalPosition);
+        if (
+            this.configManager.getConfig().svelte.useNewTransformation &&
+            (isInHTMLTagRange(doc.html, doc.offsetAt(originalPosition)) ||
+                isAttributeName(svelteNode, 'Element') ||
+                isEventHandler(svelteNode, 'Element'))
         ) {
             return null;
         }
@@ -334,7 +358,7 @@ export class RenameProviderImpl implements RenameProvider {
             // Additionally, we cannot rename the hidden variable containing the store value
             return (
                 notPrecededBy('__sveltets_1_instanceOf(') &&
-                notPrecededBy('__sveltets_1_ensureType(') &&
+                notPrecededBy('__sveltets_1_ensureType(') && // no longer necessary for new transformation
                 notPrecededBy('= __sveltets_1_store_get(')
             );
 
@@ -406,7 +430,42 @@ export class RenameProviderImpl implements RenameProvider {
                 return location;
             }
 
-            const { originalText } = fragment;
+            const { originalText, parent } = fragment;
+
+            if (this.configManager.getConfig().svelte.useNewTransformation) {
+                let prefixText = location.prefixText?.trimRight();
+                if (!prefixText || prefixText.slice(-1) !== ':') {
+                    return location;
+                }
+                // prefix is of the form `oldVarName: ` -> hints at a shorthand
+                let rangeStart = parent.offsetAt(location.range.start);
+                // we need to make sure we only adjust shorthands on elements/components
+                if (
+                    !getNodeIfIsInStartTag(parent.html, rangeStart) ||
+                    // shorthands: let:xx, bind:xx, {xx}
+                    (parent.getText().charAt(rangeStart - 1) !== ':' &&
+                        // not use:action={{foo}}
+                        !/[^{]\s+{$/.test(parent.getText().substring(0, rangeStart)))
+                ) {
+                    return location;
+                }
+                prefixText = prefixText.slice(0, -1) + '={';
+                location = {
+                    ...location,
+                    prefixText,
+                    suffixText: '}'
+                };
+                // rename range needs to be adjusted in case of an attribute shortand
+                if (originalText.charAt(rangeStart - 1) === '{') {
+                    rangeStart--;
+                    const rangeEnd = parent.offsetAt(location.range.end) + 1;
+                    location.range = {
+                        start: parent.positionAt(rangeStart),
+                        end: parent.positionAt(rangeEnd)
+                    };
+                }
+                return location;
+            }
 
             const renamingInfo =
                 this.getShorthandPropInfo(sourceFile, location) ??
@@ -453,6 +512,12 @@ export class RenameProviderImpl implements RenameProvider {
         });
     }
 
+    /**
+     * In case of using JSX, it's not possible to write shorthands like `{foo}`, they are transformed
+     * to `foo={foo}` and need extra handling for renaming.
+     *
+     * In case of `useNewTransformation` - do nothing, as the property is already written in shorthand.
+     */
     private getShorthandPropInfo(
         sourceFile: ts.SourceFile,
         location: ts.RenameLocation

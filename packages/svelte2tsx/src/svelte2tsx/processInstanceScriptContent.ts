@@ -38,7 +38,7 @@ export function processInstanceScriptContent(
     script: Node,
     events: ComponentEvents,
     implicitStoreValues: ImplicitStoreValues,
-    mode: 'tsx' | 'dts'
+    mode: 'ts' | 'tsx' | 'dts'
 ): InstanceScriptProcessResult {
     const htmlx = str.original;
     const scriptContent = htmlx.substring(script.content.start, script.content.end);
@@ -152,7 +152,7 @@ export function processInstanceScriptContent(
                 str.overwrite(
                     parent.getStart() + astOffset,
                     parent.end + astOffset,
-                    `${storename}.set( $${storename} ${simpleOperator} 1)`
+                    `(${storename}.set( $${storename} ${simpleOperator} 1), $${storename})`
                 );
                 return;
             } else {
@@ -274,12 +274,7 @@ export function processInstanceScriptContent(
             exportedNames.handleExportFunctionOrClass(node);
         }
 
-        if (ts.isBlock(node)) {
-            pushScope();
-            onLeaveCallbacks.push(() => popScope());
-        }
-
-        if (ts.isArrowFunction(node)) {
+        if (ts.isBlock(node) || ts.isArrowFunction(node) || ts.isFunctionExpression(node)) {
             pushScope();
             onLeaveCallbacks.push(() => popScope());
         }
@@ -356,7 +351,8 @@ export function processInstanceScriptContent(
 
         // Defensively call function (checking for undefined) because it got added only recently (TS 4.0)
         // and therefore might break people using older TS versions
-        if (ts.isTypeAssertionExpression?.(node)) {
+        // Don't transform in ts mode because <type>value type assertions are valid in this case
+        if (mode !== 'ts' && ts.isTypeAssertionExpression?.(node)) {
             handleTypeAssertion(str, node, astOffset);
         }
 

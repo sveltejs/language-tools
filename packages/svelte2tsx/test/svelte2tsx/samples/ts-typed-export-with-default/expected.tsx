@@ -1,7 +1,7 @@
 ///<reference types="svelte" />
 <></>;function render() {
 
-     let name: string | number = "world";name = __sveltets_1_any(name);
+     let name: string | number = "world"/*Ωignore_startΩ*/;name = __sveltets_1_any(name);/*Ωignore_endΩ*/
 ;
 () => (<></>);
 return { props: {name: name} as {name?: string | number}, slots: {}, getters: {}, events: {} }}

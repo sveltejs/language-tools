@@ -3,7 +3,7 @@ import { BaseNode } from '../../interfaces';
 
 /**
  * `<svelte:window>...</svelte:window>`   ---->    `<sveltewindow>...</sveltewindow>`
- * (same for :head, :body, :options, :fragment)
+ * (same for :head, :body, :options, :fragment, :element)
  */
 export function handleSvelteTag(htmlx: string, str: MagicString, node: BaseNode): void {
     const colon = htmlx.indexOf(':', node.start);

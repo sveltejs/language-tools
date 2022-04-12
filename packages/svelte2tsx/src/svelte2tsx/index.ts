@@ -1,6 +1,7 @@
 import { Node } from 'estree-walker';
 import MagicString from 'magic-string';
 import { convertHtmlxToJsx } from '../htmlxtojsx';
+import { convertHtmlxToJsx as convertHtmlxToJsxNew } from '../htmlxtojsx_v2';
 import { parseHtmlx } from '../utils/htmlxparser';
 import { ComponentDocumentation } from './nodes/ComponentDocumentation';
 import { ComponentEvents } from './nodes/ComponentEvents';
@@ -21,8 +22,13 @@ import { ScopeStack } from './utils/Scope';
 import { Generics } from './nodes/Generics';
 import { addComponentExport } from './addComponentExport';
 import { createRenderFunction } from './createRenderFunction';
+import { TemplateNode } from 'svelte/types/compiler/interfaces';
 
 type TemplateProcessResult = {
+    /**
+     * The HTML part of the Svelte AST.
+     */
+    htmlAst: TemplateNode;
     uses$$props: boolean;
     uses$$restProps: boolean;
     uses$$slots: boolean;
@@ -38,9 +44,18 @@ type TemplateProcessResult = {
 
 function processSvelteTemplate(
     str: MagicString,
-    options?: { emitOnTemplateError?: boolean; namespace?: string; accessors?: boolean }
+    options?: {
+        emitOnTemplateError?: boolean;
+        namespace?: string;
+        accessors?: boolean;
+        mode?: 'ts' | 'tsx' | 'dts';
+        typingsNamespace?: string;
+    }
 ): TemplateProcessResult {
-    const { htmlxAst, tags } = parseHtmlx(str.original, options);
+    const { htmlxAst, tags } = parseHtmlx(str.original, {
+        ...options,
+        useNewTransformation: options?.mode === 'ts'
+    });
 
     let uses$$props = false;
     let uses$$restProps = false;
@@ -185,7 +200,10 @@ function processSvelteTemplate(
                 handleStyleTag(node);
                 break;
             case 'Element':
-                scripts.handleScriptTag(node, parent);
+                scripts.checkIfElementIsScriptTag(node, parent);
+                break;
+            case 'RawMustacheTag':
+                scripts.checkIfContainsScriptTag(node);
                 break;
             case 'BlockStatement':
                 scopeStack.push();
@@ -251,9 +269,16 @@ function processSvelteTemplate(
         }
     };
 
-    convertHtmlxToJsx(str, htmlxAst, onHtmlxWalk, onHtmlxLeave, {
-        preserveAttributeCase: options?.namespace == 'foreign'
-    });
+    if (options.mode === 'ts') {
+        convertHtmlxToJsxNew(str, htmlxAst, onHtmlxWalk, onHtmlxLeave, {
+            preserveAttributeCase: options?.namespace == 'foreign',
+            typingsNamespace: options.typingsNamespace
+        });
+    } else {
+        convertHtmlxToJsx(str, htmlxAst, onHtmlxWalk, onHtmlxLeave, {
+            preserveAttributeCase: options?.namespace == 'foreign'
+        });
+    }
 
     // resolve scripts
     const { scriptTag, moduleScriptTag } = scripts.getTopLevelScriptTags();
@@ -263,6 +288,7 @@ function processSvelteTemplate(
     const resolvedStores = stores.resolveStores();
 
     return {
+        htmlAst: htmlxAst,
         moduleScriptTag,
         scriptTag,
         slots: slotHandler.getSlotDef(),
@@ -287,13 +313,18 @@ export function svelte2tsx(
         isTsFile?: boolean;
         emitOnTemplateError?: boolean;
         namespace?: string;
-        mode?: 'tsx' | 'dts';
+        mode?: 'ts' | 'tsx' | 'dts';
         accessors?: boolean;
+        typingsNamespace?: string;
     } = {}
 ) {
+    // TODO temporary
+    options.mode = options.mode || 'ts';
+
     const str = new MagicString(svelte);
     // process the htmlx as a svelte template
     let {
+        htmlAst,
         moduleScriptTag,
         scriptTag,
         slots,
@@ -375,8 +406,9 @@ export function svelte2tsx(
             new ImplicitStoreValues(
                 implicitStoreValues.getAccessedStores(),
                 renderFunctionStart,
-                scriptTag ? undefined : (input) => `</>;${input}<>`
-            )
+                scriptTag || options.mode === 'ts' ? undefined : (input) => `</>;${input}<>`
+            ),
+            options.mode === 'ts'
         );
     }
 
@@ -429,7 +461,9 @@ declare function __sveltets_1_createSvelteComponentTyped<Props, Events, Slots>(
             code: str.toString(),
             map: str.generateMap({ hires: true, source: options?.filename }),
             exportedNames: exportedNames.getExportsMap(),
-            events: events.createAPI()
+            events: events.createAPI(),
+            // not part of the public API so people don't start using it
+            htmlAst
         };
     }
 }

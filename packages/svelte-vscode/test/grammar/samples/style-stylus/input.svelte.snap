@@ -1,0 +1,17 @@
+><style lang="stylus">
+#^ source.svelte meta.style.svelte meta.tag.start.svelte punctuation.definition.tag.begin.svelte
+# ^^^^^ source.svelte meta.style.svelte meta.tag.start.svelte entity.name.tag.svelte
+#      ^ source.svelte meta.style.svelte meta.lang.stylus.svelte meta.tag.start.svelte
+#       ^^^^ source.svelte meta.style.svelte meta.lang.stylus.svelte meta.tag.start.svelte meta.attribute.lang.svelte entity.other.attribute-name.svelte
+#           ^ source.svelte meta.style.svelte meta.lang.stylus.svelte meta.tag.start.svelte meta.attribute.lang.svelte punctuation.separator.key-value.svelte
+#            ^ source.svelte meta.style.svelte meta.lang.stylus.svelte meta.tag.start.svelte meta.attribute.lang.svelte string.quoted.svelte punctuation.definition.string.begin.svelte
+#             ^^^^^^ source.svelte meta.style.svelte meta.lang.stylus.svelte meta.tag.start.svelte meta.attribute.lang.svelte string.quoted.svelte
+#                   ^ source.svelte meta.style.svelte meta.lang.stylus.svelte meta.tag.start.svelte meta.attribute.lang.svelte string.quoted.svelte punctuation.definition.string.end.svelte
+#                    ^ source.svelte meta.style.svelte meta.lang.stylus.svelte meta.tag.start.svelte punctuation.definition.tag.end.svelte
+>    .abc
+#^^^^^^^^^ source.svelte meta.style.svelte meta.lang.stylus.svelte meta.embedded.block.svelte source.stylus
+></style>
+#^^ source.svelte meta.style.svelte meta.tag.end.svelte punctuation.definition.tag.begin.svelte
+#  ^^^^^ source.svelte meta.style.svelte meta.tag.end.svelte entity.name.tag.svelte
+#       ^ source.svelte meta.style.svelte meta.tag.end.svelte punctuation.definition.tag.end.svelte
+>

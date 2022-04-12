@@ -37,6 +37,7 @@ import { possiblyComponent } from '../../utils';
 export class HTMLPlugin
     implements HoverProvider, CompletionsProvider, RenameProvider, LinkedEditingRangesProvider
 {
+    __name = 'html';
     private configManager: LSConfigManager;
     private lang = getLanguageService({
         customDataProviders: [svelteHtmlDataProvider],

@@ -1,4 +1,5 @@
 import type ts from 'typescript/lib/tsserverlibrary';
+import { ConfigManager } from './config-manager';
 import { Logger } from './logger';
 import { SvelteSnapshotManager } from './svelte-snapshots';
 import { createSvelteSys } from './svelte-sys';
@@ -39,6 +40,10 @@ class ModuleResolutionCache {
         });
     }
 
+    clear() {
+        this.cache.clear();
+    }
+
     private getKey(moduleName: string, containingFile: string) {
         return containingFile + ':::' + ensureRealSvelteFilePath(moduleName);
     }
@@ -58,7 +63,8 @@ export function patchModuleLoader(
     snapshotManager: SvelteSnapshotManager,
     typescript: typeof ts,
     lsHost: ts.LanguageServiceHost,
-    project: ts.server.Project
+    project: ts.server.Project,
+    configManager: ConfigManager
 ): void {
     const svelteSys = createSvelteSys(logger);
     const moduleCache = new ModuleResolutionCache();
@@ -72,6 +78,10 @@ export function patchModuleLoader(
         moduleCache.delete(info.fileName);
         return origRemoveFile(info, fileExists, detachFromProject);
     };
+
+    configManager.onConfigurationChanged(() => {
+        moduleCache.clear();
+    });
 
     function resolveModuleNames(
         moduleNames: string[],
@@ -93,6 +103,10 @@ export function patchModuleLoader(
                 redirectedReference,
                 compilerOptions
             ) || Array.from<undefined>(Array(moduleNames.length));
+
+        if (!configManager.getConfig().enable) {
+            return resolved;
+        }
 
         return resolved.map((moduleName, idx) => {
             const fileName = moduleNames[idx];
@@ -137,7 +151,7 @@ export function patchModuleLoader(
         }
 
         const resolvedSvelteModule: ts.ResolvedModuleFull = {
-            extension: snapshot.isTsFile ? typescript.Extension.Tsx : typescript.Extension.Jsx,
+            extension: snapshot.isTsFile ? typescript.Extension.Ts : typescript.Extension.Js,
             resolvedFileName
         };
         return resolvedSvelteModule;

@@ -8,13 +8,15 @@ However, for getting Svelte support inside TS/JS files, we need to do more than 
 -   present Svelte files to TypeScript in a way TypeScript understands
 -   enhance the language service (the part that's shown in the how-to)
 
-To make TypeScript aware of Svelte files, we need to patch its module resolution algorithm. `.svelte` is not a valid file ending for TypeScript, so it searches for files like `.svelte.ts`. This logic is decorated in `src/module-loader` to also resolve Svelte files. They are resolved to file-type TSX/JSX, which leads us to the next obstacle: to present Svelte files to TypeScript in a way it understands.
+To make TypeScript aware of Svelte files, we need to patch its module resolution algorithm. `.svelte` is not a valid file ending for TypeScript, so it searches for files like `.svelte.ts`. This logic is decorated in `src/module-loader` to also resolve Svelte files. They are resolved to file-type TS/JS, which leads us to the next obstacle: to present Svelte files to TypeScript in a way it understands.
 
-We achieve that by utilizing `svelte2tsx`, which transforms Svelte code into TSX/JSX code. We do that transformation by patching `readFile` of TypeScript's project service in `src/svelte-snapshots`: If a Svelte file is read, transform the code before returning it. During that we also patch the ScriptInfo that TypeScript uses to interact with files. We patch the methods that transform positions to offsets and vice versa and either do transforms on the generated or original code, depending on the situation.
+We achieve that by utilizing `svelte2tsx`, which transforms Svelte code into TS/JS code. We do that transformation by patching `readFile` of TypeScript's project service in `src/svelte-snapshots`: If a Svelte file is read, transform the code before returning it. During that we also patch the ScriptInfo that TypeScript uses to interact with files. We patch the methods that transform positions to offsets and vice versa and either do transforms on the generated or original code, depending on the situation.
 
 The last step is to enhance the language service. For that, we patch the desired methods and apply custom logic. Most of that is transforming the generated code positions to the original code positions.
 
 Along the way, we need to patch some internal methods, which is brittly and hacky, but to our knowledge there currently is no other way.
+
+To make it work with the VS Code extension we need to provide the plugin within `contributes.typescriptServerPlugins`. That way the plugin is always loaded. To enable/disable it, we use a semi-public command that tells TypeScript to configure the plugin. That configuration then tells this plugin whether or not it is enabled.
 
 ## Limitations
 

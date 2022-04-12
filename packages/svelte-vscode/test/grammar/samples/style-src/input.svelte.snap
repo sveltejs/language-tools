@@ -1,0 +1,14 @@
+><style src="../external.css"></style>
+#^ source.svelte meta.style.svelte meta.tag.start.svelte punctuation.definition.tag.begin.svelte
+# ^^^^^ source.svelte meta.style.svelte meta.tag.start.svelte entity.name.tag.svelte
+#      ^ source.svelte meta.style.svelte meta.tag.start.svelte
+#       ^^^ source.svelte meta.style.svelte meta.tag.start.svelte meta.attribute.src.svelte entity.other.attribute-name.svelte
+#          ^ source.svelte meta.style.svelte meta.tag.start.svelte meta.attribute.src.svelte punctuation.separator.key-value.svelte
+#           ^ source.svelte meta.style.svelte meta.tag.start.svelte meta.attribute.src.svelte string.quoted.svelte punctuation.definition.string.begin.svelte
+#            ^^^^^^^^^^^^^^^ source.svelte meta.style.svelte meta.tag.start.svelte meta.attribute.src.svelte string.quoted.svelte
+#                           ^ source.svelte meta.style.svelte meta.tag.start.svelte meta.attribute.src.svelte string.quoted.svelte punctuation.definition.string.end.svelte
+#                            ^ source.svelte meta.style.svelte meta.tag.start.svelte punctuation.definition.tag.end.svelte
+#                             ^^ source.svelte meta.style.svelte meta.tag.end.svelte punctuation.definition.tag.begin.svelte
+#                               ^^^^^ source.svelte meta.style.svelte meta.tag.end.svelte entity.name.tag.svelte
+#                                    ^ source.svelte meta.style.svelte meta.tag.end.svelte punctuation.definition.tag.end.svelte
+>

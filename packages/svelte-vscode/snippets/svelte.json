@@ -1,0 +1,22 @@
+{
+    "if": {
+        "body": ["{#if ${1:condition}}", "\t$TM_SELECTED_TEXT$0", "{/if}"],
+        "description": "if block"
+    },
+    "await": {
+        "body": ["{#await ${1:promise}}", "\t$TM_SELECTED_TEXT$0", "{/await}"],
+        "description": "await block"
+    },
+    "await then shorthand": {
+        "body": ["{#await ${1:promise} then $2}", "\t$TM_SELECTED_TEXT$0", "{/await}"],
+        "description": "await block without pending state"
+    },
+    "each": {
+        "body": ["{#each ${1:array} as ${2:item}}", "\t$TM_SELECTED_TEXT$0", "{/each}"],
+        "description": "each block"
+    },
+    "key": {
+        "body": ["{#key ${1:key}}", "\t$TM_SELECTED_TEXT$0", "{/key}"],
+        "description": "key block"
+    }
+}

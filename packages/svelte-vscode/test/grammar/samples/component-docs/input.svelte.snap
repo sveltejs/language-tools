@@ -1,0 +1,9 @@
+><!--@component
+#^^^^ source.svelte comment.block.svelte punctuation.definition.comment.svelte
+#    ^ source.svelte comment.block.svelte punctuation.definition.keyword.svelte
+#     ^^^^^^^^^ source.svelte comment.block.svelte storage.type.class.component.svelte keyword.declaration.class.component.svelte
+># Hi
+#^^^^^ source.svelte comment.block.svelte comment.block.documentation.svelte
+>-->
+#^^^ source.svelte comment.block.svelte punctuation.definition.comment.svelte
+>

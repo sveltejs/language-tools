@@ -28,9 +28,9 @@ import {
     TextEdit,
     WorkspaceEdit
 } from 'vscode-languageserver';
-import { DocumentManager } from '../lib/documents';
+import { DocumentManager, getNodeIfIsInHTMLStartTag } from '../lib/documents';
 import { Logger } from '../logger';
-import { regexLastIndexOf } from '../utils';
+import { isNotNullOrUndefined, regexLastIndexOf } from '../utils';
 import {
     AppCompletionItem,
     FileRename,
@@ -115,18 +115,56 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
     ): Promise<CompletionList> {
         const document = this.getDocument(textDocument.uri);
 
-        const completions = (
-            await this.execute<CompletionList>(
-                'getCompletions',
-                [document, position, completionContext, cancellationToken],
-                ExecuteMode.Collect,
-                'high'
-            )
-        ).filter((completion) => completion != null);
+        const completions = await Promise.all(
+            this.plugins.map(async (plugin) => {
+                const result = await this.tryExecutePlugin(
+                    plugin,
+                    'getCompletions',
+                    [document, position, completionContext, cancellationToken],
+                    null
+                );
+                if (result) {
+                    return { result: result as CompletionList, plugin: plugin.__name };
+                }
+            })
+        ).then((completions) => completions.filter(isNotNullOrUndefined));
 
-        let flattenedCompletions = flatten(completions.map((completion) => completion.items));
+        const html = completions.find((completion) => completion.plugin === 'html');
+        const ts = completions.find((completion) => completion.plugin === 'ts');
+        if (html && ts && getNodeIfIsInHTMLStartTag(document.html, document.offsetAt(position))) {
+            // Completion in a component or html start tag and both html and ts
+            // suggest something -> filter out all duplicates from TS completions
+            const htmlCompletions = new Set(html.result.items.map((item) => item.label));
+            ts.result.items = ts.result.items.filter((item) => {
+                const label = item.label;
+                if (htmlCompletions.has(label)) {
+                    return false;
+                }
+                if (label[0] === '"' && label[label.length - 1] === '"') {
+                    // this will result in a wrong completion regardless, remove the quotes
+                    item.label = item.label.slice(1, -1);
+                    if (htmlCompletions.has(item.label)) {
+                        // "aria-label" -> aria-label -> exists in html completions
+                        return false;
+                    }
+                }
+                if (label.startsWith('on')) {
+                    if (htmlCompletions.has('on:' + label.slice(2))) {
+                        // onclick -> on:click -> exists in html completions
+                        return false;
+                    }
+                }
+                // adjust sort text so it does appear after html completions
+                item.sortText = 'Z' + (item.sortText || '');
+                return true;
+            });
+        }
+
+        let flattenedCompletions = flatten(
+            completions.map((completion) => completion.result.items)
+        );
         const isIncomplete = completions.reduce(
-            (incomplete, completion) => incomplete || completion.isIncomplete,
+            (incomplete, completion) => incomplete || completion.result.isIncomplete,
             false as boolean
         );
 

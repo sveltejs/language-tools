@@ -12,12 +12,12 @@
         ↲                                                                                                                                             
 <script>↲    [original] line 1 (rest generated at line 2)                                                                                             
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
-     let prop/*Ωignore_startΩ*/;let $prop = __sveltets_1_store_get(prop);/*Ωignore_endΩ*/                                                             {/**
-   ╚•let•prop/*Ωignore_startΩ*/;let•$prop•=•__sveltets_1_store_get(prop);/*Ωignore_endΩ*/↲    [generated] line 4                                      
-   ╚•let•prop                                                                            ↲                                                            
-   ╚      •let•prop↲                                                                                                                                  
-   ╚export•let•prop↲                                                                          [original] line 2                                       
------------------------------------------------------------------------------------------------------------------------------------------------------- */}
+     let prop/*Ωignore_startΩ*/;let $prop = __sveltets_1_store_get(prop);/*Ωignore_endΩ*//*Ωignore_startΩ*/;prop = __sveltets_1_any(prop);/*Ωignore_endΩ*/
+   ╚•let•prop/*Ωignore_startΩ*/;let•$prop•=•__sveltets_1_store_get(prop);/*Ωignore_endΩ*//*Ωignore_startΩ*/;prop•=•__sveltets_1_any(prop);/*Ωignore_endΩ*/↲    [generated] line 4
+   ╚•let•prop                                                                            ↲                                                                     
+   ╚      •let•prop↲                                                                                                                                           
+   ╚export•let•prop↲                                                                                                                                           [original] line 2 
+//----------------------------------------------------------------------------------------------------------------------------------------------------
     let  foo = __sveltets_1_invalidate(() => prop);                                                                                                   {/**
    ╚let••foo•=•__sveltets_1_invalidate(()•=>•prop);↲    [generated] line 5                                                                            
    ╚    •foo•=•                              prop; ↲                                                                                                  

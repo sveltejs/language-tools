@@ -1,0 +1,8 @@
+>{@debug abc}
+#^ source.svelte meta.special.debug.svelte punctuation.definition.block.begin.svelte
+# ^ source.svelte meta.special.debug.svelte punctuation.definition.keyword.svelte
+#  ^^^^^ source.svelte meta.special.debug.svelte keyword.other.debugger.svelte
+#       ^ source.svelte meta.special.debug.svelte
+#        ^^^ source.svelte meta.special.debug.svelte meta.embedded.expression.svelte source.ts
+#           ^ source.svelte meta.special.debug.svelte punctuation.definition.block.end.svelte
+>

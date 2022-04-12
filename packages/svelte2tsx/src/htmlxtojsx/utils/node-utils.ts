@@ -273,3 +273,33 @@ export function buildTemplateString(
         str.appendLeft(attr.end, trailingOverride);
     }
 }
+
+/**
+ * Check if there's a member access trailing behind given expression and if yes,
+ * bump the position to include it.
+ * Usually it's there because of the preprocessing we do before we let Svelte parse the template.
+ */
+export function withTrailingPropertyAccess(originalText: string, position: number): number {
+    let index = position;
+
+    while (index < originalText.length) {
+        const char = originalText[index];
+
+        if (!char.trim()) {
+            index++;
+            continue;
+        }
+
+        if (char === '.') {
+            return index + 1;
+        }
+
+        if (char === '?' && originalText[index + 1] === '.') {
+            return index + 2;
+        }
+
+        break;
+    }
+
+    return position;
+}

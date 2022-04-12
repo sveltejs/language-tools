@@ -1,0 +1,11 @@
+><script>
+#^ source.svelte meta.script.svelte meta.tag.start.svelte punctuation.definition.tag.begin.svelte
+# ^^^^^^ source.svelte meta.script.svelte meta.tag.start.svelte entity.name.tag.svelte
+#       ^ source.svelte meta.script.svelte meta.tag.start.svelte punctuation.definition.tag.end.svelte
+>    export let abc;
+#^^^^^^^^^^^^^^^^^^^^ source.svelte meta.script.svelte meta.embedded.block.svelte source.js
+></script>
+#^^ source.svelte meta.script.svelte meta.tag.end.svelte punctuation.definition.tag.begin.svelte
+#  ^^^^^^ source.svelte meta.script.svelte meta.tag.end.svelte entity.name.tag.svelte
+#        ^ source.svelte meta.script.svelte meta.tag.end.svelte punctuation.definition.tag.end.svelte
+>

@@ -1,0 +1,23 @@
+><script context="module" lang="ts">
+#^ source.svelte meta.script.svelte meta.tag.start.svelte punctuation.definition.tag.begin.svelte
+# ^^^^^^ source.svelte meta.script.svelte meta.tag.start.svelte entity.name.tag.svelte
+#       ^ source.svelte meta.script.svelte meta.lang.ts.svelte meta.tag.start.svelte
+#        ^^^^^^^ source.svelte meta.script.svelte meta.lang.ts.svelte meta.tag.start.svelte meta.attribute.context.svelte entity.other.attribute-name.svelte
+#               ^ source.svelte meta.script.svelte meta.lang.ts.svelte meta.tag.start.svelte meta.attribute.context.svelte punctuation.separator.key-value.svelte
+#                ^ source.svelte meta.script.svelte meta.lang.ts.svelte meta.tag.start.svelte meta.attribute.context.svelte string.quoted.svelte punctuation.definition.string.begin.svelte
+#                 ^^^^^^ source.svelte meta.script.svelte meta.lang.ts.svelte meta.tag.start.svelte meta.attribute.context.svelte string.quoted.svelte
+#                       ^ source.svelte meta.script.svelte meta.lang.ts.svelte meta.tag.start.svelte meta.attribute.context.svelte string.quoted.svelte punctuation.definition.string.end.svelte
+#                        ^ source.svelte meta.script.svelte meta.lang.ts.svelte meta.tag.start.svelte
+#                         ^^^^ source.svelte meta.script.svelte meta.lang.ts.svelte meta.tag.start.svelte meta.attribute.lang.svelte entity.other.attribute-name.svelte
+#                             ^ source.svelte meta.script.svelte meta.lang.ts.svelte meta.tag.start.svelte meta.attribute.lang.svelte punctuation.separator.key-value.svelte
+#                              ^ source.svelte meta.script.svelte meta.lang.ts.svelte meta.tag.start.svelte meta.attribute.lang.svelte string.quoted.svelte punctuation.definition.string.begin.svelte
+#                               ^^ source.svelte meta.script.svelte meta.lang.ts.svelte meta.tag.start.svelte meta.attribute.lang.svelte string.quoted.svelte
+#                                 ^ source.svelte meta.script.svelte meta.lang.ts.svelte meta.tag.start.svelte meta.attribute.lang.svelte string.quoted.svelte punctuation.definition.string.end.svelte
+#                                  ^ source.svelte meta.script.svelte meta.lang.ts.svelte meta.tag.start.svelte punctuation.definition.tag.end.svelte
+>    const a = <string>'b';
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^ source.svelte meta.script.svelte meta.lang.ts.svelte meta.embedded.block.svelte source.ts
+></script>
+#^^ source.svelte meta.script.svelte meta.tag.end.svelte punctuation.definition.tag.begin.svelte
+#  ^^^^^^ source.svelte meta.script.svelte meta.tag.end.svelte entity.name.tag.svelte
+#        ^ source.svelte meta.script.svelte meta.tag.end.svelte punctuation.definition.tag.end.svelte
+>
