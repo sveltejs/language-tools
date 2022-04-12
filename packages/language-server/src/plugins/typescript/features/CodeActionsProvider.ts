@@ -64,7 +64,9 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             );
         }
 
-        if (context.only?.[0] === 'source') {
+        // for source action command (all source.xxx)
+        // vscode would show different source code action kinds to choose from
+        if (context.only?.[0] === CodeActionKind.Source) {
             return [
                 ...(await this.organizeImports(document, cancellationToken)),
                 ...(await this.organizeImports(
