@@ -4,6 +4,7 @@ import { extractScriptTags, extractStyleTag, extractTemplateTag, TagInformation 
 import { parseHtml } from './parseHtml';
 import { SvelteConfig, configLoader } from './configLoader';
 import { HTMLDocument } from 'vscode-html-languageservice';
+import { Range } from 'vscode-languageserver';
 
 /**
  * Represents a text document contains a svelte component.
@@ -64,7 +65,12 @@ export class Document extends WritableDocument {
     /**
      * Get text content
      */
-    getText(): string {
+    getText(range?: Range): string {
+        // Currently none of our own methods use the optional range parameter,
+        // but it's used by the HTML language service during hover
+        if (range) {
+            return this.content.substring(this.offsetAt(range.start), this.offsetAt(range.end));
+        }
         return this.content;
     }
 
