@@ -66,6 +66,8 @@ export class Document extends WritableDocument {
      * Get text content
      */
     getText(range?: Range): string {
+        // Currently none of our own methods use the optional range parameter,
+        // but it's used by the HTML language service during hover
         if (range) {
             return this.content.substring(this.offsetAt(range.start), this.offsetAt(range.end));
         }
