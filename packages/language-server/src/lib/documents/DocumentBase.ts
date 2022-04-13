@@ -1,4 +1,4 @@
-import { Position, TextDocument } from 'vscode-languageserver';
+import { Position, Range, TextDocument } from 'vscode-languageserver';
 import { getLineOffsets, offsetAt, positionAt } from './utils';
 
 /**
@@ -8,7 +8,7 @@ export abstract class ReadableDocument implements TextDocument {
     /**
      * Get the text content of the document
      */
-    abstract getText(): string;
+    abstract getText(range?: Range): string;
 
     /**
      * Returns the url of the document
