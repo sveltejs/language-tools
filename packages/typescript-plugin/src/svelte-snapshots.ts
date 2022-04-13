@@ -291,6 +291,9 @@ export class SvelteSnapshotManager {
                 return '';
             } else if (normalizedPath.endsWith('svelte2tsx/svelte-shims.d.ts')) {
                 let originalText = readFile(path) || '';
+                if (!originalText.includes('// -- start svelte-ls-remove --')) {
+                    return originalText; // uses an older version of svelte2tsx
+                }
                 originalText =
                     originalText.substring(
                         0,

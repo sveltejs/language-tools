@@ -144,9 +144,15 @@ export namespace DocumentSnapshot {
             originalText = ts.sys.readFile(filePath) || '';
         }
         if (normalizedPath.endsWith('svelte2tsx/svelte-shims.d.ts')) {
-            originalText =
-                originalText.substring(0, originalText.indexOf('// -- start svelte-ls-remove --')) +
-                originalText.substring(originalText.indexOf('// -- end svelte-ls-remove --'));
+            // If not present, the LS uses an older version of svelte2tsx
+            if (originalText.includes('// -- start svelte-ls-remove --')) {
+                originalText =
+                    originalText.substring(
+                        0,
+                        originalText.indexOf('// -- start svelte-ls-remove --')
+                    ) +
+                    originalText.substring(originalText.indexOf('// -- end svelte-ls-remove --'));
+            }
         }
 
         return new JSOrTSDocumentSnapshot(INITIAL_VERSION, filePath, originalText);
