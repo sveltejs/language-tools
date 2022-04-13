@@ -3,9 +3,11 @@
 // are loaded and their declarations conflict each other
 // See https://github.com/sveltejs/language-tools/issues/1059 for an example bug that stems from it
 
+// -- start svelte-ls-remove --
 declare module '*.svelte' {
     export default Svelte2TsxComponent
 }
+// -- end svelte-ls-remove --
 
 declare class Svelte2TsxComponent<
     Props extends {} = {},

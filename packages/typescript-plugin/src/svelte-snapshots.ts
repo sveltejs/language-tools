@@ -280,7 +280,25 @@ export class SvelteSnapshotManager {
     private patchProjectServiceReadFile() {
         const readFile = this.projectService.host.readFile;
         this.projectService.host.readFile = (path: string) => {
-            if (isSvelteFilePath(path) && this.configManager.getConfig().enable) {
+            // The following (very hacky) first two checks make sure that the ambient module definitions
+            // that tell TS "every import ending with .svelte is a valid module" are removed.
+            // They exist in svelte2tsx and svelte to make sure that people don't
+            // get errors in their TS files when importing Svelte files and not using our TS plugin.
+            // If someone wants to get back the behavior they can add an ambient module definition
+            // on their own.
+            const normalizedPath = path.replace(/\\/g, '/');
+            if (normalizedPath.endsWith('node_modules/svelte/types/runtime/ambient.d.ts')) {
+                return '';
+            } else if (normalizedPath.endsWith('svelte2tsx/svelte-shims.d.ts')) {
+                let originalText = readFile(path) || '';
+                originalText =
+                    originalText.substring(
+                        0,
+                        originalText.indexOf('// -- start svelte-ls-remove --')
+                    ) +
+                    originalText.substring(originalText.indexOf('// -- end svelte-ls-remove --'));
+                return originalText;
+            } else if (isSvelteFilePath(path) && this.configManager.getConfig().enable) {
                 this.logger.debug('Read Svelte file:', path);
                 const svelteCode = readFile(path) || '';
                 try {
