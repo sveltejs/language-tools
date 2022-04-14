@@ -131,7 +131,30 @@ export namespace DocumentSnapshot {
      * @param options options that apply in case it's a svelte file
      */
     export function fromNonSvelteFilePath(filePath: string) {
-        const originalText = ts.sys.readFile(filePath) ?? '';
+        let originalText = '';
+
+        // The following (very hacky) code makes sure that the ambient module definitions
+        // that tell TS "every import ending with .svelte is a valid module" are removed.
+        // They exist in svelte2tsx and svelte to make sure that people don't
+        // get errors in their TS files when importing Svelte files and not using our TS plugin.
+        // If someone wants to get back the behavior they can add an ambient module definition
+        // on their own.
+        const normalizedPath = filePath.replace(/\\/g, '/');
+        if (!normalizedPath.endsWith('node_modules/svelte/types/runtime/ambient.d.ts')) {
+            originalText = ts.sys.readFile(filePath) || '';
+        }
+        if (normalizedPath.endsWith('svelte2tsx/svelte-shims.d.ts')) {
+            // If not present, the LS uses an older version of svelte2tsx
+            if (originalText.includes('// -- start svelte-ls-remove --')) {
+                originalText =
+                    originalText.substring(
+                        0,
+                        originalText.indexOf('// -- start svelte-ls-remove --')
+                    ) +
+                    originalText.substring(originalText.indexOf('// -- end svelte-ls-remove --'));
+            }
+        }
+
         return new JSOrTSDocumentSnapshot(INITIAL_VERSION, filePath, originalText);
     }
 

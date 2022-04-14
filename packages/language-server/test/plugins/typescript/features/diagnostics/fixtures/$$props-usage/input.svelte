@@ -1,5 +1,6 @@
 <script lang="ts">
     import Props from '../$$props-valid/input.svelte';
+    // @ts-expect-error
     import PropsInvalid3 from './$$props-invalid3.svelte';
 </script>
 
