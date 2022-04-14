@@ -825,6 +825,7 @@ declare namespace svelte.JSX {
       pattern?: string | undefined | null;
       placeholder?: string | undefined | null;
       playsinline?: boolean | undefined | null;
+      ping?: string | undefined | null;
       poster?: string | undefined | null;
       preload?: string | undefined | null;
       radiogroup?: string | undefined | null;
