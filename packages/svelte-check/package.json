@@ -24,7 +24,7 @@
         "fast-glob": "^3.2.7",
         "import-fresh": "^3.2.1",
         "sade": "^1.7.4",
-        "source-map": "^0.7.3",
+        "source-map": "^0.8.0-beta.0",
         "svelte-preprocess": "^4.0.0",
         "typescript": "*"
     },
