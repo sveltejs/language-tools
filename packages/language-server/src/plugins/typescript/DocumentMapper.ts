@@ -1,9 +1,9 @@
+import { TraceMap } from '@jridgewell/trace-mapping';
 import { Position } from 'vscode-languageserver';
-import { SourceMapConsumer } from 'source-map';
 import { SourceMapDocumentMapper } from '../../lib/documents';
 
 export class ConsumerDocumentMapper extends SourceMapDocumentMapper {
-    constructor(consumer: SourceMapConsumer, sourceUri: string, private nrPrependesLines: number) {
+    constructor(consumer: TraceMap, sourceUri: string, private nrPrependesLines: number) {
         super(consumer, sourceUri);
     }
 

@@ -1,4 +1,4 @@
-import { RawSourceMap, SourceMapConsumer } from 'source-map';
+import { DecodedSourceMap, EncodedSourceMap, TraceMap } from '@jridgewell/trace-mapping';
 import { walk } from 'svelte/compiler';
 import { TemplateNode } from 'svelte/types/compiler/interfaces';
 import { svelte2tsx, IExportedNames } from 'svelte2tsx';
@@ -49,18 +49,9 @@ export interface DocumentSnapshot extends ts.IScriptSnapshot {
     scriptKind: ts.ScriptKind;
     positionAt(offset: number): Position;
     /**
-     * Instantiates a source mapper.
-     * `destroyFragment` needs to be called when
-     * it's no longer needed / the class should be cleaned up
-     * in order to prevent memory leaks.
+     * Instantiates a source mapper
      */
     getFragment(): Promise<SnapshotFragment>;
-    /**
-     * Needs to be called when source mapper
-     * is no longer needed / the class should be cleaned up
-     * in order to prevent memory leaks.
-     */
-    destroyFragment(): void;
     /**
      * Convenience function for getText(0, getLength())
      */
@@ -155,7 +146,7 @@ export namespace DocumentSnapshot {
  * Tries to preprocess the svelte document and convert the contents into better analyzable js/ts(x) content.
  */
 function preprocessSvelteFile(document: Document, options: SvelteSnapshotOptions) {
-    let tsxMap: RawSourceMap | undefined;
+    let tsxMap: EncodedSourceMap | undefined;
     let parserError: ParserError | null = null;
     let nrPrependedLines = 0;
     let text = document.getText();
@@ -188,7 +179,7 @@ function preprocessSvelteFile(document: Document, options: SvelteSnapshotOptions
                 document.config?.compilerOptions?.customElement
         });
         text = tsx.code;
-        tsxMap = tsx.map;
+        tsxMap = tsx.map as EncodedSourceMap;
         exportedNames = tsx.exportedNames;
         // We know it's there, it's not part of the public API so people don't start using it
         htmlAst = (tsx as any).htmlAst;
@@ -248,7 +239,7 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
         private readonly text: string,
         private readonly nrPrependedLines: number,
         private readonly exportedNames: IExportedNames,
-        private readonly tsxMap?: RawSourceMap,
+        private readonly tsxMap?: DecodedSourceMap | EncodedSourceMap,
         private readonly htmlAst?: TemplateNode
     ) {}
 
@@ -330,13 +321,6 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
         return this.fragment;
     }
 
-    destroyFragment() {
-        if (this.fragment) {
-            this.fragment.destroy();
-            this.fragment = undefined;
-        }
-    }
-
     private async getMapper(uri: string) {
         const scriptInfo = this.parent.scriptInfo || this.parent.moduleScriptInfo;
 
@@ -348,11 +332,7 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
             return new FragmentMapper(this.parent.getText(), scriptInfo, uri);
         }
 
-        return new ConsumerDocumentMapper(
-            await new SourceMapConsumer(this.tsxMap),
-            uri,
-            this.nrPrependedLines
-        );
+        return new ConsumerDocumentMapper(new TraceMap(this.tsxMap), uri, this.nrPrependedLines);
     }
 }
 
@@ -398,10 +378,6 @@ export class JSOrTSDocumentSnapshot
 
     async getFragment() {
         return this;
-    }
-
-    destroyFragment() {
-        // nothing to clean up
     }
 
     update(changes: TextDocumentContentChangeEvent[]): void {
@@ -478,14 +454,5 @@ export class SvelteSnapshotFragment implements SnapshotFragment {
 
     offsetAt(position: Position) {
         return offsetAt(position, this.text, this.lineOffsets);
-    }
-
-    /**
-     * Needs to be called when source mapper is no longer needed in order to prevent memory leaks.
-     */
-    destroy() {
-        if (this.mapper.destroy) {
-            this.mapper.destroy();
-        }
     }
 }

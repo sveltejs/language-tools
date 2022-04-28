@@ -1,4 +1,4 @@
-import { SourceMapConsumer } from 'source-map';
+import { TraceMap } from '@jridgewell/trace-mapping';
 import type { compile } from 'svelte/compiler';
 import { CompileOptions } from 'svelte/types/compiler/interfaces';
 import { PreprocessorGroup, Processed } from 'svelte/types/compiler/preprocess/types';
@@ -100,21 +100,10 @@ export class SvelteDocument {
         const svelte = importSvelte(this.getFilePath());
         return svelte.compile((await this.getTranspiled()).getText(), options);
     }
-
-    /**
-     * Needs to be called before cleanup to prevent source map memory leaks.
-     */
-    destroyTranspiled() {
-        if (this.transpiledDoc) {
-            this.transpiledDoc.destroy();
-            this.transpiledDoc = undefined;
-        }
-    }
 }
 
 export interface ITranspiledSvelteDocument extends PositionMapper {
     getText(): string;
-    destroy(): void;
 }
 
 export class TranspiledSvelteDocument implements ITranspiledSvelteDocument {
@@ -163,10 +152,6 @@ export class TranspiledSvelteDocument implements ITranspiledSvelteDocument {
 
     getGeneratedPosition(originalPosition: Position): Position {
         return this.mapper?.getGeneratedPosition(originalPosition) || originalPosition;
-    }
-
-    destroy() {
-        this.mapper?.destroy();
     }
 }
 
@@ -261,14 +246,6 @@ export class FallbackTranspiledSvelteDocument implements ITranspiledSvelteDocume
         }
 
         return positionAt(offset, this.getText());
-    }
-
-    /**
-     * Needs to be called before cleanup to prevent source map memory leaks.
-     */
-    destroy() {
-        this.scriptMapper?.destroy();
-        this.styleMapper?.destroy();
     }
 }
 
@@ -387,15 +364,6 @@ export class SvelteFragmentMapper implements PositionMapper {
         );
         return this.transpiledFragmentMapper.getOriginalPosition(positionInTranspiledFragment);
     }
-
-    /**
-     * Needs to be called before cleanup to prevent source map memory leaks.
-     */
-    destroy() {
-        if (this.sourceMapper.destroy) {
-            this.sourceMapper.destroy();
-        }
-    }
 }
 
 /**
@@ -485,8 +453,8 @@ async function transpile(
     return { transpiled, processedScripts, processedStyles };
 }
 
-async function createSourceMapConsumer(map: any): Promise<SourceMapConsumer> {
-    return new SourceMapConsumer(normalizeMap(map));
+async function createSourceMapConsumer(map: any): Promise<TraceMap> {
+    return new TraceMap(normalizeMap(map));
 
     function normalizeMap(map: any) {
         // We don't know what we get, could be a stringified sourcemap,
