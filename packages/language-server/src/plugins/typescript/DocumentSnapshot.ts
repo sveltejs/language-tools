@@ -1,4 +1,4 @@
-import { DecodedSourceMap, EncodedSourceMap, TraceMap } from '@jridgewell/trace-mapping';
+import { EncodedSourceMap, TraceMap } from '@jridgewell/trace-mapping';
 import { walk } from 'svelte/compiler';
 import { TemplateNode } from 'svelte/types/compiler/interfaces';
 import { svelte2tsx, IExportedNames } from 'svelte2tsx';
@@ -239,7 +239,7 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
         private readonly text: string,
         private readonly nrPrependedLines: number,
         private readonly exportedNames: IExportedNames,
-        private readonly tsxMap?: DecodedSourceMap | EncodedSourceMap,
+        private readonly tsxMap?: EncodedSourceMap,
         private readonly htmlAst?: TemplateNode
     ) {}
 
