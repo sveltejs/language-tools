@@ -14,7 +14,7 @@ export class SelectionRangeProviderImpl implements SelectionRangeProvider {
         position: Position
     ): Promise<SelectionRange | null> {
         const { tsDoc, lang } = await this.lsAndTsDocResolver.getLSAndTSDoc(document);
-        const fragment = await tsDoc.getFragment();
+        const fragment = tsDoc.getFragment();
 
         const tsSelectionRange = lang.getSmartSelectionRange(
             tsDoc.filePath,

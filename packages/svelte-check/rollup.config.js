@@ -67,7 +67,7 @@ export default [
             'svelte/compiler',
             'svelte-preprocess',
             'import-fresh', // because of https://github.com/sindresorhus/import-fresh/issues/18
-            'source-map'
+            '@jridgewell/trace-mapping'
         ]
     }
 ];

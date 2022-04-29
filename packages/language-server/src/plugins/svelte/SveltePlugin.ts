@@ -223,7 +223,6 @@ export class SveltePlugin
     private async getSvelteDoc(document: Document) {
         let svelteDoc = this.docManager.get(document);
         if (!svelteDoc || svelteDoc.version !== document.version) {
-            svelteDoc?.destroyTranspiled();
             svelteDoc = new SvelteDocument(document);
             this.docManager.set(document, svelteDoc);
         }

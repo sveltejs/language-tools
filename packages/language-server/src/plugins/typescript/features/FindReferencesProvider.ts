@@ -16,7 +16,7 @@ export class FindReferencesProviderImpl implements FindReferencesProvider {
         context: ReferenceContext
     ): Promise<Location[] | null> {
         const { lang, tsDoc } = await this.getLSAndTSDoc(document);
-        const fragment = await tsDoc.getFragment();
+        const fragment = tsDoc.getFragment();
 
         const references = lang.getReferencesAtPosition(
             tsDoc.filePath,

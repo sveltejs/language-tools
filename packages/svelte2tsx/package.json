@@ -18,6 +18,7 @@
     "module": "index.mjs",
     "types": "index.d.ts",
     "devDependencies": {
+        "@jridgewell/trace-mapping": "^0.3.9",
         "@rollup/plugin-commonjs": "^15.0.0",
         "@rollup/plugin-json": "^4.0.0",
         "@rollup/plugin-node-resolve": "^9.0.0",
@@ -31,7 +32,6 @@
         "periscopic": "^2.0.2",
         "rollup": "2.52.7",
         "rollup-plugin-delete": "^2.0.0",
-        "source-map": "^0.6.1",
         "source-map-support": "^0.5.16",
         "sourcemap-codec": "^1.4.8",
         "svelte": "~3.47.0",

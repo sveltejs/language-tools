@@ -19,12 +19,12 @@ type NodeTypePredicate<T extends ts.Node> = (node: ts.Node) => node is T;
  * If the given original position is within a Svelte starting tag,
  * return the snapshot of that component.
  */
-export async function getComponentAtPosition(
+export function getComponentAtPosition(
     lang: ts.LanguageService,
     doc: Document,
     tsDoc: SvelteDocumentSnapshot,
     originalPosition: Position
-): Promise<ComponentInfoProvider | null> {
+): ComponentInfoProvider | null {
     if (tsDoc.parserError) {
         return null;
     }
@@ -42,7 +42,7 @@ export async function getComponentAtPosition(
         return null;
     }
 
-    const fragment = await tsDoc.getFragment();
+    const fragment = tsDoc.getFragment();
     const generatedPosition = fragment.getGeneratedPosition(doc.positionAt(node.start + 1));
     const def = lang.getDefinitionAtPosition(
         tsDoc.filePath,

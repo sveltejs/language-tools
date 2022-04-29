@@ -101,7 +101,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         }
 
         const { lang, tsDoc, userPreferences } = await this.getLSAndTSDoc(document);
-        const fragment = await tsDoc.getFragment();
+        const fragment = tsDoc.getFragment();
 
         if (cancellationToken?.isCancellationRequested) {
             return [];
@@ -215,7 +215,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         cancellationToken: CancellationToken | undefined
     ) {
         const { lang, tsDoc, userPreferences } = await this.getLSAndTSDoc(document);
-        const fragment = await tsDoc.getFragment();
+        const fragment = tsDoc.getFragment();
 
         if (cancellationToken?.isCancellationRequested) {
             return [];
@@ -430,7 +430,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         }
 
         const { lang, tsDoc, userPreferences } = await this.getLSAndTSDoc(document);
-        const fragment = await tsDoc.getFragment();
+        const fragment = tsDoc.getFragment();
 
         if (cancellationToken?.isCancellationRequested) {
             return [];
@@ -527,7 +527,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         }
 
         const { lang, tsDoc, userPreferences } = await this.getLSAndTSDoc(document);
-        const fragment = await tsDoc.getFragment();
+        const fragment = tsDoc.getFragment();
         const path = document.getFilePath() || '';
         const { refactorName, originalRange, textRange } = <RefactorArgs>args[1];
 
