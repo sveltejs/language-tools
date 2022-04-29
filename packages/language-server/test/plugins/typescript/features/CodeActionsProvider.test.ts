@@ -340,6 +340,52 @@ function test(useNewTransformation: boolean) {
             ]);
         });
 
+        it('remove import inline with script tag', async () => {
+            const { provider, document } = setup('remove-imports-inline.svelte');
+
+            const codeActions = await provider.getCodeActions(
+                document,
+                Range.create(Position.create(0, 9), Position.create(0, 9)),
+                {
+                    diagnostics: [
+                        {
+                            code: 6133,
+                            message: "'CodeActions' is declared but its value is never read",
+                            range: Range.create(Position.create(0, 8), Position.create(0, 54)),
+                            source: 'js'
+                        }
+                    ],
+                    only: [CodeActionKind.QuickFix]
+                }
+            );
+
+            assert.deepStrictEqual(codeActions, <CodeAction[]>[
+                {
+                    edit: {
+                        documentChanges: [
+                            {
+                                edits: [
+                                    {
+                                        newText: '',
+                                        range: {
+                                            end: Position.create(0, 54),
+                                            start: Position.create(0, 8)
+                                        }
+                                    }
+                                ],
+                                textDocument: {
+                                    uri: getUri('remove-imports-inline.svelte'),
+                                    version: null
+                                }
+                            }
+                        ]
+                    },
+                    kind: 'quickfix',
+                    title: "Remove import from './codeactions.svelte'"
+                }
+            ]);
+        });
+
         it('organizes imports', async () => {
             const { provider, document } = setup('codeactions.svelte');
 
