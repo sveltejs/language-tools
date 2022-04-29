@@ -129,7 +129,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             this.lastCompletion = undefined;
         }
 
-        const fragment = await tsDoc.getFragment();
+        const fragment = tsDoc.getFragment();
         if (!fragment.isInGenerated(position)) {
             return null;
         }
@@ -163,7 +163,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             right: /[^\w$:]/
         });
 
-        const eventAndSlotLetCompletions = await this.getEventAndSlotLetCompletions(
+        const eventAndSlotLetCompletions = this.getEventAndSlotLetCompletions(
             lang,
             document,
             tsDoc,
@@ -245,14 +245,14 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         return new Set(tidiedImports);
     }
 
-    private async getEventAndSlotLetCompletions(
+    private getEventAndSlotLetCompletions(
         lang: ts.LanguageService,
         doc: Document,
         tsDoc: SvelteDocumentSnapshot,
         originalPosition: Position,
         wordRange: { start: number; end: number }
-    ): Promise<Array<AppCompletionItem<CompletionEntryWithIdentifer>>> {
-        const componentInfo = await getComponentAtPosition(lang, doc, tsDoc, originalPosition);
+    ): Array<AppCompletionItem<CompletionEntryWithIdentifer>> {
+        const componentInfo = getComponentAtPosition(lang, doc, tsDoc, originalPosition);
         if (!componentInfo) {
             return [];
         }
@@ -449,7 +449,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             return completionItem;
         }
 
-        const fragment = await tsDoc.getFragment();
+        const fragment = tsDoc.getFragment();
         const errorPreventingUserPreferences = comp.source?.endsWith('.svelte')
             ? this.fixUserPreferencesForSvelteComponentImport(userPreferences)
             : userPreferences;

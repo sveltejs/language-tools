@@ -165,7 +165,7 @@ export class TypeScriptPlugin
         }
 
         const { lang, tsDoc } = await this.getLSAndTSDoc(document);
-        const fragment = await tsDoc.getFragment();
+        const fragment = tsDoc.getFragment();
 
         if (cancellationToken?.isCancellationRequested) {
             return [];
@@ -319,7 +319,7 @@ export class TypeScriptPlugin
         }
 
         const { lang, tsDoc } = await this.getLSAndTSDoc(document);
-        const mainFragment = await tsDoc.getFragment();
+        const mainFragment = tsDoc.getFragment();
 
         const defs = lang.getDefinitionAndBoundSpan(
             tsDoc.filePath,

@@ -51,7 +51,7 @@ export interface DocumentSnapshot extends ts.IScriptSnapshot {
     /**
      * Instantiates a source mapper
      */
-    getFragment(): Promise<SnapshotFragment>;
+    getFragment(): SnapshotFragment;
     /**
      * Convenience function for getText(0, getLength())
      */
@@ -308,11 +308,11 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
         return foundNode;
     }
 
-    async getFragment() {
+    getFragment() {
         if (!this.fragment) {
             const uri = pathToUrl(this.filePath);
             this.fragment = new SvelteSnapshotFragment(
-                await this.getMapper(uri),
+                this.getMapper(uri),
                 this.text,
                 this.parent,
                 uri
@@ -321,7 +321,7 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
         return this.fragment;
     }
 
-    private async getMapper(uri: string) {
+    private getMapper(uri: string) {
         const scriptInfo = this.parent.scriptInfo || this.parent.moduleScriptInfo;
 
         if (!this.tsxMap) {
@@ -376,7 +376,7 @@ export class JSOrTSDocumentSnapshot
         return offsetAt(position, this.text, this.getLineOffsets());
     }
 
-    async getFragment() {
+    getFragment() {
         return this;
     }
 

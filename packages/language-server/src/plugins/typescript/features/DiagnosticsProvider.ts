@@ -75,7 +75,7 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
             ];
         }
 
-        const fragment = await tsDoc.getFragment();
+        const fragment = tsDoc.getFragment();
 
         let diagnostics: ts.Diagnostic[] = [
             ...lang.getSyntacticDiagnostics(tsDoc.filePath),

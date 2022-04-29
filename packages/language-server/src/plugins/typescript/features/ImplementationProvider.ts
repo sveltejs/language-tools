@@ -12,7 +12,7 @@ export class ImplementationProviderImpl implements ImplementationProvider {
     async getImplementation(document: Document, position: Position): Promise<Location[] | null> {
         const { tsDoc, lang } = await this.lsAndTsDocResolver.getLSAndTSDoc(document);
 
-        const mainFragment = await tsDoc.getFragment();
+        const mainFragment = tsDoc.getFragment();
         const offset = mainFragment.offsetAt(mainFragment.getGeneratedPosition(position));
 
         const implementations = lang.getImplementationAtPosition(tsDoc.filePath, offset);

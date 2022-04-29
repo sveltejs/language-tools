@@ -120,7 +120,7 @@ export class FragmentMapper implements DocumentMapper {
 
 export class SourceMapDocumentMapper implements DocumentMapper {
     constructor(
-        protected consumer: TraceMap,
+        protected traceMap: TraceMap,
         protected sourceUri: string,
         private parent?: DocumentMapper
     ) {}
@@ -134,7 +134,7 @@ export class SourceMapDocumentMapper implements DocumentMapper {
             return { line: -1, character: -1 };
         }
 
-        const mapped = originalPositionFor(this.consumer, {
+        const mapped = originalPositionFor(this.traceMap, {
             line: generatedPosition.line + 1,
             column: generatedPosition.character
         });
@@ -158,7 +158,7 @@ export class SourceMapDocumentMapper implements DocumentMapper {
             originalPosition = this.parent.getGeneratedPosition(originalPosition);
         }
 
-        const mapped = generatedPositionFor(this.consumer, {
+        const mapped = generatedPositionFor(this.traceMap, {
             line: originalPosition.line + 1,
             column: originalPosition.character,
             source: this.sourceUri
