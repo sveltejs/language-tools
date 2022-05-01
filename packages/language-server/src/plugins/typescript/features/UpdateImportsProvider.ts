@@ -15,6 +15,7 @@ export class UpdateImportsProviderImpl implements UpdateImportsProvider {
     constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
 
     async updateImports(fileRename: FileRename): Promise<WorkspaceEdit | null> {
+        // TODO does this handle folder moves/renames correctly? old/new path isn't a file then
         const oldPath = urlToPath(fileRename.oldUri);
         const newPath = urlToPath(fileRename.newUri);
         if (!oldPath || !newPath) {

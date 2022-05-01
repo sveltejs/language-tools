@@ -9,6 +9,7 @@ import { decorateDiagnostics } from './diagnostics';
 import { decorateFindReferences } from './find-references';
 import { decorateGetImplementation } from './implementation';
 import { decorateRename } from './rename';
+import { decorateUpdateImports } from './update-imports';
 
 const sveltePluginPatchSymbol = Symbol('sveltePluginPatchSymbol');
 
@@ -41,6 +42,7 @@ function decorateLanguageServiceInner(
     decorateCompletions(ls, logger);
     decorateGetDefinition(ls, snapshotManager, logger);
     decorateGetImplementation(ls, snapshotManager, logger);
+    decorateUpdateImports(ls, snapshotManager, logger);
     return ls;
 }
 

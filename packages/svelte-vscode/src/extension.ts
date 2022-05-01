@@ -352,13 +352,23 @@ function addRenameFileListener(getLS: () => LanguageClient) {
                         newUri: evt.files[0].newUri.toString(true)
                     }
                 );
-                if (!editsForFileRename) {
+                const edits = editsForFileRename?.documentChanges?.filter(TextDocumentEdit.is);
+                if (!edits) {
+                    return;
+                }
+
+                // If a file move/rename of a TS/JS file results in TS/JS file updates only,
+                // skip because the TypeScript LS will take care of it.
+                if (
+                    (oldUri.endsWith('.ts') || oldUri.endsWith('.js')) &&
+                    !edits.some((change) => change.textDocument.uri.endsWith('.svelte'))
+                ) {
                     return;
                 }
 
                 const workspaceEdit = new WorkspaceEdit();
                 // Renaming a file should only result in edits of existing files
-                editsForFileRename.documentChanges?.filter(TextDocumentEdit.is).forEach((change) =>
+                edits.forEach((change) =>
                     change.edits.forEach((edit) => {
                         workspaceEdit.replace(
                             Uri.parse(change.textDocument.uri),
