@@ -44,7 +44,6 @@ export function isAttributeShorthand(
         // We could get the expression, or the shorthand, or the attribute
         // Be pragmatic and just go upwards until we can't anymore
         if (isAttributeName(node, only)) {
-            console.log('yay');
             return true;
         }
         node = node.parent!;
