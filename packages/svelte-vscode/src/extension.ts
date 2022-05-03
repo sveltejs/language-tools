@@ -357,19 +357,20 @@ function addRenameFileListener(getLS: () => LanguageClient) {
                     return;
                 }
 
-                // If a file move/rename of a TS/JS file results in TS/JS file updates only,
-                // skip because the TypeScript LS will take care of it.
-                if (
-                    (oldUri.endsWith('.ts') || oldUri.endsWith('.js')) &&
-                    !edits.some((change) => change.textDocument.uri.endsWith('.svelte'))
-                ) {
-                    return;
-                }
-
                 const workspaceEdit = new WorkspaceEdit();
                 // Renaming a file should only result in edits of existing files
-                edits.forEach((change) =>
+                edits.forEach((change) => {
+                    const isTsOrJsFile =
+                        change.textDocument.uri.endsWith('.ts') ||
+                        change.textDocument.uri.endsWith('.js');
+
                     change.edits.forEach((edit) => {
+                        // If the moved/renamed file is a TS/JS file, skip all TS/JS updates
+                        // because the TypeScript LS will take care of it.
+                        if (isTsOrJsFile && !edit.newText.endsWith('.svelte')) {
+                            return;
+                        }
+
                         workspaceEdit.replace(
                             Uri.parse(change.textDocument.uri),
                             new Range(
@@ -378,8 +379,8 @@ function addRenameFileListener(getLS: () => LanguageClient) {
                             ),
                             edit.newText
                         );
-                    })
-                );
+                    });
+                });
                 workspace.applyEdit(workspaceEdit);
             }
         );
