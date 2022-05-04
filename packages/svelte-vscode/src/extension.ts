@@ -358,19 +358,41 @@ function addRenameFileListener(getLS: () => LanguageClient) {
                 }
 
                 const workspaceEdit = new WorkspaceEdit();
-                // Renaming a file should only result in edits of existing files
+                // We need to take into account multiple cases:
+                // - A Svelte file is moved/renamed
+                //      -> all updates will be related to that Svelte file, do that here. The TS LS won't even notice the update
+                // - A TS/JS file is moved/renamed
+                //      -> all updates will be related to that TS/JS file
+                //      -> let the TS LS take care of these updates in TS/JS files, do Svelte file updates here
+                // - A folder with TS/JS AND Svelte files is moved/renamed
+                //      -> all Svelte file updates are handled here
+                //      -> all TS/JS file updates that consist of only TS/JS import updates are handled by the TS LS
+                //      -> all TS/JS file updates that consist of only Svelte import updates are handled here
+                //      -> all TS/JS file updates that are mixed are handled here, but also possibly by the TS LS
+                //         if the TS plugin doesn't prevent it. This trades risk of broken updates with certainty of missed updates
                 edits.forEach((change) => {
                     const isTsOrJsFile =
                         change.textDocument.uri.endsWith('.ts') ||
                         change.textDocument.uri.endsWith('.js');
+                    const containsSvelteImportUpdate = change.edits.some((edit) =>
+                        edit.newText.endsWith('.svelte')
+                    );
+                    if (isTsOrJsFile && !containsSvelteImportUpdate) {
+                        return;
+                    }
 
                     change.edits.forEach((edit) => {
-                        // If the moved/renamed file is a TS/JS file, skip all TS/JS updates
-                        // because the TypeScript LS will take care of it.
-                        if (isTsOrJsFile && !edit.newText.endsWith('.svelte')) {
+                        if (
+                            isTsOrJsFile &&
+                            !TsPlugin.isEnabled() &&
+                            !edit.newText.endsWith('.svelte')
+                        ) {
+                            // TS plugin enabled -> all mixed imports are handled here
+                            // TS plugin disabled -> let TS/JS path updates be handled by the TS LS, Svelte here
                             return;
                         }
 
+                        // Renaming a file should only result in edits of existing files
                         workspaceEdit.replace(
                             Uri.parse(change.textDocument.uri),
                             new Range(
