@@ -4,12 +4,12 @@ export class TsPlugin {
     private enabled: boolean;
 
     constructor(context: ExtensionContext) {
-        this.enabled = this.getEnabledState();
+        this.enabled = TsPlugin.isEnabled();
         this.toggleTsPlugin(this.enabled);
 
         context.subscriptions.push(
             workspace.onDidChangeConfiguration(() => {
-                const enabled = this.getEnabledState();
+                const enabled = TsPlugin.isEnabled();
                 if (enabled !== this.enabled) {
                     this.enabled = enabled;
                     this.toggleTsPlugin(this.enabled);
@@ -18,7 +18,7 @@ export class TsPlugin {
         );
     }
 
-    private getEnabledState(): boolean {
+    static isEnabled(): boolean {
         return workspace.getConfiguration('svelte').get<boolean>('enable-ts-plugin') ?? false;
     }
 
