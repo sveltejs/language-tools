@@ -2,6 +2,7 @@ import MagicString from 'magic-string';
 import { IfScope } from './if-scope';
 import { BaseNode } from '../../interfaces';
 import { withTrailingPropertyAccess } from '../utils/node-utils';
+import { extractConstTags } from './const-tag';
 
 /**
  * {# if ...}...{/if}   --->   {() => {if(...){<>...</>}}}
@@ -13,44 +14,66 @@ export function handleIf(
     ifScope: IfScope
 ): void {
     const endIf = htmlx.lastIndexOf('{', ifBlock.end - 1);
+    const constTags = extractConstTags(ifBlock.children);
+    const ifConditionEnd = htmlx.indexOf('}', ifBlock.expression.end) + 1;
+    const hasConstTags = !!constTags.length;
+    const endIIFE = hasConstTags ? '</>})()}' : '';
+    const startIIFE = hasConstTags ? '{(() => {' : '';
+
+    if (hasConstTags) {
+        // {@const hi = exp} <div>{hi}> -> {(() => { const hi = exp; return <> <div>{hi}<div></> })}
+
+        constTags.forEach((constTag) => {
+            constTag(ifConditionEnd, str);
+        });
+
+        str.appendRight(ifConditionEnd, 'return <>');
+    }
 
     if (ifBlock.elseif) {
         // {:else if expr}  ->  : (expr) ? <>
         const elseIfStart = htmlx.lastIndexOf('{', ifBlock.expression.start);
-        const elseIfConditionEnd = htmlx.indexOf('}', ifBlock.expression.end) + 1;
-        str.overwrite(elseIfStart, ifBlock.expression.start, '</> : (', { contentOnly: true });
+        str.overwrite(elseIfStart, ifBlock.expression.start, '</> : (', {
+            contentOnly: true
+        });
         str.overwrite(
             withTrailingPropertyAccess(str.original, ifBlock.expression.end),
-            elseIfConditionEnd,
-            ') ? <>'
+            ifConditionEnd,
+            ') ? <>' + startIIFE
         );
 
         ifScope.addElseIf(ifBlock.expression, str);
 
         if (!ifBlock.else) {
-            str.appendLeft(endIf, '</> : <>');
+            str.appendLeft(endIf, endIIFE + '</> : <>');
         }
         return;
     }
 
     // {#if expr}  ->  {(expr) ? <>
     str.overwrite(ifBlock.start, ifBlock.expression.start, '{(', { contentOnly: true });
-    const end = htmlx.indexOf('}', ifBlock.expression.end);
+
     str.overwrite(
         withTrailingPropertyAccess(str.original, ifBlock.expression.end),
-        end + 1,
-        ') ? <>',
+        ifConditionEnd,
+        ') ? <>' + startIIFE,
         { contentOnly: true }
     );
 
     ifScope.addNestedIf(ifBlock.expression, str);
 
     if (ifBlock.else) {
+        const elseWord = htmlx.lastIndexOf(':else', ifBlock.else.start);
+        const elseStart = htmlx.lastIndexOf('{', elseWord);
+        str.appendLeft(elseStart, endIIFE);
+
         // {/if}  ->  </> }
         str.overwrite(endIf, ifBlock.end, '</> }', { contentOnly: true });
     } else {
         // {/if}  ->  </> : <></>}
-        str.overwrite(endIf, ifBlock.end, '</> : <></>}', { contentOnly: true });
+        str.overwrite(endIf, ifBlock.end, endIIFE + '</> : <></>}', {
+            contentOnly: true
+        });
     }
 }
 
