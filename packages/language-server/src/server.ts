@@ -218,7 +218,7 @@ export function startServer(options?: LSOptions) {
                               SORT_IMPORT_CODE_ACTION_KIND,
                               ...(clientSupportApplyEditCommand ? [CodeActionKind.Refactor] : [])
                           ].filter(
-                              clientSupportedCodeActionKinds
+                              clientSupportedCodeActionKinds && evt.initializationOptions.shouldFilterCodeActionKind
                                   ? (kind) => clientSupportedCodeActionKinds.includes(kind)
                                   : () => true
                           )
