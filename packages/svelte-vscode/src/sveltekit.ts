@@ -2,10 +2,22 @@
 
 import { Position, Uri, window, workspace, WorkspaceEdit } from 'vscode';
 
+enum Option {
+    Yes = 'Yes',
+    No = 'No',
+    Always = 'Always',
+    Never = 'Never'
+}
+
 const routesPath = '/src/routes'; // TODO can be configured, read svelte.config.js https://kit.svelte.dev/docs/configuration
 
 export function addPageEndpointsPrompt() {
     workspace.onDidCreateFiles(async (e) => {
+        const option = workspace.getConfiguration('svelte.kit').get<string>('createEndpoints');
+        if (option === Option.Never) {
+            return;
+        }
+
         const files = e.files.filter(
             (file) => file.path.includes(routesPath) && file.path.endsWith('.svelte')
         );
@@ -13,19 +25,35 @@ export function addPageEndpointsPrompt() {
             return;
         }
 
-        const item = await window.showQuickPick(['Yes', 'No', 'Always', 'Never'], {
-            placeHolder: 'Create corresponding page endpoint?',
-            canPickMany: false
-        });
-        switch (item) {
-            case 'Always':
-                workspace.getConfiguration('svelte.kit').update('createEndpoints', 'Always');
+        if (option === Option.Always) {
+            createPageEndpoint(files);
+            return;
+        }
+
+        const item = await window.showQuickPick(
+            [
+                { label: Option.Yes, detail: 'Create an endpoint for the page you just created' },
+                { label: Option.No, detail: 'Do nothing' },
+                {
+                    label: Option.Always,
+                    detail: 'Always automatically create an endpoint for the page you just created'
+                },
+                { label: Option.Never, detail: 'Do not ask again' }
+            ],
+            {
+                placeHolder: 'Create corresponding page endpoint?',
+                canPickMany: false
+            }
+        );
+        switch (item?.label) {
+            case Option.Always:
+                workspace.getConfiguration('svelte.kit').update('createEndpoints', Option.Always);
                 createPageEndpoint(files);
                 break;
-            case 'Never':
-                workspace.getConfiguration('svelte.kit').update('createEndpoints', 'Never');
+            case Option.Never:
+                workspace.getConfiguration('svelte.kit').update('createEndpoints', Option.Never);
                 break;
-            case 'Yes':
+            case Option.Yes:
                 createPageEndpoint(files);
                 break;
         }
