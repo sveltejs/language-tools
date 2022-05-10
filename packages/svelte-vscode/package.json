@@ -102,6 +102,16 @@
                     "default": "off",
                     "description": "Traces the communication between VS Code and the Svelte Language Server."
                 },
+                "svelte.kit.createEndpoints": {
+                    "type": "string",
+                    "enum": [
+                        "Ask",
+                        "Always",
+                        "Never"
+                    ],
+                    "default": "Ask",
+                    "description": "Creates a corresponding endpoint when creating a new Svelte page file"
+                },
                 "svelte.plugin.typescript.enable": {
                     "type": "boolean",
                     "default": true,
