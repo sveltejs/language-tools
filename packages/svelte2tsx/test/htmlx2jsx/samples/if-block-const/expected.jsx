@@ -4,10 +4,10 @@
 </>})()}</> : (true) ? <>{(() => {const hello = name;return <>
     { }
     <h1>Hello {hello}</h1>
-</> : <>
-    {@const hello = name}
+</>})()}</> : <>{(() => {const hello = name;return <>
+    { }
     <h1>Hello {hello}</h1>
-</> }
+</>})()}</> }
 
 {(typeof a === 'string') ? <>{(() => {const aStr = a;const aStr2 = aStr;return <>
     { }

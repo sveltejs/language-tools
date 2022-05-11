@@ -17,8 +17,8 @@ export function handleIf(
     const constTags = extractConstTags(ifBlock.children);
     const ifConditionEnd = htmlx.indexOf('}', ifBlock.expression.end) + 1;
     const hasConstTags = !!constTags.length;
-    const endIIFE = hasConstTags ? '</>})()}' : '';
-    const startIIFE = hasConstTags ? '{(() => {' : '';
+    const endIIFE = createEndIIFE(hasConstTags);
+    const startIIFE = createStartIIFE(hasConstTags);
 
     if (hasConstTags) {
         // {@const hi = exp} <div>{hi}> -> {(() => { const hi = exp; return <> <div>{hi}<div></> })}
@@ -28,10 +28,18 @@ export function handleIf(
         });
 
         str.appendRight(ifConditionEnd, 'return <>');
+
+        if (ifBlock.else) {
+            // {:else} -> </>})()}</> : <>
+            const elseWord = htmlx.lastIndexOf(':else', ifBlock.else.start);
+            const elseStart = htmlx.lastIndexOf('{', elseWord);
+            str.appendLeft(elseStart, endIIFE);
+        }
     }
 
     if (ifBlock.elseif) {
         // {:else if expr}  ->  : (expr) ? <>
+        // {:else if expr}{@const ...}  ->  : (expr) ? <>{(() => {const ...; return <>
         const elseIfStart = htmlx.lastIndexOf('{', ifBlock.expression.start);
         str.overwrite(elseIfStart, ifBlock.expression.start, '</> : (', {
             contentOnly: true
@@ -51,6 +59,7 @@ export function handleIf(
     }
 
     // {#if expr}  ->  {(expr) ? <>
+    // {#if expr}{@const ...} ->  {(expr) ? <>{(() => {const ...; return <>
     str.overwrite(ifBlock.start, ifBlock.expression.start, '{(', { contentOnly: true });
 
     str.overwrite(
@@ -63,22 +72,28 @@ export function handleIf(
     ifScope.addNestedIf(ifBlock.expression, str);
 
     if (ifBlock.else) {
-        const elseWord = htmlx.lastIndexOf(':else', ifBlock.else.start);
-        const elseStart = htmlx.lastIndexOf('{', elseWord);
-        str.appendLeft(elseStart, endIIFE);
-
         // {/if}  ->  </> }
         str.overwrite(endIf, ifBlock.end, '</> }', { contentOnly: true });
     } else {
         // {/if}  ->  </> : <></>}
+        // {@const ...} -> </>})()}</> : <></>}
         str.overwrite(endIf, ifBlock.end, endIIFE + '</> : <></>}', {
             contentOnly: true
         });
     }
 }
 
+function createStartIIFE(hasConstTags: boolean) {
+    return hasConstTags ? '{(() => {' : '';
+}
+
+function createEndIIFE(hasConstTags: boolean) {
+    return hasConstTags ? '</>})()}' : '';
+}
+
 /**
  * {:else}   --->   </> : <>
+ * {:else} {@const ...} -> </> : <>{(() => { const ...; return<>
  */
 export function handleElse(
     htmlx: string,
@@ -93,10 +108,25 @@ export function handleElse(
     ) {
         return;
     }
+
     const elseEnd = htmlx.lastIndexOf('}', elseBlock.start);
     const elseword = htmlx.lastIndexOf(':else', elseEnd);
     const elseStart = htmlx.lastIndexOf('{', elseword);
-    str.overwrite(elseStart, elseEnd + 1, '</> : <>');
+    const constTags = extractConstTags(elseBlock.children);
+    const hasConstTags = !!constTags.length;
+
+    str.overwrite(elseStart, elseEnd + 1, '</> : <>' + createStartIIFE(hasConstTags));
 
     ifScope.addElse();
+
+    if (!hasConstTags) {
+        return;
+    }
+
+    constTags.forEach((constTag) => {
+        constTag(elseEnd + 1, str);
+    });
+
+    str.appendRight(elseEnd + 1, 'return <>');
+    str.appendLeft(elseBlock.end, createEndIIFE(true));
 }
