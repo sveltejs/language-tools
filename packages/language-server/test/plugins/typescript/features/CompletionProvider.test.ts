@@ -1306,6 +1306,19 @@ function test(useNewTransformation: boolean) {
             }
         });
 
+        it('handles completion in empty text attribute', async () => {
+            const { completionProvider, document } = setup('emptytext-importer.svelte');
+
+            const completions = await completionProvider.getCompletions(
+                document,
+                Position.create(4, 14)
+            );
+            assert.deepStrictEqual(
+                completions?.items.map((item) => item.label),
+                ['s', 'm', 'l']
+            );
+        });
+
         // Hacky, but it works. Needed due to testing both new and old transformation
         after(() => {
             __resetCache();
