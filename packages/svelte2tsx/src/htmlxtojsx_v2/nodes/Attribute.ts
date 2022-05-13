@@ -139,7 +139,7 @@ export function handleAttribute(
         return;
     }
     if (attr.value.length == 0) {
-        // attr=""
+        // shouldn't happen
         addAttribute(attributeName, ['""']);
         return;
     }
@@ -148,6 +148,12 @@ export function handleAttribute(
         const attrVal = attr.value[0];
 
         if (attrVal.type == 'Text') {
+            // Handle the attr="" special case with a transformation that allows mapping of the position
+            if (attrVal.start === attrVal.end) {
+                addAttribute(attributeName, [[attrVal.start - 1, attrVal.end + 1]]);
+                return;
+            }
+
             const hasBrackets =
                 str.original.lastIndexOf('}', attrVal.end) === attrVal.end - 1 ||
                 str.original.lastIndexOf('}"', attrVal.end) === attrVal.end - 1 ||
