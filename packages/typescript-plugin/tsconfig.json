@@ -6,7 +6,7 @@
         "strict": true,
         "declaration": true,
         "outDir": "dist",
-        "sourceMap": false,
+        "sourceMap": true,
         "composite": true
     },
     "include": ["./src/**/*"],
