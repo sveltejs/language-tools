@@ -28,7 +28,7 @@ import { LanguageClient, ServerOptions, TransportKind } from 'vscode-languagecli
 import CompiledCodeContentProvider from './CompiledCodeContentProvider';
 import { activateTagClosing } from './html/autoClose';
 import { EMPTY_ELEMENTS } from './html/htmlEmptyTagsShared';
-import { addPageEndpointsPrompt } from './sveltekit';
+import { addPageEndpointsCommand } from './sveltekit';
 import { TsPlugin } from './tsplugin';
 
 namespace TagCloseRequest {
@@ -230,7 +230,7 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
 
     addExtracComponentCommand(getLS, context);
 
-    addPageEndpointsPrompt();
+    addPageEndpointsCommand(context);
 
     languages.setLanguageConfiguration('svelte', {
         indentationRules: {
