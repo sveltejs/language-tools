@@ -284,7 +284,7 @@ export function processInstanceScriptContent(
         }
 
         if (ts.isImportDeclaration(node)) {
-            handleImportDeclaration(node, str, astOffset, script.start);
+            handleImportDeclaration(node, str, astOffset, script.start, tsAst);
 
             // Check if import is the event dispatcher
             events.checkIfImportIsEventDispatcher(node);
