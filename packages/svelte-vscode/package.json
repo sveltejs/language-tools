@@ -534,6 +534,10 @@
             {
                 "command": "svelte.extractComponent",
                 "title": "Svelte: Extract Component"
+            },
+            {
+                "command": "svelte.typescript.findAllFileReferences",
+                "title": "Svelte: Find File References"
             }
         ],
         "menus": {
@@ -541,6 +545,10 @@
                 {
                     "command": "svelte.showCompiledCodeToSide",
                     "when": "editorLangId == svelte"
+                },
+                {
+                    "command": "svelte.typescript.findAllFileReferences",
+                    "when": "editorLangId == svelte && resourceScheme == file"
                 }
             ],
             "editor/title": [
@@ -550,11 +558,24 @@
                     "group": "navigation"
                 }
             ],
+            "editor/title/context": [
+                {
+                    "command": "svelte.typescript.findAllFileReferences",
+                    "when": "resourceLangId == svelte && resourceScheme == file"
+                }
+            ],
             "editor/context": [
                 {
                     "command": "svelte.extractComponent",
                     "when": "editorLangId == svelte",
                     "group": "1_modification"
+                }
+            ],
+            "explorer/context": [
+                {
+                  "command": "svelte.typescript.findAllFileReferences",
+                  "when": "resourceLangId == svelte",
+                  "group": "4_search"
                 }
             ]
         },
