@@ -11,11 +11,12 @@ declare namespace svelteHTML {
   ): SVGElementTagNameMap[K];
   function mapElementTag(
     tag: any
-  ): HTMLElement;
+  ): any; // needs to be any because used in context of <svelte:element>
 
   function createElement<Elements extends IntrinsicElements, Key extends keyof Elements>(
-    element: Key, attrs: Elements[Key]
-  ): Key extends keyof ElementTagNameMap ? ElementTagNameMap[Key] : Key extends keyof SVGElementTagNameMap ? SVGElementTagNameMap[Key] : HTMLElement;
+    // "undefined | null" because of <svelte:element>
+    element: Key | undefined | null, attrs: Elements[Key]
+  ): Key extends keyof ElementTagNameMap ? ElementTagNameMap[Key] : Key extends keyof SVGElementTagNameMap ? SVGElementTagNameMap[Key] : any;
 
 
   type NativeElement = HTMLElement;
@@ -298,7 +299,6 @@ declare namespace svelteHTML {
     sveltefragment: { slot?: string; };
     svelteoptions: { [name: string]: any };
     sveltehead: { [name: string]: any };
-    svelteelement: { 'this': string | undefined | null; } & HTMLProps<any> & SVGProps<any>;
 
     [name: string]: { [name: string]: any };
   }
@@ -825,6 +825,7 @@ declare namespace svelte.JSX {
       pattern?: string | undefined | null;
       placeholder?: string | undefined | null;
       playsinline?: boolean | undefined | null;
+      ping?: string | undefined | null;
       poster?: string | undefined | null;
       preload?: string | undefined | null;
       radiogroup?: string | undefined | null;

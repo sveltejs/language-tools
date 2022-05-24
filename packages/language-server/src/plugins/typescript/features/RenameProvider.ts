@@ -38,7 +38,7 @@ export class RenameProviderImpl implements RenameProvider {
 
     async prepareRename(document: Document, position: Position): Promise<Range | null> {
         const { lang, tsDoc } = await this.getLSAndTSDoc(document);
-        const fragment = await tsDoc.getFragment();
+        const fragment = tsDoc.getFragment();
 
         const offset = fragment.offsetAt(fragment.getGeneratedPosition(position));
         const renameInfo = this.getRenameInfo(lang, tsDoc, document, position, offset);
@@ -55,7 +55,7 @@ export class RenameProviderImpl implements RenameProvider {
         newName: string
     ): Promise<WorkspaceEdit | null> {
         const { lang, tsDoc } = await this.getLSAndTSDoc(document);
-        const fragment = await tsDoc.getFragment();
+        const fragment = tsDoc.getFragment();
 
         const offset = fragment.offsetAt(fragment.getGeneratedPosition(position));
 

@@ -23,7 +23,7 @@ export class SemanticTokensProviderImpl implements SemanticTokensProvider {
         cancellationToken?: CancellationToken
     ): Promise<SemanticTokens | null> {
         const { lang, tsDoc } = await this.lsAndTsDocResolver.getLSAndTSDoc(textDocument);
-        const fragment = await tsDoc.getFragment();
+        const fragment = tsDoc.getFragment();
 
         // for better performance, don't do full-file semantic tokens when the file is too big
         if (

@@ -3,9 +3,11 @@
 // are loaded and their declarations conflict each other
 // See https://github.com/sveltejs/language-tools/issues/1059 for an example bug that stems from it
 
+// -- start svelte-ls-remove --
 declare module '*.svelte' {
     export default Svelte2TsxComponent
 }
+// -- end svelte-ls-remove --
 
 declare class Svelte2TsxComponent<
     Props extends {} = {},
@@ -185,7 +187,7 @@ declare function __sveltets_1_mapElementTag<K extends keyof SVGElementTagNameMap
 ): SVGElementTagNameMap[K];
 declare function __sveltets_1_mapElementTag(
     tag: any
-): HTMLElement;
+): any; // needs to be any because used in context of <svelte:element>
 
 declare function __sveltets_1_bubbleEventDef<Events, K extends keyof Events>(
     events: Events, eventKey: K

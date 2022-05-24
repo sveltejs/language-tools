@@ -5,6 +5,7 @@ let  { a } = __sveltets_1_invalidate(() => ({ a: '' }));
 let  { b: d } = __sveltets_1_invalidate(() => ({ b: '' }));
 let  { c: { length } } = __sveltets_1_invalidate(() => ({ c: '' }));
 let  { ...e } = __sveltets_1_invalidate(() => ({ f: ''}));
+let  { f } = __sveltets_1_invalidate(() => ({ f: ''}));
 ;
 () => (<></>);
 return { props: {}, slots: {}, getters: {}, events: {} }}

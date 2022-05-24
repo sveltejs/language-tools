@@ -1,4 +1,4 @@
-import { RawSourceMap, SourceMapConsumer } from 'source-map';
+import { EncodedSourceMap, TraceMap } from '@jridgewell/trace-mapping';
 import { walk } from 'svelte/compiler';
 import { TemplateNode } from 'svelte/types/compiler/interfaces';
 import { svelte2tsx, IExportedNames } from 'svelte2tsx';
@@ -49,18 +49,9 @@ export interface DocumentSnapshot extends ts.IScriptSnapshot {
     scriptKind: ts.ScriptKind;
     positionAt(offset: number): Position;
     /**
-     * Instantiates a source mapper.
-     * `destroyFragment` needs to be called when
-     * it's no longer needed / the class should be cleaned up
-     * in order to prevent memory leaks.
+     * Instantiates a source mapper
      */
-    getFragment(): Promise<SnapshotFragment>;
-    /**
-     * Needs to be called when source mapper
-     * is no longer needed / the class should be cleaned up
-     * in order to prevent memory leaks.
-     */
-    destroyFragment(): void;
+    getFragment(): SnapshotFragment;
     /**
      * Convenience function for getText(0, getLength())
      */
@@ -131,7 +122,33 @@ export namespace DocumentSnapshot {
      * @param options options that apply in case it's a svelte file
      */
     export function fromNonSvelteFilePath(filePath: string) {
-        const originalText = ts.sys.readFile(filePath) ?? '';
+        let originalText = '';
+
+        // The following (very hacky) code makes sure that the ambient module definitions
+        // that tell TS "every import ending with .svelte is a valid module" are removed.
+        // They exist in svelte2tsx and svelte to make sure that people don't
+        // get errors in their TS files when importing Svelte files and not using our TS plugin.
+        // If someone wants to get back the behavior they can add an ambient module definition
+        // on their own.
+        const normalizedPath = filePath.replace(/\\/g, '/');
+        if (!normalizedPath.endsWith('node_modules/svelte/types/runtime/ambient.d.ts')) {
+            originalText = ts.sys.readFile(filePath) || '';
+        }
+        if (
+            normalizedPath.endsWith('svelte2tsx/svelte-shims.d.ts') ||
+            normalizedPath.endsWith('svelte-check/dist/src/svelte-shims.d.ts')
+        ) {
+            // If not present, the LS uses an older version of svelte2tsx
+            if (originalText.includes('// -- start svelte-ls-remove --')) {
+                originalText =
+                    originalText.substring(
+                        0,
+                        originalText.indexOf('// -- start svelte-ls-remove --')
+                    ) +
+                    originalText.substring(originalText.indexOf('// -- end svelte-ls-remove --'));
+            }
+        }
+
         return new JSOrTSDocumentSnapshot(INITIAL_VERSION, filePath, originalText);
     }
 
@@ -155,7 +172,7 @@ export namespace DocumentSnapshot {
  * Tries to preprocess the svelte document and convert the contents into better analyzable js/ts(x) content.
  */
 function preprocessSvelteFile(document: Document, options: SvelteSnapshotOptions) {
-    let tsxMap: RawSourceMap | undefined;
+    let tsxMap: EncodedSourceMap | undefined;
     let parserError: ParserError | null = null;
     let nrPrependedLines = 0;
     let text = document.getText();
@@ -188,7 +205,7 @@ function preprocessSvelteFile(document: Document, options: SvelteSnapshotOptions
                 document.config?.compilerOptions?.customElement
         });
         text = tsx.code;
-        tsxMap = tsx.map;
+        tsxMap = tsx.map as EncodedSourceMap;
         exportedNames = tsx.exportedNames;
         // We know it's there, it's not part of the public API so people don't start using it
         htmlAst = (tsx as any).htmlAst;
@@ -248,7 +265,7 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
         private readonly text: string,
         private readonly nrPrependedLines: number,
         private readonly exportedNames: IExportedNames,
-        private readonly tsxMap?: RawSourceMap,
+        private readonly tsxMap?: EncodedSourceMap,
         private readonly htmlAst?: TemplateNode
     ) {}
 
@@ -317,11 +334,11 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
         return foundNode;
     }
 
-    async getFragment() {
+    getFragment() {
         if (!this.fragment) {
             const uri = pathToUrl(this.filePath);
             this.fragment = new SvelteSnapshotFragment(
-                await this.getMapper(uri),
+                this.getMapper(uri),
                 this.text,
                 this.parent,
                 uri
@@ -330,14 +347,7 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
         return this.fragment;
     }
 
-    destroyFragment() {
-        if (this.fragment) {
-            this.fragment.destroy();
-            this.fragment = undefined;
-        }
-    }
-
-    private async getMapper(uri: string) {
+    private getMapper(uri: string) {
         const scriptInfo = this.parent.scriptInfo || this.parent.moduleScriptInfo;
 
         if (!this.tsxMap) {
@@ -348,11 +358,7 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
             return new FragmentMapper(this.parent.getText(), scriptInfo, uri);
         }
 
-        return new ConsumerDocumentMapper(
-            await new SourceMapConsumer(this.tsxMap),
-            uri,
-            this.nrPrependedLines
-        );
+        return new ConsumerDocumentMapper(new TraceMap(this.tsxMap), uri, this.nrPrependedLines);
     }
 }
 
@@ -396,12 +402,8 @@ export class JSOrTSDocumentSnapshot
         return offsetAt(position, this.text, this.getLineOffsets());
     }
 
-    async getFragment() {
+    getFragment() {
         return this;
-    }
-
-    destroyFragment() {
-        // nothing to clean up
     }
 
     update(changes: TextDocumentContentChangeEvent[]): void {
@@ -478,14 +480,5 @@ export class SvelteSnapshotFragment implements SnapshotFragment {
 
     offsetAt(position: Position) {
         return offsetAt(position, this.text, this.lineOffsets);
-    }
-
-    /**
-     * Needs to be called when source mapper is no longer needed in order to prevent memory leaks.
-     */
-    destroy() {
-        if (this.mapper.destroy) {
-            this.mapper.destroy();
-        }
     }
 }

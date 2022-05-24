@@ -94,7 +94,6 @@ export class Element {
             case 'svelte:head':
             case 'svelte:window':
             case 'svelte:body':
-            case 'svelte:element':
             case 'svelte:fragment': {
                 // remove the colon: svelte:xxx -> sveltexxx
                 const nodeName = `svelte${this.node.name.substring(7)}`;
@@ -102,6 +101,21 @@ export class Element {
                 this.startTransformation.push(`{ ${createElement}("${nodeName}", {`);
                 this.addNameConstDeclaration = () =>
                     (this.startTransformation[0] = `{ const ${this._name} = ${createElement}("${nodeName}", {`);
+                break;
+            }
+            case 'svelte:element': {
+                const nodeName = this.node.tag
+                    ? typeof this.node.tag !== 'string'
+                        ? ([this.node.tag.start, this.node.tag.end] as [number, number])
+                        : `"${this.node.tag}"`
+                    : '""';
+                this._name = '$$_svelteelement' + this.computeDepth();
+                this.startTransformation.push(`{ ${createElement}(`, nodeName, ', {');
+                this.addNameConstDeclaration = () => (
+                    (this.startTransformation[0] = `{ const ${this._name} = ${createElement}(`),
+                    nodeName,
+                    ', {'
+                );
                 break;
             }
             case 'slot': {

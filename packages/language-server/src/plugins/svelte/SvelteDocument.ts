@@ -1,4 +1,4 @@
-import { SourceMapConsumer } from 'source-map';
+import { TraceMap } from '@jridgewell/trace-mapping';
 import type { compile } from 'svelte/compiler';
 import { CompileOptions } from 'svelte/types/compiler/interfaces';
 import { PreprocessorGroup, Processed } from 'svelte/types/compiler/preprocess/types';
@@ -100,21 +100,10 @@ export class SvelteDocument {
         const svelte = importSvelte(this.getFilePath());
         return svelte.compile((await this.getTranspiled()).getText(), options);
     }
-
-    /**
-     * Needs to be called before cleanup to prevent source map memory leaks.
-     */
-    destroyTranspiled() {
-        if (this.transpiledDoc) {
-            this.transpiledDoc.destroy();
-            this.transpiledDoc = undefined;
-        }
-    }
 }
 
 export interface ITranspiledSvelteDocument extends PositionMapper {
     getText(): string;
-    destroy(): void;
 }
 
 export class TranspiledSvelteDocument implements ITranspiledSvelteDocument {
@@ -141,7 +130,7 @@ export class TranspiledSvelteDocument implements ITranspiledSvelteDocument {
             preprocessed.code,
             preprocessed.map
                 ? new SourceMapDocumentMapper(
-                      await createSourceMapConsumer(preprocessed.map),
+                      createTraceMap(preprocessed.map),
                       // The "sources" array only contains the Svelte filename, not its path.
                       // For getting generated positions, the sourcemap consumer wants an exact match
                       // of the source filepath. Therefore only pass in the filename here.
@@ -164,10 +153,6 @@ export class TranspiledSvelteDocument implements ITranspiledSvelteDocument {
     getGeneratedPosition(originalPosition: Position): Position {
         return this.mapper?.getGeneratedPosition(originalPosition) || originalPosition;
     }
-
-    destroy() {
-        this.mapper?.destroy();
-    }
 }
 
 /**
@@ -185,16 +170,12 @@ export class FallbackTranspiledSvelteDocument implements ITranspiledSvelteDocume
             document,
             preprocessors
         );
-        const scriptMapper = await SvelteFragmentMapper.createScript(
+        const scriptMapper = SvelteFragmentMapper.createScript(
             document,
             transpiled,
             processedScripts
         );
-        const styleMapper = await SvelteFragmentMapper.createStyle(
-            document,
-            transpiled,
-            processedStyles
-        );
+        const styleMapper = SvelteFragmentMapper.createStyle(document, transpiled, processedStyles);
 
         return new FallbackTranspiledSvelteDocument(
             document,
@@ -262,18 +243,10 @@ export class FallbackTranspiledSvelteDocument implements ITranspiledSvelteDocume
 
         return positionAt(offset, this.getText());
     }
-
-    /**
-     * Needs to be called before cleanup to prevent source map memory leaks.
-     */
-    destroy() {
-        this.scriptMapper?.destroy();
-        this.styleMapper?.destroy();
-    }
 }
 
 export class SvelteFragmentMapper implements PositionMapper {
-    static async createStyle(originalDoc: Document, transpiled: string, processed: Processed[]) {
+    static createStyle(originalDoc: Document, transpiled: string, processed: Processed[]) {
         return SvelteFragmentMapper.create(
             originalDoc,
             transpiled,
@@ -283,7 +256,7 @@ export class SvelteFragmentMapper implements PositionMapper {
         );
     }
 
-    static async createScript(originalDoc: Document, transpiled: string, processed: Processed[]) {
+    static createScript(originalDoc: Document, transpiled: string, processed: Processed[]) {
         const scriptInfo = originalDoc.scriptInfo || originalDoc.moduleScriptInfo;
         const maybeScriptTag = extractScriptTags(transpiled);
         const maybeScriptTagInfo =
@@ -298,7 +271,7 @@ export class SvelteFragmentMapper implements PositionMapper {
         );
     }
 
-    private static async create(
+    private static create(
         originalDoc: Document,
         transpiled: string,
         originalTagInfo: TagInformation | null,
@@ -307,7 +280,7 @@ export class SvelteFragmentMapper implements PositionMapper {
     ) {
         const sourceMapper =
             processed.length > 0
-                ? await SvelteFragmentMapper.createSourceMapper(processed, originalDoc)
+                ? SvelteFragmentMapper.createSourceMapper(processed, originalDoc)
                 : new IdentityMapper(originalDoc.uri);
 
         if (originalTagInfo && transpiledTagInfo) {
@@ -327,17 +300,17 @@ export class SvelteFragmentMapper implements PositionMapper {
         return null;
     }
 
-    private static async createSourceMapper(processed: Processed[], originalDoc: Document) {
+    private static createSourceMapper(processed: Processed[], originalDoc: Document) {
         return processed.reduce(
-            async (parent, processedSingle) =>
+            (parent, processedSingle) =>
                 processedSingle?.map
                     ? new SourceMapDocumentMapper(
-                          await createSourceMapConsumer(processedSingle.map),
+                          createTraceMap(processedSingle.map),
                           originalDoc.uri,
-                          await parent
+                          parent
                       )
-                    : new IdentityMapper(originalDoc.uri, await parent),
-            Promise.resolve<DocumentMapper>(<any>undefined)
+                    : new IdentityMapper(originalDoc.uri, parent),
+            <DocumentMapper>(<any>undefined)
         );
     }
 
@@ -386,15 +359,6 @@ export class SvelteFragmentMapper implements PositionMapper {
             positionInOriginalFragment
         );
         return this.transpiledFragmentMapper.getOriginalPosition(positionInTranspiledFragment);
-    }
-
-    /**
-     * Needs to be called before cleanup to prevent source map memory leaks.
-     */
-    destroy() {
-        if (this.sourceMapper.destroy) {
-            this.sourceMapper.destroy();
-        }
     }
 }
 
@@ -485,8 +449,8 @@ async function transpile(
     return { transpiled, processedScripts, processedStyles };
 }
 
-async function createSourceMapConsumer(map: any): Promise<SourceMapConsumer> {
-    return new SourceMapConsumer(normalizeMap(map));
+function createTraceMap(map: any): TraceMap {
+    return new TraceMap(normalizeMap(map));
 
     function normalizeMap(map: any) {
         // We don't know what we get, could be a stringified sourcemap,
