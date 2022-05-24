@@ -50,8 +50,7 @@ const regexHtml = new RegExp('{\\s*@html\\s.*?', 'gms');
 /**
  * Extracts a tag (style or script) from the given text
  * and returns its start, end and the attributes on that tag.
- *
- * @param source text content to extract tag from
+ * @param text text content to extract tag from
  * @param tag the tag to extract
  */
 function extractTags(
