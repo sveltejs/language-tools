@@ -29,6 +29,7 @@ import CompiledCodeContentProvider from './CompiledCodeContentProvider';
 import { activateTagClosing } from './html/autoClose';
 import { EMPTY_ELEMENTS } from './html/htmlEmptyTagsShared';
 import { TsPlugin } from './tsplugin';
+import { addFindFileReferencesListener } from './typescript/findFileReferences';
 
 namespace TagCloseRequest {
     export const type: RequestType<TextDocumentPositionParams, string, any> = new RequestType(
@@ -223,7 +224,8 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
 
     addDidChangeTextDocumentListener(getLS);
 
-    addWhereImportsUsedListener(getLS);
+    addFindFileReferencesListener(getLS, context);
+
     addRenameFileListener(getLS);
 
     addCompilePreviewCommand(getLS, context);
@@ -321,15 +323,6 @@ function addDidChangeTextDocumentListener(getLS: () => LanguageClient) {
                 }))
             });
         }
-    });
-}
-
-async function addWhereImportsUsedListener(getLS: () => LanguageClient) {
-    //dummy test handler
-    workspace.onWillSaveTextDocument(async (evt) => {
-        const fileName = evt.document.fileName;
-
-        await getLS().sendRequest<LSWorkspaceEdit | null>('$/getFileReferences', fileName);
     });
 }
 
