@@ -195,8 +195,7 @@ describe('document/utils', () => {
                 p{ color: blue; }
                 </script> -->
                 <scrit>blah</scrit>
-                <script>top level script</script>                
-                {  #if myvar } {/if}
+                <script>top level script</script>
             `;
 
             assert.deepStrictEqual(extractScriptTags(text)?.script, {
@@ -207,6 +206,23 @@ describe('document/utils', () => {
                 startPos: Position.create(34, 24),
                 endPos: Position.create(34, 40),
                 container: { start: 1235, end: 1268 }
+            });
+        });
+
+        it("extracts top level script when there're whitespace before block name", () => {
+            const text = `
+                <script>top level script</script>
+                {  #if myvar } {/if}
+            `;
+
+            assert.deepStrictEqual(extractScriptTags(text)?.script, {
+                content: 'top level script',
+                attributes: {},
+                start: 25,
+                end: 41,
+                startPos: Position.create(1, 24),
+                endPos: Position.create(1, 40),
+                container: { start: 17, end: 50 }
             });
         });
 
