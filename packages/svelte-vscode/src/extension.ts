@@ -325,22 +325,12 @@ function addDidChangeTextDocumentListener(getLS: () => LanguageClient) {
 }
 
 async function addWhereImportsUsedListener(getLS: () => LanguageClient) {
-    //??
-    setTimeout(() => {
-        window.withProgress(
-            { location: ProgressLocation.Window, title: 'Updating Imports..' },
-            async () => {
-                const filename =
-                    'file:///d%3A/gittest/svelte/svelte-webpack-starter1/src/Button3.svelte';
-                const editsForFileRename = await getLS().sendRequest<LSWorkspaceEdit | null>(
-                    '$/getFileReferences',
-                    {
-                        filename
-                    }
-                );
-            }
-        );
-    }, 4000);
+    //dummy test handler
+    workspace.onWillSaveTextDocument(async (evt) => {
+        const fileName = evt.document.fileName;
+
+        await getLS().sendRequest<LSWorkspaceEdit | null>('$/getFileReferences', fileName);
+    });
 }
 
 function addRenameFileListener(getLS: () => LanguageClient) {
