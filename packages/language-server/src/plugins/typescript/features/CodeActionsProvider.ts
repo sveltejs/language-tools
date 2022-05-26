@@ -142,10 +142,10 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                             mapRangeToOriginal(fragment, convertRange(fragment, edit.span))
                         );
 
-                        return TextEdit.replace(
+                        return this.fixIndentationOfImports(TextEdit.replace(
                             range,
-                            this.fixIndentationOfImports(edit.newText, range, document)
-                        );
+                            edit.newText
+                        ), document);
                     })
                 );
             })
@@ -162,11 +162,12 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         ];
     }
 
-    private fixIndentationOfImports(edit: string, range: Range, document: Document): string {
-        // "Organize Imports" will have edits that delete all imports by return empty edits
-        // and one edit which contains all the organized imports. Fix indentation
+    private fixIndentationOfImports(edit: TextEdit, document: Document): TextEdit {
+        // "Organize Imports" will have edits that delete a group of imports by return empty edits
+        // and one edit which contains all the organized imports of the group. Fix indentation
         // of that one by prepending all lines with the indentation of the first line.
-        if (!edit || range.start.character === 0) {
+        const { newText, range } = edit;
+        if (!newText || range.start.character === 0) {
             return edit;
         }
 
@@ -175,7 +176,19 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         if (leadingChars.trim() !== '') {
             return edit;
         }
-        return modifyLines(edit, (line, idx) => (idx === 0 || !line ? line : leadingChars + line));
+
+        const fixedNewText = modifyLines(edit.newText, (line, idx) => (idx === 0 || !line ? line : leadingChars + line));
+
+        if (range.end.character > 0) {
+            const endLine = getLineAtPosition(range.start, document.getText());
+            const isIndent = !endLine.substring(0, range.start.character).trim();
+
+            if (isIndent && endLine.trim()) {
+                range.end.character = 0;
+            }
+        }
+
+        return TextEdit.replace(range, fixedNewText);
     }
 
     private checkRemoveImportCodeActionRange(

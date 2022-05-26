@@ -1,7 +1,7 @@
 import ts from 'typescript';
 import { Location, Position, ReferenceContext } from 'vscode-languageserver';
 import { Document } from '../../../lib/documents';
-import { pathToUrl } from '../../../utils';
+import { flatten, pathToUrl } from '../../../utils';
 import { FindReferencesProvider } from '../../interfaces';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { convertToLocationRange, hasNonZeroRange } from '../utils';
@@ -18,7 +18,7 @@ export class FindReferencesProviderImpl implements FindReferencesProvider {
         const { lang, tsDoc } = await this.getLSAndTSDoc(document);
         const fragment = tsDoc.getFragment();
 
-        const references = lang.getReferencesAtPosition(
+        const references = lang.findReferences(
             tsDoc.filePath,
             fragment.offsetAt(fragment.getGeneratedPosition(position))
         );
@@ -30,7 +30,7 @@ export class FindReferencesProviderImpl implements FindReferencesProvider {
         docs.set(tsDoc.filePath, { fragment, snapshot: tsDoc });
 
         const locations = await Promise.all(
-            references
+            flatten(references.map((ref) => ref.references))
                 .filter((ref) => context.includeDeclaration || !ref.isDefinition)
                 .filter(notInGeneratedCode(tsDoc.getFullText()))
                 .map(async (ref) => {

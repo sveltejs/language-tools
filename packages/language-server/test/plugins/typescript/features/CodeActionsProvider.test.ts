@@ -864,12 +864,10 @@ function test(useNewTransformation: boolean) {
                                 edits: [
                                     {
                                         newText:
-                                            '// @ts-ignore\n' +
-                                            "    import { } from './somepng.png';\n" +
-                                            "    import { } from './t.png';\n",
+                                            "import { } from './t.png';\n",
                                         range: {
                                             end: {
-                                                character: 4,
+                                                character: 0,
                                                 line: 2
                                             },
                                             start: {
@@ -879,7 +877,7 @@ function test(useNewTransformation: boolean) {
                                         }
                                     },
                                     {
-                                        newText: '',
+                                        newText: "import { } from './somepng.png';\n",
                                         range: {
                                             end: {
                                                 character: 0,
@@ -887,7 +885,7 @@ function test(useNewTransformation: boolean) {
                                             },
                                             start: {
                                                 character: 4,
-                                                line: 2
+                                                line: 3
                                             }
                                         }
                                     }

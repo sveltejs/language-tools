@@ -39,7 +39,7 @@ import {
 import { getJsDocTemplateCompletion } from './getJsDocTemplateCompletion';
 import { getComponentAtPosition, isPartOfImportStatement } from './utils';
 
-export interface CompletionEntryWithIdentifer extends ts.CompletionEntry, TextDocumentIdentifier {
+export interface CompletionEntryWithIdentifier extends ts.CompletionEntry, TextDocumentIdentifier {
     position: Position;
 }
 
@@ -48,10 +48,10 @@ type validTriggerCharacter = '.' | '"' | "'" | '`' | '/' | '@' | '<' | '#';
 type LastCompletion = {
     key: string;
     position: Position;
-    completionList: AppCompletionList<CompletionEntryWithIdentifer> | null;
+    completionList: AppCompletionList<CompletionEntryWithIdentifier> | null;
 };
 
-export class CompletionsProviderImpl implements CompletionsProvider<CompletionEntryWithIdentifer> {
+export class CompletionsProviderImpl implements CompletionsProvider<CompletionEntryWithIdentifier> {
     constructor(
         private readonly lsAndTsDocResolver: LSAndTSDocResolver,
         private readonly configManager: LSConfigManager
@@ -79,7 +79,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         position: Position,
         completionContext?: CompletionContext,
         cancellationToken?: CancellationToken
-    ): Promise<AppCompletionList<CompletionEntryWithIdentifer> | null> {
+    ): Promise<AppCompletionList<CompletionEntryWithIdentifier> | null> {
         if (isInTag(position, document.styleInfo)) {
             return null;
         }
@@ -251,7 +251,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         tsDoc: SvelteDocumentSnapshot,
         originalPosition: Position,
         wordRange: { start: number; end: number }
-    ): Array<AppCompletionItem<CompletionEntryWithIdentifer>> {
+    ): Array<AppCompletionItem<CompletionEntryWithIdentifier>> {
         const componentInfo = getComponentAtPosition(lang, doc, tsDoc, originalPosition);
         if (!componentInfo) {
             return [];
@@ -285,7 +285,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         uri: string,
         position: Position,
         existingImports: Set<string>
-    ): AppCompletionItem<CompletionEntryWithIdentifer> | null {
+    ): AppCompletionItem<CompletionEntryWithIdentifier> | null {
         const completionLabelAndInsert = this.getCompletionLabelAndInsert(fragment, comp);
         if (!completionLabelAndInsert) {
             return null;
@@ -435,9 +435,9 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
 
     async resolveCompletion(
         document: Document,
-        completionItem: AppCompletionItem<CompletionEntryWithIdentifer>,
+        completionItem: AppCompletionItem<CompletionEntryWithIdentifier>,
         cancellationToken?: CancellationToken
-    ): Promise<AppCompletionItem<CompletionEntryWithIdentifer>> {
+    ): Promise<AppCompletionItem<CompletionEntryWithIdentifier>> {
         const { data: comp } = completionItem;
         const { tsDoc, lang, userPreferences } = await this.lsAndTsDocResolver.getLSAndTSDoc(
             document
