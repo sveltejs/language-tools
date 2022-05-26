@@ -23,7 +23,7 @@ Await blocks allow you to branch on the three possible states of a Promise — p
 \`{#await expression}...{:then name}...{/await}\`\\
 \`{#await expression then name}...{/await}\`\\
 \\
-https://svelte.dev/docs#await
+https://svelte.dev/docs#template-syntax-await
 `,
     each: `\`{#each ...}\`\\
 Iterating over lists of values can be done with an each block.
@@ -33,7 +33,7 @@ Iterating over lists of values can be done with an each block.
 \`{#each expression as name, index (key)}...{/each}\`\\
 \`{#each expression as name}...{:else}...{/each}\`\\
 \\
-https://svelte.dev/docs#each
+https://svelte.dev/docs#template-syntax-each
 `,
     if: `\`{#if ...}\`\\
 Content that is conditionally rendered can be wrapped in an if block.
@@ -42,7 +42,7 @@ Content that is conditionally rendered can be wrapped in an if block.
 \`{#if expression}...{:else if expression}...{/if}\`\\
 \`{#if expression}...{:else}...{/if}\`\\
 \\
-https://svelte.dev/docs#if
+https://svelte.dev/docs#template-syntax-if
 `,
     key: `\`{#key expression}...{/key}\`\\
 Key blocks destroy and recreate their contents when the value of an expression changes.\\
@@ -51,7 +51,7 @@ When used around components, this will cause them to be reinstantiated and reini
 #### Usage:
 \`{#key expression}...{/key}\`\\
 \\
-https://svelte.dev/docs#key
+https://svelte.dev/docs#template-syntax-key
 `,
     html:
         `\`{@html ...}\`\\
@@ -65,7 +65,7 @@ If the data comes from an untrusted source, you must sanitize it, ` +
 #### Usage:
 \`{@html expression}\`\\
 \\
-https://svelte.dev/docs#html
+https://svelte.dev/docs#template-syntax-html
 `,
     debug:
         `\`{@debug ...}\`\\
@@ -77,7 +77,7 @@ It accepts a comma-separated list of variable names (not arbitrary expressions).
 \`{@debug}\`
 \`{@debug var1, var2, ..., varN}\`\\
 \\
-https://svelte.dev/docs#debug
+https://svelte.dev/docs#template-syntax-debug
 `,
     const: `\`{@const ...}\`\\
 TODO
