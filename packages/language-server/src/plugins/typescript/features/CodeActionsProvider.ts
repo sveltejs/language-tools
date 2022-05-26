@@ -142,10 +142,10 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                             mapRangeToOriginal(fragment, convertRange(fragment, edit.span))
                         );
 
-                        return this.fixIndentationOfImports(TextEdit.replace(
-                            range,
-                            edit.newText
-                        ), document);
+                        return this.fixIndentationOfImports(
+                            TextEdit.replace(range, edit.newText),
+                            document
+                        );
                     })
                 );
             })
@@ -177,7 +177,9 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             return edit;
         }
 
-        const fixedNewText = modifyLines(edit.newText, (line, idx) => (idx === 0 || !line ? line : leadingChars + line));
+        const fixedNewText = modifyLines(edit.newText, (line, idx) =>
+            idx === 0 || !line ? line : leadingChars + line
+        );
 
         if (range.end.character > 0) {
             const endLine = getLineAtPosition(range.start, document.getText());

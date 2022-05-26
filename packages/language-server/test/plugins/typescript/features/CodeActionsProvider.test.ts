@@ -863,8 +863,7 @@ function test(useNewTransformation: boolean) {
                             {
                                 edits: [
                                     {
-                                        newText:
-                                            "import { } from './t.png';\n",
+                                        newText: "import { } from './t.png';\n",
                                         range: {
                                             end: {
                                                 character: 0,
