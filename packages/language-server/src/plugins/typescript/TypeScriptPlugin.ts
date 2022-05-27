@@ -431,12 +431,12 @@ export class TypeScriptPlugin
         return this.findReferencesProvider.findReferences(document, position, context);
     }
 
-    async fileReferences(fileName: string): Promise<Location[] | null> {
+    async fileReferences(uri: string): Promise<Location[] | null> {
         if (!this.featureEnabled('fileReferences')) {
             return null;
         }
 
-        return this.findFileReferencesProvider.fileReferences(fileName);
+        return this.findFileReferencesProvider.fileReferences(uri);
     }
 
     async onWatchFileChanges(onWatchFileChangesParas: OnWatchFileChangesPara[]): Promise<void> {

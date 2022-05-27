@@ -40,7 +40,7 @@ export async function addFindFileReferencesListener(
             async (_, token) => {
                 const locations = await getLS().sendRequest<LSLocation[] | null>(
                     '$/getFileReferences',
-                    { uri: document.uri.toString() },
+                    document.uri.toString(),
                     token
                 );
 

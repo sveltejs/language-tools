@@ -144,7 +144,7 @@ export interface FindReferencesProvider {
 }
 
 export interface FileReferencesProvider {
-    fileReferences(fileName: string): Promise<Location[] | null>;
+    fileReferences(uri: string): Promise<Location[] | null>;
 }
 
 export interface SignatureHelpProvider {

@@ -419,8 +419,8 @@ export function startServer(options?: LSOptions) {
         pluginHost.updateImports(fileRename)
     );
 
-    connection.onRequest('$/getFileReferences', async (fileName: string) => {
-        return pluginHost.fileReferences(fileName);
+    connection.onRequest('$/getFileReferences', async (uri: string) => {
+        return pluginHost.fileReferences(uri);
     });
 
     connection.onRequest('$/getCompiledCode', async (uri: DocumentUri) => {
