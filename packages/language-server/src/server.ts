@@ -219,7 +219,7 @@ export function startServer(options?: LSOptions) {
                               ...(clientSupportApplyEditCommand ? [CodeActionKind.Refactor] : [])
                           ].filter(
                               clientSupportedCodeActionKinds &&
-                                  evt.initializationOptions.shouldFilterCodeActionKind
+                                  evt.initializationOptions?.shouldFilterCodeActionKind
                                   ? (kind) => clientSupportedCodeActionKinds.includes(kind)
                                   : () => true
                           )
