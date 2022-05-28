@@ -171,7 +171,7 @@ export class SvelteCheck {
                     // doesn't apply to all code paths. That's why we do it here, too.
                     const skipDiagnosticsForFile =
                         (options.skipLibCheck && file.isDeclarationFile) ||
-                        (options.skipDefaultLibCheck && file.hasNoDefaultLib ||
+                        (options.skipDefaultLibCheck && file.hasNoDefaultLib) ||
                         // ignore JS files in node_modules
                         /\/node_modules\/.+\.(c|m)?js$/.test(file.fileName);
 
