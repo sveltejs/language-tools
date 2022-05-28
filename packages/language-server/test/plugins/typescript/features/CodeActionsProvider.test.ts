@@ -905,6 +905,21 @@ function test(useNewTransformation: boolean) {
             ]);
         });
 
+        it('organize imports should do nothing if there is a parser error', async () => {
+            const { provider, document } = setup('organize-imports-error.svelte');
+
+            const codeActions = await provider.getCodeActions(
+                document,
+                Range.create(Position.create(1, 4), Position.create(1, 5)),
+                {
+                    diagnostics: [],
+                    only: [CodeActionKind.SourceOrganizeImports]
+                }
+            );
+
+            assert.deepStrictEqual(codeActions, []);
+        });
+
         it('should do extract into const refactor', async () => {
             const { provider, document } = setup('codeactions.svelte');
 
