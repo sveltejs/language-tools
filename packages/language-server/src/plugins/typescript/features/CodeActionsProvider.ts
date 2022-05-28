@@ -103,7 +103,10 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         const { lang, tsDoc, userPreferences } = await this.getLSAndTSDoc(document);
         const fragment = tsDoc.getFragment();
 
-        if (cancellationToken?.isCancellationRequested) {
+        if (cancellationToken?.isCancellationRequested || tsDoc.parserError) {
+            // If there's a parser error, we fall back to only the script contents,
+            // so organize imports likely throws out a lot of seemingly unused imports
+            // because they are only used in the template. Therefore do nothing in this case.
             return [];
         }
 
