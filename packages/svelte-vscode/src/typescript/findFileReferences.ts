@@ -5,7 +5,9 @@ import {
     Uri,
     window,
     workspace,
-    Position
+    Position,
+    Location,
+    Range
 } from 'vscode';
 import { LanguageClient } from 'vscode-languageclient/node';
 import { Location as LSLocation } from 'vscode-languageclient';
@@ -38,11 +40,15 @@ export async function addFindFileReferencesListener(
                 title: 'Finding file references'
             },
             async (_, token) => {
-                const locations = await getLS().sendRequest<LSLocation[] | null>(
+                const lsLocations = await getLS().sendRequest<LSLocation[] | null>(
                     '$/getFileReferences',
                     document.uri.toString(),
                     token
                 );
+
+                if (!lsLocations) {
+                    return;
+                }
 
                 const config = workspace.getConfiguration('references');
                 const existingSetting = config.inspect<string>('preferredLocation');
@@ -53,7 +59,18 @@ export async function addFindFileReferencesListener(
                         'editor.action.showReferences',
                         resource,
                         new Position(0, 0),
-                        locations
+                        lsLocations.map(
+                            (ref) =>
+                                new Location(
+                                    Uri.parse(ref.uri),
+                                    new Range(
+                                        ref.range.start.line,
+                                        ref.range.start.character,
+                                        ref.range.end.line,
+                                        ref.range.end.character
+                                    )
+                                )
+                        )
                     );
                 } finally {
                     await config.update(
