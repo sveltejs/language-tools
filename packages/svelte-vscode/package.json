@@ -578,9 +578,9 @@
             ],
             "explorer/context": [
                 {
-                  "command": "svelte.typescript.findAllFileReferences",
-                  "when": "resourceLangId == svelte",
-                  "group": "4_search"
+                    "command": "svelte.typescript.findAllFileReferences",
+                    "when": "resourceLangId == svelte",
+                    "group": "4_search"
                 }
             ]
         },
