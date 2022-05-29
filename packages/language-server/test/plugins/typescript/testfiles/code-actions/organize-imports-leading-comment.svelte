@@ -1,5 +1,5 @@
 <script>
-    import { } from './t.png';
+    import { } from './t.png'
     // @ts-ignore
-    import { } from './somepng.png';
+    import { } from './somepng.png'
 </script>
