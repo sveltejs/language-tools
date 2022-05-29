@@ -71,7 +71,7 @@ function processSvelteTemplate(
     //which prevents us just changing all instances of Identity that start with $
 
     const scopeStack = new ScopeStack();
-    const stores = new Stores(scopeStack, str, isDeclaration);
+    const stores = new Stores(scopeStack, isDeclaration);
     const scripts = new Scripts(htmlxAst);
 
     const handleSvelteOptions = (node: Node) => {
@@ -285,7 +285,7 @@ function processSvelteTemplate(
     scripts.blankOtherScriptTags(str);
 
     //resolve stores
-    const resolvedStores = stores.resolveStores();
+    const resolvedStores = stores.getStoreNames();
 
     return {
         htmlAst: htmlxAst,

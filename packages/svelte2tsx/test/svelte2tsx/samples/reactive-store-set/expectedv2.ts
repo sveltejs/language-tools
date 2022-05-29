@@ -1,7 +1,7 @@
 ///<reference types="svelte" />
 ;function render() {
 
-    $: store.set( __sveltets_1_invalidate(() => (__sveltets_1_store_get(store), $store) + 1));
+    $: $store = __sveltets_1_invalidate(() => $store + 1);
 ;
 async () => {};
 return { props: {}, slots: {}, getters: {}, events: {} }}

@@ -1,6 +1,6 @@
 ///<reference types="svelte" />
 <></>;function render() {
-<>{someRecordOrArr[(__sveltets_1_store_get(store), $store)]}
+<>{someRecordOrArr[$store]}
 {someObject['$store']}
 {someObject.$store}</>
 return { props: {}, slots: {}, getters: {}, events: {} }}

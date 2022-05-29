@@ -3,24 +3,24 @@
 
     const store = writable([])/*Ωignore_startΩ*/;let $store = __sveltets_1_store_get(store);/*Ωignore_endΩ*/;
 
-    ;(__sveltets_1_store_get(store), $store)[1] = true;
-    ;(__sveltets_1_store_get(store), $store).foo = true;
+    $store[1] = true;
+    $store.foo = true;
 
-    ;(__sveltets_1_store_get(store), $store)[1] = true
-    ;(__sveltets_1_store_get(store), $store).foo = true
+    $store[1] = true
+    $store.foo = true
 
-    store.set( true)
-    store.set( true);
+    $store = true
+    $store = true;
 
-    hello[(__sveltets_1_store_get(store), $store)] = true;
+    hello[$store] = true;
 
-    store.set( true),
-    store.set( false),
-    (__sveltets_1_store_get(store), $store),
-    (__sveltets_1_store_get(store), $store).a = true
+    $store = true,
+    $store = false,
+    $store,
+    $store.a = true
 
-    ;(__sveltets_1_store_get(store), $store).a = true,
-    (__sveltets_1_store_get(store), $store).b = false;
+    $store.a = true,
+    $store.b = false;
 ;
 async () => {};
 return { props: {}, slots: {}, getters: {}, events: {} }}

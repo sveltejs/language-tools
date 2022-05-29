@@ -4,27 +4,27 @@
     const store1 = ''/*Ωignore_startΩ*/;let $store1 = __sveltets_1_store_get(store1);/*Ωignore_endΩ*/;
 
     if (store1)
-        (__sveltets_1_store_get(store1), $store1)
+        $store1
     else if (store1)
-        (__sveltets_1_store_get(store1), $store1)
+        $store1
     else
-        (__sveltets_1_store_get(store), $store)
+        $store
     if (store1)
-        store1.set( 1)
+        $store1 = 1
     if (store1)
-        (__sveltets_1_store_get(store1), $store1).x = 1
+        $store1.x = 1
 
     for (let i=0; i < 1; i++)
-        (__sveltets_1_store_get(store1), $store1)
+        $store1
 
     for (const a of b)
-        (__sveltets_1_store_get(store1), $store1)
+        $store1
 
     for (const a in b)
-        (__sveltets_1_store_get(store1), $store1)
+        $store1
 
     while (true)
-        (__sveltets_1_store_get(store1), $store1)
+        $store1
 ;
 async () => {};
 return { props: {}, slots: {}, getters: {}, events: {} }}

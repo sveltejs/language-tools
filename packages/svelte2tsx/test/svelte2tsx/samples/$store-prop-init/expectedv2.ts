@@ -2,8 +2,8 @@
 ;function render() {
 
     let store = null/*Ωignore_startΩ*/;let $store = __sveltets_1_store_get(store);/*Ωignore_endΩ*/;
-    const foo = { $store: (__sveltets_1_store_get(store), $store) };
-    const bar = { $store: (__sveltets_1_store_get(store), $store) };
+    const foo = { $store };
+    const bar = { $store: $store };
 ;
 async () => {};
 return { props: {}, slots: {}, getters: {}, events: {} }}

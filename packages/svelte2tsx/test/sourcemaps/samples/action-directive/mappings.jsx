@@ -29,11 +29,11 @@
 
 <element                                                                                                                                              {/**
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
-    {...__sveltets_1_ensureAction(action(__sveltets_1_mapElementTag('element'),((__sveltets_1_store_get(foo), $foo))))}                               {/**
-   ╚{...__sveltets_1_ensureAction(action(__sveltets_1_mapElementTag('element'),((__sveltets_1_store_get(foo),•$foo))))}↲    [generated] line 12       
-   ╚u                             action=                                       $                       foo           }↲                              
+    {...__sveltets_1_ensureAction(action(__sveltets_1_mapElementTag('element'),($foo)))}                                                              {/**
+   ╚{...__sveltets_1_ensureAction(action(__sveltets_1_mapElementTag('element'),($foo)))}↲    [generated] line 12                                      
+   ╚u                             action=                                       $foo   }↲                                                             
    ╚u   action= $foo}↲                                                                                                                                
-   ╚use:action={$foo}↲                                                                                                      [original] line 10        
+   ╚use:action={$foo}↲                                                                       [original] line 10                                       
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
 />
 
@@ -55,12 +55,8 @@
    ╚u   action= {•↲                                                                                                                                   
    ╚use:action={{•↲                                                                    [original] line 18                                             
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
-        ...leet,                                                                                                                                      {/**
------------------------------------------------------------------------------------------------------------------------------------------------------- */}
-        foo: (__sveltets_1_store_get(bar), $bar)                                                                                                      {/**
-      ╚╚foo:•(__sveltets_1_store_get(bar),•$bar)↲    [generated] line 22                                                                              
-      ╚╚foo:•$                       bar        ↲                                                                                                     
-      ╚╚foo:•$bar↲                                   [original] line 20                                                                               
+        ...leet,
+        foo: $bar                                                                                                                                     {/**
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
     })))}                                                                                                                                             {/**
    ╚})))}↲    [generated] line 23                                                                                                                     

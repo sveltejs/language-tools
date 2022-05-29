@@ -1,11 +1,7 @@
 import MagicString from 'magic-string';
 import { Node } from 'estree-walker';
 import * as ts from 'typescript';
-import {
-    getBinaryAssignmentExpr,
-    isSafeToPrefixWithSemicolon,
-    isNotPropertyNameOfImport
-} from './utils/tsAst';
+import { getBinaryAssignmentExpr, isNotPropertyNameOfImport } from './utils/tsAst';
 import { ExportedNames, is$$PropsDeclaration } from './nodes/ExportedNames';
 import { ImplicitTopLevelNames } from './nodes/ImplicitTopLevelNames';
 import { ComponentEvents, is$$EventsDeclaration } from './nodes/ComponentEvents';
@@ -72,116 +68,8 @@ export function processInstanceScriptContent(
     const pushScope = () => (scope = new Scope(scope));
     const popScope = () => (scope = scope.parent);
 
-    const handleStore = (ident: ts.Identifier, parent: ts.Node) => {
-        // ignore "typeof $store"
-        if (parent && parent.kind === ts.SyntaxKind.TypeQuery) {
-            return;
-        }
-        // ignore break
-        if (parent && parent.kind === ts.SyntaxKind.BreakStatement) {
-            return;
-        }
-
-        const storename = ident.getText().slice(1); // drop the $
-        // handle assign to
-        if (
-            parent &&
-            ts.isBinaryExpression(parent) &&
-            parent.operatorToken.kind == ts.SyntaxKind.EqualsToken &&
-            parent.left == ident
-        ) {
-            //remove $
-            const dollar = str.original.indexOf('$', ident.getStart() + astOffset);
-            str.remove(dollar, dollar + 1);
-            // replace = with .set(
-            str.overwrite(ident.end + astOffset, parent.operatorToken.end + astOffset, '.set(');
-            // append )
-            str.appendLeft(parent.end + astOffset, ')');
-            return;
-        }
-
-        // handle Assignment operators ($store +=, -=, *=, /=, %=, **=, etc.)
-        // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Expressions_and_Operators#Assignment
-        const operators = {
-            [ts.SyntaxKind.PlusEqualsToken]: '+',
-            [ts.SyntaxKind.MinusEqualsToken]: '-',
-            [ts.SyntaxKind.AsteriskEqualsToken]: '*',
-            [ts.SyntaxKind.SlashEqualsToken]: '/',
-            [ts.SyntaxKind.PercentEqualsToken]: '%',
-            [ts.SyntaxKind.AsteriskAsteriskEqualsToken]: '**',
-            [ts.SyntaxKind.LessThanLessThanEqualsToken]: '<<',
-            [ts.SyntaxKind.GreaterThanGreaterThanEqualsToken]: '>>',
-            [ts.SyntaxKind.GreaterThanGreaterThanGreaterThanEqualsToken]: '>>>',
-            [ts.SyntaxKind.AmpersandEqualsToken]: '&',
-            [ts.SyntaxKind.CaretEqualsToken]: '^',
-            [ts.SyntaxKind.BarEqualsToken]: '|'
-        };
-        if (
-            ts.isBinaryExpression(parent) &&
-            parent.left == ident &&
-            Object.keys(operators).find((x) => x === String(parent.operatorToken.kind))
-        ) {
-            const operator = operators[parent.operatorToken.kind];
-            str.overwrite(
-                parent.getStart() + astOffset,
-                str.original.indexOf('=', ident.end + astOffset) + 1,
-                `${storename}.set( $${storename} ${operator}`
-            );
-            str.appendLeft(parent.end + astOffset, ')');
-            return;
-        }
-        // handle $store++, $store--, ++$store, --$store
-        if (
-            (ts.isPrefixUnaryExpression(parent) || ts.isPostfixUnaryExpression(parent)) &&
-            ![
-                ts.SyntaxKind.ExclamationToken, // !$store
-                ts.SyntaxKind.PlusToken, // +$store
-                ts.SyntaxKind.MinusToken, // -$store
-                ts.SyntaxKind.TildeToken // ~$store
-            ].includes(parent.operator) /* `!$store` etc does not need processing */
-        ) {
-            let simpleOperator: string;
-            if (parent.operator === ts.SyntaxKind.PlusPlusToken) {
-                simpleOperator = '+';
-            }
-            if (parent.operator === ts.SyntaxKind.MinusMinusToken) {
-                simpleOperator = '-';
-            }
-
-            if (simpleOperator) {
-                str.overwrite(
-                    parent.getStart() + astOffset,
-                    parent.end + astOffset,
-                    `(${storename}.set( $${storename} ${simpleOperator} 1), $${storename})`
-                );
-                return;
-            } else {
-                console.warn(
-                    `Warning - unrecognized UnaryExpression operator ${parent.operator}!
-                This is an edge case unaccounted for in svelte2tsx, please file an issue:
-                https://github.com/sveltejs/language-tools/issues/new/choose
-                `,
-                    parent.getText()
-                );
-            }
-        }
-
-        // we change "$store" references into "(__sveltets_1_store_get(store), $store)"
-        // - in order to get ts errors if store is not assignable to SvelteStore
-        // - use $store variable defined above to get ts flow control
-        const dollar = str.original.indexOf('$', ident.getStart() + astOffset);
-        const getPrefix = isSafeToPrefixWithSemicolon(ident)
-            ? ';'
-            : ts.isShorthandPropertyAssignment(parent)
-            ? // { $store } --> { $store: __sveltets_1_store_get(..)}
-              ident.text + ': '
-            : '';
-        str.overwrite(dollar, dollar + 1, getPrefix + '(__sveltets_1_store_get(');
-        str.prependLeft(ident.end + astOffset, `), $${storename})`);
-    };
-
     const resolveStore = (pending: PendingStoreResolution) => {
-        let { node, parent, scope } = pending;
+        let { node, scope } = pending;
         const name = (node as ts.Identifier).text;
         while (scope) {
             if (scope.declared.has(name)) {
@@ -190,8 +78,6 @@ export function processInstanceScriptContent(
             }
             scope = scope.parent;
         }
-        //We haven't been resolved, we must be a store read/write, handle it.
-        handleStore(node, parent);
         const storename = node.getText().slice(1);
         implicitStoreValues.addStoreAcess(storename);
     };

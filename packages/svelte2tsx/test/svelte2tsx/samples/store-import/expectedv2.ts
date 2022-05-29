@@ -11,9 +11,9 @@ function render() {
 ;
 async () => {
 
- { svelteHTML.createElement("p", {});(__sveltets_1_store_get(storeA), $storeA); }
- { svelteHTML.createElement("p", {});(__sveltets_1_store_get(storeB), $storeB); }
- { svelteHTML.createElement("p", {});(__sveltets_1_store_get(storeC), $storeC); }};
+ { svelteHTML.createElement("p", {});$storeA; }
+ { svelteHTML.createElement("p", {});$storeB; }
+ { svelteHTML.createElement("p", {});$storeC; }};
 return { props: {}, slots: {}, getters: {}, events: {} }}
 
 export default class Input__SvelteComponent_ extends __sveltets_1_createSvelte2TsxComponent(__sveltets_1_partial(__sveltets_1_with_any_event(render()))) {
