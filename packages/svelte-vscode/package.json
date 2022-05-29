@@ -573,7 +573,7 @@
                 {
                     "command": "svelte.typescript.findAllFileReferences",
                     "when": "editorLangId == svelte",
-                    "group": "1_modification"
+                    "group": "4_search"
                 }
             ],
             "explorer/context": [
