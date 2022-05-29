@@ -335,19 +335,29 @@ export class TypeScriptPlugin
 
         const result = await Promise.all(
             defs.definitions.map(async (def) => {
+                if (def.fileName.endsWith('svelte-shims.d.ts')) {
+                    return;
+                }
+
                 const { fragment, snapshot } = await docs.retrieve(def.fileName);
 
-                if (
-                    !def.fileName.endsWith('svelte-shims.d.ts') &&
-                    isNoTextSpanInGeneratedCode(snapshot.getFullText(), def.textSpan)
-                ) {
-                    return LocationLink.create(
-                        pathToUrl(def.fileName),
-                        convertToLocationRange(fragment, def.textSpan),
-                        convertToLocationRange(fragment, def.textSpan),
-                        convertToLocationRange(mainFragment, defs.textSpan)
-                    );
+                if (!isNoTextSpanInGeneratedCode(snapshot.getFullText(), def.textSpan)) {
+                    if (snapshot.getFullText().charAt(def.textSpan.start) !== '$') {
+                        return;
+                    }
+                    // there will be exactly one definition, the store
+                    def = lang.getDefinitionAndBoundSpan(
+                        tsDoc.filePath,
+                        tsDoc.getFullText().indexOf(');', def.textSpan.start) - 1
+                    )!.definitions![0];
                 }
+
+                return LocationLink.create(
+                    pathToUrl(def.fileName),
+                    convertToLocationRange(fragment, def.textSpan),
+                    convertToLocationRange(fragment, def.textSpan),
+                    convertToLocationRange(mainFragment, defs.textSpan)
+                );
             })
         );
         return result.filter(isNotNullOrUndefined);
