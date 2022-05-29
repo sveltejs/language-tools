@@ -569,6 +569,11 @@
                     "command": "svelte.extractComponent",
                     "when": "editorLangId == svelte",
                     "group": "1_modification"
+                },
+                {
+                    "command": "svelte.typescript.findAllFileReferences",
+                    "when": "editorLangId == svelte",
+                    "group": "1_modification"
                 }
             ],
             "explorer/context": [
