@@ -18,6 +18,13 @@ function _decorateFindReferences(
     logger: Logger
 ) {
     const findReferences = ls.findReferences;
+
+    const getReferences = (fileName: string, position: number): ts.ReferenceEntry[] | undefined =>
+        findReferences(fileName, position)?.reduce(
+            (acc, curr) => acc.concat(curr.references),
+            <ts.ReferenceEntry[]>[]
+        );
+
     ls.findReferences = (fileName, position) => {
         const references = findReferences(fileName, position);
         return references
@@ -26,7 +33,12 @@ function _decorateFindReferences(
                 if (!isSvelteFilePath(reference.definition.fileName) || !snapshot) {
                     return {
                         ...reference,
-                        references: mapReferences(reference.references, snapshotManager, logger)
+                        references: mapReferences(
+                            reference.references,
+                            snapshotManager,
+                            logger,
+                            getReferences
+                        )
                     };
                 }
 
@@ -34,7 +46,6 @@ function _decorateFindReferences(
                 if (!textSpan) {
                     return null;
                 }
-
                 return {
                     definition: {
                         ...reference.definition,
@@ -42,7 +53,12 @@ function _decorateFindReferences(
                         // Spare the work for now
                         originalTextSpan: undefined
                     },
-                    references: mapReferences(reference.references, snapshotManager, logger)
+                    references: mapReferences(
+                        reference.references,
+                        snapshotManager,
+                        logger,
+                        getReferences
+                    )
                 };
             })
             .filter(isNotNullOrUndefined);
@@ -57,16 +73,21 @@ function decorateGetReferencesAtPosition(
     const getReferencesAtPosition = ls.getReferencesAtPosition;
     ls.getReferencesAtPosition = (fileName, position) => {
         const references = getReferencesAtPosition(fileName, position);
-        return references && mapReferences(references, snapshotManager, logger);
+        return (
+            references &&
+            mapReferences(references, snapshotManager, logger, getReferencesAtPosition)
+        );
     };
 }
 
 function mapReferences(
     references: ts.ReferenceEntry[],
     snapshotManager: SvelteSnapshotManager,
-    logger: Logger
+    logger: Logger,
+    getReferences?: (fileName: string, position: number) => ts.ReferenceEntry[] | undefined
 ): ts.ReferenceEntry[] {
-    return references
+    const additionalStoreReferences: ts.ReferenceEntry[] = [];
+    const mappedReferences = references
         .map((reference) => {
             const snapshot = snapshotManager.get(reference.fileName);
             if (!isSvelteFilePath(reference.fileName) || !snapshot) {
@@ -75,6 +96,24 @@ function mapReferences(
 
             const textSpan = snapshot.getOriginalTextSpan(reference.textSpan);
             if (!textSpan) {
+                if (
+                    getReferences &&
+                    snapshot
+                        .getText()
+                        .lastIndexOf('__sveltets_1_store_get(', reference.textSpan.start) ===
+                        reference.textSpan.start - '__sveltets_1_store_get('.length
+                ) {
+                    additionalStoreReferences.push(
+                        ...mapReferences(
+                            getReferences(
+                                reference.fileName,
+                                snapshot.getText().lastIndexOf(' =', reference.textSpan.start) - 1
+                            ) || [],
+                            snapshotManager,
+                            logger
+                        )
+                    );
+                }
                 return null;
             }
 
@@ -95,4 +134,5 @@ function mapReferences(
             };
         })
         .filter(isNotNullOrUndefined);
+    return mappedReferences.concat(additionalStoreReferences);
 }

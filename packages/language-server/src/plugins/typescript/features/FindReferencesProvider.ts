@@ -5,7 +5,7 @@ import { flatten, pathToUrl } from '../../../utils';
 import { FindReferencesProvider } from '../../interfaces';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { convertToLocationRange, hasNonZeroRange } from '../utils';
-import { isNoTextSpanInGeneratedCode, SnapshotFragmentMap } from './utils';
+import { isInGeneratedCode, isNoTextSpanInGeneratedCode, SnapshotFragmentMap } from './utils';
 
 export class FindReferencesProviderImpl implements FindReferencesProvider {
     constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
@@ -18,19 +18,47 @@ export class FindReferencesProviderImpl implements FindReferencesProvider {
         const { lang, tsDoc } = await this.getLSAndTSDoc(document);
         const fragment = tsDoc.getFragment();
 
-        const references = lang.findReferences(
+        const rawReferences = lang.findReferences(
             tsDoc.filePath,
             fragment.offsetAt(fragment.getGeneratedPosition(position))
         );
-        if (!references) {
+        if (!rawReferences) {
             return null;
+        }
+        const references = flatten(rawReferences.map((ref) => ref.references));
+
+        const storeReference = references.find(
+            (ref) =>
+                isInGeneratedCode(
+                    tsDoc.getFullText(),
+                    ref.textSpan.start,
+                    ref.textSpan.start + ref.textSpan.length
+                ) &&
+                // handle both cases of references triggered at store and triggered at $store
+                (tsDoc.getFullText().substring(ref.textSpan.start).startsWith('$') ||
+                    tsDoc
+                        .getFullText()
+                        .lastIndexOf('__sveltets_1_store_get(', ref.textSpan.start) ===
+                        ref.textSpan.start - '__sveltets_1_store_get('.length)
+        );
+        if (storeReference) {
+            const storeReferences =
+                lang.findReferences(
+                    tsDoc.filePath,
+                    // handle both cases of references triggered at store and triggered at $store
+                    tsDoc.getFullText().charAt(storeReference.textSpan.start) === '$'
+                        ? tsDoc.getFullText().indexOf(');', storeReference.textSpan.start) - 1
+                        : tsDoc.getFullText().lastIndexOf(' =', storeReference.textSpan.start) - 1
+                ) || [];
+            references.push(...flatten(storeReferences.map((ref) => ref.references)));
+            // TODO all $store usages in other Svelte files, too?
         }
 
         const docs = new SnapshotFragmentMap(this.lsAndTsDocResolver);
         docs.set(tsDoc.filePath, { fragment, snapshot: tsDoc });
 
         const locations = await Promise.all(
-            flatten(references.map((ref) => ref.references))
+            references
                 .filter((ref) => context.includeDeclaration || !ref.isDefinition)
                 .filter(notInGeneratedCode(tsDoc.getFullText()))
                 .map(async (ref) => {

@@ -218,7 +218,7 @@ export class SvelteSnapshot {
         this.convertInternalCodePositions = convertInternalCodePositions;
     }
 
-    private getText() {
+    getText() {
         const snapshot = this.scriptInfo?.getSnapshot();
         if (!snapshot) {
             return '';
