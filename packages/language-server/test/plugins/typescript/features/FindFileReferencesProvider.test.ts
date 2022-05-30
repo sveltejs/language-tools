@@ -10,65 +10,48 @@ import { pathToUrl } from '../../../../src/utils';
 
 const testDir = path.join(__dirname, '..');
 
-function test(useNewTransformation: boolean) {
-    return () => {
-        function getFullPath(filename: string) {
-            return path.join(testDir, 'testfiles', filename);
+describe('FindFileReferencesProvider', () => {
+    function getFullPath(filename: string) {
+        return path.join(testDir, 'testfiles', filename);
+    }
+    function getUri(filename: string) {
+        const filePath = path.join(testDir, 'testfiles', filename);
+        return pathToUrl(filePath);
+    }
+
+    function setup(filename: string) {
+        const docManager = new DocumentManager(
+            (textDocument) => new Document(textDocument.uri, textDocument.text)
+        );
+        const lsConfigManager = new LSConfigManager();
+        const lsAndTsDocResolver = new LSAndTSDocResolver(docManager, [testDir], lsConfigManager);
+        const provider = new FindFileReferencesProviderImpl(lsAndTsDocResolver);
+        const document = openDoc(filename);
+        return { provider, document, openDoc };
+
+        function openDoc(filename: string) {
+            const filePath = getFullPath(filename);
+            const doc = docManager.openDocument(<any>{
+                uri: pathToUrl(filePath),
+                text: ts.sys.readFile(filePath) || ''
+            });
+            return doc;
         }
-        function getUri(filename: string) {
-            const filePath = path.join(testDir, 'testfiles', filename);
-            return pathToUrl(filePath);
-        }
+    }
 
-        function setup(filename: string) {
-            const docManager = new DocumentManager(
-                (textDocument) => new Document(textDocument.uri, textDocument.text)
-            );
-            const lsConfigManager = new LSConfigManager();
-            lsConfigManager.update({ svelte: { useNewTransformation } });
-            const lsAndTsDocResolver = new LSAndTSDocResolver(
-                docManager,
-                [testDir],
-                lsConfigManager
-            );
-            const provider = new FindFileReferencesProviderImpl(lsAndTsDocResolver);
-            const document = openDoc(filename);
-            return { provider, document };
-
-            function openDoc(filename: string) {
-                const filePath = getFullPath(filename);
-                const doc = docManager.openDocument(<any>{
-                    uri: pathToUrl(filePath),
-                    text: ts.sys.readFile(filePath) || ''
-                });
-                return doc;
-            }
-        }
-
-        async function test() {
-            const { provider, document } = setup('find-file-references-child.svelte');
-            loadAssociatedFiles();
-
-            const results = await provider.fileReferences(document.uri.toString());
-            const expectedResults = [
-                Location.create(
-                    getUri('find-file-references-parent.svelte'),
-                    Range.create(Position.create(1, 37), Position.create(1, 72))
-                )
-            ];
-
-            assert.deepStrictEqual(results, expectedResults);
-        }
-
+    it('finds file references', async () => {
+        const { provider, document, openDoc } = setup('find-file-references-child.svelte');
         //Make known all the associated files
-        function loadAssociatedFiles() {
-            setup('find-file-references-parent.svelte');
-        }
+        openDoc('find-file-references-parent.svelte');
 
-        it('finds file references', async () => {
-            await test();
-        });
-    };
-}
+        const results = await provider.fileReferences(document.uri.toString());
+        const expectedResults = [
+            Location.create(
+                getUri('find-file-references-parent.svelte'),
+                Range.create(Position.create(1, 37), Position.create(1, 72))
+            )
+        ];
 
-describe('FindFileReferencesProvider', test(true));
+        assert.deepStrictEqual(results, expectedResults);
+    });
+});
