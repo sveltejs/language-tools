@@ -47,6 +47,7 @@ function test(useNewTransformation: boolean) {
 
         async function test() {
             const { provider, document } = setup('find-file-references-child.svelte');
+            loadAssociatedFiles();
 
             const results = await provider.fileReferences(document.uri.toString());
             const expectedResults = [
@@ -57,6 +58,11 @@ function test(useNewTransformation: boolean) {
             ];
 
             assert.deepStrictEqual(results, expectedResults);
+        }
+
+        //Make known all the associated files
+        function loadAssociatedFiles() {
+            setup('find-file-references-parent.svelte');
         }
 
         it('finds file references', async () => {
