@@ -36,6 +36,7 @@ import {
     DocumentSymbolsProvider,
     FileRename,
     FindReferencesProvider,
+    FileReferencesProvider,
     HoverProvider,
     ImplementationProvider,
     OnWatchFileChanges,
@@ -54,6 +55,7 @@ import {
     CompletionsProviderImpl
 } from './features/CompletionProvider';
 import { DiagnosticsProviderImpl } from './features/DiagnosticsProvider';
+import { FindFileReferencesProviderImpl } from './features/FindFileReferencesProvider';
 import { FindReferencesProviderImpl } from './features/FindReferencesProvider';
 import { getDirectiveCommentCompletions } from './features/getDirectiveCommentCompletions';
 import { HoverProviderImpl } from './features/HoverProvider';
@@ -85,6 +87,7 @@ export class TypeScriptPlugin
         UpdateImportsProvider,
         RenameProvider,
         FindReferencesProvider,
+        FileReferencesProvider,
         SelectionRangeProvider,
         SignatureHelpProvider,
         SemanticTokensProvider,
@@ -104,6 +107,8 @@ export class TypeScriptPlugin
     private readonly renameProvider: RenameProviderImpl;
     private readonly hoverProvider: HoverProviderImpl;
     private readonly findReferencesProvider: FindReferencesProviderImpl;
+    private readonly findFileReferencesProvider: FindFileReferencesProviderImpl;
+
     private readonly selectionRangeProvider: SelectionRangeProviderImpl;
     private readonly signatureHelpProvider: SignatureHelpProviderImpl;
     private readonly semanticTokensProvider: SemanticTokensProviderImpl;
@@ -130,6 +135,9 @@ export class TypeScriptPlugin
         this.renameProvider = new RenameProviderImpl(this.lsAndTsDocResolver, configManager);
         this.hoverProvider = new HoverProviderImpl(this.lsAndTsDocResolver);
         this.findReferencesProvider = new FindReferencesProviderImpl(this.lsAndTsDocResolver);
+        this.findFileReferencesProvider = new FindFileReferencesProviderImpl(
+            this.lsAndTsDocResolver
+        );
         this.selectionRangeProvider = new SelectionRangeProviderImpl(this.lsAndTsDocResolver);
         this.signatureHelpProvider = new SignatureHelpProviderImpl(this.lsAndTsDocResolver);
         this.semanticTokensProvider = new SemanticTokensProviderImpl(this.lsAndTsDocResolver);
@@ -421,6 +429,14 @@ export class TypeScriptPlugin
         }
 
         return this.findReferencesProvider.findReferences(document, position, context);
+    }
+
+    async fileReferences(uri: string): Promise<Location[] | null> {
+        if (!this.featureEnabled('fileReferences')) {
+            return null;
+        }
+
+        return this.findFileReferencesProvider.fileReferences(uri);
     }
 
     async onWatchFileChanges(onWatchFileChangesParas: OnWatchFileChangesPara[]): Promise<void> {

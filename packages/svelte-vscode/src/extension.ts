@@ -29,6 +29,7 @@ import CompiledCodeContentProvider from './CompiledCodeContentProvider';
 import { activateTagClosing } from './html/autoClose';
 import { EMPTY_ELEMENTS } from './html/htmlEmptyTagsShared';
 import { TsPlugin } from './tsplugin';
+import { addFindFileReferencesListener } from './typescript/findFileReferences';
 
 namespace TagCloseRequest {
     export const type: RequestType<TextDocumentPositionParams, string, any> = new RequestType(
@@ -222,6 +223,8 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
     }
 
     addDidChangeTextDocumentListener(getLS);
+
+    addFindFileReferencesListener(getLS, context);
 
     addRenameFileListener(getLS);
 
