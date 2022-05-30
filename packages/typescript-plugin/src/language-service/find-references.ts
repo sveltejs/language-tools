@@ -1,7 +1,12 @@
 import type ts from 'typescript/lib/tsserverlibrary';
 import { Logger } from '../logger';
 import { SvelteSnapshotManager } from '../svelte-snapshots';
-import { isNotNullOrUndefined, isSvelteFilePath } from '../utils';
+import {
+    get$storeDeclarationStart,
+    isInsideStoreGetShim,
+    isNotNullOrUndefined,
+    isSvelteFilePath
+} from '../utils';
 
 export function decorateFindReferences(
     ls: ts.LanguageService,
@@ -87,52 +92,58 @@ function mapReferences(
     getReferences?: (fileName: string, position: number) => ts.ReferenceEntry[] | undefined
 ): ts.ReferenceEntry[] {
     const additionalStoreReferences: ts.ReferenceEntry[] = [];
-    const mappedReferences = references
-        .map((reference) => {
-            const snapshot = snapshotManager.get(reference.fileName);
-            if (!isSvelteFilePath(reference.fileName) || !snapshot) {
-                return reference;
+    const mappedReferences: ts.ReferenceEntry[] = [];
+
+    for (const reference of references) {
+        const snapshot = snapshotManager.get(reference.fileName);
+        if (!isSvelteFilePath(reference.fileName) || !snapshot) {
+            mappedReferences.push(reference);
+            continue;
+        }
+
+        const textSpan = snapshot.getOriginalTextSpan(reference.textSpan);
+        if (!textSpan) {
+            if (
+                getReferences &&
+                isInsideStoreGetShim(snapshot.getText(), reference.textSpan.start)
+            ) {
+                additionalStoreReferences.push(
+                    ...(getReferences(
+                        reference.fileName,
+                        get$storeDeclarationStart(snapshot.getText(), reference.textSpan.start)
+                    ) || [])
+                );
             }
+            continue;
+        }
 
-            const textSpan = snapshot.getOriginalTextSpan(reference.textSpan);
-            if (!textSpan) {
-                if (
-                    getReferences &&
-                    snapshot
-                        .getText()
-                        .lastIndexOf('__sveltets_1_store_get(', reference.textSpan.start) ===
-                        reference.textSpan.start - '__sveltets_1_store_get('.length
-                ) {
-                    additionalStoreReferences.push(
-                        ...mapReferences(
-                            getReferences(
-                                reference.fileName,
-                                snapshot.getText().lastIndexOf(' =', reference.textSpan.start) - 1
-                            ) || [],
-                            snapshotManager,
-                            logger
-                        )
-                    );
-                }
-                return null;
-            }
+        mappedReferences.push(mapReference(reference, textSpan));
+    }
 
-            logger.debug(
-                'Find references; map textSpan: changed',
-                reference.textSpan,
-                'to',
-                textSpan
-            );
+    for (const reference of additionalStoreReferences) {
+        // We know these are Svelte files
+        const snapshot = snapshotManager.get(reference.fileName)!;
 
-            return {
-                ...reference,
-                textSpan,
-                // Spare the work for now
-                contextSpan: undefined,
-                originalTextSpan: undefined,
-                originalContextSpan: undefined
-            };
-        })
-        .filter(isNotNullOrUndefined);
-    return mappedReferences.concat(additionalStoreReferences);
+        const textSpan = snapshot.getOriginalTextSpan(reference.textSpan);
+        if (!textSpan) {
+            continue;
+        }
+
+        mappedReferences.push(mapReference(reference, textSpan));
+    }
+
+    return mappedReferences;
+
+    function mapReference(reference: ts.ReferenceEntry, textSpan: ts.TextSpan) {
+        logger.debug('Find references; map textSpan: changed', reference.textSpan, 'to', textSpan);
+
+        return {
+            ...reference,
+            textSpan,
+            // Spare the work for now
+            contextSpan: undefined,
+            originalTextSpan: undefined,
+            originalContextSpan: undefined
+        };
+    }
 }

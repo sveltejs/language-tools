@@ -101,6 +101,25 @@ export function isPartOfImportStatement(text: string, position: Position): boole
     return /\s*from\s+["'][^"']*/.test(line.slice(0, position.character));
 }
 
+export function isInsideStoreGetShim(text: string, varStart: number) {
+    return (
+        text.lastIndexOf('__sveltets_1_store_get(', varStart) ===
+        varStart - '__sveltets_1_store_get('.length
+    );
+}
+
+export function get$storeDeclarationStart(text: string, storePosition: number) {
+    return text.lastIndexOf(' =', storePosition) - 1;
+}
+
+export function is$storeDeclarationVar(text: string, varStart: number) {
+    return text.charAt(varStart) === '$';
+}
+
+export function getStoreGetShimVarStart(text: string, $storeVarStart: number) {
+    return text.indexOf(');', $storeVarStart) - 1;
+}
+
 export class SnapshotFragmentMap {
     private map = new Map<string, { fragment: SnapshotFragment; snapshot: DocumentSnapshot }>();
     constructor(private resolver: LSAndTSDocResolver) {}

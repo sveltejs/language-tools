@@ -1,7 +1,7 @@
 import type ts from 'typescript/lib/tsserverlibrary';
 import { Logger } from '../logger';
 import { SvelteSnapshotManager } from '../svelte-snapshots';
-import { isNotNullOrUndefined, isSvelteFilePath } from '../utils';
+import { get$storeDeclarationStart, isSvelteFilePath } from '../utils';
 
 export function decorateRename(
     ls: ts.LanguageService,
@@ -50,7 +50,10 @@ export function decorateRename(
                     additionalStoreRenameLocations.push(
                         ...findRenameLocations(
                             renameLocation.fileName,
-                            snapshot.getText().lastIndexOf(' =', renameLocation.textSpan.start) - 1,
+                            get$storeDeclarationStart(
+                                snapshot.getText(),
+                                renameLocation.textSpan.start
+                            ),
                             false,
                             false,
                             false

@@ -23,7 +23,11 @@ import {
     isAfterSvelte2TsxPropsReturn,
     isNoTextSpanInGeneratedCode,
     SnapshotFragmentMap,
-    findContainingNode
+    findContainingNode,
+    isInsideStoreGetShim,
+    get$storeDeclarationStart,
+    getStoreGetShimVarStart,
+    is$storeDeclarationVar
 } from './utils';
 import { LSConfigManager } from '../../../ls-config';
 import { isAttributeName, isEventHandler } from '../svelte-ast-utils';
@@ -84,16 +88,11 @@ export class RenameProviderImpl implements RenameProvider {
         for (const loc of renameLocations) {
             const { snapshot } = await docs.retrieve(loc.fileName);
             if (!isNoTextSpanInGeneratedCode(snapshot.getFullText(), loc.textSpan)) {
-                if (
-                    snapshot
-                        .getFullText()
-                        .lastIndexOf('__sveltets_1_store_get(', loc.textSpan.start) ===
-                    loc.textSpan.start - '__sveltets_1_store_get('.length
-                ) {
+                if (isInsideStoreGetShim(snapshot.getFullText(), loc.textSpan.start)) {
                     // User renamed $store, also rename corresponding store
                     const storeRenameLocations = lang.findRenameLocations(
                         snapshot.filePath,
-                        snapshot.getFullText().lastIndexOf(' =', loc.textSpan.start) - 1,
+                        get$storeDeclarationStart(snapshot.getFullText(), loc.textSpan.start),
                         false,
                         false,
                         true
@@ -107,11 +106,11 @@ export class RenameProviderImpl implements RenameProvider {
                     );
                     // TODO once we allow providePrefixAndSuffixTextForRename to be configurable,
                     // we need to add one more step to update all other $store usages in other files
-                } else if (snapshot.getFullText().charAt(loc.textSpan.start) === '$') {
+                } else if (is$storeDeclarationVar(snapshot.getFullText(), loc.textSpan.start)) {
                     // User renamed store, also rename correspondig $store locations
                     const storeRenameLocations = lang.findRenameLocations(
                         snapshot.filePath,
-                        snapshot.getFullText().indexOf(');', loc.textSpan.start) - 1,
+                        getStoreGetShimVarStart(snapshot.getFullText(), loc.textSpan.start),
                         false,
                         false,
                         true

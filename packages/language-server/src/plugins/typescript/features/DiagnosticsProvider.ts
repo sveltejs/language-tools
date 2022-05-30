@@ -17,7 +17,9 @@ import {
     findNodeAtSpan,
     isReactiveStatement,
     isInReactiveStatement,
-    gatherIdentifiers
+    gatherIdentifiers,
+    isInsideStoreGetShim,
+    get$storeDeclarationStart
 } from './utils';
 import { not, flatten, passMap, regexIndexOf, swapRangeStartEndIfNecessary } from '../../../utils';
 import { LSConfigManager } from '../../../ls-config';
@@ -87,18 +89,13 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
         const notGenerated = isNotGenerated(tsDoc.getFullText());
         for (const diagnostic of diagnostics) {
             if (!notGenerated(diagnostic)) {
-                if (
-                    tsDoc
-                        .getFullText()
-                        .lastIndexOf('__sveltets_1_store_get(', diagnostic.start!) ===
-                    diagnostic.start! - '__sveltets_1_store_get('.length
-                ) {
+                if (isInsideStoreGetShim(tsDoc.getFullText(), diagnostic.start!)) {
                     const storeName = tsDoc
                         .getFullText()
                         .substring(diagnostic.start!, diagnostic.start! + diagnostic.length!);
                     const storeUsages = lang.findReferences(
                         tsDoc.filePath,
-                        tsDoc.getFullText().lastIndexOf(' =', diagnostic.start!) - 1
+                        get$storeDeclarationStart(tsDoc.getFullText(), diagnostic.start!)
                     )![0].references;
                     for (const storeUsage of storeUsages) {
                         additionalStoreDiagnostics.push({

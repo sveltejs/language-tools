@@ -5,7 +5,14 @@ import { flatten, pathToUrl } from '../../../utils';
 import { FindReferencesProvider } from '../../interfaces';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { convertToLocationRange, hasNonZeroRange } from '../utils';
-import { isInGeneratedCode, isNoTextSpanInGeneratedCode, SnapshotFragmentMap } from './utils';
+import {
+    get$storeDeclarationStart,
+    getStoreGetShimVarStart,
+    is$storeDeclarationVar,
+    isInsideStoreGetShim,
+    isNoTextSpanInGeneratedCode,
+    SnapshotFragmentMap
+} from './utils';
 
 export class FindReferencesProviderImpl implements FindReferencesProvider {
     constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
@@ -29,26 +36,25 @@ export class FindReferencesProviderImpl implements FindReferencesProvider {
 
         const storeReference = references.find(
             (ref) =>
-                isInGeneratedCode(
-                    tsDoc.getFullText(),
-                    ref.textSpan.start,
-                    ref.textSpan.start + ref.textSpan.length
-                ) &&
+                !isNoTextSpanInGeneratedCode(tsDoc.getFullText(), ref.textSpan) &&
                 // handle both cases of references triggered at store and triggered at $store
-                (tsDoc.getFullText().substring(ref.textSpan.start).startsWith('$') ||
-                    tsDoc
-                        .getFullText()
-                        .lastIndexOf('__sveltets_1_store_get(', ref.textSpan.start) ===
-                        ref.textSpan.start - '__sveltets_1_store_get('.length)
+                (is$storeDeclarationVar(tsDoc.getFullText(), ref.textSpan.start) ||
+                    isInsideStoreGetShim(tsDoc.getFullText(), ref.textSpan.start))
         );
         if (storeReference) {
             const storeReferences =
                 lang.findReferences(
                     tsDoc.filePath,
                     // handle both cases of references triggered at store and triggered at $store
-                    tsDoc.getFullText().charAt(storeReference.textSpan.start) === '$'
-                        ? tsDoc.getFullText().indexOf(');', storeReference.textSpan.start) - 1
-                        : tsDoc.getFullText().lastIndexOf(' =', storeReference.textSpan.start) - 1
+                    is$storeDeclarationVar(tsDoc.getFullText(), storeReference.textSpan.start)
+                        ? getStoreGetShimVarStart(
+                              tsDoc.getFullText(),
+                              storeReference.textSpan.start
+                          )
+                        : get$storeDeclarationStart(
+                              tsDoc.getFullText(),
+                              storeReference.textSpan.start
+                          )
                 ) || [];
             references.push(...flatten(storeReferences.map((ref) => ref.references)));
             // TODO all $store usages in other Svelte files, too?
