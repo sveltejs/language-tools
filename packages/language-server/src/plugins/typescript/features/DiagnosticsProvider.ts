@@ -82,9 +82,41 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
             ...lang.getSuggestionDiagnostics(tsDoc.filePath),
             ...lang.getSemanticDiagnostics(tsDoc.filePath)
         ];
-        diagnostics = diagnostics
-            .filter(isNotGenerated(tsDoc.getText(0, tsDoc.getLength())))
-            .filter(not(isUnusedReactiveStatementLabel));
+
+        const additionalStoreDiagnostics: ts.Diagnostic[] = [];
+        const notGenerated = isNotGenerated(tsDoc.getFullText());
+        for (const diagnostic of diagnostics) {
+            if (!notGenerated(diagnostic)) {
+                if (
+                    tsDoc
+                        .getFullText()
+                        .lastIndexOf('__sveltets_1_store_get(', diagnostic.start!) ===
+                    diagnostic.start! - '__sveltets_1_store_get('.length
+                ) {
+                    const storeName = tsDoc
+                        .getFullText()
+                        .substring(diagnostic.start!, diagnostic.start! + diagnostic.length!);
+                    const storeUsages = lang.findReferences(
+                        tsDoc.filePath,
+                        tsDoc.getFullText().lastIndexOf(' =', diagnostic.start!) - 1
+                    )![0].references;
+                    for (const storeUsage of storeUsages) {
+                        additionalStoreDiagnostics.push({
+                            ...diagnostic,
+                            messageText: `Cannot subscribe to '${storeName}', it's not a store.\n\n${ts.flattenDiagnosticMessageText(
+                                diagnostic.messageText,
+                                '\n'
+                            )}`,
+                            start: storeUsage.textSpan.start,
+                            length: storeUsage.textSpan.length
+                        });
+                    }
+                }
+            }
+        }
+        diagnostics.push(...additionalStoreDiagnostics);
+
+        diagnostics = diagnostics.filter(notGenerated).filter(not(isUnusedReactiveStatementLabel));
         diagnostics = resolveNoopsInReactiveStatements(lang, diagnostics);
 
         return diagnostics
