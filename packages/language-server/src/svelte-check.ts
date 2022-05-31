@@ -12,7 +12,8 @@ import {
     TypeScriptPlugin
 } from './plugins';
 import { convertRange, getDiagnosticTag, mapSeverity } from './plugins/typescript/utils';
-import { pathToUrl, urlToPath } from './utils';
+import { normalizePath, pathToUrl, urlToPath } from './utils';
+import * as path from 'path';
 
 export type SvelteCheckDiagnosticSource = 'js' | 'css' | 'svelte';
 
@@ -27,6 +28,8 @@ export interface SvelteCheckOptions {
      * Whether or not to use the new transformation of svelte2tsx
      */
     useNewTransformation?: boolean;
+
+    filePathsToIgnore?: string[];
 }
 
 /**
@@ -40,6 +43,7 @@ export class SvelteCheck {
     private configManager = new LSConfigManager();
     private pluginHost = new PluginHost(this.docManager);
     private lsAndTSDocResolver?: LSAndTSDocResolver;
+    private absFilePathsToIgnore: string[] = [];
 
     constructor(workspacePath: string, private options: SvelteCheckOptions = {}) {
         Logger.setLogErrorsOnly(true);
@@ -57,6 +61,8 @@ export class SvelteCheck {
                 useNewTransformation: options.useNewTransformation ?? false
             }
         });
+        this.absFilePathsToIgnore = options.filePathsToIgnore?.map(
+            p => normalizePath(path.resolve(workspacePath, p)) + path.sep) || [];
         // No HTMLPlugin, it does not provide diagnostics
         if (shouldRegister('svelte')) {
             this.pluginHost.register(new SveltePlugin(this.configManager));
@@ -163,44 +169,53 @@ export class SvelteCheck {
             files.map((file) => {
                 const uri = pathToUrl(file.fileName);
                 const doc = this.docManager.get(uri);
-                if (doc) {
-                    this.docManager.markAsOpenedInClient(uri);
-                    return this.getDiagnosticsForFile(uri);
-                } else {
-                    // This check is done inside TS mostly, too, but for some diagnostics like suggestions it
-                    // doesn't apply to all code paths. That's why we do it here, too.
-                    const skipDiagnosticsForFile =
-                        (options.skipLibCheck && file.isDeclarationFile) ||
-                        (options.skipDefaultLibCheck && file.hasNoDefaultLib) ||
-                        // ignore JS files in node_modules
-                        /\/node_modules\/.+\.(c|m)?js$/.test(file.fileName);
-
-                    const diagnostics = skipDiagnosticsForFile
-                        ? []
-                        : [
-                              ...lang.getSyntacticDiagnostics(file.fileName),
-                              ...lang.getSuggestionDiagnostics(file.fileName),
-                              ...lang.getSemanticDiagnostics(file.fileName)
-                          ].map<Diagnostic>((diagnostic) => ({
-                              range: convertRange(
-                                  { positionAt: file.getLineAndCharacterOfPosition.bind(file) },
-                                  diagnostic
-                              ),
-                              severity: mapSeverity(diagnostic.category),
-                              source: diagnostic.source,
-                              message: ts.flattenDiagnosticMessageText(
-                                  diagnostic.messageText,
-                                  '\n'
-                              ),
-                              code: diagnostic.code,
-                              tags: getDiagnosticTag(diagnostic)
-                          }));
-
+                if (this.fileShouldBeIgnored(file.fileName)) {
                     return {
-                        filePath: file.fileName,
-                        text: file.text,
-                        diagnostics
+                        filePath: urlToPath(uri) || '',
+                        text: this.docManager.get(uri)?.getText() || '',
+                        diagnostics: []
                     };
+                }
+                else {
+                    if (doc) {
+                        this.docManager.markAsOpenedInClient(uri);
+                        return this.getDiagnosticsForFile(uri);
+                    } else {
+                        // This check is done inside TS mostly, too, but for some diagnostics like suggestions it
+                        // doesn't apply to all code paths. That's why we do it here, too.
+                        const skipDiagnosticsForFile =
+                            (options.skipLibCheck && file.isDeclarationFile) ||
+                            (options.skipDefaultLibCheck && file.hasNoDefaultLib) ||
+                            // ignore JS files in node_modules
+                            /\/node_modules\/.+\.(c|m)?js$/.test(file.fileName);
+
+                        const diagnostics = skipDiagnosticsForFile
+                            ? []
+                            : [
+                                ...lang.getSyntacticDiagnostics(file.fileName),
+                                ...lang.getSuggestionDiagnostics(file.fileName),
+                                ...lang.getSemanticDiagnostics(file.fileName)
+                            ].map<Diagnostic>((diagnostic) => ({
+                                range: convertRange(
+                                    { positionAt: file.getLineAndCharacterOfPosition.bind(file) },
+                                    diagnostic
+                                ),
+                                severity: mapSeverity(diagnostic.category),
+                                source: diagnostic.source,
+                                message: ts.flattenDiagnosticMessageText(
+                                    diagnostic.messageText,
+                                    '\n'
+                                ),
+                                code: diagnostic.code,
+                                tags: getDiagnosticTag(diagnostic)
+                            }));
+
+                        return {
+                            filePath: file.fileName,
+                            text: file.text,
+                            diagnostics
+                        };
+                    }
                 }
             })
         );
@@ -220,5 +235,11 @@ export class SvelteCheck {
             throw new Error('Cannot run with tsconfig path without LS/TSdoc resolver');
         }
         return this.lsAndTSDocResolver.getTSService(tsconfigPath);
+    }
+
+    private fileShouldBeIgnored(absolutePath: string): boolean {
+        return this.absFilePathsToIgnore.filter(p => {
+            return (normalizePath(absolutePath) + path.sep).startsWith(p);
+        }).length > 0;
     }
 }
