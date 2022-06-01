@@ -26,7 +26,7 @@ export function getHoverInfo(
     const charactersAroundOffset = svelteDoc
         .getText()
         // use last 10 and next 10 characters, should cover 99% of all cases
-        .substr(offsetStart, 20);
+        .slice(offsetStart, offsetStart + 20);
     const isSvelteTag = tagRegexp.test(charactersAroundOffset);
 
     if (isInStyleOrScript) {

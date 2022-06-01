@@ -212,7 +212,7 @@ function sanitizeLeadingChars(attrName: string): string {
     let sanitizedName = '';
     for (let i = 0; i < attrName.length; i++) {
         if (/[A-Za-z$_]/.test(attrName[i])) {
-            sanitizedName += attrName.substr(i);
+            sanitizedName += attrName.slice(i);
             return sanitizedName;
         } else {
             sanitizedName += '_';

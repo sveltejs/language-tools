@@ -75,7 +75,7 @@ export class HoverProviderImpl implements HoverProvider {
             return null;
         }
 
-        const eventName = possibleEventName.substr('on:'.length);
+        const eventName = possibleEventName.slice('on:'.length);
         const event = component.getEvents().find((event) => event.name === eventName);
         if (!event) {
             return null;
