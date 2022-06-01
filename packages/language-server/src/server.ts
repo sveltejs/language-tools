@@ -430,6 +430,10 @@ export function startServer(options?: LSOptions) {
         return pluginHost.fileReferences(uri);
     });
 
+    connection.onRequest('$/getComponentUsages', async (uri: string) => {
+        return pluginHost.findComponentUsages(uri);
+    });
+
     connection.onRequest('$/getCompiledCode', async (uri: DocumentUri) => {
         const doc = docManager.get(uri);
         if (!doc) {

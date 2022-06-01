@@ -538,6 +538,10 @@
             {
                 "command": "svelte.typescript.findAllFileReferences",
                 "title": "Svelte: Find File References"
+            },
+            {
+                "command": "svelte.typescript.findComponentUsages",
+                "title": "Svelte: Find Component Usages"
             }
         ],
         "menus": {
@@ -548,6 +552,10 @@
                 },
                 {
                     "command": "svelte.typescript.findAllFileReferences",
+                    "when": "editorLangId == svelte && resourceScheme == file"
+                },
+                {
+                    "command": "svelte.typescript.findComponentUsages",
                     "when": "editorLangId == svelte && resourceScheme == file"
                 }
             ],
@@ -562,6 +570,10 @@
                 {
                     "command": "svelte.typescript.findAllFileReferences",
                     "when": "resourceLangId == svelte && resourceScheme == file"
+                },
+                {
+                    "command": "svelte.typescript.findComponentUsages",
+                    "when": "resourceLangId == svelte && resourceScheme == file"
                 }
             ],
             "editor/context": [
@@ -574,11 +586,21 @@
                     "command": "svelte.typescript.findAllFileReferences",
                     "when": "editorLangId == svelte",
                     "group": "4_search"
+                },
+                {
+                    "command": "svelte.typescript.findComponentUsages",
+                    "when": "editorLangId == svelte",
+                    "group": "4_search"
                 }
             ],
             "explorer/context": [
                 {
                     "command": "svelte.typescript.findAllFileReferences",
+                    "when": "resourceLangId == svelte",
+                    "group": "4_search"
+                },
+                {
+                    "command": "svelte.typescript.findComponentUsages",
                     "when": "resourceLangId == svelte",
                     "group": "4_search"
                 }
