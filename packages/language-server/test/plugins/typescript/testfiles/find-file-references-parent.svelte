@@ -7,4 +7,4 @@ import FindFileReferencesChild from "./find-file-references-child.svelte";
     }
 </script>
 
-<FindFileReferencesChild/>
+<FindFileReferencesChild></FindFileReferencesChild>

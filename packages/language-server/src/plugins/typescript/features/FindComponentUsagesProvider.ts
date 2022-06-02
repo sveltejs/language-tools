@@ -86,7 +86,6 @@ export class FindComponentUsagesProviderImpl implements FindComponentUsagesProvi
         return componentUsages.filter(hasNonZeroRange);
     }
 
-    //Return correct span for a TS or SVELTE file
     private convertTextSpan(
         ref: ReferenceEntry,
         element: Location,
@@ -149,8 +148,6 @@ class FindReferenceTargetHelper {
     contextSpanTextSplit: string[];
 
     textSpan: Range;
-    textSpanText: string;
-    textSpanTextSplit: string[];
 
     dynamicImportTest = 'import(';
 
@@ -168,8 +165,6 @@ class FindReferenceTargetHelper {
         this.contextSpanTextSplit = this.contextSpanText.split(' ');
 
         this.textSpan = convertToLocationRange(defDoc, fileReference.textSpan);
-        this.textSpanText = document.getText(Range.create(this.textSpan.start, this.textSpan.end));
-        this.textSpanTextSplit = this.textSpanText.split(' ');
 
         this.isSvelteFile = isSvelteFilePath(fileReference.fileName);
     }
