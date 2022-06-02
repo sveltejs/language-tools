@@ -1,7 +1,6 @@
 import * as assert from 'assert';
 import * as path from 'path';
 import ts from 'typescript';
-import { Location, Position, Range } from 'vscode-languageserver';
 import { Document, DocumentManager } from '../../../../src/lib/documents';
 import { LSConfigManager } from '../../../../src/ls-config';
 import { FindComponentUsagesProviderImpl } from '../../../../src/plugins/typescript/features/FindComponentUsagesProvider';
@@ -40,18 +39,104 @@ describe('FindComponentUsagesProvider', () => {
     }
 
     it('finds file references', async () => {
-        const { provider, document, openDoc } = setup('find-file-references-child.svelte');
+        const { provider, document, openDoc } = setup('find-component-usages-child.svelte');
         //Make known all the associated files
-        openDoc('find-file-references-parent.svelte');
+        openDoc('find-component-usages-parent.svelte');
 
         const results = await provider.findComponentUsages(document.uri.toString());
-        const expectedResults = [
-            Location.create(
-                getUri('find-file-references-parent.svelte'),
-                Range.create(Position.create(9, 1), Position.create(9, 24))
-            )
-        ];
 
-        assert.deepStrictEqual(results, expectedResults);
-    });
+        assert.deepStrictEqual(results, [
+            {
+                range: {
+                    end: {
+                        character: 21,
+                        line: 1
+                    },
+                    start: {
+                        character: 11,
+                        line: 1
+                    }
+                },
+                uri: getUri('find-component-usages-parent.svelte')
+            },
+            {
+                range: {
+                    end: {
+                        character: 14,
+                        line: 18
+                    },
+                    start: {
+                        character: 3,
+                        line: 18
+                    }
+                },
+                uri: getUri('find-component-usages-parent.svelte')
+            },
+            {
+                range: {
+                    end: {
+                        character: 14,
+                        line: 20
+                    },
+                    start: {
+                        character: 3,
+                        line: 20
+                    }
+                },
+                uri: getUri('find-component-usages-parent.svelte')
+            },
+            {
+                range: {
+                    end: {
+                        character: 20,
+                        line: 5
+                    },
+                    start: {
+                        character: 10,
+                        line: 5
+                    }
+                },
+                uri: getUri('find-component-usages-parent.svelte')
+            },
+            {
+                range: {
+                    end: {
+                        character: 63,
+                        line: 7
+                    },
+                    start: {
+                        character: 57,
+                        line: 7
+                    }
+                },
+                uri: getUri('find-component-usages-parent.svelte')
+            },
+            {
+                range: {
+                    end: {
+                        character: 16,
+                        line: 8
+                    },
+                    start: {
+                        character: 10,
+                        line: 8
+                    }
+                },
+                uri: getUri('find-component-usages-parent.svelte')
+            },
+            {
+                range: {
+                    end: {
+                        character: 21,
+                        line: 14
+                    },
+                    start: {
+                        character: 12,
+                        line: 14
+                    }
+                },
+                uri: getUri('find-component-usages-parent.svelte')
+            }
+        ]);
+    }).timeout(3000);
 });
