@@ -134,7 +134,10 @@ export namespace DocumentSnapshot {
         if (!normalizedPath.endsWith('node_modules/svelte/types/runtime/ambient.d.ts')) {
             originalText = ts.sys.readFile(filePath) || '';
         }
-        if (normalizedPath.endsWith('svelte2tsx/svelte-shims.d.ts')) {
+        if (
+            normalizedPath.endsWith('svelte2tsx/svelte-shims.d.ts') ||
+            normalizedPath.endsWith('svelte-check/dist/src/svelte-shims.d.ts')
+        ) {
             // If not present, the LS uses an older version of svelte2tsx
             if (originalText.includes('// -- start svelte-ls-remove --')) {
                 originalText =

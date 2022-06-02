@@ -25,7 +25,7 @@ import {
 import { LSConfigManager } from '../../../ls-config';
 import { flatten, getRegExpMatches, isNotNullOrUndefined, pathToUrl } from '../../../utils';
 import { AppCompletionItem, AppCompletionList, CompletionsProvider } from '../../interfaces';
-import { ComponentPartInfo } from '../ComponentInfoProvider';
+import { ComponentInfoProvider, ComponentPartInfo } from '../ComponentInfoProvider';
 import { SvelteDocumentSnapshot, SvelteSnapshotFragment } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { getMarkdownDocumentation } from '../previewer';
@@ -37,9 +37,9 @@ import {
     scriptElementKindToCompletionItemKind
 } from '../utils';
 import { getJsDocTemplateCompletion } from './getJsDocTemplateCompletion';
-import { getComponentAtPosition, isPartOfImportStatement } from './utils';
+import { findContainingNode, getComponentAtPosition, isPartOfImportStatement } from './utils';
 
-export interface CompletionEntryWithIdentifer extends ts.CompletionEntry, TextDocumentIdentifier {
+export interface CompletionEntryWithIdentifier extends ts.CompletionEntry, TextDocumentIdentifier {
     position: Position;
 }
 
@@ -48,10 +48,10 @@ type validTriggerCharacter = '.' | '"' | "'" | '`' | '/' | '@' | '<' | '#';
 type LastCompletion = {
     key: string;
     position: Position;
-    completionList: AppCompletionList<CompletionEntryWithIdentifer> | null;
+    completionList: AppCompletionList<CompletionEntryWithIdentifier> | null;
 };
 
-export class CompletionsProviderImpl implements CompletionsProvider<CompletionEntryWithIdentifer> {
+export class CompletionsProviderImpl implements CompletionsProvider<CompletionEntryWithIdentifier> {
     constructor(
         private readonly lsAndTsDocResolver: LSAndTSDocResolver,
         private readonly configManager: LSConfigManager
@@ -79,7 +79,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         position: Position,
         completionContext?: CompletionContext,
         cancellationToken?: CancellationToken
-    ): Promise<AppCompletionList<CompletionEntryWithIdentifer> | null> {
+    ): Promise<AppCompletionList<CompletionEntryWithIdentifier> | null> {
         if (isInTag(position, document.styleInfo)) {
             return null;
         }
@@ -163,11 +163,10 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             right: /[^\w$:]/
         });
 
+        const componentInfo = getComponentAtPosition(lang, document, tsDoc, position);
         const eventAndSlotLetCompletions = this.getEventAndSlotLetCompletions(
-            lang,
+            componentInfo,
             document,
-            tsDoc,
-            position,
             wordRange
         );
 
@@ -179,11 +178,21 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             return null;
         }
 
-        const completions =
+        let completions =
             lang.getCompletionsAtPosition(filePath, offset, {
                 ...userPreferences,
                 triggerCharacter: validTriggerCharacter
             })?.entries || [];
+
+        if (!completions.length) {
+            completions =
+                this.jsxTransformationPropStringLiteralCompletion(
+                    lang,
+                    componentInfo,
+                    offset,
+                    tsDoc
+                ) ?? [];
+        }
 
         if (completions.length === 0 && eventAndSlotLetCompletions.length === 0) {
             return tsDoc.parserError ? CompletionList.create([], true) : null;
@@ -246,14 +255,11 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
     }
 
     private getEventAndSlotLetCompletions(
-        lang: ts.LanguageService,
+        componentInfo: ComponentInfoProvider | null,
         doc: Document,
-        tsDoc: SvelteDocumentSnapshot,
-        originalPosition: Position,
         wordRange: { start: number; end: number }
-    ): Array<AppCompletionItem<CompletionEntryWithIdentifer>> {
-        const componentInfo = getComponentAtPosition(lang, doc, tsDoc, originalPosition);
-        if (!componentInfo) {
+    ): Array<AppCompletionItem<CompletionEntryWithIdentifier>> {
+        if (componentInfo === null) {
             return [];
         }
 
@@ -285,7 +291,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         uri: string,
         position: Position,
         existingImports: Set<string>
-    ): AppCompletionItem<CompletionEntryWithIdentifer> | null {
+    ): AppCompletionItem<CompletionEntryWithIdentifier> | null {
         const completionLabelAndInsert = this.getCompletionLabelAndInsert(fragment, comp);
         if (!completionLabelAndInsert) {
             return null;
@@ -435,9 +441,9 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
 
     async resolveCompletion(
         document: Document,
-        completionItem: AppCompletionItem<CompletionEntryWithIdentifer>,
+        completionItem: AppCompletionItem<CompletionEntryWithIdentifier>,
         cancellationToken?: CancellationToken
-    ): Promise<AppCompletionItem<CompletionEntryWithIdentifer>> {
+    ): Promise<AppCompletionItem<CompletionEntryWithIdentifier>> {
         const { data: comp } = completionItem;
         const { tsDoc, lang, userPreferences } = await this.lsAndTsDocResolver.getLSAndTSDoc(
             document
@@ -634,6 +640,49 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         }
 
         return importText;
+    }
+
+    private jsxTransformationPropStringLiteralCompletion(
+        lang: ts.LanguageService,
+        componentInfo: ComponentInfoProvider | null,
+        position: number,
+        tsDoc: SvelteDocumentSnapshot
+    ) {
+        if (!componentInfo || this.configManager.getConfig().svelte.useNewTransformation) {
+            return null;
+        }
+
+        const program = lang.getProgram();
+        const sourceFile = program?.getSourceFile(tsDoc.filePath);
+        if (!sourceFile) {
+            return null;
+        }
+
+        const jsxAttribute = findContainingNode(
+            sourceFile,
+            { start: position, length: 0 },
+            ts.isJsxAttribute
+        );
+        if (
+            !jsxAttribute ||
+            !jsxAttribute.initializer ||
+            !ts.isStringLiteral(jsxAttribute.initializer)
+        ) {
+            return null;
+        }
+
+        const replacementSpan = jsxAttribute.initializer.getWidth()
+            ? {
+                  // skip quote
+                  start: jsxAttribute.initializer.getStart() + 1,
+                  length: jsxAttribute.initializer.getWidth() - 2
+              }
+            : undefined;
+
+        return componentInfo.getProps(jsxAttribute.name.getText()).map((item) => ({
+            ...item,
+            replacementSpan
+        }));
     }
 }
 

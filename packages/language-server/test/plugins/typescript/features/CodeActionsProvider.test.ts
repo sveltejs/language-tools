@@ -863,13 +863,10 @@ function test(useNewTransformation: boolean) {
                             {
                                 edits: [
                                     {
-                                        newText:
-                                            '// @ts-ignore\n' +
-                                            "    import { } from './somepng.png';\n" +
-                                            "    import { } from './t.png';\n",
+                                        newText: "import { } from './t.png';\n",
                                         range: {
                                             end: {
-                                                character: 4,
+                                                character: 0,
                                                 line: 2
                                             },
                                             start: {
@@ -879,7 +876,7 @@ function test(useNewTransformation: boolean) {
                                         }
                                     },
                                     {
-                                        newText: '',
+                                        newText: "import { } from './somepng.png';\n",
                                         range: {
                                             end: {
                                                 character: 0,
@@ -887,7 +884,7 @@ function test(useNewTransformation: boolean) {
                                             },
                                             start: {
                                                 character: 4,
-                                                line: 2
+                                                line: 3
                                             }
                                         }
                                     }
@@ -903,6 +900,21 @@ function test(useNewTransformation: boolean) {
                     title: 'Organize Imports'
                 }
             ]);
+        });
+
+        it('organize imports should do nothing if there is a parser error', async () => {
+            const { provider, document } = setup('organize-imports-error.svelte');
+
+            const codeActions = await provider.getCodeActions(
+                document,
+                Range.create(Position.create(1, 4), Position.create(1, 5)),
+                {
+                    diagnostics: [],
+                    only: [CodeActionKind.SourceOrganizeImports]
+                }
+            );
+
+            assert.deepStrictEqual(codeActions, []);
         });
 
         it('should do extract into const refactor', async () => {

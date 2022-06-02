@@ -17,7 +17,7 @@ import {
 } from 'vscode-languageserver';
 import {
     CompletionsProviderImpl,
-    CompletionEntryWithIdentifer
+    CompletionEntryWithIdentifier
 } from '../../../../src/plugins/typescript/features/CompletionProvider';
 import { LSAndTSDocResolver } from '../../../../src/plugins/typescript/LSAndTSDocResolver';
 import { sortBy } from 'lodash';
@@ -466,6 +466,7 @@ function test(useNewTransformation: boolean) {
                 isSnippet: undefined,
                 kind: 'method',
                 kindModifiers: '',
+                labelDetails: undefined,
                 name: 'b',
                 position: {
                     character: 49,
@@ -476,7 +477,7 @@ function test(useNewTransformation: boolean) {
                 source: undefined,
                 sourceDisplay: undefined,
                 uri: fileNameToAbsoluteUri(filename)
-            } as CompletionEntryWithIdentifer);
+            } as CompletionEntryWithIdentifier);
         });
 
         it('resolve completion and provide documentation', async () => {
@@ -1304,6 +1305,19 @@ function test(useNewTransformation: boolean) {
                     `expected no completions for ${line},${char}`
                 );
             }
+        });
+
+        it('handles completion in empty text attribute', async () => {
+            const { completionProvider, document } = setup('emptytext-importer.svelte');
+
+            const completions = await completionProvider.getCompletions(
+                document,
+                Position.create(4, 14)
+            );
+            assert.deepStrictEqual(
+                completions?.items.map((item) => item.label),
+                ['s', 'm', 'l']
+            );
         });
 
         // Hacky, but it works. Needed due to testing both new and old transformation

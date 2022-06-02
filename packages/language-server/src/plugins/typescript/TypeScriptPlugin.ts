@@ -36,6 +36,7 @@ import {
     DocumentSymbolsProvider,
     FileRename,
     FindReferencesProvider,
+    FileReferencesProvider,
     HoverProvider,
     ImplementationProvider,
     OnWatchFileChanges,
@@ -50,10 +51,11 @@ import {
 } from '../interfaces';
 import { CodeActionsProviderImpl } from './features/CodeActionsProvider';
 import {
-    CompletionEntryWithIdentifer,
+    CompletionEntryWithIdentifier,
     CompletionsProviderImpl
 } from './features/CompletionProvider';
 import { DiagnosticsProviderImpl } from './features/DiagnosticsProvider';
+import { FindFileReferencesProviderImpl } from './features/FindFileReferencesProvider';
 import { FindReferencesProviderImpl } from './features/FindReferencesProvider';
 import { getDirectiveCommentCompletions } from './features/getDirectiveCommentCompletions';
 import { HoverProviderImpl } from './features/HoverProvider';
@@ -85,13 +87,14 @@ export class TypeScriptPlugin
         UpdateImportsProvider,
         RenameProvider,
         FindReferencesProvider,
+        FileReferencesProvider,
         SelectionRangeProvider,
         SignatureHelpProvider,
         SemanticTokensProvider,
         ImplementationProvider,
         TypeDefinitionProvider,
         OnWatchFileChanges,
-        CompletionsProvider<CompletionEntryWithIdentifer>,
+        CompletionsProvider<CompletionEntryWithIdentifier>,
         UpdateTsOrJsFile
 {
     __name = 'ts';
@@ -104,6 +107,8 @@ export class TypeScriptPlugin
     private readonly renameProvider: RenameProviderImpl;
     private readonly hoverProvider: HoverProviderImpl;
     private readonly findReferencesProvider: FindReferencesProviderImpl;
+    private readonly findFileReferencesProvider: FindFileReferencesProviderImpl;
+
     private readonly selectionRangeProvider: SelectionRangeProviderImpl;
     private readonly signatureHelpProvider: SignatureHelpProviderImpl;
     private readonly semanticTokensProvider: SemanticTokensProviderImpl;
@@ -130,6 +135,9 @@ export class TypeScriptPlugin
         this.renameProvider = new RenameProviderImpl(this.lsAndTsDocResolver, configManager);
         this.hoverProvider = new HoverProviderImpl(this.lsAndTsDocResolver);
         this.findReferencesProvider = new FindReferencesProviderImpl(this.lsAndTsDocResolver);
+        this.findFileReferencesProvider = new FindFileReferencesProviderImpl(
+            this.lsAndTsDocResolver
+        );
         this.selectionRangeProvider = new SelectionRangeProviderImpl(this.lsAndTsDocResolver);
         this.signatureHelpProvider = new SignatureHelpProviderImpl(this.lsAndTsDocResolver);
         this.semanticTokensProvider = new SemanticTokensProviderImpl(this.lsAndTsDocResolver);
@@ -273,7 +281,7 @@ export class TypeScriptPlugin
         position: Position,
         completionContext?: CompletionContext,
         cancellationToken?: CancellationToken
-    ): Promise<AppCompletionList<CompletionEntryWithIdentifer> | null> {
+    ): Promise<AppCompletionList<CompletionEntryWithIdentifier> | null> {
         if (!this.featureEnabled('completions')) {
             return null;
         }
@@ -303,9 +311,9 @@ export class TypeScriptPlugin
 
     async resolveCompletion(
         document: Document,
-        completionItem: AppCompletionItem<CompletionEntryWithIdentifer>,
+        completionItem: AppCompletionItem<CompletionEntryWithIdentifier>,
         cancellationToken?: CancellationToken
-    ): Promise<AppCompletionItem<CompletionEntryWithIdentifer>> {
+    ): Promise<AppCompletionItem<CompletionEntryWithIdentifier>> {
         return this.completionProvider.resolveCompletion(
             document,
             completionItem,
@@ -421,6 +429,14 @@ export class TypeScriptPlugin
         }
 
         return this.findReferencesProvider.findReferences(document, position, context);
+    }
+
+    async fileReferences(uri: string): Promise<Location[] | null> {
+        if (!this.featureEnabled('fileReferences')) {
+            return null;
+        }
+
+        return this.findFileReferencesProvider.fileReferences(uri);
     }
 
     async onWatchFileChanges(onWatchFileChangesParas: OnWatchFileChangesPara[]): Promise<void> {

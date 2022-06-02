@@ -14,6 +14,7 @@ const defaultLSConfig: LSConfig = {
         completions: { enable: true },
         definitions: { enable: true },
         findReferences: { enable: true },
+        fileReferences: { enable: true },
         documentSymbols: { enable: true },
         codeActions: { enable: true },
         rename: { enable: true },
@@ -95,6 +96,9 @@ export interface LSTypescriptConfig {
         enable: boolean;
     };
     findReferences: {
+        enable: boolean;
+    };
+    fileReferences: {
         enable: boolean;
     };
     definitions: {

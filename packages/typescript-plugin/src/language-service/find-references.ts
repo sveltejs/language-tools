@@ -24,7 +24,10 @@ function _decorateFindReferences(
             ?.map((reference) => {
                 const snapshot = snapshotManager.get(reference.definition.fileName);
                 if (!isSvelteFilePath(reference.definition.fileName) || !snapshot) {
-                    return reference;
+                    return {
+                        ...reference,
+                        references: mapReferences(reference.references, snapshotManager, logger)
+                    };
                 }
 
                 const textSpan = snapshot.getOriginalTextSpan(reference.definition.textSpan);

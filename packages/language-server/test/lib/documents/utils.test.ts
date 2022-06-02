@@ -209,6 +209,23 @@ describe('document/utils', () => {
             });
         });
 
+        it("extracts top level script when there're whitespace before block name", () => {
+            const text = `
+                <script>top level script</script>
+                {  #if myvar } {/if}
+            `;
+
+            assert.deepStrictEqual(extractScriptTags(text)?.script, {
+                content: 'top level script',
+                attributes: {},
+                start: 25,
+                end: 41,
+                startPos: Position.create(1, 24),
+                endPos: Position.create(1, 40),
+                container: { start: 17, end: 50 }
+            });
+        });
+
         it('ignores script tag in svelte:head', () => {
             // https://github.com/sveltejs/language-tools/issues/143#issuecomment-636422045
             const text = `
