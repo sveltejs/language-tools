@@ -69,11 +69,77 @@ Converts a .svelte file into a legal TypeScript file. Built from [halfnelson/sve
 
 ## Development
 
+### High Level Overview
+
+```mermaid
+flowchart LR
+    %% IDEs
+    VSC[VSCode]
+
+    %% Tools
+    CLI[CLI]
+
+    %% Svelte - Extensions
+    VSC_TSSP[vscode-typescript-svelte-plugin]
+
+    click VSC_TSSP "https://github.com/sveltejs/language-tools/tree/master/packages/typescript-plugin" "A TypeScript plugin for Svelte intellisense"
+
+    %% Svelte - Packages
+    SVELTE_LANGUAGE_SERVER["@sveltejs/language-server"]
+    SVELTE_COMPILER_SERVICE["@sveltejs/svelte-compiler-service"]
+    SVELTE_TS_SERVICE["@sveltejs/typescript-language-service"]
+
+    click SVELTE_LANGUAGE_SERVER "https://github.com/sveltejs/language-tools/tree/master/packages/language-server" "A language server adhering to the LSP"
+    click SVELTE_COMPILER_SERVICE "https://github.com/sveltejs/language-tools/tree/master/packages/language-server/src/plugins/svelte" "Transforms Svelte code into JSX/TSX code"
+    click SVELTE_TS_SERVICE "https://github.com/sveltejs/language-tools/tree/master/packages/language-server/src/plugins/typescript"
+
+    %% Extrnal Packages
+    HTML_SERVICE[vscode-html-languageservice]
+    CSS_SERVICE[vscode-css-languageservice]
+    VSC_TS[vscode-typescript-language-features]
+
+    click HTML_SERVICE "https://github.com/microsoft/vscode-html-languageservice"
+    click CSS_SERVICE "https://github.com/microsoft/vscode-css-languageservice"
+    click VSC_TS "https://github.com/microsoft/vscode/tree/main/extensions/typescript-language-features"
+
+
+    subgraph SVELTE_CLIENTS[Language Clients]
+      direction LR
+      SVELTE_CLIENT_API[Primary Language Features]
+      SVELTE_CLIENT_CHECK[Secondary Language Features]
+    end
+
+    click SVELTE_CLIENT_API "https://github.com/sveltejs/language-tools/tree/master/packages/svelte-vscode" "Svelte for VSCode extension"
+    click SVELTE_CLIENT_CHECK "https://github.com/sveltejs/language-tools/tree/master/packages/svelte-check" "A command line tool to get diagnostics for Svelte code"
+
+    subgraph EMBEDDED_SERVICES[Embedded Language Services]
+      direction LR
+      SVELTE_TS_SERVICE
+      SVELTE_COMPILER_SERVICE
+      HTML_SERVICE
+      CSS_SERVICE
+    end
+
+    VSC --> SVELTE_CLIENT_API
+    CLI --> SVELTE_CLIENT_CHECK
+
+    SVELTE_CLIENT_API --> VSC_TSSP
+
+	  SVELTE_CLIENTS -- Language Server Protocol --> SVELTE_LANGUAGE_SERVER
+
+    VSC --> VSC_TS
+    VSC_TS --> VSC_TSSP
+    VSC_TSSP --> SVELTE_COMPILER_SERVICE
+
+    SVELTE_LANGUAGE_SERVER --> EMBEDDED_SERVICES
+
+```
+
+-   More information about the internals can be found [HERE](./docs/internal/overview.md).
+
 #### Setup
 
 Pull requests are encouraged and always welcome. [Pick an issue](https://github.com/sveltejs/language-tools/issues?q=is%3Aissue+is%3Aopen+sort%3Aupdated-desc) and help us out!
-
-To get an overview of the internals, [read here](./docs/internal/overview.md).
 
 To install and work on these tools locally:
 
