@@ -26,6 +26,8 @@ describe('FindComponentUsagesProvider', () => {
 
         if (ignoreImports) {
             lsConfigManager.getConfig().typescript.findComponentUsagesIgnoresImports.enable = true;
+        } else {
+            lsConfigManager.getConfig().typescript.findComponentUsagesIgnoresImports.enable = false;
         }
 
         const lsAndTsDocResolver = new LSAndTSDocResolver(docManager, [testDir], lsConfigManager);
