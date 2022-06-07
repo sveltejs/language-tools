@@ -50,7 +50,7 @@ describe('FindComponentUsagesProvider', () => {
         //Make known all the associated files
         openDoc('find-component-usages-parent.svelte');
 
-        const results = await provider.findComponentUsages(document.uri.toString());
+        const results = await provider.findComponentUsages(document);
 
         assert.deepStrictEqual(results, [
             {
@@ -113,7 +113,7 @@ describe('FindComponentUsagesProvider', () => {
         //Make known all the associated files
         openDoc('find-component-usages-parent.svelte');
 
-        const results = await provider.findComponentUsages(document.uri.toString());
+        const results = await provider.findComponentUsages(document);
 
         assert.deepStrictEqual(results, [
             {

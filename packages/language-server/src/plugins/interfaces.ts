@@ -148,7 +148,7 @@ export interface FileReferencesProvider {
 }
 
 export interface FindComponentUsagesProvider {
-    findComponentUsages(uri: string): Promise<Location[] | null>;
+    findComponentUsages(document: Document): Promise<Location[] | null>;
 }
 
 export interface SignatureHelpProvider {

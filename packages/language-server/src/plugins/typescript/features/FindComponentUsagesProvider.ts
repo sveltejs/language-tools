@@ -1,5 +1,4 @@
 import { Location, Position, Range } from 'vscode-languageserver';
-import { URI } from 'vscode-uri';
 import { flatten, pathToUrl } from '../../../utils';
 import { FindComponentUsagesProvider } from '../../interfaces';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
@@ -12,16 +11,13 @@ import { lsConfig } from '../../../ls-config';
 export class FindComponentUsagesProviderImpl implements FindComponentUsagesProvider {
     constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
 
-    async findComponentUsages(uri: string): Promise<Location[] | null> {
-        const u = URI.parse(uri);
-        const fileName = u.fsPath;
-        const document = await this.getDocument(fileName);
+    async findComponentUsages(document: Document): Promise<Location[] | null> {
         const { lang, tsDoc } = await this.getLSAndTSDoc(document);
         const fragment = tsDoc.getFragment();
         const ignoreImports =
             lsConfig.getConfig().typescript.findComponentUsagesIgnoresImports.enable;
 
-        const position = this.GetClassPosition(fragment);
+        const position = this.getClassPosition(fragment);
 
         const references = lang.findReferences(tsDoc.filePath, fragment.offsetAt(position));
 
@@ -64,7 +60,7 @@ export class FindComponentUsagesProviderImpl implements FindComponentUsagesProvi
     }
 
     //Return the position of the class in the generated code as the reference target
-    private GetClassPosition(fragment: SvelteSnapshotFragment) {
+    private getClassPosition(fragment: SvelteSnapshotFragment) {
         return fragment.positionAt(
             fragment.getLineOffsets()[fragment.getLineOffsets().length - 2] + 23
         );
