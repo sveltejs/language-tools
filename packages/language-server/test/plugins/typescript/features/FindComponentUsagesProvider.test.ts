@@ -18,15 +18,20 @@ describe('FindComponentUsagesProvider', () => {
         return pathToUrl(filePath);
     }
 
-    function setup(filename: string) {
+    function setup(filename: string, ignoreImports: boolean) {
         const docManager = new DocumentManager(
             (textDocument) => new Document(textDocument.uri, textDocument.text)
         );
         const lsConfigManager = new LSConfigManager();
+
+        if (ignoreImports) {
+            lsConfigManager.getConfig().typescript.findComponentUsagesIgnoresImports.enable = true;
+        }
+
         const lsAndTsDocResolver = new LSAndTSDocResolver(docManager, [testDir], lsConfigManager);
         const provider = new FindComponentUsagesProviderImpl(lsAndTsDocResolver);
         const document = openDoc(filename);
-        return { provider, document, openDoc };
+        return { provider, document, openDoc, lsConfigManager };
 
         function openDoc(filename: string) {
             const filePath = getFullPath(filename);
@@ -38,8 +43,8 @@ describe('FindComponentUsagesProvider', () => {
         }
     }
 
-    it('finds file references', async () => {
-        const { provider, document, openDoc } = setup('find-component-usages-child.svelte');
+    it('finds component usages including imports', async () => {
+        const { provider, document, openDoc } = setup('find-component-usages-child.svelte', false);
         //Make known all the associated files
         openDoc('find-component-usages-parent.svelte');
 
@@ -48,95 +53,106 @@ describe('FindComponentUsagesProvider', () => {
         assert.deepStrictEqual(results, [
             {
                 range: {
-                    end: {
-                        character: 21,
-                        line: 1
-                    },
                     start: {
-                        character: 11,
-                        line: 1
+                        line: 8,
+                        character: 15
+                    },
+                    end: {
+                        line: 8,
+                        character: 22
                     }
                 },
                 uri: getUri('find-component-usages-parent.svelte')
             },
             {
                 range: {
-                    end: {
-                        character: 14,
-                        line: 18
-                    },
                     start: {
-                        character: 3,
-                        line: 18
+                        line: 1,
+                        character: 9
+                    },
+                    end: {
+                        line: 1,
+                        character: 19
                     }
                 },
                 uri: getUri('find-component-usages-parent.svelte')
             },
             {
                 range: {
-                    end: {
-                        character: 14,
-                        line: 20
-                    },
                     start: {
-                        character: 3,
-                        line: 20
+                        line: 18,
+                        character: 1
+                    },
+                    end: {
+                        line: 18,
+                        character: 11
                     }
                 },
                 uri: getUri('find-component-usages-parent.svelte')
             },
             {
                 range: {
-                    end: {
-                        character: 20,
-                        line: 5
-                    },
                     start: {
-                        character: 10,
-                        line: 5
-                    }
-                },
-                uri: getUri('find-component-usages-parent.svelte')
-            },
-            {
-                range: {
-                    end: {
-                        character: 63,
-                        line: 7
+                        line: 20,
+                        character: 1
                     },
-                    start: {
-                        character: 57,
-                        line: 7
-                    }
-                },
-                uri: getUri('find-component-usages-parent.svelte')
-            },
-            {
-                range: {
                     end: {
-                        character: 16,
-                        line: 8
-                    },
-                    start: {
-                        character: 10,
-                        line: 8
-                    }
-                },
-                uri: getUri('find-component-usages-parent.svelte')
-            },
-            {
-                range: {
-                    end: {
-                        character: 21,
-                        line: 14
-                    },
-                    start: {
-                        character: 12,
-                        line: 14
+                        line: 20,
+                        character: 11
                     }
                 },
                 uri: getUri('find-component-usages-parent.svelte')
             }
         ]);
-    }).timeout(3000);
+    });
+
+    it('finds component usages excluding imports', async () => {
+        const { provider, document, openDoc } = setup('find-component-usages-child.svelte', true);
+        //Make known all the associated files
+        openDoc('find-component-usages-parent.svelte');
+
+        const results = await provider.findComponentUsages(document.uri.toString());
+
+        assert.deepStrictEqual(results, [
+            {
+                range: {
+                    start: {
+                        line: 8,
+                        character: 15
+                    },
+                    end: {
+                        line: 8,
+                        character: 22
+                    }
+                },
+                uri: getUri('find-component-usages-parent.svelte')
+            },
+            {
+                range: {
+                    start: {
+                        line: 18,
+                        character: 1
+                    },
+                    end: {
+                        line: 18,
+                        character: 11
+                    }
+                },
+                uri: getUri('find-component-usages-parent.svelte')
+            },
+            {
+                range: {
+                    start: {
+                        line: 20,
+                        character: 1
+                    },
+                    end: {
+                        line: 20,
+                        character: 11
+                    }
+                },
+                uri: getUri('find-component-usages-parent.svelte')
+            }
+        ]);
+    });
 });

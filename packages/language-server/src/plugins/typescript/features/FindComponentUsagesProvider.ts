@@ -1,105 +1,79 @@
 import { Location, Position, Range } from 'vscode-languageserver';
 import { URI } from 'vscode-uri';
-import { pathToUrl } from '../../../utils';
+import { flatten, pathToUrl } from '../../../utils';
 import { FindComponentUsagesProvider } from '../../interfaces';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
-import {
-    convertToLocationRange,
-    convertToTextSpan,
-    hasNonZeroRange,
-    isSvelteFilePath
-} from '../utils';
-import { FindReferencesProviderImpl } from './FindReferencesProvider';
-import { SnapshotFragmentMap } from './utils';
+import { convertToLocationRange, hasNonZeroRange } from '../utils';
 import { Document, DocumentManager } from '../../../lib/documents';
-import ts, { ReferenceEntry, TextSpan } from 'typescript';
-import { SnapshotFragment } from '../DocumentSnapshot';
-
+import ts from 'typescript';
+import { isNoTextSpanInGeneratedCode, SnapshotFragmentMap } from './utils';
+import { SvelteSnapshotFragment } from '../DocumentSnapshot';
+import { lsConfig } from '../../../ls-config';
 export class FindComponentUsagesProviderImpl implements FindComponentUsagesProvider {
     constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
 
     async findComponentUsages(uri: string): Promise<Location[] | null> {
         const u = URI.parse(uri);
         const fileName = u.fsPath;
-        const lang = await this.getLSForPath(fileName);
+        const document = await this.getDocument(fileName);
+        const { lang, tsDoc } = await this.getLSAndTSDoc(document);
+        const fragment = tsDoc.getFragment();
+        const ignoreImports =
+            lsConfig.getConfig().typescript.findComponentUsagesIgnoresImports.enable;
 
-        const references = lang.getFileReferences(fileName);
+        const position = this.GetClassPosition(fragment);
+
+        const references = lang.findReferences(tsDoc.filePath, fragment.offsetAt(position));
+
         if (!references) {
             return null;
         }
 
-        const componentUsages: Location[] = [];
-        const findReferenceProvider = new FindReferencesProviderImpl(this.lsAndTsDocResolver);
+        const docs = new SnapshotFragmentMap(this.lsAndTsDocResolver);
+        docs.set(tsDoc.filePath, { fragment, snapshot: tsDoc });
 
-        for (const ref of references) {
-            if (!ref.contextSpan) {
-                continue;
-            }
+        const locations = await Promise.all(
+            flatten(references.map((ref) => ref.references))
+                .filter((ref) => !ref.isDefinition)
+                .filter(this.notInGeneratedCode(tsDoc.getFullText()))
+                .map(async (ref) => {
+                    const defDoc = await docs.retrieveFragment(ref.fileName);
+                    const document = await this.getDocument(ref.fileName);
 
-            const document = await this.getDocument(ref.fileName);
-            const tsDoc = await this.getSnapshotForPath(ref.fileName);
-            const fragment = tsDoc.getFragment();
+                    const refLocation = Location.create(
+                        pathToUrl(ref.fileName),
+                        convertToLocationRange(defDoc, ref.textSpan)
+                    );
 
-            const docs = new SnapshotFragmentMap(this.lsAndTsDocResolver);
-            docs.set(tsDoc.filePath, { fragment, snapshot: tsDoc });
-            const defDoc = await docs.retrieveFragment(ref.fileName);
-
-            const findReferenceTargetHelper = new FindReferenceTargetHelper(defDoc, ref, document);
-
-            const findReferenceTargetPosition = findReferenceTargetHelper.GetReferenceTarget();
-            if (!findReferenceTargetPosition) {
-                continue;
-            }
-
-            const usageResults = await findReferenceProvider.findReferences(
-                document,
-                findReferenceTargetPosition,
-                { includeDeclaration: true }
-            );
-
-            usageResults &&
-                usageResults.forEach((element) => {
                     //Only report starting tags
-                    if (this.isEndTag(element, document)) {
-                        return;
+                    if (this.isEndTag(refLocation, document)) {
+                        return {} as Location;
                     }
 
-                    componentUsages.push(
-                        Location.create(
-                            pathToUrl(ref.fileName),
-                            convertToLocationRange(
-                                defDoc,
-                                this.convertTextSpan(
-                                    ref,
-                                    element,
-                                    fragment,
-                                    findReferenceTargetHelper
-                                )
-                            )
-                        )
-                    );
-                });
-        }
+                    if (ignoreImports && this.isStandardImport(refLocation, document)) {
+                        return {} as Location;
+                    }
+
+                    return refLocation;
+                })
+        );
 
         // Some references are in generated code but not wrapped with explicit ignore comments.
         // These show up as zero-length ranges, so filter them out.
-        return componentUsages.filter(hasNonZeroRange);
+        return locations.filter(hasNonZeroRange);
     }
 
-    private convertTextSpan(
-        ref: ReferenceEntry,
-        element: Location,
-        fragment: SnapshotFragment,
-        helper: FindReferenceTargetHelper
-    ) {
-        const textSpan = convertToTextSpan(element.range, fragment);
+    //Return the position of the class in the generated code as the reference target
+    private GetClassPosition(fragment: SvelteSnapshotFragment) {
+        return fragment.positionAt(
+            fragment.getLineOffsets()[fragment.getLineOffsets().length - 2] + 23
+        );
+    }
 
-        //For whatever reason the references found in the script section of a .svelte file were off by 1
-        if (helper.isSvelteFile && !helper.IsLocationWithinScriptSection(element)) {
-            textSpan.length += 1;
-        }
-
-        return textSpan;
+    private notInGeneratedCode(text: string) {
+        return (ref: ts.ReferenceEntry) => {
+            return isNoTextSpanInGeneratedCode(text, ref.textSpan);
+        };
     }
 
     private isEndTag(element: Location, document: Document) {
@@ -116,12 +90,22 @@ export class FindComponentUsagesProviderImpl implements FindComponentUsagesProvi
         return false;
     }
 
-    private async getLSForPath(path: string) {
-        return this.lsAndTsDocResolver.getLSForPath(path);
+    private isStandardImport(element: Location, document: Document) {
+        const testEndTagRange = Range.create(
+            Position.create(element.range.start.line, 0),
+            element.range.end
+        );
+
+        const text = document.getText(testEndTagRange);
+        if (text.trim().startsWith('import')) {
+            return true;
+        }
+
+        return false;
     }
 
-    private async getSnapshotForPath(path: string) {
-        return this.lsAndTsDocResolver.getSnapshot(path);
+    private async getLSAndTSDoc(document: Document) {
+        return this.lsAndTsDocResolver.getLSAndTSDoc(document);
     }
 
     private async getDocument(filename: string) {
@@ -138,139 +122,6 @@ export class FindComponentUsagesProviderImpl implements FindComponentUsagesProvi
                 text: ts.sys.readFile(filename) || ''
             });
             return doc;
-        }
-    }
-}
-
-class FindReferenceTargetHelper {
-    contextSpan: Range;
-    contextSpanText: string;
-    contextSpanTextSplit: string[];
-
-    textSpan: Range;
-
-    dynamicImportTest = 'import(';
-
-    isSvelteFile: boolean = false;
-
-    constructor(
-        public defDoc: SnapshotFragment,
-        public fileReference: ReferenceEntry,
-        public document: Document
-    ) {
-        this.contextSpan = convertToLocationRange(defDoc, fileReference.contextSpan as TextSpan);
-        this.contextSpanText = document.getText(
-            Range.create(this.contextSpan.start, this.contextSpan.end)
-        );
-        this.contextSpanTextSplit = this.contextSpanText.split(' ');
-
-        this.textSpan = convertToLocationRange(defDoc, fileReference.textSpan);
-
-        this.isSvelteFile = isSvelteFilePath(fileReference.fileName);
-    }
-
-    public IsLocationWithinScriptSection(element: Location) {
-        if (this.isSvelteFile && this.document.scriptInfo) {
-            if (
-                element.range.start.line > this.document.scriptInfo.startPos.line &&
-                element.range.start.line < this.document.scriptInfo.endPos.line
-            ) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    //Heuristic's for common and well formatted syntax patterns to find the appropriate reference target
-    public GetReferenceTarget() {
-        const position = this.GetTargetPosition();
-        return position;
-    }
-
-    private GetTargetPosition() {
-        const standardImportPosition = this.IsStandardImport();
-        if (standardImportPosition) {
-            return standardImportPosition;
-        }
-
-        const resolvedPromiseImport = this.IsResolvedPromiseImport();
-        if (resolvedPromiseImport) {
-            return resolvedPromiseImport;
-        }
-
-        const awaitImportPosition = this.IsAwaitImport();
-        if (awaitImportPosition) {
-            return awaitImportPosition;
-        }
-
-        const promiseImportPosition = this.IsPromiseImport();
-        if (promiseImportPosition) {
-            return promiseImportPosition;
-        }
-    }
-
-    //import Btn from "./Button5.svelte";
-    private IsStandardImport() {
-        if (
-            this.contextSpanTextSplit.length == 4 &&
-            !this.contextSpanText.includes(this.dynamicImportTest)
-        ) {
-            return Position.create(
-                this.contextSpan.start.line,
-                this.contextSpan.start.character + 7
-            );
-        }
-    }
-
-    //const theModule = await import("./Button5.svelte");
-    private IsAwaitImport() {
-        if (
-            this.contextSpanTextSplit.length == 5 &&
-            this.contextSpanTextSplit.includes('await') &&
-            this.contextSpanText.includes(this.dynamicImportTest)
-        ) {
-            if (this.isSvelteFile) {
-                return Position.create(
-                    this.textSpan.start.line,
-                    this.textSpan.start.character - 17
-                );
-            } else {
-                return Position.create(
-                    this.contextSpan.start.line,
-                    this.contextSpan.start.character - 17
-                );
-            }
-        }
-    }
-
-    //const theModule2 = import("./Button5.svelte");
-    private IsPromiseImport() {
-        if (
-            this.contextSpanTextSplit.length == 4 &&
-            this.contextSpanText.includes(this.dynamicImportTest)
-        ) {
-            if (this.isSvelteFile) {
-                return Position.create(
-                    this.textSpan.start.line,
-                    this.textSpan.start.character - 11
-                );
-            } else {
-                return Position.create(
-                    this.contextSpan.start.line,
-                    this.contextSpan.start.character - 11
-                );
-            }
-        }
-    }
-
-    //import("./Button5.svelte").then((module) => {
-    private IsResolvedPromiseImport() {
-        if (
-            this.contextSpanText.startsWith(this.dynamicImportTest) &&
-            this.contextSpanText.includes('then')
-        ) {
-            return Position.create(this.textSpan.start.line, this.textSpan.end.character + 9);
         }
     }
 }
