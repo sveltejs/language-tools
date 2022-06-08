@@ -1,12 +1,9 @@
 import ts from 'typescript';
-import { Location } from 'vscode-languageserver';
+import { Location, Position, Range } from 'vscode-languageserver';
+import { Document, DocumentManager } from '../../../lib/documents';
 import { flatten, isNotNullOrUndefined, pathToUrl, urlToPath } from '../../../utils';
 import { FindComponentUsagesProvider } from '../../interfaces';
-import {
-    DocumentSnapshot,
-    SvelteDocumentSnapshot,
-    SvelteSnapshotFragment
-} from '../DocumentSnapshot';
+import { SvelteSnapshotFragment } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { convertToLocationRange, hasNonZeroRange } from '../utils';
 import { isNoTextSpanInGeneratedCode, SnapshotFragmentMap } from './utils';
@@ -48,13 +45,9 @@ export class FindComponentUsagesProviderImpl implements FindComponentUsagesProvi
                 }
 
                 const { fragment, snapshot } = await docs.retrieve(ref.fileName);
+                const document = await this.getDocument(ref.fileName);
 
                 if (!isNoTextSpanInGeneratedCode(snapshot.getFullText(), ref.textSpan)) {
-                    return null;
-                }
-
-                //Only report starting tags
-                if (this.isEndTag(ref.textSpan, snapshot)) {
                     return null;
                 }
 
@@ -62,6 +55,11 @@ export class FindComponentUsagesProviderImpl implements FindComponentUsagesProvi
                     pathToUrl(ref.fileName),
                     convertToLocationRange(fragment, ref.textSpan)
                 );
+
+                //Only report starting tags
+                if (this.isEndTag(refLocation, document)) {
+                    return null;
+                }
 
                 // Some references are in generated code but not wrapped with explicit ignore comments.
                 // These show up as zero-length ranges, so filter them out.
@@ -80,8 +78,34 @@ export class FindComponentUsagesProviderImpl implements FindComponentUsagesProvi
         return fragment.text.lastIndexOf(COMPONENT_SUFFIX);
     }
 
-    private isEndTag(span: ts.TextSpan, document: DocumentSnapshot) {
-        const text = document.getText(span.start - 1, span.start);
-        return document instanceof SvelteDocumentSnapshot && text === '/';
+    private isEndTag(element: Location, document: Document) {
+        const testEndTagRange = Range.create(
+            Position.create(element.range.start.line, element.range.start.character - 1),
+            element.range.end
+        );
+
+        const text = document.getText(testEndTagRange);
+        if (text.substring(0, 1) == '/') {
+            return true;
+        }
+
+        return false;
+    }
+
+    private async getDocument(filename: string) {
+        const docManager = new DocumentManager(
+            (textDocument) => new Document(textDocument.uri, textDocument.text)
+        );
+
+        const document = openDoc(filename);
+        return document;
+
+        function openDoc(filename: string) {
+            const doc = docManager.openDocument(<any>{
+                uri: pathToUrl(filename),
+                text: ts.sys.readFile(filename) || ''
+            });
+            return doc;
+        }
     }
 }
