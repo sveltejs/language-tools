@@ -9,6 +9,9 @@ import ts from 'typescript';
 import { isNoTextSpanInGeneratedCode, SnapshotFragmentMap } from './utils';
 import { SvelteSnapshotFragment } from '../DocumentSnapshot';
 import { lsConfig } from '../../../ls-config';
+
+const COMPONENT_SUFFIX = '__SvelteComponent_';
+
 export class FindComponentUsagesProviderImpl implements FindComponentUsagesProvider {
     constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
 
@@ -65,9 +68,7 @@ export class FindComponentUsagesProviderImpl implements FindComponentUsagesProvi
 
     //Return the position of the class in the generated code as the reference target
     private getClassPosition(fragment: SvelteSnapshotFragment) {
-        return fragment.positionAt(
-            fragment.getLineOffsets()[fragment.getLineOffsets().length - 2] + 23
-        );
+        return fragment.positionAt(fragment.text.lastIndexOf(COMPONENT_SUFFIX));
     }
 
     private notInGeneratedCode(text: string) {
