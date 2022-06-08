@@ -16,7 +16,6 @@ const defaultLSConfig: LSConfig = {
         findReferences: { enable: true },
         fileReferences: { enable: true },
         findComponentUsages: { enable: true },
-        findComponentUsagesIgnoresImports: { enable: true },
         documentSymbols: { enable: true },
         codeActions: { enable: true },
         rename: { enable: true },
@@ -104,9 +103,6 @@ export interface LSTypescriptConfig {
         enable: boolean;
     };
     findComponentUsages: {
-        enable: boolean;
-    };
-    findComponentUsagesIgnoresImports: {
         enable: boolean;
     };
     definitions: {

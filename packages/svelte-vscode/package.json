@@ -186,12 +186,6 @@
                     "title": "Typescript: Go to Type Definition",
                     "description": "Enable go to Type Definition for Typescript"
                 },
-                "svelte.plugin.typescript.findComponentUsagesIgnoresImports.enable": {
-                    "type": "boolean",
-                    "default": false,
-                    "title": "Typescript: Find Component Usage Exclude Imports",
-                    "description": "Excludes import statements when reporting component usages"
-                },
                 "svelte.plugin.css.enable": {
                     "type": "boolean",
                     "default": true,

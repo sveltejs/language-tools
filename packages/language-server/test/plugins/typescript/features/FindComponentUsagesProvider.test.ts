@@ -18,17 +18,11 @@ describe('FindComponentUsagesProvider', () => {
         return pathToUrl(filePath);
     }
 
-    function setup(filename: string, ignoreImports: boolean) {
+    function setup(filename: string) {
         const docManager = new DocumentManager(
             (textDocument) => new Document(textDocument.uri, textDocument.text)
         );
         const lsConfigManager = new LSConfigManager();
-
-        if (ignoreImports) {
-            lsConfigManager.getConfig().typescript.findComponentUsagesIgnoresImports.enable = true;
-        } else {
-            lsConfigManager.getConfig().typescript.findComponentUsagesIgnoresImports.enable = false;
-        }
 
         const lsAndTsDocResolver = new LSAndTSDocResolver(docManager, [testDir], lsConfigManager);
         const provider = new FindComponentUsagesProviderImpl(lsAndTsDocResolver);
@@ -45,8 +39,8 @@ describe('FindComponentUsagesProvider', () => {
         }
     }
 
-    it('finds component usages including imports', async () => {
-        const { provider, document, openDoc } = setup('find-component-usages-child.svelte', false);
+    it('finds component usages', async () => {
+        const { provider, document, openDoc } = setup('find-component-usages-child.svelte');
         //Make known all the associated files
         openDoc('find-component-usages-parent.svelte');
 
@@ -75,56 +69,6 @@ describe('FindComponentUsagesProvider', () => {
                     end: {
                         line: 1,
                         character: 19
-                    }
-                },
-                uri: getUri('find-component-usages-parent.svelte')
-            },
-            {
-                range: {
-                    start: {
-                        line: 18,
-                        character: 1
-                    },
-                    end: {
-                        line: 18,
-                        character: 11
-                    }
-                },
-                uri: getUri('find-component-usages-parent.svelte')
-            },
-            {
-                range: {
-                    start: {
-                        line: 20,
-                        character: 1
-                    },
-                    end: {
-                        line: 20,
-                        character: 11
-                    }
-                },
-                uri: getUri('find-component-usages-parent.svelte')
-            }
-        ]);
-    });
-
-    it('finds component usages excluding imports', async () => {
-        const { provider, document, openDoc } = setup('find-component-usages-child.svelte', true);
-        //Make known all the associated files
-        openDoc('find-component-usages-parent.svelte');
-
-        const results = await provider.findComponentUsages(document.uri.toString());
-
-        assert.deepStrictEqual(results, [
-            {
-                range: {
-                    start: {
-                        line: 8,
-                        character: 15
-                    },
-                    end: {
-                        line: 8,
-                        character: 22
                     }
                 },
                 uri: getUri('find-component-usages-parent.svelte')

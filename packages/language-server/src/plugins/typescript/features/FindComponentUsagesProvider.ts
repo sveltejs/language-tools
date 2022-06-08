@@ -8,7 +8,6 @@ import { Document, DocumentManager } from '../../../lib/documents';
 import ts from 'typescript';
 import { isNoTextSpanInGeneratedCode, SnapshotFragmentMap } from './utils';
 import { SvelteSnapshotFragment } from '../DocumentSnapshot';
-import { lsConfig } from '../../../ls-config';
 
 const COMPONENT_SUFFIX = '__SvelteComponent_';
 
@@ -21,8 +20,6 @@ export class FindComponentUsagesProviderImpl implements FindComponentUsagesProvi
         const document = await this.getDocument(fileName);
         const { lang, tsDoc } = await this.getLSAndTSDoc(document);
         const fragment = tsDoc.getFragment();
-        const ignoreImports =
-            lsConfig.getConfig().typescript.findComponentUsagesIgnoresImports.enable;
 
         const position = this.getClassPosition(fragment);
 
@@ -50,10 +47,6 @@ export class FindComponentUsagesProviderImpl implements FindComponentUsagesProvi
 
                     //Only report starting tags
                     if (this.isEndTag(refLocation, document)) {
-                        return {} as Location;
-                    }
-
-                    if (ignoreImports && this.isStandardImport(refLocation, document)) {
                         return {} as Location;
                     }
 
@@ -85,20 +78,6 @@ export class FindComponentUsagesProviderImpl implements FindComponentUsagesProvi
 
         const text = document.getText(testEndTagRange);
         if (text.substring(0, 1) == '/') {
-            return true;
-        }
-
-        return false;
-    }
-
-    private isStandardImport(element: Location, document: Document) {
-        const testEndTagRange = Range.create(
-            Position.create(element.range.start.line, 0),
-            element.range.end
-        );
-
-        const text = document.getText(testEndTagRange);
-        if (text.trim().startsWith('import')) {
             return true;
         }
 
