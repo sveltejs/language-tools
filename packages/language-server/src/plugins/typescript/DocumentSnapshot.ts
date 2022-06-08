@@ -65,7 +65,6 @@ export interface SnapshotFragment extends DocumentMapper {
     scriptInfo: TagInformation | null;
     positionAt(offset: number): Position;
     offsetAt(position: Position): number;
-    lineOffsets?: number[];
 }
 
 /**
@@ -373,7 +372,7 @@ export class JSOrTSDocumentSnapshot
 {
     scriptKind = getScriptKindFromFileName(this.filePath);
     scriptInfo = null;
-    lineOffsets?: number[];
+    private lineOffsets?: number[];
 
     constructor(public version: number, public readonly filePath: string, private text: string) {
         super(pathToUrl(filePath));
@@ -438,7 +437,7 @@ export class JSOrTSDocumentSnapshot
  * to generated snapshot positions and vice versa.
  */
 export class SvelteSnapshotFragment implements SnapshotFragment {
-    lineOffsets = getLineOffsets(this.text);
+    private lineOffsets = getLineOffsets(this.text);
 
     constructor(
         private readonly mapper: DocumentMapper,
@@ -481,9 +480,5 @@ export class SvelteSnapshotFragment implements SnapshotFragment {
 
     offsetAt(position: Position) {
         return offsetAt(position, this.text, this.lineOffsets);
-    }
-
-    getLineOffsets() {
-        return this.lineOffsets;
     }
 }
