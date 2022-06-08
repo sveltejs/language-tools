@@ -1,13 +1,15 @@
-import { Location, Position, Range } from 'vscode-languageserver';
-import { URI } from 'vscode-uri';
-import { flatten, pathToUrl } from '../../../utils';
+import ts from 'typescript';
+import { Location } from 'vscode-languageserver';
+import { flatten, isNotNullOrUndefined, pathToUrl, urlToPath } from '../../../utils';
 import { FindComponentUsagesProvider } from '../../interfaces';
+import {
+    DocumentSnapshot,
+    SvelteDocumentSnapshot,
+    SvelteSnapshotFragment
+} from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { convertToLocationRange, hasNonZeroRange } from '../utils';
-import { Document, DocumentManager } from '../../../lib/documents';
-import ts from 'typescript';
 import { isNoTextSpanInGeneratedCode, SnapshotFragmentMap } from './utils';
-import { SvelteSnapshotFragment } from '../DocumentSnapshot';
 
 const COMPONENT_SUFFIX = '__SvelteComponent_';
 
@@ -15,16 +17,23 @@ export class FindComponentUsagesProviderImpl implements FindComponentUsagesProvi
     constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
 
     async findComponentUsages(uri: string): Promise<Location[] | null> {
-        const u = URI.parse(uri);
-        const fileName = u.fsPath;
-        const document = await this.getDocument(fileName);
-        const { lang, tsDoc } = await this.getLSAndTSDoc(document);
+        // No document available, just the uri, because it could be called on an unopened file
+        const fileName = urlToPath(uri);
+        if (!fileName) {
+            return null;
+        }
+
+        const lang = await this.lsAndTsDocResolver.getLSForPath(fileName);
+        const tsDoc = await this.lsAndTsDocResolver.getSnapshot(fileName);
         const fragment = tsDoc.getFragment();
+        if (!(fragment instanceof SvelteSnapshotFragment)) {
+            return null;
+        }
 
-        const position = this.getClassPosition(fragment);
-
-        const references = lang.findReferences(tsDoc.filePath, fragment.offsetAt(position));
-
+        const references = lang.findReferences(
+            tsDoc.filePath,
+            this.offsetOfComponentExport(fragment)
+        );
         if (!references) {
             return null;
         }
@@ -33,75 +42,46 @@ export class FindComponentUsagesProviderImpl implements FindComponentUsagesProvi
         docs.set(tsDoc.filePath, { fragment, snapshot: tsDoc });
 
         const locations = await Promise.all(
-            flatten(references.map((ref) => ref.references))
-                .filter((ref) => !ref.isDefinition)
-                .filter(this.notInGeneratedCode(tsDoc.getFullText()))
-                .map(async (ref) => {
-                    const defDoc = await docs.retrieveFragment(ref.fileName);
-                    const document = await this.getDocument(ref.fileName);
+            flatten(references.map((ref) => ref.references)).map(async (ref) => {
+                if (ref.isDefinition) {
+                    return null;
+                }
 
-                    const refLocation = Location.create(
-                        pathToUrl(ref.fileName),
-                        convertToLocationRange(defDoc, ref.textSpan)
-                    );
+                const { fragment, snapshot } = await docs.retrieve(ref.fileName);
 
-                    //Only report starting tags
-                    if (this.isEndTag(refLocation, document)) {
-                        return {} as Location;
-                    }
+                if (!isNoTextSpanInGeneratedCode(snapshot.getFullText(), ref.textSpan)) {
+                    return null;
+                }
 
-                    return refLocation;
-                })
+                //Only report starting tags
+                if (this.isEndTag(ref.textSpan, snapshot)) {
+                    return null;
+                }
+
+                const refLocation = Location.create(
+                    pathToUrl(ref.fileName),
+                    convertToLocationRange(fragment, ref.textSpan)
+                );
+
+                // Some references are in generated code but not wrapped with explicit ignore comments.
+                // These show up as zero-length ranges, so filter them out.
+                if (!hasNonZeroRange(refLocation)) {
+                    return null;
+                }
+
+                return refLocation;
+            })
         );
 
-        // Some references are in generated code but not wrapped with explicit ignore comments.
-        // These show up as zero-length ranges, so filter them out.
-        return locations.filter(hasNonZeroRange);
+        return locations.filter(isNotNullOrUndefined);
     }
 
-    //Return the position of the class in the generated code as the reference target
-    private getClassPosition(fragment: SvelteSnapshotFragment) {
-        return fragment.positionAt(fragment.text.lastIndexOf(COMPONENT_SUFFIX));
+    private offsetOfComponentExport(fragment: SvelteSnapshotFragment) {
+        return fragment.text.lastIndexOf(COMPONENT_SUFFIX);
     }
 
-    private notInGeneratedCode(text: string) {
-        return (ref: ts.ReferenceEntry) => {
-            return isNoTextSpanInGeneratedCode(text, ref.textSpan);
-        };
-    }
-
-    private isEndTag(element: Location, document: Document) {
-        const testEndTagRange = Range.create(
-            Position.create(element.range.start.line, element.range.start.character - 1),
-            element.range.end
-        );
-
-        const text = document.getText(testEndTagRange);
-        if (text.substring(0, 1) == '/') {
-            return true;
-        }
-
-        return false;
-    }
-
-    private async getLSAndTSDoc(document: Document) {
-        return this.lsAndTsDocResolver.getLSAndTSDoc(document);
-    }
-
-    private async getDocument(filename: string) {
-        const docManager = new DocumentManager(
-            (textDocument) => new Document(textDocument.uri, textDocument.text)
-        );
-
-        const document = openDoc(filename);
-        return document;
-
-        function openDoc(filename: string) {
-            const doc = docManager.openDocument(<any>{
-                uri: pathToUrl(filename),
-                text: ts.sys.readFile(filename) || ''
-            });
-            return doc;
-        }
+    private isEndTag(span: ts.TextSpan, document: DocumentSnapshot) {
+        const text = document.getText(span.start - 1, span.start);
+        return document instanceof SvelteDocumentSnapshot && text === '/';
     }
 }
