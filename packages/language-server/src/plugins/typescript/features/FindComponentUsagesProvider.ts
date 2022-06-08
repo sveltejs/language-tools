@@ -1,4 +1,5 @@
 import { Location, Position, Range } from 'vscode-languageserver';
+import { URI } from 'vscode-uri';
 import { flatten, pathToUrl } from '../../../utils';
 import { FindComponentUsagesProvider } from '../../interfaces';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
@@ -11,7 +12,10 @@ import { lsConfig } from '../../../ls-config';
 export class FindComponentUsagesProviderImpl implements FindComponentUsagesProvider {
     constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
 
-    async findComponentUsages(document: Document): Promise<Location[] | null> {
+    async findComponentUsages(uri: string): Promise<Location[] | null> {
+        const u = URI.parse(uri);
+        const fileName = u.fsPath;
+        const document = await this.getDocument(fileName);
         const { lang, tsDoc } = await this.getLSAndTSDoc(document);
         const fragment = tsDoc.getFragment();
         const ignoreImports =

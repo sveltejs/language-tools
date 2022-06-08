@@ -446,12 +446,12 @@ export class TypeScriptPlugin
         return this.findFileReferencesProvider.fileReferences(uri);
     }
 
-    async findComponentUsages(document: Document): Promise<Location[] | null> {
+    async findComponentUsages(uri: string): Promise<Location[] | null> {
         if (!this.featureEnabled('findComponentUsages')) {
             return null;
         }
 
-        return this.findComponentUsagesProvider.findComponentUsages(document);
+        return this.findComponentUsagesProvider.findComponentUsages(uri);
     }
 
     async onWatchFileChanges(onWatchFileChangesParas: OnWatchFileChangesPara[]): Promise<void> {
