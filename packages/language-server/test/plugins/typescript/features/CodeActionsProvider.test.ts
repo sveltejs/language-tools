@@ -917,6 +917,83 @@ function test(useNewTransformation: boolean) {
             assert.deepStrictEqual(codeActions, []);
         });
 
+        it('organize imports aware of groups', async () => {
+            const { provider, document } = setup('organize-imports-group.svelte');
+
+            const codeActions = await provider.getCodeActions(
+                document,
+                Range.create(Position.create(1, 4), Position.create(1, 5)),
+                {
+                    diagnostics: [],
+                    only: [CodeActionKind.SourceOrganizeImports]
+                }
+            );
+
+            (<TextDocumentEdit>codeActions[0]?.edit?.documentChanges?.[0])?.edits.forEach(
+                (edit) => (edit.newText = harmonizeNewLines(edit.newText))
+            );
+
+            assert.deepStrictEqual(codeActions, [
+                {
+                    edit: {
+                        documentChanges: [
+                            {
+                                edits: [
+                                    {
+                                        newText: "import { } from 'svelte';\n",
+                                        range: {
+                                            start: {
+                                                line: 1,
+                                                character: 4
+                                            },
+                                            end: {
+                                                character: 0,
+                                                line: 2
+                                            }
+                                        }
+                                    },
+                                    {
+                                        newText:
+                                            "import { } from 'svelte/transition';\n" +
+                                            "    import { } from './codeaction-checkJs.svelte';\n",
+                                        range: {
+                                            end: {
+                                                character: 4,
+                                                line: 4
+                                            },
+                                            start: {
+                                                character: 4,
+                                                line: 3
+                                            }
+                                        }
+                                    },
+                                    {
+                                        newText: '',
+                                        range: {
+                                            end: {
+                                                character: 0,
+                                                line: 5
+                                            },
+                                            start: {
+                                                character: 4,
+                                                line: 4
+                                            }
+                                        }
+                                    }
+                                ],
+                                textDocument: {
+                                    uri: getUri('organize-imports-group.svelte'),
+                                    version: null
+                                }
+                            }
+                        ]
+                    },
+                    kind: 'source.organizeImports',
+                    title: 'Organize Imports'
+                }
+            ]);
+        });
+
         it('should do extract into const refactor', async () => {
             const { provider, document } = setup('codeactions.svelte');
 
