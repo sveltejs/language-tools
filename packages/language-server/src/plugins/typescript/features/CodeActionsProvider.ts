@@ -185,11 +185,16 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         );
 
         if (range.end.character > 0) {
-            const endLine = getLineAtPosition(range.start, document.getText());
-            const isIndent = !endLine.substring(0, range.start.character).trim();
+            const endLine = getLineAtPosition(range.end, document.getText());
+            const isIndent = !endLine.substring(0, range.end.character).trim();
 
-            if (isIndent && endLine.trim()) {
-                range.end.character = 0;
+            if (isIndent) {
+                const trimmedEndLine = endLine.trim();
+
+                // imports that would be removed by the next delete edit
+                if (trimmedEndLine && !trimmedEndLine.startsWith('import')) {
+                    range.end.character = 0;
+                }
             }
         }
 
