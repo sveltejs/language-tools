@@ -41,6 +41,9 @@ export function handleImportDeclaration(
     str.overwrite(node.end + astOffset - 1, node.end + astOffset, originalEndChar + '\n');
 }
 
+/**
+ * adopted from https://github.com/microsoft/TypeScript/blob/6e0447fdf165b1cec9fc80802abcc15bd23a268f/src/services/organizeImports.ts#L111
+ */
 function isNewGroup(
     sourceFile: ts.SourceFile,
     topLevelImportDecl: ts.ImportDeclaration,
