@@ -26,6 +26,7 @@ import {
 import { Document, getTextInRange, mapSymbolInformationToOriginal } from '../../lib/documents';
 import { LSConfigManager, LSTypescriptConfig } from '../../ls-config';
 import { isNotNullOrUndefined, isZeroLengthRange, pathToUrl } from '../../utils';
+import { CSSClassDefinitionLocator } from '../css/CSSClassDefinitionLocator';
 import {
     AppCompletionItem,
     AppCompletionList,
@@ -328,6 +329,37 @@ export class TypeScriptPlugin
 
         const { lang, tsDoc } = await this.getLSAndTSDoc(document);
         const mainFragment = tsDoc.getFragment();
+
+        const cssClassHelper = new CSSClassDefinitionLocator(
+            tsDoc,
+            position,
+            document,
+            mainFragment
+        );
+
+        const cssDefinitionRange = cssClassHelper.GetCSSClassDefinition();
+        if (cssDefinitionRange) {
+            const results: DefinitionLink[] = [];
+            cssDefinitionRange.start.character++; //Report start of name instead of start at . for easy rename (F2) possibilities
+
+            const originRange = Range.create(
+                Position.create(position.line, position.character),
+                Position.create(position.line, position.character)
+            );
+
+            results.push(
+                LocationLink.create(
+                    pathToUrl(document.getFilePath() as string),
+                    cssDefinitionRange,
+                    cssDefinitionRange,
+                    originRange
+                )
+            );
+
+            if (results) {
+                return results;
+            }
+        }
 
         const defs = lang.getDefinitionAndBoundSpan(
             tsDoc.filePath,

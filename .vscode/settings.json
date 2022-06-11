@@ -1,3 +1,7 @@
 {
-    "typescript.preferences.quoteStyle": "single"
+    "typescript.preferences.quoteStyle": "single",
+    "files.exclude": {
+        "**/**/dist": true,
+        "**/**/node_modules": true
+    }
 }
