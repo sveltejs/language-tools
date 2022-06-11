@@ -1,21 +1,15 @@
 import { Position, Range } from 'vscode-languageserver';
-import { SvelteDocumentSnapshot, SvelteSnapshotFragment } from '../typescript/DocumentSnapshot';
+import { SvelteDocumentSnapshot } from '../typescript/DocumentSnapshot';
 import { Document } from '../../lib/documents';
 import { SvelteNode } from '../typescript/svelte-ast-utils';
 export class CSSClassDefinitionLocator {
-    text: string;
+    //text: string;
     initialNodeAt: SvelteNode;
     constructor(
         public tsDoc: SvelteDocumentSnapshot,
         public position: Position,
-        public document: Document,
-        public mainFragement: SvelteSnapshotFragment
+        public document: Document
     ) {
-        const testEndTagRange = Range.create(
-            Position.create(position.line, 0),
-            Position.create(position.line, position.character)
-        );
-        this.text = document.getText(testEndTagRange);
         this.initialNodeAt = this.tsDoc.svelteNodeAt(this.position) as SvelteNode;
     }
 
@@ -76,7 +70,13 @@ export class CSSClassDefinitionLocator {
     }
 
     public GetStandardFormatClassName() {
-        let loopLength = this.text.length;
+        const testEndTagRange = Range.create(
+            Position.create(this.position.line, 0),
+            Position.create(this.position.line, this.position.character)
+        );
+        const text = this.document.getText(testEndTagRange);
+
+        let loopLength = text.length;
         let testPosition = this.position.character;
         let spaceCount = 0;
 
@@ -148,8 +148,7 @@ export class CSSClassDefinitionLocator {
                 Position.create(testRange.start.line, testRange.start.character - 1),
                 Position.create(testRange.start.line, testRange.start.character)
             );
-            this.text = this.document.getText(beforerange).trim();
-            if (this.text) {
+            if (this.document.getText(beforerange).trim()) {
                 return false;
             }
         }
@@ -159,8 +158,8 @@ export class CSSClassDefinitionLocator {
             Position.create(testRange.end.line, testRange.end.character),
             Position.create(testRange.end.line, testRange.end.character + 1)
         );
-        this.text = this.document.getText(afterRange).trim();
-        if (this.text == '' || this.text == '{') {
+        const afterRangeText = this.document.getText(afterRange).trim();
+        if (afterRangeText == '' || afterRangeText == '{') {
             return true;
         }
 

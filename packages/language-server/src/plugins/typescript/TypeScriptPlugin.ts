@@ -330,13 +330,7 @@ export class TypeScriptPlugin
         const { lang, tsDoc } = await this.getLSAndTSDoc(document);
         const mainFragment = tsDoc.getFragment();
 
-        const cssClassHelper = new CSSClassDefinitionLocator(
-            tsDoc,
-            position,
-            document,
-            mainFragment
-        );
-
+        const cssClassHelper = new CSSClassDefinitionLocator(tsDoc, position, document);
         const cssDefinitionRange = cssClassHelper.GetCSSClassDefinition();
         if (cssDefinitionRange) {
             const results: DefinitionLink[] = [];
