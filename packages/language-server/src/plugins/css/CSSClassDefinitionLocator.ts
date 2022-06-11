@@ -3,7 +3,6 @@ import { SvelteDocumentSnapshot } from '../typescript/DocumentSnapshot';
 import { Document } from '../../lib/documents';
 import { SvelteNode } from '../typescript/svelte-ast-utils';
 export class CSSClassDefinitionLocator {
-    //text: string;
     initialNodeAt: SvelteNode;
     constructor(
         public tsDoc: SvelteDocumentSnapshot,
