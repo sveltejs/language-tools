@@ -12,18 +12,11 @@ const defaultLSConfig: LSConfig = {
         diagnostics: { enable: true },
         hover: { enable: true },
         completions: { enable: true },
-        definitions: { enable: true },
-        findReferences: { enable: true },
-        fileReferences: { enable: true },
-        findComponentReferences: { enable: true },
         documentSymbols: { enable: true },
         codeActions: { enable: true },
-        rename: { enable: true },
         selectionRange: { enable: true },
         signatureHelp: { enable: true },
-        semanticTokens: { enable: true },
-        implementation: { enable: true },
-        typeDefinition: { enable: true }
+        semanticTokens: { enable: true }
     },
     css: {
         enable: true,
@@ -42,7 +35,6 @@ const defaultLSConfig: LSConfig = {
         completions: { enable: true, emmet: true },
         tagComplete: { enable: true },
         documentSymbols: { enable: true },
-        renameTags: { enable: true },
         linkedEditing: { enable: true }
     },
     svelte: {
@@ -96,22 +88,7 @@ export interface LSTypescriptConfig {
     completions: {
         enable: boolean;
     };
-    findReferences: {
-        enable: boolean;
-    };
-    fileReferences: {
-        enable: boolean;
-    };
-    findComponentReferences: {
-        enable: boolean;
-    };
-    definitions: {
-        enable: boolean;
-    };
     codeActions: {
-        enable: boolean;
-    };
-    rename: {
         enable: boolean;
     };
     selectionRange: {
@@ -121,12 +98,6 @@ export interface LSTypescriptConfig {
         enable: boolean;
     };
     semanticTokens: {
-        enable: boolean;
-    };
-    implementation: {
-        enable: boolean;
-    };
-    typeDefinition: {
         enable: boolean;
     };
 }
@@ -171,9 +142,6 @@ export interface LSHTMLConfig {
         enable: boolean;
     };
     documentSymbols: {
-        enable: boolean;
-    };
-    renameTags: {
         enable: boolean;
     };
     linkedEditing: {
