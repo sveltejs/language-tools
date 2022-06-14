@@ -1,7 +1,7 @@
 import { Position, Range } from 'vscode-languageserver';
-import { SvelteDocumentSnapshot } from '../typescript/DocumentSnapshot';
+import { SvelteDocumentSnapshot } from './DocumentSnapshot';
 import { Document } from '../../lib/documents';
-import { SvelteNode } from '../typescript/svelte-ast-utils';
+import { SvelteNode } from './svelte-ast-utils';
 export class CSSClassDefinitionLocator {
     initialNodeAt: SvelteNode;
     constructor(
@@ -12,17 +12,17 @@ export class CSSClassDefinitionLocator {
         this.initialNodeAt = this.tsDoc.svelteNodeAt(this.position) as SvelteNode;
     }
 
-    public GetCSSClassDefinition() {
-        if (this.IsStandardClassFormat()) {
-            return this.GetStandardFormatClassName();
+    getCSSClassDefinition() {
+        if (this.isStandardClassFormat()) {
+            return this.getStandardFormatClassName();
         }
 
-        if (this.IsDirectiveFormat() && this.initialNodeAt.name) {
-            return this.GetDefinitionRangeWithinStyleSection(`.${this.initialNodeAt.name}`);
+        if (this.isDirectiveFormat() && this.initialNodeAt.name) {
+            return this.getDefinitionRangeWithinStyleSection(`.${this.initialNodeAt.name}`);
         }
 
-        if (this.IsConditionalExpressionClassFormat() && this.initialNodeAt.value) {
-            return this.GetDefinitionRangeWithinStyleSection(`.${this.initialNodeAt.value}`);
+        if (this.isConditionalExpressionClassFormat() && this.initialNodeAt.value) {
+            return this.getDefinitionRangeWithinStyleSection(`.${this.initialNodeAt.value}`);
         }
 
         return false;
@@ -32,7 +32,7 @@ export class CSSClassDefinitionLocator {
      * Standard format:
      * class="test test1"
      */
-    public IsStandardClassFormat() {
+    private isStandardClassFormat() {
         if (this.initialNodeAt?.type == 'Text' && this.initialNodeAt?.parent?.name == 'class') {
             return true;
         }
@@ -44,7 +44,7 @@ export class CSSClassDefinitionLocator {
      * Conditional Expression format:
      * class="{current === 'baz' ? 'selected' : ''
      */
-    public IsConditionalExpressionClassFormat() {
+    private isConditionalExpressionClassFormat() {
         if (
             this.initialNodeAt?.type == 'Literal' &&
             this.initialNodeAt?.parent?.type == 'ConditionalExpression' &&
@@ -60,7 +60,7 @@ export class CSSClassDefinitionLocator {
      * Class Directive format:
      * class:active="{current === 'foo'}"
      */
-    public IsDirectiveFormat() {
+    private isDirectiveFormat() {
         if (this.initialNodeAt?.type == 'Class' && this.initialNodeAt?.parent?.type == 'Element') {
             return true;
         }
@@ -68,7 +68,7 @@ export class CSSClassDefinitionLocator {
         return false;
     }
 
-    public GetStandardFormatClassName() {
+    private getStandardFormatClassName() {
         const testEndTagRange = Range.create(
             Position.create(this.position.line, 0),
             Position.create(this.position.line, this.position.character)
@@ -100,14 +100,14 @@ export class CSSClassDefinitionLocator {
 
         const cssClassName = this.initialNodeAt?.data.split(' ')[spaceCount];
 
-        return this.GetDefinitionRangeWithinStyleSection(`.${cssClassName}`);
+        return this.getDefinitionRangeWithinStyleSection(`.${cssClassName}`);
     }
 
-    public GetDefinitionRangeWithinStyleSection(targetClass: string) {
+    private getDefinitionRangeWithinStyleSection(targetClass: string) {
         let indexOccurence = this.document.content.indexOf(targetClass, 0);
 
         while (indexOccurence >= 0) {
-            if (this.IsOffsetWithinStyleSection(indexOccurence)) {
+            if (this.isOffsetWithinStyleSection(indexOccurence)) {
                 const startPosition = this.document.positionAt(indexOccurence);
                 const targetRange = Range.create(
                     startPosition,
@@ -118,7 +118,7 @@ export class CSSClassDefinitionLocator {
                 );
                 indexOccurence = this.document.content.indexOf(targetClass, indexOccurence + 1);
 
-                if (!this.IsExactClassMatch(targetRange)) {
+                if (!this.isExactClassMatch(targetRange)) {
                     continue;
                 }
 
@@ -127,7 +127,7 @@ export class CSSClassDefinitionLocator {
         }
     }
 
-    public IsOffsetWithinStyleSection(offsetPosition: number) {
+    private isOffsetWithinStyleSection(offsetPosition: number) {
         if (this.document.styleInfo) {
             if (
                 offsetPosition > this.document.styleInfo?.start &&
@@ -140,7 +140,7 @@ export class CSSClassDefinitionLocator {
         return false;
     }
 
-    public IsExactClassMatch(testRange: Range) {
+    private isExactClassMatch(testRange: Range) {
         //Check nothing before the test position
         if (testRange.start.character > 0) {
             const beforerange = Range.create(
