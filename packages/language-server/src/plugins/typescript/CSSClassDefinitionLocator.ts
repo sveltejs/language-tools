@@ -4,6 +4,7 @@ import { Document } from '../../lib/documents';
 import { SvelteNode } from './svelte-ast-utils';
 export class CSSClassDefinitionLocator {
     initialNodeAt: SvelteNode;
+    cssClassTerminators = ['', '{', '.', '>', '~', '>', '[', ':', '#', '+'];
     constructor(
         public tsDoc: SvelteDocumentSnapshot,
         public position: Position,
@@ -152,13 +153,13 @@ export class CSSClassDefinitionLocator {
             }
         }
 
-        //Check space or { is after the test position
+        //Check css terminator is after the test position
         const afterRange = Range.create(
             Position.create(testRange.end.line, testRange.end.character),
             Position.create(testRange.end.line, testRange.end.character + 1)
         );
         const afterRangeText = this.document.getText(afterRange).trim();
-        if (afterRangeText == '' || afterRangeText == '{') {
+        if (this.cssClassTerminators.includes(afterRangeText)) {
             return true;
         }
 
