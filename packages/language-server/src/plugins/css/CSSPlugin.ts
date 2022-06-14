@@ -77,7 +77,7 @@ export class CSSPlugin
     }
 
     getSelectionRange(document: Document, position: Position): SelectionRange | null {
-        if (!isInTag(position, document.styleInfo)) {
+        if (!isInTag(position, document.styleInfo) || !this.featureEnabled('selectionRange')) {
             return null;
         }
 

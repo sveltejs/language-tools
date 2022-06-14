@@ -14,6 +14,7 @@ const defaultLSConfig: LSConfig = {
         completions: { enable: true },
         documentSymbols: { enable: true },
         codeActions: { enable: true },
+        selectionRange: { enable: true },
         signatureHelp: { enable: true },
         semanticTokens: { enable: true }
     },
@@ -25,7 +26,8 @@ const defaultLSConfig: LSConfig = {
         completions: { enable: true, emmet: true },
         documentColors: { enable: true },
         colorPresentations: { enable: true },
-        documentSymbols: { enable: true }
+        documentSymbols: { enable: true },
+        selectionRange: { enable: true }
     },
     html: {
         enable: true,
@@ -56,6 +58,7 @@ const defaultLSConfig: LSConfig = {
         completions: { enable: true },
         hover: { enable: true },
         codeActions: { enable: true },
+        selectionRange: { enable: true },
         defaultScriptLanguage: 'none'
     }
 };
@@ -88,6 +91,9 @@ export interface LSTypescriptConfig {
     codeActions: {
         enable: boolean;
     };
+    selectionRange: {
+        enable: boolean;
+    };
     signatureHelp: {
         enable: boolean;
     };
@@ -116,6 +122,9 @@ export interface LSCSSConfig {
         enable: boolean;
     };
     documentSymbols: {
+        enable: boolean;
+    };
+    selectionRange: {
         enable: boolean;
     };
 }
@@ -171,6 +180,9 @@ export interface LSSvelteConfig {
         enable: boolean;
     };
     codeActions: {
+        enable: boolean;
+    };
+    selectionRange: {
         enable: boolean;
     };
     defaultScriptLanguage: 'none' | 'ts';

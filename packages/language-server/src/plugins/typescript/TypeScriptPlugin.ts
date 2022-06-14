@@ -468,6 +468,10 @@ export class TypeScriptPlugin
         document: Document,
         position: Position
     ): Promise<SelectionRange | null> {
+        if (!this.featureEnabled('selectionRange')) {
+            return null;
+        }
+
         return this.selectionRangeProvider.getSelectionRange(document, position);
     }
 
