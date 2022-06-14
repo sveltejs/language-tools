@@ -123,6 +123,10 @@ Enable completions for TypeScript. _Default_: `true`
 
 Enable code actions for TypeScript. _Default_: `true`
 
+##### `svelte.plugin.typescript.selectionRange.enable`
+
+Enable selection range for TypeScript. _Default_: `true`
+
 ##### `svelte.plugin.typescript.signatureHelp.enable`
 
 Enable signature help (parameter hints) for JS/TS. _Default_: `true`
@@ -167,6 +171,10 @@ Enable color picker for CSS. _Default_: `true`
 ##### `svelte.plugin.css.documentSymbols.enable`
 
 Enable document symbols for CSS. _Default_: `true`
+
+##### `svelte.plugin.css.selectionRange.enable`
+
+Enable selection range for CSS. _Default_: `true`
 
 ##### `svelte.plugin.html.enable`
 
@@ -272,6 +280,10 @@ Enable rename/move Svelte files functionality. _Default_: `true`
 ##### `svelte.plugin.svelte.codeActions.enable`
 
 Enable code actions for Svelte. _Default_: `true`
+
+##### `svelte.plugin.svelte.selectionRange.enable`
+
+Enable selection range for Svelte. _Default_: `true`
 
 ##### `svelte.plugin.svelte.defaultScriptLanguage`
 
