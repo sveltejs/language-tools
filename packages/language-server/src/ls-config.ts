@@ -15,7 +15,7 @@ const defaultLSConfig: LSConfig = {
         definitions: { enable: true },
         findReferences: { enable: true },
         fileReferences: { enable: true },
-        findComponentUsages: { enable: true },
+        findComponentReferences: { enable: true },
         documentSymbols: { enable: true },
         codeActions: { enable: true },
         rename: { enable: true },
@@ -102,7 +102,7 @@ export interface LSTypescriptConfig {
     fileReferences: {
         enable: boolean;
     };
-    findComponentUsages: {
+    findComponentReferences: {
         enable: boolean;
     };
     definitions: {

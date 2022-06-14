@@ -393,9 +393,9 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         return await this.execute<any>('fileReferences', [uri], ExecuteMode.FirstNonNull, 'high');
     }
 
-    async findComponentUsages(uri: string): Promise<Location[] | null> {
+    async findComponentReferences(uri: string): Promise<Location[] | null> {
         return await this.execute<any>(
-            'findComponentUsages',
+            'findComponentReferences',
             [uri],
             ExecuteMode.FirstNonNull,
             'high'

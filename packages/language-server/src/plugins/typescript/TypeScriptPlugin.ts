@@ -37,7 +37,7 @@ import {
     FileRename,
     FindReferencesProvider,
     FileReferencesProvider,
-    FindComponentUsagesProvider,
+    FindComponentReferencesProvider,
     HoverProvider,
     ImplementationProvider,
     OnWatchFileChanges,
@@ -57,7 +57,7 @@ import {
 } from './features/CompletionProvider';
 import { DiagnosticsProviderImpl } from './features/DiagnosticsProvider';
 import { FindFileReferencesProviderImpl } from './features/FindFileReferencesProvider';
-import { FindComponentUsagesProviderImpl } from './features/FindComponentUsagesProvider';
+import { FindComponentReferencesProviderImpl } from './features/FindComponentReferencesProvider';
 import { FindReferencesProviderImpl } from './features/FindReferencesProvider';
 import { getDirectiveCommentCompletions } from './features/getDirectiveCommentCompletions';
 import { HoverProviderImpl } from './features/HoverProvider';
@@ -90,7 +90,7 @@ export class TypeScriptPlugin
         RenameProvider,
         FindReferencesProvider,
         FileReferencesProvider,
-        FindComponentUsagesProvider,
+        FindComponentReferencesProvider,
         SelectionRangeProvider,
         SignatureHelpProvider,
         SemanticTokensProvider,
@@ -111,7 +111,7 @@ export class TypeScriptPlugin
     private readonly hoverProvider: HoverProviderImpl;
     private readonly findReferencesProvider: FindReferencesProviderImpl;
     private readonly findFileReferencesProvider: FindFileReferencesProviderImpl;
-    private readonly findComponentUsagesProvider: FindComponentUsagesProviderImpl;
+    private readonly findComponentReferencesProvider: FindComponentReferencesProviderImpl;
 
     private readonly selectionRangeProvider: SelectionRangeProviderImpl;
     private readonly signatureHelpProvider: SignatureHelpProviderImpl;
@@ -142,7 +142,7 @@ export class TypeScriptPlugin
         this.findFileReferencesProvider = new FindFileReferencesProviderImpl(
             this.lsAndTsDocResolver
         );
-        this.findComponentUsagesProvider = new FindComponentUsagesProviderImpl(
+        this.findComponentReferencesProvider = new FindComponentReferencesProviderImpl(
             this.lsAndTsDocResolver
         );
         this.selectionRangeProvider = new SelectionRangeProviderImpl(this.lsAndTsDocResolver);
@@ -446,12 +446,12 @@ export class TypeScriptPlugin
         return this.findFileReferencesProvider.fileReferences(uri);
     }
 
-    async findComponentUsages(uri: string): Promise<Location[] | null> {
-        if (!this.featureEnabled('findComponentUsages')) {
+    async findComponentReferences(uri: string): Promise<Location[] | null> {
+        if (!this.featureEnabled('findComponentReferences')) {
             return null;
         }
 
-        return this.findComponentUsagesProvider.findComponentUsages(uri);
+        return this.findComponentReferencesProvider.findComponentReferences(uri);
     }
 
     async onWatchFileChanges(onWatchFileChangesParas: OnWatchFileChangesPara[]): Promise<void> {

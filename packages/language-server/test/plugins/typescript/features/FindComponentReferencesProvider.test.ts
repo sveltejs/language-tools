@@ -3,13 +3,13 @@ import * as path from 'path';
 import ts from 'typescript';
 import { Document, DocumentManager } from '../../../../src/lib/documents';
 import { LSConfigManager } from '../../../../src/ls-config';
-import { FindComponentUsagesProviderImpl } from '../../../../src/plugins/typescript/features/FindComponentUsagesProvider';
+import { FindComponentReferencesProviderImpl } from '../../../../src/plugins/typescript/features/FindComponentReferencesProvider';
 import { LSAndTSDocResolver } from '../../../../src/plugins/typescript/LSAndTSDocResolver';
 import { pathToUrl } from '../../../../src/utils';
 
 const testDir = path.join(__dirname, '..');
 
-describe('FindComponentUsagesProvider', () => {
+describe('FindComponentReferencesProvider', () => {
     function getFullPath(filename: string) {
         return path.join(testDir, 'testfiles', filename);
     }
@@ -25,7 +25,7 @@ describe('FindComponentUsagesProvider', () => {
         const lsConfigManager = new LSConfigManager();
 
         const lsAndTsDocResolver = new LSAndTSDocResolver(docManager, [testDir], lsConfigManager);
-        const provider = new FindComponentUsagesProviderImpl(lsAndTsDocResolver);
+        const provider = new FindComponentReferencesProviderImpl(lsAndTsDocResolver);
         const document = openDoc(filename);
         return { provider, document, openDoc, lsConfigManager };
 
@@ -39,12 +39,12 @@ describe('FindComponentUsagesProvider', () => {
         }
     }
 
-    it('finds component usages', async () => {
-        const { provider, document, openDoc } = setup('find-component-usages-child.svelte');
+    it('finds component references', async () => {
+        const { provider, document, openDoc } = setup('find-component-references-child.svelte');
         //Make known all the associated files
-        openDoc('find-component-usages-parent.svelte');
+        openDoc('find-component-references-parent.svelte');
 
-        const results = await provider.findComponentUsages(document.uri.toString());
+        const results = await provider.findComponentReferences(document.uri.toString());
 
         assert.deepStrictEqual(results, [
             {
@@ -58,7 +58,7 @@ describe('FindComponentUsagesProvider', () => {
                         character: 22
                     }
                 },
-                uri: getUri('find-component-usages-parent.svelte')
+                uri: getUri('find-component-references-parent.svelte')
             },
             {
                 range: {
@@ -71,7 +71,7 @@ describe('FindComponentUsagesProvider', () => {
                         character: 19
                     }
                 },
-                uri: getUri('find-component-usages-parent.svelte')
+                uri: getUri('find-component-references-parent.svelte')
             },
             {
                 range: {
@@ -84,7 +84,7 @@ describe('FindComponentUsagesProvider', () => {
                         character: 11
                     }
                 },
-                uri: getUri('find-component-usages-parent.svelte')
+                uri: getUri('find-component-references-parent.svelte')
             },
             {
                 range: {
@@ -97,7 +97,7 @@ describe('FindComponentUsagesProvider', () => {
                         character: 11
                     }
                 },
-                uri: getUri('find-component-usages-parent.svelte')
+                uri: getUri('find-component-references-parent.svelte')
             }
         ]);
     });

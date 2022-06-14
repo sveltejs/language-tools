@@ -2,7 +2,7 @@ import ts from 'typescript';
 import { Location, Position, Range } from 'vscode-languageserver';
 import { Document, DocumentManager } from '../../../lib/documents';
 import { flatten, isNotNullOrUndefined, pathToUrl, urlToPath } from '../../../utils';
-import { FindComponentUsagesProvider } from '../../interfaces';
+import { FindComponentReferencesProvider } from '../../interfaces';
 import { SvelteSnapshotFragment } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { convertToLocationRange, hasNonZeroRange } from '../utils';
@@ -10,10 +10,10 @@ import { isNoTextSpanInGeneratedCode, SnapshotFragmentMap } from './utils';
 
 const COMPONENT_SUFFIX = '__SvelteComponent_';
 
-export class FindComponentUsagesProviderImpl implements FindComponentUsagesProvider {
+export class FindComponentReferencesProviderImpl implements FindComponentReferencesProvider {
     constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
 
-    async findComponentUsages(uri: string): Promise<Location[] | null> {
+    async findComponentReferences(uri: string): Promise<Location[] | null> {
         // No document available, just the uri, because it could be called on an unopened file
         const fileName = urlToPath(uri);
         if (!fileName) {
