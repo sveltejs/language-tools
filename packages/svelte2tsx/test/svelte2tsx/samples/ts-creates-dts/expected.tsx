@@ -3,6 +3,7 @@ import { SvelteComponentTyped } from "svelte"
 
     export const foo = 'foo';
 ;
+
 import Bar from './bar';
 import { createEventDispatcher } from 'svelte';
 function render() {

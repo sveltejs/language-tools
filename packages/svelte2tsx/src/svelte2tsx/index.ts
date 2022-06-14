@@ -372,7 +372,8 @@ export function svelte2tsx(
             scriptTag,
             events,
             implicitStoreValues,
-            options.mode
+            options.mode,
+            /**hasModuleScripts */ !!moduleScriptTag
         );
         uses$$props = uses$$props || res.uses$$props;
         uses$$restProps = uses$$restProps || res.uses$$restProps;

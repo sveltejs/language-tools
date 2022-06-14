@@ -589,9 +589,7 @@ function test(useNewTransformation: boolean) {
                             {
                                 edits: [
                                     {
-                                        // eslint-disable-next-line max-len
-                                        newText:
-                                            "import A from './A';\n  import { c } from './c';\n",
+                                        newText: "import { c } from './c';\n",
                                         range: {
                                             start: {
                                                 line: 1,
@@ -604,7 +602,7 @@ function test(useNewTransformation: boolean) {
                                         }
                                     },
                                     {
-                                        newText: '',
+                                        newText: "import A from './A';\n",
                                         range: {
                                             start: {
                                                 line: 6,
@@ -665,8 +663,7 @@ function test(useNewTransformation: boolean) {
                             {
                                 edits: [
                                     {
-                                        newText:
-                                            "import { _,_d } from 'svelte-i18n';\n  import { _e } from 'svelte-i18n1';\n",
+                                        newText: "import { _ } from 'svelte-i18n';\n",
                                         range: {
                                             end: {
                                                 character: 0,
@@ -679,7 +676,8 @@ function test(useNewTransformation: boolean) {
                                         }
                                     },
                                     {
-                                        newText: '',
+                                        newText:
+                                            "import { _d } from 'svelte-i18n';\n  import { _e } from 'svelte-i18n1';\n",
                                         range: {
                                             end: {
                                                 character: 2,
