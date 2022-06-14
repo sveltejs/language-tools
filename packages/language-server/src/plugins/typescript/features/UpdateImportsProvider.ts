@@ -9,7 +9,7 @@ import { urlToPath } from '../../../utils';
 import { FileRename, UpdateImportsProvider } from '../../interfaces';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { convertRange } from '../utils';
-import { SnapshotFragmentMap } from './utils';
+import { SnapshotMap } from './utils';
 
 export class UpdateImportsProviderImpl implements UpdateImportsProvider {
     constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
@@ -38,17 +38,17 @@ export class UpdateImportsProviderImpl implements UpdateImportsProvider {
                 return change;
             });
 
-        const docs = new SnapshotFragmentMap(this.lsAndTsDocResolver);
+        const docs = new SnapshotMap(this.lsAndTsDocResolver);
         const documentChanges = await Promise.all(
             updateImportsChanges.map(async (change) => {
-                const fragment = await docs.retrieveFragment(change.fileName);
+                const snapshot = await docs.retrieve(change.fileName);
 
                 return TextDocumentEdit.create(
-                    OptionalVersionedTextDocumentIdentifier.create(fragment.getURL(), null),
+                    OptionalVersionedTextDocumentIdentifier.create(snapshot.getURL(), null),
                     change.textChanges.map((edit) => {
                         const range = mapRangeToOriginal(
-                            fragment,
-                            convertRange(fragment, edit.span)
+                            snapshot,
+                            convertRange(snapshot, edit.span)
                         );
                         return TextEdit.replace(range, edit.newText);
                     })

@@ -26,7 +26,7 @@ import { LSConfigManager } from '../../../ls-config';
 import { flatten, getRegExpMatches, isNotNullOrUndefined, pathToUrl } from '../../../utils';
 import { AppCompletionItem, AppCompletionList, CompletionsProvider } from '../../interfaces';
 import { ComponentInfoProvider, ComponentPartInfo } from '../ComponentInfoProvider';
-import { SvelteDocumentSnapshot, SvelteSnapshotFragment } from '../DocumentSnapshot';
+import { SvelteDocumentSnapshot } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { getMarkdownDocumentation } from '../previewer';
 import {
@@ -129,16 +129,15 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             this.lastCompletion = undefined;
         }
 
-        const fragment = tsDoc.getFragment();
-        if (!fragment.isInGenerated(position)) {
+        if (!tsDoc.isInGenerated(position)) {
             return null;
         }
 
         const originalOffset = document.offsetAt(position);
-        const offset = fragment.offsetAt(fragment.getGeneratedPosition(position));
+        const offset = tsDoc.offsetAt(tsDoc.getGeneratedPosition(position));
 
         if (isJsDocTriggerCharacter) {
-            return getJsDocTemplateCompletion(fragment, lang, filePath, offset);
+            return getJsDocTemplateCompletion(tsDoc, lang, filePath, offset);
         }
 
         const svelteNode = tsDoc.svelteNodeAt(originalOffset);
@@ -204,7 +203,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             .filter(isValidCompletion(document, position))
             .map((comp) =>
                 this.toCompletionItem(
-                    fragment,
+                    tsDoc,
                     comp,
                     pathToUrl(tsDoc.filePath),
                     position,
@@ -212,7 +211,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
                 )
             )
             .filter(isNotNullOrUndefined)
-            .map((comp) => mapCompletionItemToOriginal(fragment, comp))
+            .map((comp) => mapCompletionItemToOriginal(tsDoc, comp))
             .map((comp) => this.fixTextEditRange(wordRangeStartPosition, comp))
             .concat(eventAndSlotLetCompletions);
 
@@ -286,13 +285,13 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
     }
 
     private toCompletionItem(
-        fragment: SvelteSnapshotFragment,
+        snapshot: SvelteDocumentSnapshot,
         comp: ts.CompletionEntry,
         uri: string,
         position: Position,
         existingImports: Set<string>
     ): AppCompletionItem<CompletionEntryWithIdentifier> | null {
-        const completionLabelAndInsert = this.getCompletionLabelAndInsert(fragment, comp);
+        const completionLabelAndInsert = this.getCompletionLabelAndInsert(snapshot, comp);
         if (!completionLabelAndInsert) {
             return null;
         }
@@ -305,7 +304,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             return null;
         }
         const textEdit = replacementSpan
-            ? TextEdit.replace(convertRange(fragment, replacementSpan), insertText ?? label)
+            ? TextEdit.replace(convertRange(snapshot, replacementSpan), insertText ?? label)
             : undefined;
 
         return {
@@ -327,7 +326,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
     }
 
     private getCompletionLabelAndInsert(
-        fragment: SvelteSnapshotFragment,
+        snapshot: SvelteDocumentSnapshot,
         comp: ts.CompletionEntry
     ) {
         let { name, insertText, kindModifiers } = comp;
@@ -337,7 +336,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         if (isSvelteComp) {
             name = changeSvelteComponentName(name);
 
-            if (this.isExistingSvelteComponentImport(fragment, name, comp.source)) {
+            if (this.isExistingSvelteComponentImport(snapshot, name, comp.source)) {
                 return null;
             }
         }
@@ -368,12 +367,12 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
     }
 
     private isExistingSvelteComponentImport(
-        fragment: SvelteSnapshotFragment,
+        snapshot: SvelteDocumentSnapshot,
         name: string,
         source?: string
     ): boolean {
         const importStatement = new RegExp(`import ${name} from ["'\`][\\s\\S]+\\.svelte["'\`]`);
-        return !!source && !!fragment.text.match(importStatement);
+        return !!source && !!snapshot.getFullText().match(importStatement);
     }
 
     /**
@@ -455,14 +454,13 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             return completionItem;
         }
 
-        const fragment = tsDoc.getFragment();
         const errorPreventingUserPreferences = comp.source?.endsWith('.svelte')
             ? this.fixUserPreferencesForSvelteComponentImport(userPreferences)
             : userPreferences;
 
         const detail = lang.getCompletionEntryDetails(
             filePath,
-            fragment.offsetAt(fragment.getGeneratedPosition(comp.position)),
+            tsDoc.offsetAt(tsDoc.getGeneratedPosition(comp.position)),
             comp.name,
             {},
             comp.source,
@@ -489,7 +487,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
                     edit.push(
                         ...this.codeActionChangesToTextEdit(
                             document,
-                            fragment,
+                            tsDoc,
                             change,
                             isImport,
                             comp.position
@@ -528,7 +526,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
 
     private codeActionChangesToTextEdit(
         doc: Document,
-        fragment: SvelteSnapshotFragment,
+        snapshot: SvelteDocumentSnapshot,
         changes: ts.FileTextChanges,
         isImport: boolean,
         originalTriggerPosition: Position
@@ -536,7 +534,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         return changes.textChanges.map((change) =>
             this.codeActionChangeToTextEdit(
                 doc,
-                fragment,
+                snapshot,
                 change,
                 isImport,
                 originalTriggerPosition
@@ -546,7 +544,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
 
     codeActionChangeToTextEdit(
         doc: Document,
-        fragment: SvelteSnapshotFragment,
+        snapshot: SvelteDocumentSnapshot,
         change: ts.TextChange,
         isImport: boolean,
         originalTriggerPosition: Position
@@ -556,7 +554,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             isInScript(originalTriggerPosition, doc)
         );
 
-        const scriptTagInfo = fragment.scriptInfo || fragment.moduleScriptInfo;
+        const scriptTagInfo = snapshot.scriptInfo || snapshot.moduleScriptInfo;
         if (!scriptTagInfo) {
             // no script tag defined yet, add it.
             const lang = this.configManager.getConfig().svelte.defaultScriptLanguage;
@@ -570,16 +568,16 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
 
         const { span } = change;
 
-        const virtualRange = convertRange(fragment, span);
+        const virtualRange = convertRange(snapshot, span);
         let range: Range;
         const isNewImport = isImport && virtualRange.start.character === 0;
 
         // Since new import always can't be mapped, we'll have special treatment here
         //  but only hack this when there is multiple line in script
         if (isNewImport && virtualRange.start.line > 1) {
-            range = this.mapRangeForNewImport(fragment, virtualRange);
+            range = this.mapRangeForNewImport(snapshot, virtualRange);
         } else {
-            range = mapRangeToOriginal(fragment, virtualRange);
+            range = mapRangeToOriginal(snapshot, virtualRange);
         }
 
         // If range is somehow not mapped in parent,
@@ -589,13 +587,13 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         if (
             range.start.line === -1 ||
             (range.start.line === 0 && range.start.character <= 1 && span.length === 0) ||
-            !isInScript(range.start, fragment)
+            !isInScript(range.start, snapshot)
         ) {
             range = convertRange(doc, {
                 start: isInTag(originalTriggerPosition, doc.scriptInfo)
-                    ? fragment.scriptInfo?.start || scriptTagInfo.start
+                    ? snapshot.scriptInfo?.start || scriptTagInfo.start
                     : isInTag(originalTriggerPosition, doc.moduleScriptInfo)
-                    ? fragment.moduleScriptInfo?.start || scriptTagInfo.start
+                    ? snapshot.moduleScriptInfo?.start || scriptTagInfo.start
                     : scriptTagInfo.start,
                 length: span.length
             });
@@ -603,8 +601,8 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         // prevent newText from being placed like this: <script>import {} from ''
         const editOffset = doc.offsetAt(range.start);
         if (
-            (editOffset === fragment.scriptInfo?.start ||
-                editOffset === fragment.moduleScriptInfo?.start) &&
+            (editOffset === snapshot.scriptInfo?.start ||
+                editOffset === snapshot.moduleScriptInfo?.start) &&
             !change.newText.startsWith('\r\n') &&
             !change.newText.startsWith('\n')
         ) {
@@ -614,9 +612,9 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         return TextEdit.replace(range, change.newText);
     }
 
-    private mapRangeForNewImport(fragment: SvelteSnapshotFragment, virtualRange: Range) {
+    private mapRangeForNewImport(snapshot: SvelteDocumentSnapshot, virtualRange: Range) {
         const sourceMappableRange = this.offsetLinesAndMovetoStartOfLine(virtualRange, -1);
-        const mappableRange = mapRangeToOriginal(fragment, sourceMappableRange);
+        const mappableRange = mapRangeToOriginal(snapshot, sourceMappableRange);
         return this.offsetLinesAndMovetoStartOfLine(mappableRange, 1);
     }
 

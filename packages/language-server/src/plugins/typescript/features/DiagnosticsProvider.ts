@@ -10,7 +10,7 @@ import {
 import { DiagnosticsProvider } from '../../interfaces';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { convertRange, getDiagnosticTag, hasNonZeroRange, mapSeverity } from '../utils';
-import { SvelteDocumentSnapshot, SvelteSnapshotFragment } from '../DocumentSnapshot';
+import { SvelteDocumentSnapshot } from '../DocumentSnapshot';
 import {
     isInGeneratedCode,
     isAfterSvelte2TsxPropsReturn,
@@ -75,8 +75,6 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
             ];
         }
 
-        const fragment = tsDoc.getFragment();
-
         let diagnostics: ts.Diagnostic[] = [
             ...lang.getSyntacticDiagnostics(tsDoc.filePath),
             ...lang.getSuggestionDiagnostics(tsDoc.filePath),
@@ -98,7 +96,7 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
             }))
             .map(
                 mapRange(
-                    fragment,
+                    tsDoc,
                     document,
                     this.configManager.getConfig().svelte.useNewTransformation
                 )
@@ -121,18 +119,18 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
 }
 
 function mapRange(
-    fragment: SvelteSnapshotFragment,
+    snapshot: SvelteDocumentSnapshot,
     document: Document,
     useNewTransformation: boolean
 ): (value: Diagnostic) => Diagnostic {
     return (diagnostic) => {
-        let range = mapRangeToOriginal(fragment, diagnostic.range);
+        let range = mapRangeToOriginal(snapshot, diagnostic.range);
 
         if (range.start.line < 0) {
             const is$$PropsError =
                 isAfterSvelte2TsxPropsReturn(
-                    fragment.text,
-                    fragment.offsetAt(diagnostic.range.start)
+                    snapshot.getFullText(),
+                    snapshot.offsetAt(diagnostic.range.start)
                 ) && diagnostic.message.includes('$$Props');
 
             if (is$$PropsError) {

@@ -1,14 +1,10 @@
 import { Location, Position, Range } from 'vscode-languageserver';
 import { flatten, isNotNullOrUndefined, pathToUrl, urlToPath } from '../../../utils';
 import { FindComponentReferencesProvider } from '../../interfaces';
-import {
-    DocumentSnapshot,
-    SvelteDocumentSnapshot,
-    SvelteSnapshotFragment
-} from '../DocumentSnapshot';
+import { DocumentSnapshot, SvelteDocumentSnapshot } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { convertToLocationRange, hasNonZeroRange } from '../utils';
-import { isNoTextSpanInGeneratedCode, SnapshotFragmentMap } from './utils';
+import { isNoTextSpanInGeneratedCode, SnapshotMap } from './utils';
 
 const COMPONENT_SUFFIX = '__SvelteComponent_';
 
@@ -24,21 +20,17 @@ export class FindComponentReferencesProviderImpl implements FindComponentReferen
 
         const lang = await this.lsAndTsDocResolver.getLSForPath(fileName);
         const tsDoc = await this.lsAndTsDocResolver.getSnapshot(fileName);
-        const fragment = tsDoc.getFragment();
-        if (!(fragment instanceof SvelteSnapshotFragment)) {
+        if (!(tsDoc instanceof SvelteDocumentSnapshot)) {
             return null;
         }
 
-        const references = lang.findReferences(
-            tsDoc.filePath,
-            this.offsetOfComponentExport(fragment)
-        );
+        const references = lang.findReferences(tsDoc.filePath, this.offsetOfComponentExport(tsDoc));
         if (!references) {
             return null;
         }
 
-        const docs = new SnapshotFragmentMap(this.lsAndTsDocResolver);
-        docs.set(tsDoc.filePath, { fragment, snapshot: tsDoc });
+        const snapshots = new SnapshotMap(this.lsAndTsDocResolver);
+        snapshots.set(tsDoc.filePath, tsDoc);
 
         const locations = await Promise.all(
             flatten(references.map((ref) => ref.references)).map(async (ref) => {
@@ -46,7 +38,7 @@ export class FindComponentReferencesProviderImpl implements FindComponentReferen
                     return null;
                 }
 
-                const { fragment, snapshot } = await docs.retrieve(ref.fileName);
+                const snapshot = await snapshots.retrieve(ref.fileName);
 
                 if (!isNoTextSpanInGeneratedCode(snapshot.getFullText(), ref.textSpan)) {
                     return null;
@@ -54,7 +46,7 @@ export class FindComponentReferencesProviderImpl implements FindComponentReferen
 
                 const refLocation = Location.create(
                     pathToUrl(ref.fileName),
-                    convertToLocationRange(fragment, ref.textSpan)
+                    convertToLocationRange(snapshot, ref.textSpan)
                 );
 
                 //Only report starting tags
@@ -75,8 +67,8 @@ export class FindComponentReferencesProviderImpl implements FindComponentReferen
         return locations.filter(isNotNullOrUndefined);
     }
 
-    private offsetOfComponentExport(fragment: SvelteSnapshotFragment) {
-        return fragment.text.lastIndexOf(COMPONENT_SUFFIX);
+    private offsetOfComponentExport(snapshot: SvelteDocumentSnapshot) {
+        return snapshot.getFullText().lastIndexOf(COMPONENT_SUFFIX);
     }
 
     private isEndTag(element: Location, snapshot: DocumentSnapshot) {
