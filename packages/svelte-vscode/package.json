@@ -540,8 +540,8 @@
                 "title": "Svelte: Find File References"
             },
             {
-                "command": "svelte.typescript.findComponentUsages",
-                "title": "Svelte: Find Component Usages"
+                "command": "svelte.typescript.findComponentReferences",
+                "title": "Svelte: Find Component References"
             }
         ],
         "menus": {
@@ -555,7 +555,7 @@
                     "when": "editorLangId == svelte && resourceScheme == file"
                 },
                 {
-                    "command": "svelte.typescript.findComponentUsages",
+                    "command": "svelte.typescript.findComponentReferences",
                     "when": "editorLangId == svelte && resourceScheme == file"
                 }
             ],
@@ -572,7 +572,7 @@
                     "when": "resourceLangId == svelte && resourceScheme == file"
                 },
                 {
-                    "command": "svelte.typescript.findComponentUsages",
+                    "command": "svelte.typescript.findComponentReferences",
                     "when": "resourceLangId == svelte && resourceScheme == file"
                 }
             ],
@@ -588,7 +588,7 @@
                     "group": "4_search"
                 },
                 {
-                    "command": "svelte.typescript.findComponentUsages",
+                    "command": "svelte.typescript.findComponentReferences",
                     "when": "editorLangId == svelte",
                     "group": "4_search"
                 }
@@ -600,7 +600,7 @@
                     "group": "4_search"
                 },
                 {
-                    "command": "svelte.typescript.findComponentUsages",
+                    "command": "svelte.typescript.findComponentReferences",
                     "when": "resourceLangId == svelte",
                     "group": "4_search"
                 }
