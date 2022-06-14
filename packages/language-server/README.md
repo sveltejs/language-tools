@@ -119,25 +119,9 @@ Enable document symbols for TypeScript. _Default_: `true`
 
 Enable completions for TypeScript. _Default_: `true`
 
-##### `svelte.plugin.typescript.findReferences.enable`
-
-Enable find-references for TypeScript. _Default_: `true`
-
-##### `svelte.plugin.typescript.definitions.enable`
-
-Enable go to definition for TypeScript. _Default_: `true`
-
 ##### `svelte.plugin.typescript.codeActions.enable`
 
 Enable code actions for TypeScript. _Default_: `true`
-
-##### `svelte.plugin.typescript.selectionRange.enable`
-
-Enable selection range for TypeScript. _Default_: `true`
-
-##### `svelte.plugin.typescript.rename.enable`
-
-Enable rename functionality for JS/TS variables inside Svelte files. _Default_: `true`
 
 ##### `svelte.plugin.typescript.signatureHelp.enable`
 
@@ -146,10 +130,6 @@ Enable signature help (parameter hints) for JS/TS. _Default_: `true`
 ##### `svelte.plugin.typescript.semanticTokens.enable`
 
 Enable semantic tokens (semantic highlight) for TypeScript. _Default_: `true`
-
-##### `svelte.plugin.typescript.implementation.enable`
-
-Enable go to implementation for Typescript. _Default_: `true`
 
 ##### `svelte.plugin.css.enable`
 
@@ -188,10 +168,6 @@ Enable color picker for CSS. _Default_: `true`
 
 Enable document symbols for CSS. _Default_: `true`
 
-##### `svelte.plugin.css.selectionRange.enable`
-
-Enable selection range for CSS. _Default_: `true`
-
 ##### `svelte.plugin.html.enable`
 
 Enable the HTML plugin. _Default_: `true`
@@ -220,10 +196,6 @@ Enable document symbols for HTML. _Default_: `true`
 ##### `svelte.plugin.html.linkedEditing.enable`
 
 Enable Linked Editing for HTML. _Default_: `true`
-
-##### `svelte.plugin.html.renameTags.enable`
-
-Enable rename tags for the opening/closing tag pairs in HTML. _Default_: `true`
 
 ##### `svelte.plugin.svelte.enable`
 
@@ -300,10 +272,6 @@ Enable rename/move Svelte files functionality. _Default_: `true`
 ##### `svelte.plugin.svelte.codeActions.enable`
 
 Enable code actions for Svelte. _Default_: `true`
-
-##### `svelte.plugin.svelte.selectionRange.enable`
-
-Enable selection range for Svelte. _Default_: `true`
 
 ##### `svelte.plugin.svelte.defaultScriptLanguage`
 

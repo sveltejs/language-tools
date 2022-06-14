@@ -329,10 +329,6 @@ export class TypeScriptPlugin
     }
 
     async getDefinitions(document: Document, position: Position): Promise<DefinitionLink[]> {
-        if (!this.featureEnabled('definitions')) {
-            return [];
-        }
-
         const { lang, tsDoc } = await this.getLSAndTSDoc(document);
         const mainFragment = tsDoc.getFragment();
 
@@ -369,10 +365,6 @@ export class TypeScriptPlugin
     }
 
     async prepareRename(document: Document, position: Position): Promise<Range | null> {
-        if (!this.featureEnabled('rename')) {
-            return null;
-        }
-
         return this.renameProvider.prepareRename(document, position);
     }
 
@@ -381,10 +373,6 @@ export class TypeScriptPlugin
         position: Position,
         newName: string
     ): Promise<WorkspaceEdit | null> {
-        if (!this.featureEnabled('rename')) {
-            return null;
-        }
-
         return this.renameProvider.rename(document, position, newName);
     }
 
@@ -431,26 +419,14 @@ export class TypeScriptPlugin
         position: Position,
         context: ReferenceContext
     ): Promise<Location[] | null> {
-        if (!this.featureEnabled('findReferences')) {
-            return null;
-        }
-
         return this.findReferencesProvider.findReferences(document, position, context);
     }
 
     async fileReferences(uri: string): Promise<Location[] | null> {
-        if (!this.featureEnabled('fileReferences')) {
-            return null;
-        }
-
         return this.findFileReferencesProvider.fileReferences(uri);
     }
 
     async findComponentReferences(uri: string): Promise<Location[] | null> {
-        if (!this.featureEnabled('findComponentReferences')) {
-            return null;
-        }
-
         return this.findComponentReferencesProvider.findComponentReferences(uri);
     }
 
@@ -492,10 +468,6 @@ export class TypeScriptPlugin
         document: Document,
         position: Position
     ): Promise<SelectionRange | null> {
-        if (!this.featureEnabled('selectionRange')) {
-            return null;
-        }
-
         return this.selectionRangeProvider.getSelectionRange(document, position);
     }
 
@@ -536,18 +508,10 @@ export class TypeScriptPlugin
     }
 
     async getImplementation(document: Document, position: Position): Promise<Location[] | null> {
-        if (!this.featureEnabled('implementation')) {
-            return null;
-        }
-
         return this.implementationProvider.getImplementation(document, position);
     }
 
     async getTypeDefinition(document: Document, position: Position): Promise<Location[] | null> {
-        if (!this.featureEnabled('typeDefinition')) {
-            return null;
-        }
-
         return this.typeDefinitionProvider.getTypeDefinition(document, position);
     }
 
