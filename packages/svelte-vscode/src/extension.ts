@@ -29,6 +29,7 @@ import CompiledCodeContentProvider from './CompiledCodeContentProvider';
 import { activateTagClosing } from './html/autoClose';
 import { EMPTY_ELEMENTS } from './html/htmlEmptyTagsShared';
 import { TsPlugin } from './tsplugin';
+import { addFindComponentReferencesListener } from './typescript/findComponentReferences';
 import { addFindFileReferencesListener } from './typescript/findFileReferences';
 
 namespace TagCloseRequest {
@@ -225,6 +226,7 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
     addDidChangeTextDocumentListener(getLS);
 
     addFindFileReferencesListener(getLS, context);
+    addFindComponentReferencesListener(getLS, context);
 
     addRenameFileListener(getLS);
 

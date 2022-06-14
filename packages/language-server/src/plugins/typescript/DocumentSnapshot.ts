@@ -273,6 +273,10 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
         return this.parent.getFilePath() || '';
     }
 
+    getOriginalText(range?: Range) {
+        return this.parent.getText(range);
+    }
+
     getText(start: number, end: number) {
         return this.text.substring(start, end);
     }

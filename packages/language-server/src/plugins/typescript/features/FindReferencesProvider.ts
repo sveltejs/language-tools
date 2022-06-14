@@ -1,7 +1,6 @@
-import ts from 'typescript';
 import { Location, Position, ReferenceContext } from 'vscode-languageserver';
 import { Document } from '../../../lib/documents';
-import { flatten, pathToUrl } from '../../../utils';
+import { flatten, isNotNullOrUndefined, pathToUrl } from '../../../utils';
 import { FindReferencesProvider } from '../../interfaces';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { convertToLocationRange, hasNonZeroRange } from '../utils';
@@ -30,30 +29,36 @@ export class FindReferencesProviderImpl implements FindReferencesProvider {
         docs.set(tsDoc.filePath, { fragment, snapshot: tsDoc });
 
         const locations = await Promise.all(
-            flatten(references.map((ref) => ref.references))
-                .filter((ref) => context.includeDeclaration || !ref.isDefinition)
-                .filter(notInGeneratedCode(tsDoc.getFullText()))
-                .map(async (ref) => {
-                    const defDoc = await docs.retrieveFragment(ref.fileName);
+            flatten(references.map((ref) => ref.references)).map(async (ref) => {
+                if (!context.includeDeclaration && ref.isDefinition) {
+                    return null;
+                }
 
-                    return Location.create(
-                        pathToUrl(ref.fileName),
-                        convertToLocationRange(defDoc, ref.textSpan)
-                    );
-                })
+                const { fragment, snapshot } = await docs.retrieve(ref.fileName);
+
+                if (!isNoTextSpanInGeneratedCode(snapshot.getFullText(), ref.textSpan)) {
+                    return null;
+                }
+
+                const location = Location.create(
+                    pathToUrl(ref.fileName),
+                    convertToLocationRange(fragment, ref.textSpan)
+                );
+
+                // Some references are in generated code but not wrapped with explicit ignore comments.
+                // These show up as zero-length ranges, so filter them out.
+                if (!hasNonZeroRange(location)) {
+                    return null;
+                }
+
+                return location;
+            })
         );
-        // Some references are in generated code but not wrapped with explicit ignore comments.
-        // These show up as zero-length ranges, so filter them out.
-        return locations.filter(hasNonZeroRange);
+
+        return locations.filter(isNotNullOrUndefined);
     }
 
     private async getLSAndTSDoc(document: Document) {
         return this.lsAndTsDocResolver.getLSAndTSDoc(document);
     }
-}
-
-function notInGeneratedCode(text: string) {
-    return (ref: ts.ReferenceEntry) => {
-        return isNoTextSpanInGeneratedCode(text, ref.textSpan);
-    };
 }
