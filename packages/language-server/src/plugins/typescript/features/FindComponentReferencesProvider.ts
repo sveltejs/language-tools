@@ -1,9 +1,11 @@
-import ts from 'typescript';
 import { Location, Position, Range } from 'vscode-languageserver';
-import { Document, DocumentManager } from '../../../lib/documents';
 import { flatten, isNotNullOrUndefined, pathToUrl, urlToPath } from '../../../utils';
 import { FindComponentReferencesProvider } from '../../interfaces';
-import { SvelteSnapshotFragment } from '../DocumentSnapshot';
+import {
+    DocumentSnapshot,
+    SvelteDocumentSnapshot,
+    SvelteSnapshotFragment
+} from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { convertToLocationRange, hasNonZeroRange } from '../utils';
 import { isNoTextSpanInGeneratedCode, SnapshotFragmentMap } from './utils';
@@ -45,7 +47,6 @@ export class FindComponentReferencesProviderImpl implements FindComponentReferen
                 }
 
                 const { fragment, snapshot } = await docs.retrieve(ref.fileName);
-                const document = await this.getDocument(ref.fileName);
 
                 if (!isNoTextSpanInGeneratedCode(snapshot.getFullText(), ref.textSpan)) {
                     return null;
@@ -57,7 +58,7 @@ export class FindComponentReferencesProviderImpl implements FindComponentReferen
                 );
 
                 //Only report starting tags
-                if (this.isEndTag(refLocation, document)) {
+                if (this.isEndTag(refLocation, snapshot)) {
                     return null;
                 }
 
@@ -78,34 +79,21 @@ export class FindComponentReferencesProviderImpl implements FindComponentReferen
         return fragment.text.lastIndexOf(COMPONENT_SUFFIX);
     }
 
-    private isEndTag(element: Location, document: Document) {
+    private isEndTag(element: Location, snapshot: DocumentSnapshot) {
+        if (!(snapshot instanceof SvelteDocumentSnapshot)) {
+            return false;
+        }
+
         const testEndTagRange = Range.create(
             Position.create(element.range.start.line, element.range.start.character - 1),
             element.range.end
         );
 
-        const text = document.getText(testEndTagRange);
+        const text = snapshot.getOriginalText(testEndTagRange);
         if (text.substring(0, 1) == '/') {
             return true;
         }
 
         return false;
-    }
-
-    private async getDocument(filename: string) {
-        const docManager = new DocumentManager(
-            (textDocument) => new Document(textDocument.uri, textDocument.text)
-        );
-
-        const document = openDoc(filename);
-        return document;
-
-        function openDoc(filename: string) {
-            const doc = docManager.openDocument(<any>{
-                uri: pathToUrl(filename),
-                text: ts.sys.readFile(filename) || ''
-            });
-            return doc;
-        }
     }
 }
