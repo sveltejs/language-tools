@@ -41,30 +41,19 @@ export const INITIAL_VERSION = 0;
 
 /**
  * A document snapshot suitable for the ts language service and the plugin.
- * Can be a svelte or ts/js file.
+ * Can be a real ts/js file or a virtual ts/js file which is generated from a Svelte file.
  */
-export interface DocumentSnapshot extends ts.IScriptSnapshot {
+export interface DocumentSnapshot extends ts.IScriptSnapshot, DocumentMapper {
     version: number;
     filePath: string;
     scriptKind: ts.ScriptKind;
+    scriptInfo: TagInformation | null;
     positionAt(offset: number): Position;
-    /**
-     * Instantiates a source mapper
-     */
-    getFragment(): SnapshotFragment;
+    offsetAt(position: Position): number;
     /**
      * Convenience function for getText(0, getLength())
      */
     getFullText(): string;
-}
-
-/**
- * The mapper to get from original snapshot positions to generated and vice versa.
- */
-export interface SnapshotFragment extends DocumentMapper {
-    scriptInfo: TagInformation | null;
-    positionAt(offset: number): Position;
-    offsetAt(position: Position): number;
 }
 
 /**
@@ -251,15 +240,18 @@ function preprocessSvelteFile(document: Document, options: SvelteSnapshotOptions
 }
 
 /**
- * A svelte document snapshot suitable for the ts language service and the plugin.
+ * A svelte document snapshot suitable for the TS language service and the plugin.
+ * It contains the generated code (Svelte->TS/JS) so the TS language service can understand it.
  */
 export class SvelteDocumentSnapshot implements DocumentSnapshot {
-    private fragment?: SvelteSnapshotFragment;
+    private mapper?: DocumentMapper;
+    private lineOffsets?: number[];
+    private url = pathToUrl(this.filePath);
 
     version = this.parent.version;
 
     constructor(
-        private readonly parent: Document,
+        public readonly parent: Document,
         public readonly parserError: ParserError | null,
         public readonly scriptKind: ts.ScriptKind,
         private readonly text: string,
@@ -271,6 +263,14 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
 
     get filePath() {
         return this.parent.getFilePath() || '';
+    }
+
+    get scriptInfo() {
+        return this.parent.scriptInfo;
+    }
+
+    get moduleScriptInfo() {
+        return this.parent.moduleScriptInfo;
     }
 
     getOriginalText(range?: Range) {
@@ -294,7 +294,11 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
     }
 
     positionAt(offset: number) {
-        return positionAt(offset, this.text);
+        return positionAt(offset, this.text, this.getLineOffsets());
+    }
+
+    offsetAt(position: Position): number {
+        return offsetAt(position, this.text, this.getLineOffsets());
     }
 
     getLineContainingOffset(offset: number) {
@@ -338,31 +342,52 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
         return foundNode;
     }
 
-    getFragment() {
-        if (!this.fragment) {
-            const uri = pathToUrl(this.filePath);
-            this.fragment = new SvelteSnapshotFragment(
-                this.getMapper(uri),
-                this.text,
-                this.parent,
-                uri
-            );
-        }
-        return this.fragment;
+    getOriginalPosition(pos: Position): Position {
+        return this.getMapper().getOriginalPosition(pos);
     }
 
-    private getMapper(uri: string) {
+    getGeneratedPosition(pos: Position): Position {
+        return this.getMapper().getGeneratedPosition(pos);
+    }
+
+    isInGenerated(pos: Position): boolean {
+        return !isInTag(pos, this.parent.styleInfo);
+    }
+
+    getURL(): string {
+        return this.url;
+    }
+
+    private getLineOffsets() {
+        if (!this.lineOffsets) {
+            this.lineOffsets = getLineOffsets(this.text);
+        }
+        return this.lineOffsets;
+    }
+
+    private getMapper() {
+        if (!this.mapper) {
+            this.mapper = this.initMapper();
+        }
+        return this.mapper;
+    }
+
+    private initMapper() {
         const scriptInfo = this.parent.scriptInfo || this.parent.moduleScriptInfo;
 
         if (!this.tsxMap) {
             if (!scriptInfo) {
-                return new IdentityMapper(uri);
+                return new IdentityMapper(this.url);
             }
 
-            return new FragmentMapper(this.parent.getText(), scriptInfo, uri);
+            return new FragmentMapper(this.parent.getText(), scriptInfo, this.url);
         }
 
-        return new ConsumerDocumentMapper(new TraceMap(this.tsxMap), uri, this.nrPrependedLines);
+        return new ConsumerDocumentMapper(
+            new TraceMap(this.tsxMap),
+            this.url,
+            this.nrPrependedLines
+        );
     }
 }
 
@@ -370,10 +395,7 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
  * A js/ts document snapshot suitable for the ts language service and the plugin.
  * Since no mapping has to be done here, it also implements the mapper interface.
  */
-export class JSOrTSDocumentSnapshot
-    extends IdentityMapper
-    implements DocumentSnapshot, SnapshotFragment
-{
+export class JSOrTSDocumentSnapshot extends IdentityMapper implements DocumentSnapshot {
     scriptKind = getScriptKindFromFileName(this.filePath);
     scriptInfo = null;
     private lineOffsets?: number[];
@@ -406,10 +428,6 @@ export class JSOrTSDocumentSnapshot
         return offsetAt(position, this.text, this.getLineOffsets());
     }
 
-    getFragment() {
-        return this;
-    }
-
     update(changes: TextDocumentContentChangeEvent[]): void {
         for (const change of changes) {
             let start = 0;
@@ -433,56 +451,5 @@ export class JSOrTSDocumentSnapshot
             this.lineOffsets = getLineOffsets(this.text);
         }
         return this.lineOffsets;
-    }
-}
-
-/**
- * The mapper to get from original svelte document positions
- * to generated snapshot positions and vice versa.
- */
-export class SvelteSnapshotFragment implements SnapshotFragment {
-    private lineOffsets = getLineOffsets(this.text);
-
-    constructor(
-        private readonly mapper: DocumentMapper,
-        public readonly text: string,
-        public readonly parent: Document,
-        private readonly url: string
-    ) {}
-
-    get scriptInfo() {
-        return this.parent.scriptInfo;
-    }
-
-    get moduleScriptInfo() {
-        return this.parent.moduleScriptInfo;
-    }
-
-    get originalText() {
-        return this.parent.getText();
-    }
-
-    getOriginalPosition(pos: Position): Position {
-        return this.mapper.getOriginalPosition(pos);
-    }
-
-    getGeneratedPosition(pos: Position): Position {
-        return this.mapper.getGeneratedPosition(pos);
-    }
-
-    isInGenerated(pos: Position): boolean {
-        return !isInTag(pos, this.parent.styleInfo);
-    }
-
-    getURL(): string {
-        return this.url;
-    }
-
-    positionAt(offset: number) {
-        return positionAt(offset, this.text, this.lineOffsets);
-    }
-
-    offsetAt(position: Position) {
-        return offsetAt(position, this.text, this.lineOffsets);
     }
 }

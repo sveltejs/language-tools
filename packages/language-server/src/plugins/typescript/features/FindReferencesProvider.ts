@@ -4,7 +4,7 @@ import { flatten, isNotNullOrUndefined, pathToUrl } from '../../../utils';
 import { FindReferencesProvider } from '../../interfaces';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { convertToLocationRange, hasNonZeroRange } from '../utils';
-import { isNoTextSpanInGeneratedCode, SnapshotFragmentMap } from './utils';
+import { isNoTextSpanInGeneratedCode, SnapshotMap } from './utils';
 
 export class FindReferencesProviderImpl implements FindReferencesProvider {
     constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
@@ -15,18 +15,17 @@ export class FindReferencesProviderImpl implements FindReferencesProvider {
         context: ReferenceContext
     ): Promise<Location[] | null> {
         const { lang, tsDoc } = await this.getLSAndTSDoc(document);
-        const fragment = tsDoc.getFragment();
 
         const references = lang.findReferences(
             tsDoc.filePath,
-            fragment.offsetAt(fragment.getGeneratedPosition(position))
+            tsDoc.offsetAt(tsDoc.getGeneratedPosition(position))
         );
         if (!references) {
             return null;
         }
 
-        const docs = new SnapshotFragmentMap(this.lsAndTsDocResolver);
-        docs.set(tsDoc.filePath, { fragment, snapshot: tsDoc });
+        const snapshots = new SnapshotMap(this.lsAndTsDocResolver);
+        snapshots.set(tsDoc.filePath, tsDoc);
 
         const locations = await Promise.all(
             flatten(references.map((ref) => ref.references)).map(async (ref) => {
@@ -34,7 +33,7 @@ export class FindReferencesProviderImpl implements FindReferencesProvider {
                     return null;
                 }
 
-                const { fragment, snapshot } = await docs.retrieve(ref.fileName);
+                const snapshot = await snapshots.retrieve(ref.fileName);
 
                 if (!isNoTextSpanInGeneratedCode(snapshot.getFullText(), ref.textSpan)) {
                     return null;
@@ -42,7 +41,7 @@ export class FindReferencesProviderImpl implements FindReferencesProvider {
 
                 const location = Location.create(
                     pathToUrl(ref.fileName),
-                    convertToLocationRange(fragment, ref.textSpan)
+                    convertToLocationRange(snapshot, ref.textSpan)
                 );
 
                 // Some references are in generated code but not wrapped with explicit ignore comments.

@@ -7,7 +7,7 @@ import {
     isInTag
 } from '../../../lib/documents';
 import { ComponentInfoProvider, JsOrTsComponentInfoProvider } from '../ComponentInfoProvider';
-import { DocumentSnapshot, SnapshotFragment, SvelteDocumentSnapshot } from '../DocumentSnapshot';
+import { DocumentSnapshot, SvelteDocumentSnapshot } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { or } from '../../../utils';
 
@@ -42,11 +42,10 @@ export function getComponentAtPosition(
         return null;
     }
 
-    const fragment = tsDoc.getFragment();
-    const generatedPosition = fragment.getGeneratedPosition(doc.positionAt(node.start + 1));
+    const generatedPosition = tsDoc.getGeneratedPosition(doc.positionAt(node.start + 1));
     const def = lang.getDefinitionAtPosition(
         tsDoc.filePath,
-        fragment.offsetAt(generatedPosition)
+        tsDoc.offsetAt(generatedPosition)
     )?.[0];
     if (!def) {
         return null;
@@ -101,35 +100,26 @@ export function isPartOfImportStatement(text: string, position: Position): boole
     return /\s*from\s+["'][^"']*/.test(line.slice(0, position.character));
 }
 
-export class SnapshotFragmentMap {
-    private map = new Map<string, { fragment: SnapshotFragment; snapshot: DocumentSnapshot }>();
+export class SnapshotMap {
+    private map = new Map<string, DocumentSnapshot>();
     constructor(private resolver: LSAndTSDocResolver) {}
 
-    set(fileName: string, content: { fragment: SnapshotFragment; snapshot: DocumentSnapshot }) {
-        this.map.set(fileName, content);
+    set(fileName: string, snapshot: DocumentSnapshot) {
+        this.map.set(fileName, snapshot);
     }
 
     get(fileName: string) {
         return this.map.get(fileName);
     }
 
-    getFragment(fileName: string) {
-        return this.map.get(fileName)?.fragment;
-    }
-
     async retrieve(fileName: string) {
-        let snapshotFragment = this.get(fileName);
-        if (!snapshotFragment) {
-            const snapshot = await this.resolver.getSnapshot(fileName);
-            const fragment = await snapshot.getFragment();
-            snapshotFragment = { fragment, snapshot };
-            this.set(fileName, snapshotFragment);
+        let snapshot = this.get(fileName);
+        if (!snapshot) {
+            const snap = await this.resolver.getSnapshot(fileName);
+            this.set(fileName, snap);
+            snapshot = snap;
         }
-        return snapshotFragment;
-    }
-
-    async retrieveFragment(fileName: string) {
-        return (await this.retrieve(fileName)).fragment;
+        return snapshot;
     }
 }
 

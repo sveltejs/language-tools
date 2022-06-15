@@ -7,7 +7,7 @@ import {
 } from 'vscode-languageserver';
 import { Document, mapRangeToOriginal } from '../../../lib/documents';
 import { SemanticTokensProvider } from '../../interfaces';
-import { SvelteSnapshotFragment } from '../DocumentSnapshot';
+import { SvelteDocumentSnapshot } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { convertToTextSpan } from '../utils';
 import { isInGeneratedCode } from './utils';
@@ -23,11 +23,10 @@ export class SemanticTokensProviderImpl implements SemanticTokensProvider {
         cancellationToken?: CancellationToken
     ): Promise<SemanticTokens | null> {
         const { lang, tsDoc } = await this.lsAndTsDocResolver.getLSAndTSDoc(textDocument);
-        const fragment = tsDoc.getFragment();
 
         // for better performance, don't do full-file semantic tokens when the file is too big
         if (
-            (!range && fragment.text.length > CONTENT_LENGTH_LIMIT) ||
+            (!range && tsDoc.getLength() > CONTENT_LENGTH_LIMIT) ||
             cancellationToken?.isCancellationRequested
         ) {
             return null;
@@ -39,13 +38,13 @@ export class SemanticTokensProviderImpl implements SemanticTokensProvider {
         }
 
         const textSpan = range
-            ? convertToTextSpan(range, fragment)
+            ? convertToTextSpan(range, tsDoc)
             : {
                   start: 0,
                   length: tsDoc.parserError
-                      ? fragment.text.length
+                      ? tsDoc.getLength()
                       : // This is appended by svelte2tsx, there's nothing mappable afterwards
-                        fragment.text.lastIndexOf('return { props:') || fragment.text.length
+                        tsDoc.getFullText().lastIndexOf('return { props:') || tsDoc.getLength()
               };
 
         const { spans } = lang.getEncodedSemanticClassifications(
@@ -69,7 +68,7 @@ export class SemanticTokensProviderImpl implements SemanticTokensProvider {
 
             const originalPosition = this.mapToOrigin(
                 textDocument,
-                fragment,
+                tsDoc,
                 generatedOffset,
                 generatedLength
             );
@@ -105,19 +104,25 @@ export class SemanticTokensProviderImpl implements SemanticTokensProvider {
 
     private mapToOrigin(
         document: Document,
-        fragment: SvelteSnapshotFragment,
+        snapshot: SvelteDocumentSnapshot,
         generatedOffset: number,
         generatedLength: number
     ): [line: number, character: number, length: number, start: number] | undefined {
-        if (isInGeneratedCode(fragment.text, generatedOffset, generatedOffset + generatedLength)) {
+        if (
+            isInGeneratedCode(
+                snapshot.getFullText(),
+                generatedOffset,
+                generatedOffset + generatedLength
+            )
+        ) {
             return;
         }
 
         const range = {
-            start: fragment.positionAt(generatedOffset),
-            end: fragment.positionAt(generatedOffset + generatedLength)
+            start: snapshot.positionAt(generatedOffset),
+            end: snapshot.positionAt(generatedOffset + generatedLength)
         };
-        const { start: startPosition, end: endPosition } = mapRangeToOriginal(fragment, range);
+        const { start: startPosition, end: endPosition } = mapRangeToOriginal(snapshot, range);
 
         if (startPosition.line < 0 || endPosition.line < 0) {
             return;

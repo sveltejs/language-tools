@@ -68,7 +68,7 @@ import { SemanticTokensProviderImpl } from './features/SemanticTokensProvider';
 import { SignatureHelpProviderImpl } from './features/SignatureHelpProvider';
 import { TypeDefinitionProviderImpl } from './features/TypeDefinitionProvider';
 import { UpdateImportsProviderImpl } from './features/UpdateImportsProvider';
-import { isNoTextSpanInGeneratedCode, SnapshotFragmentMap } from './features/utils';
+import { isNoTextSpanInGeneratedCode, SnapshotMap } from './features/utils';
 import { LSAndTSDocResolver } from './LSAndTSDocResolver';
 import { ignoredBuildDirectories } from './SnapshotManager';
 import { isAttributeName, isAttributeShorthand, isEventHandler } from './svelte-ast-utils';
@@ -180,7 +180,6 @@ export class TypeScriptPlugin
         }
 
         const { lang, tsDoc } = await this.getLSAndTSDoc(document);
-        const fragment = tsDoc.getFragment();
 
         if (cancellationToken?.isCancellationRequested) {
             return [];
@@ -199,7 +198,7 @@ export class TypeScriptPlugin
                 symbol.containerName = 'script';
             }
 
-            symbol = mapSymbolInformationToOriginal(fragment, symbol);
+            symbol = mapSymbolInformationToOriginal(tsDoc, symbol);
 
             if (
                 symbol.location.range.start.line < 0 ||
@@ -267,10 +266,10 @@ export class TypeScriptPlugin
                         tree.text,
                         symbolKindFromString(tree.kind),
                         Range.create(
-                            fragment.positionAt(start.start),
-                            fragment.positionAt(end.start + end.length)
+                            tsDoc.positionAt(start.start),
+                            tsDoc.positionAt(end.start + end.length)
                         ),
-                        fragment.getURL(),
+                        tsDoc.getURL(),
                         container
                     )
                 );
@@ -330,23 +329,22 @@ export class TypeScriptPlugin
 
     async getDefinitions(document: Document, position: Position): Promise<DefinitionLink[]> {
         const { lang, tsDoc } = await this.getLSAndTSDoc(document);
-        const mainFragment = tsDoc.getFragment();
 
         const defs = lang.getDefinitionAndBoundSpan(
             tsDoc.filePath,
-            mainFragment.offsetAt(mainFragment.getGeneratedPosition(position))
+            tsDoc.offsetAt(tsDoc.getGeneratedPosition(position))
         );
 
         if (!defs || !defs.definitions) {
             return [];
         }
 
-        const docs = new SnapshotFragmentMap(this.lsAndTsDocResolver);
-        docs.set(tsDoc.filePath, { fragment: mainFragment, snapshot: tsDoc });
+        const snapshots = new SnapshotMap(this.lsAndTsDocResolver);
+        snapshots.set(tsDoc.filePath, tsDoc);
 
         const result = await Promise.all(
             defs.definitions.map(async (def) => {
-                const { fragment, snapshot } = await docs.retrieve(def.fileName);
+                const snapshot = await snapshots.retrieve(def.fileName);
 
                 if (
                     !def.fileName.endsWith('svelte-shims.d.ts') &&
@@ -354,9 +352,9 @@ export class TypeScriptPlugin
                 ) {
                     return LocationLink.create(
                         pathToUrl(def.fileName),
-                        convertToLocationRange(fragment, def.textSpan),
-                        convertToLocationRange(fragment, def.textSpan),
-                        convertToLocationRange(mainFragment, defs.textSpan)
+                        convertToLocationRange(snapshot, def.textSpan),
+                        convertToLocationRange(snapshot, def.textSpan),
+                        convertToLocationRange(tsDoc, defs.textSpan)
                     );
                 }
             })
