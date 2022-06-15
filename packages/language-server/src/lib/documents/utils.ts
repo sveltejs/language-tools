@@ -432,7 +432,8 @@ export function isInsideMoustacheTag(html: string, tagStart: number | null, posi
                 // TODO make this just check for '{'?
                 // Theoretically, someone could do {a < b} in a simple moustache tag
                 charactersBeforePosition.lastIndexOf('{#'),
-                charactersBeforePosition.lastIndexOf('{:')
+                charactersBeforePosition.lastIndexOf('{:'),
+                charactersBeforePosition.lastIndexOf('{@')
             ) > charactersBeforePosition.lastIndexOf('}')
         );
     } else {
