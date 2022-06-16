@@ -389,6 +389,19 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         );
     }
 
+    async fileReferences(uri: string): Promise<Location[] | null> {
+        return await this.execute<any>('fileReferences', [uri], ExecuteMode.FirstNonNull, 'high');
+    }
+
+    async findComponentReferences(uri: string): Promise<Location[] | null> {
+        return await this.execute<any>(
+            'findComponentReferences',
+            [uri],
+            ExecuteMode.FirstNonNull,
+            'high'
+        );
+    }
+
     async getSignatureHelp(
         textDocument: TextDocumentIdentifier,
         position: Position,

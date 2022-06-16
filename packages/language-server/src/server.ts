@@ -426,6 +426,14 @@ export function startServer(options?: LSOptions) {
         pluginHost.updateImports(fileRename)
     );
 
+    connection.onRequest('$/getFileReferences', async (uri: string) => {
+        return pluginHost.fileReferences(uri);
+    });
+
+    connection.onRequest('$/getComponentReferences', async (uri: string) => {
+        return pluginHost.findComponentReferences(uri);
+    });
+
     connection.onRequest('$/getCompiledCode', async (uri: DocumentUri) => {
         const doc = docManager.get(uri);
         if (!doc) {

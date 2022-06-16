@@ -10,7 +10,10 @@
             "stopOnEntry": false,
             "sourceMaps": true,
             "outFiles": ["${workspaceRoot}/packages/svelte-vscode/dist/**/*.js"],
-            "preLaunchTask": "npm: watch"
+            "preLaunchTask": "npm: watch",
+            "env": {
+                "TSS_DEBUG": "5859"
+            }
         },
         {
             "type": "node",
@@ -51,6 +54,14 @@
                 "${workspaceRoot}/packages/language-server/dist/**/*.js",
                 "${workspaceRoot}/packages/svelte2tsx/index.js"
             ],
+            "skipFiles": ["<node_internals>/**"]
+        },
+        {
+            "type": "node",
+            "request": "attach",
+            "name": "Attach debugger to typescript plugin",
+            "port": 5859,
+            "outFiles": ["${workspaceRoot}/packages/typescript-plugin/dist/**/*.js"],
             "skipFiles": ["<node_internals>/**"]
         }
     ]

@@ -143,6 +143,14 @@ export interface FindReferencesProvider {
     ): Promise<Location[] | null>;
 }
 
+export interface FileReferencesProvider {
+    fileReferences(uri: string): Promise<Location[] | null>;
+}
+
+export interface FindComponentReferencesProvider {
+    findComponentReferences(uri: string): Promise<Location[] | null>;
+}
+
 export interface SignatureHelpProvider {
     getSignatureHelp(
         document: Document,
@@ -199,6 +207,8 @@ type ProviderBase = DiagnosticsProvider &
     UpdateImportsProvider &
     CodeActionsProvider &
     FindReferencesProvider &
+    FileReferencesProvider &
+    FindComponentReferencesProvider &
     RenameProvider &
     SignatureHelpProvider &
     SemanticTokensProvider &

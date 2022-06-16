@@ -36,6 +36,8 @@ import {
     DocumentSymbolsProvider,
     FileRename,
     FindReferencesProvider,
+    FileReferencesProvider,
+    FindComponentReferencesProvider,
     HoverProvider,
     ImplementationProvider,
     OnWatchFileChanges,
@@ -54,6 +56,8 @@ import {
     CompletionsProviderImpl
 } from './features/CompletionProvider';
 import { DiagnosticsProviderImpl } from './features/DiagnosticsProvider';
+import { FindFileReferencesProviderImpl } from './features/FindFileReferencesProvider';
+import { FindComponentReferencesProviderImpl } from './features/FindComponentReferencesProvider';
 import { FindReferencesProviderImpl } from './features/FindReferencesProvider';
 import { getDirectiveCommentCompletions } from './features/getDirectiveCommentCompletions';
 import { HoverProviderImpl } from './features/HoverProvider';
@@ -85,6 +89,8 @@ export class TypeScriptPlugin
         UpdateImportsProvider,
         RenameProvider,
         FindReferencesProvider,
+        FileReferencesProvider,
+        FindComponentReferencesProvider,
         SelectionRangeProvider,
         SignatureHelpProvider,
         SemanticTokensProvider,
@@ -104,6 +110,9 @@ export class TypeScriptPlugin
     private readonly renameProvider: RenameProviderImpl;
     private readonly hoverProvider: HoverProviderImpl;
     private readonly findReferencesProvider: FindReferencesProviderImpl;
+    private readonly findFileReferencesProvider: FindFileReferencesProviderImpl;
+    private readonly findComponentReferencesProvider: FindComponentReferencesProviderImpl;
+
     private readonly selectionRangeProvider: SelectionRangeProviderImpl;
     private readonly signatureHelpProvider: SignatureHelpProviderImpl;
     private readonly semanticTokensProvider: SemanticTokensProviderImpl;
@@ -130,6 +139,12 @@ export class TypeScriptPlugin
         this.renameProvider = new RenameProviderImpl(this.lsAndTsDocResolver, configManager);
         this.hoverProvider = new HoverProviderImpl(this.lsAndTsDocResolver);
         this.findReferencesProvider = new FindReferencesProviderImpl(this.lsAndTsDocResolver);
+        this.findFileReferencesProvider = new FindFileReferencesProviderImpl(
+            this.lsAndTsDocResolver
+        );
+        this.findComponentReferencesProvider = new FindComponentReferencesProviderImpl(
+            this.lsAndTsDocResolver
+        );
         this.selectionRangeProvider = new SelectionRangeProviderImpl(this.lsAndTsDocResolver);
         this.signatureHelpProvider = new SignatureHelpProviderImpl(this.lsAndTsDocResolver);
         this.semanticTokensProvider = new SemanticTokensProviderImpl(this.lsAndTsDocResolver);
@@ -314,10 +329,6 @@ export class TypeScriptPlugin
     }
 
     async getDefinitions(document: Document, position: Position): Promise<DefinitionLink[]> {
-        if (!this.featureEnabled('definitions')) {
-            return [];
-        }
-
         const { lang, tsDoc } = await this.getLSAndTSDoc(document);
         const mainFragment = tsDoc.getFragment();
 
@@ -364,10 +375,6 @@ export class TypeScriptPlugin
     }
 
     async prepareRename(document: Document, position: Position): Promise<Range | null> {
-        if (!this.featureEnabled('rename')) {
-            return null;
-        }
-
         return this.renameProvider.prepareRename(document, position);
     }
 
@@ -376,10 +383,6 @@ export class TypeScriptPlugin
         position: Position,
         newName: string
     ): Promise<WorkspaceEdit | null> {
-        if (!this.featureEnabled('rename')) {
-            return null;
-        }
-
         return this.renameProvider.rename(document, position, newName);
     }
 
@@ -426,11 +429,15 @@ export class TypeScriptPlugin
         position: Position,
         context: ReferenceContext
     ): Promise<Location[] | null> {
-        if (!this.featureEnabled('findReferences')) {
-            return null;
-        }
-
         return this.findReferencesProvider.findReferences(document, position, context);
+    }
+
+    async fileReferences(uri: string): Promise<Location[] | null> {
+        return this.findFileReferencesProvider.fileReferences(uri);
+    }
+
+    async findComponentReferences(uri: string): Promise<Location[] | null> {
+        return this.findComponentReferencesProvider.findComponentReferences(uri);
     }
 
     async onWatchFileChanges(onWatchFileChangesParas: OnWatchFileChangesPara[]): Promise<void> {
@@ -515,18 +522,10 @@ export class TypeScriptPlugin
     }
 
     async getImplementation(document: Document, position: Position): Promise<Location[] | null> {
-        if (!this.featureEnabled('implementation')) {
-            return null;
-        }
-
         return this.implementationProvider.getImplementation(document, position);
     }
 
     async getTypeDefinition(document: Document, position: Position): Promise<Location[] | null> {
-        if (!this.featureEnabled('typeDefinition')) {
-            return null;
-        }
-
         return this.typeDefinitionProvider.getTypeDefinition(document, position);
     }
 

@@ -234,10 +234,6 @@ export class HTMLPlugin
     }
 
     rename(document: Document, position: Position, newName: string): WorkspaceEdit | null {
-        if (!this.featureEnabled('renameTags')) {
-            return null;
-        }
-
         const html = this.documents.get(document);
         if (!html) {
             return null;
@@ -252,10 +248,6 @@ export class HTMLPlugin
     }
 
     prepareRename(document: Document, position: Position): Range | null {
-        if (!this.featureEnabled('renameTags')) {
-            return null;
-        }
-
         const html = this.documents.get(document);
         if (!html) {
             return null;

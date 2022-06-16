@@ -69,11 +69,56 @@ Converts a .svelte file into a legal TypeScript file. Built from [halfnelson/sve
 
 ## Development
 
+### High Level Overview
+
+```mermaid
+flowchart LR
+    %% IDEs
+    VSC[IDE: VSCode + Svelte for VS Code extension]
+    click VSC "https://github.com/sveltejs/language-tools/tree/master/packages/svelte-vscode" "Svelte for VSCode extension"
+    %% Tools
+    CLI[CLI: svelte-check]
+    click CLI "https://github.com/sveltejs/language-tools/tree/master/packages/svelte-check" "A command line tool to get diagnostics for Svelte code"
+    %% Svelte - Extensions
+    VSC_TSSP[typescript-svelte-plugin]
+    click VSC_TSSP "https://github.com/sveltejs/language-tools/tree/master/packages/typescript-plugin" "A TypeScript plugin for Svelte intellisense"
+    %% Svelte - Packages
+    SVELTE_LANGUAGE_SERVER["svelte-language-server"]
+    SVELTE_COMPILER_SERVICE["svelte2tsx"]
+    TS_SERVICE["TS/JS intellisense using TypeScript language service"]
+    SVELTE_SERVICE["Svelte intellisense using Svelte compiler"]
+    click SVELTE_LANGUAGE_SERVER "https://github.com/sveltejs/language-tools/tree/master/packages/language-server" "A language server adhering to the LSP"
+    click SVELTE_COMPILER_SERVICE "https://github.com/sveltejs/language-tools/tree/master/packages/language-server/src/plugins/svelte" "Transforms Svelte code into JSX/TSX code"
+    click TS_SERVICE "https://github.com/sveltejs/language-tools/tree/master/packages/language-server/src/plugins/typescript"
+    click SVELTE_SERVICE "https://github.com/sveltejs/language-tools/tree/master/packages/language-server/src/plugins/svelte"
+    %% External Packages
+    HTML_SERVICE[HTML intellisense using vscode-html-languageservice]
+    CSS_SERVICE[CSS intellisense using vscode-css-languageservice]
+    VSC_TS[vscode-typescript-language-features]
+    click HTML_SERVICE "https://github.com/microsoft/vscode-html-languageservice"
+    click CSS_SERVICE "https://github.com/microsoft/vscode-css-languageservice"
+    click VSC_TS "https://github.com/microsoft/vscode/tree/main/extensions/typescript-language-features"
+    subgraph EMBEDDED_SERVICES[Embedded Language Services]
+      direction LR
+      TS_SERVICE
+      SVELTE_SERVICE
+      HTML_SERVICE
+      CSS_SERVICE
+    end
+    VSC -- Language Server Protocol --> SVELTE_LANGUAGE_SERVER
+    CLI -- Only using diagnostics feature --> SVELTE_LANGUAGE_SERVER
+    VSC -- includes --> VSC_TS
+    VSC_TS -- loads --> VSC_TSSP
+    VSC_TSSP -- uses --> SVELTE_COMPILER_SERVICE
+    TS_SERVICE -- uses --> SVELTE_COMPILER_SERVICE
+    SVELTE_LANGUAGE_SERVER -- bundles --> EMBEDDED_SERVICES
+```
+
+More information about the internals can be found [HERE](./docs/internal/overview.md).
+
 #### Setup
 
 Pull requests are encouraged and always welcome. [Pick an issue](https://github.com/sveltejs/language-tools/issues?q=is%3Aissue+is%3Aopen+sort%3Aupdated-desc) and help us out!
-
-To get an overview of the internals, [read here](./docs/internal/overview.md).
 
 To install and work on these tools locally:
 

@@ -132,18 +132,6 @@
                     "title": "TypeScript: Completions",
                     "description": "Enable completions for TypeScript"
                 },
-                "svelte.plugin.typescript.findReferences.enable": {
-                    "type": "boolean",
-                    "default": true,
-                    "title": "TypeScript: Find References",
-                    "description": "Enable find-references for TypeScript"
-                },
-                "svelte.plugin.typescript.definitions.enable": {
-                    "type": "boolean",
-                    "default": true,
-                    "title": "TypeScript: Go to Definition",
-                    "description": "Enable go to definition for TypeScript"
-                },
                 "svelte.plugin.typescript.codeActions.enable": {
                     "type": "boolean",
                     "default": true,
@@ -162,29 +150,11 @@
                     "title": "TypeScript: Signature Help",
                     "description": "Enable signature help (parameter hints) for TypeScript"
                 },
-                "svelte.plugin.typescript.rename.enable": {
-                    "type": "boolean",
-                    "default": true,
-                    "title": "TypeScript: Rename",
-                    "description": "Enable rename functionality for JS/TS variables inside Svelte files"
-                },
                 "svelte.plugin.typescript.semanticTokens.enable": {
                     "type": "boolean",
                     "default": true,
                     "title": "TypeScript: Semantic Tokens",
                     "description": "Enable semantic tokens (semantic highlight) for TypeScript."
-                },
-                "svelte.plugin.typescript.implementation.enable": {
-                    "type": "boolean",
-                    "default": true,
-                    "title": "Typescript: Go to Implementation",
-                    "description": "Enable go to implementation for Typescript"
-                },
-                "svelte.plugin.typescript.typeDefinition.enable": {
-                    "type": "boolean",
-                    "default": true,
-                    "title": "Typescript: Go to Type Definition",
-                    "description": "Enable go to Type Definition for Typescript"
                 },
                 "svelte.plugin.css.enable": {
                     "type": "boolean",
@@ -287,12 +257,6 @@
                     "default": true,
                     "title": "HTML: Linked Editing",
                     "description": "Enable Linked Editing for HTML"
-                },
-                "svelte.plugin.html.renameTags.enable": {
-                    "type": "boolean",
-                    "default": true,
-                    "title": "HTML: Rename tags",
-                    "description": "Enable rename for the opening/closing tag pairs in HTML"
                 },
                 "svelte.plugin.svelte.enable": {
                     "type": "boolean",
@@ -534,6 +498,14 @@
             {
                 "command": "svelte.extractComponent",
                 "title": "Svelte: Extract Component"
+            },
+            {
+                "command": "svelte.typescript.findAllFileReferences",
+                "title": "Svelte: Find File References"
+            },
+            {
+                "command": "svelte.typescript.findComponentReferences",
+                "title": "Svelte: Find Component References"
             }
         ],
         "menus": {
@@ -541,6 +513,14 @@
                 {
                     "command": "svelte.showCompiledCodeToSide",
                     "when": "editorLangId == svelte"
+                },
+                {
+                    "command": "svelte.typescript.findAllFileReferences",
+                    "when": "editorLangId == svelte && resourceScheme == file"
+                },
+                {
+                    "command": "svelte.typescript.findComponentReferences",
+                    "when": "editorLangId == svelte && resourceScheme == file"
                 }
             ],
             "editor/title": [
@@ -550,11 +530,43 @@
                     "group": "navigation"
                 }
             ],
+            "editor/title/context": [
+                {
+                    "command": "svelte.typescript.findAllFileReferences",
+                    "when": "resourceLangId == svelte && resourceScheme == file"
+                },
+                {
+                    "command": "svelte.typescript.findComponentReferences",
+                    "when": "resourceLangId == svelte && resourceScheme == file"
+                }
+            ],
             "editor/context": [
                 {
                     "command": "svelte.extractComponent",
                     "when": "editorLangId == svelte",
                     "group": "1_modification"
+                },
+                {
+                    "command": "svelte.typescript.findAllFileReferences",
+                    "when": "editorLangId == svelte",
+                    "group": "4_search"
+                },
+                {
+                    "command": "svelte.typescript.findComponentReferences",
+                    "when": "editorLangId == svelte",
+                    "group": "4_search"
+                }
+            ],
+            "explorer/context": [
+                {
+                    "command": "svelte.typescript.findAllFileReferences",
+                    "when": "resourceLangId == svelte",
+                    "group": "4_search"
+                },
+                {
+                    "command": "svelte.typescript.findComponentReferences",
+                    "when": "resourceLangId == svelte",
+                    "group": "4_search"
                 }
             ]
         },
