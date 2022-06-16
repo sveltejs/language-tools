@@ -10,7 +10,7 @@ import {
 } from 'vscode-languageserver';
 import { Document, isInTag, mapRangeToOriginal } from '../../lib/documents';
 import { pathToUrl } from '../../utils';
-import { SnapshotFragment, SvelteSnapshotFragment } from './DocumentSnapshot';
+import { DocumentSnapshot, SvelteDocumentSnapshot } from './DocumentSnapshot';
 
 export function getScriptKindFromFileName(fileName: string): ts.ScriptKind {
     const ext = fileName.substr(fileName.lastIndexOf('.'));
@@ -90,8 +90,8 @@ export function convertRange(
     );
 }
 
-export function convertToLocationRange(defDoc: SnapshotFragment, textSpan: ts.TextSpan): Range {
-    const range = mapRangeToOriginal(defDoc, convertRange(defDoc, textSpan));
+export function convertToLocationRange(snapshot: DocumentSnapshot, textSpan: ts.TextSpan): Range {
+    const range = mapRangeToOriginal(snapshot, convertRange(snapshot, textSpan));
     // Some definition like the svelte component class definition don't exist in the original, so we map to 0,1
     if (range.start.line < 0) {
         range.start.line = 0;
@@ -305,9 +305,9 @@ export function getTsCheckComment(str = ''): string | undefined {
     }
 }
 
-export function convertToTextSpan(range: Range, fragment: SnapshotFragment): ts.TextSpan {
-    const start = fragment.offsetAt(fragment.getGeneratedPosition(range.start));
-    const end = fragment.offsetAt(fragment.getGeneratedPosition(range.end));
+export function convertToTextSpan(range: Range, snapshot: DocumentSnapshot): ts.TextSpan {
+    const start = snapshot.offsetAt(snapshot.getGeneratedPosition(range.start));
+    const end = snapshot.offsetAt(snapshot.getGeneratedPosition(range.end));
 
     return {
         start,
@@ -315,8 +315,8 @@ export function convertToTextSpan(range: Range, fragment: SnapshotFragment): ts.
     };
 }
 
-export function isInScript(position: Position, fragment: SvelteSnapshotFragment | Document) {
-    return isInTag(position, fragment.scriptInfo) || isInTag(position, fragment.moduleScriptInfo);
+export function isInScript(position: Position, snapshot: SvelteDocumentSnapshot | Document) {
+    return isInTag(position, snapshot.scriptInfo) || isInTag(position, snapshot.moduleScriptInfo);
 }
 
 export function getDiagnosticTag(diagnostic: ts.Diagnostic): DiagnosticTag[] {

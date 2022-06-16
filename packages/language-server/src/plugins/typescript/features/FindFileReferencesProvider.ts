@@ -4,7 +4,7 @@ import { pathToUrl } from '../../../utils';
 import { FileReferencesProvider } from '../../interfaces';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { convertToLocationRange, hasNonZeroRange } from '../utils';
-import { SnapshotFragmentMap } from './utils';
+import { SnapshotMap } from './utils';
 
 export class FindFileReferencesProviderImpl implements FileReferencesProvider {
     constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
@@ -15,7 +15,6 @@ export class FindFileReferencesProviderImpl implements FileReferencesProvider {
 
         const lang = await this.getLSForPath(fileName);
         const tsDoc = await this.getSnapshotForPath(fileName);
-        const fragment = tsDoc.getFragment();
 
         const references = lang.getFileReferences(fileName);
 
@@ -23,16 +22,16 @@ export class FindFileReferencesProviderImpl implements FileReferencesProvider {
             return null;
         }
 
-        const docs = new SnapshotFragmentMap(this.lsAndTsDocResolver);
-        docs.set(tsDoc.filePath, { fragment, snapshot: tsDoc });
+        const snapshots = new SnapshotMap(this.lsAndTsDocResolver);
+        snapshots.set(tsDoc.filePath, tsDoc);
 
         const locations = await Promise.all(
             references.map(async (ref) => {
-                const defDoc = await docs.retrieveFragment(ref.fileName);
+                const snapshot = await snapshots.retrieve(ref.fileName);
 
                 return Location.create(
                     pathToUrl(ref.fileName),
-                    convertToLocationRange(defDoc, ref.textSpan)
+                    convertToLocationRange(snapshot, ref.textSpan)
                 );
             })
         );

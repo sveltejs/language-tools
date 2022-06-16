@@ -13,14 +13,13 @@ export class HoverProviderImpl implements HoverProvider {
 
     async doHover(document: Document, position: Position): Promise<Hover | null> {
         const { lang, tsDoc } = await this.getLSAndTSDoc(document);
-        const fragment = tsDoc.getFragment();
 
         const eventHoverInfo = this.getEventHoverInfo(lang, document, tsDoc, position);
         if (eventHoverInfo) {
             return eventHoverInfo;
         }
 
-        const offset = fragment.offsetAt(fragment.getGeneratedPosition(position));
+        const offset = tsDoc.offsetAt(tsDoc.getGeneratedPosition(position));
         let info = lang.getQuickInfoAtPosition(tsDoc.filePath, offset);
         if (!info) {
             return null;
@@ -29,7 +28,8 @@ export class HoverProviderImpl implements HoverProvider {
         const textSpan = info.textSpan;
 
         // show docs of $store instead of store if necessary
-        const is$store = fragment.text
+        const is$store = tsDoc
+            .getFullText()
             .substring(0, info.textSpan.start)
             .endsWith('(__sveltets_1_store_get(');
         if (is$store) {
@@ -50,8 +50,8 @@ export class HoverProviderImpl implements HoverProvider {
             .concat(documentation ? ['---', documentation] : [])
             .join('\n');
 
-        return mapObjWithRangeToOriginal(fragment, {
-            range: convertRange(fragment, textSpan),
+        return mapObjWithRangeToOriginal(tsDoc, {
+            range: convertRange(tsDoc, textSpan),
             contents
         });
     }
