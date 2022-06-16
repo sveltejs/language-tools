@@ -348,7 +348,7 @@ export class TypeScriptPlugin
                     return;
                 }
 
-                const snapshot = await snapshots.retrieve(def.fileName);
+                let snapshot = await snapshots.retrieve(def.fileName);
 
                 if (!isNoTextSpanInGeneratedCode(snapshot.getFullText(), def.textSpan)) {
                     if (snapshot.getFullText().charAt(def.textSpan.start) !== '$') {
@@ -359,6 +359,7 @@ export class TypeScriptPlugin
                         tsDoc.filePath,
                         tsDoc.getFullText().indexOf(');', def.textSpan.start) - 1
                     )!.definitions![0];
+                    snapshot = await snapshots.retrieve(def.fileName);
                 }
 
                 return LocationLink.create(
