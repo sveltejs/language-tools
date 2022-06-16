@@ -343,6 +343,9 @@ function test(useNewTransformation: boolean) {
                 const { provider, renameDoc5 } = await setup();
                 const result = await provider.rename(renameDoc5, pos, 'store1');
 
+                result?.changes?.[getUri('rename5.svelte')].sort(
+                    (c1, c2) => c1.range.start.line - c2.range.start.line
+                );
                 assert.deepStrictEqual(result, {
                     changes: {
                         [getUri('rename5.svelte')]: [
@@ -360,11 +363,11 @@ function test(useNewTransformation: boolean) {
                                 }
                             },
                             {
-                                newText: 'store1',
+                                newText: '$store1',
                                 range: {
                                     start: {
                                         line: 2,
-                                        character: 5
+                                        character: 4
                                     },
                                     end: {
                                         line: 2,
@@ -373,11 +376,11 @@ function test(useNewTransformation: boolean) {
                                 }
                             },
                             {
-                                newText: 'store1',
+                                newText: '$store1',
                                 range: {
                                     start: {
                                         line: 3,
-                                        character: 8
+                                        character: 7
                                     },
                                     end: {
                                         line: 3,
@@ -386,27 +389,40 @@ function test(useNewTransformation: boolean) {
                                 }
                             },
                             {
-                                newText: 'store1',
+                                newText: '$store: $store1',
                                 range: {
                                     start: {
-                                        line: 6,
-                                        character: 2
+                                        line: 4,
+                                        character: 18
                                     },
                                     end: {
-                                        line: 6,
+                                        line: 4,
+                                        character: 24
+                                    }
+                                }
+                            },
+                            {
+                                newText: '$store1',
+                                range: {
+                                    start: {
+                                        line: 7,
+                                        character: 1
+                                    },
+                                    end: {
+                                        line: 7,
                                         character: 7
                                     }
                                 }
                             },
                             {
-                                newText: 'store1',
+                                newText: '$store1',
                                 range: {
                                     start: {
-                                        line: 7,
-                                        character: 6
+                                        line: 8,
+                                        character: 5
                                     },
                                     end: {
-                                        line: 7,
+                                        line: 8,
                                         character: 11
                                     }
                                 }

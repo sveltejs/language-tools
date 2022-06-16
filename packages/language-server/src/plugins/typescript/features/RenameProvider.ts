@@ -61,7 +61,8 @@ export class RenameProviderImpl implements RenameProvider {
 
         const offset = tsDoc.offsetAt(tsDoc.getGeneratedPosition(position));
 
-        if (!this.getRenameInfo(lang, tsDoc, document, position, offset)) {
+        const renameInfo = this.getRenameInfo(lang, tsDoc, document, position, offset);
+        if (!renameInfo) {
             return null;
         }
 
@@ -75,14 +76,15 @@ export class RenameProviderImpl implements RenameProvider {
 
         let convertedRenameLocations: TsRenameLocation[] = await this.mapAndFilterRenameLocations(
             renameLocations,
-            docs
+            docs,
+            renameInfo.isStore ? `$${newName}` : undefined
         );
 
         for (const loc of renameLocations) {
             const snapshot = await docs.retrieve(loc.fileName);
             if (!isNoTextSpanInGeneratedCode(snapshot.getFullText(), loc.textSpan)) {
                 if (isInsideStoreGetShim(snapshot.getFullText(), loc.textSpan.start)) {
-                    // User renamed $store, also rename corresponding store
+                    // User renamed store, also rename correspondig $store locations
                     const storeRenameLocations = lang.findRenameLocations(
                         snapshot.filePath,
                         get$storeDeclarationStart(snapshot.getFullText(), loc.textSpan.start),
@@ -97,10 +99,8 @@ export class RenameProviderImpl implements RenameProvider {
                             `$${newName}`
                         ))
                     );
-                    // TODO once we allow providePrefixAndSuffixTextForRename to be configurable,
-                    // we need to add one more step to update all other $store usages in other files
                 } else if (is$storeDeclarationVar(snapshot.getFullText(), loc.textSpan.start)) {
-                    // User renamed store, also rename correspondig $store locations
+                    // User renamed $store, also rename corresponding store
                     const storeRenameLocations = lang.findRenameLocations(
                         snapshot.filePath,
                         getStoreGetShimVarStart(snapshot.getFullText(), loc.textSpan.start),
@@ -109,12 +109,10 @@ export class RenameProviderImpl implements RenameProvider {
                         true
                     );
                     convertedRenameLocations.push(
-                        ...(await this.mapAndFilterRenameLocations(
-                            storeRenameLocations!,
-                            docs,
-                            newName.substring(1)
-                        ))
+                        ...(await this.mapAndFilterRenameLocations(storeRenameLocations!, docs))
                     );
+                    // TODO once we allow providePrefixAndSuffixTextForRename to be configurable,
+                    // we need to add one more step to update all other $store usages in other files
                 }
             }
         }
@@ -161,6 +159,7 @@ export class RenameProviderImpl implements RenameProvider {
                 }
                 acc.changes[uri].push({
                     newText:
+                        // TODO test for { $store } -> { $store: $store1 } that would otherwise fail
                         (loc.prefixText || '') + (loc.newName || newName) + (loc.suffixText || ''),
                     range: loc.range
                 });
@@ -176,13 +175,11 @@ export class RenameProviderImpl implements RenameProvider {
         doc: Document,
         originalPosition: Position,
         generatedOffset: number
-    ): {
-        canRename: true;
-        kind: ts.ScriptElementKind;
-        displayName: string;
-        fullDisplayName: string;
-        triggerSpan: { start: number; length: number };
-    } | null {
+    ):
+        | (ts.RenameInfoSuccess & {
+              isStore?: boolean;
+          })
+        | null {
         // Don't allow renames in error-state, because then there is no generated svelte2tsx-code
         // and rename cannot work
         if (tsDoc.parserError) {
@@ -210,6 +207,20 @@ export class RenameProviderImpl implements RenameProvider {
                 isEventHandler(svelteNode, 'Element'))
         ) {
             return null;
+        }
+
+        // If $store is renamed, only allow rename for $|store|
+        if (tsDoc.getFullText().charAt(renameInfo.triggerSpan.start) === '$') {
+            const definition = lang.getDefinitionAndBoundSpan(tsDoc.filePath, generatedOffset)
+                ?.definitions?.[0];
+            if (
+                definition &&
+                !isNoTextSpanInGeneratedCode(tsDoc.getFullText(), definition.textSpan)
+            ) {
+                renameInfo.triggerSpan.start++;
+                renameInfo.triggerSpan.length--;
+                (renameInfo as any).isStore = true;
+            }
         }
 
         return renameInfo;

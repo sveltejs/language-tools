@@ -2,6 +2,7 @@
     let store = null;
     $store;
     if($store) {}
+    const foo = { $store };
 </script>
 
 {$store}
