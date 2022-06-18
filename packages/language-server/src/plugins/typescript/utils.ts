@@ -76,6 +76,10 @@ export function toRealSvelteFilePath(filePath: string) {
     return filePath.slice(0, -'.ts'.length);
 }
 
+export function toVirtualSvelteFilePath(filePath: string) {
+    return filePath.endsWith('.ts') ? filePath : filePath + '.ts';
+}
+
 export function ensureRealSvelteFilePath(filePath: string) {
     return isVirtualSvelteFilePath(filePath) ? toRealSvelteFilePath(filePath) : filePath;
 }

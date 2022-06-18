@@ -47,7 +47,10 @@ describe('createSvelteModuleLoader', () => {
         const { resolveStub, moduleResolver, compilerOptions } = setup(resolvedModule);
         const result = moduleResolver.resolveModuleNames(
             ['./normal.ts'],
-            'C:/somerepo/somefile.svelte'
+            'C:/somerepo/somefile.svelte',
+            undefined,
+            undefined,
+            undefined as any
         );
 
         assert.deepStrictEqual(result, [resolvedModule]);
@@ -55,7 +58,10 @@ describe('createSvelteModuleLoader', () => {
             './normal.ts',
             'C:/somerepo/somefile.svelte',
             compilerOptions,
-            ts.sys
+            ts.sys,
+            undefined,
+            undefined,
+            undefined
         ]);
     });
 
@@ -67,7 +73,10 @@ describe('createSvelteModuleLoader', () => {
         const { resolveStub, moduleResolver, compilerOptions } = setup(resolvedModule);
         const result = moduleResolver.resolveModuleNames(
             ['/@/normal'],
-            'C:/somerepo/somefile.svelte'
+            'C:/somerepo/somefile.svelte',
+            undefined,
+            undefined,
+            undefined as any
         );
 
         assert.deepStrictEqual(result, [resolvedModule]);
@@ -75,7 +84,10 @@ describe('createSvelteModuleLoader', () => {
             '/@/normal',
             'C:/somerepo/somefile.svelte',
             compilerOptions,
-            ts.sys
+            ts.sys,
+            undefined,
+            undefined,
+            undefined
         ]);
     });
 
@@ -87,7 +99,10 @@ describe('createSvelteModuleLoader', () => {
         const { resolveStub, moduleResolver, compilerOptions } = setup(resolvedModule);
         const result = moduleResolver.resolveModuleNames(
             ['./normal.ts'],
-            'C:/somerepo/somefile.svelte'
+            'C:/somerepo/somefile.svelte',
+            undefined,
+            undefined,
+            undefined as any
         );
 
         assert.deepStrictEqual(result, [resolvedModule]);
@@ -95,7 +110,10 @@ describe('createSvelteModuleLoader', () => {
             './normal.ts',
             'C:/somerepo/somefile.svelte',
             compilerOptions,
-            ts.sys
+            ts.sys,
+            undefined,
+            undefined,
+            undefined
         ]);
     });
 
@@ -108,7 +126,10 @@ describe('createSvelteModuleLoader', () => {
             setup(resolvedModule);
         const result = moduleResolver.resolveModuleNames(
             ['./svelte.svelte'],
-            'C:/somerepo/somefile.svelte'
+            'C:/somerepo/somefile.svelte',
+            undefined,
+            undefined,
+            undefined as any
         );
 
         assert.deepStrictEqual(result, [
@@ -122,7 +143,10 @@ describe('createSvelteModuleLoader', () => {
             './svelte.svelte',
             'C:/somerepo/somefile.svelte',
             compilerOptions,
-            svelteSys
+            svelteSys,
+            undefined,
+            undefined,
+            undefined
         ]);
         assert.deepStrictEqual(lastCall(getSvelteSnapshotStub).args, ['filename.svelte']);
     });
@@ -136,7 +160,10 @@ describe('createSvelteModuleLoader', () => {
             setup(resolvedModule);
         const result = moduleResolver.resolveModuleNames(
             ['/@/svelte.svelte'],
-            'C:/somerepo/somefile.svelte'
+            'C:/somerepo/somefile.svelte',
+            undefined,
+            undefined,
+            undefined as any
         );
 
         assert.deepStrictEqual(result, [
@@ -150,7 +177,10 @@ describe('createSvelteModuleLoader', () => {
             '/@/svelte.svelte',
             'C:/somerepo/somefile.svelte',
             compilerOptions,
-            svelteSys
+            svelteSys,
+            undefined,
+            undefined,
+            undefined
         ]);
         assert.deepStrictEqual(lastCall(getSvelteSnapshotStub).args, ['filename.svelte']);
     });
@@ -162,11 +192,20 @@ describe('createSvelteModuleLoader', () => {
         };
         const { resolveStub, moduleResolver } = setup(resolvedModule);
         // first call
-        moduleResolver.resolveModuleNames(['./normal.ts'], 'C:/somerepo/somefile.svelte');
+        moduleResolver.resolveModuleNames(
+            ['./normal.ts'],
+            'C:/somerepo/somefile.svelte',
+            undefined,
+            undefined,
+            undefined as any
+        );
         // second call, which should be from cache
         const result = moduleResolver.resolveModuleNames(
             ['./normal.ts'],
-            'C:/somerepo/somefile.svelte'
+            'C:/somerepo/somefile.svelte',
+            undefined,
+            undefined,
+            undefined as any
         );
 
         assert.deepStrictEqual(result, [resolvedModule]);
