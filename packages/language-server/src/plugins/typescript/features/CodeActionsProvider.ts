@@ -119,6 +119,9 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                     }
                 )
             ).semi ?? true;
+        const documentUseLf =
+            document.getText().includes('\n') && !document.getText().includes('\r\n');
+
         const changes = lang.organizeImports(
             {
                 fileName: tsDoc.filePath,
@@ -126,6 +129,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                 skipDestructiveCodeActions
             },
             {
+                newLineCharacter: documentUseLf ? '\n' : ts.sys.newLine,
                 semicolons: useSemicolons
                     ? ts.SemicolonPreference.Insert
                     : ts.SemicolonPreference.Remove

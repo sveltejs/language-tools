@@ -663,19 +663,6 @@ function test(useNewTransformation: boolean) {
                             {
                                 edits: [
                                     {
-                                        newText: "import { _ } from 'svelte-i18n';\n",
-                                        range: {
-                                            end: {
-                                                character: 0,
-                                                line: 2
-                                            },
-                                            start: {
-                                                character: 2,
-                                                line: 1
-                                            }
-                                        }
-                                    },
-                                    {
                                         newText:
                                             "import { _d } from 'svelte-i18n';\n  import { _e } from 'svelte-i18n1';\n",
                                         range: {
