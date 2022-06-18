@@ -1,5 +1,4 @@
 import * as path from 'path';
-import { TextDecoder } from 'util';
 import {
     commands,
     ExtensionContext,
@@ -195,7 +194,7 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
                 /^\.prettierrc\.config\.(js|cjs)$/
             ].some((regex) => regex.test(parts[parts.length - 1]))
         ) {
-            // await restartLS(false);
+            await restartLS(false);
         }
     });
 
