@@ -88,7 +88,8 @@ export function patchModuleLoader(
         containingFile: string,
         reusedNames: string[] | undefined,
         redirectedReference: ts.ResolvedProjectReference | undefined,
-        compilerOptions: ts.CompilerOptions
+        compilerOptions: ts.CompilerOptions,
+        containingSourceFile?: ts.SourceFile
     ): Array<ts.ResolvedModule | undefined> {
         logger.log('Resolving modules names for ' + containingFile);
         // Try resolving all module names with the original method first.
@@ -101,7 +102,8 @@ export function patchModuleLoader(
                 containingFile,
                 reusedNames,
                 redirectedReference,
-                compilerOptions
+                compilerOptions,
+                containingSourceFile
             ) || Array.from<undefined>(Array(moduleNames.length));
 
         if (!configManager.getConfig().enable) {
@@ -130,6 +132,10 @@ export function patchModuleLoader(
         containingFile: string,
         compilerOptions: ts.CompilerOptions
     ): ts.ResolvedModule | undefined {
+        // If we were to do this correctly, we'd need to check the module resolution mode for
+        // Node16/NodeNext in order to determine whether or not someone needs to have .js file
+        // endings in relative import paths. But because we don't do diagnostics within Svelte
+        // files in this TS plugin, we can ignore this and deal with some false positive resolutions
         const svelteResolvedModule = typescript.resolveModuleName(
             name,
             containingFile,
