@@ -925,19 +925,6 @@ function test(useNewTransformation: boolean) {
                             {
                                 edits: [
                                     {
-                                        newText: "import { } from 'svelte';\n",
-                                        range: {
-                                            start: {
-                                                line: 1,
-                                                character: 4
-                                            },
-                                            end: {
-                                                character: 0,
-                                                line: 2
-                                            }
-                                        }
-                                    },
-                                    {
                                         newText:
                                             "import { } from 'svelte/transition';\n" +
                                             "    import { } from './codeaction-checkJs.svelte';\n",
