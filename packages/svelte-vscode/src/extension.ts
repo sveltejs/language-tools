@@ -1,4 +1,5 @@
 import * as path from 'path';
+import { TextDecoder } from 'util';
 import {
     commands,
     ExtensionContext,
@@ -159,6 +160,8 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
         }
     };
 
+    watchGeneratedSvelteKitTsconfig(restartLS, context);
+
     let ls = createLanguageServer(serverOptions, clientOptions);
     context.subscriptions.push(ls.start());
 
@@ -192,7 +195,7 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
                 /^\.prettierrc\.config\.(js|cjs)$/
             ].some((regex) => regex.test(parts[parts.length - 1]))
         ) {
-            await restartLS(false);
+            // await restartLS(false);
         }
     });
 
@@ -306,6 +309,66 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
     return {
         getLS
     };
+}
+
+/**
+ * Watch `.svelte-kit/tsconfig.json` for changes and restart the server then.
+ * Reason: The user tsconfig extends that generated tsconfig and we don't have
+ * a general way yet to notice indirect changes of tsconfigs that extend other tsconfigs.
+ */
+function watchGeneratedSvelteKitTsconfig(
+    restartLS: (showNotification: boolean) => Promise<void>,
+    context: ExtensionContext
+) {
+    let configs = new Map<string, string>();
+    const hasConfigChanged = async (path: string) => {
+        try {
+            const newConfig = (await workspace.fs.readFile(Uri.parse(path))).toString();
+            if (newConfig !== configs.get(path)) {
+                configs.set(path, newConfig);
+                return true;
+            } else {
+                return false;
+            }
+        } catch (e) {
+            return false;
+        }
+    };
+    // best-guess init:
+    workspace.workspaceFolders?.forEach((folder) =>
+        hasConfigChanged(folder.uri.path + '/.svelte-kit/tsconfig.json')
+    );
+
+    // Needs to be two watchers because of the limitation mentioned in the createFileSystemWatcher docs
+    const folderWatcher = workspace.createFileSystemWatcher('**/.svelte-kit', false, true, false);
+    const configWatcher = workspace.createFileSystemWatcher(
+        '**/.svelte-kit/tsconfig.json',
+        true,
+        false,
+        true
+    );
+    // This only works with one folder getting deleted at the same time, but the chance
+    // of people deleting and recreating multiple .svelte-kit folders at once is near zero
+    let timeout: any;
+    folderWatcher.onDidCreate(async (dir: Uri) => {
+        clearTimeout(timeout);
+        if (await hasConfigChanged(dir.path + '/tsconfig.json')) {
+            restartLS(false);
+        }
+    });
+    folderWatcher.onDidDelete((file: Uri) => {
+        timeout = setTimeout(() => {
+            // Only delete config, don't restart - create likely follows soon which will do this.
+            // Do this inside a timeout to ensure it's not a recreation of the folder.
+            configs.delete(file.path + '/tsconfig.json');
+        }, 5000);
+    });
+    configWatcher.onDidChange(async (file: Uri) => {
+        if (await hasConfigChanged(file.path)) {
+            restartLS(false);
+        }
+    });
+    context.subscriptions.push(folderWatcher);
 }
 
 function addDidChangeTextDocumentListener(getLS: () => LanguageClient) {
