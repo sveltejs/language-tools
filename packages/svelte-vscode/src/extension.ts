@@ -319,7 +319,7 @@ function watchGeneratedSvelteKitTsconfig(
     restartLS: (showNotification: boolean) => Promise<void>,
     context: ExtensionContext
 ) {
-    let configs = new Map<string, string>();
+    const configs = new Map<string, string>();
     const hasConfigChanged = async (path: string) => {
         try {
             const newConfig = (await workspace.fs.readFile(Uri.parse(path))).toString();
