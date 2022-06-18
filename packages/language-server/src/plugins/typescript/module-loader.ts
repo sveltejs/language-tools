@@ -70,11 +70,10 @@ class ModuleResolutionCache {
 }
 
 class ImpliedNodeFormatResolver {
-    private alreadyResolved = new Map<string, ReturnType<typeof ts.getModeForFileReference>>();
+    private alreadyResolved = new Map<string, ReturnType<typeof ts.getModeForResolutionAtIndex>>();
 
     resolve(
-        to: string,
-        indexInSourceFile: number,
+        importIdxInFile: number,
         sourceFile: ts.SourceFile | undefined,
         compilerOptions: ts.CompilerOptions
     ) {
@@ -96,7 +95,7 @@ class ImpliedNodeFormatResolver {
                     sourceFile.impliedNodeFormat = this.alreadyResolved.get(sourceFile.fileName);
                 }
             }
-            mode = ts.getModeForResolutionAtIndex(sourceFile, indexInSourceFile);
+            mode = ts.getModeForResolutionAtIndex(sourceFile, importIdxInFile);
         }
         return mode;
     }
@@ -168,7 +167,6 @@ export function createSvelteModuleLoader(
         index: number
     ): ts.ResolvedModule | undefined {
         const mode = impliedNodeFormatResolver.resolve(
-            name,
             index,
             containingSourceFile,
             compilerOptions
