@@ -88,7 +88,8 @@ export function patchModuleLoader(
         containingFile: string,
         reusedNames: string[] | undefined,
         redirectedReference: ts.ResolvedProjectReference | undefined,
-        compilerOptions: ts.CompilerOptions
+        compilerOptions: ts.CompilerOptions,
+        containingSourceFile?: ts.SourceFile
     ): Array<ts.ResolvedModule | undefined> {
         logger.log('Resolving modules names for ' + containingFile);
         // Try resolving all module names with the original method first.
@@ -101,7 +102,8 @@ export function patchModuleLoader(
                 containingFile,
                 reusedNames,
                 redirectedReference,
-                compilerOptions
+                compilerOptions,
+                containingSourceFile
             ) || Array.from<undefined>(Array(moduleNames.length));
 
         if (!configManager.getConfig().enable) {
