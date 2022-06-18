@@ -292,8 +292,6 @@ async function createLanguageService(
         const forcedCompilerOptions: ts.CompilerOptions = {
             allowNonTsExtensions: true,
             target: ts.ScriptTarget.Latest,
-            module: ts.ModuleKind.ESNext,
-            moduleResolution: ts.ModuleResolutionKind.NodeJs,
             allowJs: true,
             noEmit: true,
             declaration: false,
@@ -344,6 +342,25 @@ async function createLanguageService(
             ...parsedConfig.options,
             ...forcedCompilerOptions
         };
+        if (
+            !compilerOptions.moduleResolution ||
+            compilerOptions.moduleResolution === ts.ModuleResolutionKind.Classic
+        ) {
+            compilerOptions.moduleResolution = ts.ModuleResolutionKind.NodeJs;
+        }
+        if (
+            !compilerOptions.module ||
+            [
+                ts.ModuleKind.AMD,
+                ts.ModuleKind.CommonJS,
+                ts.ModuleKind.ES2015,
+                ts.ModuleKind.None,
+                ts.ModuleKind.System,
+                ts.ModuleKind.UMD
+            ].includes(compilerOptions.module)
+        ) {
+            compilerOptions.module = ts.ModuleKind.ESNext;
+        }
 
         // detect which JSX namespace to use (svelte | svelteNative) if not specified or not compatible
         if (!compilerOptions.jsxFactory || !compilerOptions.jsxFactory.startsWith('svelte')) {
