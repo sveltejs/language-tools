@@ -1,7 +1,11 @@
 import type ts from 'typescript/lib/tsserverlibrary';
 import { Logger } from '../logger';
 import { SvelteSnapshotManager } from '../svelte-snapshots';
-import { get$storeDeclarationStart, isSvelteFilePath } from '../utils';
+import {
+    get$storeOffsetOf$storeDeclaration,
+    isStoreVariableIn$storeDeclaration,
+    isSvelteFilePath
+} from '../utils';
 
 export function decorateRename(
     ls: ts.LanguageService,
@@ -41,16 +45,15 @@ export function decorateRename(
             const textSpan = snapshot.getOriginalTextSpan(renameLocation.textSpan);
             if (!textSpan) {
                 if (
-                    additionalStoreRenameLocations &&
-                    snapshot
-                        .getText()
-                        .lastIndexOf('__sveltets_1_store_get(', renameLocation.textSpan.start) ===
-                        renameLocation.textSpan.start - '__sveltets_1_store_get('.length
+                    isStoreVariableIn$storeDeclaration(
+                        snapshot.getText(),
+                        renameLocation.textSpan.start
+                    )
                 ) {
                     additionalStoreRenameLocations.push(
                         ...findRenameLocations(
                             renameLocation.fileName,
-                            get$storeDeclarationStart(
+                            get$storeOffsetOf$storeDeclaration(
                                 snapshot.getText(),
                                 renameLocation.textSpan.start
                             ),

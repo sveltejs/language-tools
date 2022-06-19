@@ -2,8 +2,8 @@ import type ts from 'typescript/lib/tsserverlibrary';
 import { Logger } from '../logger';
 import { SvelteSnapshotManager } from '../svelte-snapshots';
 import {
-    get$storeDeclarationStart,
-    isInsideStoreGetShim,
+    get$storeOffsetOf$storeDeclaration,
+    isStoreVariableIn$storeDeclaration,
     isNotNullOrUndefined,
     isSvelteFilePath
 } from '../utils';
@@ -105,12 +105,15 @@ function mapReferences(
         if (!textSpan) {
             if (
                 getReferences &&
-                isInsideStoreGetShim(snapshot.getText(), reference.textSpan.start)
+                isStoreVariableIn$storeDeclaration(snapshot.getText(), reference.textSpan.start)
             ) {
                 additionalStoreReferences.push(
                     ...(getReferences(
                         reference.fileName,
-                        get$storeDeclarationStart(snapshot.getText(), reference.textSpan.start)
+                        get$storeOffsetOf$storeDeclaration(
+                            snapshot.getText(),
+                            reference.textSpan.start
+                        )
                     ) || [])
                 );
             }
