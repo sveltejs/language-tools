@@ -13,13 +13,25 @@ import {
 import { DocumentManager, Document } from '../../../src/lib/documents';
 import { CSSPlugin } from '../../../src/plugins';
 import { LSConfigManager } from '../../../src/ls-config';
+import { getLanguageServices } from '../../../src/plugins/css/service';
+import { pathToUrl } from '../../../src/utils';
 
 describe('CSS Plugin', () => {
     function setup(content: string) {
         const document = new Document('file:///hello.svelte', content);
         const docManager = new DocumentManager(() => document);
         const pluginManager = new LSConfigManager();
-        const plugin = new CSSPlugin(docManager, pluginManager);
+        const plugin = new CSSPlugin(
+            docManager,
+            pluginManager,
+            [
+                {
+                    name: '',
+                    uri: pathToUrl(process.cwd())
+                }
+            ],
+            getLanguageServices()
+        );
         docManager.openDocument(<any>'some doc');
         return { plugin, document };
     }
@@ -72,10 +84,10 @@ describe('CSS Plugin', () => {
     });
 
     describe('provides completions', () => {
-        it('for normal css', () => {
+        it('for normal css', async () => {
             const { plugin, document } = setup('<style></style>');
 
-            const completions = plugin.getCompletions(document, Position.create(0, 7), {
+            const completions = await plugin.getCompletions(document, Position.create(0, 7), {
                 triggerCharacter: '.'
             } as CompletionContext);
             assert.ok(
@@ -96,27 +108,27 @@ describe('CSS Plugin', () => {
             });
         });
 
-        it('for :global modifier', () => {
+        it('for :global modifier', async () => {
             const { plugin, document } = setup('<style>:g</style>');
 
-            const completions = plugin.getCompletions(document, Position.create(0, 9), {
+            const completions = await plugin.getCompletions(document, Position.create(0, 9), {
                 triggerCharacter: ':'
             } as CompletionContext);
             const globalCompletion = completions?.items.find((item) => item.label === ':global()');
             assert.ok(globalCompletion);
         });
 
-        it('not for stylus', () => {
+        it('not for stylus', async () => {
             const { plugin, document } = setup('<style lang="stylus"></style>');
-            const completions = plugin.getCompletions(document, Position.create(0, 21), {
+            const completions = await plugin.getCompletions(document, Position.create(0, 21), {
                 triggerCharacter: '.'
             } as CompletionContext);
             assert.deepStrictEqual(completions, null);
         });
 
-        it('for style attribute', () => {
+        it('for style attribute', async () => {
             const { plugin, document } = setup('<div style="display: n"></div>');
-            const completions = plugin.getCompletions(document, Position.create(0, 22), {
+            const completions = await plugin.getCompletions(document, Position.create(0, 22), {
                 triggerKind: CompletionTriggerKind.Invoked
             } as CompletionContext);
             assert.deepStrictEqual(
@@ -148,9 +160,12 @@ describe('CSS Plugin', () => {
             );
         });
 
-        it('not for style attribute with interpolation', () => {
+        it('not for style attribute with interpolation', async () => {
             const { plugin, document } = setup('<div style="height: {}"></div>');
-            assert.deepStrictEqual(plugin.getCompletions(document, Position.create(0, 21)), null);
+            assert.deepStrictEqual(
+                await plugin.getCompletions(document, Position.create(0, 21)),
+                null
+            );
         });
     });
 

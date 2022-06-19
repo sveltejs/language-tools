@@ -1,7 +1,9 @@
 import { isAbsolute } from 'path';
 import ts from 'typescript';
 import { Diagnostic, Position, Range } from 'vscode-languageserver';
+import { WorkspaceFolder } from 'vscode-languageserver-protocol';
 import { Document, DocumentManager } from './lib/documents';
+import { FileSystemProvider } from './lib/FileSystemProvider';
 import { Logger } from './logger';
 import { LSConfigManager } from './ls-config';
 import {
@@ -11,6 +13,7 @@ import {
     SveltePlugin,
     TypeScriptPlugin
 } from './plugins';
+import { getLanguageServices } from './plugins/css/service';
 import { convertRange, getDiagnosticTag, mapSeverity } from './plugins/typescript/utils';
 import { pathToUrl, urlToPath } from './utils';
 
@@ -62,7 +65,18 @@ export class SvelteCheck {
             this.pluginHost.register(new SveltePlugin(this.configManager));
         }
         if (shouldRegister('css')) {
-            this.pluginHost.register(new CSSPlugin(this.docManager, this.configManager));
+            const services = getLanguageServices({
+                fileSystemProvider: new FileSystemProvider()
+            });
+            const workspaceFolders: WorkspaceFolder[] = [
+                {
+                    name: '',
+                    uri: pathToUrl(workspacePath)
+                }
+            ];
+            this.pluginHost.register(
+                new CSSPlugin(this.docManager, this.configManager, workspaceFolders, services)
+            );
         }
         if (shouldRegister('js') || options.tsconfig) {
             this.lsAndTSDocResolver = new LSAndTSDocResolver(
