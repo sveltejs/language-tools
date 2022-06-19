@@ -4,7 +4,7 @@ import { pathToUrl, isNotNullOrUndefined } from '../../../utils';
 import { TypeDefinitionProvider } from '../../interfaces';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { convertRange } from '../utils';
-import { isNoTextSpanInGeneratedCode, SnapshotMap } from './utils';
+import { isTextSpanInGeneratedCode, SnapshotMap } from './utils';
 
 export class TypeDefinitionProviderImpl implements TypeDefinitionProvider {
     constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
@@ -25,7 +25,7 @@ export class TypeDefinitionProviderImpl implements TypeDefinitionProvider {
             typeDefs.map(async (typeDef) => {
                 const snapshot = await snapshots.retrieve(typeDef.fileName);
 
-                if (!isNoTextSpanInGeneratedCode(snapshot.getFullText(), typeDef.textSpan)) {
+                if (isTextSpanInGeneratedCode(snapshot.getFullText(), typeDef.textSpan)) {
                     return;
                 }
 

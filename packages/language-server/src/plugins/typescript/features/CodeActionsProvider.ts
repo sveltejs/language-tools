@@ -25,7 +25,7 @@ import { DocumentSnapshot, SvelteDocumentSnapshot } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { changeSvelteComponentName, convertRange } from '../utils';
 import { CompletionsProviderImpl } from './CompletionProvider';
-import { findContainingNode, isNoTextSpanInGeneratedCode, SnapshotMap } from './utils';
+import { findContainingNode, isTextSpanInGeneratedCode, SnapshotMap } from './utils';
 
 /**
  * TODO change this to protocol constant if it's part of the protocol
@@ -289,7 +289,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                                 );
                             }
 
-                            if (!isNoTextSpanInGeneratedCode(snapshot.getFullText(), edit.span)) {
+                            if (isTextSpanInGeneratedCode(snapshot.getFullText(), edit.span)) {
                                 return undefined;
                             }
 

@@ -6,23 +6,22 @@ import {
     getNodeIfIsInStartTag,
     isInHTMLTagRange
 } from '../../../lib/documents';
-import { filterAsync, isNotNullOrUndefined, pathToUrl } from '../../../utils';
+import { filterAsync, isNotNullOrUndefined, pathToUrl, unique } from '../../../utils';
 import { RenameProvider } from '../../interfaces';
 import { DocumentSnapshot, SvelteDocumentSnapshot } from '../DocumentSnapshot';
 import { convertRange } from '../utils';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import ts from 'typescript';
-import { uniqWith, isEqual } from 'lodash';
 import {
     isComponentAtPosition,
     isAfterSvelte2TsxPropsReturn,
-    isNoTextSpanInGeneratedCode,
+    isTextSpanInGeneratedCode,
     SnapshotMap,
     findContainingNode,
-    isInsideStoreGetShim,
-    get$storeDeclarationStart,
-    getStoreGetShimVarStart,
-    is$storeDeclarationVar
+    isStoreVariableIn$storeDeclaration,
+    get$storeOffsetOf$storeDeclaration,
+    getStoreOffsetOf$storeDeclaration,
+    is$storeVariable
 } from './utils';
 import { LSConfigManager } from '../../../ls-config';
 import { isAttributeName, isEventHandler } from '../svelte-ast-utils';
@@ -80,42 +79,9 @@ export class RenameProviderImpl implements RenameProvider {
             renameInfo.isStore ? `$${newName}` : undefined
         );
 
-        for (const loc of renameLocations) {
-            const snapshot = await docs.retrieve(loc.fileName);
-            if (!isNoTextSpanInGeneratedCode(snapshot.getFullText(), loc.textSpan)) {
-                if (isInsideStoreGetShim(snapshot.getFullText(), loc.textSpan.start)) {
-                    // User renamed store, also rename correspondig $store locations
-                    const storeRenameLocations = lang.findRenameLocations(
-                        snapshot.filePath,
-                        get$storeDeclarationStart(snapshot.getFullText(), loc.textSpan.start),
-                        false,
-                        false,
-                        true
-                    );
-                    convertedRenameLocations.push(
-                        ...(await this.mapAndFilterRenameLocations(
-                            storeRenameLocations!,
-                            docs,
-                            `$${newName}`
-                        ))
-                    );
-                } else if (is$storeDeclarationVar(snapshot.getFullText(), loc.textSpan.start)) {
-                    // User renamed $store, also rename corresponding store
-                    const storeRenameLocations = lang.findRenameLocations(
-                        snapshot.filePath,
-                        getStoreGetShimVarStart(snapshot.getFullText(), loc.textSpan.start),
-                        false,
-                        false,
-                        true
-                    );
-                    convertedRenameLocations.push(
-                        ...(await this.mapAndFilterRenameLocations(storeRenameLocations!, docs))
-                    );
-                    // TODO once we allow providePrefixAndSuffixTextForRename to be configurable,
-                    // we need to add one more step to update all other $store usages in other files
-                }
-            }
-        }
+        convertedRenameLocations.push(
+            ...(await this.enhanceRenamesInCaseOf$Store(renameLocations, newName, docs, lang))
+        );
 
         convertedRenameLocations = this.checkShortHandBindingOrSlotLetLocation(
             lang,
@@ -213,10 +179,7 @@ export class RenameProviderImpl implements RenameProvider {
         if (tsDoc.getFullText().charAt(renameInfo.triggerSpan.start) === '$') {
             const definition = lang.getDefinitionAndBoundSpan(tsDoc.filePath, generatedOffset)
                 ?.definitions?.[0];
-            if (
-                definition &&
-                !isNoTextSpanInGeneratedCode(tsDoc.getFullText(), definition.textSpan)
-            ) {
+            if (definition && isTextSpanInGeneratedCode(tsDoc.getFullText(), definition.textSpan)) {
                 renameInfo.triggerSpan.start++;
                 renameInfo.triggerSpan.length--;
                 (renameInfo as any).isStore = true;
@@ -224,6 +187,59 @@ export class RenameProviderImpl implements RenameProvider {
         }
 
         return renameInfo;
+    }
+
+    /**
+     * If the user renames a store variable, we need to rename the corresponding $store variables
+     * and vice versa.
+     */
+    private async enhanceRenamesInCaseOf$Store(
+        renameLocations: readonly ts.RenameLocation[],
+        newName: string,
+        docs: SnapshotMap,
+        lang: ts.LanguageService
+    ): Promise<TsRenameLocation[]> {
+        for (const loc of renameLocations) {
+            const snapshot = await docs.retrieve(loc.fileName);
+            if (isTextSpanInGeneratedCode(snapshot.getFullText(), loc.textSpan)) {
+                if (
+                    isStoreVariableIn$storeDeclaration(snapshot.getFullText(), loc.textSpan.start)
+                ) {
+                    // User renamed store, also rename correspondig $store locations
+                    const storeRenameLocations = lang.findRenameLocations(
+                        snapshot.filePath,
+                        get$storeOffsetOf$storeDeclaration(
+                            snapshot.getFullText(),
+                            loc.textSpan.start
+                        ),
+                        false,
+                        false,
+                        true
+                    );
+                    return await this.mapAndFilterRenameLocations(
+                        storeRenameLocations!,
+                        docs,
+                        `$${newName}`
+                    );
+                } else if (is$storeVariable(snapshot.getFullText(), loc.textSpan.start)) {
+                    // User renamed $store, also rename corresponding store
+                    const storeRenameLocations = lang.findRenameLocations(
+                        snapshot.filePath,
+                        getStoreOffsetOf$storeDeclaration(
+                            snapshot.getFullText(),
+                            loc.textSpan.start
+                        ),
+                        false,
+                        false,
+                        true
+                    );
+                    return await this.mapAndFilterRenameLocations(storeRenameLocations!, docs);
+                    // TODO once we allow providePrefixAndSuffixTextForRename to be configurable,
+                    // we need to add one more step to update all other $store usages in other files
+                }
+            }
+        }
+        return [];
     }
 
     /**
@@ -378,7 +394,7 @@ export class RenameProviderImpl implements RenameProvider {
             renameLocations.map(async (loc) => {
                 const snapshot = await fragments.retrieve(loc.fileName);
 
-                if (isNoTextSpanInGeneratedCode(snapshot.getFullText(), loc.textSpan)) {
+                if (!isTextSpanInGeneratedCode(snapshot.getFullText(), loc.textSpan)) {
                     return {
                         ...loc,
                         range: this.mapRangeToOriginal(snapshot, loc.textSpan),
@@ -623,8 +639,4 @@ export class RenameProviderImpl implements RenameProvider {
 
         return [bindingElement, identifierName];
     }
-}
-
-function unique<T>(array: T[]): T[] {
-    return uniqWith(array, isEqual);
 }

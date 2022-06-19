@@ -18,8 +18,8 @@ import {
     isReactiveStatement,
     isInReactiveStatement,
     gatherIdentifiers,
-    isInsideStoreGetShim,
-    get$storeDeclarationStart
+    isStoreVariableIn$storeDeclaration,
+    get$storeOffsetOf$storeDeclaration
 } from './utils';
 import { not, flatten, passMap, regexIndexOf, swapRangeStartEndIfNecessary } from '../../../utils';
 import { LSConfigManager } from '../../../ls-config';
@@ -87,13 +87,13 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
         const notGenerated = isNotGenerated(tsDoc.getFullText());
         for (const diagnostic of diagnostics) {
             if (!notGenerated(diagnostic)) {
-                if (isInsideStoreGetShim(tsDoc.getFullText(), diagnostic.start!)) {
+                if (isStoreVariableIn$storeDeclaration(tsDoc.getFullText(), diagnostic.start!)) {
                     const storeName = tsDoc
                         .getFullText()
                         .substring(diagnostic.start!, diagnostic.start! + diagnostic.length!);
                     const storeUsages = lang.findReferences(
                         tsDoc.filePath,
-                        get$storeDeclarationStart(tsDoc.getFullText(), diagnostic.start!)
+                        get$storeOffsetOf$storeDeclaration(tsDoc.getFullText(), diagnostic.start!)
                     )![0].references;
                     for (const storeUsage of storeUsages) {
                         additionalStoreDiagnostics.push({

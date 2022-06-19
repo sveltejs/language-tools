@@ -4,7 +4,7 @@ import { pathToUrl, isNotNullOrUndefined } from '../../../utils';
 import { ImplementationProvider } from '../../interfaces';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { convertRange } from '../utils';
-import { isNoTextSpanInGeneratedCode, SnapshotMap } from './utils';
+import { isTextSpanInGeneratedCode, SnapshotMap } from './utils';
 
 export class ImplementationProviderImpl implements ImplementationProvider {
     constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
@@ -25,7 +25,7 @@ export class ImplementationProviderImpl implements ImplementationProvider {
             implementations.map(async (implementation) => {
                 const snapshot = await snapshots.retrieve(implementation.fileName);
 
-                if (!isNoTextSpanInGeneratedCode(snapshot.getFullText(), implementation.textSpan)) {
+                if (isTextSpanInGeneratedCode(snapshot.getFullText(), implementation.textSpan)) {
                     return;
                 }
 

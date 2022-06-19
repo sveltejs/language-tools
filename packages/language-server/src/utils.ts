@@ -1,3 +1,4 @@
+import { isEqual, uniqWith } from 'lodash';
 import { Node } from 'vscode-html-languageservice';
 import { Position, Range } from 'vscode-languageserver';
 import { URI } from 'vscode-uri';
@@ -14,6 +15,10 @@ export function or<T>(...predicates: Array<Predicate<T>>) {
 
 export function and<T>(...predicates: Array<Predicate<T>>) {
     return (x: T) => predicates.every((predicate) => predicate(x));
+}
+
+export function unique<T>(array: T[]): T[] {
+    return uniqWith(array, isEqual);
 }
 
 export function clamp(num: number, min: number, max: number): number {

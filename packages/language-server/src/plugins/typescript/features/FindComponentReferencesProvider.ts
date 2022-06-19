@@ -4,7 +4,7 @@ import { FindComponentReferencesProvider } from '../../interfaces';
 import { DocumentSnapshot, SvelteDocumentSnapshot } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { convertToLocationRange, hasNonZeroRange } from '../utils';
-import { isNoTextSpanInGeneratedCode, SnapshotMap } from './utils';
+import { isTextSpanInGeneratedCode, SnapshotMap } from './utils';
 
 const COMPONENT_SUFFIX = '__SvelteComponent_';
 
@@ -40,7 +40,7 @@ export class FindComponentReferencesProviderImpl implements FindComponentReferen
 
                 const snapshot = await snapshots.retrieve(ref.fileName);
 
-                if (!isNoTextSpanInGeneratedCode(snapshot.getFullText(), ref.textSpan)) {
+                if (isTextSpanInGeneratedCode(snapshot.getFullText(), ref.textSpan)) {
                     return null;
                 }
 
