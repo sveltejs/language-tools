@@ -34,7 +34,7 @@ function test(useNewTransformation: boolean) {
             );
             const provider = new FindReferencesProviderImpl(lsAndTsDocResolver);
             const document = openDoc(filename);
-            return { provider, document };
+            return { provider, document, openDoc };
 
             function openDoc(filename: string) {
                 const filePath = getFullPath(filename);
@@ -88,24 +88,26 @@ function test(useNewTransformation: boolean) {
         });
 
         it('finds references for $store', async () => {
-            const { provider, document } = setup('find-references-$store.svelte');
+            const { provider, document, openDoc } = setup('find-references-$store.svelte');
+            //Make known all the associated files
+            openDoc('find-references-$store-other.svelte');
 
-            const results = await provider.findReferences(document, Position.create(2, 10), {
+            const results = await provider.findReferences(document, Position.create(5, 10), {
                 includeDeclaration: true
             });
             assert.deepStrictEqual(results, [
                 {
                     range: {
                         end: {
-                            character: 16,
+                            character: 19,
                             line: 1
                         },
                         start: {
-                            character: 10,
+                            character: 13,
                             line: 1
                         }
                     },
-                    uri: getUri('find-references-$store.svelte')
+                    uri: getUri('find-references-$store-other.svelte')
                 },
                 {
                     range: {
@@ -118,7 +120,7 @@ function test(useNewTransformation: boolean) {
                             line: 2
                         }
                     },
-                    uri: getUri('find-references-$store.svelte')
+                    uri: getUri('find-references-$store-other.svelte')
                 },
                 {
                     range: {
@@ -131,7 +133,7 @@ function test(useNewTransformation: boolean) {
                             line: 3
                         }
                     },
-                    uri: getUri('find-references-$store.svelte')
+                    uri: getUri('find-references-$store-other.svelte')
                 },
                 {
                     range: {
@@ -142,6 +144,58 @@ function test(useNewTransformation: boolean) {
                         start: {
                             character: 1,
                             line: 7
+                        }
+                    },
+                    uri: getUri('find-references-$store-other.svelte')
+                },
+                {
+                    range: {
+                        end: {
+                            character: 23,
+                            line: 1
+                        },
+                        start: {
+                            character: 17,
+                            line: 1
+                        }
+                    },
+                    uri: getUri('find-references-$store.svelte')
+                },
+                {
+                    range: {
+                        end: {
+                            character: 15,
+                            line: 5
+                        },
+                        start: {
+                            character: 8,
+                            line: 5
+                        }
+                    },
+                    uri: getUri('find-references-$store.svelte')
+                },
+                {
+                    range: {
+                        end: {
+                            character: 15,
+                            line: 6
+                        },
+                        start: {
+                            character: 8,
+                            line: 6
+                        }
+                    },
+                    uri: getUri('find-references-$store.svelte')
+                },
+                {
+                    range: {
+                        end: {
+                            character: 8,
+                            line: 10
+                        },
+                        start: {
+                            character: 1,
+                            line: 10
                         }
                     },
                     uri: getUri('find-references-$store.svelte')

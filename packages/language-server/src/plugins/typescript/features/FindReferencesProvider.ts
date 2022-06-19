@@ -33,11 +33,12 @@ export class FindReferencesProviderImpl implements FindReferencesProvider {
             return null;
         }
 
-        const references = flatten(rawReferences.map((ref) => ref.references));
-        references.push(...this.enhanceStoreReferences(references, tsDoc, lang));
-
         const snapshots = new SnapshotMap(this.lsAndTsDocResolver);
         snapshots.set(tsDoc.filePath, tsDoc);
+
+        const references = flatten(rawReferences.map((ref) => ref.references));
+        references.push(...(await this.getStoreReferences(references, tsDoc, snapshots, lang)));
+
         const locations = await Promise.all(
             references.map(async (ref) => this.mapReference(ref, context, snapshots))
         );
@@ -46,7 +47,7 @@ export class FindReferencesProviderImpl implements FindReferencesProvider {
             locations
                 .filter(isNotNullOrUndefined)
                 // Possible $store references are added afterwards, sort for correct order
-                .sort(sortLocationByRange)
+                .sort(sortLocationByFileAndRange)
         );
     }
 
@@ -54,41 +55,59 @@ export class FindReferencesProviderImpl implements FindReferencesProvider {
      * If references of a $store are searched, also find references for the corresponding store
      * and vice versa.
      */
-    private enhanceStoreReferences(
+    private async getStoreReferences(
         references: ts.ReferencedSymbolEntry[],
         tsDoc: SvelteDocumentSnapshot,
+        snapshots: SnapshotMap,
         lang: ts.LanguageService
-    ): ts.ReferencedSymbolEntry[] {
+    ): Promise<ts.ReferencedSymbolEntry[]> {
+        // If user started finding references at $store, find references for store, too
+        let storeReferences: ts.ReferencedSymbolEntry[] = [];
         const storeReference = references.find(
             (ref) =>
+                ref.fileName === tsDoc.filePath &&
                 isTextSpanInGeneratedCode(tsDoc.getFullText(), ref.textSpan) &&
-                // handle both cases of references triggered at store and triggered at $store
-                (is$storeVariableIn$storeDeclaration(tsDoc.getFullText(), ref.textSpan.start) ||
-                    isStoreVariableIn$storeDeclaration(tsDoc.getFullText(), ref.textSpan.start))
+                is$storeVariableIn$storeDeclaration(tsDoc.getFullText(), ref.textSpan.start)
         );
-        if (!storeReference) {
-            return [];
+        if (storeReference) {
+            const additionalReferences =
+                lang.findReferences(
+                    tsDoc.filePath,
+                    getStoreOffsetOf$storeDeclaration(
+                        tsDoc.getFullText(),
+                        storeReference.textSpan.start
+                    )
+                ) || [];
+            storeReferences = flatten(additionalReferences.map((ref) => ref.references));
         }
 
-        const storeReferences =
-            lang.findReferences(
-                tsDoc.filePath,
-                // handle both cases of references triggered at store and triggered at $store
-                is$storeVariableIn$storeDeclaration(
-                    tsDoc.getFullText(),
-                    storeReference.textSpan.start
+        // If user started finding references at store, find references for $store, too
+        // If user started finding references at $store, find references for $store in other files
+        const $storeReferences: ts.ReferencedSymbolEntry[] = [];
+        for (const ref of [...references, ...storeReferences]) {
+            const snapshot = await snapshots.retrieve(ref.fileName);
+            if (
+                !(
+                    isTextSpanInGeneratedCode(snapshot.getFullText(), ref.textSpan) &&
+                    isStoreVariableIn$storeDeclaration(snapshot.getFullText(), ref.textSpan.start)
                 )
-                    ? getStoreOffsetOf$storeDeclaration(
-                          tsDoc.getFullText(),
-                          storeReference.textSpan.start
-                      )
-                    : get$storeOffsetOf$storeDeclaration(
-                          tsDoc.getFullText(),
-                          storeReference.textSpan.start
-                      )
-            ) || [];
-        return flatten(storeReferences.map((ref) => ref.references));
-        // TODO all $store usages in other Svelte files, too?
+            ) {
+                continue;
+            }
+            if (storeReference?.fileName === ref.fileName) {
+                // $store in X -> usages of store -> store in X -> we would add duplicate $store references
+                continue;
+            }
+
+            const additionalReferences =
+                lang.findReferences(
+                    snapshot.filePath,
+                    get$storeOffsetOf$storeDeclaration(snapshot.getFullText(), ref.textSpan.start)
+                ) || [];
+            $storeReferences.push(...flatten(additionalReferences.map((ref) => ref.references)));
+        }
+
+        return [...storeReferences, ...$storeReferences];
     }
 
     private async mapReference(
@@ -125,9 +144,10 @@ export class FindReferencesProviderImpl implements FindReferencesProvider {
     }
 }
 
-function sortLocationByRange(l1: Location, l2: Location): number {
-    return (
-        (l1.range.start.line - l2.range.start.line) * 10000 +
-        (l1.range.start.character - l2.range.start.character)
-    );
+function sortLocationByFileAndRange(l1: Location, l2: Location): number {
+    const localeCompare = l1.uri.localeCompare(l2.uri);
+    return localeCompare === 0
+        ? (l1.range.start.line - l2.range.start.line) * 10000 +
+              (l1.range.start.character - l2.range.start.character)
+        : localeCompare;
 }

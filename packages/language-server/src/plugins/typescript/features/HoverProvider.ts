@@ -20,7 +20,7 @@ export class HoverProviderImpl implements HoverProvider {
         }
 
         const offset = tsDoc.offsetAt(tsDoc.getGeneratedPosition(position));
-        let info = lang.getQuickInfoAtPosition(tsDoc.filePath, offset);
+        const info = lang.getQuickInfoAtPosition(tsDoc.filePath, offset);
         if (!info) {
             return null;
         }

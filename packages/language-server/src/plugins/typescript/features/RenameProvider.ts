@@ -65,7 +65,13 @@ export class RenameProviderImpl implements RenameProvider {
             return null;
         }
 
-        let renameLocations = lang.findRenameLocations(tsDoc.filePath, offset, false, false, true);
+        const renameLocations = lang.findRenameLocations(
+            tsDoc.filePath,
+            offset,
+            false,
+            false,
+            true
+        );
         if (!renameLocations) {
             return null;
         }
