@@ -38,7 +38,8 @@ export function processInstanceScriptContent(
     script: Node,
     events: ComponentEvents,
     implicitStoreValues: ImplicitStoreValues,
-    mode: 'ts' | 'tsx' | 'dts'
+    mode: 'ts' | 'tsx' | 'dts',
+    hasModuleScript: boolean
 ): InstanceScriptProcessResult {
     const htmlx = str.original;
     const scriptContent = htmlx.substring(script.content.start, script.content.end);
@@ -284,7 +285,7 @@ export function processInstanceScriptContent(
         }
 
         if (ts.isImportDeclaration(node)) {
-            handleImportDeclaration(node, str, astOffset, script.start);
+            handleImportDeclaration(node, str, astOffset, script.start, tsAst);
 
             // Check if import is the event dispatcher
             events.checkIfImportIsEventDispatcher(node);
@@ -376,7 +377,9 @@ export function processInstanceScriptContent(
         .filter(ts.isImportDeclaration)
         .sort((a, b) => a.end - b.end)[0];
     if (firstImport) {
-        str.appendRight(firstImport.getStart() + astOffset, '\n');
+        // ensure it's in a newline.
+        // if file has module script ensure an empty line to separate imports
+        str.appendRight(firstImport.getStart() + astOffset, '\n' + (hasModuleScript ? '\n' : ''));
     }
 
     if (mode === 'dts') {

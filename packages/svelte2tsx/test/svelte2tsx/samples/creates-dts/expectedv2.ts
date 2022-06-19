@@ -7,6 +7,7 @@ declare function __sveltets_1_createSvelteComponentTyped<Props, Events, Slots>(
 
     export const foo = 'foo';
 ;
+
 import { createEventDispatcher } from 'svelte';
 function render() {
 
