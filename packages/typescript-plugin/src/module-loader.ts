@@ -121,26 +121,27 @@ export function patchModuleLoader(
                 return cachedModule;
             }
 
-            const resolvedModule = resolveModuleName(fileName, containingFile, compilerOptions);
+            const resolvedModule = resolveSvelteModuleName(
+                fileName,
+                containingFile,
+                compilerOptions
+            );
             moduleCache.set(fileName, containingFile, resolvedModule);
             return resolvedModule;
         });
     }
 
-    function resolveModuleName(
+    function resolveSvelteModuleName(
         name: string,
         containingFile: string,
         compilerOptions: ts.CompilerOptions
     ): ts.ResolvedModule | undefined {
-        // If we were to do this correctly, we'd need to check the module resolution mode for
-        // Node16/NodeNext in order to determine whether or not someone needs to have .js file
-        // endings in relative import paths. But because we don't do diagnostics within Svelte
-        // files in this TS plugin, we can ignore this and deal with some false positive resolutions
         const svelteResolvedModule = typescript.resolveModuleName(
             name,
             containingFile,
             compilerOptions,
             svelteSys
+            // don't set mode or else .svelte imports couldn't be resolved
         ).resolvedModule;
         if (
             !svelteResolvedModule ||

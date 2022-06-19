@@ -73,10 +73,16 @@ class ImpliedNodeFormatResolver {
     private alreadyResolved = new Map<string, ReturnType<typeof ts.getModeForResolutionAtIndex>>();
 
     resolve(
+        importPath: string,
         importIdxInFile: number,
         sourceFile: ts.SourceFile | undefined,
         compilerOptions: ts.CompilerOptions
     ) {
+        if (isSvelteFilePath(importPath)) {
+            // Svelte imports should use the old resolution algorithm, else they are not found
+            return undefined;
+        }
+
         let mode = undefined;
         if (sourceFile) {
             if (!sourceFile.impliedNodeFormat && isSvelteFilePath(sourceFile.fileName)) {
@@ -167,6 +173,7 @@ export function createSvelteModuleLoader(
         index: number
     ): ts.ResolvedModule | undefined {
         const mode = impliedNodeFormatResolver.resolve(
+            name,
             index,
             containingSourceFile,
             compilerOptions
