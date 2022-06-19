@@ -89,7 +89,7 @@ function mapReferences(
     references: ts.ReferenceEntry[],
     snapshotManager: SvelteSnapshotManager,
     logger: Logger,
-    getReferences?: (fileName: string, position: number) => ts.ReferenceEntry[] | undefined
+    getReferences: (fileName: string, position: number) => ts.ReferenceEntry[] | undefined
 ): ts.ReferenceEntry[] {
     const additionalStoreReferences: ts.ReferenceEntry[] = [];
     const mappedReferences: ts.ReferenceEntry[] = [];
@@ -102,11 +102,10 @@ function mapReferences(
         }
 
         const textSpan = snapshot.getOriginalTextSpan(reference.textSpan);
-        if (!textSpan) {
-            if (
-                getReferences &&
-                isStoreVariableIn$storeDeclaration(snapshot.getText(), reference.textSpan.start)
-            ) {
+        if (textSpan) {
+            mappedReferences.push(mapReference(reference, textSpan));
+        } else {
+            if (isStoreVariableIn$storeDeclaration(snapshot.getText(), reference.textSpan.start)) {
                 additionalStoreReferences.push(
                     ...(getReferences(
                         reference.fileName,
@@ -117,10 +116,7 @@ function mapReferences(
                     ) || [])
                 );
             }
-            continue;
         }
-
-        mappedReferences.push(mapReference(reference, textSpan));
     }
 
     for (const reference of additionalStoreReferences) {
