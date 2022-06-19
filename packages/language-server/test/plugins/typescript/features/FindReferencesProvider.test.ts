@@ -114,7 +114,7 @@ function test(useNewTransformation: boolean) {
                             line: 2
                         },
                         start: {
-                            character: 9,
+                            character: 8,
                             line: 2
                         }
                     },
@@ -127,7 +127,7 @@ function test(useNewTransformation: boolean) {
                             line: 3
                         },
                         start: {
-                            character: 9,
+                            character: 8,
                             line: 3
                         }
                     },
@@ -140,7 +140,7 @@ function test(useNewTransformation: boolean) {
                             line: 7
                         },
                         start: {
-                            character: 2,
+                            character: 1,
                             line: 7
                         }
                     },

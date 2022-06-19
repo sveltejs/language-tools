@@ -88,7 +88,16 @@ export class FindReferencesProviderImpl implements FindReferencesProvider {
             })
         );
 
-        return locations.filter(isNotNullOrUndefined);
+        return (
+            locations
+                .filter(isNotNullOrUndefined)
+                // Possible $store references are added afterwards, sort for correct order
+                .sort(
+                    (l1, l2) =>
+                        (l1.range.start.line - l2.range.start.line) * 10000 +
+                        (l1.range.start.character - l2.range.start.character)
+                )
+        );
     }
 
     private async getLSAndTSDoc(document: Document) {

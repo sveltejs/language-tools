@@ -98,7 +98,7 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
                     for (const storeUsage of storeUsages) {
                         additionalStoreDiagnostics.push({
                             ...diagnostic,
-                            messageText: `Cannot subscribe to '${storeName}', it's not a store.\n\n${ts.flattenDiagnosticMessageText(
+                            messageText: `Cannot use '${storeName}' as a store. '${storeName}' needs to be an object with a subscribe method on it.\n\n${ts.flattenDiagnosticMessageText(
                                 diagnostic.messageText,
                                 '\n'
                             )}`,
