@@ -21,7 +21,7 @@ import {
     isStoreVariableIn$storeDeclaration,
     get$storeOffsetOf$storeDeclaration,
     getStoreOffsetOf$storeDeclaration,
-    is$storeVariable
+    is$storeVariableIn$storeDeclaration
 } from './utils';
 import { LSConfigManager } from '../../../ls-config';
 import { isAttributeName, isEventHandler } from '../svelte-ast-utils';
@@ -221,7 +221,9 @@ export class RenameProviderImpl implements RenameProvider {
                         docs,
                         `$${newName}`
                     );
-                } else if (is$storeVariable(snapshot.getFullText(), loc.textSpan.start)) {
+                } else if (
+                    is$storeVariableIn$storeDeclaration(snapshot.getFullText(), loc.textSpan.start)
+                ) {
                     // User renamed $store, also rename corresponding store
                     const storeRenameLocations = lang.findRenameLocations(
                         snapshot.filePath,

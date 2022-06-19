@@ -111,8 +111,8 @@ export function get$storeOffsetOf$storeDeclaration(text: string, storePosition: 
     return text.lastIndexOf(' =', storePosition) - 1;
 }
 
-export function is$storeVariable(text: string, varStart: number) {
-    return text.charAt(varStart) === '$';
+export function is$storeVariableIn$storeDeclaration(text: string, varStart: number) {
+    return /^\$\w+ = __sveltets_1_store_get/.test(text.substring(varStart));
 }
 
 export function getStoreOffsetOf$storeDeclaration(text: string, $storeVarStart: number) {

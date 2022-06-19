@@ -9,7 +9,7 @@ import { convertToLocationRange, hasNonZeroRange } from '../utils';
 import {
     get$storeOffsetOf$storeDeclaration,
     getStoreOffsetOf$storeDeclaration,
-    is$storeVariable,
+    is$storeVariableIn$storeDeclaration,
     isStoreVariableIn$storeDeclaration,
     isTextSpanInGeneratedCode,
     SnapshotMap
@@ -63,7 +63,7 @@ export class FindReferencesProviderImpl implements FindReferencesProvider {
             (ref) =>
                 isTextSpanInGeneratedCode(tsDoc.getFullText(), ref.textSpan) &&
                 // handle both cases of references triggered at store and triggered at $store
-                (is$storeVariable(tsDoc.getFullText(), ref.textSpan.start) ||
+                (is$storeVariableIn$storeDeclaration(tsDoc.getFullText(), ref.textSpan.start) ||
                     isStoreVariableIn$storeDeclaration(tsDoc.getFullText(), ref.textSpan.start))
         );
         if (!storeReference) {
@@ -74,7 +74,10 @@ export class FindReferencesProviderImpl implements FindReferencesProvider {
             lang.findReferences(
                 tsDoc.filePath,
                 // handle both cases of references triggered at store and triggered at $store
-                is$storeVariable(tsDoc.getFullText(), storeReference.textSpan.start)
+                is$storeVariableIn$storeDeclaration(
+                    tsDoc.getFullText(),
+                    storeReference.textSpan.start
+                )
                     ? getStoreOffsetOf$storeDeclaration(
                           tsDoc.getFullText(),
                           storeReference.textSpan.start
