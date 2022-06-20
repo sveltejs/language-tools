@@ -27,7 +27,7 @@ export class FileSystemProvider implements CSSFileSystemProvider {
         const path = urlToPath(uri);
 
         if (!path) {
-            return this.UnknownStat();
+            return this.unknownStat();
         }
 
         let stat: Stats;
@@ -59,7 +59,7 @@ export class FileSystemProvider implements CSSFileSystemProvider {
         };
     }
 
-    private UnknownStat(): FileStat {
+    private unknownStat(): FileStat {
         return {
             type: FileType.Unknown,
             ctime: -1,
