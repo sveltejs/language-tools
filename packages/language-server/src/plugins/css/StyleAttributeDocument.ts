@@ -1,6 +1,6 @@
 import { Stylesheet } from 'vscode-css-languageservice';
 import { Position } from 'vscode-languageserver';
-import { getLanguageService } from './service';
+import { CSSLanguageServices, getLanguageService } from './service';
 import { Document, DocumentMapper, ReadableDocument } from '../../lib/documents';
 
 const PREFIX = '__ {';
@@ -15,11 +15,12 @@ export class StyleAttributeDocument extends ReadableDocument implements Document
     constructor(
         private readonly parent: Document,
         private readonly attrStart: number,
-        private readonly attrEnd: number
+        private readonly attrEnd: number,
+        languageServices: CSSLanguageServices
     ) {
         super();
 
-        this.stylesheet = getLanguageService(this.languageId).parseStylesheet(this);
+        this.stylesheet = getLanguageService(languageServices).parseStylesheet(this);
     }
 
     /**

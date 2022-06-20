@@ -38,6 +38,8 @@ import { FallbackWatcher } from './lib/FallbackWatcher';
 import { configLoader } from './lib/documents/configLoader';
 import { setIsTrusted } from './importPackage';
 import { SORT_IMPORT_CODE_ACTION_KIND } from './plugins/typescript/features/CodeActionsProvider';
+import { createLanguageServices } from './plugins/css/service';
+import { FileSystemProvider } from './plugins/css/FileSystemProvider';
 
 namespace TagCloseRequest {
     export const type: RequestType<TextDocumentPositionParams, string | null, any> =
@@ -147,7 +149,15 @@ export function startServer(options?: LSOptions) {
         // Order of plugin registration matters for FirstNonNull, which affects for example hover info
         pluginHost.register((sveltePlugin = new SveltePlugin(configManager)));
         pluginHost.register(new HTMLPlugin(docManager, configManager));
-        pluginHost.register(new CSSPlugin(docManager, configManager));
+
+        const cssLanguageServices = createLanguageServices({
+            clientCapabilities: evt.capabilities,
+            fileSystemProvider: new FileSystemProvider()
+        });
+        const workspaceFolders = evt.workspaceFolders ?? [{ name: '', uri: evt.rootUri ?? '' }];
+        pluginHost.register(
+            new CSSPlugin(docManager, configManager, workspaceFolders, cssLanguageServices)
+        );
         pluginHost.register(
             new TypeScriptPlugin(
                 configManager,
