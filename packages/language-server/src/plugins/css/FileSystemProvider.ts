@@ -5,7 +5,7 @@ import {
     FileSystemProvider as CSSFileSystemProvider,
     FileType
 } from 'vscode-css-languageservice';
-import { urlToPath } from '../utils';
+import { urlToPath } from '../../utils';
 
 interface StatLike {
     isDirectory(): boolean;

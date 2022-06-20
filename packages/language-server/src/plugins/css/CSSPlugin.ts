@@ -44,7 +44,7 @@ import { GlobalVars } from './global-vars';
 import { getIdClassCompletion } from './features/getIdClassCompletion';
 import { AttributeContext, getAttributeContextAtPosition } from '../../lib/documents/parseHtml';
 import { StyleAttributeDocument } from './StyleAttributeDocument';
-import { getDocumentContext } from '../../lib/documents/documentContext';
+import { getDocumentContext } from '../documentContext';
 
 export class CSSPlugin
     implements
