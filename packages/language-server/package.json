@@ -58,12 +58,12 @@
         "svelte-preprocess": "~4.10.1",
         "svelte2tsx": "~0.5.0",
         "typescript": "*",
-        "vscode-css-languageservice": "~5.1.0",
+        "vscode-css-languageservice": "~6.0.0",
         "vscode-emmet-helper": "~2.6.0",
-        "vscode-html-languageservice": "~4.1.0",
-        "vscode-languageserver": "7.1.0-next.4",
-        "vscode-languageserver-protocol": "3.16.0",
-        "vscode-languageserver-types": "3.16.0",
+        "vscode-html-languageservice": "~5.0.0",
+        "vscode-languageserver": "8.0.1",
+        "vscode-languageserver-protocol": "3.17.1",
+        "vscode-languageserver-types": "3.17.1",
         "vscode-uri": "~3.0.0"
     }
 }

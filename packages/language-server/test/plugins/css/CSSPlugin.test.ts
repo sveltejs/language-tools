@@ -272,6 +272,22 @@ describe('CSS Plugin', () => {
                         },
                         newText: 'hsl(240, -101%, 12750%)'
                     }
+                },
+                {
+                    label: 'hwb(240 0% -25400%)',
+                    textEdit: {
+                        range: {
+                            end: {
+                                character: 21,
+                                line: 0
+                            },
+                            start: {
+                                character: 17,
+                                line: 0
+                            }
+                        },
+                        newText: 'hwb(240 0% -25400%)'
+                    }
                 }
             ]);
         });
