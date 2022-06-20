@@ -589,9 +589,7 @@ function test(useNewTransformation: boolean) {
                             {
                                 edits: [
                                     {
-                                        // eslint-disable-next-line max-len
-                                        newText:
-                                            "import A from './A';\n  import { c } from './c';\n",
+                                        newText: "import { c } from './c';\n",
                                         range: {
                                             start: {
                                                 line: 1,
@@ -604,7 +602,7 @@ function test(useNewTransformation: boolean) {
                                         }
                                     },
                                     {
-                                        newText: '',
+                                        newText: "import A from './A';\n",
                                         range: {
                                             start: {
                                                 line: 6,
@@ -666,20 +664,7 @@ function test(useNewTransformation: boolean) {
                                 edits: [
                                     {
                                         newText:
-                                            "import { _,_d } from 'svelte-i18n';\n  import { _e } from 'svelte-i18n1';\n",
-                                        range: {
-                                            end: {
-                                                character: 0,
-                                                line: 2
-                                            },
-                                            start: {
-                                                character: 2,
-                                                line: 1
-                                            }
-                                        }
-                                    },
-                                    {
-                                        newText: '',
+                                            "import { _d } from 'svelte-i18n';\n  import { _e } from 'svelte-i18n1';\n",
                                         range: {
                                             end: {
                                                 character: 2,
@@ -915,6 +900,70 @@ function test(useNewTransformation: boolean) {
             );
 
             assert.deepStrictEqual(codeActions, []);
+        });
+
+        it('organize imports aware of groups', async () => {
+            const { provider, document } = setup('organize-imports-group.svelte');
+
+            const codeActions = await provider.getCodeActions(
+                document,
+                Range.create(Position.create(1, 4), Position.create(1, 5)),
+                {
+                    diagnostics: [],
+                    only: [CodeActionKind.SourceOrganizeImports]
+                }
+            );
+
+            (<TextDocumentEdit>codeActions[0]?.edit?.documentChanges?.[0])?.edits.forEach(
+                (edit) => (edit.newText = harmonizeNewLines(edit.newText))
+            );
+
+            assert.deepStrictEqual(codeActions, [
+                {
+                    edit: {
+                        documentChanges: [
+                            {
+                                edits: [
+                                    {
+                                        newText:
+                                            "import { } from 'svelte/transition';\n" +
+                                            "    import { } from './codeaction-checkJs.svelte';\n",
+                                        range: {
+                                            end: {
+                                                character: 4,
+                                                line: 4
+                                            },
+                                            start: {
+                                                character: 4,
+                                                line: 3
+                                            }
+                                        }
+                                    },
+                                    {
+                                        newText: '',
+                                        range: {
+                                            end: {
+                                                character: 0,
+                                                line: 5
+                                            },
+                                            start: {
+                                                character: 4,
+                                                line: 4
+                                            }
+                                        }
+                                    }
+                                ],
+                                textDocument: {
+                                    uri: getUri('organize-imports-group.svelte'),
+                                    version: null
+                                }
+                            }
+                        ]
+                    },
+                    kind: 'source.organizeImports',
+                    title: 'Organize Imports'
+                }
+            ]);
         });
 
         it('should do extract into const refactor', async () => {

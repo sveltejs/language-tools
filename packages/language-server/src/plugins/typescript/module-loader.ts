@@ -5,7 +5,9 @@ import { createSvelteSys } from './svelte-sys';
 import {
     ensureRealSvelteFilePath,
     getExtensionFromScriptKind,
-    isVirtualSvelteFilePath
+    isSvelteFilePath,
+    isVirtualSvelteFilePath,
+    toVirtualSvelteFilePath
 } from './utils';
 
 /**
@@ -67,6 +69,44 @@ class ModuleResolutionCache {
     }
 }
 
+class ImpliedNodeFormatResolver {
+    private alreadyResolved = new Map<string, ReturnType<typeof ts.getModeForResolutionAtIndex>>();
+
+    resolve(
+        importPath: string,
+        importIdxInFile: number,
+        sourceFile: ts.SourceFile | undefined,
+        compilerOptions: ts.CompilerOptions
+    ) {
+        if (isSvelteFilePath(importPath)) {
+            // Svelte imports should use the old resolution algorithm, else they are not found
+            return undefined;
+        }
+
+        let mode = undefined;
+        if (sourceFile) {
+            if (!sourceFile.impliedNodeFormat && isSvelteFilePath(sourceFile.fileName)) {
+                // impliedNodeFormat is not set for Svelte files, because the TS function which
+                // calculates this works with a fixed set of file extensions,
+                // which .svelte is obv not part of. Make it work by faking a TS file.
+                if (!this.alreadyResolved.has(sourceFile.fileName)) {
+                    sourceFile.impliedNodeFormat = ts.getImpliedNodeFormatForFile(
+                        toVirtualSvelteFilePath(sourceFile.fileName) as any,
+                        undefined,
+                        ts.sys,
+                        compilerOptions
+                    );
+                    this.alreadyResolved.set(sourceFile.fileName, sourceFile.impliedNodeFormat);
+                } else {
+                    sourceFile.impliedNodeFormat = this.alreadyResolved.get(sourceFile.fileName);
+                }
+            }
+            mode = ts.getModeForResolutionAtIndex(sourceFile, importIdxInFile);
+        }
+        return mode;
+    }
+}
+
 /**
  * Creates a module loader specifically for `.svelte` files.
  *
@@ -85,6 +125,7 @@ export function createSvelteModuleLoader(
 ) {
     const svelteSys = createSvelteSys(getSnapshot);
     const moduleCache = new ModuleResolutionCache();
+    const impliedNodeFormatResolver = new ImpliedNodeFormatResolver();
 
     return {
         fileExists: svelteSys.fileExists,
@@ -103,14 +144,23 @@ export function createSvelteModuleLoader(
 
     function resolveModuleNames(
         moduleNames: string[],
-        containingFile: string
+        containingFile: string,
+        _reusedNames: string[] | undefined,
+        _redirectedReference: ts.ResolvedProjectReference | undefined,
+        _options: ts.CompilerOptions,
+        containingSourceFile?: ts.SourceFile | undefined
     ): Array<ts.ResolvedModule | undefined> {
-        return moduleNames.map((moduleName) => {
+        return moduleNames.map((moduleName, index) => {
             if (moduleCache.has(moduleName, containingFile)) {
                 return moduleCache.get(moduleName, containingFile);
             }
 
-            const resolvedModule = resolveModuleName(moduleName, containingFile);
+            const resolvedModule = resolveModuleName(
+                moduleName,
+                containingFile,
+                containingSourceFile,
+                index
+            );
             moduleCache.set(moduleName, containingFile, resolvedModule);
             return resolvedModule;
         });
@@ -118,8 +168,16 @@ export function createSvelteModuleLoader(
 
     function resolveModuleName(
         name: string,
-        containingFile: string
+        containingFile: string,
+        containingSourceFile: ts.SourceFile | undefined,
+        index: number
     ): ts.ResolvedModule | undefined {
+        const mode = impliedNodeFormatResolver.resolve(
+            name,
+            index,
+            containingSourceFile,
+            compilerOptions
+        );
         // Delegate to the TS resolver first.
         // If that does not bring up anything, try the Svelte Module loader
         // which is able to deal with .svelte files.
@@ -127,7 +185,10 @@ export function createSvelteModuleLoader(
             name,
             containingFile,
             compilerOptions,
-            ts.sys
+            ts.sys,
+            undefined,
+            undefined,
+            mode
         ).resolvedModule;
         if (tsResolvedModule && !isVirtualSvelteFilePath(tsResolvedModule.resolvedFileName)) {
             return tsResolvedModule;
@@ -137,7 +198,10 @@ export function createSvelteModuleLoader(
             name,
             containingFile,
             compilerOptions,
-            svelteSys
+            svelteSys,
+            undefined,
+            undefined,
+            mode
         ).resolvedModule;
         if (
             !svelteResolvedModule ||
