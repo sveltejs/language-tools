@@ -13,7 +13,7 @@ import {
     SveltePlugin,
     TypeScriptPlugin
 } from './plugins';
-import { getLanguageServices } from './plugins/css/service';
+import { createLanguageServices } from './plugins/css/service';
 import { convertRange, getDiagnosticTag, mapSeverity } from './plugins/typescript/utils';
 import { pathToUrl, urlToPath } from './utils';
 
@@ -65,7 +65,7 @@ export class SvelteCheck {
             this.pluginHost.register(new SveltePlugin(this.configManager));
         }
         if (shouldRegister('css')) {
-            const services = getLanguageServices({
+            const services = createLanguageServices({
                 fileSystemProvider: new FileSystemProvider()
             });
             const workspaceFolders: WorkspaceFolder[] = [

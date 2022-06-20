@@ -9,7 +9,7 @@ import {
     NodeType,
     CSSNode
 } from '../../../../src/plugins/css/features/getIdClassCompletion';
-import { getLanguageServices } from '../../../../src/plugins/css/service';
+import { createLanguageServices } from '../../../../src/plugins/css/service';
 import { pathToUrl } from '../../../../src/utils';
 
 describe('getIdClassCompletion', () => {
@@ -18,7 +18,7 @@ describe('getIdClassCompletion', () => {
     }
 
     function createCSSDocument(content: string) {
-        return new CSSDocument(createDocument(content), getLanguageServices());
+        return new CSSDocument(createDocument(content), createLanguageServices());
     }
 
     function testSelectors(items: CompletionItem[], expectedSelectors: string[]) {
@@ -53,7 +53,7 @@ describe('getIdClassCompletion', () => {
             docManager,
             pluginManager,
             [{ name: '', uri: pathToUrl(process.cwd()) }],
-            getLanguageServices()
+            createLanguageServices()
         );
         docManager.openDocument(<any>'some doc');
         return { plugin, document };

@@ -13,7 +13,7 @@ import {
 import { DocumentManager, Document } from '../../../src/lib/documents';
 import { CSSPlugin } from '../../../src/plugins';
 import { LSConfigManager } from '../../../src/ls-config';
-import { getLanguageServices } from '../../../src/plugins/css/service';
+import { createLanguageServices } from '../../../src/plugins/css/service';
 import { pathToUrl } from '../../../src/utils';
 import { FileType, LanguageServiceOptions } from 'vscode-css-languageservice';
 
@@ -31,7 +31,7 @@ describe('CSS Plugin', () => {
                     uri: pathToUrl(process.cwd())
                 }
             ],
-            getLanguageServices(lsOptions)
+            createLanguageServices(lsOptions)
         );
         docManager.openDocument(<any>'some doc');
         return { plugin, document };

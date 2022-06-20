@@ -51,7 +51,7 @@ export function getLanguageService(langs: CSSLanguageServices, kind?: string): L
     return langs[lang];
 }
 
-export function getLanguageServices(options?: LanguageServiceOptions): CSSLanguageServices {
+export function createLanguageServices(options?: LanguageServiceOptions): CSSLanguageServices {
     const [css, less, scss] = [
         getCSSLanguageService,
         getLESSLanguageService,

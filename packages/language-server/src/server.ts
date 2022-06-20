@@ -38,7 +38,7 @@ import { FallbackWatcher } from './lib/FallbackWatcher';
 import { configLoader } from './lib/documents/configLoader';
 import { setIsTrusted } from './importPackage';
 import { SORT_IMPORT_CODE_ACTION_KIND } from './plugins/typescript/features/CodeActionsProvider';
-import { getLanguageServices } from './plugins/css/service';
+import { createLanguageServices } from './plugins/css/service';
 import { FileSystemProvider } from './lib/FileSystemProvider';
 
 namespace TagCloseRequest {
@@ -150,7 +150,7 @@ export function startServer(options?: LSOptions) {
         pluginHost.register((sveltePlugin = new SveltePlugin(configManager)));
         pluginHost.register(new HTMLPlugin(docManager, configManager));
 
-        const cssLanguageServices = getLanguageServices({
+        const cssLanguageServices = createLanguageServices({
             clientCapabilities: evt.capabilities,
             fileSystemProvider: new FileSystemProvider()
         });
