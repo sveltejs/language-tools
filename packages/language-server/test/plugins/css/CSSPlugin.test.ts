@@ -15,9 +15,10 @@ import { CSSPlugin } from '../../../src/plugins';
 import { LSConfigManager } from '../../../src/ls-config';
 import { getLanguageServices } from '../../../src/plugins/css/service';
 import { pathToUrl } from '../../../src/utils';
+import { FileType, LanguageServiceOptions } from 'vscode-css-languageservice';
 
 describe('CSS Plugin', () => {
-    function setup(content: string) {
+    function setup(content: string, lsOptions?: LanguageServiceOptions) {
         const document = new Document('file:///hello.svelte', content);
         const docManager = new DocumentManager(() => document);
         const pluginManager = new LSConfigManager();
@@ -30,7 +31,7 @@ describe('CSS Plugin', () => {
                     uri: pathToUrl(process.cwd())
                 }
             ],
-            getLanguageServices()
+            getLanguageServices(lsOptions)
         );
         docManager.openDocument(<any>'some doc');
         return { plugin, document };
@@ -165,6 +166,42 @@ describe('CSS Plugin', () => {
             assert.deepStrictEqual(
                 await plugin.getCompletions(document, Position.create(0, 21)),
                 null
+            );
+        });
+
+        it('for path completion', async () => {
+            const { plugin, document } = setup('<style>@import "./"</style>', {
+                fileSystemProvider: {
+                    stat: () =>
+                        Promise.resolve({
+                            ctime: Date.now(),
+                            mtime: Date.now(),
+                            size: 0,
+                            type: FileType.File
+                        }),
+                    readDirectory: () => Promise.resolve([['foo.css', FileType.File]])
+                }
+            });
+            const completions = await plugin.getCompletions(document, Position.create(0, 16));
+            assert.deepStrictEqual(
+                completions?.items.find((item) => item.label === 'foo.css'),
+                <CompletionItem>{
+                    label: 'foo.css',
+                    kind: 17,
+                    textEdit: {
+                        newText: 'foo.css',
+                        range: {
+                            end: {
+                                character: 18,
+                                line: 0
+                            },
+                            start: {
+                                character: 16,
+                                line: 0
+                            }
+                        }
+                    }
+                }
             );
         });
     });
