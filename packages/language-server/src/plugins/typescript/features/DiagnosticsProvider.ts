@@ -39,7 +39,8 @@ enum DiagnosticCode {
     MULTIPLE_PROPS_SAME_NAME = 1117, // "An object literal cannot have multiple properties with the same name in strict mode."
     TYPE_X_NOT_ASSIGNABLE_TO_TYPE_Y = 2345, // "Argument of type '..' is not assignable to parameter of type '..'."
     MISSING_PROPS = 2739, // "Type '...' is missing the following properties from type '..': ..."
-    MISSING_PROP = 2741 // "Property '..' is missing in type '..' but required in type '..'."
+    MISSING_PROP = 2741, // "Property '..' is missing in type '..' but required in type '..'."
+    NO_OVERLOAD_MATCHES_CALL = 2769 // "No overload matches this call"
 }
 
 export class DiagnosticsProviderImpl implements DiagnosticsProvider {
@@ -86,7 +87,11 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
         const additionalStoreDiagnostics: ts.Diagnostic[] = [];
         const notGenerated = isNotGenerated(tsDoc.getFullText());
         for (const diagnostic of diagnostics) {
-            if (!notGenerated(diagnostic)) {
+            if (
+                (diagnostic.code === DiagnosticCode.NO_OVERLOAD_MATCHES_CALL ||
+                    diagnostic.code === DiagnosticCode.TYPE_X_NOT_ASSIGNABLE_TO_TYPE_Y) &&
+                !notGenerated(diagnostic)
+            ) {
                 if (isStoreVariableIn$storeDeclaration(tsDoc.getFullText(), diagnostic.start!)) {
                     const storeName = tsDoc
                         .getFullText()
