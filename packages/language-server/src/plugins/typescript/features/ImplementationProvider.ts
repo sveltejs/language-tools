@@ -4,7 +4,11 @@ import { pathToUrl, isNotNullOrUndefined } from '../../../utils';
 import { ImplementationProvider } from '../../interfaces';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { convertRange } from '../utils';
-import { isTextSpanInGeneratedCode, SnapshotMap } from './utils';
+import {
+    is$storeVariableIn$storeDeclaration,
+    isTextSpanInGeneratedCode,
+    SnapshotMap
+} from './utils';
 
 export class ImplementationProviderImpl implements ImplementationProvider {
     constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
@@ -23,10 +27,24 @@ export class ImplementationProviderImpl implements ImplementationProvider {
 
         const result = await Promise.all(
             implementations.map(async (implementation) => {
-                const snapshot = await snapshots.retrieve(implementation.fileName);
+                let snapshot = await snapshots.retrieve(implementation.fileName);
 
+                // Go from generated $store to store if user wants to find implementation for $store
                 if (isTextSpanInGeneratedCode(snapshot.getFullText(), implementation.textSpan)) {
-                    return;
+                    if (
+                        !is$storeVariableIn$storeDeclaration(
+                            snapshot.getFullText(),
+                            implementation.textSpan.start
+                        )
+                    ) {
+                        return;
+                    }
+                    // there will be exactly one definition, the store
+                    implementation = lang.getImplementationAtPosition(
+                        tsDoc.filePath,
+                        tsDoc.getFullText().indexOf(');', implementation.textSpan.start) - 1
+                    )![0];
+                    snapshot = await snapshots.retrieve(implementation.fileName);
                 }
 
                 const range = mapRangeToOriginal(

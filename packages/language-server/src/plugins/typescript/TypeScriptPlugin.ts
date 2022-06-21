@@ -68,7 +68,11 @@ import { SemanticTokensProviderImpl } from './features/SemanticTokensProvider';
 import { SignatureHelpProviderImpl } from './features/SignatureHelpProvider';
 import { TypeDefinitionProviderImpl } from './features/TypeDefinitionProvider';
 import { UpdateImportsProviderImpl } from './features/UpdateImportsProvider';
-import { isTextSpanInGeneratedCode, SnapshotMap } from './features/utils';
+import {
+    is$storeVariableIn$storeDeclaration,
+    isTextSpanInGeneratedCode,
+    SnapshotMap
+} from './features/utils';
 import { LSAndTSDocResolver } from './LSAndTSDocResolver';
 import { ignoredBuildDirectories } from './SnapshotManager';
 import { isAttributeName, isAttributeShorthand, isEventHandler } from './svelte-ast-utils';
@@ -352,7 +356,12 @@ export class TypeScriptPlugin
 
                 // Go from generated $store to store if user wants to find definition for $store
                 if (isTextSpanInGeneratedCode(snapshot.getFullText(), def.textSpan)) {
-                    if (snapshot.getFullText().charAt(def.textSpan.start) !== '$') {
+                    if (
+                        !is$storeVariableIn$storeDeclaration(
+                            snapshot.getFullText(),
+                            def.textSpan.start
+                        )
+                    ) {
                         return;
                     }
                     // there will be exactly one definition, the store
