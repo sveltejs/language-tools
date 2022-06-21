@@ -10,11 +10,11 @@
 () => (<>
 
 <div 
-    {...__sveltets_1_ensureTransition((__sveltets_1_store_get(transitionStore), $transitionStore)(__sveltets_1_mapElementTag('div'),({ y: 100 })))}
-    {...__sveltets_1_ensureAction((__sveltets_1_store_get(actionStore), $actionStore)(__sveltets_1_mapElementTag('div')))}
-    {...__sveltets_1_ensureTransition((__sveltets_1_store_get(inStore), $inStore)(__sveltets_1_mapElementTag('div'),{}))}
-    {...__sveltets_1_ensureTransition((__sveltets_1_store_get(outStore), $outStore)(__sveltets_1_mapElementTag('div'),{}))}
-    {...__sveltets_1_ensureAnimation((__sveltets_1_store_get(animateStore), $animateStore)(__sveltets_1_mapElementTag('div'),__sveltets_1_AnimationMove,{}))}
+    {...__sveltets_1_ensureTransition($transitionStore(__sveltets_1_mapElementTag('div'),({ y: 100 })))}
+    {...__sveltets_1_ensureAction($actionStore(__sveltets_1_mapElementTag('div')))}
+    {...__sveltets_1_ensureTransition($inStore(__sveltets_1_mapElementTag('div'),{}))}
+    {...__sveltets_1_ensureTransition($outStore(__sveltets_1_mapElementTag('div'),{}))}
+    {...__sveltets_1_ensureAnimation($animateStore(__sveltets_1_mapElementTag('div'),__sveltets_1_AnimationMove,{}))}
 >
 </div></>);
 return { props: {}, slots: {}, getters: {}, events: {} }}

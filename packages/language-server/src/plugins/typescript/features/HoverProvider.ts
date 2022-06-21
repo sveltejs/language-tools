@@ -20,26 +20,9 @@ export class HoverProviderImpl implements HoverProvider {
         }
 
         const offset = tsDoc.offsetAt(tsDoc.getGeneratedPosition(position));
-        let info = lang.getQuickInfoAtPosition(tsDoc.filePath, offset);
+        const info = lang.getQuickInfoAtPosition(tsDoc.filePath, offset);
         if (!info) {
             return null;
-        }
-
-        const textSpan = info.textSpan;
-
-        // show docs of $store instead of store if necessary
-        const is$store = tsDoc
-            .getFullText()
-            .substring(0, info.textSpan.start)
-            .endsWith('(__sveltets_1_store_get(');
-        if (is$store) {
-            const infoFor$store = lang.getQuickInfoAtPosition(
-                tsDoc.filePath,
-                textSpan.start + textSpan.length + 3
-            );
-            if (infoFor$store) {
-                info = infoFor$store;
-            }
         }
 
         const declaration = ts.displayPartsToString(info.displayParts);
@@ -51,7 +34,7 @@ export class HoverProviderImpl implements HoverProvider {
             .join('\n');
 
         return mapObjWithRangeToOriginal(tsDoc, {
-            range: convertRange(tsDoc, textSpan),
+            range: convertRange(tsDoc, info.textSpan),
             contents
         });
     }

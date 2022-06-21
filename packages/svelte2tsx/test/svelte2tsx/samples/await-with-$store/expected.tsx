@@ -8,7 +8,7 @@ function render() {
 ;
 () => (<>
 
-{() => {let _$$p = ((__sveltets_1_store_get(store), $store)); <>
+{() => {let _$$p = ($store); <>
 	<p>loading</p>
 </>; __sveltets_1_awaitThen(_$$p, (data) => {<>
 	{data}

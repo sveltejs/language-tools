@@ -88,16 +88,35 @@ export function isInGeneratedCode(text: string, start: number, end: number = sta
 }
 
 /**
- * Checks that this isn't a text span that should be completely ignored
- * because it's purely generated.
+ * Checks if this is a text span that is inside svelte2tsx-generated code
+ * (has no mapping to the original)
  */
-export function isNoTextSpanInGeneratedCode(text: string, span: ts.TextSpan) {
-    return !isInGeneratedCode(text, span.start, span.start + span.length);
+export function isTextSpanInGeneratedCode(text: string, span: ts.TextSpan) {
+    return isInGeneratedCode(text, span.start, span.start + span.length);
 }
 
 export function isPartOfImportStatement(text: string, position: Position): boolean {
     const line = getLineAtPosition(position, text);
     return /\s*from\s+["'][^"']*/.test(line.slice(0, position.character));
+}
+
+export function isStoreVariableIn$storeDeclaration(text: string, varStart: number) {
+    return (
+        text.lastIndexOf('__sveltets_1_store_get(', varStart) ===
+        varStart - '__sveltets_1_store_get('.length
+    );
+}
+
+export function get$storeOffsetOf$storeDeclaration(text: string, storePosition: number) {
+    return text.lastIndexOf(' =', storePosition) - 1;
+}
+
+export function is$storeVariableIn$storeDeclaration(text: string, varStart: number) {
+    return /^\$\w+ = __sveltets_1_store_get/.test(text.substring(varStart));
+}
+
+export function getStoreOffsetOf$storeDeclaration(text: string, $storeVarStart: number) {
+    return text.indexOf(');', $storeVarStart) - 1;
 }
 
 export class SnapshotMap {

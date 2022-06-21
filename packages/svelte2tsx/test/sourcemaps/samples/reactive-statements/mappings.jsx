@@ -24,11 +24,11 @@
    ╚  •foo•=•prop;↲                                                                                                                                   
    ╚$:•foo•=•prop;↲                                     [original] line 3                                                                             
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
-    let  bar = __sveltets_1_invalidate(() => (__sveltets_1_store_get(prop), $prop));                                                                  {/**
-   ╚let••bar•=•__sveltets_1_invalidate(()•=>•(__sveltets_1_store_get(prop),•$prop));↲    [generated] line 6                                           
-   ╚    •bar•=•                              $                       prop         ; ↲                                                                 
+    let  bar = __sveltets_1_invalidate(() => $prop);                                                                                                  {/**
+   ╚let••bar•=•__sveltets_1_invalidate(()•=>•$prop);↲    [generated] line 6                                                                           
+   ╚    •bar•=•                              $prop; ↲                                                                                                 
    ╚  •bar•=•$prop;↲                                                                                                                                  
-   ╚$:•bar•=•$prop;↲                                                                     [original] line 4                                            
+   ╚$:•bar•=•$prop;↲                                     [original] line 4                                                                            
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
     ;() => {$: if (bar) ++foo}                                                                                                                        {/**
    ╚;()•=>•{$:•if•(bar)•++foo}↲    [generated] line 7                                                                                                 
