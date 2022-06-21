@@ -65,6 +65,7 @@ export class LSAndTSDocResolver {
     };
 
     private globalSnapshotsManager = new GlobalSnapshotsManager();
+    private extendedConfigCache = new Map<string, ts.ExtendedConfigCacheEntry>();
 
     private get lsDocumentContext(): LanguageServiceDocumentContext {
         return {
@@ -73,7 +74,8 @@ export class LSAndTSDocResolver {
             useNewTransformation: this.configManager.getConfig().svelte.useNewTransformation,
             transformOnTemplateError: !this.isSvelteCheck,
             globalSnapshotsManager: this.globalSnapshotsManager,
-            notifyExceedSizeLimit: this.notifyExceedSizeLimit
+            notifyExceedSizeLimit: this.notifyExceedSizeLimit,
+            extendedConfigCache: this.extendedConfigCache
         };
     }
 
