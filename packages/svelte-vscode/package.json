@@ -475,6 +475,20 @@
                 }
             },
             {
+                "scopeName": "markdown.svelte.codeblock.script",
+                "path": "./syntaxes/markdown-svelte-js.json",
+                "injectTo": [
+                    "text.html.markdown"
+                ]
+            },
+            {
+                "scopeName": "markdown.svelte.codeblock.style",
+                "path": "./syntaxes/markdown-svelte-css.json",
+                "injectTo": [
+                    "text.html.markdown"
+                ]
+            },
+            {
                 "scopeName": "source.css.postcss",
                 "path": "./syntaxes/postcss.json",
                 "injectTo": [
