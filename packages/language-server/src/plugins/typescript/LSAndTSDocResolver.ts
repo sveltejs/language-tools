@@ -26,7 +26,7 @@ interface LSAndTSDocResolverOptions {
     tsconfigPath?: string;
 
     onProjectReloaded?: () => void;
-    watchTsConfig?: boolean
+    watchTsConfig?: boolean;
 }
 
 export class LSAndTSDocResolver {

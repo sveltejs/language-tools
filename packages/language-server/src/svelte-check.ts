@@ -31,7 +31,7 @@ export interface SvelteCheckOptions {
      */
     useNewTransformation?: boolean;
     onProjectReload?: () => void;
-    watch?: boolean
+    watch?: boolean;
 }
 
 /**

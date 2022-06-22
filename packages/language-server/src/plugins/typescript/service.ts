@@ -18,7 +18,6 @@ import { ensureRealSvelteFilePath, findTsConfigPath, hasTsExtensions } from './u
 export interface LanguageServiceContainer {
     readonly tsconfigPath: string;
     readonly compilerOptions: ts.CompilerOptions;
-    readonly extendedConfigPaths: Set<string>;
     /**
      * @internal Public for tests only
      */
@@ -113,81 +112,9 @@ export async function getServiceForTsconfig(
         const newService = createLanguageService(tsconfigPath, docContext);
         services.set(tsconfigPath, newService);
         service = await newService;
-
-        updateExtendedConfigDependents(service);
-        watchConfigFile(service, docContext);
     }
 
     return service;
-}
-
-function updateExtendedConfigDependents(service: LanguageServiceContainer) {
-    service.extendedConfigPaths.forEach((extendedConfig) => {
-        let dependedTsConfig = extendedConfigToTsConfigPath.get(extendedConfig);
-        if (!dependedTsConfig) {
-            dependedTsConfig = new Set();
-            extendedConfigToTsConfigPath.set(extendedConfig, dependedTsConfig);
-        }
-
-        dependedTsConfig.add(service.tsconfigPath);
-    });
-}
-
-function watchConfigFile(ls: LanguageServiceContainer, docContext: LanguageServiceDocumentContext) {
-    if (!ts.sys.watchFile || !docContext.watchTsConfig) {
-        return;
-    }
-
-    if (!configWatchers.has(ls.tsconfigPath) && ls.tsconfigPath) {
-        configWatchers.set(
-            ls.tsconfigPath,
-            ts.sys.watchFile(ls.tsconfigPath, (filename, kind) =>
-                watchConfigCallback(filename, kind, docContext)
-            )
-        );
-    }
-
-    for (const config of ls.extendedConfigPaths) {
-        if (extendedConfigWatchers.has(config)) {
-            continue;
-        }
-        extendedConfigWatchers.set(
-            config,
-            ts.sys.watchFile(config, (filename, kind) =>
-                watchExtendedConfigCallback(filename, kind, docContext)
-            )
-        );
-    }
-}
-
-async function watchExtendedConfigCallback(
-    extendedConfig: string,
-    kind: ts.FileWatcherEventKind,
-    docContext: LanguageServiceDocumentContext
-) {
-    docContext.extendedConfigCache.delete(extendedConfig);
-
-    extendedConfigToTsConfigPath.get(extendedConfig)?.forEach((config) => {
-        services.delete(config);
-        pendingReloads.add(config);
-    });
-}
-
-async function watchConfigCallback(
-    fileName: string,
-    kind: ts.FileWatcherEventKind,
-    docContext: LanguageServiceDocumentContext
-) {
-    const oldService = services.get(fileName);
-    services.delete(fileName);
-    docContext.extendedConfigCache.delete(fileName);
-    (await oldService)?.dispose();
-    pendingReloads.add(fileName);
-
-    if (kind === ts.FileWatcherEventKind.Deleted && !extendedConfigToTsConfigPath.has(fileName)) {
-        configWatchers.get(fileName)?.close();
-        configWatchers.delete(fileName);
-    }
 }
 
 async function createLanguageService(
@@ -273,6 +200,8 @@ async function createLanguageService(
     docContext.globalSnapshotsManager.onChange(onSnapshotChange);
 
     reduceLanguageServiceCapabilityIfFileSizeTooBig();
+    updateExtendedConfigDependents();
+    watchConfigFile();
 
     return {
         tsconfigPath,
@@ -285,7 +214,6 @@ async function createLanguageService(
         hasFile,
         fileBelongsToProject,
         snapshotManager,
-        extendedConfigPaths,
         dispose
     };
 
@@ -552,6 +480,78 @@ async function createLanguageService(
         languageService.dispose();
         snapshotManager.dispose();
         docContext.globalSnapshotsManager.removeChangeListener(onSnapshotChange);
+    }
+
+    function updateExtendedConfigDependents() {
+        extendedConfigPaths.forEach((extendedConfig) => {
+            let dependedTsConfig = extendedConfigToTsConfigPath.get(extendedConfig);
+            if (!dependedTsConfig) {
+                dependedTsConfig = new Set();
+                extendedConfigToTsConfigPath.set(extendedConfig, dependedTsConfig);
+            }
+
+            dependedTsConfig.add(tsconfigPath);
+        });
+    }
+
+    function watchConfigFile() {
+        if (!ts.sys.watchFile || !docContext.watchTsConfig) {
+            return;
+        }
+
+        if (!configWatchers.has(tsconfigPath) && tsconfigPath) {
+            configWatchers.set(tsconfigPath, ts.sys.watchFile(tsconfigPath, watchConfigCallback));
+        }
+
+        for (const config of extendedConfigPaths) {
+            if (extendedConfigWatchers.has(config)) {
+                continue;
+            }
+
+            extendedConfigWatchers.set(
+                config,
+                ts.sys.watchFile(config, (filename) =>
+                    watchExtendedConfigCallback(filename, docContext)
+                )
+            );
+        }
+    }
+
+    async function watchExtendedConfigCallback(
+        extendedConfig: string,
+        docContext: LanguageServiceDocumentContext
+    ) {
+        docContext.extendedConfigCache.delete(extendedConfig);
+
+        extendedConfigToTsConfigPath.get(extendedConfig)?.forEach(async (config) => {
+            const oldService = services.get(config);
+            scheduleReload(config);
+            (await oldService)?.dispose();
+        });
+    }
+
+    async function watchConfigCallback(fileName: string, kind: ts.FileWatcherEventKind) {
+        dispose();
+        scheduleReload(fileName);
+
+        if (
+            kind === ts.FileWatcherEventKind.Deleted &&
+            !extendedConfigToTsConfigPath.has(fileName)
+        ) {
+            configWatchers.get(fileName)?.close();
+            configWatchers.delete(fileName);
+        }
+    }
+
+    /**
+     * schedule to the service reload to the next time the
+     * service in requested
+     * if there's still files opened it should be restarted
+     * in the onProjectReloaded hooks
+     */
+    function scheduleReload(fileName: string) {
+        services.delete(fileName);
+        pendingReloads.add(fileName);
     }
 }
 
