@@ -13,23 +13,27 @@ import {
 } from './service';
 import { GlobalSnapshotsManager, SnapshotManager } from './SnapshotManager';
 
-export class LSAndTSDocResolver {
+interface LSAndTSDocResolverOptions {
+    notifyExceedSizeLimit?: () => void;
     /**
-     *
-     * @param docManager
-     * @param workspaceUris
-     * @param configManager
-     * @param notifyExceedSizeLimit
-     * @param isSvelteCheck True, if used in the context of svelte-check
-     * @param tsconfigPath This should only be set via svelte-check. Makes sure all documents are resolved to that tsconfig. Has to be absolute.
+     * True, if used in the context of svelte-check
      */
+    isSvelteCheck?: boolean;
+
+    /**
+     * This should only be set via svelte-check. Makes sure all documents are resolved to that tsconfig. Has to be absolute.
+     */
+    tsconfigPath?: string;
+
+    onProjectReloaded?: () => void;
+}
+
+export class LSAndTSDocResolver {
     constructor(
         private readonly docManager: DocumentManager,
         private readonly workspaceUris: string[],
         private readonly configManager: LSConfigManager,
-        private readonly notifyExceedSizeLimit?: () => void,
-        private readonly isSvelteCheck = false,
-        private readonly tsconfigPath?: string
+        private readonly options?: LSAndTSDocResolverOptions
     ) {
         const handleDocumentChange = (document: Document) => {
             // This refreshes the document in the ts language service
@@ -69,13 +73,14 @@ export class LSAndTSDocResolver {
 
     private get lsDocumentContext(): LanguageServiceDocumentContext {
         return {
-            ambientTypesSource: this.isSvelteCheck ? 'svelte-check' : 'svelte2tsx',
+            ambientTypesSource: this.options?.isSvelteCheck ? 'svelte-check' : 'svelte2tsx',
             createDocument: this.createDocument,
             useNewTransformation: this.configManager.getConfig().svelte.useNewTransformation,
-            transformOnTemplateError: !this.isSvelteCheck,
+            transformOnTemplateError: !this.options?.isSvelteCheck,
             globalSnapshotsManager: this.globalSnapshotsManager,
-            notifyExceedSizeLimit: this.notifyExceedSizeLimit,
-            extendedConfigCache: this.extendedConfigCache
+            notifyExceedSizeLimit: this.options?.notifyExceedSizeLimit,
+            extendedConfigCache: this.extendedConfigCache,
+            onProjectReloaded: this.options?.onProjectReloaded
         };
     }
 
@@ -159,8 +164,8 @@ export class LSAndTSDocResolver {
     }
 
     async getTSService(filePath?: string): Promise<LanguageServiceContainer> {
-        if (this.tsconfigPath) {
-            return getServiceForTsconfig(this.tsconfigPath, this.lsDocumentContext);
+        if (this.options?.tsconfigPath) {
+            return getServiceForTsconfig(this.options?.tsconfigPath, this.lsDocumentContext);
         }
         if (!filePath) {
             throw new Error('Cannot call getTSService without filePath and without tsconfigPath');

@@ -83,9 +83,10 @@ export class SvelteCheck {
                 this.docManager,
                 [pathToUrl(workspacePath)],
                 this.configManager,
-                undefined,
-                true,
-                options.tsconfig
+                {
+                    tsconfigPath: options.tsconfig,
+                    isSvelteCheck: true
+                }
             );
             this.pluginHost.register(
                 new TypeScriptPlugin(this.configManager, this.lsAndTSDocResolver)

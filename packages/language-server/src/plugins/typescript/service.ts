@@ -68,6 +68,7 @@ export interface LanguageServiceDocumentContext {
     globalSnapshotsManager: GlobalSnapshotsManager;
     notifyExceedSizeLimit: (() => void) | undefined;
     extendedConfigCache: Map<string, ts.ExtendedConfigCacheEntry>;
+    onProjectReloaded: (() => void) | undefined;
 }
 
 export async function getService(
