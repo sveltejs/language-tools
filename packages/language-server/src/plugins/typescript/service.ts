@@ -104,7 +104,7 @@ export async function getServiceForTsconfig(
         const reloading = pendingReloads.has(tsconfigPath);
 
         if (reloading) {
-            Logger.log('Reloading ts service at ', tsconfigPath, 'due to config updated');
+            Logger.log('Reloading ts service at ', tsconfigPath, ' due to config updated');
         } else {
             Logger.log('Initialize new ts service at ', tsconfigPath);
         }
