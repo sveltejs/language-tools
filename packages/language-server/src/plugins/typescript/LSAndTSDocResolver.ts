@@ -26,6 +26,7 @@ interface LSAndTSDocResolverOptions {
     tsconfigPath?: string;
 
     onProjectReloaded?: () => void;
+    watchTsConfig?: boolean
 }
 
 export class LSAndTSDocResolver {
@@ -80,7 +81,8 @@ export class LSAndTSDocResolver {
             globalSnapshotsManager: this.globalSnapshotsManager,
             notifyExceedSizeLimit: this.options?.notifyExceedSizeLimit,
             extendedConfigCache: this.extendedConfigCache,
-            onProjectReloaded: this.options?.onProjectReloaded
+            onProjectReloaded: this.options?.onProjectReloaded,
+            watchTsConfig: !!this.options?.watchTsConfig
         };
     }
 

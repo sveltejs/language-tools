@@ -30,6 +30,8 @@ export interface SvelteCheckOptions {
      * Whether or not to use the new transformation of svelte2tsx
      */
     useNewTransformation?: boolean;
+    onProjectReload?: () => void;
+    watch?: boolean
 }
 
 /**
@@ -85,7 +87,9 @@ export class SvelteCheck {
                 this.configManager,
                 {
                     tsconfigPath: options.tsconfig,
-                    isSvelteCheck: true
+                    isSvelteCheck: true,
+                    onProjectReloaded: options.onProjectReload,
+                    watchTsConfig: options.watch
                 }
             );
             this.pluginHost.register(

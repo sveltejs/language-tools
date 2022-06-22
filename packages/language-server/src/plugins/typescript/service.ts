@@ -69,6 +69,7 @@ export interface LanguageServiceDocumentContext {
     notifyExceedSizeLimit: (() => void) | undefined;
     extendedConfigCache: Map<string, ts.ExtendedConfigCacheEntry>;
     onProjectReloaded: (() => void) | undefined;
+    watchTsConfig: boolean;
 }
 
 export async function getService(
@@ -133,7 +134,7 @@ function updateExtendedConfigDependents(service: LanguageServiceContainer) {
 }
 
 function watchConfigFile(ls: LanguageServiceContainer, docContext: LanguageServiceDocumentContext) {
-    if (!ts.sys.watchFile) {
+    if (!ts.sys.watchFile || !docContext.watchTsConfig) {
         return;
     }
 

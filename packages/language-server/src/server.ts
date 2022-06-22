@@ -163,7 +163,8 @@ export function startServer(options?: LSOptions) {
                 configManager,
                 new LSAndTSDocResolver(docManager, workspaceUris.map(normalizeUri), configManager, {
                     notifyExceedSizeLimit: notifyTsServiceExceedSizeLimit,
-                    onProjectReloaded: updateAllDiagnostics
+                    onProjectReloaded: updateAllDiagnostics,
+                    watchTsConfig: true
                 })
             )
         );
