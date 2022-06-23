@@ -14,9 +14,9 @@
             "name": "meta.embedded.block.svelte.style",
             "contentName": "source.css",
             "patterns": [
-              {
-                "include": "source.css"
-              }
+                {
+                    "include": "source.css"
+                }
             ]
         }
     }

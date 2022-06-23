@@ -14,9 +14,9 @@
             "name": "meta.embedded.block.svelte.script",
             "contentName": "source.ts",
             "patterns": [
-              {
-                "include": "source.ts"
-              }
+                {
+                    "include": "source.ts"
+                }
             ]
         }
     }
