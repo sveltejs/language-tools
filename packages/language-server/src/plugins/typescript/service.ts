@@ -479,6 +479,8 @@ async function createLanguageService(
     function dispose() {
         languageService.dispose();
         snapshotManager.dispose();
+        configWatchers.get(tsconfigPath)?.close();
+        configWatchers.delete(tsconfigPath);
         docContext.globalSnapshotsManager.removeChangeListener(onSnapshotChange);
     }
 
@@ -510,48 +512,19 @@ async function createLanguageService(
 
             extendedConfigWatchers.set(
                 config,
-                ts.sys.watchFile(config, (filename) =>
-                    watchExtendedConfigCallback(filename, docContext)
-                )
+                ts.sys.watchFile(config, createWatchExtendedConfigCallback(docContext))
             );
         }
     }
 
-    async function watchExtendedConfigCallback(
-        extendedConfig: string,
-        docContext: LanguageServiceDocumentContext
-    ) {
-        docContext.extendedConfigCache.delete(extendedConfig);
-
-        extendedConfigToTsConfigPath.get(extendedConfig)?.forEach(async (config) => {
-            const oldService = services.get(config);
-            scheduleReload(config);
-            (await oldService)?.dispose();
-        });
-    }
-
     async function watchConfigCallback(fileName: string, kind: ts.FileWatcherEventKind) {
         dispose();
-        scheduleReload(fileName);
 
-        if (
-            kind === ts.FileWatcherEventKind.Deleted &&
-            !extendedConfigToTsConfigPath.has(fileName)
-        ) {
-            configWatchers.get(fileName)?.close();
-            configWatchers.delete(fileName);
+        if (kind === ts.FileWatcherEventKind.Changed) {
+            scheduleReload(fileName);
+        } else if (kind === ts.FileWatcherEventKind.Deleted) {
+            services.delete(fileName);
         }
-    }
-
-    /**
-     * schedule to the service reload to the next time the
-     * service in requested
-     * if there's still files opened it should be restarted
-     * in the onProjectReloaded hooks
-     */
-    function scheduleReload(fileName: string) {
-        services.delete(fileName);
-        pendingReloads.add(fileName);
     }
 }
 
@@ -604,4 +577,32 @@ function exceedsTotalSizeLimitForNonTsFiles(
 
     serviceSizeMap.set(tsconfigPath, totalNonTsFileSize);
     return false;
+}
+
+/**
+ * shared watcher callback can't be within `createLanguageService`
+ * because it would reference the closure
+ * So that GC won't drop it and cause memory leaks
+ */
+function createWatchExtendedConfigCallback(docContext: LanguageServiceDocumentContext) {
+    return (fileName: string) => {
+        docContext.extendedConfigCache.delete(fileName);
+
+        extendedConfigToTsConfigPath.get(fileName)?.forEach(async (config) => {
+            const oldService = services.get(config);
+            scheduleReload(config);
+            (await oldService)?.dispose();
+        });
+    };
+}
+
+/**
+ * schedule to the service reload to the next time the
+ * service in requested
+ * if there's still files opened it should be restarted
+ * in the onProjectReloaded hooks
+ */
+function scheduleReload(fileName: string) {
+    services.delete(fileName);
+    pendingReloads.add(fileName);
 }
