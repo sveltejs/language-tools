@@ -82,7 +82,8 @@ export class LSAndTSDocResolver {
             notifyExceedSizeLimit: this.options?.notifyExceedSizeLimit,
             extendedConfigCache: this.extendedConfigCache,
             onProjectReloaded: this.options?.onProjectReloaded,
-            watchTsConfig: !!this.options?.watchTsConfig
+            watchTsConfig: !!this.options?.watchTsConfig,
+            tsSystem: ts.sys
         };
     }
 
