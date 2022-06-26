@@ -124,12 +124,16 @@ export function rangeToTextSpan(
     return { start, length: end - start };
 }
 
-export function findTsConfigPath(fileName: string, rootUris: string[]) {
+export function findTsConfigPath(
+    fileName: string,
+    rootUris: string[],
+    fileExists: (path: string) => boolean
+) {
     const searchDir = dirname(fileName);
 
     const path =
-        ts.findConfigFile(searchDir, ts.sys.fileExists, 'tsconfig.json') ||
-        ts.findConfigFile(searchDir, ts.sys.fileExists, 'jsconfig.json') ||
+        ts.findConfigFile(searchDir, fileExists, 'tsconfig.json') ||
+        ts.findConfigFile(searchDir, fileExists, 'jsconfig.json') ||
         '';
     // Don't return config files that exceed the current workspace context.
     return !!path && rootUris.some((rootUri) => isSubPath(rootUri, path)) ? path : '';

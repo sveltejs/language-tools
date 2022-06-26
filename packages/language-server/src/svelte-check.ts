@@ -30,6 +30,8 @@ export interface SvelteCheckOptions {
      * Whether or not to use the new transformation of svelte2tsx
      */
     useNewTransformation?: boolean;
+    onProjectReload?: () => void;
+    watch?: boolean;
 }
 
 /**
@@ -83,9 +85,12 @@ export class SvelteCheck {
                 this.docManager,
                 [pathToUrl(workspacePath)],
                 this.configManager,
-                undefined,
-                true,
-                options.tsconfig
+                {
+                    tsconfigPath: options.tsconfig,
+                    isSvelteCheck: true,
+                    onProjectReloaded: options.onProjectReload,
+                    watchTsConfig: options.watch
+                }
             );
             this.pluginHost.register(
                 new TypeScriptPlugin(this.configManager, this.lsAndTSDocResolver)

@@ -6,7 +6,7 @@ import { watch } from 'chokidar';
 import * as fs from 'fs';
 import glob from 'fast-glob';
 import * as path from 'path';
-import { SvelteCheck } from 'svelte-language-server';
+import { SvelteCheck, SvelteCheckOptions } from 'svelte-language-server';
 import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver-protocol';
 import { URI } from 'vscode-uri';
 import { parseOptions, SvelteCheckCliOptions } from './options';
@@ -133,7 +133,7 @@ class DiagnosticsWatcher {
         this.scheduleDiagnostics();
     }
 
-    private scheduleDiagnostics() {
+    scheduleDiagnostics() {
         clearTimeout(this.updateDiagnostics);
         this.updateDiagnostics = setTimeout(
             () => getDiagnostics(this.workspaceUri, this.writer, this.svelteCheck),
@@ -174,22 +174,26 @@ parseOptions(async (opts) => {
     try {
         const writer = instantiateWriter(opts);
 
-        const svelteCheck = new SvelteCheck(opts.workspaceUri.fsPath, {
+        const svelteCheckOptions: SvelteCheckOptions = {
             compilerWarnings: opts.compilerWarnings,
             diagnosticSources: opts.diagnosticSources,
             tsconfig: opts.tsconfig,
-            useNewTransformation: opts.useNewTransformation
-        });
+            useNewTransformation: opts.useNewTransformation,
+            watch: opts.watch
+        };
 
         if (opts.watch) {
-            new DiagnosticsWatcher(
+            svelteCheckOptions.onProjectReload = () => watcher.scheduleDiagnostics();
+            const watcher = new DiagnosticsWatcher(
                 opts.workspaceUri,
-                svelteCheck,
+                new SvelteCheck(opts.workspaceUri.fsPath, svelteCheckOptions),
                 writer,
                 opts.filePathsToIgnore,
                 !!opts.tsconfig
             );
         } else {
+            const svelteCheck = new SvelteCheck(opts.workspaceUri.fsPath, svelteCheckOptions);
+
             if (!opts.tsconfig) {
                 await openAllDocuments(opts.workspaceUri, opts.filePathsToIgnore, svelteCheck);
             }

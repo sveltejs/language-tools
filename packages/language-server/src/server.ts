@@ -161,12 +161,11 @@ export function startServer(options?: LSOptions) {
         pluginHost.register(
             new TypeScriptPlugin(
                 configManager,
-                new LSAndTSDocResolver(
-                    docManager,
-                    workspaceUris.map(normalizeUri),
-                    configManager,
-                    notifyTsServiceExceedSizeLimit
-                )
+                new LSAndTSDocResolver(docManager, workspaceUris.map(normalizeUri), configManager, {
+                    notifyExceedSizeLimit: notifyTsServiceExceedSizeLimit,
+                    onProjectReloaded: updateAllDiagnostics,
+                    watchTsConfig: true
+                })
             )
         );
 
