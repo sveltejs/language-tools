@@ -80,6 +80,7 @@ export function decorateRename(
 
             // |$store| would be renamed, make it $|store|
             textSpan.start += 1;
+            textSpan.length -= 1;
             convertedRenameLocations.push(convert(renameLocation, textSpan));
         }
 
