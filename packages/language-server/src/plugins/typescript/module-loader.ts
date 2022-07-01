@@ -121,9 +121,10 @@ class ImpliedNodeFormatResolver {
  */
 export function createSvelteModuleLoader(
     getSnapshot: (fileName: string) => DocumentSnapshot,
-    compilerOptions: ts.CompilerOptions
+    compilerOptions: ts.CompilerOptions,
+    tsSystem: ts.System
 ) {
-    const svelteSys = createSvelteSys(getSnapshot);
+    const svelteSys = createSvelteSys(getSnapshot, tsSystem);
     const moduleCache = new ModuleResolutionCache();
     const impliedNodeFormatResolver = new ImpliedNodeFormatResolver();
 

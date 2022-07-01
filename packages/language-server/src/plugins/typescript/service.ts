@@ -263,7 +263,8 @@ async function createLanguageService(
         const newSnapshot = DocumentSnapshot.fromFilePath(
             filePath,
             docContext.createDocument,
-            transformationConfig
+            transformationConfig,
+            tsSystem
         );
         snapshotManager.set(filePath, newSnapshot);
         return newSnapshot;
@@ -281,7 +282,8 @@ async function createLanguageService(
         doc = DocumentSnapshot.fromFilePath(
             fileName,
             docContext.createDocument,
-            transformationConfig
+            transformationConfig,
+            tsSystem
         );
         snapshotManager.set(fileName, doc);
         return doc;
