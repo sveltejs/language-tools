@@ -1358,9 +1358,9 @@ function test(useNewTransformation: boolean) {
 
             const completions = await completionProvider.getCompletions(document, {
                 line: 0,
-                character: 2
+                character: 9
             });
-            const item = completions?.items.find((item) => item.label === 'Test');
+            const item = completions?.items.find((item) => item.label === 'foo');
 
             const { detail } = await completionProvider.resolveCompletion(document, item!);
 
