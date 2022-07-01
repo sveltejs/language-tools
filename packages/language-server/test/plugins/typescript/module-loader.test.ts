@@ -24,7 +24,11 @@ describe('createSvelteModuleLoader', () => {
         sinon.stub(svS, 'createSvelteSys').returns(svelteSys);
 
         const compilerOptions: ts.CompilerOptions = { strict: true, paths: { '/@/*': [] } };
-        const moduleResolver = createSvelteModuleLoader(getSvelteSnapshotStub, compilerOptions, ts.sys);
+        const moduleResolver = createSvelteModuleLoader(
+            getSvelteSnapshotStub,
+            compilerOptions,
+            ts.sys
+        );
 
         return {
             getSvelteSnapshotStub,

@@ -37,7 +37,9 @@ export function createVirtualTsSystem(currentDirectory: string): ts.System {
         },
         directoryExists(path) {
             const normalizedPath = normalizePath(toAbsolute(path));
-            return Array.from(virtualFs.keys()).some(fileName => fileName.startsWith(normalizedPath));
+            return Array.from(virtualFs.keys()).some((fileName) =>
+                fileName.startsWith(normalizedPath)
+            );
         },
         deleteFile(path) {
             const normalizedPath = normalizePath(toAbsolute(path));

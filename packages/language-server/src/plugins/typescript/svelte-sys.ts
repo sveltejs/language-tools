@@ -5,7 +5,10 @@ import { ensureRealSvelteFilePath, isVirtualSvelteFilePath, toRealSvelteFilePath
 /**
  * This should only be accessed by TS svelte module resolution.
  */
-export function createSvelteSys(getSnapshot: (fileName: string) => DocumentSnapshot, tsSystem: ts.System) {
+export function createSvelteSys(
+    getSnapshot: (fileName: string) => DocumentSnapshot,
+    tsSystem: ts.System
+) {
     const fileExistsCache = new Map<string, boolean>();
 
     const svelteSys: ts.System & { deleteFromCache: (path: string) => void } = {
