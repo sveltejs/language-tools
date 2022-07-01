@@ -87,7 +87,7 @@ export async function getService(
 
     return getServiceForTsconfig(
         tsconfigPath,
-        (nearestWorkspaceUri && urlToPath(nearestWorkspaceUri)) ?? '',
+        (nearestWorkspaceUri && urlToPath(nearestWorkspaceUri)) ?? ts.sys.getCurrentDirectory(),
         docContext
     );
 }
