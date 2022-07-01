@@ -1334,7 +1334,7 @@ function test(useNewTransformation: boolean) {
             const mockPackageDir = join(virtualTestDir, 'node_modules', '@types/random-package');
 
             // the main problem is how ts resolve reference type directive
-            // it would start with relative url and failed to auto import
+            // it would start with a relative url and fail to auto import
             virtualSystem.writeFile(
                 join(mockPackageDir, 'index.d.ts'),
                 '/// <reference types="random-package2" />' + '\nexport function bar(): string'
