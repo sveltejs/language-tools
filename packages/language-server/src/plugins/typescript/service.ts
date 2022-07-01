@@ -5,7 +5,7 @@ import { getPackageInfo } from '../../importPackage';
 import { Document } from '../../lib/documents';
 import { configLoader } from '../../lib/documents/configLoader';
 import { Logger } from '../../logger';
-import { normalizePath } from '../../utils';
+import { normalizePath, urlToPath } from '../../utils';
 import { DocumentSnapshot, SvelteSnapshotOptions } from './DocumentSnapshot';
 import { createSvelteModuleLoader } from './module-loader';
 import {
@@ -13,7 +13,7 @@ import {
     ignoredBuildDirectories,
     SnapshotManager
 } from './SnapshotManager';
-import { ensureRealSvelteFilePath, findTsConfigPath, hasTsExtensions } from './utils';
+import { ensureRealSvelteFilePath, findTsConfigPath, hasTsExtensions, isSubPath } from './utils';
 
 export interface LanguageServiceContainer {
     readonly tsconfigPath: string;
@@ -78,7 +78,18 @@ export async function getService(
     docContext: LanguageServiceDocumentContext
 ): Promise<LanguageServiceContainer> {
     const tsconfigPath = findTsConfigPath(path, workspaceUris, docContext.tsSystem.fileExists);
-    return getServiceForTsconfig(tsconfigPath, docContext);
+
+    if (tsconfigPath) {
+        return getServiceForTsconfig(tsconfigPath, dirname(tsconfigPath), docContext);
+    }
+
+    const nearestWorkspaceUri = workspaceUris.find((workspaceUri) => isSubPath(workspaceUri, path));
+
+    return getServiceForTsconfig(
+        tsconfigPath,
+        (nearestWorkspaceUri && urlToPath(nearestWorkspaceUri)) ?? '',
+        docContext
+    );
 }
 
 export async function forAllServices(
@@ -95,11 +106,14 @@ export async function forAllServices(
  */
 export async function getServiceForTsconfig(
     tsconfigPath: string,
+    workspacePath: string,
     docContext: LanguageServiceDocumentContext
 ): Promise<LanguageServiceContainer> {
+    const tsconfigPathOrWorkspacePath = tsconfigPath || workspacePath;
+
     let service: LanguageServiceContainer;
-    if (services.has(tsconfigPath)) {
-        service = await services.get(tsconfigPath)!;
+    if (services.has(tsconfigPathOrWorkspacePath)) {
+        service = await services.get(tsconfigPathOrWorkspacePath)!;
     } else {
         const reloading = pendingReloads.has(tsconfigPath);
 
@@ -110,8 +124,8 @@ export async function getServiceForTsconfig(
         }
 
         pendingReloads.delete(tsconfigPath);
-        const newService = createLanguageService(tsconfigPath, docContext);
-        services.set(tsconfigPath, newService);
+        const newService = createLanguageService(tsconfigPath, workspacePath, docContext);
+        services.set(tsconfigPathOrWorkspacePath, newService);
         service = await newService;
     }
 
@@ -120,9 +134,9 @@ export async function getServiceForTsconfig(
 
 async function createLanguageService(
     tsconfigPath: string,
+    workspacePath: string,
     docContext: LanguageServiceDocumentContext
 ): Promise<LanguageServiceContainer> {
-    const workspacePath = tsconfigPath ? dirname(tsconfigPath) : '';
     const { tsSystem } = docContext;
 
     const {
@@ -137,7 +151,7 @@ async function createLanguageService(
         docContext.globalSnapshotsManager,
         files,
         raw,
-        workspacePath || process.cwd()
+        workspacePath
     );
 
     // Load all configs within the tsconfig scope and the one above so that they are all loaded
@@ -145,7 +159,7 @@ async function createLanguageService(
     // the default language.
     await configLoader.loadConfigs(workspacePath);
 
-    const svelteModuleLoader = createSvelteModuleLoader(getSnapshot, compilerOptions);
+    const svelteModuleLoader = createSvelteModuleLoader(getSnapshot, compilerOptions, tsSystem);
 
     let svelteTsPath: string;
     try {
