@@ -187,6 +187,7 @@ function test(useNewTransformation: boolean) {
                     documentation: '',
                     label: 'on:aa',
                     sortText: '-1',
+                    kind: undefined,
                     textEdit: undefined
                 },
                 {
@@ -197,6 +198,7 @@ function test(useNewTransformation: boolean) {
                     },
                     label: 'on:ab',
                     sortText: '-1',
+                    kind: undefined,
                     textEdit: undefined
                 },
                 {
@@ -204,6 +206,7 @@ function test(useNewTransformation: boolean) {
                     documentation: '',
                     label: 'on:ac',
                     sortText: '-1',
+                    kind: undefined,
                     textEdit: undefined
                 }
             ]);
@@ -237,6 +240,7 @@ function test(useNewTransformation: boolean) {
                     documentation: '',
                     label: 'on:aa',
                     sortText: '-1',
+                    kind: undefined,
                     textEdit: {
                         newText: 'on:aa',
                         range: {
@@ -259,6 +263,7 @@ function test(useNewTransformation: boolean) {
                     },
                     label: 'on:ab',
                     sortText: '-1',
+                    kind: undefined,
                     textEdit: {
                         newText: 'on:ab',
                         range: {
@@ -278,6 +283,7 @@ function test(useNewTransformation: boolean) {
                     documentation: '',
                     label: 'on:ac',
                     sortText: '-1',
+                    kind: undefined,
                     textEdit: {
                         newText: 'on:ac',
                         range: {
@@ -319,6 +325,7 @@ function test(useNewTransformation: boolean) {
                     },
                     label: 'on:c',
                     sortText: '-1',
+                    kind: undefined,
                     textEdit: undefined
                 }
             ]);
@@ -347,6 +354,7 @@ function test(useNewTransformation: boolean) {
                     documentation: '',
                     label: 'on:event1',
                     sortText: '-1',
+                    kind: undefined,
                     textEdit: {
                         newText: 'on:event1',
                         range: {
@@ -369,6 +377,7 @@ function test(useNewTransformation: boolean) {
                     },
                     label: 'on:event2',
                     sortText: '-1',
+                    kind: undefined,
                     textEdit: {
                         newText: 'on:event2',
                         range: {
@@ -409,6 +418,7 @@ function test(useNewTransformation: boolean) {
                     label: 'on:event1',
                     sortText: '-1',
                     documentation: '',
+                    kind: undefined,
                     textEdit: {
                         newText: 'on:event1',
                         range: {
@@ -1063,6 +1073,7 @@ function test(useNewTransformation: boolean) {
                     documentation: '',
                     label: 'let:let1',
                     sortText: '-1',
+                    kind: undefined,
                     textEdit: {
                         newText: 'let:let1',
                         range: {
@@ -1085,6 +1096,7 @@ function test(useNewTransformation: boolean) {
                     },
                     label: 'let:let2',
                     sortText: '-1',
+                    kind: undefined,
                     textEdit: {
                         newText: 'let:let2',
                         range: {

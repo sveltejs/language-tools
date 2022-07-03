@@ -326,7 +326,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         const name = prefix + info.name;
         return {
             label: name,
-            kind: kind,
+            kind,
             sortText: '-1',
             detail: info.name + ': ' + info.type,
             documentation: info.doc && { kind: MarkupKind.Markdown, value: info.doc },
