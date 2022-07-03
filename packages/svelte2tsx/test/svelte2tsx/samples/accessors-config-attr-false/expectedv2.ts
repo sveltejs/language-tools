@@ -3,7 +3,7 @@
 
 	 let foo: number = undefined/*Ωignore_startΩ*/;foo = __sveltets_1_any(foo);/*Ωignore_endΩ*/;
 ;
-async () => { { svelteHTML.createElement("svelteoptions", {  "accessors":false,});}
+async () => { { svelteHTML.createElement("svelte:options", {  "accessors":false,});}
 };
 return { props: {foo: foo}, slots: {}, getters: {}, events: {} }}
 
