@@ -8,7 +8,8 @@ export type ComponentPartInfo = ReturnType<ComponentEvents['getAll']>;
 export interface ComponentInfoProvider {
     getEvents(): ComponentPartInfo;
     getSlotLets(slot?: string): ComponentPartInfo;
-    getProps(propName: string): ts.CompletionEntry[];
+    getProps(): ComponentPartInfo;
+    getProp(propName: string): ts.CompletionEntry[];
 }
 
 export class JsOrTsComponentInfoProvider implements ComponentInfoProvider {
@@ -45,7 +46,16 @@ export class JsOrTsComponentInfoProvider implements ComponentInfoProvider {
         return this.mapPropertiesOfType(slotLetsType);
     }
 
-    getProps(propName: string): ts.CompletionEntry[] {
+    getProps() {
+        const props = this.getType('$$prop_def');
+        if (!props) {
+            return [];
+        }
+
+        return this.mapPropertiesOfType(props);
+    }
+
+    getProp(propName: string): ts.CompletionEntry[] {
         const props = this.getType('$$prop_def');
         if (!props) {
             return [];

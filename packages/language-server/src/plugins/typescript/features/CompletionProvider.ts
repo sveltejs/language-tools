@@ -3,6 +3,7 @@ import {
     CancellationToken,
     CompletionContext,
     CompletionItem,
+    CompletionItemKind,
     CompletionList,
     CompletionTriggerKind,
     MarkupContent,
@@ -197,6 +198,32 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             return tsDoc.parserError ? CompletionList.create([], true) : null;
         }
 
+        if (
+            completions.length > 500 &&
+            svelteNode?.type === 'InlineComponent' &&
+            ['  ', ' >', ' /'].includes(
+                document.getText().substring(originalOffset - 1, originalOffset + 1)
+            )
+        ) {
+            // Very likely false global completions inside component start tag -> narrow
+            const props =
+                componentInfo
+                    ?.getProps()
+                    .map((entry) =>
+                        this.componentInfoToCompletionEntry(
+                            entry,
+                            '',
+                            CompletionItemKind.Field,
+                            document,
+                            wordRange
+                        )
+                    ) || [];
+            return CompletionList.create(
+                [...eventAndSlotLetCompletions, ...props],
+                !!tsDoc.parserError
+            );
+        }
+
         const existingImports = this.getExistingImports(document);
         const wordRangeStartPosition = document.positionAt(wordRange.start);
         const completionItems = completions
@@ -255,33 +282,59 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
 
     private getEventAndSlotLetCompletions(
         componentInfo: ComponentInfoProvider | null,
-        doc: Document,
+        document: Document,
         wordRange: { start: number; end: number }
     ): Array<AppCompletionItem<CompletionEntryWithIdentifier>> {
         if (componentInfo === null) {
             return [];
         }
 
-        const { start, end } = wordRange;
-        const events = componentInfo.getEvents().map((event) => mapToCompletionEntry(event, 'on:'));
-        const slotLets = componentInfo
-            .getSlotLets()
-            .map((slot) => mapToCompletionEntry(slot, 'let:'));
-        return [...events, ...slotLets];
+        return [
+            ...componentInfo
+                .getEvents()
+                .map((event) =>
+                    this.componentInfoToCompletionEntry(
+                        event,
+                        'on:',
+                        undefined,
+                        document,
+                        wordRange
+                    )
+                ),
+            ...componentInfo
+                .getSlotLets()
+                .map((slot) =>
+                    this.componentInfoToCompletionEntry(
+                        slot,
+                        'let:',
+                        undefined,
+                        document,
+                        wordRange
+                    )
+                )
+        ];
+    }
 
-        function mapToCompletionEntry(info: ComponentPartInfo[0], prefix: string) {
-            const slotName = prefix + info.name;
-            return {
-                label: slotName,
-                sortText: '-1',
-                detail: info.name + ': ' + info.type,
-                documentation: info.doc && { kind: MarkupKind.Markdown, value: info.doc },
-                textEdit:
-                    start !== end
-                        ? TextEdit.replace(toRange(doc.getText(), start, end), slotName)
-                        : undefined
-            };
-        }
+    private componentInfoToCompletionEntry(
+        info: ComponentPartInfo[0],
+        prefix: string,
+        kind: CompletionItemKind | undefined,
+        doc: Document,
+        wordRange: { start: number; end: number }
+    ): AppCompletionItem<CompletionEntryWithIdentifier> {
+        const { start, end } = wordRange;
+        const name = prefix + info.name;
+        return {
+            label: name,
+            kind: kind,
+            sortText: '-1',
+            detail: info.name + ': ' + info.type,
+            documentation: info.doc && { kind: MarkupKind.Markdown, value: info.doc },
+            textEdit:
+                start !== end
+                    ? TextEdit.replace(toRange(doc.getText(), start, end), name)
+                    : undefined
+        };
     }
 
     private toCompletionItem(
@@ -677,7 +730,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
               }
             : undefined;
 
-        return componentInfo.getProps(jsxAttribute.name.getText()).map((item) => ({
+        return componentInfo.getProp(jsxAttribute.name.getText()).map((item) => ({
             ...item,
             replacementSpan
         }));
