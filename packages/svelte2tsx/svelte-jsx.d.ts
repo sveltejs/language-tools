@@ -294,11 +294,11 @@ declare namespace svelteHTML {
     view: SVGProps<SVGViewElement>;
 
     // Svelte specific
-    sveltewindow: HTMLProps<Window> & SvelteWindowProps;
-    sveltebody: HTMLProps<HTMLElement>;
-    sveltefragment: { slot?: string; };
-    svelteoptions: { [name: string]: any };
-    sveltehead: { [name: string]: any };
+    'svelte:window': HTMLProps<Window> & SvelteWindowProps;
+    'svelte:body': HTMLProps<HTMLElement>;
+    'svelte:fragment': { slot?: string; };
+    'svelte:options': { [name: string]: any };
+    'svelte:head': { [name: string]: any };
 
     [name: string]: { [name: string]: any };
   }

@@ -98,9 +98,9 @@ export class Element {
                 // remove the colon: svelte:xxx -> sveltexxx
                 const nodeName = `svelte${this.node.name.substring(7)}`;
                 this._name = '$$_' + nodeName + this.computeDepth();
-                this.startTransformation.push(`{ ${createElement}("${nodeName}", {`);
+                this.startTransformation.push(`{ ${createElement}("${this.node.name}", {`);
                 this.addNameConstDeclaration = () =>
-                    (this.startTransformation[0] = `{ const ${this._name} = ${createElement}("${nodeName}", {`);
+                    (this.startTransformation[0] = `{ const ${this._name} = ${createElement}("${this.node.name}", {`);
                 break;
             }
             case 'svelte:element': {
