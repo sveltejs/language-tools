@@ -1,1 +1,1 @@
- { const $$_sveltebody0 = svelteHTML.createElement("sveltebody", {  });element = $$_sveltebody0;}
+ { const $$_sveltebody0 = svelteHTML.createElement("svelte:body", {  });element = $$_sveltebody0;}

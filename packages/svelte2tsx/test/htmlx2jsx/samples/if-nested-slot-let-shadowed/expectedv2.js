@@ -11,7 +11,7 @@ if(hello && hello1){
                 hello;
             }
          }Comp}
-         {const {/*Ωignore_startΩ*/$$_$$/*Ωignore_endΩ*/,hello,} = $$_Comp0.$$slot_def["named1"];$$_$$;{ svelteHTML.createElement("sveltefragment", {  });
+         {const {/*Ωignore_startΩ*/$$_$$/*Ωignore_endΩ*/,hello,} = $$_Comp0.$$slot_def["named1"];$$_$$;{ svelteHTML.createElement("svelte:fragment", {  });
             if(hello){
                 hello;
             }
@@ -67,7 +67,7 @@ if(hello && hello1){
     }else{
         hello; bye;
     }
-     {const {/*Ωignore_startΩ*/$$_$$/*Ωignore_endΩ*/,hello,} = $$_Comp0.$$slot_def["named1"];$$_$$;{ svelteHTML.createElement("sveltefragment", {  });
+     {const {/*Ωignore_startΩ*/$$_$$/*Ωignore_endΩ*/,hello,} = $$_Comp0.$$slot_def["named1"];$$_$$;{ svelteHTML.createElement("svelte:fragment", {  });
         if(hello && bye){
             hello; bye;
         } else if (hello && bye){
