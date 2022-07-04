@@ -200,6 +200,15 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
 
         if (
             completions.length > 500 &&
+            svelteNode?.type === 'Element' &&
+            completions[0].kind !== ts.ScriptElementKind.memberVariableElement
+        ) {
+            // False global completions inside element start tag
+            return null;
+        }
+
+        if (
+            completions.length > 500 &&
             svelteNode?.type === 'InlineComponent' &&
             ['  ', ' >', ' /'].includes(
                 document.getText().substring(originalOffset - 1, originalOffset + 1)
