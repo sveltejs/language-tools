@@ -1,2 +1,2 @@
-  { svelteHTML.createElement("button", {  "onclick":(e) => {},}); }
-  { svelteHTML.createElement("button", {  "onclick":(e) => {},}); }
+  { svelteHTML.createElement("button", {  "on:click":(e) => {},}); }
+  { svelteHTML.createElement("button", {  "on:click":(e) => {},}); }
