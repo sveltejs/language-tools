@@ -14,13 +14,5 @@
         "message": "Type 'string' is not assignable to type 'number'.",
         "code": 2322,
         "tags": []
-    },
-    {
-        "range": { "start": { "line": 9, "character": 26 }, "end": { "line": 9, "character": 29 } },
-        "severity": 1,
-        "source": "ts",
-        "message": "Property 'abc' does not exist on type 'AccessorsAndOption__SvelteComponent_'.",
-        "code": 2339,
-        "tags": []
     }
 ]
