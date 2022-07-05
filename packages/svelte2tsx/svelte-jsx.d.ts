@@ -465,6 +465,7 @@ declare namespace svelte.JSX {
       onmouseout?: MouseEventHandler<T> | undefined | null;
       onmouseover?: MouseEventHandler<T> | undefined | null;
       onmouseup?: MouseEventHandler<T> | undefined | null;
+      onsearch?: MouseEventHandler<T> | undefined | null;
 
       // Selection Events
       onselect?: EventHandler<Event, T> | undefined | null;
