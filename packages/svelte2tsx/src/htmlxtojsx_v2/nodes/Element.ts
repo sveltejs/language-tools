@@ -1,11 +1,13 @@
 import MagicString from 'magic-string';
-import { BaseNode } from '../../interfaces';
+import { BaseDirective, BaseNode } from '../../interfaces';
 import { surroundWithIgnoreComments } from '../../utils/ignore';
 import {
     transform,
     TransformationArray,
     sanitizePropName,
-    surroundWith
+    surroundWith,
+    getDirectiveNameStartEndIdx,
+    rangeWithTrailingPropertyAccess
 } from '../utils/node-utils';
 
 const voidTags = 'area,base,br,col,embed,hr,img,input,link,meta,param,source,track,wbr'.split(',');
@@ -30,10 +32,11 @@ const voidTags = 'area,base,br,col,embed,hr,img,input,link,meta,param,source,tra
  * ```
  */
 export class Element {
-    private startTransformation: TransformationArray = [];
     private startEndTransformation: TransformationArray = ['});'];
     private attrsTransformation: TransformationArray = [];
     private slotLetsTransformation?: [TransformationArray, TransformationArray];
+    private actionsTransformation: TransformationArray = [];
+    private actionIdentifiers: string[] = [];
     private endTransformation: TransformationArray = [];
     private startTagStart: number;
     private startTagEnd: number;
@@ -43,13 +46,10 @@ export class Element {
 
     // Add const $$xxx = ... only if the variable name is actually used
     // in order to prevent "$$xxx is defined but never used" TS hints
-    private addNameConstDeclaration?: () => void;
+    private referencedName = false;
     private _name: string;
     public get name(): string {
-        if (this.addNameConstDeclaration) {
-            this.addNameConstDeclaration();
-            this.addNameConstDeclaration = undefined;
-        }
+        this.referencedName = true;
         return this._name;
     }
 
@@ -73,7 +73,6 @@ export class Element {
         this.isSelfclosing = this.computeIsSelfclosing();
         this.startTagStart = this.node.start;
         this.startTagEnd = this.computeStartTagEnd();
-        const createElement = `${this.typingsNamespace}.createElement`;
 
         const tagEnd = this.startTagStart + this.node.name.length + 1;
         // Ensure deleted characters are mapped to the attributes object so we
@@ -98,24 +97,10 @@ export class Element {
                 // remove the colon: svelte:xxx -> sveltexxx
                 const nodeName = `svelte${this.node.name.substring(7)}`;
                 this._name = '$$_' + nodeName + this.computeDepth();
-                this.startTransformation.push(`{ ${createElement}("${this.node.name}", {`);
-                this.addNameConstDeclaration = () =>
-                    (this.startTransformation[0] = `{ const ${this._name} = ${createElement}("${this.node.name}", {`);
                 break;
             }
             case 'svelte:element': {
-                const nodeName = this.node.tag
-                    ? typeof this.node.tag !== 'string'
-                        ? ([this.node.tag.start, this.node.tag.end] as [number, number])
-                        : `"${this.node.tag}"`
-                    : '""';
                 this._name = '$$_svelteelement' + this.computeDepth();
-                this.startTransformation.push(`{ ${createElement}(`, nodeName, ', {');
-                this.addNameConstDeclaration = () => (
-                    (this.startTransformation[0] = `{ const ${this._name} = ${createElement}(`),
-                    nodeName,
-                    ', {'
-                );
                 break;
             }
             case 'slot': {
@@ -124,29 +109,10 @@ export class Element {
                 // of the slot tag are correct. The check will error if the user defined $$Slots
                 // and the slot definition or its attributes contradict that type definition.
                 this._name = '$$_slot' + this.computeDepth();
-                const slotName =
-                    this.node.attributes?.find((a: BaseNode) => a.name === 'name')?.value[0] ||
-                    'default';
-                this.startTransformation.push(
-                    '{ __sveltets_createSlot(',
-                    typeof slotName === 'string'
-                        ? `"${slotName}"`
-                        : surroundWith(this.str, [slotName.start, slotName.end], '"', '"'),
-                    ', {'
-                );
-                this.addNameConstDeclaration = () =>
-                    (this.startTransformation[0] = `{ const ${this._name} = __sveltets_createSlot(`);
                 break;
             }
             default: {
                 this._name = '$$_' + sanitizePropName(this.node.name) + this.computeDepth();
-                this.startTransformation.push(
-                    `{ ${createElement}("`,
-                    [this.node.start + 1, this.node.start + 1 + this.node.name.length],
-                    '", {'
-                );
-                this.addNameConstDeclaration = () =>
-                    (this.startTransformation[0] = `{ const ${this._name} = ${createElement}("`);
                 break;
             }
         }
@@ -183,6 +149,28 @@ export class Element {
         this.slotLetsTransformation[1].push(...transformation, ',');
     }
 
+    addAction(attr: BaseDirective) {
+        const id = `$$action_${this.actionIdentifiers.length}`;
+        this.actionIdentifiers.push(id);
+        if (!this.actionsTransformation.length) {
+            this.actionsTransformation.push('{');
+        }
+
+        this.actionsTransformation.push(
+            `const ${id} = __sveltets_2_ensureAction(`,
+            getDirectiveNameStartEndIdx(this.str, attr),
+            `(${this.typingsNamespace}.mapElementTag('${this.tagName}')`
+        );
+        if (attr.expression) {
+            this.actionsTransformation.push(
+                ',(',
+                rangeWithTrailingPropertyAccess(this.str.original, attr.expression),
+                ')'
+            );
+        }
+        this.actionsTransformation.push('));');
+    }
+
     /**
      * Add something right after the start tag end.
      */
@@ -216,13 +204,18 @@ export class Element {
             this.endTransformation.push('}');
         }
 
+        if (this.actionIdentifiers.length) {
+            this.endTransformation.push('}');
+        }
+
         if (this.isSelfclosing) {
             transform(this.str, this.startTagStart, this.startTagEnd, this.startTagEnd, [
                 // Named slot transformations go first inside a outer block scope because
                 // <div let:xx {x} /> means "use the x of let:x", and without a separate
                 // block scope this would give a "used before defined" error
                 ...slotLetTransformation,
-                ...this.startTransformation,
+                ...this.actionsTransformation,
+                ...this.getStartTransformation(),
                 ...this.attrsTransformation,
                 ...this.startEndTransformation,
                 ...this.endTransformation
@@ -230,7 +223,8 @@ export class Element {
         } else {
             transform(this.str, this.startTagStart, this.startTagEnd, this.startTagEnd, [
                 ...slotLetTransformation,
-                ...this.startTransformation,
+                ...this.actionsTransformation,
+                ...this.getStartTransformation(),
                 ...this.attrsTransformation,
                 ...this.startEndTransformation
             ]);
@@ -241,6 +235,96 @@ export class Element {
             // tagEndIdx === -1 happens in situations of unclosed tags like `<p>fooo <p>anothertag</p>`
             const endStart = tagEndIdx === -1 ? this.node.end : tagEndIdx + this.node.start;
             transform(this.str, endStart, this.node.end, this.node.end, this.endTransformation);
+        }
+    }
+
+    private getStartTransformation(): TransformationArray {
+        const createElement = `${this.typingsNamespace}.createElement`;
+        const addActions = () => {
+            if (this.actionIdentifiers.length) {
+                return `, __sveltets_2_union(${this.actionIdentifiers.join(',')})`;
+            } else {
+                return '';
+            }
+        };
+
+        switch (this.node.name) {
+            // Although not everything that is possible to add to Element
+            // is valid on the special svelte elements,
+            // we still also handle them here and let the Svelte parser handle invalid
+            // cases. For us it doesn't make a difference to a normal HTML element.
+            case 'svelte:options':
+            case 'svelte:head':
+            case 'svelte:window':
+            case 'svelte:body':
+            case 'svelte:fragment': {
+                if (!this.referencedName) {
+                    return [`{ ${createElement}("${this.node.name}"${addActions()}, {`];
+                } else {
+                    return [
+                        `{ const ${this._name} = ${createElement}("${
+                            this.node.name
+                        }"${addActions()}, {`
+                    ];
+                }
+            }
+            case 'svelte:element': {
+                const nodeName = this.node.tag
+                    ? typeof this.node.tag !== 'string'
+                        ? ([this.node.tag.start, this.node.tag.end] as [number, number])
+                        : `"${this.node.tag}"`
+                    : '""';
+                if (!this.referencedName) {
+                    return [`{ ${createElement}(`, nodeName, `${addActions()}, {`];
+                } else {
+                    return [
+                        `{ const ${this._name} = ${createElement}(`,
+                        nodeName,
+                        `${addActions()}, {`
+                    ];
+                }
+            }
+            case 'slot': {
+                // If the element is a <slot> tag, create the element with the createSlot-function
+                // which is created inside createRenderFunction.ts to check that the name and attributes
+                // of the slot tag are correct. The check will error if the user defined $$Slots
+                // and the slot definition or its attributes contradict that type definition.
+                const slotName =
+                    this.node.attributes?.find((a: BaseNode) => a.name === 'name')?.value[0] ||
+                    'default';
+                if (!this.referencedName) {
+                    return [
+                        '{ __sveltets_createSlot(',
+                        typeof slotName === 'string'
+                            ? `"${slotName}"`
+                            : surroundWith(this.str, [slotName.start, slotName.end], '"', '"'),
+                        ', {'
+                    ];
+                } else {
+                    return [
+                        `{ const ${this._name} = __sveltets_createSlot(`,
+                        typeof slotName === 'string'
+                            ? `"${slotName}"`
+                            : surroundWith(this.str, [slotName.start, slotName.end], '"', '"'),
+                        ', {'
+                    ];
+                }
+            }
+            default: {
+                if (!this.referencedName) {
+                    return [
+                        `{ ${createElement}("`,
+                        [this.node.start + 1, this.node.start + 1 + this.node.name.length],
+                        `"${addActions()}, {`
+                    ];
+                } else {
+                    return [
+                        `{ const ${this._name} = ${createElement}("`,
+                        [this.node.start + 1, this.node.start + 1 + this.node.name.length],
+                        `"${addActions()}, {`
+                    ];
+                }
+            }
         }
     }
 

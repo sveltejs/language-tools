@@ -9,8 +9,8 @@
 ;
 async () => {
 
- { svelteHTML.createElement("div", {      });__sveltets_2_ensureTransition($transitionStore(svelteHTML.mapElementTag('div'),({ y: 100 })));__sveltets_2_ensureAction($actionStore(svelteHTML.mapElementTag('div')));__sveltets_2_ensureTransition($inStore(svelteHTML.mapElementTag('div')));__sveltets_2_ensureTransition($outStore(svelteHTML.mapElementTag('div')));__sveltets_2_ensureAnimation($animateStore(svelteHTML.mapElementTag('div'),__sveltets_2_AnimationMove));
- }};
+ {const $$action_0 = __sveltets_2_ensureAction($actionStore(svelteHTML.mapElementTag('div')));{ svelteHTML.createElement("div", __sveltets_2_union($$action_0), {      });__sveltets_2_ensureTransition($transitionStore(svelteHTML.mapElementTag('div'),({ y: 100 })));__sveltets_2_ensureTransition($inStore(svelteHTML.mapElementTag('div')));__sveltets_2_ensureTransition($outStore(svelteHTML.mapElementTag('div')));__sveltets_2_ensureAnimation($animateStore(svelteHTML.mapElementTag('div'),__sveltets_2_AnimationMove));
+ }}};
 return { props: {}, slots: {}, getters: {}, events: {} }}
 
 export default class Input__SvelteComponent_ extends __sveltets_1_createSvelte2TsxComponent(__sveltets_1_partial(__sveltets_1_with_any_event(render()))) {

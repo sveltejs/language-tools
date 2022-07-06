@@ -126,7 +126,7 @@ export function convertHtmlxToJsx(
                         handleStyleDirective(str, node as StyleDirective, element as Element);
                         break;
                     case 'Action':
-                        handleActionDirective(str, node as BaseDirective, element as Element);
+                        handleActionDirective(node as BaseDirective, element as Element);
                         break;
                     case 'Transition':
                         handleTransitionDirective(str, node as BaseDirective, element as Element);

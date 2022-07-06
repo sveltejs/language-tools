@@ -246,9 +246,11 @@ declare function __sveltets_2_ensureAnimation(animationCall: __sveltets_2_Svelte
 
 type __sveltets_2_SvelteActionReturnType = {
 	update?: (args: any) => void,
-	destroy?: () => void
+	destroy?: () => void,
+    attributes?: Record<string, any>,
+    events?: Record<string, any>
 } | void
-declare function __sveltets_2_ensureAction(actionCall: __sveltets_2_SvelteActionReturnType): {};
+declare function __sveltets_2_ensureAction<T extends __sveltets_2_SvelteActionReturnType>(actionCall: T): T extends  {attributes?: any, events?: any} ? T['attributes'] & {[Key in keyof T['events'] as `on:${Key & string}`]?: T['events'][Key]} : {};
 
 type __sveltets_2_SvelteTransitionConfig = {
     delay?: number,
