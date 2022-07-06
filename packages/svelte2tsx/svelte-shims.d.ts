@@ -5,7 +5,7 @@
 
 // -- start svelte-ls-remove --
 declare module '*.svelte' {
-    export default Svelte2TsxComponent
+    export default _SvelteComponent
 }
 // -- end svelte-ls-remove --
 
@@ -52,6 +52,8 @@ declare class Svelte2TsxComponent<
     $capture_state(): void;
     $inject_state(): void;
 }
+
+type _SvelteComponent<Props=any,Events=any,Slots=any> = typeof import("svelte") extends {SvelteComponentTyped: any} ? import("svelte").SvelteComponentTyped<Props,Events,Slots> : Svelte2TsxComponent<Props,Events,Slots>;
 
 interface Svelte2TsxComponentConstructorParameters<Props extends {}> {
     /**
@@ -167,7 +169,7 @@ declare function __sveltets_1_store_get<T = any>(store: SvelteStore<T>): T
 declare function __sveltets_1_store_get<Store extends SvelteStore<any> | undefined | null>(store: Store): Store extends SvelteStore<infer T> ? T : Store;
 declare function __sveltets_1_any(dummy: any): any;
 declare function __sveltets_1_empty(...dummy: any[]): {};
-declare function __sveltets_1_componentType(): AConstructorTypeOf<Svelte2TsxComponent<any, any, any>>
+declare function __sveltets_1_componentType(): AConstructorTypeOf<_SvelteComponent<any, any, any>>
 declare function __sveltets_1_invalidate<T>(getValue: () => T): T
 
 declare function __sveltets_1_mapWindowEvent<K extends keyof HTMLBodyElementEventMap>(
@@ -217,17 +219,18 @@ declare function __sveltets_1_each<T extends ArrayLike<unknown>>(
 
 declare function __sveltets_1_createSvelte2TsxComponent<Props, Events, Slots>(
     render: {props: Props, events: Events, slots: Slots }
-): SvelteComponentConstructor<Svelte2TsxComponent<Props, Events, Slots>,Svelte2TsxComponentConstructorParameters<Props>>;
+): SvelteComponentConstructor<_SvelteComponent<Props, Events, Slots>,Svelte2TsxComponentConstructorParameters<Props>>;
 
 declare function __sveltets_1_unwrapArr<T>(arr: ArrayLike<T>): T
 declare function __sveltets_1_unwrapPromiseLike<T>(promise: PromiseLike<T> | T): T
 
 // v2
 declare function __sveltets_2_createCreateSlot<Slots = Record<string, Record<string, any>>>(): <SlotName extends keyof Slots>(slotName: SlotName, attrs: Slots[SlotName]) => Record<string, any>;
-declare function __sveltets_2_createComponentAny(props: Record<string, any>): Svelte2TsxComponent<any, any, any>;
+declare function __sveltets_2_createComponentAny(props: Record<string, any>): _SvelteComponent<any, any, any>;
 
 declare function __sveltets_2_any(...dummy: any[]): any;
 declare function __sveltets_2_empty(...dummy: any[]): {};
+declare function __sveltets_2_union<T1,T2,T3,T4,T5>(t1:T1,t2?:T2,t3?:T3,t4?:T4,t5?:T5): T1 & T2 & T3 & T4 & T5;
 
 declare function __sveltets_2_cssProp(prop: Record<string, any>): {};
 
@@ -263,7 +266,7 @@ declare function __sveltets_2_ensureType<T1, T2>(type1: AConstructorTypeOf<T1>, 
 
 // The following is necessary because there are two clashing errors that can't be solved at the same time
 // when using Svelte2TsxComponent, more precisely the event typings in
-// __sveltets_2_ensureComponent<T extends new (..) => Svelte2TsxComponent<any,||any||<-this,any>>(type: T): T;
+// __sveltets_2_ensureComponent<T extends new (..) => _SvelteComponent<any,||any||<-this,any>>(type: T): T;
 // If we type it as "any", we have an error when using sth like {a: CustomEvent<any>}
 // If we type it as "{}", we have an error when using sth like {[evt: string]: CustomEvent<any>}
 // If we type it as "unknown", we get all kinds of follow up errors which we want to avoid
