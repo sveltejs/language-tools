@@ -342,6 +342,20 @@ export function changeSvelteComponentName(name: string) {
     return name.replace(/(\w+)__SvelteComponent_/, '$1');
 }
 
+const COMPONENT_SUFFIX = '__SvelteComponent_';
+
+export function isGeneratedSvelteComponentName(className: string) {
+    return className.endsWith(COMPONENT_SUFFIX);
+}
+
+export function offsetOfGeneratedComponentExport(snapshot: SvelteDocumentSnapshot) {
+    return snapshot.getFullText().lastIndexOf(COMPONENT_SUFFIX);
+}
+
+export function toGeneratedSvelteComponentName(className: string) {
+    return className + COMPONENT_SUFFIX;
+}
+
 export function hasTsExtensions(fileName: string) {
     return (
         fileName.endsWith(ts.Extension.Dts) ||

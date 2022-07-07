@@ -81,9 +81,10 @@ export class SvelteCheck {
             );
         }
         if (shouldRegister('js') || options.tsconfig) {
+            const workspaceUris = [pathToUrl(workspacePath)];
             this.lsAndTSDocResolver = new LSAndTSDocResolver(
                 this.docManager,
-                [pathToUrl(workspacePath)],
+                workspaceUris,
                 this.configManager,
                 {
                     tsconfigPath: options.tsconfig,
@@ -93,7 +94,7 @@ export class SvelteCheck {
                 }
             );
             this.pluginHost.register(
-                new TypeScriptPlugin(this.configManager, this.lsAndTSDocResolver)
+                new TypeScriptPlugin(this.configManager, this.lsAndTSDocResolver, workspaceUris)
             );
         }
 

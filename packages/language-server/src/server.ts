@@ -15,7 +15,10 @@ import {
     SemanticTokensRequest,
     SemanticTokensRangeRequest,
     DidChangeWatchedFilesParams,
-    LinkedEditingRangeRequest
+    LinkedEditingRangeRequest,
+    CallHierarchyPrepareRequest,
+    CallHierarchyIncomingCallsRequest,
+    CallHierarchyOutgoingCallsRequest
 } from 'vscode-languageserver';
 import { IPCMessageReader, IPCMessageWriter, createConnection } from 'vscode-languageserver/node';
 import { DiagnosticsManager } from './lib/DiagnosticsManager';
@@ -158,14 +161,16 @@ export function startServer(options?: LSOptions) {
         pluginHost.register(
             new CSSPlugin(docManager, configManager, workspaceFolders, cssLanguageServices)
         );
+        const normalizedWorkspaceUris = workspaceUris.map(normalizeUri);
         pluginHost.register(
             new TypeScriptPlugin(
                 configManager,
-                new LSAndTSDocResolver(docManager, workspaceUris.map(normalizeUri), configManager, {
+                new LSAndTSDocResolver(docManager, normalizedWorkspaceUris, configManager, {
                     notifyExceedSizeLimit: notifyTsServiceExceedSizeLimit,
                     onProjectReloaded: updateAllDiagnostics,
                     watchTsConfig: true
-                })
+                }),
+                normalizedWorkspaceUris
             )
         );
 
@@ -266,7 +271,8 @@ export function startServer(options?: LSOptions) {
                 },
                 linkedEditingRangeProvider: true,
                 implementationProvider: true,
-                typeDefinitionProvider: true
+                typeDefinitionProvider: true,
+                callHierarchyProvider: true
             }
         };
     });
@@ -419,6 +425,22 @@ export function startServer(options?: LSOptions) {
     connection.onRequest(
         LinkedEditingRangeRequest.type,
         async (evt) => await pluginHost.getLinkedEditingRanges(evt.textDocument, evt.position)
+    );
+
+    connection.onRequest(
+        CallHierarchyPrepareRequest.type,
+        async (evt, token) =>
+            await pluginHost.prepareCallHierarchy(evt.textDocument, evt.position, token)
+    );
+
+    connection.onRequest(
+        CallHierarchyIncomingCallsRequest.type,
+        async (evt, token) => await pluginHost.getInComingCalls(evt.item, token)
+    );
+
+    connection.onRequest(
+        CallHierarchyOutgoingCallsRequest.type,
+        async (evt, token) => await pluginHost.getOutComingCalls(evt.item, token)
     );
 
     docManager.on(

@@ -35,6 +35,7 @@ import {
     convertRange,
     getCommitCharactersForScriptElement,
     isInScript,
+    isGeneratedSvelteComponentName,
     scriptElementKindToCompletionItemKind
 } from '../utils';
 import { getJsDocTemplateCompletion } from './getJsDocTemplateCompletion';
@@ -394,7 +395,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         let { name, insertText, kindModifiers } = comp;
         const isScriptElement = comp.kind === ts.ScriptElementKind.scriptElement;
         const hasModifier = Boolean(comp.kindModifiers);
-        const isSvelteComp = this.isSvelteComponentImport(name);
+        const isSvelteComp = isGeneratedSvelteComponentName(name);
         if (isSvelteComp) {
             name = changeSvelteComponentName(name);
 
@@ -685,10 +686,6 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             Position.create(start.line + offsetLines, 0),
             Position.create(end.line + offsetLines, 0)
         );
-    }
-
-    private isSvelteComponentImport(className: string) {
-        return className.endsWith('__SvelteComponent_');
     }
 
     private changeComponentImport(importText: string, actionTriggeredInScript: boolean) {

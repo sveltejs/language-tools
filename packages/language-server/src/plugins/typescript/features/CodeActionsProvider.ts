@@ -23,7 +23,7 @@ import { flatten, getIndent, isNotNullOrUndefined, modifyLines, pathToUrl } from
 import { CodeActionsProvider } from '../../interfaces';
 import { DocumentSnapshot, SvelteDocumentSnapshot } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
-import { changeSvelteComponentName, convertRange } from '../utils';
+import { changeSvelteComponentName, convertRange, toGeneratedSvelteComponentName } from '../utils';
 import { CompletionsProviderImpl } from './CompletionProvider';
 import { findContainingNode, isTextSpanInGeneratedCode, SnapshotMap } from './utils';
 
@@ -413,7 +413,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         }
 
         const name = tagName.getText();
-        const suffixedName = name + '__SvelteComponent_';
+        const suffixedName = toGeneratedSvelteComponentName(name);
         const errorPreventingUserPreferences =
             this.completionProvider.fixUserPreferencesForSvelteComponentImport(userPreferences);
 

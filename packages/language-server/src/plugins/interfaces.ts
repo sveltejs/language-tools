@@ -8,6 +8,9 @@ import {
     TextDocumentContentChangeEvent
 } from 'vscode-languageserver';
 import {
+    CallHierarchyIncomingCall,
+    CallHierarchyItem,
+    CallHierarchyOutgoingCall,
     CodeAction,
     CodeActionContext,
     Color,
@@ -23,12 +26,12 @@ import {
     Position,
     Range,
     ReferenceContext,
+    SelectionRange,
+    SignatureHelp,
     SymbolInformation,
     TextDocumentIdentifier,
     TextEdit,
-    WorkspaceEdit,
-    SelectionRange,
-    SignatureHelp
+    WorkspaceEdit
 } from 'vscode-languageserver-types';
 import { Document } from '../lib/documents';
 
@@ -183,6 +186,23 @@ export interface TypeDefinitionProvider {
     getTypeDefinition(document: Document, position: Position): Resolvable<Location[] | null>;
 }
 
+export interface CallHierarchyProvider {
+    prepareCallHierarchy(
+        document: Document,
+        position: Position
+    ): Resolvable<CallHierarchyItem[] | null>;
+
+    getInComingCalls(
+        item: CallHierarchyItem,
+        cancellationToken?: CancellationToken
+    ): Resolvable<CallHierarchyIncomingCall[] | null>;
+
+    getOutComingCalls(
+        item: CallHierarchyItem,
+        cancellationToken?: CancellationToken
+    ): Resolvable<CallHierarchyOutgoingCall[] | null>;
+}
+
 export interface OnWatchFileChangesPara {
     fileName: string;
     changeType: FileChangeType;
@@ -214,7 +234,8 @@ type ProviderBase = DiagnosticsProvider &
     SemanticTokensProvider &
     LinkedEditingRangesProvider &
     ImplementationProvider &
-    TypeDefinitionProvider;
+    TypeDefinitionProvider &
+    CallHierarchyProvider;
 
 export type LSProvider = ProviderBase & BackwardsCompatibleDefinitionsProvider;
 

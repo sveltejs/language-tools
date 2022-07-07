@@ -33,9 +33,11 @@ function test(useNewTransformation: boolean) {
             const document = new Document(pathToUrl(filePath), ts.sys.readFile(filePath) || '');
             const lsConfigManager = new LSConfigManager();
             lsConfigManager.update({ svelte: { useNewTransformation } });
+            const workspaceUris = [pathToUrl(testDir)];
             const plugin = new TypeScriptPlugin(
                 lsConfigManager,
-                new LSAndTSDocResolver(docManager, [pathToUrl(testDir)], lsConfigManager)
+                new LSAndTSDocResolver(docManager, workspaceUris, lsConfigManager),
+                workspaceUris
             );
             docManager.openDocument(<any>'some doc');
             return { plugin, document };
