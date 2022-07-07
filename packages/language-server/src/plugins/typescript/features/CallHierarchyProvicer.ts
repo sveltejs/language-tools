@@ -1,6 +1,6 @@
 import path, { basename, dirname } from 'path';
 import ts from 'typescript';
-import { CancellationToken, Range, SymbolTag } from 'vscode-languageserver';
+import { CancellationToken, Range, SymbolKind, SymbolTag } from 'vscode-languageserver';
 import {
     CallHierarchyIncomingCall,
     CallHierarchyItem,
@@ -337,7 +337,7 @@ export class CallHierarchyProviderImpl implements CallHierarchyProvider {
 
         return {
             ...this.getNameAndDetailForItem(true, item),
-            kind: symbolKindFromString(ts.ScriptElementKind.scriptElement),
+            kind: SymbolKind.Class,
             range: fileRange,
             selectionRange: fileRange,
             uri: pathToUrl(item.file)
