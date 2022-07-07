@@ -272,7 +272,7 @@ export const isReactiveStatement = nodeAndParentsSatisfyRespectivePredicates<ts.
 
 export const isInReactiveStatement = (node: ts.Node) => isSomeAncestor(node, isReactiveStatement);
 
-function gatherDescendants<T extends ts.Node>(
+export function gatherDescendants<T extends ts.Node>(
     node: ts.Node,
     predicate: NodePredicate | NodeTypePredicate<T>,
     dest: T[] = []

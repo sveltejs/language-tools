@@ -21,7 +21,9 @@ import {
     symbolKindFromString,
     toGeneratedSvelteComponentName
 } from '../utils';
-import { findContainingNode, findNodeAtSpan, SnapshotMap } from './utils';
+import { findContainingNode, findNodeAtSpan, gatherDescendants, SnapshotMap } from './utils';
+
+const ENSURE_COMPONENT_HELPER = '__sveltets_2_ensureComponent';
 
 export class CallHierarchyProviderImpl implements CallHierarchyProvider {
     constructor(
@@ -128,7 +130,21 @@ export class CallHierarchyProviderImpl implements CallHierarchyProvider {
             return null;
         }
 
-        const { lang, filePath, program, snapshots, offset } = prepareResult;
+        const {
+            lang,
+            filePath,
+            program,
+            snapshots,
+            isSvelteCompRange,
+            tsDoc,
+            getNonComponentOffset
+        } = prepareResult;
+
+        const componentExportOffset =
+            isSvelteCompRange && tsDoc instanceof SvelteDocumentSnapshot
+                ? offsetOfGeneratedComponentExport(tsDoc)
+                : -1;
+        const offset = componentExportOffset >= 0 ? componentExportOffset : getNonComponentOffset();
 
         let incomingCalls: ts.CallHierarchyIncomingCall[] = lang.provideCallHierarchyIncomingCalls(
             filePath,
@@ -174,13 +190,49 @@ export class CallHierarchyProviderImpl implements CallHierarchyProvider {
             return null;
         }
 
-        const { lang, filePath, program, snapshots, offset } = prepareResult;
+        const {
+            lang,
+            filePath,
+            program,
+            snapshots,
+            isSvelteCompRange,
+            tsDoc,
+            getNonComponentOffset
+        } = prepareResult;
 
-        const outgoingCalls = lang.provideCallHierarchyOutgoingCalls(filePath, offset);
+        const sourceFile = program?.getSourceFile(filePath);
+        const renderFunctionOffset =
+            isSvelteCompRange && tsDoc instanceof SvelteDocumentSnapshot && sourceFile
+                ? sourceFile.statements
+                      .find(
+                          (statement): statement is ts.FunctionDeclaration =>
+                              ts.isFunctionDeclaration(statement) &&
+                              statement.name?.getText() === 'render'
+                      )
+                      ?.name?.getStart()
+                : -1;
+        const offset =
+            renderFunctionOffset != null && renderFunctionOffset >= 0
+                ? renderFunctionOffset
+                : getNonComponentOffset();
+
+        let outgoingCalls = lang.provideCallHierarchyOutgoingCalls(filePath, offset);
+
+        if (isSvelteCompRange && this.configManager.getConfig().svelte.useNewTransformation) {
+            outgoingCalls = outgoingCalls.concat(
+                this.getOutgoingCallsForNewTransformationComponent(program, filePath) ?? []
+            );
+        }
 
         const result = await Promise.all(
             outgoingCalls.map(async (item): Promise<CallHierarchyOutgoingCall | null> => {
-                const snapshot = await snapshots.retrieve(item.to.file);
+                if (
+                    item.to.name.startsWith('__sveltets') ||
+                    item.to.containerName === 'svelteHTML'
+                ) {
+                    return null;
+                }
+
                 const to = await this.convertCallHierarchyItem(snapshots, item.to, program);
 
                 if (!to) {
@@ -188,12 +240,12 @@ export class CallHierarchyProviderImpl implements CallHierarchyProvider {
                 }
                 return {
                     to,
-                    fromRanges: this.convertFromRanges(snapshot, item.fromSpans)
+                    fromRanges: this.convertFromRanges(tsDoc, item.fromSpans)
                 };
             })
         );
 
-        return result.filter(isNotNullOrUndefined);
+        return result.filter(isNotNullOrUndefined).filter((item) => item.fromRanges.length);
     }
 
     private async prepareFurtherCalls(
@@ -221,16 +273,7 @@ export class CallHierarchyProviderImpl implements CallHierarchyProvider {
         const isSvelteCompRange =
             isSvelteFilePath(item.name) &&
             item.selectionRange.start.line === 0 &&
-            item.range.start.line === 0 &&
-            tsDoc instanceof SvelteDocumentSnapshot;
-        const componentExportOffset = isSvelteCompRange
-            ? offsetOfGeneratedComponentExport(tsDoc)
-            : -1;
-
-        const offset =
-            componentExportOffset >= 0
-                ? componentExportOffset
-                : tsDoc.offsetAt(tsDoc.getGeneratedPosition(item.selectionRange.start));
+            item.range.start.line === 0;
 
         return {
             snapshots,
@@ -238,7 +281,9 @@ export class CallHierarchyProviderImpl implements CallHierarchyProvider {
             program,
             tsDoc,
             lang,
-            offset
+            isSvelteCompRange,
+            getNonComponentOffset: () =>
+                tsDoc.offsetAt(tsDoc.getGeneratedPosition(item.selectionRange.start))
         };
     }
 
@@ -300,7 +345,9 @@ export class CallHierarchyProviderImpl implements CallHierarchyProvider {
     }
 
     private convertFromRanges(snapshot: DocumentSnapshot, spans: ts.TextSpan[]) {
-        return spans.map((item) => mapRangeToOriginal(snapshot, convertRange(snapshot, item)));
+        return spans
+            .map((item) => mapRangeToOriginal(snapshot, convertRange(snapshot, item)))
+            .filter((range) => range.start.line >= 0 && range.end.line >= 0);
     }
 
     private getInComingCallsForNewTransformationComponent(
@@ -308,7 +355,7 @@ export class CallHierarchyProviderImpl implements CallHierarchyProvider {
         program: ts.Program | undefined,
         filePath: string,
         offset: number
-    ): Array<ts.CallHierarchyIncomingCall & { isComponent: true }> | null {
+    ): ts.CallHierarchyIncomingCall[] | null {
         if (!program) {
             return null;
         }
@@ -328,7 +375,6 @@ export class CallHierarchyProviderImpl implements CallHierarchyProvider {
 
         return (
             groups?.map(([file, group]) => ({
-                isComponent: true,
                 from: {
                     file,
                     kind: ts.ScriptElementKind.scriptElement,
@@ -352,16 +398,79 @@ export class CallHierarchyProviderImpl implements CallHierarchyProvider {
             return null;
         }
 
-        const node = findNodeAtSpan(sourceFile, ref.textSpan);
+        const node = findNodeAtSpan(sourceFile, ref.textSpan, this.isComponentStartTag);
 
-        if (
-            node &&
-            ts.isCallExpression(node.parent) &&
-            node.parent.expression.getText() === '__sveltets_2_ensureComponent'
-        ) {
+        if (node) {
             return { node, ref };
         }
 
         return null;
+    }
+
+    private isComponentStartTag(node: ts.Node | undefined): node is ts.Identifier {
+        return (
+            !!node &&
+            node.parent &&
+            ts.isCallExpression(node.parent) &&
+            node.parent.expression.getText() === ENSURE_COMPONENT_HELPER &&
+            ts.isIdentifier(node) &&
+            node === node.parent.arguments[0]
+        );
+    }
+
+    private getOutgoingCallsForNewTransformationComponent(
+        program: ts.Program | undefined,
+        filePath: string
+    ): ts.CallHierarchyOutgoingCall[] | null {
+        const sourceFile = program?.getSourceFile(filePath);
+        if (!program || !sourceFile) {
+            return null;
+        }
+
+        const groups = new Map<ts.ClassDeclaration, ts.TextSpan[]>();
+
+        const startTags = gatherDescendants(sourceFile, this.isComponentStartTag);
+        const typeChecker = program.getTypeChecker();
+
+        for (const startTag of startTags) {
+            const type = typeChecker.getTypeAtLocation(startTag);
+            const symbol = type.aliasSymbol ?? type.symbol;
+            const declaration = symbol?.valueDeclaration ?? symbol?.declarations?.[0];
+
+            if (!declaration || !ts.isClassDeclaration(declaration)) {
+                continue;
+            }
+
+            let group = groups.get(declaration);
+
+            if (!group) {
+                group = [];
+                groups.set(declaration, group);
+            }
+
+            group.push({ start: startTag.getStart(), length: startTag.getWidth() });
+        }
+
+        return (
+            Array.from(groups).map(([declaration, group]) => {
+                const file = declaration.getSourceFile().fileName;
+                const name = declaration.name?.getText() ?? basename(file);
+                const span = { start: declaration.getStart(), length: declaration.getWidth() };
+                const selectionSpan = declaration.name
+                    ? { start: declaration.name.getStart(), length: declaration.name.getWidth() }
+                    : span;
+
+                return {
+                    to: {
+                        file,
+                        kind: ts.ScriptElementKind.classElement,
+                        name,
+                        selectionSpan,
+                        span
+                    },
+                    fromSpans: group
+                };
+            }) ?? null
+        );
     }
 }
