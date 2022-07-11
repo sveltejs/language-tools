@@ -11,3 +11,4 @@ abc();
 </script>
 {abc()}
 <Empty />
+<button on:click={e => handleClick(e)} />
