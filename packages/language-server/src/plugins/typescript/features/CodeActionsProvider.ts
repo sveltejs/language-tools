@@ -4,6 +4,7 @@ import {
     CodeAction,
     CodeActionContext,
     CodeActionKind,
+    Diagnostic,
     OptionalVersionedTextDocumentIdentifier,
     Range,
     TextDocumentEdit,
@@ -257,8 +258,19 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         const start = tsDoc.offsetAt(tsDoc.getGeneratedPosition(range.start));
         const end = tsDoc.offsetAt(tsDoc.getGeneratedPosition(range.end));
         const errorCodes: number[] = context.diagnostics.map((diag) => Number(diag.code));
-        let codeFixes = errorCodes.includes(2304) // "Cannot find name '...'."
-            ? this.getComponentImportQuickFix(start, end, lang, tsDoc.filePath, userPreferences)
+        const cannotFoundNameDiagnostic = context.diagnostics.filter(
+            (diagnostic) => diagnostic.code === 2304
+        ); // "Cannot find name '...'."
+
+        let codeFixes = cannotFoundNameDiagnostic.length
+            ? this.getComponentImportQuickFix(
+                  start,
+                  end,
+                  lang,
+                  tsDoc,
+                  userPreferences,
+                  cannotFoundNameDiagnostic
+              )
             : undefined;
         codeFixes =
             // either-or situation
@@ -373,10 +385,11 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         start: number,
         end: number,
         lang: ts.LanguageService,
-        filePath: string,
-        userPreferences: ts.UserPreferences
+        tsDoc: DocumentSnapshot,
+        userPreferences: ts.UserPreferences,
+        diagnostics: Diagnostic[]
     ): readonly ts.CodeFixAction[] | undefined {
-        const sourceFile = lang.getProgram()?.getSourceFile(filePath);
+        const sourceFile = lang.getProgram()?.getSourceFile(tsDoc.filePath);
 
         if (!sourceFile) {
             return;
@@ -402,9 +415,23 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         }
 
         const tagName = ts.isIdentifier(node) ? node : node.tagName;
+        const tagNameEnd = tagName.getEnd();
+        const tagNameEndOriginalPosition = tsDoc.offsetAt(
+            tsDoc.getOriginalPosition(tsDoc.positionAt(tagNameEnd))
+        );
+        const hasDiagnosticForTag = diagnostics.some(
+            ({ range }) =>
+                tsDoc.offsetAt(range.start) <= tagNameEndOriginalPosition &&
+                tagNameEndOriginalPosition <= tsDoc.offsetAt(range.end)
+        );
+
+        if (!hasDiagnosticForTag) {
+            return;
+        }
+
         const completion = lang.getCompletionsAtPosition(
-            filePath,
-            tagName.getEnd(),
+            tsDoc.filePath,
+            tagNameEnd,
             userPreferences
         );
 
@@ -420,7 +447,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         const toFix = (c: ts.CompletionEntry) =>
             lang
                 .getCompletionEntryDetails(
-                    filePath,
+                    tsDoc.filePath,
                     end,
                     c.name,
                     {},

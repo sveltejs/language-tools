@@ -212,6 +212,20 @@ function test(useNewTransformation: boolean) {
             ]);
         });
 
+        it("doesn't provide event completions inside attribute value", async () => {
+            const { completionProvider, document } = setup('component-events-completion.svelte');
+
+            const completions = await completionProvider.getCompletions(
+                document,
+                Position.create(5, 17),
+                {
+                    triggerKind: CompletionTriggerKind.Invoked
+                }
+            );
+
+            assert.deepStrictEqual(completions, null);
+        });
+
         it('provides event completions with correct text replacement span', async () => {
             const { completionProvider, document } = setup('component-events-completion.svelte');
 

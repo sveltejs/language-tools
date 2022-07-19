@@ -23,6 +23,7 @@ import {
     mapRangeToOriginal,
     toRange
 } from '../../../lib/documents';
+import { AttributeContext, getAttributeContextAtPosition } from '../../../lib/documents/parseHtml';
 import { LSConfigManager } from '../../../ls-config';
 import { flatten, getRegExpMatches, isNotNullOrUndefined, pathToUrl } from '../../../utils';
 import { AppCompletionItem, AppCompletionList, CompletionsProvider } from '../../interfaces';
@@ -165,9 +166,11 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         });
 
         const componentInfo = getComponentAtPosition(lang, document, tsDoc, position);
+        const attributeContext = componentInfo && getAttributeContextAtPosition(document, position);
         const eventAndSlotLetCompletions = this.getEventAndSlotLetCompletions(
             componentInfo,
             document,
+            attributeContext,
             wordRange
         );
 
@@ -217,17 +220,19 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         ) {
             // Very likely false global completions inside component start tag -> narrow
             const props =
-                componentInfo
-                    ?.getProps()
-                    .map((entry) =>
-                        this.componentInfoToCompletionEntry(
-                            entry,
-                            '',
-                            CompletionItemKind.Field,
-                            document,
-                            wordRange
-                        )
-                    ) || [];
+                (!attributeContext?.inValue &&
+                    componentInfo
+                        ?.getProps()
+                        .map((entry) =>
+                            this.componentInfoToCompletionEntry(
+                                entry,
+                                '',
+                                CompletionItemKind.Field,
+                                document,
+                                wordRange
+                            )
+                        )) ||
+                [];
             return CompletionList.create(
                 [...eventAndSlotLetCompletions, ...props],
                 !!tsDoc.parserError
@@ -293,9 +298,14 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
     private getEventAndSlotLetCompletions(
         componentInfo: ComponentInfoProvider | null,
         document: Document,
+        attributeContext: AttributeContext | null,
         wordRange: { start: number; end: number }
     ): Array<AppCompletionItem<CompletionEntryWithIdentifier>> {
         if (componentInfo === null) {
+            return [];
+        }
+
+        if (attributeContext?.inValue) {
             return [];
         }
 

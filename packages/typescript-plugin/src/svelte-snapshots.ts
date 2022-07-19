@@ -279,7 +279,11 @@ export class SvelteSnapshotManager {
 
     private patchProjectServiceReadFile() {
         const readFile = this.projectService.host.readFile;
-        this.projectService.host.readFile = (path: string) => {
+        this.projectService.host.readFile = (path: string, encoding?: string | undefined) => {
+            if (!this.configManager.getConfig().enable) {
+                return readFile(path, encoding);
+            }
+
             // The following (very hacky) first two checks make sure that the ambient module definitions
             // that tell TS "every import ending with .svelte is a valid module" are removed.
             // They exist in svelte2tsx and svelte to make sure that people don't
@@ -301,7 +305,7 @@ export class SvelteSnapshotManager {
                     ) +
                     originalText.substring(originalText.indexOf('// -- end svelte-ls-remove --'));
                 return originalText;
-            } else if (isSvelteFilePath(path) && this.configManager.getConfig().enable) {
+            } else if (isSvelteFilePath(path)) {
                 this.logger.debug('Read Svelte file:', path);
                 const svelteCode = readFile(path) || '';
                 try {
@@ -338,7 +342,7 @@ export class SvelteSnapshotManager {
                     return 'export default class extends Svelte2TsxComponent<any,any,any> {}';
                 }
             } else {
-                return readFile(path);
+                return readFile(path, encoding);
             }
         };
     }
