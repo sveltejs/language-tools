@@ -73,7 +73,7 @@ export interface FooSlots {
 export default class Foo extends SvelteComponentTyped<FooProps, FooEvents, FooSlots> {}
 ```
 
-SvelteKit's `package` command will give you these capabilities - transpiling and creating type definitions - out of the box: https://kit.svelte.dev/docs#packaging
+SvelteKit's `package` command will give you these capabilities - transpiling and creating type definitions - out of the box: https://kit.svelte.dev/docs/packaging
 
 ## Typing component events
 
