@@ -121,7 +121,7 @@ export class CallHierarchyProviderImpl implements CallHierarchyProvider {
         return { name, detail };
     }
 
-    async getInComingCalls(
+    async getIncomingCalls(
         previousItem: CallHierarchyItem,
         cancellationToken?: CancellationToken | undefined
     ): Promise<CallHierarchyIncomingCall[] | null> {
@@ -181,7 +181,7 @@ export class CallHierarchyProviderImpl implements CallHierarchyProvider {
         return result.filter(isNotNullOrUndefined);
     }
 
-    async getOutComingCalls(
+    async getOutgoingCalls(
         previousItem: CallHierarchyItem,
         cancellationToken?: CancellationToken | undefined
     ): Promise<CallHierarchyOutgoingCall[] | null> {

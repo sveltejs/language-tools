@@ -566,18 +566,18 @@ export class TypeScriptPlugin
         );
     }
 
-    getInComingCalls(
+    getIncomingCalls(
         item: CallHierarchyItem,
         cancellationToken?: CancellationToken | undefined
     ): Promise<CallHierarchyIncomingCall[] | null> {
-        return this.callHierarchyProvider.getInComingCalls(item, cancellationToken);
+        return this.callHierarchyProvider.getIncomingCalls(item, cancellationToken);
     }
 
-    async getOutComingCalls(
+    async getOutgoingCalls(
         item: CallHierarchyItem,
         cancellationToken?: CancellationToken | undefined
     ): Promise<CallHierarchyOutgoingCall[] | null> {
-        return this.callHierarchyProvider.getOutComingCalls(item, cancellationToken);
+        return this.callHierarchyProvider.getOutgoingCalls(item, cancellationToken);
     }
 
     private async getLSAndTSDoc(document: Document) {

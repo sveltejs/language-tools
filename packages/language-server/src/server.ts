@@ -435,12 +435,12 @@ export function startServer(options?: LSOptions) {
 
     connection.onRequest(
         CallHierarchyIncomingCallsRequest.type,
-        async (evt, token) => await pluginHost.getInComingCalls(evt.item, token)
+        async (evt, token) => await pluginHost.getIncomingCalls(evt.item, token)
     );
 
     connection.onRequest(
         CallHierarchyOutgoingCallsRequest.type,
-        async (evt, token) => await pluginHost.getOutComingCalls(evt.item, token)
+        async (evt, token) => await pluginHost.getOutgoingCalls(evt.item, token)
     );
 
     docManager.on(

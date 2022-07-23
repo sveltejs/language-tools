@@ -529,24 +529,24 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         );
     }
 
-    getInComingCalls(
+    getIncomingCalls(
         item: CallHierarchyItem,
         cancellationToken?: CancellationToken | undefined
     ): Promise<CallHierarchyIncomingCall[] | null> {
         return this.execute<CallHierarchyIncomingCall[] | null>(
-            'getInComingCalls',
+            'getIncomingCalls',
             [item, cancellationToken],
             ExecuteMode.FirstNonNull,
             'high'
         );
     }
 
-    getOutComingCalls(
+    getOutgoingCalls(
         item: CallHierarchyItem,
         cancellationToken?: CancellationToken | undefined
     ): Promise<CallHierarchyOutgoingCall[] | null> {
         return this.execute<CallHierarchyOutgoingCall[] | null>(
-            'getOutComingCalls',
+            'getOutgoingCalls',
             [item, cancellationToken],
             ExecuteMode.FirstNonNull,
             'high'

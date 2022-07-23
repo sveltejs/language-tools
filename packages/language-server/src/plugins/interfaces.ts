@@ -192,12 +192,12 @@ export interface CallHierarchyProvider {
         position: Position
     ): Resolvable<CallHierarchyItem[] | null>;
 
-    getInComingCalls(
+    getIncomingCalls(
         item: CallHierarchyItem,
         cancellationToken?: CancellationToken
     ): Resolvable<CallHierarchyIncomingCall[] | null>;
 
-    getOutComingCalls(
+    getOutgoingCalls(
         item: CallHierarchyItem,
         cancellationToken?: CancellationToken
     ): Resolvable<CallHierarchyOutgoingCall[] | null>;
