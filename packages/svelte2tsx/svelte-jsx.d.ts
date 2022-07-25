@@ -888,6 +888,7 @@ declare namespace svelte.JSX {
       autosave?: string | undefined | null;
       color?: string | undefined | null;
       controlslist?: 'nodownload' | 'nofullscreen' | 'noplaybackrate' | 'noremoteplayback';
+      inert?: boolean | undefined | null;
       itemprop?: string | undefined | null;
       itemscope?: boolean | undefined | null;
       itemtype?: string | undefined | null;
