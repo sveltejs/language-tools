@@ -455,13 +455,12 @@ export class TypeScriptPlugin
         for (const { fileName, changeType } of onWatchFileChangesParas) {
             const pathParts = fileName.split(/\/|\\/);
             const dirPathParts = pathParts.slice(0, pathParts.length - 1);
-            const inIgnoredBuildDirectory = ignoredBuildDirectories.some((dir) => {
-                const index = dirPathParts.indexOf(dir);
+            const declarationExtensions = [ts.Extension.Dcts, ts.Extension.Dts, ts.Extension.Dmts];
+            const canSafelyIgnore =
+                declarationExtensions.every((ext) => !fileName.endsWith(ext)) &&
+                ignoredBuildDirectories.some((dir) => dirPathParts.includes(dir));
 
-                return index > 0 && (dir !== '.svelte-kit' || dirPathParts[index + 1] !== 'types');
-            });
-
-            if (inIgnoredBuildDirectory) {
+            if (canSafelyIgnore) {
                 continue;
             }
 

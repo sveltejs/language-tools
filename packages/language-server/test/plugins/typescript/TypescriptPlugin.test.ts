@@ -940,8 +940,8 @@ function test(useNewTransformation: boolean) {
             }
         });
 
-        it('should add snapshot when files added to .svelte-kit/types', async () => {
-            await testForOnWatchedFileAdd(path.join('.svelte-kit', 'types', 'index.d.ts'), true);
+        it('should add declaration file snapshot when added to known build directory', async () => {
+            await testForOnWatchedFileAdd(path.join('.svelte-kit', 'ambient.d.ts'), true);
         });
 
         it('should update ts/js file after document change', async () => {
