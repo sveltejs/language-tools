@@ -455,7 +455,12 @@ export class TypeScriptPlugin
         for (const { fileName, changeType } of onWatchFileChangesParas) {
             const pathParts = fileName.split(/\/|\\/);
             const dirPathParts = pathParts.slice(0, pathParts.length - 1);
-            if (ignoredBuildDirectories.some((dir) => dirPathParts.includes(dir))) {
+            const declarationExtensions = [ts.Extension.Dcts, ts.Extension.Dts, ts.Extension.Dmts];
+            const canSafelyIgnore =
+                declarationExtensions.every((ext) => !fileName.endsWith(ext)) &&
+                ignoredBuildDirectories.some((dir) => dirPathParts.includes(dir));
+
+            if (canSafelyIgnore) {
                 continue;
             }
 
