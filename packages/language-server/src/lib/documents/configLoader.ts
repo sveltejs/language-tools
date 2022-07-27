@@ -22,6 +22,7 @@ export interface SvelteConfig {
     compilerOptions?: CompileOptions;
     preprocess?: InternalPreprocessorGroup | InternalPreprocessorGroup[];
     loadConfigError?: any;
+    isFallbackConfig?: boolean;
 }
 
 const DEFAULT_OPTIONS: CompileOptions = {
@@ -257,7 +258,8 @@ export class ConfigLoader {
                     transpileOnly: true,
                     compilerOptions: { sourceMap: true, inlineSourceMap: false }
                 }
-            })
+            }),
+            isFallbackConfig: true
         };
     }
 }
