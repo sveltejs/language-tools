@@ -91,7 +91,10 @@ async function createParserErrorDiagnostic(error: any, document: Document) {
             document.scriptInfo || document.moduleScriptInfo
         );
 
-        if (!document.config?.preprocess && document.getText().includes('lang="')) {
+        if (
+            (!document.config?.preprocess || document.config.isFallbackConfig) &&
+            document.hasLanguageAttribute()
+        ) {
             Logger.error(
                 `Parsing ${document.getFilePath()} failed. No preprocess config found but lang tag exists. Skip showing error because they likely use other preprocessors.`
             );
