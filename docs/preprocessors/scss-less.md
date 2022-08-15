@@ -81,7 +81,23 @@ The `node-sass` package is very sensitive to node versions. It may be possible t
 
 ### SCSS: Using `includePaths` does not work
 
-If you use `includePaths` with relative paths, those paths will be resolved relative to the node process, not relative to the config file. So if you `svelte.config.js` is within `frontend`, the path `theme` will _NOT_ resolve to `frontend/theme` but to `<node process root>/theme` (which might be the same as `frontend`). To ensure it always resolves relative to the config file, do this (assuming a CJS-style config):
+If you use `includePaths` with relative paths, those paths will be resolved relative to the node process, not relative to the config file. So if you `svelte.config.js` is within `frontend`, the path `theme` will _NOT_ resolve to `frontend/theme` but to `<node process root>/theme` (which might be the same as `frontend`). To ensure it always resolves relative to the config file, do this:
+
+ESM-style:
+
+```js
+import sveltePreprocess from 'svelte-preprocess';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = dirname(fileURLToPath());
+
+export default {
+    preprocess: sveltePreprocess({ includePaths: [join(__dirname, 'relative/path')] })
+};
+```
+
+CJS-style:
 
 ```js
 const sveltePreprocess = require('svelte-preprocess');
@@ -89,5 +105,38 @@ const path = require('path');
 
 module.exports = {
     preprocess: sveltePreprocess({ includePaths: [path.join(__dirname, 'relative/path')] })
+};
+```
+
+### SCSS: Can't found stylesheet when using `prependData`
+
+Same the problem with the `includePaths`, the prependData option also has to be resolved relative to the node process.
+
+ESM-style:
+
+```js
+import sveltePreprocess from 'svelte-preprocess';
+import { dirname } from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = dirname(fileURLToPath());
+
+export default {
+    preprocess: sveltePreprocess({
+        prependData: `@import '${join(__dirname, 'src/to/variable.scss').replace(/\\/g, '/')}';`
+    })
+};
+```
+
+CJS-style:
+
+```js
+const sveltePreprocess = require('svelte-preprocess');
+const path = require('path');
+
+module.exports = {
+    preprocess: sveltePreprocess({
+        prependData: `@import '${join(__dirname, 'src/to/variable.scss').replace(/\\/g, '/')}';`
+    })
 };
 ```
