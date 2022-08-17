@@ -23,6 +23,7 @@ export interface SvelteConfig {
     preprocess?: InternalPreprocessorGroup | InternalPreprocessorGroup[];
     loadConfigError?: any;
     isFallbackConfig?: boolean;
+    kit?: any;
 }
 
 const DEFAULT_OPTIONS: CompileOptions = {
