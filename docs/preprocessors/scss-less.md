@@ -108,9 +108,9 @@ module.exports = {
 };
 ```
 
-### SCSS: Can't found stylesheet when using `prependData`
+### SCSS: Can't find stylesheet when using `prependData`
 
-Same the problem with the `includePaths`, the prependData option also has to be resolved relative to the node process.
+Same as the problem with the `includePaths`, the prependData option also has to be resolved relative to the node process.
 
 ESM-style:
 
