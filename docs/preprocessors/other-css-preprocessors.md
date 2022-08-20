@@ -25,7 +25,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 export default {
     preprocess: sveltePreprocess({
         postcss: {
-	        configFilePath: join(__dirname, 'postcss.config.cjs')
+            configFilePath: join(__dirname, 'postcss.config.cjs')
         }
     })
 };
@@ -45,14 +45,12 @@ To use TailwindCSS with the VSCode extension:
 4. If your `tailwind.config.js` is not in the workspace root. Or if your project is not in the workspace root. Make sure you pass in the path to your tailwind config file in your `postcss` [config file](https://github.com/postcss/postcss-load-config#postcssrcjs-or-postcssconfigjs).
 
 ```js
-const path = require('path')
-const tailwindcss = require('tailwindcss')
+const path = require('path');
+const tailwindcss = require('tailwindcss');
 
 module.exports = {
-  plugins: [
-    tailwindcss(path.resolve(__dirname, './tailwind.config.cjs')),
-  ]
-}
+    plugins: [tailwindcss(path.resolve(__dirname, './tailwind.config.cjs'))]
+};
 ```
 
 ## SASS
