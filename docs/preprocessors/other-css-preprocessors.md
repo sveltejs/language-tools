@@ -13,7 +13,7 @@ export default { preprocess: sveltePreprocess({ postcss: true }) };
 
 Note that this assumes that you have a ESM-style project, which means there's `"type": "module"` in your project's `package.json`. If not, you need to use CommonJS in your `svelte.config.js`, things like `import ...` or `export const ...` are not allowed. You then also switch the `postcss.config` `cjs` file ending to `js`.
 
-And if your `svelte.config.js` is not in the workspace root. Like if you `svelte.config.js` is within `/frontend`. The `configFilePath` config should be passed. You'll have to pass in the `configFilePath` config. This is because the relative path is resolved relative to the working directory of the node process.
+And if your `svelte.config.js` is not in the workspace root. Like if you `svelte.config.js` is within `/frontend`. You'll have to pass in the `configFilePath` config. This is because the relative path is resolved relative to the working directory of the node process.
 
 ```js
 import sveltePreprocess from 'svelte-preprocess';
