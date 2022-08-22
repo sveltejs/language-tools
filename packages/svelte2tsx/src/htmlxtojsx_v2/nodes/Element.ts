@@ -104,10 +104,6 @@ export class Element {
                 break;
             }
             case 'slot': {
-                // If the element is a <slot> tag, create the element with the createSlot-function
-                // which is created inside createRenderFunction.ts to check that the name and attributes
-                // of the slot tag are correct. The check will error if the user defined $$Slots
-                // and the slot definition or its attributes contradict that type definition.
                 this._name = '$$_slot' + this.computeDepth();
                 break;
             }
@@ -248,6 +244,7 @@ export class Element {
             }
         };
 
+        let createElementStatement: TransformationArray;
         switch (this.node.name) {
             // Although not everything that is possible to add to Element
             // is valid on the special svelte elements,
@@ -258,15 +255,8 @@ export class Element {
             case 'svelte:window':
             case 'svelte:body':
             case 'svelte:fragment': {
-                if (!this.referencedName) {
-                    return [`{ ${createElement}("${this.node.name}"${addActions()}, {`];
-                } else {
-                    return [
-                        `{ const ${this._name} = ${createElement}("${
-                            this.node.name
-                        }"${addActions()}, {`
-                    ];
-                }
+                createElementStatement = [`${createElement}("${this.node.name}"${addActions()}, {`];
+                break;
             }
             case 'svelte:element': {
                 const nodeName = this.node.tag
@@ -274,15 +264,8 @@ export class Element {
                         ? ([this.node.tag.start, this.node.tag.end] as [number, number])
                         : `"${this.node.tag}"`
                     : '""';
-                if (!this.referencedName) {
-                    return [`{ ${createElement}(`, nodeName, `${addActions()}, {`];
-                } else {
-                    return [
-                        `{ const ${this._name} = ${createElement}(`,
-                        nodeName,
-                        `${addActions()}, {`
-                    ];
-                }
+                createElementStatement = [`${createElement}(`, nodeName, `${addActions()}, {`];
+                break;
             }
             case 'slot': {
                 // If the element is a <slot> tag, create the element with the createSlot-function
@@ -292,40 +275,30 @@ export class Element {
                 const slotName =
                     this.node.attributes?.find((a: BaseNode) => a.name === 'name')?.value[0] ||
                     'default';
-                if (!this.referencedName) {
-                    return [
-                        '{ __sveltets_createSlot(',
-                        typeof slotName === 'string'
-                            ? `"${slotName}"`
-                            : surroundWith(this.str, [slotName.start, slotName.end], '"', '"'),
-                        ', {'
-                    ];
-                } else {
-                    return [
-                        `{ const ${this._name} = __sveltets_createSlot(`,
-                        typeof slotName === 'string'
-                            ? `"${slotName}"`
-                            : surroundWith(this.str, [slotName.start, slotName.end], '"', '"'),
-                        ', {'
-                    ];
-                }
+                createElementStatement = [
+                    '__sveltets_createSlot(',
+                    typeof slotName === 'string'
+                        ? `"${slotName}"`
+                        : surroundWith(this.str, [slotName.start, slotName.end], '"', '"'),
+                    ', {'
+                ];
+                break;
             }
             default: {
-                if (!this.referencedName) {
-                    return [
-                        `{ ${createElement}("`,
-                        [this.node.start + 1, this.node.start + 1 + this.node.name.length],
-                        `"${addActions()}, {`
-                    ];
-                } else {
-                    return [
-                        `{ const ${this._name} = ${createElement}("`,
-                        [this.node.start + 1, this.node.start + 1 + this.node.name.length],
-                        `"${addActions()}, {`
-                    ];
-                }
+                createElementStatement = [
+                    `${createElement}("`,
+                    [this.node.start + 1, this.node.start + 1 + this.node.name.length],
+                    `"${addActions()}, {`
+                ];
+                break;
             }
         }
+
+        if (this.referencedName) {
+            createElementStatement[0] = `const ${this._name} = ` + createElementStatement[0];
+        }
+        createElementStatement[0] = `{ ${createElementStatement[0]}`;
+        return createElementStatement;
     }
 
     private computeStartTagEnd() {
