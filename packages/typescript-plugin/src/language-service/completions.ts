@@ -1,3 +1,4 @@
+import { basename, dirname } from 'path';
 import type ts from 'typescript/lib/tsserverlibrary';
 import { Logger } from '../logger';
 import { isSvelteFilePath, replaceDeep } from '../utils';
@@ -38,7 +39,28 @@ export function decorateCompletions(ls: ts.LanguageService, logger: Logger): voi
         preferences,
         data
     ) => {
-        const details = getCompletionEntryDetails(
+        let is$typeImport = false;
+        const originalSource = source;
+        const originalData = data ? { ...data } : undefined;
+        if (basename(fileName).startsWith('+') && source?.includes('.svelte-kit/types')) {
+            // resolve path from FileName to svelte-kit/types
+            // src/routes/foo/+page.svelte -> .svelte-kit/types/foo/$types.d.ts
+            const routesFolder = 'src/routes'; // TODO somehow get access to kit.files.routes in here
+            const relativeFileName = fileName.split(routesFolder)[1]?.slice(1);
+            if (relativeFileName) {
+                is$typeImport = true;
+                source =
+                    source.split('.svelte-kit/types')[0] +
+                    // note the missing .d.ts at the end - TS wants it that way for some reason
+                    `.svelte-kit/types/${routesFolder}/${dirname(relativeFileName)}/$types`;
+                if (data) {
+                    data.fileName = data.fileName?.replace(originalSource!, source);
+                    data.moduleSpecifier = data.moduleSpecifier?.replace(originalSource!, source);
+                }
+            }
+        }
+
+        let details = getCompletionEntryDetails(
             fileName,
             position,
             entryName,
@@ -47,8 +69,35 @@ export function decorateCompletions(ls: ts.LanguageService, logger: Logger): voi
             preferences,
             data
         );
+        if (!details && is$typeImport) {
+            // Try again
+            is$typeImport = false;
+            details = getCompletionEntryDetails(
+                fileName,
+                position,
+                entryName,
+                formatOptions,
+                originalSource,
+                preferences,
+                originalData
+            );
+        }
+
         if (details) {
-            if (isSvelteFilePath(source || '')) {
+            if (is$typeImport) {
+                details.codeActions = details.codeActions?.map((codeAction) => {
+                    codeAction.description = adjustPath(codeAction.description);
+                    codeAction.changes = codeAction.changes.map((change) => {
+                        change.textChanges = change.textChanges.map((textChange) => {
+                            textChange.newText = adjustPath(textChange.newText);
+                            return textChange;
+                        });
+                        return change;
+                    });
+                    return codeAction;
+                });
+                return details;
+            } else if (isSvelteFilePath(source || '')) {
                 logger.debug('TS found Svelte Component import completion details');
                 return replaceDeep(details, componentPostfix, '');
             } else {
@@ -78,4 +127,12 @@ export function decorateCompletions(ls: ts.LanguageService, logger: Logger): voi
 
         return replaceDeep(svelteDetails, componentPostfix, '');
     };
+}
+
+function adjustPath(path: string) {
+    return path.replace(
+        /(['"])(.+?)['"]/,
+        // .js logic for node16 module resolution
+        (_match, quote, path) => `${quote}./$types${path.endsWith('.js') ? '.js' : ''}${quote}`
+    );
 }

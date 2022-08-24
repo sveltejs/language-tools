@@ -1,3 +1,4 @@
+import { basename, dirname } from 'path';
 import ts from 'typescript';
 import {
     CancellationToken,
@@ -521,7 +522,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         completionItem: AppCompletionItem<CompletionEntryWithIdentifier>,
         cancellationToken?: CancellationToken
     ): Promise<AppCompletionItem<CompletionEntryWithIdentifier>> {
-        const { data: comp } = completionItem;
+        let { data: comp } = completionItem;
         const { tsDoc, lang, userPreferences } = await this.lsAndTsDocResolver.getLSAndTSDoc(
             document
         );
@@ -536,21 +537,45 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             ? this.fixUserPreferencesForSvelteComponentImport(userPreferences)
             : userPreferences;
 
-        const formatCodeOptions = await this.configManager.getFormatCodeSettingsForFile(document);
+        let is$typeImport = false;
+        const originalComp = { ...comp };
+        if (basename(filePath).startsWith('+') && comp.source?.includes('.svelte-kit/types')) {
+            // resolve path from filePath to svelte-kit/types
+            // src/routes/foo/+page.svelte -> .svelte-kit/types/foo/$types.d.ts
+            const routesFolder = document.config?.kit?.files?.routes || 'src/routes';
+            const relativeFilePath = filePath.split(routesFolder)[1]?.slice(1);
+            if (relativeFilePath) {
+                is$typeImport = true;
+                comp.source =
+                    comp.source.split('.svelte-kit/types')[0] +
+                    // note the missing .d.ts at the end - TS wants it that way for some reason
+                    `.svelte-kit/types/${routesFolder}/${dirname(relativeFilePath)}/$types`;
+                comp.data = undefined;
+            }
+        }
 
-        const detail = lang.getCompletionEntryDetails(
-            filePath,
-            tsDoc.offsetAt(tsDoc.getGeneratedPosition(comp.position)),
-            comp.name,
-            formatCodeOptions,
-            comp.source,
-            errorPreventingUserPreferences,
-            comp.data
-        );
+        const formatCodeOptions = await this.configManager.getFormatCodeSettingsForFile(document);
+        const getDetail = () =>
+            lang.getCompletionEntryDetails(
+                filePath,
+                tsDoc.offsetAt(tsDoc.getGeneratedPosition(comp!.position)),
+                comp!.name,
+                formatCodeOptions,
+                comp!.source,
+                errorPreventingUserPreferences,
+                comp!.data
+            );
+        let detail = getDetail();
+        if (!detail && is$typeImport) {
+            // try again
+            is$typeImport = false;
+            comp = originalComp;
+            detail = getDetail();
+        }
 
         if (detail) {
             const { detail: itemDetail, documentation: itemDocumentation } =
-                this.getCompletionDocument(detail);
+                this.getCompletionDocument(detail, is$typeImport);
 
             completionItem.detail = itemDetail;
             completionItem.documentation = itemDocumentation;
@@ -570,7 +595,8 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
                             tsDoc,
                             change,
                             isImport,
-                            comp.position
+                            comp.position,
+                            is$typeImport
                         )
                     );
                 }
@@ -584,12 +610,16 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         return completionItem;
     }
 
-    private getCompletionDocument(compDetail: ts.CompletionEntryDetails) {
+    private getCompletionDocument(compDetail: ts.CompletionEntryDetails, is$typeImport: boolean) {
         const { sourceDisplay, documentation: tsDocumentation, displayParts, tags } = compDetail;
         let detail: string = changeSvelteComponentName(ts.displayPartsToString(displayParts));
 
         if (sourceDisplay) {
-            const importPath = ts.displayPartsToString(sourceDisplay);
+            let importPath = ts.displayPartsToString(sourceDisplay);
+            if (is$typeImport) {
+                // Take into account Node16 moduleResolution
+                importPath = `'./$types${importPath.endsWith('.js') ? '.js' : ''}'`;
+            }
             detail = `Auto import from ${importPath}\n${detail}`;
         }
 
@@ -609,7 +639,8 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         snapshot: SvelteDocumentSnapshot,
         changes: ts.FileTextChanges,
         isImport: boolean,
-        originalTriggerPosition: Position
+        originalTriggerPosition: Position,
+        is$typeImport?: boolean
     ): TextEdit[] {
         return changes.textChanges.map((change) =>
             this.codeActionChangeToTextEdit(
@@ -617,7 +648,8 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
                 snapshot,
                 change,
                 isImport,
-                originalTriggerPosition
+                originalTriggerPosition,
+                is$typeImport
             )
         );
     }
@@ -627,11 +659,13 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         snapshot: SvelteDocumentSnapshot,
         change: ts.TextChange,
         isImport: boolean,
-        originalTriggerPosition: Position
+        originalTriggerPosition: Position,
+        is$typeImport?: boolean
     ): TextEdit {
         change.newText = this.changeComponentImport(
             change.newText,
-            isInScript(originalTriggerPosition, doc)
+            isInScript(originalTriggerPosition, doc),
+            is$typeImport
         );
 
         const scriptTagInfo = snapshot.scriptInfo || snapshot.moduleScriptInfo;
@@ -709,7 +743,19 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         return className.endsWith('__SvelteComponent_');
     }
 
-    private changeComponentImport(importText: string, actionTriggeredInScript: boolean) {
+    private changeComponentImport(
+        importText: string,
+        actionTriggeredInScript: boolean,
+        is$typeImport?: boolean
+    ) {
+        if (is$typeImport && importText.startsWith('import ')) {
+            // Take into account Node16 moduleResolution
+            return importText.replace(
+                /(['"])(.+?)['"]/,
+                (_match, quote, path) =>
+                    `${quote}./$types${path.endsWith('.js') ? '.js' : ''}${quote}`
+            );
+        }
         const changedName = changeSvelteComponentName(importText);
         if (importText !== changedName || !actionTriggeredInScript) {
             // For some reason, TS sometimes adds the `type` modifier. Remove it
