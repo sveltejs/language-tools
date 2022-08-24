@@ -177,15 +177,21 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             return CompletionList.create(eventAndSlotLetCompletions, !!tsDoc.parserError);
         }
 
+        const formatSettings = await this.configManager.getFormatCodeSettingsForFile(document);
         if (cancellationToken?.isCancellationRequested) {
             return null;
         }
 
         let completions =
-            lang.getCompletionsAtPosition(filePath, offset, {
-                ...userPreferences,
-                triggerCharacter: validTriggerCharacter
-            })?.entries || [];
+            lang.getCompletionsAtPosition(
+                filePath,
+                offset,
+                {
+                    ...userPreferences,
+                    triggerCharacter: validTriggerCharacter
+                },
+                formatSettings
+            )?.entries || [];
 
         if (!completions.length) {
             completions =
@@ -530,11 +536,13 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             ? this.fixUserPreferencesForSvelteComponentImport(userPreferences)
             : userPreferences;
 
+        const formatCodeOptions = await this.configManager.getFormatCodeSettingsForFile(document);
+
         const detail = lang.getCompletionEntryDetails(
             filePath,
             tsDoc.offsetAt(tsDoc.getGeneratedPosition(comp.position)),
             comp.name,
-            {},
+            formatCodeOptions,
             comp.source,
             errorPreventingUserPreferences,
             comp.data

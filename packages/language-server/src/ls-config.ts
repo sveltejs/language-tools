@@ -1,6 +1,8 @@
 import { get, merge } from 'lodash';
-import { UserPreferences } from 'typescript';
+import ts from 'typescript';
 import { VSCodeEmmetConfig } from 'vscode-emmet-helper';
+import { importPrettier } from './importPackage';
+import { Document } from './lib/documents';
 import { returnObjectIfHasKeys } from './utils';
 
 /**
@@ -203,13 +205,13 @@ export interface TSUserConfig {
  * are transformed to ts.UserPreferences.
  */
 export interface TsUserPreferencesConfig {
-    importModuleSpecifier: UserPreferences['importModuleSpecifierPreference'];
-    importModuleSpecifierEnding: UserPreferences['importModuleSpecifierEnding'];
-    quoteStyle: UserPreferences['quotePreference'];
+    importModuleSpecifier: ts.UserPreferences['importModuleSpecifierPreference'];
+    importModuleSpecifierEnding: ts.UserPreferences['importModuleSpecifierEnding'];
+    quoteStyle: ts.UserPreferences['quotePreference'];
     /**
      * only in typescript config
      */
-    includePackageJsonAutoImports?: UserPreferences['includePackageJsonAutoImports'];
+    includePackageJsonAutoImports?: ts.UserPreferences['includePackageJsonAutoImports'];
 }
 
 /**
@@ -217,7 +219,7 @@ export interface TsUserPreferencesConfig {
  * are transformed to ts.UserPreferences.
  */
 export interface TSSuggestConfig {
-    autoImports: UserPreferences['includeCompletionsForModuleExports'];
+    autoImports: ts.UserPreferences['includeCompletionsForModuleExports'];
     includeAutomaticOptionalChainCompletions: boolean | undefined;
     includeCompletionsForImportStatements: boolean | undefined;
 }
@@ -243,7 +245,7 @@ type DeepPartial<T> = T extends CompilerWarningsSettings
 export class LSConfigManager {
     private config: LSConfig = defaultLSConfig;
     private listeners: Array<(config: LSConfigManager) => void> = [];
-    private tsUserPreferences: Record<TsUserConfigLang, UserPreferences> = {
+    private tsUserPreferences: Record<TsUserConfigLang, ts.UserPreferences> = {
         typescript: {
             includeCompletionsForModuleExports: true,
             includeCompletionsForImportStatements: true,
@@ -419,6 +421,62 @@ export class LSConfigManager {
 
     getLessConfig(): CssConfig | undefined {
         return this.lessConfig;
+    }
+
+    async getFormatCodeSettingsForFile(document: Document): Promise<ts.FormatCodeSettings> {
+        const defaultConfig: ts.FormatCodeSettings = {
+            indentSize: 4,
+            tabSize: 4,
+            convertTabsToSpaces: true,
+            indentStyle: ts.IndentStyle.Smart,
+            insertSpaceAfterConstructor: false,
+            insertSpaceAfterCommaDelimiter: true,
+            insertSpaceAfterSemicolonInForStatements: true,
+            insertSpaceBeforeAndAfterBinaryOperators: true,
+            insertSpaceAfterKeywordsInControlFlowStatements: true,
+            insertSpaceAfterFunctionKeywordForAnonymousFunctions: false,
+            insertSpaceAfterOpeningAndBeforeClosingNonemptyParenthesis: false,
+            insertSpaceAfterOpeningAndBeforeClosingNonemptyBrackets: false,
+            insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces: true,
+            insertSpaceAfterOpeningAndBeforeClosingTemplateStringBraces: false,
+            insertSpaceAfterOpeningAndBeforeClosingJsxExpressionBraces: false,
+            insertSpaceBeforeFunctionParenthesis: false,
+            placeOpenBraceOnNewLineForFunctions: false,
+            placeOpenBraceOnNewLineForControlBlocks: false,
+            trimTrailingWhitespace: true,
+            semicolons: ts.SemicolonPreference.Ignore
+        };
+
+        const filePath = document.getFilePath();
+
+        if (!filePath) {
+            return defaultConfig;
+        }
+
+        const prettierConfig = this.getMergedPrettierConfig(
+            await importPrettier(filePath).resolveConfig(filePath, {
+                editorconfig: true
+            })
+        );
+        const useSemicolons = prettierConfig.semi ?? true;
+        const documentUseLf =
+            document.getText().includes('\n') && !document.getText().includes('\r\n');
+
+        const indentSize =
+            (typeof prettierConfig.tabWidth === 'number' ? prettierConfig.tabWidth : null) ??
+            defaultConfig.tabSize;
+
+        return {
+            ...defaultConfig,
+
+            newLineCharacter: documentUseLf ? '\n' : ts.sys.newLine,
+            baseIndentSize: prettierConfig.svelteIndentScriptAndStyle === false ? 0 : indentSize,
+            indentSize,
+            convertTabsToSpaces: !prettierConfig.useTabs,
+            semicolons: useSemicolons
+                ? ts.SemicolonPreference.Insert
+                : ts.SemicolonPreference.Remove
+        };
     }
 }
 

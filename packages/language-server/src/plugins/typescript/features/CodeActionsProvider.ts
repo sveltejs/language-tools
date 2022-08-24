@@ -11,7 +11,6 @@ import {
     TextEdit,
     WorkspaceEdit
 } from 'vscode-languageserver';
-import { importPrettier } from '../../../importPackage';
 import {
     Document,
     getLineAtPosition,
@@ -110,18 +109,6 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             return [];
         }
 
-        const useSemicolons =
-            this.configManager.getMergedPrettierConfig(
-                await importPrettier(document.getFilePath()!).resolveConfig(
-                    document.getFilePath()!,
-                    {
-                        editorconfig: true
-                    }
-                )
-            ).semi ?? true;
-        const documentUseLf =
-            document.getText().includes('\n') && !document.getText().includes('\r\n');
-
         const changes = lang.organizeImports(
             {
                 fileName: tsDoc.filePath,
@@ -129,10 +116,10 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                 skipDestructiveCodeActions
             },
             {
-                newLineCharacter: documentUseLf ? '\n' : ts.sys.newLine,
-                semicolons: useSemicolons
-                    ? ts.SemicolonPreference.Insert
-                    : ts.SemicolonPreference.Remove
+                ...(await this.configManager.getFormatCodeSettingsForFile(document)),
+
+                // handle it on our own
+                baseIndentSize: undefined
             },
             userPreferences
         );
@@ -262,6 +249,8 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             (diagnostic) => diagnostic.code === 2304
         ); // "Cannot find name '...'."
 
+        const formatCodeSettings = await this.configManager.getFormatCodeSettingsForFile(document);
+
         let codeFixes = cannotFoundNameDiagnostic.length
             ? this.getComponentImportQuickFix(
                   start,
@@ -269,7 +258,8 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                   lang,
                   tsDoc,
                   userPreferences,
-                  cannotFoundNameDiagnostic
+                  cannotFoundNameDiagnostic,
+                  formatCodeSettings
               )
             : undefined;
         codeFixes =
@@ -280,7 +270,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                 start,
                 end,
                 errorCodes,
-                {},
+                formatCodeSettings,
                 userPreferences
             );
 
@@ -387,7 +377,8 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         lang: ts.LanguageService,
         tsDoc: DocumentSnapshot,
         userPreferences: ts.UserPreferences,
-        diagnostics: Diagnostic[]
+        diagnostics: Diagnostic[],
+        formatCodeSetting: ts.FormatCodeSettings
     ): readonly ts.CodeFixAction[] | undefined {
         const sourceFile = lang.getProgram()?.getSourceFile(tsDoc.filePath);
 
@@ -432,7 +423,8 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         const completion = lang.getCompletionsAtPosition(
             tsDoc.filePath,
             tagNameEnd,
-            userPreferences
+            userPreferences,
+            formatCodeSetting
         );
 
         if (!completion) {
@@ -450,7 +442,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                     tsDoc.filePath,
                     end,
                     c.name,
-                    {},
+                    formatCodeSetting,
                     c.source,
                     errorPreventingUserPreferences,
                     c.data
