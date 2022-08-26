@@ -23,8 +23,11 @@ describe('Svelte Sys', () => {
                 }
         );
 
-        sinon.replace(ts.sys, 'fileExists', fileExistsStub);
-        const loader = createSvelteSys(getSnapshotStub);
+        // sinon.replace(ts.sys, 'fileExists', fileExistsStub);
+        const loader = createSvelteSys(getSnapshotStub, {
+            ...ts.sys,
+            fileExists: fileExistsStub
+        });
 
         return {
             tsFile,

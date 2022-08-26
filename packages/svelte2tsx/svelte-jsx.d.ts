@@ -1209,6 +1209,7 @@ declare namespace svelte.JSX {
       autosave?: string | undefined | null;
       color?: string | undefined | null;
       controlslist?: 'nodownload' | 'nofullscreen' | 'noplaybackrate' | 'noremoteplayback';
+      inert?: boolean | undefined | null;
       itemprop?: string | undefined | null;
       itemscope?: boolean | undefined | null;
       itemtype?: string | undefined | null;
@@ -1776,7 +1777,7 @@ declare namespace svelte.JSX {
       sveltefragment: { slot?: string; };
       svelteoptions: { [name: string]: any };
       sveltehead: { [name: string]: any };
-      svelteelement: { 'this': string | undefined | null; } & HTMLProps<any> & SVGProps<any>;
+      svelteelement: { 'this': string | undefined | null; } & HTMLProps<any> & SVGProps<any> & SapperAnchorProps & SvelteKitAnchorProps;
 
       [name: string]: { [name: string]: any };
     }

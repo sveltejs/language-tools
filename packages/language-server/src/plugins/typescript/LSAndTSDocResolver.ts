@@ -1,3 +1,4 @@
+import { dirname } from 'path';
 import ts from 'typescript';
 import { TextDocumentContentChangeEvent } from 'vscode-languageserver';
 import { Document, DocumentManager } from '../../lib/documents';
@@ -27,6 +28,7 @@ interface LSAndTSDocResolverOptions {
 
     onProjectReloaded?: () => void;
     watchTsConfig?: boolean;
+    tsSystem?: ts.System;
 }
 
 export class LSAndTSDocResolver {
@@ -69,7 +71,7 @@ export class LSAndTSDocResolver {
         return document;
     };
 
-    private globalSnapshotsManager = new GlobalSnapshotsManager();
+    private globalSnapshotsManager = new GlobalSnapshotsManager(this.lsDocumentContext.tsSystem);
     private extendedConfigCache = new Map<string, ts.ExtendedConfigCacheEntry>();
 
     private get lsDocumentContext(): LanguageServiceDocumentContext {
@@ -83,7 +85,7 @@ export class LSAndTSDocResolver {
             extendedConfigCache: this.extendedConfigCache,
             onProjectReloaded: this.options?.onProjectReloaded,
             watchTsConfig: !!this.options?.watchTsConfig,
-            tsSystem: ts.sys
+            tsSystem: this.options?.tsSystem ?? ts.sys
         };
     }
 
@@ -168,7 +170,11 @@ export class LSAndTSDocResolver {
 
     async getTSService(filePath?: string): Promise<LanguageServiceContainer> {
         if (this.options?.tsconfigPath) {
-            return getServiceForTsconfig(this.options?.tsconfigPath, this.lsDocumentContext);
+            return getServiceForTsconfig(
+                this.options?.tsconfigPath,
+                dirname(this.options.tsconfigPath),
+                this.lsDocumentContext
+            );
         }
         if (!filePath) {
             throw new Error('Cannot call getTSService without filePath and without tsconfigPath');

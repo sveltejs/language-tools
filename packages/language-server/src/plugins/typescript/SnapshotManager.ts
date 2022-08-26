@@ -16,6 +16,8 @@ export class GlobalSnapshotsManager {
     private emitter = new EventEmitter();
     private documents = new Map<string, DocumentSnapshot>();
 
+    constructor(private readonly tsSystem: ts.System) {}
+
     get(fileName: string) {
         fileName = normalizePath(fileName);
         return this.documents.get(fileName);
@@ -48,7 +50,7 @@ export class GlobalSnapshotsManager {
             this.emitter.emit('change', fileName, previousSnapshot);
             return previousSnapshot;
         } else {
-            const newSnapshot = DocumentSnapshot.fromNonSvelteFilePath(fileName);
+            const newSnapshot = DocumentSnapshot.fromNonSvelteFilePath(fileName, this.tsSystem);
 
             if (previousSnapshot) {
                 newSnapshot.version = previousSnapshot.version + 1;
