@@ -247,9 +247,9 @@ declare function __sveltets_2_ensureAnimation(animationCall: __sveltets_2_Svelte
 type __sveltets_2_SvelteActionReturnType = {
 	update?: (args: any) => void,
 	destroy?: () => void,
-    $$attributes?: Record<string, any>,
+    $$_attributes?: Record<string, any>,
 } | void
-declare function __sveltets_2_ensureAction<T extends __sveltets_2_SvelteActionReturnType>(actionCall: T): T extends  {$$attributes?: any} ? T['$$attributes'] : {};
+declare function __sveltets_2_ensureAction<T extends __sveltets_2_SvelteActionReturnType>(actionCall: T): T extends  {$$_attributes?: any} ? T['$$_attributes'] : {};
 
 type __sveltets_2_SvelteTransitionConfig = {
     delay?: number,
