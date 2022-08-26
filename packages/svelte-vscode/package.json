@@ -430,7 +430,14 @@
                     "source.js": "javascript",
                     "source.ts": "typescript",
                     "source.coffee": "coffeescript"
-                }
+                },
+                "unbalancedBracketScopes": [
+                    "keyword.operator.relational",
+                    "storage.type.function.arrow",
+                    "keyword.operator.bitwise.shift",
+                    "meta.brace.angle",
+                    "punctuation.definition.tag"
+                ]
             },
             {
                 "scopeName": "svelte.pug",

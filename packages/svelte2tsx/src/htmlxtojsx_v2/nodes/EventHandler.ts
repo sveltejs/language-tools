@@ -19,9 +19,9 @@ export function handleEventHandler(
     const nameEnd = nameStart + attr.name.length;
 
     if (element instanceof Element) {
-        // Prefix with "on" for better mapping.
+        // Prefix with "on:" for better mapping.
         // Surround with quotes because event name could contain invalid prop chars.
-        surroundWith(str, [nameStart, nameEnd], '"on', '"');
+        surroundWith(str, [nameStart, nameEnd], '"on:', '"');
         element.addAttribute(
             [[nameStart, nameEnd]],
             attr.expression

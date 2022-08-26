@@ -9,7 +9,7 @@ async () => {
  { svelteHTML.createElement("tag", { });}
  { svelteHTML.createElement(tag ? 'a' : 'b', {  });}
  { svelteHTML.createElement(tag, { });tag; }
- { svelteHTML.createElement(tag, {    "onclick":() => tag,});}
+ { svelteHTML.createElement(tag, {    "on:click":() => tag,});}
  { svelteHTML.createElement('a', {    "sveltekit:prefetch":true,"href":`https://kit.svelte.dev`,});}};
 return { props: {}, slots: {}, getters: {}, events: {} }}
 
