@@ -4,7 +4,8 @@ import {
     mapRangeToOriginal,
     getLineAtPosition,
     getNodeIfIsInStartTag,
-    isInHTMLTagRange
+    isInHTMLTagRange,
+    getNodeIfIsInHTMLStartTag
 } from '../../../lib/documents';
 import { filterAsync, isNotNullOrUndefined, pathToUrl, unique } from '../../../utils';
 import { RenameProvider } from '../../interfaces';
@@ -503,12 +504,35 @@ export class RenameProviderImpl implements RenameProvider {
             const { parent } = snapshot;
 
             if (this.configManager.getConfig().svelte.useNewTransformation) {
+                let rangeStart = parent.offsetAt(location.range.start);
                 let prefixText = location.prefixText?.trimRight();
+
+                // rename needs to be prefixed in case of a bind shortand on a HTML element
+                if (!prefixText) {
+                    const original = parent.getText({
+                        start: Position.create(
+                            location.range.start.line,
+                            location.range.start.character - bind.length
+                        ),
+                        end: location.range.end
+                    });
+                    if (
+                        original.startsWith(bind) &&
+                        getNodeIfIsInHTMLStartTag(parent.html, rangeStart)
+                    ) {
+                        return {
+                            ...location,
+                            prefixText: original.slice(bind.length) + '={',
+                            suffixText: '}'
+                        };
+                    }
+                }
+
                 if (!prefixText || prefixText.slice(-1) !== ':') {
                     return location;
                 }
+
                 // prefix is of the form `oldVarName: ` -> hints at a shorthand
-                let rangeStart = parent.offsetAt(location.range.start);
                 // we need to make sure we only adjust shorthands on elements/components
                 if (
                     !getNodeIfIsInStartTag(parent.html, rangeStart) ||
@@ -524,12 +548,14 @@ export class RenameProviderImpl implements RenameProvider {
                 ) {
                     return location;
                 }
+
                 prefixText = prefixText.slice(0, -1) + '={';
                 location = {
                     ...location,
                     prefixText,
                     suffixText: '}'
                 };
+
                 // rename range needs to be adjusted in case of an attribute shortand
                 if (snapshot.getOriginalText().charAt(rangeStart - 1) === '{') {
                     rangeStart--;
@@ -539,6 +565,7 @@ export class RenameProviderImpl implements RenameProvider {
                         end: parent.positionAt(rangeEnd)
                     };
                 }
+
                 return location;
             }
 
