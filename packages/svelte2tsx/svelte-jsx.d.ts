@@ -62,14 +62,335 @@ declare namespace svelteHTML {
   // This interface is not complete. Only properties accepting
   // unit-less numbers are listed here (see CSSProperty.js in React)
 
-  // eslint-disable-next-line @typescript-eslint/no-empty-interface
-  interface DOMAttributes<T extends EventTarget> extends svelte.JSX.DOMAttributes<T> {}
+  interface DOMAttributes<T extends EventTarget> {
+    // Clipboard Events
+    "on:copy"?: ClipboardEventHandler<T> | undefined | null;
+    "on:cut"?: ClipboardEventHandler<T> | undefined | null;
+    "on:paste"?: ClipboardEventHandler<T> | undefined | null;
+
+    // Composition Events
+    "on:compositionend"?: CompositionEventHandler<T> | undefined | null;
+    "on:compositionstart"?: CompositionEventHandler<T> | undefined | null;
+    "on:compositionupdate"?: CompositionEventHandler<T> | undefined | null;
+
+    // Focus Events
+    "on:focus"?: FocusEventHandler<T> | undefined | null;
+    "on:focusin"?: FocusEventHandler<T> | undefined | null;
+    "on:focusout"?: FocusEventHandler<T> | undefined | null;
+    "on:blur"?: FocusEventHandler<T> | undefined | null;
+
+    // Form Events
+    "on:change"?: FormEventHandler<T> | undefined | null;
+    "on:input"?: FormEventHandler<T> | undefined | null;
+    "on:reset"?: FormEventHandler<T> | undefined | null;
+    "on:submit"?: EventHandler<SubmitEvent, T> | undefined | null;
+    "on:invalid"?: EventHandler<Event, T> | undefined | null;
+    "on:beforeinput"?: EventHandler<InputEvent, T> | undefined | null;
+
+    // Image Events
+    "on:load"?: EventHandler | undefined | null;
+    "on:error"?: EventHandler | undefined | null; // also a Media Event
+
+    // Detail Events
+    "on:toggle"?: EventHandler<Event, T> | undefined | null;
+
+    // Keyboard Events
+    "on:keydown"?: KeyboardEventHandler<T> | undefined | null;
+    "on:keypress"?: KeyboardEventHandler<T> | undefined | null;
+    "on:keyup"?: KeyboardEventHandler<T> | undefined | null;
+
+    // Media Events
+    "on:abort"?: EventHandler<Event, T> | undefined | null;
+    "on:canplay"?: EventHandler<Event, T> | undefined | null;
+    "on:canplaythrough"?: EventHandler<Event, T> | undefined | null;
+    "on:cuechange"?: EventHandler<Event, T> | undefined | null;
+    "on:durationchange"?: EventHandler<Event, T> | undefined | null;
+    "on:emptied"?: EventHandler<Event, T> | undefined | null;
+    "on:encrypted"?: EventHandler<Event, T> | undefined | null;
+    "on:ended"?: EventHandler<Event, T> | undefined | null;
+    "on:loadeddata"?: EventHandler<Event, T> | undefined | null;
+    "on:loadedmetadata"?: EventHandler<Event, T> | undefined | null;
+    "on:loadstart"?: EventHandler<Event, T> | undefined | null;
+    "on:pause"?: EventHandler<Event, T> | undefined | null;
+    "on:play"?: EventHandler<Event, T> | undefined | null;
+    "on:playing"?: EventHandler<Event, T> | undefined | null;
+    "on:progress"?: EventHandler<Event, T> | undefined | null;
+    "on:ratechange"?: EventHandler<Event, T> | undefined | null;
+    "on:seeked"?: EventHandler<Event, T> | undefined | null;
+    "on:seeking"?: EventHandler<Event, T> | undefined | null;
+    "on:stalled"?: EventHandler<Event, T> | undefined | null;
+    "on:suspend"?: EventHandler<Event, T> | undefined | null;
+    "on:timeupdate"?: EventHandler<Event, T> | undefined | null;
+    "on:volumechange"?: EventHandler<Event, T> | undefined | null;
+    "on:waiting"?: EventHandler<Event, T> | undefined | null;
+
+    // MouseEvents
+    "on:auxclick"?: MouseEventHandler<T> | undefined | null;
+    "on:click"?: MouseEventHandler<T> | undefined | null;
+    "on:contextmenu"?: MouseEventHandler<T> | undefined | null;
+    "on:dblclick"?: MouseEventHandler<T> | undefined | null;
+    "on:drag"?: DragEventHandler<T> | undefined | null;
+    "on:dragend"?: DragEventHandler<T> | undefined | null;
+    "on:dragenter"?: DragEventHandler<T> | undefined | null;
+    "on:dragexit"?: DragEventHandler<T> | undefined | null;
+    "on:dragleave"?: DragEventHandler<T> | undefined | null;
+    "on:dragover"?: DragEventHandler<T> | undefined | null;
+    "on:dragstart"?: DragEventHandler<T> | undefined | null;
+    "on:drop"?: DragEventHandler<T> | undefined | null;
+    "on:mousedown"?: MouseEventHandler<T> | undefined | null;
+    "on:mouseenter"?: MouseEventHandler<T> | undefined | null;
+    "on:mouseleave"?: MouseEventHandler<T> | undefined | null;
+    "on:mousemove"?: MouseEventHandler<T> | undefined | null;
+    "on:mouseout"?: MouseEventHandler<T> | undefined | null;
+    "on:mouseover"?: MouseEventHandler<T> | undefined | null;
+    "on:mouseup"?: MouseEventHandler<T> | undefined | null;
+
+    // Selection Events
+    "on:select"?: EventHandler<Event, T> | undefined | null;
+    "on:selectionchange"?: EventHandler<Event, T> | undefined | null;
+    "on:selectstart"?: EventHandler<Event, T> | undefined | null;
+
+    // Touch Events
+    "on:touchcancel"?: TouchEventHandler<T> | undefined | null;
+    "on:touchend"?: TouchEventHandler<T> | undefined | null;
+    "on:touchmove"?: TouchEventHandler<T> | undefined | null;
+    "on:touchstart"?: TouchEventHandler<T> | undefined | null;
+
+    // Pointer Events
+    "on:gotpointercapture"?: PointerEventHandler<T> | undefined | null;
+    "on:pointercancel"?: PointerEventHandler<T> | undefined | null;
+    "on:pointerdown"?: PointerEventHandler<T> | undefined | null;
+    "on:pointerenter"?: PointerEventHandler<T> | undefined | null;
+    "on:pointerleave"?: PointerEventHandler<T> | undefined | null;
+    "on:pointermove"?: PointerEventHandler<T> | undefined | null;
+    "on:pointerout"?: PointerEventHandler<T> | undefined | null;
+    "on:pointerover"?: PointerEventHandler<T> | undefined | null;
+    "on:pointerup"?: PointerEventHandler<T> | undefined | null;
+    "on:lostpointercapture"?: PointerEventHandler<T> | undefined | null;
+
+    // UI Events
+    "on:scroll"?: UIEventHandler<T> | undefined | null;
+    "on:resize"?: UIEventHandler<T> | undefined | null;
+
+    // Wheel Events
+    "on:wheel"?: WheelEventHandler<T> | undefined | null;
+
+    // Animation Events
+    "on:animationstart"?: AnimationEventHandler<T> | undefined | null;
+    "on:animationend"?: AnimationEventHandler<T> | undefined | null;
+    "on:animationiteration"?: AnimationEventHandler<T> | undefined | null;
+
+    // Transition Events
+    "on:transitionstart"?: TransitionEventHandler<T> | undefined | null;
+    "on:transitionrun"?: TransitionEventHandler<T> | undefined | null;
+    "on:transitionend"?: TransitionEventHandler<T> | undefined | null;
+    "on:transitioncancel"?: TransitionEventHandler<T> | undefined | null;
+
+    // Svelte Transition Events
+    "on:outrostart"?: EventHandler<CustomEvent<null>, T> | undefined | null;
+    "on:outroend"?: EventHandler<CustomEvent<null>, T> | undefined | null;
+    "on:introstart"?: EventHandler<CustomEvent<null>, T> | undefined | null;
+    "on:introend"?: EventHandler<CustomEvent<null>, T> | undefined | null;
+
+    // Message Events
+    "on:message"?: MessageEventHandler<T> | undefined | null;
+    "on:messageerror"?: MessageEventHandler<T> | undefined | null;
+
+    // Global Events
+    "on:cancel"?: EventHandler<Event, T> | undefined | null;
+    "on:close"?: EventHandler<Event, T> | undefined | null;
+    "on:fullscreenchange"?: EventHandler<Event, T> | undefined | null;
+    "on:fullscreenerror"?: EventHandler<Event, T> | undefined | null;
+  }
 
   // eslint-disable-next-line @typescript-eslint/no-empty-interface
   interface AriaAttributes extends svelte.JSX.AriaAttributes {}
 
-  // eslint-disable-next-line @typescript-eslint/no-empty-interface
-  interface HTMLAttributes<T extends EventTarget> extends svelte.JSX.HTMLAttributes<T> {}
+  interface HTMLAttributes<T extends EventTarget> extends AriaAttributes, DOMAttributes<T> {
+    // Standard HTML Attributes
+    class?: string | undefined | null;
+    dataset?: object | undefined | null; // eslint-disable-line
+    accept?: string | undefined | null;
+    acceptcharset?: string | undefined | null;
+    accesskey?: string | undefined | null;
+    action?: string | undefined | null;
+    allow?: string | undefined | null;
+    allowfullscreen?: boolean | undefined | null;
+    allowtransparency?: boolean | undefined | null;
+    allowpaymentrequest?: boolean | undefined | null;
+    alt?: string | undefined | null;
+    as?: string | undefined | null;
+    async?: boolean | undefined | null;
+    autocomplete?: string | undefined | null;
+    autofocus?: boolean | undefined | null;
+    autoplay?: boolean | undefined | null;
+    capture?: 'environment' | 'user' | boolean | undefined | null;
+    cellpadding?: number | string | undefined | null;
+    cellspacing?: number | string | undefined | null;
+    charset?: string | undefined | null;
+    challenge?: string | undefined | null;
+    checked?: boolean | undefined | null;
+    cite?: string | undefined | null;
+    classid?: string | undefined | null;
+    cols?: number | undefined | null;
+    colspan?: number | undefined | null;
+    content?: string | undefined | null;
+    contenteditable?: 'true' | 'false' | boolean | undefined | null;
+
+    // Doesn't work when used as HTML attribute
+    /**
+     * Elements with the contenteditable attribute support innerHTML and textContent bindings.
+     */
+    innerHTML?: string | undefined | null;
+    // Doesn't work when used as HTML attribute
+    /**
+     * Elements with the contenteditable attribute support innerHTML and textContent bindings.
+     */
+
+    textContent?: string | undefined | null;
+
+    contextmenu?: string | undefined | null;
+    controls?: boolean | undefined | null;
+    coords?: string | undefined | null;
+    crossorigin?: string | undefined | null;
+    currenttime?: number | undefined | null;
+    decoding?: 'async' | 'sync' | 'auto' | undefined | null;
+    data?: string | undefined | null;
+    datetime?: string | undefined | null;
+    default?: boolean | undefined | null;
+    defaultmuted?: boolean | undefined | null;
+    defaultplaybackrate?: number | undefined | null;
+    defer?: boolean | undefined | null;
+    dir?: string | undefined | null;
+    dirname?: string | undefined | null;
+    disabled?: boolean | undefined | null;
+    download?: any | undefined | null;
+    draggable?: boolean | 'true' | 'false' | undefined | null;
+    enctype?: string | undefined | null;
+    enterkeyhint?: 'enter' | 'done' | 'go' | 'next' | 'previous' | 'search' | 'send' | undefined | null;
+    for?: string | undefined | null;
+    form?: string | undefined | null;
+    formaction?: string | undefined | null;
+    formenctype?: string | undefined | null;
+    formmethod?: string | undefined | null;
+    formnovalidate?: boolean | undefined | null;
+    formtarget?: string | undefined | null;
+    frameborder?: number | string | undefined | null;
+    headers?: string | undefined | null;
+    height?: number | string | undefined | null;
+    hidden?: boolean | undefined | null;
+    high?: number | undefined | null;
+    href?: string | undefined | null;
+    hreflang?: string | undefined | null;
+    htmlfor?: string | undefined | null;
+    httpequiv?: string | undefined | null;
+    id?: string | undefined | null;
+    inputmode?: string | undefined | null;
+    integrity?: string | undefined | null;
+    is?: string | undefined | null;
+    ismap?: boolean | undefined | null;
+    keyparams?: string | undefined | null;
+    keytype?: string | undefined | null;
+    kind?: string | undefined | null;
+    label?: string | undefined | null;
+    lang?: string | undefined | null;
+    list?: string | undefined | null;
+    loading?: string | undefined | null;
+    loop?: boolean | undefined | null;
+    low?: number | undefined | null;
+    manifest?: string | undefined | null;
+    marginheight?: number | undefined | null;
+    marginwidth?: number | undefined | null;
+    max?: number | string | undefined | null;
+    maxlength?: number | undefined | null;
+    media?: string | undefined | null;
+    mediagroup?: string | undefined | null;
+    method?: string | undefined | null;
+    min?: number | string | undefined | null;
+    minlength?: number | undefined | null;
+    multiple?: boolean | undefined | null;
+    muted?: boolean | undefined | null;
+    name?: string | undefined | null;
+    nonce?: string | undefined | null;
+    novalidate?: boolean | undefined | null;
+    open?: boolean | undefined | null;
+    optimum?: number | undefined | null;
+    part?: string | undefined | null;
+    pattern?: string | undefined | null;
+    placeholder?: string | undefined | null;
+    playsinline?: boolean | undefined | null;
+    ping?: string | undefined | null;
+    poster?: string | undefined | null;
+    preload?: string | undefined | null;
+    radiogroup?: string | undefined | null;
+    readonly?: boolean | undefined | null;
+    referrerpolicy?: string | undefined | null;
+    rel?: string | undefined | null;
+    required?: boolean | undefined | null;
+    reversed?: boolean | undefined | null;
+    role?: string | undefined | null;
+    rows?: number | undefined | null;
+    rowspan?: number | undefined | null;
+    sandbox?: string | undefined | null;
+    scope?: string | undefined | null;
+    scoped?: boolean | undefined | null;
+    scrolling?: string | undefined | null;
+    seamless?: boolean | undefined | null;
+    selected?: boolean | undefined | null;
+    shape?: string | undefined | null;
+    size?: number | undefined | null;
+    sizes?: string | undefined | null;
+    slot?: string | undefined | null;
+    span?: number | undefined | null;
+    spellcheck?: boolean | 'true' | 'false' | undefined | null;
+    src?: string | undefined | null;
+    srcdoc?: string | undefined | null;
+    srclang?: string | undefined | null;
+    srcset?: string | undefined | null;
+    start?: number | undefined | null;
+    step?: number | string | undefined | null;
+    style?: string | undefined | null;
+    summary?: string | undefined | null;
+    tabindex?: number | undefined | null;
+    target?: string | undefined | null;
+    title?: string | undefined | null;
+    translate?: "yes" | "no" | "" | undefined | null;
+    type?: string | undefined | null;
+    usemap?: string | undefined | null;
+    value?: any | undefined | null;
+    /**
+     * a value between 0 and 1
+    */
+    volume?: number | undefined | null;
+    width?: number | string | undefined | null;
+    wmode?: string | undefined | null;
+    wrap?: string | undefined | null;
+
+    // RDFa Attributes
+    about?: string | undefined | null;
+    datatype?: string | undefined | null;
+    inlist?: any | undefined | null;
+    prefix?: string | undefined | null;
+    property?: string | undefined | null;
+    resource?: string | undefined | null;
+    typeof?: string | undefined | null;
+    vocab?: string | undefined | null;
+
+    // Non-standard Attributes
+    autocapitalize?: string | undefined | null;
+    autocorrect?: string | undefined | null;
+    autosave?: string | undefined | null;
+    color?: string | undefined | null;
+    controlslist?: 'nodownload' | 'nofullscreen' | 'noplaybackrate' | 'noremoteplayback';
+    itemprop?: string | undefined | null;
+    itemscope?: boolean | undefined | null;
+    itemtype?: string | undefined | null;
+    itemid?: string | undefined | null;
+    itemref?: string | undefined | null;
+    results?: number | undefined | null;
+    security?: string | undefined | null;
+    unselectable?: boolean | undefined | null;
+  }
 
   // eslint-disable-next-line @typescript-eslint/no-empty-interface
   interface SVGAttributes<T extends EventTarget> extends svelte.JSX.SVGAttributes<T> {
