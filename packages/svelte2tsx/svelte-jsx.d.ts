@@ -17,7 +17,10 @@ declare namespace svelteHTML {
     // "undefined | null" because of <svelte:element>
     element: Key | undefined | null, attrs: Elements[Key]
   ): Key extends keyof ElementTagNameMap ? ElementTagNameMap[Key] : Key extends keyof SVGElementTagNameMap ? SVGElementTagNameMap[Key] : any;
-
+  function createElement<Elements extends IntrinsicElements, Key extends keyof Elements, T>(
+    // "undefined | null" because of <svelte:element>
+    element: Key | undefined | null, attrsEnhancers: T, attrs: Elements[Key] & T
+  ): Key extends keyof ElementTagNameMap ? ElementTagNameMap[Key] : Key extends keyof SVGElementTagNameMap ? SVGElementTagNameMap[Key] : any;
 
   type NativeElement = HTMLElement;
 
