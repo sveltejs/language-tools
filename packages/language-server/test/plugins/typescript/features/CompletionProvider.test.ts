@@ -23,6 +23,7 @@ import { LSAndTSDocResolver } from '../../../../src/plugins/typescript/LSAndTSDo
 import { sortBy } from 'lodash';
 import { LSConfigManager } from '../../../../src/ls-config';
 import { __resetCache } from '../../../../src/plugins/typescript/service';
+import { getRandomVirtualDirPath, setupVirtualEnvironment } from '../test-utils';
 
 const testDir = join(__dirname, '..');
 const testFilesDir = join(testDir, 'testfiles', 'completions');
@@ -1344,6 +1345,52 @@ function test(useNewTransformation: boolean) {
                 completions?.items.map((item) => item.label),
                 ['s', 'm', 'l']
             );
+        });
+
+        it('can auto import in workspace without tsconfig/jsconfig', async () => {
+            const virtualTestDir = getRandomVirtualDirPath(testFilesDir);
+            const { docManager, document, lsAndTsDocResolver, lsConfigManager, virtualSystem } =
+                setupVirtualEnvironment({
+                    filename: 'index.svelte',
+                    fileContent: '<script>f</script>',
+                    testDir: virtualTestDir,
+                    useNewTransformation
+                });
+
+            const mockPackageDir = join(virtualTestDir, 'node_modules', '@types/random-package');
+
+            // the main problem is how ts resolve reference type directive
+            // it would start with a relative url and fail to auto import
+            virtualSystem.writeFile(
+                join(mockPackageDir, 'index.d.ts'),
+                '/// <reference types="random-package2" />' + '\nexport function bar(): string'
+            );
+
+            virtualSystem.writeFile(
+                join(virtualTestDir, 'node_modules', '@types', 'random-package2', 'index.d.ts'),
+                'declare function foo(): string\n' + 'export = foo'
+            );
+
+            const completionProvider = new CompletionsProviderImpl(
+                lsAndTsDocResolver,
+                lsConfigManager
+            );
+
+            // let the language service aware of random-package and random-package2
+            docManager.openDocument({
+                text: '<script>import {} from "random-package";</script>',
+                uri: pathToUrl(join(virtualTestDir, 'test.svelte'))
+            });
+
+            const completions = await completionProvider.getCompletions(document, {
+                line: 0,
+                character: 9
+            });
+            const item = completions?.items.find((item) => item.label === 'foo');
+
+            const { detail } = await completionProvider.resolveCompletion(document, item!);
+
+            assert.strictEqual(detail, 'Auto import from random-package2\nfunction foo(): string');
         });
 
         // Hacky, but it works. Needed due to testing both new and old transformation

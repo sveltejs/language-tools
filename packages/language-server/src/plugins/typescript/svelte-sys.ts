@@ -5,14 +5,17 @@ import { ensureRealSvelteFilePath, isVirtualSvelteFilePath, toRealSvelteFilePath
 /**
  * This should only be accessed by TS svelte module resolution.
  */
-export function createSvelteSys(getSnapshot: (fileName: string) => DocumentSnapshot) {
+export function createSvelteSys(
+    getSnapshot: (fileName: string) => DocumentSnapshot,
+    tsSystem: ts.System
+) {
     const fileExistsCache = new Map<string, boolean>();
 
     const svelteSys: ts.System & { deleteFromCache: (path: string) => void } = {
-        ...ts.sys,
+        ...tsSystem,
         fileExists(path: string) {
             path = ensureRealSvelteFilePath(path);
-            const exists = fileExistsCache.get(path) ?? ts.sys.fileExists(path);
+            const exists = fileExistsCache.get(path) ?? tsSystem.fileExists(path);
             fileExistsCache.set(path, exists);
             return exists;
         },
@@ -23,19 +26,19 @@ export function createSvelteSys(getSnapshot: (fileName: string) => DocumentSnaps
         readDirectory(path, extensions, exclude, include, depth) {
             const extensionsWithSvelte = (extensions ?? []).concat('.svelte');
 
-            return ts.sys.readDirectory(path, extensionsWithSvelte, exclude, include, depth);
+            return tsSystem.readDirectory(path, extensionsWithSvelte, exclude, include, depth);
         },
         deleteFile(path) {
             fileExistsCache.delete(ensureRealSvelteFilePath(path));
-            return ts.sys.deleteFile?.(path);
+            return tsSystem.deleteFile?.(path);
         },
         deleteFromCache(path) {
             fileExistsCache.delete(ensureRealSvelteFilePath(path));
         }
     };
 
-    if (ts.sys.realpath) {
-        const realpath = ts.sys.realpath;
+    if (tsSystem.realpath) {
+        const realpath = tsSystem.realpath;
         svelteSys.realpath = function (path) {
             if (isVirtualSvelteFilePath(path)) {
                 return realpath(toRealSvelteFilePath(path)) + '.ts';

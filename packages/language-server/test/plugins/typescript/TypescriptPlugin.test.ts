@@ -940,6 +940,10 @@ function test(useNewTransformation: boolean) {
             }
         });
 
+        it('should add declaration file snapshot when added to known build directory', async () => {
+            await testForOnWatchedFileAdd(path.join('.svelte-kit', 'ambient.d.ts'), true);
+        });
+
         it('should update ts/js file after document change', async () => {
             const { snapshotManager, projectJsFile, plugin } =
                 await setupForOnWatchedFileUpdateOrDelete();

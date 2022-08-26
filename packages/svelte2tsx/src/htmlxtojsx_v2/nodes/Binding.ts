@@ -4,16 +4,18 @@ import { BaseDirective, BaseNode } from '../../interfaces';
 import { Element } from './Element';
 import { InlineComponent } from './InlineComponent';
 
-const oneWayBindingAttributes: Map<string, string> = new Map(
-    ['clientWidth', 'clientHeight', 'offsetWidth', 'offsetHeight']
-        .map((e) => [e, 'HTMLDivElement'] as [string, string])
-        .concat(
-            ['duration', 'buffered', 'seekable', 'seeking', 'played', 'ended'].map((e) => [
-                e,
-                'HTMLMediaElement'
-            ])
-        )
-);
+const oneWayBindingAttributes: Set<string> = new Set([
+    'clientWidth',
+    'clientHeight',
+    'offsetWidth',
+    'offsetHeight',
+    'duration',
+    'buffered',
+    'seekable',
+    'seeking',
+    'played',
+    'ended'
+]);
 /**
  * List of all binding names that are transformed to sth like `binding = variable`.
  * This applies to readonly bindings and the this binding.
@@ -34,7 +36,8 @@ export function handleBinding(
     str: MagicString,
     attr: BaseDirective,
     parent: BaseNode,
-    element: Element | InlineComponent
+    element: Element | InlineComponent,
+    preserveBind: boolean
 ): void {
     // bind group on input
     if (element instanceof Element && attr.name == 'group' && parent.name == 'input') {
@@ -70,11 +73,25 @@ export function handleBinding(
 
     // other bindings which are transformed to normal attributes/props
     const isShorthand = attr.expression.start === attr.start + 'bind:'.length;
-    const name: TransformationArray = isShorthand
-        ? [[attr.expression.start, attr.expression.end]]
-        : [[attr.start + 'bind:'.length, str.original.lastIndexOf('=', attr.expression.start)]];
+    const name: TransformationArray =
+        preserveBind && element instanceof Element
+            ? // HTML typings - preserve the bind: prefix
+              isShorthand
+                ? [`"${str.original.substring(attr.start, attr.end)}"`]
+                : [
+                      `"${str.original.substring(
+                          attr.start,
+                          str.original.lastIndexOf('=', attr.expression.start)
+                      )}"`
+                  ]
+            : // Other typings - remove the bind: prefix
+            isShorthand
+            ? [[attr.expression.start, attr.expression.end]]
+            : [[attr.start + 'bind:'.length, str.original.lastIndexOf('=', attr.expression.start)]];
     const value: TransformationArray | undefined = isShorthand
-        ? undefined
+        ? preserveBind && element instanceof Element
+            ? [rangeWithTrailingPropertyAccess(str.original, attr.expression)]
+            : undefined
         : [rangeWithTrailingPropertyAccess(str.original, attr.expression)];
     if (element instanceof Element) {
         element.addAttribute(name, value);
