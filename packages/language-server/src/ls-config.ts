@@ -466,7 +466,7 @@ export class LSConfigManager {
             semicolons: ts.SemicolonPreference.Ignore,
 
             // Override TypeScript's default because VSCode default to true
-            // Also this matches the prettier style
+            // Also this matches the style of prettier
             insertSpaceAfterFunctionKeywordForAnonymousFunctions: true
         };
     }

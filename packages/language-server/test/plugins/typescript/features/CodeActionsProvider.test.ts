@@ -21,6 +21,7 @@ import { __resetCache } from '../../../../src/plugins/typescript/service';
 import { pathToUrl } from '../../../../src/utils';
 
 const testDir = path.join(__dirname, '..');
+const indent = ' '.repeat(4);
 
 function test(useNewTransformation: boolean) {
     return () => {
@@ -191,8 +192,9 @@ function test(useNewTransformation: boolean) {
                                 edits: [
                                     {
                                         newText:
-                                            '\n\nfunction handleClick(e: MouseEvent&{ currentTarget: EventTarget&HTMLButtonElement; }): any {' +
-                                            "\nthrow new Error('Function not implemented.');\n}\n",
+                                            `\n\n${indent}function handleClick(e: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement; }): any {\n` +
+                                            `${indent}${indent}throw new Error('Function not implemented.');\n` +
+                                            `${indent}}\n`,
                                         range: {
                                             start: {
                                                 character: 0,
@@ -231,7 +233,9 @@ function test(useNewTransformation: boolean) {
                                 edits: [
                                     {
                                         newText:
-                                            "\n\nfunction abc() {\nthrow new Error('Function not implemented.');\n}\n",
+                                            `\n\n${indent}function abc() {\n` +
+                                            `${indent}${indent}throw new Error('Function not implemented.');\n` +
+                                            `${indent}}\n`,
                                         range: {
                                             start: {
                                                 character: 0,
@@ -288,7 +292,7 @@ function test(useNewTransformation: boolean) {
                             {
                                 edits: [
                                     {
-                                        newText: '\nimport { blubb } from "../definitions";\n\n',
+                                        newText: `\n${indent}import { blubb } from "../definitions";\n\n`,
                                         range: Range.create(
                                             Position.create(0, 8),
                                             Position.create(0, 8)
@@ -377,7 +381,7 @@ function test(useNewTransformation: boolean) {
                                 edits: [
                                     {
                                         newText: harmonizeNewLines(
-                                            "import Empty from '../empty.svelte';\n"
+                                            `${indent}import Empty from '../empty.svelte';\n`
                                         ),
                                         range: {
                                             end: Position.create(5, 0),
@@ -557,7 +561,7 @@ function test(useNewTransformation: boolean) {
                                     {
                                         // eslint-disable-next-line max-len
                                         newText:
-                                            "import { A,B } from 'bla';\n" +
+                                            "import { A, B } from 'bla';\n" +
                                             "import { C } from 'blubb';\n" +
                                             "import { D } from 'd';\n",
 
@@ -985,7 +989,7 @@ function test(useNewTransformation: boolean) {
                                     {
                                         newText:
                                             "import { } from 'svelte/transition';\n" +
-                                            "    import { } from './codeaction-checkJs.svelte';\n",
+                                            `${indent}import { } from './codeaction-checkJs.svelte';\n`,
                                         range: {
                                             end: {
                                                 character: 4,
@@ -1079,7 +1083,6 @@ function test(useNewTransformation: boolean) {
                     {
                         edits: [
                             {
-                                // eslint-disable-next-line max-len
                                 newText: 'const newLocal=Math.random()>0.5? true:false;\n',
                                 range: {
                                     start: {

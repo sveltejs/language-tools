@@ -28,6 +28,7 @@ import { getRandomVirtualDirPath, setupVirtualEnvironment } from '../test-utils'
 const testDir = join(__dirname, '..');
 const testFilesDir = join(testDir, 'testfiles', 'completions');
 const newLine = ts.sys.newLine;
+const indent = ' '.repeat(4);
 
 const fileNameToAbsoluteUri = (file: string) => {
     return pathToUrl(join(testFilesDir, file));
@@ -641,7 +642,7 @@ function test(useNewTransformation: boolean) {
             assert.strictEqual(
                 harmonizeNewLines(additionalTextEdits![0]?.newText),
                 // " instead of ' because VSCode uses " by default when there are no other imports indicating otherwise
-                `${newLine}import { blubb } from "../definitions";${newLine}${newLine}`
+                `${newLine}${indent}import { blubb } from "../definitions";${newLine}${newLine}`
             );
 
             assert.deepEqual(
@@ -676,7 +677,7 @@ function test(useNewTransformation: boolean) {
 
             assert.strictEqual(
                 harmonizeNewLines(additionalTextEdits![0]?.newText),
-                `import { blubb } from '../definitions';${newLine}`
+                `${indent}import { blubb } from '../definitions';${newLine}`
             );
 
             assert.deepEqual(
@@ -711,7 +712,7 @@ function test(useNewTransformation: boolean) {
 
             assert.strictEqual(
                 harmonizeNewLines(additionalTextEdits![0]?.newText),
-                `${newLine}import { blubb } from '../definitions';${newLine}`
+                `${newLine}${indent}import { blubb } from '../definitions';${newLine}`
             );
 
             assert.deepEqual(
@@ -743,7 +744,7 @@ function test(useNewTransformation: boolean) {
             assert.strictEqual(
                 harmonizeNewLines(additionalTextEdits![0]?.newText),
                 // " instead of ' because VSCode uses " by default when there are no other imports indicating otherwise
-                `${newLine}import { onMount } from "svelte";${newLine}`
+                `${newLine}${indent}import { onMount } from "svelte";${newLine}`
             );
 
             assert.deepEqual(
@@ -770,7 +771,7 @@ function test(useNewTransformation: boolean) {
             assert.strictEqual(
                 harmonizeNewLines(additionalTextEdits![0]?.newText),
                 // " instead of ' because VSCode uses " by default when there are no other imports indicating otherwise
-                `${newLine}import { onMount } from "svelte";${newLine}${newLine}`
+                `${newLine}${indent}import { onMount } from "svelte";${newLine}${newLine}`
             );
 
             assert.deepEqual(
@@ -797,7 +798,7 @@ function test(useNewTransformation: boolean) {
             assert.strictEqual(
                 harmonizeNewLines(additionalTextEdits![0]?.newText),
                 // " instead of ' because VSCode uses " by default when there are no other imports indicating otherwise
-                `${newLine}import { onMount } from "svelte";${newLine}${newLine}`
+                `${newLine}${indent}import { onMount } from "svelte";${newLine}${newLine}`
             );
 
             assert.deepEqual(
@@ -848,7 +849,7 @@ function test(useNewTransformation: boolean) {
             assert.strictEqual(
                 harmonizeNewLines(additionalTextEdits![0]?.newText),
                 // " instead of ' because VSCode uses " by default when there are no other imports indicating otherwise
-                `${newLine}import ImportedFile from "../imported-file.svelte";${newLine}`
+                `${newLine}${indent}import ImportedFile from "../imported-file.svelte";${newLine}`
             );
 
             assert.deepEqual(
@@ -886,7 +887,7 @@ function test(useNewTransformation: boolean) {
             assert.strictEqual(
                 harmonizeNewLines(additionalTextEdits![0]?.newText),
                 // " instead of ' because VSCode uses " by default when there are no other imports indicating otherwise
-                `<script>${newLine}import ImportedFile from "../imported-file.svelte";` +
+                `<script>${newLine}${indent}import ImportedFile from "../imported-file.svelte";` +
                     `${newLine}${newLine}</script>${newLine}`
             );
 
@@ -1284,8 +1285,28 @@ function test(useNewTransformation: boolean) {
             });
         });
 
-        it('auto import with system new line', async () => {
-            const { completionProvider, document } = setup('importcompletions-new-line.svelte');
+        it("auto import with system new line if can't detect file new line", async () => {
+            const { completionProvider, document, docManager } = setup(
+                'importcompletions-new-line.svelte'
+            );
+
+            if (newLine != '\n') {
+                docManager.updateDocument(
+                    {
+                        uri: document.uri,
+                        version: document.version + 1
+                    },
+                    [
+                        {
+                            range: Range.create(
+                                Position.create(0, 0),
+                                document.positionAt(document.getTextLength())
+                            ),
+                            text: document.getText().replace('\n', '\r\n')
+                        }
+                    ]
+                );
+            }
 
             const completions = await completionProvider.getCompletions(
                 document,
@@ -1302,7 +1323,7 @@ function test(useNewTransformation: boolean) {
 
             assert.strictEqual(
                 additionalTextEdits?.[0].newText,
-                `${newLine}import { ScndImport } from "./to-import";${newLine}${newLine}`
+                `${newLine}${indent}import { ScndImport } from "./to-import";${newLine}${newLine}`
             );
         });
 
