@@ -126,6 +126,11 @@ export function startServer(options?: LSOptions) {
                 evt.initializationOptions?.typescriptConfig ||
                 {}
         );
+        configManager.updateTsJsFormateConfig(
+            evt.initializationOptions?.configuration ||
+                evt.initializationOptions?.typescriptConfig ||
+                {}
+        );
         configManager.updateEmmetConfig(
             evt.initializationOptions?.configuration?.emmet ||
                 evt.initializationOptions?.emmetConfig ||
@@ -293,6 +298,7 @@ export function startServer(options?: LSOptions) {
     connection.onDidChangeConfiguration(({ settings }) => {
         configManager.update(settings.svelte?.plugin);
         configManager.updateTsJsUserPreferences(settings);
+        configManager.updateTsJsFormateConfig(settings);
         configManager.updateEmmetConfig(settings.emmet);
         configManager.updatePrettierConfig(settings.prettier);
         configManager.updateCssConfig(settings.css);

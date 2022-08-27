@@ -198,6 +198,7 @@ export interface LSSvelteConfig {
 export interface TSUserConfig {
     preferences?: TsUserPreferencesConfig;
     suggest?: TSSuggestConfig;
+    format?: TsFormatConfig;
 }
 
 /**
@@ -223,6 +224,11 @@ export interface TSSuggestConfig {
     includeAutomaticOptionalChainCompletions: boolean | undefined;
     includeCompletionsForImportStatements: boolean | undefined;
 }
+
+export type TsFormatConfig = Omit<
+    ts.FormatCodeSettings,
+    'indentMultiLineObjectLiteralBeginningOnBlankLine' | keyof ts.EditorSettings
+>;
 
 export type TsUserConfigLang = 'typescript' | 'javascript';
 
@@ -258,6 +264,10 @@ export class LSConfigManager {
             includeCompletionsWithInsertText: true,
             includeAutomaticOptionalChainCompletions: true
         }
+    };
+    private tsFormatCodeOptions: Record<TsUserConfigLang, ts.FormatCodeSettings> = {
+        typescript: this.getDefaultFormatCodeOptions(),
+        javascript: this.getDefaultFormatCodeOptions()
     };
     private prettierConfig: any = {};
     private emmetConfig: VSCodeEmmetConfig = {};
@@ -423,8 +433,18 @@ export class LSConfigManager {
         return this.lessConfig;
     }
 
-    async getFormatCodeSettingsForFile(document: Document): Promise<ts.FormatCodeSettings> {
-        const defaultConfig: ts.FormatCodeSettings = {
+    updateTsJsFormateConfig(config: Record<TsUserConfigLang, TSUserConfig>): void {
+        (['typescript', 'javascript'] as const).forEach((lang) => {
+            if (config[lang]) {
+                this._updateTsFormatConfig(lang, config[lang]);
+            }
+        });
+        this.listeners.forEach((listener) => listener(this));
+    }
+
+    private getDefaultFormatCodeOptions(): ts.FormatCodeSettings {
+        // https://github.com/microsoft/TypeScript/blob/394f51aeed80788dca72c6f6a90d1d27886b6972/src/services/types.ts#L1014
+        return {
             indentSize: 4,
             tabSize: 4,
             convertTabsToSpaces: true,
@@ -434,7 +454,6 @@ export class LSConfigManager {
             insertSpaceAfterSemicolonInForStatements: true,
             insertSpaceBeforeAndAfterBinaryOperators: true,
             insertSpaceAfterKeywordsInControlFlowStatements: true,
-            insertSpaceAfterFunctionKeywordForAnonymousFunctions: false,
             insertSpaceAfterOpeningAndBeforeClosingNonemptyParenthesis: false,
             insertSpaceAfterOpeningAndBeforeClosingNonemptyBrackets: false,
             insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces: true,
@@ -444,13 +463,35 @@ export class LSConfigManager {
             placeOpenBraceOnNewLineForFunctions: false,
             placeOpenBraceOnNewLineForControlBlocks: false,
             trimTrailingWhitespace: true,
-            semicolons: ts.SemicolonPreference.Ignore
-        };
+            semicolons: ts.SemicolonPreference.Ignore,
 
+            // Override TypeScript's default because VSCode default to true
+            // Also this matches the prettier style
+            insertSpaceAfterFunctionKeywordForAnonymousFunctions: true
+        };
+    }
+
+    private _updateTsFormatConfig(lang: TsUserConfigLang, config: TSUserConfig) {
+        this.tsFormatCodeOptions[lang] = {
+            ...this.tsFormatCodeOptions[lang],
+            ...(config.format ?? {})
+        };
+    }
+
+    async getFormatCodeSettingsForFile(
+        document: Document,
+        scriptKind: ts.ScriptKind
+    ): Promise<ts.FormatCodeSettings> {
         const filePath = document.getFilePath();
+        const configLang =
+            scriptKind === ts.ScriptKind.TS || scriptKind === ts.ScriptKind.TSX
+                ? 'typescript'
+                : 'javascript';
+
+        const tsFormatCodeOptions = this.tsFormatCodeOptions[configLang];
 
         if (!filePath) {
-            return defaultConfig;
+            return tsFormatCodeOptions;
         }
 
         const prettierConfig = this.getMergedPrettierConfig(
@@ -464,10 +505,10 @@ export class LSConfigManager {
 
         const indentSize =
             (typeof prettierConfig.tabWidth === 'number' ? prettierConfig.tabWidth : null) ??
-            defaultConfig.tabSize;
+            tsFormatCodeOptions.tabSize;
 
         return {
-            ...defaultConfig,
+            ...tsFormatCodeOptions,
 
             newLineCharacter: documentUseLf ? '\n' : ts.sys.newLine,
             baseIndentSize: prettierConfig.svelteIndentScriptAndStyle === false ? 0 : indentSize,

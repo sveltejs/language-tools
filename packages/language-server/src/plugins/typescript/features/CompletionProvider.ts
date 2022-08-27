@@ -178,7 +178,10 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             return CompletionList.create(eventAndSlotLetCompletions, !!tsDoc.parserError);
         }
 
-        const formatSettings = await this.configManager.getFormatCodeSettingsForFile(document);
+        const formatSettings = await this.configManager.getFormatCodeSettingsForFile(
+            document,
+            tsDoc.scriptKind
+        );
         if (cancellationToken?.isCancellationRequested) {
             return null;
         }
@@ -554,7 +557,10 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             }
         }
 
-        const formatCodeOptions = await this.configManager.getFormatCodeSettingsForFile(document);
+        const formatCodeOptions = await this.configManager.getFormatCodeSettingsForFile(
+            document,
+            tsDoc.scriptKind
+        );
         const getDetail = () =>
             lang.getCompletionEntryDetails(
                 filePath,

@@ -116,7 +116,10 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                 skipDestructiveCodeActions
             },
             {
-                ...(await this.configManager.getFormatCodeSettingsForFile(document)),
+                ...(await this.configManager.getFormatCodeSettingsForFile(
+                    document,
+                    tsDoc.scriptKind
+                )),
 
                 // handle it on our own
                 baseIndentSize: undefined
@@ -249,7 +252,10 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             (diagnostic) => diagnostic.code === 2304
         ); // "Cannot find name '...'."
 
-        const formatCodeSettings = await this.configManager.getFormatCodeSettingsForFile(document);
+        const formatCodeSettings = await this.configManager.getFormatCodeSettingsForFile(
+            document,
+            tsDoc.scriptKind
+        );
 
         let codeFixes = cannotFoundNameDiagnostic.length
             ? this.getComponentImportQuickFix(
