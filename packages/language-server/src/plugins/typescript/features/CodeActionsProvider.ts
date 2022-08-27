@@ -329,6 +329,18 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                                     range,
                                     document
                                 );
+
+                                // ts doesn't add base indent to the first line
+                                if (formatCodeSettings.baseIndentSize) {
+                                    const indent =
+                                        formatCodeSettings.convertTabsToSpaces ?? true
+                                            ? ' '.repeat(formatCodeSettings.baseIndentSize)
+                                            : '\t';
+                                    const emptyLine = (
+                                        formatCodeSettings.newLineCharacter ?? ts.sys.newLine
+                                    ).repeat(2);
+                                    edit.newText = emptyLine + indent + edit.newText.trimLeft();
+                                }
                             }
 
                             if (fix.fixName === 'disableJsDiagnostics') {
