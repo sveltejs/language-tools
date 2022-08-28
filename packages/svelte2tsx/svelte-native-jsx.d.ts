@@ -7,7 +7,10 @@ declare namespace svelteNative.JSX {
     ): any;
 
     function createElement<Elements extends IntrinsicElements, Key extends keyof Elements>(
-        element: Key, attrs: Elements[Key]
+        element: Key | undefined | null, attrs: Elements[Key]
+    ): any;
+    function createElement<Elements extends IntrinsicElements, Key extends keyof Elements, T>(
+        element: Key | undefined | null, attrEnhancers: T, attrs: Elements[Key] & T
     ): any;
 
 
