@@ -553,7 +553,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         completionItem: AppCompletionItem<CompletionEntryWithIdentifier>,
         cancellationToken?: CancellationToken
     ): Promise<AppCompletionItem<CompletionEntryWithIdentifier>> {
-        let { data: comp } = completionItem;
+        const { data: comp } = completionItem;
         const { tsDoc, lang, userPreferences } = await this.lsAndTsDocResolver.getLSAndTSDoc(
             document
         );
