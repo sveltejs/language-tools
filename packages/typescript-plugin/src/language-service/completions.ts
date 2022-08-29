@@ -12,6 +12,50 @@ export function decorateCompletions(ls: ts.LanguageService, logger: Logger): voi
         if (!completions) {
             return completions;
         }
+
+        // Add ./$types imports for SvelteKit since TypeScript is bad at it
+        if (basename(fileName).startsWith('+')) {
+            const $typeImports = new Map<string, ts.CompletionEntry>();
+            for (const c of completions.entries) {
+                if (c.source?.includes('.svelte-kit/types') && c.data) {
+                    $typeImports.set(c.name, c);
+                }
+            }
+            for (const $typeImport of $typeImports.values()) {
+                // resolve path from FileName to svelte-kit/types
+                // src/routes/foo/+page.svelte -> .svelte-kit/types/foo/$types.d.ts
+                const routesFolder = 'src/routes'; // TODO somehow get access to kit.files.routes in here
+                const relativeFileName = fileName.split(routesFolder)[1]?.slice(1);
+
+                if (relativeFileName) {
+                    const modifiedSource =
+                        $typeImport.source!.split('.svelte-kit/types')[0] +
+                        // note the missing .d.ts at the end - TS wants it that way for some reason
+                        `.svelte-kit/types/${routesFolder}/${dirname(relativeFileName)}/$types`;
+                    completions.entries.push({
+                        ...$typeImport,
+                        // Ensure it's sorted above the other imports
+                        sortText: !isNaN(Number($typeImport.sortText))
+                            ? String(Number($typeImport.sortText) - 1)
+                            : $typeImport.sortText,
+                        source: modifiedSource,
+                        data: {
+                            ...$typeImport.data,
+                            fileName: $typeImport.data!.fileName?.replace(
+                                $typeImport.source!,
+                                modifiedSource
+                            ),
+                            moduleSpecifier: $typeImport.data!.moduleSpecifier?.replace(
+                                $typeImport.source!,
+                                modifiedSource
+                            ),
+                            __is_sveltekit$typeImport: true
+                        } as any
+                    });
+                }
+            }
+        }
+
         return {
             ...completions,
             entries: completions.entries.map((entry) => {
@@ -39,28 +83,9 @@ export function decorateCompletions(ls: ts.LanguageService, logger: Logger): voi
         preferences,
         data
     ) => {
-        let is$typeImport = false;
-        const originalSource = source;
-        const originalData = data ? { ...data } : undefined;
-        if (basename(fileName).startsWith('+') && source?.includes('.svelte-kit/types')) {
-            // resolve path from FileName to svelte-kit/types
-            // src/routes/foo/+page.svelte -> .svelte-kit/types/foo/$types.d.ts
-            const routesFolder = 'src/routes'; // TODO somehow get access to kit.files.routes in here
-            const relativeFileName = fileName.split(routesFolder)[1]?.slice(1);
-            if (relativeFileName) {
-                is$typeImport = true;
-                source =
-                    source.split('.svelte-kit/types')[0] +
-                    // note the missing .d.ts at the end - TS wants it that way for some reason
-                    `.svelte-kit/types/${routesFolder}/${dirname(relativeFileName)}/$types`;
-                if (data) {
-                    data.fileName = data.fileName?.replace(originalSource!, source);
-                    data.moduleSpecifier = data.moduleSpecifier?.replace(originalSource!, source);
-                }
-            }
-        }
+        const is$typeImport = (data as any).__is_sveltekit$typeImport;
 
-        let details = getCompletionEntryDetails(
+        const details = getCompletionEntryDetails(
             fileName,
             position,
             entryName,
@@ -69,19 +94,6 @@ export function decorateCompletions(ls: ts.LanguageService, logger: Logger): voi
             preferences,
             data
         );
-        if (!details && is$typeImport) {
-            // Try again
-            is$typeImport = false;
-            details = getCompletionEntryDetails(
-                fileName,
-                position,
-                entryName,
-                formatOptions,
-                originalSource,
-                preferences,
-                originalData
-            );
-        }
 
         if (details) {
             if (is$typeImport) {

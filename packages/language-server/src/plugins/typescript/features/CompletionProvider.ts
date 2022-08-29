@@ -44,6 +44,7 @@ import { findContainingNode, getComponentAtPosition, isPartOfImportStatement } f
 
 export interface CompletionEntryWithIdentifier extends ts.CompletionEntry, TextDocumentIdentifier {
     position: Position;
+    __is_sveltekit$typeImport?: boolean;
 }
 
 type validTriggerCharacter = '.' | '"' | "'" | '`' | '/' | '@' | '<' | '#';
@@ -256,6 +257,42 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             .map((comp) => mapCompletionItemToOriginal(tsDoc, comp))
             .map((comp) => this.fixTextEditRange(wordRangeStartPosition, comp))
             .concat(eventAndSlotLetCompletions);
+
+        // Add ./$types imports for SvelteKit since TypeScript is bad at it
+        if (basename(filePath).startsWith('+')) {
+            const $typeImports = new Map<string, CompletionItem>();
+            for (const c of completionItems) {
+                if (c.data.source?.includes('.svelte-kit/types')) {
+                    $typeImports.set(c.label, c);
+                }
+            }
+            for (const $typeImport of $typeImports.values()) {
+                // resolve path from filePath to svelte-kit/types
+                // src/routes/foo/+page.svelte -> .svelte-kit/types/foo/$types.d.ts
+                const routesFolder = document.config?.kit?.files?.routes || 'src/routes';
+                const relativeFilePath = filePath.split(routesFolder)[1]?.slice(1);
+                if (relativeFilePath) {
+                    completionItems.push({
+                        ...$typeImport,
+                        // Ensure it's sorted above the other imports
+                        sortText: !isNaN(Number($typeImport.sortText))
+                            ? String(Number($typeImport.sortText) - 1)
+                            : $typeImport.sortText,
+                        data: {
+                            ...$typeImport.data,
+                            __is_sveltekit$typeImport: true,
+                            source:
+                                $typeImport.data.source.split('.svelte-kit/types')[0] +
+                                // note the missing .d.ts at the end - TS wants it that way for some reason
+                                `.svelte-kit/types/${routesFolder}/${dirname(
+                                    relativeFilePath
+                                )}/$types`,
+                            data: undefined
+                        }
+                    });
+                }
+            }
+        }
 
         const completionList = CompletionList.create(completionItems, !!tsDoc.parserError);
         this.lastCompletion = { key: document.getFilePath() || '', position, completionList };
@@ -527,44 +564,21 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             return completionItem;
         }
 
+        const is$typeImport = !!comp.__is_sveltekit$typeImport;
+
         const errorPreventingUserPreferences = comp.source?.endsWith('.svelte')
             ? this.fixUserPreferencesForSvelteComponentImport(userPreferences)
             : userPreferences;
 
-        let is$typeImport = false;
-        const originalComp = { ...comp };
-        if (basename(filePath).startsWith('+') && comp.source?.includes('.svelte-kit/types')) {
-            // resolve path from filePath to svelte-kit/types
-            // src/routes/foo/+page.svelte -> .svelte-kit/types/foo/$types.d.ts
-            const routesFolder = document.config?.kit?.files?.routes || 'src/routes';
-            const relativeFilePath = filePath.split(routesFolder)[1]?.slice(1);
-            if (relativeFilePath) {
-                is$typeImport = true;
-                comp.source =
-                    comp.source.split('.svelte-kit/types')[0] +
-                    // note the missing .d.ts at the end - TS wants it that way for some reason
-                    `.svelte-kit/types/${routesFolder}/${dirname(relativeFilePath)}/$types`;
-                comp.data = undefined;
-            }
-        }
-
-        const getDetail = () =>
-            lang.getCompletionEntryDetails(
-                filePath,
-                tsDoc.offsetAt(tsDoc.getGeneratedPosition(comp!.position)),
-                comp!.name,
-                {},
-                comp!.source,
-                errorPreventingUserPreferences,
-                comp!.data
-            );
-        let detail = getDetail();
-        if (!detail && is$typeImport) {
-            // try again
-            is$typeImport = false;
-            comp = originalComp;
-            detail = getDetail();
-        }
+        const detail = lang.getCompletionEntryDetails(
+            filePath,
+            tsDoc.offsetAt(tsDoc.getGeneratedPosition(comp!.position)),
+            comp!.name,
+            {},
+            comp!.source,
+            errorPreventingUserPreferences,
+            comp!.data
+        );
 
         if (detail) {
             const { detail: itemDetail, documentation: itemDocumentation } =
