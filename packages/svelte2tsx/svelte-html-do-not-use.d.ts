@@ -568,7 +568,7 @@ export interface HTMLAnchorAttributes extends HTMLAttributes<HTMLAnchorElement> 
 	'sapper:prefetch'?: true | undefined | null;
 }
 
-// @typescript-eslint/no-empty-interface
+// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface HTMLAudioAttributes extends HTMLMediaAttributes<HTMLAudioElement> {}
 
 export interface HTMLAreaAttributes extends HTMLAttributes<HTMLAreaElement> {
