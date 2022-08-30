@@ -179,15 +179,24 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             return CompletionList.create(eventAndSlotLetCompletions, !!tsDoc.parserError);
         }
 
+        const formatSettings = await this.configManager.getFormatCodeSettingsForFile(
+            document,
+            tsDoc.scriptKind
+        );
         if (cancellationToken?.isCancellationRequested) {
             return null;
         }
 
         let completions =
-            lang.getCompletionsAtPosition(filePath, offset, {
-                ...userPreferences,
-                triggerCharacter: validTriggerCharacter
-            })?.entries || [];
+            lang.getCompletionsAtPosition(
+                filePath,
+                offset,
+                {
+                    ...userPreferences,
+                    triggerCharacter: validTriggerCharacter
+                },
+                formatSettings
+            )?.entries || [];
 
         if (!completions.length) {
             completions =
@@ -560,6 +569,10 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
 
         const filePath = tsDoc.filePath;
 
+        const formatCodeOptions = await this.configManager.getFormatCodeSettingsForFile(
+            document,
+            tsDoc.scriptKind
+        );
         if (!comp || !filePath || cancellationToken?.isCancellationRequested) {
             return completionItem;
         }
@@ -574,7 +587,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             filePath,
             tsDoc.offsetAt(tsDoc.getGeneratedPosition(comp!.position)),
             comp!.name,
-            {},
+            formatCodeOptions,
             comp!.source,
             errorPreventingUserPreferences,
             comp!.data

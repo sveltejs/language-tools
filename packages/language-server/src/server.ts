@@ -115,6 +115,10 @@ export function startServer(options?: LSOptions) {
             Logger.log('Workspace is not trusted, running with reduced capabilities.');
         }
 
+        Logger.setDebug(
+            (evt.initializationOptions?.configuration?.svelte ||
+                evt.initializationOptions?.config)?.['language-server'].debug
+        );
         // Backwards-compatible way of setting initialization options (first `||` is the old style)
         configManager.update(
             evt.initializationOptions?.configuration?.svelte?.plugin ||
@@ -122,6 +126,11 @@ export function startServer(options?: LSOptions) {
                 {}
         );
         configManager.updateTsJsUserPreferences(
+            evt.initializationOptions?.configuration ||
+                evt.initializationOptions?.typescriptConfig ||
+                {}
+        );
+        configManager.updateTsJsFormateConfig(
             evt.initializationOptions?.configuration ||
                 evt.initializationOptions?.typescriptConfig ||
                 {}
@@ -293,11 +302,13 @@ export function startServer(options?: LSOptions) {
     connection.onDidChangeConfiguration(({ settings }) => {
         configManager.update(settings.svelte?.plugin);
         configManager.updateTsJsUserPreferences(settings);
+        configManager.updateTsJsFormateConfig(settings);
         configManager.updateEmmetConfig(settings.emmet);
         configManager.updatePrettierConfig(settings.prettier);
         configManager.updateCssConfig(settings.css);
         configManager.updateScssConfig(settings.scss);
         configManager.updateLessConfig(settings.less);
+        Logger.setDebug(settings.svelte?.['language-server'].debug);
     });
 
     connection.onDidOpenTextDocument((evt) => {
