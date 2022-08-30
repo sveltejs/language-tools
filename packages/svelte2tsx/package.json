@@ -57,7 +57,8 @@
         "LICENSE",
         "svelte-jsx.d.ts",
         "svelte-native-jsx.d.ts",
-        "svelte-shims.d.ts"
+        "svelte-shims.d.ts",
+        "svelte-html-do-not-use.d.ts"
     ],
     "dependencies": {
         "dedent-js": "^1.0.1",
