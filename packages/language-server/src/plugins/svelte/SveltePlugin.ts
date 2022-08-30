@@ -100,7 +100,7 @@ export class SveltePlugin
             withNodeModules: true
         });
         if (fileInfo.ignored) {
-            Logger.log('File is ignored, formatting skipped');
+            Logger.debug('File is ignored, formatting skipped');
             return [];
         }
 

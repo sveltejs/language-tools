@@ -180,6 +180,7 @@ async function createLanguageService(
     let projectVersion = 0;
 
     const host: ts.LanguageServiceHost = {
+        log: message => Logger.debug(`[ts] ${message}`),
         getCompilationSettings: () => compilerOptions,
         getScriptFileNames: () =>
             Array.from(

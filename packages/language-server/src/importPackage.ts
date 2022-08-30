@@ -51,20 +51,20 @@ export function getPackageInfo(packageName: string, fromPath: string) {
 export function importPrettier(fromPath: string): typeof prettier {
     const pkg = getPackageInfo('prettier', fromPath);
     const main = resolve(pkg.path);
-    Logger.log('Using Prettier v' + pkg.version.full, 'from', main);
+    Logger.debug('Using Prettier v' + pkg.version.full, 'from', main);
     return dynamicRequire(main);
 }
 
 export function importSvelte(fromPath: string): typeof svelte {
     const pkg = getPackageInfo('svelte', fromPath);
     const main = resolve(pkg.path, 'compiler');
-    Logger.log('Using Svelte v' + pkg.version.full, 'from', main);
+    Logger.debug('Using Svelte v' + pkg.version.full, 'from', main);
     return dynamicRequire(main);
 }
 
 export function importSveltePreprocess(fromPath: string): typeof sveltePreprocess {
     const pkg = getPackageInfo('svelte-preprocess', fromPath);
     const main = resolve(pkg.path);
-    Logger.log('Using svelte-preprocess v' + pkg.version.full, 'from', main);
+    Logger.debug('Using svelte-preprocess v' + pkg.version.full, 'from', main);
     return dynamicRequire(main);
 }

@@ -92,6 +92,11 @@
                     "description": "- You normally don't set this - At which port to spawn the language server. Can be used for attaching to the process for debugging / profiling. If you experience crashes due to \"port already in use\", try setting the port. -1 = default port is used.",
                     "default": -1
                 },
+                "svelte.language-server.debug": {
+                    "type": "boolean",
+                    "title": "Language Server Debug Mode",
+                    "description": "- You normally don't set this - Enable more verbose logging for the language server useful for debugging language server execution."
+                },
                 "svelte.trace.server": {
                     "type": "string",
                     "enum": [
