@@ -117,7 +117,13 @@ export function convertHtmlxToJsx(
                         handleComment(str, node);
                         break;
                     case 'Binding':
-                        handleBinding(str, node as BaseDirective, parent, element);
+                        handleBinding(
+                            str,
+                            node as BaseDirective,
+                            parent,
+                            element,
+                            options.typingsNamespace === 'svelteHTML'
+                        );
                         break;
                     case 'Class':
                         handleClassDirective(str, node as BaseDirective, element as Element);
@@ -126,7 +132,7 @@ export function convertHtmlxToJsx(
                         handleStyleDirective(str, node as StyleDirective, element as Element);
                         break;
                     case 'Action':
-                        handleActionDirective(str, node as BaseDirective, element as Element);
+                        handleActionDirective(node as BaseDirective, element as Element);
                         break;
                     case 'Transition':
                         handleTransitionDirective(str, node as BaseDirective, element as Element);

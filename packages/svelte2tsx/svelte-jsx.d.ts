@@ -17,16 +17,11 @@ declare namespace svelteHTML {
     // "undefined | null" because of <svelte:element>
     element: Key | undefined | null, attrs: Elements[Key]
   ): Key extends keyof ElementTagNameMap ? ElementTagNameMap[Key] : Key extends keyof SVGElementTagNameMap ? SVGElementTagNameMap[Key] : any;
+  function createElement<Elements extends IntrinsicElements, Key extends keyof Elements, T>(
+    // "undefined | null" because of <svelte:element>
+    element: Key | undefined | null, attrsEnhancers: T, attrs: Elements[Key] & T
+  ): Key extends keyof ElementTagNameMap ? ElementTagNameMap[Key] : Key extends keyof SVGElementTagNameMap ? SVGElementTagNameMap[Key] : any;
 
-
-  type NativeElement = HTMLElement;
-
-  // TypeScript SVGElement has no `dataset` (Chrome 55+, Firefox 51+).
-  type Element = NativeElement & {
-    dataset: DOMStringMap;
-  };
-
-  //
   // Event Handler Types
   // ----------------------------------------------------------------------
   type EventHandler<E extends Event = Event, T extends EventTarget = HTMLElement> =
@@ -48,260 +43,15 @@ declare namespace svelteHTML {
   type TransitionEventHandler<T extends EventTarget> = svelte.JSX.TransitionEventHandler<T>;
   type MessageEventHandler<T extends EventTarget> = svelte.JSX.MessageEventHandler<T>;
 
-  // See CSS 3 CSS-wide keywords https://www.w3.org/TR/css3-values/#common-keywords
-  // See CSS 3 Explicit Defaulting https://www.w3.org/TR/css-cascade-3/#defaulting-keywords
-  // "all CSS properties can accept these values"
-  type CSSWideKeyword = svelte.JSX.CSSWideKeyword;
+  // For backwards-compatibility, in case someone enhanced the typings from svelteHtml.HTMLAttributes
+  // eslint-disable-next-line @typescript-eslint/no-empty-interface
+  interface HTMLAttributes<T extends EventTarget = any> {}
 
-  // See CSS 3 <percentage> type https://drafts.csswg.org/css-values-3/#percentages
-  type CSSPercentage = svelte.JSX.CSSPercentage;
-
-  // See CSS 3 <length> type https://drafts.csswg.org/css-values-3/#lengths
-  type CSSLength = svelte.JSX.CSSLength;
-
-  // This interface is not complete. Only properties accepting
-  // unit-less numbers are listed here (see CSSProperty.js in React)
-
-  // eslint-disable-next-line @typescript-eslint/no-empty-interface
-  interface DOMAttributes<T extends EventTarget> extends svelte.JSX.DOMAttributes<T> {}
-
-  // eslint-disable-next-line @typescript-eslint/no-empty-interface
-  interface AriaAttributes extends svelte.JSX.AriaAttributes {}
-
-  // eslint-disable-next-line @typescript-eslint/no-empty-interface
-  interface HTMLAttributes<T extends EventTarget> extends svelte.JSX.HTMLAttributes<T> {}
-
-  // eslint-disable-next-line @typescript-eslint/no-empty-interface
-  interface SVGAttributes<T extends EventTarget> extends svelte.JSX.SVGAttributes<T> {
-    'xlink:actuate'?: string | undefined;
-    'xlink:arcrole'?: string | undefined;
-    'xlink:href'?: string | undefined;
-    'xlink:role'?: string | undefined;
-    'xlink:show'?: string | undefined;
-    'xlink:title'?: string | undefined;
-    'xlink:type'?: string | undefined;
-    'xml:base'?: string | undefined;
-    'xml:lang'?: string | undefined;
-    'xml:space'?: string | undefined;
-    'xmlns'?: string | undefined;
-    'xmlns:xlink'?: string | undefined;
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-empty-interface
-  interface HTMLProps<T extends EventTarget> extends HTMLAttributes<T> {}
-
-  // eslint-disable-next-line @typescript-eslint/no-empty-interface
-  interface SVGProps<T extends EventTarget> extends SVGAttributes<T> {}
-  
-  // eslint-disable-next-line @typescript-eslint/no-empty-interface
-  interface SvelteInputProps extends svelte.JSX.SvelteInputProps {}
-  
-  // eslint-disable-next-line @typescript-eslint/no-empty-interface
-  interface SvelteWindowProps extends svelte.JSX.SvelteWindowProps {}
-  
-  interface SapperAnchorProps {
-    "sapper:noscroll"?: true | undefined | null;
-    "sapper:prefetch"?: true | undefined | null;
-  }
-
-  interface SvelteKitAnchorProps {
-    "sveltekit:noscroll"?: true | undefined | null;
-    "sveltekit:prefetch"?: true | undefined | null;
-    "sveltekit:reload"?: true | undefined | null;
-  }
-  
-  // eslint-disable-next-line @typescript-eslint/no-empty-interface
-  interface SvelteMediaTimeRange extends svelte.JSX.SvelteMediaTimeRange {}
-  
-  // eslint-disable-next-line @typescript-eslint/no-empty-interface
-  interface SvelteMediaProps extends svelte.JSX.SvelteMediaProps {}
-  
-  // eslint-disable-next-line @typescript-eslint/no-empty-interface
-  interface SvelteVideoProps extends svelte.JSX.SvelteVideoProps {}
+  type EventsWithColon<T> = {[Property in keyof T as Property extends `on${infer Key}` ? `on:${Key}` : Property]?: T[Property] }
+  type WithOldJsxTypings<T> = {[Property in keyof T]?: T[Property] & EventsWithColon<svelte.JSX.IntrinsicElements[Property & string]> & HTMLAttributes }
   
   // no "extends svelte.JSX" because else we wouldn't get the references to the right interfaces
-  interface IntrinsicElements {
-    // HTML
-    a: HTMLProps<HTMLAnchorElement> & SapperAnchorProps & SvelteKitAnchorProps;
-    abbr: HTMLProps<HTMLElement>;
-    address: HTMLProps<HTMLElement>;
-    area: HTMLProps<HTMLAreaElement>;
-    article: HTMLProps<HTMLElement>;
-    aside: HTMLProps<HTMLElement>;
-    audio: HTMLProps<HTMLAudioElement> & SvelteMediaProps;
-    b: HTMLProps<HTMLElement>;
-    base: HTMLProps<HTMLBaseElement>;
-    bdi: HTMLProps<HTMLElement>;
-    bdo: HTMLProps<HTMLElement>;
-    big: HTMLProps<HTMLElement>;
-    blockquote: HTMLProps<HTMLElement>;
-    body: HTMLProps<HTMLBodyElement>;
-    br: HTMLProps<HTMLBRElement>;
-    button: HTMLProps<HTMLButtonElement>;
-    canvas: HTMLProps<HTMLCanvasElement>;
-    caption: HTMLProps<HTMLElement>;
-    cite: HTMLProps<HTMLElement>;
-    code: HTMLProps<HTMLElement>;
-    col: HTMLProps<HTMLTableColElement>;
-    colgroup: HTMLProps<HTMLTableColElement>;
-    data: HTMLProps<HTMLElement>;
-    datalist: HTMLProps<HTMLDataListElement>;
-    dd: HTMLProps<HTMLElement>;
-    del: HTMLProps<HTMLElement>;
-    details: HTMLProps<HTMLElement>;
-    dfn: HTMLProps<HTMLElement>;
-    dialog: HTMLProps<HTMLElement>;
-    div: HTMLProps<HTMLDivElement>;
-    dl: HTMLProps<HTMLDListElement>;
-    dt: HTMLProps<HTMLElement>;
-    em: HTMLProps<HTMLElement>;
-    embed: HTMLProps<HTMLEmbedElement>;
-    fieldset: HTMLProps<HTMLFieldSetElement>;
-    figcaption: HTMLProps<HTMLElement>;
-    figure: HTMLProps<HTMLElement>;
-    footer: HTMLProps<HTMLElement>;
-    form: HTMLProps<HTMLFormElement>;
-    h1: HTMLProps<HTMLHeadingElement>;
-    h2: HTMLProps<HTMLHeadingElement>;
-    h3: HTMLProps<HTMLHeadingElement>;
-    h4: HTMLProps<HTMLHeadingElement>;
-    h5: HTMLProps<HTMLHeadingElement>;
-    h6: HTMLProps<HTMLHeadingElement>;
-    head: HTMLProps<HTMLHeadElement>;
-    header: HTMLProps<HTMLElement>;
-    hgroup: HTMLProps<HTMLElement>;
-    hr: HTMLProps<HTMLHRElement>;
-    html: HTMLProps<HTMLHtmlElement>;
-    i: HTMLProps<HTMLElement>;
-    iframe: HTMLProps<HTMLIFrameElement>;
-    img: HTMLProps<HTMLImageElement>;
-    input: SvelteInputProps;
-    ins: HTMLProps<HTMLModElement>;
-    kbd: HTMLProps<HTMLElement>;
-    keygen: HTMLProps<HTMLElement>;
-    label: HTMLProps<HTMLLabelElement>;
-    legend: HTMLProps<HTMLLegendElement>;
-    li: HTMLProps<HTMLLIElement>;
-    link: HTMLProps<HTMLLinkElement>;
-    main: HTMLProps<HTMLElement>;
-    map: HTMLProps<HTMLMapElement>;
-    mark: HTMLProps<HTMLElement>;
-    menu: HTMLProps<HTMLElement>;
-    menuitem: HTMLProps<HTMLElement>;
-    meta: HTMLProps<HTMLMetaElement>;
-    meter: HTMLProps<HTMLElement>;
-    nav: HTMLProps<HTMLElement>;
-    noindex: HTMLProps<HTMLElement>;
-    noscript: HTMLProps<HTMLElement>;
-    object: HTMLProps<HTMLObjectElement>;
-    ol: HTMLProps<HTMLOListElement>;
-    optgroup: HTMLProps<HTMLOptGroupElement>;
-    option: HTMLProps<HTMLOptionElement>;
-    output: HTMLProps<HTMLElement>;
-    p: HTMLProps<HTMLParagraphElement>;
-    param: HTMLProps<HTMLParamElement>;
-    picture: HTMLProps<HTMLElement>;
-    pre: HTMLProps<HTMLPreElement>;
-    progress: HTMLProps<HTMLProgressElement>;
-    q: HTMLProps<HTMLQuoteElement>;
-    rp: HTMLProps<HTMLElement>;
-    rt: HTMLProps<HTMLElement>;
-    ruby: HTMLProps<HTMLElement>;
-    s: HTMLProps<HTMLElement>;
-    samp: HTMLProps<HTMLElement>;
-    script: HTMLProps<HTMLElement>;
-    section: HTMLProps<HTMLElement>;
-    select: HTMLProps<HTMLSelectElement>;
-    small: HTMLProps<HTMLElement>;
-    source: HTMLProps<HTMLSourceElement>;
-    span: HTMLProps<HTMLSpanElement>;
-    strong: HTMLProps<HTMLElement>;
-    style: HTMLProps<HTMLStyleElement>;
-    sub: HTMLProps<HTMLElement>;
-    summary: HTMLProps<HTMLElement>;
-    sup: HTMLProps<HTMLElement>;
-    table: HTMLProps<HTMLTableElement>;
-    tbody: HTMLProps<HTMLTableSectionElement>;
-    td: HTMLProps<HTMLTableDataCellElement>;
-    textarea: HTMLProps<HTMLTextAreaElement>;
-    tfoot: HTMLProps<HTMLTableSectionElement>;
-    th: HTMLProps<HTMLTableHeaderCellElement>;
-    thead: HTMLProps<HTMLTableSectionElement>;
-    time: HTMLProps<HTMLElement>;
-    title: HTMLProps<HTMLTitleElement>;
-    tr: HTMLProps<HTMLTableRowElement>;
-    track: HTMLProps<HTMLTrackElement>;
-    u: HTMLProps<HTMLElement>;
-    ul: HTMLProps<HTMLUListElement>;
-    var: HTMLProps<HTMLElement>;
-    video: HTMLProps<HTMLVideoElement> & SvelteVideoProps;
-    wbr: HTMLProps<HTMLElement>;
-
-    svg: SVGProps<SVGSVGElement>;
-
-    animate: SVGProps<SVGElement>; // @TODO: It is SVGAnimateElement but not in dom.d.ts for now.
-    circle: SVGProps<SVGCircleElement>;
-    clipPath: SVGProps<SVGClipPathElement>;
-    defs: SVGProps<SVGDefsElement>;
-    desc: SVGProps<SVGDescElement>;
-    ellipse: SVGProps<SVGEllipseElement>;
-    feBlend: SVGProps<SVGFEBlendElement>;
-    feColorMatrix: SVGProps<SVGFEColorMatrixElement>;
-    feComponentTransfer: SVGProps<SVGFEComponentTransferElement>;
-    feComposite: SVGProps<SVGFECompositeElement>;
-    feConvolveMatrix: SVGProps<SVGFEConvolveMatrixElement>;
-    feDiffuseLighting: SVGProps<SVGFEDiffuseLightingElement>;
-    feDisplacementMap: SVGProps<SVGFEDisplacementMapElement>;
-    feDistantLight: SVGProps<SVGFEDistantLightElement>;
-    feFlood: SVGProps<SVGFEFloodElement>;
-    feFuncA: SVGProps<SVGFEFuncAElement>;
-    feFuncB: SVGProps<SVGFEFuncBElement>;
-    feFuncG: SVGProps<SVGFEFuncGElement>;
-    feFuncR: SVGProps<SVGFEFuncRElement>;
-    feGaussianBlur: SVGProps<SVGFEGaussianBlurElement>;
-    feImage: SVGProps<SVGFEImageElement>;
-    feMerge: SVGProps<SVGFEMergeElement>;
-    feMergeNode: SVGProps<SVGFEMergeNodeElement>;
-    feMorphology: SVGProps<SVGFEMorphologyElement>;
-    feOffset: SVGProps<SVGFEOffsetElement>;
-    fePointLight: SVGProps<SVGFEPointLightElement>;
-    feSpecularLighting: SVGProps<SVGFESpecularLightingElement>;
-    feSpotLight: SVGProps<SVGFESpotLightElement>;
-    feTile: SVGProps<SVGFETileElement>;
-    feTurbulence: SVGProps<SVGFETurbulenceElement>;
-    filter: SVGProps<SVGFilterElement>;
-    foreignObject: SVGProps<SVGForeignObjectElement>;
-    g: SVGProps<SVGGElement>;
-    image: SVGProps<SVGImageElement>;
-    line: SVGProps<SVGLineElement>;
-    linearGradient: SVGProps<SVGLinearGradientElement>;
-    marker: SVGProps<SVGMarkerElement>;
-    mask: SVGProps<SVGMaskElement>;
-    metadata: SVGProps<SVGMetadataElement>;
-    path: SVGProps<SVGPathElement>;
-    pattern: SVGProps<SVGPatternElement>;
-    polygon: SVGProps<SVGPolygonElement>;
-    polyline: SVGProps<SVGPolylineElement>;
-    radialGradient: SVGProps<SVGRadialGradientElement>;
-    rect: SVGProps<SVGRectElement>;
-    stop: SVGProps<SVGStopElement>;
-    switch: SVGProps<SVGSwitchElement>;
-    symbol: SVGProps<SVGSymbolElement>;
-    text: SVGProps<SVGTextElement>;
-    textPath: SVGProps<SVGTextPathElement>;
-    tspan: SVGProps<SVGTSpanElement>;
-    use: SVGProps<SVGUseElement>;
-    view: SVGProps<SVGViewElement>;
-
-    // Svelte specific
-    'svelte:window': HTMLProps<Window> & SvelteWindowProps;
-    'svelte:body': HTMLProps<HTMLElement>;
-    'svelte:fragment': { slot?: string; };
-    'svelte:options': { [name: string]: any };
-    'svelte:head': { [name: string]: any };
-
-    [name: string]: { [name: string]: any };
-  }
+  interface IntrinsicElements extends WithOldJsxTypings<import('./svelte-html-do-not-use').SvelteHTMLElements> {}
 }
 
 /**
@@ -326,20 +76,9 @@ declare namespace svelte.JSX {
 
     /* html jsx */
 
-
-    export type Child = Node | Node[] | string | number;
-    export type Children = Child | Child[];
-
-    type NativeElement = HTMLElement;
-
     interface IntrinsicAttributes {
       slot?: string;
     }
-
-    // TypeScript SVGElement has no `dataset` (Chrome 55+, Firefox 51+).
-    type Element = NativeElement & {
-      dataset: DOMStringMap;
-    };
 
     //
     // Event Handler Types
@@ -363,19 +102,6 @@ declare namespace svelte.JSX {
     type TransitionEventHandler<T extends EventTarget> = EventHandler<TransitionEvent, T>;
     type MessageEventHandler<T extends EventTarget> = EventHandler<MessageEvent, T>;
 
-    // See CSS 3 CSS-wide keywords https://www.w3.org/TR/css3-values/#common-keywords
-    // See CSS 3 Explicit Defaulting https://www.w3.org/TR/css-cascade-3/#defaulting-keywords
-    // "all CSS properties can accept these values"
-    type CSSWideKeyword = 'initial' | 'inherit' | 'unset';
-
-    // See CSS 3 <percentage> type https://drafts.csswg.org/css-values-3/#percentages
-    type CSSPercentage = string;
-
-    // See CSS 3 <length> type https://drafts.csswg.org/css-values-3/#lengths
-    type CSSLength = number | string;
-
-    // This interface is not complete. Only properties accepting
-    // unit-less numbers are listed here (see CSSProperty.js in React)
 
     interface DOMAttributes<T extends EventTarget> {
       // jsx-dom specific

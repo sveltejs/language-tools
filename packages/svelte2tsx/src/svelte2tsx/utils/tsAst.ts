@@ -100,6 +100,8 @@ export function extractIdentifiers(
                 extractIdentifiers(element, identifiers);
             }
         });
+    } else if (ts.isBinaryExpression(node)) {
+        extractIdentifiers(node.left, identifiers);
     }
 
     return identifiers;
