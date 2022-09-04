@@ -1,10 +1,10 @@
-import path = require('path');
-import { commands, ExtensionContext, Uri, window, workspace } from 'vscode';
+import * as path from 'path';
+import { commands, ExtensionContext, ProgressLocation, Uri, window, workspace } from 'vscode';
 import { commandsMap } from './commands';
 import { generateResources } from './generate';
 import { resourcesMap } from './resources';
 import { FileType, ICommand, Resource, ResourceType, TemplateConfig } from './types';
-import { findFile } from './utilts';
+import { findFile } from './utils';
 
 export function addGenerateKitFilesCommand(context: ExtensionContext) {
     const showDynamicDialog = async (uri: Uri | undefined, command: ICommand) => {
@@ -17,17 +17,20 @@ export function addGenerateKitFilesCommand(context: ExtensionContext) {
             rootPath = workspace.workspaceFolders[0].uri.fsPath;
         }
         if (!rootPath) {
-            await window.showErrorMessage('Could not resolve root path. Please open a file first or use the context menu!');
+            await window.showErrorMessage(
+                'Could not resolve root path. Please open a file first or use the context menu!'
+            );
             return;
         }
 
-        const isTs = !!findFile(rootPath, 'tsconfig.json');
+        const isTs = !!(await findFile(rootPath, 'tsconfig.json'));
         const scriptExtension = isTs ? 'ts' : 'js';
 
         let resources: Resource[] = [];
 
+        // Add a single file
         if (command.resources.length > 0) {
-            command.resources.forEach(type => {
+            command.resources.forEach((type) => {
                 const resource = resourcesMap.get(type);
                 if (resource) {
                     resources.push(resource);
@@ -35,6 +38,7 @@ export function addGenerateKitFilesCommand(context: ExtensionContext) {
             });
         }
 
+        // Add multiple files
         if (!resources?.length) {
             const opts = [
                 ResourceType.PAGE,
@@ -44,7 +48,7 @@ export function addGenerateKitFilesCommand(context: ExtensionContext) {
                 ResourceType.LAYOUT_LOAD,
                 ResourceType.LAYOUT_SERVER,
                 ResourceType.ERROR
-            ].map(type => {
+            ].map((type) => {
                 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                 const resource = resourcesMap.get(type)!;
                 // const iconName = resource.type === FileType.PAGE ? 'svelte' : isTs ? 'typescript' : 'javascript';
@@ -57,7 +61,6 @@ export function addGenerateKitFilesCommand(context: ExtensionContext) {
                     value: resource
                 };
             });
-            console.log(opts);
 
             const result = await window.showQuickPick(opts, { canPickMany: true });
 
@@ -65,7 +68,7 @@ export function addGenerateKitFilesCommand(context: ExtensionContext) {
                 return;
             }
 
-            resources = result.map(res => res.value);
+            resources = result.map((res) => res.value);
         }
 
         const itemPath = await window.showInputBox({
@@ -77,8 +80,6 @@ export function addGenerateKitFilesCommand(context: ExtensionContext) {
             throw new Error('Please enter a path');
         }
 
-        // TODO: ask if a matcher should be created if found in the path and does not exist
-
         const fullPath = path.join(rootPath, itemPath);
 
         const config: TemplateConfig = {
@@ -89,15 +90,18 @@ export function addGenerateKitFilesCommand(context: ExtensionContext) {
             scriptExtension
         };
 
-        const writtenFiles = await generateResources(config);
-        if (writtenFiles[0]) {
-            const openUri = Uri.parse(writtenFiles[0]);
-            workspace.openTextDocument(openUri).then((doc) => window.showTextDocument(doc));
-        }
+        await window.withProgress(
+            { location: ProgressLocation.Window, title: 'Creating SvelteKit files...' },
+            async () => {
+                await generateResources(config);
+            }
+        );
     };
 
     commandsMap.forEach((value, key) => {
-        const command = commands.registerCommand(key, (args) => showDynamicDialog(args, value));
+        const command = commands.registerCommand(key, (args) => {
+            showDynamicDialog(args, value);
+        });
         context.subscriptions.push(command);
     });
 }
