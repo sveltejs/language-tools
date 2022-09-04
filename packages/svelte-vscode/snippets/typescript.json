@@ -1,0 +1,20 @@
+{
+    "kitEndpoint": {
+        "description": "SvelteKit Endpoint",
+        "body": [
+            "export const ${1|GET,POST,PUT,PATCH,DELETE|}: RequestHandler = async (${2:{}}) => {",
+            "\t$3",
+            "\treturn {$4}",
+            "}"
+        ]
+    },
+    "kitLoad": {
+        "description": "SvelteKit Load",
+        "body": [
+            "export const load: ${1|PageLoad,PageServerLoad,LayoutLoad,LayoutServerLoad|} = async (${2:{}}) => {",
+            "\t$3",
+            "\treturn {$4}",
+            "}"
+        ]
+    }
+}

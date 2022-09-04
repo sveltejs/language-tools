@@ -31,7 +31,9 @@ import { EMPTY_ELEMENTS } from './html/htmlEmptyTagsShared';
 import { TsPlugin } from './tsplugin';
 import { addFindComponentReferencesListener } from './typescript/findComponentReferences';
 import { addFindFileReferencesListener } from './typescript/findFileReferences';
+import { addGenerateKitFilesCommand } from './generateFiles';
 
+// eslint-disable-next-line @typescript-eslint/no-namespace
 namespace TagCloseRequest {
     export const type: RequestType<TextDocumentPositionParams, string, any> = new RequestType(
         'html/tag'
@@ -59,6 +61,8 @@ export function activate(context: ExtensionContext) {
 
         context.subscriptions.push(onTextDocumentListener);
     }
+
+    addGenerateKitFilesCommand(context);
 
     // This API is considered private and only exposed for experimenting.
     // Interface may change at any time. Use at your own risk!

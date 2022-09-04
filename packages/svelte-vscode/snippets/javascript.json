@@ -1,0 +1,22 @@
+{
+    "kitEndpoint": {
+        "description": "SvelteKit Endpoint",
+        "body": [
+            "/** @type {import('./$types').RequestHandler} */",
+            "export async function ${1|GET,POST,PUT,PATCH,DELETE|}(${2:{}}) {",
+            "\t$3",
+            "\treturn {$4}",
+            "}"
+        ]
+    },
+    "kitLoad": {
+        "description": "SvelteKit Load",
+        "body": [
+            "/** @type {import('./$types').${1|PageLoad,PageServerLoad,LayoutLoad,LayoutServerLoad|}} */",
+            "export async function load(${2:{}}) {",
+            "\t$3",
+            "\treturn {$4}",
+            "}"
+        ]
+    }
+}

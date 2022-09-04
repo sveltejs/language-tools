@@ -1,0 +1,20 @@
+import { TemplateConfig } from '../types';
+
+export default async function (config: TemplateConfig) {
+    const ts = `
+<script lang="ts">
+    import type { PageData } from './$types';
+    
+    export let data: PageData;
+</script>
+    `.trim();
+
+    const js = `
+<script>
+    /** @type {import('./$types').PageData} */
+    export let data;
+</script>
+    `.trim();
+
+    return config.typescript ? ts : js;
+}
