@@ -68,3 +68,32 @@ function isNewGroup(
 
     return false;
 }
+
+/**
+ * ensure it's in a newline.
+ * if file has module script ensure an empty line to separate imports
+ */
+export function handleFirstInstanceImport(
+    tsAst: ts.SourceFile,
+    astOffset: number,
+    hasModuleScript: boolean,
+    str: MagicString
+) {
+    const firstImport = tsAst.statements
+        .filter(ts.isImportDeclaration)
+        .sort((a, b) => a.end - b.end)[0];
+    if (!firstImport) {
+        return;
+    }
+
+    const firstComment = Array.from(
+        ts.getLeadingCommentRanges(firstImport.getFullText(), 0) ?? []
+    ).sort((a, b) => a.pos - b.pos)[0];
+
+    const start =
+        firstComment && firstComment.kind === ts.SyntaxKind.MultiLineCommentTrivia
+            ? firstComment.pos + firstImport.getFullStart()
+            : firstImport.getStart();
+
+    str.appendRight(start + astOffset, '\n' + (hasModuleScript ? '\n' : ''));
+}

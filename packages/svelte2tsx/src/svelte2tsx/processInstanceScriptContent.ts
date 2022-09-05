@@ -11,7 +11,10 @@ import { ImplicitStoreValues } from './nodes/ImplicitStoreValues';
 import { Generics } from './nodes/Generics';
 import { is$$SlotsDeclaration } from './nodes/slot';
 import { preprendStr } from '../utils/magic-string';
-import { handleImportDeclaration } from './nodes/handleImportDeclaration';
+import {
+    handleFirstInstanceImport,
+    handleImportDeclaration
+} from './nodes/handleImportDeclaration';
 
 export interface InstanceScriptProcessResult {
     exportedNames: ExportedNames;
@@ -259,14 +262,7 @@ export function processInstanceScriptContent(
     implicitTopLevelNames.modifyCode(rootScope.declared);
     implicitStoreValues.modifyCode(astOffset, str);
 
-    const firstImport = tsAst.statements
-        .filter(ts.isImportDeclaration)
-        .sort((a, b) => a.end - b.end)[0];
-    if (firstImport) {
-        // ensure it's in a newline.
-        // if file has module script ensure an empty line to separate imports
-        str.appendRight(firstImport.getStart() + astOffset, '\n' + (hasModuleScript ? '\n' : ''));
-    }
+    handleFirstInstanceImport(tsAst, astOffset, hasModuleScript, str);
 
     if (mode === 'dts') {
         // Transform interface declarations to type declarations because indirectly
