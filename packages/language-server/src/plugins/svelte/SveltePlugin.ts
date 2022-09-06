@@ -106,7 +106,7 @@ export class SveltePlugin
 
         const formattedCode = prettier.format(document.getText(), {
             ...config,
-            plugins: getSveltePlugin(),
+            plugins: [...(config.plugins ?? []), ...getSveltePlugin()],
             parser: 'svelte' as any
         });
 
