@@ -189,7 +189,7 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
                 /^\.prettierrc$/,
                 /^\.prettierrc\.(json|yml|yaml|json5|toml)$/,
                 /^\.prettierrc\.(js|cjs)$/,
-                /^\.prettierrc\.config\.(js|cjs)$/
+                /^prettier\.config\.(js|cjs)$/
             ].some((regex) => regex.test(parts[parts.length - 1]))
         ) {
             await restartLS(false);
