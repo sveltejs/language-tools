@@ -350,6 +350,94 @@ function test(useNewTransformation: boolean) {
             ]);
         });
 
+        it('provide quickfix for adding jsDoc type to props', async () => {
+            const { provider, document } = setup('codeaction-add-jsdoc.svelte');
+            const errorRange = Range.create(Position.create(7, 8), Position.create(7, 11));
+
+            const codeActions = await provider.getCodeActions(document, errorRange, {
+                diagnostics: [
+                    {
+                        code: 7034,
+                        message:
+                            "Variable 'abc' implicitly has type 'any' in some locations where its type cannot be determined.",
+                        range: errorRange
+                    }
+                ]
+            });
+
+            const addJsDoc = codeActions.find(
+                (fix) => fix.title === "Infer type of 'abc' from usage"
+            );
+
+            (<TextDocumentEdit>addJsDoc?.edit?.documentChanges?.[0])?.edits.forEach(
+                (edit) => (edit.newText = harmonizeNewLines(edit.newText))
+            );
+
+            assert.deepStrictEqual(addJsDoc?.edit, {
+                documentChanges: [
+                    <TextDocumentEdit>{
+                        edits: [
+                            {
+                                newText: `/**\n${indent} * @type {any}\n${indent} */\n${indent}`,
+                                range: {
+                                    start: { character: 4, line: 3 },
+                                    end: { character: 4, line: 3 }
+                                }
+                            }
+                        ],
+                        textDocument: {
+                            uri: getUri('codeaction-add-jsdoc.svelte'),
+                            version: null
+                        }
+                    }
+                ]
+            });
+        });
+
+        it('provide quickfix for adding jsDoc type to non props when props exist', async () => {
+            const { provider, document } = setup('codeaction-add-jsdoc.svelte');
+            const errorRange = Range.create(Position.create(9, 8), Position.create(9, 10));
+
+            const codeActions = await provider.getCodeActions(document, errorRange, {
+                diagnostics: [
+                    {
+                        code: 7034,
+                        message:
+                            "Variable 'ab' implicitly has type 'any' in some locations where its type cannot be determined.",
+                        range: errorRange
+                    }
+                ]
+            });
+
+            const addJsDoc = codeActions.find(
+                (fix) => fix.title === "Infer type of 'ab' from usage"
+            );
+
+            (<TextDocumentEdit>addJsDoc?.edit?.documentChanges?.[0])?.edits.forEach(
+                (edit) => (edit.newText = harmonizeNewLines(edit.newText))
+            );
+
+            assert.deepStrictEqual(addJsDoc?.edit, {
+                documentChanges: [
+                    <TextDocumentEdit>{
+                        edits: [
+                            {
+                                newText: `/**\n${indent} * @type {any}\n${indent} */\n${indent}`,
+                                range: {
+                                    start: { character: 4, line: 9 },
+                                    end: { character: 4, line: 9 }
+                                }
+                            }
+                        ],
+                        textDocument: {
+                            uri: getUri('codeaction-add-jsdoc.svelte'),
+                            version: null
+                        }
+                    }
+                ]
+            });
+        });
+
         it('provides quickfix for component import', async () => {
             const { provider, document } = setup('codeactions.svelte');
 

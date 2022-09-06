@@ -15,6 +15,7 @@ import {
     Document,
     getLineAtPosition,
     isAtEndOfLine,
+    isInTag,
     isRangeInTag,
     mapRangeToOriginal
 } from '../../../lib/documents';
@@ -355,6 +356,14 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                                 );
                             }
 
+                            if (fix.fixName === 'inferFromUsage') {
+                                originalRange = this.checkAddJsDocCodeActionRange(
+                                    snapshot,
+                                    originalRange,
+                                    document
+                                );
+                            }
+
                             if (originalRange.start.line < 0 || originalRange.end.line < 0) {
                                 return undefined;
                             }
@@ -688,6 +697,46 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         }
 
         return TextEdit.insert(position, linesOfNewText.join('\n'));
+    }
+
+    private checkAddJsDocCodeActionRange(
+        snapshot: DocumentSnapshot,
+        originalRange: Range,
+        document: Document
+    ): Range {
+        if (
+            snapshot.scriptKind !== ts.ScriptKind.JS &&
+            snapshot.scriptKind !== ts.ScriptKind.JSX &&
+            !isInTag(originalRange.start, document.scriptInfo)
+        ) {
+            return originalRange;
+        }
+
+        const documentText = document.getText();
+        const offset = document.offsetAt(originalRange.start);
+        const exportKeywordOffset = documentText.lastIndexOf('export', offset);
+
+        // export                 let a;
+        if (
+            exportKeywordOffset < 0 ||
+            documentText.slice(exportKeywordOffset + 'export'.length, offset).trim()
+        ) {
+            return originalRange;
+        }
+
+        const charBeforeExport = documentText[exportKeywordOffset - 1];
+        if (
+            (charBeforeExport !== undefined && !charBeforeExport.trim()) ||
+            charBeforeExport === ';'
+        ) {
+            const position = document.positionAt(exportKeywordOffset);
+            return {
+                start: position,
+                end: position
+            };
+        }
+
+        return originalRange;
     }
 
     private async getLSAndTSDoc(document: Document) {
