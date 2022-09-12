@@ -83,7 +83,7 @@ export function decorateCompletions(ls: ts.LanguageService, logger: Logger): voi
         preferences,
         data
     ) => {
-        const is$typeImport = (data as any).__is_sveltekit$typeImport;
+        const is$typeImport = (data as any)?.__is_sveltekit$typeImport;
 
         const details = getCompletionEntryDetails(
             fileName,
