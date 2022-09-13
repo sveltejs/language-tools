@@ -271,9 +271,15 @@
                 },
                 "svelte.plugin.svelte.useNewTransformation": {
                     "type": "boolean",
-                    "default": false,
+                    "default": true,
                     "title": "Use a new transformation for intellisense",
                     "description": "Svelte files need to be transformed to something that TypeScript understands for intellisense. Version 2.0 of this transformation can be enabled with this setting. It will be the default, soon."
+                },
+                "svelte.plugin.svelte.note-new-transformation": {
+                    "type": "boolean",
+                    "default": true,
+                    "title": "Show a note about the new transformation",
+                    "description": "There's a new transformation for improved intellisense which is now turned on by default. This note notifies you about it."
                 },
                 "svelte.plugin.svelte.diagnostics.enable": {
                     "type": "boolean",
