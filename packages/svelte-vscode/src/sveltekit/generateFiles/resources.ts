@@ -30,7 +30,7 @@ export const resourcesMap = new Map<ResourceType, Resource>([
     ],
     [
         ResourceType.LAYOUT_LOAD,
-        { type: FileType.SCRIPT, filename: '+layout', title: 'Layout lad', generate: layoutLoad }
+        { type: FileType.SCRIPT, filename: '+layout', title: 'Layout load', generate: layoutLoad }
     ],
     [
         ResourceType.LAYOUT_SERVER,
