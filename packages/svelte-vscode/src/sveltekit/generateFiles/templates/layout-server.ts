@@ -1,6 +1,6 @@
-import { TemplateConfig } from '../types';
+import { GenerateConfig } from '../types';
 
-export default async function (config: TemplateConfig) {
+export default async function (config: GenerateConfig) {
     const ts = `
 import type { LayoutServerLoad } from './$types';
 

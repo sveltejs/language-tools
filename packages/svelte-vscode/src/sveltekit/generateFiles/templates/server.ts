@@ -1,6 +1,6 @@
-import { TemplateConfig } from '../types';
+import { GenerateConfig } from '../types';
 
-export default async function generate(config: TemplateConfig) {
+export default async function generate(config: GenerateConfig) {
     const ts = `
 import type { RequestHandler } from './$types';
 

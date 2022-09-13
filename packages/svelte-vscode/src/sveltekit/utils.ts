@@ -1,5 +1,4 @@
 import * as path from 'path';
-import { TextDecoder } from 'util';
 import { Uri, workspace } from 'vscode';
 
 export async function fileExists(file: string) {
@@ -25,20 +24,6 @@ export async function findFile(searchPath: string, fileName: string) {
     }
 }
 
-export async function checkIfSvelteKitProject(path: string) {
-    try {
-        const packageJsonPath = await findFile(path, 'package.json');
-        if (!packageJsonPath) {
-            return false;
-        }
-        const packageJson = await workspace.fs.readFile(Uri.file(packageJsonPath));
-        const packageJsonContent = JSON.parse(new TextDecoder().decode(packageJson));
-
-        return (
-            !!packageJsonContent.dependencies['@sveltejs/kit'] ||
-            !!packageJsonContent.devDependencies['@sveltejs/kit']
-        );
-    } catch (err) {
-        return false;
-    }
+export async function checkIfTypescriptProject(path: string) {
+    return !!(await findFile(path, 'tsconfig.json'));
 }

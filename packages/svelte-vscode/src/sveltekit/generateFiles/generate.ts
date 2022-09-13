@@ -1,8 +1,8 @@
-import { FileType, TemplateConfig } from './types';
+import { FileType, GenerateConfig } from './types';
 import { join } from 'path';
 import { Position, Uri, window, workspace, WorkspaceEdit } from 'vscode';
 
-export async function generateResources(config: TemplateConfig) {
+export async function generateResources(config: GenerateConfig) {
     workspace.fs.createDirectory(Uri.file(config.path));
     const writtenFiles: string[] = [];
     const edit = new WorkspaceEdit();

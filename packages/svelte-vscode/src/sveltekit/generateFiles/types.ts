@@ -7,12 +7,12 @@ export enum CommandType {
     LAYOUT_SERVER = 'svelte.kit.generateLayoutServerLoad',
     SERVER = 'svelte.kit.generateServer',
     ERROR = 'svelte.kit.generateError',
-    MULTIPLE = 'svelte.kit.generateMultipleFiles',
+    MULTIPLE = 'svelte.kit.generateMultipleFiles'
 }
 
 export enum FileType {
     SCRIPT,
-    PAGE,
+    PAGE
 }
 
 export enum ResourceType {
@@ -23,25 +23,20 @@ export enum ResourceType {
     LAYOUT_LOAD,
     LAYOUT_SERVER,
     SERVER,
-    ERROR,
+    ERROR
 }
 
 export type Resource = {
-    type: FileType,
-    filename: string,
-    title: string,
-    generate: (config: TemplateConfig) => Promise<string>
-}
+    type: FileType;
+    filename: string;
+    title: string;
+    generate: (config: GenerateConfig) => Promise<string>;
+};
 
-export interface ICommand {
-    resources: ResourceType[];
-}
-
-export interface TemplateConfig {
+export interface GenerateConfig {
     path: string;
     typescript: boolean;
-    resources: Resource[];
     pageExtension: string;
     scriptExtension: string;
+    resources: Resource[];
 }
-
