@@ -1,21 +1,42 @@
 {
-    "kitEndpoint": {
+    "SvelteKit Endpoint": {
+        "prefix": "kitEndpoint",
         "description": "SvelteKit Endpoint",
         "body": [
             "/** @type {import('./$types').RequestHandler} */",
-            "export async function ${1|GET,POST,PUT,PATCH,DELETE|}(${2:{}}) {",
+            "export async function ${1|GET,POST,PUT,PATCH,DELETE|}($2) {",
             "\t$3",
-            "\treturn {$4}",
+            "\treturn new Response();",
             "}"
         ]
     },
-    "kitLoad": {
+    "SvelteKit Actions": {
+        "prefix": "kitActions",
+        "description": "SvelteKit Actions",
+        "body": [
+            "/** @type {import('./$types').Actions} */",
+            "export const actions = {",
+            "\t$1",
+            "};"
+        ]
+    },
+    "SvelteKit Load": {
+        "prefix": "kitLoad",
         "description": "SvelteKit Load",
         "body": [
             "/** @type {import('./$types').${1|PageLoad,PageServerLoad,LayoutLoad,LayoutServerLoad|}} */",
-            "export async function load(${2:{}}) {",
+            "export async function load($2) {",
             "\t$3",
-            "\treturn {$4}",
+            "}"
+        ]
+    },
+    "SvelteKit Param Matcher": {
+        "prefix": "kitParamMatcher",
+        "description": "SvelteKit Param Matcher",
+        "body": [
+            "/** @type {import('./$types').ParamMatcher */",
+            "export function match(param) {",
+            "\treturn $1;",
             "}"
         ]
     }
