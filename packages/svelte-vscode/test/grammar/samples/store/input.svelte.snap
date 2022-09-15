@@ -1,0 +1,22 @@
+><script>
+#^ source.svelte meta.script.svelte meta.tag.start.svelte punctuation.definition.tag.begin.svelte
+# ^^^^^^ source.svelte meta.script.svelte meta.tag.start.svelte entity.name.tag.svelte
+#       ^ source.svelte meta.script.svelte meta.tag.start.svelte punctuation.definition.tag.end.svelte
+>import './$types';
+#^^^^^^^^^^^^^^^^^^^ source.svelte meta.script.svelte meta.embedded.block.svelte source.js
+>import '$lib/foo';
+#^^^^^^^^^^^^^^^^^^^ source.svelte meta.script.svelte meta.embedded.block.svelte source.js
+>$bar;
+#^ source.svelte meta.script.svelte meta.embedded.block.svelte source.js punctuation.definition.variable.svelte
+# ^^^^^ source.svelte meta.script.svelte meta.embedded.block.svelte source.js
+></script>
+#^^ source.svelte meta.script.svelte meta.tag.end.svelte punctuation.definition.tag.begin.svelte
+#  ^^^^^^ source.svelte meta.script.svelte meta.tag.end.svelte entity.name.tag.svelte
+#        ^ source.svelte meta.script.svelte meta.tag.end.svelte punctuation.definition.tag.end.svelte
+>
+>{$bar}
+#^ source.svelte punctuation.section.embedded.begin.svelte
+# ^ source.svelte meta.embedded.expression.svelte source.ts punctuation.definition.variable.svelte
+#  ^^^ source.svelte meta.embedded.expression.svelte source.ts
+#     ^ source.svelte punctuation.section.embedded.end.svelte
+>

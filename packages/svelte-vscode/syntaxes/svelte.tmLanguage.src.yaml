@@ -93,11 +93,11 @@ injections:
     patterns:
     # Matches the store accessor symbol.
     # i.e. the `$` in `$myStore`.
-    - match: (?<![_$[:alnum:]])\$(?=[_[:alpha:]][_$[:alnum:]]*)
+    - match: (?<![_$./'"[:alnum:]])\$(?=[_[:alpha:]][_$[:alnum:]]*)
       name: punctuation.definition.variable.svelte
     # Matches the built-in constants/keywords that Svelte supports.
     # e.g. `$$restProps`.
-    - match: (?<![_$[:alnum:]])(\$\$)(?=props|restProps|slots)
+    - match: (?<![_$./'"[:alnum:]])(\$\$)(?=props|restProps|slots)
       name: punctuation.definition.variable.svelte
 
   # - PUG -
