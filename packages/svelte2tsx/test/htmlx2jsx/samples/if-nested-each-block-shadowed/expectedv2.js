@@ -1,13 +1,13 @@
 if(hello){
-       for(const hello of __sveltets_2_ensureArray(items)){let i = 1;hello.id;
+       for(let hello of __sveltets_2_ensureArray(items)){let i = 1;hello.id;
          { svelteHTML.createElement("div", {});hello;i; }
         if(hello){
-              for(const hello of __sveltets_2_ensureArray(items)){
+              for(let hello of __sveltets_2_ensureArray(items)){
                 if(hello){
                     hello;
                 }
             }
-              for(const foo of __sveltets_2_ensureArray(items)){
+              for(let foo of __sveltets_2_ensureArray(items)){
                 const hello = foo;
                 if(hello){
                     hello;
@@ -20,7 +20,7 @@ if(hello){
         }
     
     if(hi && bye){
-          for(const bye of __sveltets_2_ensureArray(items)){
+          for(let bye of __sveltets_2_ensureArray(items)){
              { svelteHTML.createElement("div", {});bye; }
         }
             if(bye){
@@ -28,17 +28,17 @@ if(hello){
             }
         
     } else if (cool){
-          for(const item of __sveltets_2_ensureArray(items)){let cool = 1;
+          for(let item of __sveltets_2_ensureArray(items)){let cool = 1;
              { svelteHTML.createElement("div", {});item;cool; }
         }
     }else{
-          for(const hello of __sveltets_2_ensureArray(items)){
+          for(let hello of __sveltets_2_ensureArray(items)){
              { svelteHTML.createElement("div", {});hello; }
         }
     }
 }
 
-  for(const hello of __sveltets_2_ensureArray(items)){let i = 1;
+  for(let hello of __sveltets_2_ensureArray(items)){let i = 1;
     if(hello && i && bye){
         hello; i; bye;
     } else if (hello && i && bye){
