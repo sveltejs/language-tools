@@ -34,13 +34,13 @@ export function handleEach(str: MagicString, eachBlock: BaseNode): void {
         transforms = [
             `{ const $$_each = __sveltets_2_ensureArray(${containsComma ? '(' : ''}`,
             [eachBlock.expression.start, eachBlock.expression.end],
-            `${containsComma ? ')' : ''}); for(const `,
+            `${containsComma ? ')' : ''}); for(let `,
             [eachBlock.context.start, eachBlock.context.end],
             ' of $$_each){'
         ];
     } else {
         transforms = [
-            'for(const ',
+            'for(let ',
             [eachBlock.context.start, eachBlock.context.end],
             ` of __sveltets_2_ensureArray(${containsComma ? '(' : ''}`,
             [eachBlock.expression.start, eachBlock.expression.end],
