@@ -3,7 +3,7 @@
         "prefix": "kitEndpoint",
         "description": "SvelteKit Endpoint",
         "body": [
-            "/** @type {import('./$types').RequestHandler} */",
+            "/** @type {import('./\\$types').RequestHandler} */",
             "export async function ${1|GET,POST,PUT,PATCH,DELETE|}($2) {",
             "\t$3",
             "\treturn new Response();",
@@ -14,7 +14,7 @@
         "prefix": "kitActions",
         "description": "SvelteKit Actions",
         "body": [
-            "/** @type {import('./$types').Actions} */",
+            "/** @type {import('./\\$types').Actions} */",
             "export const actions = {",
             "\t$1",
             "};"
@@ -24,7 +24,7 @@
         "prefix": "kitLoad",
         "description": "SvelteKit Load",
         "body": [
-            "/** @type {import('./$types').${1|PageLoad,PageServerLoad,LayoutLoad,LayoutServerLoad|}} */",
+            "/** @type {import('./\\$types').${1|PageLoad,PageServerLoad,LayoutLoad,LayoutServerLoad|}} */",
             "export async function load($2) {",
             "\t$3",
             "}"
@@ -34,7 +34,7 @@
         "prefix": "kitParamMatcher",
         "description": "SvelteKit Param Matcher",
         "body": [
-            "/** @type {import('./$types').ParamMatcher */",
+            "/** @type {import('./\\$types').ParamMatcher */",
             "export function match(param) {",
             "\treturn $1;",
             "}"
