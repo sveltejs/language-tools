@@ -538,6 +538,42 @@
             {
                 "command": "svelte.typescript.findComponentReferences",
                 "title": "Svelte: Find Component References"
+            },
+            {
+                "command": "svelte.kit.generateMultipleFiles",
+                "title": "SvelteKit: Generate files"
+            },
+            {
+                "command": "svelte.kit.generatePage",
+                "title": "SvelteKit: Generate Page"
+            },
+            {
+                "command": "svelte.kit.generatePageLoad",
+                "title": "SvelteKit: Generate Page load"
+            },
+            {
+                "command": "svelte.kit.generatePageServerLoad",
+                "title": "SvelteKit: Generate Page server load"
+            },
+            {
+                "command": "svelte.kit.generateLayout",
+                "title": "SvelteKit: Generate Layout"
+            },
+            {
+                "command": "svelte.kit.generateLayoutLoad",
+                "title": "SvelteKit: Generate Layout load"
+            },
+            {
+                "command": "svelte.kit.generateLayoutServerLoad",
+                "title": "SvelteKit: Generate Layout server load"
+            },
+            {
+                "command": "svelte.kit.generateServer",
+                "title": "SvelteKit: Generate Endpoint"
+            },
+            {
+                "command": "svelte.kit.generateError",
+                "title": "SvelteKit: Generate Error"
             }
         ],
         "menus": {
@@ -599,9 +635,58 @@
                     "command": "svelte.typescript.findComponentReferences",
                     "when": "resourceLangId == svelte",
                     "group": "4_search"
+                },
+                {
+                    "when": "explorerResourceIsFolder",
+                    "submenu": "sveltekit2files",
+                    "group": "1_SvelteKit2files"
+                }
+            ],
+            "sveltekit2files": [
+                {
+                    "command": "svelte.kit.generateMultipleFiles",
+                    "group": "0_SvelteKit_Multiple"
+                },
+                {
+                    "command": "svelte.kit.generatePage",
+                    "group": "1_SvelteKit_Page"
+                },
+                {
+                    "command": "svelte.kit.generatePageLoad",
+                    "group": "1_SvelteKit_Page"
+                },
+                {
+                    "command": "svelte.kit.generatePageServerLoad",
+                    "group": "1_SvelteKit_Page"
+                },
+                {
+                    "command": "svelte.kit.generateLayout",
+                    "group": "3_SvelteKit_Layout"
+                },
+                {
+                    "command": "svelte.kit.generateLayoutLoad",
+                    "group": "3_SvelteKit_Layout"
+                },
+                {
+                    "command": "svelte.kit.generateLayoutServerLoad",
+                    "group": "3_SvelteKit_Layout"
+                },
+                {
+                    "command": "svelte.kit.generateServer",
+                    "group": "2_SvelteKit_Server"
+                },
+                {
+                    "command": "svelte.kit.generateError",
+                    "group": "4_SvelteKit_Error"
                 }
             ]
         },
+        "submenus": [
+            {
+                "id": "sveltekit2files",
+                "label": "SvelteKit Files"
+            }
+        ],
         "breakpoints": [
             {
                 "language": "svelte"
@@ -611,6 +696,14 @@
             {
                 "language": "svelte",
                 "path": "./snippets/svelte.json"
+            },
+            {
+                "language": "javascript",
+                "path": "./snippets/javascript.json"
+            },
+            {
+                "language": "typescript",
+                "path": "./snippets/typescript.json"
             }
         ]
     },
