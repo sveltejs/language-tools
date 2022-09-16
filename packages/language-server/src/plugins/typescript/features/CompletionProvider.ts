@@ -252,7 +252,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         const existingImports = this.getExistingImports(document);
         const wordRangeStartPosition = document.positionAt(wordRange.start);
         const completionItems = completions
-            .filter(isValidCompletion(document, position))
+            .filter(isValidCompletion(document, position, !!tsDoc.parserError))
             .map((comp) =>
                 this.toCompletionItem(
                     tsDoc,
@@ -857,10 +857,24 @@ const svelte2tsxTypes = new Set([
     'SvelteStore'
 ]);
 
+const startsWithUppercase = /^[A-Z]/;
+
 function isValidCompletion(
     document: Document,
-    position: Position
+    position: Position,
+    hasParserError: boolean
 ): (value: ts.CompletionEntry) => boolean {
+    // Make fallback completions for tags inside the template a bit better
+    const isAtStartTag =
+        !isInTag(position, document.scriptInfo) &&
+        /<\w*$/.test(
+            document.getText(Range.create(position.line, 0, position.line, position.character))
+        );
+    const noWrongCompletionAtStartTag =
+        isAtStartTag && hasParserError
+            ? (value: ts.CompletionEntry) => startsWithUppercase.test(value.name)
+            : () => true;
+
     const isNoSvelte2tsxCompletion = (value: ts.CompletionEntry) =>
         value.kindModifiers !== 'declare' ||
         (!value.name.startsWith('__sveltets_') && !svelte2tsxTypes.has(value.name));
@@ -880,5 +894,7 @@ function isValidCompletion(
         // Remove jsx attributes on html tags because they are doubled by the HTML
         // attribute suggestions, and for events they are wrong (onX instead of on:X).
         // Therefore filter them out.
-        value.kind !== ts.ScriptElementKind.jsxAttribute && isNoSvelte2tsxCompletion(value);
+        value.kind !== ts.ScriptElementKind.jsxAttribute &&
+        isNoSvelte2tsxCompletion(value) &&
+        noWrongCompletionAtStartTag(value);
 }
