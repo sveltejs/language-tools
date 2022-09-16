@@ -8,7 +8,7 @@ import { withTrailingPropertyAccess } from '../utils/node-utils';
 export function handleIf(str: MagicString, ifBlock: Node): void {
     if (ifBlock.elseif) {
         // {:else if expr}  -->  } else if(expr) {
-        const start = str.original.lastIndexOf('{:', ifBlock.expression.start);
+        const start = str.original.lastIndexOf('{', ifBlock.expression.start);
         str.overwrite(start, ifBlock.expression.start, '} else if (');
     } else {
         // {#if expr}  -->  if (expr){
