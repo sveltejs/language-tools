@@ -1,3 +1,4 @@
+/* eslint-disable */
 declare namespace svelte.JSX {
     interface HTMLAttributes {
         owntypefromold?: string;
