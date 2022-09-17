@@ -203,7 +203,7 @@ function test(useNewTransformation: boolean) {
                     },
                     {
                         name: 'foo',
-                        kind: 14,
+                        kind: 13,
                         location: {
                             uri: getUri('documentsymbols.svelte'),
                             range: {

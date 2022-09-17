@@ -70,7 +70,7 @@ async () => {
  }
 
   { svelteHTML.createElement("svg", {  "on:click":handleClick,});
-	  for(const circle of __sveltets_2_ensureArray(circles)){
+	  for(let circle of __sveltets_2_ensureArray(circles)){
 		 { svelteHTML.createElement("circle", {            "cx":circle.cx,"cy":circle.cy,"r":circle.r,"on:click":event => select(circle, event),"on:contextmenu":() => {
 				adjusting = !adjusting;
 				if (adjusting) selected = circle;

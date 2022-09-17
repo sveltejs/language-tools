@@ -1,10 +1,10 @@
 ///<reference types="svelte" />
 ;function render() {
 /*Ωignore_startΩ*/;const __sveltets_createSlot = __sveltets_2_createCreateSlot();/*Ωignore_endΩ*/
-async () => {  for(const item of __sveltets_2_ensureArray(items)){
+async () => {  for(let item of __sveltets_2_ensureArray(items)){
      { __sveltets_createSlot("default", { "a":item,});  }
 }
-  for(const { a } of __sveltets_2_ensureArray(items2)){
+  for(let { a } of __sveltets_2_ensureArray(items2)){
      { __sveltets_createSlot("second", {  a,});  }
 }};
 return { props: {}, slots: {'default': {a:__sveltets_1_unwrapArr(items)}, 'second': {a:(({ a }) => a)(__sveltets_1_unwrapArr(items2))}}, getters: {}, events: {} }}

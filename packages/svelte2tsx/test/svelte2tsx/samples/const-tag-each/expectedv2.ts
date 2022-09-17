@@ -14,7 +14,7 @@
 ;
 async () => {
 
-  for(const box of __sveltets_2_ensureArray(boxes)){
+  for(let box of __sveltets_2_ensureArray(boxes)){
 	const {area, volume} = calculate(box.width, box.height, constant);
 	const perimeter = (box.width + box.height) * constant;
 	const [width, height, sum] = [box.width * constant, box.height, box.width * constant + box.height];
