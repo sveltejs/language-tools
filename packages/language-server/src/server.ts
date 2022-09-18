@@ -117,7 +117,7 @@ export function startServer(options?: LSOptions) {
 
         Logger.setDebug(
             (evt.initializationOptions?.configuration?.svelte ||
-                evt.initializationOptions?.config)?.['language-server'].debug
+                evt.initializationOptions?.config)?.['language-server']?.debug
         );
         // Backwards-compatible way of setting initialization options (first `||` is the old style)
         configManager.update(
