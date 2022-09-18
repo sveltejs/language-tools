@@ -308,7 +308,7 @@ export function startServer(options?: LSOptions) {
         configManager.updateCssConfig(settings.css);
         configManager.updateScssConfig(settings.scss);
         configManager.updateLessConfig(settings.less);
-        Logger.setDebug(settings.svelte?.['language-server'].debug);
+        Logger.setDebug(settings.svelte?.['language-server']?.debug);
     });
 
     connection.onDidOpenTextDocument((evt) => {
