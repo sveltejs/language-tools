@@ -6,6 +6,7 @@ import {
     CodeActionKind,
     Diagnostic,
     OptionalVersionedTextDocumentIdentifier,
+    Position,
     Range,
     TextDocumentEdit,
     TextEdit,
@@ -675,18 +676,13 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         originalRange: Range,
         document: Document,
         edit: ts.TextChange
-    ): TextEdit {
-        const startOffset = document.offsetAt(originalRange.start);
-        const text = document.getText();
-
-        // svetlte2tsx removes export in instance script
-        const insertedAfterExport = text.slice(0, startOffset).trim().endsWith('export');
-
-        if (!insertedAfterExport) {
-            return TextEdit.replace(originalRange, edit.newText);
+    ): TextEdit | null {
+        if (!isInTag(originalRange.start, document.scriptInfo)) {
+            return null;
         }
 
-        const position = document.positionAt(text.lastIndexOf('export', startOffset));
+        const position =
+            this.fixPropsCodeActionRange(originalRange.start, document) ?? originalRange.start;
 
         // fix the length of trailing indent
         const linesOfNewText = edit.newText.split('\n');
@@ -697,6 +693,31 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         }
 
         return TextEdit.insert(position, linesOfNewText.join('\n'));
+    }
+
+    /**
+     * svelte2tsx removes export in instance script
+     */
+    private fixPropsCodeActionRange(start: Position, document: Document): Position | undefined {
+        const documentText = document.getText();
+        const offset = document.offsetAt(start);
+        const exportKeywordOffset = documentText.lastIndexOf('export', offset);
+
+        // export                 let a;
+        if (
+            exportKeywordOffset < 0 ||
+            documentText.slice(exportKeywordOffset + 'export'.length, offset).trim()
+        ) {
+            return;
+        }
+
+        const charBeforeExport = documentText[exportKeywordOffset - 1];
+        if (
+            (charBeforeExport !== undefined && !charBeforeExport.trim()) ||
+            charBeforeExport === ';'
+        ) {
+            return document.positionAt(exportKeywordOffset);
+        }
     }
 
     private checkAddJsDocCodeActionRange(
@@ -712,24 +733,9 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             return originalRange;
         }
 
-        const documentText = document.getText();
-        const offset = document.offsetAt(originalRange.start);
-        const exportKeywordOffset = documentText.lastIndexOf('export', offset);
+        const position = this.fixPropsCodeActionRange(originalRange.start, document);
 
-        // export                 let a;
-        if (
-            exportKeywordOffset < 0 ||
-            documentText.slice(exportKeywordOffset + 'export'.length, offset).trim()
-        ) {
-            return originalRange;
-        }
-
-        const charBeforeExport = documentText[exportKeywordOffset - 1];
-        if (
-            (charBeforeExport !== undefined && !charBeforeExport.trim()) ||
-            charBeforeExport === ';'
-        ) {
-            const position = document.positionAt(exportKeywordOffset);
+        if (position) {
             return {
                 start: position,
                 end: position
