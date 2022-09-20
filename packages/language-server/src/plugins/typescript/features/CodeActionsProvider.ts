@@ -663,13 +663,14 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         document: Document,
         edit: ts.TextChange
     ): TextEdit | undefined {
-        if (!document.scriptInfo) {
+        const scriptInfo = document.moduleScriptInfo ?? document.scriptInfo;
+        if (!scriptInfo) {
             return undefined;
         }
 
         const newText = ts.sys.newLine + edit.newText;
 
-        return TextEdit.insert(document.scriptInfo.startPos, newText);
+        return TextEdit.insert(scriptInfo.startPos, newText);
     }
 
     private checkDisableJsDiagnosticsCodeInsert(
@@ -677,12 +678,14 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         document: Document,
         edit: ts.TextChange
     ): TextEdit | null {
-        if (!isInTag(originalRange.start, document.scriptInfo)) {
+        const inModuleScript = isInTag(originalRange.start, document.moduleScriptInfo);
+        if (!isInTag(originalRange.start, document.scriptInfo) && !inModuleScript) {
             return null;
         }
 
-        const position =
-            this.fixPropsCodeActionRange(originalRange.start, document) ?? originalRange.start;
+        const position = inModuleScript
+            ? originalRange.start
+            : this.fixPropsCodeActionRange(originalRange.start, document) ?? originalRange.start;
 
         // fix the length of trailing indent
         const linesOfNewText = edit.newText.split('\n');
