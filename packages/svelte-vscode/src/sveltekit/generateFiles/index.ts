@@ -57,6 +57,11 @@ async function handleSingle(uri: Uri | undefined, resourceType: ResourceType) {
 
 async function handleMultiple(uri: Uri | undefined) {
     const { isTs, rootPath, scriptExtension } = await getCommonConfig(uri);
+    const itemPath = await promptResourcePath();
+
+    if (!itemPath) {
+        return;
+    }
 
     // Add multiple files
     const opts = [
@@ -73,22 +78,15 @@ async function handleMultiple(uri: Uri | undefined) {
         // const iconName = resource.type === FileType.PAGE ? 'svelte' : isTs ? 'typescript' : 'javascript';
         const extension = resource.type === FileType.PAGE ? 'svelte' : scriptExtension;
         return {
-            label: resource.title,
             // TODO: maybe add icons (ts,js,svelte - but it doesn´t work like this)
             // description: `$(${iconName}) ${resource.filename}.${extension}`,
-            description: `${resource.filename}.${extension}`,
+            label: `${resource.filename}.${extension}`,
             value: resource
         };
     });
     const result = await window.showQuickPick(opts, { canPickMany: true });
+
     if (!result) {
-        return;
-    }
-    const resources = result.map((res) => res.value);
-
-    const itemPath = await promptResourcePath();
-
-    if (!itemPath) {
         return;
     }
 
@@ -97,7 +95,7 @@ async function handleMultiple(uri: Uri | undefined) {
         typescript: isTs,
         pageExtension: 'svelte',
         scriptExtension,
-        resources
+        resources: result.map((res) => res.value)
     });
 }
 
