@@ -40,7 +40,12 @@ import {
     scriptElementKindToCompletionItemKind
 } from '../utils';
 import { getJsDocTemplateCompletion } from './getJsDocTemplateCompletion';
-import { findContainingNode, getComponentAtPosition, isPartOfImportStatement } from './utils';
+import {
+    findContainingNode,
+    getComponentAtPosition,
+    isKitTypePath,
+    isPartOfImportStatement
+} from './utils';
 
 export interface CompletionEntryWithIdentifier extends ts.CompletionEntry, TextDocumentIdentifier {
     position: Position;
@@ -271,7 +276,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         if (basename(filePath).startsWith('+')) {
             const $typeImports = new Map<string, CompletionItem>();
             for (const c of completionItems) {
-                if (c.data?.source?.includes('.svelte-kit/types')) {
+                if (isKitTypePath(c.data?.source)) {
                     $typeImports.set(c.label, c);
                 }
             }

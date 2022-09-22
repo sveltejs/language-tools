@@ -1,3 +1,4 @@
+import path from 'path';
 import {
     OptionalVersionedTextDocumentIdentifier,
     TextDocumentEdit,
@@ -9,7 +10,7 @@ import { urlToPath } from '../../../utils';
 import { FileRename, UpdateImportsProvider } from '../../interfaces';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { convertRange } from '../utils';
-import { SnapshotMap } from './utils';
+import { isKitTypePath, SnapshotMap } from './utils';
 
 export class UpdateImportsProviderImpl implements UpdateImportsProvider {
     constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
@@ -24,17 +25,51 @@ export class UpdateImportsProviderImpl implements UpdateImportsProvider {
 
         const ls = await this.getLSForPath(newPath);
         // `getEditsForFileRename` might take a while
-        const fileChanges = ls.getEditsForFileRename(oldPath, newPath, {}, {});
-
-        await this.lsAndTsDocResolver.updateSnapshotPath(oldPath, newPath);
-        const updateImportsChanges = fileChanges
+        const fileChanges = ls
+            .getEditsForFileRename(oldPath, newPath, {}, {})
             // Assumption: Updating imports will not create new files, and to make sure just filter those out
             // who - for whatever reason - might be new ones.
-            .filter((change) => !change.isNewFile || change.fileName === oldPath)
-            // The language service might want to do edits to the old path, not the new path -> rewire it.
-            // If there is a better solution for this, please file a PR :)
+            .filter((change) => !change.isNewFile || change.fileName === oldPath);
+
+        await this.lsAndTsDocResolver.updateSnapshotPath(oldPath, newPath);
+
+        const editInOldPath = fileChanges.find(
+            (change) =>
+                change.fileName.startsWith(oldPath) &&
+                (oldPath.includes(newPath) || !change.fileName.startsWith(newPath))
+        );
+        const editInNewPath = fileChanges.find(
+            (change) =>
+                change.fileName.startsWith(newPath) &&
+                (newPath.includes(oldPath) || !change.fileName.startsWith(oldPath))
+        );
+        const updateImportsChanges = fileChanges
+            .filter((change) => {
+                if (isKitTypePath(change.fileName)) {
+                    // These types are generated from the route files, so we don't want to update them
+                    return false;
+                }
+                if (!editInOldPath || !editInNewPath) {
+                    return true;
+                }
+                // If both present, take the one that has more text changes to it (more likely to be the correct one)
+                return editInOldPath.textChanges.length > editInNewPath.textChanges.length
+                    ? change !== editInNewPath
+                    : change !== editInOldPath;
+            })
             .map((change) => {
-                change.fileName = change.fileName.replace(oldPath, newPath);
+                if (change === editInOldPath) {
+                    // The language service might want to do edits to the old path, not the new path -> rewire it.
+                    // If there is a better solution for this, please file a PR :)
+                    change.fileName = change.fileName.replace(oldPath, newPath);
+                }
+                change.textChanges = change.textChanges.filter(
+                    (textChange) =>
+                        // Filter out changes to './$type' imports for Kit route files,
+                        // you'll likely want these to stay as-is
+                        !isKitTypePath(textChange.newText) ||
+                        !path.basename(change.fileName).startsWith('+')
+                );
                 return change;
             });
 

@@ -23,6 +23,13 @@ export class GlobalSnapshotsManager {
         return this.documents.get(fileName);
     }
 
+    getByPrefix(path: string) {
+        path = normalizePath(path);
+        return Array.from(this.documents.entries())
+            .filter((doc) => doc[0].startsWith(path))
+            .map((doc) => doc[1]);
+    }
+
     set(fileName: string, document: DocumentSnapshot) {
         fileName = normalizePath(fileName);
         this.documents.set(fileName, document);
@@ -112,6 +119,7 @@ export class SnapshotManager {
         // and set them "manually" in the set/update methods.
         if (!document) {
             this.documents.delete(fileName);
+            this.projectFiles = this.projectFiles.filter((s) => s !== fileName);
         } else if (this.documents.has(fileName)) {
             this.documents.set(fileName, document);
         }
@@ -169,7 +177,6 @@ export class SnapshotManager {
 
     delete(fileName: string): void {
         fileName = normalizePath(fileName);
-        this.projectFiles = this.projectFiles.filter((s) => s !== fileName);
         this.globalSnapshotsManager.delete(fileName);
     }
 

@@ -55,7 +55,10 @@ export class LSAndTSDocResolver {
         // Open it immediately to reduce rebuilds in the startup
         // where multiple files and their dependencies
         // being loaded in a short period of times
-        docManager.on('documentOpen', handleDocumentChange);
+        docManager.on('documentOpen', (document) => {
+            handleDocumentChange(document);
+            docManager.lockDocument(document.uri);
+        });
     }
 
     /**
@@ -121,9 +124,12 @@ export class LSAndTSDocResolver {
     /**
      * Updates snapshot path in all existing ts services and retrieves snapshot
      */
-    async updateSnapshotPath(oldPath: string, newPath: string): Promise<DocumentSnapshot> {
-        await this.deleteSnapshot(oldPath);
-        return this.getSnapshot(newPath);
+    async updateSnapshotPath(oldPath: string, newPath: string): Promise<void> {
+        for (const snapshot of this.globalSnapshotsManager.getByPrefix(oldPath)) {
+            await this.deleteSnapshot(snapshot.filePath);
+        }
+        // This may not be a file but a directory, still try
+        await this.getSnapshot(newPath);
     }
 
     /**
@@ -131,7 +137,13 @@ export class LSAndTSDocResolver {
      */
     async deleteSnapshot(filePath: string) {
         await forAllServices((service) => service.deleteSnapshot(filePath));
-        this.docManager.releaseDocument(pathToUrl(filePath));
+        const uri = pathToUrl(filePath);
+        if (this.docManager.get(uri)) {
+            // Guard this call, due to race conditions it may already have been closed;
+            // also this may not be a Svelte file
+            this.docManager.closeDocument(uri);
+        }
+        this.docManager.releaseDocument(uri);
     }
 
     /**
