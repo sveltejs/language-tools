@@ -350,6 +350,75 @@ function test(useNewTransformation: boolean) {
             ]);
         });
 
+        it('provides quickfix for ts-checked-js in context=module', async () => {
+            const { provider, document } = setup('codeaction-checkJs-module.svelte');
+            const errorRange = Range.create(Position.create(3, 4), Position.create(3, 5));
+
+            const codeActions = await provider.getCodeActions(document, errorRange, {
+                diagnostics: [
+                    {
+                        code: 2322,
+                        message: "Type 'string' is not assignable to type 'number'.",
+                        range: errorRange
+                    }
+                ]
+            });
+
+            for (const codeAction of codeActions) {
+                (<TextDocumentEdit>codeAction.edit?.documentChanges?.[0])?.edits.forEach(
+                    (edit) => (edit.newText = harmonizeNewLines(edit.newText))
+                );
+            }
+
+            const textDocument = {
+                uri: getUri('codeaction-checkJs-module.svelte'),
+                version: null
+            };
+            assert.deepStrictEqual(codeActions, <CodeAction[]>[
+                {
+                    edit: {
+                        documentChanges: [
+                            {
+                                edits: [
+                                    {
+                                        newText: '// @ts-ignore\n    ',
+                                        range: Range.create(
+                                            Position.create(3, 4),
+                                            Position.create(3, 4)
+                                        )
+                                    }
+                                ],
+                                textDocument
+                            }
+                        ]
+                    },
+                    kind: 'quickfix',
+                    title: 'Ignore this error message'
+                },
+                {
+                    edit: {
+                        documentChanges: [
+                            {
+                                edits: [
+                                    {
+                                        newText: '\n// @ts-nocheck',
+                                        range: Range.create(
+                                            Position.create(0, 25),
+                                            Position.create(0, 25)
+                                        )
+                                    }
+                                ],
+                                textDocument
+                            }
+                        ]
+                    },
+
+                    kind: 'quickfix',
+                    title: 'Disable checking for this file'
+                }
+            ]);
+        });
+
         it('provide quickfix for adding jsDoc type to props', async () => {
             const { provider, document } = setup('codeaction-add-jsdoc.svelte');
             const errorRange = Range.create(Position.create(7, 8), Position.create(7, 11));
