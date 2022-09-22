@@ -29,7 +29,6 @@ export enum ResourceType {
 export type Resource = {
     type: FileType;
     filename: string;
-    title: string;
     generate: (config: GenerateConfig) => Promise<string>;
 };
 

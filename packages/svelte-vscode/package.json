@@ -541,39 +541,39 @@
             },
             {
                 "command": "svelte.kit.generateMultipleFiles",
-                "title": "SvelteKit: Generate files"
+                "title": "SvelteKit: Create route"
             },
             {
                 "command": "svelte.kit.generatePage",
-                "title": "SvelteKit: Generate Page"
+                "title": "SvelteKit: Create +page.svelte"
             },
             {
                 "command": "svelte.kit.generatePageLoad",
-                "title": "SvelteKit: Generate Page load"
+                "title": "SvelteKit: Create +page.js/ts"
             },
             {
                 "command": "svelte.kit.generatePageServerLoad",
-                "title": "SvelteKit: Generate Page server load"
+                "title": "SvelteKit: Create +page.server.js/ts"
             },
             {
                 "command": "svelte.kit.generateLayout",
-                "title": "SvelteKit: Generate Layout"
+                "title": "SvelteKit: Create +layout.svelte"
             },
             {
                 "command": "svelte.kit.generateLayoutLoad",
-                "title": "SvelteKit: Generate Layout load"
+                "title": "SvelteKit: Create +layout.js/ts"
             },
             {
                 "command": "svelte.kit.generateLayoutServerLoad",
-                "title": "SvelteKit: Generate Layout server load"
+                "title": "SvelteKit: Create +layout.server.js/ts"
             },
             {
                 "command": "svelte.kit.generateServer",
-                "title": "SvelteKit: Generate Endpoint"
+                "title": "SvelteKit: Create +server.js/ts"
             },
             {
                 "command": "svelte.kit.generateError",
-                "title": "SvelteKit: Generate Error"
+                "title": "SvelteKit: Create +error.svelte"
             }
         ],
         "menus": {
