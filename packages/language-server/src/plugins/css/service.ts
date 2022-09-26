@@ -18,6 +18,11 @@ const customDataProvider: ICSSDataProvider = {
                 name: 'vector-effect',
                 values: [{ name: 'non-scaling-stroke' }, { name: 'none' }],
                 status: 'experimental'
+            },
+            {
+                name: 'print-color-adjust',
+                values: [{ name: 'economy' }, { name: 'exact' }],
+                status: 'experimental'
             }
         ];
     },
