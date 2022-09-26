@@ -28,10 +28,12 @@ export function decorateCompletions(ls: ts.LanguageService, logger: Logger): voi
                 const relativeFileName = fileName.split(routesFolder)[1]?.slice(1);
 
                 if (relativeFileName) {
+                    const relativePath =
+                        dirname(relativeFileName) === '.' ? '' : `${dirname(relativeFileName)}/`;
                     const modifiedSource =
                         $typeImport.source!.split('.svelte-kit/types')[0] +
                         // note the missing .d.ts at the end - TS wants it that way for some reason
-                        `.svelte-kit/types/${routesFolder}/${dirname(relativeFileName)}/$types`;
+                        `.svelte-kit/types/${routesFolder}/${relativePath}$types`;
                     completions.entries.push({
                         ...$typeImport,
                         // Ensure it's sorted above the other imports

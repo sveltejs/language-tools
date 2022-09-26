@@ -284,8 +284,14 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
                 // resolve path from filePath to svelte-kit/types
                 // src/routes/foo/+page.svelte -> .svelte-kit/types/foo/$types.d.ts
                 const routesFolder = document.config?.kit?.files?.routes || 'src/routes';
-                const relativeFilePath = filePath.split(routesFolder)[1]?.slice(1);
-                if (relativeFilePath) {
+                const relativeFileName = filePath.split(routesFolder)[1]?.slice(1);
+                if (relativeFileName) {
+                    const relativePath =
+                        dirname(relativeFileName) === '.' ? '' : `${dirname(relativeFileName)}/`;
+                    const modifiedSource =
+                        $typeImport.data.source.split('.svelte-kit/types')[0] +
+                        // note the missing .d.ts at the end - TS wants it that way for some reason
+                        `.svelte-kit/types/${routesFolder}/${relativePath}$types`;
                     completionItems.push({
                         ...$typeImport,
                         // Ensure it's sorted above the other imports
@@ -295,12 +301,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
                         data: {
                             ...$typeImport.data,
                             __is_sveltekit$typeImport: true,
-                            source:
-                                $typeImport.data.source.split('.svelte-kit/types')[0] +
-                                // note the missing .d.ts at the end - TS wants it that way for some reason
-                                `.svelte-kit/types/${routesFolder}/${dirname(
-                                    relativeFilePath
-                                )}/$types`,
+                            source: modifiedSource,
                             data: undefined
                         }
                     });
@@ -773,7 +774,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         actionTriggeredInScript: boolean,
         is$typeImport?: boolean
     ) {
-        if (is$typeImport && importText.startsWith('import ')) {
+        if (is$typeImport && importText.trim().startsWith('import ')) {
             // Take into account Node16 moduleResolution
             return importText.replace(
                 /(['"])(.+?)['"]/,
