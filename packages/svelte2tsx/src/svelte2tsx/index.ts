@@ -282,7 +282,9 @@ function processSvelteTemplate(
 
     // resolve scripts
     const { scriptTag, moduleScriptTag } = scripts.getTopLevelScriptTags();
-    scripts.blankOtherScriptTags(str);
+    if (options.mode !== 'ts') {
+        scripts.blankOtherScriptTags(str);
+    }
 
     //resolve stores
     const resolvedStores = stores.getStoreNames();

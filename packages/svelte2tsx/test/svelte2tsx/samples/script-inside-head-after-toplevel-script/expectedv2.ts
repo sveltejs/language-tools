@@ -4,14 +4,16 @@
   let b = 'top level';
 ;
 async () => { { svelteHTML.createElement("div", {});
-  
+   { svelteHTML.createElement("script", {});                         }
  }
 
 
 
  { svelteHTML.createElement("svelte:head", {});
    { svelteHTML.createElement("link", {    "rel":`stylesheet`,"href":`/lib/jodit.es2018.min.css`,});}
-  
+   { svelteHTML.createElement("script", { "src":`/lib/jodit.es2018.min.js`,});
+
+   }
  }};
 return { props: {}, slots: {}, getters: {}, events: {} }}
 
