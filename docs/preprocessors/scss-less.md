@@ -136,7 +136,9 @@ const path = require('path');
 
 module.exports = {
     preprocess: sveltePreprocess({
-        prependData: `@import '${join(__dirname, 'src/to/variable.scss').replace(/\\/g, '/')}';`
+        prependData: `@import '${path
+            .join(__dirname, 'src/to/variable.scss')
+            .replace(/\\/g, '/')}';`
     })
 };
 ```
