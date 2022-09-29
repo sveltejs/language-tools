@@ -116,10 +116,10 @@ ESM-style:
 
 ```js
 import sveltePreprocess from 'svelte-preprocess';
-import { dirname } from 'path';
+import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 
-const __dirname = dirname(fileURLToPath());
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 export default {
     preprocess: sveltePreprocess({
@@ -136,7 +136,9 @@ const path = require('path');
 
 module.exports = {
     preprocess: sveltePreprocess({
-        prependData: `@import '${join(__dirname, 'src/to/variable.scss').replace(/\\/g, '/')}';`
+        prependData: `@import '${path
+            .join(__dirname, 'src/to/variable.scss')
+            .replace(/\\/g, '/')}';`
     })
 };
 ```
