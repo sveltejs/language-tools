@@ -4,6 +4,7 @@ import { Logger } from '../../logger';
 import { TextDocumentContentChangeEvent } from 'vscode-languageserver';
 import { normalizePath } from '../../utils';
 import { EventEmitter } from 'events';
+import { FileMap } from '../../lib/documents/fileCollection';
 
 type SnapshotChangeHandler = (fileName: string, newDocument: DocumentSnapshot | undefined) => void;
 
@@ -14,9 +15,11 @@ type SnapshotChangeHandler = (fileName: string, newDocument: DocumentSnapshot | 
  */
 export class GlobalSnapshotsManager {
     private emitter = new EventEmitter();
-    private documents = new Map<string, DocumentSnapshot>();
+    private documents: FileMap<DocumentSnapshot>;
 
-    constructor(private readonly tsSystem: ts.System) {}
+    constructor(private readonly tsSystem: ts.System) {
+        this.documents = new FileMap(tsSystem.useCaseSensitiveFileNames);
+    }
 
     get(fileName: string) {
         fileName = normalizePath(fileName);
@@ -89,7 +92,7 @@ export interface TsFilesSpec {
  * Should only be used by `service.ts`
  */
 export class SnapshotManager {
-    private documents = new Map<string, DocumentSnapshot>();
+    private documents: FileMap<DocumentSnapshot>;
     private lastLogged = new Date(new Date().getTime() - 60_001);
 
     private readonly watchExtensions = [
@@ -105,10 +108,12 @@ export class SnapshotManager {
         private globalSnapshotsManager: GlobalSnapshotsManager,
         private projectFiles: string[],
         private fileSpec: TsFilesSpec,
-        private workspaceRoot: string
+        private workspaceRoot: string,
+        useCaseSensitiveFileNames = ts.sys.useCaseSensitiveFileNames
     ) {
         this.onSnapshotChange = this.onSnapshotChange.bind(this);
         this.globalSnapshotsManager.onChange(this.onSnapshotChange);
+        this.documents = new FileMap<DocumentSnapshot>(useCaseSensitiveFileNames);
     }
 
     private onSnapshotChange(fileName: string, document: DocumentSnapshot | undefined) {

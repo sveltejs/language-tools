@@ -1,4 +1,5 @@
 import ts from 'typescript';
+import { FileMap } from '../../lib/documents/fileCollection';
 import { getLastPartOfPath } from '../../utils';
 import { DocumentSnapshot } from './DocumentSnapshot';
 import { createSvelteSys } from './svelte-sys';
@@ -14,7 +15,7 @@ import {
  * Caches resolved modules.
  */
 class ModuleResolutionCache {
-    private cache = new Map<string, ts.ResolvedModule | undefined>();
+    private cache = new FileMap<ts.ResolvedModule | undefined>();
 
     /**
      * Tries to get a cached module.

@@ -10,6 +10,7 @@ import { ComponentInfoProvider, JsOrTsComponentInfoProvider } from '../Component
 import { DocumentSnapshot, SvelteDocumentSnapshot } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { or } from '../../../utils';
+import { FileMap } from '../../../lib/documents/fileCollection';
 
 type NodePredicate = (node: ts.Node) => boolean;
 
@@ -120,7 +121,7 @@ export function getStoreOffsetOf$storeDeclaration(text: string, $storeVarStart: 
 }
 
 export class SnapshotMap {
-    private map = new Map<string, DocumentSnapshot>();
+    private map = new FileMap<DocumentSnapshot>();
     constructor(private resolver: LSAndTSDocResolver) {}
 
     set(fileName: string, snapshot: DocumentSnapshot) {
