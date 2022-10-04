@@ -1368,6 +1368,19 @@ function test(useNewTransformation: boolean) {
             );
         });
 
+        it('handles completion in empty text attribute with component having $$restProps', async () => {
+            const { completionProvider, document } = setup('emptytext-rest-prop-importer.svelte');
+
+            const completions = await completionProvider.getCompletions(
+                document,
+                Position.create(4, 14)
+            );
+            assert.deepStrictEqual(
+                completions?.items.map((item) => item.label),
+                ['s', 'm', 'l']
+            );
+        });
+
         it('can auto import in workspace without tsconfig/jsconfig', async () => {
             const virtualTestDir = getRandomVirtualDirPath(testFilesDir);
             const { docManager, document, lsAndTsDocResolver, lsConfigManager, virtualSystem } =

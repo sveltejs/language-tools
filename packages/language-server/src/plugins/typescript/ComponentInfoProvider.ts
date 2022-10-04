@@ -62,11 +62,15 @@ export class JsOrTsComponentInfoProvider implements ComponentInfoProvider {
         }
 
         const prop = props.getProperties().find((prop) => prop.name === propName);
-        if (!prop?.valueDeclaration) {
+        if (!prop) {
+            return [];
+        }
+        const declaration = prop.valueDeclaration ?? prop.declarations?.[0];
+        if (!declaration) {
             return [];
         }
 
-        const propDef = this.typeChecker.getTypeOfSymbolAtLocation(prop, prop.valueDeclaration);
+        const propDef = this.typeChecker.getTypeOfSymbolAtLocation(prop, declaration);
 
         if (!propDef.isUnion()) {
             return [];
