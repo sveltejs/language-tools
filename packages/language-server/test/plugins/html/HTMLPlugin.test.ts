@@ -16,10 +16,10 @@ describe('HTML Plugin', () => {
     function setup(content: string) {
         const document = new Document('file:///hello.svelte', content);
         const docManager = new DocumentManager(() => document);
-        const pluginManager = new LSConfigManager();
-        const plugin = new HTMLPlugin(docManager, pluginManager);
+        const configManager = new LSConfigManager();
+        const plugin = new HTMLPlugin(docManager, configManager);
         docManager.openDocument(<any>'some doc');
-        return { plugin, document };
+        return { plugin, document, configManager };
     }
 
     it('provides hover info', async () => {
@@ -46,7 +46,7 @@ describe('HTML Plugin', () => {
     it('provides completions', async () => {
         const { plugin, document } = setup('<');
 
-        const completions = plugin.getCompletions(document, Position.create(0, 1));
+        const completions = await plugin.getCompletions(document, Position.create(0, 1));
         assert.ok(Array.isArray(completions && completions.items));
         assert.ok(completions!.items.length > 0);
 
@@ -59,10 +59,48 @@ describe('HTML Plugin', () => {
         });
     });
 
+    it('provide event handler completions', async () => {
+        const { plugin, document } = setup('<div on');
+
+        const completions = await plugin.getCompletions(document, Position.create(0, 7));
+        const onClick = completions?.items.find((item) => item.label === 'on:click');
+
+        assert.deepStrictEqual(onClick, <CompletionItem>{
+            label: 'on:click',
+            kind: CompletionItemKind.Value,
+            documentation: {
+                kind: 'markdown',
+                value: 'A pointing device button has been pressed and released on an element.'
+            },
+            textEdit: TextEdit.replace(
+                Range.create(Position.create(0, 5), Position.create(0, 7)),
+                'on:click$2={$1}'
+            ),
+            insertTextFormat: InsertTextFormat.Snippet,
+            command: undefined
+        });
+    });
+
+    it('provide event handler completions in svelte strict mode', async () => {
+        const { plugin, document, configManager } = setup('<div on');
+        configManager.update({ svelte: { format: { config: { svelteStrictMode: true } } } });
+
+        const completions = await plugin.getCompletions(document, Position.create(0, 7));
+        const onClick = completions?.items.find((item) => item.label === 'on:click');
+
+        assert.deepStrictEqual(
+            onClick?.textEdit,
+            TextEdit.replace(
+                Range.create(Position.create(0, 5), Position.create(0, 7)),
+                'on:click$2="{$1}"'
+            )
+        );
+    });
+
     it('does not provide completions inside of moustache tag', async () => {
         const { plugin, document } = setup('<div on:click={() =>');
 
-        const completions = plugin.getCompletions(document, Position.create(0, 20));
+        const completions = await plugin.getCompletions(document, Position.create(0, 20));
         assert.strictEqual(completions, null);
 
         const tagCompletion = plugin.doTagComplete(document, Position.create(0, 20));
@@ -72,7 +110,7 @@ describe('HTML Plugin', () => {
     it('does provide completions outside of moustache tag', async () => {
         const { plugin, document } = setup('<div on:click={bla} >');
 
-        const completions = plugin.getCompletions(document, Position.create(0, 21));
+        const completions = await plugin.getCompletions(document, Position.create(0, 21));
         assert.deepEqual(completions?.items[0], <CompletionItem>{
             filterText: '</div>',
             insertTextFormat: 2,
@@ -100,7 +138,7 @@ describe('HTML Plugin', () => {
     it('does provide lang in completions', async () => {
         const { plugin, document } = setup('<sty');
 
-        const completions = plugin.getCompletions(document, Position.create(0, 4));
+        const completions = await plugin.getCompletions(document, Position.create(0, 4));
         assert.ok(Array.isArray(completions && completions.items));
         assert.ok(completions!.items.find((item) => item.label === 'style (lang="less")'));
     });
@@ -108,7 +146,7 @@ describe('HTML Plugin', () => {
     it('does not provide lang in completions for attributes', async () => {
         const { plugin, document } = setup('<div sty');
 
-        const completions = plugin.getCompletions(document, Position.create(0, 8));
+        const completions = await plugin.getCompletions(document, Position.create(0, 8));
         assert.ok(Array.isArray(completions && completions.items));
         assert.strictEqual(
             completions!.items.find((item) => item.label === 'style (lang="less")'),

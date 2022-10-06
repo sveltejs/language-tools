@@ -33,6 +33,7 @@ import {
 } from '../interfaces';
 import { isInsideMoustacheTag, toRange } from '../../lib/documents/utils';
 import { possiblyComponent } from '../../utils';
+import { importPrettier } from '../../importPackage';
 
 export class HTMLPlugin
     implements HoverProvider, CompletionsProvider, RenameProvider, LinkedEditingRangesProvider
@@ -71,7 +72,7 @@ export class HTMLPlugin
         return this.lang.doHover(document, position, html);
     }
 
-    getCompletions(document: Document, position: Position): CompletionList | null {
+    async getCompletions(document: Document, position: Position): Promise<CompletionList | null> {
         if (!this.featureEnabled('completions')) {
             return null;
         }
@@ -117,12 +118,37 @@ export class HTMLPlugin
               CompletionList.create([])
             : this.lang.doComplete(document, position, html);
         const items = this.toCompletionItems(results.items);
+        const filePath = document.getFilePath();
 
+        const prettierConfig =
+            filePath &&
+            items.some((item) => item.label.startsWith('on:') || item.label.startsWith('bind:'))
+                ? this.configManager.getMergedPrettierConfig(
+                      await importPrettier(filePath).resolveConfig(filePath, {
+                          editorconfig: true
+                      })
+                  )
+                : null;
+
+        const svelteStrictMode = prettierConfig?.svelteStrictMode;
         items.forEach((item) => {
-            if (item.label.startsWith('on:') && item.textEdit) {
+            const startQuote = svelteStrictMode ? '"{' : '{';
+            const endQuote = svelteStrictMode ? '}"' : '}';
+            if (!item.textEdit) {
+                return;
+            }
+
+            if (item.label.startsWith('on:')) {
                 item.textEdit = {
                     ...item.textEdit,
-                    newText: item.textEdit.newText.replace('="$1"', '$2="$1"')
+                    newText: item.textEdit.newText.replace('="$1"', `$2=${startQuote}$1${endQuote}`)
+                };
+            }
+
+            if (item.label.startsWith('bind:')) {
+                item.textEdit = {
+                    ...item.textEdit,
+                    newText: item.textEdit.newText.replace('="$1"', `=${startQuote}$1${endQuote}`)
                 };
             }
         });
