@@ -53,7 +53,7 @@
         "fast-glob": "^3.2.7",
         "lodash": "^4.17.21",
         "prettier": "2.7.1",
-        "prettier-plugin-svelte": "~2.7.0",
+        "prettier-plugin-svelte": "~2.8.0",
         "svelte": "^3.49.0",
         "svelte-preprocess": "~4.10.1",
         "svelte2tsx": "~0.5.0",
