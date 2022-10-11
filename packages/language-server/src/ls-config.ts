@@ -1,6 +1,6 @@
 import { get, merge } from 'lodash';
 import ts from 'typescript';
-import { VSCodeEmmetConfig } from 'vscode-emmet-helper';
+import { VSCodeEmmetConfig } from '@vscode/emmet-helper';
 import { importPrettier } from './importPackage';
 import { Document } from './lib/documents';
 import { returnObjectIfHasKeys } from './utils';
