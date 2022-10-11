@@ -48,6 +48,7 @@
     },
     "dependencies": {
         "@jridgewell/trace-mapping": "^0.3.9",
+        "@vscode/emmet-helper": "^2.8.4",
         "chokidar": "^3.4.1",
         "estree-walker": "^2.0.1",
         "fast-glob": "^3.2.7",
@@ -59,7 +60,6 @@
         "svelte2tsx": "~0.5.0",
         "typescript": "*",
         "vscode-css-languageservice": "~5.1.0",
-        "vscode-emmet-helper": "~2.6.0",
         "vscode-html-languageservice": "~4.1.0",
         "vscode-languageserver": "7.1.0-next.4",
         "vscode-languageserver-protocol": "3.16.0",
