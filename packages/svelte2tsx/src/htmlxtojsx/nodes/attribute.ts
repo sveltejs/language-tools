@@ -1,7 +1,7 @@
 import MagicString from 'magic-string';
+import { Attribute, BaseNode } from '../../interfaces';
 import svgAttributes from '../svgattributes';
 import { buildTemplateString } from '../utils/node-utils';
-import { Attribute, BaseNode } from '../../interfaces';
 
 /**
  * List taken from `svelte-jsx.d.ts` by searching for all attributes of type number
@@ -61,9 +61,9 @@ export function handleAttribute(
     if (parent.type == 'Element') {
         const sapperLinkActions = ['sapper:prefetch', 'sapper:noscroll'];
         const sveltekitLinkActions = [
-            'sveltekit:prefetch',
-            'sveltekit:noscroll',
-            'sveltekit:reload'
+            'data-sveltekit-prefetch',
+            'data-sveltekit-noscroll',
+            'data-sveltekit-reload'
         ];
         // skip Attribute shorthand, that is handled below
         if (

@@ -290,19 +290,19 @@ const addAttributes: Record<string, IAttributeData[]> = {
     audio: [...mediaAttributes],
     a: [
         {
-            name: 'sveltekit:noscroll',
+            name: 'data-sveltekit-noscroll',
             description:
                 'SvelteKit-specific attribute. Will prevent scrolling after the link is clicked.',
             valueSet: 'v'
         },
         {
-            name: 'sveltekit:prefetch',
+            name: 'data-sveltekit-prefetch',
             description:
                 "SvelteKit-specific attribute. Will cause SvelteKit to run the page's load function as soon as the user hovers over the link (on a desktop) or touches it (on mobile), rather than waiting for the click event to trigger navigation.",
             valueSet: 'v'
         },
         {
-            name: 'sveltekit:reload',
+            name: 'data-sveltekit-reload',
             description:
                 'SvelteKit-specific attribute. Will cause SvelteKit to do a normal browser navigation which results in a full page reload.',
             valueSet: 'v'

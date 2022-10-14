@@ -1176,10 +1176,10 @@ declare namespace svelte.JSX {
     }
 
     interface SvelteKitAnchorProps {
-        // transformed from sveltekit:noscroll so it should be camel case
-        sveltekitNoscroll?: true | undefined | null;
-        sveltekitPrefetch?: true | undefined | null;
-        sveltekitReload?: true | undefined | null;
+        // transformed from data-sveltekit-noscroll so it should be camel case
+        dataSveltekitNoscroll?: true | undefined | null;
+        dataSveltekitPrefetch?: true | undefined | null;
+        dataSveltekitReload?: true | undefined | null;
     }
 
     interface SvelteMediaTimeRange {
