@@ -79,8 +79,8 @@ class __sveltets_Render${genericsDef} {
             `\n${doc}export default class${
                 className ? ` ${className}` : ''
             }${genericsDef} extends SvelteComponentTyped<${className}Props${genericsRef}, ${className}Events${genericsRef}, ${className}Slots${genericsRef}> {` + // eslint-disable-line max-len
-            exportedNames.createClassGetters() +
-            (usesAccessors ? exportedNames.createClassAccessors() : '') +
+            exportedNames.createClassGetters(genericsRef) +
+            (usesAccessors ? exportedNames.createClassAccessors(genericsRef) : '') +
             '\n}';
     } else {
         statement +=
@@ -89,8 +89,8 @@ class __sveltets_Render${genericsDef} {
             }${genericsDef} extends Svelte2TsxComponent<${returnType('props')}, ${returnType(
                 'events'
             )}, ${returnType('slots')}> {` +
-            exportedNames.createClassGetters() +
-            (usesAccessors ? exportedNames.createClassAccessors() : '') +
+            exportedNames.createClassGetters(genericsRef) +
+            (usesAccessors ? exportedNames.createClassAccessors(genericsRef) : '') +
             '\n}';
     }
 
