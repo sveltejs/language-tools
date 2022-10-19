@@ -23,7 +23,7 @@ export type InputEvents<A> = ReturnType<__sveltets_Render<A>['events']>;
 export type InputSlots<A> = ReturnType<__sveltets_Render<A>['slots']>;
 
 export default class Input<A> extends SvelteComponentTyped<InputProps<A>, InputEvents<A>, InputSlots<A>> {
-    get a() { return render<A>().props.a }
+    get a() { return this.$$prop_def.a }
     /**accessor*/
     set a(_) {}
 }

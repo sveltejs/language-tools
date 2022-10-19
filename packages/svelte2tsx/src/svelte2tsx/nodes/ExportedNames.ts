@@ -193,9 +193,9 @@ export class ExportedNames {
         this.getters.add(node.text);
     }
 
-    createClassGetters(genericsDef = ''): string {
+    createClassGetters(): string {
         return Array.from(this.getters)
-            .map((name) => `\n    get ${name}() { return render${genericsDef}().getters.${name} }`)
+            .map((name) => `\n    get ${name}() { return this.$$prop_def.${name} }`)
             .join('');
     }
 
@@ -204,7 +204,7 @@ export class ExportedNames {
         return `{${properties.join(', ')}}`;
     }
 
-    createClassAccessors(genericsDef = ''): string {
+    createClassAccessors(): string {
         const accessors: string[] = [];
         for (const value of this.exports.values()) {
             if (this.getters.has(value.identifierText)) {
@@ -217,7 +217,7 @@ export class ExportedNames {
         return accessors
             .map(
                 (name) =>
-                    `\n    get ${name}() { return render${genericsDef}().props.${name} }` +
+                    `\n    get ${name}() { return this.$$prop_def.${name} }` +
                     `\n    /**accessor*/\n    set ${name}(_) {}`
             )
             .join('');
