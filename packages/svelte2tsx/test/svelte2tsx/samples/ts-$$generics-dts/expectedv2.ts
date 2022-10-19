@@ -37,5 +37,5 @@ export type InputEvents<A,B extends keyof A,C extends boolean> = ReturnType<__sv
 export type InputSlots<A,B extends keyof A,C extends boolean> = ReturnType<__sveltets_Render<A,B,C>['slots']>;
 
 export default class Input<A,B extends keyof A,C extends boolean> extends SvelteComponentTyped<InputProps<A,B,C>, InputEvents<A,B,C>, InputSlots<A,B,C>> {
-    get getA() { return render<A,B,C>().getters.getA }
+    get getA() { return this.$$prop_def.getA }
 }
