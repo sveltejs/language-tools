@@ -67,6 +67,7 @@ declare namespace svelteHTML {
     // over those manually defined in the old, taking precendence over the defaults, to make sth like this possible
     // https://github.com/sveltejs/language-tools/issues/1352#issuecomment-1248627516
     Omit<
+      // TODO once old transformation is out and JSX.IntrinsicElements is empty, we need an additional "does this Property exist on JSX.IntrinsicElements" check
       Omit<import('./svelte-html-do-not-use').SvelteHTMLElements[Property], keyof EventsWithColon<svelte.JSX.IntrinsicElements[Property & string]>> & EventsWithColon<svelte.JSX.IntrinsicElements[Property & string]>,
       keyof Override
     > & Override;
@@ -1397,6 +1398,12 @@ declare namespace svelte.JSX {
       svelteoptions: { [name: string]: any };
       sveltehead: { [name: string]: any };
       svelteelement: { 'this': string | undefined | null; } & HTMLProps<any> & SVGProps<any> & SapperAnchorProps & SvelteKitAnchorProps;
+      // Needed due to backwards compatibility type which hits these
+      'svelte:window': HTMLProps<Window> & SvelteWindowProps;
+      'svelte:body': HTMLProps<HTMLElement>;
+      'svelte:fragment': { slot?: string; };
+      'svelte:options': { [name: string]: any };
+      'svelte:head': { [name: string]: any };
 
       [name: string]: { [name: string]: any };
     }

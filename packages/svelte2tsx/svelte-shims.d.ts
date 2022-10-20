@@ -298,6 +298,6 @@ declare type ATypedSvelteComponent = {
  * Ambient type only used for intellisense, DO NOT USE IN YOUR PROJECT
  */
 declare type ConstructorOfATypedSvelteComponent = new (args: {target: any, props?: any}) => ATypedSvelteComponent
-declare function __sveltets_2_ensureComponent<T extends ConstructorOfATypedSvelteComponent>(type: T): T;
+declare function __sveltets_2_ensureComponent<T extends ConstructorOfATypedSvelteComponent | null | undefined>(type: T): NonNullable<T>;
 
 declare function __sveltets_2_ensureArray<T extends ArrayLike<unknown>>(array: T): T extends ArrayLike<infer U> ? U[] : any[];

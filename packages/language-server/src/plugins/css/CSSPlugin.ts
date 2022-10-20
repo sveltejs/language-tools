@@ -1,4 +1,4 @@
-import { doComplete as doEmmetComplete } from 'vscode-emmet-helper';
+import { doComplete as doEmmetComplete } from '@vscode/emmet-helper';
 import {
     Color,
     ColorInformation,
