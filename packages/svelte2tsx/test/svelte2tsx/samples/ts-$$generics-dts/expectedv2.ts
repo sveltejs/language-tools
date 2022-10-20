@@ -20,7 +20,7 @@ function render/*Ωignore_startΩ*/<A,B extends keyof A,C extends boolean>/*Ωig
         return a;
     }
 ;
-return { props: {a: a , b: b , c: c , getA: getA} as {a: A, b: B, c: C, getA?: typeof getA}, slots: {'default': {c:c}}, getters: {getA: getA}, events: {...__sveltets_1_toEventTypings<{a: A}>()} }}
+return { props: {a: a , b: b , c: c , getA: getA} as {a: A, b: B, c: C, getA?: typeof getA}, slots: {'default': {c:c}}, events: {...__sveltets_1_toEventTypings<{a: A}>()} }}
 class __sveltets_Render<A,B extends keyof A,C extends boolean> {
     props() {
         return render<A,B,C>().props;

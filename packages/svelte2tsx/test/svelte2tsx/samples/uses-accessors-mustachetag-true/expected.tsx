@@ -9,7 +9,7 @@
 ;
 () => (<><svelteoptions accessors={true} />
 </>);
-return { props: {foo: foo , foo2: foo2 , class: clazz , bar: bar}, slots: {}, getters: {bar: bar}, events: {} }}
+return { props: {foo: foo , foo2: foo2 , class: clazz , bar: bar}, slots: {}, events: {} }}
 
 export default class Input__SvelteComponent_ extends __sveltets_1_createSvelte2TsxComponent(__sveltets_1_partial(['foo','foo2','bar'], __sveltets_1_with_any_event(render()))) {
     get bar() { return this.$$prop_def.bar }

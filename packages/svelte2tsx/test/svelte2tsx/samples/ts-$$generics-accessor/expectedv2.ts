@@ -8,7 +8,7 @@
 async () => {
 
   { svelteHTML.createElement("svelte:options", {"accessors":true,});}};
-return { props: {a: a} as {a: A}, slots: {}, getters: {}, events: {} }}
+return { props: {a: a} as {a: A}, slots: {}, events: {} }}
 class __sveltets_Render<A> {
     props() {
         return render<A>().props;

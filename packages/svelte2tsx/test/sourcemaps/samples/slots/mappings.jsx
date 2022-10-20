@@ -36,7 +36,7 @@
 </slot></>↲    [generated] line 14                                                                                                                    
 </slot>        [original] line 11                                                                                                                     
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
-return { props: {}, slots: {'default': {}, 'foo': {}, 'bar': {foo:foo, baz:baz}}, getters: {}, events: {} }}
+return { props: {}, slots: {'default': {}, 'foo': {}, 'bar': {foo:foo, baz:baz}}, events: {} }}
 
 export default class Input__SvelteComponent_ extends __sveltets_1_createSvelte2TsxComponent(__sveltets_1_partial(__sveltets_1_with_any_event(render()))) {
 }

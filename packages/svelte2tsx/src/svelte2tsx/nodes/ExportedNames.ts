@@ -199,11 +199,6 @@ export class ExportedNames {
             .join('');
     }
 
-    createRenderFunctionGetterStr(): string {
-        const properties = Array.from(this.getters).map((name) => `${name}: ${name}`);
-        return `{${properties.join(', ')}}`;
-    }
-
     createClassAccessors(): string {
         const accessors: string[] = [];
         for (const value of this.exports.values()) {

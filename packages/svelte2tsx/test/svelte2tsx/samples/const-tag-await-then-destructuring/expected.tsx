@@ -24,7 +24,7 @@
 	{ }
 	<div>{area} {volume} {perimeter}, {_width}+{_height}={sum}</div>
 </>})}}</>);
-return { props: {promise1: promise1 , promise2: promise2 , constant: constant}, slots: {}, getters: {}, events: {} }}
+return { props: {promise1: promise1 , promise2: promise2 , constant: constant}, slots: {}, events: {} }}
 
 export default class Input__SvelteComponent_ extends __sveltets_1_createSvelte2TsxComponent(__sveltets_1_partial(['promise1','promise2','constant'], __sveltets_1_with_any_event(render()))) {
 }
