@@ -5,7 +5,7 @@ import { getPackageInfo } from '../../importPackage';
 import { Document } from '../../lib/documents';
 import { configLoader } from '../../lib/documents/configLoader';
 import { Logger } from '../../logger';
-import { normalizePath, urlToPath } from '../../utils';
+import { createGetCanonicalFileName, normalizePath, urlToPath } from '../../utils';
 import { DocumentSnapshot, SvelteSnapshotOptions } from './DocumentSnapshot';
 import { createSvelteModuleLoader } from './module-loader';
 import {
@@ -179,17 +179,12 @@ async function createLanguageService(
     let languageServiceReducedMode = false;
     let projectVersion = 0;
 
+    const getCanonicalFileName = createGetCanonicalFileName(tsSystem.useCaseSensitiveFileNames);
+
     const host: ts.LanguageServiceHost = {
         log: (message) => Logger.debug(`[ts] ${message}`),
         getCompilationSettings: () => compilerOptions,
-        getScriptFileNames: () =>
-            Array.from(
-                new Set([
-                    ...(languageServiceReducedMode ? [] : snapshotManager.getProjectFileNames()),
-                    ...snapshotManager.getFileNames(),
-                    ...svelteTsxFiles
-                ])
-            ),
+        getScriptFileNames,
         getScriptVersion: (fileName: string) => getSnapshot(fileName).version.toString(),
         getScriptSnapshot: getSnapshot,
         getCurrentDirectory: () => workspacePath,
@@ -316,6 +311,27 @@ async function createLanguageService(
         }
 
         reduceLanguageServiceCapabilityIfFileSizeTooBig();
+    }
+
+    function getScriptFileNames() {
+        const projectFiles = languageServiceReducedMode
+            ? []
+            : snapshotManager.getProjectFileNames();
+        const canonicalProjectFileNames = projectFiles.map(getCanonicalFileName);
+
+        return Array.from(
+            new Set([
+                ...projectFiles,
+                // project file is read from the file system so it's more likely to have
+                // the correct casing
+                ...snapshotManager
+                    .getFileNames()
+                    .filter(
+                        (file) => !canonicalProjectFileNames.includes(getCanonicalFileName(file))
+                    ),
+                ...svelteTsxFiles
+            ])
+        );
     }
 
     function hasFile(filePath: string): boolean {

@@ -2,7 +2,7 @@ import ts from 'typescript';
 import { DocumentSnapshot, JSOrTSDocumentSnapshot } from './DocumentSnapshot';
 import { Logger } from '../../logger';
 import { TextDocumentContentChangeEvent } from 'vscode-languageserver';
-import { normalizePath } from '../../utils';
+import { createGetCanonicalFileName, normalizePath } from '../../utils';
 import { EventEmitter } from 'events';
 import { FileMap } from '../../lib/documents/fileCollection';
 
@@ -157,7 +157,7 @@ export class SnapshotManager {
 
     has(fileName: string): boolean {
         fileName = normalizePath(fileName);
-        return this.projectFiles.includes(fileName) || this.getFileNames().includes(fileName);
+        return this.projectFiles.includes(fileName) || this.documents.has(fileName);
     }
 
     set(fileName: string, snapshot: DocumentSnapshot): void {
@@ -200,7 +200,12 @@ export class SnapshotManager {
             this.lastLogged = date;
 
             const projectFiles = this.getProjectFileNames();
-            const allFiles = Array.from(new Set([...projectFiles, ...this.getFileNames()]));
+            const getCanonicalFileName = createGetCanonicalFileName(
+                ts.sys.useCaseSensitiveFileNames
+            );
+            const allFiles = Array.from(
+                new Set([...projectFiles, ...this.getFileNames()].map(getCanonicalFileName))
+            );
             Logger.log(
                 'SnapshotManager File Statistics:\n' +
                     `Project files: ${projectFiles.length}\n` +
