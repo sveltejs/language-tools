@@ -15,7 +15,7 @@ function render() {
 {__sveltets_1_each(a, (item) => <>
     <svelteself ></svelteself>
 </>)}</>);
-return { props: {}, slots: {}, getters: {}, events: {...__sveltets_1_toEventTypings<{
+return { props: {}, slots: {}, events: {...__sveltets_1_toEventTypings<{
         foo: string
     }>()} }}
 
