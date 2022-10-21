@@ -66,7 +66,6 @@ export class FileMap<T> {
 export class FileSet {
     private getCanonicalFileName: GetCanonicalFileName;
     private readonly set = new Set<string>();
-    private readonly originalNames = new Map<string, string[]>();
 
     constructor(useCaseSensitiveFileNames = ts.sys.useCaseSensitiveFileNames) {
         this.getCanonicalFileName = createGetCanonicalFileName(useCaseSensitiveFileNames);
@@ -82,22 +81,5 @@ export class FileSet {
 
     delete(filePath: string) {
         return this.set.delete(this.getCanonicalFileName(filePath));
-    }
-
-    /**
-     * return all the original name added with {@link add}
-     */
-    *values(): Iterable<string> {
-        for (const filePath of this.set.values()) {
-            const originalNames = this.originalNames.get(filePath);
-
-            if (!originalNames) {
-                continue;
-            }
-
-            for (const originalName of originalNames) {
-                yield originalName;
-            }
-        }
     }
 }
