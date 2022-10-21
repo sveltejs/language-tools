@@ -88,7 +88,9 @@ describe('Document Manager', () => {
             languageId: 'svelte',
             text: 'Hello, world!'
         };
-        const manager = new DocumentManager(createTextDocument);
+        const manager = new DocumentManager(createTextDocument, {
+            useCaseSensitiveFileNames: false
+        });
 
         manager.openDocument(textDocument);
         const firstVersion = manager.get(textDocument.uri)!.version;
