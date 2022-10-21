@@ -15,7 +15,7 @@ async () => {
   for(let item of __sveltets_2_ensureArray(a)){
      { const $$_svelteself0 = __sveltets_2_createComponentAny({ });$$_svelteself0.$on("foo", () => {}); }
 }};
-return { props: {}, slots: {}, getters: {}, events: {...__sveltets_1_toEventTypings<{
+return { props: {}, slots: {}, events: {...__sveltets_1_toEventTypings<{
         foo: string
     }>()} }}
 

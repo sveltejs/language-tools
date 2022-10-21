@@ -116,7 +116,6 @@ export function createRenderFunction({
     const returnString =
         `\nreturn { props: ${exportedNames.createPropsStr(isTsFile)}` +
         `, slots: ${slotsAsDef}` +
-        `, getters: ${exportedNames.createRenderFunctionGetterStr()}` +
         `, events: ${events.toDefString()} }}`;
 
     // wrap template with callback

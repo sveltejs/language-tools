@@ -195,13 +195,8 @@ export class ExportedNames {
 
     createClassGetters(): string {
         return Array.from(this.getters)
-            .map((name) => `\n    get ${name}() { return render().getters.${name} }`)
+            .map((name) => `\n    get ${name}() { return this.$$prop_def.${name} }`)
             .join('');
-    }
-
-    createRenderFunctionGetterStr(): string {
-        const properties = Array.from(this.getters).map((name) => `${name}: ${name}`);
-        return `{${properties.join(', ')}}`;
     }
 
     createClassAccessors(): string {
@@ -217,7 +212,7 @@ export class ExportedNames {
         return accessors
             .map(
                 (name) =>
-                    `\n    get ${name}() { return render().props.${name} }` +
+                    `\n    get ${name}() { return this.$$prop_def.${name} }` +
                     `\n    /**accessor*/\n    set ${name}(_) {}`
             )
             .join('');
