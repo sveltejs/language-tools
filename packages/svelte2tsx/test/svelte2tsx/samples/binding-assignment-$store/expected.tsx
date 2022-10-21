@@ -6,7 +6,7 @@
 <div {...__sveltets_1_empty($compile_options.foo = /*Ωignore_startΩ*/__sveltets_1_instanceOf(__sveltets_1_ctorOf(__sveltets_1_mapElementTag('div')))/*Ωignore_endΩ*/)} />
 <div noAssignment={$compile_options} />
 <div noAssignment={$compile_options.foo} /></>
-return { props: {}, slots: {}, getters: {}, events: {} }}
+return { props: {}, slots: {}, events: {} }}
 
 export default class Input__SvelteComponent_ extends __sveltets_1_createSvelte2TsxComponent(__sveltets_1_partial(__sveltets_1_with_any_event(render()))) {
 }

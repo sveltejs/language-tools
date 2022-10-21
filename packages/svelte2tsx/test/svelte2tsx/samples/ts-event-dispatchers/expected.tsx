@@ -20,7 +20,7 @@ function render() {
 () => (<>
 
 <button onclick={undefined}></button></>);
-return { props: {}, slots: {}, getters: {}, events: {...__sveltets_1_toEventTypings<{
+return { props: {}, slots: {}, events: {...__sveltets_1_toEventTypings<{
     /**
      * A DOC
      */

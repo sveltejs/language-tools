@@ -3,7 +3,7 @@
 async () => {
 
  { svelteHTML.createElement("main", {});     }};
-return { props: {}, slots: {}, getters: {}, events: {} }}
+return { props: {}, slots: {}, events: {} }}
 
 /**
  * This component has indented multiline documentation:

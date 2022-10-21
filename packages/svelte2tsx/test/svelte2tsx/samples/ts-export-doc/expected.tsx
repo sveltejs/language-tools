@@ -21,7 +21,7 @@ return { props: {a: a , b: b , c: c , d: d} as {
      */a: string, 
 /**
      * MORE DOCS!
-     */b?: typeof b, c: typeof c, d: typeof d}, slots: {}, getters: {}, events: {} }}
+     */b?: typeof b, c: typeof c, d: typeof d}, slots: {}, events: {} }}
 
 export default class Input__SvelteComponent_ extends __sveltets_1_createSvelte2TsxComponent(__sveltets_1_with_any_event(render())) {
 }
