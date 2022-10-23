@@ -294,7 +294,7 @@ export function returnObjectIfHasKeys<T>(obj: T | undefined): T | undefined {
 const fileNameLowerCaseRegExp = /[^\u0130\u0131\u00DFa-z0-9\\/:\-_\. ]+/g;
 
 /**
- * adopted from https://github.com/microsoft/TypeScript/blob/8192d550496d884263e292488e325ae96893dc78/src/compiler/core.ts#L1803
+ * adopted from https://github.com/microsoft/TypeScript/blob/8192d550496d884263e292488e325ae96893dc78/src/compiler/core.ts#L1769-L1807
  * see the comment there about why we can't just use String.prototype.toLowerCase() here
  */
 export function toFileNameLowerCase(x: string) {
