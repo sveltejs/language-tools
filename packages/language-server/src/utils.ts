@@ -298,9 +298,7 @@ const fileNameLowerCaseRegExp = /[^\u0130\u0131\u00DFa-z0-9\\/:\-_\. ]+/g;
  * see the comment there about why we can't just use String.prototype.toLowerCase() here
  */
 export function toFileNameLowerCase(x: string) {
-    return fileNameLowerCaseRegExp.test(x) ?
-        x.replace(fileNameLowerCaseRegExp, toLowerCase) :
-        x;
+    return fileNameLowerCaseRegExp.test(x) ? x.replace(fileNameLowerCaseRegExp, toLowerCase) : x;
 }
 
 function toLowerCase(x: string) {
@@ -311,6 +309,8 @@ export type GetCanonicalFileName = (fileName: string) => string;
 /**
  * adopted from https://github.com/microsoft/TypeScript/blob/8192d550496d884263e292488e325ae96893dc78/src/compiler/core.ts#L2312
  */
-export function createGetCanonicalFileName(useCaseSensitiveFileNames: boolean): GetCanonicalFileName {
+export function createGetCanonicalFileName(
+    useCaseSensitiveFileNames: boolean
+): GetCanonicalFileName {
     return useCaseSensitiveFileNames ? (x) => x : toFileNameLowerCase;
 }
