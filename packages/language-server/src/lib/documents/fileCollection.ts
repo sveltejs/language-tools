@@ -8,7 +8,6 @@ import { createGetCanonicalFileName, GetCanonicalFileName } from '../../utils';
 export class FileMap<T> {
     private getCanonicalFileName: GetCanonicalFileName;
     private readonly map = new Map<string, T>();
-    private readonly originalNames = new Map<string, string[]>();
 
     constructor(useCaseSensitiveFileNames = ts.sys.useCaseSensitiveFileNames) {
         this.getCanonicalFileName = createGetCanonicalFileName(useCaseSensitiveFileNames);
@@ -20,10 +19,7 @@ export class FileMap<T> {
 
     set(filePath: string, value: T) {
         const canonicalFileName = this.getCanonicalFileName(filePath);
-        this.originalNames.set(
-            canonicalFileName,
-            (this.originalNames.get(canonicalFileName) ?? []).concat(filePath)
-        );
+
         return this.map.set(canonicalFileName, value);
     }
 
@@ -36,30 +32,19 @@ export class FileMap<T> {
     }
 
     /**
-     * return name value pair for the original names added with {@link FileMap.set}
+     * Returns an iterable of key, value pairs for every entry in the map.
+     * In case insensitive file system the key in the key-value pairs is in lowercase
      */
-    *entries(): IterableIterator<[string, T]> {
-        for (const [filePath, value] of this.map.entries()) {
-            const originalNames = this.originalNames.get(filePath);
-
-            if (!originalNames) {
-                continue;
-            }
-
-            for (const originalName of originalNames) {
-                yield [originalName, value];
-            }
-        }
+    entries(): IterableIterator<[string, T]> {
+        return this.map.entries();
     }
 
+    /**
+     *
+     * @param callbackfn In case insensitive file system the key parameter for the callback is in lowercase
+     */
     forEach(callbackfn: (value: T, key: string) => void) {
-        Array.from(this.entries()).forEach(([filePath, value]) => callbackfn(value, filePath));
-    }
-
-    *keys(): IterableIterator<string> {
-        for (const [filePath] of this.entries()) {
-            yield filePath;
-        }
+        return this.map.forEach(callbackfn);
     }
 }
 

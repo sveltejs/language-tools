@@ -2,7 +2,7 @@ import ts from 'typescript';
 import { DocumentSnapshot, JSOrTSDocumentSnapshot } from './DocumentSnapshot';
 import { Logger } from '../../logger';
 import { TextDocumentContentChangeEvent } from 'vscode-languageserver';
-import { createGetCanonicalFileName, normalizePath } from '../../utils';
+import { createGetCanonicalFileName, GetCanonicalFileName, normalizePath } from '../../utils';
 import { EventEmitter } from 'events';
 import { FileMap } from '../../lib/documents/fileCollection';
 
@@ -16,9 +16,11 @@ type SnapshotChangeHandler = (fileName: string, newDocument: DocumentSnapshot | 
 export class GlobalSnapshotsManager {
     private emitter = new EventEmitter();
     private documents: FileMap<DocumentSnapshot>;
+    private getCanonicalFileName: GetCanonicalFileName;
 
     constructor(private readonly tsSystem: ts.System) {
         this.documents = new FileMap(tsSystem.useCaseSensitiveFileNames);
+        this.getCanonicalFileName = createGetCanonicalFileName(tsSystem.useCaseSensitiveFileNames);
     }
 
     get(fileName: string) {
@@ -27,7 +29,7 @@ export class GlobalSnapshotsManager {
     }
 
     getByPrefix(path: string) {
-        path = normalizePath(path);
+        path = this.getCanonicalFileName(normalizePath(path));
         return Array.from(this.documents.entries())
             .filter((doc) => doc[0].startsWith(path))
             .map((doc) => doc[1]);
@@ -186,7 +188,7 @@ export class SnapshotManager {
     }
 
     getFileNames(): string[] {
-        return Array.from(this.documents.keys());
+        return Array.from(this.documents.entries()).map(([_, doc]) => doc.filePath);
     }
 
     getProjectFileNames(): string[] {
