@@ -5,7 +5,7 @@ import { createGetCanonicalFileName, GetCanonicalFileName } from '../../utils';
  * wrapper around Map<string, T> for
  * case case insensitive file system
  */
-export class FileMap<T> {
+export class FileMap<T> implements Iterable<[string, T]> {
     private getCanonicalFileName: GetCanonicalFileName;
     private readonly map = new Map<string, T>();
 
@@ -46,9 +46,33 @@ export class FileMap<T> {
     forEach(callbackfn: (value: T, key: string) => void) {
         return this.map.forEach(callbackfn);
     }
+
+    values() {
+        return this.map.values();
+    }
+
+    clear() {
+        this.map.clear();
+    }
+
+    /**
+     * Returns an iterable of values in the map.
+     * In case insensitive file system the key is in lowercase
+     */
+    keys() {
+        return this.map.keys();
+    }
+
+    get size() {
+        return this.map.size;
+    }
+
+    [Symbol.iterator](): Iterator<[string, T]> {
+        return this.map[Symbol.iterator]();
+    }
 }
 
-export class FileSet {
+export class FileSet implements Iterable<string> {
     private getCanonicalFileName: GetCanonicalFileName;
     private readonly set = new Set<string>();
 
@@ -66,5 +90,9 @@ export class FileSet {
 
     delete(filePath: string) {
         return this.set.delete(this.getCanonicalFileName(filePath));
+    }
+
+    [Symbol.iterator](): Iterator<string> {
+        return this.set[Symbol.iterator]();
     }
 }

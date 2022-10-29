@@ -312,5 +312,9 @@ export type GetCanonicalFileName = (fileName: string) => string;
 export function createGetCanonicalFileName(
     useCaseSensitiveFileNames: boolean
 ): GetCanonicalFileName {
-    return useCaseSensitiveFileNames ? (x) => x : toFileNameLowerCase;
+    return useCaseSensitiveFileNames ? identity : toFileNameLowerCase;
+}
+
+function identity<T>(x: T) {
+    return x;
 }

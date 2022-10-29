@@ -1,6 +1,6 @@
 import ts from 'typescript';
 import { FileMap } from '../../lib/documents/fileCollection';
-import { getLastPartOfPath } from '../../utils';
+import { createGetCanonicalFileName, getLastPartOfPath } from '../../utils';
 import { DocumentSnapshot } from './DocumentSnapshot';
 import { createSvelteSys } from './svelte-sys';
 import {
@@ -16,6 +16,7 @@ import {
  */
 class ModuleResolutionCache {
     private cache = new FileMap<ts.ResolvedModule | undefined>();
+    private getCanonicalFileName = createGetCanonicalFileName(ts.sys.useCaseSensitiveFileNames);
 
     /**
      * Tries to get a cached module.
@@ -44,8 +45,9 @@ class ModuleResolutionCache {
      * @param resolvedModuleName full path of the module
      */
     delete(resolvedModuleName: string): void {
+        resolvedModuleName = this.getCanonicalFileName(resolvedModuleName);
         this.cache.forEach((val, key) => {
-            if (val?.resolvedFileName === resolvedModuleName) {
+            if (val && this.getCanonicalFileName(val.resolvedFileName) === resolvedModuleName) {
                 this.cache.delete(key);
             }
         });
@@ -56,7 +58,8 @@ class ModuleResolutionCache {
      * and which might match the path.
      */
     deleteUnresolvedResolutionsFromCache(path: string): void {
-        const fileNameWithoutEnding = getLastPartOfPath(path).split('.').shift() || '';
+        const fileNameWithoutEnding =
+            getLastPartOfPath(this.getCanonicalFileName(path)).split('.').shift() || '';
         this.cache.forEach((val, key) => {
             const moduleName = key.split(':::').pop() || '';
             if (!val && moduleName.includes(fileNameWithoutEnding)) {
@@ -71,7 +74,7 @@ class ModuleResolutionCache {
 }
 
 class ImpliedNodeFormatResolver {
-    private alreadyResolved = new Map<string, ReturnType<typeof ts.getModeForResolutionAtIndex>>();
+    private alreadyResolved = new FileMap<ReturnType<typeof ts.getModeForResolutionAtIndex>>();
 
     resolve(
         importPath: string,

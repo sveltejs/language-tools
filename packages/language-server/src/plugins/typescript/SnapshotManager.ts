@@ -94,8 +94,10 @@ export interface TsFilesSpec {
  * Should only be used by `service.ts`
  */
 export class SnapshotManager {
-    private documents: FileMap<DocumentSnapshot>;
+    private readonly documents: FileMap<DocumentSnapshot>;
     private lastLogged = new Date(new Date().getTime() - 60_001);
+
+    private readonly projectFileToOriginalCasing: FileMap<string>;
 
     private readonly watchExtensions = [
         ts.Extension.Dts,
@@ -108,14 +110,19 @@ export class SnapshotManager {
 
     constructor(
         private globalSnapshotsManager: GlobalSnapshotsManager,
-        private projectFiles: string[],
         private fileSpec: TsFilesSpec,
         private workspaceRoot: string,
+        projectFiles: string[],
         useCaseSensitiveFileNames = ts.sys.useCaseSensitiveFileNames
     ) {
         this.onSnapshotChange = this.onSnapshotChange.bind(this);
         this.globalSnapshotsManager.onChange(this.onSnapshotChange);
-        this.documents = new FileMap<DocumentSnapshot>(useCaseSensitiveFileNames);
+        this.documents = new FileMap(useCaseSensitiveFileNames);
+        this.projectFileToOriginalCasing = new FileMap(useCaseSensitiveFileNames);
+
+        projectFiles.forEach((originalCasing) =>
+            this.projectFileToOriginalCasing.set(originalCasing, originalCasing)
+        );
     }
 
     private onSnapshotChange(fileName: string, document: DocumentSnapshot | undefined) {
@@ -126,7 +133,7 @@ export class SnapshotManager {
         // and set them "manually" in the set/update methods.
         if (!document) {
             this.documents.delete(fileName);
-            this.projectFiles = this.projectFiles.filter((s) => s !== fileName);
+            this.projectFileToOriginalCasing.delete(fileName);
         } else if (this.documents.has(fileName)) {
             this.documents.set(fileName, document);
         }
@@ -145,7 +152,9 @@ export class SnapshotManager {
             .readDirectory(this.workspaceRoot, this.watchExtensions, exclude, include)
             .map(normalizePath);
 
-        this.projectFiles = Array.from(new Set([...this.projectFiles, ...projectFiles]));
+        projectFiles.forEach((projectFile) =>
+            this.projectFileToOriginalCasing.set(projectFile, projectFile)
+        );
     }
 
     updateTsOrJsFile(fileName: string, changes?: TextDocumentContentChangeEvent[]): void {
@@ -159,7 +168,7 @@ export class SnapshotManager {
 
     has(fileName: string): boolean {
         fileName = normalizePath(fileName);
-        return this.projectFiles.includes(fileName) || this.documents.has(fileName);
+        return this.projectFileToOriginalCasing.has(fileName) || this.documents.has(fileName);
     }
 
     set(fileName: string, snapshot: DocumentSnapshot): void {
@@ -192,7 +201,7 @@ export class SnapshotManager {
     }
 
     getProjectFileNames(): string[] {
-        return [...this.projectFiles];
+        return Array.from(this.projectFileToOriginalCasing.values());
     }
 
     private logStatistics() {
@@ -201,16 +210,12 @@ export class SnapshotManager {
         if (date.getTime() - this.lastLogged.getTime() > 60_000) {
             this.lastLogged = date;
 
-            const projectFiles = this.getProjectFileNames();
-            const getCanonicalFileName = createGetCanonicalFileName(
-                ts.sys.useCaseSensitiveFileNames
-            );
             const allFiles = Array.from(
-                new Set([...projectFiles, ...this.getFileNames()].map(getCanonicalFileName))
+                new Set([...this.projectFileToOriginalCasing.keys(), ...this.documents.keys()])
             );
             Logger.log(
                 'SnapshotManager File Statistics:\n' +
-                    `Project files: ${projectFiles.length}\n` +
+                    `Project files: ${this.projectFileToOriginalCasing.size}\n` +
                     `Svelte files: ${
                         allFiles.filter((name) => name.endsWith('.svelte')).length
                     }\n` +
