@@ -28,7 +28,8 @@ import {
     TextEdit,
     WorkspaceEdit,
     SelectionRange,
-    SignatureHelp
+    SignatureHelp,
+    FoldingRange
 } from 'vscode-languageserver-types';
 import { Document } from '../lib/documents';
 
@@ -183,6 +184,10 @@ export interface TypeDefinitionProvider {
     getTypeDefinition(document: Document, position: Position): Resolvable<Location[] | null>;
 }
 
+export interface FoldingRangeProvider {
+    getFoldingRange(document: Document): Resolvable<FoldingRange[]>
+}
+
 export interface OnWatchFileChangesPara {
     fileName: string;
     changeType: FileChangeType;
@@ -214,7 +219,8 @@ type ProviderBase = DiagnosticsProvider &
     SemanticTokensProvider &
     LinkedEditingRangesProvider &
     ImplementationProvider &
-    TypeDefinitionProvider;
+    TypeDefinitionProvider &
+    FoldingRangeProvider;
 
 export type LSProvider = ProviderBase & BackwardsCompatibleDefinitionsProvider;
 

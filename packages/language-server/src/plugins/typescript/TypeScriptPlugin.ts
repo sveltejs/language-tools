@@ -8,6 +8,7 @@ import {
     DefinitionLink,
     Diagnostic,
     FileChangeType,
+    FoldingRange,
     Hover,
     Location,
     LocationLink,
@@ -48,7 +49,8 @@ import {
     SignatureHelpProvider,
     TypeDefinitionProvider,
     UpdateImportsProvider,
-    UpdateTsOrJsFile
+    UpdateTsOrJsFile,
+    FoldingRangeProvider
 } from '../interfaces';
 import { CodeActionsProviderImpl } from './features/CodeActionsProvider';
 import {
@@ -82,6 +84,7 @@ import {
     isInScript,
     symbolKindFromString
 } from './utils';
+import { FoldingRangeProviderImpl } from './features/FoldingRangeProvider';
 
 export class TypeScriptPlugin
     implements
@@ -100,6 +103,7 @@ export class TypeScriptPlugin
         SemanticTokensProvider,
         ImplementationProvider,
         TypeDefinitionProvider,
+        FoldingRangeProvider,
         OnWatchFileChanges,
         CompletionsProvider<CompletionEntryWithIdentifier>,
         UpdateTsOrJsFile
@@ -122,6 +126,7 @@ export class TypeScriptPlugin
     private readonly semanticTokensProvider: SemanticTokensProviderImpl;
     private readonly implementationProvider: ImplementationProviderImpl;
     private readonly typeDefinitionProvider: TypeDefinitionProviderImpl;
+    private readonly foldingRangeProvider: FoldingRangeProviderImpl;
 
     constructor(configManager: LSConfigManager, lsAndTsDocResolver: LSAndTSDocResolver) {
         this.configManager = configManager;
@@ -154,6 +159,7 @@ export class TypeScriptPlugin
         this.semanticTokensProvider = new SemanticTokensProviderImpl(this.lsAndTsDocResolver);
         this.implementationProvider = new ImplementationProviderImpl(this.lsAndTsDocResolver);
         this.typeDefinitionProvider = new TypeDefinitionProviderImpl(this.lsAndTsDocResolver);
+        this.foldingRangeProvider = new FoldingRangeProviderImpl(this.lsAndTsDocResolver);
     }
 
     async getDiagnostics(
@@ -547,6 +553,10 @@ export class TypeScriptPlugin
 
     async getTypeDefinition(document: Document, position: Position): Promise<Location[] | null> {
         return this.typeDefinitionProvider.getTypeDefinition(document, position);
+    }
+
+    async getFoldingRange(document: Document): Promise<FoldingRange[]> {
+        return this.foldingRangeProvider.getFoldingRange(document);
     }
 
     private async getLSAndTSDoc(document: Document) {

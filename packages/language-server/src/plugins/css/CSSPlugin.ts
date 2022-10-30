@@ -26,7 +26,8 @@ import {
     mapObjWithRangeToOriginal,
     mapHoverToParent,
     mapSelectionRangeToParent,
-    isInTag
+    isInTag,
+    mapRangeToOriginal
 } from '../../lib/documents';
 import { LSConfigManager, LSCSSConfig } from '../../ls-config';
 import {
@@ -35,6 +36,7 @@ import {
     DiagnosticsProvider,
     DocumentColorsProvider,
     DocumentSymbolsProvider,
+    FoldingRangeProvider,
     HoverProvider,
     SelectionRangeProvider
 } from '../interfaces';
@@ -45,6 +47,7 @@ import { getIdClassCompletion } from './features/getIdClassCompletion';
 import { AttributeContext, getAttributeContextAtPosition } from '../../lib/documents/parseHtml';
 import { StyleAttributeDocument } from './StyleAttributeDocument';
 import { getDocumentContext } from '../documentContext';
+import { FoldingRange } from 'vscode-languageserver-types';
 
 export class CSSPlugin
     implements
@@ -54,7 +57,8 @@ export class CSSPlugin
         DocumentColorsProvider,
         ColorPresentationsProvider,
         DocumentSymbolsProvider,
-        SelectionRangeProvider
+        SelectionRangeProvider,
+        FoldingRangeProvider
 {
     __name = 'css';
     private configManager: LSConfigManager;
@@ -369,6 +373,24 @@ export class CSSPlugin
                 return symbol;
             })
             .map((symbol) => mapSymbolInformationToOriginal(cssDocument, symbol));
+    }
+
+    getFoldingRange(document: Document): FoldingRange[] {
+        const cssDocument = this.getCSSDoc(document);
+        return this.getLanguageService(extractLanguage(cssDocument))
+            .getFoldingRanges(cssDocument)
+            .map((range) => {
+                const originalRange = mapRangeToOriginal(cssDocument, {
+                    start: { line: range.startLine, character: range.startCharacter ?? 0 },
+                    end: { line: range.endLine, character: range.endCharacter ?? 0 }
+                });
+
+                return {
+                    startLine: originalRange.start.line,
+                    endLine: originalRange.end.line,
+                    kind: range.kind
+                };
+            });
     }
 
     private getCSSDoc(document: Document) {

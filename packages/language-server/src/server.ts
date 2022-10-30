@@ -275,7 +275,8 @@ export function startServer(options?: LSOptions) {
                 },
                 linkedEditingRangeProvider: true,
                 implementationProvider: true,
-                typeDefinitionProvider: true
+                typeDefinitionProvider: true,
+                foldingRangeProvider: true
             }
         };
     });
@@ -388,6 +389,8 @@ export function startServer(options?: LSOptions) {
     connection.onTypeDefinition((evt) =>
         pluginHost.getTypeDefinition(evt.textDocument, evt.position)
     );
+
+    connection.onFoldingRanges((evt) => pluginHost.getFoldingRange(evt.textDocument));
 
     const diagnosticsManager = new DiagnosticsManager(
         connection.sendDiagnostics,
