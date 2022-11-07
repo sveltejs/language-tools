@@ -163,6 +163,7 @@ function instantiateWriter(opts: SvelteCheckCliOptions): Writer {
             process.stdout,
             opts.outputFormat === 'human-verbose',
             opts.watch,
+            !opts.preserveWatchOutput,
             filter
         );
     } else {
