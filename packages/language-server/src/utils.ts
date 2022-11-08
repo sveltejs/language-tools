@@ -1,7 +1,8 @@
-import { isEqual, uniqWith } from 'lodash';
+import { isEqual, sum, uniqWith } from 'lodash';
 import { Node } from 'vscode-html-languageservice';
 import { Position, Range } from 'vscode-languageserver';
 import { URI } from 'vscode-uri';
+import { Document } from './lib/documents';
 
 type Predicate<T> = (x: T) => boolean;
 
@@ -288,4 +289,51 @@ export function returnObjectIfHasKeys<T>(obj: T | undefined): T | undefined {
     if (Object.keys(obj || {}).length > 0) {
         return obj;
     }
+}
+
+/**
+ *
+ * 1. check tab and space counts for lines
+ * 2. if there're mixing space and tab guess the tabSize
+ */
+export function indentBasedFoldingRange(document: Document, range?: Range) {
+    const text = document.getText();
+    const lines = text.split(/\r?\n/);
+
+    const indents = lines
+        .map((line, index) => ({
+            ...collectIndents(line),
+            index
+        }))
+        .filter((line) => !line.empty);
+
+    const tabs = sum(indents.map((l) => l.tabCount));
+    const spaces = sum(indents.map((l) => l.spaceCount));
+
+    const tabSize = tabs && spaces ? guessTabSize(indents) : 1;
+}
+
+function collectIndents(line: string) {
+    let tabCount = 0;
+    let spaceCount = 0;
+    let empty = true;
+
+    for (let index = 0; index < line.length; index++) {
+        const char = line[index];
+
+        if (char === '\t') {
+            tabCount++;
+        } else if (char === ' ') {
+            spaceCount++;
+        } else {
+            empty = false;
+            break;
+        }
+    }
+
+    return { tabCount, spaceCount, empty };
+}
+
+function guessTabSize(nonEmptyLines: Array<{ spaceCount: number; tabCount: number }>): number {
+    const guessingTabSize = [];
 }
