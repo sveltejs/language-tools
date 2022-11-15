@@ -338,9 +338,7 @@ async function createLanguageService(
                 // the correct casing
                 ...snapshotManager
                     .getFileNames()
-                    .filter(
-                        (file) => !canonicalProjectFileNames.has(getCanonicalFileName(file))
-                    ),
+                    .filter((file) => !canonicalProjectFileNames.has(getCanonicalFileName(file))),
                 ...svelteTsxFiles
             ])
         );
