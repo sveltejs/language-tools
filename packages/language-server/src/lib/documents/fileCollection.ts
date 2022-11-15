@@ -2,8 +2,7 @@ import ts from 'typescript';
 import { createGetCanonicalFileName, GetCanonicalFileName } from '../../utils';
 
 /**
- * wrapper around Map<string, T> for
- * case case insensitive file system
+ * wrapper around Map<string, T> for case insensitive file systems
  */
 export class FileMap<T> implements Iterable<[string, T]> {
     private getCanonicalFileName: GetCanonicalFileName;
