@@ -241,12 +241,13 @@ export class SvelteSnapshotManager {
     }
 
     get(fileName: string) {
-        return this.snapshots.get(fileName);
+        return this.snapshots.get(this.projectService.toCanonicalFileName(fileName));
     }
 
     create(fileName: string): SvelteSnapshot | undefined {
-        if (this.snapshots.has(fileName)) {
-            return this.snapshots.get(fileName)!;
+        const canonicalFilePath = this.projectService.toCanonicalFileName(fileName);
+        if (this.snapshots.has(canonicalFilePath)) {
+            return this.snapshots.get(canonicalFilePath)!;
         }
 
         // This will trigger projectService.host.readFile which is patched below
@@ -264,7 +265,7 @@ export class SvelteSnapshotManager {
         } catch (e) {
             this.logger.log('Loading Snapshot failed', fileName);
         }
-        const snapshot = this.snapshots.get(fileName);
+        const snapshot = this.snapshots.get(this.projectService.toCanonicalFileName(fileName));
         if (!snapshot) {
             this.logger.log(
                 'Svelte snapshot was not found after trying to load script snapshot for',
@@ -273,7 +274,7 @@ export class SvelteSnapshotManager {
             return; // should never get here
         }
         snapshot.setAndPatchScriptInfo(scriptInfo);
-        this.snapshots.set(fileName, snapshot);
+        this.snapshots.set(canonicalFilePath, snapshot);
         return snapshot;
     }
 
@@ -316,12 +317,13 @@ export class SvelteSnapshotManager {
                         mode: 'ts', // useNewTransformation
                         typingsNamespace: this.svelteOptions.namespace
                     });
-                    const existingSnapshot = this.snapshots.get(path);
+                    const canonicalFilePath = this.projectService.toCanonicalFileName(path);
+                    const existingSnapshot = this.snapshots.get(canonicalFilePath);
                     if (existingSnapshot) {
                         existingSnapshot.update(svelteCode, new SourceMapper(result.map.mappings));
                     } else {
                         this.snapshots.set(
-                            path,
+                            canonicalFilePath,
                             new SvelteSnapshot(
                                 this.typescript,
                                 path,

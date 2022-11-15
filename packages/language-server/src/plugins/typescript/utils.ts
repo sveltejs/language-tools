@@ -9,7 +9,7 @@ import {
     SymbolKind
 } from 'vscode-languageserver';
 import { Document, isInTag, mapRangeToOriginal } from '../../lib/documents';
-import { pathToUrl } from '../../utils';
+import { GetCanonicalFileName, pathToUrl } from '../../utils';
 import { DocumentSnapshot, SvelteDocumentSnapshot } from './DocumentSnapshot';
 
 export function getScriptKindFromFileName(fileName: string): ts.ScriptKind {
@@ -127,7 +127,8 @@ export function rangeToTextSpan(
 export function findTsConfigPath(
     fileName: string,
     rootUris: string[],
-    fileExists: (path: string) => boolean
+    fileExists: (path: string) => boolean,
+    getCanonicalFileName: GetCanonicalFileName
 ) {
     const searchDir = dirname(fileName);
 
@@ -136,11 +137,19 @@ export function findTsConfigPath(
         ts.findConfigFile(searchDir, fileExists, 'jsconfig.json') ||
         '';
     // Don't return config files that exceed the current workspace context.
-    return !!path && rootUris.some((rootUri) => isSubPath(rootUri, path)) ? path : '';
+    return !!path && rootUris.some((rootUri) => isSubPath(rootUri, path, getCanonicalFileName))
+        ? path
+        : '';
 }
 
-export function isSubPath(uri: string, possibleSubPath: string): boolean {
-    return pathToUrl(possibleSubPath).startsWith(uri);
+export function isSubPath(
+    uri: string,
+    possibleSubPath: string,
+    getCanonicalFileName: GetCanonicalFileName
+): boolean {
+    // URL escape codes are in upper-case
+    // so getCanonicalFileName should be called after converting to file url
+    return getCanonicalFileName(pathToUrl(possibleSubPath)).startsWith(getCanonicalFileName(uri));
 }
 
 export function symbolKindFromString(kind: string): SymbolKind {
