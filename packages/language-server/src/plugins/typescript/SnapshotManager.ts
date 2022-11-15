@@ -97,7 +97,8 @@ export class SnapshotManager {
     private readonly documents: FileMap<DocumentSnapshot>;
     private lastLogged = new Date(new Date().getTime() - 60_001);
 
-    private readonly projectFileToOriginalCasing: FileMap<string>;
+    private readonly projectFileToOriginalCasing: Map<string, string>;
+    private getCanonicalFileName: GetCanonicalFileName;
 
     private readonly watchExtensions = [
         ts.Extension.Dts,
@@ -118,10 +119,14 @@ export class SnapshotManager {
         this.onSnapshotChange = this.onSnapshotChange.bind(this);
         this.globalSnapshotsManager.onChange(this.onSnapshotChange);
         this.documents = new FileMap(useCaseSensitiveFileNames);
-        this.projectFileToOriginalCasing = new FileMap(useCaseSensitiveFileNames);
+        this.projectFileToOriginalCasing = new Map();
+        this.getCanonicalFileName = createGetCanonicalFileName(useCaseSensitiveFileNames);
 
         projectFiles.forEach((originalCasing) =>
-            this.projectFileToOriginalCasing.set(originalCasing, originalCasing)
+            this.projectFileToOriginalCasing.set(
+                this.getCanonicalFileName(originalCasing),
+                originalCasing
+            )
         );
     }
 
@@ -133,7 +138,7 @@ export class SnapshotManager {
         // and set them "manually" in the set/update methods.
         if (!document) {
             this.documents.delete(fileName);
-            this.projectFileToOriginalCasing.delete(fileName);
+            this.projectFileToOriginalCasing.delete(this.getCanonicalFileName(fileName));
         } else if (this.documents.has(fileName)) {
             this.documents.set(fileName, document);
         }
@@ -153,7 +158,10 @@ export class SnapshotManager {
             .map(normalizePath);
 
         projectFiles.forEach((projectFile) =>
-            this.projectFileToOriginalCasing.set(projectFile, projectFile)
+            this.projectFileToOriginalCasing.set(
+                this.getCanonicalFileName(projectFile),
+                projectFile
+            )
         );
     }
 
@@ -168,7 +176,10 @@ export class SnapshotManager {
 
     has(fileName: string): boolean {
         fileName = normalizePath(fileName);
-        return this.projectFileToOriginalCasing.has(fileName) || this.documents.has(fileName);
+        return (
+            this.projectFileToOriginalCasing.has(this.getCanonicalFileName(fileName)) ||
+            this.documents.has(fileName)
+        );
     }
 
     set(fileName: string, snapshot: DocumentSnapshot): void {
