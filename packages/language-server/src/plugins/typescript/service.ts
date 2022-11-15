@@ -329,7 +329,7 @@ async function createLanguageService(
         const projectFiles = languageServiceReducedMode
             ? []
             : snapshotManager.getProjectFileNames();
-        const canonicalProjectFileNames = projectFiles.map(getCanonicalFileName);
+        const canonicalProjectFileNames = new Set(projectFiles.map(getCanonicalFileName));
 
         return Array.from(
             new Set([
@@ -339,7 +339,7 @@ async function createLanguageService(
                 ...snapshotManager
                     .getFileNames()
                     .filter(
-                        (file) => !canonicalProjectFileNames.includes(getCanonicalFileName(file))
+                        (file) => !canonicalProjectFileNames.has(getCanonicalFileName(file))
                     ),
                 ...svelteTsxFiles
             ])
