@@ -21,7 +21,14 @@ import {
     mapRangeToOriginal
 } from '../../../lib/documents';
 import { LSConfigManager } from '../../../ls-config';
-import { flatten, getIndent, isNotNullOrUndefined, modifyLines, pathToUrl } from '../../../utils';
+import {
+    flatten,
+    getIndent,
+    isNotNullOrUndefined,
+    modifyLines,
+    pathToUrl,
+    possiblyComponent
+} from '../../../utils';
 import { CodeActionsProvider } from '../../interfaces';
 import { DocumentSnapshot, SvelteDocumentSnapshot } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
@@ -273,14 +280,25 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         codeFixes =
             // either-or situation
             codeFixes ||
-            lang.getCodeFixesAtPosition(
-                tsDoc.filePath,
-                start,
-                end,
-                errorCodes,
-                formatCodeSettings,
-                userPreferences
-            );
+            lang
+                .getCodeFixesAtPosition(
+                    tsDoc.filePath,
+                    start,
+                    end,
+                    errorCodes,
+                    formatCodeSettings,
+                    userPreferences
+                )
+                .concat(
+                    this.createElementEventHandlerQuickFix(
+                        lang,
+                        document,
+                        cannotFoundNameDiagnostic,
+                        tsDoc,
+                        formatCodeSettings,
+                        userPreferences
+                    )
+                );
 
         const snapshots = new SnapshotMap(this.lsAndTsDocResolver);
         snapshots.set(tsDoc.filePath, tsDoc);
@@ -438,6 +456,11 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         const tagNameEndOriginalPosition = tsDoc.offsetAt(
             tsDoc.getOriginalPosition(tsDoc.positionAt(tagNameEnd))
         );
+        const name = tagName.getText();
+        if (!possiblyComponent(name)) {
+            return;
+        }
+
         const hasDiagnosticForTag = diagnostics.some(
             ({ range }) =>
                 tsDoc.offsetAt(range.start) <= tagNameEndOriginalPosition &&
@@ -459,7 +482,6 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             return;
         }
 
-        const name = tagName.getText();
         const suffixedName = name + '__SvelteComponent_';
         const errorPreventingUserPreferences =
             this.completionProvider.fixUserPreferencesForSvelteComponentImport(userPreferences);
@@ -484,6 +506,132 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         return flatten(
             completion.entries.filter((c) => c.name === name || c.name === suffixedName).map(toFix)
         );
+    }
+
+    private createElementEventHandlerQuickFix(
+        lang: ts.LanguageService,
+        document: Document,
+        diagnostics: Diagnostic[],
+        tsDoc: DocumentSnapshot,
+        formatCodeSetting: ts.FormatCodeSettings,
+        userPreferences: ts.UserPreferences
+    ): ts.CodeFixAction[] {
+        const program = lang.getProgram();
+        const sourceFile = program?.getSourceFile(tsDoc.filePath);
+        if (!program || !sourceFile) {
+            return [];
+        }
+        const typeChecker = program.getTypeChecker();
+        const result: ts.CodeFixAction[] = [];
+        const { baseIndentSize, indentSize, convertTabsToSpaces } = formatCodeSetting;
+        const baseIndent = convertTabsToSpaces
+            ? ' '.repeat(baseIndentSize ?? 4)
+            : baseIndentSize
+            ? '\t'
+            : '';
+        const indent = convertTabsToSpaces
+            ? ' '.repeat(indentSize ?? 4)
+            : baseIndentSize
+            ? '\t'
+            : '';
+        const quote = userPreferences.quotePreference === 'single' ? "'" : '"';
+        const semi = formatCodeSetting.semicolons === 'remove' ? '' : ';';
+
+        for (const diagnostic of diagnostics) {
+            const htmlNode = document.html.findNodeAt(document.offsetAt(diagnostic.range.start));
+
+            if (possiblyComponent(htmlNode)) {
+                continue;
+            }
+
+            const start = tsDoc.offsetAt(tsDoc.getGeneratedPosition(diagnostic.range.start));
+            const end = tsDoc.offsetAt(tsDoc.getGeneratedPosition(diagnostic.range.end));
+
+            const identifier = findContainingNode(
+                sourceFile,
+                { start, length: end - start },
+                ts.isIdentifier
+            );
+
+            if (!identifier) {
+                continue;
+            }
+
+            const type = typeChecker.getContextualType(identifier);
+            if (!type || !type.isUnion()) {
+                continue;
+            }
+
+            const nonNullable = type.types.find(
+                (t) =>
+                    t.flags & ts.TypeFlags.Object &&
+                    (t as ts.ObjectType).objectFlags & ts.ObjectFlags.Anonymous
+            );
+
+            if (!nonNullable) {
+                continue;
+            }
+
+            const signature = typeChecker.getSignaturesOfType(
+                nonNullable,
+                ts.SignatureKind.Call
+            )[0];
+
+            const parameters = signature.parameters.map((p) => {
+                const declaration = p.valueDeclaration ?? p.declarations?.[0];
+                const typeString = declaration
+                    ? typeChecker.typeToString(
+                          typeChecker.getTypeOfSymbolAtLocation(p, declaration)
+                      )
+                    : '';
+
+                return { name: p.name, typeString };
+            });
+            const returnType = typeChecker.typeToString(signature.getReturnType());
+            const useJsDoc =
+                tsDoc.scriptKind === ts.ScriptKind.JS || tsDoc.scriptKind === ts.ScriptKind.JSX;
+            const parametersText = (
+                useJsDoc
+                    ? parameters.map((p) => p.name)
+                    : parameters.map((p) => p.name + ': ' + p.typeString)
+            ).join(', ');
+
+            const jsDoc = useJsDoc
+                ? ['/**', ...parameters.map((p) => ` * @param {${p.typeString}} ${p.name}`), ' */']
+                : [];
+
+            const newText = [
+                ...jsDoc,
+                `function ${identifier.text}(${parametersText})${
+                    useJsDoc ? '' : ': ' + returnType
+                } {`,
+                indent + `throw new Error(${quote}Function not implemented.${quote})` + semi,
+                '}'
+            ]
+                .map(
+                    (line) =>
+                        baseIndent + line + formatCodeSetting.newLineCharacter ?? ts.sys.newLine
+                )
+                .join('');
+
+            result.push({
+                description: `Add missing function declaration '${identifier.text}'`,
+                fixName: 'fixMissingFunctionDeclaration',
+                changes: [
+                    {
+                        fileName: tsDoc.filePath,
+                        textChanges: [
+                            {
+                                newText,
+                                span: { start: 0, length: 0 }
+                            }
+                        ]
+                    }
+                ]
+            });
+        }
+
+        return result;
     }
 
     private async getApplicableRefactors(

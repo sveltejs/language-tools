@@ -277,8 +277,12 @@ export function getIndent(text: string) {
  * Also, svelte directives like action and event modifier only work
  * with element not component
  */
-export function possiblyComponent(node: Node): boolean {
-    return !!node.tag?.[0].match(/[A-Z]/);
+export function possiblyComponent(node: Node): boolean;
+export function possiblyComponent(tagName: string): boolean;
+export function possiblyComponent(nodeOrTagName: Node | string): boolean {
+    return !!(typeof nodeOrTagName === 'object' ? nodeOrTagName.tag : nodeOrTagName)?.[0].match(
+        /[A-Z]/
+    );
 }
 
 /**
