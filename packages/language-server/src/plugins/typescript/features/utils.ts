@@ -293,3 +293,35 @@ export const gatherIdentifiers = (node: ts.Node) => gatherDescendants(node, ts.i
 export function isKitTypePath(path?: string): boolean {
     return !!path?.includes('.svelte-kit/types');
 }
+
+export function getFormatCodeBasis(
+    formatCodeSetting: ts.FormatCodeSettings,
+    userPreferences: ts.UserPreferences
+): FormatCodeBasis {
+    const { baseIndentSize, indentSize, convertTabsToSpaces } = formatCodeSetting;
+    const baseIndent = convertTabsToSpaces
+        ? ' '.repeat(baseIndentSize ?? 4)
+        : baseIndentSize
+        ? '\t'
+        : '';
+    const indent = convertTabsToSpaces ? ' '.repeat(indentSize ?? 4) : baseIndentSize ? '\t' : '';
+    const quote = userPreferences.quotePreference === 'single' ? "'" : '"';
+    const semi = formatCodeSetting.semicolons === 'remove' ? '' : ';';
+    const newLine = formatCodeSetting.newLineCharacter ?? ts.sys.newLine;
+
+    return {
+        baseIndent,
+        indent,
+        quote,
+        semi,
+        newLine
+    };
+}
+
+export interface FormatCodeBasis {
+    baseIndent: string;
+    indent: string;
+    quote: string;
+    semi: string;
+    newLine: string;
+}

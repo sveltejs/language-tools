@@ -34,7 +34,13 @@ import { DocumentSnapshot, SvelteDocumentSnapshot } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { changeSvelteComponentName, convertRange } from '../utils';
 import { CompletionsProviderImpl } from './CompletionProvider';
-import { findContainingNode, isTextSpanInGeneratedCode, SnapshotMap } from './utils';
+import {
+    findContainingNode,
+    FormatCodeBasis,
+    getFormatCodeBasis,
+    isTextSpanInGeneratedCode,
+    SnapshotMap
+} from './utils';
 
 /**
  * TODO change this to protocol constant if it's part of the protocol
@@ -265,6 +271,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             document,
             tsDoc.scriptKind
         );
+        const formatCodeBasis = getFormatCodeBasis(formatCodeSettings, userPreferences);
 
         let codeFixes = cannotFoundNameDiagnostic.length
             ? this.getComponentImportQuickFix(
@@ -295,8 +302,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                         document,
                         cannotFoundNameDiagnostic,
                         tsDoc,
-                        formatCodeSettings,
-                        userPreferences
+                        formatCodeBasis
                     )
                 );
 
@@ -352,14 +358,11 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
 
                                 // ts doesn't add base indent to the first line
                                 if (formatCodeSettings.baseIndentSize) {
-                                    const indent =
-                                        formatCodeSettings.convertTabsToSpaces ?? true
-                                            ? ' '.repeat(formatCodeSettings.baseIndentSize)
-                                            : '\t';
-                                    const emptyLine = (
-                                        formatCodeSettings.newLineCharacter ?? ts.sys.newLine
-                                    ).repeat(2);
-                                    edit.newText = emptyLine + indent + edit.newText.trimLeft();
+                                    const emptyLine = formatCodeBasis.newLine.repeat(2);
+                                    edit.newText =
+                                        emptyLine +
+                                        formatCodeBasis.baseIndent +
+                                        edit.newText.trimLeft();
                                 }
                             }
 
@@ -508,39 +511,32 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         );
     }
 
+    /**
+     * Workaround for TypesScript doesn't provide a quick fix if the signature is typed as union type, like `(() => void) | null`
+     * We can remove this once TypesScript doesn't have this limitation.
+     */
     private createElementEventHandlerQuickFix(
         lang: ts.LanguageService,
         document: Document,
         diagnostics: Diagnostic[],
         tsDoc: DocumentSnapshot,
-        formatCodeSetting: ts.FormatCodeSettings,
-        userPreferences: ts.UserPreferences
+        formatCodeBasis: FormatCodeBasis
     ): ts.CodeFixAction[] {
         const program = lang.getProgram();
         const sourceFile = program?.getSourceFile(tsDoc.filePath);
         if (!program || !sourceFile) {
             return [];
         }
+
         const typeChecker = program.getTypeChecker();
         const result: ts.CodeFixAction[] = [];
-        const { baseIndentSize, indentSize, convertTabsToSpaces } = formatCodeSetting;
-        const baseIndent = convertTabsToSpaces
-            ? ' '.repeat(baseIndentSize ?? 4)
-            : baseIndentSize
-            ? '\t'
-            : '';
-        const indent = convertTabsToSpaces
-            ? ' '.repeat(indentSize ?? 4)
-            : baseIndentSize
-            ? '\t'
-            : '';
-        const quote = userPreferences.quotePreference === 'single' ? "'" : '"';
-        const semi = formatCodeSetting.semicolons === 'remove' ? '' : ';';
 
         for (const diagnostic of diagnostics) {
             const htmlNode = document.html.findNodeAt(document.offsetAt(diagnostic.range.start));
-
-            if (possiblyComponent(htmlNode)) {
+            if (
+                !htmlNode.attributes ||
+                !Object.keys(htmlNode.attributes).some((attr) => attr.startsWith('on:'))
+            ) {
                 continue;
             }
 
@@ -553,22 +549,21 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                 ts.isIdentifier
             );
 
-            if (!identifier) {
-                continue;
-            }
+            const type = identifier && typeChecker.getContextualType(identifier);
 
-            const type = typeChecker.getContextualType(identifier);
+            // if it's not union typescript should be able to do it. no need to enhance
             if (!type || !type.isUnion()) {
                 continue;
             }
 
-            const nonNullable = type.types.find(
-                (t) =>
-                    t.flags & ts.TypeFlags.Object &&
-                    (t as ts.ObjectType).objectFlags & ts.ObjectFlags.Anonymous
-            );
+            const nonNullable = type.getNonNullableType();
 
-            if (!nonNullable) {
+            if (
+                !(
+                    nonNullable.flags & ts.TypeFlags.Object &&
+                    (nonNullable as ts.ObjectType).objectFlags & ts.ObjectFlags.Anonymous
+                )
+            ) {
                 continue;
             }
 
@@ -605,13 +600,12 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                 `function ${identifier.text}(${parametersText})${
                     useJsDoc ? '' : ': ' + returnType
                 } {`,
-                indent + `throw new Error(${quote}Function not implemented.${quote})` + semi,
+                formatCodeBasis.indent +
+                    `throw new Error(${formatCodeBasis.quote}Function not implemented.${formatCodeBasis.quote})` +
+                    formatCodeBasis.semi,
                 '}'
             ]
-                .map(
-                    (line) =>
-                        baseIndent + line + formatCodeSetting.newLineCharacter ?? ts.sys.newLine
-                )
+                .map((line) => formatCodeBasis.baseIndent + line + formatCodeBasis.newLine)
                 .join('');
 
             result.push({

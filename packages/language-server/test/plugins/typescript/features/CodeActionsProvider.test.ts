@@ -220,7 +220,7 @@ function test(useNewTransformation: boolean) {
             ]);
         });
 
-        it.only('provides quickfix for missing function for element event handler', async () => {
+        it('provides quickfix for missing function for element event handler', async () => {
             const { provider, document } = setup('fix-missing-function-element.svelte');
 
             const codeActions = await provider.getCodeActions(
