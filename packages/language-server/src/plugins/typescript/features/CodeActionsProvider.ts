@@ -38,6 +38,7 @@ import {
     findContainingNode,
     FormatCodeBasis,
     getFormatCodeBasis,
+    getQuotePreference,
     isTextSpanInGeneratedCode,
     SnapshotMap
 } from './utils';
@@ -271,7 +272,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             document,
             tsDoc.scriptKind
         );
-        const formatCodeBasis = getFormatCodeBasis(formatCodeSettings, userPreferences);
+        const formatCodeBasis = getFormatCodeBasis(formatCodeSettings);
 
         let codeFixes = cannotFoundNameDiagnostic.length
             ? this.getComponentImportQuickFix(
@@ -302,7 +303,8 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                         document,
                         cannotFoundNameDiagnostic,
                         tsDoc,
-                        formatCodeBasis
+                        formatCodeBasis,
+                        userPreferences
                     )
                 );
 
@@ -520,7 +522,8 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         document: Document,
         diagnostics: Diagnostic[],
         tsDoc: DocumentSnapshot,
-        formatCodeBasis: FormatCodeBasis
+        formatCodeBasis: FormatCodeBasis,
+        userPreferences: ts.UserPreferences
     ): ts.CodeFixAction[] {
         const program = lang.getProgram();
         const sourceFile = program?.getSourceFile(tsDoc.filePath);
@@ -530,6 +533,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
 
         const typeChecker = program.getTypeChecker();
         const result: ts.CodeFixAction[] = [];
+        const quote = getQuotePreference(sourceFile, userPreferences);
 
         for (const diagnostic of diagnostics) {
             const htmlNode = document.html.findNodeAt(document.offsetAt(diagnostic.range.start));
@@ -601,7 +605,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                     useJsDoc ? '' : ': ' + returnType
                 } {`,
                 formatCodeBasis.indent +
-                    `throw new Error(${formatCodeBasis.quote}Function not implemented.${formatCodeBasis.quote})` +
+                    `throw new Error(${quote}Function not implemented.${quote})` +
                     formatCodeBasis.semi,
                 '}'
             ]

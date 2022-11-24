@@ -252,7 +252,7 @@ function test(useNewTransformation: boolean) {
                                     {
                                         newText:
                                             `\n\n${indent}function handleClick(event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement; }): any {\n` +
-                                            `${indent}${indent}throw new Error('Function not implemented.');\n` +
+                                            `${indent}${indent}throw new Error("Function not implemented.");\n` +
                                             `${indent}}\n`,
                                         range: {
                                             start: {
