@@ -588,7 +588,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             const parametersText = (
                 useJsDoc
                     ? parameters.map((p) => p.name)
-                    : parameters.map((p) => p.name + ': ' + p.typeString)
+                    : parameters.map((p) => p.name + (p.typeString ? ': ' + p.typeString : ''))
             ).join(', ');
 
             const jsDoc = useJsDoc
