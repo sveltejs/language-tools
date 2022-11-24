@@ -21,13 +21,27 @@ import {
     mapRangeToOriginal
 } from '../../../lib/documents';
 import { LSConfigManager } from '../../../ls-config';
-import { flatten, getIndent, isNotNullOrUndefined, modifyLines, pathToUrl } from '../../../utils';
+import {
+    flatten,
+    getIndent,
+    isNotNullOrUndefined,
+    modifyLines,
+    pathToUrl,
+    possiblyComponent
+} from '../../../utils';
 import { CodeActionsProvider } from '../../interfaces';
 import { DocumentSnapshot, SvelteDocumentSnapshot } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { changeSvelteComponentName, convertRange } from '../utils';
 import { CompletionsProviderImpl } from './CompletionProvider';
-import { findContainingNode, isTextSpanInGeneratedCode, SnapshotMap } from './utils';
+import {
+    findContainingNode,
+    FormatCodeBasis,
+    getFormatCodeBasis,
+    getQuotePreference,
+    isTextSpanInGeneratedCode,
+    SnapshotMap
+} from './utils';
 
 /**
  * TODO change this to protocol constant if it's part of the protocol
@@ -258,6 +272,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             document,
             tsDoc.scriptKind
         );
+        const formatCodeBasis = getFormatCodeBasis(formatCodeSettings);
 
         let codeFixes = cannotFoundNameDiagnostic.length
             ? this.getComponentImportQuickFix(
@@ -273,14 +288,25 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         codeFixes =
             // either-or situation
             codeFixes ||
-            lang.getCodeFixesAtPosition(
-                tsDoc.filePath,
-                start,
-                end,
-                errorCodes,
-                formatCodeSettings,
-                userPreferences
-            );
+            lang
+                .getCodeFixesAtPosition(
+                    tsDoc.filePath,
+                    start,
+                    end,
+                    errorCodes,
+                    formatCodeSettings,
+                    userPreferences
+                )
+                .concat(
+                    this.createElementEventHandlerQuickFix(
+                        lang,
+                        document,
+                        cannotFoundNameDiagnostic,
+                        tsDoc,
+                        formatCodeBasis,
+                        userPreferences
+                    )
+                );
 
         const snapshots = new SnapshotMap(this.lsAndTsDocResolver);
         snapshots.set(tsDoc.filePath, tsDoc);
@@ -334,14 +360,11 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
 
                                 // ts doesn't add base indent to the first line
                                 if (formatCodeSettings.baseIndentSize) {
-                                    const indent =
-                                        formatCodeSettings.convertTabsToSpaces ?? true
-                                            ? ' '.repeat(formatCodeSettings.baseIndentSize)
-                                            : '\t';
-                                    const emptyLine = (
-                                        formatCodeSettings.newLineCharacter ?? ts.sys.newLine
-                                    ).repeat(2);
-                                    edit.newText = emptyLine + indent + edit.newText.trimLeft();
+                                    const emptyLine = formatCodeBasis.newLine.repeat(2);
+                                    edit.newText =
+                                        emptyLine +
+                                        formatCodeBasis.baseIndent +
+                                        edit.newText.trimLeft();
                                 }
                             }
 
@@ -438,6 +461,11 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         const tagNameEndOriginalPosition = tsDoc.offsetAt(
             tsDoc.getOriginalPosition(tsDoc.positionAt(tagNameEnd))
         );
+        const name = tagName.getText();
+        if (!possiblyComponent(name)) {
+            return;
+        }
+
         const hasDiagnosticForTag = diagnostics.some(
             ({ range }) =>
                 tsDoc.offsetAt(range.start) <= tagNameEndOriginalPosition &&
@@ -459,7 +487,6 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             return;
         }
 
-        const name = tagName.getText();
         const suffixedName = name + '__SvelteComponent_';
         const errorPreventingUserPreferences =
             this.completionProvider.fixUserPreferencesForSvelteComponentImport(userPreferences);
@@ -484,6 +511,125 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         return flatten(
             completion.entries.filter((c) => c.name === name || c.name === suffixedName).map(toFix)
         );
+    }
+
+    /**
+     * Workaround for TypesScript doesn't provide a quick fix if the signature is typed as union type, like `(() => void) | null`
+     * We can remove this once TypesScript doesn't have this limitation.
+     */
+    private createElementEventHandlerQuickFix(
+        lang: ts.LanguageService,
+        document: Document,
+        diagnostics: Diagnostic[],
+        tsDoc: DocumentSnapshot,
+        formatCodeBasis: FormatCodeBasis,
+        userPreferences: ts.UserPreferences
+    ): ts.CodeFixAction[] {
+        const program = lang.getProgram();
+        const sourceFile = program?.getSourceFile(tsDoc.filePath);
+        if (!program || !sourceFile) {
+            return [];
+        }
+
+        const typeChecker = program.getTypeChecker();
+        const result: ts.CodeFixAction[] = [];
+        const quote = getQuotePreference(sourceFile, userPreferences);
+
+        for (const diagnostic of diagnostics) {
+            const htmlNode = document.html.findNodeAt(document.offsetAt(diagnostic.range.start));
+            if (
+                !htmlNode.attributes ||
+                !Object.keys(htmlNode.attributes).some((attr) => attr.startsWith('on:'))
+            ) {
+                continue;
+            }
+
+            const start = tsDoc.offsetAt(tsDoc.getGeneratedPosition(diagnostic.range.start));
+            const end = tsDoc.offsetAt(tsDoc.getGeneratedPosition(diagnostic.range.end));
+
+            const identifier = findContainingNode(
+                sourceFile,
+                { start, length: end - start },
+                ts.isIdentifier
+            );
+
+            const type = identifier && typeChecker.getContextualType(identifier);
+
+            // if it's not union typescript should be able to do it. no need to enhance
+            if (!type || !type.isUnion()) {
+                continue;
+            }
+
+            const nonNullable = type.getNonNullableType();
+
+            if (
+                !(
+                    nonNullable.flags & ts.TypeFlags.Object &&
+                    (nonNullable as ts.ObjectType).objectFlags & ts.ObjectFlags.Anonymous
+                )
+            ) {
+                continue;
+            }
+
+            const signature = typeChecker.getSignaturesOfType(
+                nonNullable,
+                ts.SignatureKind.Call
+            )[0];
+
+            const parameters = signature.parameters.map((p) => {
+                const declaration = p.valueDeclaration ?? p.declarations?.[0];
+                const typeString = declaration
+                    ? typeChecker.typeToString(
+                          typeChecker.getTypeOfSymbolAtLocation(p, declaration)
+                      )
+                    : '';
+
+                return { name: p.name, typeString };
+            });
+            const returnType = typeChecker.typeToString(signature.getReturnType());
+            const useJsDoc =
+                tsDoc.scriptKind === ts.ScriptKind.JS || tsDoc.scriptKind === ts.ScriptKind.JSX;
+            const parametersText = (
+                useJsDoc
+                    ? parameters.map((p) => p.name)
+                    : parameters.map((p) => p.name + (p.typeString ? ': ' + p.typeString : ''))
+            ).join(', ');
+
+            const jsDoc = useJsDoc
+                ? ['/**', ...parameters.map((p) => ` * @param {${p.typeString}} ${p.name}`), ' */']
+                : [];
+
+            const newText = [
+                ...jsDoc,
+                `function ${identifier.text}(${parametersText})${
+                    useJsDoc ? '' : ': ' + returnType
+                } {`,
+                formatCodeBasis.indent +
+                    `throw new Error(${quote}Function not implemented.${quote})` +
+                    formatCodeBasis.semi,
+                '}'
+            ]
+                .map((line) => formatCodeBasis.baseIndent + line + formatCodeBasis.newLine)
+                .join('');
+
+            result.push({
+                description: `Add missing function declaration '${identifier.text}'`,
+                fixName: 'fixMissingFunctionDeclaration',
+                changes: [
+                    {
+                        fileName: tsDoc.filePath,
+                        textChanges: [
+                            {
+                                newText,
+                                span: { start: 0, length: 0 }
+                            }
+                        ]
+                    }
+                ]
+            });
+        }
+
+        return result;
     }
 
     private async getApplicableRefactors(

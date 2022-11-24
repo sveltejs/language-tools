@@ -293,3 +293,57 @@ export const gatherIdentifiers = (node: ts.Node) => gatherDescendants(node, ts.i
 export function isKitTypePath(path?: string): boolean {
     return !!path?.includes('.svelte-kit/types');
 }
+
+export function getFormatCodeBasis(formatCodeSetting: ts.FormatCodeSettings): FormatCodeBasis {
+    const { baseIndentSize, indentSize, convertTabsToSpaces } = formatCodeSetting;
+    const baseIndent = convertTabsToSpaces
+        ? ' '.repeat(baseIndentSize ?? 4)
+        : baseIndentSize
+        ? '\t'
+        : '';
+    const indent = convertTabsToSpaces ? ' '.repeat(indentSize ?? 4) : baseIndentSize ? '\t' : '';
+    const semi = formatCodeSetting.semicolons === 'remove' ? '' : ';';
+    const newLine = formatCodeSetting.newLineCharacter ?? ts.sys.newLine;
+
+    return {
+        baseIndent,
+        indent,
+        semi,
+        newLine
+    };
+}
+
+export interface FormatCodeBasis {
+    baseIndent: string;
+    indent: string;
+    semi: string;
+    newLine: string;
+}
+
+/**
+ * https://github.com/microsoft/TypeScript/blob/00dc0b6674eef3fbb3abb86f9d71705b11134446/src/services/utilities.ts#L2452
+ */
+export function getQuotePreference(
+    sourceFile: ts.SourceFile,
+    preferences: ts.UserPreferences
+): '"' | "'" {
+    const single = "'";
+    const double = '"';
+    if (preferences.quotePreference && preferences.quotePreference !== 'auto') {
+        return preferences.quotePreference === 'single' ? single : double;
+    }
+
+    const firstModuleSpecifier = Array.from(sourceFile.statements).find(
+        (
+            statement
+        ): statement is Omit<ts.ImportDeclaration, 'moduleSpecifier'> & {
+            moduleSpecifier: ts.StringLiteral;
+        } => ts.isImportDeclaration(statement) && ts.isStringLiteral(statement.moduleSpecifier)
+    )?.moduleSpecifier;
+
+    return firstModuleSpecifier
+        ? sourceFile.getText()[firstModuleSpecifier.pos] === '"'
+            ? double
+            : single
+        : double;
+}
