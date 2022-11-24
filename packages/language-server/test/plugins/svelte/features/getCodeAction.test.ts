@@ -6,10 +6,13 @@ import {
     CodeAction,
     CodeActionContext,
     CreateFile,
-    DiagnosticSeverity, OptionalVersionedTextDocumentIdentifier, Position,
+    DiagnosticSeverity,
+    OptionalVersionedTextDocumentIdentifier,
+    Position,
     Range,
     TextDocumentEdit,
-    TextEdit, WorkspaceEdit
+    TextEdit,
+    WorkspaceEdit
 } from 'vscode-languageserver';
 import { Document } from '../../../../src/lib/documents';
 import { getCodeActions } from '../../../../src/plugins/svelte/features/getCodeActions';
@@ -100,7 +103,8 @@ describe('SveltePlugin#getCodeAction', () => {
     });
 
     describe('It should provide svelte anchor missing attribute code actions', () => {
-        const svelteAnchorMissingAttributeCodeAction = 'svelte-anchor-missing-attribute-code-action.svelte';
+        const svelteAnchorMissingAttributeCodeAction =
+            'svelte-anchor-missing-attribute-code-action.svelte';
 
         it('Should provide svelte anchor add missing attribute', async () => {
             (
@@ -113,7 +117,8 @@ describe('SveltePlugin#getCodeAction', () => {
                                 { line: 0, character: 0 },
                                 { line: 0, character: 55 }
                             ),
-                            message: 'Security: Anchor with "target=_blank" should have rel attribute containing the value "noreferrer"',
+                            message:
+                                'Security: Anchor with "target=_blank" should have rel attribute containing the value "noreferrer"',
                             source: 'svelte'
                         }
                     ]

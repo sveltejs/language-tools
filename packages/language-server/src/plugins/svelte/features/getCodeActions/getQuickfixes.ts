@@ -45,7 +45,16 @@ export async function getQuickfixActions(
     const codeActions: CodeAction[] = [];
 
     for (const diagnostic of svelteDiagnostics) {
-        codeActions.push(...(await createQuickfixActions(textDocument, transpiled, content, lineOffsets, html, diagnostic)));
+        codeActions.push(
+            ...(await createQuickfixActions(
+                textDocument,
+                transpiled,
+                content,
+                lineOffsets,
+                html,
+                diagnostic
+            ))
+        );
     }
 
     return codeActions;
@@ -59,7 +68,9 @@ async function createQuickfixActions(
     html: TemplateNode,
     diagnostic: Diagnostic
 ): Promise<CodeAction[]> {
-    const { range: { start, end } } = diagnostic;
+    const {
+        range: { start, end }
+    } = diagnostic;
     const generatedStart = transpiled.getGeneratedPosition(start);
     const generatedEnd = transpiled.getGeneratedPosition(end);
     const diagnosticStartOffset = offsetAt(generatedStart, content, lineOffsets);
@@ -73,10 +84,27 @@ async function createQuickfixActions(
     const codeActions: CodeAction[] = [];
 
     if (diagnostic.code == 'security-anchor-rel-noreferrer') {
-        codeActions.push(createSvelteAnchorMissingAttributeQuickfixAction(textDocument, transpiled, content, lineOffsets, node));
+        codeActions.push(
+            createSvelteAnchorMissingAttributeQuickfixAction(
+                textDocument,
+                transpiled,
+                content,
+                lineOffsets,
+                node
+            )
+        );
     }
 
-    codeActions.push(createSvelteIgnoreQuickfixAction(textDocument, transpiled, content, lineOffsets, node, diagnostic));
+    codeActions.push(
+        createSvelteIgnoreQuickfixAction(
+            textDocument,
+            transpiled,
+            content,
+            lineOffsets,
+            node,
+            diagnostic
+        )
+    );
 
     return codeActions;
 }
@@ -88,7 +116,6 @@ function createSvelteAnchorMissingAttributeQuickfixAction(
     lineOffsets: number[],
     node: Node
 ): CodeAction {
-
     // Assert non-null because the node target attribute is required for 'security-anchor-rel-noreferrer'
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const targetAttribute = node.attributes.find((i: any) => i.name == 'target')!;
