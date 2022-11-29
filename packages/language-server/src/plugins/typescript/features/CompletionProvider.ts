@@ -45,6 +45,7 @@ import {
     isKitTypePath,
     isPartOfImportStatement
 } from './utils';
+import { isInTag as svelteIsInTag } from '../svelte-ast-utils';
 
 export interface CompletionEntryWithIdentifier extends ts.CompletionEntry, TextDocumentIdentifier {
     position: Position;
@@ -258,9 +259,12 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             );
         }
 
+        // moved here due to perf reasons
         const existingImports = this.getExistingImports(document);
         const wordRangeStartPosition = document.positionAt(wordRange.start);
-        const fileUrl = pathToUrl(tsDoc.filePath); // moved here due to perf reasons
+        const fileUrl = pathToUrl(tsDoc.filePath);
+        const isCompletionInTag = svelteIsInTag(svelteNode, originalOffset);
+
         const completionItems = completions
             .filter(isValidCompletion(document, position, !!tsDoc.parserError))
             .map((comp) =>
@@ -269,6 +273,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
                     comp,
                     fileUrl,
                     position,
+                    isCompletionInTag,
                     addCommitCharacters,
                     existingImports
                 )
@@ -420,6 +425,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         comp: ts.CompletionEntry,
         uri: string,
         position: Position,
+        isCompletionInTag: boolean,
         addCommitCharacters: boolean,
         existingImports: Set<string>
     ): AppCompletionItem<CompletionEntryWithIdentifier> | null {
@@ -428,13 +434,23 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             return null;
         }
 
-        const { label, insertText, isSvelteComp, replacementSpan } = completionLabelAndInsert;
+        let { label, insertText, isSvelteComp, replacementSpan } = completionLabelAndInsert;
         // TS may suggest another Svelte component even if there already exists an import
         // with the same name, because under the hood every Svelte component is postfixed
         // with `__SvelteComponent`. In this case, filter out this completion by returning null.
         if (isSvelteComp && existingImports.has(label)) {
             return null;
         }
+        // Remove wrong quotes, for example when using --css-props
+        if (
+            isCompletionInTag &&
+            !insertText &&
+            label[0] === '"' &&
+            label[label.length - 1] === '"'
+        ) {
+            label = label.slice(1, -1);
+        }
+
         const textEdit = replacementSpan
             ? TextEdit.replace(convertRange(snapshot, replacementSpan), insertText ?? label)
             : undefined;
