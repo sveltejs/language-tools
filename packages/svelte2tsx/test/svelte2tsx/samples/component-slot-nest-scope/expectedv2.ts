@@ -7,7 +7,7 @@ async () => {  for(let item of __sveltets_2_ensureArray(items)){
     }
       { __sveltets_createSlot("second", {  a,}); }
 }
- { const $$_Component0C = __sveltets_2_ensureComponent(Component); const $$_Component0 = new $$_Component0C({ target: __sveltets_2_any(), props: { }});{const {/*Ωignore_startΩ*/$$_$$/*Ωignore_endΩ*/,c,} = $$_Component0.$$slot_def.default;$$_$$; c ; }Component}
+ { const $$_tnenopmoC0C = __sveltets_2_ensureComponent(Component); const $$_tnenopmoC0 = new $$_tnenopmoC0C({ target: __sveltets_2_any(), props: { }});{const {/*Ωignore_startΩ*/$$_$$/*Ωignore_endΩ*/,c,} = $$_tnenopmoC0.$$slot_def.default;$$_$$; c ; }Component}
    { const $$_value = await (promise);{ const d = $$_value; 
     d;
 }}

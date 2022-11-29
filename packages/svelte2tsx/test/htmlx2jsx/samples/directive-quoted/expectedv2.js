@@ -1,5 +1,5 @@
   { svelteHTML.createElement("h1", {  "on:click":()=>console.log("click"),});  }
- { const $$_Component0C = __sveltets_2_ensureComponent(Component); const $$_Component0 = new $$_Component0C({ target: __sveltets_2_any(), props: {   }});$$_Component0.$on("click", test);}
+ { const $$_tnenopmoC0C = __sveltets_2_ensureComponent(Component); const $$_tnenopmoC0 = new $$_tnenopmoC0C({ target: __sveltets_2_any(), props: {   }});$$_tnenopmoC0.$on("click", test);}
  {const $$action_0 = __sveltets_2_ensureAction(action(svelteHTML.mapElementTag('img'),(thing)));{ svelteHTML.createElement("img", __sveltets_2_union($$action_0), {   });}}
  { svelteHTML.createElement("img", {   });__sveltets_2_ensureTransition(fade(svelteHTML.mapElementTag('img'),(params)));}
  { svelteHTML.createElement("img", {  });classthing;}
