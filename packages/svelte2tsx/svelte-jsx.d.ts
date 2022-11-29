@@ -1176,10 +1176,10 @@ declare namespace svelte.JSX {
     }
 
     interface SvelteKitAnchorProps {
-        // transformed from sveltekit:noscroll so it should be camel case
-        sveltekitNoscroll?: true | undefined | null;
-        sveltekitPrefetch?: true | undefined | null;
-        sveltekitReload?: true | undefined | null;
+        'data-sveltekit-noscroll'?: true | undefined | null;
+        'data-sveltekit-preload-code'?: true | 'eager' | 'viewport' | 'hover' | 'tap' | 'off' | undefined | null;
+        'data-sveltekit-preload-data'?: true | 'hover' | 'tap' | 'off' | undefined | null;
+        'data-sveltekit-reload'?: true | undefined | null;
     }
 
     interface SvelteMediaTimeRange {
