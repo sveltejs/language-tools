@@ -69,7 +69,7 @@
         },
         "severity": 1,
         "source": "ts",
-        "message": "This condition will always return 'false' since the types 'string' and 'boolean' have no overlap.",
+        "message": "This comparison appears to be unintentional because the types 'string' and 'boolean' have no overlap.",
         "code": 2367,
         "tags": []
     },
@@ -91,7 +91,7 @@
         },
         "severity": 1,
         "source": "ts",
-        "message": "This condition will always return 'false' since the types 'string' and 'boolean' have no overlap.",
+        "message": "This comparison appears to be unintentional because the types 'string' and 'boolean' have no overlap.",
         "code": 2367,
         "tags": []
     },
@@ -113,7 +113,7 @@
         },
         "severity": 1,
         "source": "ts",
-        "message": "This condition will always return 'false' since the types 'number' and 'string' have no overlap.",
+        "message": "This comparison appears to be unintentional because the types 'number' and 'string' have no overlap.",
         "code": 2367,
         "tags": []
     }
