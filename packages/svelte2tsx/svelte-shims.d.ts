@@ -102,7 +102,7 @@ type SvelteAnimationReturnType = {
 
 type SvelteWithOptionalProps<Props, Keys extends keyof Props> = Omit<Props, Keys> & Partial<Pick<Props, Keys>>;
 type SvelteAllProps = { [index: string]: any }
-type SveltePropsAnyFallback<Props> = {[K in keyof Props]: Props[K] extends undefined ? any : Props[K]}
+type SveltePropsAnyFallback<Props> = {[K in keyof Props]: Props[K] extends never ? never : Props[K] extends undefined ? any : Props[K]}
 type SvelteSlotsAnyFallback<Slots> = {[K in keyof Slots]: {[S in keyof Slots[K]]: Slots[K][S] extends undefined ? any : Slots[K][S]}}
 type SvelteRestProps = { [index: string]: any }
 type SvelteSlots = { [index: string]: any }

@@ -85,7 +85,7 @@ function test(useNewTransformation: boolean) {
                 insertText: undefined,
                 kind: CompletionItemKind.Method,
                 sortText: '11',
-                commitCharacters: ['.', ',', '('],
+                commitCharacters: ['.', ',', ';', '('],
                 preselect: undefined,
                 textEdit: undefined
             });
@@ -111,7 +111,7 @@ function test(useNewTransformation: boolean) {
                 insertText: undefined,
                 kind: CompletionItemKind.Field,
                 sortText: '11',
-                commitCharacters: ['.', ',', '('],
+                commitCharacters: ['.', ',', ';', '('],
                 preselect: undefined,
                 textEdit: undefined
             });
@@ -512,7 +512,7 @@ function test(useNewTransformation: boolean) {
             const { documentation, detail } = await completionProvider.resolveCompletion(document, {
                 label: 'foo',
                 kind: 6,
-                commitCharacters: ['.', ',', '('],
+                commitCharacters: ['.', ',', ';', '('],
                 data: {
                     name: 'foo',
                     kind: ts.ScriptElementKind.alias,
@@ -1168,7 +1168,7 @@ function test(useNewTransformation: boolean) {
                 insertText: 'import { blubb } from "../definitions";',
                 kind: CompletionItemKind.Function,
                 sortText: '11',
-                commitCharacters: ['.', ',', '('],
+                commitCharacters: undefined,
                 preselect: undefined,
                 textEdit: {
                     newText: '{ blubb } from "../definitions";',
@@ -1226,7 +1226,7 @@ function test(useNewTransformation: boolean) {
                 insertText: '?.toString',
                 kind: CompletionItemKind.Method,
                 sortText: '11',
-                commitCharacters: ['.', ',', '('],
+                commitCharacters: ['.', ',', ';', '('],
                 preselect: undefined,
                 textEdit: {
                     newText: '.toString',
@@ -1268,7 +1268,7 @@ function test(useNewTransformation: boolean) {
                 sortText: '11',
                 preselect: undefined,
                 insertText: undefined,
-                commitCharacters: undefined,
+                commitCharacters: ['.', ',', ';', '('],
                 textEdit: {
                     newText: '@hi',
                     range: {

@@ -71,7 +71,8 @@ async function handleMultiple(uri: Uri | undefined) {
         ResourceType.LAYOUT,
         ResourceType.LAYOUT_LOAD,
         ResourceType.LAYOUT_SERVER,
-        ResourceType.ERROR
+        ResourceType.ERROR,
+        ResourceType.SERVER
     ].map((type) => {
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         const resource = resourcesMap.get(type)!;

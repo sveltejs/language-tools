@@ -1,15 +1,17 @@
 import path, { isAbsolute, join } from 'path';
 import ts from 'typescript';
 import { DocumentManager, Document } from '../../../src/lib/documents';
+import { FileMap } from '../../../src/lib/documents/fileCollection';
 import { LSConfigManager } from '../../../src/ls-config';
 import { LSAndTSDocResolver } from '../../../src/plugins';
-import { normalizePath, pathToUrl } from '../../../src/utils';
+import { createGetCanonicalFileName, normalizePath, pathToUrl } from '../../../src/utils';
 
 export function createVirtualTsSystem(currentDirectory: string): ts.System {
-    const virtualFs = new Map<string, string>();
+    const virtualFs = new FileMap<string>();
     // array behave more similar to the actual fs event than Set
-    const watchers = new Map<string, ts.FileWatcherCallback[]>();
-    const watchTimeout = new Map<string, Array<ReturnType<typeof setTimeout>>>();
+    const watchers = new FileMap<ts.FileWatcherCallback[]>();
+    const watchTimeout = new FileMap<Array<ReturnType<typeof setTimeout>>>();
+    const getCanonicalFileName = createGetCanonicalFileName(ts.sys.useCaseSensitiveFileNames);
 
     function toAbsolute(path: string) {
         return isAbsolute(path) ? path : join(currentDirectory, path);
@@ -36,7 +38,7 @@ export function createVirtualTsSystem(currentDirectory: string): ts.System {
             return virtualFs.has(normalizePath(toAbsolute(path)));
         },
         directoryExists(path) {
-            const normalizedPath = normalizePath(toAbsolute(path));
+            const normalizedPath = getCanonicalFileName(normalizePath(toAbsolute(path)));
             return Array.from(virtualFs.keys()).some((fileName) =>
                 fileName.startsWith(normalizedPath)
             );

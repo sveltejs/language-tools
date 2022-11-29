@@ -220,6 +220,65 @@ function test(useNewTransformation: boolean) {
             ]);
         });
 
+        it('provides quickfix for missing function for element event handler', async () => {
+            const { provider, document } = setup('fix-missing-function-element.svelte');
+
+            const codeActions = await provider.getCodeActions(
+                document,
+                Range.create(Position.create(4, 18), Position.create(4, 29)),
+                {
+                    diagnostics: [
+                        {
+                            code: 2304,
+                            message: "Cannot find name 'handleClick'.",
+                            range: Range.create(Position.create(4, 18), Position.create(4, 29)),
+                            source: 'ts'
+                        }
+                    ],
+                    only: [CodeActionKind.QuickFix]
+                }
+            );
+
+            (<TextDocumentEdit>codeActions[0]?.edit?.documentChanges?.[0])?.edits.forEach(
+                (edit) => (edit.newText = harmonizeNewLines(edit.newText))
+            );
+
+            assert.deepStrictEqual(codeActions, [
+                {
+                    edit: {
+                        documentChanges: [
+                            {
+                                edits: [
+                                    {
+                                        newText:
+                                            `\n\n${indent}function handleClick(event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement; }): any {\n` +
+                                            `${indent}${indent}throw new Error("Function not implemented.");\n` +
+                                            `${indent}}\n`,
+                                        range: {
+                                            start: {
+                                                character: 0,
+                                                line: 2
+                                            },
+                                            end: {
+                                                character: 0,
+                                                line: 2
+                                            }
+                                        }
+                                    }
+                                ],
+                                textDocument: {
+                                    uri: getUri('fix-missing-function-element.svelte'),
+                                    version: null
+                                }
+                            }
+                        ]
+                    },
+                    kind: CodeActionKind.QuickFix,
+                    title: "Add missing function declaration 'handleClick'"
+                }
+            ]);
+        });
+
         function testFixMissingFunctionQuickFix(codeActions: CodeAction[]) {
             (<TextDocumentEdit>codeActions[0]?.edit?.documentChanges?.[0])?.edits.forEach(
                 (edit) => (edit.newText = harmonizeNewLines(edit.newText))

@@ -20,7 +20,7 @@ function render() {
 async () => {
 
  { svelteHTML.createElement("button", { "on:click":undefined,}); }};
-return { props: {}, slots: {}, events: {...__sveltets_1_toEventTypings<{
+return { props: {} as Record<string, never>, slots: {}, events: {...__sveltets_1_toEventTypings<{
     /**
      * A DOC
      */

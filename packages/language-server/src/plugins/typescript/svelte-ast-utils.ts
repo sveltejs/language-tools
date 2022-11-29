@@ -17,6 +17,19 @@ function matchesOnly(type: string | undefined, only?: 'Element' | 'InlineCompone
 }
 
 /**
+ * Returns true if given node is a component or html element, or if the offset is at the end of the node
+ * and its parent is a component or html element.
+ */
+export function isInTag(node: SvelteNode | null | undefined, offset: number): boolean {
+    return (
+        node?.type === 'InlineComponent' ||
+        node?.type === 'Element' ||
+        (node?.end === offset &&
+            (node?.parent?.type === 'InlineComponent' || node?.parent?.type === 'Element'))
+    );
+}
+
+/**
  * Returns when given node represents an HTML Attribute.
  * Example: The `class` in `<div class=".."`.
  * Note: This method returns `false` for shorthands like `<div {foo}`.

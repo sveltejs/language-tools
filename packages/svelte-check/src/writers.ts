@@ -24,11 +24,12 @@ export class HumanFriendlyWriter implements Writer {
         private stream: Writable,
         private isVerbose = true,
         private isWatchMode = false,
+        private clearScreen = true,
         private diagnosticFilter: DiagnosticFilter = DEFAULT_FILTER
     ) {}
 
     start(workspaceDir: string) {
-        if (process.stdout.isTTY && this.isWatchMode) {
+        if (process.stdout.isTTY && this.isWatchMode && this.clearScreen) {
             // Clear screen
             const blank = '\n'.repeat(process.stdout.rows);
             this.stream.write(blank);
