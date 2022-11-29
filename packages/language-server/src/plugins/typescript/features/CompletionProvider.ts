@@ -35,7 +35,6 @@ import { getMarkdownDocumentation } from '../previewer';
 import {
     changeSvelteComponentName,
     convertRange,
-    getCommitCharactersForScriptElement,
     isInScript,
     scriptElementKindToCompletionItemKind
 } from '../utils';
@@ -72,6 +71,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
      * Therefore, only use the characters the typescript compiler treats as valid.
      */
     private readonly validTriggerCharacters = ['.', '"', "'", '`', '/', '@', '<', '#'] as const;
+    private commitCharacters = ['.', ',', ';', '('];
     /**
      * For performance reasons, try to reuse the last completion if possible.
      */
@@ -192,16 +192,20 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             return null;
         }
 
-        let completions =
-            lang.getCompletionsAtPosition(
-                filePath,
-                offset,
-                {
-                    ...userPreferences,
-                    triggerCharacter: validTriggerCharacter
-                },
-                formatSettings
-            )?.entries || [];
+        const response = lang.getCompletionsAtPosition(
+            filePath,
+            offset,
+            {
+                ...userPreferences,
+                triggerCharacter: validTriggerCharacter
+            },
+            formatSettings
+        );
+        const addCommitCharacters =
+            // replicating VS Code behavior https://github.com/microsoft/vscode/blob/main/extensions/typescript-language-features/src/languageFeatures/completions.ts
+            response?.isNewIdentifierLocation !== true &&
+            (!tsDoc.parserError || isInScript(position, tsDoc));
+        let completions = response?.entries || [];
 
         if (!completions.length) {
             completions =
@@ -256,14 +260,16 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
 
         const existingImports = this.getExistingImports(document);
         const wordRangeStartPosition = document.positionAt(wordRange.start);
+        const fileUrl = pathToUrl(tsDoc.filePath); // moved here due to perf reasons
         const completionItems = completions
             .filter(isValidCompletion(document, position, !!tsDoc.parserError))
             .map((comp) =>
                 this.toCompletionItem(
                     tsDoc,
                     comp,
-                    pathToUrl(tsDoc.filePath),
+                    fileUrl,
                     position,
+                    addCommitCharacters,
                     existingImports
                 )
             )
@@ -414,6 +420,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         comp: ts.CompletionEntry,
         uri: string,
         position: Position,
+        addCommitCharacters: boolean,
         existingImports: Set<string>
     ): AppCompletionItem<CompletionEntryWithIdentifier> | null {
         const completionLabelAndInsert = this.getCompletionLabelAndInsert(snapshot, comp);
@@ -436,7 +443,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             label,
             insertText,
             kind: scriptElementKindToCompletionItemKind(comp.kind),
-            commitCharacters: getCommitCharactersForScriptElement(comp.kind),
+            commitCharacters: addCommitCharacters ? this.commitCharacters : undefined,
             // Make sure svelte component takes precedence
             sortText: isSvelteComp ? '-1' : comp.sortText,
             preselect: isSvelteComp ? true : comp.isRecommended,
