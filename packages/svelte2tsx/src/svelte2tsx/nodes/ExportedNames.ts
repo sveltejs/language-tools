@@ -346,13 +346,18 @@ export class ExportedNames {
             );
         }
 
+        if (names.length === 0) {
+            // Necessary, because {} roughly equals to any
+            return isTsFile
+                ? '{} as Record<string, never>'
+                : '/** @type {Record<string, never>} */ ({})';
+        }
+
         const dontAddTypeDef =
-            !isTsFile ||
-            names.length === 0 ||
-            names.every(([_, value]) => !value.type && value.required);
+            !isTsFile || names.every(([_, value]) => !value.type && value.required);
         const returnElements = this.createReturnElements(names, dontAddTypeDef);
         if (dontAddTypeDef) {
-            // No exports or only `typeof` exports -> omit the `as {...}` completely.
+            // Only `typeof` exports -> omit the `as {...}` completely.
             // If not TS, omit the types to not have a "cannot use types in jsx" error.
             return `{${returnElements.join(' , ')}}`;
         }

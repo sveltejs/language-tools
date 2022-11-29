@@ -15,7 +15,7 @@
 <button•on:     ={$check•?•method1•:•method2}•>Bla</button>                                                                                           
 <button•on:click={$check•?•method1•:•method2}•>Bla</button>       [original] line 2                                                                   
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
-return { props: {}, slots: {}, events: {} }}
+return { props: /** @type {Record<string, never>} */ ({}), slots: {}, events: {} }}
 
 export default class Input__SvelteComponent_ extends __sveltets_1_createSvelte2TsxComponent(__sveltets_1_partial(__sveltets_1_with_any_event(render()))) {
 }

@@ -12,8 +12,19 @@
     },
     {
         "range": {
-            "start": { "line": 40, "character": 0 },
-            "end": { "line": 40, "character": 49 }
+            "start": { "line": 37, "character": 10 },
+            "end": { "line": 37, "character": 25 }
+        },
+        "severity": 1,
+        "source": "ts",
+        "message": "Type 'boolean' is not assignable to type 'never'.",
+        "code": 2322,
+        "tags": []
+    },
+    {
+        "range": {
+            "start": { "line": 41, "character": 0 },
+            "end": { "line": 41, "character": 49 }
         },
         "severity": 1,
         "source": "ts",
@@ -23,8 +34,8 @@
     },
     {
         "range": {
-            "start": { "line": 40, "character": 1 },
-            "end": { "line": 40, "character": 11 }
+            "start": { "line": 41, "character": 1 },
+            "end": { "line": 41, "character": 11 }
         },
         "severity": 1,
         "source": "ts",
@@ -34,8 +45,8 @@
     },
     {
         "range": {
-            "start": { "line": 40, "character": 48 },
-            "end": { "line": 40, "character": 48 }
+            "start": { "line": 41, "character": 48 },
+            "end": { "line": 41, "character": 48 }
         },
         "severity": 1,
         "source": "ts",
@@ -45,8 +56,8 @@
     },
     {
         "range": {
-            "start": { "line": 40, "character": 24 },
-            "end": { "line": 42, "character": 12 }
+            "start": { "line": 41, "character": 24 },
+            "end": { "line": 43, "character": 12 }
         },
         "severity": 1,
         "source": "ts",

@@ -6,7 +6,7 @@ async () => { { const $$_div0 = svelteHTML.createElement("div", {  });$compile_o
  { const $$_div0 = svelteHTML.createElement("div", {  });$compile_options.foo = $$_div0;}
  { svelteHTML.createElement("div", {  "bind:noAssignment":$compile_options,});}
  { svelteHTML.createElement("div", {  "bind:noAssignment":$compile_options.foo,});}};
-return { props: {}, slots: {}, events: {} }}
+return { props: /** @type {Record<string, never>} */ ({}), slots: {}, events: {} }}
 
 export default class Input__SvelteComponent_ extends __sveltets_1_createSvelte2TsxComponent(__sveltets_1_partial(__sveltets_1_with_any_event(render()))) {
 }
