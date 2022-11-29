@@ -247,39 +247,6 @@ export function scriptElementKindToCompletionItemKind(
     return CompletionItemKind.Property;
 }
 
-export function getCommitCharactersForScriptElement(
-    kind: ts.ScriptElementKind
-): string[] | undefined {
-    const commitCharacters: string[] = [];
-    switch (kind) {
-        case ts.ScriptElementKind.memberGetAccessorElement:
-        case ts.ScriptElementKind.memberSetAccessorElement:
-        case ts.ScriptElementKind.constructSignatureElement:
-        case ts.ScriptElementKind.callSignatureElement:
-        case ts.ScriptElementKind.indexSignatureElement:
-        case ts.ScriptElementKind.enumElement:
-        case ts.ScriptElementKind.interfaceElement:
-            commitCharacters.push('.');
-            break;
-
-        case ts.ScriptElementKind.moduleElement:
-        case ts.ScriptElementKind.alias:
-        case ts.ScriptElementKind.constElement:
-        case ts.ScriptElementKind.letElement:
-        case ts.ScriptElementKind.variableElement:
-        case ts.ScriptElementKind.localVariableElement:
-        case ts.ScriptElementKind.memberVariableElement:
-        case ts.ScriptElementKind.classElement:
-        case ts.ScriptElementKind.functionElement:
-        case ts.ScriptElementKind.memberFunctionElement:
-            commitCharacters.push('.', ',');
-            commitCharacters.push('(');
-            break;
-    }
-
-    return commitCharacters.length === 0 ? undefined : commitCharacters;
-}
-
 export function mapSeverity(category: ts.DiagnosticCategory): DiagnosticSeverity {
     switch (category) {
         case ts.DiagnosticCategory.Error:
