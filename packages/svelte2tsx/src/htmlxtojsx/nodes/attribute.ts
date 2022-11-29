@@ -61,7 +61,8 @@ export function handleAttribute(
     if (parent.type == 'Element') {
         const sapperLinkActions = ['sapper:prefetch', 'sapper:noscroll'];
         const sveltekitLinkActions = [
-            'data-sveltekit-prefetch',
+            'data-sveltekit-preload-code',
+            'data-sveltekit-preload-data',
             'data-sveltekit-noscroll',
             'data-sveltekit-reload'
         ];

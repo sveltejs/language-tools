@@ -10,7 +10,7 @@ async () => {
  { svelteHTML.createElement(tag ? 'a' : 'b', {  });}
  { svelteHTML.createElement(tag, { });tag; }
  { svelteHTML.createElement(tag, {    "on:click":() => tag,});}
- { svelteHTML.createElement('a', {    "data-sveltekit-prefetch":true,"href":`https://kit.svelte.dev`,});}};
+ { svelteHTML.createElement('a', {    "data-sveltekit-preload-data":true,"href":`https://kit.svelte.dev`,});}};
 return { props: /** @type {Record<string, never>} */ ({}), slots: {}, events: {} }}
 
 

@@ -1177,7 +1177,8 @@ declare namespace svelte.JSX {
 
     interface SvelteKitAnchorProps {
         'data-sveltekit-noscroll'?: true | undefined | null;
-        'data-sveltekit-prefetch'?: true | undefined | null;
+        'data-sveltekit-preload-code'?: true | 'eager' | 'viewport' | 'hover' | 'tap' | 'off' | undefined | null;
+        'data-sveltekit-preload-data'?: true | 'hover' | 'tap' | 'off' | undefined | null;
         'data-sveltekit-reload'?: true | undefined | null;
     }
 
