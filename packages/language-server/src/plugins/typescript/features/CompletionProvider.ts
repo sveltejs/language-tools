@@ -881,10 +881,13 @@ function isValidCompletion(
             ? (value: ts.CompletionEntry) => startsWithUppercase.test(value.name)
             : () => true;
 
-    const isNoSvelte2tsxCompletion = (value: ts.CompletionEntry) =>
-        value.kindModifiers !== 'declare' ||
-        (!value.name.startsWith('__sveltets_') && !svelte2tsxTypes.has(value.name));
+    const isNoSvelte2tsxCompletion = (value: ts.CompletionEntry) => {
+        if (value.kindModifiers === 'declare') {
+            return !value.name.startsWith('__sveltets_') && !svelte2tsxTypes.has(value.name);
+        }
 
+        return !value.name.startsWith('$$_');
+    };
     const isCompletionInHTMLStartTag = !!getNodeIfIsInHTMLStartTag(
         document.html,
         document.offsetAt(position)
