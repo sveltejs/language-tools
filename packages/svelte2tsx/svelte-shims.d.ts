@@ -295,7 +295,14 @@ declare type ATypedSvelteComponent = {
     $on(event: string, handler: ((e: any) => any) | null | undefined): () => void;
 }
 /**
- * Ambient type only used for intellisense, DO NOT USE IN YOUR PROJECT
+ * Ambient type only used for intellisense, DO NOT USE IN YOUR PROJECT.
+ * 
+ * If you're looking for the type of a Svelte Component, use `SvelteComponentTyped` and `ComponentType` instead:
+ *
+ * ```ts
+ * import type { ComponentType, SvelteComponentTyped } from "svelte";
+ * let myComponentConstructor: ComponentType<SvelteComponentTyped> = ..;
+ * ```
  */
 declare type ConstructorOfATypedSvelteComponent = new (args: {target: any, props?: any}) => ATypedSvelteComponent
 declare function __sveltets_2_ensureComponent<T extends ConstructorOfATypedSvelteComponent | null | undefined>(type: T): NonNullable<T>;
