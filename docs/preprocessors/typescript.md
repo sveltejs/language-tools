@@ -159,7 +159,7 @@ Create a `additional-svelte-jsx.d.ts` file:
 declare namespace svelte.JSX {
     // enhance elements
     interface IntrinsicElements {
-        'my-custom-element': { someAttribute: string; };
+        'my-custom-element': { someattribute: string; onevent: (e: CustomEvent<any>) => void };
     }
     // enhance attributes
     interface HTMLAttributes<T> {
@@ -180,7 +180,7 @@ In case you are using the new transformation (behind a flag in svelte-check vers
 declare namespace svelteHTML {
     // enhance elements
     interface IntrinsicElements {
-        'my-custom-element': { someAttribute: string; };
+        'my-custom-element': { someattribute: string; 'on:event': (e: CustomEvent<any>) => void };
     }
     // enhance attributes
     interface HTMLAttributes {
