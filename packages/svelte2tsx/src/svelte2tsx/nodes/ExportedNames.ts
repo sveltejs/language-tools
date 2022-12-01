@@ -195,7 +195,13 @@ export class ExportedNames {
 
     createClassGetters(): string {
         return Array.from(this.getters)
-            .map((name) => `\n    get ${name}() { return this.$$prop_def.${name} }`)
+            .map(
+                (name) =>
+                    // getters are const/classes/functions, which are always defined.
+                    // We have to remove the `| undefined` from the type here because it was necessary to
+                    // be added in a previous step so people are not expected to provide these as props.
+                    `\n    get ${name}() { return __sveltets_2_nonNullable(this.$$prop_def.${name}) }`
+            )
             .join('');
     }
 

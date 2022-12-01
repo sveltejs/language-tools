@@ -231,6 +231,7 @@ declare function __sveltets_2_createComponentAny(props: Record<string, any>): _S
 declare function __sveltets_2_any(...dummy: any[]): any;
 declare function __sveltets_2_empty(...dummy: any[]): {};
 declare function __sveltets_2_union<T1,T2,T3,T4,T5>(t1:T1,t2?:T2,t3?:T3,t4?:T4,t5?:T5): T1 & T2 & T3 & T4 & T5;
+declare function __sveltets_2_nonNullable<T>(type: T): NonNullable<T>;
 
 declare function __sveltets_2_cssProp(prop: Record<string, any>): {};
 
