@@ -38,5 +38,5 @@ class __sveltets_Render<A,B extends keyof A,C extends boolean> {
 
 
 export default class Input__SvelteComponent_<A,B extends keyof A,C extends boolean> extends Svelte2TsxComponent<ReturnType<__sveltets_Render<A,B,C>['props']>, ReturnType<__sveltets_Render<A,B,C>['events']>, ReturnType<__sveltets_Render<A,B,C>['slots']>> {
-    get getA() { return this.$$prop_def.getA }
+    get getA() { return __sveltets_2_nonNullable(this.$$prop_def.getA) }
 }
