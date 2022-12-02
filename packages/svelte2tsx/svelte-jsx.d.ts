@@ -1176,10 +1176,10 @@ declare namespace svelte.JSX {
     }
 
     interface SvelteKitAnchorProps {
-        'data-sveltekit-noscroll'?: true | 'off' | undefined | null;
-        'data-sveltekit-preload-code'?: true | 'eager' | 'viewport' | 'hover' | 'tap' | 'off' | undefined | null;
-        'data-sveltekit-preload-data'?: true | 'hover' | 'tap' | 'off' | undefined | null;
-        'data-sveltekit-reload'?: true | 'off' | undefined | null;
+        'data-sveltekit-noscroll'?: true | '' | 'off' | undefined | null;
+        'data-sveltekit-preload-code'?: true | '' | 'eager' | 'viewport' | 'hover' | 'tap' | 'off' | undefined | null;
+        'data-sveltekit-preload-data'?: true | '' | 'hover' | 'tap' | 'off' | undefined | null;
+        'data-sveltekit-reload'?: true | '' | 'off' | undefined | null;
     }
 
     interface SvelteMediaTimeRange {
