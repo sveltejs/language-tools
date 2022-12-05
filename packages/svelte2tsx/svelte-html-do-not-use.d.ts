@@ -87,7 +87,7 @@ export interface DOMAttributes<T extends EventTarget> {
 	'on:reset'?: FormEventHandler<T> | undefined | null;
 	'on:submit'?: EventHandler<Event, T> | undefined | null; // TODO make this SubmitEvent once we require TS>=4.4
 	'on:invalid'?: EventHandler<Event, T> | undefined | null;
-
+	'on:formdata'?: EventHandler<Event & { readonly formData: FormData; }, T> | undefined | null; // TODO make this FormDataEvent once we require TS>=4.4
 
 	// Image Events
 	'on:load'?: EventHandler | undefined | null;
