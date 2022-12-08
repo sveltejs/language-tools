@@ -555,7 +555,11 @@ async function createLanguageService(
         }
 
         if (!configWatchers.has(tsconfigPath) && tsconfigPath) {
-            configWatchers.set(tsconfigPath, tsSystem.watchFile(tsconfigPath, watchConfigCallback));
+            configWatchers.set(
+                tsconfigPath,
+                // for some reason setting the polling interval is necessary, else some error in TS is thrown
+                tsSystem.watchFile(tsconfigPath, watchConfigCallback, 1000)
+            );
         }
 
         for (const config of extendedConfigPaths) {
@@ -565,7 +569,8 @@ async function createLanguageService(
 
             extendedConfigWatchers.set(
                 config,
-                tsSystem.watchFile(config, createWatchExtendedConfigCallback(docContext))
+                // for some reason setting the polling interval is necessary, else some error in TS is thrown
+                tsSystem.watchFile(config, createWatchExtendedConfigCallback(docContext), 1000)
             );
         }
     }
