@@ -24,6 +24,26 @@ export async function findFile(searchPath: string, fileName: string) {
     }
 }
 
-export async function checkIfTypescriptProject(path: string) {
-    return !!(await findFile(path, 'tsconfig.json'));
+export async function checkProjectType(path: string) {
+    const tsconfig = await findFile(path, 'tsconfig.json');
+    const jsconfig = await findFile(path, 'jsconfig.json');
+    const isTs = !!tsconfig && (!jsconfig || tsconfig.length >= jsconfig.length);
+    if (isTs) {
+        try {
+            const packageJSONPath = require.resolve('typescript/package.json', {
+                paths: [tsconfig]
+            });
+            const { version } = require(packageJSONPath);
+            const [major, minor] = version.split('.');
+            if ((Number(major) === 4 && Number(minor) >= 9) || Number(major) > 4) {
+                return 'ts-satisfies';
+            } else {
+                return 'ts';
+            }
+        } catch (e) {
+            return 'ts';
+        }
+    } else {
+        return 'js';
+    }
 }

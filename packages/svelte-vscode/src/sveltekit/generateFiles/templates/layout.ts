@@ -16,5 +16,5 @@ export default async function (config: GenerateConfig) {
 </script>
     `.trim();
 
-    return config.typescript ? ts : js;
+    return config.type === 'js' ? js : ts;
 }

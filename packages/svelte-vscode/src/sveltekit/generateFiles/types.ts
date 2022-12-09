@@ -34,7 +34,7 @@ export type Resource = {
 
 export interface GenerateConfig {
     path: string;
-    typescript: boolean;
+    type: 'js' | 'ts' | 'ts-satisfies';
     pageExtension: string;
     scriptExtension: string;
     resources: Resource[];

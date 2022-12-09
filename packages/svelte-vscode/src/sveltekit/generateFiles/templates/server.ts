@@ -16,5 +16,5 @@ export async function GET() {
 };
     `.trim();
 
-    return config.typescript ? ts : js;
+    return config.type === 'js' ? js : ts;
 }
