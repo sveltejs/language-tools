@@ -19,6 +19,9 @@ interface ExportedName {
 }
 
 export class ExportedNames {
+    /**
+     * Uses the $$Props type
+     */
     public uses$$Props = false;
     private exports = new Map<string, ExportedName>();
     private possibleExports = new Map<
@@ -315,8 +318,9 @@ export class ExportedNames {
      * Creates a string from the collected props
      *
      * @param isTsFile Whether this is a TypeScript file or not.
+     * @param uses$$propsValue whether the file references the $$props variable
      */
-    createPropsStr(isTsFile: boolean): string {
+    createPropsStr(isTsFile: boolean, uses$$propsValue: boolean): string {
         const names = Array.from(this.exports.entries());
 
         if (this.uses$$Props) {
@@ -346,7 +350,7 @@ export class ExportedNames {
             );
         }
 
-        if (names.length === 0) {
+        if (names.length === 0 && !uses$$propsValue) {
             // Necessary, because {} roughly equals to any
             return isTsFile
                 ? '{} as Record<string, never>'
