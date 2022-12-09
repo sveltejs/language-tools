@@ -30,6 +30,7 @@ export async function checkProjectType(path: string) {
     const isTs = !!tsconfig && (!jsconfig || tsconfig.length >= jsconfig.length);
     if (isTs) {
         try {
+            // eslint-disable-next-line @typescript-eslint/no-var-requires
             const packageJSONPath = require.resolve('typescript/package.json', {
                 paths: [tsconfig]
             });
