@@ -348,6 +348,7 @@ declare namespace svelte.JSX {
       onsubmit?: EventHandler<SubmitEvent, T> | undefined | null;
       oninvalid?: EventHandler<Event, T> | undefined | null;
       onbeforeinput?: EventHandler<InputEvent, T> | undefined | null;
+      'on:formdata'?: EventHandler<FormDataEvent, T> | undefined | null;
 
       // Image Events
       onload?: EventHandler | undefined | null;
@@ -1176,10 +1177,10 @@ declare namespace svelte.JSX {
     }
 
     interface SvelteKitAnchorProps {
-        'data-sveltekit-noscroll'?: true | undefined | null;
-        'data-sveltekit-preload-code'?: true | 'eager' | 'viewport' | 'hover' | 'tap' | 'off' | undefined | null;
-        'data-sveltekit-preload-data'?: true | 'hover' | 'tap' | 'off' | undefined | null;
-        'data-sveltekit-reload'?: true | undefined | null;
+        'data-sveltekit-noscroll'?: true | '' | 'off' | undefined | null;
+        'data-sveltekit-preload-code'?: true | '' | 'eager' | 'viewport' | 'hover' | 'tap' | 'off' | undefined | null;
+        'data-sveltekit-preload-data'?: true | '' | 'hover' | 'tap' | 'off' | undefined | null;
+        'data-sveltekit-reload'?: true | '' | 'off' | undefined | null;
     }
 
     interface SvelteMediaTimeRange {

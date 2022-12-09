@@ -87,7 +87,7 @@ export interface DOMAttributes<T extends EventTarget> {
 	'on:reset'?: FormEventHandler<T> | undefined | null;
 	'on:submit'?: EventHandler<Event, T> | undefined | null; // TODO make this SubmitEvent once we require TS>=4.4
 	'on:invalid'?: EventHandler<Event, T> | undefined | null;
-
+	'on:formdata'?: EventHandler<Event & { readonly formData: FormData; }, T> | undefined | null; // TODO make this FormDataEvent once we require TS>=4.4
 
 	// Image Events
 	'on:load'?: EventHandler | undefined | null;
@@ -559,10 +559,10 @@ export interface HTMLAnchorAttributes extends HTMLAttributes<HTMLAnchorElement> 
 	referrerpolicy?: ReferrerPolicy | undefined | null;
 
 	// SvelteKit
-	'data-sveltekit-noscroll'?: true | undefined | null;
-	'data-sveltekit-preload-code'?: true | 'eager' | 'viewport' | 'hover' | 'tap' | 'off' | undefined | null;
-	'data-sveltekit-preload-data'?: true | 'hover' | 'tap' | 'off' | undefined | null;
-	'data-sveltekit-reload'?: true | undefined | null;
+	'data-sveltekit-noscroll'?: true | '' | 'off' | undefined | null;
+	'data-sveltekit-preload-code'?: true | '' | 'eager' | 'viewport' | 'hover' | 'tap' | 'off' | undefined | null;
+	'data-sveltekit-preload-data'?: true | '' | 'hover' | 'tap' | 'off' | undefined | null;
+	'data-sveltekit-reload'?: true | '' | 'off' | undefined | null;
 
 	// Sapper
 	'sapper:noscroll'?: true | undefined | null;
