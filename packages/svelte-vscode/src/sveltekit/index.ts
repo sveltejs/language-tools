@@ -67,5 +67,9 @@ async function detect() {
 }
 
 function setEnableContext(enable: boolean) {
-    commands.executeCommand('setContext', 'svelte.uiContext.svelteKitFilesContextMenu.enable', enable);
+    commands.executeCommand(
+        'setContext',
+        'svelte.uiContext.svelteKitFilesContextMenu.enable',
+        enable
+    );
 }
