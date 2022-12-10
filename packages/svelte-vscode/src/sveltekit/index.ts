@@ -2,7 +2,7 @@ import { TextDecoder } from 'util';
 import { ExtensionContext, commands, workspace } from 'vscode';
 import { addGenerateKitRouteFilesCommand } from './generateFiles';
 
-type ShowSvelteKitFilesCommandConfig = 'auto' | 'on' | 'off';
+type ShowSvelteKitFilesContextMenuConfig = 'auto' | 'always' | 'never';
 
 export function setupSvelteKit(context: ExtensionContext) {
     let contextMenuEnabled = false;
@@ -17,15 +17,15 @@ export function setupSvelteKit(context: ExtensionContext) {
 
     async function enableContextMenu() {
         const config = getConfig();
-        if (config === 'off') {
+        if (config === 'never') {
             if (contextMenuEnabled) {
                 setEnableContext(false);
             }
             return;
         }
 
-        if (config === 'on') {
-            // force on
+        if (config === 'always') {
+            // Force on. The condition is defined in the extension manifest
             return;
         }
 
@@ -39,8 +39,8 @@ export function setupSvelteKit(context: ExtensionContext) {
 function getConfig() {
     return (
         workspace
-            .getConfiguration('svelte.ui')
-            .get<ShowSvelteKitFilesCommandConfig>('showSvelteKitFilesCommand') ?? 'auto'
+            .getConfiguration('svelte.ui.svelteKitFilesContextMenu')
+            .get<ShowSvelteKitFilesContextMenuConfig>('enable') ?? 'auto'
     );
 }
 
@@ -67,5 +67,5 @@ async function detect() {
 }
 
 function setEnableContext(enable: boolean) {
-    commands.executeCommand('setContext', 'svelte.uiContext.showSvelteKitFilesCommand', enable);
+    commands.executeCommand('setContext', 'svelte.uiContext.svelteKitFilesContextMenu.enable', enable);
 }
