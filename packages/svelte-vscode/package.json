@@ -107,6 +107,16 @@
                     "default": "off",
                     "description": "Traces the communication between VS Code and the Svelte Language Server."
                 },
+                "svelte.ui.svelteKitFilesContextMenu.enable": {
+                    "type": "string",
+                    "default": "auto",
+                    "enum": [
+                        "auto",
+                        "never",
+                        "always"
+                    ],
+                    "description": "Show a context menu to generate SvelteKit files. \"always\" to always show it. \"never\" to always disable it. \"auto\" to show it when in a SvelteKit project. "
+                },
                 "svelte.plugin.typescript.enable": {
                     "type": "boolean",
                     "default": true,
@@ -637,7 +647,7 @@
                     "group": "4_search"
                 },
                 {
-                    "when": "explorerResourceIsFolder",
+                    "when": "explorerResourceIsFolder && config.svelte.ui.svelteKitFilesContextMenu.enable == always || explorerResourceIsFolder && svelte.uiContext.svelteKitFilesContextMenu.enable",
                     "submenu": "sveltekit2files",
                     "group": "1_SvelteKit2files"
                 }
