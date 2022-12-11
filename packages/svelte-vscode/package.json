@@ -115,7 +115,7 @@
                         "never",
                         "always"
                     ],
-                    "description": "Show a context menu to generate SvelteKit files. \"always\" to always show it. \"never\" to always disable it. And \"auto\" to only opened in a SvelteKit project. "
+                    "description": "Show a context menu to generate SvelteKit files. \"always\" to always show it. \"never\" to always disable it. \"auto\" to show it when in a SvelteKit project. "
                 },
                 "svelte.plugin.typescript.enable": {
                     "type": "boolean",

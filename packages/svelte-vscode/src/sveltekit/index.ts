@@ -29,9 +29,10 @@ export function setupSvelteKit(context: ExtensionContext) {
             return;
         }
 
-        if (await detect()) {
-            setEnableContext(true);
-            contextMenuEnabled = true;
+        const enabled = await detect(20);
+        if (enabled !== contextMenuEnabled) {
+            setEnableContext(enabled);
+            contextMenuEnabled = enabled;
         }
     }
 }
@@ -44,8 +45,14 @@ function getConfig() {
     );
 }
 
-async function detect() {
-    const packageJsonList = await workspace.findFiles('**/package.json', 'node_modules');
+async function detect(nrRetries: number): Promise<boolean> {
+    const packageJsonList = await workspace.findFiles('**/package.json', '**​/node_modules/**');
+
+    if (packageJsonList.length === 0 && nrRetries > 0) {
+        // We assume that the user has not setup their project yet, so try again after a while
+        await new Promise((resolve) => setTimeout(resolve, 10000));
+        return detect(nrRetries - 1);
+    }
 
     for (const fileUri of packageJsonList) {
         try {
@@ -67,6 +74,7 @@ async function detect() {
 }
 
 function setEnableContext(enable: boolean) {
+    // https://code.visualstudio.com/api/references/when-clause-contexts#add-a-custom-when-clause-context
     commands.executeCommand(
         'setContext',
         'svelte.uiContext.svelteKitFilesContextMenu.enable',
