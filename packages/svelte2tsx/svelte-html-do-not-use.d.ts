@@ -538,6 +538,12 @@ export interface HTMLAttributes<T extends EventTarget> extends AriaAttributes, D
 	 * Elements with the contenteditable attribute support innerHTML and textContent bindings.
 	 */
 	'bind:textContent'?: string | undefined | null;
+
+	// SvelteKit
+	'data-sveltekit-noscroll'?: true | '' | 'off' | undefined | null;
+	'data-sveltekit-preload-code'?: true | '' | 'eager' | 'viewport' | 'hover' | 'tap' | 'off' | undefined | null;
+	'data-sveltekit-preload-data'?: true | '' | 'hover' | 'tap' | 'off' | undefined | null;
+	'data-sveltekit-reload'?: true | '' | 'off' | undefined | null;
 }
 
 export type HTMLAttributeAnchorTarget =
@@ -557,12 +563,6 @@ export interface HTMLAnchorAttributes extends HTMLAttributes<HTMLAnchorElement> 
 	target?: HTMLAttributeAnchorTarget | undefined | null;
 	type?: string | undefined | null;
 	referrerpolicy?: ReferrerPolicy | undefined | null;
-
-	// SvelteKit
-	'data-sveltekit-noscroll'?: true | '' | 'off' | undefined | null;
-	'data-sveltekit-preload-code'?: true | '' | 'eager' | 'viewport' | 'hover' | 'tap' | 'off' | undefined | null;
-	'data-sveltekit-preload-data'?: true | '' | 'hover' | 'tap' | 'off' | undefined | null;
-	'data-sveltekit-reload'?: true | '' | 'off' | undefined | null;
 
 	// Sapper
 	'sapper:noscroll'?: true | undefined | null;
