@@ -839,6 +839,11 @@ declare namespace svelte.JSX {
       results?: number | undefined | null;
       security?: string | undefined | null;
       unselectable?: boolean | undefined | null;
+      
+      'data-sveltekit-noscroll'?: true | '' | 'off' | undefined | null;
+      'data-sveltekit-preload-code'?: true | '' | 'eager' | 'viewport' | 'hover' | 'tap' | 'off' | undefined | null;
+      'data-sveltekit-preload-data'?: true | '' | 'hover' | 'tap' | 'off' | undefined | null;
+      'data-sveltekit-reload'?: true | '' | 'off' | undefined | null;
     }
 
     // this list is "complete" in that it contains every SVG attribute
@@ -1176,13 +1181,6 @@ declare namespace svelte.JSX {
         sapperPrefetch?: true | undefined | null;
     }
 
-    interface SvelteKitAnchorProps {
-        'data-sveltekit-noscroll'?: true | '' | 'off' | undefined | null;
-        'data-sveltekit-preload-code'?: true | '' | 'eager' | 'viewport' | 'hover' | 'tap' | 'off' | undefined | null;
-        'data-sveltekit-preload-data'?: true | '' | 'hover' | 'tap' | 'off' | undefined | null;
-        'data-sveltekit-reload'?: true | '' | 'off' | undefined | null;
-    }
-
     interface SvelteMediaTimeRange {
         start: number;
         end: number;
@@ -1221,7 +1219,7 @@ declare namespace svelte.JSX {
 
     interface IntrinsicElements {
       // HTML
-      a: HTMLProps<HTMLAnchorElement> & SapperAnchorProps & SvelteKitAnchorProps;
+      a: HTMLProps<HTMLAnchorElement> & SapperAnchorProps;
       abbr: HTMLProps<HTMLElement>;
       address: HTMLProps<HTMLElement>;
       area: HTMLProps<HTMLAreaElement>;
@@ -1398,7 +1396,7 @@ declare namespace svelte.JSX {
       sveltefragment: { slot?: string; };
       svelteoptions: { [name: string]: any };
       sveltehead: { [name: string]: any };
-      svelteelement: { 'this': string | undefined | null; } & HTMLProps<any> & SVGProps<any> & SapperAnchorProps & SvelteKitAnchorProps;
+      svelteelement: { 'this': string | undefined | null; } & HTMLProps<any> & SVGProps<any> & SapperAnchorProps;
       // Needed due to backwards compatibility type which hits these
       'svelte:window': HTMLProps<Window> & SvelteWindowProps;
       'svelte:body': HTMLProps<HTMLElement>;
