@@ -9,6 +9,14 @@ export const load: LayoutServerLoad = async () => {
 };
     `.trim();
 
+    const tsSatisfies = `
+import type { LayoutServerLoad } from './$types';
+
+export const load = (async () => {
+    return {};
+}) satisfies LayoutServerLoad;
+    `.trim();
+
     const js = `
 /** @type {import('./$types').LayoutServerLoad} */
 export async function load() {
@@ -16,5 +24,5 @@ export async function load() {
 }
     `.trim();
 
-    return config.typescript ? ts : js;
+    return config.type === 'js' ? js : config.type === 'ts' ? ts : tsSatisfies;
 }
