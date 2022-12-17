@@ -343,7 +343,7 @@ export class SvelteSnapshotManager {
 
                     // @ts-ignore
                     this.projectService.host[onReadSvelteFile].forEach((listener) =>
-                        listener(path, code, isTsFile, mapper)
+                        listener(path, svelteCode, isTsFile, mapper)
                     );
 
                     return code;
