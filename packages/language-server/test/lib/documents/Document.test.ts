@@ -28,9 +28,7 @@ describe('Document', () => {
         const document = new Document('file:///hello.svelte', '<script>a</script><style>b</style>');
         assert.deepEqual(document.scriptInfo, {
             content: 'a',
-            attributes: {
-                lang: 'javascript'
-            },
+            attributes: {},
             start: 8,
             end: 9,
             startPos: Position.create(0, 8),
@@ -39,9 +37,7 @@ describe('Document', () => {
         });
         assert.deepEqual(document.styleInfo, {
             content: 'b',
-            attributes: {
-                lang: 'css'
-            },
+            attributes: {},
             start: 25,
             end: 26,
             startPos: Position.create(0, 25),
@@ -52,9 +48,7 @@ describe('Document', () => {
         document.setText('<script>b</script>');
         assert.deepEqual(document.scriptInfo, {
             content: 'b',
-            attributes: {
-                lang: 'javascript'
-            },
+            attributes: {},
             start: 8,
             end: 9,
             startPos: Position.create(0, 8),
