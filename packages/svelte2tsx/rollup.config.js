@@ -5,7 +5,7 @@ import typescript from '@rollup/plugin-typescript';
 import builtins from 'builtin-modules';
 import fs from 'fs';
 import path from 'path';
-import { decode } from 'sourcemap-codec';
+import { decode } from '@jridgewell/sourcemap-codec';
 
 const DEV = !!process.env.ROLLUP_WATCH;
 
