@@ -92,6 +92,11 @@
                     "description": "- You normally don't set this - At which port to spawn the language server. Can be used for attaching to the process for debugging / profiling. If you experience crashes due to \"port already in use\", try setting the port. -1 = default port is used.",
                     "default": -1
                 },
+                "svelte.language-server.debug": {
+                    "type": "boolean",
+                    "title": "Language Server Debug Mode",
+                    "description": "- You normally don't set this - Enable more verbose logging for the language server useful for debugging language server execution."
+                },
                 "svelte.trace.server": {
                     "type": "string",
                     "enum": [
@@ -101,6 +106,16 @@
                     ],
                     "default": "off",
                     "description": "Traces the communication between VS Code and the Svelte Language Server."
+                },
+                "svelte.ui.svelteKitFilesContextMenu.enable": {
+                    "type": "string",
+                    "default": "auto",
+                    "enum": [
+                        "auto",
+                        "never",
+                        "always"
+                    ],
+                    "description": "Show a context menu to generate SvelteKit files. \"always\" to always show it. \"never\" to always disable it. \"auto\" to show it when in a SvelteKit project. "
                 },
                 "svelte.plugin.typescript.enable": {
                     "type": "boolean",
@@ -266,9 +281,15 @@
                 },
                 "svelte.plugin.svelte.useNewTransformation": {
                     "type": "boolean",
-                    "default": false,
+                    "default": true,
                     "title": "Use a new transformation for intellisense",
                     "description": "Svelte files need to be transformed to something that TypeScript understands for intellisense. Version 2.0 of this transformation can be enabled with this setting. It will be the default, soon."
+                },
+                "svelte.plugin.svelte.note-new-transformation": {
+                    "type": "boolean",
+                    "default": true,
+                    "title": "Show a note about the new transformation",
+                    "description": "There's a new transformation for improved intellisense which is now turned on by default. This note notifies you about it."
                 },
                 "svelte.plugin.svelte.diagnostics.enable": {
                     "type": "boolean",
@@ -430,7 +451,14 @@
                     "source.js": "javascript",
                     "source.ts": "typescript",
                     "source.coffee": "coffeescript"
-                }
+                },
+                "unbalancedBracketScopes": [
+                    "keyword.operator.relational",
+                    "storage.type.function.arrow",
+                    "keyword.operator.bitwise.shift",
+                    "meta.brace.angle",
+                    "punctuation.definition.tag"
+                ]
             },
             {
                 "scopeName": "svelte.pug",
@@ -475,6 +503,20 @@
                 }
             },
             {
+                "scopeName": "markdown.svelte.codeblock.script",
+                "path": "./syntaxes/markdown-svelte-js.json",
+                "injectTo": [
+                    "text.html.markdown"
+                ]
+            },
+            {
+                "scopeName": "markdown.svelte.codeblock.style",
+                "path": "./syntaxes/markdown-svelte-css.json",
+                "injectTo": [
+                    "text.html.markdown"
+                ]
+            },
+            {
                 "scopeName": "source.css.postcss",
                 "path": "./syntaxes/postcss.json",
                 "injectTo": [
@@ -506,6 +548,42 @@
             {
                 "command": "svelte.typescript.findComponentReferences",
                 "title": "Svelte: Find Component References"
+            },
+            {
+                "command": "svelte.kit.generateMultipleFiles",
+                "title": "SvelteKit: Create route"
+            },
+            {
+                "command": "svelte.kit.generatePage",
+                "title": "SvelteKit: Create +page.svelte"
+            },
+            {
+                "command": "svelte.kit.generatePageLoad",
+                "title": "SvelteKit: Create +page.js/ts"
+            },
+            {
+                "command": "svelte.kit.generatePageServerLoad",
+                "title": "SvelteKit: Create +page.server.js/ts"
+            },
+            {
+                "command": "svelte.kit.generateLayout",
+                "title": "SvelteKit: Create +layout.svelte"
+            },
+            {
+                "command": "svelte.kit.generateLayoutLoad",
+                "title": "SvelteKit: Create +layout.js/ts"
+            },
+            {
+                "command": "svelte.kit.generateLayoutServerLoad",
+                "title": "SvelteKit: Create +layout.server.js/ts"
+            },
+            {
+                "command": "svelte.kit.generateServer",
+                "title": "SvelteKit: Create +server.js/ts"
+            },
+            {
+                "command": "svelte.kit.generateError",
+                "title": "SvelteKit: Create +error.svelte"
             }
         ],
         "menus": {
@@ -567,9 +645,58 @@
                     "command": "svelte.typescript.findComponentReferences",
                     "when": "resourceLangId == svelte",
                     "group": "4_search"
+                },
+                {
+                    "when": "explorerResourceIsFolder && config.svelte.ui.svelteKitFilesContextMenu.enable == always || explorerResourceIsFolder && svelte.uiContext.svelteKitFilesContextMenu.enable",
+                    "submenu": "sveltekit2files",
+                    "group": "1_SvelteKit2files"
+                }
+            ],
+            "sveltekit2files": [
+                {
+                    "command": "svelte.kit.generateMultipleFiles",
+                    "group": "0_SvelteKit_Multiple"
+                },
+                {
+                    "command": "svelte.kit.generatePage",
+                    "group": "1_SvelteKit_Page"
+                },
+                {
+                    "command": "svelte.kit.generatePageLoad",
+                    "group": "1_SvelteKit_Page"
+                },
+                {
+                    "command": "svelte.kit.generatePageServerLoad",
+                    "group": "1_SvelteKit_Page"
+                },
+                {
+                    "command": "svelte.kit.generateLayout",
+                    "group": "3_SvelteKit_Layout"
+                },
+                {
+                    "command": "svelte.kit.generateLayoutLoad",
+                    "group": "3_SvelteKit_Layout"
+                },
+                {
+                    "command": "svelte.kit.generateLayoutServerLoad",
+                    "group": "3_SvelteKit_Layout"
+                },
+                {
+                    "command": "svelte.kit.generateServer",
+                    "group": "2_SvelteKit_Server"
+                },
+                {
+                    "command": "svelte.kit.generateError",
+                    "group": "4_SvelteKit_Error"
                 }
             ]
         },
+        "submenus": [
+            {
+                "id": "sveltekit2files",
+                "label": "SvelteKit Files"
+            }
+        ],
         "breakpoints": [
             {
                 "language": "svelte"
@@ -579,6 +706,14 @@
             {
                 "language": "svelte",
                 "path": "./snippets/svelte.json"
+            },
+            {
+                "language": "javascript",
+                "path": "./snippets/javascript.json"
+            },
+            {
+                "language": "typescript",
+                "path": "./snippets/typescript.json"
             }
         ]
     },

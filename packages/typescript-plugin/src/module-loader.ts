@@ -9,6 +9,8 @@ import { ensureRealSvelteFilePath, isVirtualSvelteFilePath } from './utils';
  * Caches resolved modules.
  */
 class ModuleResolutionCache {
+    constructor(private readonly projectService: ts.server.ProjectService) {}
+
     private cache = new Map<string, ts.ResolvedModule>();
 
     /**
@@ -33,8 +35,11 @@ class ModuleResolutionCache {
      * @param resolvedModuleName full path of the module
      */
     delete(resolvedModuleName: string): void {
+        resolvedModuleName = this.projectService.toCanonicalFileName(resolvedModuleName);
         this.cache.forEach((val, key) => {
-            if (val.resolvedFileName === resolvedModuleName) {
+            if (
+                this.projectService.toCanonicalFileName(val.resolvedFileName) === resolvedModuleName
+            ) {
                 this.cache.delete(key);
             }
         });
@@ -45,7 +50,11 @@ class ModuleResolutionCache {
     }
 
     private getKey(moduleName: string, containingFile: string) {
-        return containingFile + ':::' + ensureRealSvelteFilePath(moduleName);
+        return (
+            this.projectService.toCanonicalFileName(containingFile) +
+            ':::' +
+            this.projectService.toCanonicalFileName(ensureRealSvelteFilePath(moduleName))
+        );
     }
 }
 
@@ -67,7 +76,7 @@ export function patchModuleLoader(
     configManager: ConfigManager
 ): void {
     const svelteSys = createSvelteSys(logger);
-    const moduleCache = new ModuleResolutionCache();
+    const moduleCache = new ModuleResolutionCache(project.projectService);
     const origResolveModuleNames = lsHost.resolveModuleNames?.bind(lsHost);
 
     lsHost.resolveModuleNames = resolveModuleNames;

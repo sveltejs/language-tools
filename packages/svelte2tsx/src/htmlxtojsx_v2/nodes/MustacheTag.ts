@@ -6,8 +6,8 @@ import { BaseNode } from '../../interfaces';
  * {a}  -->  a;
  */
 export function handleMustacheTag(str: MagicString, node: BaseNode, parent: BaseNode) {
-    if (parent.type === 'Attribute') {
-        // handles inside Attribute.ts
+    if (parent.type === 'Attribute' || parent.type === 'StyleDirective') {
+        // handled inside Attribute.ts / StyleDirective.ts
         return;
     }
     str.overwrite(node.start, node.start + 1, '', { contentOnly: true });

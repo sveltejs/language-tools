@@ -144,7 +144,7 @@ export class SourceMapDocumentMapper implements DocumentMapper {
         }
 
         if (mapped.line === 0) {
-            Logger.log('Got 0 mapped line from', generatedPosition, 'col was', mapped.column);
+            Logger.debug('Got 0 mapped line from', generatedPosition, 'col was', mapped.column);
         }
 
         return {

@@ -14,13 +14,13 @@
 ;
 async () => {
 
-  for(const { width, height } of __sveltets_2_ensureArray(boxes)){
+  for(let { width, height } of __sveltets_2_ensureArray(boxes)){
 	const {area, volume} = calculate(width, height, constant);
 	const perimeter = (width + height) * constant;
 	const [_width, _height, sum] = [width * constant, height, width * constant + height];
 	 { svelteHTML.createElement("div", {});area; volume; perimeter; _width; _height; sum; }
 }};
-return { props: {boxes: boxes , constant: constant}, slots: {}, getters: {}, events: {} }}
+return { props: {boxes: boxes , constant: constant}, slots: {}, events: {} }}
 
 export default class Input__SvelteComponent_ extends __sveltets_1_createSvelte2TsxComponent(__sveltets_1_partial(['boxes','constant'], __sveltets_1_with_any_event(render()))) {
 }

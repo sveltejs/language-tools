@@ -13,13 +13,26 @@ import {
 import { DocumentManager, Document } from '../../../src/lib/documents';
 import { CSSPlugin } from '../../../src/plugins';
 import { LSConfigManager } from '../../../src/ls-config';
+import { createLanguageServices } from '../../../src/plugins/css/service';
+import { pathToUrl } from '../../../src/utils';
+import { FileType, LanguageServiceOptions } from 'vscode-css-languageservice';
 
 describe('CSS Plugin', () => {
-    function setup(content: string) {
+    function setup(content: string, lsOptions?: LanguageServiceOptions) {
         const document = new Document('file:///hello.svelte', content);
         const docManager = new DocumentManager(() => document);
         const pluginManager = new LSConfigManager();
-        const plugin = new CSSPlugin(docManager, pluginManager);
+        const plugin = new CSSPlugin(
+            docManager,
+            pluginManager,
+            [
+                {
+                    name: '',
+                    uri: pathToUrl(process.cwd())
+                }
+            ],
+            createLanguageServices(lsOptions)
+        );
         docManager.openDocument(<any>'some doc');
         return { plugin, document };
     }
@@ -72,10 +85,10 @@ describe('CSS Plugin', () => {
     });
 
     describe('provides completions', () => {
-        it('for normal css', () => {
+        it('for normal css', async () => {
             const { plugin, document } = setup('<style></style>');
 
-            const completions = plugin.getCompletions(document, Position.create(0, 7), {
+            const completions = await plugin.getCompletions(document, Position.create(0, 7), {
                 triggerCharacter: '.'
             } as CompletionContext);
             assert.ok(
@@ -96,27 +109,27 @@ describe('CSS Plugin', () => {
             });
         });
 
-        it('for :global modifier', () => {
+        it('for :global modifier', async () => {
             const { plugin, document } = setup('<style>:g</style>');
 
-            const completions = plugin.getCompletions(document, Position.create(0, 9), {
+            const completions = await plugin.getCompletions(document, Position.create(0, 9), {
                 triggerCharacter: ':'
             } as CompletionContext);
             const globalCompletion = completions?.items.find((item) => item.label === ':global()');
             assert.ok(globalCompletion);
         });
 
-        it('not for stylus', () => {
+        it('not for stylus', async () => {
             const { plugin, document } = setup('<style lang="stylus"></style>');
-            const completions = plugin.getCompletions(document, Position.create(0, 21), {
+            const completions = await plugin.getCompletions(document, Position.create(0, 21), {
                 triggerCharacter: '.'
             } as CompletionContext);
             assert.deepStrictEqual(completions, null);
         });
 
-        it('for style attribute', () => {
+        it('for style attribute', async () => {
             const { plugin, document } = setup('<div style="display: n"></div>');
-            const completions = plugin.getCompletions(document, Position.create(0, 22), {
+            const completions = await plugin.getCompletions(document, Position.create(0, 22), {
                 triggerKind: CompletionTriggerKind.Invoked
             } as CompletionContext);
             assert.deepStrictEqual(
@@ -148,9 +161,48 @@ describe('CSS Plugin', () => {
             );
         });
 
-        it('not for style attribute with interpolation', () => {
+        it('not for style attribute with interpolation', async () => {
             const { plugin, document } = setup('<div style="height: {}"></div>');
-            assert.deepStrictEqual(plugin.getCompletions(document, Position.create(0, 21)), null);
+            assert.deepStrictEqual(
+                await plugin.getCompletions(document, Position.create(0, 21)),
+                null
+            );
+        });
+
+        it('for path completion', async () => {
+            const { plugin, document } = setup('<style>@import "./"</style>', {
+                fileSystemProvider: {
+                    stat: () =>
+                        Promise.resolve({
+                            ctime: Date.now(),
+                            mtime: Date.now(),
+                            size: 0,
+                            type: FileType.File
+                        }),
+                    readDirectory: () => Promise.resolve([['foo.css', FileType.File]])
+                }
+            });
+            const completions = await plugin.getCompletions(document, Position.create(0, 16));
+            assert.deepStrictEqual(
+                completions?.items.find((item) => item.label === 'foo.css'),
+                <CompletionItem>{
+                    label: 'foo.css',
+                    kind: 17,
+                    textEdit: {
+                        newText: 'foo.css',
+                        range: {
+                            end: {
+                                character: 18,
+                                line: 0
+                            },
+                            start: {
+                                character: 16,
+                                line: 0
+                            }
+                        }
+                    }
+                }
+            );
         });
     });
 

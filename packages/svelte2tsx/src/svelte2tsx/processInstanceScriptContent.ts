@@ -1,11 +1,7 @@
 import MagicString from 'magic-string';
 import { Node } from 'estree-walker';
 import * as ts from 'typescript';
-import {
-    getBinaryAssignmentExpr,
-    isSafeToPrefixWithSemicolon,
-    isNotPropertyNameOfImport
-} from './utils/tsAst';
+import { getBinaryAssignmentExpr, isNotPropertyNameOfImport, moveNode } from './utils/tsAst';
 import { ExportedNames, is$$PropsDeclaration } from './nodes/ExportedNames';
 import { ImplicitTopLevelNames } from './nodes/ImplicitTopLevelNames';
 import { ComponentEvents, is$$EventsDeclaration } from './nodes/ComponentEvents';
@@ -15,7 +11,11 @@ import { ImplicitStoreValues } from './nodes/ImplicitStoreValues';
 import { Generics } from './nodes/Generics';
 import { is$$SlotsDeclaration } from './nodes/slot';
 import { preprendStr } from '../utils/magic-string';
-import { handleImportDeclaration } from './nodes/handleImportDeclaration';
+import {
+    handleFirstInstanceImport,
+    handleImportDeclaration
+} from './nodes/handleImportDeclaration';
+import { InterfacesAndTypes } from './nodes/InterfacesAndTypes';
 
 export interface InstanceScriptProcessResult {
     exportedNames: ExportedNames;
@@ -53,6 +53,7 @@ export function processInstanceScriptContent(
     const astOffset = script.content.start;
     const exportedNames = new ExportedNames(str, astOffset);
     const generics = new Generics(str, astOffset);
+    const interfacesAndTypes = new InterfacesAndTypes();
 
     const implicitTopLevelNames = new ImplicitTopLevelNames(str, astOffset);
     let uses$$props = false;
@@ -73,116 +74,8 @@ export function processInstanceScriptContent(
     const pushScope = () => (scope = new Scope(scope));
     const popScope = () => (scope = scope.parent);
 
-    const handleStore = (ident: ts.Identifier, parent: ts.Node) => {
-        // ignore "typeof $store"
-        if (parent && parent.kind === ts.SyntaxKind.TypeQuery) {
-            return;
-        }
-        // ignore break
-        if (parent && parent.kind === ts.SyntaxKind.BreakStatement) {
-            return;
-        }
-
-        const storename = ident.getText().slice(1); // drop the $
-        // handle assign to
-        if (
-            parent &&
-            ts.isBinaryExpression(parent) &&
-            parent.operatorToken.kind == ts.SyntaxKind.EqualsToken &&
-            parent.left == ident
-        ) {
-            //remove $
-            const dollar = str.original.indexOf('$', ident.getStart() + astOffset);
-            str.remove(dollar, dollar + 1);
-            // replace = with .set(
-            str.overwrite(ident.end + astOffset, parent.operatorToken.end + astOffset, '.set(');
-            // append )
-            str.appendLeft(parent.end + astOffset, ')');
-            return;
-        }
-
-        // handle Assignment operators ($store +=, -=, *=, /=, %=, **=, etc.)
-        // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Expressions_and_Operators#Assignment
-        const operators = {
-            [ts.SyntaxKind.PlusEqualsToken]: '+',
-            [ts.SyntaxKind.MinusEqualsToken]: '-',
-            [ts.SyntaxKind.AsteriskEqualsToken]: '*',
-            [ts.SyntaxKind.SlashEqualsToken]: '/',
-            [ts.SyntaxKind.PercentEqualsToken]: '%',
-            [ts.SyntaxKind.AsteriskAsteriskEqualsToken]: '**',
-            [ts.SyntaxKind.LessThanLessThanEqualsToken]: '<<',
-            [ts.SyntaxKind.GreaterThanGreaterThanEqualsToken]: '>>',
-            [ts.SyntaxKind.GreaterThanGreaterThanGreaterThanEqualsToken]: '>>>',
-            [ts.SyntaxKind.AmpersandEqualsToken]: '&',
-            [ts.SyntaxKind.CaretEqualsToken]: '^',
-            [ts.SyntaxKind.BarEqualsToken]: '|'
-        };
-        if (
-            ts.isBinaryExpression(parent) &&
-            parent.left == ident &&
-            Object.keys(operators).find((x) => x === String(parent.operatorToken.kind))
-        ) {
-            const operator = operators[parent.operatorToken.kind];
-            str.overwrite(
-                parent.getStart() + astOffset,
-                str.original.indexOf('=', ident.end + astOffset) + 1,
-                `${storename}.set( $${storename} ${operator}`
-            );
-            str.appendLeft(parent.end + astOffset, ')');
-            return;
-        }
-        // handle $store++, $store--, ++$store, --$store
-        if (
-            (ts.isPrefixUnaryExpression(parent) || ts.isPostfixUnaryExpression(parent)) &&
-            ![
-                ts.SyntaxKind.ExclamationToken, // !$store
-                ts.SyntaxKind.PlusToken, // +$store
-                ts.SyntaxKind.MinusToken, // -$store
-                ts.SyntaxKind.TildeToken // ~$store
-            ].includes(parent.operator) /* `!$store` etc does not need processing */
-        ) {
-            let simpleOperator: string;
-            if (parent.operator === ts.SyntaxKind.PlusPlusToken) {
-                simpleOperator = '+';
-            }
-            if (parent.operator === ts.SyntaxKind.MinusMinusToken) {
-                simpleOperator = '-';
-            }
-
-            if (simpleOperator) {
-                str.overwrite(
-                    parent.getStart() + astOffset,
-                    parent.end + astOffset,
-                    `(${storename}.set( $${storename} ${simpleOperator} 1), $${storename})`
-                );
-                return;
-            } else {
-                console.warn(
-                    `Warning - unrecognized UnaryExpression operator ${parent.operator}!
-                This is an edge case unaccounted for in svelte2tsx, please file an issue:
-                https://github.com/sveltejs/language-tools/issues/new/choose
-                `,
-                    parent.getText()
-                );
-            }
-        }
-
-        // we change "$store" references into "(__sveltets_1_store_get(store), $store)"
-        // - in order to get ts errors if store is not assignable to SvelteStore
-        // - use $store variable defined above to get ts flow control
-        const dollar = str.original.indexOf('$', ident.getStart() + astOffset);
-        const getPrefix = isSafeToPrefixWithSemicolon(ident)
-            ? ';'
-            : ts.isShorthandPropertyAssignment(parent)
-            ? // { $store } --> { $store: __sveltets_1_store_get(..)}
-              ident.text + ': '
-            : '';
-        str.overwrite(dollar, dollar + 1, getPrefix + '(__sveltets_1_store_get(');
-        str.prependLeft(ident.end + astOffset, `), $${storename})`);
-    };
-
     const resolveStore = (pending: PendingStoreResolution) => {
-        let { node, parent, scope } = pending;
+        let { node, scope } = pending;
         const name = (node as ts.Identifier).text;
         while (scope) {
             if (scope.declared.has(name)) {
@@ -191,8 +84,6 @@ export function processInstanceScriptContent(
             }
             scope = scope.parent;
         }
-        //We haven't been resolved, we must be a store read/write, handle it.
-        handleStore(node, parent);
         const storename = node.getText().slice(1);
         implicitStoreValues.addStoreAcess(storename);
     };
@@ -330,6 +221,12 @@ export function processInstanceScriptContent(
             implicitStoreValues.addImportStatement(node);
         }
 
+        if (ts.isTypeAliasDeclaration(node) || ts.isInterfaceDeclaration(node)) {
+            interfacesAndTypes.node = node;
+            interfacesAndTypes.add(node);
+            onLeaveCallbacks.push(() => (interfacesAndTypes.node = null));
+        }
+
         //handle stores etc
         if (ts.isIdentifier(node)) {
             handleIdentifier(node, parent);
@@ -373,13 +270,13 @@ export function processInstanceScriptContent(
     implicitTopLevelNames.modifyCode(rootScope.declared);
     implicitStoreValues.modifyCode(astOffset, str);
 
-    const firstImport = tsAst.statements
-        .filter(ts.isImportDeclaration)
-        .sort((a, b) => a.end - b.end)[0];
-    if (firstImport) {
-        // ensure it's in a newline.
-        // if file has module script ensure an empty line to separate imports
-        str.appendRight(firstImport.getStart() + astOffset, '\n' + (hasModuleScript ? '\n' : ''));
+    handleFirstInstanceImport(tsAst, astOffset, hasModuleScript, str);
+
+    // move interfaces and types out of the render function if they are referenced
+    // by a $$Generic, otherwise it will be used before being defined after the transformation
+    const nodesToMove = interfacesAndTypes.getNodesWithNames(generics.getTypeReferences());
+    for (const node of nodesToMove) {
+        moveNode(node, str, astOffset, script.start, tsAst);
     }
 
     if (mode === 'dts') {
@@ -387,7 +284,7 @@ export function processInstanceScriptContent(
         // using interfaces inside the return type of a function is forbidden.
         // This is not a problem for intellisense/type inference but it will
         // break dts generation (file will not be generated).
-        transformInterfacesToTypes(tsAst, str, astOffset);
+        transformInterfacesToTypes(tsAst, str, astOffset, nodesToMove);
     }
 
     return {
@@ -401,32 +298,40 @@ export function processInstanceScriptContent(
     };
 }
 
-function transformInterfacesToTypes(tsAst: ts.SourceFile, str: MagicString, astOffset: any) {
-    tsAst.statements.filter(ts.isInterfaceDeclaration).forEach((node) => {
-        str.overwrite(
-            node.getStart() + astOffset,
-            node.getStart() + astOffset + 'interface'.length,
-            'type'
-        );
+function transformInterfacesToTypes(
+    tsAst: ts.SourceFile,
+    str: MagicString,
+    astOffset: any,
+    movedNodes: ts.Node[]
+) {
+    tsAst.statements
+        .filter(ts.isInterfaceDeclaration)
+        .filter((i) => !movedNodes.includes(i))
+        .forEach((node) => {
+            str.overwrite(
+                node.getStart() + astOffset,
+                node.getStart() + astOffset + 'interface'.length,
+                'type'
+            );
 
-        if (node.heritageClauses?.length) {
-            const extendsStart = node.heritageClauses[0].getStart() + astOffset;
-            str.overwrite(extendsStart, extendsStart + 'extends'.length, '=');
+            if (node.heritageClauses?.length) {
+                const extendsStart = node.heritageClauses[0].getStart() + astOffset;
+                str.overwrite(extendsStart, extendsStart + 'extends'.length, '=');
 
-            const extendsList = node.heritageClauses[0].types;
-            let prev = extendsList[0];
-            extendsList.slice(1).forEach((heritageClause) => {
-                str.overwrite(
-                    prev.getEnd() + astOffset,
-                    heritageClause.getStart() + astOffset,
-                    ' & '
-                );
-                prev = heritageClause;
-            });
+                const extendsList = node.heritageClauses[0].types;
+                let prev = extendsList[0];
+                extendsList.slice(1).forEach((heritageClause) => {
+                    str.overwrite(
+                        prev.getEnd() + astOffset,
+                        heritageClause.getStart() + astOffset,
+                        ' & '
+                    );
+                    prev = heritageClause;
+                });
 
-            str.appendLeft(node.heritageClauses[0].getEnd() + astOffset, ' & ');
-        } else {
-            str.prependLeft(str.original.indexOf('{', node.getStart() + astOffset), '=');
-        }
-    });
+                str.appendLeft(node.heritageClauses[0].getEnd() + astOffset, ' & ');
+            } else {
+                str.prependLeft(str.original.indexOf('{', node.getStart() + astOffset), '=');
+            }
+        });
 }

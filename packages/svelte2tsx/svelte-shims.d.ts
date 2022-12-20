@@ -5,7 +5,7 @@
 
 // -- start svelte-ls-remove --
 declare module '*.svelte' {
-    export default Svelte2TsxComponent
+    export default _SvelteComponent
 }
 // -- end svelte-ls-remove --
 
@@ -36,7 +36,7 @@ declare class Svelte2TsxComponent<
      * Causes the callback function to be called whenever the component dispatches an event.
      * A function is returned that will remove the event listener when called.
      */
-    $on<K extends keyof Events & string>(event: K, handler: (e: Events[K]) => any): () => void;
+    $on<K extends keyof Events & string>(event: K, handler: ((e: Events[K]) => any) | null | undefined): () => void;
     /**
      * Removes a component from the DOM and triggers any `onDestroy` handlers.
      */
@@ -52,6 +52,8 @@ declare class Svelte2TsxComponent<
     $capture_state(): void;
     $inject_state(): void;
 }
+
+type _SvelteComponent<Props=any,Events=any,Slots=any> = typeof import("svelte") extends {SvelteComponentTyped: any} ? import("svelte").SvelteComponentTyped<Props,Events,Slots> : Svelte2TsxComponent<Props,Events,Slots>;
 
 interface Svelte2TsxComponentConstructorParameters<Props extends {}> {
     /**
@@ -100,7 +102,7 @@ type SvelteAnimationReturnType = {
 
 type SvelteWithOptionalProps<Props, Keys extends keyof Props> = Omit<Props, Keys> & Partial<Pick<Props, Keys>>;
 type SvelteAllProps = { [index: string]: any }
-type SveltePropsAnyFallback<Props> = {[K in keyof Props]: Props[K] extends undefined ? any : Props[K]}
+type SveltePropsAnyFallback<Props> = {[K in keyof Props]: Props[K] extends never ? never : Props[K] extends undefined ? any : Props[K]}
 type SvelteSlotsAnyFallback<Slots> = {[K in keyof Slots]: {[S in keyof Slots[K]]: Slots[K][S] extends undefined ? any : Slots[K][S]}}
 type SvelteRestProps = { [index: string]: any }
 type SvelteSlots = { [index: string]: any }
@@ -167,7 +169,7 @@ declare function __sveltets_1_store_get<T = any>(store: SvelteStore<T>): T
 declare function __sveltets_1_store_get<Store extends SvelteStore<any> | undefined | null>(store: Store): Store extends SvelteStore<infer T> ? T : Store;
 declare function __sveltets_1_any(dummy: any): any;
 declare function __sveltets_1_empty(...dummy: any[]): {};
-declare function __sveltets_1_componentType(): AConstructorTypeOf<Svelte2TsxComponent<any, any, any>>
+declare function __sveltets_1_componentType(): AConstructorTypeOf<_SvelteComponent<any, any, any>>
 declare function __sveltets_1_invalidate<T>(getValue: () => T): T
 
 declare function __sveltets_1_mapWindowEvent<K extends keyof HTMLBodyElementEventMap>(
@@ -217,17 +219,19 @@ declare function __sveltets_1_each<T extends ArrayLike<unknown>>(
 
 declare function __sveltets_1_createSvelte2TsxComponent<Props, Events, Slots>(
     render: {props: Props, events: Events, slots: Slots }
-): SvelteComponentConstructor<Svelte2TsxComponent<Props, Events, Slots>,Svelte2TsxComponentConstructorParameters<Props>>;
+): SvelteComponentConstructor<_SvelteComponent<Props, Events, Slots>,Svelte2TsxComponentConstructorParameters<Props>>;
 
 declare function __sveltets_1_unwrapArr<T>(arr: ArrayLike<T>): T
 declare function __sveltets_1_unwrapPromiseLike<T>(promise: PromiseLike<T> | T): T
 
 // v2
 declare function __sveltets_2_createCreateSlot<Slots = Record<string, Record<string, any>>>(): <SlotName extends keyof Slots>(slotName: SlotName, attrs: Slots[SlotName]) => Record<string, any>;
-declare function __sveltets_2_createComponentAny(props: Record<string, any>): Svelte2TsxComponent<any, any, any>;
+declare function __sveltets_2_createComponentAny(props: Record<string, any>): _SvelteComponent<any, any, any>;
 
 declare function __sveltets_2_any(...dummy: any[]): any;
 declare function __sveltets_2_empty(...dummy: any[]): {};
+declare function __sveltets_2_union<T1,T2,T3,T4,T5>(t1:T1,t2?:T2,t3?:T3,t4?:T4,t5?:T5): T1 & T2 & T3 & T4 & T5;
+declare function __sveltets_2_nonNullable<T>(type: T): NonNullable<T>;
 
 declare function __sveltets_2_cssProp(prop: Record<string, any>): {};
 
@@ -243,9 +247,10 @@ declare function __sveltets_2_ensureAnimation(animationCall: __sveltets_2_Svelte
 
 type __sveltets_2_SvelteActionReturnType = {
 	update?: (args: any) => void,
-	destroy?: () => void
+	destroy?: () => void,
+    $$_attributes?: Record<string, any>,
 } | void
-declare function __sveltets_2_ensureAction(actionCall: __sveltets_2_SvelteActionReturnType): {};
+declare function __sveltets_2_ensureAction<T extends __sveltets_2_SvelteActionReturnType>(actionCall: T): T extends  {$$_attributes?: any} ? T['$$_attributes'] : {};
 
 type __sveltets_2_SvelteTransitionConfig = {
     delay?: number,
@@ -263,7 +268,7 @@ declare function __sveltets_2_ensureType<T1, T2>(type1: AConstructorTypeOf<T1>, 
 
 // The following is necessary because there are two clashing errors that can't be solved at the same time
 // when using Svelte2TsxComponent, more precisely the event typings in
-// __sveltets_2_ensureComponent<T extends new (..) => Svelte2TsxComponent<any,||any||<-this,any>>(type: T): T;
+// __sveltets_2_ensureComponent<T extends new (..) => _SvelteComponent<any,||any||<-this,any>>(type: T): T;
 // If we type it as "any", we have an error when using sth like {a: CustomEvent<any>}
 // If we type it as "{}", we have an error when using sth like {[evt: string]: CustomEvent<any>}
 // If we type it as "unknown", we get all kinds of follow up errors which we want to avoid
@@ -288,12 +293,19 @@ declare type ATypedSvelteComponent = {
      */
     $$slot_def: any;
 
-    $on(event: string, handler: (e: any) => any): () => void;
+    $on(event: string, handler: ((e: any) => any) | null | undefined): () => void;
 }
 /**
- * Ambient type only used for intellisense, DO NOT USE IN YOUR PROJECT
+ * Ambient type only used for intellisense, DO NOT USE IN YOUR PROJECT.
+ * 
+ * If you're looking for the type of a Svelte Component, use `SvelteComponentTyped` and `ComponentType` instead:
+ *
+ * ```ts
+ * import type { ComponentType, SvelteComponentTyped } from "svelte";
+ * let myComponentConstructor: ComponentType<SvelteComponentTyped> = ..;
+ * ```
  */
 declare type ConstructorOfATypedSvelteComponent = new (args: {target: any, props?: any}) => ATypedSvelteComponent
-declare function __sveltets_2_ensureComponent<T extends ConstructorOfATypedSvelteComponent>(type: T): T;
+declare function __sveltets_2_ensureComponent<T extends ConstructorOfATypedSvelteComponent | null | undefined>(type: T): NonNullable<T>;
 
 declare function __sveltets_2_ensureArray<T extends ArrayLike<unknown>>(array: T): T extends ArrayLike<infer U> ? U[] : any[];

@@ -26,7 +26,7 @@ import {
 } from './utils';
 
 /**
- * An error which occured while trying to parse/preprocess the svelte file contents.
+ * An error which occurred while trying to parse/preprocess the svelte file contents.
  */
 export interface ParserError {
     message: string;
@@ -96,12 +96,13 @@ export namespace DocumentSnapshot {
     export function fromFilePath(
         filePath: string,
         createDocument: (filePath: string, text: string) => Document,
-        options: SvelteSnapshotOptions
+        options: SvelteSnapshotOptions,
+        tsSystem: ts.System
     ) {
         if (isSvelteFilePath(filePath)) {
             return DocumentSnapshot.fromSvelteFilePath(filePath, createDocument, options);
         } else {
-            return DocumentSnapshot.fromNonSvelteFilePath(filePath);
+            return DocumentSnapshot.fromNonSvelteFilePath(filePath, tsSystem);
         }
     }
 
@@ -110,7 +111,7 @@ export namespace DocumentSnapshot {
      * @param filePath path to the js/ts file
      * @param options options that apply in case it's a svelte file
      */
-    export function fromNonSvelteFilePath(filePath: string) {
+    export function fromNonSvelteFilePath(filePath: string, tsSystem: ts.System) {
         let originalText = '';
 
         // The following (very hacky) code makes sure that the ambient module definitions
@@ -121,7 +122,7 @@ export namespace DocumentSnapshot {
         // on their own.
         const normalizedPath = filePath.replace(/\\/g, '/');
         if (!normalizedPath.endsWith('node_modules/svelte/types/runtime/ambient.d.ts')) {
-            originalText = ts.sys.readFile(filePath) || '';
+            originalText = tsSystem.readFile(filePath) || '';
         }
         if (
             normalizedPath.endsWith('svelte2tsx/svelte-shims.d.ts') ||
@@ -310,14 +311,14 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
         return this.exportedNames.has(name);
     }
 
-    svelteNodeAt(postionOrOffset: number | Position): SvelteNode | null {
+    svelteNodeAt(positionOrOffset: number | Position): SvelteNode | null {
         if (!this.htmlAst) {
             return null;
         }
         const offset =
-            typeof postionOrOffset === 'number'
-                ? postionOrOffset
-                : this.parent.offsetAt(postionOrOffset);
+            typeof positionOrOffset === 'number'
+                ? positionOrOffset
+                : this.parent.offsetAt(positionOrOffset);
 
         let foundNode: SvelteNode | null = null;
         walk(this.htmlAst, {

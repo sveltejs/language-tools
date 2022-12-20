@@ -1,8 +1,10 @@
+import { basename, dirname } from 'path';
 import ts from 'typescript';
 import {
     CancellationToken,
     CompletionContext,
     CompletionItem,
+    CompletionItemKind,
     CompletionList,
     CompletionTriggerKind,
     MarkupContent,
@@ -22,6 +24,7 @@ import {
     mapRangeToOriginal,
     toRange
 } from '../../../lib/documents';
+import { AttributeContext, getAttributeContextAtPosition } from '../../../lib/documents/parseHtml';
 import { LSConfigManager } from '../../../ls-config';
 import { flatten, getRegExpMatches, isNotNullOrUndefined, pathToUrl } from '../../../utils';
 import { AppCompletionItem, AppCompletionList, CompletionsProvider } from '../../interfaces';
@@ -32,15 +35,21 @@ import { getMarkdownDocumentation } from '../previewer';
 import {
     changeSvelteComponentName,
     convertRange,
-    getCommitCharactersForScriptElement,
     isInScript,
     scriptElementKindToCompletionItemKind
 } from '../utils';
 import { getJsDocTemplateCompletion } from './getJsDocTemplateCompletion';
-import { findContainingNode, getComponentAtPosition, isPartOfImportStatement } from './utils';
+import {
+    findContainingNode,
+    getComponentAtPosition,
+    isKitTypePath,
+    isPartOfImportStatement
+} from './utils';
+import { isInTag as svelteIsInTag } from '../svelte-ast-utils';
 
 export interface CompletionEntryWithIdentifier extends ts.CompletionEntry, TextDocumentIdentifier {
     position: Position;
+    __is_sveltekit$typeImport?: boolean;
 }
 
 type validTriggerCharacter = '.' | '"' | "'" | '`' | '/' | '@' | '<' | '#';
@@ -63,6 +72,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
      * Therefore, only use the characters the typescript compiler treats as valid.
      */
     private readonly validTriggerCharacters = ['.', '"', "'", '`', '/', '@', '<', '#'] as const;
+    private commitCharacters = ['.', ',', ';', '('];
     /**
      * For performance reasons, try to reuse the last completion if possible.
      */
@@ -163,9 +173,11 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         });
 
         const componentInfo = getComponentAtPosition(lang, document, tsDoc, position);
+        const attributeContext = componentInfo && getAttributeContextAtPosition(document, position);
         const eventAndSlotLetCompletions = this.getEventAndSlotLetCompletions(
             componentInfo,
             document,
+            attributeContext,
             wordRange
         );
 
@@ -173,15 +185,28 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             return CompletionList.create(eventAndSlotLetCompletions, !!tsDoc.parserError);
         }
 
+        const formatSettings = await this.configManager.getFormatCodeSettingsForFile(
+            document,
+            tsDoc.scriptKind
+        );
         if (cancellationToken?.isCancellationRequested) {
             return null;
         }
 
-        let completions =
-            lang.getCompletionsAtPosition(filePath, offset, {
+        const response = lang.getCompletionsAtPosition(
+            filePath,
+            offset,
+            {
                 ...userPreferences,
                 triggerCharacter: validTriggerCharacter
-            })?.entries || [];
+            },
+            formatSettings
+        );
+        const addCommitCharacters =
+            // replicating VS Code behavior https://github.com/microsoft/vscode/blob/main/extensions/typescript-language-features/src/languageFeatures/completions.ts
+            response?.isNewIdentifierLocation !== true &&
+            (!tsDoc.parserError || isInScript(position, tsDoc));
+        let completions = response?.entries || [];
 
         if (!completions.length) {
             completions =
@@ -197,16 +222,59 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             return tsDoc.parserError ? CompletionList.create([], true) : null;
         }
 
+        if (
+            completions.length > 500 &&
+            svelteNode?.type === 'Element' &&
+            completions[0].kind !== ts.ScriptElementKind.memberVariableElement
+        ) {
+            // False global completions inside element start tag
+            return null;
+        }
+
+        if (
+            completions.length > 500 &&
+            svelteNode?.type === 'InlineComponent' &&
+            ['  ', ' >', ' /'].includes(
+                document.getText().substring(originalOffset - 1, originalOffset + 1)
+            )
+        ) {
+            // Very likely false global completions inside component start tag -> narrow
+            const props =
+                (!attributeContext?.inValue &&
+                    componentInfo
+                        ?.getProps()
+                        .map((entry) =>
+                            this.componentInfoToCompletionEntry(
+                                entry,
+                                '',
+                                CompletionItemKind.Field,
+                                document,
+                                wordRange
+                            )
+                        )) ||
+                [];
+            return CompletionList.create(
+                [...eventAndSlotLetCompletions, ...props],
+                !!tsDoc.parserError
+            );
+        }
+
+        // moved here due to perf reasons
         const existingImports = this.getExistingImports(document);
         const wordRangeStartPosition = document.positionAt(wordRange.start);
+        const fileUrl = pathToUrl(tsDoc.filePath);
+        const isCompletionInTag = svelteIsInTag(svelteNode, originalOffset);
+
         const completionItems = completions
-            .filter(isValidCompletion(document, position))
+            .filter(isValidCompletion(document, position, !!tsDoc.parserError))
             .map((comp) =>
                 this.toCompletionItem(
                     tsDoc,
                     comp,
-                    pathToUrl(tsDoc.filePath),
+                    fileUrl,
                     position,
+                    isCompletionInTag,
+                    addCommitCharacters,
                     existingImports
                 )
             )
@@ -214,6 +282,43 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             .map((comp) => mapCompletionItemToOriginal(tsDoc, comp))
             .map((comp) => this.fixTextEditRange(wordRangeStartPosition, comp))
             .concat(eventAndSlotLetCompletions);
+
+        // Add ./$types imports for SvelteKit since TypeScript is bad at it
+        if (basename(filePath).startsWith('+')) {
+            const $typeImports = new Map<string, CompletionItem>();
+            for (const c of completionItems) {
+                if (isKitTypePath(c.data?.source)) {
+                    $typeImports.set(c.label, c);
+                }
+            }
+            for (const $typeImport of $typeImports.values()) {
+                // resolve path from filePath to svelte-kit/types
+                // src/routes/foo/+page.svelte -> .svelte-kit/types/foo/$types.d.ts
+                const routesFolder = document.config?.kit?.files?.routes || 'src/routes';
+                const relativeFileName = filePath.split(routesFolder)[1]?.slice(1);
+                if (relativeFileName) {
+                    const relativePath =
+                        dirname(relativeFileName) === '.' ? '' : `${dirname(relativeFileName)}/`;
+                    const modifiedSource =
+                        $typeImport.data.source.split('.svelte-kit/types')[0] +
+                        // note the missing .d.ts at the end - TS wants it that way for some reason
+                        `.svelte-kit/types/${routesFolder}/${relativePath}$types`;
+                    completionItems.push({
+                        ...$typeImport,
+                        // Ensure it's sorted above the other imports
+                        sortText: !isNaN(Number($typeImport.sortText))
+                            ? String(Number($typeImport.sortText) - 1)
+                            : $typeImport.sortText,
+                        data: {
+                            ...$typeImport.data,
+                            __is_sveltekit$typeImport: true,
+                            source: modifiedSource,
+                            data: undefined
+                        }
+                    });
+                }
+            }
+        }
 
         const completionList = CompletionList.create(completionItems, !!tsDoc.parserError);
         this.lastCompletion = { key: document.getFilePath() || '', position, completionList };
@@ -255,33 +360,64 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
 
     private getEventAndSlotLetCompletions(
         componentInfo: ComponentInfoProvider | null,
-        doc: Document,
+        document: Document,
+        attributeContext: AttributeContext | null,
         wordRange: { start: number; end: number }
     ): Array<AppCompletionItem<CompletionEntryWithIdentifier>> {
         if (componentInfo === null) {
             return [];
         }
 
-        const { start, end } = wordRange;
-        const events = componentInfo.getEvents().map((event) => mapToCompletionEntry(event, 'on:'));
-        const slotLets = componentInfo
-            .getSlotLets()
-            .map((slot) => mapToCompletionEntry(slot, 'let:'));
-        return [...events, ...slotLets];
-
-        function mapToCompletionEntry(info: ComponentPartInfo[0], prefix: string) {
-            const slotName = prefix + info.name;
-            return {
-                label: slotName,
-                sortText: '-1',
-                detail: info.name + ': ' + info.type,
-                documentation: info.doc && { kind: MarkupKind.Markdown, value: info.doc },
-                textEdit:
-                    start !== end
-                        ? TextEdit.replace(toRange(doc.getText(), start, end), slotName)
-                        : undefined
-            };
+        if (attributeContext?.inValue) {
+            return [];
         }
+
+        return [
+            ...componentInfo
+                .getEvents()
+                .map((event) =>
+                    this.componentInfoToCompletionEntry(
+                        event,
+                        'on:',
+                        undefined,
+                        document,
+                        wordRange
+                    )
+                ),
+            ...componentInfo
+                .getSlotLets()
+                .map((slot) =>
+                    this.componentInfoToCompletionEntry(
+                        slot,
+                        'let:',
+                        undefined,
+                        document,
+                        wordRange
+                    )
+                )
+        ];
+    }
+
+    private componentInfoToCompletionEntry(
+        info: ComponentPartInfo[0],
+        prefix: string,
+        kind: CompletionItemKind | undefined,
+        doc: Document,
+        wordRange: { start: number; end: number }
+    ): AppCompletionItem<CompletionEntryWithIdentifier> {
+        const { start, end } = wordRange;
+        const name = prefix + info.name;
+        return {
+            label: name,
+            kind,
+            sortText: '-1',
+            detail: info.name + ': ' + info.type,
+            documentation: info.doc && { kind: MarkupKind.Markdown, value: info.doc },
+            textEdit:
+                start !== end
+                    ? TextEdit.replace(toRange(doc.getText(), start, end), name)
+                    : undefined
+        };
     }
 
     private toCompletionItem(
@@ -289,6 +425,8 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         comp: ts.CompletionEntry,
         uri: string,
         position: Position,
+        isCompletionInTag: boolean,
+        addCommitCharacters: boolean,
         existingImports: Set<string>
     ): AppCompletionItem<CompletionEntryWithIdentifier> | null {
         const completionLabelAndInsert = this.getCompletionLabelAndInsert(snapshot, comp);
@@ -296,13 +434,23 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             return null;
         }
 
-        const { label, insertText, isSvelteComp, replacementSpan } = completionLabelAndInsert;
+        let { label, insertText, isSvelteComp, replacementSpan } = completionLabelAndInsert;
         // TS may suggest another Svelte component even if there already exists an import
         // with the same name, because under the hood every Svelte component is postfixed
         // with `__SvelteComponent`. In this case, filter out this completion by returning null.
         if (isSvelteComp && existingImports.has(label)) {
             return null;
         }
+        // Remove wrong quotes, for example when using --css-props
+        if (
+            isCompletionInTag &&
+            !insertText &&
+            label[0] === '"' &&
+            label[label.length - 1] === '"'
+        ) {
+            label = label.slice(1, -1);
+        }
+
         const textEdit = replacementSpan
             ? TextEdit.replace(convertRange(snapshot, replacementSpan), insertText ?? label)
             : undefined;
@@ -311,7 +459,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             label,
             insertText,
             kind: scriptElementKindToCompletionItemKind(comp.kind),
-            commitCharacters: getCommitCharactersForScriptElement(comp.kind),
+            commitCharacters: addCommitCharacters ? this.commitCharacters : undefined,
             // Make sure svelte component takes precedence
             sortText: isSvelteComp ? '-1' : comp.sortText,
             preselect: isSvelteComp ? true : comp.isRecommended,
@@ -450,9 +598,15 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
 
         const filePath = tsDoc.filePath;
 
+        const formatCodeOptions = await this.configManager.getFormatCodeSettingsForFile(
+            document,
+            tsDoc.scriptKind
+        );
         if (!comp || !filePath || cancellationToken?.isCancellationRequested) {
             return completionItem;
         }
+
+        const is$typeImport = !!comp.__is_sveltekit$typeImport;
 
         const errorPreventingUserPreferences = comp.source?.endsWith('.svelte')
             ? this.fixUserPreferencesForSvelteComponentImport(userPreferences)
@@ -460,17 +614,17 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
 
         const detail = lang.getCompletionEntryDetails(
             filePath,
-            tsDoc.offsetAt(tsDoc.getGeneratedPosition(comp.position)),
-            comp.name,
-            {},
-            comp.source,
+            tsDoc.offsetAt(tsDoc.getGeneratedPosition(comp!.position)),
+            comp!.name,
+            formatCodeOptions,
+            comp!.source,
             errorPreventingUserPreferences,
-            comp.data
+            comp!.data
         );
 
         if (detail) {
             const { detail: itemDetail, documentation: itemDocumentation } =
-                this.getCompletionDocument(detail);
+                this.getCompletionDocument(detail, is$typeImport);
 
             completionItem.detail = itemDetail;
             completionItem.documentation = itemDocumentation;
@@ -490,7 +644,8 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
                             tsDoc,
                             change,
                             isImport,
-                            comp.position
+                            comp.position,
+                            is$typeImport
                         )
                     );
                 }
@@ -504,12 +659,16 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         return completionItem;
     }
 
-    private getCompletionDocument(compDetail: ts.CompletionEntryDetails) {
+    private getCompletionDocument(compDetail: ts.CompletionEntryDetails, is$typeImport: boolean) {
         const { sourceDisplay, documentation: tsDocumentation, displayParts, tags } = compDetail;
         let detail: string = changeSvelteComponentName(ts.displayPartsToString(displayParts));
 
         if (sourceDisplay) {
-            const importPath = ts.displayPartsToString(sourceDisplay);
+            let importPath = ts.displayPartsToString(sourceDisplay);
+            if (is$typeImport) {
+                // Take into account Node16 moduleResolution
+                importPath = `'./$types${importPath.endsWith('.js') ? '.js' : ''}'`;
+            }
             detail = `Auto import from ${importPath}\n${detail}`;
         }
 
@@ -529,7 +688,8 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         snapshot: SvelteDocumentSnapshot,
         changes: ts.FileTextChanges,
         isImport: boolean,
-        originalTriggerPosition: Position
+        originalTriggerPosition: Position,
+        is$typeImport?: boolean
     ): TextEdit[] {
         return changes.textChanges.map((change) =>
             this.codeActionChangeToTextEdit(
@@ -537,7 +697,8 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
                 snapshot,
                 change,
                 isImport,
-                originalTriggerPosition
+                originalTriggerPosition,
+                is$typeImport
             )
         );
     }
@@ -547,11 +708,13 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         snapshot: SvelteDocumentSnapshot,
         change: ts.TextChange,
         isImport: boolean,
-        originalTriggerPosition: Position
+        originalTriggerPosition: Position,
+        is$typeImport?: boolean
     ): TextEdit {
         change.newText = this.changeComponentImport(
             change.newText,
-            isInScript(originalTriggerPosition, doc)
+            isInScript(originalTriggerPosition, doc),
+            is$typeImport
         );
 
         const scriptTagInfo = snapshot.scriptInfo || snapshot.moduleScriptInfo;
@@ -629,7 +792,19 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         return className.endsWith('__SvelteComponent_');
     }
 
-    private changeComponentImport(importText: string, actionTriggeredInScript: boolean) {
+    private changeComponentImport(
+        importText: string,
+        actionTriggeredInScript: boolean,
+        is$typeImport?: boolean
+    ) {
+        if (is$typeImport && importText.trim().startsWith('import ')) {
+            // Take into account Node16 moduleResolution
+            return importText.replace(
+                /(['"])(.+?)['"]/,
+                (_match, quote, path) =>
+                    `${quote}./$types${path.endsWith('.js') ? '.js' : ''}${quote}`
+            );
+        }
         const changedName = changeSvelteComponentName(importText);
         if (importText !== changedName || !actionTriggeredInScript) {
             // For some reason, TS sometimes adds the `type` modifier. Remove it
@@ -677,7 +852,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
               }
             : undefined;
 
-        return componentInfo.getProps(jsxAttribute.name.getText()).map((item) => ({
+        return componentInfo.getProp(jsxAttribute.name.getText()).map((item) => ({
             ...item,
             replacementSpan
         }));
@@ -711,14 +886,31 @@ const svelte2tsxTypes = new Set([
     'SvelteStore'
 ]);
 
+const startsWithUppercase = /^[A-Z]/;
+
 function isValidCompletion(
     document: Document,
-    position: Position
+    position: Position,
+    hasParserError: boolean
 ): (value: ts.CompletionEntry) => boolean {
-    const isNoSvelte2tsxCompletion = (value: ts.CompletionEntry) =>
-        value.kindModifiers !== 'declare' ||
-        (!value.name.startsWith('__sveltets_') && !svelte2tsxTypes.has(value.name));
+    // Make fallback completions for tags inside the template a bit better
+    const isAtStartTag =
+        !isInTag(position, document.scriptInfo) &&
+        /<\w*$/.test(
+            document.getText(Range.create(position.line, 0, position.line, position.character))
+        );
+    const noWrongCompletionAtStartTag =
+        isAtStartTag && hasParserError
+            ? (value: ts.CompletionEntry) => startsWithUppercase.test(value.name)
+            : () => true;
 
+    const isNoSvelte2tsxCompletion = (value: ts.CompletionEntry) => {
+        if (value.kindModifiers === 'declare') {
+            return !value.name.startsWith('__sveltets_') && !svelte2tsxTypes.has(value.name);
+        }
+
+        return !value.name.startsWith('$$_');
+    };
     const isCompletionInHTMLStartTag = !!getNodeIfIsInHTMLStartTag(
         document.html,
         document.offsetAt(position)
@@ -734,5 +926,7 @@ function isValidCompletion(
         // Remove jsx attributes on html tags because they are doubled by the HTML
         // attribute suggestions, and for events they are wrong (onX instead of on:X).
         // Therefore filter them out.
-        value.kind !== ts.ScriptElementKind.jsxAttribute && isNoSvelte2tsxCompletion(value);
+        value.kind !== ts.ScriptElementKind.jsxAttribute &&
+        isNoSvelte2tsxCompletion(value) &&
+        noWrongCompletionAtStartTag(value);
 }

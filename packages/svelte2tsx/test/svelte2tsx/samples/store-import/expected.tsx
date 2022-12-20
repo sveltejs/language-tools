@@ -11,10 +11,10 @@ function render() {
 ;
 () => (<>
 
-<p>{(__sveltets_1_store_get(storeA), $storeA)}</p>
-<p>{(__sveltets_1_store_get(storeB), $storeB)}</p>
-<p>{(__sveltets_1_store_get(storeC), $storeC)}</p></>);
-return { props: {}, slots: {}, getters: {}, events: {} }}
+<p>{$storeA}</p>
+<p>{$storeB}</p>
+<p>{$storeC}</p></>);
+return { props: /** @type {Record<string, never>} */ ({}), slots: {}, events: {} }}
 
 export default class Input__SvelteComponent_ extends __sveltets_1_createSvelte2TsxComponent(__sveltets_1_partial(__sveltets_1_with_any_event(render()))) {
 }

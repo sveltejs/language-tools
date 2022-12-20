@@ -68,7 +68,11 @@ import { SemanticTokensProviderImpl } from './features/SemanticTokensProvider';
 import { SignatureHelpProviderImpl } from './features/SignatureHelpProvider';
 import { TypeDefinitionProviderImpl } from './features/TypeDefinitionProvider';
 import { UpdateImportsProviderImpl } from './features/UpdateImportsProvider';
-import { isNoTextSpanInGeneratedCode, SnapshotMap } from './features/utils';
+import {
+    is$storeVariableIn$storeDeclaration,
+    isTextSpanInGeneratedCode,
+    SnapshotMap
+} from './features/utils';
 import { LSAndTSDocResolver } from './LSAndTSDocResolver';
 import { ignoredBuildDirectories } from './SnapshotManager';
 import { isAttributeName, isAttributeShorthand, isEventHandler } from './svelte-ast-utils';
@@ -344,19 +348,36 @@ export class TypeScriptPlugin
 
         const result = await Promise.all(
             defs.definitions.map(async (def) => {
-                const snapshot = await snapshots.retrieve(def.fileName);
-
-                if (
-                    !def.fileName.endsWith('svelte-shims.d.ts') &&
-                    isNoTextSpanInGeneratedCode(snapshot.getFullText(), def.textSpan)
-                ) {
-                    return LocationLink.create(
-                        pathToUrl(def.fileName),
-                        convertToLocationRange(snapshot, def.textSpan),
-                        convertToLocationRange(snapshot, def.textSpan),
-                        convertToLocationRange(tsDoc, defs.textSpan)
-                    );
+                if (def.fileName.endsWith('svelte-shims.d.ts')) {
+                    return;
                 }
+
+                let snapshot = await snapshots.retrieve(def.fileName);
+
+                // Go from generated $store to store if user wants to find definition for $store
+                if (isTextSpanInGeneratedCode(snapshot.getFullText(), def.textSpan)) {
+                    if (
+                        !is$storeVariableIn$storeDeclaration(
+                            snapshot.getFullText(),
+                            def.textSpan.start
+                        )
+                    ) {
+                        return;
+                    }
+                    // there will be exactly one definition, the store
+                    def = lang.getDefinitionAndBoundSpan(
+                        tsDoc.filePath,
+                        tsDoc.getFullText().indexOf(');', def.textSpan.start) - 1
+                    )!.definitions![0];
+                    snapshot = await snapshots.retrieve(def.fileName);
+                }
+
+                return LocationLink.create(
+                    pathToUrl(def.fileName),
+                    convertToLocationRange(snapshot, def.textSpan),
+                    convertToLocationRange(snapshot, def.textSpan),
+                    convertToLocationRange(tsDoc, defs.textSpan)
+                );
             })
         );
         return result.filter(isNotNullOrUndefined);
@@ -434,7 +455,18 @@ export class TypeScriptPlugin
         for (const { fileName, changeType } of onWatchFileChangesParas) {
             const pathParts = fileName.split(/\/|\\/);
             const dirPathParts = pathParts.slice(0, pathParts.length - 1);
-            if (ignoredBuildDirectories.some((dir) => dirPathParts.includes(dir))) {
+            const declarationExtensions = [ts.Extension.Dcts, ts.Extension.Dts, ts.Extension.Dmts];
+            const canSafelyIgnore =
+                declarationExtensions.every((ext) => !fileName.endsWith(ext)) &&
+                ignoredBuildDirectories.some((dir) => {
+                    const index = dirPathParts.indexOf(dir);
+
+                    return (
+                        // Files in .svelte-kit/types should always come through
+                        index > 0 && (dir !== '.svelte-kit' || dirPathParts[index + 1] !== 'types')
+                    );
+                });
+            if (canSafelyIgnore) {
                 continue;
             }
 

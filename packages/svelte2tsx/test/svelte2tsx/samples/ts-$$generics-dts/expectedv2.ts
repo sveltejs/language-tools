@@ -15,8 +15,12 @@ function render/*Ωignore_startΩ*/<A,B extends keyof A,C extends boolean>/*Ωig
      let c: C/*Ωignore_startΩ*/;c = __sveltets_1_any(c);/*Ωignore_endΩ*/;
 
     const dispatch = createEventDispatcher<{a: A}>();
+
+     function getA() {
+        return a;
+    }
 ;
-return { props: {a: a , b: b , c: c} as {a: A, b: B, c: C}, slots: {'default': {c:c}}, getters: {}, events: {...__sveltets_1_toEventTypings<{a: A}>()} }}
+return { props: {a: a , b: b , c: c , getA: getA} as {a: A, b: B, c: C, getA?: typeof getA}, slots: {'default': {c:c}}, events: {...__sveltets_1_toEventTypings<{a: A}>()} }}
 class __sveltets_Render<A,B extends keyof A,C extends boolean> {
     props() {
         return render<A,B,C>().props;
@@ -33,4 +37,5 @@ export type InputEvents<A,B extends keyof A,C extends boolean> = ReturnType<__sv
 export type InputSlots<A,B extends keyof A,C extends boolean> = ReturnType<__sveltets_Render<A,B,C>['slots']>;
 
 export default class Input<A,B extends keyof A,C extends boolean> extends SvelteComponentTyped<InputProps<A,B,C>, InputEvents<A,B,C>, InputSlots<A,B,C>> {
+    get getA() { return __sveltets_2_nonNullable(this.$$prop_def.getA) }
 }

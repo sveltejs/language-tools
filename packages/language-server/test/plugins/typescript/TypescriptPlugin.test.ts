@@ -203,7 +203,7 @@ function test(useNewTransformation: boolean) {
                     },
                     {
                         name: 'foo',
-                        kind: 14,
+                        kind: 13,
                         location: {
                             uri: getUri('documentsymbols.svelte'),
                             range: {
@@ -731,28 +731,28 @@ function test(useNewTransformation: boolean) {
             it('(within script simple)', async () => {
                 await test$StoreDef(
                     Position.create(7, 1),
-                    Range.create(Position.create(7, 1), Position.create(7, 6))
+                    Range.create(Position.create(7, 0), Position.create(7, 6))
                 );
             });
 
             it('(within script if)', async () => {
                 await test$StoreDef(
                     Position.create(8, 7),
-                    Range.create(Position.create(8, 5), Position.create(8, 10))
+                    Range.create(Position.create(8, 4), Position.create(8, 10))
                 );
             });
 
             it('(within template simple)', async () => {
                 await test$StoreDef(
                     Position.create(13, 3),
-                    Range.create(Position.create(13, 2), Position.create(13, 7))
+                    Range.create(Position.create(13, 1), Position.create(13, 7))
                 );
             });
 
             it('(within template if)', async () => {
                 await test$StoreDef(
                     Position.create(14, 7),
-                    Range.create(Position.create(14, 6), Position.create(14, 11))
+                    Range.create(Position.create(14, 5), Position.create(14, 11))
                 );
             });
         });
@@ -794,28 +794,28 @@ function test(useNewTransformation: boolean) {
             it('(within script simple)', async () => {
                 await test$StoreDef(
                     Position.create(9, 1),
-                    Range.create(Position.create(9, 1), Position.create(9, 6))
+                    Range.create(Position.create(9, 0), Position.create(9, 6))
                 );
             });
 
             it('(within script if)', async () => {
                 await test$StoreDef(
                     Position.create(10, 7),
-                    Range.create(Position.create(10, 5), Position.create(10, 10))
+                    Range.create(Position.create(10, 4), Position.create(10, 10))
                 );
             });
 
             it('(within template simple)', async () => {
                 await test$StoreDef(
                     Position.create(16, 3),
-                    Range.create(Position.create(16, 2), Position.create(16, 7))
+                    Range.create(Position.create(16, 1), Position.create(16, 7))
                 );
             });
 
             it('(within template if)', async () => {
                 await test$StoreDef(
                     Position.create(17, 7),
-                    Range.create(Position.create(17, 6), Position.create(17, 11))
+                    Range.create(Position.create(17, 5), Position.create(17, 11))
                 );
             });
         });
@@ -938,6 +938,10 @@ function test(useNewTransformation: boolean) {
             for (const dir of ignoredBuildDirectories) {
                 await testForOnWatchedFileAdd(path.join(dir, 'index.js'), false);
             }
+        });
+
+        it('should add declaration file snapshot when added to known build directory', async () => {
+            await testForOnWatchedFileAdd(path.join('.svelte-kit', 'ambient.d.ts'), true);
         });
 
         it('should update ts/js file after document change', async () => {

@@ -9,7 +9,7 @@ import {
     SymbolKind
 } from 'vscode-languageserver';
 import { Document, isInTag, mapRangeToOriginal } from '../../lib/documents';
-import { pathToUrl } from '../../utils';
+import { GetCanonicalFileName, pathToUrl } from '../../utils';
 import { DocumentSnapshot, SvelteDocumentSnapshot } from './DocumentSnapshot';
 
 export function getScriptKindFromFileName(fileName: string): ts.ScriptKind {
@@ -124,19 +124,32 @@ export function rangeToTextSpan(
     return { start, length: end - start };
 }
 
-export function findTsConfigPath(fileName: string, rootUris: string[]) {
+export function findTsConfigPath(
+    fileName: string,
+    rootUris: string[],
+    fileExists: (path: string) => boolean,
+    getCanonicalFileName: GetCanonicalFileName
+) {
     const searchDir = dirname(fileName);
 
     const path =
-        ts.findConfigFile(searchDir, ts.sys.fileExists, 'tsconfig.json') ||
-        ts.findConfigFile(searchDir, ts.sys.fileExists, 'jsconfig.json') ||
+        ts.findConfigFile(searchDir, fileExists, 'tsconfig.json') ||
+        ts.findConfigFile(searchDir, fileExists, 'jsconfig.json') ||
         '';
     // Don't return config files that exceed the current workspace context.
-    return !!path && rootUris.some((rootUri) => isSubPath(rootUri, path)) ? path : '';
+    return !!path && rootUris.some((rootUri) => isSubPath(rootUri, path, getCanonicalFileName))
+        ? path
+        : '';
 }
 
-export function isSubPath(uri: string, possibleSubPath: string): boolean {
-    return pathToUrl(possibleSubPath).startsWith(uri);
+export function isSubPath(
+    uri: string,
+    possibleSubPath: string,
+    getCanonicalFileName: GetCanonicalFileName
+): boolean {
+    // URL escape codes are in upper-case
+    // so getCanonicalFileName should be called after converting to file url
+    return getCanonicalFileName(pathToUrl(possibleSubPath)).startsWith(getCanonicalFileName(uri));
 }
 
 export function symbolKindFromString(kind: string): SymbolKind {
@@ -232,39 +245,6 @@ export function scriptElementKindToCompletionItemKind(
             return CompletionItemKind.Constant;
     }
     return CompletionItemKind.Property;
-}
-
-export function getCommitCharactersForScriptElement(
-    kind: ts.ScriptElementKind
-): string[] | undefined {
-    const commitCharacters: string[] = [];
-    switch (kind) {
-        case ts.ScriptElementKind.memberGetAccessorElement:
-        case ts.ScriptElementKind.memberSetAccessorElement:
-        case ts.ScriptElementKind.constructSignatureElement:
-        case ts.ScriptElementKind.callSignatureElement:
-        case ts.ScriptElementKind.indexSignatureElement:
-        case ts.ScriptElementKind.enumElement:
-        case ts.ScriptElementKind.interfaceElement:
-            commitCharacters.push('.');
-            break;
-
-        case ts.ScriptElementKind.moduleElement:
-        case ts.ScriptElementKind.alias:
-        case ts.ScriptElementKind.constElement:
-        case ts.ScriptElementKind.letElement:
-        case ts.ScriptElementKind.variableElement:
-        case ts.ScriptElementKind.localVariableElement:
-        case ts.ScriptElementKind.memberVariableElement:
-        case ts.ScriptElementKind.classElement:
-        case ts.ScriptElementKind.functionElement:
-        case ts.ScriptElementKind.memberFunctionElement:
-            commitCharacters.push('.', ',');
-            commitCharacters.push('(');
-            break;
-    }
-
-    return commitCharacters.length === 0 ? undefined : commitCharacters;
 }
 
 export function mapSeverity(category: ts.DiagnosticCategory): DiagnosticSeverity {

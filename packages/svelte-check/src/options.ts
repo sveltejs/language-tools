@@ -6,6 +6,7 @@ export interface SvelteCheckCliOptions {
     workspaceUri: URI;
     outputFormat: OutputFormat;
     watch: boolean;
+    preserveWatchOutput: boolean;
     tsconfig?: string;
     filePathsToIgnore: string[];
     failOnWarnings: boolean;
@@ -19,7 +20,8 @@ export interface SvelteCheckCliOptions {
 // eslint-disable max-len
 export function parseOptions(cb: (opts: SvelteCheckCliOptions) => any) {
     const prog = sade('svelte-check', true)
-        .version('2.x')
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        .version(require('../../package.json').version) // ends up in dist/src, that's why we go two levels up
         .option(
             '--workspace',
             'Path to your workspace. All subdirectories except node_modules and those listed in `--ignore` are checked'
@@ -34,6 +36,7 @@ export function parseOptions(cb: (opts: SvelteCheckCliOptions) => any) {
             'Will not exit after one pass but keep watching files for changes and rerun diagnostics',
             false
         )
+        .option('--preserveWatchOutput', 'Do not clear the screen in watch mode', false)
         .option(
             '--tsconfig',
             'Pass a path to a tsconfig or jsconfig file. The path can be relative to the workspace path or absolute. Doing this means that only files matched by the files/include/exclude pattern of the config file are diagnosed. It also means that errors from TypeScript and JavaScript files are reported.'
@@ -72,6 +75,7 @@ export function parseOptions(cb: (opts: SvelteCheckCliOptions) => any) {
                 workspaceUri,
                 outputFormat: getOutputFormat(opts),
                 watch: !!opts.watch,
+                preserveWatchOutput: !!opts.preserveWatchOutput,
                 tsconfig: getTsconfig(opts, workspaceUri.fsPath),
                 filePathsToIgnore: getFilepathsToIgnore(opts),
                 failOnWarnings: !!opts['fail-on-warnings'],

@@ -6,6 +6,7 @@ import _glob from 'fast-glob';
 import _path from 'path';
 import _fs from 'fs';
 import { pathToFileURL, URL } from 'url';
+import { FileMap } from './fileCollection';
 
 export type InternalPreprocessorGroup = PreprocessorGroup & {
     /**
@@ -22,6 +23,8 @@ export interface SvelteConfig {
     compilerOptions?: CompileOptions;
     preprocess?: InternalPreprocessorGroup | InternalPreprocessorGroup[];
     loadConfigError?: any;
+    isFallbackConfig?: boolean;
+    kit?: any;
 }
 
 const DEFAULT_OPTIONS: CompileOptions = {
@@ -49,9 +52,9 @@ const _dynamicImport = new Function('modulePath', 'return import(modulePath)') a
  * Asynchronousity is needed because we use the dynamic `import()` statement.
  */
 export class ConfigLoader {
-    private configFiles = new Map<string, SvelteConfig>();
-    private configFilesAsync = new Map<string, Promise<SvelteConfig>>();
-    private filePathToConfigPath = new Map<string, string>();
+    private configFiles = new FileMap<SvelteConfig>();
+    private configFilesAsync = new FileMap<Promise<SvelteConfig>>();
+    private filePathToConfigPath = new FileMap<string>();
     private disabled = false;
 
     constructor(
@@ -257,7 +260,8 @@ export class ConfigLoader {
                     transpileOnly: true,
                     compilerOptions: { sourceMap: true, inlineSourceMap: false }
                 }
-            })
+            }),
+            isFallbackConfig: true
         };
     }
 }

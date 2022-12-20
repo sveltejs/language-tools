@@ -38,6 +38,8 @@ import { FallbackWatcher } from './lib/FallbackWatcher';
 import { configLoader } from './lib/documents/configLoader';
 import { setIsTrusted } from './importPackage';
 import { SORT_IMPORT_CODE_ACTION_KIND } from './plugins/typescript/features/CodeActionsProvider';
+import { createLanguageServices } from './plugins/css/service';
+import { FileSystemProvider } from './plugins/css/FileSystemProvider';
 
 namespace TagCloseRequest {
     export const type: RequestType<TextDocumentPositionParams, string | null, any> =
@@ -113,6 +115,10 @@ export function startServer(options?: LSOptions) {
             Logger.log('Workspace is not trusted, running with reduced capabilities.');
         }
 
+        Logger.setDebug(
+            (evt.initializationOptions?.configuration?.svelte ||
+                evt.initializationOptions?.config)?.['language-server']?.debug
+        );
         // Backwards-compatible way of setting initialization options (first `||` is the old style)
         configManager.update(
             evt.initializationOptions?.configuration?.svelte?.plugin ||
@@ -120,6 +126,11 @@ export function startServer(options?: LSOptions) {
                 {}
         );
         configManager.updateTsJsUserPreferences(
+            evt.initializationOptions?.configuration ||
+                evt.initializationOptions?.typescriptConfig ||
+                {}
+        );
+        configManager.updateTsJsFormateConfig(
             evt.initializationOptions?.configuration ||
                 evt.initializationOptions?.typescriptConfig ||
                 {}
@@ -147,16 +158,23 @@ export function startServer(options?: LSOptions) {
         // Order of plugin registration matters for FirstNonNull, which affects for example hover info
         pluginHost.register((sveltePlugin = new SveltePlugin(configManager)));
         pluginHost.register(new HTMLPlugin(docManager, configManager));
-        pluginHost.register(new CSSPlugin(docManager, configManager));
+
+        const cssLanguageServices = createLanguageServices({
+            clientCapabilities: evt.capabilities,
+            fileSystemProvider: new FileSystemProvider()
+        });
+        const workspaceFolders = evt.workspaceFolders ?? [{ name: '', uri: evt.rootUri ?? '' }];
+        pluginHost.register(
+            new CSSPlugin(docManager, configManager, workspaceFolders, cssLanguageServices)
+        );
         pluginHost.register(
             new TypeScriptPlugin(
                 configManager,
-                new LSAndTSDocResolver(
-                    docManager,
-                    workspaceUris.map(normalizeUri),
-                    configManager,
-                    notifyTsServiceExceedSizeLimit
-                )
+                new LSAndTSDocResolver(docManager, workspaceUris.map(normalizeUri), configManager, {
+                    notifyExceedSizeLimit: notifyTsServiceExceedSizeLimit,
+                    onProjectReloaded: updateAllDiagnostics,
+                    watchTsConfig: true
+                })
             )
         );
 
@@ -266,7 +284,7 @@ export function startServer(options?: LSOptions) {
         connection?.sendNotification(ShowMessageNotification.type, {
             message:
                 'Svelte language server detected a large amount of JS/Svelte files. ' +
-                'To enable project-wide JavaScript/TypeScript language features for Svelte files,' +
+                'To enable project-wide JavaScript/TypeScript language features for Svelte files, ' +
                 'exclude large folders in the tsconfig.json or jsconfig.json with source files that you do not work on.',
             type: MessageType.Warning
         });
@@ -284,11 +302,13 @@ export function startServer(options?: LSOptions) {
     connection.onDidChangeConfiguration(({ settings }) => {
         configManager.update(settings.svelte?.plugin);
         configManager.updateTsJsUserPreferences(settings);
+        configManager.updateTsJsFormateConfig(settings);
         configManager.updateEmmetConfig(settings.emmet);
         configManager.updatePrettierConfig(settings.prettier);
         configManager.updateCssConfig(settings.css);
         configManager.updateScssConfig(settings.scss);
         configManager.updateLessConfig(settings.less);
+        Logger.setDebug(settings.svelte?.['language-server']?.debug);
     });
 
     connection.onDidOpenTextDocument((evt) => {

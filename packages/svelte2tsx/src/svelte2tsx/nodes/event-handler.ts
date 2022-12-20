@@ -10,13 +10,15 @@ export class EventHandler {
         // pass-through/ bubble
         if (!node.expression) {
             if (parent.type === 'InlineComponent') {
-                this.handleEventHandlerBubble(parent, eventName);
-            } else {
-                this.bubbledEvents.set(
-                    eventName,
-                    getEventDefExpressionForNonCompoent(eventName, parent)
-                );
+                if (parent.name !== 'svelte:self') {
+                    this.handleEventHandlerBubble(parent, eventName);
+                }
+                return;
             }
+            this.bubbledEvents.set(
+                eventName,
+                getEventDefExpressionForNonComponent(eventName, parent)
+            );
         }
     }
 
@@ -58,7 +60,7 @@ export class EventHandler {
     }
 }
 
-function getEventDefExpressionForNonCompoent(eventName: string, ele: Node) {
+function getEventDefExpressionForNonComponent(eventName: string, ele: Node) {
     switch (ele.type) {
         case 'Element':
             return `__sveltets_1_mapElementEvent('${eventName}')`;

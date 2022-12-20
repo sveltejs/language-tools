@@ -73,3 +73,14 @@ export function getConfigPathForProject(project: ts.server.Project) {
         (project.getCompilerOptions() as any).configFilePath
     );
 }
+
+export function isStoreVariableIn$storeDeclaration(text: string, varStart: number) {
+    return (
+        text.lastIndexOf('__sveltets_1_store_get(', varStart) ===
+        varStart - '__sveltets_1_store_get('.length
+    );
+}
+
+export function get$storeOffsetOf$storeDeclaration(text: string, storePosition: number) {
+    return text.lastIndexOf(' =', storePosition) - 1;
+}
