@@ -5,8 +5,8 @@ type TypeOrInterface = ts.InterfaceDeclaration | ts.TypeAliasDeclaration;
 
 export class InterfacesAndTypes {
     node: TypeOrInterface | null = null;
-    private all: Array<TypeOrInterface> = [];
-    private references: Map<TypeOrInterface, Array<ts.TypeReferenceNode>> = new Map();
+    private all: TypeOrInterface[] = [];
+    private references: Map<TypeOrInterface, ts.TypeReferenceNode[]> = new Map();
 
     add(node: TypeOrInterface) {
         this.all.push(node);
