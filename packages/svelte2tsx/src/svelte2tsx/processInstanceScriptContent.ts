@@ -1,7 +1,7 @@
 import MagicString from 'magic-string';
 import { Node } from 'estree-walker';
 import * as ts from 'typescript';
-import { getBinaryAssignmentExpr, isNotPropertyNameOfImport } from './utils/tsAst';
+import { getBinaryAssignmentExpr, isNotPropertyNameOfImport, moveNode } from './utils/tsAst';
 import { ExportedNames, is$$PropsDeclaration } from './nodes/ExportedNames';
 import { ImplicitTopLevelNames } from './nodes/ImplicitTopLevelNames';
 import { ComponentEvents, is$$EventsDeclaration } from './nodes/ComponentEvents';
@@ -15,6 +15,7 @@ import {
     handleFirstInstanceImport,
     handleImportDeclaration
 } from './nodes/handleImportDeclaration';
+import { InterfacesAndTypes } from './nodes/InterfacesAndTypes';
 
 export interface InstanceScriptProcessResult {
     exportedNames: ExportedNames;
@@ -52,6 +53,7 @@ export function processInstanceScriptContent(
     const astOffset = script.content.start;
     const exportedNames = new ExportedNames(str, astOffset);
     const generics = new Generics(str, astOffset);
+    const interfacesAndTypes = new InterfacesAndTypes();
 
     const implicitTopLevelNames = new ImplicitTopLevelNames(str, astOffset);
     let uses$$props = false;
@@ -219,6 +221,12 @@ export function processInstanceScriptContent(
             implicitStoreValues.addImportStatement(node);
         }
 
+        if (ts.isTypeAliasDeclaration(node) || ts.isInterfaceDeclaration(node)) {
+            interfacesAndTypes.node = node;
+            interfacesAndTypes.add(node);
+            onLeaveCallbacks.push(() => (interfacesAndTypes.node = null));
+        }
+
         //handle stores etc
         if (ts.isIdentifier(node)) {
             handleIdentifier(node, parent);
@@ -264,12 +272,19 @@ export function processInstanceScriptContent(
 
     handleFirstInstanceImport(tsAst, astOffset, hasModuleScript, str);
 
+    // move interfaces and types out of the render function if they are referenced
+    // by a $$Generic, otherwise it will be used before being defined after the transformation
+    const nodesToMove = interfacesAndTypes.getNodesWithNames(generics.getTypeReferences());
+    for (const node of nodesToMove) {
+        moveNode(node, str, astOffset, script.start, tsAst);
+    }
+
     if (mode === 'dts') {
         // Transform interface declarations to type declarations because indirectly
         // using interfaces inside the return type of a function is forbidden.
         // This is not a problem for intellisense/type inference but it will
         // break dts generation (file will not be generated).
-        transformInterfacesToTypes(tsAst, str, astOffset);
+        transformInterfacesToTypes(tsAst, str, astOffset, nodesToMove);
     }
 
     return {
@@ -283,32 +298,40 @@ export function processInstanceScriptContent(
     };
 }
 
-function transformInterfacesToTypes(tsAst: ts.SourceFile, str: MagicString, astOffset: any) {
-    tsAst.statements.filter(ts.isInterfaceDeclaration).forEach((node) => {
-        str.overwrite(
-            node.getStart() + astOffset,
-            node.getStart() + astOffset + 'interface'.length,
-            'type'
-        );
+function transformInterfacesToTypes(
+    tsAst: ts.SourceFile,
+    str: MagicString,
+    astOffset: any,
+    movedNodes: ts.Node[]
+) {
+    tsAst.statements
+        .filter(ts.isInterfaceDeclaration)
+        .filter((i) => !movedNodes.includes(i))
+        .forEach((node) => {
+            str.overwrite(
+                node.getStart() + astOffset,
+                node.getStart() + astOffset + 'interface'.length,
+                'type'
+            );
 
-        if (node.heritageClauses?.length) {
-            const extendsStart = node.heritageClauses[0].getStart() + astOffset;
-            str.overwrite(extendsStart, extendsStart + 'extends'.length, '=');
+            if (node.heritageClauses?.length) {
+                const extendsStart = node.heritageClauses[0].getStart() + astOffset;
+                str.overwrite(extendsStart, extendsStart + 'extends'.length, '=');
 
-            const extendsList = node.heritageClauses[0].types;
-            let prev = extendsList[0];
-            extendsList.slice(1).forEach((heritageClause) => {
-                str.overwrite(
-                    prev.getEnd() + astOffset,
-                    heritageClause.getStart() + astOffset,
-                    ' & '
-                );
-                prev = heritageClause;
-            });
+                const extendsList = node.heritageClauses[0].types;
+                let prev = extendsList[0];
+                extendsList.slice(1).forEach((heritageClause) => {
+                    str.overwrite(
+                        prev.getEnd() + astOffset,
+                        heritageClause.getStart() + astOffset,
+                        ' & '
+                    );
+                    prev = heritageClause;
+                });
 
-            str.appendLeft(node.heritageClauses[0].getEnd() + astOffset, ' & ');
-        } else {
-            str.prependLeft(str.original.indexOf('{', node.getStart() + astOffset), '=');
-        }
-    });
+                str.appendLeft(node.heritageClauses[0].getEnd() + astOffset, ' & ');
+            } else {
+                str.prependLeft(str.original.indexOf('{', node.getStart() + astOffset), '=');
+            }
+        });
 }
