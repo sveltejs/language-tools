@@ -57,7 +57,7 @@ function executeTests(dir: string, workspaceDir: string, useNewTransformation: b
                 try {
                     assert.deepStrictEqual(
                         diagnostics,
-                        JSON.parse(readFileSync(expectedFile, 'UTF-8'))
+                        JSON.parse(readFileSync(expectedFile, 'utf-8'))
                     );
                 } catch (e) {
                     if (process.argv.includes('--auto')) {
@@ -72,7 +72,7 @@ function executeTests(dir: string, workspaceDir: string, useNewTransformation: b
 
             function writeFile(msg: string) {
                 console.info(msg, dir.substring(__dirname.length));
-                writeFileSync(expectedFile, JSON.stringify(diagnostics), 'UTF-8');
+                writeFileSync(expectedFile, JSON.stringify(diagnostics), 'utf-8');
             }
         };
     }
