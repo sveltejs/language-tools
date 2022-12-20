@@ -90,7 +90,7 @@ export default [
             resolve({ browser: false, preferBuiltins: true }),
             commonjs(),
             json(),
-            typescript({ include: ['src/**/*'] }),
+            typescript(),
             DEV && repl()
         ],
         watch: {
