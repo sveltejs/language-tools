@@ -40,12 +40,13 @@ namespace TagCloseRequest {
     );
 }
 
+let lsApi: { getLS(): LanguageClient } | undefined;
+
 export function activate(context: ExtensionContext) {
     // The extension is activated on TS/JS/Svelte files because else it might be too late to configure the TS plugin:
     // If we only activate on Svelte file and the user opens a TS file first, the configuration command is issued too late.
     // We wait until there's a Svelte file open and only then start the actual language client.
     const tsPlugin = new TsPlugin(context);
-    let lsApi: { getLS(): LanguageClient } | undefined;
 
     if (workspace.textDocuments.some((doc) => doc.languageId === 'svelte')) {
         lsApi = activateSvelteLanguageServer(context);
@@ -79,6 +80,12 @@ export function activate(context: ExtensionContext) {
             return lsApi.getLS();
         }
     };
+}
+
+export function deactivate() {
+    const stop = lsApi?.getLS().stop();
+    lsApi = undefined;
+    return stop;
 }
 
 export function activateSvelteLanguageServer(context: ExtensionContext) {
@@ -164,9 +171,7 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
     };
 
     let ls = createLanguageServer(serverOptions, clientOptions);
-    context.subscriptions.push(ls.start());
-
-    ls.onReady().then(() => {
+    ls.start().then(() => {
         const tagRequestor = (document: TextDocument, position: Position) => {
             const param = ls.code2ProtocolConverter.asTextDocumentPositionParams(
                 document,
@@ -215,8 +220,7 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
         restartingLs = true;
         await ls.stop();
         ls = createLanguageServer(serverOptions, clientOptions);
-        context.subscriptions.push(ls.start());
-        await ls.onReady();
+        await ls.start();
         if (showNotification) {
             window.showInformationMessage('Svelte language server restarted.');
         }
