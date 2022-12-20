@@ -513,10 +513,6 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         );
     }
 
-    /**
-     * Workaround for TypeScript doesn't provide a quick fix if the signature is typed as union type, like `(() => void) | null`
-     * We can remove this once TypeScript doesn't have this limitation.
-     */
     private async getSvelteQuickFixes(
         lang: ts.LanguageService,
         document: Document,
@@ -591,13 +587,10 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         userPreferences: ts.UserPreferences
     ): Promise<ts.CodeFixAction[]> {
         const storeIdentifier = identifier.escapedText.toString().substring(1);
-        //const storeResults = lang.getNavigateToItems(storeIdentifier as string, 10);
-
         const formatCodeSettings = await this.configManager.getFormatCodeSettingsForFile(
             document,
             tsDoc.scriptKind
         );
-
         const completion = lang.getCompletionsAtPosition(
             tsDoc.filePath,
             0,
@@ -628,6 +621,10 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         return flatten(completion.entries.filter((c) => c.name === storeIdentifier).map(toFix));
     }
 
+    /**
+     * Workaround for TypeScript doesn't provide a quick fix if the signature is typed as union type, like `(() => void) | null`
+     * We can remove this once TypeScript doesn't have this limitation.
+     */
     private getEventHandlerQuickFixes(
         identifier: ts.Identifier,
         tsDoc: DocumentSnapshot,
@@ -635,8 +632,6 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         quote: string,
         formatCodeBasis: FormatCodeBasis
     ): ts.CodeFixAction[] {
-        const results: ts.CodeFixAction[] = [];
-
         const type = identifier && typeChecker.getContextualType(identifier);
 
         // if it's not union typescript should be able to do it. no need to enhance
@@ -690,23 +685,23 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             .map((line) => formatCodeBasis.baseIndent + line + formatCodeBasis.newLine)
             .join('');
 
-        results.push({
-            description: `Add missing function declaration '${identifier.text}'`,
-            fixName: 'fixMissingFunctionDeclaration',
-            changes: [
-                {
-                    fileName: tsDoc.filePath,
-                    textChanges: [
-                        {
-                            newText,
-                            span: { start: 0, length: 0 }
-                        }
-                    ]
-                }
-            ]
-        });
-
-        return results;
+        return [
+            {
+                description: `Add missing function declaration '${identifier.text}'`,
+                fixName: 'fixMissingFunctionDeclaration',
+                changes: [
+                    {
+                        fileName: tsDoc.filePath,
+                        textChanges: [
+                            {
+                                newText,
+                                span: { start: 0, length: 0 }
+                            }
+                        ]
+                    }
+                ]
+            }
+        ];
     }
 
     private isQuickFixForEventHandler(document: Document, diagnostic: Diagnostic) {
