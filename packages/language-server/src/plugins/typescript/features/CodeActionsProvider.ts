@@ -545,7 +545,8 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                 continue;
             }
 
-            const isQuickFixTargetTargetStore = identifier?.escapedText.toString().startsWith('$');
+            const isQuickFixTargetTargetStore =
+                identifier?.escapedText.toString().startsWith('$') && diagnostic.code === 2304;
             const isQuickFixTargetEventHandler = this.isQuickFixForEventHandler(
                 document,
                 diagnostic
@@ -615,6 +616,18 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                 )
                 ?.codeActions?.map((a) => ({
                     ...a,
+                    changes: a.changes.map((change) => {
+                        return {
+                            ...change,
+                            textChanges: change.textChanges.map((textChange) => {
+                                // For some reason, TS sometimes adds the `type` modifier. Remove it.
+                                return {
+                                    ...textChange,
+                                    newText: textChange.newText.replace(' type ', ' ')
+                                };
+                            })
+                        };
+                    }),
                     fixName: 'import'
                 })) ?? [];
 
