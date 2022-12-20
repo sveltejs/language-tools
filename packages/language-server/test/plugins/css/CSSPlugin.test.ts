@@ -68,10 +68,8 @@ describe('CSS Plugin', () => {
                 contents: {
                     kind: 'markdown',
                     value:
-                        'Specifies the height of the content area,' +
-                        " padding area or border area \\(depending on 'box\\-sizing'\\)" +
-                        ' of certain boxes\\.\n' +
-                        '\nSyntax: &lt;viewport\\-length&gt;\\{1,2\\}\n\n' +
+                        "Specifies the height of the content area, padding area or border area \\(depending on 'box\\-sizing'\\) of certain boxes\\.\n\n" +
+                        '(Edge 12, Firefox 1, Safari 1, Chrome 1, IE 4, Opera 7)\n\nSyntax: &lt;viewport\\-length&gt;\\{1,2\\}\n\n' +
                         '[MDN Reference](https://developer.mozilla.org/docs/Web/CSS/height)'
                 },
                 range: Range.create(0, 12, 0, 24)
@@ -102,7 +100,9 @@ describe('CSS Plugin', () => {
                 kind: CompletionItemKind.Keyword,
                 documentation: {
                     kind: 'markdown',
-                    value: 'Defines character set of the document\\.\n\n[MDN Reference](https://developer.mozilla.org/docs/Web/CSS/@charset)'
+                    value:
+                        'Defines character set of the document\\.\n\n(Edge 12, Firefox 1, Safari 4, Chrome 2, IE 5, Opera 9)\n\n' +
+                        '[MDN Reference](https://developer.mozilla.org/docs/Web/CSS/@charset)'
                 },
                 textEdit: TextEdit.insert(Position.create(0, 7), '@charset'),
                 tags: []
