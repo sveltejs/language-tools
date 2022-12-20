@@ -26,7 +26,7 @@ import {
 } from './utils';
 
 /**
- * An error which occured while trying to parse/preprocess the svelte file contents.
+ * An error which occurred while trying to parse/preprocess the svelte file contents.
  */
 export interface ParserError {
     message: string;
@@ -311,14 +311,14 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
         return this.exportedNames.has(name);
     }
 
-    svelteNodeAt(postionOrOffset: number | Position): SvelteNode | null {
+    svelteNodeAt(positionOrOffset: number | Position): SvelteNode | null {
         if (!this.htmlAst) {
             return null;
         }
         const offset =
-            typeof postionOrOffset === 'number'
-                ? postionOrOffset
-                : this.parent.offsetAt(postionOrOffset);
+            typeof positionOrOffset === 'number'
+                ? positionOrOffset
+                : this.parent.offsetAt(positionOrOffset);
 
         let foundNode: SvelteNode | null = null;
         walk(this.htmlAst, {

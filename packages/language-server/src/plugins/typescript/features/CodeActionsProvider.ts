@@ -298,7 +298,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                     userPreferences
                 )
                 .concat(
-                    this.createElementEventHandlerQuickFix(
+                    await this.getSvelteQuickFixes(
                         lang,
                         document,
                         cannotFoundNameDiagnostic,
@@ -513,18 +513,14 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         );
     }
 
-    /**
-     * Workaround for TypesScript doesn't provide a quick fix if the signature is typed as union type, like `(() => void) | null`
-     * We can remove this once TypesScript doesn't have this limitation.
-     */
-    private createElementEventHandlerQuickFix(
+    private async getSvelteQuickFixes(
         lang: ts.LanguageService,
         document: Document,
         diagnostics: Diagnostic[],
         tsDoc: DocumentSnapshot,
         formatCodeBasis: FormatCodeBasis,
         userPreferences: ts.UserPreferences
-    ): ts.CodeFixAction[] {
+    ): Promise<ts.CodeFixAction[]> {
         const program = lang.getProgram();
         const sourceFile = program?.getSourceFile(tsDoc.filePath);
         if (!program || !sourceFile) {
@@ -532,18 +528,10 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         }
 
         const typeChecker = program.getTypeChecker();
-        const result: ts.CodeFixAction[] = [];
+        const results: ts.CodeFixAction[] = [];
         const quote = getQuotePreference(sourceFile, userPreferences);
 
         for (const diagnostic of diagnostics) {
-            const htmlNode = document.html.findNodeAt(document.offsetAt(diagnostic.range.start));
-            if (
-                !htmlNode.attributes ||
-                !Object.keys(htmlNode.attributes).some((attr) => attr.startsWith('on:'))
-            ) {
-                continue;
-            }
-
             const start = tsDoc.offsetAt(tsDoc.getGeneratedPosition(diagnostic.range.start));
             const end = tsDoc.offsetAt(tsDoc.getGeneratedPosition(diagnostic.range.end));
 
@@ -553,66 +541,165 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                 ts.isIdentifier
             );
 
-            const type = identifier && typeChecker.getContextualType(identifier);
-
-            // if it's not union typescript should be able to do it. no need to enhance
-            if (!type || !type.isUnion()) {
+            if (!identifier) {
                 continue;
             }
 
-            const nonNullable = type.getNonNullableType();
+            const isQuickFixTargetTargetStore =
+                identifier?.escapedText.toString().startsWith('$') && diagnostic.code === 2304;
+            const isQuickFixTargetEventHandler = this.isQuickFixForEventHandler(
+                document,
+                diagnostic
+            );
 
-            if (
-                !(
-                    nonNullable.flags & ts.TypeFlags.Object &&
-                    (nonNullable as ts.ObjectType).objectFlags & ts.ObjectFlags.Anonymous
+            if (isQuickFixTargetTargetStore) {
+                results.push(
+                    ...(await this.getSvelteStoreQuickFixes(
+                        identifier,
+                        lang,
+                        document,
+                        tsDoc,
+                        userPreferences
+                    ))
+                );
+            }
+
+            if (isQuickFixTargetEventHandler) {
+                results.push(
+                    ...this.getEventHandlerQuickFixes(
+                        identifier,
+                        tsDoc,
+                        typeChecker,
+                        quote,
+                        formatCodeBasis
+                    )
+                );
+            }
+        }
+
+        return results;
+    }
+
+    private async getSvelteStoreQuickFixes(
+        identifier: ts.Identifier,
+        lang: ts.LanguageService,
+        document: Document,
+        tsDoc: DocumentSnapshot,
+        userPreferences: ts.UserPreferences
+    ): Promise<ts.CodeFixAction[]> {
+        const storeIdentifier = identifier.escapedText.toString().substring(1);
+        const formatCodeSettings = await this.configManager.getFormatCodeSettingsForFile(
+            document,
+            tsDoc.scriptKind
+        );
+        const completion = lang.getCompletionsAtPosition(
+            tsDoc.filePath,
+            0,
+            userPreferences,
+            formatCodeSettings
+        );
+
+        if (!completion) {
+            return [];
+        }
+
+        const toFix = (c: ts.CompletionEntry) =>
+            lang
+                .getCompletionEntryDetails(
+                    tsDoc.filePath,
+                    0,
+                    c.name,
+                    formatCodeSettings,
+                    c.source,
+                    userPreferences,
+                    c.data
                 )
-            ) {
-                continue;
-            }
+                ?.codeActions?.map((a) => ({
+                    ...a,
+                    changes: a.changes.map((change) => {
+                        return {
+                            ...change,
+                            textChanges: change.textChanges.map((textChange) => {
+                                // For some reason, TS sometimes adds the `type` modifier. Remove it.
+                                return {
+                                    ...textChange,
+                                    newText: textChange.newText.replace(' type ', ' ')
+                                };
+                            })
+                        };
+                    }),
+                    fixName: 'import'
+                })) ?? [];
 
-            const signature = typeChecker.getSignaturesOfType(
-                nonNullable,
-                ts.SignatureKind.Call
-            )[0];
+        return flatten(completion.entries.filter((c) => c.name === storeIdentifier).map(toFix));
+    }
 
-            const parameters = signature.parameters.map((p) => {
-                const declaration = p.valueDeclaration ?? p.declarations?.[0];
-                const typeString = declaration
-                    ? typeChecker.typeToString(
-                          typeChecker.getTypeOfSymbolAtLocation(p, declaration)
-                      )
-                    : '';
+    /**
+     * Workaround for TypeScript doesn't provide a quick fix if the signature is typed as union type, like `(() => void) | null`
+     * We can remove this once TypeScript doesn't have this limitation.
+     */
+    private getEventHandlerQuickFixes(
+        identifier: ts.Identifier,
+        tsDoc: DocumentSnapshot,
+        typeChecker: ts.TypeChecker,
+        quote: string,
+        formatCodeBasis: FormatCodeBasis
+    ): ts.CodeFixAction[] {
+        const type = identifier && typeChecker.getContextualType(identifier);
 
-                return { name: p.name, typeString };
-            });
-            const returnType = typeChecker.typeToString(signature.getReturnType());
-            const useJsDoc =
-                tsDoc.scriptKind === ts.ScriptKind.JS || tsDoc.scriptKind === ts.ScriptKind.JSX;
-            const parametersText = (
-                useJsDoc
-                    ? parameters.map((p) => p.name)
-                    : parameters.map((p) => p.name + (p.typeString ? ': ' + p.typeString : ''))
-            ).join(', ');
+        // if it's not union typescript should be able to do it. no need to enhance
+        if (!type || !type.isUnion()) {
+            return [];
+        }
 
-            const jsDoc = useJsDoc
-                ? ['/**', ...parameters.map((p) => ` * @param {${p.typeString}} ${p.name}`), ' */']
-                : [];
+        const nonNullable = type.getNonNullableType();
 
-            const newText = [
-                ...jsDoc,
-                `function ${identifier.text}(${parametersText})${
-                    useJsDoc ? '' : ': ' + returnType
-                } {`,
-                formatCodeBasis.indent +
-                    `throw new Error(${quote}Function not implemented.${quote})` +
-                    formatCodeBasis.semi,
-                '}'
-            ]
-                .map((line) => formatCodeBasis.baseIndent + line + formatCodeBasis.newLine)
-                .join('');
+        if (
+            !(
+                nonNullable.flags & ts.TypeFlags.Object &&
+                (nonNullable as ts.ObjectType).objectFlags & ts.ObjectFlags.Anonymous
+            )
+        ) {
+            return [];
+        }
 
-            result.push({
+        const signature = typeChecker.getSignaturesOfType(nonNullable, ts.SignatureKind.Call)[0];
+
+        const parameters = signature.parameters.map((p) => {
+            const declaration = p.valueDeclaration ?? p.declarations?.[0];
+            const typeString = declaration
+                ? typeChecker.typeToString(typeChecker.getTypeOfSymbolAtLocation(p, declaration))
+                : '';
+
+            return { name: p.name, typeString };
+        });
+
+        const returnType = typeChecker.typeToString(signature.getReturnType());
+        const useJsDoc =
+            tsDoc.scriptKind === ts.ScriptKind.JS || tsDoc.scriptKind === ts.ScriptKind.JSX;
+        const parametersText = (
+            useJsDoc
+                ? parameters.map((p) => p.name)
+                : parameters.map((p) => p.name + (p.typeString ? ': ' + p.typeString : ''))
+        ).join(', ');
+
+        const jsDoc = useJsDoc
+            ? ['/**', ...parameters.map((p) => ` * @param {${p.typeString}} ${p.name}`), ' */']
+            : [];
+
+        const newText = [
+            ...jsDoc,
+            `function ${identifier.text}(${parametersText})${useJsDoc ? '' : ': ' + returnType} {`,
+            formatCodeBasis.indent +
+                `throw new Error(${quote}Function not implemented.${quote})` +
+                formatCodeBasis.semi,
+            '}'
+        ]
+            .map((line) => formatCodeBasis.baseIndent + line + formatCodeBasis.newLine)
+            .join('');
+
+        return [
+            {
                 description: `Add missing function declaration '${identifier.text}'`,
                 fixName: 'fixMissingFunctionDeclaration',
                 changes: [
@@ -626,10 +713,20 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                         ]
                     }
                 ]
-            });
+            }
+        ];
+    }
+
+    private isQuickFixForEventHandler(document: Document, diagnostic: Diagnostic) {
+        const htmlNode = document.html.findNodeAt(document.offsetAt(diagnostic.range.start));
+        if (
+            !htmlNode.attributes ||
+            !Object.keys(htmlNode.attributes).some((attr) => attr.startsWith('on:'))
+        ) {
+            return false;
         }
 
-        return result;
+        return true;
     }
 
     private async getApplicableRefactors(
