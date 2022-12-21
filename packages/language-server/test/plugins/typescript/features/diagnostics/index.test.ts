@@ -79,13 +79,13 @@ function executeTests(dir: string, workspaceDir: string, useNewTransformation: b
 }
 
 describe('DiagnosticsProvider', () => {
-    describe('(old transformation)', () => {
-        executeTests(join(__dirname, 'fixtures'), join(__dirname, 'fixtures'), false);
-        // Hacky, but it works. Needed due to testing both new and old transformation
-        after(() => {
-            __resetCache();
-        });
-    });
+    // describe('(old transformation)', () => {
+    //     executeTests(join(__dirname, 'fixtures'), join(__dirname, 'fixtures'), false);
+    //     // Hacky, but it works. Needed due to testing both new and old transformation
+    //     after(() => {
+    //         __resetCache();
+    //     });
+    // });
 
     describe('new transformation', () => {
         executeTests(join(__dirname, 'fixtures'), join(__dirname, 'fixtures'), true);

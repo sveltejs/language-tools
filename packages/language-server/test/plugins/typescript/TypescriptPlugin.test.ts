@@ -976,5 +976,5 @@ function test(useNewTransformation: boolean) {
     };
 }
 
-describe('TypescriptPlugin (old transformation)', test(false));
+// describe('TypescriptPlugin (old transformation)', test(false));
 describe('TypescriptPlugin (new transformation)', test(true));

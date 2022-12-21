@@ -1479,5 +1479,5 @@ function test(useNewTransformation: boolean) {
     };
 }
 
-describe('CodeActionsProvider (old transformation)', test(false));
+// describe('CodeActionsProvider (old transformation)', test(false));
 describe('CodeActionsProvider (new transformation)', test(true));

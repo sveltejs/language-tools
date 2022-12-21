@@ -41,7 +41,7 @@ const defaultLSConfig: LSConfig = {
     },
     svelte: {
         enable: true,
-        useNewTransformation: false,
+        useNewTransformation: true,
         compilerWarnings: {},
         diagnostics: { enable: true },
         rename: { enable: true },
@@ -289,6 +289,8 @@ export class LSConfigManager {
         if (config.svelte?.compilerWarnings) {
             this.config.svelte.compilerWarnings = config.svelte.compilerWarnings;
         }
+        // TODO remove once we remove old transformation
+        this.config.svelte.useNewTransformation = true;
 
         this.listeners.forEach((listener) => listener(this));
     }

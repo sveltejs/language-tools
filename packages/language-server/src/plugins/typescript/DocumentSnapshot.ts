@@ -186,6 +186,7 @@ function preprocessSvelteFile(document: Document, options: SvelteSnapshotOptions
             isTsFile: options.useNewTransformation
                 ? scriptKind === ts.ScriptKind.TS
                 : scriptKind === ts.ScriptKind.TSX,
+            // @ts-expect-error TODO remove when old transformation code is removed
             mode: options.useNewTransformation ? 'ts' : 'tsx',
             typingsNamespace: options.useNewTransformation ? options.typingsNamespace : undefined,
             emitOnTemplateError: options.transformOnTemplateError,

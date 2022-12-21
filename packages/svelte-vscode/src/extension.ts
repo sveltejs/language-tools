@@ -230,23 +230,24 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
         return ls;
     }
 
-    noteOfNewTransformation();
-    let enabled = workspace
-        .getConfiguration('svelte.plugin.svelte')
-        .get<boolean>('useNewTransformation');
-    context.subscriptions.push(
-        workspace.onDidChangeConfiguration(() => {
-            if (
-                enabled !==
-                workspace
-                    .getConfiguration('svelte.plugin.svelte')
-                    .get<boolean>('useNewTransformation')
-            ) {
-                enabled = !enabled;
-                restartLS(false);
-            }
-        })
-    );
+    // TODO remove once old transformation is gone
+    // noteOfNewTransformation();
+    // let enabled = workspace
+    //     .getConfiguration('svelte.plugin.svelte')
+    //     .get<boolean>('useNewTransformation');
+    // context.subscriptions.push(
+    //     workspace.onDidChangeConfiguration(() => {
+    //         if (
+    //             enabled !==
+    //             workspace
+    //                 .getConfiguration('svelte.plugin.svelte')
+    //                 .get<boolean>('useNewTransformation')
+    //         ) {
+    //             enabled = !enabled;
+    //             restartLS(false);
+    //         }
+    //     })
+    // );
 
     addDidChangeTextDocumentListener(getLS);
 
