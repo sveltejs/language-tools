@@ -14,6 +14,7 @@ import {
     validate_test_file
 } from './process';
 
+// TODO figure out what to do with those now that we have the new transformation
 describe('sourcemaps', function () {
     for (const sample of each_sample(__dirname)) {
         if (process.env.CI) {
