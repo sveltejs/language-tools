@@ -73,7 +73,7 @@ export interface FooSlots {
 export default class Foo extends SvelteComponentTyped<FooProps, FooEvents, FooSlots> {}
 ```
 
-SvelteKit's `package` command will give you these capabilities - transpiling and creating type definitions - out of the box: https://kit.svelte.dev/docs#packaging
+SvelteKit's `package` command will give you these capabilities - transpiling and creating type definitions - out of the box: https://kit.svelte.dev/docs/packaging
 
 ## Typing component events
 
@@ -157,6 +157,11 @@ Create a `additional-svelte-jsx.d.ts` file:
 
 ```ts
 declare namespace svelte.JSX {
+    // enhance elements
+    interface IntrinsicElements {
+        'my-custom-element': { someattribute: string; onevent: (e: CustomEvent<any>) => void };
+    }
+    // enhance attributes
     interface HTMLAttributes<T> {
         // If you want to use on:beforeinstallprompt
         onbeforeinstallprompt?: (event: any) => any;
@@ -168,6 +173,25 @@ declare namespace svelte.JSX {
 ```
 
 Then make sure that `d.ts` file is referenced in your `tsconfig.json`. If it reads something like `"include": ["src/**/*"]` and your `d.ts` file is inside `src`, it should work. You may need to reload for the changes to take effect.
+
+In case you are using the new transformation (behind a flag in svelte-check version 2 and enabled by default since a while in the VS Code extension), you enhance the typings like this:
+
+```ts
+declare namespace svelteHTML {
+    // enhance elements
+    interface IntrinsicElements {
+        'my-custom-element': { someattribute: string; 'on:event': (e: CustomEvent<any>) => void };
+    }
+    // enhance attributes
+    interface HTMLAttributes {
+        // If you want to use on:beforeinstallprompt
+        'on:beforeinstallprompt'?: (event: any) => any;
+        // If you want to use myCustomAttribute={..} (note: all lowercase)
+        mycustomattribute?: any;
+        // You can replace any with something more specific if you like
+    }
+}
+```
 
 ### I'm unable to use installed types (for example through `@types/..`)
 

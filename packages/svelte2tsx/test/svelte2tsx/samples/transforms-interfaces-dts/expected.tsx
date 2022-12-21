@@ -24,7 +24,7 @@ function render() {
     }
      let bar: Bar3/*Ωignore_startΩ*/;bar = __sveltets_1_any(bar);/*Ωignore_endΩ*/;
 ;
-return { props: {foo: foo , bar: bar}, slots: {}, getters: {}, events: {} }}
+return { props: {foo: foo , bar: bar}, slots: {}, events: {} }}
 const __propDef = __sveltets_1_partial(__sveltets_1_with_any_event(render()));
 /** @typedef {typeof __propDef.props}  InputProps */
 /** @typedef {typeof __propDef.events}  InputEvents */

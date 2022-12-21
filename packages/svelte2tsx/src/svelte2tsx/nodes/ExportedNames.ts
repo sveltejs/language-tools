@@ -19,6 +19,9 @@ interface ExportedName {
 }
 
 export class ExportedNames {
+    /**
+     * Uses the $$Props type
+     */
     public uses$$Props = false;
     private exports = new Map<string, ExportedName>();
     private possibleExports = new Map<
@@ -195,13 +198,14 @@ export class ExportedNames {
 
     createClassGetters(): string {
         return Array.from(this.getters)
-            .map((name) => `\n    get ${name}() { return render().getters.${name} }`)
+            .map(
+                (name) =>
+                    // getters are const/classes/functions, which are always defined.
+                    // We have to remove the `| undefined` from the type here because it was necessary to
+                    // be added in a previous step so people are not expected to provide these as props.
+                    `\n    get ${name}() { return __sveltets_2_nonNullable(this.$$prop_def.${name}) }`
+            )
             .join('');
-    }
-
-    createRenderFunctionGetterStr(): string {
-        const properties = Array.from(this.getters).map((name) => `${name}: ${name}`);
-        return `{${properties.join(', ')}}`;
     }
 
     createClassAccessors(): string {
@@ -217,7 +221,7 @@ export class ExportedNames {
         return accessors
             .map(
                 (name) =>
-                    `\n    get ${name}() { return render().props.${name} }` +
+                    `\n    get ${name}() { return this.$$prop_def.${name} }` +
                     `\n    /**accessor*/\n    set ${name}(_) {}`
             )
             .join('');
@@ -320,8 +324,9 @@ export class ExportedNames {
      * Creates a string from the collected props
      *
      * @param isTsFile Whether this is a TypeScript file or not.
+     * @param uses$$propsValue whether the file references the $$props variable
      */
-    createPropsStr(isTsFile: boolean): string {
+    createPropsStr(isTsFile: boolean, uses$$propsValue: boolean): string {
         const names = Array.from(this.exports.entries());
 
         if (this.uses$$Props) {
@@ -351,13 +356,18 @@ export class ExportedNames {
             );
         }
 
+        if (names.length === 0 && !uses$$propsValue) {
+            // Necessary, because {} roughly equals to any
+            return isTsFile
+                ? '{} as Record<string, never>'
+                : '/** @type {Record<string, never>} */ ({})';
+        }
+
         const dontAddTypeDef =
-            !isTsFile ||
-            names.length === 0 ||
-            names.every(([_, value]) => !value.type && value.required);
+            !isTsFile || names.every(([_, value]) => !value.type && value.required);
         const returnElements = this.createReturnElements(names, dontAddTypeDef);
         if (dontAddTypeDef) {
-            // No exports or only `typeof` exports -> omit the `as {...}` completely.
+            // Only `typeof` exports -> omit the `as {...}` completely.
             // If not TS, omit the types to not have a "cannot use types in jsx" error.
             return `{${returnElements.join(' , ')}}`;
         }

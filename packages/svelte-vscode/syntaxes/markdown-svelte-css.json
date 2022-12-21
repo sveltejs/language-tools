@@ -1,0 +1,23 @@
+{
+    "scopeName": "markdown.svelte.codeblock.style",
+    "fileTypes": [],
+    "injectionSelector": "L:meta.style.svelte",
+    "patterns": [
+        {
+            "include": "#svelte-script-css"
+        }
+    ],
+    "repository": {
+        "svelte-script-css": {
+            "begin": "(?<=style.*>)(?!</)",
+            "end": "(?=</)",
+            "name": "meta.embedded.block.svelte.style",
+            "contentName": "source.css",
+            "patterns": [
+                {
+                    "include": "source.css"
+                }
+            ]
+        }
+    }
+}

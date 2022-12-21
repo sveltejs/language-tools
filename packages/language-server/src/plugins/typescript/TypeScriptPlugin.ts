@@ -38,6 +38,7 @@ import {
     FileRename,
     FindReferencesProvider,
     FileReferencesProvider,
+    FindComponentReferencesProvider,
     HoverProvider,
     ImplementationProvider,
     OnWatchFileChanges,
@@ -57,6 +58,7 @@ import {
 } from './features/CompletionProvider';
 import { DiagnosticsProviderImpl } from './features/DiagnosticsProvider';
 import { FindFileReferencesProviderImpl } from './features/FindFileReferencesProvider';
+import { FindComponentReferencesProviderImpl } from './features/FindComponentReferencesProvider';
 import { FindReferencesProviderImpl } from './features/FindReferencesProvider';
 import { getDirectiveCommentCompletions } from './features/getDirectiveCommentCompletions';
 import { HoverProviderImpl } from './features/HoverProvider';
@@ -67,7 +69,11 @@ import { SemanticTokensProviderImpl } from './features/SemanticTokensProvider';
 import { SignatureHelpProviderImpl } from './features/SignatureHelpProvider';
 import { TypeDefinitionProviderImpl } from './features/TypeDefinitionProvider';
 import { UpdateImportsProviderImpl } from './features/UpdateImportsProvider';
-import { isNoTextSpanInGeneratedCode, SnapshotFragmentMap } from './features/utils';
+import {
+    is$storeVariableIn$storeDeclaration,
+    isTextSpanInGeneratedCode,
+    SnapshotMap
+} from './features/utils';
 import { LSAndTSDocResolver } from './LSAndTSDocResolver';
 import { ignoredBuildDirectories } from './SnapshotManager';
 import { isAttributeName, isAttributeShorthand, isEventHandler } from './svelte-ast-utils';
@@ -89,6 +95,7 @@ export class TypeScriptPlugin
         RenameProvider,
         FindReferencesProvider,
         FileReferencesProvider,
+        FindComponentReferencesProvider,
         SelectionRangeProvider,
         SignatureHelpProvider,
         SemanticTokensProvider,
@@ -109,6 +116,7 @@ export class TypeScriptPlugin
     private readonly hoverProvider: HoverProviderImpl;
     private readonly findReferencesProvider: FindReferencesProviderImpl;
     private readonly findFileReferencesProvider: FindFileReferencesProviderImpl;
+    private readonly findComponentReferencesProvider: FindComponentReferencesProviderImpl;
 
     private readonly selectionRangeProvider: SelectionRangeProviderImpl;
     private readonly signatureHelpProvider: SignatureHelpProviderImpl;
@@ -137,6 +145,9 @@ export class TypeScriptPlugin
         this.hoverProvider = new HoverProviderImpl(this.lsAndTsDocResolver);
         this.findReferencesProvider = new FindReferencesProviderImpl(this.lsAndTsDocResolver);
         this.findFileReferencesProvider = new FindFileReferencesProviderImpl(
+            this.lsAndTsDocResolver
+        );
+        this.findComponentReferencesProvider = new FindComponentReferencesProviderImpl(
             this.lsAndTsDocResolver
         );
         this.selectionRangeProvider = new SelectionRangeProviderImpl(this.lsAndTsDocResolver);
@@ -174,7 +185,6 @@ export class TypeScriptPlugin
         }
 
         const { lang, tsDoc } = await this.getLSAndTSDoc(document);
-        const fragment = tsDoc.getFragment();
 
         if (cancellationToken?.isCancellationRequested) {
             return [];
@@ -193,7 +203,7 @@ export class TypeScriptPlugin
                 symbol.containerName = 'script';
             }
 
-            symbol = mapSymbolInformationToOriginal(fragment, symbol);
+            symbol = mapSymbolInformationToOriginal(tsDoc, symbol);
 
             if (
                 symbol.location.range.start.line < 0 ||
@@ -261,10 +271,10 @@ export class TypeScriptPlugin
                         tree.text,
                         symbolKindFromString(tree.kind),
                         Range.create(
-                            fragment.positionAt(start.start),
-                            fragment.positionAt(end.start + end.length)
+                            tsDoc.positionAt(start.start),
+                            tsDoc.positionAt(end.start + end.length)
                         ),
-                        fragment.getURL(),
+                        tsDoc.getURL(),
                         container
                     )
                 );
@@ -323,12 +333,7 @@ export class TypeScriptPlugin
     }
 
     async getDefinitions(document: Document, position: Position): Promise<DefinitionLink[]> {
-        if (!this.featureEnabled('definitions')) {
-            return [];
-        }
-
         const { lang, tsDoc } = await this.getLSAndTSDoc(document);
-        const mainFragment = tsDoc.getFragment();
 
         const cssClassHelper = new CSSClassDefinitionLocator(tsDoc, position, document);
         const cssDefinitionRange = cssClassHelper.getCSSClassDefinition();
@@ -357,41 +362,54 @@ export class TypeScriptPlugin
 
         const defs = lang.getDefinitionAndBoundSpan(
             tsDoc.filePath,
-            mainFragment.offsetAt(mainFragment.getGeneratedPosition(position))
+            tsDoc.offsetAt(tsDoc.getGeneratedPosition(position))
         );
 
         if (!defs || !defs.definitions) {
             return [];
         }
 
-        const docs = new SnapshotFragmentMap(this.lsAndTsDocResolver);
-        docs.set(tsDoc.filePath, { fragment: mainFragment, snapshot: tsDoc });
+        const snapshots = new SnapshotMap(this.lsAndTsDocResolver);
+        snapshots.set(tsDoc.filePath, tsDoc);
 
         const result = await Promise.all(
             defs.definitions.map(async (def) => {
-                const { fragment, snapshot } = await docs.retrieve(def.fileName);
-
-                if (
-                    !def.fileName.endsWith('svelte-shims.d.ts') &&
-                    isNoTextSpanInGeneratedCode(snapshot.getFullText(), def.textSpan)
-                ) {
-                    return LocationLink.create(
-                        pathToUrl(def.fileName),
-                        convertToLocationRange(fragment, def.textSpan),
-                        convertToLocationRange(fragment, def.textSpan),
-                        convertToLocationRange(mainFragment, defs.textSpan)
-                    );
+                if (def.fileName.endsWith('svelte-shims.d.ts')) {
+                    return;
                 }
+
+                let snapshot = await snapshots.retrieve(def.fileName);
+
+                // Go from generated $store to store if user wants to find definition for $store
+                if (isTextSpanInGeneratedCode(snapshot.getFullText(), def.textSpan)) {
+                    if (
+                        !is$storeVariableIn$storeDeclaration(
+                            snapshot.getFullText(),
+                            def.textSpan.start
+                        )
+                    ) {
+                        return;
+                    }
+                    // there will be exactly one definition, the store
+                    def = lang.getDefinitionAndBoundSpan(
+                        tsDoc.filePath,
+                        tsDoc.getFullText().indexOf(');', def.textSpan.start) - 1
+                    )!.definitions![0];
+                    snapshot = await snapshots.retrieve(def.fileName);
+                }
+
+                return LocationLink.create(
+                    pathToUrl(def.fileName),
+                    convertToLocationRange(snapshot, def.textSpan),
+                    convertToLocationRange(snapshot, def.textSpan),
+                    convertToLocationRange(tsDoc, defs.textSpan)
+                );
             })
         );
         return result.filter(isNotNullOrUndefined);
     }
 
     async prepareRename(document: Document, position: Position): Promise<Range | null> {
-        if (!this.featureEnabled('rename')) {
-            return null;
-        }
-
         return this.renameProvider.prepareRename(document, position);
     }
 
@@ -400,10 +418,6 @@ export class TypeScriptPlugin
         position: Position,
         newName: string
     ): Promise<WorkspaceEdit | null> {
-        if (!this.featureEnabled('rename')) {
-            return null;
-        }
-
         return this.renameProvider.rename(document, position, newName);
     }
 
@@ -450,19 +464,15 @@ export class TypeScriptPlugin
         position: Position,
         context: ReferenceContext
     ): Promise<Location[] | null> {
-        if (!this.featureEnabled('findReferences')) {
-            return null;
-        }
-
         return this.findReferencesProvider.findReferences(document, position, context);
     }
 
     async fileReferences(uri: string): Promise<Location[] | null> {
-        if (!this.featureEnabled('fileReferences')) {
-            return null;
-        }
-
         return this.findFileReferencesProvider.fileReferences(uri);
+    }
+
+    async findComponentReferences(uri: string): Promise<Location[] | null> {
+        return this.findComponentReferencesProvider.findComponentReferences(uri);
     }
 
     async onWatchFileChanges(onWatchFileChangesParas: OnWatchFileChangesPara[]): Promise<void> {
@@ -471,7 +481,18 @@ export class TypeScriptPlugin
         for (const { fileName, changeType } of onWatchFileChangesParas) {
             const pathParts = fileName.split(/\/|\\/);
             const dirPathParts = pathParts.slice(0, pathParts.length - 1);
-            if (ignoredBuildDirectories.some((dir) => dirPathParts.includes(dir))) {
+            const declarationExtensions = [ts.Extension.Dcts, ts.Extension.Dts, ts.Extension.Dmts];
+            const canSafelyIgnore =
+                declarationExtensions.every((ext) => !fileName.endsWith(ext)) &&
+                ignoredBuildDirectories.some((dir) => {
+                    const index = dirPathParts.indexOf(dir);
+
+                    return (
+                        // Files in .svelte-kit/types should always come through
+                        index > 0 && (dir !== '.svelte-kit' || dirPathParts[index + 1] !== 'types')
+                    );
+                });
+            if (canSafelyIgnore) {
                 continue;
             }
 
@@ -547,18 +568,10 @@ export class TypeScriptPlugin
     }
 
     async getImplementation(document: Document, position: Position): Promise<Location[] | null> {
-        if (!this.featureEnabled('implementation')) {
-            return null;
-        }
-
         return this.implementationProvider.getImplementation(document, position);
     }
 
     async getTypeDefinition(document: Document, position: Position): Promise<Location[] | null> {
-        if (!this.featureEnabled('typeDefinition')) {
-            return null;
-        }
-
         return this.typeDefinitionProvider.getTypeDefinition(document, position);
     }
 

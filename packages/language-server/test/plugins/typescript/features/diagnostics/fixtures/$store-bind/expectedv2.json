@@ -1,7 +1,7 @@
 [
     {
         "range": {
-            "start": { "line": 19, "character": 33 },
+            "start": { "line": 19, "character": 24 },
             "end": { "line": 19, "character": 34 }
         },
         "severity": 1,

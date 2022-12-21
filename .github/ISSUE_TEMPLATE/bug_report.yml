@@ -54,12 +54,10 @@ body:
     attributes:
       label: Which package is the issue about?
       options:
-        - Svelte for VS Code
-        - language-server
+        - Svelte for VS Code extension
+        - svelte-language-server
         - svelte2tsx
         - svelte-check
-    validations:
-      required: true
 
   - type: textarea
     id: additional-context

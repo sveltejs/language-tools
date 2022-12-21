@@ -24,16 +24,6 @@ export function handleStyleDirective(
         return;
     }
 
-    let start = style.value[0].start;
-    if (style.value[0].type === 'MustacheTag') {
-        start++;
-    }
-    const last = style.value[style.value.length - 1];
-    let end = last.end;
-    if (last.type === 'MustacheTag') {
-        end--;
-    }
-
     if (style.value.length > 1) {
         // We have multiple attribute values, so we build a template string out of them.
         for (const n of style.value) {
@@ -41,7 +31,11 @@ export function handleStyleDirective(
                 str.appendRight(n.start, '$');
             }
         }
-        element.appendToStartEnd([ensureType + '`', [start, end], '`);']);
+        element.appendToStartEnd([
+            ensureType + '`',
+            [style.value[0].start, style.value[style.value.length - 1].end],
+            '`);'
+        ]);
         return;
     }
 
@@ -50,9 +44,13 @@ export function handleStyleDirective(
         const quote = ['"', "'"].includes(str.original[styleVal.start - 1])
             ? str.original[styleVal.start - 1]
             : '"';
-        element.appendToStartEnd([`${ensureType}${quote}`, [start, end], `${quote});`]);
+        element.appendToStartEnd([
+            `${ensureType}${quote}`,
+            [styleVal.start, styleVal.end],
+            `${quote});`
+        ]);
     } else {
         // MustacheTag
-        element.appendToStartEnd([ensureType, [start, end], ');']);
+        element.appendToStartEnd([ensureType, [styleVal.start + 1, styleVal.end - 1], ');']);
     }
 }

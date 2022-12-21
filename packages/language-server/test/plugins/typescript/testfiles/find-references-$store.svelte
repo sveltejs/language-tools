@@ -1,5 +1,8 @@
+<script context="module">
+    export const findMe = writable('');
+</script>
+
 <script>
-    const findMe = writable('');
     if ($findMe) {
         $findMe;
     }

@@ -29,11 +29,11 @@
 
 <element                                                                                                                                              {/**
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
-    {...__sveltets_1_ensureAction(action(__sveltets_1_mapElementTag('element'),((__sveltets_1_store_get(foo), $foo))))}                               {/**
-   ╚{...__sveltets_1_ensureAction(action(__sveltets_1_mapElementTag('element'),((__sveltets_1_store_get(foo),•$foo))))}↲    [generated] line 12       
-   ╚u                             action=                                       $                       foo           }↲                              
+    {...__sveltets_1_ensureAction(action(__sveltets_1_mapElementTag('element'),($foo)))}                                                              {/**
+   ╚{...__sveltets_1_ensureAction(action(__sveltets_1_mapElementTag('element'),($foo)))}↲    [generated] line 12                                      
+   ╚u                             action=                                       $foo   }↲                                                             
    ╚u   action= $foo}↲                                                                                                                                
-   ╚use:action={$foo}↲                                                                                                      [original] line 10        
+   ╚use:action={$foo}↲                                                                       [original] line 10                                       
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
 />
 
@@ -55,12 +55,8 @@
    ╚u   action= {•↲                                                                                                                                   
    ╚use:action={{•↲                                                                    [original] line 18                                             
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
-        ...leet,                                                                                                                                      {/**
------------------------------------------------------------------------------------------------------------------------------------------------------- */}
-        foo: (__sveltets_1_store_get(bar), $bar)                                                                                                      {/**
-      ╚╚foo:•(__sveltets_1_store_get(bar),•$bar)↲    [generated] line 22                                                                              
-      ╚╚foo:•$                       bar        ↲                                                                                                     
-      ╚╚foo:•$bar↲                                   [original] line 20                                                                               
+        ...leet,
+        foo: $bar                                                                                                                                     {/**
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
     })))}                                                                                                                                             {/**
    ╚})))}↲    [generated] line 23                                                                                                                     
@@ -71,7 +67,7 @@
 /></>↲    [generated] line 24                                                                                                                         
 />        [original] line 22                                                                                                                          
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
-return { props: {}, slots: {}, getters: {}, events: {} }}
+return { props: /** @type {Record<string, never>} */ ({}), slots: {}, events: {} }}
 
 export default class Input__SvelteComponent_ extends __sveltets_1_createSvelte2TsxComponent(__sveltets_1_partial(__sveltets_1_with_any_event(render()))) {
 }

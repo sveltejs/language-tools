@@ -1,4 +1,5 @@
 import { flatten } from 'lodash';
+import { performance } from 'perf_hooks';
 import {
     CancellationToken,
     CodeAction,
@@ -54,6 +55,7 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         definitionLinkSupport: false
     };
     private deferredRequests: Record<string, [number, Promise<any>]> = {};
+    private requestTimings: Record<string, [time: number, lastExecuted: number]> = {};
 
     constructor(private documentsManager: DocumentManager) {}
 
@@ -393,6 +395,15 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         return await this.execute<any>('fileReferences', [uri], ExecuteMode.FirstNonNull, 'high');
     }
 
+    async findComponentReferences(uri: string): Promise<Location[] | null> {
+        return await this.execute<any>(
+            'findComponentReferences',
+            [uri],
+            ExecuteMode.FirstNonNull,
+            'high'
+        );
+    }
+
     async getSignatureHelp(
         textDocument: TextDocumentIdentifier,
         position: Position,
@@ -456,7 +467,7 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
             'getSemanticTokens',
             [document, range, cancellationToken],
             ExecuteMode.FirstNonNull,
-            'low'
+            'smart'
         );
     }
 
@@ -526,27 +537,43 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         name: keyof LSProvider,
         args: any[],
         mode: ExecuteMode.FirstNonNull,
-        priority: 'low' | 'high'
+        priority: 'low' | 'high' | 'smart'
     ): Promise<T | null>;
     private execute<T>(
         name: keyof LSProvider,
         args: any[],
         mode: ExecuteMode.Collect,
-        priority: 'low' | 'high'
+        priority: 'low' | 'high' | 'smart'
     ): Promise<T[]>;
     private execute(
         name: keyof LSProvider,
         args: any[],
         mode: ExecuteMode.None,
-        priority: 'low' | 'high'
+        priority: 'low' | 'high' | 'smart'
     ): Promise<void>;
     private async execute<T>(
         name: keyof LSProvider,
         args: any[],
         mode: ExecuteMode,
-        priority: 'low' | 'high'
+        priority: 'low' | 'high' | 'smart'
     ): Promise<(T | null) | T[] | void> {
         const plugins = this.plugins.filter((plugin) => typeof plugin[name] === 'function');
+        // Priority 'smart' tries to aproximate how much time a method takes to execute,
+        // making it low priority if it takes too long or if it seems like other methods do.
+        const now = performance.now();
+        if (
+            priority === 'smart' &&
+            (this.requestTimings[name]?.[0] > 500 ||
+                Object.values(this.requestTimings).filter(
+                    (t) => t[0] > 400 && now - t[1] < 60 * 1000
+                ).length > 2)
+        ) {
+            Logger.debug(`Executing next invocation of "${name}" with low priority`);
+            priority = 'low';
+            if (this.requestTimings[name]) {
+                this.requestTimings[name][0] = this.requestTimings[name][0] / 2 + 150;
+            }
+        }
 
         if (priority === 'low') {
             // If a request doesn't have priority, we first wait 1 second to
@@ -567,7 +594,7 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
                                 resolve();
                             } else {
                                 // We should not get into this case. According to the spec,
-                                // the language client // does not send another request
+                                // the language client does not send another request
                                 // of the same type until the previous one is answered.
                                 reject();
                             }
@@ -590,6 +617,18 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
             }
         }
 
+        const startTime = performance.now();
+        const result = await this.executePlugins(name, args, mode, plugins);
+        this.requestTimings[name] = [performance.now() - startTime, startTime];
+        return result;
+    }
+
+    private async executePlugins(
+        name: keyof LSProvider,
+        args: any[],
+        mode: ExecuteMode,
+        plugins: Plugin[]
+    ) {
         switch (mode) {
             case ExecuteMode.FirstNonNull:
                 for (const plugin of plugins) {

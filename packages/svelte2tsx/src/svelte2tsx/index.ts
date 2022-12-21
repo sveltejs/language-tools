@@ -71,7 +71,7 @@ function processSvelteTemplate(
     //which prevents us just changing all instances of Identity that start with $
 
     const scopeStack = new ScopeStack();
-    const stores = new Stores(scopeStack, str, isDeclaration);
+    const stores = new Stores(scopeStack, isDeclaration);
     const scripts = new Scripts(htmlxAst);
 
     const handleSvelteOptions = (node: Node) => {
@@ -282,10 +282,12 @@ function processSvelteTemplate(
 
     // resolve scripts
     const { scriptTag, moduleScriptTag } = scripts.getTopLevelScriptTags();
-    scripts.blankOtherScriptTags(str);
+    if (options.mode !== 'ts') {
+        scripts.blankOtherScriptTags(str);
+    }
 
     //resolve stores
-    const resolvedStores = stores.resolveStores();
+    const resolvedStores = stores.getStoreNames();
 
     return {
         htmlAst: htmlxAst,
@@ -372,7 +374,8 @@ export function svelte2tsx(
             scriptTag,
             events,
             implicitStoreValues,
-            options.mode
+            options.mode,
+            /**hasModuleScripts */ !!moduleScriptTag
         );
         uses$$props = uses$$props || res.uses$$props;
         uses$$restProps = uses$$restProps || res.uses$$restProps;

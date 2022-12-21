@@ -3,6 +3,9 @@
 declare namespace svelteHTML {
 
   // Every namespace eligible for use needs to implement the following two functions
+  /**
+   * @internal do not use
+   */
   function mapElementTag<K extends keyof ElementTagNameMap>(
     tag: K
   ): ElementTagNameMap[K];
@@ -13,20 +16,18 @@ declare namespace svelteHTML {
     tag: any
   ): any; // needs to be any because used in context of <svelte:element>
 
+  /**
+   * @internal do not use
+   */
   function createElement<Elements extends IntrinsicElements, Key extends keyof Elements>(
     // "undefined | null" because of <svelte:element>
     element: Key | undefined | null, attrs: Elements[Key]
   ): Key extends keyof ElementTagNameMap ? ElementTagNameMap[Key] : Key extends keyof SVGElementTagNameMap ? SVGElementTagNameMap[Key] : any;
+  function createElement<Elements extends IntrinsicElements, Key extends keyof Elements, T>(
+    // "undefined | null" because of <svelte:element>
+    element: Key | undefined | null, attrsEnhancers: T, attrs: Elements[Key] & T
+  ): Key extends keyof ElementTagNameMap ? ElementTagNameMap[Key] : Key extends keyof SVGElementTagNameMap ? SVGElementTagNameMap[Key] : any;
 
-
-  type NativeElement = HTMLElement;
-
-  // TypeScript SVGElement has no `dataset` (Chrome 55+, Firefox 51+).
-  type Element = NativeElement & {
-    dataset: DOMStringMap;
-  };
-
-  //
   // Event Handler Types
   // ----------------------------------------------------------------------
   type EventHandler<E extends Event = Event, T extends EventTarget = HTMLElement> =
@@ -48,260 +49,224 @@ declare namespace svelteHTML {
   type TransitionEventHandler<T extends EventTarget> = svelte.JSX.TransitionEventHandler<T>;
   type MessageEventHandler<T extends EventTarget> = svelte.JSX.MessageEventHandler<T>;
 
-  // See CSS 3 CSS-wide keywords https://www.w3.org/TR/css3-values/#common-keywords
-  // See CSS 3 Explicit Defaulting https://www.w3.org/TR/css-cascade-3/#defaulting-keywords
-  // "all CSS properties can accept these values"
-  type CSSWideKeyword = svelte.JSX.CSSWideKeyword;
-
-  // See CSS 3 <percentage> type https://drafts.csswg.org/css-values-3/#percentages
-  type CSSPercentage = svelte.JSX.CSSPercentage;
-
-  // See CSS 3 <length> type https://drafts.csswg.org/css-values-3/#lengths
-  type CSSLength = svelte.JSX.CSSLength;
-
-  // This interface is not complete. Only properties accepting
-  // unit-less numbers are listed here (see CSSProperty.js in React)
-
+  // For backwards-compatibility and ease-of-use, in case someone enhanced the typings from import('./svelte-html-do-not-use').HTMLAttributes/SVGAttributes
   // eslint-disable-next-line @typescript-eslint/no-empty-interface
-  interface DOMAttributes<T extends EventTarget> extends svelte.JSX.DOMAttributes<T> {}
+  interface HTMLAttributes<T extends EventTarget = any> {}
+  // eslint-disable-next-line @typescript-eslint/no-empty-interface
+  interface SVGAttributes<T extends EventTarget = any> {}
 
-  // eslint-disable-next-line @typescript-eslint/no-empty-interface
-  interface AriaAttributes extends svelte.JSX.AriaAttributes {}
+  /**
+   * @internal do not use
+   */
+  type EventsWithColon<T> = {[Property in keyof T as Property extends `on${infer Key}` ? `on:${Key}` : Property]?: T[Property] }
+  /**
+   * @internal do not use
+   */
+  type HTMLProps<Property extends string, Override> =
+    // This omit chain ensures that properties manually defined in the new transformation take precedence
+    // over those manually defined in the old, taking precendence over the defaults, to make sth like this possible
+    // https://github.com/sveltejs/language-tools/issues/1352#issuecomment-1248627516
+    Omit<
+      // TODO once old transformation is out and JSX.IntrinsicElements is empty, we need an additional "does this Property exist on JSX.IntrinsicElements" check
+      Omit<import('./svelte-html-do-not-use').SvelteHTMLElements[Property], keyof EventsWithColon<svelte.JSX.IntrinsicElements[Property & string]>> & EventsWithColon<svelte.JSX.IntrinsicElements[Property & string]>,
+      keyof Override
+    > & Override;
+  /**
+   * @internal do not use
+   */
+  type RemoveIndex<T> = {
+    [ K in keyof T as string extends K ? never : K ] : T[K]
+  };
 
-  // eslint-disable-next-line @typescript-eslint/no-empty-interface
-  interface HTMLAttributes<T extends EventTarget> extends svelte.JSX.HTMLAttributes<T> {}
+  // the following type construct makes sure that we can use the new typings while maintaining backwards-compatibility in case someone enhanced the old typings
+  interface IntrinsicElements extends Omit<RemoveIndex<svelte.JSX.IntrinsicElements>, keyof RemoveIndex<import('./svelte-html-do-not-use').SvelteHTMLElements>> {
+    a: HTMLProps<'a', HTMLAttributes>;
+    abbr: HTMLProps<'abbr', HTMLAttributes>;
+    address: HTMLProps<'address', HTMLAttributes>;
+    area: HTMLProps<'area', HTMLAttributes>;
+    article: HTMLProps<'article', HTMLAttributes>;
+    aside: HTMLProps<'aside', HTMLAttributes>;
+    audio: HTMLProps<'audio', HTMLAttributes>;
+    b: HTMLProps<'b', HTMLAttributes>;
+    base: HTMLProps<'base', HTMLAttributes>;
+    bdi: HTMLProps<'bdi', HTMLAttributes>;
+    bdo: HTMLProps<'bdo', HTMLAttributes>;
+    big: HTMLProps<'big', HTMLAttributes>;
+    blockquote: HTMLProps<'blockquote', HTMLAttributes>;
+    body: HTMLProps<'body', HTMLAttributes>;
+    br: HTMLProps<'br', HTMLAttributes>;
+    button: HTMLProps<'button', HTMLAttributes>;
+    canvas: HTMLProps<'canvas', HTMLAttributes>;
+    caption: HTMLProps<'caption', HTMLAttributes>;
+    cite: HTMLProps<'cite', HTMLAttributes>;
+    code: HTMLProps<'code', HTMLAttributes>;
+    col: HTMLProps<'col', HTMLAttributes>;
+    colgroup: HTMLProps<'colgroup', HTMLAttributes>;
+    data: HTMLProps<'data', HTMLAttributes>;
+    datalist: HTMLProps<'datalist', HTMLAttributes>;
+    dd: HTMLProps<'dd', HTMLAttributes>;
+    del: HTMLProps<'del', HTMLAttributes>;
+    details: HTMLProps<'details', HTMLAttributes>;
+    dfn: HTMLProps<'dfn', HTMLAttributes>;
+    dialog: HTMLProps<'dialog', HTMLAttributes>;
+    div: HTMLProps<'div', HTMLAttributes>;
+    dl: HTMLProps<'dl', HTMLAttributes>;
+    dt: HTMLProps<'dt', HTMLAttributes>;
+    em: HTMLProps<'em', HTMLAttributes>;
+    embed: HTMLProps<'embed', HTMLAttributes>;
+    fieldset: HTMLProps<'fieldset', HTMLAttributes>;
+    figcaption: HTMLProps<'figcaption', HTMLAttributes>;
+    figure: HTMLProps<'figure', HTMLAttributes>;
+    footer: HTMLProps<'footer', HTMLAttributes>;
+    form: HTMLProps<'form', HTMLAttributes>;
+    h1: HTMLProps<'h1', HTMLAttributes>;
+    h2: HTMLProps<'h2', HTMLAttributes>;
+    h3: HTMLProps<'h3', HTMLAttributes>;
+    h4: HTMLProps<'h4', HTMLAttributes>;
+    h5: HTMLProps<'h5', HTMLAttributes>;
+    h6: HTMLProps<'h6', HTMLAttributes>;
+    head: HTMLProps<'head', HTMLAttributes>;
+    header: HTMLProps<'header', HTMLAttributes>;
+    hgroup: HTMLProps<'hgroup', HTMLAttributes>;
+    hr: HTMLProps<'hr', HTMLAttributes>;
+    html: HTMLProps<'html', HTMLAttributes>;
+    i: HTMLProps<'i', HTMLAttributes>;
+    iframe: HTMLProps<'iframe', HTMLAttributes>;
+    img: HTMLProps<'img', HTMLAttributes>;
+    input: HTMLProps<'input', HTMLAttributes>;
+    ins: HTMLProps<'ins', HTMLAttributes>;
+    kbd: HTMLProps<'kbd', HTMLAttributes>;
+    keygen: HTMLProps<'keygen', HTMLAttributes>;
+    label: HTMLProps<'label', HTMLAttributes>;
+    legend: HTMLProps<'legend', HTMLAttributes>;
+    li: HTMLProps<'li', HTMLAttributes>;
+    link: HTMLProps<'link', HTMLAttributes>;
+    main: HTMLProps<'main', HTMLAttributes>;
+    map: HTMLProps<'map', HTMLAttributes>;
+    mark: HTMLProps<'mark', HTMLAttributes>;
+    menu: HTMLProps<'menu', HTMLAttributes>;
+    menuitem: HTMLProps<'menuitem', HTMLAttributes>;
+    meta: HTMLProps<'meta', HTMLAttributes>;
+    meter: HTMLProps<'meter', HTMLAttributes>;
+    nav: HTMLProps<'nav', HTMLAttributes>;
+    noscript: HTMLProps<'noscript', HTMLAttributes>;
+    object: HTMLProps<'object', HTMLAttributes>;
+    ol: HTMLProps<'ol', HTMLAttributes>;
+    optgroup: HTMLProps<'optgroup', HTMLAttributes>;
+    option: HTMLProps<'option', HTMLAttributes>;
+    output: HTMLProps<'output', HTMLAttributes>;
+    p: HTMLProps<'p', HTMLAttributes>;
+    param: HTMLProps<'param', HTMLAttributes>;
+    picture: HTMLProps<'picture', HTMLAttributes>;
+    pre: HTMLProps<'pre', HTMLAttributes>;
+    progress: HTMLProps<'progress', HTMLAttributes>;
+    q: HTMLProps<'q', HTMLAttributes>;
+    rp: HTMLProps<'rp', HTMLAttributes>;
+    rt: HTMLProps<'rt', HTMLAttributes>;
+    ruby: HTMLProps<'ruby', HTMLAttributes>;
+    s: HTMLProps<'s', HTMLAttributes>;
+    samp: HTMLProps<'samp', HTMLAttributes>;
+    slot: HTMLProps<'slot', HTMLAttributes>;
+    script: HTMLProps<'script', HTMLAttributes>;
+    section: HTMLProps<'section', HTMLAttributes>;
+    select: HTMLProps<'select', HTMLAttributes>;
+    small: HTMLProps<'small', HTMLAttributes>;
+    source: HTMLProps<'source', HTMLAttributes>;
+    span: HTMLProps<'span', HTMLAttributes>;
+    strong: HTMLProps<'strong', HTMLAttributes>;
+    style: HTMLProps<'style', HTMLAttributes>;
+    sub: HTMLProps<'sub', HTMLAttributes>;
+    summary: HTMLProps<'summary', HTMLAttributes>;
+    sup: HTMLProps<'sup', HTMLAttributes>;
+    table: HTMLProps<'table', HTMLAttributes>;
+    template: HTMLProps<'template', HTMLAttributes>;
+    tbody: HTMLProps<'tbody', HTMLAttributes>;
+    td: HTMLProps<'td', HTMLAttributes>;
+    textarea: HTMLProps<'textarea', HTMLAttributes>;
+    tfoot: HTMLProps<'tfoot', HTMLAttributes>;
+    th: HTMLProps<'th', HTMLAttributes>;
+    thead: HTMLProps<'thead', HTMLAttributes>;
+    time: HTMLProps<'time', HTMLAttributes>;
+    title: HTMLProps<'title', HTMLAttributes>;
+    tr: HTMLProps<'tr', HTMLAttributes>;
+    track: HTMLProps<'track', HTMLAttributes>;
+    u: HTMLProps<'u', HTMLAttributes>;
+    ul: HTMLProps<'ul', HTMLAttributes>;
+    var: HTMLProps<'var', HTMLAttributes>;
+    video: HTMLProps<'video', HTMLAttributes>;
+    wbr: HTMLProps<'wbr', HTMLAttributes>;
+    webview: HTMLProps<'webview', HTMLAttributes>;
+    // SVG
+    svg: HTMLProps<'svg', SVGAttributes>;
 
-  // eslint-disable-next-line @typescript-eslint/no-empty-interface
-  interface SVGAttributes<T extends EventTarget> extends svelte.JSX.SVGAttributes<T> {
-    'xlink:actuate'?: string | undefined;
-    'xlink:arcrole'?: string | undefined;
-    'xlink:href'?: string | undefined;
-    'xlink:role'?: string | undefined;
-    'xlink:show'?: string | undefined;
-    'xlink:title'?: string | undefined;
-    'xlink:type'?: string | undefined;
-    'xml:base'?: string | undefined;
-    'xml:lang'?: string | undefined;
-    'xml:space'?: string | undefined;
-    'xmlns'?: string | undefined;
-    'xmlns:xlink'?: string | undefined;
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-empty-interface
-  interface HTMLProps<T extends EventTarget> extends HTMLAttributes<T> {}
-
-  // eslint-disable-next-line @typescript-eslint/no-empty-interface
-  interface SVGProps<T extends EventTarget> extends SVGAttributes<T> {}
-  
-  // eslint-disable-next-line @typescript-eslint/no-empty-interface
-  interface SvelteInputProps extends svelte.JSX.SvelteInputProps {}
-  
-  // eslint-disable-next-line @typescript-eslint/no-empty-interface
-  interface SvelteWindowProps extends svelte.JSX.SvelteWindowProps {}
-  
-  interface SapperAnchorProps {
-    "sapper:noscroll"?: true | undefined | null;
-    "sapper:prefetch"?: true | undefined | null;
-  }
-
-  interface SvelteKitAnchorProps {
-    "sveltekit:noscroll"?: true | undefined | null;
-    "sveltekit:prefetch"?: true | undefined | null;
-    "sveltekit:reload"?: true | undefined | null;
-  }
-  
-  // eslint-disable-next-line @typescript-eslint/no-empty-interface
-  interface SvelteMediaTimeRange extends svelte.JSX.SvelteMediaTimeRange {}
-  
-  // eslint-disable-next-line @typescript-eslint/no-empty-interface
-  interface SvelteMediaProps extends svelte.JSX.SvelteMediaProps {}
-  
-  // eslint-disable-next-line @typescript-eslint/no-empty-interface
-  interface SvelteVideoProps extends svelte.JSX.SvelteVideoProps {}
-  
-  // no "extends svelte.JSX" because else we wouldn't get the references to the right interfaces
-  interface IntrinsicElements {
-    // HTML
-    a: HTMLProps<HTMLAnchorElement> & SapperAnchorProps & SvelteKitAnchorProps;
-    abbr: HTMLProps<HTMLElement>;
-    address: HTMLProps<HTMLElement>;
-    area: HTMLProps<HTMLAreaElement>;
-    article: HTMLProps<HTMLElement>;
-    aside: HTMLProps<HTMLElement>;
-    audio: HTMLProps<HTMLAudioElement> & SvelteMediaProps;
-    b: HTMLProps<HTMLElement>;
-    base: HTMLProps<HTMLBaseElement>;
-    bdi: HTMLProps<HTMLElement>;
-    bdo: HTMLProps<HTMLElement>;
-    big: HTMLProps<HTMLElement>;
-    blockquote: HTMLProps<HTMLElement>;
-    body: HTMLProps<HTMLBodyElement>;
-    br: HTMLProps<HTMLBRElement>;
-    button: HTMLProps<HTMLButtonElement>;
-    canvas: HTMLProps<HTMLCanvasElement>;
-    caption: HTMLProps<HTMLElement>;
-    cite: HTMLProps<HTMLElement>;
-    code: HTMLProps<HTMLElement>;
-    col: HTMLProps<HTMLTableColElement>;
-    colgroup: HTMLProps<HTMLTableColElement>;
-    data: HTMLProps<HTMLElement>;
-    datalist: HTMLProps<HTMLDataListElement>;
-    dd: HTMLProps<HTMLElement>;
-    del: HTMLProps<HTMLElement>;
-    details: HTMLProps<HTMLElement>;
-    dfn: HTMLProps<HTMLElement>;
-    dialog: HTMLProps<HTMLElement>;
-    div: HTMLProps<HTMLDivElement>;
-    dl: HTMLProps<HTMLDListElement>;
-    dt: HTMLProps<HTMLElement>;
-    em: HTMLProps<HTMLElement>;
-    embed: HTMLProps<HTMLEmbedElement>;
-    fieldset: HTMLProps<HTMLFieldSetElement>;
-    figcaption: HTMLProps<HTMLElement>;
-    figure: HTMLProps<HTMLElement>;
-    footer: HTMLProps<HTMLElement>;
-    form: HTMLProps<HTMLFormElement>;
-    h1: HTMLProps<HTMLHeadingElement>;
-    h2: HTMLProps<HTMLHeadingElement>;
-    h3: HTMLProps<HTMLHeadingElement>;
-    h4: HTMLProps<HTMLHeadingElement>;
-    h5: HTMLProps<HTMLHeadingElement>;
-    h6: HTMLProps<HTMLHeadingElement>;
-    head: HTMLProps<HTMLHeadElement>;
-    header: HTMLProps<HTMLElement>;
-    hgroup: HTMLProps<HTMLElement>;
-    hr: HTMLProps<HTMLHRElement>;
-    html: HTMLProps<HTMLHtmlElement>;
-    i: HTMLProps<HTMLElement>;
-    iframe: HTMLProps<HTMLIFrameElement>;
-    img: HTMLProps<HTMLImageElement>;
-    input: SvelteInputProps;
-    ins: HTMLProps<HTMLModElement>;
-    kbd: HTMLProps<HTMLElement>;
-    keygen: HTMLProps<HTMLElement>;
-    label: HTMLProps<HTMLLabelElement>;
-    legend: HTMLProps<HTMLLegendElement>;
-    li: HTMLProps<HTMLLIElement>;
-    link: HTMLProps<HTMLLinkElement>;
-    main: HTMLProps<HTMLElement>;
-    map: HTMLProps<HTMLMapElement>;
-    mark: HTMLProps<HTMLElement>;
-    menu: HTMLProps<HTMLElement>;
-    menuitem: HTMLProps<HTMLElement>;
-    meta: HTMLProps<HTMLMetaElement>;
-    meter: HTMLProps<HTMLElement>;
-    nav: HTMLProps<HTMLElement>;
-    noindex: HTMLProps<HTMLElement>;
-    noscript: HTMLProps<HTMLElement>;
-    object: HTMLProps<HTMLObjectElement>;
-    ol: HTMLProps<HTMLOListElement>;
-    optgroup: HTMLProps<HTMLOptGroupElement>;
-    option: HTMLProps<HTMLOptionElement>;
-    output: HTMLProps<HTMLElement>;
-    p: HTMLProps<HTMLParagraphElement>;
-    param: HTMLProps<HTMLParamElement>;
-    picture: HTMLProps<HTMLElement>;
-    pre: HTMLProps<HTMLPreElement>;
-    progress: HTMLProps<HTMLProgressElement>;
-    q: HTMLProps<HTMLQuoteElement>;
-    rp: HTMLProps<HTMLElement>;
-    rt: HTMLProps<HTMLElement>;
-    ruby: HTMLProps<HTMLElement>;
-    s: HTMLProps<HTMLElement>;
-    samp: HTMLProps<HTMLElement>;
-    script: HTMLProps<HTMLElement>;
-    section: HTMLProps<HTMLElement>;
-    select: HTMLProps<HTMLSelectElement>;
-    small: HTMLProps<HTMLElement>;
-    source: HTMLProps<HTMLSourceElement>;
-    span: HTMLProps<HTMLSpanElement>;
-    strong: HTMLProps<HTMLElement>;
-    style: HTMLProps<HTMLStyleElement>;
-    sub: HTMLProps<HTMLElement>;
-    summary: HTMLProps<HTMLElement>;
-    sup: HTMLProps<HTMLElement>;
-    table: HTMLProps<HTMLTableElement>;
-    tbody: HTMLProps<HTMLTableSectionElement>;
-    td: HTMLProps<HTMLTableDataCellElement>;
-    textarea: HTMLProps<HTMLTextAreaElement>;
-    tfoot: HTMLProps<HTMLTableSectionElement>;
-    th: HTMLProps<HTMLTableHeaderCellElement>;
-    thead: HTMLProps<HTMLTableSectionElement>;
-    time: HTMLProps<HTMLElement>;
-    title: HTMLProps<HTMLTitleElement>;
-    tr: HTMLProps<HTMLTableRowElement>;
-    track: HTMLProps<HTMLTrackElement>;
-    u: HTMLProps<HTMLElement>;
-    ul: HTMLProps<HTMLUListElement>;
-    var: HTMLProps<HTMLElement>;
-    video: HTMLProps<HTMLVideoElement> & SvelteVideoProps;
-    wbr: HTMLProps<HTMLElement>;
-
-    svg: SVGProps<SVGSVGElement>;
-
-    animate: SVGProps<SVGElement>; // @TODO: It is SVGAnimateElement but not in dom.d.ts for now.
-    circle: SVGProps<SVGCircleElement>;
-    clipPath: SVGProps<SVGClipPathElement>;
-    defs: SVGProps<SVGDefsElement>;
-    desc: SVGProps<SVGDescElement>;
-    ellipse: SVGProps<SVGEllipseElement>;
-    feBlend: SVGProps<SVGFEBlendElement>;
-    feColorMatrix: SVGProps<SVGFEColorMatrixElement>;
-    feComponentTransfer: SVGProps<SVGFEComponentTransferElement>;
-    feComposite: SVGProps<SVGFECompositeElement>;
-    feConvolveMatrix: SVGProps<SVGFEConvolveMatrixElement>;
-    feDiffuseLighting: SVGProps<SVGFEDiffuseLightingElement>;
-    feDisplacementMap: SVGProps<SVGFEDisplacementMapElement>;
-    feDistantLight: SVGProps<SVGFEDistantLightElement>;
-    feFlood: SVGProps<SVGFEFloodElement>;
-    feFuncA: SVGProps<SVGFEFuncAElement>;
-    feFuncB: SVGProps<SVGFEFuncBElement>;
-    feFuncG: SVGProps<SVGFEFuncGElement>;
-    feFuncR: SVGProps<SVGFEFuncRElement>;
-    feGaussianBlur: SVGProps<SVGFEGaussianBlurElement>;
-    feImage: SVGProps<SVGFEImageElement>;
-    feMerge: SVGProps<SVGFEMergeElement>;
-    feMergeNode: SVGProps<SVGFEMergeNodeElement>;
-    feMorphology: SVGProps<SVGFEMorphologyElement>;
-    feOffset: SVGProps<SVGFEOffsetElement>;
-    fePointLight: SVGProps<SVGFEPointLightElement>;
-    feSpecularLighting: SVGProps<SVGFESpecularLightingElement>;
-    feSpotLight: SVGProps<SVGFESpotLightElement>;
-    feTile: SVGProps<SVGFETileElement>;
-    feTurbulence: SVGProps<SVGFETurbulenceElement>;
-    filter: SVGProps<SVGFilterElement>;
-    foreignObject: SVGProps<SVGForeignObjectElement>;
-    g: SVGProps<SVGGElement>;
-    image: SVGProps<SVGImageElement>;
-    line: SVGProps<SVGLineElement>;
-    linearGradient: SVGProps<SVGLinearGradientElement>;
-    marker: SVGProps<SVGMarkerElement>;
-    mask: SVGProps<SVGMaskElement>;
-    metadata: SVGProps<SVGMetadataElement>;
-    path: SVGProps<SVGPathElement>;
-    pattern: SVGProps<SVGPatternElement>;
-    polygon: SVGProps<SVGPolygonElement>;
-    polyline: SVGProps<SVGPolylineElement>;
-    radialGradient: SVGProps<SVGRadialGradientElement>;
-    rect: SVGProps<SVGRectElement>;
-    stop: SVGProps<SVGStopElement>;
-    switch: SVGProps<SVGSwitchElement>;
-    symbol: SVGProps<SVGSymbolElement>;
-    text: SVGProps<SVGTextElement>;
-    textPath: SVGProps<SVGTextPathElement>;
-    tspan: SVGProps<SVGTSpanElement>;
-    use: SVGProps<SVGUseElement>;
-    view: SVGProps<SVGViewElement>;
+    animate: HTMLProps<'animate', SVGAttributes>;
+    animateMotion: HTMLProps<'animateMotion', SVGAttributes>;
+    animateTransform: HTMLProps<'animateTransform', SVGAttributes>;
+    circle: HTMLProps<'circle', SVGAttributes>;
+    clipPath: HTMLProps<'clipPath', SVGAttributes>;
+    defs: HTMLProps<'defs', SVGAttributes>;
+    desc: HTMLProps<'desc', SVGAttributes>;
+    ellipse: HTMLProps<'ellipse', SVGAttributes>;
+    feBlend: HTMLProps<'feBlend', SVGAttributes>;
+    feColorMatrix: HTMLProps<'feColorMatrix', SVGAttributes>;
+    feComponentTransfer: HTMLProps<'feComponentTransfer', SVGAttributes>;
+    feComposite: HTMLProps<'feComposite', SVGAttributes>;
+    feConvolveMatrix: HTMLProps<'feConvolveMatrix', SVGAttributes>;
+    feDiffuseLighting: HTMLProps<'feDiffuseLighting', SVGAttributes>;
+    feDisplacementMap: HTMLProps<'feDisplacementMap', SVGAttributes>;
+    feDistantLight: HTMLProps<'feDistantLight', SVGAttributes>;
+    feDropShadow: HTMLProps<'feDropShadow', SVGAttributes>;
+    feFlood: HTMLProps<'feFlood', SVGAttributes>;
+    feFuncA: HTMLProps<'feFuncA', SVGAttributes>;
+    feFuncB: HTMLProps<'feFuncB', SVGAttributes>;
+    feFuncG: HTMLProps<'feFuncG', SVGAttributes>;
+    feFuncR: HTMLProps<'feFuncR', SVGAttributes>;
+    feGaussianBlur: HTMLProps<'feGaussianBlur', SVGAttributes>;
+    feImage: HTMLProps<'feImage', SVGAttributes>;
+    feMerge: HTMLProps<'feMerge', SVGAttributes>;
+    feMergeNode: HTMLProps<'feMergeNode', SVGAttributes>;
+    feMorphology: HTMLProps<'feMorphology', SVGAttributes>;
+    feOffset: HTMLProps<'feOffset', SVGAttributes>;
+    fePointLight: HTMLProps<'fePointLight', SVGAttributes>;
+    feSpecularLighting: HTMLProps<'feSpecularLighting', SVGAttributes>;
+    feSpotLight: HTMLProps<'feSpotLight', SVGAttributes>;
+    feTile: HTMLProps<'feTile', SVGAttributes>;
+    feTurbulence: HTMLProps<'feTurbulence', SVGAttributes>;
+    filter: HTMLProps<'filter', SVGAttributes>;
+    foreignObject: HTMLProps<'foreignObject', SVGAttributes>;
+    g: HTMLProps<'g', SVGAttributes>;
+    image: HTMLProps<'image', SVGAttributes>;
+    line: HTMLProps<'line', SVGAttributes>;
+    linearGradient: HTMLProps<'linearGradient', SVGAttributes>;
+    marker: HTMLProps<'marker', SVGAttributes>;
+    mask: HTMLProps<'mask', SVGAttributes>;
+    metadata: HTMLProps<'metadata', SVGAttributes>;
+    mpath: HTMLProps<'mpath', SVGAttributes>;
+    path: HTMLProps<'path', SVGAttributes>;
+    pattern: HTMLProps<'pattern', SVGAttributes>;
+    polygon: HTMLProps<'polygon', SVGAttributes>;
+    polyline: HTMLProps<'polyline', SVGAttributes>;
+    radialGradient: HTMLProps<'radialGradient', SVGAttributes>;
+    rect: HTMLProps<'rect', SVGAttributes>;
+    stop: HTMLProps<'stop', SVGAttributes>;
+    switch: HTMLProps<'switch', SVGAttributes>;
+    symbol: HTMLProps<'symbol', SVGAttributes>;
+    text: HTMLProps<'text', SVGAttributes>;
+    textPath: HTMLProps<'textPath', SVGAttributes>;
+    tspan: HTMLProps<'tspan', SVGAttributes>;
+    use: HTMLProps<'use', SVGAttributes>;
+    view: HTMLProps<'view', SVGAttributes>;
 
     // Svelte specific
-    sveltewindow: HTMLProps<Window> & SvelteWindowProps;
-    sveltebody: HTMLProps<HTMLElement>;
-    sveltefragment: { slot?: string; };
-    svelteoptions: { [name: string]: any };
-    sveltehead: { [name: string]: any };
+    'svelte:window': HTMLProps<'svelte:window', HTMLAttributes>;
+    'svelte:body': HTMLProps<'svelte:body', HTMLAttributes>;
+    'svelte:fragment': { slot?: string };
+    'svelte:options': { [name: string]: any };
+    'svelte:head': { [name: string]: any };
 
     [name: string]: { [name: string]: any };
   }
+
 }
 
 /**
@@ -326,20 +291,9 @@ declare namespace svelte.JSX {
 
     /* html jsx */
 
-
-    export type Child = Node | Node[] | string | number;
-    export type Children = Child | Child[];
-
-    type NativeElement = HTMLElement;
-
     interface IntrinsicAttributes {
       slot?: string;
     }
-
-    // TypeScript SVGElement has no `dataset` (Chrome 55+, Firefox 51+).
-    type Element = NativeElement & {
-      dataset: DOMStringMap;
-    };
 
     //
     // Event Handler Types
@@ -363,19 +317,6 @@ declare namespace svelte.JSX {
     type TransitionEventHandler<T extends EventTarget> = EventHandler<TransitionEvent, T>;
     type MessageEventHandler<T extends EventTarget> = EventHandler<MessageEvent, T>;
 
-    // See CSS 3 CSS-wide keywords https://www.w3.org/TR/css3-values/#common-keywords
-    // See CSS 3 Explicit Defaulting https://www.w3.org/TR/css-cascade-3/#defaulting-keywords
-    // "all CSS properties can accept these values"
-    type CSSWideKeyword = 'initial' | 'inherit' | 'unset';
-
-    // See CSS 3 <percentage> type https://drafts.csswg.org/css-values-3/#percentages
-    type CSSPercentage = string;
-
-    // See CSS 3 <length> type https://drafts.csswg.org/css-values-3/#lengths
-    type CSSLength = number | string;
-
-    // This interface is not complete. Only properties accepting
-    // unit-less numbers are listed here (see CSSProperty.js in React)
 
     interface DOMAttributes<T extends EventTarget> {
       // jsx-dom specific
@@ -407,6 +348,7 @@ declare namespace svelte.JSX {
       onsubmit?: EventHandler<SubmitEvent, T> | undefined | null;
       oninvalid?: EventHandler<Event, T> | undefined | null;
       onbeforeinput?: EventHandler<InputEvent, T> | undefined | null;
+      'on:formdata'?: EventHandler<FormDataEvent, T> | undefined | null;
 
       // Image Events
       onload?: EventHandler | undefined | null;
@@ -888,6 +830,7 @@ declare namespace svelte.JSX {
       autosave?: string | undefined | null;
       color?: string | undefined | null;
       controlslist?: 'nodownload' | 'nofullscreen' | 'noplaybackrate' | 'noremoteplayback';
+      inert?: boolean | undefined | null;
       itemprop?: string | undefined | null;
       itemscope?: boolean | undefined | null;
       itemtype?: string | undefined | null;
@@ -896,6 +839,11 @@ declare namespace svelte.JSX {
       results?: number | undefined | null;
       security?: string | undefined | null;
       unselectable?: boolean | undefined | null;
+      
+      'data-sveltekit-noscroll'?: true | '' | 'off' | undefined | null;
+      'data-sveltekit-preload-code'?: true | '' | 'eager' | 'viewport' | 'hover' | 'tap' | 'off' | undefined | null;
+      'data-sveltekit-preload-data'?: true | '' | 'hover' | 'tap' | 'off' | undefined | null;
+      'data-sveltekit-reload'?: true | '' | 'off' | undefined | null;
     }
 
     // this list is "complete" in that it contains every SVG attribute
@@ -1233,13 +1181,6 @@ declare namespace svelte.JSX {
         sapperPrefetch?: true | undefined | null;
     }
 
-    interface SvelteKitAnchorProps {
-        // transformed from sveltekit:noscroll so it should be camel case
-        sveltekitNoscroll?: true | undefined | null;
-        sveltekitPrefetch?: true | undefined | null;
-        sveltekitReload?: true | undefined | null;
-    }
-
     interface SvelteMediaTimeRange {
         start: number;
         end: number;
@@ -1278,7 +1219,7 @@ declare namespace svelte.JSX {
 
     interface IntrinsicElements {
       // HTML
-      a: HTMLProps<HTMLAnchorElement> & SapperAnchorProps & SvelteKitAnchorProps;
+      a: HTMLProps<HTMLAnchorElement> & SapperAnchorProps;
       abbr: HTMLProps<HTMLElement>;
       address: HTMLProps<HTMLElement>;
       area: HTMLProps<HTMLAreaElement>;
@@ -1455,7 +1396,13 @@ declare namespace svelte.JSX {
       sveltefragment: { slot?: string; };
       svelteoptions: { [name: string]: any };
       sveltehead: { [name: string]: any };
-      svelteelement: { 'this': string | undefined | null; } & HTMLProps<any> & SVGProps<any>;
+      svelteelement: { 'this': string | undefined | null; } & HTMLProps<any> & SVGProps<any> & SapperAnchorProps;
+      // Needed due to backwards compatibility type which hits these
+      'svelte:window': HTMLProps<Window> & SvelteWindowProps;
+      'svelte:body': HTMLProps<HTMLElement>;
+      'svelte:fragment': { slot?: string; };
+      'svelte:options': { [name: string]: any };
+      'svelte:head': { [name: string]: any };
 
       [name: string]: { [name: string]: any };
     }

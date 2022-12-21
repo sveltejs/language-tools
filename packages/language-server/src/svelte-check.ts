@@ -1,7 +1,9 @@
 import { isAbsolute } from 'path';
 import ts from 'typescript';
 import { Diagnostic, Position, Range } from 'vscode-languageserver';
+import { WorkspaceFolder } from 'vscode-languageserver-protocol';
 import { Document, DocumentManager } from './lib/documents';
+import { FileSystemProvider } from './plugins/css/FileSystemProvider';
 import { Logger } from './logger';
 import { LSConfigManager } from './ls-config';
 import {
@@ -11,6 +13,7 @@ import {
     SveltePlugin,
     TypeScriptPlugin
 } from './plugins';
+import { createLanguageServices } from './plugins/css/service';
 import { convertRange, getDiagnosticTag, mapSeverity } from './plugins/typescript/utils';
 import { pathToUrl, urlToPath } from './utils';
 
@@ -27,6 +30,8 @@ export interface SvelteCheckOptions {
      * Whether or not to use the new transformation of svelte2tsx
      */
     useNewTransformation?: boolean;
+    onProjectReload?: () => void;
+    watch?: boolean;
 }
 
 /**
@@ -62,16 +67,30 @@ export class SvelteCheck {
             this.pluginHost.register(new SveltePlugin(this.configManager));
         }
         if (shouldRegister('css')) {
-            this.pluginHost.register(new CSSPlugin(this.docManager, this.configManager));
+            const services = createLanguageServices({
+                fileSystemProvider: new FileSystemProvider()
+            });
+            const workspaceFolders: WorkspaceFolder[] = [
+                {
+                    name: '',
+                    uri: pathToUrl(workspacePath)
+                }
+            ];
+            this.pluginHost.register(
+                new CSSPlugin(this.docManager, this.configManager, workspaceFolders, services)
+            );
         }
         if (shouldRegister('js') || options.tsconfig) {
             this.lsAndTSDocResolver = new LSAndTSDocResolver(
                 this.docManager,
                 [pathToUrl(workspacePath)],
                 this.configManager,
-                undefined,
-                true,
-                options.tsconfig
+                {
+                    tsconfigPath: options.tsconfig,
+                    isSvelteCheck: true,
+                    onProjectReloaded: options.onProjectReload,
+                    watchTsConfig: options.watch
+                }
             );
             this.pluginHost.register(
                 new TypeScriptPlugin(this.configManager, this.lsAndTSDocResolver)

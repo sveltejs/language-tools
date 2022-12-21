@@ -1,3 +1,4 @@
+import { isEqual, uniqWith } from 'lodash';
 import { Node } from 'vscode-html-languageservice';
 import { Position, Range } from 'vscode-languageserver';
 import { URI } from 'vscode-uri';
@@ -14,6 +15,10 @@ export function or<T>(...predicates: Array<Predicate<T>>) {
 
 export function and<T>(...predicates: Array<Predicate<T>>) {
     return (x: T) => predicates.every((predicate) => predicate(x));
+}
+
+export function unique<T>(array: T[]): T[] {
+    return uniqWith(array, isEqual);
 }
 
 export function clamp(num: number, min: number, max: number): number {
@@ -272,8 +277,12 @@ export function getIndent(text: string) {
  * Also, svelte directives like action and event modifier only work
  * with element not component
  */
-export function possiblyComponent(node: Node): boolean {
-    return !!node.tag?.[0].match(/[A-Z]/);
+export function possiblyComponent(node: Node): boolean;
+export function possiblyComponent(tagName: string): boolean;
+export function possiblyComponent(nodeOrTagName: Node | string): boolean {
+    return !!(typeof nodeOrTagName === 'object' ? nodeOrTagName.tag : nodeOrTagName)?.[0].match(
+        /[A-Z]/
+    );
 }
 
 /**
@@ -283,4 +292,33 @@ export function returnObjectIfHasKeys<T>(obj: T | undefined): T | undefined {
     if (Object.keys(obj || {}).length > 0) {
         return obj;
     }
+}
+
+// eslint-disable-next-line no-useless-escape
+const fileNameLowerCaseRegExp = /[^\u0130\u0131\u00DFa-z0-9\\/:\-_\. ]+/g;
+
+/**
+ * adopted from https://github.com/microsoft/TypeScript/blob/8192d550496d884263e292488e325ae96893dc78/src/compiler/core.ts#L1769-L1807
+ * see the comment there about why we can't just use String.prototype.toLowerCase() here
+ */
+export function toFileNameLowerCase(x: string) {
+    return fileNameLowerCaseRegExp.test(x) ? x.replace(fileNameLowerCaseRegExp, toLowerCase) : x;
+}
+
+function toLowerCase(x: string) {
+    return x.toLowerCase();
+}
+
+export type GetCanonicalFileName = (fileName: string) => string;
+/**
+ * adopted from https://github.com/microsoft/TypeScript/blob/8192d550496d884263e292488e325ae96893dc78/src/compiler/core.ts#L2312
+ */
+export function createGetCanonicalFileName(
+    useCaseSensitiveFileNames: boolean
+): GetCanonicalFileName {
+    return useCaseSensitiveFileNames ? identity : toFileNameLowerCase;
+}
+
+function identity<T>(x: T) {
+    return x;
 }

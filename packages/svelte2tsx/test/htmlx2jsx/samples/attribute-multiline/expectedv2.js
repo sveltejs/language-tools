@@ -1,7 +1,7 @@
- { const $$_Comp0C = __sveltets_2_ensureComponent(Comp); new $$_Comp0C({ target: __sveltets_2_any(), props: {  "multilineattr":`hello
+ { const $$_pmoC0C = __sveltets_2_ensureComponent(Comp); new $$_pmoC0C({ target: __sveltets_2_any(), props: {  "multilineattr":`hello
 world`,}});}
- { const $$_Comp0C = __sveltets_2_ensureComponent(Comp); new $$_Comp0C({ target: __sveltets_2_any(), props: {  "multilineattr":"he`llo\nworld",}});}
- { const $$_Comp0C = __sveltets_2_ensureComponent(Comp); new $$_Comp0C({ target: __sveltets_2_any(), props: {  "multilineattr":`
+ { const $$_pmoC0C = __sveltets_2_ensureComponent(Comp); new $$_pmoC0C({ target: __sveltets_2_any(), props: {  "multilineattr":"he`llo\nworld",}});}
+ { const $$_pmoC0C = __sveltets_2_ensureComponent(Comp); new $$_pmoC0C({ target: __sveltets_2_any(), props: {  "multilineattr":`
 color: ${color}
 display: block`,}});}
 

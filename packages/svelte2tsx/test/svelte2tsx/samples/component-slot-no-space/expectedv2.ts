@@ -7,8 +7,8 @@ function render() {
 ;
 async () => {
 
- { svelteHTML.createElement("div", {}); { const $$_Test1C = __sveltets_2_ensureComponent(Test); const $$_Test1 = new $$_Test1C({ target: __sveltets_2_any(), props: { }});{const {/*Ωignore_startΩ*/$$_$$/*Ωignore_endΩ*/,t,} = $$_Test1.$$slot_def.default;$$_$$;  }Test} }};
-return { props: {}, slots: {}, getters: {}, events: {} }}
+ { svelteHTML.createElement("div", {}); { const $$_tseT1C = __sveltets_2_ensureComponent(Test); const $$_tseT1 = new $$_tseT1C({ target: __sveltets_2_any(), props: { }});{const {/*Ωignore_startΩ*/$$_$$/*Ωignore_endΩ*/,t,} = $$_tseT1.$$slot_def.default;$$_$$;  }Test} }};
+return { props: /** @type {Record<string, never>} */ ({}), slots: {}, events: {} }}
 
 export default class Input__SvelteComponent_ extends __sveltets_1_createSvelte2TsxComponent(__sveltets_1_partial(__sveltets_1_with_any_event(render()))) {
 }

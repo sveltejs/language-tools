@@ -6,10 +6,10 @@ async () => {if(true){
      { __sveltets_createSlot("default", { prop,});}
  }}
 }
- { const $$_svelte_component0C = __sveltets_2_ensureComponent(testComponent); const $$_svelte_component0 = new $$_svelte_component0C({ target: __sveltets_2_any(), props: {  }});{const {/*Ωignore_startΩ*/$$_$$/*Ωignore_endΩ*/,prop,} = $$_svelte_component0.$$slot_def.default;$$_$$;
+ { const $$_tnenopmoc_etlevs0C = __sveltets_2_ensureComponent(testComponent); const $$_tnenopmoc_etlevs0 = new $$_tnenopmoc_etlevs0C({ target: __sveltets_2_any(), props: {  }});{const {/*Ωignore_startΩ*/$$_$$/*Ωignore_endΩ*/,prop,} = $$_tnenopmoc_etlevs0.$$slot_def.default;$$_$$;
      { __sveltets_createSlot("default", { prop,});}
  }}};
-return { props: {}, slots: {'default': {prop:__sveltets_1_instanceOf(__sveltets_1_componentType()).$$slot_def['default'].prop}}, getters: {}, events: {} }}
+return { props: /** @type {Record<string, never>} */ ({}), slots: {'default': {prop:__sveltets_1_instanceOf(__sveltets_1_componentType()).$$slot_def['default'].prop}}, events: {} }}
 
 export default class Input__SvelteComponent_ extends __sveltets_1_createSvelte2TsxComponent(__sveltets_1_partial(__sveltets_1_with_any_event(render()))) {
 }

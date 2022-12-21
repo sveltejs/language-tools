@@ -1,4 +1,4 @@
-import { doComplete as doEmmetComplete } from 'vscode-emmet-helper';
+import { doComplete as doEmmetComplete } from '@vscode/emmet-helper';
 import {
     Color,
     ColorInformation,
@@ -13,7 +13,8 @@ import {
     SymbolInformation,
     CompletionItem,
     CompletionItemKind,
-    SelectionRange
+    SelectionRange,
+    WorkspaceFolder
 } from 'vscode-languageserver';
 import {
     Document,
@@ -38,11 +39,12 @@ import {
     SelectionRangeProvider
 } from '../interfaces';
 import { CSSDocument, CSSDocumentBase } from './CSSDocument';
-import { getLanguage, getLanguageService } from './service';
+import { CSSLanguageServices, getLanguage, getLanguageService } from './service';
 import { GlobalVars } from './global-vars';
 import { getIdClassCompletion } from './features/getIdClassCompletion';
 import { AttributeContext, getAttributeContextAtPosition } from '../../lib/documents/parseHtml';
 import { StyleAttributeDocument } from './StyleAttributeDocument';
+import { getDocumentContext } from '../documentContext';
 
 export class CSSPlugin
     implements
@@ -57,10 +59,19 @@ export class CSSPlugin
     __name = 'css';
     private configManager: LSConfigManager;
     private cssDocuments = new WeakMap<Document, CSSDocument>();
+    private cssLanguageServices: CSSLanguageServices;
+    private workspaceFolders: WorkspaceFolder[];
     private triggerCharacters = ['.', ':', '-', '/'];
     private globalVars = new GlobalVars();
 
-    constructor(docManager: DocumentManager, configManager: LSConfigManager) {
+    constructor(
+        docManager: DocumentManager,
+        configManager: LSConfigManager,
+        workspaceFolders: WorkspaceFolder[],
+        cssLanguageServices: CSSLanguageServices
+    ) {
+        this.cssLanguageServices = cssLanguageServices;
+        this.workspaceFolders = workspaceFolders;
         this.configManager = configManager;
         this.updateConfigs();
 
@@ -71,7 +82,7 @@ export class CSSPlugin
         });
 
         docManager.on('documentChange', (document) =>
-            this.cssDocuments.set(document, new CSSDocument(document))
+            this.cssDocuments.set(document, new CSSDocument(document, this.cssLanguageServices))
         );
         docManager.on('documentClose', (document) => this.cssDocuments.delete(document));
     }
@@ -82,7 +93,7 @@ export class CSSPlugin
         }
 
         const cssDocument = this.getCSSDoc(document);
-        const [range] = getLanguageService(extractLanguage(cssDocument)).getSelectionRanges(
+        const [range] = this.getLanguageService(extractLanguage(cssDocument)).getSelectionRanges(
             cssDocument,
             [cssDocument.getGeneratedPosition(position)],
             cssDocument.stylesheet
@@ -107,7 +118,7 @@ export class CSSPlugin
             return [];
         }
 
-        return getLanguageService(kind)
+        return this.getLanguageService(kind)
             .doValidation(cssDocument, cssDocument.stylesheet)
             .map((diagnostic) => ({ ...diagnostic, source: getLanguage(kind) }))
             .map((diagnostic) => mapObjWithRangeToOriginal(cssDocument, diagnostic));
@@ -131,13 +142,16 @@ export class CSSPlugin
             this.inStyleAttributeWithoutInterpolation(attributeContext, document.getText())
         ) {
             const [start, end] = attributeContext.valueRange;
-            return this.doHoverInternal(new StyleAttributeDocument(document, start, end), position);
+            return this.doHoverInternal(
+                new StyleAttributeDocument(document, start, end, this.cssLanguageServices),
+                position
+            );
         }
 
         return null;
     }
     private doHoverInternal(cssDocument: CSSDocumentBase, position: Position) {
-        const hoverInfo = getLanguageService(extractLanguage(cssDocument)).doHover(
+        const hoverInfo = this.getLanguageService(extractLanguage(cssDocument)).doHover(
             cssDocument,
             cssDocument.getGeneratedPosition(position),
             cssDocument.stylesheet
@@ -145,11 +159,11 @@ export class CSSPlugin
         return hoverInfo ? mapHoverToParent(cssDocument, hoverInfo) : hoverInfo;
     }
 
-    getCompletions(
+    async getCompletions(
         document: Document,
         position: Position,
         completionContext?: CompletionContext
-    ): CompletionList | null {
+    ): Promise<CompletionList | null> {
         const triggerCharacter = completionContext?.triggerCharacter;
         const triggerKind = completionContext?.triggerKind;
         const isCustomTriggerCharacter = triggerKind === CompletionTriggerKind.TriggerCharacter;
@@ -182,7 +196,7 @@ export class CSSPlugin
             return this.getCompletionsInternal(
                 document,
                 position,
-                new StyleAttributeDocument(document, start, end)
+                new StyleAttributeDocument(document, start, end, this.cssLanguageServices)
             );
         } else {
             return getIdClassCompletion(cssDocument, attributeContext);
@@ -200,7 +214,7 @@ export class CSSPlugin
         );
     }
 
-    private getCompletionsInternal(
+    private async getCompletionsInternal(
         document: Document,
         position: Position,
         cssDocument: CSSDocumentBase
@@ -219,7 +233,7 @@ export class CSSPlugin
             return null;
         }
 
-        const lang = getLanguageService(type);
+        const lang = this.getLanguageService(type);
         let emmetResults: CompletionList = {
             isIncomplete: false,
             items: []
@@ -256,10 +270,11 @@ export class CSSPlugin
             ]);
         }
 
-        const results = lang.doComplete(
+        const results = await lang.doComplete2(
             cssDocument,
             cssDocument.getGeneratedPosition(position),
-            cssDocument.stylesheet
+            cssDocument.stylesheet,
+            getDocumentContext(cssDocument.uri, this.workspaceFolders)
         );
         return CompletionList.create(
             this.appendGlobalVars(
@@ -301,7 +316,7 @@ export class CSSPlugin
             return [];
         }
 
-        return getLanguageService(extractLanguage(cssDocument))
+        return this.getLanguageService(extractLanguage(cssDocument))
             .findDocumentColors(cssDocument, cssDocument.stylesheet)
             .map((colorInfo) => mapObjWithRangeToOriginal(cssDocument, colorInfo));
     }
@@ -319,7 +334,7 @@ export class CSSPlugin
             return [];
         }
 
-        return getLanguageService(extractLanguage(cssDocument))
+        return this.getLanguageService(extractLanguage(cssDocument))
             .getColorPresentations(
                 cssDocument,
                 cssDocument.stylesheet,
@@ -340,7 +355,7 @@ export class CSSPlugin
             return [];
         }
 
-        return getLanguageService(extractLanguage(cssDocument))
+        return this.getLanguageService(extractLanguage(cssDocument))
             .findDocumentSymbols(cssDocument, cssDocument.stylesheet)
             .map((symbol) => {
                 if (!symbol.containerName) {
@@ -359,16 +374,16 @@ export class CSSPlugin
     private getCSSDoc(document: Document) {
         let cssDoc = this.cssDocuments.get(document);
         if (!cssDoc || cssDoc.version < document.version) {
-            cssDoc = new CSSDocument(document);
+            cssDoc = new CSSDocument(document, this.cssLanguageServices);
             this.cssDocuments.set(document, cssDoc);
         }
         return cssDoc;
     }
 
     private updateConfigs() {
-        getLanguageService('css')?.configure(this.configManager.getCssConfig());
-        getLanguageService('scss')?.configure(this.configManager.getScssConfig());
-        getLanguageService('less')?.configure(this.configManager.getLessConfig());
+        this.getLanguageService('css')?.configure(this.configManager.getCssConfig());
+        this.getLanguageService('scss')?.configure(this.configManager.getScssConfig());
+        this.getLanguageService('less')?.configure(this.configManager.getLessConfig());
     }
 
     private featureEnabled(feature: keyof LSCSSConfig) {
@@ -376,6 +391,10 @@ export class CSSPlugin
             this.configManager.enabled('css.enable') &&
             this.configManager.enabled(`css.${feature}.enable`)
         );
+    }
+
+    private getLanguageService(kind: string) {
+        return getLanguageService(this.cssLanguageServices, kind);
     }
 }
 

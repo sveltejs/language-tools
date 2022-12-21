@@ -10,14 +10,16 @@ import {
 import { DiagnosticsProvider } from '../../interfaces';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { convertRange, getDiagnosticTag, hasNonZeroRange, mapSeverity } from '../utils';
-import { SvelteDocumentSnapshot, SvelteSnapshotFragment } from '../DocumentSnapshot';
+import { SvelteDocumentSnapshot } from '../DocumentSnapshot';
 import {
     isInGeneratedCode,
     isAfterSvelte2TsxPropsReturn,
     findNodeAtSpan,
     isReactiveStatement,
     isInReactiveStatement,
-    gatherIdentifiers
+    gatherIdentifiers,
+    isStoreVariableIn$storeDeclaration,
+    get$storeOffsetOf$storeDeclaration
 } from './utils';
 import { not, flatten, passMap, regexIndexOf, swapRangeStartEndIfNecessary } from '../../../utils';
 import { LSConfigManager } from '../../../ls-config';
@@ -37,7 +39,8 @@ enum DiagnosticCode {
     MULTIPLE_PROPS_SAME_NAME = 1117, // "An object literal cannot have multiple properties with the same name in strict mode."
     TYPE_X_NOT_ASSIGNABLE_TO_TYPE_Y = 2345, // "Argument of type '..' is not assignable to parameter of type '..'."
     MISSING_PROPS = 2739, // "Type '...' is missing the following properties from type '..': ..."
-    MISSING_PROP = 2741 // "Property '..' is missing in type '..' but required in type '..'."
+    MISSING_PROP = 2741, // "Property '..' is missing in type '..' but required in type '..'."
+    NO_OVERLOAD_MATCHES_CALL = 2769 // "No overload matches this call"
 }
 
 export class DiagnosticsProviderImpl implements DiagnosticsProvider {
@@ -75,16 +78,45 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
             ];
         }
 
-        const fragment = tsDoc.getFragment();
-
         let diagnostics: ts.Diagnostic[] = [
             ...lang.getSyntacticDiagnostics(tsDoc.filePath),
             ...lang.getSuggestionDiagnostics(tsDoc.filePath),
             ...lang.getSemanticDiagnostics(tsDoc.filePath)
         ];
-        diagnostics = diagnostics
-            .filter(isNotGenerated(tsDoc.getText(0, tsDoc.getLength())))
-            .filter(not(isUnusedReactiveStatementLabel));
+
+        const additionalStoreDiagnostics: ts.Diagnostic[] = [];
+        const notGenerated = isNotGenerated(tsDoc.getFullText());
+        for (const diagnostic of diagnostics) {
+            if (
+                (diagnostic.code === DiagnosticCode.NO_OVERLOAD_MATCHES_CALL ||
+                    diagnostic.code === DiagnosticCode.TYPE_X_NOT_ASSIGNABLE_TO_TYPE_Y) &&
+                !notGenerated(diagnostic)
+            ) {
+                if (isStoreVariableIn$storeDeclaration(tsDoc.getFullText(), diagnostic.start!)) {
+                    const storeName = tsDoc
+                        .getFullText()
+                        .substring(diagnostic.start!, diagnostic.start! + diagnostic.length!);
+                    const storeUsages = lang.findReferences(
+                        tsDoc.filePath,
+                        get$storeOffsetOf$storeDeclaration(tsDoc.getFullText(), diagnostic.start!)
+                    )![0].references;
+                    for (const storeUsage of storeUsages) {
+                        additionalStoreDiagnostics.push({
+                            ...diagnostic,
+                            messageText: `Cannot use '${storeName}' as a store. '${storeName}' needs to be an object with a subscribe method on it.\n\n${ts.flattenDiagnosticMessageText(
+                                diagnostic.messageText,
+                                '\n'
+                            )}`,
+                            start: storeUsage.textSpan.start,
+                            length: storeUsage.textSpan.length
+                        });
+                    }
+                }
+            }
+        }
+        diagnostics.push(...additionalStoreDiagnostics);
+
+        diagnostics = diagnostics.filter(notGenerated).filter(not(isUnusedReactiveStatementLabel));
         diagnostics = resolveNoopsInReactiveStatements(lang, diagnostics);
 
         return diagnostics
@@ -98,7 +130,7 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
             }))
             .map(
                 mapRange(
-                    fragment,
+                    tsDoc,
                     document,
                     this.configManager.getConfig().svelte.useNewTransformation
                 )
@@ -121,18 +153,18 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
 }
 
 function mapRange(
-    fragment: SvelteSnapshotFragment,
+    snapshot: SvelteDocumentSnapshot,
     document: Document,
     useNewTransformation: boolean
 ): (value: Diagnostic) => Diagnostic {
     return (diagnostic) => {
-        let range = mapRangeToOriginal(fragment, diagnostic.range);
+        let range = mapRangeToOriginal(snapshot, diagnostic.range);
 
         if (range.start.line < 0) {
             const is$$PropsError =
                 isAfterSvelte2TsxPropsReturn(
-                    fragment.text,
-                    fragment.offsetAt(diagnostic.range.start)
+                    snapshot.getFullText(),
+                    snapshot.offsetAt(diagnostic.range.start)
                 ) && diagnostic.message.includes('$$Props');
 
             if (is$$PropsError) {

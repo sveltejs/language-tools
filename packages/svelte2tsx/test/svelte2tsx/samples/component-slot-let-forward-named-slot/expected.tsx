@@ -6,7 +6,7 @@
         <slot a={__sveltets_ensureSlot("default","a",a)}></slot>
     </div></>}}
 </Component></>
-return { props: {}, slots: {'default': {a:__sveltets_1_instanceOf(Component).$$slot_def['b'].a}}, getters: {}, events: {} }}
+return { props: /** @type {Record<string, never>} */ ({}), slots: {'default': {a:__sveltets_1_instanceOf(Component).$$slot_def['b'].a}}, events: {} }}
 
 export default class Input__SvelteComponent_ extends __sveltets_1_createSvelte2TsxComponent(__sveltets_1_partial(__sveltets_1_with_any_event(render()))) {
 }

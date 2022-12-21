@@ -31,7 +31,7 @@ function render() {
 () => (<>
 
 <button onclick={() => dispatch('btn', '')}></button></>);
-return { props: {}, slots: {}, getters: {}, events: {...__sveltets_1_toEventTypings<{
+return { props: {} as Record<string, never>, slots: {}, events: {...__sveltets_1_toEventTypings<{
     /**
      * A DOC
      */

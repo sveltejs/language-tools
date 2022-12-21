@@ -119,14 +119,6 @@ Enable document symbols for TypeScript. _Default_: `true`
 
 Enable completions for TypeScript. _Default_: `true`
 
-##### `svelte.plugin.typescript.findReferences.enable`
-
-Enable find-references for TypeScript. _Default_: `true`
-
-##### `svelte.plugin.typescript.definitions.enable`
-
-Enable go to definition for TypeScript. _Default_: `true`
-
 ##### `svelte.plugin.typescript.codeActions.enable`
 
 Enable code actions for TypeScript. _Default_: `true`
@@ -135,10 +127,6 @@ Enable code actions for TypeScript. _Default_: `true`
 
 Enable selection range for TypeScript. _Default_: `true`
 
-##### `svelte.plugin.typescript.rename.enable`
-
-Enable rename functionality for JS/TS variables inside Svelte files. _Default_: `true`
-
 ##### `svelte.plugin.typescript.signatureHelp.enable`
 
 Enable signature help (parameter hints) for JS/TS. _Default_: `true`
@@ -146,10 +134,6 @@ Enable signature help (parameter hints) for JS/TS. _Default_: `true`
 ##### `svelte.plugin.typescript.semanticTokens.enable`
 
 Enable semantic tokens (semantic highlight) for TypeScript. _Default_: `true`
-
-##### `svelte.plugin.typescript.implementation.enable`
-
-Enable go to implementation for Typescript. _Default_: `true`
 
 ##### `svelte.plugin.css.enable`
 
@@ -220,10 +204,6 @@ Enable document symbols for HTML. _Default_: `true`
 ##### `svelte.plugin.html.linkedEditing.enable`
 
 Enable Linked Editing for HTML. _Default_: `true`
-
-##### `svelte.plugin.html.renameTags.enable`
-
-Enable rename tags for the opening/closing tag pairs in HTML. _Default_: `true`
 
 ##### `svelte.plugin.svelte.enable`
 

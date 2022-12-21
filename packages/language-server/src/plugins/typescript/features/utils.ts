@@ -7,9 +7,10 @@ import {
     isInTag
 } from '../../../lib/documents';
 import { ComponentInfoProvider, JsOrTsComponentInfoProvider } from '../ComponentInfoProvider';
-import { DocumentSnapshot, SnapshotFragment, SvelteDocumentSnapshot } from '../DocumentSnapshot';
+import { DocumentSnapshot, SvelteDocumentSnapshot } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { or } from '../../../utils';
+import { FileMap } from '../../../lib/documents/fileCollection';
 
 type NodePredicate = (node: ts.Node) => boolean;
 
@@ -42,11 +43,10 @@ export function getComponentAtPosition(
         return null;
     }
 
-    const fragment = tsDoc.getFragment();
-    const generatedPosition = fragment.getGeneratedPosition(doc.positionAt(node.start + 1));
+    const generatedPosition = tsDoc.getGeneratedPosition(doc.positionAt(node.start + 1));
     const def = lang.getDefinitionAtPosition(
         tsDoc.filePath,
-        fragment.offsetAt(generatedPosition)
+        tsDoc.offsetAt(generatedPosition)
     )?.[0];
     if (!def) {
         return null;
@@ -89,11 +89,11 @@ export function isInGeneratedCode(text: string, start: number, end: number = sta
 }
 
 /**
- * Checks that this isn't a text span that should be completely ignored
- * because it's purely generated.
+ * Checks if this is a text span that is inside svelte2tsx-generated code
+ * (has no mapping to the original)
  */
-export function isNoTextSpanInGeneratedCode(text: string, span: ts.TextSpan) {
-    return !isInGeneratedCode(text, span.start, span.start + span.length);
+export function isTextSpanInGeneratedCode(text: string, span: ts.TextSpan) {
+    return isInGeneratedCode(text, span.start, span.start + span.length);
 }
 
 export function isPartOfImportStatement(text: string, position: Position): boolean {
@@ -101,35 +101,45 @@ export function isPartOfImportStatement(text: string, position: Position): boole
     return /\s*from\s+["'][^"']*/.test(line.slice(0, position.character));
 }
 
-export class SnapshotFragmentMap {
-    private map = new Map<string, { fragment: SnapshotFragment; snapshot: DocumentSnapshot }>();
+export function isStoreVariableIn$storeDeclaration(text: string, varStart: number) {
+    return (
+        text.lastIndexOf('__sveltets_1_store_get(', varStart) ===
+        varStart - '__sveltets_1_store_get('.length
+    );
+}
+
+export function get$storeOffsetOf$storeDeclaration(text: string, storePosition: number) {
+    return text.lastIndexOf(' =', storePosition) - 1;
+}
+
+export function is$storeVariableIn$storeDeclaration(text: string, varStart: number) {
+    return /^\$\w+ = __sveltets_1_store_get/.test(text.substring(varStart));
+}
+
+export function getStoreOffsetOf$storeDeclaration(text: string, $storeVarStart: number) {
+    return text.indexOf(');', $storeVarStart) - 1;
+}
+
+export class SnapshotMap {
+    private map = new FileMap<DocumentSnapshot>();
     constructor(private resolver: LSAndTSDocResolver) {}
 
-    set(fileName: string, content: { fragment: SnapshotFragment; snapshot: DocumentSnapshot }) {
-        this.map.set(fileName, content);
+    set(fileName: string, snapshot: DocumentSnapshot) {
+        this.map.set(fileName, snapshot);
     }
 
     get(fileName: string) {
         return this.map.get(fileName);
     }
 
-    getFragment(fileName: string) {
-        return this.map.get(fileName)?.fragment;
-    }
-
     async retrieve(fileName: string) {
-        let snapshotFragment = this.get(fileName);
-        if (!snapshotFragment) {
-            const snapshot = await this.resolver.getSnapshot(fileName);
-            const fragment = await snapshot.getFragment();
-            snapshotFragment = { fragment, snapshot };
-            this.set(fileName, snapshotFragment);
+        let snapshot = this.get(fileName);
+        if (!snapshot) {
+            const snap = await this.resolver.getSnapshot(fileName);
+            this.set(fileName, snap);
+            snapshot = snap;
         }
-        return snapshotFragment;
-    }
-
-    async retrieveFragment(fileName: string) {
-        return (await this.retrieve(fileName)).fragment;
+        return snapshot;
     }
 }
 
@@ -279,3 +289,61 @@ function gatherDescendants<T extends ts.Node>(
 }
 
 export const gatherIdentifiers = (node: ts.Node) => gatherDescendants(node, ts.isIdentifier);
+
+export function isKitTypePath(path?: string): boolean {
+    return !!path?.includes('.svelte-kit/types');
+}
+
+export function getFormatCodeBasis(formatCodeSetting: ts.FormatCodeSettings): FormatCodeBasis {
+    const { baseIndentSize, indentSize, convertTabsToSpaces } = formatCodeSetting;
+    const baseIndent = convertTabsToSpaces
+        ? ' '.repeat(baseIndentSize ?? 4)
+        : baseIndentSize
+        ? '\t'
+        : '';
+    const indent = convertTabsToSpaces ? ' '.repeat(indentSize ?? 4) : baseIndentSize ? '\t' : '';
+    const semi = formatCodeSetting.semicolons === 'remove' ? '' : ';';
+    const newLine = formatCodeSetting.newLineCharacter ?? ts.sys.newLine;
+
+    return {
+        baseIndent,
+        indent,
+        semi,
+        newLine
+    };
+}
+
+export interface FormatCodeBasis {
+    baseIndent: string;
+    indent: string;
+    semi: string;
+    newLine: string;
+}
+
+/**
+ * https://github.com/microsoft/TypeScript/blob/00dc0b6674eef3fbb3abb86f9d71705b11134446/src/services/utilities.ts#L2452
+ */
+export function getQuotePreference(
+    sourceFile: ts.SourceFile,
+    preferences: ts.UserPreferences
+): '"' | "'" {
+    const single = "'";
+    const double = '"';
+    if (preferences.quotePreference && preferences.quotePreference !== 'auto') {
+        return preferences.quotePreference === 'single' ? single : double;
+    }
+
+    const firstModuleSpecifier = Array.from(sourceFile.statements).find(
+        (
+            statement
+        ): statement is Omit<ts.ImportDeclaration, 'moduleSpecifier'> & {
+            moduleSpecifier: ts.StringLiteral;
+        } => ts.isImportDeclaration(statement) && ts.isStringLiteral(statement.moduleSpecifier)
+    )?.moduleSpecifier;
+
+    return firstModuleSpecifier
+        ? sourceFile.getText()[firstModuleSpecifier.pos] === '"'
+            ? double
+            : single
+        : double;
+}

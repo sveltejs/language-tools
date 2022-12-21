@@ -8,7 +8,7 @@
 () => (<></>);
 return { props: {
 /**@type { string | number }*/name: name , 
-/**@type { string | number }*/world: world}, slots: {}, getters: {}, events: {} }}
+/**@type { string | number }*/world: world}, slots: {}, events: {} }}
 
 export default class Input__SvelteComponent_ extends __sveltets_1_createSvelte2TsxComponent(__sveltets_1_partial(['name','world'], __sveltets_1_with_any_event(render()))) {
 }

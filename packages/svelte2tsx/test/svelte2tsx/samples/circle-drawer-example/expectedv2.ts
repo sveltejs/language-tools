@@ -65,13 +65,13 @@ async () => {
 
 
  { svelteHTML.createElement("div", { "class":`controls`,});
-	  { svelteHTML.createElement("button", {    "onclick":() => travel(-1),"disabled":i === 0,});  }
-	  { svelteHTML.createElement("button", {    "onclick":() => travel(+1),"disabled":i === undoStack.length -1,});  }
+	  { svelteHTML.createElement("button", {    "on:click":() => travel(-1),"disabled":i === 0,});  }
+	  { svelteHTML.createElement("button", {    "on:click":() => travel(+1),"disabled":i === undoStack.length -1,});  }
  }
 
-  { svelteHTML.createElement("svg", {  "onclick":handleClick,});
-	  for(const circle of __sveltets_2_ensureArray(circles)){
-		 { svelteHTML.createElement("circle", {            "cx":circle.cx,"cy":circle.cy,"r":circle.r,"onclick":event => select(circle, event),"oncontextmenu":() => {
+  { svelteHTML.createElement("svg", {  "on:click":handleClick,});
+	  for(let circle of __sveltets_2_ensureArray(circles)){
+		 { svelteHTML.createElement("circle", {            "cx":circle.cx,"cy":circle.cy,"r":circle.r,"on:click":event => select(circle, event),"on:contextmenu":() => {
 				adjusting = !adjusting;
 				if (adjusting) selected = circle;
 			},"fill":circle === selected ? '#ccc': 'white',});}
@@ -81,10 +81,10 @@ async () => {
 if(adjusting){
 	 { svelteHTML.createElement("div", { "class":`adjuster`,});
 		 { svelteHTML.createElement("p", {});     selected.cx; selected.cy; }
-		 { svelteHTML.createElement("input", {     "type":`range`,"value":selected.r,"oninput":adjust,});}
+		 { svelteHTML.createElement("input", {     "type":`range`,"value":selected.r,"on:input":adjust,});}
 	 }
 }};
-return { props: {}, slots: {}, getters: {}, events: {} }}
+return { props: /** @type {Record<string, never>} */ ({}), slots: {}, events: {} }}
 
 export default class Input__SvelteComponent_ extends __sveltets_1_createSvelte2TsxComponent(__sveltets_1_partial(__sveltets_1_with_any_event(render()))) {
 }
