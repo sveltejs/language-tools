@@ -333,9 +333,8 @@ export class ExportedNames {
             const lets = names.filter(([, { isLet }]) => isLet);
             const others = names.filter(([, { isLet }]) => !isLet);
             // We need to check both ways:
-            // - The check if exports are assignable to Parial<$$Props> is necessary to make sure
-            //   no props are missing. Partial<$$Props> is needed because props with a default value
-            //   count as optional, but semantically speaking it is still correctly implementing the interface
+            // - The check if exports are assignable to $$Props is necessary to make sure
+            //   no props are missing. Use Partial<$$Props> in case $$props is used.
             // - The check if $$Props is assignable to exports is necessary to make sure no extraneous props
             //   are defined and that no props are required that should be optional
             // __sveltets_1_ensureRightProps needs to be declared in a way that doesn't affect the type result of props
@@ -343,7 +342,9 @@ export class ExportedNames {
                 '{...__sveltets_1_ensureRightProps<{' +
                 this.createReturnElementsType(lets).join(',') +
                 '}>(__sveltets_1_any("") as $$Props), ' +
-                '...__sveltets_1_ensureRightProps<Partial<$$Props>>({' +
+                '...__sveltets_1_ensureRightProps<' +
+                (uses$$propsValue ? 'Partial<$$Props>' : '$$Props') +
+                '>({' +
                 this.createReturnElements(lets, false).join(',') +
                 '}), ...{} as unknown as $$Props, ...{' +
                 // We add other exports of classes and functions here because

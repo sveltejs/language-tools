@@ -7,5 +7,5 @@
 
 	export let exported1: string;
 	export let exported2 = '';
-	export let exported3 = '';
 </script>
+{$$props.exported3}
