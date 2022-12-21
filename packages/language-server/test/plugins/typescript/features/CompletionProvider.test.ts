@@ -245,7 +245,6 @@ function test(useNewTransformation: boolean) {
             );
             assert.ok(completions!.items.length > 0, 'Expected completions to have length');
 
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const eventCompletions = completions!.items.filter((item) =>
                 item.label.startsWith('on:')
             );

@@ -33,7 +33,6 @@ import { addFindComponentReferencesListener } from './typescript/findComponentRe
 import { addFindFileReferencesListener } from './typescript/findFileReferences';
 import { setupSvelteKit } from './sveltekit';
 
-// eslint-disable-next-line @typescript-eslint/no-namespace
 namespace TagCloseRequest {
     export const type: RequestType<TextDocumentPositionParams, string, any> = new RequestType(
         'html/tag'
@@ -271,15 +270,12 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
             // Or matches open curly brace
             //
             increaseIndentPattern:
-                // eslint-disable-next-line max-len, no-useless-escape
                 /<(?!\?|(?:area|base|br|col|frame|hr|html|img|input|link|meta|param)\b|[^>]*\/>)([-_\.A-Za-z0-9]+)(?=\s|>)\b[^>]*>(?!.*<\/\1>)|<!--(?!.*-->)|\{[^}"']*$/,
             // Matches a closing tag that:
             //  - Follows optional whitespace
             //  - Is not `</html>`
             // Or matches `-->`
             // Or closing curly brace
-            //
-            // eslint-disable-next-line no-useless-escape
             decreaseIndentPattern: /^\s*(<\/(?!html)[-_\.A-Za-z0-9]+\b[^>]*>|-->|\})/
         },
         // Matches a number or word that either:
@@ -289,7 +285,6 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
         //    any of the following: `~!@$^&*()=+[{]}\|;:'",.<>/
         //
         wordPattern:
-            // eslint-disable-next-line max-len, no-useless-escape
             /(-?\d*\.\d\w*)|([^\`\~\!\@\$\#\^\&\*\(\)\=\+\[\{\]\}\\\|\;\:\'\"\,\.\<\>\/\s]+)/g,
         onEnterRules: [
             {
@@ -298,8 +293,6 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
                 //  - Is possibly namespaced
                 //  - Isn't a void element
                 //  - Isn't followed by another tag on the same line
-                //
-                // eslint-disable-next-line no-useless-escape
                 beforeText: new RegExp(
                     `<(?!(?:${EMPTY_ELEMENTS.join(
                         '|'
@@ -318,8 +311,6 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
                 //  - Isn't namespaced
                 //  - Isn't a void element
                 //  - Isn't followed by another tag on the same line
-                //
-                // eslint-disable-next-line no-useless-escape
                 beforeText: new RegExp(
                     `<(?!(?:${EMPTY_ELEMENTS.join('|')}))(\\w[\\w\\d]*)([^/>]*(?!/)>)[^<]*$`,
                     'i'

@@ -50,9 +50,7 @@ declare namespace svelteHTML {
   type MessageEventHandler<T extends EventTarget> = svelte.JSX.MessageEventHandler<T>;
 
   // For backwards-compatibility and ease-of-use, in case someone enhanced the typings from import('./svelte-html-do-not-use').HTMLAttributes/SVGAttributes
-  // eslint-disable-next-line @typescript-eslint/no-empty-interface
   interface HTMLAttributes<T extends EventTarget = any> {}
-  // eslint-disable-next-line @typescript-eslint/no-empty-interface
   interface SVGAttributes<T extends EventTarget = any> {}
 
   /**
@@ -657,7 +655,7 @@ declare namespace svelte.JSX {
     interface HTMLAttributes<T extends EventTarget> extends AriaAttributes, DOMAttributes<T> {
       // Standard HTML Attributes
       class?: string | undefined | null;
-      dataset?: object | undefined | null; // eslint-disable-line
+      dataset?: object | undefined | null;
       accept?: string | undefined | null;
       acceptcharset?: string | undefined | null;
       accesskey?: string | undefined | null;
@@ -1123,9 +1121,7 @@ declare namespace svelte.JSX {
       zoomAndPan?: string | undefined | null;
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-empty-interface
     interface HTMLProps<T extends EventTarget> extends HTMLAttributes<T> {}
-    // eslint-disable-next-line @typescript-eslint/no-empty-interface
     interface SVGProps<T extends EventTarget> extends SVGAttributes<T> {}
 
     interface SvelteInputProps extends HTMLProps<HTMLInputElement> {

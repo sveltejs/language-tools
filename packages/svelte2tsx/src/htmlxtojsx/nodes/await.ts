@@ -115,7 +115,7 @@ export function handleAwaitThen(
         extractConstTags(awaitBlock.then.children).forEach((insertion) => {
             insertion(thenEnd, str);
         });
-        str.appendRight(thenEnd, `${ifScope.addPossibleIfCondition()}<>`); // eslint-disable-line
+        str.appendRight(thenEnd, `${ifScope.addPossibleIfCondition()}<>`);
     }
 }
 

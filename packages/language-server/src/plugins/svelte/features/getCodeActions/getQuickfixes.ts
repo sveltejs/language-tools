@@ -117,7 +117,6 @@ function createSvelteAnchorMissingAttributeQuickfixAction(
     node: Node
 ): CodeAction {
     // Assert non-null because the node target attribute is required for 'security-anchor-rel-noreferrer'
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const targetAttribute = node.attributes.find((i: any) => i.name == 'target')!;
     const targetAttributePosition = positionAt(targetAttribute.end, content, lineOffsets);
 
