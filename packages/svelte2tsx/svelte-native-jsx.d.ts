@@ -1,4 +1,3 @@
-/* eslint @typescript-eslint/no-unused-vars: off */
 declare namespace svelteNative.JSX {
 
     // Every namespace eligible for use needs to implement the following two functions
@@ -24,7 +23,6 @@ declare namespace svelteNative.JSX {
     }
 
     // Add empty IntrinsicAttributes to prevent fallback to the one in the JSX namespace
-    // eslint-disable-next-line @typescript-eslint/no-empty-interface
     interface IntrinsicAttributes {
     }
 

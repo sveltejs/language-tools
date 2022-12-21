@@ -294,7 +294,6 @@ export function returnObjectIfHasKeys<T>(obj: T | undefined): T | undefined {
     }
 }
 
-// eslint-disable-next-line no-useless-escape
 const fileNameLowerCaseRegExp = /[^\u0130\u0131\u00DFa-z0-9\\/:\-_\. ]+/g;
 
 /**

@@ -33,7 +33,6 @@ export async function checkProjectType(path: string) {
             const packageJSONPath = require.resolve('typescript/package.json', {
                 paths: [tsconfig]
             });
-            // eslint-disable-next-line @typescript-eslint/no-var-requires
             const { version } = require(packageJSONPath);
             const [major, minor] = version.split('.');
             if ((Number(major) === 4 && Number(minor) >= 9) || Number(major) > 4) {

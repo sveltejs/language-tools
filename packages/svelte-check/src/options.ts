@@ -17,10 +17,8 @@ export interface SvelteCheckCliOptions {
     useNewTransformation: boolean;
 }
 
-// eslint-disable max-len
 export function parseOptions(cb: (opts: SvelteCheckCliOptions) => any) {
     const prog = sade('svelte-check', true)
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
         .version(require('../../package.json').version) // ends up in dist/src, that's why we go two levels up
         .option(
             '--workspace',
@@ -90,7 +88,6 @@ export function parseOptions(cb: (opts: SvelteCheckCliOptions) => any) {
 
     prog.parse(process.argv);
 }
-// eslint-enable max-len
 
 const outputFormats = ['human', 'human-verbose', 'machine'] as const;
 type OutputFormat = typeof outputFormats[number];

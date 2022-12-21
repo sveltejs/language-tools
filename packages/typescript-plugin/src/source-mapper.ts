@@ -1,4 +1,4 @@
-import { decode } from 'sourcemap-codec';
+import { decode } from '@jridgewell/sourcemap-codec';
 import type ts from 'typescript/lib/tsserverlibrary';
 
 type LineChar = ts.LineAndCharacter;

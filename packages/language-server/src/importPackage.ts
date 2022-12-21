@@ -33,7 +33,6 @@ export function getPackageInfo(packageName: string, fromPath: string) {
     const packageJSONPath = require.resolve(`${packageName}/package.json`, {
         paths
     });
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { version } = dynamicRequire(packageJSONPath);
     const [major, minor, patch] = version.split('.');
 

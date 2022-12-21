@@ -5,7 +5,7 @@ import typescript from '@rollup/plugin-typescript';
 import builtins from 'builtin-modules';
 import fs from 'fs';
 import path from 'path';
-import { decode } from 'sourcemap-codec';
+import { decode } from '@jridgewell/sourcemap-codec';
 
 const DEV = !!process.env.ROLLUP_WATCH;
 
@@ -90,7 +90,7 @@ export default [
             resolve({ browser: false, preferBuiltins: true }),
             commonjs(),
             json(),
-            typescript({ include: ['src/**/*'] }),
+            typescript(),
             DEV && repl()
         ],
         watch: {

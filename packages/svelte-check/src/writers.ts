@@ -53,7 +53,6 @@ export class HumanFriendlyWriter implements Writer {
 
             // Display location in a format that IDEs will turn into file links
             const { line, character } = diagnostic.range.start;
-            // eslint-disable-next-line max-len
             this.stream.write(
                 `${workspaceDir}${sep}${pc.green(filename)}:${line + 1}:${character + 1}\n`
             );

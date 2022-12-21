@@ -159,7 +159,6 @@ describe('SveltePlugin#getCodeAction', () => {
                             {
                                 edits: [
                                     {
-                                        // eslint-disable-next-line max-len
                                         newText: `<!-- svelte-ignore security-anchor-rel-noreferrer -->${EOL}`,
                                         range: {
                                             end: {
@@ -213,7 +212,6 @@ describe('SveltePlugin#getCodeAction', () => {
                             {
                                 edits: [
                                     {
-                                        // eslint-disable-next-line max-len
                                         newText: `<!-- svelte-ignore a11y-missing-attribute -->${EOL}`,
                                         range: {
                                             end: {
@@ -369,7 +367,6 @@ describe('SveltePlugin#getCodeAction', () => {
                             {
                                 edits: [
                                     {
-                                        // eslint-disable-next-line max-len
                                         newText: `<!-- svelte-ignore a11y-missing-attribute -->${EOL}`,
                                         range: {
                                             end: {

@@ -863,7 +863,6 @@ const beginOfDocumentRange = Range.create(Position.create(0, 0), Position.create
 
 // `import {...} from '..'` or `import ... from '..'`
 // Note: Does not take into account if import is within a comment.
-// eslint-disable-next-line max-len
 const scriptImportRegex =
     /\bimport\s+{([^}]*?)}\s+?from\s+['"`].+?['"`]|\bimport\s+(\w+?)\s+from\s+['"`].+?['"`]/g;
 

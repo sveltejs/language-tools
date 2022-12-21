@@ -686,7 +686,6 @@ function test(useNewTransformation: boolean) {
                             {
                                 edits: [
                                     {
-                                        // eslint-disable-next-line max-len
                                         newText:
                                             "import { A } from 'bla';\nimport { C } from 'blubb';\n",
                                         range: {
@@ -775,7 +774,6 @@ function test(useNewTransformation: boolean) {
                             {
                                 edits: [
                                     {
-                                        // eslint-disable-next-line max-len
                                         newText:
                                             "import { A, B } from 'bla';\n" +
                                             "import { C } from 'blubb';\n" +

@@ -78,7 +78,7 @@ class __sveltets_Render${genericsDef} {
             `export type ${className}Slots${genericsDef} = ${returnType('slots')};\n` +
             `\n${doc}export default class${
                 className ? ` ${className}` : ''
-            }${genericsDef} extends SvelteComponentTyped<${className}Props${genericsRef}, ${className}Events${genericsRef}, ${className}Slots${genericsRef}> {` + // eslint-disable-line max-len
+            }${genericsDef} extends SvelteComponentTyped<${className}Props${genericsRef}, ${className}Events${genericsRef}, ${className}Slots${genericsRef}> {` +
             exportedNames.createClassGetters() +
             (usesAccessors ? exportedNames.createClassAccessors() : '') +
             '\n}';
@@ -127,7 +127,7 @@ function addSimpleComponentExport({
             `export type ${className}Slots = typeof __propDef.slots;\n` +
             `\n${doc}export default class${
                 className ? ` ${className}` : ''
-            } extends SvelteComponentTyped<${className}Props, ${className}Events, ${className}Slots> {` + // eslint-disable-line max-len
+            } extends SvelteComponentTyped<${className}Props, ${className}Events, ${className}Slots> {` +
             exportedNames.createClassGetters() +
             (usesAccessors ? exportedNames.createClassAccessors() : '') +
             '\n}';

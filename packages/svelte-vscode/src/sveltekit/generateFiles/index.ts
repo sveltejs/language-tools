@@ -74,7 +74,6 @@ async function handleMultiple(uri: Uri | undefined) {
         ResourceType.ERROR,
         ResourceType.SERVER
     ].map((type) => {
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         const resource = resourcesMap.get(type)!;
         // const iconName = resource.type === FileType.PAGE ? 'svelte' : isTs ? 'typescript' : 'javascript';
         const extension = resource.type === FileType.PAGE ? 'svelte' : scriptExtension;
