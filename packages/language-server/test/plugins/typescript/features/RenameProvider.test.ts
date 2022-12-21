@@ -764,5 +764,5 @@ function test(useNewTransformation: boolean) {
     };
 }
 
-describe('RenameProvider (old)', test(false));
+// describe('RenameProvider (old)', test(false));
 describe('RenameProvider (new)', test(true));

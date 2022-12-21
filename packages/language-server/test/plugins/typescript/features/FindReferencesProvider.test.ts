@@ -312,5 +312,5 @@ function test(useNewTransformation: boolean) {
     };
 }
 
-describe('FindReferencesProvider (old transformation)', test(false));
+// describe('FindReferencesProvider (old transformation)', test(false));
 describe('FindReferencesProvider (new transformation)', test(true));

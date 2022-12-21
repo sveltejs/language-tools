@@ -1,11 +1,12 @@
 ///<reference types="svelte" />
-<></>;function render() {                                                                                                                             {/**
+;function render() {                                                                                                                                  {/**
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
-<><h1>Hello World</h1></>                                                                                                                             {/**
-=#                            Originless mappings                                                                                                     
-<><h1>Hello•World</h1></>↲    [generated] line 3                                                                                                      
-  <h1>Hello•World</h1>                                                                                                                                
-<h1>Hello•World</h1>          [original] line 1                                                                                                       
+async () => { { svelteHTML.createElement("h1", {});  }};                                                                                              {/**
+============#                                                Originless mappings                                                                      
+async•()•=>•{•{•svelteHTML.createElement("h1",•{});••}};↲    [generated] line 3                                                                       
+             <                            h1       H/                                                                                                 
+<h1 H           /                                                                                                                                     
+<h1>Hello•World</h1>                                         [original] line 1                                                                        
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
 return { props: /** @type {Record<string, never>} */ ({}), slots: {}, events: {} }}
 

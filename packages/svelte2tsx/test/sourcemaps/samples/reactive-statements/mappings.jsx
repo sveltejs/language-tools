@@ -1,11 +1,9 @@
 ///<reference types="svelte" />
 //----------------------------------------------------------------------------------------------------------------------------------------------------
-<></>;function render() {                                                                                                                             {/**
-=#                            Originless mappings                                                                                                     
-<></>;function•render()•{↲    [generated] line 2                                                                                                      
-  <   s                                                                                                                                               
+;function render() {                                                                                                                                  {/**
+;function•render()•{↲    [generated] line 2                                                                                                           
 <s                                                                                                                                                    
-<script>↲                     [original] line 1 (rest generated at line 3)                                                                            
+<script>↲                [original] line 1 (rest generated at line 3)                                                                                 
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                                                                                                                                                       {/**
 ↲            [generated] line 3                                                                                                                       
@@ -45,7 +43,7 @@
 <                                                                                                                                                     
 </script>    [original] line 7                                                                                                                        
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
-() => (<></>);
+async () => {};
 return { props: {prop: prop}, slots: {}, events: {} }}
 
 export default class Input__SvelteComponent_ extends __sveltets_1_createSvelte2TsxComponent(__sveltets_1_partial(__sveltets_1_with_any_event(render()))) {

@@ -1424,5 +1424,5 @@ function harmonizeNewLines(input?: string) {
     return input?.replace(/\r\n/g, '~:~').replace(/\n/g, '~:~').replace(/~:~/g, ts.sys.newLine);
 }
 
-describe('CompletionProviderImpl (old transformation)', test(false));
+// describe('CompletionProviderImpl (old transformation)', test(false));
 describe('CompletionProviderImpl (new transformation)', test(true));

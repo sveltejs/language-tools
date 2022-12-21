@@ -320,8 +320,12 @@ export function svelte2tsx(
         typingsNamespace?: string;
     } = {}
 ) {
-    // TODO temporary
     options.mode = options.mode || 'ts';
+    // TODO temporary to still keep old transformation around but not expose it anymore.
+    // Remove all old cold once we are sure the new transformation is working
+    if (options.mode === 'tsx') {
+        options.mode = 'ts';
+    }
 
     const str = new MagicString(svelte);
     // process the htmlx as a svelte template
