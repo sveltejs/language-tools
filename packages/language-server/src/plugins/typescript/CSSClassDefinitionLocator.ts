@@ -18,6 +18,10 @@ export class CSSClassDefinitionLocator {
             return this.getStandardFormatClassName();
         }
 
+        if (this.isTargetHTMLElement()) {
+            return this.getHTMlElementName();
+        }
+
         if (this.isDirectiveFormat() && this.initialNodeAt.name) {
             return this.getDefinitionRangeWithinStyleSection(`.${this.initialNodeAt.name}`);
         }
@@ -35,6 +39,18 @@ export class CSSClassDefinitionLocator {
      */
     private isStandardClassFormat() {
         if (this.initialNodeAt?.type == 'Text' && this.initialNodeAt?.parent?.name == 'class') {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * HTML Element target:
+     * <main>
+     */
+    private isTargetHTMLElement() {
+        if (this.initialNodeAt?.type == 'Element') {
             return true;
         }
 
@@ -104,8 +120,25 @@ export class CSSClassDefinitionLocator {
         return this.getDefinitionRangeWithinStyleSection(`.${cssClassName}`);
     }
 
+    private getHTMlElementName() {
+        const result = this.getDefinitionRangeWithinStyleSection(`${this.initialNodeAt.name}`);
+        if (result) {
+            //Shift start/end to get the highlight right
+            const originalStart = result.start.character;
+            result.start.character -= 1;
+            if (this.initialNodeAt.name) {
+                result.end.character = originalStart + this.initialNodeAt.name.length;
+            }
+
+            return result;
+        }
+    }
+
     private getDefinitionRangeWithinStyleSection(targetClass: string) {
-        let indexOccurence = this.document.content.indexOf(targetClass, 0);
+        let indexOccurence = this.document.content.indexOf(
+            targetClass,
+            this.document.styleInfo?.start
+        );
 
         while (indexOccurence >= 0) {
             if (this.isOffsetWithinStyleSection(indexOccurence)) {
@@ -124,6 +157,8 @@ export class CSSClassDefinitionLocator {
                 }
 
                 return targetRange;
+            } else {
+                break;
             }
         }
     }
