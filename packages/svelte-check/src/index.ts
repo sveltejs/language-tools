@@ -22,7 +22,6 @@ type Result = {
     fileCount: number;
     errorCount: number;
     warningCount: number;
-    hintCount: number;
 };
 
 async function openAllDocuments(
@@ -61,8 +60,7 @@ async function getDiagnostics(
         const result: Result = {
             fileCount: diagnostics.length,
             errorCount: 0,
-            warningCount: 0,
-            hintCount: 0
+            warningCount: 0
         };
 
         for (const diagnostic of diagnostics) {
@@ -78,18 +76,11 @@ async function getDiagnostics(
                     result.errorCount += 1;
                 } else if (d.severity === DiagnosticSeverity.Warning) {
                     result.warningCount += 1;
-                } else if (d.severity === DiagnosticSeverity.Hint) {
-                    result.hintCount += 1;
                 }
             });
         }
 
-        writer.completion(
-            result.fileCount,
-            result.errorCount,
-            result.warningCount,
-            result.hintCount
-        );
+        writer.completion(result.fileCount, result.errorCount, result.warningCount);
         return result;
     } catch (err: any) {
         writer.failure(err);
@@ -202,8 +193,7 @@ parseOptions(async (opts) => {
             if (
                 result &&
                 result.errorCount === 0 &&
-                (!opts.failOnWarnings || result.warningCount === 0) &&
-                (!opts.failOnHints || result.hintCount === 0)
+                (!opts.failOnWarnings || result.warningCount === 0)
             ) {
                 process.exit(0);
             } else {

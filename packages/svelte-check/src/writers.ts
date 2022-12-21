@@ -7,12 +7,7 @@ import { offsetAt } from 'svelte-language-server';
 export interface Writer {
     start: (workspaceDir: string) => void;
     file: (d: Diagnostic[], workspaceDir: string, filename: string, text: string) => void;
-    completion: (
-        fileCount: number,
-        errorCount: number,
-        warningCount: number,
-        hintCount: number
-    ) => void;
+    completion: (fileCount: number, errorCount: number, warningCount: number) => void;
     failure: (err: Error) => void;
 }
 
@@ -74,8 +69,6 @@ export class HumanFriendlyWriter implements Writer {
                 this.stream.write(`${pc.red('Error')}: ${msg}\n`);
             } else if (diagnostic.severity === DiagnosticSeverity.Warning) {
                 this.stream.write(`${pc.yellow('Warn')}: ${msg}\n`);
-            } else {
-                this.stream.write(`${pc.gray('Hint')}: ${msg}\n`);
             }
 
             this.stream.write('\n');
@@ -104,20 +97,17 @@ export class HumanFriendlyWriter implements Writer {
         );
     }
 
-    completion(_f: number, errorCount: number, warningCount: number, hintCount: number) {
+    completion(_f: number, errorCount: number, warningCount: number) {
         this.stream.write('====================================\n');
         const message = [
             'svelte-check found ',
-            `${errorCount} ${errorCount === 1 ? 'error' : 'errors'}, `,
-            `${warningCount} ${warningCount === 1 ? 'warning' : 'warnings'}, and `,
-            `${hintCount} ${hintCount === 1 ? 'hint' : 'hints'}\n`
+            `${errorCount} ${errorCount === 1 ? 'error' : 'errors'} and`,
+            `${warningCount} ${warningCount === 1 ? 'warning' : 'warnings'}\n`
         ].join('');
         if (errorCount !== 0) {
             this.stream.write(pc.red(message));
         } else if (warningCount !== 0) {
             this.stream.write(pc.yellow(message));
-        } else if (hintCount !== 0) {
-            this.stream.write(pc.gray(message));
         } else {
             this.stream.write(pc.green(message));
         }
@@ -161,14 +151,13 @@ export class MachineFriendlyWriter implements Writer {
         });
     }
 
-    completion(fileCount: number, errorCount: number, warningCount: number, hintCount: number) {
+    completion(fileCount: number, errorCount: number, warningCount: number) {
         this.log(
             [
                 'COMPLETED',
                 `${fileCount} FILES`,
                 `${errorCount} ERRORS`,
-                `${warningCount} WARNINGS`,
-                `${hintCount} HINTS`
+                `${warningCount} WARNINGS`
             ].join(' ')
         );
     }
