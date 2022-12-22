@@ -6,7 +6,7 @@ async () => { { const $$_tnenopmoC0C = __sveltets_2_ensureComponent(Component); 
          { __sveltets_createSlot("default", {a,}); }
      }}
  Component}};
-return { props: /** @type {Record<string, never>} */ ({}), slots: {'default': {a:__sveltets_1_instanceOf(Component).$$slot_def['b'].a}}, events: {} }}
+return { props: /** @type {Record<string, never>} */ ({}), slots: {'default': {a:__sveltets_2_instanceOf(Component).$$slot_def['b'].a}}, events: {} }}
 
-export default class Input__SvelteComponent_ extends __sveltets_1_createSvelte2TsxComponent(__sveltets_1_partial(__sveltets_1_with_any_event(render()))) {
+export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial(__sveltets_2_with_any_event(render()))) {
 }

@@ -65,7 +65,7 @@ export class SlotHandler {
      * Returns a string which expresses the given identifier unpacked to
      * the top level in order to express the slot types correctly later on.
      *
-     * Example: {#each items as item} ---> __sveltets_1_unwrapArr(items)
+     * Example: {#each items as item} ---> __sveltets_2_unwrapArr(items)
      */
     private getResolveExpressionStr(
         identifierDef: SvelteIdentifier,
@@ -77,7 +77,7 @@ export class SlotHandler {
         const owner = scope.getOwner(name);
 
         if (owner?.type === 'CatchBlock') {
-            return '__sveltets_1_any({})';
+            return '__sveltets_2_any({})';
         }
 
         // list.map(list => list.someProperty)
@@ -85,11 +85,11 @@ export class SlotHandler {
         else if (owner?.type === 'ThenBlock') {
             const resolvedExpression = this.resolveExpression(initExpression, scope.parent);
 
-            return `__sveltets_1_unwrapPromiseLike(${resolvedExpression})`;
+            return `__sveltets_2_unwrapPromiseLike(${resolvedExpression})`;
         } else if (owner?.type === 'EachBlock') {
             const resolvedExpression = this.resolveExpression(initExpression, scope.parent);
 
-            return `__sveltets_1_unwrapArr(${resolvedExpression})`;
+            return `__sveltets_2_unwrapArr(${resolvedExpression})`;
         }
         return null;
     }
@@ -299,5 +299,5 @@ function getSingleSlotDef(componentNode: Node, slotName: string) {
     // in htmlx2jsx, we cannot know for sure that all properties we would generate the component with exist
     // in this scope, some could have been generated through each/await blocks or other lets.
     const componentType = getTypeForComponent(componentNode);
-    return `__sveltets_1_instanceOf(${componentType}).$$slot_def['${slotName}']`;
+    return `__sveltets_2_instanceOf(${componentType}).$$slot_def['${slotName}']`;
 }

@@ -3,7 +3,7 @@
 
     
 
-     let a: A/*Ωignore_startΩ*/;a = __sveltets_1_any(a);/*Ωignore_endΩ*/;
+     let a: A/*Ωignore_startΩ*/;a = __sveltets_2_any(a);/*Ωignore_endΩ*/;
 ;
 () => (<>
 
@@ -14,7 +14,7 @@ class __sveltets_Render<A> {
         return render<A>().props;
     }
     events() {
-        return __sveltets_1_with_any_event(render<A>()).events;
+        return __sveltets_2_with_any_event(render<A>()).events;
     }
     slots() {
         return render<A>().slots;

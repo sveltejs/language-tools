@@ -16,8 +16,8 @@ function render/*Ωignore_startΩ*/<A,B extends ReferencedByGeneric>/*Ωignore_e
     
     
 
-     let a: ReferencesGeneric/*Ωignore_startΩ*/;a = __sveltets_1_any(a);/*Ωignore_endΩ*/;
-     let b: B/*Ωignore_startΩ*/;b = __sveltets_1_any(b);/*Ωignore_endΩ*/;
+     let a: ReferencesGeneric/*Ωignore_startΩ*/;a = __sveltets_2_any(a);/*Ωignore_endΩ*/;
+     let b: B/*Ωignore_startΩ*/;b = __sveltets_2_any(b);/*Ωignore_endΩ*/;
 ;
 async () => {};
 return { props: {a: a , b: b} as {a: ReferencesGeneric, b: B}, slots: {}, events: {} }}
@@ -26,7 +26,7 @@ class __sveltets_Render<A,B extends ReferencedByGeneric> {
         return render<A,B>().props;
     }
     events() {
-        return __sveltets_1_with_any_event(render<A,B>()).events;
+        return __sveltets_2_with_any_event(render<A,B>()).events;
     }
     slots() {
         return render<A,B>().slots;

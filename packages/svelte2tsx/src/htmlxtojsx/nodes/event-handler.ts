@@ -5,7 +5,7 @@ import { BaseDirective, BaseNode } from '../../interfaces';
 /**
  * Transform on:xxx={yyy}
  * - For DOM elements: ---> onxxx={yyy}
- * - For Svelte components/special elements: ---> {__sveltets_1_instanceOf(..ComponentType..).$on("xxx", yyy)}
+ * - For Svelte components/special elements: ---> {__sveltets_2_instanceOf(..ComponentType..).$on("xxx", yyy)}
  */
 export function handleEventHandler(
     htmlx: string,

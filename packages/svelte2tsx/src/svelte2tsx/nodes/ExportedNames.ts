@@ -99,7 +99,7 @@ export class ExportedNames {
     }
 
     /**
-     * Appends `prop = __sveltets_1_any(prop)`  to given declaration in order to
+     * Appends `prop = __sveltets_2_any(prop)`  to given declaration in order to
      * trick TS into widening the type. Else for example `let foo: string | undefined = undefined`
      * is narrowed to `undefined` by TS.
      */
@@ -134,7 +134,7 @@ export class ExportedNames {
                 preprendStr(
                     this.str,
                     end,
-                    surroundWithIgnoreComments(`;${name} = __sveltets_1_any(${name});`)
+                    surroundWithIgnoreComments(`;${name} = __sveltets_2_any(${name});`)
                 );
             }
         };
@@ -337,12 +337,12 @@ export class ExportedNames {
             //   no props are missing. Use Partial<$$Props> in case $$props is used.
             // - The check if $$Props is assignable to exports is necessary to make sure no extraneous props
             //   are defined and that no props are required that should be optional
-            // __sveltets_1_ensureRightProps needs to be declared in a way that doesn't affect the type result of props
+            // __sveltets_2_ensureRightProps needs to be declared in a way that doesn't affect the type result of props
             return (
-                '{...__sveltets_1_ensureRightProps<{' +
+                '{...__sveltets_2_ensureRightProps<{' +
                 this.createReturnElementsType(lets).join(',') +
-                '}>(__sveltets_1_any("") as $$Props), ' +
-                '...__sveltets_1_ensureRightProps<' +
+                '}>(__sveltets_2_any("") as $$Props), ' +
+                '...__sveltets_2_ensureRightProps<' +
                 (uses$$propsValue ? 'Partial<$$Props>' : '$$Props') +
                 '>({' +
                 this.createReturnElements(lets, false).join(',') +

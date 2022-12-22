@@ -26,5 +26,5 @@ async () => {
 }}};
 return { props: {promise1: promise1 , promise2: promise2 , constant: constant}, slots: {}, events: {} }}
 
-export default class Input__SvelteComponent_ extends __sveltets_1_createSvelte2TsxComponent(__sveltets_1_partial(['promise1','promise2','constant'], __sveltets_1_with_any_event(render()))) {
+export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial(['promise1','promise2','constant'], __sveltets_2_with_any_event(render()))) {
 }

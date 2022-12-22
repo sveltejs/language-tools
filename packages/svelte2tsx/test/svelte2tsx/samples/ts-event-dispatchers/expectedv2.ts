@@ -20,12 +20,12 @@ function render() {
 async () => {
 
  { svelteHTML.createElement("button", { "on:click":undefined,}); }};
-return { props: {} as Record<string, never>, slots: {}, events: {...__sveltets_1_toEventTypings<{
+return { props: {} as Record<string, never>, slots: {}, events: {...__sveltets_2_toEventTypings<{
     /**
      * A DOC
      */
     hi: boolean;
-    }>(), ...__sveltets_1_toEventTypings<{btn: string;}>(), 'click':__sveltets_1_mapElementEvent('click'), 'bye': __sveltets_1_customEvent} }}
+    }>(), ...__sveltets_2_toEventTypings<{btn: string;}>(), 'click':__sveltets_2_mapElementEvent('click'), 'bye': __sveltets_2_customEvent} }}
 
-export default class Input__SvelteComponent_ extends __sveltets_1_createSvelte2TsxComponent(__sveltets_1_with_any_event(render())) {
+export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_with_any_event(render())) {
 }
