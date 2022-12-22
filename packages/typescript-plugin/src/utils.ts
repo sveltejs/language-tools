@@ -76,8 +76,8 @@ export function getConfigPathForProject(project: ts.server.Project) {
 
 export function isStoreVariableIn$storeDeclaration(text: string, varStart: number) {
     return (
-        text.lastIndexOf('__sveltets_1_store_get(', varStart) ===
-        varStart - '__sveltets_1_store_get('.length
+        text.lastIndexOf('__sveltets_2_store_get(', varStart) ===
+        varStart - '__sveltets_2_store_get('.length
     );
 }
 

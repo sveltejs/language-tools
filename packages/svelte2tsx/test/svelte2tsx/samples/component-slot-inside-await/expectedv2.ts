@@ -9,7 +9,7 @@ async () => {    { try { const $$_value = await (promise);{ const value = $$_val
    { const $$_value = await (promise2);{ const { b } = $$_value; 
      { __sveltets_createSlot("second", {   "a":b,});  }
 }}};
-return { props: /** @type {Record<string, never>} */ ({}), slots: {'default': {a:__sveltets_1_unwrapPromiseLike(promise)}, 'err': {err:__sveltets_1_any({})}, 'second': {a:(({ b }) => b)(__sveltets_1_unwrapPromiseLike(promise2))}}, events: {} }}
+return { props: /** @type {Record<string, never>} */ ({}), slots: {'default': {a:__sveltets_2_unwrapPromiseLike(promise)}, 'err': {err:__sveltets_2_any({})}, 'second': {a:(({ b }) => b)(__sveltets_2_unwrapPromiseLike(promise2))}}, events: {} }}
 
-export default class Input__SvelteComponent_ extends __sveltets_1_createSvelte2TsxComponent(__sveltets_1_partial(__sveltets_1_with_any_event(render()))) {
+export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial(__sveltets_2_with_any_event(render()))) {
 }

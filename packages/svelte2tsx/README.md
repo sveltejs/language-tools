@@ -37,8 +37,8 @@ function render() {
     return { props: { world }, slots: {}, events: {} };
 }
 
-export default class _World_ extends __sveltets_1_createSvelte2TsxComponent(
-    __sveltets_1_partial(__sveltets_1_with_any_event(render))
+export default class _World_ extends __sveltets_2_createSvelte2TsxComponent(
+    __sveltets_2_partial(__sveltets_2_with_any_event(render))
 ) {}
 ```
 

@@ -126,14 +126,14 @@ s
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                                                                                                                                                       {/**
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
-     let slug/*Ωignore_startΩ*/;slug = __sveltets_1_any(slug);/*Ωignore_endΩ*/;                                                                       {/**
-   ╚•let•slug/*Ωignore_startΩ*/;slug•=•__sveltets_1_any(slug);/*Ωignore_endΩ*/;↲    [generated] line 38                                               
+     let slug/*Ωignore_startΩ*/;slug = __sveltets_2_any(slug);/*Ωignore_endΩ*/;                                                                       {/**
+   ╚•let•slug/*Ωignore_startΩ*/;slug•=•__sveltets_2_any(slug);/*Ωignore_endΩ*/;↲    [generated] line 38                                               
    ╚•let•slug;                                                                 ↲                                                                      
    ╚      •let•slug;↲                                                                                                                                 
    ╚export•let•slug;↲                                                               [original] line 29                                                
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
-     let chapter/*Ωignore_startΩ*/;chapter = __sveltets_1_any(chapter);/*Ωignore_endΩ*/;                                                              {/**
-   ╚•let•chapter/*Ωignore_startΩ*/;chapter•=•__sveltets_1_any(chapter);/*Ωignore_endΩ*/;↲    [generated] line 39                                      
+     let chapter/*Ωignore_startΩ*/;chapter = __sveltets_2_any(chapter);/*Ωignore_endΩ*/;                                                              {/**
+   ╚•let•chapter/*Ωignore_startΩ*/;chapter•=•__sveltets_2_any(chapter);/*Ωignore_endΩ*/;↲    [generated] line 39                                      
    ╚•let•chapter;                                                                       ↲                                                             
    ╚      •let•chapter;↲                                                                                                                              
    ╚export•let•chapter;↲                                                                     [original] line 30                                       
@@ -180,14 +180,14 @@ s
     const tutorial_repo_link = 'https://github.com/sveltejs/svelte/tree/master/site/content/tutorial';
                                                                                                                                                       {/**
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
-    let  selected = __sveltets_1_invalidate(() => lookup.get(slug));                                                                                  {/**
-   ╚let••selected•=•__sveltets_1_invalidate(()•=>•lookup.get(slug));↲    [generated] line 76                                                          
+    let  selected = __sveltets_2_invalidate(() => lookup.get(slug));                                                                                  {/**
+   ╚let••selected•=•__sveltets_2_invalidate(()•=>•lookup.get(slug));↲    [generated] line 76                                                          
    ╚    •selected•=•                              lookup.get(slug); ↲                                                                                 
    ╚  •selected•=•lookup.get(slug);↲                                                                                                                  
    ╚$:•selected•=•lookup.get(slug);↲                                     [original] line 67                                                           
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
-    let  improve_link = __sveltets_1_invalidate(() => `${tutorial_repo_link}/${selected.chapter.section_dir}/${selected.chapter.chapter_dir}`);       {/**
-   ╚let••improve_link•=•__sveltets_1_invalidate(()•=>•`${tutorial_repo_link}/${selected.chapter.section_dir}/${selected.chapter.chapter_dir}`);↲    [generated] line 77
+    let  improve_link = __sveltets_2_invalidate(() => `${tutorial_repo_link}/${selected.chapter.section_dir}/${selected.chapter.chapter_dir}`);       {/**
+   ╚let••improve_link•=•__sveltets_2_invalidate(()•=>•`${tutorial_repo_link}/${selected.chapter.section_dir}/${selected.chapter.chapter_dir}`);↲    [generated] line 77
    ╚    •improve_link•=•                              `${tutorial_repo_link}/${selected.chapter.section_dir}/${selected.chapter.chapter_dir}`; ↲      
    ╚  •improve_link•=•`${tutorial_repo_link}/${selected.chapter.section_dir}/${selected.chapter.chapter_dir}`;↲                                       
    ╚$:•improve_link•=•`${tutorial_repo_link}/${selected.chapter.section_dir}/${selected.chapter.chapter_dir}`;↲                                     [original] line 68 
@@ -216,8 +216,8 @@ s
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
                                                                                                                                                       {/**
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
-    let  mobile = __sveltets_1_invalidate(() => width < 768);                                                                                         {/**
-   ╚let••mobile•=•__sveltets_1_invalidate(()•=>•width•<•768);↲    [generated] line 92                                                                 
+    let  mobile = __sveltets_2_invalidate(() => width < 768);                                                                                         {/**
+   ╚let••mobile•=•__sveltets_2_invalidate(()•=>•width•<•768);↲    [generated] line 92                                                                 
    ╚    •mobile•=•                              width•<•768; ↲                                                                                        
    ╚  •mobile•=•width•<•768;↲                                                                                                                         
    ╚$:•mobile•=•width•<•768;↲                                     [original] line 83                                                                  
@@ -661,5 +661,5 @@ s                                              ↲
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
 return { props: {slug: slug , chapter: chapter}, slots: {}, events: {} }}
 
-export default class Input__SvelteComponent_ extends __sveltets_1_createSvelte2TsxComponent(__sveltets_1_partial(__sveltets_1_with_any_event(render()))) {
+export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial(__sveltets_2_with_any_event(render()))) {
 }

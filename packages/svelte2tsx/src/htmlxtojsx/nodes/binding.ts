@@ -85,13 +85,13 @@ export function handleBinding(
         if (isShortHandAttribute(attr)) {
             str.appendLeft(
                 attr.end,
-                `=__sveltets_1_instanceOf(${oneWayBindingAttributes.get(attr.name)}).${attr.name})}`
+                `=__sveltets_2_instanceOf(${oneWayBindingAttributes.get(attr.name)}).${attr.name})}`
             );
         } else {
             str.overwrite(
                 attr.expression.end,
                 attr.end,
-                `=__sveltets_1_instanceOf(${oneWayBindingAttributes.get(attr.name)}).${attr.name})}`
+                `=__sveltets_2_instanceOf(${oneWayBindingAttributes.get(attr.name)}).${attr.name})}`
             );
         }
         return;

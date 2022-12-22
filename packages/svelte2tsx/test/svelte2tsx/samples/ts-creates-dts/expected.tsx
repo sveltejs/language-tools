@@ -11,13 +11,13 @@ function render() {
   
   
 
-   let bar: Bar/*Ωignore_startΩ*/;bar = __sveltets_1_any(bar);/*Ωignore_endΩ*/;
+   let bar: Bar/*Ωignore_startΩ*/;bar = __sveltets_2_any(bar);/*Ωignore_endΩ*/;
    let foobar = '';
 
   const dispatch = createEventDispatcher<{swipe: string}>();
 ;
-return { props: {bar: bar , foobar: foobar} as {bar: Bar, foobar?: typeof foobar}, slots: {'default': {bar:bar}}, events: {...__sveltets_1_toEventTypings<{swipe: string}>(), 'click':__sveltets_1_mapElementEvent('click')} }}
-const __propDef = __sveltets_1_with_any_event(render());
+return { props: {bar: bar , foobar: foobar} as {bar: Bar, foobar?: typeof foobar}, slots: {'default': {bar:bar}}, events: {...__sveltets_2_toEventTypings<{swipe: string}>(), 'click':__sveltets_2_mapElementEvent('click')} }}
+const __propDef = __sveltets_2_with_any_event(render());
 export type InputProps = typeof __propDef.props;
 export type InputEvents = typeof __propDef.events;
 export type InputSlots = typeof __propDef.slots;

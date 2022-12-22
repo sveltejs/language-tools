@@ -21,17 +21,17 @@ export function getTypeForComponent(node: Node): string {
  * Get the instance type of a node from its constructor.
  */
 export function getInstanceTypeSimple(node: Node, str: MagicString): string | undefined {
-    const instanceOf = (str: string) => `__sveltets_1_instanceOf(${str})`;
+    const instanceOf = (str: string) => `__sveltets_2_instanceOf(${str})`;
 
     switch (node.type) {
         case 'InlineComponent':
             if (node.name === 'svelte:component' && node.expression) {
                 const thisVal = str.original.substring(node.expression.start, node.expression.end);
-                return `new (${thisVal})({target: __sveltets_1_any(''), props: __sveltets_1_any('')})`;
+                return `new (${thisVal})({target: __sveltets_2_any(''), props: __sveltets_2_any('')})`;
             } else if (node.name === 'svelte:component' || node.name === 'svelte:self') {
                 return instanceOf('__sveltets_1_componentType()');
             } else {
-                return `new ${node.name}({target: __sveltets_1_any(''), props: __sveltets_1_any('')})`;
+                return `new ${node.name}({target: __sveltets_2_any(''), props: __sveltets_2_any('')})`;
             }
         case 'Element':
             return instanceOf(`__sveltets_1_ctorOf(__sveltets_1_mapElementTag('${node.name}'))`);
@@ -53,7 +53,7 @@ export function getInstanceType(
     replacedPropValues: PropsShadowedByLet[] = []
 ): string {
     if (node.name === 'svelte:component' || node.name === 'svelte:self') {
-        return '__sveltets_1_instanceOf(__sveltets_1_componentType())';
+        return '__sveltets_2_instanceOf(__sveltets_1_componentType())';
     }
 
     const propsStr = getNameValuePairsFromAttributes(node, originalStr)
@@ -65,7 +65,7 @@ export function getInstanceType(
         })
         .join(', ');
     return surroundWithIgnoreComments(
-        `new ${node.name}({target: __sveltets_1_any(''), props: {${propsStr}}})`
+        `new ${node.name}({target: __sveltets_2_any(''), props: {${propsStr}}})`
     );
 }
 
@@ -91,7 +91,7 @@ export function getInstanceTypeForDefaultSlot(
 ): { str: string; shadowedProps: PropsShadowedByLet[] } {
     if (node.name === 'svelte:component' || node.name === 'svelte:self') {
         return {
-            str: '__sveltets_1_instanceOf(__sveltets_1_componentType())',
+            str: '__sveltets_2_instanceOf(__sveltets_1_componentType())',
             shadowedProps: []
         };
     }
@@ -114,7 +114,7 @@ export function getInstanceTypeForDefaultSlot(
         })
         .join(', ');
     const str = surroundWithIgnoreComments(
-        `new ${node.name}({target: __sveltets_1_any(''), props: {${propsStr}}})`
+        `new ${node.name}({target: __sveltets_2_any(''), props: {${propsStr}}})`
     );
     return { str, shadowedProps };
 }

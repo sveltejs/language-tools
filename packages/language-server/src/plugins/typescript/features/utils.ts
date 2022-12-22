@@ -103,8 +103,8 @@ export function isPartOfImportStatement(text: string, position: Position): boole
 
 export function isStoreVariableIn$storeDeclaration(text: string, varStart: number) {
     return (
-        text.lastIndexOf('__sveltets_1_store_get(', varStart) ===
-        varStart - '__sveltets_1_store_get('.length
+        text.lastIndexOf('__sveltets_2_store_get(', varStart) ===
+        varStart - '__sveltets_2_store_get('.length
     );
 }
 
@@ -113,7 +113,7 @@ export function get$storeOffsetOf$storeDeclaration(text: string, storePosition: 
 }
 
 export function is$storeVariableIn$storeDeclaration(text: string, varStart: number) {
-    return /^\$\w+ = __sveltets_1_store_get/.test(text.substring(varStart));
+    return /^\$\w+ = __sveltets_2_store_get/.test(text.substring(varStart));
 }
 
 export function getStoreOffsetOf$storeDeclaration(text: string, $storeVarStart: number) {
@@ -256,7 +256,7 @@ export const isReactiveStatement = nodeAndParentsSatisfyRespectivePredicates<ts.
     (node) => ts.isLabeledStatement(node) && node.label.getText() === '$',
     or(
         // function render() {
-        //     $: x2 = __sveltets_1_invalidate(() => x * x)
+        //     $: x2 = __sveltets_2_invalidate(() => x * x)
         // }
         isRenderFunctionBody,
         // function render() {

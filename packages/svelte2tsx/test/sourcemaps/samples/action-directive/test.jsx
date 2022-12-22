@@ -15,7 +15,7 @@
 <element use:action.nested.method={foo}/>                                                                                                             {/**
              1===== 2===== 3=====  4==                                                                                   [original] line 7            
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
-    {...__sveltets_1_ensureAction(action(__sveltets_1_mapElementTag('element'),((__sveltets_1_store_get(foo), $foo))))}                               {/**
+    {...__sveltets_1_ensureAction(action(__sveltets_1_mapElementTag('element'),((__sveltets_2_store_get(foo), $foo))))}                               {/**
                                                                                                         #==              [generated] line 12           */}
     use:action={$foo}                                                                                                                                 {/**
                  #==                                                                                                     [original] line 10           
@@ -35,7 +35,7 @@
         ...leet,                                                                                                                                      {/**
            #===                                                                                                          [original] line 19           
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
-        foo: (__sveltets_1_store_get(bar), $bar)                                                                                                      {/**
+        foo: (__sveltets_2_store_get(bar), $bar)                                                                                                      {/**
                                      #==                                                                                 [generated] line 22           */}
         foo: $bar                                                                                                                                     {/**
               #==                                                                                                        [original] line 20           

@@ -49,7 +49,7 @@ export class ImplicitTopLevelNames {
             this.str.appendRight(end, ')');
         }
 
-        this.str.prependLeft(start, '__sveltets_1_invalidate(() => ');
+        this.str.prependLeft(start, '__sveltets_2_invalidate(() => ');
         preprendStr(this.str, end, ')');
         // Not adding ';' at the end because right now this function is only invoked
         // in situations where there is a line break of ; guaranteed to be present (else the code is invalid)
