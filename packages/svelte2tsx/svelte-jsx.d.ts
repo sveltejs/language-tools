@@ -43,8 +43,10 @@ declare namespace svelteHTML {
     // This omit chain ensures that properties manually defined in the new transformation take precedence
     // over those manually defined in the old, taking precendence over the defaults, to make sth like this possible
     // https://github.com/sveltejs/language-tools/issues/1352#issuecomment-1248627516
+    // The AttributeNames Omit is necessary because the old transformation only has HTMLAttributes on which types for all
+    // elements are defined, which would silence type errors in the new transformation.
     Omit<
-      Omit<import('svelte/elements').SvelteHTMLElements[Property], keyof EventsWithColon<svelte.JSX.IntrinsicElements[Property & string]>> & EventsWithColon<svelte.JSX.IntrinsicElements[Property & string]>,
+      Omit<import('svelte/elements').SvelteHTMLElements[Property], keyof EventsWithColon<Omit<svelte.JSX.IntrinsicElements[Property & string], svelte.JSX.AttributeNames>>> & EventsWithColon<Omit<svelte.JSX.IntrinsicElements[Property & string], svelte.JSX.AttributeNames>>,
       keyof Override
     > & Override;
   /**
@@ -290,55 +292,302 @@ declare namespace svelte.JSX {
   type TransitionEventHandler<T extends EventTarget> = EventHandler<TransitionEvent, T>;
   type MessageEventHandler<T extends EventTarget> = EventHandler<MessageEvent, T>;
 
+  /** @deprecated DO NOT USE, WILL BE REMOVED SOON */
+  type AttributeNames = 
+  |'oncopy'
+  |'oncut'
+  |'onpaste'
+  |'oncompositionend'
+  |'oncompositionstart'
+  |'oncompositionupdate'
+  |'onfocus'
+  |'onfocusin'
+  |'onfocusout'
+  |'onblur'
+  |'onchange'
+  |'oninput'
+  |'onreset'
+  |'onsubmit'
+  |'oninvalid'
+  |'onbeforeinput'
+  |'onload'
+  |'onerror'
+  |'ontoggle'
+  |'onkeydown'
+  |'onkeypress'
+  |'onkeyup'
+  |'onabort'
+  |'oncanplay'
+  |'oncanplaythrough'
+  |'oncuechange'
+  |'ondurationchange'
+  |'onemptied'
+  |'onencrypted'
+  |'onended'
+  |'onloadeddata'
+  |'onloadedmetadata'
+  |'onloadstart'
+  |'onpause'
+  |'onplay'
+  |'onplaying'
+  |'onprogress'
+  |'onratechange'
+  |'onseeked'
+  |'onseeking'
+  |'onstalled'
+  |'onsuspend'
+  |'ontimeupdate'
+  |'onvolumechange'
+  |'onwaiting'
+  |'onauxclick'
+  |'onclick'
+  |'oncontextmenu'
+  |'ondblclick'
+  |'ondrag'
+  |'ondragend'
+  |'ondragenter'
+  |'ondragexit'
+  |'ondragleave'
+  |'ondragover'
+  |'ondragstart'
+  |'ondrop'
+  |'onmousedown'
+  |'onmouseenter'
+  |'onmouseleave'
+  |'onmousemove'
+  |'onmouseout'
+  |'onmouseover'
+  |'onmouseup'
+  |'onselect'
+  |'onselectionchange'
+  |'onselectstart'
+  |'ontouchcancel'
+  |'ontouchend'
+  |'ontouchmove'
+  |'ontouchstart'
+  |'ongotpointercapture'
+  |'onpointercancel'
+  |'onpointerdown'
+  |'onpointerenter'
+  |'onpointerleave'
+  |'onpointermove'
+  |'onpointerout'
+  |'onpointerover'
+  |'onpointerup'
+  |'onlostpointercapture'
+  |'onscroll'
+  |'onresize'
+  |'onwheel'
+  |'onanimationstart'
+  |'onanimationend'
+  |'onanimationiteration'
+  |'ontransitionstart'
+  |'ontransitionrun'
+  |'ontransitionend'
+  |'ontransitioncancel'
+  |'onoutrostart'
+  |'onoutroend'
+  |'onintrostart'
+  |'onintroend'
+  |'onmessage'
+  |'onmessageerror'
+  |'oncancel'
+  |'onclose'
+  |'onfullscreenchange'
+  |'onfullscreenerror'
+  |'class'
+  |'dataset'
+  |'accept'
+  |'acceptcharset'
+  |'accesskey'
+  |'action'
+  |'allow'
+  |'allowfullscreen'
+  |'allowtransparency'
+  |'allowpaymentrequest'
+  |'alt'
+  |'as'
+  |'async'
+  |'autocomplete'
+  |'autofocus'
+  |'autoplay'
+  |'capture'
+  |'cellpadding'
+  |'cellspacing'
+  |'charset'
+  |'challenge'
+  |'checked'
+  |'cite'
+  |'classid'
+  |'cols'
+  |'colspan'
+  |'content'
+  |'contenteditable'
+  |'innerHTML'
+  |'textContent'
+  |'contextmenu'
+  |'controls'
+  |'coords'
+  |'crossorigin'
+  |'currenttime'
+  |'decoding'
+  |'data'
+  |'datetime'
+  |'default'
+  |'defaultmuted'
+  |'defaultplaybackrate'
+  |'defer'
+  |'dir'
+  |'dirname'
+  |'disabled'
+  |'download'
+  |'draggable'
+  |'enctype'
+  |'enterkeyhint'
+  |'for'
+  |'form'
+  |'formaction'
+  |'formenctype'
+  |'formmethod'
+  |'formnovalidate'
+  |'formtarget'
+  |'frameborder'
+  |'headers'
+  |'height'
+  |'hidden'
+  |'high'
+  |'href'
+  |'hreflang'
+  |'htmlfor'
+  |'httpequiv'
+  |'id'
+  |'inputmode'
+  |'integrity'
+  |'is'
+  |'ismap'
+  |'keyparams'
+  |'keytype'
+  |'kind'
+  |'label'
+  |'lang'
+  |'list'
+  |'loading'
+  |'loop'
+  |'low'
+  |'manifest'
+  |'marginheight'
+  |'marginwidth'
+  |'max'
+  |'maxlength'
+  |'media'
+  |'mediagroup'
+  |'method'
+  |'min'
+  |'minlength'
+  |'multiple'
+  |'muted'
+  |'name'
+  |'nonce'
+  |'novalidate'
+  |'open'
+  |'optimum'
+  |'part'
+  |'pattern'
+  |'placeholder'
+  |'playsinline'
+  |'ping'
+  |'poster'
+  |'preload'
+  |'radiogroup'
+  |'readonly'
+  |'referrerpolicy'
+  |'rel'
+  |'required'
+  |'reversed'
+  |'role'
+  |'rows'
+  |'rowspan'
+  |'sandbox'
+  |'scope'
+  |'scoped'
+  |'scrolling'
+  |'seamless'
+  |'selected'
+  |'shape'
+  |'size'
+  |'sizes'
+  |'slot'
+  |'span'
+  |'spellcheck'
+  |'src'
+  |'srcdoc'
+  |'srclang'
+  |'srcset'
+  |'start'
+  |'step'
+  |'style'
+  |'summary'
+  |'tabindex'
+  |'target'
+  |'title'
+  |'translate'
+  |'type'
+  |'usemap'
+  |'value'
+  |'volume'
+  |'width'
+  |'wmode'
+  |'wrap'
+  |'about'
+  |'datatype'
+  |'inlist'
+  |'prefix'
+  |'property'
+  |'resource'
+  |'typeof'
+  |'vocab'
+  |'autocapitalize'
+  |'autocorrect'
+  |'autosave'
+  |'color'
+  |'controlslist'
+  |'inert'
+  |'itemprop'
+  |'itemscope'
+  |'itemtype'
+  |'itemid'
+  |'itemref'
+  |'results'
+  |'security'
+  |'unselectable';
+
   /**
    * @deprecated use the types from `svelte/elements` instead, or the .
    * For more info see https://github.com/sveltejs/language-tools/blob/master/docs/preprocessors/typescript.md#im-getting-deprecation-warnings-for-sveltejsx--i-want-to-migrate-to-the-new-typings
    */
   interface DOMAttributes<T extends EventTarget> {
-    // jsx-dom specific
-   /* children?: Children;
-    innerText?: string;
-    namespaceURI?: string;
-    ref?: ((e: T) => void) | Ref<T>; */
-
-    // Clipboard Events
     oncopy?: ClipboardEventHandler<T> | undefined | null;
     oncut?: ClipboardEventHandler<T> | undefined | null;
     onpaste?: ClipboardEventHandler<T> | undefined | null;
-
-    // Composition Events
     oncompositionend?: CompositionEventHandler<T> | undefined | null;
     oncompositionstart?: CompositionEventHandler<T> | undefined | null;
     oncompositionupdate?: CompositionEventHandler<T> | undefined | null;
-
-    // Focus Events
     onfocus?: FocusEventHandler<T> | undefined | null;
     onfocusin?: FocusEventHandler<T> | undefined | null;
     onfocusout?: FocusEventHandler<T> | undefined | null;
     onblur?: FocusEventHandler<T> | undefined | null;
-
-    // Form Events
     onchange?: FormEventHandler<T> | undefined | null;
     oninput?: FormEventHandler<T> | undefined | null;
     onreset?: FormEventHandler<T> | undefined | null;
     onsubmit?: EventHandler<SubmitEvent, T> | undefined | null;
     oninvalid?: EventHandler<Event, T> | undefined | null;
     onbeforeinput?: EventHandler<InputEvent, T> | undefined | null;
-    'on:formdata'?: EventHandler<FormDataEvent, T> | undefined | null;
-
-    // Image Events
     onload?: EventHandler | undefined | null;
     onerror?: EventHandler | undefined | null; // also a Media Event
-
-    // Detail Events
     ontoggle?: EventHandler<Event, T> | undefined | null;
-
-    // Keyboard Events
     onkeydown?: KeyboardEventHandler<T> | undefined | null;
     onkeypress?: KeyboardEventHandler<T> | undefined | null;
     onkeyup?: KeyboardEventHandler<T> | undefined | null;
-
-    // Media Events
     onabort?: EventHandler<Event, T> | undefined | null;
     oncanplay?: EventHandler<Event, T> | undefined | null;
     oncanplaythrough?: EventHandler<Event, T> | undefined | null;
@@ -362,8 +611,6 @@ declare namespace svelte.JSX {
     ontimeupdate?: EventHandler<Event, T> | undefined | null;
     onvolumechange?: EventHandler<Event, T> | undefined | null;
     onwaiting?: EventHandler<Event, T> | undefined | null;
-
-    // MouseEvents
     onauxclick?: MouseEventHandler<T> | undefined | null;
     onclick?: MouseEventHandler<T> | undefined | null;
     oncontextmenu?: MouseEventHandler<T> | undefined | null;
@@ -383,19 +630,13 @@ declare namespace svelte.JSX {
     onmouseout?: MouseEventHandler<T> | undefined | null;
     onmouseover?: MouseEventHandler<T> | undefined | null;
     onmouseup?: MouseEventHandler<T> | undefined | null;
-
-    // Selection Events
     onselect?: EventHandler<Event, T> | undefined | null;
     onselectionchange?: EventHandler<Event, T> | undefined | null;
     onselectstart?: EventHandler<Event, T> | undefined | null;
-
-    // Touch Events
     ontouchcancel?: TouchEventHandler<T> | undefined | null;
     ontouchend?: TouchEventHandler<T> | undefined | null;
     ontouchmove?: TouchEventHandler<T> | undefined | null;
     ontouchstart?: TouchEventHandler<T> | undefined | null;
-
-    // Pointer Events
     ongotpointercapture?: PointerEventHandler<T> | undefined | null;
     onpointercancel?: PointerEventHandler<T> | undefined | null;
     onpointerdown?: PointerEventHandler<T> | undefined | null;
@@ -406,36 +647,22 @@ declare namespace svelte.JSX {
     onpointerover?: PointerEventHandler<T> | undefined | null;
     onpointerup?: PointerEventHandler<T> | undefined | null;
     onlostpointercapture?: PointerEventHandler<T> | undefined | null;
-
-    // UI Events
     onscroll?: UIEventHandler<T> | undefined | null;
     onresize?: UIEventHandler<T> | undefined | null;
-
-    // Wheel Events
     onwheel?: WheelEventHandler<T> | undefined | null;
-
-    // Animation Events
     onanimationstart?: AnimationEventHandler<T> | undefined | null;
     onanimationend?: AnimationEventHandler<T> | undefined | null;
     onanimationiteration?: AnimationEventHandler<T> | undefined | null;
-
-    // Transition Events
     ontransitionstart?: TransitionEventHandler<T> | undefined | null;
     ontransitionrun?: TransitionEventHandler<T> | undefined | null;
     ontransitionend?: TransitionEventHandler<T> | undefined | null;
     ontransitioncancel?: TransitionEventHandler<T> | undefined | null;
-
-    // Svelte Transition Events
     onoutrostart?: EventHandler<CustomEvent<null>, T> | undefined | null;
     onoutroend?: EventHandler<CustomEvent<null>, T> | undefined | null;
     onintrostart?: EventHandler<CustomEvent<null>, T> | undefined | null;
     onintroend?: EventHandler<CustomEvent<null>, T> | undefined | null;
-
-    // Message Events
     onmessage?: MessageEventHandler<T> | undefined | null;
     onmessageerror?: MessageEventHandler<T> | undefined | null;
-
-    // Global Events
     oncancel?: EventHandler<Event, T> | undefined | null;
     onclose?: EventHandler<Event, T> | undefined | null;
     onfullscreenchange?: EventHandler<Event, T> | undefined | null;
@@ -502,7 +729,6 @@ declare namespace svelte.JSX {
    * For more info see https://github.com/sveltejs/language-tools/blob/master/docs/preprocessors/typescript.md#im-getting-deprecation-warnings-for-sveltejsx--i-want-to-migrate-to-the-new-typings
    */
   interface HTMLAttributes<T extends EventTarget> extends AriaAttributes, DOMAttributes<T> {
-    // Standard HTML Attributes
     class?: string | undefined | null;
     dataset?: object | undefined | null;
     accept?: string | undefined | null;
@@ -531,19 +757,8 @@ declare namespace svelte.JSX {
     colspan?: number | undefined | null;
     content?: string | undefined | null;
     contenteditable?: 'true' | 'false' | boolean | undefined | null;
-
-    // Doesn't work when used as HTML attribute
-    /**
-     * Elements with the contenteditable attribute support innerHTML and textContent bindings.
-     */
     innerHTML?: string | undefined | null;
-    // Doesn't work when used as HTML attribute
-    /**
-     * Elements with the contenteditable attribute support innerHTML and textContent bindings.
-     */
-
     textContent?: string | undefined | null;
-
     contextmenu?: string | undefined | null;
     controls?: boolean | undefined | null;
     coords?: string | undefined | null;
@@ -653,15 +868,10 @@ declare namespace svelte.JSX {
     type?: string | undefined | null;
     usemap?: string | undefined | null;
     value?: any | undefined | null;
-    /**
-     * a value between 0 and 1
-    */
     volume?: number | undefined | null;
     width?: number | string | undefined | null;
     wmode?: string | undefined | null;
     wrap?: string | undefined | null;
-
-    // RDFa Attributes
     about?: string | undefined | null;
     datatype?: string | undefined | null;
     inlist?: any | undefined | null;
@@ -670,8 +880,6 @@ declare namespace svelte.JSX {
     resource?: string | undefined | null;
     typeof?: string | undefined | null;
     vocab?: string | undefined | null;
-
-    // Non-standard Attributes
     autocapitalize?: string | undefined | null;
     autocorrect?: string | undefined | null;
     autosave?: string | undefined | null;
@@ -698,7 +906,6 @@ declare namespace svelte.JSX {
    * For more info see https://github.com/sveltejs/language-tools/blob/master/docs/preprocessors/typescript.md#im-getting-deprecation-warnings-for-sveltejsx--i-want-to-migrate-to-the-new-typings
    */
   interface SVGAttributes<T extends EventTarget> extends AriaAttributes, DOMAttributes<T> {
-    // Attributes which also defined in HTMLAttributes
     className?: string | undefined | null;
     class?: string | undefined | null;
     color?: string | undefined | null;
@@ -714,13 +921,9 @@ declare namespace svelte.JSX {
     target?: string | undefined | null;
     type?: string | undefined | null;
     width?: number | string | undefined | null;
-
-    // Other HTML properties supported by SVG elements in browsers
     role?: string | undefined | null;
     tabindex?: number | undefined | null;
     crossorigin?: 'anonymous' | 'use-credentials' | '' | undefined | null;
-
-    // SVG Specific attributes
     'accent-height'?: number | string | undefined | null;
     accumulate?: 'none' | 'sum' | undefined | null;
     additive?: 'replace' | 'sum' | undefined | null;
