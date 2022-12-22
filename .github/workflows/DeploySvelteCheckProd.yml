@@ -20,6 +20,7 @@ jobs:
       # Ensure everything is compiling
       - run: "yarn install"
       - run: "yarn build"
+      - run: "yarn bootstrap"
 
       # Lets us use one-liner JSON manipulations the package.json files
       - run: "npm install -g json"
