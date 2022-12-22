@@ -1,9 +1,5 @@
 import { SvelteComponentTyped } from "svelte"
 
-declare function __sveltets_1_createSvelteComponentTyped<Props, Events, Slots>(
-    render: {props: Props, events: Events, slots: Slots }
-): SvelteComponentConstructor<SvelteComponentTyped<Props, Events, Slots>,Svelte2TsxComponentConstructorParameters<Props>>;
-
 
     export const foo = 'foo';
 ;
@@ -27,5 +23,5 @@ const __propDef = __sveltets_1_partial(['foobar'], __sveltets_1_with_any_event(r
 /** @typedef {typeof __propDef.events}  InputEvents */
 /** @typedef {typeof __propDef.slots}  InputSlots */
 
-export default class Input extends __sveltets_1_createSvelteComponentTyped(__sveltets_1_partial(['foobar'], __sveltets_1_with_any_event(render()))) {
+export default class Input extends __sveltets_1_createSvelte2TsxComponent(__sveltets_1_partial(['foobar'], __sveltets_1_with_any_event(render()))) {
 }

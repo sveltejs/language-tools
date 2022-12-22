@@ -5,10 +5,17 @@
 
 // -- start svelte-ls-remove --
 declare module '*.svelte' {
+    type _SvelteComponent<Props=any,Events=any,Slots=any> = import("svelte").SvelteComponentTyped<Props,Events,Slots>;
     export default _SvelteComponent
 }
 // -- end svelte-ls-remove --
 
+/**
+ * @deprecated This will be removed soon. Use `SvelteComponentTyped` instead:
+ * ```ts
+ * import type { SvelteComponentTyped } from 'svelte';
+ * ```
+ */
 declare class Svelte2TsxComponent<
     Props extends {} = {},
     Events extends {} = {},
@@ -53,8 +60,7 @@ declare class Svelte2TsxComponent<
     $inject_state(): void;
 }
 
-type _SvelteComponent<Props=any,Events=any,Slots=any> = typeof import("svelte") extends {SvelteComponentTyped: any} ? import("svelte").SvelteComponentTyped<Props,Events,Slots> : Svelte2TsxComponent<Props,Events,Slots>;
-
+/** @internal PRIVATE API, DO NOT USE */
 interface Svelte2TsxComponentConstructorParameters<Props extends {}> {
     /**
      * An HTMLElement to render to. This option is required.
@@ -75,13 +81,16 @@ interface Svelte2TsxComponentConstructorParameters<Props extends {}> {
 }
 
 type AConstructorTypeOf<T, U extends any[] = any[]> = new (...args: U) => T;
+/** @internal PRIVATE API, DO NOT USE */
 type SvelteComponentConstructor<T, U extends Svelte2TsxComponentConstructorParameters<any>> = new (options: U) => T;
 
+/** @internal PRIVATE API, DO NOT USE */
 type SvelteActionReturnType = {
 	update?: (args: any) => void,
 	destroy?: () => void
 } | void
 
+/** @internal PRIVATE API, DO NOT USE */
 type SvelteTransitionConfig = {
     delay?: number,
     duration?: number,
@@ -90,8 +99,10 @@ type SvelteTransitionConfig = {
     tick?: (t: number, u: number) => void
 }
 
+/** @internal PRIVATE API, DO NOT USE */
 type SvelteTransitionReturnType = SvelteTransitionConfig | (() => SvelteTransitionConfig)
 
+/** @internal PRIVATE API, DO NOT USE */
 type SvelteAnimationReturnType = {
     delay?: number,
     duration?: number,
@@ -100,20 +111,30 @@ type SvelteAnimationReturnType = {
     tick?: (t: number, u: number) => void
 }
 
+/** @internal PRIVATE API, DO NOT USE */
 type SvelteWithOptionalProps<Props, Keys extends keyof Props> = Omit<Props, Keys> & Partial<Pick<Props, Keys>>;
+/** @internal PRIVATE API, DO NOT USE */
 type SvelteAllProps = { [index: string]: any }
+/** @internal PRIVATE API, DO NOT USE */
 type SveltePropsAnyFallback<Props> = {[K in keyof Props]: Props[K] extends never ? never : Props[K] extends undefined ? any : Props[K]}
+/** @internal PRIVATE API, DO NOT USE */
 type SvelteSlotsAnyFallback<Slots> = {[K in keyof Slots]: {[S in keyof Slots[K]]: Slots[K][S] extends undefined ? any : Slots[K][S]}}
+/** @internal PRIVATE API, DO NOT USE */
 type SvelteRestProps = { [index: string]: any }
+/** @internal PRIVATE API, DO NOT USE */
 type SvelteSlots = { [index: string]: any }
+/** @internal PRIVATE API, DO NOT USE */
 type SvelteStore<T> = { subscribe: (run: (value: T) => any, invalidate?: any) => any }
 
 // Forces TypeScript to look into the type which results in a better representation of it
 // which helps for error messages and is necessary for d.ts file transformation so that
 // no ambient type references are left in the output
+/** @internal PRIVATE API, DO NOT USE */
 type Expand<T> = T extends infer O ? { [K in keyof O]: O[K] } : never;
 
+/** @internal PRIVATE API, DO NOT USE */
 type KeysMatching<Obj, V> = {[K in keyof Obj]-?: Obj[K] extends V ? K : never}[keyof Obj]
+/** @internal PRIVATE API, DO NOT USE */
 declare type __sveltets_1_CustomEvents<T> = {[K in KeysMatching<T, CustomEvent>]: T[K] extends CustomEvent ? T[K]['detail']: T[K]}
 
 declare var process: NodeJS.Process & { browser: boolean }
@@ -169,7 +190,7 @@ declare function __sveltets_1_store_get<T = any>(store: SvelteStore<T>): T
 declare function __sveltets_1_store_get<Store extends SvelteStore<any> | undefined | null>(store: Store): Store extends SvelteStore<infer T> ? T : Store;
 declare function __sveltets_1_any(dummy: any): any;
 declare function __sveltets_1_empty(...dummy: any[]): {};
-declare function __sveltets_1_componentType(): AConstructorTypeOf<_SvelteComponent<any, any, any>>
+declare function __sveltets_1_componentType(): AConstructorTypeOf<import("svelte").SvelteComponentTyped<any, any, any>>
 declare function __sveltets_1_invalidate<T>(getValue: () => T): T
 
 declare function __sveltets_1_mapWindowEvent<K extends keyof HTMLBodyElementEventMap>(
@@ -219,14 +240,14 @@ declare function __sveltets_1_each<T extends ArrayLike<unknown>>(
 
 declare function __sveltets_1_createSvelte2TsxComponent<Props, Events, Slots>(
     render: {props: Props, events: Events, slots: Slots }
-): SvelteComponentConstructor<_SvelteComponent<Props, Events, Slots>,Svelte2TsxComponentConstructorParameters<Props>>;
+): SvelteComponentConstructor<import("svelte").SvelteComponentTyped<Props, Events, Slots>,Svelte2TsxComponentConstructorParameters<Props>>;
 
 declare function __sveltets_1_unwrapArr<T>(arr: ArrayLike<T>): T
 declare function __sveltets_1_unwrapPromiseLike<T>(promise: PromiseLike<T> | T): T
 
 // v2
 declare function __sveltets_2_createCreateSlot<Slots = Record<string, Record<string, any>>>(): <SlotName extends keyof Slots>(slotName: SlotName, attrs: Slots[SlotName]) => Record<string, any>;
-declare function __sveltets_2_createComponentAny(props: Record<string, any>): _SvelteComponent<any, any, any>;
+declare function __sveltets_2_createComponentAny(props: Record<string, any>): import("svelte").SvelteComponentTyped<any, any, any>;
 
 declare function __sveltets_2_any(...dummy: any[]): any;
 declare function __sveltets_2_empty(...dummy: any[]): {};
@@ -235,6 +256,7 @@ declare function __sveltets_2_nonNullable<T>(type: T): NonNullable<T>;
 
 declare function __sveltets_2_cssProp(prop: Record<string, any>): {};
 
+/** @internal PRIVATE API, DO NOT USE */
 type __sveltets_2_SvelteAnimationReturnType = {
     delay?: number,
     duration?: number,
@@ -245,6 +267,7 @@ type __sveltets_2_SvelteAnimationReturnType = {
 declare var __sveltets_2_AnimationMove: { from: DOMRect, to: DOMRect }
 declare function __sveltets_2_ensureAnimation(animationCall: __sveltets_2_SvelteAnimationReturnType): {};
 
+/** @internal PRIVATE API, DO NOT USE */
 type __sveltets_2_SvelteActionReturnType = {
 	update?: (args: any) => void,
 	destroy?: () => void,
@@ -252,6 +275,7 @@ type __sveltets_2_SvelteActionReturnType = {
 } | void
 declare function __sveltets_2_ensureAction<T extends __sveltets_2_SvelteActionReturnType>(actionCall: T): T extends  {$$_attributes?: any} ? T['$$_attributes'] : {};
 
+/** @internal PRIVATE API, DO NOT USE */
 type __sveltets_2_SvelteTransitionConfig = {
     delay?: number,
     duration?: number,
@@ -259,6 +283,7 @@ type __sveltets_2_SvelteTransitionConfig = {
     css?: (t: number, u: number) => string,
     tick?: (t: number, u: number) => void
 }
+/** @internal PRIVATE API, DO NOT USE */
 type __sveltets_2_SvelteTransitionReturnType = __sveltets_2_SvelteTransitionConfig | (() => __sveltets_2_SvelteTransitionConfig)
 declare function __sveltets_2_ensureTransition(transitionCall: __sveltets_2_SvelteTransitionReturnType): {};
 
