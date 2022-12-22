@@ -433,22 +433,10 @@ export function svelte2tsx(
     });
 
     if (options.mode === 'dts') {
-        // Prepend the import and for JS files a single definition.
+        // Prepend the import which is used for TS files
         // The other shims need to be provided by the user ambient-style,
         // for example through filenames.push(require.resolve('svelte2tsx/svelte-shims.d.ts'))
-        str.prepend(
-            'import { SvelteComponentTyped } from "svelte"\n' +
-                (options?.isTsFile
-                    ? ''
-                    : // Not part of svelte-shims.d.ts because it would throw type errors as this function assumes
-                      // the presence of a SvelteComponentTyped import
-                      `
-declare function __sveltets_1_createSvelteComponentTyped<Props, Events, Slots>(
-    render: {props: Props, events: Events, slots: Slots }
-): SvelteComponentConstructor<SvelteComponentTyped<Props, Events, Slots>,Svelte2TsxComponentConstructorParameters<Props>>;
-`) +
-                '\n'
-        );
+        str.prepend('import { SvelteComponentTyped } from "svelte"\n' + '\n');
         let code = str.toString();
         // Remove all tsx occurences and the template part from the output
         code = code

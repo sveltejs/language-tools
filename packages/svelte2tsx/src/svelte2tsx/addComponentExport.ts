@@ -139,7 +139,7 @@ function addSimpleComponentExport({
             `/** @typedef {typeof __propDef.slots}  ${className}Slots */\n` +
             `\n${doc}export default class${
                 className ? ` ${className}` : ''
-            } extends __sveltets_1_createSvelteComponentTyped(${propDef}) {` +
+            } extends __sveltets_1_createSvelte2TsxComponent(${propDef}) {` +
             exportedNames.createClassGetters() +
             (usesAccessors ? exportedNames.createClassAccessors() : '') +
             '\n}';
