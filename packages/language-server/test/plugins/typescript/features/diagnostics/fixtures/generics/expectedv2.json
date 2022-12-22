@@ -6,7 +6,7 @@
         },
         "severity": 1,
         "source": "ts",
-        "message": "Type '\"asd\"' is not assignable to type 'number | unique symbol | \"link\" | \"small\" | \"sub\" | \"sup\" | \"big\" | \"substring\" | \"anchor\" | \"toString\" | \"charAt\" | \"charCodeAt\" | \"concat\" | \"indexOf\" | \"lastIndexOf\" | \"localeCompare\" | ... 34 more ... | \"at\"'.",
+        "message": "Type '\"asd\"' is not assignable to type 'number | unique symbol | \"link\" | \"small\" | \"sub\" | \"sup\" | \"big\" | \"search\" | \"substring\" | \"anchor\" | \"toString\" | \"charAt\" | \"charCodeAt\" | \"concat\" | \"indexOf\" | \"lastIndexOf\" | ... 34 more ... | \"at\"'.",
         "code": 2322,
         "tags": []
     },

@@ -21,11 +21,11 @@ declare namespace svelteHTML {
    */
   function createElement<Elements extends IntrinsicElements, Key extends keyof Elements>(
     // "undefined | null" because of <svelte:element>
-    element: Key | undefined | null, attrs: Elements[Key]
+    element: Key | undefined | null, attrs: string extends Key ? import('svelte/elements').HTMLAttributes<any> : Elements[Key]
   ): Key extends keyof ElementTagNameMap ? ElementTagNameMap[Key] : Key extends keyof SVGElementTagNameMap ? SVGElementTagNameMap[Key] : any;
   function createElement<Elements extends IntrinsicElements, Key extends keyof Elements, T>(
     // "undefined | null" because of <svelte:element>
-    element: Key | undefined | null, attrsEnhancers: T, attrs: Elements[Key] & T
+    element: Key | undefined | null, attrsEnhancers: T, attrs: (string extends Key ? import('svelte/elements').HTMLAttributes<any> : Elements[Key]) & T
   ): Key extends keyof ElementTagNameMap ? ElementTagNameMap[Key] : Key extends keyof SVGElementTagNameMap ? SVGElementTagNameMap[Key] : any;
 
   // For backwards-compatibility and ease-of-use, in case someone enhanced the typings from import('svelte/elements').HTMLAttributes/SVGAttributes
