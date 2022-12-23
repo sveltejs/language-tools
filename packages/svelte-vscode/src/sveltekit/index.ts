@@ -46,7 +46,7 @@ function getConfig() {
 }
 
 async function detect(nrRetries: number): Promise<boolean> {
-    const packageJsonList = await workspace.findFiles('**/package.json', '**​/node_modules/**');
+    const packageJsonList = await workspace.findFiles('**/package.json', '**/node_modules/**');
 
     if (packageJsonList.length === 0 && nrRetries > 0) {
         // We assume that the user has not setup their project yet, so try again after a while
