@@ -41,9 +41,7 @@
     },
     "activationEvents": [
         "onLanguage:svelte",
-        "onCommand:svelte.restartLanguageServer",
-        "onLanguage:javascript",
-        "onLanguage:typescript"
+        "onCommand:svelte.restartLanguageServer"
     ],
     "capabilities": {
         "untrustedWorkspaces": {
