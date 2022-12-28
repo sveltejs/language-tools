@@ -101,7 +101,7 @@ export class HumanFriendlyWriter implements Writer {
         this.stream.write('====================================\n');
         const message = [
             'svelte-check found ',
-            `${errorCount} ${errorCount === 1 ? 'error' : 'errors'} and`,
+            `${errorCount} ${errorCount === 1 ? 'error' : 'errors'} and `,
             `${warningCount} ${warningCount === 1 ? 'warning' : 'warnings'}\n`
         ].join('');
         if (errorCount !== 0) {
