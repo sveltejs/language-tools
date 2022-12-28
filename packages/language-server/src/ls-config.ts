@@ -400,7 +400,8 @@ export class LSConfigManager {
                 config.suggest?.includeCompletionsForImportStatements ?? true,
             includeAutomaticOptionalChainCompletions:
                 config.suggest?.includeAutomaticOptionalChainCompletions ?? true,
-            includeCompletionsWithInsertText: true
+            includeCompletionsWithInsertText: true,
+            useLabelDetailsInCompletionEntries: true
         };
     }
 
