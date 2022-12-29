@@ -636,8 +636,8 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
                 this.getCompletionDocument(detail, is$typeImport);
 
             // VSCode + tsserver won't have this pop-in effect
-            // because it's resolved during the incomplete trigger
-            // which requires typescript internal api IncompleteCompletionsCache
+            // because tsserver has internal APIs for caching
+            // TODO: consider if we should adopt the internal APIs
             if (detail.sourceDisplay && !completionItem.labelDetails) {
                 completionItem.labelDetails = {
                     description: ts.displayPartsToString(detail.sourceDisplay)
