@@ -1418,7 +1418,7 @@ function test(useNewTransformation: boolean) {
             assert.strictEqual(detail, 'Auto import from random-package2\nfunction foo(): string');
         });
 
-        it('provides completions for object literal member',async () => {
+        it('provides completions for object literal member', async () => {
             const { completionProvider, document } = setup('object-member.svelte');
 
             const completions = await completionProvider.getCompletions(
@@ -1432,13 +1432,18 @@ function test(useNewTransformation: boolean) {
                 }
             );
 
-            const item = completions?.items.find((item) => item.label === 'hi(name)');
-            item!.insertText = harmonizeNewLines(item!.insertText)
+            const item = completions?.items.find(
+                (item) => item.label === 'hi' && item.labelDetails?.detail === '(name)'
+            );
+            item!.insertText = harmonizeNewLines(item!.insertText);
 
             delete item?.data;
 
             assert.deepStrictEqual(item, {
-                label: 'hi(name)',
+                label: 'hi',
+                labelDetails: {
+                    detail: '(name)'
+                },
                 kind: CompletionItemKind.Method,
                 sortText: '11\u0000hi\u00001',
                 preselect: undefined,
@@ -1447,9 +1452,9 @@ function test(useNewTransformation: boolean) {
                 commitCharacters: ['.', ',', ';', '('],
                 textEdit: undefined
             });
-        })
+        });
 
-        it('provides completions for class member',async () => {
+        it('provides completions for class member', async () => {
             const { completionProvider, document } = setup('object-member.svelte');
 
             const completions = await completionProvider.getCompletions(
@@ -1464,7 +1469,7 @@ function test(useNewTransformation: boolean) {
             );
 
             const item = completions?.items.find((item) => item.label === 'hi');
-            item!.insertText = harmonizeNewLines(item!.insertText)
+            item!.insertText = harmonizeNewLines(item!.insertText);
 
             delete item?.data;
 
@@ -1476,9 +1481,10 @@ function test(useNewTransformation: boolean) {
                 insertText: `hi(name: string): string {${newLine}${indent}$0${newLine}}`,
                 insertTextFormat: 2,
                 commitCharacters: undefined,
-                textEdit: undefined
+                textEdit: undefined,
+                labelDetails: undefined
             });
-        })
+        });
 
         // Hacky, but it works. Needed due to testing both new and old transformation
         after(() => {
