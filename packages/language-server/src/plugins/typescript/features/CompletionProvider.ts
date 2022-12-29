@@ -679,16 +679,18 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
 
     private getCompletionDocument(compDetail: ts.CompletionEntryDetails, is$typeImport: boolean) {
         const { sourceDisplay, documentation: tsDocumentation, displayParts, tags } = compDetail;
-        let detail: string = changeSvelteComponentName(ts.displayPartsToString(displayParts));
+        let parts = compDetail.codeActions?.map((codeAction) => codeAction.description) ?? [];
 
-        if (sourceDisplay) {
-            let importPath = ts.displayPartsToString(sourceDisplay);
-            if (is$typeImport) {
-                // Take into account Node16 moduleResolution
-                importPath = `'./$types${importPath.endsWith('.js') ? '.js' : ''}'`;
-            }
-            detail = `Auto import from ${importPath}\n${detail}`;
+        if (sourceDisplay && is$typeImport) {
+            const importPath = ts.displayPartsToString(sourceDisplay);
+
+            // Take into account Node16 moduleResolution
+            parts = parts.map((detail) =>
+                detail.replace(importPath, `'./$types${importPath.endsWith('.js') ? '.js' : ''}'`)
+            );
         }
+
+        parts.push(changeSvelteComponentName(ts.displayPartsToString(displayParts)));
 
         const markdownDoc = getMarkdownDocumentation(tsDocumentation, tags);
         const documentation: MarkupContent | undefined = markdownDoc
@@ -697,7 +699,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
 
         return {
             documentation,
-            detail
+            detail: parts.filter(Boolean).join('\n\n')
         };
     }
 
