@@ -223,6 +223,9 @@ export interface TSSuggestConfig {
     autoImports: ts.UserPreferences['includeCompletionsForModuleExports'];
     includeAutomaticOptionalChainCompletions: boolean | undefined;
     includeCompletionsForImportStatements: boolean | undefined;
+    classMemberSnippets: { enabled: boolean } | undefined;
+    objectLiteralMethodSnippets: { enabled: boolean } | undefined;
+    includeCompletionsWithSnippetText: boolean | undefined;
 }
 
 export type TsFormatConfig = Omit<
@@ -252,18 +255,9 @@ export class LSConfigManager {
     private config: LSConfig = defaultLSConfig;
     private listeners: Array<(config: LSConfigManager) => void> = [];
     private tsUserPreferences: Record<TsUserConfigLang, ts.UserPreferences> = {
-        typescript: {
-            includeCompletionsForModuleExports: true,
-            includeCompletionsForImportStatements: true,
-            includeCompletionsWithInsertText: true,
-            includeAutomaticOptionalChainCompletions: true
-        },
-        javascript: {
-            includeCompletionsForModuleExports: true,
-            includeCompletionsForImportStatements: true,
-            includeCompletionsWithInsertText: true,
-            includeAutomaticOptionalChainCompletions: true
-        }
+        // populate default with _updateTsUserPreferences
+        typescript: {},
+        javascript: {}
     };
     private tsFormatCodeOptions: Record<TsUserConfigLang, ts.FormatCodeSettings> = {
         typescript: this.getDefaultFormatCodeOptions(),
@@ -275,6 +269,11 @@ export class LSConfigManager {
     private scssConfig: CssConfig | undefined;
     private lessConfig: CssConfig | undefined;
     private isTrusted = true;
+
+    constructor() {
+        this._updateTsUserPreferences('javascript', {});
+        this._updateTsUserPreferences('typescript', {});
+    }
 
     /**
      * Updates config.
@@ -400,7 +399,13 @@ export class LSConfigManager {
                 config.suggest?.includeCompletionsForImportStatements ?? true,
             includeAutomaticOptionalChainCompletions:
                 config.suggest?.includeAutomaticOptionalChainCompletions ?? true,
-            includeCompletionsWithInsertText: true
+            includeCompletionsWithInsertText: true,
+            includeCompletionsWithSnippetText:
+                config.suggest?.includeCompletionsWithSnippetText ?? true,
+            includeCompletionsWithClassMemberSnippets:
+                config.suggest?.classMemberSnippets?.enabled ?? true,
+            includeCompletionsWithObjectLiteralMethodSnippets:
+                config.suggest?.objectLiteralMethodSnippets?.enabled ?? true
         };
     }
 

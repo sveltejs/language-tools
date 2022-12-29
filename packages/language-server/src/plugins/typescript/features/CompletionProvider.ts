@@ -7,6 +7,7 @@ import {
     CompletionItemKind,
     CompletionList,
     CompletionTriggerKind,
+    InsertTextFormat,
     MarkupContent,
     MarkupKind,
     Position,
@@ -463,6 +464,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             // Make sure svelte component takes precedence
             sortText: isSvelteComp ? '-1' : comp.sortText,
             preselect: isSvelteComp ? true : comp.isRecommended,
+            insertTextFormat: comp.isSnippet ? InsertTextFormat.Snippet : undefined,
             textEdit,
             // pass essential data for resolving completion
             data: {
@@ -510,6 +512,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
 
         return {
             label: name,
+            insertText,
             isSvelteComp
         };
     }
