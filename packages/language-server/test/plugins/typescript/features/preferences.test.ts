@@ -261,14 +261,14 @@ describe.only('ts user preferences', () => {
     }
 
     it('exclude auto import', async () => {
-        await testExcludeDefinitionDir('definition')
+        await testExcludeDefinitionDir('definition');
     });
 
     it('exclude auto import (relative pattern)', async () => {
-        await testExcludeDefinitionDir('./definition')
+        await testExcludeDefinitionDir('./definition');
     });
 
     it('exclude auto import (**/ pattern)', async () => {
-        await testExcludeDefinitionDir('**/definition')
+        await testExcludeDefinitionDir('**/definition');
     });
 });

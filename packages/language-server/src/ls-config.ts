@@ -407,7 +407,7 @@ export class LSConfigManager {
             includeAutomaticOptionalChainCompletions:
                 config.suggest?.includeAutomaticOptionalChainCompletions ?? true,
             includeCompletionsWithInsertText: true,
-            autoImportFileExcludePatterns: config.preferences?.autoImportFileExcludePatterns,
+            autoImportFileExcludePatterns: config.preferences?.autoImportFileExcludePatterns
         };
     }
 
