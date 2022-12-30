@@ -212,14 +212,14 @@ describe('SveltePlugin#getCodeAction', () => {
                             {
                                 edits: [
                                     {
-                                        newText: 'noreferrer ',
+                                        newText: ' noreferrer',
                                         range: {
                                             end: {
-                                                character: 50,
+                                                character: 58,
                                                 line: 0
                                             },
                                             start: {
-                                                character: 50,
+                                                character: 58,
                                                 line: 0
                                             }
                                         }

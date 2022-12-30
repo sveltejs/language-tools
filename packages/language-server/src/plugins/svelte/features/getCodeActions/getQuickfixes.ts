@@ -120,10 +120,7 @@ function createSvelteAnchorMissingAttributeQuickfixAction(
     const relAttribute = node.attributes.find((i: any) => i.name == 'rel');
 
     const codeActionTextEdit = relAttribute
-        ? TextEdit.insert(
-              positionAt(relAttribute.value[0].start, content, lineOffsets),
-              'noreferrer '
-          )
+        ? TextEdit.insert(positionAt(relAttribute.end - 1, content, lineOffsets), ' noreferrer')
         : TextEdit.insert(
               positionAt(targetAttribute.end, content, lineOffsets),
               ' rel="noreferrer"'
