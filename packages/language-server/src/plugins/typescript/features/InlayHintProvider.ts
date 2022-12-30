@@ -1,7 +1,8 @@
-import ts from 'typescript';
+import ts, { DocumentSpan } from 'typescript';
 import { Range, InlayHint, InlayHintKind } from 'vscode-languageserver-types';
 import { Document } from '../../../lib/documents';
 import { InlayHintProvider } from '../../interfaces';
+import { DocumentSnapshot } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { convertToTextSpan } from '../utils';
 import {
@@ -18,7 +19,6 @@ export class InlayHintProviderImpl implements InlayHintProvider {
         const { lang, tsDoc, userPreferences } = await this.lsAndTsDocResolver.getLSAndTSDoc(
             document
         );
-        const fragment = await tsDoc.getFragment();
 
         const inlayHints = lang.provideInlayHints(
             tsDoc.filePath,
@@ -39,15 +39,15 @@ export class InlayHintProviderImpl implements InlayHintProvider {
         return inlayHints
             .filter(
                 (inlayHint) =>
-                    !isInGeneratedCode(fragment.text, inlayHint.position) &&
+                    !isInGeneratedCode(tsDoc.getFullText(), inlayHint.position) &&
                     inlayHint.position !== renderFunctionReturnTypeLocation &&
                     !this.isSvelte2tsxFunctionHints(sourceFile, inlayHint) &&
                     !this.isGeneratedVariableTypeHint(sourceFile, inlayHint) &&
-                    !this.isGeratedFunctionReturnType(sourceFile, inlayHint)
+                    !this.isGeneratedFunctionReturnType(sourceFile, inlayHint)
             )
             .map((inlayHint) => ({
                 label: inlayHint.text,
-                position: fragment.getOriginalPosition(fragment.positionAt(inlayHint.position)),
+                position: tsDoc.getOriginalPosition(tsDoc.positionAt(inlayHint.position)),
                 kind: this.convertInlayHintKind(inlayHint.kind),
                 paddingLeft: inlayHint.whitespaceBefore,
                 paddingRight: inlayHint.whitespaceAfter
@@ -120,7 +120,7 @@ export class InlayHintProviderImpl implements InlayHintProvider {
         );
     }
 
-    private isGeratedFunctionReturnType(sourceFile: ts.SourceFile, inlayHint: ts.InlayHint) {
+    private isGeneratedFunctionReturnType(sourceFile: ts.SourceFile, inlayHint: ts.InlayHint) {
         if (inlayHint.kind !== ts.InlayHintKind.Type) {
             return false;
         }

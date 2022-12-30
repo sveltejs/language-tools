@@ -15,7 +15,8 @@ import {
     SemanticTokensRequest,
     SemanticTokensRangeRequest,
     DidChangeWatchedFilesParams,
-    LinkedEditingRangeRequest
+    LinkedEditingRangeRequest,
+    InlayHintRequest
 } from 'vscode-languageserver';
 import { IPCMessageReader, IPCMessageWriter, createConnection } from 'vscode-languageserver/node';
 import { DiagnosticsManager } from './lib/DiagnosticsManager';
@@ -389,6 +390,10 @@ export function startServer(options?: LSOptions) {
     connection.onTypeDefinition((evt) =>
         pluginHost.getTypeDefinition(evt.textDocument, evt.position)
     );
+
+    connection.onRequest(InlayHintRequest.type, evt =>
+        pluginHost.getInlayHints(evt.textDocument, evt.range)
+    )
 
     const diagnosticsManager = new DiagnosticsManager(
         connection.sendDiagnostics,

@@ -235,7 +235,7 @@ export interface TsInalyHintsConfig {
     functionLikeReturnTypes: { enabled: boolean } | undefined;
     parameterNames:
         | {
-              enabled: InlayHintsOptions['includeInlayParameterNameHints'];
+              enabled: ts.UserPreferences['includeInlayParameterNameHints'];
               suppressWhenArgumentMatchesName: boolean;
           }
         | undefined;
