@@ -14,7 +14,12 @@ import {
     ignoredBuildDirectories,
     SnapshotManager
 } from './SnapshotManager';
-import { ensureRealSvelteFilePath, findTsConfigPath, hasTsExtensions, isSubPath } from './utils';
+import {
+    ensureRealSvelteFilePath,
+    findTsConfigPath,
+    getNearestWorkspaceUri,
+    hasTsExtensions
+} from './utils';
 
 export interface LanguageServiceContainer {
     readonly tsconfigPath: string;
@@ -93,9 +98,7 @@ export async function getService(
         return getServiceForTsconfig(tsconfigPath, dirname(tsconfigPath), docContext);
     }
 
-    const nearestWorkspaceUri = workspaceUris.find((workspaceUri) =>
-        isSubPath(workspaceUri, path, getCanonicalFileName)
-    );
+    const nearestWorkspaceUri = getNearestWorkspaceUri(workspaceUris, path, getCanonicalFileName);
 
     return getServiceForTsconfig(
         tsconfigPath,

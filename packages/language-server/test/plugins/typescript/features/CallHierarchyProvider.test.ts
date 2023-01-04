@@ -41,7 +41,6 @@ function test(useNewTransformation: boolean) {
             );
             const provider = new CallHierarchyProviderImpl(
                 lsAndTsDocResolver,
-                lsConfigManager,
                 workspaceUris
             );
             const filePath = getFullPath(filename);
@@ -290,5 +289,5 @@ function test(useNewTransformation: boolean) {
     };
 }
 
-describe.only('CallHierarchyProvider (old transformation)', test(false));
+// describe.only('CallHierarchyProvider (old transformation)', test(false));
 describe.only('CallHierarchyProvider (new transformation)', test(true));

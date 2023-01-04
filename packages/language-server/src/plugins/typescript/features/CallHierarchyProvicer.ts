@@ -8,13 +8,18 @@ import {
     Position
 } from 'vscode-languageserver-types';
 import { Document, mapRangeToOriginal } from '../../../lib/documents';
-import { LSConfigManager } from '../../../ls-config';
-import { isNotNullOrUndefined, pathToUrl, urlToPath } from '../../../utils';
+import {
+    createGetCanonicalFileName,
+    isNotNullOrUndefined,
+    pathToUrl,
+    urlToPath
+} from '../../../utils';
 import { CallHierarchyProvider } from '../../interfaces';
 import { DocumentSnapshot, SvelteDocumentSnapshot } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import {
     convertRange,
+    getNearestWorkspaceUri,
     isGeneratedSvelteComponentName,
     isSvelteFilePath,
     offsetOfGeneratedComponentExport,
@@ -28,7 +33,6 @@ const ENSURE_COMPONENT_HELPER = '__sveltets_2_ensureComponent';
 export class CallHierarchyProviderImpl implements CallHierarchyProvider {
     constructor(
         private readonly lsAndTsDocResolver: LSAndTSDocResolver,
-        private readonly configManager: LSConfigManager,
         private readonly workspaceUris: string[]
     ) {}
 
@@ -108,11 +112,12 @@ export class CallHierarchyProviderImpl implements CallHierarchyProvider {
     }
 
     private getNameAndDetailForItem(useFileName: boolean, item: ts.CallHierarchyItem) {
-        const nearestRoot = Array.from(this.workspaceUris)
-            .map((uri) => urlToPath(uri))
-            .filter(isNotNullOrUndefined)
-            .sort((path) => path.length)
-            .find((path) => item.file.startsWith(path));
+        const nearestRootUri = getNearestWorkspaceUri(
+            this.workspaceUris,
+            item.file,
+            createGetCanonicalFileName(ts.sys.useCaseSensitiveFileNames)
+        );
+        const nearestRoot = nearestRootUri && (urlToPath(nearestRootUri) ?? undefined);
 
         const name = useFileName ? basename(item.file) : item.name;
         const detail = useFileName
@@ -146,21 +151,9 @@ export class CallHierarchyProviderImpl implements CallHierarchyProvider {
                 : -1;
         const offset = componentExportOffset >= 0 ? componentExportOffset : getNonComponentOffset();
 
-        let incomingCalls: ts.CallHierarchyIncomingCall[] = lang.provideCallHierarchyIncomingCalls(
-            filePath,
-            offset
-        );
-
-        if (this.configManager.getConfig().svelte.useNewTransformation) {
-            incomingCalls = incomingCalls.concat(
-                this.getInComingCallsForNewTransformationComponent(
-                    lang,
-                    program,
-                    filePath,
-                    offset
-                ) ?? []
-            );
-        }
+        const incomingCalls: ts.CallHierarchyIncomingCall[] = lang
+            .provideCallHierarchyIncomingCalls(filePath, offset)
+            .concat(this.getInComingCallsForComponent(lang, program, filePath, offset) ?? []);
 
         const result = await Promise.all(
             incomingCalls.map(async (item): Promise<CallHierarchyIncomingCall | null> => {
@@ -216,13 +209,9 @@ export class CallHierarchyProviderImpl implements CallHierarchyProvider {
                 ? renderFunctionOffset
                 : getNonComponentOffset();
 
-        let outgoingCalls = lang.provideCallHierarchyOutgoingCalls(filePath, offset);
-
-        if (isSvelteCompRange && this.configManager.getConfig().svelte.useNewTransformation) {
-            outgoingCalls = outgoingCalls.concat(
-                this.getOutgoingCallsForNewTransformationComponent(program, filePath) ?? []
-            );
-        }
+        const outgoingCalls = lang
+            .provideCallHierarchyOutgoingCalls(filePath, offset)
+            .concat(this.getOutgoingCallsForComponent(program, filePath) ?? []);
 
         const result = await Promise.all(
             outgoingCalls.map(async (item): Promise<CallHierarchyOutgoingCall | null> => {
@@ -350,7 +339,7 @@ export class CallHierarchyProviderImpl implements CallHierarchyProvider {
             .filter((range) => range.start.line >= 0 && range.end.line >= 0);
     }
 
-    private getInComingCallsForNewTransformationComponent(
+    private getInComingCallsForComponent(
         lang: ts.LanguageService,
         program: ts.Program | undefined,
         filePath: string,
@@ -418,7 +407,7 @@ export class CallHierarchyProviderImpl implements CallHierarchyProvider {
         );
     }
 
-    private getOutgoingCallsForNewTransformationComponent(
+    private getOutgoingCallsForComponent(
         program: ts.Program | undefined,
         filePath: string
     ): ts.CallHierarchyOutgoingCall[] | null {

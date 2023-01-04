@@ -167,7 +167,6 @@ export class TypeScriptPlugin
         this.typeDefinitionProvider = new TypeDefinitionProviderImpl(this.lsAndTsDocResolver);
         this.callHierarchyProvider = new CallHierarchyProviderImpl(
             this.lsAndTsDocResolver,
-            configManager,
             workspaceUris
         );
     }

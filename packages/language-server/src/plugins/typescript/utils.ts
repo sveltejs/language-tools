@@ -152,6 +152,16 @@ export function isSubPath(
     return getCanonicalFileName(pathToUrl(possibleSubPath)).startsWith(getCanonicalFileName(uri));
 }
 
+export function getNearestWorkspaceUri(
+    workspaceUris: string[],
+    path: string,
+    getCanonicalFileName: GetCanonicalFileName
+) {
+    return Array.from(workspaceUris)
+        .sort((a, b) => b.length - a.length)
+        .find((workspaceUri) => isSubPath(workspaceUri, path, getCanonicalFileName));
+}
+
 export function symbolKindFromString(kind: string): SymbolKind {
     switch (kind) {
         case 'module':
