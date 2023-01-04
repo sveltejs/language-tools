@@ -175,6 +175,28 @@ export function findContainingNode<T extends ts.Node>(
     }
 }
 
+export function findClosestContainingNode<T extends ts.Node>(
+    node: ts.Node,
+    textSpan: ts.TextSpan,
+    predicate: (node: ts.Node) => node is T
+): T | undefined {
+    let current = findContainingNode(node, textSpan, predicate);
+    if (!current) {
+        return;
+    }
+
+    let closest = current;
+
+    while (current) {
+        const foundInChildren: T | undefined = findContainingNode(current, textSpan, predicate);
+
+        closest = current;
+        current = foundInChildren;
+    }
+
+    return closest;
+}
+
 /**
  * Finds node exactly matching span {start, length}.
  */

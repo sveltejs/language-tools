@@ -199,7 +199,7 @@ export interface TSUserConfig {
     preferences?: TsUserPreferencesConfig;
     suggest?: TSSuggestConfig;
     format?: TsFormatConfig;
-    inlayHints?: TsInalyHintsConfig;
+    inlayHints?: TsInlayHintsConfig;
 }
 
 /**
@@ -230,7 +230,7 @@ export type TsFormatConfig = Omit<
     ts.FormatCodeSettings,
     'indentMultiLineObjectLiteralBeginningOnBlankLine' | keyof ts.EditorSettings
 >;
-export interface TsInalyHintsConfig {
+export interface TsInlayHintsConfig {
     enumMemberValues: { enabled: boolean } | undefined;
     functionLikeReturnTypes: { enabled: boolean } | undefined;
     parameterNames:

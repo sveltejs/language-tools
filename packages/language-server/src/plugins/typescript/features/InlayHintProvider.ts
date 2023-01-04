@@ -1,15 +1,16 @@
-import ts, { DocumentSpan } from 'typescript';
+import ts from 'typescript';
 import { Range, InlayHint, InlayHintKind } from 'vscode-languageserver-types';
-import { Document } from '../../../lib/documents';
+import { Document, isInTag } from '../../../lib/documents';
+import { getAttributeContextAtPosition } from '../../../lib/documents/parseHtml';
 import { InlayHintProvider } from '../../interfaces';
 import { DocumentSnapshot } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
-import { convertToTextSpan } from '../utils';
 import {
     findContainingNode,
     isInGeneratedCode,
     findChildOfKind,
-    findRenderFunction
+    findRenderFunction,
+    findClosestContainingNode
 } from './utils';
 
 export class InlayHintProviderImpl implements InlayHintProvider {
@@ -22,7 +23,7 @@ export class InlayHintProviderImpl implements InlayHintProvider {
 
         const inlayHints = lang.provideInlayHints(
             tsDoc.filePath,
-            convertToTextSpan(range, fragment),
+            this.convertToTargetTextSpan(range, tsDoc),
             userPreferences
         );
 
@@ -36,7 +37,7 @@ export class InlayHintProviderImpl implements InlayHintProvider {
         const renderFunctionReturnTypeLocation =
             renderFunction && this.getTypeAnnotationPosition(renderFunction);
 
-        return inlayHints
+        const result = inlayHints
             .filter(
                 (inlayHint) =>
                     !isInGeneratedCode(tsDoc.getFullText(), inlayHint.position) &&
@@ -53,8 +54,29 @@ export class InlayHintProviderImpl implements InlayHintProvider {
                 paddingRight: inlayHint.whitespaceAfter
             }))
             .filter(
-                (inlayHint) => inlayHint.position.line >= 0 && inlayHint.position.character >= 0
+                (inlayHint) =>
+                    inlayHint.position.line >= 0 &&
+                    inlayHint.position.character >= 0 &&
+                    !this.checkGeneratedFunctionHintWithSource(inlayHint, document)
             );
+
+        return result;
+    }
+
+    private convertToTargetTextSpan(range: Range, snapshot: DocumentSnapshot) {
+        const generatedStartOffset = snapshot.getGeneratedPosition(range.start);
+        const generatedEndOffset = snapshot.getGeneratedPosition(range.end);
+
+        const start = generatedStartOffset.line < 0 ? 0 : snapshot.offsetAt(generatedStartOffset);
+        const end =
+            generatedEndOffset.line < 0
+                ? snapshot.getLength()
+                : snapshot.offsetAt(generatedEndOffset);
+
+        return {
+            start,
+            length: end - start
+        };
     }
 
     private convertInlayHintKind(kind: ts.InlayHintKind): InlayHintKind | undefined {
@@ -75,7 +97,7 @@ export class InlayHintProviderImpl implements InlayHintProvider {
             return false;
         }
 
-        const node = findContainingNode(
+        const node = findClosestContainingNode(
             sourceFile,
             { start: inlayHint.position, length: 0 },
             ts.isCallOrNewExpression
@@ -114,9 +136,10 @@ export class InlayHintProviderImpl implements InlayHintProvider {
             return false;
         }
 
+        // $$_tnenopmoC, $$_value, $$props, $$slots, $$restProps...
         return (
             isInGeneratedCode(sourceFile.text, declaration.pos) ||
-            declaration.name.getText().startsWith('$$_')
+            declaration.name.getText().startsWith('$$')
         );
     }
 
@@ -125,17 +148,25 @@ export class InlayHintProviderImpl implements InlayHintProvider {
             return false;
         }
 
+        // $: a = something
+        // it's always top level and shouldn't be under other function call
+        // so we don't need to use findClosestContainingNode
         const expression = findContainingNode(
             sourceFile,
             { start: inlayHint.position, length: 0 },
-            ts.isFunctionDeclaration
+            (node): node is IdentifierCallExpression =>
+                ts.isCallExpression(node) && ts.isIdentifier(node.expression)
         );
 
         if (!expression) {
             return false;
         }
 
-        return isInGeneratedCode(sourceFile.text, expression.pos);
+        return (
+            expression.expression.text === '__sveltets_2_invalidate' &&
+            ts.isArrowFunction(expression.arguments[0]) &&
+            this.getTypeAnnotationPosition(expression.arguments[0]) === inlayHint.position
+        );
     }
 
     private getTypeAnnotationPosition(
@@ -152,4 +183,44 @@ export class InlayHintProviderImpl implements InlayHintProvider {
         }
         return decl.parameters.end;
     }
+
+    private checkGeneratedFunctionHintWithSource(inlayHint: InlayHint, document: Document) {
+        if (isInTag(inlayHint.position, document.moduleScriptInfo)) {
+            return false;
+        }
+
+        if (isInTag(inlayHint.position, document.scriptInfo)) {
+            return document
+                .getText()
+                .slice(document.offsetAt(inlayHint.position))
+                .trimStart()
+                .startsWith('$:');
+        }
+
+        const attributeContext = getAttributeContextAtPosition(document, inlayHint.position);
+
+        if (!attributeContext || attributeContext.inValue || !attributeContext.name.includes(':')) {
+            return false;
+        }
+
+        const { name, elementTag } = attributeContext;
+
+        // <div on:click>
+        if (name.startsWith('on:') && !elementTag.attributes?.[attributeContext.name]) {
+            return true;
+        }
+
+        const directives = ['in', 'out', 'animate', 'transition', 'use'];
+
+        // hide
+        // - transitionCall: for __sveltets_2_ensureTransition
+        // - tag: for svelteHTML.mapElementTag inside transition call and action call
+        // - animationCall: for __sveltets_2_ensureAnimation
+        // - actionCall for __sveltets_2_ensureAction
+        return directives.some((directive) => name.startsWith(directive + ':'));
+    }
+}
+
+interface IdentifierCallExpression extends ts.CallExpression {
+    expression: ts.Identifier;
 }

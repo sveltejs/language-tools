@@ -391,9 +391,9 @@ export function startServer(options?: LSOptions) {
         pluginHost.getTypeDefinition(evt.textDocument, evt.position)
     );
 
-    connection.onRequest(InlayHintRequest.type, evt =>
+    connection.onRequest(InlayHintRequest.type, (evt) =>
         pluginHost.getInlayHints(evt.textDocument, evt.range)
-    )
+    );
 
     const diagnosticsManager = new DiagnosticsManager(
         connection.sendDiagnostics,

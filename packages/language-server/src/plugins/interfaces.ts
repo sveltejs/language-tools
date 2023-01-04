@@ -190,9 +190,8 @@ export interface OnWatchFileChangesPara {
 }
 
 export interface InlayHintProvider {
-    getInlayHints(document: Document, range: Range): Resolvable<InlayHint[] | null>
+    getInlayHints(document: Document, range: Range): Resolvable<InlayHint[] | null>;
 }
-
 
 export interface OnWatchFileChanges {
     onWatchFileChanges(onWatchFileChangesParas: OnWatchFileChangesPara[]): void;
