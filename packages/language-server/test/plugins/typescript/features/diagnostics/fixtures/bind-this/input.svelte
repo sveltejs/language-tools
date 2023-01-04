@@ -40,6 +40,7 @@
 <ComponentWithFunction2 bind:this={componentWithFunction1} />
 <ComponentWithGeneric prop={''} bind:this={componentWithGeneric} />
 <svelte:component this={Component} bind:this={component} prop={true} />
+<svelte:component this={Math.random() > 0.5 ? Component : null} bind:this={component} prop={true} />
 
 <!-- errors -->
 <div bind:this={element} />

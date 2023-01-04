@@ -1,3 +1,4 @@
+import { dirname } from 'path';
 import ts from 'typescript';
 import { TextDocumentContentChangeEvent } from 'vscode-languageserver';
 import { Document, DocumentManager } from '../../lib/documents';
@@ -27,6 +28,7 @@ interface LSAndTSDocResolverOptions {
 
     onProjectReloaded?: () => void;
     watchTsConfig?: boolean;
+    tsSystem?: ts.System;
 }
 
 export class LSAndTSDocResolver {
@@ -53,7 +55,10 @@ export class LSAndTSDocResolver {
         // Open it immediately to reduce rebuilds in the startup
         // where multiple files and their dependencies
         // being loaded in a short period of times
-        docManager.on('documentOpen', handleDocumentChange);
+        docManager.on('documentOpen', (document) => {
+            handleDocumentChange(document);
+            docManager.lockDocument(document.uri);
+        });
     }
 
     /**
@@ -69,7 +74,7 @@ export class LSAndTSDocResolver {
         return document;
     };
 
-    private globalSnapshotsManager = new GlobalSnapshotsManager();
+    private globalSnapshotsManager = new GlobalSnapshotsManager(this.lsDocumentContext.tsSystem);
     private extendedConfigCache = new Map<string, ts.ExtendedConfigCacheEntry>();
 
     private get lsDocumentContext(): LanguageServiceDocumentContext {
@@ -83,7 +88,7 @@ export class LSAndTSDocResolver {
             extendedConfigCache: this.extendedConfigCache,
             onProjectReloaded: this.options?.onProjectReloaded,
             watchTsConfig: !!this.options?.watchTsConfig,
-            tsSystem: ts.sys
+            tsSystem: this.options?.tsSystem ?? ts.sys
         };
     }
 
@@ -119,9 +124,12 @@ export class LSAndTSDocResolver {
     /**
      * Updates snapshot path in all existing ts services and retrieves snapshot
      */
-    async updateSnapshotPath(oldPath: string, newPath: string): Promise<DocumentSnapshot> {
-        await this.deleteSnapshot(oldPath);
-        return this.getSnapshot(newPath);
+    async updateSnapshotPath(oldPath: string, newPath: string): Promise<void> {
+        for (const snapshot of this.globalSnapshotsManager.getByPrefix(oldPath)) {
+            await this.deleteSnapshot(snapshot.filePath);
+        }
+        // This may not be a file but a directory, still try
+        await this.getSnapshot(newPath);
     }
 
     /**
@@ -129,7 +137,13 @@ export class LSAndTSDocResolver {
      */
     async deleteSnapshot(filePath: string) {
         await forAllServices((service) => service.deleteSnapshot(filePath));
-        this.docManager.releaseDocument(pathToUrl(filePath));
+        const uri = pathToUrl(filePath);
+        if (this.docManager.get(uri)) {
+            // Guard this call, due to race conditions it may already have been closed;
+            // also this may not be a Svelte file
+            this.docManager.closeDocument(uri);
+        }
+        this.docManager.releaseDocument(uri);
     }
 
     /**
@@ -168,7 +182,11 @@ export class LSAndTSDocResolver {
 
     async getTSService(filePath?: string): Promise<LanguageServiceContainer> {
         if (this.options?.tsconfigPath) {
-            return getServiceForTsconfig(this.options?.tsconfigPath, this.lsDocumentContext);
+            return getServiceForTsconfig(
+                this.options?.tsconfigPath,
+                dirname(this.options.tsconfigPath),
+                this.lsDocumentContext
+            );
         }
         if (!filePath) {
             throw new Error('Cannot call getTSService without filePath and without tsconfigPath');

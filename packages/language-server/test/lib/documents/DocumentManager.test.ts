@@ -80,4 +80,35 @@ describe('Document Manager', () => {
         manager.updateDocument(textDocument, []);
         sinon.assert.calledTwice(cb);
     });
+
+    it('update document in case-insensitive fs with different casing', () => {
+        const textDocument: TextDocumentItem = {
+            uri: 'file:///hello2.svelte',
+            version: 0,
+            languageId: 'svelte',
+            text: 'Hello, world!'
+        };
+        const manager = new DocumentManager(createTextDocument, {
+            useCaseSensitiveFileNames: false
+        });
+
+        manager.openDocument(textDocument);
+        const firstVersion = manager.get(textDocument.uri)!.version;
+
+        const position = { line: 0, character: textDocument.text.length };
+        manager.updateDocument(
+            {
+                ...textDocument,
+                uri: 'file:///Hello2.svelte'
+            },
+            [
+                {
+                    range: { start: position, end: position },
+                    text: ' '
+                }
+            ]
+        );
+
+        assert.ok(manager.get(textDocument.uri)!.version > firstVersion);
+    });
 });

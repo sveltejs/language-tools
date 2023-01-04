@@ -12,7 +12,7 @@
     <slot name="test" c={__sveltets_ensureSlot("test","c",d)} e={__sveltets_ensureSlot("test","e",e)}></slot>
     <slot name="abc-cde.113"></slot>
 </div></>);
-return { props: {}, slots: {'default': {a:b}, 'test': {c:d, e:e}, 'abc-cde.113': {}}, getters: {}, events: {} }}
+return { props: /** @type {Record<string, never>} */ ({}), slots: {'default': {a:b}, 'test': {c:d, e:e}, 'abc-cde.113': {}}, events: {} }}
 
-export default class Input__SvelteComponent_ extends __sveltets_1_createSvelte2TsxComponent(__sveltets_1_partial(__sveltets_1_with_any_event(render()))) {
+export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial(__sveltets_2_with_any_event(render()))) {
 }

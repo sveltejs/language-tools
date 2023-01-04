@@ -6,7 +6,7 @@
         },
         "severity": 1,
         "source": "ts",
-        "message": "Type '\"asd\"' is not assignable to type 'number | unique symbol | \"charAt\" | \"charCodeAt\" | \"concat\" | \"indexOf\" | \"lastIndexOf\" | \"localeCompare\" | \"match\" | \"replace\" | \"search\" | \"slice\" | \"split\" | \"substring\" | ... 36 more ... | \"valueOf\"'.",
+        "message": "Type '\"asd\"' is not assignable to type 'number | unique symbol | \"link\" | \"small\" | \"sub\" | \"sup\" | \"big\" | \"search\" | \"substring\" | \"anchor\" | \"toString\" | \"charAt\" | \"charCodeAt\" | \"concat\" | \"indexOf\" | \"lastIndexOf\" | ... 34 more ... | \"at\"'.",
         "code": 2322,
         "tags": []
     },
@@ -28,7 +28,7 @@
         },
         "severity": 1,
         "source": "ts",
-        "message": "This condition will always return 'false' since the types 'string' and 'boolean' have no overlap.",
+        "message": "This comparison appears to be unintentional because the types 'string' and 'boolean' have no overlap.",
         "code": 2367,
         "tags": []
     },
@@ -39,7 +39,7 @@
         },
         "severity": 1,
         "source": "ts",
-        "message": "This condition will always return 'false' since the types 'string' and 'boolean' have no overlap.",
+        "message": "This comparison appears to be unintentional because the types 'string' and 'boolean' have no overlap.",
         "code": 2367,
         "tags": []
     },
@@ -50,7 +50,7 @@
         },
         "severity": 1,
         "source": "ts",
-        "message": "This condition will always return 'false' since the types '\"anchor\"' and '\"big\"' have no overlap.",
+        "message": "This comparison appears to be unintentional because the types '\"anchor\"' and '\"big\"' have no overlap.",
         "code": 2367,
         "tags": []
     }

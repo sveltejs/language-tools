@@ -35,15 +35,15 @@ export function createRenderFunction({
     let propsDecl = '';
 
     if (uses$$props) {
-        propsDecl += ' let $$props = __sveltets_1_allPropsType();';
+        propsDecl += ' let $$props = __sveltets_2_allPropsType();';
     }
     if (uses$$restProps) {
-        propsDecl += ' let $$restProps = __sveltets_1_restPropsType();';
+        propsDecl += ' let $$restProps = __sveltets_2_restPropsType();';
     }
 
     if (uses$$slots) {
         propsDecl +=
-            ' let $$slots = __sveltets_1_slotsType({' +
+            ' let $$slots = __sveltets_2_slotsType({' +
             Array.from(slots.keys())
                 .map((name) => `'${name}': ''`)
                 .join(', ') +
@@ -114,9 +114,8 @@ export function createRenderFunction({
           '}';
 
     const returnString =
-        `\nreturn { props: ${exportedNames.createPropsStr(isTsFile)}` +
+        `\nreturn { props: ${exportedNames.createPropsStr(isTsFile, uses$$props)}` +
         `, slots: ${slotsAsDef}` +
-        `, getters: ${exportedNames.createRenderFunctionGetterStr()}` +
         `, events: ${events.toDefString()} }}`;
 
     // wrap template with callback

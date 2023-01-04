@@ -212,5 +212,5 @@ function test(useNewTransformation: boolean) {
     };
 }
 
-describe('HoverProvider (use old transformation)', test(false));
+// describe('HoverProvider (use old transformation)', test(false));
 describe('HoverProvider (use new transformation)', test(true));

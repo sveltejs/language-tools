@@ -113,6 +113,20 @@ export class Document extends WritableDocument {
         return lang.replace(/^text\//, '');
     }
 
+    /**
+     * Returns true if there's `lang="X"` on script or style or template.
+     */
+    hasLanguageAttribute(): boolean {
+        return (
+            !!this.getLanguageAttribute('script') ||
+            !!this.getLanguageAttribute('style') ||
+            !!this.getLanguageAttribute('template')
+        );
+    }
+
+    /**
+     * @deprecated This no longer exists in svelte-preprocess v5, we leave it in in case someone is using this with v4
+     */
     private addDefaultLanguage(
         config: SvelteConfig | undefined,
         tagInfo: TagInformation | null,

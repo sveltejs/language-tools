@@ -23,10 +23,12 @@ import { LSAndTSDocResolver } from '../../../../src/plugins/typescript/LSAndTSDo
 import { sortBy } from 'lodash';
 import { LSConfigManager } from '../../../../src/ls-config';
 import { __resetCache } from '../../../../src/plugins/typescript/service';
+import { getRandomVirtualDirPath, setupVirtualEnvironment } from '../test-utils';
 
 const testDir = join(__dirname, '..');
 const testFilesDir = join(testDir, 'testfiles', 'completions');
 const newLine = ts.sys.newLine;
+const indent = ' '.repeat(4);
 
 const fileNameToAbsoluteUri = (file: string) => {
     return pathToUrl(join(testFilesDir, file));
@@ -83,7 +85,7 @@ function test(useNewTransformation: boolean) {
                 insertText: undefined,
                 kind: CompletionItemKind.Method,
                 sortText: '11',
-                commitCharacters: ['.', ',', '('],
+                commitCharacters: ['.', ',', ';', '('],
                 preselect: undefined,
                 textEdit: undefined
             });
@@ -109,7 +111,7 @@ function test(useNewTransformation: boolean) {
                 insertText: undefined,
                 kind: CompletionItemKind.Field,
                 sortText: '11',
-                commitCharacters: ['.', ',', '('],
+                commitCharacters: ['.', ',', ';', '('],
                 preselect: undefined,
                 textEdit: undefined
             });
@@ -243,7 +245,6 @@ function test(useNewTransformation: boolean) {
             );
             assert.ok(completions!.items.length > 0, 'Expected completions to have length');
 
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const eventCompletions = completions!.items.filter((item) =>
                 item.label.startsWith('on:')
             );
@@ -510,7 +511,7 @@ function test(useNewTransformation: boolean) {
             const { documentation, detail } = await completionProvider.resolveCompletion(document, {
                 label: 'foo',
                 kind: 6,
-                commitCharacters: ['.', ',', '('],
+                commitCharacters: ['.', ',', ';', '('],
                 data: {
                     name: 'foo',
                     kind: ts.ScriptElementKind.alias,
@@ -640,7 +641,7 @@ function test(useNewTransformation: boolean) {
             assert.strictEqual(
                 harmonizeNewLines(additionalTextEdits![0]?.newText),
                 // " instead of ' because VSCode uses " by default when there are no other imports indicating otherwise
-                `${newLine}import { blubb } from "../definitions";${newLine}${newLine}`
+                `${newLine}${indent}import { blubb } from "../definitions";${newLine}${newLine}`
             );
 
             assert.deepEqual(
@@ -675,7 +676,7 @@ function test(useNewTransformation: boolean) {
 
             assert.strictEqual(
                 harmonizeNewLines(additionalTextEdits![0]?.newText),
-                `import { blubb } from '../definitions';${newLine}`
+                `${indent}import { blubb } from '../definitions';${newLine}`
             );
 
             assert.deepEqual(
@@ -710,7 +711,7 @@ function test(useNewTransformation: boolean) {
 
             assert.strictEqual(
                 harmonizeNewLines(additionalTextEdits![0]?.newText),
-                `${newLine}import { blubb } from '../definitions';${newLine}`
+                `${newLine}${indent}import { blubb } from '../definitions';${newLine}`
             );
 
             assert.deepEqual(
@@ -742,7 +743,7 @@ function test(useNewTransformation: boolean) {
             assert.strictEqual(
                 harmonizeNewLines(additionalTextEdits![0]?.newText),
                 // " instead of ' because VSCode uses " by default when there are no other imports indicating otherwise
-                `${newLine}import { onMount } from "svelte";${newLine}`
+                `${newLine}${indent}import { onMount } from "svelte";${newLine}`
             );
 
             assert.deepEqual(
@@ -769,7 +770,7 @@ function test(useNewTransformation: boolean) {
             assert.strictEqual(
                 harmonizeNewLines(additionalTextEdits![0]?.newText),
                 // " instead of ' because VSCode uses " by default when there are no other imports indicating otherwise
-                `${newLine}import { onMount } from "svelte";${newLine}${newLine}`
+                `${newLine}${indent}import { onMount } from "svelte";${newLine}${newLine}`
             );
 
             assert.deepEqual(
@@ -796,7 +797,7 @@ function test(useNewTransformation: boolean) {
             assert.strictEqual(
                 harmonizeNewLines(additionalTextEdits![0]?.newText),
                 // " instead of ' because VSCode uses " by default when there are no other imports indicating otherwise
-                `${newLine}import { onMount } from "svelte";${newLine}${newLine}`
+                `${newLine}${indent}import { onMount } from "svelte";${newLine}${newLine}`
             );
 
             assert.deepEqual(
@@ -847,7 +848,7 @@ function test(useNewTransformation: boolean) {
             assert.strictEqual(
                 harmonizeNewLines(additionalTextEdits![0]?.newText),
                 // " instead of ' because VSCode uses " by default when there are no other imports indicating otherwise
-                `${newLine}import ImportedFile from "../imported-file.svelte";${newLine}`
+                `${newLine}${indent}import ImportedFile from "../imported-file.svelte";${newLine}`
             );
 
             assert.deepEqual(
@@ -885,7 +886,7 @@ function test(useNewTransformation: boolean) {
             assert.strictEqual(
                 harmonizeNewLines(additionalTextEdits![0]?.newText),
                 // " instead of ' because VSCode uses " by default when there are no other imports indicating otherwise
-                `<script>${newLine}import ImportedFile from "../imported-file.svelte";` +
+                `<script>${newLine}${indent}import ImportedFile from "../imported-file.svelte";` +
                     `${newLine}${newLine}</script>${newLine}`
             );
 
@@ -1166,7 +1167,7 @@ function test(useNewTransformation: boolean) {
                 insertText: 'import { blubb } from "../definitions";',
                 kind: CompletionItemKind.Function,
                 sortText: '11',
-                commitCharacters: ['.', ',', '('],
+                commitCharacters: undefined,
                 preselect: undefined,
                 textEdit: {
                     newText: '{ blubb } from "../definitions";',
@@ -1224,7 +1225,7 @@ function test(useNewTransformation: boolean) {
                 insertText: '?.toString',
                 kind: CompletionItemKind.Method,
                 sortText: '11',
-                commitCharacters: ['.', ',', '('],
+                commitCharacters: ['.', ',', ';', '('],
                 preselect: undefined,
                 textEdit: {
                     newText: '.toString',
@@ -1266,7 +1267,7 @@ function test(useNewTransformation: boolean) {
                 sortText: '11',
                 preselect: undefined,
                 insertText: undefined,
-                commitCharacters: undefined,
+                commitCharacters: ['.', ',', ';', '('],
                 textEdit: {
                     newText: '@hi',
                     range: {
@@ -1283,8 +1284,28 @@ function test(useNewTransformation: boolean) {
             });
         });
 
-        it('auto import with system new line', async () => {
-            const { completionProvider, document } = setup('importcompletions-new-line.svelte');
+        it("auto import with system new line if can't detect file new line", async () => {
+            const { completionProvider, document, docManager } = setup(
+                'importcompletions-new-line.svelte'
+            );
+
+            if (newLine != '\n') {
+                docManager.updateDocument(
+                    {
+                        uri: document.uri,
+                        version: document.version + 1
+                    },
+                    [
+                        {
+                            range: Range.create(
+                                Position.create(0, 0),
+                                document.positionAt(document.getTextLength())
+                            ),
+                            text: document.getText().replace('\n', '\r\n')
+                        }
+                    ]
+                );
+            }
 
             const completions = await completionProvider.getCompletions(
                 document,
@@ -1301,7 +1322,7 @@ function test(useNewTransformation: boolean) {
 
             assert.strictEqual(
                 additionalTextEdits?.[0].newText,
-                `${newLine}import { ScndImport } from "./to-import";${newLine}${newLine}`
+                `${newLine}${indent}import { ScndImport } from "./to-import";${newLine}${newLine}`
             );
         });
 
@@ -1346,6 +1367,52 @@ function test(useNewTransformation: boolean) {
             );
         });
 
+        it('can auto import in workspace without tsconfig/jsconfig', async () => {
+            const virtualTestDir = getRandomVirtualDirPath(testFilesDir);
+            const { docManager, document, lsAndTsDocResolver, lsConfigManager, virtualSystem } =
+                setupVirtualEnvironment({
+                    filename: 'index.svelte',
+                    fileContent: '<script>f</script>',
+                    testDir: virtualTestDir,
+                    useNewTransformation
+                });
+
+            const mockPackageDir = join(virtualTestDir, 'node_modules', '@types/random-package');
+
+            // the main problem is how ts resolve reference type directive
+            // it would start with a relative url and fail to auto import
+            virtualSystem.writeFile(
+                join(mockPackageDir, 'index.d.ts'),
+                '/// <reference types="random-package2" />' + '\nexport function bar(): string'
+            );
+
+            virtualSystem.writeFile(
+                join(virtualTestDir, 'node_modules', '@types', 'random-package2', 'index.d.ts'),
+                'declare function foo(): string\n' + 'export = foo'
+            );
+
+            const completionProvider = new CompletionsProviderImpl(
+                lsAndTsDocResolver,
+                lsConfigManager
+            );
+
+            // let the language service aware of random-package and random-package2
+            docManager.openDocument({
+                text: '<script>import {} from "random-package";</script>',
+                uri: pathToUrl(join(virtualTestDir, 'test.svelte'))
+            });
+
+            const completions = await completionProvider.getCompletions(document, {
+                line: 0,
+                character: 9
+            });
+            const item = completions?.items.find((item) => item.label === 'foo');
+
+            const { detail } = await completionProvider.resolveCompletion(document, item!);
+
+            assert.strictEqual(detail, 'Auto import from random-package2\nfunction foo(): string');
+        });
+
         // Hacky, but it works. Needed due to testing both new and old transformation
         after(() => {
             __resetCache();
@@ -1357,5 +1424,5 @@ function harmonizeNewLines(input?: string) {
     return input?.replace(/\r\n/g, '~:~').replace(/\n/g, '~:~').replace(/~:~/g, ts.sys.newLine);
 }
 
-describe('CompletionProviderImpl (old transformation)', test(false));
+// describe('CompletionProviderImpl (old transformation)', test(false));
 describe('CompletionProviderImpl (new transformation)', test(true));

@@ -6,7 +6,7 @@ Provides CLI diagnostics checks for:
 -   Svelte A11y hints
 -   JavaScript/TypeScript compiler errors
 
-Requires Node 12 or later.
+Requires Node 16 or later.
 
 ### Usage:
 
@@ -50,19 +50,19 @@ Usage:
 
 ### Args:
 
-| Flag                                                            | Description                                                                                                                                                                                                                                                                                                      |
-| --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--workspace <path>`                                            | Path to your workspace. All subdirectories except node_modules and those listed in `--ignore` are checked                                                                                                                                                                                                        |
+| Flag                                                            | Description                                                                                                                                                                                                                                                                                                                                                                                 |
+| --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--workspace <path>`                                            | Path to your workspace. All subdirectories except node_modules and those listed in `--ignore` are checked                                                                                                                                                                                                                                                                                   |
 | `--output <human\|human-verbose\|machine>`                      |
-| `--watch`                                                       | Will not exit after one pass but keep watching files for changes and rerun diagnostics                                                                                                                                                                                                                           |
-| `--tsconfig <path>`                                             | Pass a path to a tsconfig or jsconfig file. The path can be relative to the workspace path or absolute. Doing this means that only files matched by the files/include/exclude pattern of the config file are diagnosed. It also means that errors from TypeScript and JavaScript files are reported.             |
-| `--ignore <path1,path2>`                                        | Files/folders to ignore - relative to workspace root, comma-separated, inside quotes. Example: `--ignore "dist,build"`. When used in conjunction with `--tsconfig`, this will only have effect on the files watched, not on the files that are diagnosed, which is then determined by the `tsconfig.json`        |
-| `--fail-on-warnings`                                            | Will also exit with error code when there are warnings                                                                                                                                                                                                                                                           |
-| `--fail-on-hints`                                               | Will also exit with error code when there are hints                                                                                                                                                                                                                                                              |
-| `--compiler-warnings <code1:error\|ignore,code2:error\|ignore>` | A list of Svelte compiler warning codes. Each entry defines whether that warning should be ignored or treated as an error. Warnings are comma-separated, between warning code and error level is a colon; all inside quotes. Example: `--compiler-warnings "css-unused-selector:ignore,unused-export-let:error"` |
-| `--diagnostic-sources <js,svelte,css>`                          | A list of diagnostic sources which should run diagnostics on your code. Possible values are `js` (includes TS), `svelte`, `css`. Comma-separated, inside quotes. By default all are active. Example: `--diagnostic-sources "js,svelte"`                                                                          |
-| `--threshold <error\|warning>`                                  | Filters the diagnostics to display. `error` will output only errors while `warning` will output warnings and errors.                                                                                                                                                                                             |
-| `--use-new-transformation <true\|false>`                        | Svelte files need to be transformed to something that TypeScript understands for intellisense. Version 2.0 of this transformation can be enabled with this setting. It will be the default, soon. Please try it out and provide feedback                                                                         |
+| `--watch`                                                       | Will not exit after one pass but keep watching files for changes and rerun diagnostics                                                                                                                                                                                                                                                                                                      |
+| `--preserveWatchOutput`                                         | Do not clear the screen in watch mode                                                                                                                                                                                                                                                                                                                                                       |
+| `--tsconfig <path>`                                             | Pass a path to a tsconfig or jsconfig file. The path can be relative to the workspace path or absolute. Doing this means that only files matched by the files/include/exclude pattern of the config file are diagnosed. It also means that errors from TypeScript and JavaScript files are reported. If not given, will do an upwards traversal looking for the next jsconfig/tsconfig.json |
+| `--no-tsconfig`                                                 | Use this if you only want to check the Svelte files found in the current directory and below and ignore any JS/TS files (they will not be type-checked)                                                                                                                                                                                                                                     |
+| `--ignore <path1,path2>`                                        | Only has an effect when used in conjunction with `--no-tsconfig`. Files/folders to ignore - relative to workspace root, comma-separated, inside quotes. Example: `--ignore "dist,build"`. When used in conjunction with `--tsconfig`, this will only have effect on the files watched, not on the files that are diagnosed, which is then determined by the `tsconfig.json`                 |
+| `--fail-on-warnings`                                            | Will also exit with error code when there are warnings                                                                                                                                                                                                                                                                                                                                      |
+| `--compiler-warnings <code1:error\|ignore,code2:error\|ignore>` | A list of Svelte compiler warning codes. Each entry defines whether that warning should be ignored or treated as an error. Warnings are comma-separated, between warning code and error level is a colon; all inside quotes. Example: `--compiler-warnings "css-unused-selector:ignore,unused-export-let:error"`                                                                            |
+| `--diagnostic-sources <js,svelte,css>`                          | A list of diagnostic sources which should run diagnostics on your code. Possible values are `js` (includes TS), `svelte`, `css`. Comma-separated, inside quotes. By default all are active. Example: `--diagnostic-sources "js,svelte"`                                                                                                                                                     |
+| `--threshold <error\|warning>`                                  | Filters the diagnostics to display. `error` will output only errors while `warning` will output warnings and errors.                                                                                                                                                                                                                                                                        |
 
 ### FAQ
 
@@ -103,12 +103,12 @@ to the workspace directory. The filename and the message are both wrapped in quo
 1590680326778 WARNING "imported-file.svelte" 0:37 "Component has unused export property 'prop'. If it is for external reference only, please consider using `export const prop`"
 ```
 
-The output concludes with a `COMPLETED` message that summarizes total numbers of files, errors, warnings and hints that were encountered during the check.
+The output concludes with a `COMPLETED` message that summarizes total numbers of files, errors and warnings that were encountered during the check.
 
 ###### Example:
 
 ```
-1590680326807 COMPLETED 20 FILES 21 ERRORS 1 WARNINGS 0 HINTS
+1590680326807 COMPLETED 20 FILES 21 ERRORS 1 WARNINGS
 ```
 
 If the application experiences a runtime error, this error will appear as a `FAILURE` record.
@@ -121,4 +121,4 @@ If the application experiences a runtime error, this error will appear as a `FAI
 
 ### Credits
 
--   Vue's [VTI](https://github.com/vuejs/vetur/tree/master/vti) which lays the foundation for `svelte-check`
+-   Vue's [VTI](https://github.com/vuejs/vetur/tree/master/vti) which laid the foundation for `svelte-check`

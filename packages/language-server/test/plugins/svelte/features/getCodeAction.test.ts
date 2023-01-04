@@ -7,11 +7,11 @@ import {
     CodeActionContext,
     CreateFile,
     DiagnosticSeverity,
+    OptionalVersionedTextDocumentIdentifier,
     Position,
     Range,
     TextDocumentEdit,
     TextEdit,
-    OptionalVersionedTextDocumentIdentifier,
     WorkspaceEdit
 } from 'vscode-languageserver';
 import { Document } from '../../../../src/lib/documents';
@@ -102,6 +102,90 @@ describe('SveltePlugin#getCodeAction', () => {
         });
     });
 
+    describe('It should provide svelte anchor missing attribute code actions', () => {
+        const svelteAnchorMissingAttributeCodeAction =
+            'svelte-anchor-missing-attribute-code-action.svelte';
+
+        it('Should provide svelte anchor add missing attribute', async () => {
+            (
+                await expectCodeActionFor(svelteAnchorMissingAttributeCodeAction, {
+                    diagnostics: [
+                        {
+                            severity: DiagnosticSeverity.Warning,
+                            code: 'security-anchor-rel-noreferrer',
+                            range: Range.create(
+                                { line: 0, character: 0 },
+                                { line: 0, character: 55 }
+                            ),
+                            message:
+                                'Security: Anchor with "target=_blank" should have rel attribute containing the value "noreferrer"',
+                            source: 'svelte'
+                        }
+                    ]
+                })
+            ).toEqual([
+                {
+                    edit: {
+                        documentChanges: [
+                            {
+                                edits: [
+                                    {
+                                        newText: ' rel="noreferrer"',
+                                        range: {
+                                            end: {
+                                                character: 44,
+                                                line: 0
+                                            },
+                                            start: {
+                                                character: 44,
+                                                line: 0
+                                            }
+                                        }
+                                    }
+                                ],
+                                textDocument: {
+                                    uri: getUri(svelteAnchorMissingAttributeCodeAction),
+                                    version: null
+                                }
+                            }
+                        ]
+                    },
+                    title: '(svelte) Add missing attribute rel="noreferrer"',
+                    kind: 'quickfix'
+                },
+                {
+                    edit: {
+                        documentChanges: [
+                            {
+                                edits: [
+                                    {
+                                        newText: `<!-- svelte-ignore security-anchor-rel-noreferrer -->${EOL}`,
+                                        range: {
+                                            end: {
+                                                character: 0,
+                                                line: 0
+                                            },
+                                            start: {
+                                                character: 0,
+                                                line: 0
+                                            }
+                                        }
+                                    }
+                                ],
+                                textDocument: {
+                                    uri: getUri(svelteAnchorMissingAttributeCodeAction),
+                                    version: null
+                                }
+                            }
+                        ]
+                    },
+                    title: '(svelte) Disable security-anchor-rel-noreferrer for this line',
+                    kind: 'quickfix'
+                }
+            ]);
+        });
+    });
+
     describe('It should provide svelte ignore code actions ', () => {
         const svelteIgnoreCodeAction = 'svelte-ignore-code-action.svelte';
 
@@ -128,7 +212,6 @@ describe('SveltePlugin#getCodeAction', () => {
                             {
                                 edits: [
                                     {
-                                        // eslint-disable-next-line max-len
                                         newText: `<!-- svelte-ignore a11y-missing-attribute -->${EOL}`,
                                         range: {
                                             end: {
@@ -284,7 +367,6 @@ describe('SveltePlugin#getCodeAction', () => {
                             {
                                 edits: [
                                     {
-                                        // eslint-disable-next-line max-len
                                         newText: `<!-- svelte-ignore a11y-missing-attribute -->${EOL}`,
                                         range: {
                                             end: {

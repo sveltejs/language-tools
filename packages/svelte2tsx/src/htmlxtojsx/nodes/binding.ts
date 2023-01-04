@@ -83,17 +83,15 @@ export function handleBinding(
         str.remove(attr.start, attr.expression.start);
         str.appendLeft(attr.expression.start, '{...__sveltets_1_empty(');
         if (isShortHandAttribute(attr)) {
-            // eslint-disable-next-line max-len
             str.appendLeft(
                 attr.end,
-                `=__sveltets_1_instanceOf(${oneWayBindingAttributes.get(attr.name)}).${attr.name})}`
+                `=__sveltets_2_instanceOf(${oneWayBindingAttributes.get(attr.name)}).${attr.name})}`
             );
         } else {
-            // eslint-disable-next-line max-len
             str.overwrite(
                 attr.expression.end,
                 attr.end,
-                `=__sveltets_1_instanceOf(${oneWayBindingAttributes.get(attr.name)}).${attr.name})}`
+                `=__sveltets_2_instanceOf(${oneWayBindingAttributes.get(attr.name)}).${attr.name})}`
             );
         }
         return;

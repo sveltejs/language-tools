@@ -83,9 +83,14 @@ export class InlineComponent {
             // is actually a proper Svelte component, which would lead to errors
             // when accessing things like $$prop_def. Therefore widen the type
             // here, falling back to a any-typed component to ensure the user doesn't
-            // get weird follup-errors all over the place. The diagnostic error
+            // get weird followup-errors all over the place. The diagnostic error
             // will be on the __sveltets_2_ensureComponent part, giving a more helpful message
-            this._name = '$$_' + sanitizePropName(this.node.name) + this.computeDepth();
+            // The name is reversed here so that when the component is undeclared,
+            // TypeScript won't suggest the undeclared variable to be a misspelling of the generated variable
+            this._name =
+                '$$_' +
+                Array.from(sanitizePropName(this.node.name)).reverse().join('') +
+                this.computeDepth();
             const constructorName = this._name + 'C';
             const nodeNameStart = isSvelteComponentTag
                 ? this.node.expression.start

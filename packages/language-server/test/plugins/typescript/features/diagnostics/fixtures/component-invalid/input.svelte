@@ -35,6 +35,7 @@
 
 <!-- invalid -->
 <DoesntWork />
+<Imported propDoesntExist={true} />
 <svelte:component this={DoesntWork} />
 
 <!-- invalid, no additional errors for new transformation (everything else is any) -->

@@ -1,3 +1,4 @@
+import * as fs from 'fs';
 import * as path from 'path';
 import sade from 'sade';
 import { URI } from 'vscode-uri';
@@ -6,23 +7,21 @@ export interface SvelteCheckCliOptions {
     workspaceUri: URI;
     outputFormat: OutputFormat;
     watch: boolean;
+    preserveWatchOutput: boolean;
     tsconfig?: string;
     filePathsToIgnore: string[];
     failOnWarnings: boolean;
-    failOnHints: boolean;
     compilerWarnings: Record<string, 'error' | 'ignore'>;
     diagnosticSources: DiagnosticSource[];
     threshold: Threshold;
-    useNewTransformation: boolean;
 }
 
-// eslint-disable max-len
 export function parseOptions(cb: (opts: SvelteCheckCliOptions) => any) {
     const prog = sade('svelte-check', true)
-        .version('2.x')
+        .version(require('../../package.json').version) // ends up in dist/src, that's why we go two levels up
         .option(
             '--workspace',
-            'Path to your workspace. All subdirectories except node_modules and those listed in `--ignore` are checked'
+            'Path to your workspace. All subdirectories except node_modules and those listed in `--ignore` are checked. Defaults to current working directory.'
         )
         .option(
             '--output',
@@ -34,20 +33,25 @@ export function parseOptions(cb: (opts: SvelteCheckCliOptions) => any) {
             'Will not exit after one pass but keep watching files for changes and rerun diagnostics',
             false
         )
+        .option('--preserveWatchOutput', 'Do not clear the screen in watch mode', false)
         .option(
             '--tsconfig',
-            'Pass a path to a tsconfig or jsconfig file. The path can be relative to the workspace path or absolute. Doing this means that only files matched by the files/include/exclude pattern of the config file are diagnosed. It also means that errors from TypeScript and JavaScript files are reported.'
+            'Pass a path to a tsconfig or jsconfig file. The path can be relative to the workspace path or absolute. Doing this means that only files matched by the files/include/exclude pattern of the config file are diagnosed. It also means that errors from TypeScript and JavaScript files are reported. When not given, searches for the next upper tsconfig/jsconfig in the workspace path.'
+        )
+        .option(
+            '--no-tsconfig',
+            'Use this if you only want to check the Svelte files found in the current directory and below and ignore any JS/TS files (they will not be type-checked)',
+            false
         )
         .option(
             '--ignore',
-            'Files/folders to ignore - relative to workspace root, comma-separated, inside quotes. Example: `--ignore "dist,build"`'
+            'Only has an effect when ussing `--no-tsconfig` option. Files/folders to ignore - relative to workspace root, comma-separated, inside quotes. Example: `--ignore "dist,build"`'
         )
         .option(
             '--fail-on-warnings',
             'Will also exit with error code when there are warnings',
             false
         )
-        .option('--fail-on-hints', 'Will also exit with error code when there are hints', false)
         .option(
             '--compiler-warnings',
             'A list of Svelte compiler warning codes. Each entry defines whether that warning should be ignored or treated as an error. Warnings are comma-separated, between warning code and error level is a colon; all inside quotes. Example: `--compiler-warnings "css-unused-selector:ignore,unused-export-let:error"`'
@@ -59,12 +63,7 @@ export function parseOptions(cb: (opts: SvelteCheckCliOptions) => any) {
         .option(
             '--threshold',
             'Filters the diagnostics to display. `error` will output only errors while `warning` will output warnings and errors.',
-            'hint'
-        )
-        .option(
-            '--use-new-transformation',
-            'Svelte files need to be transformed to something that TypeScript understands for intellisense. Version 2.0 of this transformation can be enabled with this setting. It will be the default, soon.',
-            false
+            'warning'
         )
         .action((opts) => {
             const workspaceUri = getWorkspaceUri(opts);
@@ -72,21 +71,18 @@ export function parseOptions(cb: (opts: SvelteCheckCliOptions) => any) {
                 workspaceUri,
                 outputFormat: getOutputFormat(opts),
                 watch: !!opts.watch,
+                preserveWatchOutput: !!opts.preserveWatchOutput,
                 tsconfig: getTsconfig(opts, workspaceUri.fsPath),
                 filePathsToIgnore: getFilepathsToIgnore(opts),
                 failOnWarnings: !!opts['fail-on-warnings'],
-                failOnHints: !!opts['fail-on-hints'],
                 compilerWarnings: getCompilerWarnings(opts),
                 diagnosticSources: getDiagnosticSources(opts),
-                threshold: getThreshold(opts),
-                useNewTransformation:
-                    opts['use-new-transformation'] && opts['use-new-transformation'] !== 'false'
+                threshold: getThreshold(opts)
             });
         });
 
     prog.parse(process.argv);
 }
-// eslint-enable max-len
 
 const outputFormats = ['human', 'human-verbose', 'machine'] as const;
 type OutputFormat = typeof outputFormats[number];
@@ -109,8 +105,34 @@ function getWorkspaceUri(opts: Record<string, any>) {
     return workspaceUri;
 }
 
+function findFile(searchPath: string, fileName: string) {
+    try {
+        for (;;) {
+            const filePath = path.join(searchPath, fileName);
+            if (fs.existsSync(filePath)) {
+                return filePath;
+            }
+            const parentPath = path.dirname(searchPath);
+            if (parentPath === searchPath) {
+                return;
+            }
+            searchPath = parentPath;
+        }
+    } catch (e) {
+        return;
+    }
+}
+
 function getTsconfig(myArgs: Record<string, any>, workspacePath: string) {
+    if (myArgs['no-tsconfig']) {
+        return undefined;
+    }
     let tsconfig: string | undefined = myArgs.tsconfig;
+    if (!tsconfig) {
+        const ts = findFile(workspacePath, 'tsconfig.json');
+        const js = findFile(workspacePath, 'jsconfig.json');
+        tsconfig = !!ts && (!js || ts.length >= js.length) ? ts : js;
+    }
     if (tsconfig && !path.isAbsolute(tsconfig)) {
         tsconfig = path.join(workspacePath, tsconfig);
     }
@@ -152,9 +174,14 @@ function getFilepathsToIgnore(opts: Record<string, any>): string[] {
     return opts.ignore?.split(',') || [];
 }
 
-const thresholds = ['hint', 'warning', 'error'] as const;
+const thresholds = ['warning', 'error'] as const;
 type Threshold = typeof thresholds[number];
 
 function getThreshold(opts: Record<string, any>): Threshold {
-    return thresholds.includes(opts.threshold) ? opts.threshold : 'hint';
+    if (thresholds.includes(opts.threshold)) {
+        return opts.threshold;
+    } else {
+        console.warn(`Invalid threshold "${opts.threshold}", using "warning" instead`);
+        return 'warning';
+    }
 }

@@ -31,6 +31,7 @@ import { EMPTY_ELEMENTS } from './html/htmlEmptyTagsShared';
 import { TsPlugin } from './tsplugin';
 import { addFindComponentReferencesListener } from './typescript/findComponentReferences';
 import { addFindFileReferencesListener } from './typescript/findFileReferences';
+import { setupSvelteKit } from './sveltekit';
 
 namespace TagCloseRequest {
     export const type: RequestType<TextDocumentPositionParams, string, any> = new RequestType(
@@ -38,12 +39,13 @@ namespace TagCloseRequest {
     );
 }
 
+let lsApi: { getLS(): LanguageClient } | undefined;
+
 export function activate(context: ExtensionContext) {
     // The extension is activated on TS/JS/Svelte files because else it might be too late to configure the TS plugin:
     // If we only activate on Svelte file and the user opens a TS file first, the configuration command is issued too late.
     // We wait until there's a Svelte file open and only then start the actual language client.
     const tsPlugin = new TsPlugin(context);
-    let lsApi: { getLS(): LanguageClient } | undefined;
 
     if (workspace.textDocuments.some((doc) => doc.languageId === 'svelte')) {
         lsApi = activateSvelteLanguageServer(context);
@@ -60,6 +62,8 @@ export function activate(context: ExtensionContext) {
         context.subscriptions.push(onTextDocumentListener);
     }
 
+    setupSvelteKit(context);
+
     // This API is considered private and only exposed for experimenting.
     // Interface may change at any time. Use at your own risk!
     return {
@@ -75,6 +79,12 @@ export function activate(context: ExtensionContext) {
             return lsApi.getLS();
         }
     };
+}
+
+export function deactivate() {
+    const stop = lsApi?.getLS().stop();
+    lsApi = undefined;
+    return stop;
 }
 
 export function activateSvelteLanguageServer(context: ExtensionContext) {
@@ -160,9 +170,7 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
     };
 
     let ls = createLanguageServer(serverOptions, clientOptions);
-    context.subscriptions.push(ls.start());
-
-    ls.onReady().then(() => {
+    ls.start().then(() => {
         const tagRequestor = (document: TextDocument, position: Position) => {
             const param = ls.code2ProtocolConverter.asTextDocumentPositionParams(
                 document,
@@ -189,7 +197,7 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
                 /^\.prettierrc$/,
                 /^\.prettierrc\.(json|yml|yaml|json5|toml)$/,
                 /^\.prettierrc\.(js|cjs)$/,
-                /^\.prettierrc\.config\.(js|cjs)$/
+                /^prettier\.config\.(js|cjs)$/
             ].some((regex) => regex.test(parts[parts.length - 1]))
         ) {
             await restartLS(false);
@@ -211,8 +219,7 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
         restartingLs = true;
         await ls.stop();
         ls = createLanguageServer(serverOptions, clientOptions);
-        context.subscriptions.push(ls.start());
-        await ls.onReady();
+        await ls.start();
         if (showNotification) {
             window.showInformationMessage('Svelte language server restarted.');
         }
@@ -222,6 +229,25 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
     function getLS() {
         return ls;
     }
+
+    // TODO remove once old transformation is gone
+    // noteOfNewTransformation();
+    // let enabled = workspace
+    //     .getConfiguration('svelte.plugin.svelte')
+    //     .get<boolean>('useNewTransformation');
+    // context.subscriptions.push(
+    //     workspace.onDidChangeConfiguration(() => {
+    //         if (
+    //             enabled !==
+    //             workspace
+    //                 .getConfiguration('svelte.plugin.svelte')
+    //                 .get<boolean>('useNewTransformation')
+    //         ) {
+    //             enabled = !enabled;
+    //             restartLS(false);
+    //         }
+    //     })
+    // );
 
     addDidChangeTextDocumentListener(getLS);
 
@@ -245,15 +271,12 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
             // Or matches open curly brace
             //
             increaseIndentPattern:
-                // eslint-disable-next-line max-len, no-useless-escape
                 /<(?!\?|(?:area|base|br|col|frame|hr|html|img|input|link|meta|param)\b|[^>]*\/>)([-_\.A-Za-z0-9]+)(?=\s|>)\b[^>]*>(?!.*<\/\1>)|<!--(?!.*-->)|\{[^}"']*$/,
             // Matches a closing tag that:
             //  - Follows optional whitespace
             //  - Is not `</html>`
             // Or matches `-->`
             // Or closing curly brace
-            //
-            // eslint-disable-next-line no-useless-escape
             decreaseIndentPattern: /^\s*(<\/(?!html)[-_\.A-Za-z0-9]+\b[^>]*>|-->|\})/
         },
         // Matches a number or word that either:
@@ -263,7 +286,6 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
         //    any of the following: `~!@$^&*()=+[{]}\|;:'",.<>/
         //
         wordPattern:
-            // eslint-disable-next-line max-len, no-useless-escape
             /(-?\d*\.\d\w*)|([^\`\~\!\@\$\#\^\&\*\(\)\=\+\[\{\]\}\\\|\;\:\'\"\,\.\<\>\/\s]+)/g,
         onEnterRules: [
             {
@@ -272,8 +294,6 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
                 //  - Is possibly namespaced
                 //  - Isn't a void element
                 //  - Isn't followed by another tag on the same line
-                //
-                // eslint-disable-next-line no-useless-escape
                 beforeText: new RegExp(
                     `<(?!(?:${EMPTY_ELEMENTS.join(
                         '|'
@@ -292,8 +312,6 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
                 //  - Isn't namespaced
                 //  - Isn't a void element
                 //  - Isn't followed by another tag on the same line
-                //
-                // eslint-disable-next-line no-useless-escape
                 beforeText: new RegExp(
                     `<(?!(?:${EMPTY_ELEMENTS.join('|')}))(\\w[\\w\\d]*)([^/>]*(?!/)>)[^<]*$`,
                     'i'
@@ -487,4 +505,33 @@ function warnIfOldExtensionInstalled() {
                 'Command line: "code --uninstall-extension JamesBirtles.svelte-vscode"'
         );
     }
+}
+
+async function noteOfNewTransformation() {
+    const enabled = workspace
+        .getConfiguration('svelte.plugin.svelte')
+        .get<boolean>('useNewTransformation');
+    const shouldNote = workspace
+        .getConfiguration('svelte.plugin.svelte')
+        .get<boolean>('note-new-transformation');
+    if (!enabled || !shouldNote) {
+        return;
+    }
+
+    const answers = ['Ask again later', 'Disable new transformation for now', 'OK'];
+    const response = await window.showInformationMessage(
+        'The Svelte for VS Code extension comes with a new transformation for improved intellisense. ' +
+            'It is enabled by default now. If you notice bugs, please report them. ' +
+            'You can switch to the old transformation setting "svelte.plugin.svelte.useNewTransformation" to "false".',
+        ...answers
+    );
+
+    if (response === answers[1]) {
+        workspace
+            .getConfiguration('svelte.plugin.svelte')
+            .update('useNewTransformation', false, true);
+    }
+    workspace
+        .getConfiguration('svelte.plugin.svelte')
+        .update('note-new-transformation', response === answers[0], true);
 }

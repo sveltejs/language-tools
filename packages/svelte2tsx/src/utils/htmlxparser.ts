@@ -46,7 +46,7 @@ function extractTag(htmlx: string, tag: 'script' | 'style', useNewTransformation
         let content = match[4];
         if (!content) {
             if (useNewTransformation) {
-                // Keep tag and transform it properly by removing it
+                // Keep tag and transform it like a regular element
                 content = '';
             } else {
                 // Self-closing/empty tags don't need replacement

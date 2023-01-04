@@ -10,6 +10,7 @@ import { ComponentInfoProvider, JsOrTsComponentInfoProvider } from '../Component
 import { DocumentSnapshot, SvelteDocumentSnapshot } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { or } from '../../../utils';
+import { FileMap } from '../../../lib/documents/fileCollection';
 
 type NodePredicate = (node: ts.Node) => boolean;
 
@@ -102,8 +103,8 @@ export function isPartOfImportStatement(text: string, position: Position): boole
 
 export function isStoreVariableIn$storeDeclaration(text: string, varStart: number) {
     return (
-        text.lastIndexOf('__sveltets_1_store_get(', varStart) ===
-        varStart - '__sveltets_1_store_get('.length
+        text.lastIndexOf('__sveltets_2_store_get(', varStart) ===
+        varStart - '__sveltets_2_store_get('.length
     );
 }
 
@@ -112,7 +113,7 @@ export function get$storeOffsetOf$storeDeclaration(text: string, storePosition: 
 }
 
 export function is$storeVariableIn$storeDeclaration(text: string, varStart: number) {
-    return /^\$\w+ = __sveltets_1_store_get/.test(text.substring(varStart));
+    return /^\$\w+ = __sveltets_2_store_get/.test(text.substring(varStart));
 }
 
 export function getStoreOffsetOf$storeDeclaration(text: string, $storeVarStart: number) {
@@ -120,7 +121,7 @@ export function getStoreOffsetOf$storeDeclaration(text: string, $storeVarStart: 
 }
 
 export class SnapshotMap {
-    private map = new Map<string, DocumentSnapshot>();
+    private map = new FileMap<DocumentSnapshot>();
     constructor(private resolver: LSAndTSDocResolver) {}
 
     set(fileName: string, snapshot: DocumentSnapshot) {
@@ -255,7 +256,7 @@ export const isReactiveStatement = nodeAndParentsSatisfyRespectivePredicates<ts.
     (node) => ts.isLabeledStatement(node) && node.label.getText() === '$',
     or(
         // function render() {
-        //     $: x2 = __sveltets_1_invalidate(() => x * x)
+        //     $: x2 = __sveltets_2_invalidate(() => x * x)
         // }
         isRenderFunctionBody,
         // function render() {
@@ -288,3 +289,61 @@ export function gatherDescendants<T extends ts.Node>(
 }
 
 export const gatherIdentifiers = (node: ts.Node) => gatherDescendants(node, ts.isIdentifier);
+
+export function isKitTypePath(path?: string): boolean {
+    return !!path?.includes('.svelte-kit/types');
+}
+
+export function getFormatCodeBasis(formatCodeSetting: ts.FormatCodeSettings): FormatCodeBasis {
+    const { baseIndentSize, indentSize, convertTabsToSpaces } = formatCodeSetting;
+    const baseIndent = convertTabsToSpaces
+        ? ' '.repeat(baseIndentSize ?? 4)
+        : baseIndentSize
+        ? '\t'
+        : '';
+    const indent = convertTabsToSpaces ? ' '.repeat(indentSize ?? 4) : baseIndentSize ? '\t' : '';
+    const semi = formatCodeSetting.semicolons === 'remove' ? '' : ';';
+    const newLine = formatCodeSetting.newLineCharacter ?? ts.sys.newLine;
+
+    return {
+        baseIndent,
+        indent,
+        semi,
+        newLine
+    };
+}
+
+export interface FormatCodeBasis {
+    baseIndent: string;
+    indent: string;
+    semi: string;
+    newLine: string;
+}
+
+/**
+ * https://github.com/microsoft/TypeScript/blob/00dc0b6674eef3fbb3abb86f9d71705b11134446/src/services/utilities.ts#L2452
+ */
+export function getQuotePreference(
+    sourceFile: ts.SourceFile,
+    preferences: ts.UserPreferences
+): '"' | "'" {
+    const single = "'";
+    const double = '"';
+    if (preferences.quotePreference && preferences.quotePreference !== 'auto') {
+        return preferences.quotePreference === 'single' ? single : double;
+    }
+
+    const firstModuleSpecifier = Array.from(sourceFile.statements).find(
+        (
+            statement
+        ): statement is Omit<ts.ImportDeclaration, 'moduleSpecifier'> & {
+            moduleSpecifier: ts.StringLiteral;
+        } => ts.isImportDeclaration(statement) && ts.isStringLiteral(statement.moduleSpecifier)
+    )?.moduleSpecifier;
+
+    return firstModuleSpecifier
+        ? sourceFile.getText()[firstModuleSpecifier.pos] === '"'
+            ? double
+            : single
+        : double;
+}

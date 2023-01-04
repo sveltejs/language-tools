@@ -205,7 +205,7 @@ function test(useNewTransformation: boolean) {
                     },
                     {
                         name: 'foo',
-                        kind: 14,
+                        kind: 13,
                         location: {
                             uri: getUri('documentsymbols.svelte'),
                             range: {
@@ -942,6 +942,10 @@ function test(useNewTransformation: boolean) {
             }
         });
 
+        it('should add declaration file snapshot when added to known build directory', async () => {
+            await testForOnWatchedFileAdd(path.join('.svelte-kit', 'ambient.d.ts'), true);
+        });
+
         it('should update ts/js file after document change', async () => {
             const { snapshotManager, projectJsFile, plugin } =
                 await setupForOnWatchedFileUpdateOrDelete();
@@ -974,5 +978,5 @@ function test(useNewTransformation: boolean) {
     };
 }
 
-describe('TypescriptPlugin (old transformation)', test(false));
+// describe('TypescriptPlugin (old transformation)', test(false));
 describe('TypescriptPlugin (new transformation)', test(true));

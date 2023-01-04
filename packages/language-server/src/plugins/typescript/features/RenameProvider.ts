@@ -4,7 +4,8 @@ import {
     mapRangeToOriginal,
     getLineAtPosition,
     getNodeIfIsInStartTag,
-    isInHTMLTagRange
+    isInHTMLTagRange,
+    getNodeIfIsInHTMLStartTag
 } from '../../../lib/documents';
 import { filterAsync, isNotNullOrUndefined, pathToUrl, unique } from '../../../utils';
 import { RenameProvider } from '../../interfaces';
@@ -424,13 +425,13 @@ export class RenameProviderImpl implements RenameProvider {
 
             const content = snapshot.getText(0, snapshot.getLength());
             // When the user renames a Svelte component, ts will also want to rename
-            // `__sveltets_1_instanceOf(TheComponentToRename)` or
+            // `__sveltets_2_instanceOf(TheComponentToRename)` or
             // `__sveltets_1_ensureType(TheComponentToRename,..`. Prevent that.
             // Additionally, we cannot rename the hidden variable containing the store value
             return (
-                notPrecededBy('__sveltets_1_instanceOf(') &&
+                notPrecededBy('__sveltets_2_instanceOf(') &&
                 notPrecededBy('__sveltets_1_ensureType(') && // no longer necessary for new transformation
-                notPrecededBy('= __sveltets_1_store_get(')
+                notPrecededBy('= __sveltets_2_store_get(')
             );
 
             function notPrecededBy(str: string) {
@@ -503,12 +504,35 @@ export class RenameProviderImpl implements RenameProvider {
             const { parent } = snapshot;
 
             if (this.configManager.getConfig().svelte.useNewTransformation) {
+                let rangeStart = parent.offsetAt(location.range.start);
                 let prefixText = location.prefixText?.trimRight();
+
+                // rename needs to be prefixed in case of a bind shortand on a HTML element
+                if (!prefixText) {
+                    const original = parent.getText({
+                        start: Position.create(
+                            location.range.start.line,
+                            location.range.start.character - bind.length
+                        ),
+                        end: location.range.end
+                    });
+                    if (
+                        original.startsWith(bind) &&
+                        getNodeIfIsInHTMLStartTag(parent.html, rangeStart)
+                    ) {
+                        return {
+                            ...location,
+                            prefixText: original.slice(bind.length) + '={',
+                            suffixText: '}'
+                        };
+                    }
+                }
+
                 if (!prefixText || prefixText.slice(-1) !== ':') {
                     return location;
                 }
+
                 // prefix is of the form `oldVarName: ` -> hints at a shorthand
-                let rangeStart = parent.offsetAt(location.range.start);
                 // we need to make sure we only adjust shorthands on elements/components
                 if (
                     !getNodeIfIsInStartTag(parent.html, rangeStart) ||
@@ -524,12 +548,14 @@ export class RenameProviderImpl implements RenameProvider {
                 ) {
                     return location;
                 }
+
                 prefixText = prefixText.slice(0, -1) + '={';
                 location = {
                     ...location,
                     prefixText,
                     suffixText: '}'
                 };
+
                 // rename range needs to be adjusted in case of an attribute shortand
                 if (snapshot.getOriginalText().charAt(rangeStart - 1) === '{') {
                     rangeStart--;
@@ -539,6 +565,7 @@ export class RenameProviderImpl implements RenameProvider {
                         end: parent.positionAt(rangeEnd)
                     };
                 }
+
                 return location;
             }
 

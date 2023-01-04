@@ -14,8 +14,8 @@ function render() {
 ;
 async () => {
 
- { svelteHTML.createElement("button", { "onclick":undefined,}); }};
-return { props: {}, slots: {}, getters: {}, events: {'click':__sveltets_1_mapElementEvent('click'), 'hi': __sveltets_1_customEvent, 'bye': __sveltets_1_customEvent} }}
+ { svelteHTML.createElement("button", { "on:click":undefined,}); }};
+return { props: /** @type {Record<string, never>} */ ({}), slots: {}, events: {'click':__sveltets_2_mapElementEvent('click'), 'hi': __sveltets_2_customEvent, 'bye': __sveltets_2_customEvent} }}
 
-export default class Input__SvelteComponent_ extends __sveltets_1_createSvelte2TsxComponent(__sveltets_1_partial(__sveltets_1_with_any_event(render()))) {
+export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial(__sveltets_2_with_any_event(render()))) {
 }

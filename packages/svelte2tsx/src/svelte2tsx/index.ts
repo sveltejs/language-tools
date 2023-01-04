@@ -282,7 +282,9 @@ function processSvelteTemplate(
 
     // resolve scripts
     const { scriptTag, moduleScriptTag } = scripts.getTopLevelScriptTags();
-    scripts.blankOtherScriptTags(str);
+    if (options.mode !== 'ts') {
+        scripts.blankOtherScriptTags(str);
+    }
 
     //resolve stores
     const resolvedStores = stores.getStoreNames();
@@ -318,8 +320,12 @@ export function svelte2tsx(
         typingsNamespace?: string;
     } = {}
 ) {
-    // TODO temporary
     options.mode = options.mode || 'ts';
+    // TODO temporary to still keep old transformation around but not expose it anymore.
+    // Remove all old cold once we are sure the new transformation is working
+    if (options.mode === 'tsx') {
+        options.mode = 'ts';
+    }
 
     const str = new MagicString(svelte);
     // process the htmlx as a svelte template
@@ -427,22 +433,10 @@ export function svelte2tsx(
     });
 
     if (options.mode === 'dts') {
-        // Prepend the import and for JS files a single definition.
+        // Prepend the import which is used for TS files
         // The other shims need to be provided by the user ambient-style,
         // for example through filenames.push(require.resolve('svelte2tsx/svelte-shims.d.ts'))
-        str.prepend(
-            'import { SvelteComponentTyped } from "svelte"\n' +
-                (options?.isTsFile
-                    ? ''
-                    : // Not part of svelte-shims.d.ts because it would throw type errors as this function assumes
-                      // the presence of a SvelteComponentTyped import
-                      `
-declare function __sveltets_1_createSvelteComponentTyped<Props, Events, Slots>(
-    render: {props: Props, events: Events, slots: Slots }
-): SvelteComponentConstructor<SvelteComponentTyped<Props, Events, Slots>,Svelte2TsxComponentConstructorParameters<Props>>;
-`) +
-                '\n'
-        );
+        str.prepend('import { SvelteComponentTyped } from "svelte"\n' + '\n');
         let code = str.toString();
         // Remove all tsx occurences and the template part from the output
         code = code

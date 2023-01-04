@@ -4,8 +4,9 @@ import { TextDocumentContentChangeEvent } from 'vscode-languageserver-protocol';
 import { getPackageInfo } from '../../importPackage';
 import { Document } from '../../lib/documents';
 import { configLoader } from '../../lib/documents/configLoader';
+import { FileMap, FileSet } from '../../lib/documents/fileCollection';
 import { Logger } from '../../logger';
-import { normalizePath } from '../../utils';
+import { createGetCanonicalFileName, normalizePath, urlToPath } from '../../utils';
 import { DocumentSnapshot, SvelteSnapshotOptions } from './DocumentSnapshot';
 import { createSvelteModuleLoader } from './module-loader';
 import {
@@ -13,7 +14,7 @@ import {
     ignoredBuildDirectories,
     SnapshotManager
 } from './SnapshotManager';
-import { ensureRealSvelteFilePath, findTsConfigPath, hasTsExtensions } from './utils';
+import { ensureRealSvelteFilePath, findTsConfigPath, hasTsExtensions, isSubPath } from './utils';
 
 export interface LanguageServiceContainer {
     readonly tsconfigPath: string;
@@ -42,12 +43,12 @@ export interface LanguageServiceContainer {
 }
 
 const maxProgramSizeForNonTsFiles = 20 * 1024 * 1024; // 20 MB
-const services = new Map<string, Promise<LanguageServiceContainer>>();
-const serviceSizeMap = new Map<string, number>();
-const configWatchers = new Map<string, ts.FileWatcher>();
-const extendedConfigWatchers = new Map<string, ts.FileWatcher>();
-const extendedConfigToTsConfigPath = new Map<string, Set<string>>();
-const pendingReloads = new Set<string>();
+const services = new FileMap<Promise<LanguageServiceContainer>>();
+const serviceSizeMap = new FileMap<number>();
+const configWatchers = new FileMap<ts.FileWatcher>();
+const extendedConfigWatchers = new FileMap<ts.FileWatcher>();
+const extendedConfigToTsConfigPath = new FileMap<FileSet>();
+const pendingReloads = new FileSet();
 
 /**
  * For testing only: Reset the cache for services.
@@ -77,8 +78,31 @@ export async function getService(
     workspaceUris: string[],
     docContext: LanguageServiceDocumentContext
 ): Promise<LanguageServiceContainer> {
-    const tsconfigPath = findTsConfigPath(path, workspaceUris, docContext.tsSystem.fileExists);
-    return getServiceForTsconfig(tsconfigPath, docContext);
+    const getCanonicalFileName = createGetCanonicalFileName(
+        docContext.tsSystem.useCaseSensitiveFileNames
+    );
+
+    const tsconfigPath = findTsConfigPath(
+        path,
+        workspaceUris,
+        docContext.tsSystem.fileExists,
+        getCanonicalFileName
+    );
+
+    if (tsconfigPath) {
+        return getServiceForTsconfig(tsconfigPath, dirname(tsconfigPath), docContext);
+    }
+
+    const nearestWorkspaceUri = workspaceUris.find((workspaceUri) =>
+        isSubPath(workspaceUri, path, getCanonicalFileName)
+    );
+
+    return getServiceForTsconfig(
+        tsconfigPath,
+        (nearestWorkspaceUri && urlToPath(nearestWorkspaceUri)) ??
+            docContext.tsSystem.getCurrentDirectory(),
+        docContext
+    );
 }
 
 export async function forAllServices(
@@ -95,11 +119,14 @@ export async function forAllServices(
  */
 export async function getServiceForTsconfig(
     tsconfigPath: string,
+    workspacePath: string,
     docContext: LanguageServiceDocumentContext
 ): Promise<LanguageServiceContainer> {
+    const tsconfigPathOrWorkspacePath = tsconfigPath || workspacePath;
+
     let service: LanguageServiceContainer;
-    if (services.has(tsconfigPath)) {
-        service = await services.get(tsconfigPath)!;
+    if (services.has(tsconfigPathOrWorkspacePath)) {
+        service = await services.get(tsconfigPathOrWorkspacePath)!;
     } else {
         const reloading = pendingReloads.has(tsconfigPath);
 
@@ -110,8 +137,8 @@ export async function getServiceForTsconfig(
         }
 
         pendingReloads.delete(tsconfigPath);
-        const newService = createLanguageService(tsconfigPath, docContext);
-        services.set(tsconfigPath, newService);
+        const newService = createLanguageService(tsconfigPath, workspacePath, docContext);
+        services.set(tsconfigPathOrWorkspacePath, newService);
         service = await newService;
     }
 
@@ -120,9 +147,9 @@ export async function getServiceForTsconfig(
 
 async function createLanguageService(
     tsconfigPath: string,
+    workspacePath: string,
     docContext: LanguageServiceDocumentContext
 ): Promise<LanguageServiceContainer> {
-    const workspacePath = tsconfigPath ? dirname(tsconfigPath) : '';
     const { tsSystem } = docContext;
 
     const {
@@ -135,9 +162,9 @@ async function createLanguageService(
     // see: https://github.com/microsoft/TypeScript/blob/08e4f369fbb2a5f0c30dee973618d65e6f7f09f8/src/compiler/commandLineParser.ts#L2537
     const snapshotManager = new SnapshotManager(
         docContext.globalSnapshotsManager,
-        files,
         raw,
-        workspacePath || process.cwd()
+        workspacePath,
+        files
     );
 
     // Load all configs within the tsconfig scope and the one above so that they are all loaded
@@ -145,7 +172,7 @@ async function createLanguageService(
     // the default language.
     await configLoader.loadConfigs(workspacePath);
 
-    const svelteModuleLoader = createSvelteModuleLoader(getSnapshot, compilerOptions);
+    const svelteModuleLoader = createSvelteModuleLoader(getSnapshot, compilerOptions, tsSystem);
 
     let svelteTsPath: string;
     try {
@@ -164,16 +191,12 @@ async function createLanguageService(
     let languageServiceReducedMode = false;
     let projectVersion = 0;
 
+    const getCanonicalFileName = createGetCanonicalFileName(tsSystem.useCaseSensitiveFileNames);
+
     const host: ts.LanguageServiceHost = {
+        log: (message) => Logger.debug(`[ts] ${message}`),
         getCompilationSettings: () => compilerOptions,
-        getScriptFileNames: () =>
-            Array.from(
-                new Set([
-                    ...(languageServiceReducedMode ? [] : snapshotManager.getProjectFileNames()),
-                    ...snapshotManager.getFileNames(),
-                    ...svelteTsxFiles
-                ])
-            ),
+        getScriptFileNames,
         getScriptVersion: (fileName: string) => getSnapshot(fileName).version.toString(),
         getScriptSnapshot: getSnapshot,
         getCurrentDirectory: () => workspacePath,
@@ -263,7 +286,8 @@ async function createLanguageService(
         const newSnapshot = DocumentSnapshot.fromFilePath(
             filePath,
             docContext.createDocument,
-            transformationConfig
+            transformationConfig,
+            tsSystem
         );
         snapshotManager.set(filePath, newSnapshot);
         return newSnapshot;
@@ -281,7 +305,8 @@ async function createLanguageService(
         doc = DocumentSnapshot.fromFilePath(
             fileName,
             docContext.createDocument,
-            transformationConfig
+            transformationConfig,
+            tsSystem
         );
         snapshotManager.set(fileName, doc);
         return doc;
@@ -298,6 +323,25 @@ async function createLanguageService(
         }
 
         reduceLanguageServiceCapabilityIfFileSizeTooBig();
+    }
+
+    function getScriptFileNames() {
+        const projectFiles = languageServiceReducedMode
+            ? []
+            : snapshotManager.getProjectFileNames();
+        const canonicalProjectFileNames = new Set(projectFiles.map(getCanonicalFileName));
+
+        return Array.from(
+            new Set([
+                ...projectFiles,
+                // project file is read from the file system so it's more likely to have
+                // the correct casing
+                ...snapshotManager
+                    .getFileNames()
+                    .filter((file) => !canonicalProjectFileNames.has(getCanonicalFileName(file))),
+                ...svelteTsxFiles
+            ])
+        );
     }
 
     function hasFile(filePath: string): boolean {
@@ -497,7 +541,7 @@ async function createLanguageService(
         extendedConfigPaths.forEach((extendedConfig) => {
             let dependedTsConfig = extendedConfigToTsConfigPath.get(extendedConfig);
             if (!dependedTsConfig) {
-                dependedTsConfig = new Set();
+                dependedTsConfig = new FileSet(tsSystem.useCaseSensitiveFileNames);
                 extendedConfigToTsConfigPath.set(extendedConfig, dependedTsConfig);
             }
 
@@ -511,7 +555,11 @@ async function createLanguageService(
         }
 
         if (!configWatchers.has(tsconfigPath) && tsconfigPath) {
-            configWatchers.set(tsconfigPath, tsSystem.watchFile(tsconfigPath, watchConfigCallback));
+            configWatchers.set(
+                tsconfigPath,
+                // for some reason setting the polling interval is necessary, else some error in TS is thrown
+                tsSystem.watchFile(tsconfigPath, watchConfigCallback, 1000)
+            );
         }
 
         for (const config of extendedConfigPaths) {
@@ -521,7 +569,8 @@ async function createLanguageService(
 
             extendedConfigWatchers.set(
                 config,
-                tsSystem.watchFile(config, createWatchExtendedConfigCallback(docContext))
+                // for some reason setting the polling interval is necessary, else some error in TS is thrown
+                tsSystem.watchFile(config, createWatchExtendedConfigCallback(docContext), 1000)
             );
         }
     }

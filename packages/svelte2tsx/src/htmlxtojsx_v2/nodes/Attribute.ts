@@ -68,7 +68,7 @@ export function handleAttribute(
     const addAttribute =
         element instanceof Element
             ? (name: TransformationArray, value?: TransformationArray) => {
-                  if (attr.name.startsWith('data-')) {
+                  if (attr.name.startsWith('data-') && !attr.name.startsWith('data-sveltekit-')) {
                       // any attribute prefixed with data- is valid, but we can't
                       // type that statically, so we need this workaround
                       name.unshift('...__sveltets_2_empty({');

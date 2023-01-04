@@ -78,7 +78,7 @@ class __sveltets_Render${genericsDef} {
             `export type ${className}Slots${genericsDef} = ${returnType('slots')};\n` +
             `\n${doc}export default class${
                 className ? ` ${className}` : ''
-            }${genericsDef} extends SvelteComponentTyped<${className}Props${genericsRef}, ${className}Events${genericsRef}, ${className}Slots${genericsRef}> {` + // eslint-disable-line max-len
+            }${genericsDef} extends SvelteComponentTyped<${className}Props${genericsRef}, ${className}Events${genericsRef}, ${className}Slots${genericsRef}> {` +
             exportedNames.createClassGetters() +
             (usesAccessors ? exportedNames.createClassAccessors() : '') +
             '\n}';
@@ -127,7 +127,7 @@ function addSimpleComponentExport({
             `export type ${className}Slots = typeof __propDef.slots;\n` +
             `\n${doc}export default class${
                 className ? ` ${className}` : ''
-            } extends SvelteComponentTyped<${className}Props, ${className}Events, ${className}Slots> {` + // eslint-disable-line max-len
+            } extends SvelteComponentTyped<${className}Props, ${className}Events, ${className}Slots> {` +
             exportedNames.createClassGetters() +
             (usesAccessors ? exportedNames.createClassAccessors() : '') +
             '\n}';
@@ -139,7 +139,7 @@ function addSimpleComponentExport({
             `/** @typedef {typeof __propDef.slots}  ${className}Slots */\n` +
             `\n${doc}export default class${
                 className ? ` ${className}` : ''
-            } extends __sveltets_1_createSvelteComponentTyped(${propDef}) {` +
+            } extends __sveltets_2_createSvelte2TsxComponent(${propDef}) {` +
             exportedNames.createClassGetters() +
             (usesAccessors ? exportedNames.createClassAccessors() : '') +
             '\n}';
@@ -147,7 +147,7 @@ function addSimpleComponentExport({
         statement =
             `\n\n${doc}export default class${
                 className ? ` ${className}` : ''
-            } extends __sveltets_1_createSvelte2TsxComponent(${propDef}) {` +
+            } extends __sveltets_2_createSvelte2TsxComponent(${propDef}) {` +
             exportedNames.createClassGetters() +
             (usesAccessors ? exportedNames.createClassAccessors() : '') +
             '\n}';
@@ -157,7 +157,7 @@ function addSimpleComponentExport({
 }
 
 function events(strictEvents: boolean, renderStr: string) {
-    return strictEvents ? renderStr : `__sveltets_1_with_any_event(${renderStr})`;
+    return strictEvents ? renderStr : `__sveltets_2_with_any_event(${renderStr})`;
 }
 
 function props(
@@ -167,10 +167,10 @@ function props(
     renderStr: string
 ) {
     if (isTsFile) {
-        return canHaveAnyProp ? `__sveltets_1_with_any(${renderStr})` : renderStr;
+        return canHaveAnyProp ? `__sveltets_2_with_any(${renderStr})` : renderStr;
     } else {
         const optionalProps = exportedNames.createOptionalPropsArray();
-        const partial = `__sveltets_1_partial${canHaveAnyProp ? '_with_any' : ''}`;
+        const partial = `__sveltets_2_partial${canHaveAnyProp ? '_with_any' : ''}`;
         return optionalProps.length > 0
             ? `${partial}([${optionalProps.join(',')}], ${renderStr})`
             : `${partial}(${renderStr})`;

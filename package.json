@@ -13,19 +13,13 @@
         "test": "cross-env CI=true yarn workspaces run test",
         "watch": "tsc -b -watch",
         "format": "prettier --write .",
-        "lint": "prettier --check . && eslint \"packages/**/*.{ts,js}\""
+        "lint": "prettier --check ."
     },
     "dependencies": {
-        "typescript": "^4.7.3"
+        "typescript": "^4.9.3"
     },
     "devDependencies": {
-        "@sveltejs/eslint-config": "github:sveltejs/eslint-config#v5.2.0",
-        "@typescript-eslint/eslint-plugin": "^4.3.0",
-        "@typescript-eslint/parser": "^4.3.0",
-        "eslint": "^7.7.0",
-        "eslint-plugin-import": "^2.22.1",
-        "eslint-plugin-svelte3": "^2.7.3",
-        "prettier": "2.3.2",
+        "prettier": "2.8.1",
         "cross-env": "^7.0.2",
         "ts-node": "^10.0.0"
     }

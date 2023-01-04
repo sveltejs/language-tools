@@ -65,6 +65,40 @@ const svelteAttributes: IAttributeData[] = [
             'To get a reference to a DOM node, use bind:this. If used on a component, gets a reference to that component instance.'
     }
 ];
+const sveltekitAttributes: IAttributeData[] = [
+    {
+        name: 'data-sveltekit-noscroll',
+        description:
+            'SvelteKit-specific attribute. Will prevent scrolling after the link is clicked.',
+        valueSet: 'v'
+    },
+    {
+        name: 'data-sveltekit-preload-code',
+        description:
+            "SvelteKit-specific attribute. Will cause SvelteKit to run the page's load function as soon as the user hovers over the link (on a desktop) or touches it (on mobile), rather than waiting for the click event to trigger navigation.",
+        valueSet: 'v',
+        values: [
+            { name: 'eager' },
+            { name: 'viewport' },
+            { name: 'hover' },
+            { name: 'tap' },
+            { name: 'off' }
+        ]
+    },
+    {
+        name: 'data-sveltekit-preload-data',
+        description:
+            "SvelteKit-specific attribute. Will cause SvelteKit to run the page's load function as soon as the user hovers over the link (on a desktop) or touches it (on mobile), rather than waiting for the click event to trigger navigation.",
+        valueSet: 'v',
+        values: [{ name: 'hover' }, { name: 'tap' }, { name: 'off' }]
+    },
+    {
+        name: 'data-sveltekit-reload',
+        description:
+            'SvelteKit-specific attribute. Will cause SvelteKit to do a normal browser navigation which results in a full page reload.',
+        valueSet: 'v'
+    }
+];
 
 const svelteTags: ITagData[] = [
     {
@@ -288,26 +322,6 @@ const addAttributes: Record<string, IAttributeData[]> = {
     textarea: [{ name: 'bind:value' }],
     video: [...mediaAttributes, ...videoAttributes],
     audio: [...mediaAttributes],
-    a: [
-        {
-            name: 'sveltekit:noscroll',
-            description:
-                'SvelteKit-specific attribute. Will prevent scrolling after the link is clicked.',
-            valueSet: 'v'
-        },
-        {
-            name: 'sveltekit:prefetch',
-            description:
-                "SvelteKit-specific attribute. Will cause SvelteKit to run the page's load function as soon as the user hovers over the link (on a desktop) or touches it (on mobile), rather than waiting for the click event to trigger navigation.",
-            valueSet: 'v'
-        },
-        {
-            name: 'sveltekit:reload',
-            description:
-                'SvelteKit-specific attribute. Will cause SvelteKit to do a normal browser navigation which results in a full page reload.',
-            valueSet: 'v'
-        }
-    ],
     details: [
         {
             name: 'bind:open'
@@ -328,7 +342,12 @@ const html5Tags = htmlData.tags!.map((tag) => {
 
 export const svelteHtmlDataProvider = newHTMLDataProvider('svelte-builtin', {
     version: 1,
-    globalAttributes: [...htmlData.globalAttributes!, ...svelteEvents, ...svelteAttributes],
+    globalAttributes: [
+        ...htmlData.globalAttributes!,
+        ...svelteEvents,
+        ...svelteAttributes,
+        ...sveltekitAttributes
+    ],
     tags: [...html5Tags, ...svelteTags],
     valueSets: htmlData.valueSets
 });

@@ -5,7 +5,7 @@
 </script>
 
 <!-- valid -->
-<Props exported1="valid" exported2="valid" />
+<Props exported1="valid" exported2="valid" exported3="valid" />
 <PropsInvalid3 exported1={true} />
 <!-- invalid -->
 <Props exported1={true} exported2="valid" />

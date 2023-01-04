@@ -21,6 +21,7 @@ import { __resetCache } from '../../../../src/plugins/typescript/service';
 import { pathToUrl } from '../../../../src/utils';
 
 const testDir = path.join(__dirname, '..');
+const indent = ' '.repeat(4);
 
 function test(useNewTransformation: boolean) {
     return () => {
@@ -191,8 +192,9 @@ function test(useNewTransformation: boolean) {
                                 edits: [
                                     {
                                         newText:
-                                            '\n\nfunction handleClick(e: MouseEvent&{ currentTarget: EventTarget&HTMLButtonElement; }): any {' +
-                                            "\nthrow new Error('Function not implemented.');\n}\n",
+                                            `\n\n${indent}function handleClick(e: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement; }): any {\n` +
+                                            `${indent}${indent}throw new Error('Function not implemented.');\n` +
+                                            `${indent}}\n`,
                                         range: {
                                             start: {
                                                 character: 0,
@@ -218,6 +220,65 @@ function test(useNewTransformation: boolean) {
             ]);
         });
 
+        it('provides quickfix for missing function for element event handler', async () => {
+            const { provider, document } = setup('fix-missing-function-element.svelte');
+
+            const codeActions = await provider.getCodeActions(
+                document,
+                Range.create(Position.create(4, 18), Position.create(4, 29)),
+                {
+                    diagnostics: [
+                        {
+                            code: 2304,
+                            message: "Cannot find name 'handleClick'.",
+                            range: Range.create(Position.create(4, 18), Position.create(4, 29)),
+                            source: 'ts'
+                        }
+                    ],
+                    only: [CodeActionKind.QuickFix]
+                }
+            );
+
+            (<TextDocumentEdit>codeActions[0]?.edit?.documentChanges?.[0])?.edits.forEach(
+                (edit) => (edit.newText = harmonizeNewLines(edit.newText))
+            );
+
+            assert.deepStrictEqual(codeActions, [
+                {
+                    edit: {
+                        documentChanges: [
+                            {
+                                edits: [
+                                    {
+                                        newText:
+                                            `\n\n${indent}function handleClick(event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement; }): any {\n` +
+                                            `${indent}${indent}throw new Error("Function not implemented.");\n` +
+                                            `${indent}}\n`,
+                                        range: {
+                                            start: {
+                                                character: 0,
+                                                line: 2
+                                            },
+                                            end: {
+                                                character: 0,
+                                                line: 2
+                                            }
+                                        }
+                                    }
+                                ],
+                                textDocument: {
+                                    uri: getUri('fix-missing-function-element.svelte'),
+                                    version: null
+                                }
+                            }
+                        ]
+                    },
+                    kind: CodeActionKind.QuickFix,
+                    title: "Add missing function declaration 'handleClick'"
+                }
+            ]);
+        });
+
         function testFixMissingFunctionQuickFix(codeActions: CodeAction[]) {
             (<TextDocumentEdit>codeActions[0]?.edit?.documentChanges?.[0])?.edits.forEach(
                 (edit) => (edit.newText = harmonizeNewLines(edit.newText))
@@ -231,7 +292,9 @@ function test(useNewTransformation: boolean) {
                                 edits: [
                                     {
                                         newText:
-                                            "\n\nfunction abc() {\nthrow new Error('Function not implemented.');\n}\n",
+                                            `\n\n${indent}function abc() {\n` +
+                                            `${indent}${indent}throw new Error('Function not implemented.');\n` +
+                                            `${indent}}\n`,
                                         range: {
                                             start: {
                                                 character: 0,
@@ -288,7 +351,7 @@ function test(useNewTransformation: boolean) {
                             {
                                 edits: [
                                     {
-                                        newText: '\nimport { blubb } from "../definitions";\n\n',
+                                        newText: `\n${indent}import { blubb } from "../definitions";\n\n`,
                                         range: Range.create(
                                             Position.create(0, 8),
                                             Position.create(0, 8)
@@ -346,6 +409,163 @@ function test(useNewTransformation: boolean) {
             ]);
         });
 
+        it('provides quickfix for ts-checked-js in context=module', async () => {
+            const { provider, document } = setup('codeaction-checkJs-module.svelte');
+            const errorRange = Range.create(Position.create(3, 4), Position.create(3, 5));
+
+            const codeActions = await provider.getCodeActions(document, errorRange, {
+                diagnostics: [
+                    {
+                        code: 2322,
+                        message: "Type 'string' is not assignable to type 'number'.",
+                        range: errorRange
+                    }
+                ]
+            });
+
+            for (const codeAction of codeActions) {
+                (<TextDocumentEdit>codeAction.edit?.documentChanges?.[0])?.edits.forEach(
+                    (edit) => (edit.newText = harmonizeNewLines(edit.newText))
+                );
+            }
+
+            const textDocument = {
+                uri: getUri('codeaction-checkJs-module.svelte'),
+                version: null
+            };
+            assert.deepStrictEqual(codeActions, <CodeAction[]>[
+                {
+                    edit: {
+                        documentChanges: [
+                            {
+                                edits: [
+                                    {
+                                        newText: '// @ts-ignore\n    ',
+                                        range: Range.create(
+                                            Position.create(3, 4),
+                                            Position.create(3, 4)
+                                        )
+                                    }
+                                ],
+                                textDocument
+                            }
+                        ]
+                    },
+                    kind: 'quickfix',
+                    title: 'Ignore this error message'
+                },
+                {
+                    edit: {
+                        documentChanges: [
+                            {
+                                edits: [
+                                    {
+                                        newText: '\n// @ts-nocheck',
+                                        range: Range.create(
+                                            Position.create(0, 25),
+                                            Position.create(0, 25)
+                                        )
+                                    }
+                                ],
+                                textDocument
+                            }
+                        ]
+                    },
+
+                    kind: 'quickfix',
+                    title: 'Disable checking for this file'
+                }
+            ]);
+        });
+
+        it('provide quickfix for adding jsDoc type to props', async () => {
+            const { provider, document } = setup('codeaction-add-jsdoc.svelte');
+            const errorRange = Range.create(Position.create(7, 8), Position.create(7, 11));
+
+            const codeActions = await provider.getCodeActions(document, errorRange, {
+                diagnostics: [
+                    {
+                        code: 7034,
+                        message:
+                            "Variable 'abc' implicitly has type 'any' in some locations where its type cannot be determined.",
+                        range: errorRange
+                    }
+                ]
+            });
+
+            const addJsDoc = codeActions.find(
+                (fix) => fix.title === "Infer type of 'abc' from usage"
+            );
+
+            (<TextDocumentEdit>addJsDoc?.edit?.documentChanges?.[0])?.edits.forEach(
+                (edit) => (edit.newText = harmonizeNewLines(edit.newText))
+            );
+
+            assert.deepStrictEqual(addJsDoc?.edit, {
+                documentChanges: [
+                    <TextDocumentEdit>{
+                        edits: [
+                            {
+                                newText: `/**\n${indent} * @type {any}\n${indent} */\n${indent}`,
+                                range: {
+                                    start: { character: 4, line: 3 },
+                                    end: { character: 4, line: 3 }
+                                }
+                            }
+                        ],
+                        textDocument: {
+                            uri: getUri('codeaction-add-jsdoc.svelte'),
+                            version: null
+                        }
+                    }
+                ]
+            });
+        });
+
+        it('provide quickfix for adding jsDoc type to non props when props exist', async () => {
+            const { provider, document } = setup('codeaction-add-jsdoc.svelte');
+            const errorRange = Range.create(Position.create(9, 8), Position.create(9, 10));
+
+            const codeActions = await provider.getCodeActions(document, errorRange, {
+                diagnostics: [
+                    {
+                        code: 7034,
+                        message:
+                            "Variable 'ab' implicitly has type 'any' in some locations where its type cannot be determined.",
+                        range: errorRange
+                    }
+                ]
+            });
+
+            const addJsDoc = codeActions.find(
+                (fix) => fix.title === "Infer type of 'ab' from usage"
+            );
+
+            (<TextDocumentEdit>addJsDoc?.edit?.documentChanges?.[0])?.edits.forEach(
+                (edit) => (edit.newText = harmonizeNewLines(edit.newText))
+            );
+
+            assert.deepStrictEqual(addJsDoc?.edit, {
+                documentChanges: [
+                    <TextDocumentEdit>{
+                        edits: [
+                            {
+                                newText: `/**\n${indent} * @type {any}\n${indent} */\n${indent}`,
+                                range: {
+                                    start: { character: 4, line: 9 },
+                                    end: { character: 4, line: 9 }
+                                }
+                            }
+                        ],
+                        textDocument: {
+                            uri: getUri('codeaction-add-jsdoc.svelte'),
+                            version: null
+                        }
+                    }
+                ]
+            });
+        });
+
         it('provides quickfix for component import', async () => {
             const { provider, document } = setup('codeactions.svelte');
 
@@ -377,7 +597,7 @@ function test(useNewTransformation: boolean) {
                                 edits: [
                                     {
                                         newText: harmonizeNewLines(
-                                            "import Empty from '../empty.svelte';\n"
+                                            `${indent}import Empty from '../empty.svelte';\n`
                                         ),
                                         range: {
                                             end: Position.create(5, 0),
@@ -466,7 +686,6 @@ function test(useNewTransformation: boolean) {
                             {
                                 edits: [
                                     {
-                                        // eslint-disable-next-line max-len
                                         newText:
                                             "import { A } from 'bla';\nimport { C } from 'blubb';\n",
                                         range: {
@@ -555,9 +774,8 @@ function test(useNewTransformation: boolean) {
                             {
                                 edits: [
                                     {
-                                        // eslint-disable-next-line max-len
                                         newText:
-                                            "import { A,B } from 'bla';\n" +
+                                            "import { A, B } from 'bla';\n" +
                                             "import { C } from 'blubb';\n" +
                                             "import { D } from 'd';\n",
 
@@ -985,7 +1203,7 @@ function test(useNewTransformation: boolean) {
                                     {
                                         newText:
                                             "import { } from 'svelte/transition';\n" +
-                                            "    import { } from './codeaction-checkJs.svelte';\n",
+                                            `${indent}import { } from './codeaction-checkJs.svelte';\n`,
                                         range: {
                                             end: {
                                                 character: 4,
@@ -1079,7 +1297,6 @@ function test(useNewTransformation: boolean) {
                     {
                         edits: [
                             {
-                                // eslint-disable-next-line max-len
                                 newText: 'const newLocal=Math.random()>0.5? true:false;\n',
                                 range: {
                                     start: {
@@ -1262,5 +1479,5 @@ function test(useNewTransformation: boolean) {
     };
 }
 
-describe('CodeActionsProvider (old transformation)', test(false));
+// describe('CodeActionsProvider (old transformation)', test(false));
 describe('CodeActionsProvider (new transformation)', test(true));

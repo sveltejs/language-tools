@@ -1,23 +1,27 @@
 ///<reference types="svelte" />
-<></>;function render() {                                                                                                                             {/**
+;function render() {                                                                                                                                  {/**
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
-<><Component   >{() => { let {hi, hi2:hi_2, hi3} = /*Ωignore_startΩ*/new Component({target: __sveltets_1_any(''), props: {}})/*Ωignore_endΩ*/.$$slot_def['default'];<>{/**
-=#                                                                                                                                                                         Originless mappings
-<><Component•••>{()•=>•{•let•{hi,•hi2:hi_2,•hi3}•=•/*Ωignore_startΩ*/new•Component({target:•__sveltets_1_any(''),•props:•{}})/*Ωignore_endΩ*/.$$slot_def['default'];<>↲    [generated] line 3
-  <Component•••>              hi  hi2=hi_2  hi3                                                                                                                       ↲    
-               #==============                                                                                                                                             Order-breaking mappings
-<Component•    hi•    hi2= hi_2 •    hi3>↲                                                                                                                                 
-<Component•let:hi•let:hi2={hi_2}•let:hi3>↲                                                                                                                                 [original] line 1 
+async () => { { const $$_tnenopmoC0C = __sveltets_2_ensureComponent(Component); const $$_tnenopmoC0 = new $$_tnenopmoC0C({ target: __sveltets_2_any(), props: {    }});{const {/*Ωignore_startΩ*/$$_$$/*Ωignore_endΩ*/,hi,hi2:hi_2,hi3,} = $$_tnenopmoC0.$$slot_def.default;$$_$$;{/**
+============#                                                                                                                                                                                                                                                                          Originless mappings
+async•()•=>•{•{•const•$$_tnenopmoC0C•=•__sveltets_2_ensureComponent(Component);•const•$$_tnenopmoC0•=•new•$$_tnenopmoC0C({•target:•__sveltets_2_any(),•props:•{••••}});{const•{/*Ωignore_startΩ*/$$_$$/*Ωignore_endΩ*/,hi,hi2:hi_2,hi3,}•=•$$_tnenopmoC0.$$slot_def.default;$$_$$;↲    [generated] line 3
+             <                                                      Component                                                                                  el{•l                                                   hi•hi2=hi_2}hi3                                            ↲    
+                                                                                                                                                                  #                                                                                                                    Order-breaking mappings
+<Component le  hi•l   hi2={hi_2}•    hi3 ↲                                                                                                                                                                                                                                             
+<Component•let:hi•let:hi2={hi_2}•let:hi3>↲                                                                                                                                                                                                                                             [original] line 1 
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
-    {hi}{hi_2}{hi3}                                                                                                                                   {/**
+    hi;hi_2;hi3;                                                                                                                                      {/**
+===#                    Originless mappings                                                                                                           
+••••hi;hi_2;hi3;↲       [generated] line 4                                                                                                            
+    hi}hi_2}hi3}↲                                                                                                                                     
+     hi} hi_2} hi3}↲                                                                                                                                  
+••••{hi}{hi_2}{hi3}↲    [original] line 2                                                                                                             
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
-</>}}</Component></>                                                                                                                                  {/**
-====#                    Originless mappings                                                                                                          
-</>}}</Component></>↲    [generated] line 5                                                                                                           
-     </Component>                                                                                                                                     
-</Component>             [original] line 3                                                                                                            
+ }Component}};                                                                                                                                        {/**
+•}Component}};↲    [generated] line 5                                                                                                                 
+< Component                                                                                                                                           
+</Component>       [original] line 3                                                                                                                  
 ------------------------------------------------------------------------------------------------------------------------------------------------------ */}
-return { props: {}, slots: {}, getters: {}, events: {} }}
+return { props: /** @type {Record<string, never>} */ ({}), slots: {}, events: {} }}
 
-export default class Input__SvelteComponent_ extends __sveltets_1_createSvelte2TsxComponent(__sveltets_1_partial(__sveltets_1_with_any_event(render()))) {
+export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial(__sveltets_2_with_any_event(render()))) {
 }

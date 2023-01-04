@@ -33,7 +33,7 @@ export interface BaseNode {
 
 export interface BaseDirective extends BaseNode {
     type: DirectiveType;
-    expression: null | Node;
+    expression: null | (Node & BaseNode);
     name: string;
     modifiers: string[];
 }
