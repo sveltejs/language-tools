@@ -1,4 +1,5 @@
 import ts from 'typescript';
+import { CancellationToken } from 'vscode-languageserver';
 import { Range, InlayHint, InlayHintKind } from 'vscode-languageserver-types';
 import { Document, isInTag } from '../../../lib/documents';
 import { getAttributeContextAtPosition } from '../../../lib/documents/parseHtml';
@@ -16,10 +17,22 @@ import {
 export class InlayHintProviderImpl implements InlayHintProvider {
     constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
 
-    async getInlayHints(document: Document, range: Range): Promise<InlayHint[] | null> {
+    async getInlayHints(
+        document: Document,
+        range: Range,
+        cancellationToken?: CancellationToken
+    ): Promise<InlayHint[] | null> {
         const { lang, tsDoc, userPreferences } = await this.lsAndTsDocResolver.getLSAndTSDoc(
             document
         );
+
+        if (
+            cancellationToken?.isCancellationRequested ||
+            // skip TypeScript's synchronizeHostData
+            !this.areInlayHintsEnabled(userPreferences)
+        ) {
+            return null;
+        }
 
         const inlayHints = lang.provideInlayHints(
             tsDoc.filePath,
@@ -61,6 +74,18 @@ export class InlayHintProviderImpl implements InlayHintProvider {
             );
 
         return result;
+    }
+
+    private areInlayHintsEnabled(preferences: ts.UserPreferences) {
+        return (
+            preferences.includeInlayParameterNameHints === 'literals' ||
+            preferences.includeInlayParameterNameHints === 'all' ||
+            preferences.includeInlayEnumMemberValueHints ||
+            preferences.includeInlayFunctionLikeReturnTypeHints ||
+            preferences.includeInlayFunctionParameterTypeHints ||
+            preferences.includeInlayPropertyDeclarationTypeHints ||
+            preferences.includeInlayVariableTypeHints
+        );
     }
 
     private convertToTargetTextSpan(range: Range, snapshot: DocumentSnapshot) {

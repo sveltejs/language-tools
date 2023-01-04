@@ -514,14 +514,18 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
         );
     }
 
-    getInlayHints(textDocument: TextDocumentIdentifier, range: Range): Promise<InlayHint[] | null> {
+    getInlayHints(
+        textDocument: TextDocumentIdentifier,
+        range: Range,
+        cancellationToken?: CancellationToken
+    ): Promise<InlayHint[] | null> {
         const document = this.getDocument(textDocument.uri);
 
         return this.execute<InlayHint[] | null>(
             'getInlayHints',
-            [document, range],
+            [document, range, cancellationToken],
             ExecuteMode.FirstNonNull,
-            'high'
+            'smart'
         );
     }
 

@@ -555,8 +555,16 @@ export class TypeScriptPlugin
         return this.typeDefinitionProvider.getTypeDefinition(document, position);
     }
 
-    async getInlayHints(document: Document, range: Range): Promise<InlayHint[] | null> {
-        return this.inlayHintProvider.getInlayHints(document, range);
+    async getInlayHints(
+        document: Document,
+        range: Range,
+        cancellationToken?: CancellationToken
+    ): Promise<InlayHint[] | null> {
+        if (!this.configManager.enabled('typescript.enable')) {
+            return null;
+        }
+
+        return this.inlayHintProvider.getInlayHints(document, range, cancellationToken);
     }
 
     private async getLSAndTSDoc(document: Document) {

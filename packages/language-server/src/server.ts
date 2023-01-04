@@ -391,10 +391,6 @@ export function startServer(options?: LSOptions) {
         pluginHost.getTypeDefinition(evt.textDocument, evt.position)
     );
 
-    connection.onRequest(InlayHintRequest.type, (evt) =>
-        pluginHost.getInlayHints(evt.textDocument, evt.range)
-    );
-
     const diagnosticsManager = new DiagnosticsManager(
         connection.sendDiagnostics,
         docManager,
@@ -436,6 +432,10 @@ export function startServer(options?: LSOptions) {
     connection.onRequest(
         LinkedEditingRangeRequest.type,
         async (evt) => await pluginHost.getLinkedEditingRanges(evt.textDocument, evt.position)
+    );
+
+    connection.onRequest(InlayHintRequest.type, (evt, cancellationToken) =>
+        pluginHost.getInlayHints(evt.textDocument, evt.range, cancellationToken)
     );
 
     docManager.on(
