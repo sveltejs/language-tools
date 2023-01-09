@@ -249,6 +249,13 @@ export interface CssConfig {
     hover?: any;
 }
 
+/**
+ * The config as the vscode-html-languageservice understands it
+ */
+export interface HTMLConfig {
+    customData?: string[];
+}
+
 type DeepPartial<T> = T extends CompilerWarningsSettings
     ? T
     : {
@@ -273,6 +280,7 @@ export class LSConfigManager {
     private cssConfig: CssConfig | undefined;
     private scssConfig: CssConfig | undefined;
     private lessConfig: CssConfig | undefined;
+    private htmlConfig: HTMLConfig | undefined;
     private isTrusted = true;
 
     constructor() {
@@ -296,7 +304,7 @@ export class LSConfigManager {
         // TODO remove once we remove old transformation
         this.config.svelte.useNewTransformation = true;
 
-        this.listeners.forEach((listener) => listener(this));
+        this.notifyListeners();
     }
 
     /**
@@ -331,7 +339,7 @@ export class LSConfigManager {
 
     updateEmmetConfig(config: VSCodeEmmetConfig): void {
         this.emmetConfig = config || {};
-        this.listeners.forEach((listener) => listener(this));
+        this.notifyListeners();
     }
 
     getEmmetConfig(): VSCodeEmmetConfig {
@@ -340,7 +348,7 @@ export class LSConfigManager {
 
     updatePrettierConfig(config: any): void {
         this.prettierConfig = config || {};
-        this.listeners.forEach((listener) => listener(this));
+        this.notifyListeners();
     }
 
     getPrettierConfig(): any {
@@ -376,7 +384,7 @@ export class LSConfigManager {
                 this._updateTsUserPreferences(lang, config[lang]);
             }
         });
-        this.listeners.forEach((listener) => listener(this));
+        this.notifyListeners();
         this.resolvedAutoImportExcludeCache.clear();
     }
 
@@ -390,7 +398,7 @@ export class LSConfigManager {
 
     updateIsTrusted(isTrusted: boolean): void {
         this.isTrusted = isTrusted;
-        this.listeners.forEach((listener) => listener(this));
+        this.notifyListeners();
     }
 
     private _updateTsUserPreferences(lang: TsUserConfigLang, config: TSUserConfig) {
@@ -457,7 +465,7 @@ export class LSConfigManager {
 
     updateCssConfig(config: CssConfig | undefined): void {
         this.cssConfig = config;
-        this.listeners.forEach((listener) => listener(this));
+        this.notifyListeners();
     }
 
     getCssConfig(): CssConfig | undefined {
@@ -466,7 +474,7 @@ export class LSConfigManager {
 
     updateScssConfig(config: CssConfig | undefined): void {
         this.scssConfig = config;
-        this.listeners.forEach((listener) => listener(this));
+        this.notifyListeners();
     }
 
     getScssConfig(): CssConfig | undefined {
@@ -475,11 +483,20 @@ export class LSConfigManager {
 
     updateLessConfig(config: CssConfig | undefined): void {
         this.lessConfig = config;
-        this.listeners.forEach((listener) => listener(this));
+        this.notifyListeners();
     }
 
     getLessConfig(): CssConfig | undefined {
         return this.lessConfig;
+    }
+
+    updateHTMLConfig(config: HTMLConfig | undefined): void {
+        this.htmlConfig = config;
+        this.notifyListeners();
+    }
+
+    getHTMLConfig(): HTMLConfig | undefined {
+        return this.htmlConfig;
     }
 
     updateTsJsFormateConfig(config: Record<TsUserConfigLang, TSUserConfig>): void {
@@ -488,7 +505,7 @@ export class LSConfigManager {
                 this._updateTsFormatConfig(lang, config[lang]);
             }
         });
-        this.listeners.forEach((listener) => listener(this));
+        this.notifyListeners();
     }
 
     private getDefaultFormatCodeOptions(): ts.FormatCodeSettings {
@@ -567,5 +584,16 @@ export class LSConfigManager {
                 ? ts.SemicolonPreference.Insert
                 : ts.SemicolonPreference.Remove
         };
+    }
+
+    private scheduledUpdate: NodeJS.Timeout | undefined;
+    private notifyListeners() {
+        if (this.scheduledUpdate) {
+            clearTimeout(this.scheduledUpdate);
+        }
+        this.scheduledUpdate = setTimeout(() => {
+            this.scheduledUpdate = undefined;
+            this.listeners.forEach((listener) => listener(this));
+        });
     }
 }
