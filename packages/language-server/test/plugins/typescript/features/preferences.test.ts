@@ -18,7 +18,7 @@ import { pathToUrl } from '../../../../src/utils';
 
 const testFilesDir = join(__dirname, '..', 'testfiles', 'preferences');
 
-describe.only('ts user preferences', () => {
+describe('ts user preferences', () => {
     function setup(filename: string) {
         const docManager = new DocumentManager(
             (textDocument) => new Document(textDocument.uri, textDocument.text)
