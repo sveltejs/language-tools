@@ -44,7 +44,10 @@ describe('ts user preferences', () => {
             suggest: {
                 autoImports: true,
                 includeAutomaticOptionalChainCompletions: undefined,
-                includeCompletionsForImportStatements: undefined
+                includeCompletionsForImportStatements: undefined,
+                classMemberSnippets: undefined,
+                objectLiteralMethodSnippets: undefined,
+                includeCompletionsWithSnippetText: undefined
             }
         };
     }
@@ -135,7 +138,10 @@ describe('ts user preferences', () => {
             suggest: {
                 autoImports: false,
                 includeAutomaticOptionalChainCompletions: undefined,
-                includeCompletionsForImportStatements: undefined
+                includeCompletionsForImportStatements: undefined,
+                classMemberSnippets: undefined,
+                objectLiteralMethodSnippets: undefined,
+                includeCompletionsWithSnippetText: undefined
             }
         });
         const completionProvider = new CompletionsProviderImpl(
