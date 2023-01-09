@@ -83,6 +83,7 @@ function test(useNewTransformation: boolean) {
             assert.deepStrictEqual(first, <CompletionItem>{
                 label: 'b',
                 insertText: undefined,
+                insertTextFormat: undefined,
                 kind: CompletionItemKind.Method,
                 sortText: '11',
                 commitCharacters: ['.', ',', ';', '('],
@@ -110,6 +111,7 @@ function test(useNewTransformation: boolean) {
             assert.deepStrictEqual(first, <CompletionItem>{
                 label: 'b',
                 insertText: undefined,
+                insertTextFormat: undefined,
                 kind: CompletionItemKind.Field,
                 sortText: '11',
                 commitCharacters: ['.', ',', ';', '('],
@@ -1166,7 +1168,8 @@ function test(useNewTransformation: boolean) {
                     }
                 ],
                 label: 'blubb',
-                insertText: 'import { blubb } from "../definitions";',
+                insertText: 'import { blubb$1 } from "../definitions";',
+                insertTextFormat: 2,
                 kind: CompletionItemKind.Function,
                 sortText: '11',
                 commitCharacters: undefined,
@@ -1175,7 +1178,7 @@ function test(useNewTransformation: boolean) {
                     description: '../definitions'
                 },
                 textEdit: {
-                    newText: '{ blubb } from "../definitions";',
+                    newText: '{ blubb$1 } from "../definitions";',
                     range: {
                         end: {
                             character: 15,
@@ -1228,6 +1231,7 @@ function test(useNewTransformation: boolean) {
                 ],
                 label: 'toString',
                 insertText: '?.toString',
+                insertTextFormat: undefined,
                 kind: CompletionItemKind.Method,
                 sortText: '11',
                 commitCharacters: ['.', ',', ';', '('],
@@ -1273,6 +1277,7 @@ function test(useNewTransformation: boolean) {
                 sortText: '11',
                 preselect: undefined,
                 insertText: undefined,
+                insertTextFormat: undefined,
                 labelDetails: undefined,
                 commitCharacters: ['.', ',', ';', '('],
                 textEdit: {
@@ -1421,6 +1426,74 @@ function test(useNewTransformation: boolean) {
                 detail,
                 'Add import from "random-package2"\n\nfunction foo(): string'
             );
+        });
+
+        it('provides completions for object literal member', async () => {
+            const { completionProvider, document } = setup('object-member.svelte');
+
+            const completions = await completionProvider.getCompletions(
+                document,
+                {
+                    line: 6,
+                    character: 9
+                },
+                {
+                    triggerKind: CompletionTriggerKind.Invoked
+                }
+            );
+
+            const item = completions?.items.find(
+                (item) => item.label === 'hi' && item.labelDetails?.detail === '(name)'
+            );
+            item!.insertText = harmonizeNewLines(item!.insertText);
+
+            delete item?.data;
+
+            assert.deepStrictEqual(item, {
+                label: 'hi',
+                labelDetails: {
+                    detail: '(name)'
+                },
+                kind: CompletionItemKind.Method,
+                sortText: '11\u0000hi\u00001',
+                preselect: undefined,
+                insertText: `hi(name) {${newLine}${indent}$0${newLine}},`,
+                insertTextFormat: 2,
+                commitCharacters: ['.', ',', ';', '('],
+                textEdit: undefined
+            });
+        });
+
+        it('provides completions for class member', async () => {
+            const { completionProvider, document } = setup('object-member.svelte');
+
+            const completions = await completionProvider.getCompletions(
+                document,
+                {
+                    line: 10,
+                    character: 9
+                },
+                {
+                    triggerKind: CompletionTriggerKind.Invoked
+                }
+            );
+
+            const item = completions?.items.find((item) => item.label === 'hi');
+            item!.insertText = harmonizeNewLines(item!.insertText);
+
+            delete item?.data;
+
+            assert.deepStrictEqual(item, {
+                label: 'hi',
+                kind: CompletionItemKind.Method,
+                sortText: '17',
+                preselect: undefined,
+                insertText: `hi(name: string): string {${newLine}${indent}$0${newLine}}`,
+                insertTextFormat: 2,
+                commitCharacters: undefined,
+                textEdit: undefined,
+                labelDetails: undefined
+            });
         });
 
         // Hacky, but it works. Needed due to testing both new and old transformation
