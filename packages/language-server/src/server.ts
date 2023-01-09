@@ -149,6 +149,7 @@ export function startServer(options?: LSOptions) {
         configManager.updateCssConfig(evt.initializationOptions?.configuration?.css);
         configManager.updateScssConfig(evt.initializationOptions?.configuration?.scss);
         configManager.updateLessConfig(evt.initializationOptions?.configuration?.less);
+        configManager.updateHTMLConfig(evt.initializationOptions?.configuration?.html);
 
         pluginHost.initialize({
             filterIncompleteCompletions:
@@ -311,6 +312,7 @@ export function startServer(options?: LSOptions) {
         configManager.updateCssConfig(settings.css);
         configManager.updateScssConfig(settings.scss);
         configManager.updateLessConfig(settings.less);
+        configManager.updateHTMLConfig(settings.html);
         Logger.setDebug(settings.svelte?.['language-server']?.debug);
     });
 
