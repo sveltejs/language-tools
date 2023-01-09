@@ -455,6 +455,14 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             ? TextEdit.replace(convertRange(snapshot, replacementSpan), insertText ?? label)
             : undefined;
 
+        const labelDetails =
+            comp.labelDetails ??
+            (comp.sourceDisplay
+                ? {
+                      description: ts.displayPartsToString(comp.sourceDisplay)
+                  }
+                : undefined);
+
         return {
             label,
             insertText,
@@ -463,6 +471,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             // Make sure svelte component takes precedence
             sortText: isSvelteComp ? '-1' : comp.sortText,
             preselect: isSvelteComp ? true : comp.isRecommended,
+            labelDetails,
             textEdit,
             // pass essential data for resolving completion
             data: {
@@ -626,6 +635,15 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             const { detail: itemDetail, documentation: itemDocumentation } =
                 this.getCompletionDocument(detail, is$typeImport);
 
+            // VSCode + tsserver won't have this pop-in effect
+            // because tsserver has internal APIs for caching
+            // TODO: consider if we should adopt the internal APIs
+            if (detail.sourceDisplay && !completionItem.labelDetails) {
+                completionItem.labelDetails = {
+                    description: ts.displayPartsToString(detail.sourceDisplay)
+                };
+            }
+
             completionItem.detail = itemDetail;
             completionItem.documentation = itemDocumentation;
         }
@@ -661,16 +679,18 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
 
     private getCompletionDocument(compDetail: ts.CompletionEntryDetails, is$typeImport: boolean) {
         const { sourceDisplay, documentation: tsDocumentation, displayParts, tags } = compDetail;
-        let detail: string = changeSvelteComponentName(ts.displayPartsToString(displayParts));
+        let parts = compDetail.codeActions?.map((codeAction) => codeAction.description) ?? [];
 
-        if (sourceDisplay) {
-            let importPath = ts.displayPartsToString(sourceDisplay);
-            if (is$typeImport) {
-                // Take into account Node16 moduleResolution
-                importPath = `'./$types${importPath.endsWith('.js') ? '.js' : ''}'`;
-            }
-            detail = `Auto import from ${importPath}\n${detail}`;
+        if (sourceDisplay && is$typeImport) {
+            const importPath = ts.displayPartsToString(sourceDisplay);
+
+            // Take into account Node16 moduleResolution
+            parts = parts.map((detail) =>
+                detail.replace(importPath, `'./$types${importPath.endsWith('.js') ? '.js' : ''}'`)
+            );
         }
+
+        parts.push(changeSvelteComponentName(ts.displayPartsToString(displayParts)));
 
         const markdownDoc = getMarkdownDocumentation(tsDocumentation, tags);
         const documentation: MarkupContent | undefined = markdownDoc
@@ -679,7 +699,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
 
         return {
             documentation,
-            detail
+            detail: parts.filter(Boolean).join('\n\n')
         };
     }
 

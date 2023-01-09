@@ -222,7 +222,10 @@ export function startServer(options?: LSOptions) {
                         // Svelte
                         ':',
                         '|'
-                    ]
+                    ],
+                    completionItem: {
+                        labelDetailsSupport: true
+                    }
                 },
                 documentFormattingProvider: true,
                 colorProvider: true,
