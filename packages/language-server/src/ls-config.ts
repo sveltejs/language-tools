@@ -400,6 +400,7 @@ export class LSConfigManager {
             includeAutomaticOptionalChainCompletions:
                 config.suggest?.includeAutomaticOptionalChainCompletions ?? true,
             includeCompletionsWithInsertText: true,
+            useLabelDetailsInCompletionEntries: true,
             includeCompletionsWithSnippetText:
                 config.suggest?.includeCompletionsWithSnippetText ?? true,
             includeCompletionsWithClassMemberSnippets:

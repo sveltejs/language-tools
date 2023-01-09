@@ -301,6 +301,12 @@ export class SvelteSnapshotManager {
                 const normalizedPath = path.replace(/\\/g, '/');
                 if (normalizedPath.endsWith('node_modules/svelte/types/runtime/ambient.d.ts')) {
                     return '';
+                } else if (normalizedPath.endsWith('svelte2tsx/svelte-jsx.d.ts')) {
+                    // Remove the dom lib reference to not load these ambient types in case
+                    // the user has a tsconfig.json with different lib settings like in
+                    // https://github.com/sveltejs/language-tools/issues/1733
+                    const originalText = readFile(path) || '';
+                    return originalText.replace('/// <reference lib="dom" />', '');
                 } else if (normalizedPath.endsWith('svelte2tsx/svelte-shims.d.ts')) {
                     let originalText = readFile(path) || '';
                     if (!originalText.includes('// -- start svelte-ls-remove --')) {
