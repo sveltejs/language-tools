@@ -1496,6 +1496,39 @@ function test(useNewTransformation: boolean) {
             });
         });
 
+        it('provides import completions store that isnt imported yet', async () => {
+            const { completionProvider, document } = setup('importcompletions-store.svelte');
+
+            const completions = await completionProvider.getCompletions(
+                document,
+                {
+                    line: 1,
+                    character: 10
+                },
+                {
+                    triggerKind: CompletionTriggerKind.Invoked
+                }
+            );
+
+            const item = completions?.items.find((item) => item.label === 'store');
+
+            assert.equal(item?.data?.source?.endsWith('completions/to-import'), true);
+
+            delete item?.data;
+
+            assert.deepStrictEqual(item, {
+                label: 'store',
+                kind: CompletionItemKind.Constant,
+                sortText: '16',
+                preselect: undefined,
+                insertText: undefined,
+                insertTextFormat: undefined,
+                commitCharacters: ['.', ',', ';', '('],
+                textEdit: undefined,
+                labelDetails: undefined
+            });
+        });
+
         // Hacky, but it works. Needed due to testing both new and old transformation
         after(() => {
             __resetCache();
