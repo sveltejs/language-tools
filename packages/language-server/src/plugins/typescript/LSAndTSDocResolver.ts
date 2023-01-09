@@ -3,7 +3,14 @@ import ts from 'typescript';
 import { TextDocumentContentChangeEvent } from 'vscode-languageserver';
 import { Document, DocumentManager } from '../../lib/documents';
 import { LSConfigManager } from '../../ls-config';
-import { debounceSameArg, normalizePath, pathToUrl } from '../../utils';
+import {
+    createGetCanonicalFileName,
+    debounceSameArg,
+    GetCanonicalFileName,
+    normalizePath,
+    pathToUrl,
+    urlToPath
+} from '../../utils';
 import { DocumentSnapshot, SvelteDocumentSnapshot } from './DocumentSnapshot';
 import {
     getService,
@@ -13,6 +20,7 @@ import {
     LanguageServiceDocumentContext
 } from './service';
 import { GlobalSnapshotsManager, SnapshotManager } from './SnapshotManager';
+import { isSubPath } from './utils';
 
 interface LSAndTSDocResolverOptions {
     notifyExceedSizeLimit?: () => void;
@@ -59,6 +67,10 @@ export class LSAndTSDocResolver {
             handleDocumentChange(document);
             docManager.lockDocument(document.uri);
         });
+
+        this.getCanonicalFileName = createGetCanonicalFileName(
+            (options?.tsSystem ?? ts.sys).useCaseSensitiveFileNames
+        );
     }
 
     /**
@@ -76,6 +88,7 @@ export class LSAndTSDocResolver {
 
     private globalSnapshotsManager = new GlobalSnapshotsManager(this.lsDocumentContext.tsSystem);
     private extendedConfigCache = new Map<string, ts.ExtendedConfigCacheEntry>();
+    private getCanonicalFileName: GetCanonicalFileName;
 
     private get lsDocumentContext(): LanguageServiceDocumentContext {
         return {
@@ -103,7 +116,7 @@ export class LSAndTSDocResolver {
     }> {
         const lang = await this.getLSForPath(document.getFilePath() || '');
         const tsDoc = await this.getSnapshot(document);
-        const userPreferences = this.getUserPreferences(tsDoc.scriptKind);
+        const userPreferences = this.getUserPreferences(tsDoc);
 
         return { tsDoc, lang, userPreferences };
     }
@@ -194,12 +207,19 @@ export class LSAndTSDocResolver {
         return getService(filePath, this.workspaceUris, this.lsDocumentContext);
     }
 
-    private getUserPreferences(scriptKind: ts.ScriptKind): ts.UserPreferences {
+    private getUserPreferences(tsDoc: DocumentSnapshot): ts.UserPreferences {
         const configLang =
-            scriptKind === ts.ScriptKind.TS || scriptKind === ts.ScriptKind.TSX
+            tsDoc.scriptKind === ts.ScriptKind.TS || tsDoc.scriptKind === ts.ScriptKind.TSX
                 ? 'typescript'
                 : 'javascript';
 
-        return this.configManager.getTsUserPreferences(configLang);
+        const nearestWorkspaceUri = this.workspaceUris.find((workspaceUri) =>
+            isSubPath(workspaceUri, tsDoc.filePath, this.getCanonicalFileName)
+        );
+
+        return this.configManager.getTsUserPreferences(
+            configLang,
+            nearestWorkspaceUri ? urlToPath(nearestWorkspaceUri) : null
+        );
     }
 }

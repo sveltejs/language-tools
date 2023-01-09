@@ -4,6 +4,8 @@ import { VSCodeEmmetConfig } from '@vscode/emmet-helper';
 import { importPrettier } from './importPackage';
 import { Document } from './lib/documents';
 import { returnObjectIfHasKeys } from './utils';
+import path from 'path';
+import { FileMap } from './lib/documents/fileCollection';
 
 /**
  * Default config for the language server.
@@ -209,6 +211,8 @@ export interface TsUserPreferencesConfig {
     importModuleSpecifier: ts.UserPreferences['importModuleSpecifierPreference'];
     importModuleSpecifierEnding: ts.UserPreferences['importModuleSpecifierEnding'];
     quoteStyle: ts.UserPreferences['quotePreference'];
+    autoImportFileExcludePatterns: ts.UserPreferences['autoImportFileExcludePatterns'];
+
     /**
      * only in typescript config
      */
@@ -259,6 +263,7 @@ export class LSConfigManager {
         typescript: {},
         javascript: {}
     };
+    private resolvedAutoImportExcludeCache = new FileMap<string[]>();
     private tsFormatCodeOptions: Record<TsUserConfigLang, ts.FormatCodeSettings> = {
         typescript: this.getDefaultFormatCodeOptions(),
         javascript: this.getDefaultFormatCodeOptions()
@@ -372,6 +377,7 @@ export class LSConfigManager {
             }
         });
         this.listeners.forEach((listener) => listener(this));
+        this.resolvedAutoImportExcludeCache.clear();
     }
 
     /**
@@ -400,6 +406,7 @@ export class LSConfigManager {
             includeAutomaticOptionalChainCompletions:
                 config.suggest?.includeAutomaticOptionalChainCompletions ?? true,
             includeCompletionsWithInsertText: true,
+            autoImportFileExcludePatterns: config.preferences?.autoImportFileExcludePatterns,
             useLabelDetailsInCompletionEntries: true,
             includeCompletionsWithSnippetText:
                 config.suggest?.includeCompletionsWithSnippetText ?? true,
@@ -410,8 +417,42 @@ export class LSConfigManager {
         };
     }
 
-    getTsUserPreferences(lang: TsUserConfigLang) {
-        return this.tsUserPreferences[lang];
+    getTsUserPreferences(lang: TsUserConfigLang, workspacePath: string | null): ts.UserPreferences {
+        const userPreferences = this.tsUserPreferences[lang];
+
+        if (!workspacePath || !userPreferences.autoImportFileExcludePatterns) {
+            return userPreferences;
+        }
+
+        let autoImportFileExcludePatterns = this.resolvedAutoImportExcludeCache.get(workspacePath);
+
+        if (!autoImportFileExcludePatterns) {
+            autoImportFileExcludePatterns = userPreferences.autoImportFileExcludePatterns.map(
+                (p) => {
+                    // Normalization rules: https://github.com/microsoft/TypeScript/pull/49578
+                    const slashNormalized = p.replace(/\\/g, '/');
+                    const isRelative = /^\.\.?($|\/)/.test(slashNormalized);
+                    if (path.isAbsolute(p)) {
+                        return p;
+                    }
+
+                    return path.join(
+                        workspacePath,
+                        p.startsWith('*')
+                            ? '/' + slashNormalized
+                            : isRelative
+                            ? p
+                            : '/**/' + slashNormalized
+                    );
+                }
+            );
+            this.resolvedAutoImportExcludeCache.set(workspacePath, autoImportFileExcludePatterns);
+        }
+
+        return {
+            ...userPreferences,
+            autoImportFileExcludePatterns
+        };
     }
 
     updateCssConfig(config: CssConfig | undefined): void {
@@ -528,5 +569,3 @@ export class LSConfigManager {
         };
     }
 }
-
-export const lsConfig = new LSConfigManager();
