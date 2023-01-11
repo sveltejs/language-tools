@@ -86,7 +86,7 @@ import {
     isInScript,
     symbolKindFromString
 } from './utils';
-import { CallHierarchyProviderImpl } from './features/CallHierarchyProvicer';
+import { CallHierarchyProviderImpl } from './features/CallHierarchyProvider';
 
 export class TypeScriptPlugin
     implements

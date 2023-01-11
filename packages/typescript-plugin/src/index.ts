@@ -87,7 +87,13 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
         });
 
         return decorateLanguageServiceDispose(
-            decorateLanguageService(info.languageService, snapshotManager, logger, configManager),
+            decorateLanguageService(
+                info.languageService,
+                snapshotManager,
+                logger,
+                configManager,
+                modules.typescript
+            ),
             projectSvelteFilesManager ?? {
                 dispose() {}
             }

@@ -1,10 +1,15 @@
 import * as assert from 'assert';
 import * as path from 'path';
 import ts from 'typescript';
-import { CallHierarchyIncomingCall, CallHierarchyItem, SymbolKind } from 'vscode-languageserver';
+import {
+    CallHierarchyIncomingCall,
+    CallHierarchyItem,
+    CallHierarchyOutgoingCall,
+    SymbolKind
+} from 'vscode-languageserver';
 import { Document, DocumentManager } from '../../../../src/lib/documents';
 import { LSConfigManager } from '../../../../src/ls-config';
-import { CallHierarchyProviderImpl } from '../../../../src/plugins/typescript/features/CallHierarchyProvicer';
+import { CallHierarchyProviderImpl } from '../../../../src/plugins/typescript/features/CallHierarchyProvider';
 import { LSAndTSDocResolver } from '../../../../src/plugins/typescript/LSAndTSDocResolver';
 import { __resetCache } from '../../../../src/plugins/typescript/service';
 import { pathToUrl } from '../../../../src/utils';
@@ -39,10 +44,7 @@ function test(useNewTransformation: boolean) {
                 workspaceUris,
                 lsConfigManager
             );
-            const provider = new CallHierarchyProviderImpl(
-                lsAndTsDocResolver,
-                workspaceUris
-            );
+            const provider = new CallHierarchyProviderImpl(lsAndTsDocResolver, workspaceUris);
             const filePath = getFullPath(filename);
             const document = docManager.openDocument(<any>{
                 uri: pathToUrl(filePath),
@@ -115,40 +117,40 @@ function test(useNewTransformation: boolean) {
             assert.deepStrictEqual(item, [fooInImportItem]);
         });
 
+        const formatDateCallHierarchyItem: CallHierarchyItem = {
+            kind: SymbolKind.Function,
+            name: 'formatDate',
+            range: {
+                start: {
+                    line: 0,
+                    character: 0
+                },
+                end: {
+                    line: 0,
+                    character: 41
+                }
+            },
+            selectionRange: {
+                start: {
+                    line: 0,
+                    character: 16
+                },
+                end: {
+                    line: 0,
+                    character: 26
+                }
+            },
+            detail: undefined,
+            tags: undefined,
+            uri: getUri('util.ts')
+        };
+
         it('can prepare call hierarchy for imported file', async () => {
             const { provider, document } = setup(callHierarchyImportFileName);
 
             const item = await provider.prepareCallHierarchy(document, { line: 6, character: 8 });
 
-            assert.deepStrictEqual(item, [
-                <CallHierarchyItem>{
-                    kind: SymbolKind.Function,
-                    name: 'formatDate',
-                    range: {
-                        start: {
-                            line: 0,
-                            character: 0
-                        },
-                        end: {
-                            line: 0,
-                            character: 41
-                        }
-                    },
-                    selectionRange: {
-                        start: {
-                            line: 0,
-                            character: 16
-                        },
-                        end: {
-                            line: 0,
-                            character: 26
-                        }
-                    },
-                    detail: undefined,
-                    tags: undefined,
-                    uri: getUri('util.ts')
-                }
-            ]);
+            assert.deepStrictEqual(item, [formatDateCallHierarchyItem]);
         });
 
         it('can provide incoming calls', async () => {
@@ -282,6 +284,185 @@ function test(useNewTransformation: boolean) {
             ]);
         });
 
+        const outgoingComponentName = 'outgoing-component.svelte';
+
+        it.only('can provide incoming calls for component file', async () => {
+            const { provider, document } = setup('another-ref-format-date.svelte');
+
+            const items = await provider.prepareCallHierarchy(document, { line: 0, character: 2 });
+            const incoming = await provider.getIncomingCalls(items![0]);
+
+            assert.deepStrictEqual(incoming, <CallHierarchyIncomingCall[]>[
+                {
+                    from: {
+                        detail: callHierarchyTestDirRelative,
+                        kind: SymbolKind.Module,
+                        name: outgoingComponentName,
+                        range: {
+                            start: {
+                                line: 0,
+                                character: 0
+                            },
+                            end: {
+                                line: 10,
+                                character: 24
+                            }
+                        },
+                        selectionRange: {
+                            start: {
+                                line: 0,
+                                character: 0
+                            },
+                            end: {
+                                line: 10,
+                                character: 24
+                            }
+                        },
+                        uri: getUri(outgoingComponentName)
+                    },
+                    fromRanges: [
+                        {
+                            start: {
+                                character: 1,
+                                line: 10
+                            },
+                            end: {
+                                character: 21,
+                                line: 10
+                            }
+                        }
+                    ]
+                }
+            ]);
+        });
+
+        const outgoingComponentHiFunctionCall: CallHierarchyOutgoingCall = {
+            to: {
+                kind: SymbolKind.Function,
+                name: 'log',
+                range: {
+                    start: {
+                        line: 7,
+                        character: 4
+                    },
+                    end: {
+                        line: 7,
+                        character: 32
+                    }
+                },
+                selectionRange: {
+                    start: {
+                        line: 7,
+                        character: 13
+                    },
+                    end: {
+                        line: 7,
+                        character: 16
+                    }
+                },
+                detail: undefined,
+                tags: undefined,
+                uri: getUri(outgoingComponentName)
+            },
+            fromRanges: [
+                {
+                    end: {
+                        character: 11,
+                        line: 4
+                    },
+                    start: {
+                        character: 8,
+                        line: 4
+                    }
+                }
+            ]
+        };
+
+        it('can provide outgoing calls', async () => {
+            const { provider, document } = setup(outgoingComponentName);
+
+            const items = await provider.prepareCallHierarchy(document, { line: 3, character: 14 });
+            const incoming = await provider.getOutgoingCalls(items![0]);
+
+            assert.deepStrictEqual(incoming, [outgoingComponentHiFunctionCall]);
+        });
+
+        it('can provide outgoing calls for component file', async () => {
+            const { provider, document } = setup(outgoingComponentName);
+
+            const items = await provider.prepareCallHierarchy(document, { line: 10, character: 1 });
+            const outgoing = await provider.getOutgoingCalls(items![0]);
+
+            assert.deepStrictEqual(outgoing, <CallHierarchyOutgoingCall[]>[
+                {
+                    to: formatDateCallHierarchyItem,
+                    fromRanges: [
+                        {
+                            end: {
+                                character: 14,
+                                line: 3
+                            },
+                            start: {
+                                character: 4,
+                                line: 3
+                            }
+                        }
+                    ]
+                }
+            ]);
+        });
+
+        it.only('can provide outgoing calls for component tags', async () => {
+            const { provider, document } = setup(outgoingComponentName);
+
+            const items = await provider.prepareCallHierarchy(document, { line: 0, character: 2 });
+            const outgoing = await provider.getOutgoingCalls(items![0]);
+
+            assert.deepStrictEqual(outgoing, <CallHierarchyOutgoingCall[]>[
+                // outgoingComponentHiFunctionCall,
+                {
+                    fromRanges: [
+                        {
+                            end: {
+                                character: 21,
+                                line: 10
+                            },
+                            start: {
+                                character: 1,
+                                line: 10
+                            }
+                        }
+                    ],
+                    to: {
+                        detail: callHierarchyTestDirRelative,
+                        kind: SymbolKind.Module,
+                        name: 'another-ref-format-date.svelte',
+                        uri: getUri('another-ref-format-date.svelte'),
+                        range: {
+                            start: {
+                                line: 0,
+                                character: 0
+                            },
+                            end: {
+                                line: 4,
+                                character: 9
+                            }
+                        },
+                        selectionRange: {
+                            start: {
+                                line: 0,
+                                character: 0
+                            },
+                            end: {
+                                line: 4,
+                                character: 9
+                            }
+                        }
+                    }
+                }
+            ]);
+        });
+
         // Hacky, but it works. Needed due to testing both new and old transformation
         after(() => {
             __resetCache();
@@ -290,4 +471,4 @@ function test(useNewTransformation: boolean) {
 }
 
 // describe.only('CallHierarchyProvider (old transformation)', test(false));
-describe.only('CallHierarchyProvider (new transformation)', test(true));
+describe('CallHierarchyProvider (new transformation)', test(true));

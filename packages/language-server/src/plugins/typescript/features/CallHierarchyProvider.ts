@@ -140,13 +140,13 @@ export class CallHierarchyProviderImpl implements CallHierarchyProvider {
             filePath,
             program,
             snapshots,
-            isSvelteCompRange,
+            isComponentModulePosition,
             tsDoc,
             getNonComponentOffset
         } = prepareResult;
 
         const componentExportOffset =
-            isSvelteCompRange && tsDoc instanceof SvelteDocumentSnapshot
+            isComponentModulePosition && tsDoc instanceof SvelteDocumentSnapshot
                 ? offsetOfGeneratedComponentExport(tsDoc)
                 : -1;
         const offset = componentExportOffset >= 0 ? componentExportOffset : getNonComponentOffset();
@@ -188,14 +188,14 @@ export class CallHierarchyProviderImpl implements CallHierarchyProvider {
             filePath,
             program,
             snapshots,
-            isSvelteCompRange,
+            isComponentModulePosition,
             tsDoc,
             getNonComponentOffset
         } = prepareResult;
 
         const sourceFile = program?.getSourceFile(filePath);
         const renderFunctionOffset =
-            isSvelteCompRange && tsDoc instanceof SvelteDocumentSnapshot && sourceFile
+            isComponentModulePosition && tsDoc instanceof SvelteDocumentSnapshot && sourceFile
                 ? sourceFile.statements
                       .find(
                           (statement): statement is ts.FunctionDeclaration =>
@@ -211,7 +211,11 @@ export class CallHierarchyProviderImpl implements CallHierarchyProvider {
 
         const outgoingCalls = lang
             .provideCallHierarchyOutgoingCalls(filePath, offset)
-            .concat(this.getOutgoingCallsForComponent(program, filePath) ?? []);
+            .concat(
+                isComponentModulePosition
+                    ? this.getOutgoingCallsForComponent(program, filePath) ?? []
+                    : []
+            );
 
         const result = await Promise.all(
             outgoingCalls.map(async (item): Promise<CallHierarchyOutgoingCall | null> => {
@@ -259,7 +263,7 @@ export class CallHierarchyProviderImpl implements CallHierarchyProvider {
         const snapshots = new SnapshotMap(this.lsAndTsDocResolver);
         snapshots.set(tsDoc.filePath, tsDoc);
 
-        const isSvelteCompRange =
+        const isComponentModulePosition =
             isSvelteFilePath(item.name) &&
             item.selectionRange.start.line === 0 &&
             item.range.start.line === 0;
@@ -270,7 +274,7 @@ export class CallHierarchyProviderImpl implements CallHierarchyProvider {
             program,
             tsDoc,
             lang,
-            isSvelteCompRange,
+            isComponentModulePosition,
             getNonComponentOffset: () =>
                 tsDoc.offsetAt(tsDoc.getGeneratedPosition(item.selectionRange.start))
         };
@@ -300,10 +304,10 @@ export class CallHierarchyProviderImpl implements CallHierarchyProvider {
         }
 
         if (item.name === 'render') {
-            const renderFunction = findContainingNode(
-                sourceFile,
-                item.selectionSpan,
-                ts.isFunctionDeclaration
+            const end = item.selectionSpan.start + item.selectionSpan.length;
+            const renderFunction = sourceFile.statements.find(
+                (statement) =>
+                    statement.getStart() <= item.selectionSpan.start && statement.getEnd() >= end
             );
 
             if (!renderFunction || !sourceFile.statements.includes(renderFunction)) {
@@ -326,7 +330,7 @@ export class CallHierarchyProviderImpl implements CallHierarchyProvider {
 
         return {
             ...this.getNameAndDetailForItem(true, item),
-            kind: SymbolKind.Class,
+            kind: SymbolKind.Module,
             range: fileRange,
             selectionRange: fileRange,
             uri: pathToUrl(item.file)
@@ -345,7 +349,7 @@ export class CallHierarchyProviderImpl implements CallHierarchyProvider {
         filePath: string,
         offset: number
     ): ts.CallHierarchyIncomingCall[] | null {
-        if (!program) {
+        if (!program || !isSvelteFilePath(filePath)) {
             return null;
         }
 
@@ -372,7 +376,7 @@ export class CallHierarchyProviderImpl implements CallHierarchyProvider {
                     selectionSpan: { start: 0, length: 0 },
                     span: { start: 0, length: 0 }
                 },
-                fromSpans: group.map((g) => g.ref.textSpan)
+                fromSpans: group.map((g) => g.textSpan)
             })) ?? null
         );
     }
@@ -380,7 +384,7 @@ export class CallHierarchyProviderImpl implements CallHierarchyProvider {
     private getComponentStartTagFromReference(
         program: ts.Program,
         ref: ts.ReferenceEntry
-    ): { node: ts.Node; ref: ts.ReferenceEntry } | null {
+    ): ts.ReferenceEntry | null {
         const sourceFile = program.getSourceFile(ref.fileName);
 
         if (!sourceFile) {
@@ -390,7 +394,7 @@ export class CallHierarchyProviderImpl implements CallHierarchyProvider {
         const node = findNodeAtSpan(sourceFile, ref.textSpan, this.isComponentStartTag);
 
         if (node) {
-            return { node, ref };
+            return ref;
         }
 
         return null;
@@ -401,7 +405,8 @@ export class CallHierarchyProviderImpl implements CallHierarchyProvider {
             !!node &&
             node.parent &&
             ts.isCallExpression(node.parent) &&
-            node.parent.expression.getText() === ENSURE_COMPONENT_HELPER &&
+            ts.isIdentifier(node.parent.expression) &&
+            node.parent.expression.text === ENSURE_COMPONENT_HELPER &&
             ts.isIdentifier(node) &&
             node === node.parent.arguments[0]
         );
