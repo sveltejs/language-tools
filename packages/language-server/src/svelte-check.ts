@@ -118,7 +118,12 @@ export class SvelteCheck {
             }
         }
 
-        if (doc.uri.endsWith('.ts') || doc.uri.endsWith('.js')) {
+        const isTsOrJs =
+            doc.uri.endsWith('.ts') ||
+            doc.uri.endsWith('.js') ||
+            doc.uri.endsWith('.tsx') ||
+            doc.uri.endsWith('.jsx');
+        if (isTsOrJs) {
             this.pluginHost.updateTsOrJsFile(filePath, [
                 {
                     range: Range.create(
