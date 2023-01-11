@@ -1,3 +1,4 @@
+import { isAbsolute } from 'path';
 import {
     CancellationToken,
     CodeAction,
@@ -17,6 +18,7 @@ import { getPackageInfo, importPrettier } from '../../importPackage';
 import { Document } from '../../lib/documents';
 import { Logger } from '../../logger';
 import { LSConfigManager, LSSvelteConfig } from '../../ls-config';
+import { isNotNullOrUndefined } from '../../utils';
 import {
     CodeActionsProvider,
     CompletionsProvider,
@@ -106,7 +108,14 @@ export class SveltePlugin
 
         const formattedCode = prettier.format(document.getText(), {
             ...config,
-            plugins: [...(config.plugins ?? []), ...getSveltePlugin()],
+            plugins: Array.from(
+                new Set([
+                    ...((config.plugins as string[]) ?? [])
+                        .map(resolvePlugin)
+                        .filter(isNotNullOrUndefined),
+                    ...getSveltePlugin()
+                ])
+            ),
             parser: 'svelte' as any
         });
 
@@ -131,6 +140,21 @@ export class SveltePlugin
                 .getSupportInfo()
                 .languages.some((l) => l.name === 'svelte');
             return hasPluginLoadedAlready ? [] : [require.resolve('prettier-plugin-svelte')];
+        }
+
+        function resolvePlugin(plugin: string) {
+            // https://github.com/prettier/prettier-vscode/blob/160b0e92d88fa19003dce2745d5ab8c67e886a04/src/ModuleResolver.ts#L373
+            if (typeof plugin != 'string' || isAbsolute(plugin) || plugin.startsWith('.')) {
+                return plugin;
+            }
+
+            try {
+                return require.resolve(plugin, {
+                    paths: [filePath]
+                });
+            } catch (error) {
+                Logger.error(`failed to resolve plugin ${plugin} with error:\n`, error);
+            }
         }
     }
 
