@@ -108,7 +108,6 @@ async function createQuickfixActions(
 
     return codeActions;
 }
-
 function createSvelteAnchorMissingAttributeQuickfixAction(
     textDocument: OptionalVersionedTextDocumentIdentifier,
     transpiled: ITranspiledSvelteDocument,
@@ -118,16 +117,21 @@ function createSvelteAnchorMissingAttributeQuickfixAction(
 ): CodeAction {
     // Assert non-null because the node target attribute is required for 'security-anchor-rel-noreferrer'
     const targetAttribute = node.attributes.find((i: any) => i.name == 'target')!;
-    const targetAttributePosition = positionAt(targetAttribute.end, content, lineOffsets);
+    const relAttribute = node.attributes.find((i: any) => i.name == 'rel');
 
-    const relNoReferrerTextEdit = TextEdit.insert(targetAttributePosition, ' rel="noreferrer"');
+    const codeActionTextEdit = relAttribute
+        ? TextEdit.insert(positionAt(relAttribute.end - 1, content, lineOffsets), ' noreferrer')
+        : TextEdit.insert(
+              positionAt(targetAttribute.end, content, lineOffsets),
+              ' rel="noreferrer"'
+          );
 
     return CodeAction.create(
         '(svelte) Add missing attribute rel="noreferrer"',
         {
             documentChanges: [
                 TextDocumentEdit.create(textDocument, [
-                    mapObjWithRangeToOriginal(transpiled, relNoReferrerTextEdit)
+                    mapObjWithRangeToOriginal(transpiled, codeActionTextEdit)
                 ])
             ]
         },

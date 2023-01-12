@@ -4,6 +4,8 @@ import { VSCodeEmmetConfig } from '@vscode/emmet-helper';
 import { importPrettier } from './importPackage';
 import { Document } from './lib/documents';
 import { returnObjectIfHasKeys } from './utils';
+import path from 'path';
+import { FileMap } from './lib/documents/fileCollection';
 
 /**
  * Default config for the language server.
@@ -210,6 +212,8 @@ export interface TsUserPreferencesConfig {
     importModuleSpecifier: ts.UserPreferences['importModuleSpecifierPreference'];
     importModuleSpecifierEnding: ts.UserPreferences['importModuleSpecifierEnding'];
     quoteStyle: ts.UserPreferences['quotePreference'];
+    autoImportFileExcludePatterns: ts.UserPreferences['autoImportFileExcludePatterns'];
+
     /**
      * only in typescript config
      */
@@ -224,6 +228,9 @@ export interface TSSuggestConfig {
     autoImports: ts.UserPreferences['includeCompletionsForModuleExports'];
     includeAutomaticOptionalChainCompletions: boolean | undefined;
     includeCompletionsForImportStatements: boolean | undefined;
+    classMemberSnippets: { enabled: boolean } | undefined;
+    objectLiteralMethodSnippets: { enabled: boolean } | undefined;
+    includeCompletionsWithSnippetText: boolean | undefined;
 }
 
 export type TsFormatConfig = Omit<
@@ -256,6 +263,13 @@ export interface CssConfig {
     hover?: any;
 }
 
+/**
+ * The config as the vscode-html-languageservice understands it
+ */
+export interface HTMLConfig {
+    customData?: string[];
+}
+
 type DeepPartial<T> = T extends CompilerWarningsSettings
     ? T
     : {
@@ -266,19 +280,11 @@ export class LSConfigManager {
     private config: LSConfig = defaultLSConfig;
     private listeners: Array<(config: LSConfigManager) => void> = [];
     private tsUserPreferences: Record<TsUserConfigLang, ts.UserPreferences> = {
-        typescript: {
-            includeCompletionsForModuleExports: true,
-            includeCompletionsForImportStatements: true,
-            includeCompletionsWithInsertText: true,
-            includeAutomaticOptionalChainCompletions: true
-        },
-        javascript: {
-            includeCompletionsForModuleExports: true,
-            includeCompletionsForImportStatements: true,
-            includeCompletionsWithInsertText: true,
-            includeAutomaticOptionalChainCompletions: true
-        }
+        // populate default with _updateTsUserPreferences
+        typescript: {},
+        javascript: {}
     };
+    private resolvedAutoImportExcludeCache = new FileMap<string[]>();
     private tsFormatCodeOptions: Record<TsUserConfigLang, ts.FormatCodeSettings> = {
         typescript: this.getDefaultFormatCodeOptions(),
         javascript: this.getDefaultFormatCodeOptions()
@@ -288,7 +294,13 @@ export class LSConfigManager {
     private cssConfig: CssConfig | undefined;
     private scssConfig: CssConfig | undefined;
     private lessConfig: CssConfig | undefined;
+    private htmlConfig: HTMLConfig | undefined;
     private isTrusted = true;
+
+    constructor() {
+        this._updateTsUserPreferences('javascript', {});
+        this._updateTsUserPreferences('typescript', {});
+    }
 
     /**
      * Updates config.
@@ -306,7 +318,7 @@ export class LSConfigManager {
         // TODO remove once we remove old transformation
         this.config.svelte.useNewTransformation = true;
 
-        this.listeners.forEach((listener) => listener(this));
+        this.notifyListeners();
     }
 
     /**
@@ -341,7 +353,7 @@ export class LSConfigManager {
 
     updateEmmetConfig(config: VSCodeEmmetConfig): void {
         this.emmetConfig = config || {};
-        this.listeners.forEach((listener) => listener(this));
+        this.notifyListeners();
     }
 
     getEmmetConfig(): VSCodeEmmetConfig {
@@ -350,7 +362,7 @@ export class LSConfigManager {
 
     updatePrettierConfig(config: any): void {
         this.prettierConfig = config || {};
-        this.listeners.forEach((listener) => listener(this));
+        this.notifyListeners();
     }
 
     getPrettierConfig(): any {
@@ -386,7 +398,8 @@ export class LSConfigManager {
                 this._updateTsUserPreferences(lang, config[lang]);
             }
         });
-        this.listeners.forEach((listener) => listener(this));
+        this.notifyListeners();
+        this.resolvedAutoImportExcludeCache.clear();
     }
 
     /**
@@ -399,7 +412,7 @@ export class LSConfigManager {
 
     updateIsTrusted(isTrusted: boolean): void {
         this.isTrusted = isTrusted;
-        this.listeners.forEach((listener) => listener(this));
+        this.notifyListeners();
     }
 
     private _updateTsUserPreferences(lang: TsUserConfigLang, config: TSUserConfig) {
@@ -417,6 +430,14 @@ export class LSConfigManager {
             includeAutomaticOptionalChainCompletions:
                 config.suggest?.includeAutomaticOptionalChainCompletions ?? true,
             includeCompletionsWithInsertText: true,
+            autoImportFileExcludePatterns: config.preferences?.autoImportFileExcludePatterns,
+            useLabelDetailsInCompletionEntries: true,
+            includeCompletionsWithSnippetText:
+                config.suggest?.includeCompletionsWithSnippetText ?? true,
+            includeCompletionsWithClassMemberSnippets:
+                config.suggest?.classMemberSnippets?.enabled ?? true,
+            includeCompletionsWithObjectLiteralMethodSnippets:
+                config.suggest?.objectLiteralMethodSnippets?.enabled ?? true,
             includeInlayEnumMemberValueHints: inlayHints?.enumMemberValues?.enabled,
             includeInlayFunctionLikeReturnTypeHints: inlayHints?.functionLikeReturnTypes?.enabled,
             includeInlayParameterNameHints: inlayHints?.parameterNames?.enabled,
@@ -427,13 +448,47 @@ export class LSConfigManager {
         };
     }
 
-    getTsUserPreferences(lang: TsUserConfigLang) {
-        return this.tsUserPreferences[lang];
+    getTsUserPreferences(lang: TsUserConfigLang, workspacePath: string | null): ts.UserPreferences {
+        const userPreferences = this.tsUserPreferences[lang];
+
+        if (!workspacePath || !userPreferences.autoImportFileExcludePatterns) {
+            return userPreferences;
+        }
+
+        let autoImportFileExcludePatterns = this.resolvedAutoImportExcludeCache.get(workspacePath);
+
+        if (!autoImportFileExcludePatterns) {
+            autoImportFileExcludePatterns = userPreferences.autoImportFileExcludePatterns.map(
+                (p) => {
+                    // Normalization rules: https://github.com/microsoft/TypeScript/pull/49578
+                    const slashNormalized = p.replace(/\\/g, '/');
+                    const isRelative = /^\.\.?($|\/)/.test(slashNormalized);
+                    if (path.isAbsolute(p)) {
+                        return p;
+                    }
+
+                    return path.join(
+                        workspacePath,
+                        p.startsWith('*')
+                            ? '/' + slashNormalized
+                            : isRelative
+                            ? p
+                            : '/**/' + slashNormalized
+                    );
+                }
+            );
+            this.resolvedAutoImportExcludeCache.set(workspacePath, autoImportFileExcludePatterns);
+        }
+
+        return {
+            ...userPreferences,
+            autoImportFileExcludePatterns
+        };
     }
 
     updateCssConfig(config: CssConfig | undefined): void {
         this.cssConfig = config;
-        this.listeners.forEach((listener) => listener(this));
+        this.notifyListeners();
     }
 
     getCssConfig(): CssConfig | undefined {
@@ -442,7 +497,7 @@ export class LSConfigManager {
 
     updateScssConfig(config: CssConfig | undefined): void {
         this.scssConfig = config;
-        this.listeners.forEach((listener) => listener(this));
+        this.notifyListeners();
     }
 
     getScssConfig(): CssConfig | undefined {
@@ -451,11 +506,20 @@ export class LSConfigManager {
 
     updateLessConfig(config: CssConfig | undefined): void {
         this.lessConfig = config;
-        this.listeners.forEach((listener) => listener(this));
+        this.notifyListeners();
     }
 
     getLessConfig(): CssConfig | undefined {
         return this.lessConfig;
+    }
+
+    updateHTMLConfig(config: HTMLConfig | undefined): void {
+        this.htmlConfig = config;
+        this.notifyListeners();
+    }
+
+    getHTMLConfig(): HTMLConfig | undefined {
+        return this.htmlConfig;
     }
 
     updateTsJsFormateConfig(config: Record<TsUserConfigLang, TSUserConfig>): void {
@@ -464,7 +528,7 @@ export class LSConfigManager {
                 this._updateTsFormatConfig(lang, config[lang]);
             }
         });
-        this.listeners.forEach((listener) => listener(this));
+        this.notifyListeners();
     }
 
     private getDefaultFormatCodeOptions(): ts.FormatCodeSettings {
@@ -544,6 +608,15 @@ export class LSConfigManager {
                 : ts.SemicolonPreference.Remove
         };
     }
-}
 
-export const lsConfig = new LSConfigManager();
+    private scheduledUpdate: NodeJS.Timeout | undefined;
+    private notifyListeners() {
+        if (this.scheduledUpdate) {
+            clearTimeout(this.scheduledUpdate);
+        }
+        this.scheduledUpdate = setTimeout(() => {
+            this.scheduledUpdate = undefined;
+            this.listeners.forEach((listener) => listener(this));
+        });
+    }
+}
