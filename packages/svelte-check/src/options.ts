@@ -124,7 +124,8 @@ function findFile(searchPath: string, fileName: string) {
 }
 
 function getTsconfig(myArgs: Record<string, any>, workspacePath: string) {
-    if (myArgs['no-tsconfig']) {
+    // Work around undocumented behavior in Sade where `no-tsconfig` is never true / means "tsconfig is false"
+    if (myArgs['no-tsconfig'] || process.argv.includes('--no-tsconfig')) {
         return undefined;
     }
     let tsconfig: string | undefined = myArgs.tsconfig;
