@@ -179,6 +179,8 @@ Then make sure that `d.ts` file is referenced in your `tsconfig.json`. If it rea
 If the typings are related to special attributes/events related to an action that is applied on the same element, you can instead type the action in a way that is picked up by the tooling:
 
 ```ts
+import type { ActionReturn } from 'svelte/action';
+
 interface Attributes {
 	newprop?: string;
 	'on:event': (e: CustomEvent<boolean>) => void;
