@@ -36,7 +36,9 @@
         "svelte": "^3.55.0"
     },
     "scripts": {
-        "build": "rollup -c && node ./dist/src/index.js --workspace ./test --tsconfig ./tsconfig.json",
+        "build": "rollup -c && yarn smoketest",
+        "smoketest": "node ./dist/src/index.js --workspace ./smoketest --tsconfig ./tsconfig.json",
+        "example": "node ./dist/src/index.js --workspace ./examples/tsmix --tsconfig ./tsconfig.json",
         "prepublishOnly": "npm run build",
         "test": "echo 'NOOP'"
     },

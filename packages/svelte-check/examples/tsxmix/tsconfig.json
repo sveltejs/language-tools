@@ -1,0 +1,13 @@
+{
+    "extends": "@tsconfig/node12/tsconfig.json",
+    "compilerOptions": {
+        "moduleResolution": "node",
+        "jsx": "react",
+        "jsxFactory": "h",
+        "jsxFragmentFactory": "h.Fragment",
+        "strict": true,
+        "allowJs": true,
+        "checkJs": true
+    },
+    "files": ["./Index.svelte"]
+}
