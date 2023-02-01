@@ -92,7 +92,10 @@ async function createTsCompilerHost(options: any, svelteMap: SvelteMap) {
     // TypeScript writes the files relative to the found tsconfig/jsconfig
     // which - at least in the case of the tests - is wrong. Therefore prefix
     // the output paths. See Typescript issue #25430 for more.
-    const pathPrefix = path.relative(process.cwd(), path.dirname(options.configFilePath));
+    const pathPrefix = path
+        .relative(process.cwd(), path.dirname(options.configFilePath))
+        .split(path.sep)
+        .join('/');
 
     const svelteSys: ts.System = {
         ...ts.sys,
@@ -123,11 +126,37 @@ async function createTsCompilerHost(options: any, svelteMap: SvelteMap) {
             return ts.sys.readDirectory(path, extensionsWithSvelte, exclude, include, depth);
         },
         writeFile(fileName, data, writeByteOrderMark) {
-            return ts.sys.writeFile(
-                pathPrefix ? path.join(pathPrefix, fileName) : fileName,
-                data,
-                writeByteOrderMark
-            );
+            fileName = pathPrefix ? path.join(pathPrefix, fileName) : fileName;
+            if (fileName.endsWith('d.ts.map')) {
+                data = data.replace(/"sources":\["(.+?)"\]/, (_, sourcePath: string) => {
+                    // Due to our hack of treating .svelte files as .ts files, we need to adjust the extension
+                    if (sourcePath.endsWith('.svelte.ts')) {
+                        sourcePath = sourcePath.slice(0, -3);
+                    }
+                    // The inverse of the pathPrefix adjustment
+                    sourcePath =
+                        pathPrefix && sourcePath.includes(pathPrefix)
+                            ? sourcePath.slice(0, sourcePath.indexOf(pathPrefix)) +
+                              sourcePath.slice(
+                                  sourcePath.indexOf(pathPrefix) + pathPrefix.length + 1
+                              )
+                            : sourcePath;
+                    return `"sources":["${sourcePath}"]`;
+                });
+            } else if (fileName.endsWith('js.map')) {
+                data = data.replace(/"sources":\["(.+?)"\]/, (_, sourcePath: string) => {
+                    // The inverse of the pathPrefix adjustment
+                    sourcePath =
+                        pathPrefix && sourcePath.includes(pathPrefix)
+                            ? sourcePath.slice(0, sourcePath.indexOf(pathPrefix)) +
+                              sourcePath.slice(
+                                  sourcePath.indexOf(pathPrefix) + pathPrefix.length + 1
+                              )
+                            : sourcePath;
+                    return `"sources":["${sourcePath}"]`;
+                });
+            }
+            return ts.sys.writeFile(fileName, data, writeByteOrderMark);
         }
     };
 
