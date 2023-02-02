@@ -3,24 +3,30 @@
         "prefix": "kitEndpoint",
         "description": "SvelteKit Endpoint",
         "body": [
-            "export const ${1|GET,POST,PUT,PATCH,DELETE|}: RequestHandler = async ($2) => {",
+            "export const ${1|GET,POST,PUT,PATCH,DELETE|} = (async ($2) => {",
             "\t$3",
             "\treturn new Response();",
-            "};"
+            "}) satisfies RequestHandler;"
         ]
     },
     "SvelteKit Actions": {
         "prefix": "kitActions",
         "description": "SvelteKit Actions",
-        "body": ["export const actions: Actions = {", "\t$1", "};"]
+        "body": [
+            "export const actions = {",
+            "\tasync ${1:default}($2) {",
+            "\t\t$3",
+            "\t}",
+            "} satisfies Actions;"
+        ]
     },
     "SvelteKit Load": {
         "prefix": "kitLoad",
         "description": "SvelteKit Load",
         "body": [
-            "export const load: ${1|PageLoad,PageServerLoad,LayoutLoad,LayoutServerLoad|} = async ($2) => {",
+            "export const load = (async ($2) => {",
             "\t$3",
-            "};"
+            "}) satisfies ${1|PageLoad,PageServerLoad,LayoutLoad,LayoutServerLoad|};"
         ]
     },
     "SvelteKit Param Matcher": {
@@ -29,9 +35,9 @@
         "body": [
             "import type { ParamMatcher } from '@sveltejs/kit';",
             "",
-            "export const match: ParamMatcher = (param) => {",
+            "export const match = ((param) => {",
             "\treturn $1;",
-            "};"
+            "}) satisfies ParamMatcher;"
         ]
     }
 }
