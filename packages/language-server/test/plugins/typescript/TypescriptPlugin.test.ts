@@ -791,6 +791,132 @@ function test(useNewTransformation: boolean) {
                 ]);
             }
 
+            it('provides standard css definition from svelte template', async () => {
+                const { plugin, document } = setup('css-definitions.svelte');
+
+                const definitions = await plugin.getDefinitions(document, Position.create(12, 19));
+
+                assert.deepStrictEqual(definitions, [
+                    {
+                        targetRange: {
+                            start: {
+                                line: 22,
+                                character: 3
+                            },
+                            end: {
+                                line: 22,
+                                character: 8
+                            }
+                        },
+                        targetSelectionRange: {
+                            start: {
+                                line: 22,
+                                character: 3
+                            },
+                            end: {
+                                line: 22,
+                                character: 8
+                            }
+                        },
+                        originSelectionRange: {
+                            start: {
+                                line: 12,
+                                character: 19
+                            },
+                            end: {
+                                line: 12,
+                                character: 19
+                            }
+                        },
+                        targetUri: getUri('css-definitions.svelte')
+                    }
+                ]);
+            });
+
+            it('provides conditional expression css definition from svelte template', async () => {
+                const { plugin, document } = setup('css-definitions.svelte');
+
+                const definitions = await plugin.getDefinitions(document, Position.create(16, 33));
+
+                assert.deepStrictEqual(definitions, [
+                    {
+                        targetRange: {
+                            start: {
+                                line: 50,
+                                character: 3
+                            },
+                            end: {
+                                line: 50,
+                                character: 11
+                            }
+                        },
+                        targetSelectionRange: {
+                            start: {
+                                line: 50,
+                                character: 3
+                            },
+                            end: {
+                                line: 50,
+                                character: 11
+                            }
+                        },
+                        originSelectionRange: {
+                            start: {
+                                line: 16,
+                                character: 33
+                            },
+                            end: {
+                                line: 16,
+                                character: 33
+                            }
+                        },
+                        targetUri: getUri('css-definitions.svelte')
+                    }
+                ]);
+            });
+
+            it('provides class directive css definition from svelte template', async () => {
+                const { plugin, document } = setup('css-definitions.svelte');
+
+                const definitions = await plugin.getDefinitions(document, Position.create(12, 31));
+
+                assert.deepStrictEqual(definitions, [
+                    {
+                        targetRange: {
+                            start: {
+                                line: 45,
+                                character: 3
+                            },
+                            end: {
+                                line: 45,
+                                character: 9
+                            }
+                        },
+                        targetSelectionRange: {
+                            start: {
+                                line: 45,
+                                character: 3
+                            },
+                            end: {
+                                line: 45,
+                                character: 9
+                            }
+                        },
+                        originSelectionRange: {
+                            start: {
+                                line: 12,
+                                character: 31
+                            },
+                            end: {
+                                line: 12,
+                                character: 31
+                            }
+                        },
+                        targetUri: getUri('css-definitions.svelte')
+                    }
+                ]);
+            });
+
             it('(within script simple)', async () => {
                 await test$StoreDef(
                     Position.create(9, 1),
