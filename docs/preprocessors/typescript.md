@@ -176,6 +176,25 @@ Then make sure that `d.ts` file is referenced in your `tsconfig.json`. If it rea
 
 > You need `svelte-check` version 3 / VS Code extension version 106 for this. Also see the next section.
 
+If the typings are related to special attributes/events related to an action that is applied on the same element, you can instead type the action in a way that is picked up by the tooling:
+
+```ts
+import type { ActionReturn } from 'svelte/action';
+
+interface Attributes {
+	newprop?: string;
+	'on:event': (e: CustomEvent<boolean>) => void;
+}
+
+export function myAction(node: HTMLElement, parameter: Parameter): ActionReturn<Parameter, Attributes> {
+  // ...
+  return {
+    update: (updatedParameter) => {...},
+    destroy: () => {...}
+  };
+}
+```
+
 ### I'm getting deprecation warnings for svelte.JSX / I want to migrate to the new typings
 
 Since `svelte-check` version 3 and VS Code extension version 106, a different transformation is used to get intellisense for Svelte files. This also leads to the old way of enhancing HTML typings being deprecated. You should migrate all usages of `svelte.JSX` away to either `svelte/elements` or the new `svelteHTML` namespace.
