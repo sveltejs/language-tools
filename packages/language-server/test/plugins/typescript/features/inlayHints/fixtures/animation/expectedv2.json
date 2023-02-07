@@ -1,0 +1,11 @@
+[
+    {
+        "label": ": { id: number; }[]",
+        "position": {
+            "line": 3,
+            "character": 13
+        },
+        "kind": 1,
+        "paddingLeft": true
+    }
+]

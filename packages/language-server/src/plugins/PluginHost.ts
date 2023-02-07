@@ -27,7 +27,8 @@ import {
     TextDocumentContentChangeEvent,
     TextDocumentIdentifier,
     TextEdit,
-    WorkspaceEdit
+    WorkspaceEdit,
+    InlayHint
 } from 'vscode-languageserver';
 import { DocumentManager, getNodeIfIsInHTMLStartTag } from '../lib/documents';
 import { Logger } from '../logger';
@@ -510,6 +511,21 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
             [document, position],
             ExecuteMode.FirstNonNull,
             'high'
+        );
+    }
+
+    getInlayHints(
+        textDocument: TextDocumentIdentifier,
+        range: Range,
+        cancellationToken?: CancellationToken
+    ): Promise<InlayHint[] | null> {
+        const document = this.getDocument(textDocument.uri);
+
+        return this.execute<InlayHint[] | null>(
+            'getInlayHints',
+            [document, range, cancellationToken],
+            ExecuteMode.FirstNonNull,
+            'smart'
         );
     }
 
