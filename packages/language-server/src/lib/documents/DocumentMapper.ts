@@ -11,11 +11,17 @@ import {
     CodeAction,
     SelectionRange,
     TextEdit,
-    InsertReplaceEdit
+    InsertReplaceEdit,
+    Location
 } from 'vscode-languageserver';
 import { TagInformation, offsetAt, positionAt, getLineOffsets } from './utils';
 import { Logger } from '../../logger';
 import { generatedPositionFor, originalPositionFor, TraceMap } from '@jridgewell/trace-mapping';
+import { Utils as vscodeUriUtils, URI } from 'vscode-uri';
+
+export interface FilePosition extends Position {
+    uri?: string;
+}
 
 export interface DocumentMapper {
     /**
@@ -23,6 +29,13 @@ export interface DocumentMapper {
      * @param generatedPosition Position in fragment
      */
     getOriginalPosition(generatedPosition: Position): Position;
+
+    /**
+     * Map the generated position to the original position.
+     * Differs from getOriginalPosition this might maps to different file
+     * @param generatedPosition Position in fragment
+     */
+    getOriginalFilePosition?(generatedPosition: Position): FilePosition;
 
     /**
      * Map the original position to the generated position
@@ -126,6 +139,35 @@ export class SourceMapDocumentMapper implements DocumentMapper {
     ) {}
 
     getOriginalPosition(generatedPosition: Position): Position {
+        const filePosition = this.getOriginalFilePositionInner(generatedPosition);
+
+        return { line: filePosition.line, character: filePosition.character };
+    }
+
+    getOriginalFilePosition(generatedPosition: Position): FilePosition {
+        const filePosition = this.getOriginalFilePositionInner(generatedPosition);
+        if (!filePosition.source || filePosition.source === this.sourceUri) {
+            return {
+                line: filePosition.line,
+                character: filePosition.character
+            };
+        }
+
+        return {
+            line: filePosition.line,
+            character: filePosition.character,
+            uri: URI.isUri(filePosition.source)
+                ? filePosition.source
+                : this.sourceUri
+                ? vscodeUriUtils.resolvePath(
+                      vscodeUriUtils.dirname(URI.parse(this.sourceUri)),
+                      filePosition.source
+                  ).toString()
+                : undefined
+        };
+    }
+
+    private getOriginalFilePositionInner(generatedPosition: Position) {
         if (this.parent) {
             generatedPosition = this.parent.getOriginalPosition(generatedPosition);
         }
@@ -149,7 +191,8 @@ export class SourceMapDocumentMapper implements DocumentMapper {
 
         return {
             line: (mapped.line || 0) - 1,
-            character: mapped.column || 0
+            character: mapped.column || 0,
+            source: mapped.source
         };
     }
 
@@ -207,7 +250,13 @@ export function mapRangeToOriginal(
         end: fragment.getOriginalPosition(range.end)
     };
 
-    // Range may be mapped one character short - reverse that for "in the same line" cases
+    checkRangeLength(originalRange, range);
+
+    return originalRange;
+}
+
+/** Range may be mapped one character short - reverse that for "in the same line" cases*/
+function checkRangeLength(originalRange: { start: Position; end: Position }, range: Range) {
     if (
         originalRange.start.line === originalRange.end.line &&
         range.start.line === range.end.line &&
@@ -216,8 +265,31 @@ export function mapRangeToOriginal(
     ) {
         originalRange.end.character += 1;
     }
+}
 
-    return originalRange;
+export function mapLocationToOriginal(
+    fragment: Pick<DocumentMapper, 'getOriginalPosition' | 'getURL' | 'getOriginalFilePosition'>,
+    range: Range
+): Location {
+    const map = (
+        fragment.getOriginalFilePosition ??
+        (fragment.getOriginalPosition as (position: Position) => FilePosition)
+    ).bind(fragment);
+
+    const start = map(range.start);
+    const end = map(range.end);
+
+    const originalRange: Range = {
+        start: { line: start.line, character: start.character },
+        end: { line: end.line, character: end.character }
+    };
+
+    checkRangeLength(originalRange, range);
+
+    return {
+        range: originalRange,
+        uri: start.uri ? start.uri : fragment.getURL()
+    };
 }
 
 export function mapRangeToGenerated(fragment: DocumentMapper, range: Range): Range {

@@ -13,9 +13,11 @@ import {
     positionAt,
     TagInformation,
     isInTag,
-    getLineOffsets
+    getLineOffsets,
+    SourceMapDocumentMapper,
+    FilePosition
 } from '../../lib/documents';
-import { pathToUrl } from '../../utils';
+import { pathToUrl, urlToPath } from '../../utils';
 import { ConsumerDocumentMapper } from './DocumentMapper';
 import { SvelteNode } from './svelte-ast-utils';
 import {
@@ -24,6 +26,8 @@ import {
     isSvelteFilePath,
     getTsCheckComment
 } from './utils';
+import { Logger } from '../../logger';
+import { dirname, join, resolve } from 'path';
 
 /**
  * An error which occurred while trying to parse/preprocess the svelte file contents.
@@ -137,6 +141,11 @@ export namespace DocumentSnapshot {
                     ) +
                     originalText.substring(originalText.indexOf('// -- end svelte-ls-remove --'));
             }
+        }
+
+        const declarationExtensions = [ts.Extension.Dcts, ts.Extension.Dts, ts.Extension.Dmts];
+        if (declarationExtensions.some((ext) => normalizedPath.endsWith(ext))) {
+            return new DtsDocumentSnapshot(INITIAL_VERSION, filePath, originalText, tsSystem);
         }
 
         return new JSOrTSDocumentSnapshot(INITIAL_VERSION, filePath, originalText);
@@ -448,10 +457,159 @@ export class JSOrTSDocumentSnapshot extends IdentityMapper implements DocumentSn
         this.lineOffsets = undefined;
     }
 
-    private getLineOffsets() {
+    protected getLineOffsets() {
         if (!this.lineOffsets) {
             this.lineOffsets = getLineOffsets(this.text);
         }
         return this.lineOffsets;
     }
+}
+
+const sourceMapCommentRegExp = /^\/\/[@#] source[M]appingURL=(.+)\r?\n?$/;
+const whitespaceOrMapCommentRegExp = /^\s*(\/\/[@#] .*)?$/;
+const base64UrlRegExp =
+    /^data:(?:application\/json(?:;charset=[uU][tT][fF]-8);base64,([A-Za-z0-9+\/=]+)$)?/;
+
+export class DtsDocumentSnapshot extends JSOrTSDocumentSnapshot implements DocumentMapper {
+    private fileLocationMapper?: DocumentMapper;
+
+    constructor(version: number, filePath: string, text: string, private tsSys: ts.System) {
+        super(version, filePath, text);
+    }
+
+    getOriginalFilePosition(generatedPosition: Position): FilePosition {
+        if (!this.fileLocationMapper) {
+            this.fileLocationMapper = this.initMapper();
+        }
+
+        const filePosition = this.fileLocationMapper.getOriginalFilePosition?.(
+            generatedPosition
+        ) ?? { ...generatedPosition };
+
+        if (filePosition.uri) {
+            const originalFilePath = urlToPath(filePosition.uri);
+
+            // ex: library publish with declarationMap but npmignore the original files
+            if (!originalFilePath || !this.tsSys.fileExists(originalFilePath)) {
+                return generatedPosition;
+            }
+        }
+
+        return filePosition;
+    }
+
+    private initMapper() {
+        const sourceMapUrl = tryGetSourceMappingURL(this.getLineOffsets(), this.getFullText());
+
+        if (!sourceMapUrl) {
+            return this.createIdentityMapper();
+        }
+
+        const match = sourceMapUrl.match(base64UrlRegExp);
+        if (match) {
+            const base64Json = match[1];
+            if (!base64Json || !this.tsSys.base64decode) {
+                return this.createIdentityMapper();
+            }
+
+            return this.initMapperByRawSourceMap(base64Json);
+        }
+
+        const tryingLocations = new Set([
+            resolve(dirname(this.filePath), sourceMapUrl),
+            this.filePath + '.map'
+        ]);
+
+        for (const mapFilePath of tryingLocations) {
+            if (!this.tsSys.fileExists(mapFilePath)) {
+                continue;
+            }
+
+            const mapFileContent = this.tsSys.readFile(mapFilePath);
+            if (mapFileContent) {
+                return this.initMapperByRawSourceMap(mapFileContent);
+            }
+        }
+
+        this.logFailedToResolveSourceMap("can't find valid sourcemap file");
+
+        return this.createIdentityMapper();
+    }
+
+    private initMapperByRawSourceMap(input: string) {
+        const map = tryParseRawSourceMap(input);
+
+        // don't support inline sourcemap because
+        // it must be a file that editor can point to
+        if (
+            !map ||
+            !map.mappings ||
+            map.sourcesContent?.some((content) => typeof content === 'string')
+        ) {
+            this.logFailedToResolveSourceMap('invalid or unsupported sourcemap');
+            return this.createIdentityMapper();
+        }
+
+        return new SourceMapDocumentMapper(new TraceMap(map), this.getURL());
+    }
+
+    private logFailedToResolveSourceMap(...errors: any[]) {
+        Logger.debug(`Resolving declaration map for ${this.filePath} failed. `, ...errors);
+    }
+
+    private createIdentityMapper() {
+        return new IdentityMapper(this.getURL());
+    }
+}
+
+// https://github.com/microsoft/TypeScript/blob/1dc5b28b94b4a63f735a42d6497d538434d69b66/src/compiler/sourcemap.ts#L381
+function tryGetSourceMappingURL(lineOffsets: number[], text: string) {
+    for (let index = lineOffsets.length - 1; index >= 0; index--) {
+        const line = text.slice(lineOffsets[index], lineOffsets[index + 1]);
+        const comment = sourceMapCommentRegExp.exec(line);
+        if (comment) {
+            return comment[1].trimEnd();
+        }
+        // If we see a non-whitespace/map comment-like line, break, to avoid scanning up the entire file
+        else if (!line.match(whitespaceOrMapCommentRegExp)) {
+            break;
+        }
+    }
+}
+
+// https://github.com/microsoft/TypeScript/blob/1dc5b28b94b4a63f735a42d6497d538434d69b66/src/compiler/sourcemap.ts#L402
+
+function isRawSourceMap(x: any): x is EncodedSourceMap {
+    return (
+        x !== null &&
+        typeof x === 'object' &&
+        x.version === 3 &&
+        typeof x.file === 'string' &&
+        typeof x.mappings === 'string' &&
+        Array.isArray(x.sources) &&
+        x.sources.every((source: any) => typeof source === 'string') &&
+        (x.sourceRoot === undefined || x.sourceRoot === null || typeof x.sourceRoot === 'string') &&
+        (x.sourcesContent === undefined ||
+            x.sourcesContent === null ||
+            (Array.isArray(x.sourcesContent) &&
+                x.sourcesContent.every(
+                    (content: any) => typeof content === 'string' || content === null
+                ))) &&
+        (x.names === undefined ||
+            x.names === null ||
+            (Array.isArray(x.names) && x.names.every((name: any) => typeof name === 'string')))
+    );
+}
+
+function tryParseRawSourceMap(text: string) {
+    try {
+        const parsed = JSON.parse(text);
+        if (isRawSourceMap(parsed)) {
+            return parsed;
+        }
+    } catch {
+        // empty
+    }
+
+    return undefined;
 }

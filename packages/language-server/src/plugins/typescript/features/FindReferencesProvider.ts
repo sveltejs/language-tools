@@ -1,11 +1,11 @@
 import type ts from 'typescript';
 import { Location, Position, ReferenceContext } from 'vscode-languageserver';
 import { Document } from '../../../lib/documents';
-import { flatten, isNotNullOrUndefined, pathToUrl } from '../../../utils';
+import { flatten, isNotNullOrUndefined } from '../../../utils';
 import { FindReferencesProvider } from '../../interfaces';
 import { SvelteDocumentSnapshot } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
-import { convertToLocationRange, hasNonZeroRange } from '../utils';
+import { convertToLocationForReferenceOrDefinition, hasNonZeroRange } from '../utils';
 import {
     get$storeOffsetOf$storeDeclaration,
     getStoreOffsetOf$storeDeclaration,
@@ -125,10 +125,8 @@ export class FindReferencesProviderImpl implements FindReferencesProvider {
             return null;
         }
 
-        const location = Location.create(
-            pathToUrl(ref.fileName),
-            convertToLocationRange(snapshot, ref.textSpan)
-        );
+        // TODO we should deduplicate if we support finding references from multiple language service
+        const location = convertToLocationForReferenceOrDefinition(snapshot, ref.textSpan);
 
         // Some references are in generated code but not wrapped with explicit ignore comments.
         // These show up as zero-length ranges, so filter them out.
