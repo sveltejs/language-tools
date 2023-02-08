@@ -1,5 +1,5 @@
 import path, { dirname, isAbsolute, join } from 'path';
-import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from 'fs';
+import { existsSync, readdirSync, statSync, writeFileSync } from 'fs';
 import ts from 'typescript';
 import { DocumentManager, Document } from '../../../src/lib/documents';
 import { FileMap } from '../../../src/lib/documents/fileCollection';
@@ -114,22 +114,19 @@ export function getRandomVirtualDirPath(testDir: string) {
 interface VirtualEnvironmentOptions {
     testDir: string;
     filename: string;
-    useNewTransformation: boolean;
     fileContent: string;
 }
 
 export function setupVirtualEnvironment({
     testDir,
     fileContent,
-    filename,
-    useNewTransformation
+    filename
 }: VirtualEnvironmentOptions) {
     const docManager = new DocumentManager(
         (textDocument) => new Document(textDocument.uri, textDocument.text)
     );
 
     const lsConfigManager = new LSConfigManager();
-    lsConfigManager.update({ svelte: { useNewTransformation } });
 
     const virtualSystem = createVirtualTsSystem(testDir);
     const lsAndTsDocResolver = new LSAndTSDocResolver(

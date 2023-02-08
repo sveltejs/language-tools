@@ -209,16 +209,6 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             (!tsDoc.parserError || isInScript(position, tsDoc));
         let completions = response?.entries || [];
 
-        if (!completions.length) {
-            completions =
-                this.jsxTransformationPropStringLiteralCompletion(
-                    lang,
-                    componentInfo,
-                    offset,
-                    tsDoc
-                ) ?? [];
-        }
-
         if (completions.length === 0 && eventAndSlotLetCompletions.length === 0) {
             return tsDoc.parserError ? CompletionList.create([], true) : null;
         }
@@ -863,49 +853,6 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
 
         return importText;
     }
-
-    private jsxTransformationPropStringLiteralCompletion(
-        lang: ts.LanguageService,
-        componentInfo: ComponentInfoProvider | null,
-        position: number,
-        tsDoc: SvelteDocumentSnapshot
-    ) {
-        if (!componentInfo || this.configManager.getConfig().svelte.useNewTransformation) {
-            return null;
-        }
-
-        const program = lang.getProgram();
-        const sourceFile = program?.getSourceFile(tsDoc.filePath);
-        if (!sourceFile) {
-            return null;
-        }
-
-        const jsxAttribute = findContainingNode(
-            sourceFile,
-            { start: position, length: 0 },
-            ts.isJsxAttribute
-        );
-        if (
-            !jsxAttribute ||
-            !jsxAttribute.initializer ||
-            !ts.isStringLiteral(jsxAttribute.initializer)
-        ) {
-            return null;
-        }
-
-        const replacementSpan = jsxAttribute.initializer.getWidth()
-            ? {
-                  // skip quote
-                  start: jsxAttribute.initializer.getStart() + 1,
-                  length: jsxAttribute.initializer.getWidth() - 2
-              }
-            : undefined;
-
-        return componentInfo.getProp(jsxAttribute.name.getText()).map((item) => ({
-            ...item,
-            replacementSpan
-        }));
-    }
 }
 
 const beginOfDocumentRange = Range.create(Position.create(0, 0), Position.create(0, 0));
@@ -970,11 +917,5 @@ function isValidCompletion(
     // which is also true for all properties of any other object -> how reliably filter this out?
     // ---> another /*ignore*/ pragma?
     // ---> OR: make these lower priority if we find out they are inside a html start tag
-    return (value) =>
-        // Remove jsx attributes on html tags because they are doubled by the HTML
-        // attribute suggestions, and for events they are wrong (onX instead of on:X).
-        // Therefore filter them out.
-        value.kind !== ts.ScriptElementKind.jsxAttribute &&
-        isNoSvelte2tsxCompletion(value) &&
-        noWrongCompletionAtStartTag(value);
+    return (value) => isNoSvelte2tsxCompletion(value) && noWrongCompletionAtStartTag(value);
 }

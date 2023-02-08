@@ -128,21 +128,9 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
                 code: diagnostic.code,
                 tags: getDiagnosticTag(diagnostic)
             }))
-            .map(
-                mapRange(
-                    tsDoc,
-                    document,
-                    this.configManager.getConfig().svelte.useNewTransformation
-                )
-            )
+            .map(mapRange(tsDoc, document))
             .filter(hasNoNegativeLines)
-            .filter(
-                isNoFalsePositive(
-                    this.configManager.getConfig().svelte.useNewTransformation,
-                    document,
-                    tsDoc
-                )
-            )
+            .filter(isNoFalsePositive(document, tsDoc))
             .map(enhanceIfNecessary)
             .map(swapDiagRangeStartEndIfNecessary);
     }
@@ -154,8 +142,7 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
 
 function mapRange(
     snapshot: SvelteDocumentSnapshot,
-    document: Document,
-    useNewTransformation: boolean
+    document: Document
 ): (value: Diagnostic) => Diagnostic {
     return (diagnostic) => {
         let range = mapRangeToOriginal(snapshot, diagnostic.range);
@@ -186,7 +173,6 @@ function mapRange(
         }
 
         if (
-            useNewTransformation &&
             [DiagnosticCode.MISSING_PROP, DiagnosticCode.MISSING_PROPS].includes(
                 diagnostic.code as number
             ) &&
@@ -230,17 +216,12 @@ function hasNoNegativeLines(diagnostic: Diagnostic): boolean {
     return diagnostic.range.start.line >= 0 && diagnostic.range.end.line >= 0;
 }
 
-function isNoFalsePositive(
-    useNewTransformation: boolean,
-    document: Document,
-    tsDoc: SvelteDocumentSnapshot
-) {
+function isNoFalsePositive(document: Document, tsDoc: SvelteDocumentSnapshot) {
     const text = document.getText();
     const usesPug = document.getLanguageAttribute('template') === 'pug';
 
     return (diagnostic: Diagnostic) => {
         if (
-            useNewTransformation &&
             [DiagnosticCode.MULTIPLE_PROPS_SAME_NAME, DiagnosticCode.DUPLICATE_IDENTIFIER].includes(
                 diagnostic.code as number
             )
@@ -252,7 +233,6 @@ function isNoFalsePositive(
         }
 
         return (
-            isNoJsxCannotHaveMultipleAttrsError(diagnostic) &&
             isNoUsedBeforeAssigned(diagnostic, text, tsDoc) &&
             (!usesPug || isNoPugFalsePositive(diagnostic, document))
         );
@@ -289,21 +269,12 @@ function isNoUsedBeforeAssigned(
 }
 
 /**
- * Jsx cannot have multiple attributes with same name,
- * but that's allowed for svelte
- */
-function isNoJsxCannotHaveMultipleAttrsError(diagnostic: Diagnostic) {
-    return diagnostic.code !== DiagnosticCode.DUPLICATED_JSX_ATTRIBUTES;
-}
-
-/**
  * Some diagnostics have JSX-specific nomenclature. Enhance them for more clarity.
  */
 function enhanceIfNecessary(diagnostic: Diagnostic): Diagnostic {
     if (
-        diagnostic.code === DiagnosticCode.CANNOT_BE_USED_AS_JSX_COMPONENT ||
-        (diagnostic.code === DiagnosticCode.TYPE_X_NOT_ASSIGNABLE_TO_TYPE_Y &&
-            diagnostic.message.includes('ConstructorOfATypedSvelteComponent'))
+        diagnostic.code === DiagnosticCode.TYPE_X_NOT_ASSIGNABLE_TO_TYPE_Y &&
+        diagnostic.message.includes('ConstructorOfATypedSvelteComponent')
     ) {
         return {
             ...diagnostic,
@@ -315,17 +286,6 @@ function enhanceIfNecessary(diagnostic: Diagnostic): Diagnostic {
                 'If you are using Svelte 3.31+, use SvelteComponentTyped to add a definition:\n' +
                 '  import type { SvelteComponentTyped } from "svelte";\n' +
                 '  class ComponentName extends SvelteComponentTyped<{propertyName: string;}> {}'
-        };
-    }
-
-    if (diagnostic.code === DiagnosticCode.JSX_ELEMENT_DOES_NOT_SUPPORT_ATTRIBUTES) {
-        return {
-            ...diagnostic,
-            message:
-                'Element does not support attributes because ' +
-                'type definitions are missing for this Svelte Component or element cannot be used as such.\n\n' +
-                'Underlying error:\n' +
-                diagnostic.message
         };
     }
 

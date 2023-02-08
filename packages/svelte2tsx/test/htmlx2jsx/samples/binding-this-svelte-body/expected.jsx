@@ -1,1 +1,0 @@
-<><sveltebody {...__sveltets_1_empty(element = /*Ωignore_startΩ*/__sveltets_2_instanceOf(HTMLBodyElement)/*Ωignore_endΩ*/)} /></>

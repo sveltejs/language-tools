@@ -25,7 +25,6 @@ describe('service', () => {
             globalSnapshotsManager: new GlobalSnapshotsManager(virtualSystem),
             transformOnTemplateError: true,
             tsSystem: virtualSystem,
-            useNewTransformation: true,
             watchTsConfig: false,
             notifyExceedSizeLimit: undefined,
             onProjectReloaded: undefined

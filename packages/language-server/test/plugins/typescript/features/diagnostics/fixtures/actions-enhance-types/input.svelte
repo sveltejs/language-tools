@@ -2,7 +2,7 @@
     function action(node: any) {
         node;
         return {
-            // TODO: replace this with the Svelte interface generic once it lands in Svelte; this fails for the old transformation
+            // TODO: replace this with the Svelte interface generic once it lands in Svelte
             $$_attributes: {
                 foo: 'string',
                 'on:bar': (e: CustomEvent<boolean>) => {e;}
