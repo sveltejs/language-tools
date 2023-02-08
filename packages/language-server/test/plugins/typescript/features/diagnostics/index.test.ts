@@ -10,12 +10,11 @@ import { __resetCache } from '../../../../../src/plugins/typescript/service';
 import { pathToUrl } from '../../../../../src/utils';
 import { createSnapshotTester, updateSnapshotIfFailedOrEmpty } from '../../test-utils';
 
-function setup(workspaceDir: string, filePath: string, useNewTransformation: boolean) {
+function setup(workspaceDir: string, filePath: string) {
     const docManager = new DocumentManager(
         (textDocument) => new Document(textDocument.uri, textDocument.text)
     );
     const configManager = new LSConfigManager();
-    configManager.update({ svelte: { useNewTransformation } });
     const lsAndTsDocResolver = new LSAndTSDocResolver(
         docManager,
         [pathToUrl(workspaceDir)],
@@ -33,16 +32,14 @@ async function executeTest(
     inputFile: string,
     {
         workspaceDir,
-        dir,
-        useNewTransformation
+        dir
     }: {
         workspaceDir: string;
         dir: string;
-        useNewTransformation: boolean;
     }
 ) {
-    const expected = useNewTransformation ? 'expectedv2.json' : 'expected.json';
-    const { plugin, document } = setup(workspaceDir, inputFile, useNewTransformation);
+    const expected = 'expectedv2.json';
+    const { plugin, document } = setup(workspaceDir, inputFile);
     const diagnostics = await plugin.getDiagnostics(document);
 
     const expectedFile = join(dir, expected);
@@ -61,27 +58,12 @@ async function executeTest(
 const executeTests = createSnapshotTester(executeTest);
 
 describe('DiagnosticsProvider', () => {
-    // describe('(old transformation)', () => {
-    //     executeTests({
-    //     dir: join(__dirname, 'fixtures'),
-    //     workspaceDir: join(__dirname, 'fixtures'),
-    //     useNewTransformation: false
-    // });
-    //     // Hacky, but it works. Needed due to testing both new and old transformation
-    //     after(() => {
-    //         __resetCache();
-    //     });
-    // });
-
-    describe('new transformation', () => {
-        executeTests({
-            dir: join(__dirname, 'fixtures'),
-            workspaceDir: join(__dirname, 'fixtures'),
-            useNewTransformation: true
-        });
-        // Hacky, but it works. Needed due to testing both new and old transformation
-        after(() => {
-            __resetCache();
-        });
+    executeTests({
+        dir: join(__dirname, 'fixtures'),
+        workspaceDir: join(__dirname, 'fixtures')
+    });
+    // Hacky, but it works. Needed due to testing both new and old transformation
+    after(() => {
+        __resetCache();
     });
 });

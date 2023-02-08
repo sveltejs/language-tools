@@ -170,7 +170,6 @@ parseOptions(async (opts) => {
             compilerWarnings: opts.compilerWarnings,
             diagnosticSources: opts.diagnosticSources,
             tsconfig: opts.tsconfig,
-            useNewTransformation: true,
             watch: opts.watch
         };
 

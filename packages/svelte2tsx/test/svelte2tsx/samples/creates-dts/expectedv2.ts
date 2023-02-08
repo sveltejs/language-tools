@@ -1,8 +1,8 @@
 import { SvelteComponentTyped } from "svelte"
 
-
-    export const foo = 'foo';
 ;
+    export const foo = 'foo';
+;;
 
 import { createEventDispatcher } from 'svelte';
 function render() {
@@ -16,6 +16,12 @@ function render() {
   const dispatch = createEventDispatcher();
   dispatch('hi');
 ;
+async () => {
+
+
+
+ { svelteHTML.createElement("button", { "on:click":undefined,});  }
+ { __sveltets_createSlot("default", {bar,}); }};
 return { props: {
 /** @type {boolean} */bar: bar , foobar: foobar}, slots: {'default': {bar:bar}}, events: {'click':__sveltets_2_mapElementEvent('click'), 'hi': __sveltets_2_customEvent} }}
 const __propDef = __sveltets_2_partial(['foobar'], __sveltets_2_with_any_event(render()));

@@ -173,10 +173,9 @@ export class RenameProviderImpl implements RenameProvider {
 
         const svelteNode = tsDoc.svelteNodeAt(originalPosition);
         if (
-            this.configManager.getConfig().svelte.useNewTransformation &&
-            (isInHTMLTagRange(doc.html, doc.offsetAt(originalPosition)) ||
-                isAttributeName(svelteNode, 'Element') ||
-                isEventHandler(svelteNode, 'Element'))
+            isInHTMLTagRange(doc.html, doc.offsetAt(originalPosition)) ||
+            isAttributeName(svelteNode, 'Element') ||
+            isEventHandler(svelteNode, 'Element')
         ) {
             return null;
         }
@@ -503,174 +502,69 @@ export class RenameProviderImpl implements RenameProvider {
 
             const { parent } = snapshot;
 
-            if (this.configManager.getConfig().svelte.useNewTransformation) {
-                let rangeStart = parent.offsetAt(location.range.start);
-                let prefixText = location.prefixText?.trimRight();
+            let rangeStart = parent.offsetAt(location.range.start);
+            let prefixText = location.prefixText?.trimRight();
 
-                // rename needs to be prefixed in case of a bind shortand on a HTML element
-                if (!prefixText) {
-                    const original = parent.getText({
-                        start: Position.create(
-                            location.range.start.line,
-                            location.range.start.character - bind.length
-                        ),
-                        end: location.range.end
-                    });
-                    if (
-                        original.startsWith(bind) &&
-                        getNodeIfIsInHTMLStartTag(parent.html, rangeStart)
-                    ) {
-                        return {
-                            ...location,
-                            prefixText: original.slice(bind.length) + '={',
-                            suffixText: '}'
-                        };
-                    }
-                }
-
-                if (!prefixText || prefixText.slice(-1) !== ':') {
-                    return location;
-                }
-
-                // prefix is of the form `oldVarName: ` -> hints at a shorthand
-                // we need to make sure we only adjust shorthands on elements/components
+            // rename needs to be prefixed in case of a bind shortand on a HTML element
+            if (!prefixText) {
+                const original = parent.getText({
+                    start: Position.create(
+                        location.range.start.line,
+                        location.range.start.character - bind.length
+                    ),
+                    end: location.range.end
+                });
                 if (
-                    !getNodeIfIsInStartTag(parent.html, rangeStart) ||
-                    // shorthands: let:xx, bind:xx, {xx}
-                    (parent.getText().charAt(rangeStart - 1) !== ':' &&
-                        // not use:action={{foo}}
-                        !/[^{]\s+{$/.test(
-                            parent.getText({
-                                start: Position.create(0, 0),
-                                end: location.range.start
-                            })
-                        ))
+                    original.startsWith(bind) &&
+                    getNodeIfIsInHTMLStartTag(parent.html, rangeStart)
                 ) {
-                    return location;
-                }
-
-                prefixText = prefixText.slice(0, -1) + '={';
-                location = {
-                    ...location,
-                    prefixText,
-                    suffixText: '}'
-                };
-
-                // rename range needs to be adjusted in case of an attribute shortand
-                if (snapshot.getOriginalText().charAt(rangeStart - 1) === '{') {
-                    rangeStart--;
-                    const rangeEnd = parent.offsetAt(location.range.end) + 1;
-                    location.range = {
-                        start: parent.positionAt(rangeStart),
-                        end: parent.positionAt(rangeEnd)
+                    return {
+                        ...location,
+                        prefixText: original.slice(bind.length) + '={',
+                        suffixText: '}'
                     };
                 }
+            }
 
+            if (!prefixText || prefixText.slice(-1) !== ':') {
                 return location;
             }
 
-            const renamingInfo =
-                this.getShorthandPropInfo(sourceFile, location) ??
-                this.getSlotLetInfo(sourceFile, location);
-
-            if (!renamingInfo) {
-                return location;
-            }
-
-            const [renamingNode, identifierName] = renamingInfo;
-
-            const originalStart = parent.offsetAt(location.range.start);
-            const isShortHandBinding =
-                parent.getText().substring(originalStart - bind.length, originalStart) === bind;
-
-            const directiveName = (isShortHandBinding ? bind : '') + identifierName;
-            const prefixText = directiveName + '={';
-
-            const newRange = mapRangeToOriginal(
-                snapshot,
-                convertRange(snapshot, {
-                    start: renamingNode.getStart(),
-                    length: renamingNode.getWidth()
-                })
-            );
-
-            // somehow the mapping is one character before
+            // prefix is of the form `oldVarName: ` -> hints at a shorthand
+            // we need to make sure we only adjust shorthands on elements/components
             if (
-                isShortHandBinding ||
-                parent.getText({ start: newRange.start, end: location.range.start }).trimLeft() ===
-                    '{'
+                !getNodeIfIsInStartTag(parent.html, rangeStart) ||
+                // shorthands: let:xx, bind:xx, {xx}
+                (parent.getText().charAt(rangeStart - 1) !== ':' &&
+                    // not use:action={{foo}}
+                    !/[^{]\s+{$/.test(
+                        parent.getText({
+                            start: Position.create(0, 0),
+                            end: location.range.start
+                        })
+                    ))
             ) {
-                newRange.start.character++;
+                return location;
             }
 
-            return {
+            prefixText = prefixText.slice(0, -1) + '={';
+            location = {
                 ...location,
                 prefixText,
-                suffixText: '}',
-                range: newRange
+                suffixText: '}'
             };
+
+            // rename range needs to be adjusted in case of an attribute shortand
+            if (snapshot.getOriginalText().charAt(rangeStart - 1) === '{') {
+                rangeStart--;
+                const rangeEnd = parent.offsetAt(location.range.end) + 1;
+                location.range = {
+                    start: parent.positionAt(rangeStart),
+                    end: parent.positionAt(rangeEnd)
+                };
+            }
+
+            return location;
         });
-    }
-
-    /**
-     * In case of using JSX, it's not possible to write shorthands like `{foo}`, they are transformed
-     * to `foo={foo}` and need extra handling for renaming.
-     *
-     * In case of `useNewTransformation` - do nothing, as the property is already written in shorthand.
-     */
-    private getShorthandPropInfo(
-        sourceFile: ts.SourceFile,
-        location: ts.RenameLocation
-    ): [ts.Node, string] | null {
-        const possibleJsxAttribute = findContainingNode(
-            sourceFile,
-            location.textSpan,
-            ts.isJsxAttribute
-        );
-        if (!possibleJsxAttribute) {
-            return null;
-        }
-
-        const attributeName = possibleJsxAttribute.name.getText();
-        const { initializer } = possibleJsxAttribute;
-
-        // not props={props}
-        if (
-            !initializer ||
-            !ts.isJsxExpression(initializer) ||
-            attributeName !== initializer.expression?.getText()
-        ) {
-            return null;
-        }
-
-        return [possibleJsxAttribute, attributeName];
-    }
-
-    private getSlotLetInfo(
-        sourceFile: ts.SourceFile,
-        location: ts.RenameLocation
-    ): [ts.Node, string] | null {
-        const possibleSlotLet = findContainingNode(
-            sourceFile,
-            location.textSpan,
-            ts.isVariableDeclaration
-        );
-        if (!possibleSlotLet || !ts.isObjectBindingPattern(possibleSlotLet.name)) {
-            return null;
-        }
-
-        const bindingElement = findContainingNode(
-            possibleSlotLet.name,
-            location.textSpan,
-            ts.isBindingElement
-        );
-
-        if (!bindingElement || bindingElement.propertyName) {
-            return null;
-        }
-
-        const identifierName = bindingElement.name.getText();
-
-        return [bindingElement, identifierName];
     }
 }

@@ -1,1 +1,0 @@
-<><h1 onclick-outside={undefined} onclick-outside2={() => 'hi'}>Hello</h1></>
