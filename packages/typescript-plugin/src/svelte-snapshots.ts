@@ -332,7 +332,7 @@ export class SvelteSnapshotManager {
                         const result = svelte2tsx(svelteCode, {
                             filename: path.split('/').pop(),
                             isTsFile,
-                            mode: 'ts', // useNewTransformation
+                            mode: 'ts',
                             typingsNamespace: this.svelteOptions.namespace
                         });
                         code = result.code;

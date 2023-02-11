@@ -43,7 +43,6 @@ const defaultLSConfig: LSConfig = {
     },
     svelte: {
         enable: true,
-        useNewTransformation: true,
         compilerWarnings: {},
         diagnostics: { enable: true },
         rename: { enable: true },
@@ -157,7 +156,6 @@ export type CompilerWarningsSettings = Record<string, 'ignore' | 'error'>;
 
 export interface LSSvelteConfig {
     enable: boolean;
-    useNewTransformation: boolean;
     compilerWarnings: CompilerWarningsSettings;
     diagnostics: {
         enable: boolean;
@@ -201,6 +199,7 @@ export interface TSUserConfig {
     preferences?: TsUserPreferencesConfig;
     suggest?: TSSuggestConfig;
     format?: TsFormatConfig;
+    inlayHints?: TsInlayHintsConfig;
 }
 
 /**
@@ -236,6 +235,19 @@ export type TsFormatConfig = Omit<
     ts.FormatCodeSettings,
     'indentMultiLineObjectLiteralBeginningOnBlankLine' | keyof ts.EditorSettings
 >;
+export interface TsInlayHintsConfig {
+    enumMemberValues: { enabled: boolean } | undefined;
+    functionLikeReturnTypes: { enabled: boolean } | undefined;
+    parameterNames:
+        | {
+              enabled: ts.UserPreferences['includeInlayParameterNameHints'];
+              suppressWhenArgumentMatchesName: boolean;
+          }
+        | undefined;
+    parameterTypes: { enabled: boolean } | undefined;
+    propertyDeclarationTypes: { enabled: boolean } | undefined;
+    variableTypes: { enabled: boolean } | undefined;
+}
 
 export type TsUserConfigLang = 'typescript' | 'javascript';
 
@@ -301,8 +313,6 @@ export class LSConfigManager {
         if (config.svelte?.compilerWarnings) {
             this.config.svelte.compilerWarnings = config.svelte.compilerWarnings;
         }
-        // TODO remove once we remove old transformation
-        this.config.svelte.useNewTransformation = true;
 
         this.notifyListeners();
     }
@@ -402,6 +412,8 @@ export class LSConfigManager {
     }
 
     private _updateTsUserPreferences(lang: TsUserConfigLang, config: TSUserConfig) {
+        const { inlayHints } = config;
+
         this.tsUserPreferences[lang] = {
             ...this.tsUserPreferences[lang],
             importModuleSpecifierPreference: config.preferences?.importModuleSpecifier,
@@ -421,7 +433,14 @@ export class LSConfigManager {
             includeCompletionsWithClassMemberSnippets:
                 config.suggest?.classMemberSnippets?.enabled ?? true,
             includeCompletionsWithObjectLiteralMethodSnippets:
-                config.suggest?.objectLiteralMethodSnippets?.enabled ?? true
+                config.suggest?.objectLiteralMethodSnippets?.enabled ?? true,
+            includeInlayEnumMemberValueHints: inlayHints?.enumMemberValues?.enabled,
+            includeInlayFunctionLikeReturnTypeHints: inlayHints?.functionLikeReturnTypes?.enabled,
+            includeInlayParameterNameHints: inlayHints?.parameterNames?.enabled,
+            includeInlayParameterNameHintsWhenArgumentMatchesName:
+                inlayHints?.parameterNames?.suppressWhenArgumentMatchesName,
+            includeInlayFunctionParameterTypeHints: inlayHints?.parameterTypes?.enabled,
+            includeInlayVariableTypeHints: inlayHints?.variableTypes?.enabled
         };
     }
 

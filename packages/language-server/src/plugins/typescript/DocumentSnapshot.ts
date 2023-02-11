@@ -65,7 +65,6 @@ export interface DocumentSnapshot extends ts.IScriptSnapshot, DocumentMapper {
  */
 export interface SvelteSnapshotOptions {
     transformOnTemplateError: boolean;
-    useNewTransformation: boolean;
     typingsNamespace: string;
 }
 
@@ -182,22 +181,15 @@ function preprocessSvelteFile(document: Document, options: SvelteSnapshotOptions
         getScriptKindFromAttributes(document.scriptInfo?.attributes ?? {}),
         getScriptKindFromAttributes(document.moduleScriptInfo?.attributes ?? {})
     ].includes(ts.ScriptKind.TSX)
-        ? options.useNewTransformation
-            ? ts.ScriptKind.TS
-            : ts.ScriptKind.TSX
-        : options.useNewTransformation
-        ? ts.ScriptKind.JS
-        : ts.ScriptKind.JSX;
+        ? ts.ScriptKind.TS
+        : ts.ScriptKind.JS;
 
     try {
         const tsx = svelte2tsx(text, {
             filename: document.getFilePath() ?? undefined,
-            isTsFile: options.useNewTransformation
-                ? scriptKind === ts.ScriptKind.TS
-                : scriptKind === ts.ScriptKind.TSX,
-            // @ts-expect-error TODO remove when old transformation code is removed
-            mode: options.useNewTransformation ? 'ts' : 'tsx',
-            typingsNamespace: options.useNewTransformation ? options.typingsNamespace : undefined,
+            isTsFile: scriptKind === ts.ScriptKind.TS,
+            mode: 'ts',
+            typingsNamespace: options.typingsNamespace,
             emitOnTemplateError: options.transformOnTemplateError,
             namespace: document.config?.compilerOptions?.namespace,
             accessors:

@@ -1,5 +1,5 @@
-import { basename, dirname } from 'path';
-import type ts from 'typescript/lib/tsserverlibrary';
+import { basename, dirname, extname } from 'path';
+import ts from 'typescript/lib/tsserverlibrary';
 import { Logger } from '../logger';
 import { isSvelteFilePath, replaceDeep } from '../utils';
 
@@ -55,6 +55,20 @@ export function decorateCompletions(ls: ts.LanguageService, logger: Logger): voi
                         } as any
                     });
                 }
+            }
+        }
+
+        if (basename(fileName).startsWith('+page') || basename(fileName).startsWith('+layout')) {
+            if (extname(fileName) === '.js') {
+                completions.entries.push({
+                    // TODO doesn't show up for "export" and "load" only at the bottom for "function"
+                    kind: ts.ScriptElementKind.functionElement,
+                    name: 'export function load() {}',
+                    sortText: '-99',
+                    kindModifiers: ts.ScriptElementKindModifier.exportedModifier,
+                    insertText: `/** @type {import('./$types').Foo} */\nexport function load() {}`
+                });
+            } else {
             }
         }
 

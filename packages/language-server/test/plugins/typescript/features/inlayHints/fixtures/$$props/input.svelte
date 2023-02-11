@@ -1,0 +1,3 @@
+<script></script>
+
+<input {...$$props}>

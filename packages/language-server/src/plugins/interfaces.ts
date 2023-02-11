@@ -28,7 +28,8 @@ import {
     TextEdit,
     WorkspaceEdit,
     SelectionRange,
-    SignatureHelp
+    SignatureHelp,
+    InlayHint
 } from 'vscode-languageserver-types';
 import { Document } from '../lib/documents';
 
@@ -188,6 +189,14 @@ export interface OnWatchFileChangesPara {
     changeType: FileChangeType;
 }
 
+export interface InlayHintProvider {
+    getInlayHints(
+        document: Document,
+        range: Range,
+        cancellationToken?: CancellationToken
+    ): Resolvable<InlayHint[] | null>;
+}
+
 export interface OnWatchFileChanges {
     onWatchFileChanges(onWatchFileChangesParas: OnWatchFileChangesPara[]): void;
 }
@@ -214,7 +223,8 @@ type ProviderBase = DiagnosticsProvider &
     SemanticTokensProvider &
     LinkedEditingRangesProvider &
     ImplementationProvider &
-    TypeDefinitionProvider;
+    TypeDefinitionProvider &
+    InlayHintProvider;
 
 export type LSProvider = ProviderBase & BackwardsCompatibleDefinitionsProvider;
 
