@@ -17,7 +17,6 @@ import {
 import { TagInformation, offsetAt, positionAt, getLineOffsets } from './utils';
 import { Logger } from '../../logger';
 import { generatedPositionFor, originalPositionFor, TraceMap } from '@jridgewell/trace-mapping';
-import { Utils as vscodeUriUtils, URI } from 'vscode-uri';
 
 export interface FilePosition extends Position {
     uri?: string;
@@ -139,35 +138,6 @@ export class SourceMapDocumentMapper implements DocumentMapper {
     ) {}
 
     getOriginalPosition(generatedPosition: Position): Position {
-        const filePosition = this.getOriginalFilePositionInner(generatedPosition);
-
-        return { line: filePosition.line, character: filePosition.character };
-    }
-
-    getOriginalFilePosition(generatedPosition: Position): FilePosition {
-        const filePosition = this.getOriginalFilePositionInner(generatedPosition);
-        if (!filePosition.source || filePosition.source === this.sourceUri) {
-            return {
-                line: filePosition.line,
-                character: filePosition.character
-            };
-        }
-
-        return {
-            line: filePosition.line,
-            character: filePosition.character,
-            uri: URI.isUri(filePosition.source)
-                ? filePosition.source
-                : this.sourceUri
-                ? vscodeUriUtils.resolvePath(
-                      vscodeUriUtils.dirname(URI.parse(this.sourceUri)),
-                      filePosition.source
-                  ).toString()
-                : undefined
-        };
-    }
-
-    private getOriginalFilePositionInner(generatedPosition: Position) {
         if (this.parent) {
             generatedPosition = this.parent.getOriginalPosition(generatedPosition);
         }
@@ -191,8 +161,7 @@ export class SourceMapDocumentMapper implements DocumentMapper {
 
         return {
             line: (mapped.line || 0) - 1,
-            character: mapped.column || 0,
-            source: mapped.source
+            character: mapped.column || 0
         };
     }
 

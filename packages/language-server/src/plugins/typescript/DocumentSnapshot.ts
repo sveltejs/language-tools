@@ -1,4 +1,4 @@
-import { EncodedSourceMap, TraceMap } from '@jridgewell/trace-mapping';
+import { EncodedSourceMap, TraceMap, originalPositionFor } from '@jridgewell/trace-mapping';
 import { walk } from 'svelte/compiler';
 import { TemplateNode } from 'svelte/types/compiler/interfaces';
 import { svelte2tsx, IExportedNames } from 'svelte2tsx';
@@ -14,7 +14,6 @@ import {
     TagInformation,
     isInTag,
     getLineOffsets,
-    SourceMapDocumentMapper,
     FilePosition
 } from '../../lib/documents';
 import { pathToUrl, urlToPath } from '../../utils';
@@ -28,6 +27,7 @@ import {
 } from './utils';
 import { Logger } from '../../logger';
 import { dirname, join, resolve } from 'path';
+import { URI } from 'vscode-uri';
 
 /**
  * An error which occurred while trying to parse/preprocess the svelte file contents.
@@ -463,45 +463,59 @@ const base64UrlRegExp =
     /^data:(?:application\/json(?:;charset=[uU][tT][fF]-8);base64,([A-Za-z0-9+\/=]+)$)?/;
 
 export class DtsDocumentSnapshot extends JSOrTSDocumentSnapshot implements DocumentMapper {
-    private fileLocationMapper?: DocumentMapper;
+    private traceMap: TraceMap | undefined;
+    private mapperInitialized = false;
 
     constructor(version: number, filePath: string, text: string, private tsSys: ts.System) {
         super(version, filePath, text);
     }
 
     getOriginalFilePosition(generatedPosition: Position): FilePosition {
-        if (!this.fileLocationMapper) {
-            this.fileLocationMapper = this.initMapper();
+        if (!this.mapperInitialized) {
+            this.traceMap = this.initMapper();
         }
 
-        const filePosition = this.fileLocationMapper.getOriginalFilePosition?.(
-            generatedPosition
-        ) ?? { ...generatedPosition };
+        const mapped = this.traceMap
+            ? originalPositionFor(this.traceMap, {
+                  line: generatedPosition.line + 1,
+                  column: generatedPosition.character
+              })
+            : undefined;
 
-        if (filePosition.uri) {
-            const originalFilePath = urlToPath(filePosition.uri);
-
-            // ex: library publish with declarationMap but npmignore the original files
-            if (!originalFilePath || !this.tsSys.fileExists(originalFilePath)) {
-                return generatedPosition;
-            }
+        if (!mapped || mapped.line == null || !mapped.source) {
+            return generatedPosition;
         }
 
-        return filePosition;
+        const originalFilePath = URI.isUri(mapped.source)
+            ? urlToPath(mapped.source)
+            : this.filePath
+            ? resolve(dirname(this.filePath), mapped.source).toString()
+            : undefined;
+
+        // ex: library publish with declarationMap but npmignore the original files
+        if (!originalFilePath || !this.tsSys.fileExists(originalFilePath)) {
+            return generatedPosition;
+        }
+
+        return {
+            line: mapped.line,
+            character: mapped.column,
+            uri: pathToUrl(originalFilePath)
+        };
     }
 
     private initMapper() {
         const sourceMapUrl = tryGetSourceMappingURL(this.getLineOffsets(), this.getFullText());
 
         if (!sourceMapUrl) {
-            return this.createIdentityMapper();
+            return;
         }
 
         const match = sourceMapUrl.match(base64UrlRegExp);
         if (match) {
             const base64Json = match[1];
             if (!base64Json || !this.tsSys.base64decode) {
-                return this.createIdentityMapper();
+                return;
             }
 
             return this.initMapperByRawSourceMap(base64Json);
@@ -524,8 +538,6 @@ export class DtsDocumentSnapshot extends JSOrTSDocumentSnapshot implements Docum
         }
 
         this.logFailedToResolveSourceMap("can't find valid sourcemap file");
-
-        return this.createIdentityMapper();
     }
 
     private initMapperByRawSourceMap(input: string) {
@@ -539,18 +551,14 @@ export class DtsDocumentSnapshot extends JSOrTSDocumentSnapshot implements Docum
             map.sourcesContent?.some((content) => typeof content === 'string')
         ) {
             this.logFailedToResolveSourceMap('invalid or unsupported sourcemap');
-            return this.createIdentityMapper();
+            return;
         }
 
-        return new SourceMapDocumentMapper(new TraceMap(map), this.getURL());
+        return new TraceMap(map);
     }
 
     private logFailedToResolveSourceMap(...errors: any[]) {
         Logger.debug(`Resolving declaration map for ${this.filePath} failed. `, ...errors);
-    }
-
-    private createIdentityMapper() {
-        return new IdentityMapper(this.getURL());
     }
 }
 
