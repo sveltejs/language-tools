@@ -97,6 +97,12 @@ const sveltekitAttributes: IAttributeData[] = [
         description:
             'SvelteKit-specific attribute. Will cause SvelteKit to do a normal browser navigation which results in a full page reload.',
         valueSet: 'v'
+    },
+    {
+        name: 'data-sveltekit-replacestate',
+        description:
+            'SvelteKit-specific attribute. Will replace the current `history` entry rather than creating a new one with `pushState` when the link is clicked.',
+        valueSet: 'v'
     }
 ];
 
