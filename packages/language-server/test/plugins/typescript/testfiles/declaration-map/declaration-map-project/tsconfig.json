@@ -1,0 +1,9 @@
+{
+    "compilerOptions": {
+        "declarationMap": true,
+        "declaration": true,
+        "declarationDir": "types",
+        "emitDeclarationOnly": true
+    },
+    "include": ["*.ts"]
+}

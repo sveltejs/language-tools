@@ -387,7 +387,7 @@ export class TypeScriptPlugin
                     defLocation.uri,
                     defLocation.range,
                     defLocation.range,
-                    convertToLocationRange(snapshot, defs.textSpan)
+                    convertToLocationRange(tsDoc, defs.textSpan)
                 );
             })
         );

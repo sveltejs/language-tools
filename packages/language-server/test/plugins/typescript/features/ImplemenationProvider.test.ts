@@ -74,4 +74,25 @@ describe('ImplementationProvider', () => {
             }
         ]);
     });
+
+    it('map implementation result of dts with declarationMap to source ', async () => {
+        const { provider, document } = setup('../declaration-map/imported.svelte');
+
+        const implementations = await provider.getImplementation(
+            document,
+            { line: 1, character: 13 }
+        );
+        assert.deepStrictEqual(
+            implementations,
+            <Location[]>[
+                {
+                    range: {
+                        end: { line: 1, character: 18 },
+                        start: { line: 1, character: 16 }
+                    },
+                    uri: getUri('../declaration-map/declaration-map-project/index.ts')
+                }
+            ]            
+        );
+    });
 });
