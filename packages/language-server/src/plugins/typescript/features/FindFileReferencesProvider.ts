@@ -2,8 +2,9 @@ import { Location } from 'vscode-languageserver';
 import { URI } from 'vscode-uri';
 import { FileReferencesProvider } from '../../interfaces';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
-import { convertToLocationForReferenceOrDefinition, hasNonZeroRange } from '../utils';
+import { convertToLocationRange, hasNonZeroRange } from '../utils';
 import { SnapshotMap } from './utils';
+import { pathToUrl } from '../../../utils';
 
 export class FindFileReferencesProviderImpl implements FileReferencesProvider {
     constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
@@ -28,7 +29,10 @@ export class FindFileReferencesProviderImpl implements FileReferencesProvider {
             references.map(async (ref) => {
                 const snapshot = await snapshots.retrieve(ref.fileName);
 
-                return convertToLocationForReferenceOrDefinition(snapshot, ref.textSpan);
+                return Location.create(
+                    pathToUrl(ref.fileName),
+                    convertToLocationRange(snapshot, ref.textSpan)
+                );
             })
         );
         // Some references are in generated code but not wrapped with explicit ignore comments.

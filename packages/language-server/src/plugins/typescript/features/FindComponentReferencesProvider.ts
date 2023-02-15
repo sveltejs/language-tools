@@ -1,9 +1,9 @@
 import { Location, Position, Range } from 'vscode-languageserver';
-import { flatten, isNotNullOrUndefined, urlToPath } from '../../../utils';
+import { flatten, isNotNullOrUndefined, pathToUrl, urlToPath } from '../../../utils';
 import { FindComponentReferencesProvider } from '../../interfaces';
 import { DocumentSnapshot, SvelteDocumentSnapshot } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
-import { convertToLocationForReferenceOrDefinition, hasNonZeroRange } from '../utils';
+import { convertToLocationRange, hasNonZeroRange } from '../utils';
 import { isTextSpanInGeneratedCode, SnapshotMap } from './utils';
 
 const COMPONENT_SUFFIX = '__SvelteComponent_';
@@ -44,10 +44,9 @@ export class FindComponentReferencesProviderImpl implements FindComponentReferen
                     return null;
                 }
 
-                // TODO we should deduplicate if we support finding references from multiple language service
-                const refLocation = convertToLocationForReferenceOrDefinition(
-                    snapshot,
-                    ref.textSpan
+                const refLocation = Location.create(
+                    pathToUrl(ref.fileName),
+                    convertToLocationRange(snapshot, ref.textSpan)
                 );
 
                 //Only report starting tags
