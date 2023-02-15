@@ -132,13 +132,14 @@ export function findTsConfigPath(
 ) {
     const searchDir = dirname(fileName);
 
-    const path =
-        ts.findConfigFile(searchDir, fileExists, 'tsconfig.json') ||
-        ts.findConfigFile(searchDir, fileExists, 'jsconfig.json') ||
-        '';
-    // Don't return config files that exceed the current workspace context.
-    return !!path && rootUris.some((rootUri) => isSubPath(rootUri, path, getCanonicalFileName))
-        ? path
+    const tsconfig = ts.findConfigFile(searchDir, fileExists, 'tsconfig.json') || '';
+    const jsconfig = ts.findConfigFile(searchDir, fileExists, 'jsconfig.json') || '';
+    // Prefer closest config file
+    const config = tsconfig.length >= jsconfig.length ? tsconfig : jsconfig;
+
+    // Don't return config files that exceed the current workspace context
+    return !!config && rootUris.some((rootUri) => isSubPath(rootUri, config, getCanonicalFileName))
+        ? config
         : '';
 }
 
