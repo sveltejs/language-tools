@@ -103,7 +103,8 @@ export class RenameProviderImpl implements RenameProvider {
                 position,
                 convertedRenameLocations,
                 docs,
-                lang
+                lang,
+                newName
             );
         const additionalRenamesForPropRenameOutsideComponentWithProp =
             // This is an either-or-situation, don't do both
@@ -262,7 +263,8 @@ export class RenameProviderImpl implements RenameProvider {
         position: Position,
         convertedRenameLocations: TsRenameLocation[],
         snapshots: SnapshotMap,
-        lang: ts.LanguageService
+        lang: ts.LanguageService,
+        newName: string
     ) {
         // First find out if it's really the "rename prop inside component with that prop" case
         // Use original document for that because only there the `export` is present.
@@ -292,8 +294,13 @@ export class RenameProviderImpl implements RenameProvider {
         // It would not work for `return props: {bla}` because then typescript would do a rename of `{bla: renamed}`,
         // so other locations would not be affected.
         const replacementsForProp = (
-            lang.findRenameLocations(updatePropLocation.fileName, idxOfOldPropName, false, false) ||
-            []
+            lang.findRenameLocations(
+                updatePropLocation.fileName,
+                idxOfOldPropName,
+                false,
+                false,
+                true
+            ) || []
         ).filter(
             (rename) =>
                 // filter out all renames inside the component except the prop rename,
@@ -301,7 +308,80 @@ export class RenameProviderImpl implements RenameProvider {
                 rename.fileName !== updatePropLocation.fileName ||
                 this.isInSvelte2TsxPropLine(tsDoc, rename)
         );
-        return await this.mapAndFilterRenameLocations(replacementsForProp, snapshots);
+
+        const renameLocations = await this.mapAndFilterRenameLocations(
+            replacementsForProp,
+            snapshots
+        );
+        const bind = 'bind:';
+
+        // Adjust shorthands
+        return renameLocations.map((location) => {
+            if (updatePropLocation.fileName === location.fileName) {
+                return location;
+            }
+
+            const sourceFile = lang.getProgram()?.getSourceFile(location.fileName);
+
+            if (
+                !sourceFile ||
+                location.fileName !== sourceFile.fileName ||
+                location.range.start.line < 0 ||
+                location.range.end.line < 0
+            ) {
+                return location;
+            }
+
+            const snapshot = snapshots.get(location.fileName);
+            if (!(snapshot instanceof SvelteDocumentSnapshot)) {
+                return location;
+            }
+
+            const { parent } = snapshot;
+
+            let rangeStart = parent.offsetAt(location.range.start);
+            let suffixText = location.suffixText?.trimStart();
+
+            // suffix is of the form `: oldVarName` -> hints at a shorthand
+            if (!suffixText?.startsWith(':') || !getNodeIfIsInStartTag(parent.html, rangeStart)) {
+                return location;
+            }
+
+            const original = parent.getText({
+                start: Position.create(
+                    location.range.start.line,
+                    location.range.start.character - bind.length
+                ),
+                end: location.range.end
+            });
+
+            if (original.startsWith(bind)) {
+                // bind:|foo| -> bind:|newName|={foo}
+                return {
+                    ...location,
+                    prefixText: '',
+                    suffixText: `={${original.slice(bind.length)}}`
+                };
+            }
+
+            if (snapshot.getOriginalText().charAt(rangeStart - 1) === '{') {
+                // {|foo|} -> |{foo|}
+                rangeStart--;
+                return {
+                    ...location,
+                    range: {
+                        start: parent.positionAt(rangeStart),
+                        end: location.range.end
+                    },
+                    // |{foo|} -> newName=|{foo|}
+                    newName: parent.getText(location.range),
+                    prefixText: `${newName}={`,
+                    suffixText: ''
+                };
+            }
+
+            return location;
+        });
     }
 
     /**
