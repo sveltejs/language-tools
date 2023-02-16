@@ -59,6 +59,7 @@ const pendingReloads = new FileSet();
 export function __resetCache() {
     services.clear();
     serviceSizeMap.clear();
+    configFileForOpenFiles.clear();
 }
 
 export interface LanguageServiceDocumentContext {
