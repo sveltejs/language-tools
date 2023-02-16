@@ -137,8 +137,13 @@ export function findTsConfigPath(
     // Prefer closest config file
     const config = tsconfig.length >= jsconfig.length ? tsconfig : jsconfig;
 
-    // Don't return config files that exceed the current workspace context
-    return !!config && rootUris.some((rootUri) => isSubPath(rootUri, config, getCanonicalFileName))
+    // Don't return config files that exceed the current workspace context or cross a node_modules folder
+    return !!config &&
+        rootUris.some((rootUri) => isSubPath(rootUri, config, getCanonicalFileName)) &&
+        !fileName
+            .substring(config.length - 13)
+            .split('/')
+            .includes('node_modules')
         ? config
         : '';
 }

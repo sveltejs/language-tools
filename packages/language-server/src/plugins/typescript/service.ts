@@ -48,6 +48,7 @@ const serviceSizeMap = new FileMap<number>();
 const configWatchers = new FileMap<ts.FileWatcher>();
 const extendedConfigWatchers = new FileMap<ts.FileWatcher>();
 const extendedConfigToTsConfigPath = new FileMap<FileSet>();
+const configFileForOpenFiles = new FileMap<string>();
 const pendingReloads = new FileSet();
 
 /**
@@ -81,14 +82,12 @@ export async function getService(
         docContext.tsSystem.useCaseSensitiveFileNames
     );
 
-    const tsconfigPath = findTsConfigPath(
-        path,
-        workspaceUris,
-        docContext.tsSystem.fileExists,
-        getCanonicalFileName
-    );
+    const tsconfigPath =
+        configFileForOpenFiles.get(path) ??
+        findTsConfigPath(path, workspaceUris, docContext.tsSystem.fileExists, getCanonicalFileName);
 
     if (tsconfigPath) {
+        configFileForOpenFiles.set(path, tsconfigPath);
         return getServiceForTsconfig(tsconfigPath, dirname(tsconfigPath), docContext);
     }
 
@@ -243,6 +242,7 @@ async function createLanguageService(
     function deleteSnapshot(filePath: string): void {
         svelteModuleLoader.deleteFromModuleCache(filePath);
         snapshotManager.delete(filePath);
+        configFileForOpenFiles.delete(filePath);
     }
 
     function updateSnapshot(documentOrFilePath: Document | string): DocumentSnapshot {
@@ -517,6 +517,7 @@ async function createLanguageService(
         snapshotManager.dispose();
         configWatchers.get(tsconfigPath)?.close();
         configWatchers.delete(tsconfigPath);
+        configFileForOpenFiles.clear();
         docContext.globalSnapshotsManager.removeChangeListener(onSnapshotChange);
     }
 
@@ -565,6 +566,7 @@ async function createLanguageService(
             scheduleReload(fileName);
         } else if (kind === ts.FileWatcherEventKind.Deleted) {
             services.delete(fileName);
+            configFileForOpenFiles.clear();
         }
 
         docContext.onProjectReloaded?.();
