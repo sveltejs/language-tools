@@ -91,13 +91,23 @@ export async function getService(
         return getServiceForTsconfig(tsconfigPath, dirname(tsconfigPath), docContext);
     }
 
+    // Find closer boundary: workspace uri or node_modules
     const nearestWorkspaceUri = workspaceUris.find((workspaceUri) =>
         isSubPath(workspaceUri, path, getCanonicalFileName)
     );
+    const lastNodeModulesIdx = path.split('/').lastIndexOf('node_modules') + 2;
+    const nearestNodeModulesBoundary =
+        lastNodeModulesIdx === 1
+            ? undefined
+            : path.split('/').slice(0, lastNodeModulesIdx).join('/');
+    const nearestBoundary =
+        (nearestNodeModulesBoundary?.length ?? 0) > (nearestWorkspaceUri?.length ?? 0)
+            ? nearestNodeModulesBoundary
+            : nearestWorkspaceUri;
 
     return getServiceForTsconfig(
         tsconfigPath,
-        (nearestWorkspaceUri && urlToPath(nearestWorkspaceUri)) ??
+        (nearestBoundary && urlToPath(nearestBoundary)) ??
             docContext.tsSystem.getCurrentDirectory(),
         docContext
     );
