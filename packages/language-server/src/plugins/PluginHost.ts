@@ -314,7 +314,7 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
     ): Promise<CodeAction[]> {
         const document = this.getDocument(textDocument.uri);
 
-        return flatten(
+        const actions = flatten(
             await this.execute<CodeAction[]>(
                 'getCodeActions',
                 [document, range, context, cancellationToken],
@@ -322,6 +322,13 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
                 'high'
             )
         );
+        // Sort Svelte actions below other actions as they are often less relevant
+        actions.sort((a, b) => {
+            const aPrio = a.title.startsWith('(svelte)') ? 1 : 0;
+            const bPrio = b.title.startsWith('(svelte)') ? 1 : 0;
+            return aPrio - bPrio;
+        });
+        return actions;
     }
 
     async executeCommand(

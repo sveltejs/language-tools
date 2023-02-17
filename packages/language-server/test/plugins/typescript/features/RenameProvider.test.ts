@@ -272,6 +272,87 @@ describe('RenameProvider', () => {
         });
     });
 
+    it('should do rename of prop without type of component A in component A that is used with shorthands in component B', async () => {
+        const { provider, renameDoc3 } = await setup();
+        const result = await provider.rename(renameDoc3, Position.create(2, 20), 'newName');
+
+        console.log(JSON.stringify(result, null, 3));
+
+        assert.deepStrictEqual(result, {
+            changes: {
+                [getUri('rename3.svelte')]: [
+                    {
+                        newText: 'newName',
+                        range: {
+                            start: {
+                                line: 2,
+                                character: 15
+                            },
+                            end: {
+                                line: 2,
+                                character: 21
+                            }
+                        }
+                    }
+                ],
+                [getUri('rename-shorthand.svelte')]: [
+                    {
+                        newText: 'newName={props2}',
+                        range: {
+                            start: {
+                                line: 6,
+                                character: 12
+                            },
+                            end: {
+                                line: 6,
+                                character: 18
+                            }
+                        }
+                    },
+                    {
+                        newText: 'newName={props2',
+                        range: {
+                            start: {
+                                line: 7,
+                                character: 7
+                            },
+                            end: {
+                                line: 7,
+                                character: 14
+                            }
+                        }
+                    },
+                    {
+                        newText: 'newName',
+                        range: {
+                            start: {
+                                line: 8,
+                                character: 7
+                            },
+                            end: {
+                                line: 8,
+                                character: 13
+                            }
+                        }
+                    },
+                    {
+                        newText: 'newName',
+                        range: {
+                            start: {
+                                line: 9,
+                                character: 7
+                            },
+                            end: {
+                                line: 9,
+                                character: 13
+                            }
+                        }
+                    }
+                ]
+            }
+        });
+    });
+
     it('should do rename of svelte component', async () => {
         const { provider, renameDoc4 } = await setup();
         const result = await provider.rename(renameDoc4, Position.create(1, 12), 'ChildNew');
