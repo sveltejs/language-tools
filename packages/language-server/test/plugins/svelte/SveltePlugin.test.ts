@@ -10,10 +10,16 @@ import {
 import { LSConfigManager } from '../../../src/ls-config';
 import * as importPackage from '../../../src/importPackage';
 import sinon from 'sinon';
+import { join } from 'path';
+import { pathToUrl, urlToPath } from '../../../src/utils';
 
 describe('Svelte Plugin', () => {
-    function setup(content: string, prettierConfig?: any, trusted = true) {
-        const document = new Document('file:///hello.svelte', content);
+    function setup(
+        content: string,
+        prettierConfig?: any,
+        { trusted = true, documentUri = 'file:///hello.svelte' } = {}
+    ) {
+        const document = new Document(documentUri, content);
         const docManager = new DocumentManager(() => document);
         const pluginManager = new LSConfigManager();
         pluginManager.updateIsTrusted(trusted);
@@ -54,7 +60,7 @@ describe('Svelte Plugin', () => {
     });
 
     it('provides no diagnostic errors when untrusted', async () => {
-        const { plugin, document } = setup('<div bind:whatever></div>', {}, false);
+        const { plugin, document } = setup('<div bind:whatever></div>', {}, { trusted: false });
 
         const diagnostics = await plugin.getDiagnostics(document);
 
@@ -75,8 +81,12 @@ describe('Svelte Plugin', () => {
             return formatStub;
         }
 
-        async function testFormat(config: any, fallbackPrettierConfig: any) {
-            const { plugin, document } = setup('unformatted', fallbackPrettierConfig);
+        async function testFormat(
+            config: any,
+            fallbackPrettierConfig: any,
+            options?: Parameters<typeof setup>[2]
+        ) {
+            const { plugin, document } = setup('unformatted', fallbackPrettierConfig, options);
             const formatStub = stubPrettier(config);
 
             const formatted = await plugin.formatDocument(document, {
@@ -111,6 +121,22 @@ describe('Svelte Plugin', () => {
             sinon.assert.calledOnceWithExactly(formatStub, 'unformatted', {
                 fromConfig: true,
                 plugins: [],
+                parser: 'svelte'
+            });
+        });
+
+        it('can resolve plugin for formatting', async () => {
+            const documentUri = pathToUrl(join(__dirname, 'testFiles', 'do-not-exist.svelte'));
+            const formatStub = await testFormat(
+                { fromConfig: true, plugins: ['prettier-plugin-svelte'] },
+                { fallbackConfig: true },
+                { documentUri }
+            );
+            sinon.assert.calledOnceWithExactly(formatStub, 'unformatted', {
+                fromConfig: true,
+                plugins: [
+                    require.resolve('prettier-plugin-svelte', { paths: [urlToPath(documentUri)!] })
+                ],
                 parser: 'svelte'
             });
         });

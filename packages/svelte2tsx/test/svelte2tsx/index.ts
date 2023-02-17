@@ -7,6 +7,6 @@ describe('svelte2tsx', () => {
         (input, config) => {
             return svelte2tsx(input, get_svelte2tsx_config(config, config.sampleName));
         },
-        'tsx'
+        'ts'
     );
 });

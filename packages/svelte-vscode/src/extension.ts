@@ -149,7 +149,8 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
                 'typescript',
                 'css',
                 'less',
-                'scss'
+                'scss',
+                'html'
             ],
             fileEvents: workspace.createFileSystemWatcher('{**/*.js,**/*.ts}', false, false, false)
         },
@@ -162,7 +163,8 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
                 javascript: workspace.getConfiguration('javascript'),
                 css: workspace.getConfiguration('css'),
                 less: workspace.getConfiguration('less'),
-                scss: workspace.getConfiguration('scss')
+                scss: workspace.getConfiguration('scss'),
+                html: workspace.getConfiguration('html')
             },
             dontFilterIncompleteCompletions: true, // VSCode filters client side and is smarter at it than us
             isTrusted: (workspace as any).isTrusted
@@ -229,25 +231,6 @@ export function activateSvelteLanguageServer(context: ExtensionContext) {
     function getLS() {
         return ls;
     }
-
-    // TODO remove once old transformation is gone
-    // noteOfNewTransformation();
-    // let enabled = workspace
-    //     .getConfiguration('svelte.plugin.svelte')
-    //     .get<boolean>('useNewTransformation');
-    // context.subscriptions.push(
-    //     workspace.onDidChangeConfiguration(() => {
-    //         if (
-    //             enabled !==
-    //             workspace
-    //                 .getConfiguration('svelte.plugin.svelte')
-    //                 .get<boolean>('useNewTransformation')
-    //         ) {
-    //             enabled = !enabled;
-    //             restartLS(false);
-    //         }
-    //     })
-    // );
 
     addDidChangeTextDocumentListener(getLS);
 
@@ -505,33 +488,4 @@ function warnIfOldExtensionInstalled() {
                 'Command line: "code --uninstall-extension JamesBirtles.svelte-vscode"'
         );
     }
-}
-
-async function noteOfNewTransformation() {
-    const enabled = workspace
-        .getConfiguration('svelte.plugin.svelte')
-        .get<boolean>('useNewTransformation');
-    const shouldNote = workspace
-        .getConfiguration('svelte.plugin.svelte')
-        .get<boolean>('note-new-transformation');
-    if (!enabled || !shouldNote) {
-        return;
-    }
-
-    const answers = ['Ask again later', 'Disable new transformation for now', 'OK'];
-    const response = await window.showInformationMessage(
-        'The Svelte for VS Code extension comes with a new transformation for improved intellisense. ' +
-            'It is enabled by default now. If you notice bugs, please report them. ' +
-            'You can switch to the old transformation setting "svelte.plugin.svelte.useNewTransformation" to "false".',
-        ...answers
-    );
-
-    if (response === answers[1]) {
-        workspace
-            .getConfiguration('svelte.plugin.svelte')
-            .update('useNewTransformation', false, true);
-    }
-    workspace
-        .getConfiguration('svelte.plugin.svelte')
-        .update('note-new-transformation', response === answers[0], true);
 }

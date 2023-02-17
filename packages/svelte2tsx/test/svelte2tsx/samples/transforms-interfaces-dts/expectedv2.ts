@@ -1,6 +1,6 @@
 import { SvelteComponentTyped } from "svelte"
 
-
+;
 import type { Foo } from './foo';
 function render() {
 
@@ -20,6 +20,7 @@ function render() {
     }
      let bar: Bar3/*Ωignore_startΩ*/;bar = __sveltets_2_any(bar);/*Ωignore_endΩ*/;
 ;
+async () => {};
 return { props: {foo: foo , bar: bar}, slots: {}, events: {} }}
 const __propDef = __sveltets_2_partial(__sveltets_2_with_any_event(render()));
 /** @typedef {typeof __propDef.props}  InputProps */

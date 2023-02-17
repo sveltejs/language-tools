@@ -18,7 +18,10 @@ import {
     LinkedEditingRangeRequest,
     CallHierarchyPrepareRequest,
     CallHierarchyIncomingCallsRequest,
-    CallHierarchyOutgoingCallsRequest
+    CallHierarchyOutgoingCallsRequest,
+    InlayHintRequest,
+    SemanticTokensRefreshRequest,
+    InlayHintRefreshRequest
 } from 'vscode-languageserver';
 import { IPCMessageReader, IPCMessageWriter, createConnection } from 'vscode-languageserver/node';
 import { DiagnosticsManager } from './lib/DiagnosticsManager';
@@ -152,6 +155,7 @@ export function startServer(options?: LSOptions) {
         configManager.updateCssConfig(evt.initializationOptions?.configuration?.css);
         configManager.updateScssConfig(evt.initializationOptions?.configuration?.scss);
         configManager.updateLessConfig(evt.initializationOptions?.configuration?.less);
+        configManager.updateHTMLConfig(evt.initializationOptions?.configuration?.html);
 
         pluginHost.initialize({
             filterIncompleteCompletions:
@@ -176,7 +180,7 @@ export function startServer(options?: LSOptions) {
                 configManager,
                 new LSAndTSDocResolver(docManager, normalizedWorkspaceUris, configManager, {
                     notifyExceedSizeLimit: notifyTsServiceExceedSizeLimit,
-                    onProjectReloaded: updateAllDiagnostics,
+                    onProjectReloaded: refreshCrossFilesSemanticFeatures,
                     watchTsConfig: true
                 }),
                 normalizedWorkspaceUris
@@ -227,7 +231,10 @@ export function startServer(options?: LSOptions) {
                         // Svelte
                         ':',
                         '|'
-                    ]
+                    ],
+                    completionItem: {
+                        labelDetailsSupport: true
+                    }
                 },
                 documentFormattingProvider: true,
                 colorProvider: true,
@@ -281,6 +288,7 @@ export function startServer(options?: LSOptions) {
                 linkedEditingRangeProvider: true,
                 implementationProvider: true,
                 typeDefinitionProvider: true,
+                inlayHintProvider: true,
                 callHierarchyProvider: true
             }
         };
@@ -314,6 +322,7 @@ export function startServer(options?: LSOptions) {
         configManager.updateCssConfig(settings.css);
         configManager.updateScssConfig(settings.scss);
         configManager.updateLessConfig(settings.less);
+        configManager.updateHTMLConfig(settings.html);
         Logger.setDebug(settings.svelte?.['language-server']?.debug);
     });
 
@@ -402,6 +411,18 @@ export function startServer(options?: LSOptions) {
     );
 
     const updateAllDiagnostics = debounceThrottle(() => diagnosticsManager.updateAll(), 1000);
+    const refreshSemanticTokens = debounceThrottle(() => {
+        connection?.sendRequest(SemanticTokensRefreshRequest.method);
+    }, 1500);
+    const refreshInlayHints = debounceThrottle(() => {
+        connection?.sendRequest(InlayHintRefreshRequest.method);
+    }, 1500);
+
+    const refreshCrossFilesSemanticFeatures = () => {
+        updateAllDiagnostics();
+        refreshInlayHints();
+        refreshSemanticTokens();
+    };
 
     connection.onDidChangeWatchedFiles(onDidChangeWatchedFiles);
     function onDidChangeWatchedFiles(para: DidChangeWatchedFilesParams) {
@@ -414,7 +435,7 @@ export function startServer(options?: LSOptions) {
 
         pluginHost.onWatchFileChanges(onWatchFileChangesParas);
 
-        updateAllDiagnostics();
+        refreshCrossFilesSemanticFeatures();
     }
 
     connection.onDidSaveTextDocument(updateAllDiagnostics);
@@ -423,7 +444,8 @@ export function startServer(options?: LSOptions) {
         if (path) {
             pluginHost.updateTsOrJsFile(path, e.changes);
         }
-        updateAllDiagnostics();
+
+        refreshCrossFilesSemanticFeatures();
     });
 
     connection.onRequest(SemanticTokensRequest.type, (evt, cancellationToken) =>
@@ -436,6 +458,10 @@ export function startServer(options?: LSOptions) {
     connection.onRequest(
         LinkedEditingRangeRequest.type,
         async (evt) => await pluginHost.getLinkedEditingRanges(evt.textDocument, evt.position)
+    );
+
+    connection.onRequest(InlayHintRequest.type, (evt, cancellationToken) =>
+        pluginHost.getInlayHints(evt.textDocument, evt.range, cancellationToken)
     );
 
     connection.onRequest(
@@ -453,6 +479,7 @@ export function startServer(options?: LSOptions) {
         CallHierarchyOutgoingCallsRequest.type,
         async (evt, token) => await pluginHost.getOutgoingCalls(evt.item, token)
     );
+
 
     docManager.on(
         'documentChange',

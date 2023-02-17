@@ -10,10 +10,23 @@ import {
 } from '../../utils/svelteAst';
 import TemplateScope from './TemplateScope';
 import { SvelteIdentifier, WithName } from '../../interfaces';
-import { getTypeForComponent } from '../../htmlxtojsx/utils/node-utils';
 import { Directive } from 'svelte/types/compiler/interfaces';
 import ts from 'typescript';
 import { isInterfaceOrTypeDeclaration } from '../utils/tsAst';
+
+/**
+ * Get the constructor type of a component node
+ * @param node The component node to infer the this type from
+ * @param thisValue If node is svelte:component, you may pass the value
+ *                  of this={..} to use that instead of the more general componentType
+ */
+export function getTypeForComponent(node: Node): string {
+    if (node.name === 'svelte:component' || node.name === 'svelte:self') {
+        return '__sveltets_1_componentType()';
+    } else {
+        return node.name;
+    }
+}
 
 function attributeStrValueAsJsExpression(attr: Node): string {
     if (attr.value.length == 0) {

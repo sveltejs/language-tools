@@ -444,12 +444,10 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                 length: end - start
             },
             (node): node is ts.JsxOpeningLikeElement | ts.JsxClosingElement | ts.Identifier =>
-                this.configManager.getConfig().svelte.useNewTransformation
-                    ? ts.isCallExpression(node.parent) &&
-                      ts.isIdentifier(node.parent.expression) &&
-                      node.parent.expression.text === '__sveltets_2_ensureComponent' &&
-                      ts.isIdentifier(node)
-                    : ts.isJsxClosingElement(node) || ts.isJsxOpeningLikeElement(node)
+                ts.isCallExpression(node.parent) &&
+                ts.isIdentifier(node.parent.expression) &&
+                node.parent.expression.text === '__sveltets_2_ensureComponent' &&
+                ts.isIdentifier(node)
         );
 
         if (!node) {

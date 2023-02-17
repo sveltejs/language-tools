@@ -22,6 +22,7 @@ import {
     Diagnostic,
     FormattingOptions,
     Hover,
+    InlayHint,
     Location,
     Position,
     Range,
@@ -208,6 +209,14 @@ export interface OnWatchFileChangesPara {
     changeType: FileChangeType;
 }
 
+export interface InlayHintProvider {
+    getInlayHints(
+        document: Document,
+        range: Range,
+        cancellationToken?: CancellationToken
+    ): Resolvable<InlayHint[] | null>;
+}
+
 export interface OnWatchFileChanges {
     onWatchFileChanges(onWatchFileChangesParas: OnWatchFileChangesPara[]): void;
 }
@@ -235,6 +244,7 @@ type ProviderBase = DiagnosticsProvider &
     LinkedEditingRangesProvider &
     ImplementationProvider &
     TypeDefinitionProvider &
+    InlayHintProvider &
     CallHierarchyProvider;
 
 export type LSProvider = ProviderBase & BackwardsCompatibleDefinitionsProvider;

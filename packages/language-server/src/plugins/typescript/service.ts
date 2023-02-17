@@ -53,6 +53,7 @@ const serviceSizeMap = new FileMap<number>();
 const configWatchers = new FileMap<ts.FileWatcher>();
 const extendedConfigWatchers = new FileMap<ts.FileWatcher>();
 const extendedConfigToTsConfigPath = new FileMap<FileSet>();
+const configFileForOpenFiles = new FileMap<string>();
 const pendingReloads = new FileSet();
 
 /**
@@ -63,12 +64,12 @@ const pendingReloads = new FileSet();
 export function __resetCache() {
     services.clear();
     serviceSizeMap.clear();
+    configFileForOpenFiles.clear();
 }
 
 export interface LanguageServiceDocumentContext {
     ambientTypesSource: string;
     transformOnTemplateError: boolean;
-    useNewTransformation: boolean;
     createDocument: (fileName: string, content: string) => Document;
     globalSnapshotsManager: GlobalSnapshotsManager;
     notifyExceedSizeLimit: (() => void) | undefined;
@@ -87,22 +88,30 @@ export async function getService(
         docContext.tsSystem.useCaseSensitiveFileNames
     );
 
-    const tsconfigPath = findTsConfigPath(
-        path,
-        workspaceUris,
-        docContext.tsSystem.fileExists,
-        getCanonicalFileName
-    );
+    const tsconfigPath =
+        configFileForOpenFiles.get(path) ??
+        findTsConfigPath(path, workspaceUris, docContext.tsSystem.fileExists, getCanonicalFileName);
 
     if (tsconfigPath) {
+        configFileForOpenFiles.set(path, tsconfigPath);
         return getServiceForTsconfig(tsconfigPath, dirname(tsconfigPath), docContext);
     }
 
+    // Find closer boundary: workspace uri or node_modules
     const nearestWorkspaceUri = getNearestWorkspaceUri(workspaceUris, path, getCanonicalFileName);
+    const lastNodeModulesIdx = path.split('/').lastIndexOf('node_modules') + 2;
+    const nearestNodeModulesBoundary =
+        lastNodeModulesIdx === 1
+            ? undefined
+            : path.split('/').slice(0, lastNodeModulesIdx).join('/');
+    const nearestBoundary =
+        (nearestNodeModulesBoundary?.length ?? 0) > (nearestWorkspaceUri?.length ?? 0)
+            ? nearestNodeModulesBoundary
+            : nearestWorkspaceUri;
 
     return getServiceForTsconfig(
         tsconfigPath,
-        (nearestWorkspaceUri && urlToPath(nearestWorkspaceUri)) ??
+        (nearestBoundary && urlToPath(nearestBoundary)) ??
             docContext.tsSystem.getCurrentDirectory(),
         docContext
     );
@@ -218,7 +227,6 @@ async function createLanguageService(
     let languageService = ts.createLanguageService(host);
     const transformationConfig: SvelteSnapshotOptions = {
         transformOnTemplateError: docContext.transformOnTemplateError,
-        useNewTransformation: docContext.useNewTransformation,
         typingsNamespace: raw?.svelteOptions?.namespace || 'svelteHTML'
     };
 
@@ -248,6 +256,7 @@ async function createLanguageService(
     function deleteSnapshot(filePath: string): void {
         svelteModuleLoader.deleteFromModuleCache(filePath);
         snapshotManager.delete(filePath);
+        configFileForOpenFiles.delete(filePath);
     }
 
     function updateSnapshot(documentOrFilePath: Document | string): DocumentSnapshot {
@@ -372,10 +381,6 @@ async function createLanguageService(
             declaration: false,
             skipLibCheck: true
         };
-        if (!docContext.useNewTransformation) {
-            // these are needed to handle the results of svelte2tsx preprocessing:
-            forcedCompilerOptions.jsx = ts.JsxEmit.Preserve;
-        }
 
         // always let ts parse config to get default compilerOption
         let configJson =
@@ -424,9 +429,7 @@ async function createLanguageService(
                     // Deferred was added in a later TS version, fall back to tsx
                     // If Deferred exists, this means that all Svelte files are included
                     // in parsedConfig.fileNames
-                    scriptKind:
-                        ts.ScriptKind.Deferred ??
-                        (docContext.useNewTransformation ? ts.ScriptKind.TS : ts.ScriptKind.TSX)
+                    scriptKind: ts.ScriptKind.Deferred ?? ts.ScriptKind.TS
                 }
             ],
             cacheMonitorProxy
@@ -458,23 +461,14 @@ async function createLanguageService(
 
         // detect which JSX namespace to use (svelte | svelteNative) if not specified or not compatible
         if (!compilerOptions.jsxFactory || !compilerOptions.jsxFactory.startsWith('svelte')) {
-            if (!docContext.useNewTransformation) {
-                //default to regular svelte, this causes the usage of the "svelte.JSX" namespace
-                compilerOptions.jsxFactory = 'svelte.createElement';
-            }
-
             //override if we detect svelte-native
             if (workspacePath) {
                 try {
                     const svelteNativePkgInfo = getPackageInfo('svelte-native', workspacePath);
                     if (svelteNativePkgInfo.path) {
-                        if (docContext.useNewTransformation) {
-                            // For backwards compatibility
-                            parsedConfig.raw.svelteOptions = parsedConfig.raw.svelteOptions || {};
-                            parsedConfig.raw.svelteOptions.namespace = 'svelteNative.JSX';
-                        } else {
-                            compilerOptions.jsxFactory = 'svelteNative.createElement';
-                        }
+                        // For backwards compatibility
+                        parsedConfig.raw.svelteOptions = parsedConfig.raw.svelteOptions || {};
+                        parsedConfig.raw.svelteOptions.namespace = 'svelteNative.JSX';
                     }
                 } catch (e) {
                     //we stay regular svelte
@@ -537,6 +531,7 @@ async function createLanguageService(
         snapshotManager.dispose();
         configWatchers.get(tsconfigPath)?.close();
         configWatchers.delete(tsconfigPath);
+        configFileForOpenFiles.clear();
         docContext.globalSnapshotsManager.removeChangeListener(onSnapshotChange);
     }
 
@@ -585,6 +580,7 @@ async function createLanguageService(
             scheduleReload(fileName);
         } else if (kind === ts.FileWatcherEventKind.Deleted) {
             services.delete(fileName);
+            configFileForOpenFiles.clear();
         }
 
         docContext.onProjectReloaded?.();

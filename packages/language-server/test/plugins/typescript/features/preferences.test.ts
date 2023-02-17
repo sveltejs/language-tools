@@ -10,7 +10,7 @@ import {
     TextDocumentEdit
 } from 'vscode-languageserver';
 import { Document, DocumentManager } from '../../../../src/lib/documents';
-import { LSConfigManager, TSUserConfig } from '../../../../src/ls-config';
+import { LSConfigManager, TSUserConfig, TsUserPreferencesConfig } from '../../../../src/ls-config';
 import { CodeActionsProviderImpl } from '../../../../src/plugins/typescript/features/CodeActionsProvider';
 import { CompletionsProviderImpl } from '../../../../src/plugins/typescript/features/CompletionProvider';
 import { LSAndTSDocResolver } from '../../../../src/plugins/typescript/LSAndTSDocResolver';
@@ -37,14 +37,17 @@ describe('ts user preferences', () => {
     function getPreferences(): TSUserConfig {
         return {
             preferences: {
+                ...getDefaultPreferences(),
                 importModuleSpecifier: 'non-relative',
-                importModuleSpecifierEnding: 'index',
-                quoteStyle: 'single'
+                importModuleSpecifierEnding: 'index'
             },
             suggest: {
                 autoImports: true,
                 includeAutomaticOptionalChainCompletions: undefined,
-                includeCompletionsForImportStatements: undefined
+                includeCompletionsForImportStatements: undefined,
+                classMemberSnippets: undefined,
+                objectLiteralMethodSnippets: undefined,
+                includeCompletionsWithSnippetText: undefined
             }
         };
     }
@@ -59,6 +62,16 @@ describe('ts user preferences', () => {
             javascript: { ...getPreferences(), ...preferences }
         });
         return new LSAndTSDocResolver(docManager, [pathToUrl(testFilesDir)], configManager);
+    }
+
+    function getDefaultPreferences(): TsUserPreferencesConfig {
+        return {
+            autoImportFileExcludePatterns: undefined,
+            importModuleSpecifier: 'non-relative',
+            importModuleSpecifierEnding: undefined,
+            quoteStyle: 'single',
+            includePackageJsonAutoImports: undefined
+        };
     }
 
     it('provides auto import completion according to preferences', async () => {
@@ -125,7 +138,10 @@ describe('ts user preferences', () => {
             suggest: {
                 autoImports: false,
                 includeAutomaticOptionalChainCompletions: undefined,
-                includeCompletionsForImportStatements: undefined
+                includeCompletionsForImportStatements: undefined,
+                classMemberSnippets: undefined,
+                objectLiteralMethodSnippets: undefined,
+                includeCompletionsWithSnippetText: undefined
             }
         });
         const completionProvider = new CompletionsProviderImpl(
@@ -148,9 +164,8 @@ describe('ts user preferences', () => {
         const { docManager, document } = setup('module-specifier-js.svelte');
         const lsAndTsDocResolver = createLSAndTSDocResolver(docManager, {
             preferences: {
-                importModuleSpecifier: 'non-relative',
-                importModuleSpecifierEnding: 'js',
-                quoteStyle: 'single'
+                ...getDefaultPreferences(),
+                importModuleSpecifierEnding: 'js'
             }
         });
 
@@ -226,5 +241,40 @@ describe('ts user preferences', () => {
             | TextDocumentEdit
             | undefined;
         assert.strictEqual(documentChange?.edits[0].newText.trim(), expectedComponentImportEdit);
+    });
+
+    async function testExcludeDefinitionDir(pattern: string) {
+        const { docManager, document } = setup('code-action.svelte');
+        const lsAndTsDocResolver = createLSAndTSDocResolver(docManager, {
+            preferences: {
+                ...getDefaultPreferences(),
+                autoImportFileExcludePatterns: [pattern]
+            }
+        });
+        const completionProvider = new CompletionsProviderImpl(
+            lsAndTsDocResolver,
+            new LSConfigManager()
+        );
+
+        const completions = await completionProvider.getCompletions(
+            document,
+            Position.create(1, 14)
+        );
+
+        const item = completions?.items.find((item) => item.label === 'definition');
+
+        assert.equal(item, undefined);
+    }
+
+    it('exclude auto import', async () => {
+        await testExcludeDefinitionDir('definition');
+    });
+
+    it('exclude auto import (relative pattern)', async () => {
+        await testExcludeDefinitionDir('./definition');
+    });
+
+    it('exclude auto import (**/ pattern)', async () => {
+        await testExcludeDefinitionDir('**/definition');
     });
 });

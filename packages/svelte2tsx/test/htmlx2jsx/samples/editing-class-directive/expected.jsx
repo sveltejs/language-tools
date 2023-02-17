@@ -1,1 +1,0 @@
-<><div {...__sveltets_1_ensureType(Boolean, !!(obj.))}></div></>

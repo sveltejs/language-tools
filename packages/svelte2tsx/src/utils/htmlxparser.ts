@@ -32,7 +32,7 @@ function parseAttributes(str: string, start: number) {
     return attrs;
 }
 
-function extractTag(htmlx: string, tag: 'script' | 'style', useNewTransformation: boolean) {
+function extractTag(htmlx: string, tag: 'script' | 'style') {
     const exp = new RegExp(`(<!--[^]*?-->)|(<${tag}([\\S\\s]*?)>)([\\S\\s]*?)<\\/${tag}>`, 'g');
     const matches: Node[] = [];
 
@@ -45,13 +45,8 @@ function extractTag(htmlx: string, tag: 'script' | 'style', useNewTransformation
 
         let content = match[4];
         if (!content) {
-            if (useNewTransformation) {
-                // Keep tag and transform it like a regular element
-                content = '';
-            } else {
-                // Self-closing/empty tags don't need replacement
-                continue;
-            }
+            // Keep tag and transform it like a regular element
+            content = '';
         }
 
         const start = match.index + match[2].length;
@@ -78,11 +73,8 @@ function extractTag(htmlx: string, tag: 'script' | 'style', useNewTransformation
     return matches;
 }
 
-function findVerbatimElements(htmlx: string, useNewTransformation: boolean) {
-    return [
-        ...extractTag(htmlx, 'script', useNewTransformation),
-        ...extractTag(htmlx, 'style', useNewTransformation)
-    ];
+function findVerbatimElements(htmlx: string) {
+    return [...extractTag(htmlx, 'script'), ...extractTag(htmlx, 'style')];
 }
 
 function blankVerbatimContent(htmlx: string, verbatimElements: Node[]) {
@@ -104,13 +96,10 @@ function blankVerbatimContent(htmlx: string, verbatimElements: Node[]) {
     return output;
 }
 
-export function parseHtmlx(
-    htmlx: string,
-    options?: { emitOnTemplateError?: boolean; useNewTransformation?: boolean }
-) {
+export function parseHtmlx(htmlx: string, options?: { emitOnTemplateError?: boolean }) {
     //Svelte tries to parse style and script tags which doesn't play well with typescript, so we blank them out.
     //HTMLx spec says they should just be retained after processing as is, so this is fine
-    const verbatimElements = findVerbatimElements(htmlx, options?.useNewTransformation);
+    const verbatimElements = findVerbatimElements(htmlx);
     const deconstructed = blankVerbatimContent(htmlx, verbatimElements);
 
     //extract the html content parsed as htmlx this excludes our script and style tags

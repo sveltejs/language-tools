@@ -38,7 +38,7 @@ export function processInstanceScriptContent(
     script: Node,
     events: ComponentEvents,
     implicitStoreValues: ImplicitStoreValues,
-    mode: 'ts' | 'tsx' | 'dts',
+    mode: 'ts' | 'dts',
     hasModuleScript: boolean
 ): InstanceScriptProcessResult {
     const htmlx = str.original;

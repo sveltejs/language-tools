@@ -7,6 +7,7 @@ import {
     CompletionItemKind,
     CompletionList,
     CompletionTriggerKind,
+    InsertTextFormat,
     MarkupContent,
     MarkupKind,
     Position,
@@ -209,16 +210,6 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             (!tsDoc.parserError || isInScript(position, tsDoc));
         let completions = response?.entries || [];
 
-        if (!completions.length) {
-            completions =
-                this.jsxTransformationPropStringLiteralCompletion(
-                    lang,
-                    componentInfo,
-                    offset,
-                    tsDoc
-                ) ?? [];
-        }
-
         if (completions.length === 0 && eventAndSlotLetCompletions.length === 0) {
             return tsDoc.parserError ? CompletionList.create([], true) : null;
         }
@@ -263,8 +254,34 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         // moved here due to perf reasons
         const existingImports = this.getExistingImports(document);
         const wordRangeStartPosition = document.positionAt(wordRange.start);
+        const word = document.getText().substring(wordRange.start, wordRange.end);
         const fileUrl = pathToUrl(tsDoc.filePath);
         const isCompletionInTag = svelteIsInTag(svelteNode, originalOffset);
+
+        // If completion is about a store which is not imported yet, do another
+        // completion request at the beginning of the file to get all global
+        // import completions and then filter them down to likely matches.
+        if (word.charAt(0) === '$') {
+            const storeName = word.substring(1);
+            const text = '__sveltets_2_store_get(' + storeName;
+            if (!tsDoc.getFullText().includes(text)) {
+                const storeImportCompletions =
+                    lang
+                        .getCompletionsAtPosition(
+                            filePath,
+                            0,
+                            {
+                                ...userPreferences,
+                                triggerCharacter: validTriggerCharacter
+                            },
+                            formatSettings
+                        )
+                        ?.entries.filter(
+                            (entry) => entry.source && entry.name.startsWith(storeName)
+                        ) || [];
+                completions.push(...storeImportCompletions);
+            }
+        }
 
         const completionItems = completions
             .filter(isValidCompletion(document, position, !!tsDoc.parserError))
@@ -456,6 +473,14 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             ? TextEdit.replace(convertRange(snapshot, replacementSpan), insertText ?? label)
             : undefined;
 
+        const labelDetails =
+            comp.labelDetails ??
+            (comp.sourceDisplay
+                ? {
+                      description: ts.displayPartsToString(comp.sourceDisplay)
+                  }
+                : undefined);
+
         return {
             label,
             insertText,
@@ -464,6 +489,8 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             // Make sure svelte component takes precedence
             sortText: isSvelteComp ? '-1' : comp.sortText,
             preselect: isSvelteComp ? true : comp.isRecommended,
+            insertTextFormat: comp.isSnippet ? InsertTextFormat.Snippet : undefined,
+            labelDetails,
             textEdit,
             // pass essential data for resolving completion
             data: {
@@ -511,6 +538,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
 
         return {
             label: name,
+            insertText,
             isSvelteComp
         };
     }
@@ -627,6 +655,15 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             const { detail: itemDetail, documentation: itemDocumentation } =
                 this.getCompletionDocument(detail, is$typeImport);
 
+            // VSCode + tsserver won't have this pop-in effect
+            // because tsserver has internal APIs for caching
+            // TODO: consider if we should adopt the internal APIs
+            if (detail.sourceDisplay && !completionItem.labelDetails) {
+                completionItem.labelDetails = {
+                    description: ts.displayPartsToString(detail.sourceDisplay)
+                };
+            }
+
             completionItem.detail = itemDetail;
             completionItem.documentation = itemDocumentation;
         }
@@ -662,16 +699,18 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
 
     private getCompletionDocument(compDetail: ts.CompletionEntryDetails, is$typeImport: boolean) {
         const { sourceDisplay, documentation: tsDocumentation, displayParts, tags } = compDetail;
-        let detail: string = changeSvelteComponentName(ts.displayPartsToString(displayParts));
+        let parts = compDetail.codeActions?.map((codeAction) => codeAction.description) ?? [];
 
-        if (sourceDisplay) {
-            let importPath = ts.displayPartsToString(sourceDisplay);
-            if (is$typeImport) {
-                // Take into account Node16 moduleResolution
-                importPath = `'./$types${importPath.endsWith('.js') ? '.js' : ''}'`;
-            }
-            detail = `Auto import from ${importPath}\n${detail}`;
+        if (sourceDisplay && is$typeImport) {
+            const importPath = ts.displayPartsToString(sourceDisplay);
+
+            // Take into account Node16 moduleResolution
+            parts = parts.map((detail) =>
+                detail.replace(importPath, `'./$types${importPath.endsWith('.js') ? '.js' : ''}'`)
+            );
         }
+
+        parts.push(changeSvelteComponentName(ts.displayPartsToString(displayParts)));
 
         const markdownDoc = getMarkdownDocumentation(tsDocumentation, tags);
         const documentation: MarkupContent | undefined = markdownDoc
@@ -680,7 +719,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
 
         return {
             documentation,
-            detail
+            detail: parts.filter(Boolean).join('\n\n')
         };
     }
 
@@ -811,49 +850,6 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
 
         return importText;
     }
-
-    private jsxTransformationPropStringLiteralCompletion(
-        lang: ts.LanguageService,
-        componentInfo: ComponentInfoProvider | null,
-        position: number,
-        tsDoc: SvelteDocumentSnapshot
-    ) {
-        if (!componentInfo || this.configManager.getConfig().svelte.useNewTransformation) {
-            return null;
-        }
-
-        const program = lang.getProgram();
-        const sourceFile = program?.getSourceFile(tsDoc.filePath);
-        if (!sourceFile) {
-            return null;
-        }
-
-        const jsxAttribute = findContainingNode(
-            sourceFile,
-            { start: position, length: 0 },
-            ts.isJsxAttribute
-        );
-        if (
-            !jsxAttribute ||
-            !jsxAttribute.initializer ||
-            !ts.isStringLiteral(jsxAttribute.initializer)
-        ) {
-            return null;
-        }
-
-        const replacementSpan = jsxAttribute.initializer.getWidth()
-            ? {
-                  // skip quote
-                  start: jsxAttribute.initializer.getStart() + 1,
-                  length: jsxAttribute.initializer.getWidth() - 2
-              }
-            : undefined;
-
-        return componentInfo.getProp(jsxAttribute.name.getText()).map((item) => ({
-            ...item,
-            replacementSpan
-        }));
-    }
 }
 
 const beginOfDocumentRange = Range.create(Position.create(0, 0), Position.create(0, 0));
@@ -918,11 +914,5 @@ function isValidCompletion(
     // which is also true for all properties of any other object -> how reliably filter this out?
     // ---> another /*ignore*/ pragma?
     // ---> OR: make these lower priority if we find out they are inside a html start tag
-    return (value) =>
-        // Remove jsx attributes on html tags because they are doubled by the HTML
-        // attribute suggestions, and for events they are wrong (onX instead of on:X).
-        // Therefore filter them out.
-        value.kind !== ts.ScriptElementKind.jsxAttribute &&
-        isNoSvelte2tsxCompletion(value) &&
-        noWrongCompletionAtStartTag(value);
+    return (value) => isNoSvelte2tsxCompletion(value) && noWrongCompletionAtStartTag(value);
 }

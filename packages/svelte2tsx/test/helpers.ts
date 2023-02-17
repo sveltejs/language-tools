@@ -210,7 +210,6 @@ type TransformSampleFn = (
         sampleName: string;
         emitOnTemplateError: boolean;
         preserveAttributeCase: boolean;
-        useNewTransformation: boolean;
     }
 ) => ReturnType<typeof htmlx2jsx | typeof svelte2tsx>;
 
@@ -220,41 +219,28 @@ const enum TestError {
     WrongExpected = 'Expected a different output'
 }
 
-export function test_samples(dir: string, transform: TransformSampleFn, jsx: 'jsx' | 'tsx') {
-    const js = jsx.slice(0, 2);
+export function test_samples(dir: string, transform: TransformSampleFn, js: 'js' | 'ts') {
     for (const sample of each_sample(dir)) {
         const svelteFile = sample.find_file('*.svelte');
         const config = {
             filename: svelteFile,
             sampleName: sample.name,
             emitOnTemplateError: false,
-            preserveAttributeCase: sample.name.endsWith('-foreign-ns'),
-            useNewTransformation: false
+            preserveAttributeCase: sample.name.endsWith('-foreign-ns')
         };
-        let testingV2 = false;
 
         if (process.env.CI) {
             sample.checkDirectory({
-                required: ['*.svelte', `expected.${jsx}`, `expectedv2.${js}`],
+                required: ['*.svelte', `expectedv2.${js}`],
                 allowed: ['expected.js', 'expected.error.json']
             });
         } else {
             sample.checkDirectory({
                 required: ['*.svelte'],
-                allowed: [
-                    'expected.js',
-                    `expected.${jsx}`,
-                    `expectedv2.${js}`,
-                    'expected.error.json'
-                ]
+                allowed: ['expected.js', `expectedv2.${js}`, 'expected.error.json']
             });
 
-            if (
-                sample.hasOnly(svelteFile) ||
-                sample.hasOnly(svelteFile, 'expected.js') ||
-                sample.hasOnly(svelteFile, 'expected.js', `expected.${jsx}`) ||
-                sample.hasOnly(svelteFile, `expected.${jsx}`)
-            ) {
+            if (sample.hasOnly(svelteFile) || sample.hasOnly(svelteFile, 'expected.js')) {
                 sample.generateDeps((generate) => {
                     const input = sample.get(svelteFile);
                     try {
@@ -263,11 +249,7 @@ export function test_samples(dir: string, transform: TransformSampleFn, jsx: 'js
                         generate('expected.error.json', print_error(error));
                         config.emitOnTemplateError = true;
                     }
-                    generate(`expected.${jsx}`, transform(input, config).code);
-                    generate(
-                        `expectedv2.${js}`,
-                        transform(input, { ...config, useNewTransformation: true }).code
-                    );
+                    generate(`expectedv2.${js}`, transform(input, config).code);
                 });
             }
 
@@ -276,7 +258,7 @@ export function test_samples(dir: string, transform: TransformSampleFn, jsx: 'js
                 const { message, actual } = err;
                 switch (message) {
                     case TestError.WrongExpected: {
-                        generate(testingV2 ? `expectedv2.${js}` : `expected.${jsx}`, actual);
+                        generate(`expectedv2.${js}`, actual);
                         break;
                     }
                     case TestError.WrongError: {
@@ -308,20 +290,12 @@ export function test_samples(dir: string, transform: TransformSampleFn, jsx: 'js
 
             const output = transform(input, config);
 
-            // TODO adjust/remove once old transformation is removed
-            // assert.strictEqual(
-            //     normalize(output.code),
-            //     sample.get(`expected.${jsx}`),
-            //     TestError.WrongExpected
-            // );
-
             if (sample.has('expected.js')) {
                 sample.eval('expected.js', output);
             }
 
-            testingV2 = true;
             assert.strictEqual(
-                normalize(transform(input, { ...config, useNewTransformation: true }).code),
+                normalize(transform(input, config).code),
                 sample.get(`expectedv2.${js}`),
                 TestError.WrongExpected
             );
@@ -332,7 +306,6 @@ export function test_samples(dir: string, transform: TransformSampleFn, jsx: 'js
 type BaseConfig = {
     emitOnTemplateError?: boolean;
     filename?: string;
-    useNewTransformation?: boolean;
 };
 type Svelte2TsxConfig = Required<Parameters<typeof svelte2tsx>[1]>;
 
@@ -342,7 +315,8 @@ export function get_svelte2tsx_config(base: BaseConfig, sampleName: string): Sve
         emitOnTemplateError: base.emitOnTemplateError,
         isTsFile: sampleName.startsWith('ts-'),
         namespace: sampleName.endsWith('-foreign-ns') ? 'foreign' : null,
-        mode: sampleName.endsWith('-dts') ? 'dts' : base.useNewTransformation ? 'ts' : 'tsx',
+        typingsNamespace: 'svelteHTML',
+        mode: sampleName.endsWith('-dts') ? 'dts' : 'ts',
         accessors: sampleName.startsWith('accessors-config')
     };
 }

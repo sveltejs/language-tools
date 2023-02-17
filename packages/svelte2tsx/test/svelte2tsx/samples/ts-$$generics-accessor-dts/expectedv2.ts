@@ -1,11 +1,14 @@
 import { SvelteComponentTyped } from "svelte"
 
-function render/*Ωignore_startΩ*/<A>/*Ωignore_endΩ*/() {
+;function render/*Ωignore_startΩ*/<A>/*Ωignore_endΩ*/() {
 
     
 
      let a: A/*Ωignore_startΩ*/;a = __sveltets_2_any(a);/*Ωignore_endΩ*/;
 ;
+async () => {
+
+  { svelteHTML.createElement("svelte:options", {"accessors":true,});}};
 return { props: {a: a} as {a: A}, slots: {}, events: {} }}
 class __sveltets_Render<A> {
     props() {

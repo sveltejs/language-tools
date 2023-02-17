@@ -83,7 +83,9 @@ export class ConfigLoader {
         try {
             const pathResults = this.globSync('**/svelte.config.{js,cjs,mjs}', {
                 cwd: directory,
-                ignore: ['**/node_modules/**']
+                // the second pattern is necessary because else fast-glob treats .tmp/../node_modules/.. as a valid match for some reason
+                ignore: ['**/node_modules/**', '**/.*/**'],
+                onlyFiles: true
             });
             const someConfigIsImmediateFileInDirectory =
                 pathResults.length > 0 && pathResults.some((res) => !this.path.dirname(res));
