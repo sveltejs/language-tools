@@ -353,6 +353,46 @@ describe('RenameProvider', () => {
         });
     });
 
+    it('should do rename of prop without type of component A in component B', async () => {
+        const { provider, renameDoc2 } = await setup();
+        const result = await provider.rename(renameDoc2, Position.create(6, 11), 'newName');
+
+        assert.deepStrictEqual(result, {
+            changes: {
+                [getUri('rename2.svelte')]: [
+                    {
+                        newText: 'newName',
+                        range: {
+                            start: {
+                                character: 9,
+                                line: 6
+                            },
+                            end: {
+                                character: 27,
+                                line: 6
+                            }
+                        }
+                    }
+                ],
+                [getUri('rename3.svelte')]: [
+                    {
+                        newText: 'newName',
+                        range: {
+                            start: {
+                                character: 15,
+                                line: 1
+                            },
+                            end: {
+                                character: 33,
+                                line: 1
+                            }
+                        }
+                    }
+                ]
+            }
+        });
+    });
+
     it('should do rename of svelte component', async () => {
         const { provider, renameDoc4 } = await setup();
         const result = await provider.rename(renameDoc4, Position.create(1, 12), 'ChildNew');
@@ -701,9 +741,17 @@ describe('RenameProvider', () => {
     });
 
     it('can rename shorthand props without breaking value-passing', async () => {
+        await testShorthand(Position.create(3, 16));
+    });
+
+    it('can rename shorthand props without breaking value-passing (triggers from shorthand)', async () => {
+        await testShorthand(Position.create(7, 9));
+    });
+
+    async function testShorthand(position: Position) {
         const { provider, renameDocShorthand } = await setup();
 
-        const result = await provider.rename(renameDocShorthand, Position.create(3, 16), 'newName');
+        const result = await provider.rename(renameDocShorthand, position, 'newName');
 
         assert.deepStrictEqual(result, {
             changes: {
@@ -776,7 +824,7 @@ describe('RenameProvider', () => {
                 ]
             }
         });
-    });
+    }
 
     it('can rename slot let to an alias', async () => {
         const { provider, renameSlotLet } = await setup();
