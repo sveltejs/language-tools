@@ -1,3 +1,3 @@
 <script>
-    import { hi } from './declaration-map-project/type'
+    import { hi } from './declaration-map-project/types'
 </script>
