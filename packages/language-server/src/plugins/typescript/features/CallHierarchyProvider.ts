@@ -323,8 +323,9 @@ export class CallHierarchyProviderImpl implements CallHierarchyProvider {
         snapshot: SvelteDocumentSnapshot,
         item: ts.CallHierarchyItem
     ) {
+        const fileStartPosition = Position.create(0, 0);
         const fileRange = Range.create(
-            Position.create(0, 0),
+            fileStartPosition,
             snapshot.parent.positionAt(snapshot.parent.getTextLength())
         );
 
@@ -332,7 +333,7 @@ export class CallHierarchyProviderImpl implements CallHierarchyProvider {
             ...this.getNameAndDetailForItem(true, item),
             kind: SymbolKind.Module,
             range: fileRange,
-            selectionRange: fileRange,
+            selectionRange: Range.create(fileStartPosition, fileStartPosition),
             uri: pathToUrl(item.file)
         };
     }

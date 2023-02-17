@@ -46,7 +46,7 @@ function decorateLanguageServiceInner(
     decorateGetDefinition(ls, snapshotManager, logger);
     decorateGetImplementation(ls, snapshotManager, logger);
     decorateUpdateImports(ls, snapshotManager, logger);
-    decorateCallHierarchy(ls, snapshotManager, typescript)
+    decorateCallHierarchy(ls, snapshotManager, typescript);
     return ls;
 }
 

@@ -206,7 +206,7 @@ export function decorateCallHierarchy(
             kind: typescript.ScriptElementKind.moduleElement,
             file: file,
             name: '',
-            selectionSpan: fileSpan,
+            selectionSpan: { start: 0, length: 0 },
             span: fileSpan
         };
     }

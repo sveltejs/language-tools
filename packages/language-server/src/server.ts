@@ -480,7 +480,6 @@ export function startServer(options?: LSOptions) {
         async (evt, token) => await pluginHost.getOutgoingCalls(evt.item, token)
     );
 
-
     docManager.on(
         'documentChange',
         debounceThrottle(async (document: Document) => diagnosticsManager.update(document), 750)
