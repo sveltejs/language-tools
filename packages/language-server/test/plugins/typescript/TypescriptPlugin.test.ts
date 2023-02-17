@@ -557,7 +557,30 @@ describe('TypescriptPlugin', () => {
     });
 
     it('map definition of dts with declarationMap to source ', async () => {
-        const { plugin, document } = setup('declaration-map/imported.svelte');
+        const { plugin, document } = setup('declaration-map/importing.svelte');
+
+        const definition = await plugin.getDefinitions(document, { line: 1, character: 13 });
+        assert.deepStrictEqual(definition, [
+            <LocationLink>{
+                targetRange: {
+                    end: { line: 1, character: 18 },
+                    start: { line: 1, character: 16 }
+                },
+                targetSelectionRange: {
+                    start: { line: 1, character: 16 },
+                    end: { line: 1, character: 18 }
+                },
+                originSelectionRange: {
+                    start: { line: 1, character: 13 },
+                    end: { line: 1, character: 15 }
+                },
+                targetUri: getUri('declaration-map/declaration-map-project/index.ts')
+            }
+        ]);
+    });
+
+    it('map definition of dts with declarationMap (base64 data url) to source ', async () => {
+        const { plugin, document } = setup('declaration-map/import-from-base64-sourcemap.svelte');
 
         const definition = await plugin.getDefinitions(document, { line: 1, character: 13 });
         assert.deepStrictEqual(definition, [

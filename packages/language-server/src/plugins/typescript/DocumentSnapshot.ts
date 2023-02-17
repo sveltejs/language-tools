@@ -473,6 +473,7 @@ export class DtsDocumentSnapshot extends JSOrTSDocumentSnapshot implements Docum
     getOriginalFilePosition(generatedPosition: Position): FilePosition {
         if (!this.mapperInitialized) {
             this.traceMap = this.initMapper();
+            this.mapperInitialized = true;
         }
 
         const mapped = this.traceMap
@@ -518,7 +519,7 @@ export class DtsDocumentSnapshot extends JSOrTSDocumentSnapshot implements Docum
                 return;
             }
 
-            return this.initMapperByRawSourceMap(base64Json);
+            return this.initMapperByRawSourceMap(this.tsSys.base64decode(base64Json));
         }
 
         const tryingLocations = new Set([

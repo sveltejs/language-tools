@@ -300,7 +300,7 @@ describe('FindReferencesProvider', () => {
     });
 
     it('map reference of dts with declarationMap to source ', async () => {
-        const { provider, document } = setup('declaration-map/imported.svelte');
+        const { provider, document } = setup('declaration-map/importing.svelte');
 
         const references = await provider.findReferences(
             document,
@@ -322,7 +322,7 @@ describe('FindReferencesProvider', () => {
                     end: { line: 1, character: 15 },
                     start: { line: 1, character: 13 }
                 },
-                uri: getUri('declaration-map/imported.svelte')
+                uri: getUri('declaration-map/importing.svelte')
             }
         ]);
     });

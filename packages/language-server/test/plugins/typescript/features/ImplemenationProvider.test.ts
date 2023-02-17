@@ -76,7 +76,7 @@ describe('ImplementationProvider', () => {
     });
 
     it('map implementation result of dts with declarationMap to source ', async () => {
-        const { provider, document } = setup('../declaration-map/imported.svelte');
+        const { provider, document } = setup('../declaration-map/importing.svelte');
 
         const implementations = await provider.getImplementation(document, {
             line: 1,
