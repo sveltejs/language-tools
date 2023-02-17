@@ -67,6 +67,12 @@ const svelteAttributes: IAttributeData[] = [
 ];
 const sveltekitAttributes: IAttributeData[] = [
     {
+        name: 'data-sveltekit-keepfocus',
+        description:
+            'SvelteKit-specific attribute. Currently focused element will retain focus after navigation. Otherwise, focus will be reset to the body.',
+        valueSet: 'v'
+    },
+    {
         name: 'data-sveltekit-noscroll',
         description:
             'SvelteKit-specific attribute. Will prevent scrolling after the link is clicked.',

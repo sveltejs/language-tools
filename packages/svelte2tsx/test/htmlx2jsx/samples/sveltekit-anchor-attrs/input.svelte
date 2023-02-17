@@ -1,3 +1,4 @@
+<a data-sveltekit-keepfocus></a>
 <a data-sveltekit-noscroll></a>
 <a data-sveltekit-preload-code></a>
 <a data-sveltekit-preload-data></a>
