@@ -309,25 +309,22 @@ describe('FindReferencesProvider', () => {
                 includeDeclaration: true
             }
         );
-        assert.deepStrictEqual(
-            references,
-            <Location[]>[
-                {
-                    range: {
-                        end: { line: 1, character: 18 },
-                        start: { line: 1, character: 16 }
-                    },
-                    uri: getUri('declaration-map/declaration-map-project/index.ts')
+        assert.deepStrictEqual(references, <Location[]>[
+            {
+                range: {
+                    end: { line: 1, character: 18 },
+                    start: { line: 1, character: 16 }
                 },
-                {
-                    range: {
-                        end: { line: 1, character: 15 },
-                        start: { line: 1, character: 13 }
-                    },
-                    uri: getUri('declaration-map/imported.svelte')
-                }
-            ]            
-        );
+                uri: getUri('declaration-map/declaration-map-project/index.ts')
+            },
+            {
+                range: {
+                    end: { line: 1, character: 15 },
+                    start: { line: 1, character: 13 }
+                },
+                uri: getUri('declaration-map/imported.svelte')
+            }
+        ]);
     });
 
     // Hacky, but it works. Needed due to testing both new and old transformation
