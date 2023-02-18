@@ -22,6 +22,7 @@ type Result = {
     fileCount: number;
     errorCount: number;
     warningCount: number;
+    fileCountWithProblems: number;
 };
 
 async function openAllDocuments(
@@ -60,7 +61,8 @@ async function getDiagnostics(
         const result: Result = {
             fileCount: diagnostics.length,
             errorCount: 0,
-            warningCount: 0
+            warningCount: 0,
+            fileCountWithProblems: 0
         };
 
         for (const diagnostic of diagnostics) {
@@ -71,16 +73,29 @@ async function getDiagnostics(
                 diagnostic.text
             );
 
+            let fileHasProblems = false;
+
             diagnostic.diagnostics.forEach((d: Diagnostic) => {
                 if (d.severity === DiagnosticSeverity.Error) {
                     result.errorCount += 1;
+                    fileHasProblems = true;
                 } else if (d.severity === DiagnosticSeverity.Warning) {
                     result.warningCount += 1;
+                    fileHasProblems = true;
                 }
             });
+
+            if (fileHasProblems) {
+                result.fileCountWithProblems += 1;
+            }
         }
 
-        writer.completion(result.fileCount, result.errorCount, result.warningCount);
+        writer.completion(
+            result.fileCount,
+            result.errorCount,
+            result.warningCount,
+            result.fileCountWithProblems
+        );
         return result;
     } catch (err: any) {
         writer.failure(err);
