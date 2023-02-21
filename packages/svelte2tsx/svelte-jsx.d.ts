@@ -293,7 +293,7 @@ declare namespace svelte.JSX {
   type MessageEventHandler<T extends EventTarget> = EventHandler<MessageEvent, T>;
 
   /** @deprecated DO NOT USE, WILL BE REMOVED SOON */
-  type AttributeNames = 
+  type AttributeNames =
   |'oncopy'
   |'oncut'
   |'onpaste'
@@ -894,13 +894,15 @@ declare namespace svelte.JSX {
     results?: number | undefined | null;
     security?: string | undefined | null;
     unselectable?: boolean | undefined | null;
-    
+
+    'data-sveltekit-keepfocus'?: true | '' | 'off' | undefined | null;
     'data-sveltekit-noscroll'?: true | '' | 'off' | undefined | null;
     'data-sveltekit-preload-code'?: true | '' | 'eager' | 'viewport' | 'hover' | 'tap' | 'off' | undefined | null;
     'data-sveltekit-preload-data'?: true | '' | 'hover' | 'tap' | 'off' | undefined | null;
     'data-sveltekit-reload'?: true | '' | 'off' | undefined | null;
+    'data-sveltekit-replacestate'?: true | '' | 'off' | undefined | null;
   }
-  
+
   /**
    * @deprecated use the types from `svelte/elements` instead, or the .
    * For more info see https://github.com/sveltejs/language-tools/blob/master/docs/preprocessors/typescript.md#im-getting-deprecation-warnings-for-sveltejsx--i-want-to-migrate-to-the-new-typings
