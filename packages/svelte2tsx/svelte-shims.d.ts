@@ -138,20 +138,7 @@ type KeysMatching<Obj, V> = {[K in keyof Obj]-?: Obj[K] extends V ? K : never}[k
 declare type __sveltets_2_CustomEvents<T> = {[K in KeysMatching<T, CustomEvent>]: T[K] extends CustomEvent ? T[K]['detail']: T[K]}
 
 declare var process: NodeJS.Process & { browser: boolean }
-// declare var __sveltets_1_AnimationMove: { from: DOMRect, to: DOMRect }
-
-// declare function __sveltets_1_ensureAnimation(animationCall: SvelteAnimationReturnType): {};
-// declare function __sveltets_1_ensureAction(actionCall: SvelteActionReturnType): {};
-// declare function __sveltets_1_ensureTransition(transitionCall: SvelteTransitionReturnType): {};
-// declare function __sveltets_1_ensureFunction(expression: (e: Event & { detail?: any }) => unknown ): {};
-// // Includes undefined and null for all types as all usages also allow these
-// declare function __sveltets_1_ensureType<T>(type: AConstructorTypeOf<T>, el: T | undefined | null): {};
-// declare function __sveltets_1_ensureType<T1, T2>(type1: AConstructorTypeOf<T1>, type2: AConstructorTypeOf<T2>, el: T1 | T2 | undefined | null): {};
-
-// declare function __sveltets_1_createEnsureSlot<Slots = Record<string, Record<string, any>>>(): <K1 extends keyof Slots, K2 extends keyof Slots[K1]>(k1: K1, k2: K2, val: Slots[K1][K2]) => Slots[K1][K2];
 declare function __sveltets_2_ensureRightProps<Props>(props: Props): {};
-// declare function __sveltets_1_cssProp(prop: Record<string, any>): {};
-// declare function __sveltets_1_ctorOf<T>(type: T): AConstructorTypeOf<T>;
 declare function __sveltets_2_instanceOf<T = any>(type: AConstructorTypeOf<T>): T;
 declare function __sveltets_2_allPropsType(): SvelteAllProps
 declare function __sveltets_2_restPropsType(): SvelteRestProps
@@ -202,15 +189,6 @@ declare function __sveltets_2_mapBodyEvent<K extends keyof WindowEventMap>(
 declare function __sveltets_2_mapElementEvent<K extends keyof HTMLElementEventMap>(
     event: K
 ): HTMLElementEventMap[K];
-// declare function __sveltets_1_mapElementTag<K extends keyof ElementTagNameMap>(
-//     tag: K
-// ): ElementTagNameMap[K];
-// declare function __sveltets_1_mapElementTag<K extends keyof SVGElementTagNameMap>(
-//     tag: K
-// ): SVGElementTagNameMap[K];
-// declare function __sveltets_1_mapElementTag(
-//     tag: any
-// ): any; // needs to be any because used in context of <svelte:element>
 
 declare function __sveltets_2_bubbleEventDef<Events, K extends keyof Events>(
     events: Events, eventKey: K
@@ -226,17 +204,6 @@ declare function __sveltets_2_unionType<T1, T2>(t1: T1, t2: T2): T1 | T2;
 declare function __sveltets_2_unionType<T1, T2, T3>(t1: T1, t2: T2, t3: T3): T1 | T2 | T3;
 declare function __sveltets_2_unionType<T1, T2, T3, T4>(t1: T1, t2: T2, t3: T3, t4: T4): T1 | T2 | T3 | T4;
 declare function __sveltets_2_unionType(...types: any[]): any;
-
-// declare function __sveltets_1_awaitThen<T>(
-//     promise: T,
-//     onfulfilled: (value: T extends PromiseLike<infer U> ? U : T) => any,
-//     onrejected?: (value: T extends PromiseLike<any> ? any : never) => any
-// ): any;
-
-// declare function __sveltets_1_each<T extends ArrayLike<unknown>>(
-//     array: T,
-//     callbackfn: (value: T extends ArrayLike<infer U> ? U : any, index: number) => any
-// ): any;
 
 declare function __sveltets_2_createSvelte2TsxComponent<Props, Events, Slots>(
     render: {props: Props, events: Events, slots: Slots }

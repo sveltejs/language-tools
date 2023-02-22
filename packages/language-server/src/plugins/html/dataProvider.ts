@@ -67,6 +67,12 @@ const svelteAttributes: IAttributeData[] = [
 ];
 const sveltekitAttributes: IAttributeData[] = [
     {
+        name: 'data-sveltekit-keepfocus',
+        description:
+            'SvelteKit-specific attribute. Currently focused element will retain focus after navigation. Otherwise, focus will be reset to the body.',
+        valueSet: 'v'
+    },
+    {
         name: 'data-sveltekit-noscroll',
         description:
             'SvelteKit-specific attribute. Will prevent scrolling after the link is clicked.',
@@ -96,6 +102,12 @@ const sveltekitAttributes: IAttributeData[] = [
         name: 'data-sveltekit-reload',
         description:
             'SvelteKit-specific attribute. Will cause SvelteKit to do a normal browser navigation which results in a full page reload.',
+        valueSet: 'v'
+    },
+    {
+        name: 'data-sveltekit-replacestate',
+        description:
+            'SvelteKit-specific attribute. Will replace the current `history` entry rather than creating a new one with `pushState` when the link is clicked.',
         valueSet: 'v'
     }
 ];

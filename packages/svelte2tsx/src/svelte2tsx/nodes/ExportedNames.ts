@@ -324,9 +324,9 @@ export class ExportedNames {
      * Creates a string from the collected props
      *
      * @param isTsFile Whether this is a TypeScript file or not.
-     * @param uses$$propsValue whether the file references the $$props variable
+     * @param uses$$propsOr$$restProps whether the file references the $$props or $$restProps variable
      */
-    createPropsStr(isTsFile: boolean, uses$$propsValue: boolean): string {
+    createPropsStr(isTsFile: boolean, uses$$propsOr$$restProps: boolean): string {
         const names = Array.from(this.exports.entries());
 
         if (this.uses$$Props) {
@@ -343,7 +343,7 @@ export class ExportedNames {
                 this.createReturnElementsType(lets).join(',') +
                 '}>(__sveltets_2_any("") as $$Props), ' +
                 '...__sveltets_2_ensureRightProps<' +
-                (uses$$propsValue ? 'Partial<$$Props>' : '$$Props') +
+                (uses$$propsOr$$restProps ? 'Partial<$$Props>' : '$$Props') +
                 '>({' +
                 this.createReturnElements(lets, false).join(',') +
                 '}), ...{} as unknown as $$Props, ...{' +
@@ -357,7 +357,7 @@ export class ExportedNames {
             );
         }
 
-        if (names.length === 0 && !uses$$propsValue) {
+        if (names.length === 0 && !uses$$propsOr$$restProps) {
             // Necessary, because {} roughly equals to any
             return isTsFile
                 ? '{} as Record<string, never>'

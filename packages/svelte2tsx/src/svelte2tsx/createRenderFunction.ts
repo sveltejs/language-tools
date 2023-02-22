@@ -106,7 +106,10 @@ export function createRenderFunction({
           '}';
 
     const returnString =
-        `\nreturn { props: ${exportedNames.createPropsStr(isTsFile, uses$$props)}` +
+        `\nreturn { props: ${exportedNames.createPropsStr(
+            isTsFile,
+            uses$$props || uses$$restProps
+        )}` +
         `, slots: ${slotsAsDef}` +
         `, events: ${events.toDefString()} }}`;
 
