@@ -19,10 +19,9 @@ import {
     isInReactiveStatement,
     gatherIdentifiers,
     isStoreVariableIn$storeDeclaration,
-    get$storeOffsetOf$storeDeclaration,
-    memoize
+    get$storeOffsetOf$storeDeclaration
 } from './utils';
-import { not, flatten, passMap, regexIndexOf, swapRangeStartEndIfNecessary } from '../../../utils';
+import { not, flatten, passMap, swapRangeStartEndIfNecessary, memoize } from '../../../utils';
 import { LSConfigManager } from '../../../ls-config';
 import { isAttributeName, isEventHandler } from '../svelte-ast-utils';
 

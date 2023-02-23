@@ -391,16 +391,3 @@ export function findChildOfKind(node: ts.Node, kind: ts.SyntaxKind): ts.Node | u
         }
     }
 }
-
-export function memoize<T>(callback: () => T): () => T {
-    let value: T;
-    let callbackInner: typeof callback | undefined = callback;
-
-    return () => {
-        if (callbackInner) {
-            value = callback();
-            callbackInner = undefined;
-        }
-        return value;
-    };
-}
