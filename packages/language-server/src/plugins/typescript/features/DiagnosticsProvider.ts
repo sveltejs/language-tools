@@ -1,5 +1,5 @@
 import ts from 'typescript';
-import { CancellationToken, Diagnostic, DiagnosticSeverity } from 'vscode-languageserver';
+import { CancellationToken, Diagnostic, DiagnosticSeverity, Range } from 'vscode-languageserver';
 import {
     Document,
     getNodeIfIsInStartTag,
@@ -21,7 +21,7 @@ import {
     isStoreVariableIn$storeDeclaration,
     get$storeOffsetOf$storeDeclaration
 } from './utils';
-import { not, flatten, passMap, regexIndexOf, swapRangeStartEndIfNecessary } from '../../../utils';
+import { not, flatten, passMap, swapRangeStartEndIfNecessary, memoize } from '../../../utils';
 import { LSConfigManager } from '../../../ls-config';
 import { isAttributeName, isEventHandler } from '../svelte-ast-utils';
 
@@ -128,7 +128,7 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
                 code: diagnostic.code,
                 tags: getDiagnosticTag(diagnostic)
             }))
-            .map(mapRange(tsDoc, document))
+            .map(mapRange(tsDoc, document, lang))
             .filter(hasNoNegativeLines)
             .filter(isNoFalsePositive(document, tsDoc))
             .map(enhanceIfNecessary)
@@ -142,34 +142,25 @@ export class DiagnosticsProviderImpl implements DiagnosticsProvider {
 
 function mapRange(
     snapshot: SvelteDocumentSnapshot,
-    document: Document
+    document: Document,
+    lang: ts.LanguageService
 ): (value: Diagnostic) => Diagnostic {
+    const get$$PropsDefWithCache = memoize(() => get$$PropsDef(lang, snapshot));
+    const get$$PropsAliasInfoWithCache = memoize(() =>
+        get$$PropsAliasForInfo(get$$PropsDefWithCache, lang, document)
+    );
+
     return (diagnostic) => {
         let range = mapRangeToOriginal(snapshot, diagnostic.range);
 
         if (range.start.line < 0) {
-            const is$$PropsError =
-                isAfterSvelte2TsxPropsReturn(
-                    snapshot.getFullText(),
-                    snapshot.offsetAt(diagnostic.range.start)
-                ) && diagnostic.message.includes('$$Props');
-
-            if (is$$PropsError) {
-                const propsStart = regexIndexOf(
-                    document.getText(),
-                    /(interface|type)\s+\$\$Props[\s{=]/
-                );
-
-                if (propsStart) {
-                    const start = document.positionAt(
-                        propsStart + document.getText().substring(propsStart).indexOf('$$Props')
-                    );
-                    range = {
-                        start,
-                        end: { ...start, character: start.character + '$$Props'.length }
-                    };
-                }
-            }
+            range =
+                movePropsErrorRangeBackIfNecessary(
+                    diagnostic,
+                    snapshot,
+                    get$$PropsDefWithCache,
+                    get$$PropsAliasInfoWithCache
+                ) ?? range;
         }
 
         if (
@@ -415,4 +406,91 @@ function dedupDiagnostics() {
             return true;
         }
     };
+}
+
+function get$$PropsAliasForInfo(
+    get$$PropsDefWithCache: () => ReturnType<typeof get$$PropsDef>,
+    lang: ts.LanguageService,
+    document: Document
+) {
+    if (!/type\s+\$\$Props[\s\n]+=/.test(document.getText())) {
+        return;
+    }
+
+    const propsDef = get$$PropsDefWithCache();
+    if (!propsDef || !ts.isTypeAliasDeclaration(propsDef)) {
+        return;
+    }
+
+    const type = lang.getProgram()?.getTypeChecker()?.getTypeAtLocation(propsDef.name);
+    if (!type) {
+        return;
+    }
+
+    const rootSymbolName = (type.aliasSymbol ?? type.symbol).name;
+
+    return [rootSymbolName, propsDef] as const;
+}
+
+function get$$PropsDef(lang: ts.LanguageService, snapshot: SvelteDocumentSnapshot) {
+    const program = lang.getProgram();
+    const sourceFile = program?.getSourceFile(snapshot.filePath);
+    if (!program || !sourceFile) {
+        return undefined;
+    }
+
+    const renderFunction = sourceFile.statements.find(
+        (statement): statement is ts.FunctionDeclaration =>
+            ts.isFunctionDeclaration(statement) && statement.name?.getText() === 'render'
+    );
+    return renderFunction?.body?.statements.find(
+        (node): node is ts.TypeAliasDeclaration | ts.InterfaceDeclaration =>
+            (ts.isTypeAliasDeclaration(node) || ts.isInterfaceDeclaration(node)) &&
+            node.name.getText() === '$$Props'
+    );
+}
+
+function movePropsErrorRangeBackIfNecessary(
+    diagnostic: Diagnostic,
+    snapshot: SvelteDocumentSnapshot,
+    get$$PropsDefWithCache: () => ReturnType<typeof get$$PropsDef>,
+    get$$PropsAliasForWithCache: () => ReturnType<typeof get$$PropsAliasForInfo>
+): Range | undefined {
+    const possibly$$PropsError = isAfterSvelte2TsxPropsReturn(
+        snapshot.getFullText(),
+        snapshot.offsetAt(diagnostic.range.start)
+    );
+    if (!possibly$$PropsError) {
+        return;
+    }
+
+    if (diagnostic.message.includes('$$Props')) {
+        const propsDef = get$$PropsDefWithCache();
+        const generatedPropsStart = propsDef?.name.getStart();
+        const propsStart =
+            generatedPropsStart != null &&
+            snapshot.getOriginalPosition(snapshot.positionAt(generatedPropsStart));
+
+        if (propsStart) {
+            return {
+                start: propsStart,
+                end: { ...propsStart, character: propsStart.character + '$$Props'.length }
+            };
+        }
+
+        return;
+    }
+
+    const aliasForInfo = get$$PropsAliasForWithCache();
+    if (!aliasForInfo) {
+        return;
+    }
+
+    const [aliasFor, propsDef] = aliasForInfo;
+    if (diagnostic.message.includes(aliasFor)) {
+        return mapRangeToOriginal(snapshot, {
+            start: snapshot.positionAt(propsDef.name.getStart()),
+            end: snapshot.positionAt(propsDef.name.getEnd())
+        });
+    }
 }

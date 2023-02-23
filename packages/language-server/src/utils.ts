@@ -321,3 +321,16 @@ export function createGetCanonicalFileName(
 function identity<T>(x: T) {
     return x;
 }
+
+export function memoize<T>(callback: () => T): () => T {
+    let value: T;
+    let callbackInner: typeof callback | undefined = callback;
+
+    return () => {
+        if (callbackInner) {
+            value = callback();
+            callbackInner = undefined;
+        }
+        return value;
+    };
+}
