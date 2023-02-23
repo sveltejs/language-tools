@@ -52,7 +52,7 @@ function loadTsconfig(config: EmitDtsConfig, svelteMap: SvelteMap) {
         tsConfig,
         ts.sys,
         basepath,
-        { sourceMap: false },
+        { sourceMap: false, rootDir: config.libRoot },
         tsconfigFile,
         undefined,
         [{ extension: 'svelte', isMixedContent: true, scriptKind: ts.ScriptKind.Deferred }]
