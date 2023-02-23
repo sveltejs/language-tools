@@ -98,7 +98,7 @@ class DiagnosticsWatcher {
         filePathsToIgnore: string[],
         ignoreInitialAdd: boolean
     ) {
-        watch(`${workspaceUri.fsPath}/**/*.{svelte,d.ts,ts,js}`, {
+        watch(`${workspaceUri.fsPath}/**/*.{svelte,d.ts,ts,js,jsx,tsx,mjs,cjs,mts,cts}`, {
             ignored: ['node_modules']
                 .concat(filePathsToIgnore)
                 .map((ignore) => path.join(workspaceUri.fsPath, ignore)),
