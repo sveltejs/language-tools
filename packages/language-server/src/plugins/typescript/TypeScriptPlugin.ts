@@ -80,6 +80,7 @@ import { LSAndTSDocResolver } from './LSAndTSDocResolver';
 import { ignoredBuildDirectories } from './SnapshotManager';
 import { isAttributeName, isAttributeShorthand, isEventHandler } from './svelte-ast-utils';
 import {
+    convertToLocationForReferenceOrDefinition,
     convertToLocationRange,
     getScriptKindFromFileName,
     isInScript,
@@ -378,10 +379,14 @@ export class TypeScriptPlugin
                     snapshot = await snapshots.retrieve(def.fileName);
                 }
 
+                const defLocation = convertToLocationForReferenceOrDefinition(
+                    snapshot,
+                    def.textSpan
+                );
                 return LocationLink.create(
-                    pathToUrl(def.fileName),
-                    convertToLocationRange(snapshot, def.textSpan),
-                    convertToLocationRange(snapshot, def.textSpan),
+                    defLocation.uri,
+                    defLocation.range,
+                    defLocation.range,
                     convertToLocationRange(tsDoc, defs.textSpan)
                 );
             })

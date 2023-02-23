@@ -2,7 +2,13 @@ import * as assert from 'assert';
 import fs from 'fs';
 import * as path from 'path';
 import ts from 'typescript';
-import { CancellationTokenSource, FileChangeType, Position, Range } from 'vscode-languageserver';
+import {
+    CancellationTokenSource,
+    FileChangeType,
+    LocationLink,
+    Position,
+    Range
+} from 'vscode-languageserver';
 import { Document, DocumentManager } from '../../../src/lib/documents';
 import { LSConfigManager } from '../../../src/ls-config';
 import { LSAndTSDocResolver, TypeScriptPlugin } from '../../../src/plugins';
@@ -548,6 +554,52 @@ describe('TypescriptPlugin', () => {
                 Range.create(Position.create(17, 5), Position.create(17, 11))
             );
         });
+    });
+
+    it('map definition of dts with declarationMap to source ', async () => {
+        const { plugin, document } = setup('declaration-map/importing.svelte');
+
+        const definition = await plugin.getDefinitions(document, { line: 1, character: 13 });
+        assert.deepStrictEqual(definition, [
+            <LocationLink>{
+                targetRange: {
+                    end: { line: 1, character: 18 },
+                    start: { line: 1, character: 16 }
+                },
+                targetSelectionRange: {
+                    start: { line: 1, character: 16 },
+                    end: { line: 1, character: 18 }
+                },
+                originSelectionRange: {
+                    start: { line: 1, character: 13 },
+                    end: { line: 1, character: 15 }
+                },
+                targetUri: getUri('declaration-map/declaration-map-project/index.ts')
+            }
+        ]);
+    });
+
+    it('map definition of dts with declarationMap (base64 data url) to source ', async () => {
+        const { plugin, document } = setup('declaration-map/import-from-base64-sourcemap.svelte');
+
+        const definition = await plugin.getDefinitions(document, { line: 1, character: 13 });
+        assert.deepStrictEqual(definition, [
+            <LocationLink>{
+                targetRange: {
+                    end: { line: 1, character: 18 },
+                    start: { line: 1, character: 16 }
+                },
+                targetSelectionRange: {
+                    start: { line: 1, character: 16 },
+                    end: { line: 1, character: 18 }
+                },
+                originSelectionRange: {
+                    start: { line: 1, character: 13 },
+                    end: { line: 1, character: 15 }
+                },
+                targetUri: getUri('declaration-map/declaration-map-project/index.ts')
+            }
+        ]);
     });
 
     const setupForOnWatchedFileChanges = async () => {

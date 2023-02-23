@@ -299,6 +299,34 @@ describe('FindReferencesProvider', () => {
         ]);
     });
 
+    it('map reference of dts with declarationMap to source ', async () => {
+        const { provider, document } = setup('declaration-map/importing.svelte');
+
+        const references = await provider.findReferences(
+            document,
+            { line: 1, character: 13 },
+            {
+                includeDeclaration: true
+            }
+        );
+        assert.deepStrictEqual(references, <Location[]>[
+            {
+                range: {
+                    end: { line: 1, character: 18 },
+                    start: { line: 1, character: 16 }
+                },
+                uri: getUri('declaration-map/declaration-map-project/index.ts')
+            },
+            {
+                range: {
+                    end: { line: 1, character: 15 },
+                    start: { line: 1, character: 13 }
+                },
+                uri: getUri('declaration-map/importing.svelte')
+            }
+        ]);
+    });
+
     // Hacky, but it works. Needed due to testing both new and old transformation
     after(() => {
         __resetCache();

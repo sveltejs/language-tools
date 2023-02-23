@@ -1,10 +1,10 @@
 import { Location } from 'vscode-languageserver';
 import { URI } from 'vscode-uri';
-import { pathToUrl } from '../../../utils';
 import { FileReferencesProvider } from '../../interfaces';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { convertToLocationRange, hasNonZeroRange } from '../utils';
 import { SnapshotMap } from './utils';
+import { pathToUrl } from '../../../utils';
 
 export class FindFileReferencesProviderImpl implements FileReferencesProvider {
     constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
