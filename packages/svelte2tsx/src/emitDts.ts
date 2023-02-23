@@ -52,7 +52,7 @@ function loadTsconfig(config: EmitDtsConfig, svelteMap: SvelteMap) {
         tsConfig,
         ts.sys,
         basepath,
-        { sourceMap: false },
+        { sourceMap: false, rootDir: config.libRoot },
         tsconfigFile,
         undefined,
         [{ extension: 'svelte', isMixedContent: true, scriptKind: ts.ScriptKind.Deferred }]
@@ -81,7 +81,7 @@ function loadTsconfig(config: EmitDtsConfig, svelteMap: SvelteMap) {
             declaration: true, // Needed for d.ts file generation
             emitDeclarationOnly: true, // We only want d.ts file generation
             declarationDir: config.declarationDir, // Where to put the declarations
-            allowNonTsExtensions: true
+            allowNonTsExtensions: true,
         },
         filenames
     };
