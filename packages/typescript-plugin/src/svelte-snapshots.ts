@@ -68,6 +68,43 @@ export class SvelteSnapshot {
         return originalOffset;
     }
 
+    getGeneratedTextSpan(textSpan: ts.TextSpan): ts.TextSpan | null {
+        const start = this.getGeneratedOffset(textSpan.start);
+        if (start === -1) {
+            return null;
+        }
+
+        // Assumption: We don't change identifiers itself, so we don't change ranges.
+        return {
+            start,
+            length: textSpan.length
+        };
+    }
+
+    getGeneratedOffset(originalOffset: number) {
+        if (!this.scriptInfo) {
+            return originalOffset;
+        }
+
+        const lineOffset = this.scriptInfo.positionToLineOffset(originalOffset);
+        const original = this.mapper.getGeneratedPosition({
+            line: lineOffset.line - 1,
+            character: lineOffset.offset - 1
+        });
+        if (original.line === -1) {
+            return -1;
+        }
+
+        this.toggleMappingMode(true);
+        const generatedOffset = this.scriptInfo.lineOffsetToPosition(
+            original.line + 1,
+            original.character + 1
+        );
+        this.toggleMappingMode(false);
+        this.debug('converted offset to', original, '/', generatedOffset);
+        return generatedOffset;
+    }
+
     setAndPatchScriptInfo(scriptInfo: ts.server.ScriptInfo) {
         // @ts-expect-error
         scriptInfo.scriptKind = this.typescript.ScriptKind.TSX;
@@ -224,6 +261,10 @@ export class SvelteSnapshot {
             return '';
         }
         return snapshot.getText(0, snapshot.getLength());
+    }
+
+    getOriginalText() {
+        return this.svelteCode;
     }
 }
 

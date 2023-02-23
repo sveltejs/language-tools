@@ -3,6 +3,7 @@ import { ConfigManager } from '../config-manager';
 import { Logger } from '../logger';
 import { SvelteSnapshotManager } from '../svelte-snapshots';
 import { isSvelteFilePath } from '../utils';
+import { decorateCallHierarchy } from './call-hierarchy';
 import { decorateCompletions } from './completions';
 import { decorateGetDefinition } from './definition';
 import { decorateDiagnostics } from './diagnostics';
@@ -21,19 +22,21 @@ export function decorateLanguageService(
     ls: ts.LanguageService,
     snapshotManager: SvelteSnapshotManager,
     logger: Logger,
-    configManager: ConfigManager
+    configManager: ConfigManager,
+    typescript: typeof ts
 ) {
     // Decorate using a proxy so we can dynamically enable/disable method
     // patches depending on the enabled state of our config
     const proxy = new Proxy(ls, createProxyHandler(configManager));
-    decorateLanguageServiceInner(proxy, snapshotManager, logger);
+    decorateLanguageServiceInner(proxy, snapshotManager, logger, typescript);
     return proxy;
 }
 
 function decorateLanguageServiceInner(
     ls: ts.LanguageService,
     snapshotManager: SvelteSnapshotManager,
-    logger: Logger
+    logger: Logger,
+    typescript: typeof ts
 ): ts.LanguageService {
     patchLineColumnOffset(ls, snapshotManager);
     decorateRename(ls, snapshotManager, logger);
@@ -43,6 +46,7 @@ function decorateLanguageServiceInner(
     decorateGetDefinition(ls, snapshotManager, logger);
     decorateGetImplementation(ls, snapshotManager, logger);
     decorateUpdateImports(ls, snapshotManager, logger);
+    decorateCallHierarchy(ls, snapshotManager, typescript);
     return ls;
 }
 

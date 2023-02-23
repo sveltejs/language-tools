@@ -175,6 +175,16 @@ export function isSubPath(
     return getCanonicalFileName(pathToUrl(possibleSubPath)).startsWith(getCanonicalFileName(uri));
 }
 
+export function getNearestWorkspaceUri(
+    workspaceUris: string[],
+    path: string,
+    getCanonicalFileName: GetCanonicalFileName
+) {
+    return Array.from(workspaceUris)
+        .sort((a, b) => b.length - a.length)
+        .find((workspaceUri) => isSubPath(workspaceUri, path, getCanonicalFileName));
+}
+
 export function symbolKindFromString(kind: string): SymbolKind {
     switch (kind) {
         case 'module':
@@ -338,6 +348,20 @@ export function getDiagnosticTag(diagnostic: ts.Diagnostic): DiagnosticTag[] {
 
 export function changeSvelteComponentName(name: string) {
     return name.replace(/(\w+)__SvelteComponent_/, '$1');
+}
+
+const COMPONENT_SUFFIX = '__SvelteComponent_';
+
+export function isGeneratedSvelteComponentName(className: string) {
+    return className.endsWith(COMPONENT_SUFFIX);
+}
+
+export function offsetOfGeneratedComponentExport(snapshot: SvelteDocumentSnapshot) {
+    return snapshot.getFullText().lastIndexOf(COMPONENT_SUFFIX);
+}
+
+export function toGeneratedSvelteComponentName(className: string) {
+    return className + COMPONENT_SUFFIX;
 }
 
 export function hasTsExtensions(fileName: string) {

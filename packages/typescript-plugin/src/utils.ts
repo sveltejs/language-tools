@@ -1,4 +1,5 @@
 import type ts from 'typescript/lib/tsserverlibrary';
+import { SvelteSnapshot } from './svelte-snapshots';
 
 export function isSvelteFilePath(filePath: string) {
     return filePath.endsWith('.svelte');
@@ -83,4 +84,71 @@ export function isStoreVariableIn$storeDeclaration(text: string, varStart: numbe
 
 export function get$storeOffsetOf$storeDeclaration(text: string, storePosition: number) {
     return text.lastIndexOf(' =', storePosition) - 1;
+}
+
+type NodePredicate = (node: ts.Node) => boolean;
+type NodeTypePredicate<T extends ts.Node> = (node: ts.Node) => node is T;
+
+/**
+ * Finds node exactly matching span {start, length}.
+ */
+export function findNodeAtSpan<T extends ts.Node>(
+    node: ts.Node,
+    span: { start: number; length: number },
+    predicate?: NodeTypePredicate<T>
+): T | void {
+    const { start, length } = span;
+
+    const end = start + length;
+
+    for (const child of node.getChildren()) {
+        const childStart = child.getStart();
+        if (end <= childStart) {
+            return;
+        }
+
+        const childEnd = child.getEnd();
+        if (start >= childEnd) {
+            continue;
+        }
+
+        if (start === childStart && end === childEnd) {
+            if (!predicate) {
+                return child as T;
+            }
+            if (predicate(child)) {
+                return child;
+            }
+        }
+
+        const foundInChildren = findNodeAtSpan(child, span, predicate);
+        if (foundInChildren) {
+            return foundInChildren;
+        }
+    }
+}
+
+const COMPONENT_SUFFIX = '__SvelteComponent_';
+
+export function isGeneratedSvelteComponentName(className: string) {
+    return className.endsWith(COMPONENT_SUFFIX);
+}
+
+export function offsetOfGeneratedComponentExport(snapshot: SvelteSnapshot) {
+    return snapshot.getText().lastIndexOf(COMPONENT_SUFFIX);
+}
+
+export function gatherDescendants<T extends ts.Node>(
+    node: ts.Node,
+    predicate: NodePredicate | NodeTypePredicate<T>,
+    dest: T[] = []
+) {
+    if (predicate(node)) {
+        dest.push(node);
+    } else {
+        for (const child of node.getChildren()) {
+            gatherDescendants(child, predicate, dest);
+        }
+    }
+    return dest;
 }

@@ -3,10 +3,12 @@ import { flatten, isNotNullOrUndefined, pathToUrl, urlToPath } from '../../../ut
 import { FindComponentReferencesProvider } from '../../interfaces';
 import { DocumentSnapshot, SvelteDocumentSnapshot } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
-import { convertToLocationRange, hasNonZeroRange } from '../utils';
+import {
+    convertToLocationRange,
+    hasNonZeroRange,
+    offsetOfGeneratedComponentExport
+} from '../utils';
 import { isTextSpanInGeneratedCode, SnapshotMap } from './utils';
-
-const COMPONENT_SUFFIX = '__SvelteComponent_';
 
 export class FindComponentReferencesProviderImpl implements FindComponentReferencesProvider {
     constructor(private readonly lsAndTsDocResolver: LSAndTSDocResolver) {}
@@ -24,7 +26,10 @@ export class FindComponentReferencesProviderImpl implements FindComponentReferen
             return null;
         }
 
-        const references = lang.findReferences(tsDoc.filePath, this.offsetOfComponentExport(tsDoc));
+        const references = lang.findReferences(
+            tsDoc.filePath,
+            offsetOfGeneratedComponentExport(tsDoc)
+        );
         if (!references) {
             return null;
         }
@@ -65,10 +70,6 @@ export class FindComponentReferencesProviderImpl implements FindComponentReferen
         );
 
         return locations.filter(isNotNullOrUndefined);
-    }
-
-    private offsetOfComponentExport(snapshot: SvelteDocumentSnapshot) {
-        return snapshot.getFullText().lastIndexOf(COMPONENT_SUFFIX);
     }
 
     private isEndTag(element: Location, snapshot: DocumentSnapshot) {

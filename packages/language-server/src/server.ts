@@ -16,6 +16,9 @@ import {
     SemanticTokensRangeRequest,
     DidChangeWatchedFilesParams,
     LinkedEditingRangeRequest,
+    CallHierarchyPrepareRequest,
+    CallHierarchyIncomingCallsRequest,
+    CallHierarchyOutgoingCallsRequest,
     InlayHintRequest,
     SemanticTokensRefreshRequest,
     InlayHintRefreshRequest
@@ -171,14 +174,16 @@ export function startServer(options?: LSOptions) {
         pluginHost.register(
             new CSSPlugin(docManager, configManager, workspaceFolders, cssLanguageServices)
         );
+        const normalizedWorkspaceUris = workspaceUris.map(normalizeUri);
         pluginHost.register(
             new TypeScriptPlugin(
                 configManager,
-                new LSAndTSDocResolver(docManager, workspaceUris.map(normalizeUri), configManager, {
+                new LSAndTSDocResolver(docManager, normalizedWorkspaceUris, configManager, {
                     notifyExceedSizeLimit: notifyTsServiceExceedSizeLimit,
                     onProjectReloaded: refreshCrossFilesSemanticFeatures,
                     watchTsConfig: true
-                })
+                }),
+                normalizedWorkspaceUris
             )
         );
 
@@ -283,7 +288,8 @@ export function startServer(options?: LSOptions) {
                 linkedEditingRangeProvider: true,
                 implementationProvider: true,
                 typeDefinitionProvider: true,
-                inlayHintProvider: true
+                inlayHintProvider: true,
+                callHierarchyProvider: true
             }
         };
     });
@@ -456,6 +462,22 @@ export function startServer(options?: LSOptions) {
 
     connection.onRequest(InlayHintRequest.type, (evt, cancellationToken) =>
         pluginHost.getInlayHints(evt.textDocument, evt.range, cancellationToken)
+    );
+
+    connection.onRequest(
+        CallHierarchyPrepareRequest.type,
+        async (evt, token) =>
+            await pluginHost.prepareCallHierarchy(evt.textDocument, evt.position, token)
+    );
+
+    connection.onRequest(
+        CallHierarchyIncomingCallsRequest.type,
+        async (evt, token) => await pluginHost.getIncomingCalls(evt.item, token)
+    );
+
+    connection.onRequest(
+        CallHierarchyOutgoingCallsRequest.type,
+        async (evt, token) => await pluginHost.getOutgoingCalls(evt.item, token)
     );
 
     docManager.on(

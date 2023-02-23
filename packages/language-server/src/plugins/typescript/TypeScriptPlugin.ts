@@ -1,5 +1,8 @@
 import ts, { NavigationTree } from 'typescript';
 import {
+    CallHierarchyIncomingCall,
+    CallHierarchyItem,
+    CallHierarchyOutgoingCall,
     CancellationToken,
     CodeAction,
     CodeActionContext,
@@ -50,7 +53,8 @@ import {
     SignatureHelpProvider,
     TypeDefinitionProvider,
     UpdateImportsProvider,
-    UpdateTsOrJsFile
+    UpdateTsOrJsFile,
+    CallHierarchyProvider
 } from '../interfaces';
 import { CodeActionsProviderImpl } from './features/CodeActionsProvider';
 import {
@@ -86,6 +90,7 @@ import {
     isInScript,
     symbolKindFromString
 } from './utils';
+import { CallHierarchyProviderImpl } from './features/CallHierarchyProvider';
 
 export class TypeScriptPlugin
     implements
@@ -105,6 +110,7 @@ export class TypeScriptPlugin
         ImplementationProvider,
         TypeDefinitionProvider,
         InlayHintProvider,
+        CallHierarchyProvider,
         OnWatchFileChanges,
         CompletionsProvider<CompletionEntryWithIdentifier>,
         UpdateTsOrJsFile
@@ -128,8 +134,13 @@ export class TypeScriptPlugin
     private readonly implementationProvider: ImplementationProviderImpl;
     private readonly typeDefinitionProvider: TypeDefinitionProviderImpl;
     private readonly inlayHintProvider: InlayHintProviderImpl;
+    private readonly callHierarchyProvider: CallHierarchyProviderImpl;
 
-    constructor(configManager: LSConfigManager, lsAndTsDocResolver: LSAndTSDocResolver) {
+    constructor(
+        configManager: LSConfigManager,
+        lsAndTsDocResolver: LSAndTSDocResolver,
+        workspaceUris: string[]
+    ) {
         this.configManager = configManager;
         this.lsAndTsDocResolver = lsAndTsDocResolver;
         this.completionProvider = new CompletionsProviderImpl(
@@ -161,6 +172,10 @@ export class TypeScriptPlugin
         this.implementationProvider = new ImplementationProviderImpl(this.lsAndTsDocResolver);
         this.typeDefinitionProvider = new TypeDefinitionProviderImpl(this.lsAndTsDocResolver);
         this.inlayHintProvider = new InlayHintProviderImpl(this.lsAndTsDocResolver);
+        this.callHierarchyProvider = new CallHierarchyProviderImpl(
+            this.lsAndTsDocResolver,
+            workspaceUris
+        );
     }
 
     async getDiagnostics(
@@ -570,6 +585,32 @@ export class TypeScriptPlugin
         }
 
         return this.inlayHintProvider.getInlayHints(document, range, cancellationToken);
+    }
+
+    prepareCallHierarchy(
+        document: Document,
+        position: Position,
+        cancellationToken?: CancellationToken
+    ): Promise<CallHierarchyItem[] | null> {
+        return this.callHierarchyProvider.prepareCallHierarchy(
+            document,
+            position,
+            cancellationToken
+        );
+    }
+
+    getIncomingCalls(
+        item: CallHierarchyItem,
+        cancellationToken?: CancellationToken | undefined
+    ): Promise<CallHierarchyIncomingCall[] | null> {
+        return this.callHierarchyProvider.getIncomingCalls(item, cancellationToken);
+    }
+
+    async getOutgoingCalls(
+        item: CallHierarchyItem,
+        cancellationToken?: CancellationToken | undefined
+    ): Promise<CallHierarchyOutgoingCall[] | null> {
+        return this.callHierarchyProvider.getOutgoingCalls(item, cancellationToken);
     }
 
     private async getLSAndTSDoc(document: Document) {

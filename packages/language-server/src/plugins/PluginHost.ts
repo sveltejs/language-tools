@@ -1,6 +1,9 @@
 import { flatten } from 'lodash';
 import { performance } from 'perf_hooks';
 import {
+    CallHierarchyIncomingCall,
+    CallHierarchyItem,
+    CallHierarchyOutgoingCall,
     CancellationToken,
     CodeAction,
     CodeActionContext,
@@ -533,6 +536,45 @@ export class PluginHost implements LSProvider, OnWatchFileChanges {
             [document, range, cancellationToken],
             ExecuteMode.FirstNonNull,
             'smart'
+        );
+    }
+
+    prepareCallHierarchy(
+        textDocument: TextDocumentIdentifier,
+        position: Position,
+        cancellationToken?: CancellationToken
+    ): Promise<CallHierarchyItem[] | null> {
+        const document = this.getDocument(textDocument.uri);
+
+        return this.execute<CallHierarchyItem[] | null>(
+            'prepareCallHierarchy',
+            [document, position, cancellationToken],
+            ExecuteMode.FirstNonNull,
+            'high'
+        );
+    }
+
+    getIncomingCalls(
+        item: CallHierarchyItem,
+        cancellationToken?: CancellationToken | undefined
+    ): Promise<CallHierarchyIncomingCall[] | null> {
+        return this.execute<CallHierarchyIncomingCall[] | null>(
+            'getIncomingCalls',
+            [item, cancellationToken],
+            ExecuteMode.FirstNonNull,
+            'high'
+        );
+    }
+
+    getOutgoingCalls(
+        item: CallHierarchyItem,
+        cancellationToken?: CancellationToken | undefined
+    ): Promise<CallHierarchyOutgoingCall[] | null> {
+        return this.execute<CallHierarchyOutgoingCall[] | null>(
+            'getOutgoingCalls',
+            [item, cancellationToken],
+            ExecuteMode.FirstNonNull,
+            'high'
         );
     }
 

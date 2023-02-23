@@ -14,7 +14,12 @@ import {
     ignoredBuildDirectories,
     SnapshotManager
 } from './SnapshotManager';
-import { ensureRealSvelteFilePath, findTsConfigPath, hasTsExtensions, isSubPath } from './utils';
+import {
+    ensureRealSvelteFilePath,
+    findTsConfigPath,
+    getNearestWorkspaceUri,
+    hasTsExtensions
+} from './utils';
 
 export interface LanguageServiceContainer {
     readonly tsconfigPath: string;
@@ -93,9 +98,7 @@ export async function getService(
     }
 
     // Find closer boundary: workspace uri or node_modules
-    const nearestWorkspaceUri = workspaceUris.find((workspaceUri) =>
-        isSubPath(workspaceUri, path, getCanonicalFileName)
-    );
+    const nearestWorkspaceUri = getNearestWorkspaceUri(workspaceUris, path, getCanonicalFileName);
     const lastNodeModulesIdx = path.split('/').lastIndexOf('node_modules') + 2;
     const nearestNodeModulesBoundary =
         lastNodeModulesIdx === 1

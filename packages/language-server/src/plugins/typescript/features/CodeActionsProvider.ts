@@ -32,7 +32,7 @@ import {
 import { CodeActionsProvider } from '../../interfaces';
 import { DocumentSnapshot, SvelteDocumentSnapshot } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
-import { changeSvelteComponentName, convertRange } from '../utils';
+import { changeSvelteComponentName, convertRange, toGeneratedSvelteComponentName } from '../utils';
 import { CompletionsProviderImpl } from './CompletionProvider';
 import {
     findContainingNode,
@@ -485,7 +485,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             return;
         }
 
-        const suffixedName = name + '__SvelteComponent_';
+        const suffixedName = toGeneratedSvelteComponentName(name);
         const errorPreventingUserPreferences =
             this.completionProvider.fixUserPreferencesForSvelteComponentImport(userPreferences);
 

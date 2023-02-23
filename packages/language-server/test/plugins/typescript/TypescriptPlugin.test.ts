@@ -37,9 +37,11 @@ describe('TypescriptPlugin', () => {
         const filePath = path.join(testDir, filename);
         const document = new Document(pathToUrl(filePath), ts.sys.readFile(filePath) || '');
         const lsConfigManager = new LSConfigManager();
+        const workspaceUris = [pathToUrl(testDir)];
         const plugin = new TypeScriptPlugin(
             lsConfigManager,
-            new LSAndTSDocResolver(docManager, [pathToUrl(testDir)], lsConfigManager)
+            new LSAndTSDocResolver(docManager, [pathToUrl(testDir)], lsConfigManager),
+            workspaceUris
         );
         docManager.openDocument(<any>'some doc');
         return { plugin, document };
