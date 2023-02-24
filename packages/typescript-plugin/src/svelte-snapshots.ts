@@ -107,7 +107,7 @@ export class SvelteSnapshot {
 
     setAndPatchScriptInfo(scriptInfo: ts.server.ScriptInfo) {
         // @ts-expect-error
-        scriptInfo.scriptKind = this.typescript.ScriptKind.TSX;
+        scriptInfo.scriptKind = this.typescript.ScriptKind.TS;
 
         const positionToLineOffset = scriptInfo.positionToLineOffset.bind(scriptInfo);
         scriptInfo.positionToLineOffset = (position) => {
