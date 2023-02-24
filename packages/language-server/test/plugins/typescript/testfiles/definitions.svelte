@@ -1,4 +1,4 @@
-<script lang="typescript">
+<script lang="ts">
 import {blubb} from './definitions';
 import ImportedFile from './imported-file.svelte';
 function bla() {return true;}

@@ -1,4 +1,4 @@
-<script lang="typescript">
+<script lang="ts">
     import { foo } from '../documentation'
 
     foo()

@@ -1,4 +1,4 @@
-<script lang="typescript">
+<script lang="ts">
 import {C} from 'blubb';
 import {B} from 'bla';
 import {A} from 'bla';
