@@ -6,6 +6,7 @@ import { Document } from './lib/documents';
 import { returnObjectIfHasKeys } from './utils';
 import path from 'path';
 import { FileMap } from './lib/documents/fileCollection';
+import { ClientCapabilities } from 'vscode-languageserver-protocol';
 
 /**
  * Default config for the language server.
@@ -294,6 +295,7 @@ export class LSConfigManager {
     private lessConfig: CssConfig | undefined;
     private htmlConfig: HTMLConfig | undefined;
     private isTrusted = true;
+    private clientCapabilities: ClientCapabilities | undefined;
 
     constructor() {
         this._updateTsUserPreferences('javascript', {});
@@ -303,14 +305,14 @@ export class LSConfigManager {
     /**
      * Updates config.
      */
-    update(config: DeepPartial<LSConfig>): void {
+    update(config: DeepPartial<LSConfig> | undefined): void {
         // Ideally we shouldn't need the merge here because all updates should be valid and complete configs.
         // But since those configs come from the client they might be out of synch with the valid config:
         // We might at some point in the future forget to synch config settings in all packages after updating the config.
         this.config = merge({}, defaultLSConfig, this.config, config);
         // Merge will keep arrays/objects if the new one is empty/has less entries,
         // therefore we need some extra checks if there are new settings
-        if (config.svelte?.compilerWarnings) {
+        if (config?.svelte?.compilerWarnings) {
             this.config.svelte.compilerWarnings = config.svelte.compilerWarnings;
         }
 
@@ -614,5 +616,14 @@ export class LSConfigManager {
             this.scheduledUpdate = undefined;
             this.listeners.forEach((listener) => listener(this));
         });
+    }
+
+    updateClientCapabilities(clientCapabilities: ClientCapabilities) {
+        this.clientCapabilities = clientCapabilities;
+        this.notifyListeners();
+    }
+
+    getClientCapabilities() {
+        return this.clientCapabilities;
     }
 }

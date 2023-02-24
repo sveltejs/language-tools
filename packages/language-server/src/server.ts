@@ -156,6 +156,7 @@ export function startServer(options?: LSOptions) {
         configManager.updateScssConfig(evt.initializationOptions?.configuration?.scss);
         configManager.updateLessConfig(evt.initializationOptions?.configuration?.less);
         configManager.updateHTMLConfig(evt.initializationOptions?.configuration?.html);
+        configManager.updateClientCapabilities(evt.capabilities);
 
         pluginHost.initialize({
             filterIncompleteCompletions:
@@ -412,10 +413,14 @@ export function startServer(options?: LSOptions) {
 
     const updateAllDiagnostics = debounceThrottle(() => diagnosticsManager.updateAll(), 1000);
     const refreshSemanticTokens = debounceThrottle(() => {
-        connection?.sendRequest(SemanticTokensRefreshRequest.method);
+        if (configManager?.getClientCapabilities()?.workspace?.semanticTokens?.refreshSupport) {
+            connection?.sendRequest(SemanticTokensRefreshRequest.method);
+        }
     }, 1500);
     const refreshInlayHints = debounceThrottle(() => {
-        connection?.sendRequest(InlayHintRefreshRequest.method);
+        if (configManager?.getClientCapabilities()?.workspace?.inlayHint?.refreshSupport) {
+            connection?.sendRequest(InlayHintRefreshRequest.method);
+        }
     }, 1500);
 
     const refreshCrossFilesSemanticFeatures = () => {
