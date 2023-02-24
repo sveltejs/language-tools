@@ -6,6 +6,7 @@ import { Document } from './lib/documents';
 import { returnObjectIfHasKeys } from './utils';
 import path from 'path';
 import { FileMap } from './lib/documents/fileCollection';
+import { ClientCapabilities } from 'vscode-languageserver-protocol';
 
 /**
  * Default config for the language server.
@@ -294,6 +295,7 @@ export class LSConfigManager {
     private lessConfig: CssConfig | undefined;
     private htmlConfig: HTMLConfig | undefined;
     private isTrusted = true;
+    private clientCapabilities: ClientCapabilities | undefined;
 
     constructor() {
         this._updateTsUserPreferences('javascript', {});
@@ -614,5 +616,14 @@ export class LSConfigManager {
             this.scheduledUpdate = undefined;
             this.listeners.forEach((listener) => listener(this));
         });
+    }
+
+    updateClientCapabilities(clientCapabilities: ClientCapabilities) {
+        this.clientCapabilities = clientCapabilities;
+        this.notifyListeners();
+    }
+
+    getClientCapabilities() {
+        return this.clientCapabilities;
     }
 }
