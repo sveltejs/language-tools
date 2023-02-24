@@ -1,1 +1,1 @@
-<script lang="typescript">const asd: string = true;asd;</script>
+<script lang="ts">const asd: string = true;asd;</script>

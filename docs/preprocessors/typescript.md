@@ -112,7 +112,7 @@ Make sure to follow the [setup instructions](/packages/svelte-vscode#setup)
 The following code may throw an error like `Variable 'show' implicitly has type 'any' in some locations where its type cannot be determined.`, if you have stricter type settings:
 
 ```html
-<script lang="typescript">
+<script lang="ts">
     export let data: { someKey: string | null };
 
     $: show = !!data.someKey; // <-- `show` has type `any`

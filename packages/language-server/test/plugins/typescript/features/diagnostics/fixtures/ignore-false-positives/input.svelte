@@ -1,4 +1,4 @@
-<script lang="typescript">
+<script lang="ts">
 export let noUsedBeforeDeclare: number, anotherUsed: boolean;
 const blubb = 2;
 $: bla = blubb * 2;
