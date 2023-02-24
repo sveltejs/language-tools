@@ -42,6 +42,50 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
             getConfigPathForProject(info.project)
         );
 
+        // For some reason it's no longer enough to patch this at the projectService level, so we do it here, too
+        // TODO investigate if we can use the script snapshot for all Svelte files, too, enabling Svelte file
+        // updates getting picked up without a file save - move this logic into the snapshot manager then?
+        const getScriptSnapshot = info.languageServiceHost.getScriptSnapshot.bind(
+            info.languageServiceHost
+        );
+        info.languageServiceHost.getScriptSnapshot = (fileName) => {
+            const normalizedPath = fileName.replace(/\\/g, '/');
+            if (normalizedPath.endsWith('node_modules/svelte/types/runtime/ambient.d.ts')) {
+                return modules.typescript.ScriptSnapshot.fromString('');
+            } else if (normalizedPath.endsWith('svelte2tsx/svelte-jsx.d.ts')) {
+                // Remove the dom lib reference to not load these ambient types in case
+                // the user has a tsconfig.json with different lib settings like in
+                // https://github.com/sveltejs/language-tools/issues/1733
+                const snapshot = getScriptSnapshot(fileName);
+                if (snapshot) {
+                    const originalText = snapshot.getText(0, snapshot.getLength());
+                    return modules.typescript.ScriptSnapshot.fromString(
+                        originalText.replace('/// <reference lib="dom" />', '')
+                    );
+                }
+                return snapshot;
+            } else if (normalizedPath.endsWith('svelte2tsx/svelte-shims.d.ts')) {
+                const snapshot = getScriptSnapshot(fileName);
+                if (snapshot) {
+                    let originalText = snapshot.getText(0, snapshot.getLength());
+                    if (!originalText.includes('// -- start svelte-ls-remove --')) {
+                        return snapshot; // uses an older version of svelte2tsx or is already patched
+                    }
+                    originalText =
+                        originalText.substring(
+                            0,
+                            originalText.indexOf('// -- start svelte-ls-remove --')
+                        ) +
+                        originalText.substring(
+                            originalText.indexOf('// -- end svelte-ls-remove --')
+                        );
+                    return modules.typescript.ScriptSnapshot.fromString(originalText);
+                }
+                return snapshot;
+            }
+            return getScriptSnapshot(fileName);
+        };
+
         const svelteOptions = parsedCommandLine?.raw?.svelteOptions || { namespace: 'svelteHTML' };
         logger.log('svelteOptions:', svelteOptions);
         logger.debug(parsedCommandLine?.wildcardDirectories);
