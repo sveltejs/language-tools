@@ -388,6 +388,24 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                                 );
                             }
 
+                            if (fix.fixName === 'fixConvertConstToLet') {
+                                const offset = document.offsetAt(originalRange.start);
+                                const constOffset = document.getText().indexOf('const', offset);
+                                if (constOffset < 0) {
+                                    return undefined;
+                                }
+                                const beforeConst = document.getText().slice(0, constOffset);
+                                if (
+                                    beforeConst[beforeConst.length - 1] === '@' &&
+                                    beforeConst
+                                        .slice(0, beforeConst.length - 1)
+                                        .trimEnd()
+                                        .endsWith('{')
+                                ) {
+                                    return undefined;
+                                }
+                            }
+
                             if (originalRange.start.line < 0 || originalRange.end.line < 0) {
                                 return undefined;
                             }
