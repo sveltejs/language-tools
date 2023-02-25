@@ -655,6 +655,80 @@ describe('CodeActionsProvider', () => {
         ]);
     });
 
+    it('provides quickfix for convert const to let', async () => {
+        const { provider, document } = setup('codeaction-const-reassign.svelte');
+
+        const codeActions = await provider.getCodeActions(
+            document,
+            Range.create(Position.create(3, 4), Position.create(3, 6)),
+            {
+                diagnostics: [
+                    {
+                        code: 2588,
+                        message: "CCannot assign to 'hi' because it is a constant.",
+                        range: Range.create(Position.create(3, 4), Position.create(3, 6)),
+                        source: 'ts'
+                    }
+                ],
+                only: [CodeActionKind.QuickFix]
+            }
+        );
+
+        assert.deepStrictEqual(codeActions, [
+            {
+                edit: {
+                    documentChanges: [
+                        {
+                            edits: [
+                                {
+                                    newText: 'let',
+                                    range: {
+                                        start: {
+                                            character: 4,
+                                            line: 1
+                                        },
+                                        end: {
+                                            character: 9,
+                                            line: 1
+                                        }
+                                    }
+                                }
+                            ],
+                            textDocument: {
+                                uri: getUri('codeaction-const-reassign.svelte'),
+                                version: null
+                            }
+                        }
+                    ]
+                },
+                kind: 'quickfix',
+                title: "Convert 'const' to 'let'"
+            }
+        ]);
+    });
+
+    it("don't provides quickfix for convert const tag to let", async () => {
+        const { provider, document } = setup('codeaction-const-reassign.svelte');
+
+        const codeActions = await provider.getCodeActions(
+            document,
+            Range.create(Position.create(9, 28), Position.create(9, 35)),
+            {
+                diagnostics: [
+                    {
+                        code: 2588,
+                        message: "Cannot assign to 'hi2' because it is a constant.",
+                        range: Range.create(Position.create(9, 28), Position.create(9, 35)),
+                        source: 'ts'
+                    }
+                ],
+                only: [CodeActionKind.QuickFix]
+            }
+        );
+
+        assert.deepStrictEqual(codeActions, []);
+    });
+
     it('organizes imports', async () => {
         const { provider, document } = setup('codeactions.svelte');
 
