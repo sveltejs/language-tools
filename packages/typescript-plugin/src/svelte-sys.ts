@@ -1,11 +1,13 @@
-import ts from 'typescript';
+import type ts from 'typescript';
 import { Logger } from './logger';
 import { ensureRealSvelteFilePath, isVirtualSvelteFilePath, toRealSvelteFilePath } from './utils';
+
+type _ts = typeof ts;
 
 /**
  * This should only be accessed by TS svelte module resolution.
  */
-export function createSvelteSys(logger: Logger) {
+export function createSvelteSys(ts: _ts, logger: Logger) {
     const svelteSys: ts.System = {
         ...ts.sys,
         fileExists(path: string) {

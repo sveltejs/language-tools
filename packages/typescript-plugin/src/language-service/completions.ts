@@ -1,11 +1,13 @@
 import { basename, dirname, extname } from 'path';
-import ts from 'typescript/lib/tsserverlibrary';
+import type ts from 'typescript';
 import { Logger } from '../logger';
 import { isSvelteFilePath, replaceDeep } from '../utils';
 
+type _ts = typeof ts;
+
 const componentPostfix = '__SvelteComponent_';
 
-export function decorateCompletions(ls: ts.LanguageService, logger: Logger): void {
+export function decorateCompletions(ls: ts.LanguageService, ts: _ts, logger: Logger): void {
     const getCompletionsAtPosition = ls.getCompletionsAtPosition;
     ls.getCompletionsAtPosition = (fileName, position, options) => {
         const completions = getCompletionsAtPosition(fileName, position, options);
