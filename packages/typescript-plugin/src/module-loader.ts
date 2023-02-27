@@ -102,7 +102,7 @@ export function patchModuleLoader(
     project: ts.server.Project,
     configManager: ConfigManager
 ): void {
-    const svelteSys = createSvelteSys(logger);
+    const svelteSys = createSvelteSys(typescript, logger);
     const moduleCache = new ModuleResolutionCache(project.projectService);
     const origResolveModuleNames = lsHost.resolveModuleNames?.bind(lsHost);
     const origResolveModuleNamLiterals = lsHost.resolveModuleNameLiterals?.bind(lsHost);

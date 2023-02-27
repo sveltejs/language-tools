@@ -42,7 +42,7 @@ function decorateLanguageServiceInner(
     decorateRename(ls, snapshotManager, logger);
     decorateDiagnostics(ls, logger);
     decorateFindReferences(ls, snapshotManager, logger);
-    decorateCompletions(ls, logger);
+    decorateCompletions(ls, typescript, logger);
     decorateGetDefinition(ls, snapshotManager, logger);
     decorateGetImplementation(ls, snapshotManager, logger);
     decorateUpdateImports(ls, snapshotManager, logger);
