@@ -174,7 +174,7 @@ export class MachineFriendlyWriter implements Writer {
                 `${fileCount} FILES`,
                 `${errorCount} ERRORS`,
                 `${warningCount} WARNINGS`,
-                `${fileCountWithProblems} FILES WITH PROBLEMS`
+                `${fileCountWithProblems} FILES_WITH_PROBLEMS`
             ].join(' ')
         );
     }
