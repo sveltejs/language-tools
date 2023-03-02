@@ -395,6 +395,7 @@ declare namespace svelte.JSX {
   |'onclose'
   |'onfullscreenchange'
   |'onfullscreenerror'
+  |'onvisibilitychange'
   |'class'
   |'dataset'
   |'accept'
@@ -667,6 +668,7 @@ declare namespace svelte.JSX {
     onclose?: EventHandler<Event, T> | undefined | null;
     onfullscreenchange?: EventHandler<Event, T> | undefined | null;
     onfullscreenerror?: EventHandler<Event, T> | undefined | null;
+    onvisibilitychange?: EventHandler<Event, T> | undefined | null;
   }
 
   /**
