@@ -108,7 +108,7 @@ The output concludes with a `COMPLETED` message that summarizes total numbers of
 ###### Example:
 
 ```
-1590680326807 COMPLETED 20 FILES 21 ERRORS 1 WARNINGS
+1590680326807 COMPLETED 20 FILES 21 ERRORS 1 WARNINGS 3 FILES_WITH_PROBLEMS
 ```
 
 If the application experiences a runtime error, this error will appear as a `FAILURE` record.
