@@ -28,8 +28,9 @@ import {
     findTopLevelFunction
 } from './utils';
 import { Logger } from '../../logger';
-import { dirname, join, resolve } from 'path';
+import { dirname, resolve } from 'path';
 import { URI } from 'vscode-uri';
+import { surroundWithIgnoreComments } from './features/utils';
 
 /**
  * An error which occurred while trying to parse/preprocess the svelte file contents.
@@ -396,7 +397,7 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
     }
 }
 
-const kitPageFiles = new Set([
+export const kitPageFiles = new Set([
     '+page.ts',
     '+page.js',
     '+layout.ts',
@@ -452,6 +453,34 @@ export class JSOrTSDocumentSnapshot extends IdentityMapper implements DocumentSn
         return offsetAt(position, this.text, this.getLineOffsets());
     }
 
+    getGeneratedPosition(originalPosition: Position): Position {
+        if (!this.kitFile || this.addedCode.length === 0) {
+            return super.getGeneratedPosition(originalPosition);
+        }
+        const pos = this.offsetAt(originalPosition);
+        const index = this.addedCode.findIndex((c) => c.pos >= pos);
+        if (index > 0) {
+            const added = this.addedCode[index - 1];
+            return this.internalPositionAt(pos - added.total);
+        } else {
+            return this.internalPositionAt(pos - this.addedCode[this.addedCode.length - 1].total);
+        }
+    }
+
+    getOriginalPosition(generatedPosition: Position): Position {
+        if (!this.kitFile || this.addedCode.length === 0) {
+            return super.getOriginalPosition(generatedPosition);
+        }
+        const pos = this.internalOffsetAt(generatedPosition);
+        const index = this.addedCode.findIndex((c) => c.pos >= pos);
+        if (index > 0) {
+            const added = this.addedCode[index - 1];
+            return this.positionAt(added.pos + added.length > pos ? added.pos : pos + added.total);
+        } else {
+            return this.positionAt(pos + this.addedCode[this.addedCode.length - 1].total);
+        }
+    }
+
     update(changes: TextDocumentContentChangeEvent[]): void {
         for (const change of changes) {
             let start = 0;
@@ -484,6 +513,10 @@ export class JSOrTSDocumentSnapshot extends IdentityMapper implements DocumentSn
         return offsetAt(position, this.internalText, this.getInternalLineOffsets());
     }
 
+    private internalPositionAt(offset: number): Position {
+        return positionAt(offset, this.internalText, this.getInternalLineOffsets());
+    }
+
     private getInternalLineOffsets() {
         if (!this.kitFile) {
             return this.getLineOffsets();
@@ -512,10 +545,11 @@ export class JSOrTSDocumentSnapshot extends IdentityMapper implements DocumentSn
             }
 
             const pos = load.parameters[0].getEnd();
-            // TODO JSDoc for JS files - or filter out error if "no js" + 0 range?
-            const typeInsertion = `: import('./$types').${
-                this.kitFile.includes('layout') ? 'Layout' : 'Page'
-            }${this.kitFile.includes('server') ? 'Server' : ''}LoadEvent`;
+            const typeInsertion = surroundWithIgnoreComments(
+                `: import('./$types').${this.kitFile.includes('layout') ? 'Layout' : 'Page'}${
+                    this.kitFile.includes('server') ? 'Server' : ''
+                }LoadEvent`
+            );
             this.text =
                 this.internalText.slice(0, pos) + typeInsertion + this.internalText.slice(pos);
             this.addedCode = [{ pos, length: typeInsertion.length, total: typeInsertion.length }];
