@@ -16,18 +16,13 @@ export function decorateHover(
         const result = getVirtualLS(fileName, info, ts);
         if (!result) return getQuickInfoAtPosition(fileName, position);
 
-        const { languageService, length, pos } = result;
-
-        const quickInfo = languageService.getQuickInfoAtPosition(
-            fileName,
-            position < pos ? position : position + length
-        );
+        const { languageService, toOriginalPos, toVirtualPos } = result;
+        const quickInfo = languageService.getQuickInfoAtPosition(fileName, toVirtualPos(position));
         if (!quickInfo) return quickInfo;
 
-        if (quickInfo.textSpan.start > pos) {
-            quickInfo.textSpan.start -= length;
-        }
-
-        return quickInfo;
+        return {
+            ...quickInfo,
+            textSpan: { ...quickInfo.textSpan, start: toOriginalPos(quickInfo.textSpan.start).pos }
+        };
     };
 }

@@ -20,10 +20,10 @@ export function decorateCompletions(
 
         const result = getVirtualLS(fileName, info, typescript);
         if (result) {
-            const { languageService, length, pos } = result;
+            const { languageService, toVirtualPos } = result;
             completions = languageService.getCompletionsAtPosition(
                 fileName,
-                position < pos ? position : position + length,
+                toVirtualPos(position),
                 options
             );
         }
@@ -110,10 +110,10 @@ export function decorateCompletions(
 
         const result = getVirtualLS(fileName, info, typescript);
         if (result) {
-            const { languageService, length, pos } = result;
+            const { languageService, toVirtualPos } = result;
             details = languageService.getCompletionEntryDetails(
                 fileName,
-                position < pos ? position : position + length,
+                toVirtualPos(position),
                 entryName,
                 formatOptions,
                 source,
@@ -183,12 +183,8 @@ export function decorateCompletions(
     ls.getSignatureHelpItems = (fileName, position, options) => {
         const result = getVirtualLS(fileName, info, typescript);
         if (result) {
-            const { languageService, length, pos } = result;
-            return languageService.getSignatureHelpItems(
-                fileName,
-                position < pos ? position : position + length,
-                options
-            );
+            const { languageService, toVirtualPos } = result;
+            return languageService.getSignatureHelpItems(fileName, toVirtualPos(position), options);
         }
         return getSignatureHelpItems(fileName, position, options);
     };

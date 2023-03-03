@@ -25,7 +25,7 @@ import {
     getScriptKindFromFileName,
     isSvelteFilePath,
     getTsCheckComment,
-    findTopLevelFunction
+    findExports
 } from './utils';
 import { Logger } from '../../logger';
 import { dirname, resolve } from 'path';
@@ -418,8 +418,8 @@ export class JSOrTSDocumentSnapshot extends IdentityMapper implements DocumentSn
     scriptInfo = null;
     private lineOffsets?: number[];
     private internalLineOffsets?: number[];
-    private addedCode: Array<{ pos: number; length: number; total: number }> = [];
-    private internalText = this.text;
+    private addedCode: Array<{ pos: number; length: number; inserted: string; total: number }> = [];
+    private originalText = this.text;
     private kitFile = '';
 
     constructor(public version: number, public readonly filePath: string, private text: string) {
@@ -457,28 +457,40 @@ export class JSOrTSDocumentSnapshot extends IdentityMapper implements DocumentSn
         if (!this.kitFile || this.addedCode.length === 0) {
             return super.getGeneratedPosition(originalPosition);
         }
-        const pos = this.offsetAt(originalPosition);
-        const index = this.addedCode.findIndex((c) => c.pos >= pos);
-        if (index > 0) {
-            const added = this.addedCode[index - 1];
-            return this.internalPositionAt(pos - added.total);
-        } else {
-            return this.internalPositionAt(pos - this.addedCode[this.addedCode.length - 1].total);
+        const pos = this.originalOffsetAt(originalPosition);
+
+        let total = 0;
+        for (const added of this.addedCode) {
+            if (pos < added.pos) break;
+            total += added.length;
         }
+
+        return this.positionAt(pos + total);
     }
 
     getOriginalPosition(generatedPosition: Position): Position {
         if (!this.kitFile || this.addedCode.length === 0) {
             return super.getOriginalPosition(generatedPosition);
         }
-        const pos = this.internalOffsetAt(generatedPosition);
-        const index = this.addedCode.findIndex((c) => c.pos >= pos);
-        if (index > 0) {
-            const added = this.addedCode[index - 1];
-            return this.positionAt(added.pos + added.length > pos ? added.pos : pos + added.total);
-        } else {
-            return this.positionAt(pos + this.addedCode[this.addedCode.length - 1].total);
+        const pos = this.offsetAt(generatedPosition);
+
+        let total = 0;
+        let idx = 0;
+        for (; idx < this.addedCode.length; idx++) {
+            const added = this.addedCode[idx];
+            if (pos < added.pos) break;
+            total += added.length;
         }
+
+        if (idx > 0) {
+            const prev = this.addedCode[idx - 1];
+            // Special case: pos is in the middle of an added range
+            if (pos > prev.pos && pos < prev.pos + prev.length) {
+                total -= pos - prev.pos;
+            }
+        }
+
+        return this.originalPositionAt(pos - total);
     }
 
     update(changes: TextDocumentContentChangeEvent[]): void {
@@ -486,14 +498,14 @@ export class JSOrTSDocumentSnapshot extends IdentityMapper implements DocumentSn
             let start = 0;
             let end = 0;
             if ('range' in change) {
-                start = this.internalOffsetAt(change.range.start);
-                end = this.internalOffsetAt(change.range.end);
+                start = this.originalOffsetAt(change.range.start);
+                end = this.originalOffsetAt(change.range.end);
             } else {
-                end = this.internalText.length;
+                end = this.originalText.length;
             }
 
-            this.internalText =
-                this.internalText.slice(0, start) + change.text + this.internalText.slice(end);
+            this.originalText =
+                this.originalText.slice(0, start) + change.text + this.originalText.slice(end);
         }
 
         this.adjustText();
@@ -509,53 +521,91 @@ export class JSOrTSDocumentSnapshot extends IdentityMapper implements DocumentSn
         return this.lineOffsets;
     }
 
-    private internalOffsetAt(position: Position): number {
-        return offsetAt(position, this.internalText, this.getInternalLineOffsets());
+    private originalOffsetAt(position: Position): number {
+        return offsetAt(position, this.originalText, this.getOriginalLineOffsets());
     }
 
-    private internalPositionAt(offset: number): Position {
-        return positionAt(offset, this.internalText, this.getInternalLineOffsets());
+    private originalPositionAt(offset: number): Position {
+        return positionAt(offset, this.originalText, this.getOriginalLineOffsets());
     }
 
-    private getInternalLineOffsets() {
+    private getOriginalLineOffsets() {
         if (!this.kitFile) {
             return this.getLineOffsets();
         }
         if (!this.internalLineOffsets) {
-            this.internalLineOffsets = getLineOffsets(this.internalText);
+            this.internalLineOffsets = getLineOffsets(this.originalText);
         }
         return this.internalLineOffsets;
     }
 
     private adjustText() {
-        // TODO think about what this means for go to reference and renames, some kind of mapping maybe necessary - but maybe fine if we don't add new lines?
+        this.addedCode = [];
+
         if (this.kitFile) {
             const source = ts.createSourceFile(
                 this.filePath,
-                this.internalText,
+                this.originalText,
                 ts.ScriptTarget.Latest,
                 true,
                 this.scriptKind
             );
 
-            const load = findTopLevelFunction(source, 'load');
-            if (!load || load.parameters.length !== 1 || load.parameters[0].type) {
-                this.text = this.internalText;
-                return;
+            const insert = (pos: number, inserted: string) => {
+                const prevTotal = this.addedCode[this.addedCode.length - 1]?.total ?? 0;
+                this.addedCode.push({
+                    pos: pos + prevTotal,
+                    length: inserted.length,
+                    inserted,
+                    total: prevTotal + inserted.length
+                });
+            };
+
+            const exports = findExports(source);
+            const isTsFile = this.filePath.endsWith('.ts');
+
+            // add type to load function if not explicitly typed
+            const load = exports.get('load');
+            if (
+                load?.type === 'function' &&
+                load.node.parameters.length === 1 &&
+                !load.node.parameters[0].type &&
+                (isTsFile || !ts.getJSDocType(load.node))
+            ) {
+                const pos = load.node.parameters[0].getEnd();
+                const inserted = surroundWithIgnoreComments(
+                    `: import('./$types').${this.kitFile.includes('layout') ? 'Layout' : 'Page'}${
+                        this.kitFile.includes('server') ? 'Server' : ''
+                    }LoadEvent`
+                );
+                insert(pos, inserted);
             }
 
-            const pos = load.parameters[0].getEnd();
-            const typeInsertion = surroundWithIgnoreComments(
-                `: import('./$types').${this.kitFile.includes('layout') ? 'Layout' : 'Page'}${
-                    this.kitFile.includes('server') ? 'Server' : ''
-                }LoadEvent`
-            );
-            this.text =
-                this.internalText.slice(0, pos) + typeInsertion + this.internalText.slice(pos);
-            this.addedCode = [{ pos, length: typeInsertion.length, total: typeInsertion.length }];
-            // TODO actions, other exports
+            // add type to actions variable if not explicitly typed
+            const actions = exports.get('actions');
+            if (
+                actions?.type === 'var' &&
+                !actions.node.type &&
+                (isTsFile || !ts.getJSDocType(actions.node)) &&
+                actions.node.initializer &&
+                ts.isObjectLiteralExpression(actions.node.initializer)
+            ) {
+                const pos = actions.node.initializer.getEnd();
+                const inserted = surroundWithIgnoreComments(`satisfies import('./$types').Actions`);
+                insert(pos, inserted);
+            }
+
+            // construct generated text from internal text and addedCode array
+            let pos = 0;
+            this.text = '';
+            for (const added of this.addedCode) {
+                const nextPos = added.pos - added.total + added.length;
+                this.text += this.originalText.slice(pos, nextPos) + added.inserted;
+                pos = nextPos;
+            }
+            this.text += this.originalText.slice(pos);
         } else {
-            this.text = this.internalText;
+            this.text = this.originalText;
         }
     }
 }

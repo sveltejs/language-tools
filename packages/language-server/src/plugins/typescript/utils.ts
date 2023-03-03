@@ -372,22 +372,31 @@ export function hasTsExtensions(fileName: string) {
     );
 }
 
-export function findTopLevelFunction(source: ts.SourceFile, name: string) {
-    // TODO handle indirect exports
+/**
+ * Finds the top level const/let/function exports of a source file.
+ */
+export function findExports(source: ts.SourceFile) {
+    const exports = new Map<
+        string,
+        | {
+              type: 'function';
+              node: ts.FunctionDeclaration | ts.ArrowFunction | ts.FunctionExpression;
+          }
+        | { type: 'var'; node: ts.VariableDeclaration }
+    >();
+    // TODO handle indirect exports?
     for (const statement of source.statements) {
         if (
             ts.isFunctionDeclaration(statement) &&
             statement.name &&
-            statement.name.text === name &&
             statement.modifiers?.[0]?.kind === ts.SyntaxKind.ExportKeyword
         ) {
             // export function x ...
-            return statement;
+            exports.set(statement.name.text, { type: 'function', node: statement });
         }
         if (
             ts.isVariableStatement(statement) &&
             statement.declarationList.declarations.length === 1 &&
-            statement.declarationList.declarations[0].name.getText() === name &&
             statement.modifiers?.[0]?.kind === ts.SyntaxKind.ExportKeyword
         ) {
             // export const x = ...
@@ -397,9 +406,15 @@ export function findTopLevelFunction(source: ts.SourceFile, name: string) {
                 (ts.isFunctionExpression(declaration.initializer) ||
                     ts.isArrowFunction(declaration.initializer))
             ) {
-                // this doesn't match `(() => {}) satisfies ..`, AST is different for it
-                return declaration.initializer;
+                exports.set(declaration.name.getText(), {
+                    type: 'function',
+                    node: declaration.initializer
+                });
+            } else {
+                exports.set(declaration.name.getText(), { type: 'var', node: declaration });
             }
         }
     }
+
+    return exports;
 }
