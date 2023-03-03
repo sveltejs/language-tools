@@ -5,10 +5,12 @@ import {
     CodeActionContext,
     CodeActionKind,
     Diagnostic,
+    LSPAny,
     OptionalVersionedTextDocumentIdentifier,
     Position,
     Range,
     TextDocumentEdit,
+    TextDocumentIdentifier,
     TextEdit,
     WorkspaceEdit
 } from 'vscode-languageserver';
@@ -55,12 +57,22 @@ interface RefactorArgs {
     originalRange: Range;
 }
 
+type FixId = NonNullable<ts.CodeFixAction['fixId']>;
+
+interface QuickFixAllResolveInfo {
+    fixId: FixId;
+    fixName: string;
+    triggerRange: Range;
+}
+
 export class CodeActionsProviderImpl implements CodeActionsProvider {
     constructor(
         private readonly lsAndTsDocResolver: LSAndTSDocResolver,
         private readonly completionProvider: CompletionsProviderImpl,
         private readonly configManager: LSConfigManager
     ) {}
+
+    private lastQuickFixContext: CodeActionContext | undefined;
 
     async getCodeActions(
         document: Document,
@@ -105,6 +117,58 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         }
 
         return [];
+    }
+
+    async resolveCodeAction(
+        document: Document,
+        codeAction: CodeAction,
+        cancellationToken?: CancellationToken | undefined
+    ): Promise<CodeAction> {
+        if (!this.isQuickFixAllResolveInfo(codeAction.data)) {
+            return codeAction;
+        }
+
+        const { lang, tsDoc, userPreferences } = await this.lsAndTsDocResolver.getLSAndTSDoc(
+            document
+        );
+        if (cancellationToken?.isCancellationRequested) {
+            return codeAction;
+        }
+
+        const formatCodeSettings = await this.configManager.getFormatCodeSettingsForFile(
+            document,
+            tsDoc.scriptKind
+        );
+
+        const fix = lang.getCombinedCodeFix(
+            {
+                type: 'file',
+                fileName: tsDoc.filePath
+            },
+            codeAction.data.fixId,
+            formatCodeSettings,
+            userPreferences
+        );
+
+        const snapshots = new SnapshotMap(this.lsAndTsDocResolver);
+        const fixAction = {
+            fixName: codeAction.data.fixName,
+            changes: Array.from(fix.changes),
+            description: ''
+        };
+
+        codeAction.edit = {
+            documentChanges: await this.convertAndFixCodeFixAction(
+                fixAction,
+                snapshots,
+                document,
+                codeAction.data.triggerRange,
+                formatCodeSettings,
+                getFormatCodeBasis(formatCodeSettings)
+            )
+        };
+
+        return codeAction;
     }
 
     private async organizeImports(
@@ -312,110 +376,14 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         snapshots.set(tsDoc.filePath, tsDoc);
 
         const codeActionsPromises = codeFixes.map(async (fix) => {
-            const documentChangesPromises = fix.changes.map(async (change) => {
-                const snapshot = await snapshots.retrieve(change.fileName);
-                return TextDocumentEdit.create(
-                    OptionalVersionedTextDocumentIdentifier.create(
-                        pathToUrl(change.fileName),
-                        null
-                    ),
-                    change.textChanges
-                        .map((edit) => {
-                            if (
-                                fix.fixName === 'import' &&
-                                snapshot instanceof SvelteDocumentSnapshot
-                            ) {
-                                return this.completionProvider.codeActionChangeToTextEdit(
-                                    document,
-                                    snapshot,
-                                    edit,
-                                    true,
-                                    range.start
-                                );
-                            }
-
-                            if (isTextSpanInGeneratedCode(snapshot.getFullText(), edit.span)) {
-                                return undefined;
-                            }
-
-                            let originalRange = mapRangeToOriginal(
-                                snapshot,
-                                convertRange(snapshot, edit.span)
-                            );
-
-                            if (fix.fixName === 'unusedIdentifier') {
-                                originalRange = this.checkRemoveImportCodeActionRange(
-                                    edit,
-                                    snapshot,
-                                    originalRange
-                                );
-                            }
-
-                            if (fix.fixName === 'fixMissingFunctionDeclaration') {
-                                originalRange = this.checkEndOfFileCodeInsert(
-                                    originalRange,
-                                    range,
-                                    document
-                                );
-
-                                // ts doesn't add base indent to the first line
-                                if (formatCodeSettings.baseIndentSize) {
-                                    const emptyLine = formatCodeBasis.newLine.repeat(2);
-                                    edit.newText =
-                                        emptyLine +
-                                        formatCodeBasis.baseIndent +
-                                        edit.newText.trimLeft();
-                                }
-                            }
-
-                            if (fix.fixName === 'disableJsDiagnostics') {
-                                if (edit.newText.includes('ts-nocheck')) {
-                                    return this.checkTsNoCheckCodeInsert(document, edit);
-                                }
-
-                                return this.checkDisableJsDiagnosticsCodeInsert(
-                                    originalRange,
-                                    document,
-                                    edit
-                                );
-                            }
-
-                            if (fix.fixName === 'inferFromUsage') {
-                                originalRange = this.checkAddJsDocCodeActionRange(
-                                    snapshot,
-                                    originalRange,
-                                    document
-                                );
-                            }
-
-                            if (fix.fixName === 'fixConvertConstToLet') {
-                                const offset = document.offsetAt(originalRange.start);
-                                const constOffset = document.getText().indexOf('const', offset);
-                                if (constOffset < 0) {
-                                    return undefined;
-                                }
-                                const beforeConst = document.getText().slice(0, constOffset);
-                                if (
-                                    beforeConst[beforeConst.length - 1] === '@' &&
-                                    beforeConst
-                                        .slice(0, beforeConst.length - 1)
-                                        .trimEnd()
-                                        .endsWith('{')
-                                ) {
-                                    return undefined;
-                                }
-                            }
-
-                            if (originalRange.start.line < 0 || originalRange.end.line < 0) {
-                                return undefined;
-                            }
-
-                            return TextEdit.replace(originalRange, edit.newText);
-                        })
-                        .filter(isNotNullOrUndefined)
-                );
-            });
-            const documentChanges = await Promise.all(documentChangesPromises);
+            const documentChanges = await this.convertAndFixCodeFixAction(
+                fix,
+                snapshots,
+                document,
+                range,
+                formatCodeSettings,
+                formatCodeBasis
+            );
             return CodeAction.create(
                 fix.description,
                 {
@@ -425,14 +393,173 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             );
         });
 
+        const identifier: TextDocumentIdentifier = {
+            uri: document.uri
+        };
+        const fixAllActions = this.getFixAllActions(codeFixes, identifier, range);
+
         const codeActions = await Promise.all(codeActionsPromises);
+        if (fixAllActions.length) {
+            this.lastQuickFixContext = {
+                diagnostics: context.diagnostics,
+            }
+        }
 
         // filter out empty code action
         return codeActions.filter((codeAction) =>
             codeAction.edit?.documentChanges?.every(
                 (change) => (<TextDocumentEdit>change).edits.length > 0
             )
+        ).concat(fixAllActions);
+    }
+
+    private isQuickFixAllResolveInfo(data: LSPAny): data is QuickFixAllResolveInfo {
+        const asserted = data as QuickFixAllResolveInfo | undefined;
+        return (
+            asserted?.fixId != undefined && typeof asserted.fixName === 'string' && Range.is(asserted.triggerRange)
         );
+    }
+
+    private async convertAndFixCodeFixAction(
+        fix: ts.CodeFixAction,
+        snapshots: SnapshotMap,
+        document: Document,
+        range: Range,
+        formatCodeSettings: ts.FormatCodeSettings,
+        formatCodeBasis: FormatCodeBasis
+    ) {
+        const documentChangesPromises = fix.changes.map(async (change) => {
+            const snapshot = await snapshots.retrieve(change.fileName);
+            return TextDocumentEdit.create(
+                OptionalVersionedTextDocumentIdentifier.create(pathToUrl(change.fileName), null),
+                change.textChanges
+                    .map((edit) => {
+                        if (
+                            fix.fixName === 'import' &&
+                            snapshot instanceof SvelteDocumentSnapshot
+                        ) {
+                            return this.completionProvider.codeActionChangeToTextEdit(
+                                document,
+                                snapshot,
+                                edit,
+                                true,
+                                range.start
+                            );
+                        }
+
+                        if (isTextSpanInGeneratedCode(snapshot.getFullText(), edit.span)) {
+                            return undefined;
+                        }
+
+                        let originalRange = mapRangeToOriginal(
+                            snapshot,
+                            convertRange(snapshot, edit.span)
+                        );
+
+                        if (fix.fixName === 'unusedIdentifier') {
+                            originalRange = this.checkRemoveImportCodeActionRange(
+                                edit,
+                                snapshot,
+                                originalRange
+                            );
+                        }
+
+                        if (fix.fixName === 'fixMissingFunctionDeclaration') {
+                            originalRange = this.checkEndOfFileCodeInsert(
+                                originalRange,
+                                range,
+                                document
+                            );
+
+                            // ts doesn't add base indent to the first line
+                            if (formatCodeSettings.baseIndentSize) {
+                                const emptyLine = formatCodeBasis.newLine.repeat(2);
+                                edit.newText =
+                                    emptyLine +
+                                    formatCodeBasis.baseIndent +
+                                    edit.newText.trimLeft();
+                            }
+                        }
+
+                        if (fix.fixName === 'disableJsDiagnostics') {
+                            if (edit.newText.includes('ts-nocheck')) {
+                                return this.checkTsNoCheckCodeInsert(document, edit);
+                            }
+
+                            return this.checkDisableJsDiagnosticsCodeInsert(
+                                originalRange,
+                                document,
+                                edit
+                            );
+                        }
+
+                        if (fix.fixName === 'inferFromUsage') {
+                            originalRange = this.checkAddJsDocCodeActionRange(
+                                snapshot,
+                                originalRange,
+                                document
+                            );
+                        }
+
+                        if (fix.fixName === 'fixConvertConstToLet') {
+                            const offset = document.offsetAt(originalRange.start);
+                            const constOffset = document.getText().indexOf('const', offset);
+                            if (constOffset < 0) {
+                                return undefined;
+                            }
+                            const beforeConst = document.getText().slice(0, constOffset);
+                            if (
+                                beforeConst[beforeConst.length - 1] === '@' &&
+                                beforeConst
+                                    .slice(0, beforeConst.length - 1)
+                                    .trimEnd()
+                                    .endsWith('{')
+                            ) {
+                                return undefined;
+                            }
+                        }
+
+                        if (originalRange.start.line < 0 || originalRange.end.line < 0) {
+                            return undefined;
+                        }
+
+                        return TextEdit.replace(originalRange, edit.newText);
+                    })
+                    .filter(isNotNullOrUndefined)
+            );
+        });
+        const documentChanges = await Promise.all(documentChangesPromises);
+        return documentChanges;
+    }
+
+    private getFixAllActions(
+        codeFixes: readonly ts.CodeFixAction[],
+        identifier: TextDocumentIdentifier,
+        triggerRange: Range
+    ) {
+        const fixAll = new Map<FixId, CodeAction>();
+        for (const codeFix of codeFixes) {
+            if (!codeFix.fixId || !codeFix.fixAllDescription || fixAll.has(codeFix.fixId)) {
+                continue;
+            }
+
+            const codeAction = CodeAction.create(
+                codeFix.fixAllDescription,
+                CodeActionKind.QuickFix
+            );
+
+            const data: QuickFixAllResolveInfo = {
+                ...identifier,
+                fixName: codeFix.fixName,
+                fixId: codeFix.fixId,
+                triggerRange
+            };
+
+            codeAction.data = data;
+            fixAll.set(codeFix.fixId, codeAction);
+        }
+
+        return Array.from(fixAll.values());
     }
 
     /**
