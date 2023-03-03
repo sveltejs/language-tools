@@ -1,4 +1,5 @@
 import { EncodedSourceMap, TraceMap, originalPositionFor } from '@jridgewell/trace-mapping';
+import path from 'path';
 import { walk } from 'svelte/compiler';
 import { TemplateNode } from 'svelte/types/compiler/interfaces';
 import { svelte2tsx, IExportedNames } from 'svelte2tsx';
@@ -23,7 +24,8 @@ import {
     getScriptKindFromAttributes,
     getScriptKindFromFileName,
     isSvelteFilePath,
-    getTsCheckComment
+    getTsCheckComment,
+    findTopLevelFunction
 } from './utils';
 import { Logger } from '../../logger';
 import { dirname, join, resolve } from 'path';
@@ -394,17 +396,36 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
     }
 }
 
+const kitPageFiles = new Set([
+    '+page.ts',
+    '+page.js',
+    '+layout.ts',
+    '+layout.js',
+    '+page.server.ts',
+    '+page.server.js',
+    '+layout.server.ts',
+    '+layout.server.js'
+]);
+
 /**
  * A js/ts document snapshot suitable for the ts language service and the plugin.
  * Since no mapping has to be done here, it also implements the mapper interface.
+ * If it's a SvelteKit file (e.g. +page.ts), types will be auto-added if not explicitly typed.
  */
 export class JSOrTSDocumentSnapshot extends IdentityMapper implements DocumentSnapshot {
     scriptKind = getScriptKindFromFileName(this.filePath);
     scriptInfo = null;
     private lineOffsets?: number[];
+    private internalLineOffsets?: number[];
+    private addedCode: Array<{ pos: number; length: number; total: number }> = [];
+    private internalText = this.text;
+    private kitFile = '';
 
     constructor(public version: number, public readonly filePath: string, private text: string) {
         super(pathToUrl(filePath));
+        const basename = path.basename(this.filePath);
+        this.kitFile = kitPageFiles.has(basename) ? basename : '';
+        this.adjustText();
     }
 
     getText(start: number, end: number) {
@@ -436,17 +457,20 @@ export class JSOrTSDocumentSnapshot extends IdentityMapper implements DocumentSn
             let start = 0;
             let end = 0;
             if ('range' in change) {
-                start = this.offsetAt(change.range.start);
-                end = this.offsetAt(change.range.end);
+                start = this.internalOffsetAt(change.range.start);
+                end = this.internalOffsetAt(change.range.end);
             } else {
-                end = this.getLength();
+                end = this.internalText.length;
             }
 
-            this.text = this.text.slice(0, start) + change.text + this.text.slice(end);
+            this.internalText =
+                this.internalText.slice(0, start) + change.text + this.internalText.slice(end);
         }
 
+        this.adjustText();
         this.version++;
         this.lineOffsets = undefined;
+        this.internalLineOffsets = undefined;
     }
 
     protected getLineOffsets() {
@@ -454,6 +478,51 @@ export class JSOrTSDocumentSnapshot extends IdentityMapper implements DocumentSn
             this.lineOffsets = getLineOffsets(this.text);
         }
         return this.lineOffsets;
+    }
+
+    private internalOffsetAt(position: Position): number {
+        return offsetAt(position, this.internalText, this.getInternalLineOffsets());
+    }
+
+    private getInternalLineOffsets() {
+        if (!this.kitFile) {
+            return this.getLineOffsets();
+        }
+        if (!this.internalLineOffsets) {
+            this.internalLineOffsets = getLineOffsets(this.internalText);
+        }
+        return this.internalLineOffsets;
+    }
+
+    private adjustText() {
+        // TODO think about what this means for go to reference and renames, some kind of mapping maybe necessary - but maybe fine if we don't add new lines?
+        if (this.kitFile) {
+            const source = ts.createSourceFile(
+                this.filePath,
+                this.internalText,
+                ts.ScriptTarget.Latest,
+                true,
+                this.scriptKind
+            );
+
+            const load = findTopLevelFunction(source, 'load');
+            if (!load || load.parameters.length !== 1 || load.parameters[0].type) {
+                this.text = this.internalText;
+                return;
+            }
+
+            const pos = load.parameters[0].getEnd();
+            // TODO JSDoc for JS files - or filter out error if "no js" + 0 range?
+            const typeInsertion = `: import('./$types').${
+                this.kitFile.includes('layout') ? 'Layout' : 'Page'
+            }${this.kitFile.includes('server') ? 'Server' : ''}LoadEvent`;
+            this.text =
+                this.internalText.slice(0, pos) + typeInsertion + this.internalText.slice(pos);
+            this.addedCode = [{ pos, length: typeInsertion.length, total: typeInsertion.length }];
+            // TODO actions, other exports
+        } else {
+            this.text = this.internalText;
+        }
     }
 }
 

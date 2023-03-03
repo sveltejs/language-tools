@@ -18,6 +18,8 @@ interface ExportedName {
     doc?: string;
 }
 
+const kitPageFiles = new Set(['+page.svelte', '+layout.svelte']);
+
 export class ExportedNames {
     /**
      * Uses the $$Props type
@@ -33,7 +35,7 @@ export class ExportedNames {
     private doneDeclarationTransformation = new Set<ts.VariableDeclarationList>();
     private getters = new Set<string>();
 
-    constructor(private str: MagicString, private astOffset: number) {}
+    constructor(private str: MagicString, private astOffset: number, private basename: string) {}
 
     handleVariableStatement(node: ts.VariableStatement, parent: ts.Node): void {
         const exportModifier = findExportKeyword(node);
@@ -113,6 +115,15 @@ export class ExportedNames {
             const tsType = declaration.type;
             const jsDocType = ts.getJSDocType(declaration);
             const type = tsType || jsDocType;
+            const isKitExport = kitPageFiles.has(this.basename) && identifier.getText() === 'data';
+            // TS types are not allowed in JS files, but TS will still pick it up and the ignore comment will filter out the error
+            const kitType =
+                isKitExport && !tsType
+                    ? `: import('./$types').${
+                          this.basename.includes('layout') ? 'LayoutData' : 'PageData'
+                      }`
+                    : undefined;
+            const end = declaration.end + this.astOffset;
 
             if (
                 ts.isIdentifier(identifier) &&
@@ -129,13 +140,14 @@ export class ExportedNames {
                         )))
             ) {
                 const name = identifier.getText();
-                const end = declaration.end + this.astOffset;
 
                 preprendStr(
                     this.str,
                     end,
-                    surroundWithIgnoreComments(`;${name} = __sveltets_2_any(${name});`)
+                    surroundWithIgnoreComments(`${kitType};${name} = __sveltets_2_any(${name});`)
                 );
+            } else if (kitType) {
+                preprendStr(this.str, end, surroundWithIgnoreComments(`${kitType}`));
             }
         };
 

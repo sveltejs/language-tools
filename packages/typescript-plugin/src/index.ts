@@ -136,6 +136,7 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
                 snapshotManager,
                 logger,
                 configManager,
+                info,
                 modules.typescript
             ),
             projectSvelteFilesManager ?? {

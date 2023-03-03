@@ -1,16 +1,34 @@
-import { basename, dirname, extname } from 'path';
-import type ts from 'typescript';
+import { basename, dirname } from 'path';
+import type ts from 'typescript/lib/tsserverlibrary';
 import { Logger } from '../logger';
 import { isSvelteFilePath, replaceDeep } from '../utils';
+import { getVirtualLS } from './proxy';
 
 type _ts = typeof ts;
 
 const componentPostfix = '__SvelteComponent_';
 
-export function decorateCompletions(ls: ts.LanguageService, ts: _ts, logger: Logger): void {
+export function decorateCompletions(
+    ls: ts.LanguageService,
+    info: ts.server.PluginCreateInfo,
+    typescript: _ts,
+    logger: Logger
+): void {
     const getCompletionsAtPosition = ls.getCompletionsAtPosition;
     ls.getCompletionsAtPosition = (fileName, position, options) => {
-        const completions = getCompletionsAtPosition(fileName, position, options);
+        let completions;
+
+        const result = getVirtualLS(fileName, info, typescript);
+        if (result) {
+            const { languageService, length, pos } = result;
+            completions = languageService.getCompletionsAtPosition(
+                fileName,
+                position < pos ? position : position + length,
+                options
+            );
+        }
+
+        completions = completions ?? getCompletionsAtPosition(fileName, position, options);
         if (!completions) {
             return completions;
         }
@@ -60,20 +78,6 @@ export function decorateCompletions(ls: ts.LanguageService, ts: _ts, logger: Log
             }
         }
 
-        if (basename(fileName).startsWith('+page') || basename(fileName).startsWith('+layout')) {
-            if (extname(fileName) === '.js') {
-                completions.entries.push({
-                    // TODO doesn't show up for "export" and "load" only at the bottom for "function"
-                    kind: ts.ScriptElementKind.functionElement,
-                    name: 'export function load() {}',
-                    sortText: '-99',
-                    kindModifiers: ts.ScriptElementKindModifier.exportedModifier,
-                    insertText: `/** @type {import('./$types').Foo} */\nexport function load() {}`
-                });
-            } else {
-            }
-        }
-
         return {
             ...completions,
             entries: completions.entries.map((entry) => {
@@ -102,16 +106,33 @@ export function decorateCompletions(ls: ts.LanguageService, ts: _ts, logger: Log
         data
     ) => {
         const is$typeImport = (data as any)?.__is_sveltekit$typeImport;
+        let details: ts.CompletionEntryDetails | undefined;
 
-        const details = getCompletionEntryDetails(
-            fileName,
-            position,
-            entryName,
-            formatOptions,
-            source,
-            preferences,
-            data
-        );
+        const result = getVirtualLS(fileName, info, typescript);
+        if (result) {
+            const { languageService, length, pos } = result;
+            details = languageService.getCompletionEntryDetails(
+                fileName,
+                position < pos ? position : position + length,
+                entryName,
+                formatOptions,
+                source,
+                preferences,
+                data
+            );
+        }
+
+        details =
+            details ??
+            getCompletionEntryDetails(
+                fileName,
+                position,
+                entryName,
+                formatOptions,
+                source,
+                preferences,
+                data
+            );
 
         if (details) {
             if (is$typeImport) {
@@ -156,6 +177,20 @@ export function decorateCompletions(ls: ts.LanguageService, ts: _ts, logger: Log
         logger.debug('Found Svelte Component import completion details');
 
         return replaceDeep(svelteDetails, componentPostfix, '');
+    };
+
+    const getSignatureHelpItems = ls.getSignatureHelpItems;
+    ls.getSignatureHelpItems = (fileName, position, options) => {
+        const result = getVirtualLS(fileName, info, typescript);
+        if (result) {
+            const { languageService, length, pos } = result;
+            return languageService.getSignatureHelpItems(
+                fileName,
+                position < pos ? position : position + length,
+                options
+            );
+        }
+        return getSignatureHelpItems(fileName, position, options);
     };
 }
 

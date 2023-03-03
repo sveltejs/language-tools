@@ -39,7 +39,8 @@ export function processInstanceScriptContent(
     events: ComponentEvents,
     implicitStoreValues: ImplicitStoreValues,
     mode: 'ts' | 'dts',
-    hasModuleScript: boolean
+    hasModuleScript: boolean,
+    basename: string
 ): InstanceScriptProcessResult {
     const htmlx = str.original;
     const scriptContent = htmlx.substring(script.content.start, script.content.end);
@@ -51,7 +52,7 @@ export function processInstanceScriptContent(
         ts.ScriptKind.TS
     );
     const astOffset = script.content.start;
-    const exportedNames = new ExportedNames(str, astOffset);
+    const exportedNames = new ExportedNames(str, astOffset, basename);
     const generics = new Generics(str, astOffset);
     const interfacesAndTypes = new InterfacesAndTypes();
 

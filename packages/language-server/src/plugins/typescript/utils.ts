@@ -371,3 +371,35 @@ export function hasTsExtensions(fileName: string) {
         fileName.endsWith(ts.Extension.Ts)
     );
 }
+
+export function findTopLevelFunction(source: ts.SourceFile, name: string) {
+    // TODO handle indirect exports
+    for (const statement of source.statements) {
+        if (
+            ts.isFunctionDeclaration(statement) &&
+            statement.name &&
+            statement.name.text === name &&
+            statement.modifiers?.[0]?.kind === ts.SyntaxKind.ExportKeyword
+        ) {
+            // export function x ...
+            return statement;
+        }
+        if (
+            ts.isVariableStatement(statement) &&
+            statement.declarationList.declarations.length === 1 &&
+            statement.declarationList.declarations[0].name.getText() === name &&
+            statement.modifiers?.[0]?.kind === ts.SyntaxKind.ExportKeyword
+        ) {
+            // export const x = ...
+            const declaration = statement.declarationList.declarations[0];
+            if (
+                declaration.initializer &&
+                (ts.isFunctionExpression(declaration.initializer) ||
+                    ts.isArrowFunction(declaration.initializer))
+            ) {
+                // this doesn't match `(() => {}) satisfies ..`, AST is different for it
+                return declaration.initializer;
+            }
+        }
+    }
+}
