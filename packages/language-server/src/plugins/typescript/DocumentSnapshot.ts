@@ -552,13 +552,28 @@ export class JSOrTSDocumentSnapshot extends IdentityMapper implements DocumentSn
             );
 
             const insert = (pos: number, inserted: string) => {
-                const prevTotal = this.addedCode[this.addedCode.length - 1]?.total ?? 0;
-                this.addedCode.push({
-                    pos: pos + prevTotal,
-                    length: inserted.length,
-                    inserted,
-                    total: prevTotal + inserted.length
-                });
+                const insertionIdx = this.addedCode.findIndex((c) => c.pos > pos);
+                if (insertionIdx >= 0) {
+                    for (let i = insertionIdx; i < this.addedCode.length; i++) {
+                        this.addedCode[i].pos += inserted.length;
+                        this.addedCode[i].total += inserted.length;
+                    }
+                    const prevTotal = this.addedCode[insertionIdx - 1]?.total ?? 0;
+                    this.addedCode.splice(insertionIdx, 0, {
+                        pos: pos + prevTotal,
+                        length: inserted.length,
+                        inserted,
+                        total: prevTotal + inserted.length
+                    });
+                } else {
+                    const prevTotal = this.addedCode[this.addedCode.length - 1]?.total ?? 0;
+                    this.addedCode.push({
+                        pos: pos + prevTotal,
+                        length: inserted.length,
+                        inserted,
+                        total: prevTotal + inserted.length
+                    });
+                }
             };
 
             const exports = findExports(source);
@@ -591,7 +606,63 @@ export class JSOrTSDocumentSnapshot extends IdentityMapper implements DocumentSn
                 ts.isObjectLiteralExpression(actions.node.initializer)
             ) {
                 const pos = actions.node.initializer.getEnd();
-                const inserted = surroundWithIgnoreComments(`satisfies import('./$types').Actions`);
+                const inserted = surroundWithIgnoreComments(
+                    ` satisfies import('./$types').Actions`
+                );
+                insert(pos, inserted);
+            }
+
+            // add type to prerender variable if not explicitly typed
+            const prerender = exports.get('prerender');
+            if (
+                prerender?.type === 'var' &&
+                !prerender.node.type &&
+                (isTsFile || !ts.getJSDocType(prerender.node)) &&
+                prerender.node.initializer
+            ) {
+                const pos = prerender.node.name.getEnd();
+                const inserted = surroundWithIgnoreComments(
+                    ` : import('@sveltejs/kit').PrerenderOption`
+                );
+                insert(pos, inserted);
+            }
+
+            // add type to trailingSlash variable if not explicitly typed
+            const trailingSlash = exports.get('trailingSlash');
+            if (
+                trailingSlash?.type === 'var' &&
+                !trailingSlash.node.type &&
+                (isTsFile || !ts.getJSDocType(trailingSlash.node)) &&
+                trailingSlash.node.initializer
+            ) {
+                const pos = trailingSlash.node.name.getEnd();
+                const inserted = surroundWithIgnoreComments(` : 'never' | 'always' | 'ignore'`); // TODO this should be exported from kit
+                insert(pos, inserted);
+            }
+
+            // add type to ssr variable if not explicitly typed
+            const ssr = exports.get('ssr');
+            if (
+                ssr?.type === 'var' &&
+                !ssr.node.type &&
+                (isTsFile || !ts.getJSDocType(ssr.node)) &&
+                ssr.node.initializer
+            ) {
+                const pos = ssr.node.name.getEnd();
+                const inserted = surroundWithIgnoreComments(` : boolean`);
+                insert(pos, inserted);
+            }
+
+            // add type to csr variable if not explicitly typed
+            const csr = exports.get('csr');
+            if (
+                csr?.type === 'var' &&
+                !csr.node.type &&
+                (isTsFile || !ts.getJSDocType(csr.node)) &&
+                csr.node.initializer
+            ) {
+                const pos = csr.node.name.getEnd();
+                const inserted = surroundWithIgnoreComments(` : boolean`);
                 insert(pos, inserted);
             }
 
