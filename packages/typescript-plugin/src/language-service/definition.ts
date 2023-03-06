@@ -2,9 +2,14 @@ import type ts from 'typescript/lib/tsserverlibrary';
 import { Logger } from '../logger';
 import { SvelteSnapshotManager } from '../svelte-snapshots';
 import { isNotNullOrUndefined, isSvelteFilePath } from '../utils';
+import { getVirtualLS } from './sveltekit';
+
+type _ts = typeof ts;
 
 export function decorateGetDefinition(
     ls: ts.LanguageService,
+    info: ts.server.PluginCreateInfo,
+    ts: _ts,
     snapshotManager: SvelteSnapshotManager,
     logger: Logger
 ): void {
@@ -12,7 +17,7 @@ export function decorateGetDefinition(
     ls.getDefinitionAndBoundSpan = (fileName, position) => {
         const definition = getDefinitionAndBoundSpan(fileName, position);
         if (!definition?.definitions) {
-            return definition;
+            return getKitDefinitions(ts, info, fileName, position);
         }
 
         return {
@@ -42,5 +47,26 @@ export function decorateGetDefinition(
                 })
                 .filter(isNotNullOrUndefined)
         };
+    };
+}
+
+function getKitDefinitions(
+    ts: _ts,
+    info: ts.server.PluginCreateInfo,
+    fileName: string,
+    position: number
+) {
+    const result = getVirtualLS(fileName, info, ts);
+    if (!result) return;
+    const { languageService, toOriginalPos, toVirtualPos } = result;
+    const virtualPos = toVirtualPos(position);
+    const definitions = languageService.getDefinitionAndBoundSpan(fileName, virtualPos);
+    if (!definitions) return;
+    // Assumption: This is only called when the original definitions didn't turn up anything.
+    // Therefore we are called on things like export function load ({ fetch }) .
+    // This means the textSpan needs conversion but none of the definitions because they are all referencing other files.
+    return {
+        ...definitions,
+        textSpan: { ...definitions.textSpan, start: toOriginalPos(definitions.textSpan.start).pos }
     };
 }

@@ -46,7 +46,7 @@ function decorateLanguageServiceInner(
     decorateDiagnostics(ls, info, typescript, logger);
     decorateFindReferences(ls, snapshotManager, logger);
     decorateCompletions(ls, info, typescript, logger);
-    decorateGetDefinition(ls, snapshotManager, logger);
+    decorateGetDefinition(ls, info, typescript, snapshotManager, logger);
     decorateGetImplementation(ls, snapshotManager, logger);
     decorateUpdateImports(ls, snapshotManager, logger);
     decorateCallHierarchy(ls, snapshotManager, typescript);
