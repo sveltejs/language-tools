@@ -78,23 +78,36 @@ export class HumanFriendlyWriter implements Writer {
     private getCodeLine(diagnostic: Diagnostic, text: string) {
         const startOffset = offsetAt(diagnostic.range.start, text);
         const endOffset = offsetAt(diagnostic.range.end, text);
-        const codePrev = text.substring(
-            offsetAt({ line: diagnostic.range.start.line, character: 0 }, text),
-            startOffset
+        const codePrev = this.removeGeneratedCode(
+            text.substring(
+                offsetAt({ line: diagnostic.range.start.line, character: 0 }, text),
+                startOffset
+            )
         );
         const codeHighlight = pc.magenta(text.substring(startOffset, endOffset));
-        const codePost = text.substring(
-            endOffset,
-            offsetAt({ line: diagnostic.range.end.line, character: Number.MAX_SAFE_INTEGER }, text)
+        const codePost = this.removeGeneratedCode(
+            text.substring(
+                endOffset,
+                offsetAt(
+                    { line: diagnostic.range.end.line, character: Number.MAX_SAFE_INTEGER },
+                    text
+                )
+            )
         );
         return codePrev + codeHighlight + codePost;
     }
 
     private getLine(line: number, text: string): string {
-        return text.substring(
-            offsetAt({ line, character: 0 }, text),
-            offsetAt({ line, character: Number.MAX_SAFE_INTEGER }, text)
+        return this.removeGeneratedCode(
+            text.substring(
+                offsetAt({ line, character: 0 }, text),
+                offsetAt({ line, character: Number.MAX_SAFE_INTEGER }, text)
+            )
         );
+    }
+
+    private removeGeneratedCode(text: string): string {
+        return text.replace(/\/\*Ωignore_startΩ\*\/.+\/\*Ωignore_endΩ\*\//g, '');
     }
 
     completion(_f: number, errorCount: number, warningCount: number) {
