@@ -1,5 +1,6 @@
 import type ts from 'typescript/lib/tsserverlibrary';
 import { SvelteSnapshot } from './svelte-snapshots';
+type _ts = typeof ts;
 
 export function isSvelteFilePath(filePath: string) {
     return filePath.endsWith('.svelte');
@@ -126,6 +127,56 @@ export function findNodeAtSpan<T extends ts.Node>(
             return foundInChildren;
         }
     }
+}
+
+/**
+ * Finds node somewhere at position.
+ */
+export function findNodeAtPosition<T extends ts.Node>(
+    node: ts.Node,
+    pos: number,
+    predicate?: NodeTypePredicate<T>
+): T | void {
+    for (const child of node.getChildren()) {
+        const childStart = child.getStart();
+        if (pos < childStart) {
+            return;
+        }
+
+        const childEnd = child.getEnd();
+        if (pos > childEnd) {
+            continue;
+        }
+
+        const foundInChildren = findNodeAtPosition(child, pos, predicate);
+        if (foundInChildren) {
+            return foundInChildren;
+        }
+
+        if (!predicate) {
+            return child as T;
+        }
+        if (predicate(child)) {
+            return child;
+        }
+    }
+}
+
+/**
+ * True if is `export const/let/function`
+ */
+export function isTopLevelExport(ts: _ts, node: ts.Node, source: ts.SourceFile) {
+    return (
+        (ts.isVariableStatement(node) && source.statements.includes(node as any)) ||
+        (ts.isIdentifier(node) &&
+            node.parent &&
+            ts.isVariableDeclaration(node.parent) &&
+            source.statements.includes(node.parent?.parent?.parent as any)) ||
+        (ts.isIdentifier(node) &&
+            node.parent &&
+            ts.isFunctionDeclaration(node.parent) &&
+            source.statements.includes(node.parent as any))
+    );
 }
 
 const COMPONENT_SUFFIX = '__SvelteComponent_';

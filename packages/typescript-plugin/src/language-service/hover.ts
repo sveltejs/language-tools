@@ -1,6 +1,7 @@
 import type ts from 'typescript/lib/tsserverlibrary';
 import { Logger } from '../logger';
-import { getVirtualLS } from './proxy';
+import { findNodeAtPosition, isTopLevelExport } from '../utils';
+import { getVirtualLS, kitExports } from './sveltekit';
 
 type _ts = typeof ts;
 
@@ -17,8 +18,20 @@ export function decorateHover(
         if (!result) return getQuickInfoAtPosition(fileName, position);
 
         const { languageService, toOriginalPos, toVirtualPos } = result;
-        const quickInfo = languageService.getQuickInfoAtPosition(fileName, toVirtualPos(position));
+        const virtualPos = toVirtualPos(position);
+        const quickInfo = languageService.getQuickInfoAtPosition(fileName, virtualPos);
         if (!quickInfo) return quickInfo;
+
+        const source = languageService.getProgram()?.getSourceFile(fileName);
+        const node = source && findNodeAtPosition(source, virtualPos);
+        if (node && isTopLevelExport(ts, node, source) && ts.isIdentifier(node)) {
+            const name = node.text;
+            if (name in kitExports) {
+                quickInfo.documentation = !quickInfo.documentation?.length
+                    ? kitExports[name as any as keyof typeof kitExports].documentation
+                    : quickInfo.documentation;
+            }
+        }
 
         return {
             ...quickInfo,

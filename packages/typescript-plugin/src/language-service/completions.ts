@@ -1,8 +1,8 @@
 import { basename, dirname } from 'path';
 import type ts from 'typescript/lib/tsserverlibrary';
 import { Logger } from '../logger';
-import { isSvelteFilePath, replaceDeep } from '../utils';
-import { getVirtualLS } from './proxy';
+import { findNodeAtPosition, isSvelteFilePath, isTopLevelExport, replaceDeep } from '../utils';
+import { getVirtualLS, kitExports } from './sveltekit';
 
 type _ts = typeof ts;
 
@@ -11,25 +11,65 @@ const componentPostfix = '__SvelteComponent_';
 export function decorateCompletions(
     ls: ts.LanguageService,
     info: ts.server.PluginCreateInfo,
-    typescript: _ts,
+    ts: _ts,
     logger: Logger
 ): void {
     const getCompletionsAtPosition = ls.getCompletionsAtPosition;
-    ls.getCompletionsAtPosition = (fileName, position, options) => {
+    ls.getCompletionsAtPosition = (fileName, position, options, settings) => {
         let completions;
 
-        const result = getVirtualLS(fileName, info, typescript);
+        const result = getVirtualLS(fileName, info, ts);
         if (result) {
-            const { languageService, toVirtualPos } = result;
+            const { languageService, toVirtualPos, toOriginalPos } = result;
             completions = languageService.getCompletionsAtPosition(
                 fileName,
                 toVirtualPos(position),
-                options
+                options,
+                settings
             );
+            if (completions) {
+                completions.entries = completions.entries.map((c) => {
+                    if (c.replacementSpan) {
+                        return {
+                            ...c,
+                            replacementSpan: {
+                                ...c.replacementSpan,
+                                start: toOriginalPos(c.replacementSpan.start).pos
+                            }
+                        };
+                    }
+                    return c;
+                });
+            }
         }
 
-        completions = completions ?? getCompletionsAtPosition(fileName, position, options);
+        completions =
+            completions ?? getCompletionsAtPosition(fileName, position, options, settings);
         if (!completions) {
+            // No completions hints at a top level export in the making
+            const source = ls.getProgram()?.getSourceFile(fileName);
+            const node = source && findNodeAtPosition(source, position);
+            if (node && isTopLevelExport(ts, node, source)) {
+                return {
+                    entries: Object.entries(kitExports).map(([key, value]) => ({
+                        kind: ts.ScriptElementKind.constElement,
+                        name: key,
+                        labelDetails: {
+                            description: value.documentation.map((d) => d.text).join('')
+                        },
+                        sortText: '0',
+                        data: {
+                            __sveltekit: key,
+                            exportName: key // TS needs this
+                        } as any
+                    })),
+                    isGlobalCompletion: false,
+                    isMemberCompletion: false,
+                    isNewIdentifierLocation: false,
+                    isIncomplete: true
+                };
+            }
+
             return completions;
         }
 
@@ -105,10 +145,21 @@ export function decorateCompletions(
         preferences,
         data
     ) => {
+        if ((data as any)?.__sveltekit) {
+            const key = (data as any)?.__sveltekit as keyof typeof kitExports;
+            return {
+                name: key,
+                kind: ts.ScriptElementKind.constElement,
+                kindModifiers: ts.ScriptElementKindModifier.none,
+                displayParts: kitExports[key].displayParts,
+                documentation: kitExports[key].documentation
+            };
+        }
+
         const is$typeImport = (data as any)?.__is_sveltekit$typeImport;
         let details: ts.CompletionEntryDetails | undefined;
 
-        const result = getVirtualLS(fileName, info, typescript);
+        const result = getVirtualLS(fileName, info, ts);
         if (result) {
             const { languageService, toVirtualPos } = result;
             details = languageService.getCompletionEntryDetails(
@@ -181,7 +232,7 @@ export function decorateCompletions(
 
     const getSignatureHelpItems = ls.getSignatureHelpItems;
     ls.getSignatureHelpItems = (fileName, position, options) => {
-        const result = getVirtualLS(fileName, info, typescript);
+        const result = getVirtualLS(fileName, info, ts);
         if (result) {
             const { languageService, toVirtualPos } = result;
             return languageService.getSignatureHelpItems(fileName, toVirtualPos(position), options);

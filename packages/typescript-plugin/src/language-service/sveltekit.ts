@@ -25,7 +25,280 @@ const cache = new WeakMap<
     }
 >();
 
-export function getProxiedLanguageService(info: ts.server.PluginCreateInfo, ts: _ts) {
+export const kitExports = {
+    prerender: {
+        displayParts: [
+            {
+                text: 'const',
+                kind: 'keyword'
+            },
+            {
+                text: ' ',
+                kind: 'space'
+            },
+            {
+                text: 'prerender',
+                kind: 'localName'
+            },
+            {
+                text: ': ',
+                kind: 'punctuation'
+            },
+            {
+                text: 'boolean',
+                kind: 'keyword'
+            },
+            {
+                text: ' | ',
+                kind: 'punctuation'
+            },
+            {
+                text: "'auto'",
+                kind: 'stringLiteral'
+            }
+        ],
+        documentation: [
+            {
+                text: 'Control whether or not this page is prerendered. More info: https://kit.svelte.dev/docs/page-options#prerender',
+                kind: 'text'
+            }
+        ]
+    },
+    ssr: {
+        displayParts: [
+            {
+                text: 'const',
+                kind: 'keyword'
+            },
+            {
+                text: ' ',
+                kind: 'space'
+            },
+            {
+                text: 'ssr',
+                kind: 'localName'
+            },
+            {
+                text: ': ',
+                kind: 'punctuation'
+            },
+            {
+                text: 'boolean',
+                kind: 'keyword'
+            }
+        ],
+        documentation: [
+            {
+                text: 'Control whether or not this page is server-side rendered. More info: https://kit.svelte.dev/docs/page-options#ssr',
+                kind: 'text'
+            }
+        ]
+    },
+    csr: {
+        displayParts: [
+            {
+                text: 'const',
+                kind: 'keyword'
+            },
+            {
+                text: ' ',
+                kind: 'space'
+            },
+            {
+                text: 'csr',
+                kind: 'localName'
+            },
+            {
+                text: ': ',
+                kind: 'punctuation'
+            },
+            {
+                text: 'boolean',
+                kind: 'keyword'
+            }
+        ],
+        documentation: [
+            {
+                text: 'Control whether or not this page is hydrated (i.e. if JS is delivered to the client). More info: https://kit.svelte.dev/docs/page-options#csr',
+                kind: 'text'
+            }
+        ]
+    },
+    trailingSlash: {
+        displayParts: [
+            {
+                text: 'const',
+                kind: 'keyword'
+            },
+            {
+                text: ' ',
+                kind: 'space'
+            },
+            {
+                text: 'trailingSlash',
+                kind: 'localName'
+            },
+            {
+                text: ': ',
+                kind: 'punctuation'
+            },
+            {
+                text: "'auto' | 'always' | 'never'",
+                kind: 'stringLiteral'
+            }
+        ],
+        documentation: [
+            {
+                text: 'Control how SvelteKit should handle (missing) trailing slashes in the URL. More info: https://kit.svelte.dev/docs/page-options#trailingslash',
+                kind: 'text'
+            }
+        ]
+    },
+    config: {
+        displayParts: [
+            {
+                text: 'const',
+                kind: 'keyword'
+            },
+            {
+                text: ' ',
+                kind: 'space'
+            },
+            {
+                text: 'config',
+                kind: 'localName'
+            },
+            {
+                text: ': ',
+                kind: 'punctuation'
+            },
+            {
+                text: 'Config',
+                kind: 'interfaceName'
+            }
+        ],
+        documentation: [
+            {
+                text:
+                    `With the concept of adapters, SvelteKit is able to run on a variety of platforms. ` +
+                    `Each of these might have specific configuration to further tweak the deployment, which you can configure here. ` +
+                    `More info: https://kit.svelte.dev/docs/page-options#config`,
+                kind: 'text'
+            }
+        ]
+    },
+    actions: {
+        displayParts: [
+            {
+                text: 'const',
+                kind: 'keyword'
+            },
+            {
+                text: ' ',
+                kind: 'space'
+            },
+            {
+                text: 'actions',
+                kind: 'localName'
+            },
+            {
+                text: ': ',
+                kind: 'punctuation'
+            },
+            {
+                text: 'Actions',
+                kind: 'interfaceName'
+            }
+        ],
+        documentation: [
+            {
+                text:
+                    `An object of methods which handle form POST requests. ` +
+                    `More info: https://kit.svelte.dev/docs/form-actions`,
+                kind: 'text'
+            }
+        ]
+    },
+    load: {
+        displayParts: [
+            {
+                text: 'export',
+                kind: 'keyword'
+            },
+            {
+                text: ' ',
+                kind: 'space'
+            },
+            {
+                text: 'function',
+                kind: 'keyword'
+            },
+            {
+                text: ' ',
+                kind: 'space'
+            },
+            {
+                text: 'load',
+                kind: 'localName'
+            },
+            {
+                text: '(',
+                kind: 'punctuation'
+            },
+            {
+                text: 'event',
+                kind: 'parameterName'
+            },
+            {
+                text: ': ',
+                kind: 'punctuation'
+            },
+            {
+                text: 'LoadEvent',
+                kind: 'interfaceName'
+            },
+            {
+                text: ')',
+                kind: 'punctuation'
+            },
+            {
+                text: ': ',
+                kind: 'punctuation'
+            },
+            {
+                text: 'Promise',
+                kind: 'keyword'
+            },
+            {
+                text: '<',
+                kind: 'punctuation'
+            },
+            {
+                text: 'LoadOutput',
+                kind: 'interfaceName'
+            },
+            {
+                text: '>',
+                kind: 'punctuation'
+            }
+        ],
+        documentation: [
+            {
+                text: 'Loads data for the given page or layout. More info: https://kit.svelte.dev/docs/load',
+                kind: 'text'
+            }
+        ]
+    }
+} satisfies Record<
+    string,
+    { displayParts: ts.SymbolDisplayPart[]; documentation: ts.SymbolDisplayPart[] }
+>;
+
+export function getProxiedLanguageService(
+    info: ts.server.PluginCreateInfo,
+    ts: _ts,
+    logger?: Logger
+) {
     const cachedProxiedLanguageService = cache.get(info);
     if (cachedProxiedLanguageService) {
         return cachedProxiedLanguageService;
@@ -37,17 +310,23 @@ export function getProxiedLanguageService(info: ts.server.PluginCreateInfo, ts: 
         files: Record<string, KitSnapshot> = {};
 
         log() {}
+
         trace() {}
+
         error() {}
+
         getCompilationSettings() {
             return originalLanguageServiceHost.getCompilationSettings();
         }
+
         getScriptIsOpen() {
             return true;
         }
+
         getCurrentDirectory() {
             return originalLanguageServiceHost.getCurrentDirectory();
         }
+
         getDefaultLibFileName(o: any) {
             return originalLanguageServiceHost.getDefaultLibFileName(o);
         }
@@ -65,12 +344,7 @@ export function getProxiedLanguageService(info: ts.server.PluginCreateInfo, ts: 
         }
 
         getScriptFileNames(): string[] {
-            const names: Set<string> = new Set();
-            for (var name in this.files) {
-                if (this.files.hasOwnProperty(name)) {
-                    names.add(name);
-                }
-            }
+            const names: Set<string> = new Set(Object.keys(this.files));
             const files = originalLanguageServiceHost.getScriptFileNames();
             for (const file of files) {
                 names.add(file);
@@ -80,8 +354,9 @@ export function getProxiedLanguageService(info: ts.server.PluginCreateInfo, ts: 
 
         getKitScriptSnapshotIfUpToDate(fileName: string) {
             if (
+                !this.files[fileName] ||
                 this.getScriptVersion(fileName) !==
-                originalLanguageServiceHost.getScriptVersion(fileName)
+                    originalLanguageServiceHost.getScriptVersion(fileName)
             ) {
                 return undefined;
             }
@@ -271,7 +546,7 @@ export function getVirtualLS(
     ts: _ts,
     logger?: Logger
 ) {
-    const proxy = getProxiedLanguageService(info, ts);
+    const proxy = getProxiedLanguageService(info, ts, logger);
     const result =
         proxy.languageServiceHost.getKitScriptSnapshotIfUpToDate(fileName) ??
         proxy.languageServiceHost.upsertKitFile(fileName);

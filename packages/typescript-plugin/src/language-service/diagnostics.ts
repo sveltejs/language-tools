@@ -1,7 +1,7 @@
 import type ts from 'typescript/lib/tsserverlibrary';
 import { Logger } from '../logger';
 import { isSvelteFilePath } from '../utils';
-import { getVirtualLS } from './proxy';
+import { getVirtualLS } from './sveltekit';
 
 type _ts = typeof ts;
 
@@ -116,7 +116,7 @@ function getKitDiagnostics<
             } else {
                 diagnostic = {
                     ...diagnostic,
-                    // adjust lenght so it doesn't spill over to the next line
+                    // adjust length so it doesn't spill over to the next line
                     length: 1,
                     messageText:
                         typeof diagnostic.messageText === 'string' &&
