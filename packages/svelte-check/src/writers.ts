@@ -7,7 +7,12 @@ import { offsetAt } from 'svelte-language-server';
 export interface Writer {
     start: (workspaceDir: string) => void;
     file: (d: Diagnostic[], workspaceDir: string, filename: string, text: string) => void;
-    completion: (fileCount: number, errorCount: number, warningCount: number) => void;
+    completion: (
+        fileCount: number,
+        errorCount: number,
+        warningCount: number,
+        fileCountWithProblems: number
+    ) => void;
     failure: (err: Error) => void;
 }
 
@@ -110,12 +115,18 @@ export class HumanFriendlyWriter implements Writer {
         return text.replace(/\/\*Ωignore_startΩ\*\/.+\/\*Ωignore_endΩ\*\//g, '');
     }
 
-    completion(_f: number, errorCount: number, warningCount: number) {
+    completion(
+        _f: number,
+        errorCount: number,
+        warningCount: number,
+        fileCountWithProblems: number
+    ) {
         this.stream.write('====================================\n');
         const message = [
             'svelte-check found ',
             `${errorCount} ${errorCount === 1 ? 'error' : 'errors'} and `,
-            `${warningCount} ${warningCount === 1 ? 'warning' : 'warnings'}\n`
+            `${warningCount} ${warningCount === 1 ? 'warning' : 'warnings'} in `,
+            `${fileCountWithProblems} ${fileCountWithProblems === 1 ? 'file' : 'files'}\n`
         ].join('');
         if (errorCount !== 0) {
             this.stream.write(pc.red(message));
@@ -164,13 +175,19 @@ export class MachineFriendlyWriter implements Writer {
         });
     }
 
-    completion(fileCount: number, errorCount: number, warningCount: number) {
+    completion(
+        fileCount: number,
+        errorCount: number,
+        warningCount: number,
+        fileCountWithProblems: number
+    ) {
         this.log(
             [
                 'COMPLETED',
                 `${fileCount} FILES`,
                 `${errorCount} ERRORS`,
-                `${warningCount} WARNINGS`
+                `${warningCount} WARNINGS`,
+                `${fileCountWithProblems} FILES_WITH_PROBLEMS`
             ].join(' ')
         );
     }
