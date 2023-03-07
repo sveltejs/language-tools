@@ -115,14 +115,23 @@ export class ExportedNames {
             const tsType = declaration.type;
             const jsDocType = ts.getJSDocType(declaration);
             const type = tsType || jsDocType;
-            const isKitExport = kitPageFiles.has(this.basename) && identifier.getText() === 'data';
+            const name = identifier.getText();
+            const isKitExport =
+                kitPageFiles.has(this.basename) &&
+                (name === 'data' || name === 'form' || name === 'snapshot');
             // TS types are not allowed in JS files, but TS will still pick it up and the ignore comment will filter out the error
             const kitType =
-                isKitExport && !tsType
+                isKitExport && !type
                     ? `: import('./$types').${
-                          this.basename.includes('layout') ? 'LayoutData' : 'PageData'
+                          name === 'data'
+                              ? this.basename.includes('layout')
+                                  ? 'LayoutData'
+                                  : 'PageData'
+                              : name === 'form'
+                              ? 'ActionData'
+                              : 'Snapshot'
                       }`
-                    : undefined;
+                    : '';
             const end = declaration.end + this.astOffset;
 
             if (
