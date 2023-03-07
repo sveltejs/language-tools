@@ -7,7 +7,8 @@ interface KitSnapshot {
     file: ts.IScriptSnapshot;
     version: string;
     addedCode: Array<{
-        pos: number;
+        generatedPos: number;
+        originalPos: number;
         length: number;
         total: number;
         inserted: string;
@@ -390,15 +391,16 @@ export function getProxiedLanguageService(
 
             const addedCode: KitSnapshot['addedCode'] = [];
             const insert = (pos: number, inserted: string) => {
-                const insertionIdx = addedCode.findIndex((c) => c.pos > pos);
+                const insertionIdx = addedCode.findIndex((c) => c.generatedPos > pos);
                 if (insertionIdx >= 0) {
                     for (let i = insertionIdx; i < addedCode.length; i++) {
-                        addedCode[i].pos += inserted.length;
+                        addedCode[i].generatedPos += inserted.length;
                         addedCode[i].total += inserted.length;
                     }
                     const prevTotal = addedCode[insertionIdx - 1]?.total ?? 0;
                     addedCode.splice(insertionIdx, 0, {
-                        pos: pos + prevTotal,
+                        generatedPos: pos + prevTotal,
+                        originalPos: pos,
                         length: inserted.length,
                         inserted,
                         total: prevTotal + inserted.length
@@ -406,7 +408,8 @@ export function getProxiedLanguageService(
                 } else {
                     const prevTotal = addedCode[addedCode.length - 1]?.total ?? 0;
                     addedCode.push({
-                        pos: pos + prevTotal,
+                        generatedPos: pos + prevTotal,
+                        originalPos: pos,
                         length: inserted.length,
                         inserted,
                         total: prevTotal + inserted.length
@@ -485,9 +488,8 @@ export function getProxiedLanguageService(
             let pos = 0;
             let text = '';
             for (const added of addedCode) {
-                const nextPos = added.pos - added.total + added.length;
-                text += originalText.slice(pos, nextPos) + added.inserted;
-                pos = nextPos;
+                text += originalText.slice(pos, added.originalPos) + added.inserted;
+                pos = added.originalPos;
             }
             text += originalText.slice(pos);
 
@@ -563,7 +565,7 @@ export function getVirtualLS(
 export function toVirtualPos(pos: number, addedCode: KitSnapshot['addedCode']) {
     let total = 0;
     for (const added of addedCode) {
-        if (pos < added.pos) break;
+        if (pos < added.originalPos) break;
         total += added.length;
     }
     return pos + total;
@@ -574,15 +576,15 @@ export function toOriginalPos(pos: number, addedCode: KitSnapshot['addedCode']) 
     let idx = 0;
     for (; idx < addedCode.length; idx++) {
         const added = addedCode[idx];
-        if (pos < added.pos) break;
+        if (pos < added.generatedPos) break;
         total += added.length;
     }
 
     if (idx > 0) {
         const prev = addedCode[idx - 1];
         // If pos is in the middle of an added range, return the start of the addition
-        if (pos > prev.pos && pos < prev.pos + prev.length) {
-            return { pos: prev.pos - prev.total + prev.length, inGenerated: true };
+        if (pos > prev.generatedPos && pos < prev.generatedPos + prev.length) {
+            return { pos: prev.originalPos, inGenerated: true };
         }
     }
 

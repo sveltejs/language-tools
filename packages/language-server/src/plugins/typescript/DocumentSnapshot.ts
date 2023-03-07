@@ -418,7 +418,13 @@ export class JSOrTSDocumentSnapshot extends IdentityMapper implements DocumentSn
     scriptInfo = null;
     private lineOffsets?: number[];
     private internalLineOffsets?: number[];
-    private addedCode: Array<{ pos: number; length: number; inserted: string; total: number }> = [];
+    private addedCode: Array<{
+        generatedPos: number;
+        originalPos: number;
+        length: number;
+        inserted: string;
+        total: number;
+    }> = [];
     private originalText = this.text;
     private kitFile = '';
 
@@ -461,7 +467,7 @@ export class JSOrTSDocumentSnapshot extends IdentityMapper implements DocumentSn
 
         let total = 0;
         for (const added of this.addedCode) {
-            if (pos < added.pos) break;
+            if (pos < added.generatedPos) break;
             total += added.length;
         }
 
@@ -478,15 +484,15 @@ export class JSOrTSDocumentSnapshot extends IdentityMapper implements DocumentSn
         let idx = 0;
         for (; idx < this.addedCode.length; idx++) {
             const added = this.addedCode[idx];
-            if (pos < added.pos) break;
+            if (pos < added.generatedPos) break;
             total += added.length;
         }
 
         if (idx > 0) {
             const prev = this.addedCode[idx - 1];
             // Special case: pos is in the middle of an added range
-            if (pos > prev.pos && pos < prev.pos + prev.length) {
-                total -= pos - prev.pos;
+            if (pos > prev.generatedPos && pos < prev.generatedPos + prev.length) {
+                total -= pos - prev.generatedPos;
             }
         }
 
@@ -552,15 +558,16 @@ export class JSOrTSDocumentSnapshot extends IdentityMapper implements DocumentSn
             );
 
             const insert = (pos: number, inserted: string) => {
-                const insertionIdx = this.addedCode.findIndex((c) => c.pos > pos);
+                const insertionIdx = this.addedCode.findIndex((c) => c.generatedPos > pos);
                 if (insertionIdx >= 0) {
                     for (let i = insertionIdx; i < this.addedCode.length; i++) {
-                        this.addedCode[i].pos += inserted.length;
+                        this.addedCode[i].generatedPos += inserted.length;
                         this.addedCode[i].total += inserted.length;
                     }
                     const prevTotal = this.addedCode[insertionIdx - 1]?.total ?? 0;
                     this.addedCode.splice(insertionIdx, 0, {
-                        pos: pos + prevTotal,
+                        generatedPos: pos + prevTotal,
+                        originalPos: pos,
                         length: inserted.length,
                         inserted,
                         total: prevTotal + inserted.length
@@ -568,7 +575,8 @@ export class JSOrTSDocumentSnapshot extends IdentityMapper implements DocumentSn
                 } else {
                     const prevTotal = this.addedCode[this.addedCode.length - 1]?.total ?? 0;
                     this.addedCode.push({
-                        pos: pos + prevTotal,
+                        generatedPos: pos + prevTotal,
+                        originalPos: pos,
                         length: inserted.length,
                         inserted,
                         total: prevTotal + inserted.length
@@ -670,9 +678,8 @@ export class JSOrTSDocumentSnapshot extends IdentityMapper implements DocumentSn
             let pos = 0;
             this.text = '';
             for (const added of this.addedCode) {
-                const nextPos = added.pos - added.total + added.length;
-                this.text += this.originalText.slice(pos, nextPos) + added.inserted;
-                pos = nextPos;
+                this.text += this.originalText.slice(pos, added.originalPos) + added.inserted;
+                pos = added.originalPos;
             }
             this.text += this.originalText.slice(pos);
         } else {
