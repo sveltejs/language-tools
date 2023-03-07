@@ -161,7 +161,7 @@ export function decorateCompletions(
 
         const result = getVirtualLS(fileName, info, ts);
         if (result) {
-            const { languageService, toVirtualPos } = result;
+            const { languageService, toVirtualPos, toOriginalPos } = result;
             details = languageService.getCompletionEntryDetails(
                 fileName,
                 toVirtualPos(position),
@@ -171,6 +171,23 @@ export function decorateCompletions(
                 preferences,
                 data
             );
+            if (details) {
+                details.codeActions = details.codeActions?.map((codeAction) => {
+                    codeAction.changes = codeAction.changes.map((change) => {
+                        change.textChanges = change.textChanges.map((textChange) => {
+                            return {
+                                ...textChange,
+                                span: {
+                                    ...textChange.span,
+                                    start: toOriginalPos(textChange.span.start).pos
+                                }
+                            };
+                        });
+                        return change;
+                    });
+                    return codeAction;
+                });
+            }
         }
 
         details =
