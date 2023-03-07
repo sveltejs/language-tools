@@ -1,4 +1,4 @@
-import { isAbsolute } from 'path';
+import { basename, isAbsolute } from 'path';
 import ts from 'typescript';
 import { Diagnostic, Position, Range } from 'vscode-languageserver';
 import { WorkspaceFolder } from 'vscode-languageserver-protocol';
@@ -16,6 +16,8 @@ import {
 import { createLanguageServices } from './plugins/css/service';
 import { convertRange, getDiagnosticTag, mapSeverity } from './plugins/typescript/utils';
 import { pathToUrl, urlToPath } from './utils';
+import { isInGeneratedCode } from './plugins/typescript/features/utils';
+import { kitPageFiles } from './plugins/typescript/DocumentSnapshot';
 
 export type SvelteCheckDiagnosticSource = 'js' | 'css' | 'svelte';
 
@@ -198,6 +200,7 @@ export class SvelteCheck {
                         (options.skipDefaultLibCheck && file.hasNoDefaultLib) ||
                         // ignore JS files in node_modules
                         /\/node_modules\/.+\.(c|m)?js$/.test(file.fileName);
+                    const isKitFile = kitPageFiles.has(basename(file.fileName));
 
                     const diagnostics = skipDiagnosticsForFile
                         ? []
@@ -205,20 +208,46 @@ export class SvelteCheck {
                               ...lang.getSyntacticDiagnostics(file.fileName),
                               ...lang.getSuggestionDiagnostics(file.fileName),
                               ...lang.getSemanticDiagnostics(file.fileName)
-                          ].map<Diagnostic>((diagnostic) => ({
-                              range: convertRange(
-                                  { positionAt: file.getLineAndCharacterOfPosition.bind(file) },
-                                  diagnostic
-                              ),
-                              severity: mapSeverity(diagnostic.category),
-                              source: diagnostic.source,
-                              message: ts.flattenDiagnosticMessageText(
-                                  diagnostic.messageText,
-                                  '\n'
-                              ),
-                              code: diagnostic.code,
-                              tags: getDiagnosticTag(diagnostic)
-                          }));
+                          ]
+                              .filter((diagnostic) => {
+                                  if (!isKitFile) {
+                                      return true;
+                                  }
+
+                                  if (
+                                      diagnostic.start === undefined ||
+                                      diagnostic.length === undefined
+                                  ) {
+                                      return true;
+                                  }
+
+                                  const text = lang
+                                      .getProgram()
+                                      ?.getSourceFile(file.fileName)
+                                      ?.getFullText();
+                                  return (
+                                      !text ||
+                                      !isInGeneratedCode(
+                                          text,
+                                          diagnostic.start,
+                                          diagnostic.start + diagnostic.length
+                                      )
+                                  );
+                              })
+                              .map<Diagnostic>((diagnostic) => ({
+                                  range: convertRange(
+                                      { positionAt: file.getLineAndCharacterOfPosition.bind(file) },
+                                      diagnostic
+                                  ),
+                                  severity: mapSeverity(diagnostic.category),
+                                  source: diagnostic.source,
+                                  message: ts.flattenDiagnosticMessageText(
+                                      diagnostic.messageText,
+                                      '\n'
+                                  ),
+                                  code: diagnostic.code,
+                                  tags: getDiagnosticTag(diagnostic)
+                              }));
 
                     return {
                         filePath: file.fileName,

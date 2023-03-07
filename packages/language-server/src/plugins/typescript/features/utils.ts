@@ -75,14 +75,25 @@ export function isComponentAtPosition(
     return !!getNodeIfIsInComponentStartTag(doc.html, doc.offsetAt(originalPosition));
 }
 
+export const IGNORE_START_COMMENT = '/*Ωignore_startΩ*/';
+export const IGNORE_END_COMMENT = '/*Ωignore_endΩ*/';
+
+/**
+ * Surrounds given string with a start/end comment which marks it
+ * to be ignored by tooling.
+ */
+export function surroundWithIgnoreComments(str: string): string {
+    return IGNORE_START_COMMENT + str + IGNORE_END_COMMENT;
+}
+
 /**
  * Checks if this a section that should be completely ignored
  * because it's purely generated.
  */
 export function isInGeneratedCode(text: string, start: number, end: number = start) {
-    const lastStart = text.lastIndexOf('/*Ωignore_startΩ*/', start);
-    const lastEnd = text.lastIndexOf('/*Ωignore_endΩ*/', start);
-    const nextEnd = text.indexOf('/*Ωignore_endΩ*/', end);
+    const lastStart = text.lastIndexOf(IGNORE_START_COMMENT, start);
+    const lastEnd = text.lastIndexOf(IGNORE_END_COMMENT, start);
+    const nextEnd = text.indexOf(IGNORE_END_COMMENT, end);
     // if lastEnd === nextEnd, this means that the str was found at the index
     // up to which is searched for it
     return (lastStart > lastEnd || lastEnd === nextEnd) && lastStart < nextEnd;
