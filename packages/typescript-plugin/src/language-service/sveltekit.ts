@@ -331,6 +331,24 @@ export function getProxiedLanguageService(
             return originalLanguageServiceHost.getDefaultLibFileName(o);
         }
 
+        resolveModuleNames = originalLanguageServiceHost.resolveModuleNames
+            ? (...args: any[]) => {
+                  return originalLanguageServiceHost.resolveModuleNames!(
+                      // @ts-ignore
+                      ...args
+                  );
+              }
+            : undefined;
+
+        resolveModuleNameLiterals = originalLanguageServiceHost.resolveModuleNameLiterals
+            ? (...args: any[]) => {
+                  return originalLanguageServiceHost.resolveModuleNameLiterals!(
+                      // @ts-ignore
+                      ...args
+                  );
+              }
+            : undefined;
+
         getScriptVersion(fileName: string) {
             const file = this.files[fileName];
             if (!file) return originalLanguageServiceHost.getScriptVersion(fileName);

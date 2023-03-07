@@ -11,15 +11,16 @@ export function decorateDiagnostics(
     typescript: typeof ts,
     logger: Logger
 ): void {
-    decorateSyntacticDiagnostics(ls, info, typescript);
+    decorateSyntacticDiagnostics(ls, info, typescript, logger);
     decorateSemanticDiagnostics(ls, info, typescript, logger);
-    decorateSuggestionDiagnostics(ls, info, typescript);
+    decorateSuggestionDiagnostics(ls, info, typescript, logger);
 }
 
 function decorateSyntacticDiagnostics(
     ls: ts.LanguageService,
     info: ts.server.PluginCreateInfo,
-    typescript: typeof ts
+    typescript: typeof ts,
+    logger: Logger
 ): void {
     const getSyntacticDiagnostics = ls.getSyntacticDiagnostics;
     ls.getSyntacticDiagnostics = (fileName: string) => {
@@ -33,7 +34,8 @@ function decorateSyntacticDiagnostics(
             'getSyntacticDiagnostics',
             fileName,
             info,
-            typescript
+            typescript,
+            logger
         );
         return kitDiagnostics ?? getSyntacticDiagnostics(fileName);
     };
@@ -67,7 +69,8 @@ function decorateSemanticDiagnostics(
 function decorateSuggestionDiagnostics(
     ls: ts.LanguageService,
     info: ts.server.PluginCreateInfo,
-    typescript: typeof ts
+    typescript: typeof ts,
+    logger: Logger
 ): void {
     const getSuggestionDiagnostics = ls.getSuggestionDiagnostics;
     ls.getSuggestionDiagnostics = (fileName: string) => {
@@ -81,7 +84,8 @@ function decorateSuggestionDiagnostics(
             'getSuggestionDiagnostics',
             fileName,
             info,
-            typescript
+            typescript,
+            logger
         );
         return kitDiagnostics ?? getSuggestionDiagnostics(fileName);
     };
