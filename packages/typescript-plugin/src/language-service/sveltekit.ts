@@ -1,7 +1,7 @@
 import path from 'path';
-import type typescript from 'typescript/lib/tsserverlibrary';
+import type ts from 'typescript/lib/tsserverlibrary';
 import { Logger } from '../logger';
-type _ts = typeof typescript;
+type _ts = typeof ts;
 
 interface KitSnapshot {
     file: ts.IScriptSnapshot;
