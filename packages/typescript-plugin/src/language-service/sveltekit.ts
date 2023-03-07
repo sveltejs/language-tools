@@ -593,7 +593,7 @@ function findExports(ts: _ts, source: ts.SourceFile, isTsFile: boolean) {
         if (
             ts.isFunctionDeclaration(statement) &&
             statement.name &&
-            statement.modifiers?.[0]?.kind === ts.SyntaxKind.ExportKeyword
+            ts.getModifiers(statement)?.[0]?.kind === ts.SyntaxKind.ExportKeyword
         ) {
             // export function x ...
             exports.set(statement.name.text, {
@@ -610,7 +610,7 @@ function findExports(ts: _ts, source: ts.SourceFile, isTsFile: boolean) {
         if (
             ts.isVariableStatement(statement) &&
             statement.declarationList.declarations.length === 1 &&
-            statement.modifiers?.[0]?.kind === ts.SyntaxKind.ExportKeyword
+            ts.getModifiers(statement)?.[0]?.kind === ts.SyntaxKind.ExportKeyword
         ) {
             // export const x = ...
             const declaration = statement.declarationList.declarations[0];
