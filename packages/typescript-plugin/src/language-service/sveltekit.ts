@@ -396,16 +396,15 @@ export function getProxiedLanguageService(
                 }
             };
 
-            const exports = findExports(source, ts);
             const isTsFile = basename.endsWith('.ts');
+            const exports = findExports(ts, source, isTsFile);
 
             // add type to load function if not explicitly typed
             const load = exports.get('load');
             if (
                 load?.type === 'function' &&
                 load.node.parameters.length === 1 &&
-                !load.node.parameters[0].type &&
-                (isTsFile || !ts.getJSDocType(load.node))
+                !load.hasTypeDefinition
             ) {
                 const pos = load.node.parameters[0].getEnd();
                 const inserted = `: import('./$types').${
@@ -417,13 +416,7 @@ export function getProxiedLanguageService(
 
             // add type to actions variable if not explicitly typed
             const actions = exports.get('actions');
-            if (
-                actions?.type === 'var' &&
-                !actions.node.type &&
-                (isTsFile || !ts.getJSDocType(actions.node)) &&
-                actions.node.initializer &&
-                ts.isObjectLiteralExpression(actions.node.initializer)
-            ) {
+            if (actions?.type === 'var' && !actions.hasTypeDefinition && actions.node.initializer) {
                 const pos = actions.node.initializer.getEnd();
                 const inserted = ` satisfies import('./$types').Actions`;
                 insert(pos, inserted);
@@ -433,8 +426,7 @@ export function getProxiedLanguageService(
             const prerender = exports.get('prerender');
             if (
                 prerender?.type === 'var' &&
-                !prerender.node.type &&
-                (isTsFile || !ts.getJSDocType(prerender.node)) &&
+                !prerender.hasTypeDefinition &&
                 prerender.node.initializer
             ) {
                 const pos = prerender.node.name.getEnd();
@@ -446,8 +438,7 @@ export function getProxiedLanguageService(
             const trailingSlash = exports.get('trailingSlash');
             if (
                 trailingSlash?.type === 'var' &&
-                !trailingSlash.node.type &&
-                (isTsFile || !ts.getJSDocType(trailingSlash.node)) &&
+                !trailingSlash.hasTypeDefinition &&
                 trailingSlash.node.initializer
             ) {
                 const pos = trailingSlash.node.name.getEnd();
@@ -457,12 +448,7 @@ export function getProxiedLanguageService(
 
             // add type to ssr variable if not explicitly typed
             const ssr = exports.get('ssr');
-            if (
-                ssr?.type === 'var' &&
-                !ssr.node.type &&
-                (isTsFile || !ts.getJSDocType(ssr.node)) &&
-                ssr.node.initializer
-            ) {
+            if (ssr?.type === 'var' && !ssr.hasTypeDefinition && ssr.node.initializer) {
                 const pos = ssr.node.name.getEnd();
                 const inserted = ` : boolean`;
                 insert(pos, inserted);
@@ -470,12 +456,7 @@ export function getProxiedLanguageService(
 
             // add type to csr variable if not explicitly typed
             const csr = exports.get('csr');
-            if (
-                csr?.type === 'var' &&
-                !csr.node.type &&
-                (isTsFile || !ts.getJSDocType(csr.node)) &&
-                csr.node.initializer
-            ) {
+            if (csr?.type === 'var' && !csr.hasTypeDefinition && csr.node.initializer) {
                 const pos = csr.node.name.getEnd();
                 const inserted = ` : boolean`;
                 insert(pos, inserted);
@@ -550,6 +531,7 @@ export function getVirtualLS(
     const result =
         proxy.languageServiceHost.getKitScriptSnapshotIfUpToDate(fileName) ??
         proxy.languageServiceHost.upsertKitFile(fileName);
+
     if (result) {
         return {
             languageService: proxy.languageService,
@@ -592,14 +574,19 @@ export function toOriginalPos(pos: number, addedCode: KitSnapshot['addedCode']) 
 /**
  * Finds the top level const/let/function exports of a source file.
  */
-function findExports(source: ts.SourceFile, ts: _ts) {
+function findExports(ts: _ts, source: ts.SourceFile, isTsFile: boolean) {
     const exports = new Map<
         string,
         | {
               type: 'function';
               node: ts.FunctionDeclaration | ts.ArrowFunction | ts.FunctionExpression;
+              hasTypeDefinition: boolean;
           }
-        | { type: 'var'; node: ts.VariableDeclaration }
+        | {
+              type: 'var';
+              node: ts.VariableDeclaration;
+              hasTypeDefinition: boolean;
+          }
     >();
     // TODO handle indirect exports?
     for (const statement of source.statements) {
@@ -609,7 +596,16 @@ function findExports(source: ts.SourceFile, ts: _ts) {
             statement.modifiers?.[0]?.kind === ts.SyntaxKind.ExportKeyword
         ) {
             // export function x ...
-            exports.set(statement.name.text, { type: 'function', node: statement });
+            exports.set(statement.name.text, {
+                type: 'function',
+                node: statement,
+                hasTypeDefinition:
+                    !!statement.parameters[0]?.type ||
+                    (!isTsFile &&
+                        (!!ts.getJSDocType(statement) ||
+                            (statement.parameters[0] &&
+                                !!ts.getJSDocParameterTags(statement.parameters[0]).length)))
+            });
         }
         if (
             ts.isVariableStatement(statement) &&
@@ -618,6 +614,11 @@ function findExports(source: ts.SourceFile, ts: _ts) {
         ) {
             // export const x = ...
             const declaration = statement.declarationList.declarations[0];
+            const hasTypeDefinition =
+                !!declaration.type ||
+                (!isTsFile && !!ts.getJSDocType(declaration)) ||
+                (!!declaration.initializer && ts.isSatisfiesExpression(declaration.initializer));
+
             if (
                 declaration.initializer &&
                 (ts.isFunctionExpression(declaration.initializer) ||
@@ -625,10 +626,15 @@ function findExports(source: ts.SourceFile, ts: _ts) {
             ) {
                 exports.set(declaration.name.getText(), {
                     type: 'function',
-                    node: declaration.initializer
+                    node: declaration.initializer,
+                    hasTypeDefinition
                 });
             } else {
-                exports.set(declaration.name.getText(), { type: 'var', node: declaration });
+                exports.set(declaration.name.getText(), {
+                    type: 'var',
+                    node: declaration,
+                    hasTypeDefinition
+                });
             }
         }
     }
