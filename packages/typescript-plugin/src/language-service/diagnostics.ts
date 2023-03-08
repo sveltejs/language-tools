@@ -1,7 +1,7 @@
 import type ts from 'typescript/lib/tsserverlibrary';
 import { Logger } from '../logger';
 import { findExports, isSvelteFilePath } from '../utils';
-import { getVirtualLS, kitExports } from './sveltekit';
+import { getVirtualLS, isKitExportAllowedIn, kitExports } from './sveltekit';
 
 type _ts = typeof ts;
 
@@ -115,9 +115,7 @@ function getKitDiagnostics<
         const mapped = toOriginalPos(diagnostic.start);
         if (mapped.inGenerated) {
             // If not "Cannot find module './$types' .." then filter out
-            if (diagnostic.code !== 2307) {
-                continue;
-            } else {
+            if (diagnostic.code === 2307) {
                 diagnostic = {
                     ...diagnostic,
                     // adjust length so it doesn't spill over to the next line
@@ -129,6 +127,20 @@ function getKitDiagnostics<
                               ` (this likely means that SvelteKit's type generation didn't run yet - try running it by executing 'npm run dev' or 'npm run build')`
                             : diagnostic.messageText
                 };
+            } else if (diagnostic.code === 2694) {
+                diagnostic = {
+                    ...diagnostic,
+                    // adjust length so it doesn't spill over to the next line
+                    length: 1,
+                    messageText:
+                        typeof diagnostic.messageText === 'string' &&
+                        diagnostic.messageText.includes('/$types')
+                            ? diagnostic.messageText +
+                              ` (this likely means that SvelteKit's generated types are out of date - try rerunning it by executing 'npm run dev' or 'npm run build')`
+                            : diagnostic.messageText
+                };
+            } else {
+                continue;
             }
         }
 
@@ -145,17 +157,9 @@ function getKitDiagnostics<
         // We're using the original file to have the correct position without mapping
         const source = info.languageService.getProgram()?.getSourceFile(fileName);
         const basename = fileName.split('/').pop() || '';
-        const validExports = Object.keys(kitExports).filter((key) => {
-            const allowedIn = kitExports[key].allowedIn;
-            return (
-                (basename.includes('layout')
-                    ? allowedIn.includes('layout')
-                    : allowedIn.includes('page')) &&
-                (basename.includes('server')
-                    ? allowedIn.includes('server')
-                    : allowedIn.includes('universal'))
-            );
-        });
+        const validExports = Object.keys(kitExports).filter((key) =>
+            isKitExportAllowedIn(basename, kitExports[key])
+        );
         if (source) {
             const exports = findExports(ts, source, /* irrelevant */ false);
             for (const exportName of exports.keys()) {
@@ -163,8 +167,8 @@ function getKitDiagnostics<
                     const node = exports.get(exportName)!.node;
                     diagnostics.push({
                         file: source,
-                        start: node.pos,
-                        length: node.end - node.pos,
+                        start: node.getStart(), // node.pos is wrong sometimes
+                        length: node.getEnd() - node.getStart(),
                         messageText: `Invalid export '${exportName}' (valid exports are ${validExports.join(
                             ', '
                         )}, or anything with a '_' prefix)`,

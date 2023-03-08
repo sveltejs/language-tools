@@ -27,16 +27,98 @@ const cache = new WeakMap<
     }
 >();
 
+function createApiExport(name: string) {
+    return {
+        allowedIn: ['api', 'server'] as ['api', 'server'],
+        displayParts: [
+            {
+                text: 'export',
+                kind: 'keyword'
+            },
+            {
+                text: ' ',
+                kind: 'space'
+            },
+            {
+                text: 'async',
+                kind: 'keyword'
+            },
+            {
+                text: ' ',
+                kind: 'space'
+            },
+            {
+                text: 'function',
+                kind: 'keyword'
+            },
+            {
+                text: ' ',
+                kind: 'space'
+            },
+            {
+                text: name,
+                kind: 'localName'
+            },
+            {
+                text: '(',
+                kind: 'punctuation'
+            },
+            {
+                text: 'event',
+                kind: 'parameterName'
+            },
+            {
+                text: ': ',
+                kind: 'punctuation'
+            },
+            {
+                text: 'RequestEvent',
+                kind: 'interfaceName'
+            },
+            {
+                text: ')',
+                kind: 'punctuation'
+            },
+            {
+                text: ': ',
+                kind: 'punctuation'
+            },
+            {
+                text: 'Promise',
+                kind: 'keyword'
+            },
+            {
+                text: '<',
+                kind: 'punctuation'
+            },
+            {
+                text: 'Response',
+                kind: 'interfaceName'
+            },
+            {
+                text: '>',
+                kind: 'punctuation'
+            }
+        ],
+        documentation: [
+            {
+                text: `Handles ${name} requests. More info: https://kit.svelte.dev/docs/routing#server`,
+                kind: 'text'
+            }
+        ]
+    };
+}
+
 export const kitExports: Record<
     string,
     {
         displayParts: ts.SymbolDisplayPart[];
         documentation: ts.SymbolDisplayPart[];
-        allowedIn: Array<'server' | 'universal' | 'layout' | 'page'>;
+        allowedIn: Array<'server' | 'universal' | 'layout' | 'page' | 'api'>;
     }
 > = {
     prerender: {
-        allowedIn: ['layout', 'page', 'server', 'universal'],
+        allowedIn: ['layout', 'page', 'api', 'server', 'universal'],
         displayParts: [
             {
                 text: 'const',
@@ -137,7 +219,7 @@ export const kitExports: Record<
         ]
     },
     trailingSlash: {
-        allowedIn: ['layout', 'page', 'server', 'universal'],
+        allowedIn: ['layout', 'page', 'api', 'server', 'universal'],
         displayParts: [
             {
                 text: 'const',
@@ -168,7 +250,7 @@ export const kitExports: Record<
         ]
     },
     config: {
-        allowedIn: ['layout', 'page', 'server', 'universal'],
+        allowedIn: ['layout', 'page', 'api', 'server', 'universal'],
         displayParts: [
             {
                 text: 'const',
@@ -304,8 +386,31 @@ export const kitExports: Record<
                 kind: 'text'
             }
         ]
-    }
+    },
+    GET: createApiExport('GET'),
+    POST: createApiExport('POST'),
+    PUT: createApiExport('PUT'),
+    PATCH: createApiExport('PATCH'),
+    DELETE: createApiExport('DELETE'),
+    OPTIONS: createApiExport('OPTIONS')
 };
+
+export function isKitExportAllowedIn(
+    basename: string,
+    kitExport: typeof kitExports[keyof typeof kitExports]
+) {
+    const allowedIn = kitExport.allowedIn;
+    return (
+        (basename.includes('layout')
+            ? allowedIn.includes('layout')
+            : basename.includes('+server')
+            ? allowedIn.includes('api')
+            : allowedIn.includes('page')) &&
+        (basename.includes('server')
+            ? allowedIn.includes('server')
+            : allowedIn.includes('universal'))
+    );
+}
 
 export function getProxiedLanguageService(
     info: ts.server.PluginCreateInfo,
@@ -495,6 +600,27 @@ export function getProxiedLanguageService(
                 insert(pos, inserted);
             }
 
+            // add types to GET/PUT/POST/PATCH/DELETE/OPTIONS if not explicitly typed
+            const insertApiMethod = (name: string) => {
+                const api = exports.get(name);
+                if (
+                    api?.type === 'function' &&
+                    api.node.parameters.length === 1 &&
+                    !api.hasTypeDefinition
+                ) {
+                    const pos = api.node.parameters[0].getEnd();
+                    const inserted = `: import('./$types').RequestHandler`;
+
+                    insert(pos, inserted);
+                }
+            };
+            insertApiMethod('GET');
+            insertApiMethod('PUT');
+            insertApiMethod('POST');
+            insertApiMethod('PATCH');
+            insertApiMethod('DELETE');
+            insertApiMethod('OPTIONS');
+
             // construct generated text from internal text and addedCode array
             const originalText = source.getFullText();
             let pos = 0;
@@ -550,7 +676,9 @@ const kitPageFiles = new Set([
     '+page.server.ts',
     '+page.server.js',
     '+layout.server.ts',
-    '+layout.server.js'
+    '+layout.server.js',
+    '+server.js',
+    '+server.ts'
 ]);
 
 export function getVirtualLS(
