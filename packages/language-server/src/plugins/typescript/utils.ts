@@ -423,11 +423,18 @@ export function findExports(source: ts.SourceFile, isTsFile: boolean) {
             if (
                 declaration.initializer &&
                 (ts.isFunctionExpression(declaration.initializer) ||
-                    ts.isArrowFunction(declaration.initializer))
+                    ts.isArrowFunction(declaration.initializer) ||
+                    (ts.isSatisfiesExpression(declaration.initializer) &&
+                        ts.isParenthesizedExpression(declaration.initializer.expression) &&
+                        (ts.isFunctionExpression(declaration.initializer.expression.expression) ||
+                            ts.isArrowFunction(declaration.initializer.expression.expression))))
             ) {
                 exports.set(declaration.name.getText(), {
                     type: 'function',
-                    node: declaration.initializer,
+                    node: ts.isSatisfiesExpression(declaration.initializer)
+                        ? ((declaration.initializer.expression as ts.ParenthesizedExpression)
+                              .expression as ts.FunctionExpression | ts.ArrowFunction)
+                        : declaration.initializer,
                     hasTypeDefinition
                 });
             } else {
