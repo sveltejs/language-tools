@@ -1,7 +1,7 @@
 import type ts from 'typescript/lib/tsserverlibrary';
 import { Logger } from '../logger';
-import { isSvelteFilePath } from '../utils';
-import { getVirtualLS } from './sveltekit';
+import { findExports, isSvelteFilePath } from '../utils';
+import { getVirtualLS, kitExports } from './sveltekit';
 
 type _ts = typeof ts;
 
@@ -126,7 +126,7 @@ function getKitDiagnostics<
                         typeof diagnostic.messageText === 'string' &&
                         diagnostic.messageText.includes('./$types')
                             ? diagnostic.messageText +
-                              ` (this likely means that SvelteKit's type generation didn't run yet)`
+                              ` (this likely means that SvelteKit's type generation didn't run yet - try running it by executing 'npm run dev' or 'npm run build')`
                             : diagnostic.messageText
                 };
             }
@@ -138,6 +138,42 @@ function getKitDiagnostics<
         };
 
         diagnostics.push(diagnostic);
+    }
+
+    if (methodName === 'getSemanticDiagnostics') {
+        // We're in a Svelte file - check top level exports
+        // We're using the original file to have the correct position without mapping
+        const source = info.languageService.getProgram()?.getSourceFile(fileName);
+        const basename = fileName.split('/').pop() || '';
+        const validExports = Object.keys(kitExports).filter((key) => {
+            const allowedIn = kitExports[key].allowedIn;
+            return (
+                (basename.includes('layout')
+                    ? allowedIn.includes('layout')
+                    : allowedIn.includes('page')) &&
+                (basename.includes('server')
+                    ? allowedIn.includes('server')
+                    : allowedIn.includes('universal'))
+            );
+        });
+        if (source) {
+            const exports = findExports(ts, source, /* irrelevant */ false);
+            for (const exportName of exports.keys()) {
+                if (!validExports.includes(exportName) && !exportName.startsWith('_')) {
+                    const node = exports.get(exportName)!.node;
+                    diagnostics.push({
+                        file: source,
+                        start: node.pos,
+                        length: node.end - node.pos,
+                        messageText: `Invalid export '${exportName}' (valid exports are ${validExports.join(
+                            ', '
+                        )}, or anything with a '_' prefix)`,
+                        category: ts.DiagnosticCategory.Error,
+                        code: 71001 // arbitrary
+                    });
+                }
+            }
+        }
     }
 
     // @ts-ignore TS doesn't get the return type right

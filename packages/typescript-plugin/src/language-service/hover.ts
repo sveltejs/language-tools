@@ -28,7 +28,7 @@ export function decorateHover(
             const name = node.text;
             if (name in kitExports) {
                 quickInfo.documentation = !quickInfo.documentation?.length
-                    ? kitExports[name as any as keyof typeof kitExports].documentation
+                    ? kitExports[name].documentation
                     : quickInfo.documentation;
             }
         }

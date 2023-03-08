@@ -146,7 +146,7 @@ export function decorateCompletions(
         data
     ) => {
         if ((data as any)?.__sveltekit) {
-            const key = (data as any)?.__sveltekit as keyof typeof kitExports;
+            const key = (data as any)?.__sveltekit;
             return {
                 name: key,
                 kind: ts.ScriptElementKind.constElement,

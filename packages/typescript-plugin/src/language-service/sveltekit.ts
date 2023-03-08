@@ -1,6 +1,7 @@
 import path from 'path';
 import type ts from 'typescript/lib/tsserverlibrary';
 import { Logger } from '../logger';
+import { findExports } from '../utils';
 type _ts = typeof ts;
 
 interface KitSnapshot {
@@ -26,8 +27,16 @@ const cache = new WeakMap<
     }
 >();
 
-export const kitExports = {
+export const kitExports: Record<
+    string,
+    {
+        displayParts: ts.SymbolDisplayPart[];
+        documentation: ts.SymbolDisplayPart[];
+        allowedIn: Array<'server' | 'universal' | 'layout' | 'page'>;
+    }
+> = {
     prerender: {
+        allowedIn: ['layout', 'page', 'server', 'universal'],
         displayParts: [
             {
                 text: 'const',
@@ -66,6 +75,7 @@ export const kitExports = {
         ]
     },
     ssr: {
+        allowedIn: ['layout', 'page', 'server', 'universal'],
         displayParts: [
             {
                 text: 'const',
@@ -96,6 +106,7 @@ export const kitExports = {
         ]
     },
     csr: {
+        allowedIn: ['layout', 'page', 'server', 'universal'],
         displayParts: [
             {
                 text: 'const',
@@ -126,6 +137,7 @@ export const kitExports = {
         ]
     },
     trailingSlash: {
+        allowedIn: ['layout', 'page', 'server', 'universal'],
         displayParts: [
             {
                 text: 'const',
@@ -156,6 +168,7 @@ export const kitExports = {
         ]
     },
     config: {
+        allowedIn: ['layout', 'page', 'server', 'universal'],
         displayParts: [
             {
                 text: 'const',
@@ -189,6 +202,7 @@ export const kitExports = {
         ]
     },
     actions: {
+        allowedIn: ['page', 'server'],
         displayParts: [
             {
                 text: 'const',
@@ -221,6 +235,7 @@ export const kitExports = {
         ]
     },
     load: {
+        allowedIn: ['layout', 'page', 'server', 'universal'],
         displayParts: [
             {
                 text: 'export',
@@ -290,10 +305,7 @@ export const kitExports = {
             }
         ]
     }
-} satisfies Record<
-    string,
-    { displayParts: ts.SymbolDisplayPart[]; documentation: ts.SymbolDisplayPart[] }
->;
+};
 
 export function getProxiedLanguageService(
     info: ts.server.PluginCreateInfo,
@@ -451,7 +463,7 @@ export function getProxiedLanguageService(
                 prerender.node.initializer
             ) {
                 const pos = prerender.node.name.getEnd();
-                const inserted = ` : import('@sveltejs/kit').PrerenderOption`;
+                const inserted = ` : boolean | 'auto'`;
                 insert(pos, inserted);
             }
 
@@ -589,75 +601,4 @@ export function toOriginalPos(pos: number, addedCode: KitSnapshot['addedCode']) 
     }
 
     return { pos: pos - total, inGenerated: false };
-}
-
-/**
- * Finds the top level const/let/function exports of a source file.
- */
-function findExports(ts: _ts, source: ts.SourceFile, isTsFile: boolean) {
-    const exports = new Map<
-        string,
-        | {
-              type: 'function';
-              node: ts.FunctionDeclaration | ts.ArrowFunction | ts.FunctionExpression;
-              hasTypeDefinition: boolean;
-          }
-        | {
-              type: 'var';
-              node: ts.VariableDeclaration;
-              hasTypeDefinition: boolean;
-          }
-    >();
-    // TODO handle indirect exports?
-    for (const statement of source.statements) {
-        if (
-            ts.isFunctionDeclaration(statement) &&
-            statement.name &&
-            ts.getModifiers(statement)?.[0]?.kind === ts.SyntaxKind.ExportKeyword
-        ) {
-            // export function x ...
-            exports.set(statement.name.text, {
-                type: 'function',
-                node: statement,
-                hasTypeDefinition:
-                    !!statement.parameters[0]?.type ||
-                    (!isTsFile &&
-                        (!!ts.getJSDocType(statement) ||
-                            (statement.parameters[0] &&
-                                !!ts.getJSDocParameterTags(statement.parameters[0]).length)))
-            });
-        }
-        if (
-            ts.isVariableStatement(statement) &&
-            statement.declarationList.declarations.length === 1 &&
-            ts.getModifiers(statement)?.[0]?.kind === ts.SyntaxKind.ExportKeyword
-        ) {
-            // export const x = ...
-            const declaration = statement.declarationList.declarations[0];
-            const hasTypeDefinition =
-                !!declaration.type ||
-                (!isTsFile && !!ts.getJSDocType(declaration)) ||
-                (!!declaration.initializer && ts.isSatisfiesExpression(declaration.initializer));
-
-            if (
-                declaration.initializer &&
-                (ts.isFunctionExpression(declaration.initializer) ||
-                    ts.isArrowFunction(declaration.initializer))
-            ) {
-                exports.set(declaration.name.getText(), {
-                    type: 'function',
-                    node: declaration.initializer,
-                    hasTypeDefinition
-                });
-            } else {
-                exports.set(declaration.name.getText(), {
-                    type: 'var',
-                    node: declaration,
-                    hasTypeDefinition
-                });
-            }
-        }
-    }
-
-    return exports;
 }
