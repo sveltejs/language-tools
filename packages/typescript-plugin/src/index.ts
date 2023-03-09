@@ -6,7 +6,7 @@ import { SvelteSnapshotManager } from './svelte-snapshots';
 import type ts from 'typescript/lib/tsserverlibrary';
 import { ConfigManager, Configuration } from './config-manager';
 import { ProjectSvelteFilesManager } from './project-svelte-files';
-import { getConfigPathForProject } from './utils';
+import { getConfigPathForProject, hasNodeModule } from './utils';
 
 function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
     const configManager = new ConfigManager();
@@ -185,15 +185,7 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
 
     function isSvelteProject(compilerOptions: ts.CompilerOptions) {
         // Add more checks like "no Svelte file found" or "no config file found"?
-        try {
-            const isSvelteProject =
-                typeof compilerOptions.configFilePath !== 'string' ||
-                require.resolve('svelte', { paths: [compilerOptions.configFilePath] });
-            return isSvelteProject;
-        } catch (e) {
-            // If require.resolve fails, we end up here
-            return false;
-        }
+        return hasNodeModule(compilerOptions, 'svelte');
     }
 
     function onConfigurationChanged(config: Configuration) {
