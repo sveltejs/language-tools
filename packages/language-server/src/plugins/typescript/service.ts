@@ -135,13 +135,11 @@ export async function getServiceForTsconfig(
     docContext: LanguageServiceDocumentContext
 ): Promise<LanguageServiceContainer> {
     const tsconfigPathOrWorkspacePath = tsconfigPath || workspacePath;
+    const reloading = pendingReloads.has(tsconfigPath);
 
     let service: LanguageServiceContainer;
-    if (services.has(tsconfigPathOrWorkspacePath)) {
-        service = await services.get(tsconfigPathOrWorkspacePath)!;
-    } else {
-        const reloading = pendingReloads.has(tsconfigPath);
 
+    if (reloading || !services.has(tsconfigPathOrWorkspacePath)) {
         if (reloading) {
             Logger.log('Reloading ts service at ', tsconfigPath, ' due to config updated');
         } else {
@@ -152,6 +150,8 @@ export async function getServiceForTsconfig(
         const newService = createLanguageService(tsconfigPath, workspacePath, docContext);
         services.set(tsconfigPathOrWorkspacePath, newService);
         service = await newService;
+    } else {
+        service = await services.get(tsconfigPathOrWorkspacePath)!;
     }
 
     return service;
@@ -668,6 +668,7 @@ function createWatchExtendedConfigCallback(docContext: LanguageServiceDocumentCo
  * in the onProjectReloaded hooks
  */
 function scheduleReload(fileName: string) {
-    services.delete(fileName);
+    // don't delete service from map yet as it could result in a race condition
+    // where a file update is received before the service is reloaded, swallowing the update
     pendingReloads.add(fileName);
 }
