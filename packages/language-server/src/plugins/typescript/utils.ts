@@ -375,14 +375,19 @@ export function hasTsExtensions(fileName: string) {
 /**
  * Finds the top level const/let/function exports of a source file.
  */
-export function findExports(source: ts.SourceFile) {
+export function findExports(source: ts.SourceFile, isTsFile: boolean) {
     const exports = new Map<
         string,
         | {
               type: 'function';
               node: ts.FunctionDeclaration | ts.ArrowFunction | ts.FunctionExpression;
+              hasTypeDefinition: boolean;
           }
-        | { type: 'var'; node: ts.VariableDeclaration }
+        | {
+              type: 'var';
+              node: ts.VariableDeclaration;
+              hasTypeDefinition: boolean;
+          }
     >();
     // TODO handle indirect exports?
     for (const statement of source.statements) {
@@ -392,7 +397,11 @@ export function findExports(source: ts.SourceFile) {
             ts.getModifiers(statement)?.[0]?.kind === ts.SyntaxKind.ExportKeyword
         ) {
             // export function x ...
-            exports.set(statement.name.text, { type: 'function', node: statement });
+            exports.set(statement.name.text, {
+                type: 'function',
+                node: statement,
+                hasTypeDefinition: hasTypedParameter(statement, isTsFile)
+            });
         }
         if (
             ts.isVariableStatement(statement) &&
@@ -401,20 +410,50 @@ export function findExports(source: ts.SourceFile) {
         ) {
             // export const x = ...
             const declaration = statement.declarationList.declarations[0];
+            const hasTypeDefinition =
+                !!declaration.type ||
+                (!isTsFile && !!ts.getJSDocType(declaration)) ||
+                (!!declaration.initializer && ts.isSatisfiesExpression(declaration.initializer));
+
             if (
                 declaration.initializer &&
                 (ts.isFunctionExpression(declaration.initializer) ||
-                    ts.isArrowFunction(declaration.initializer))
+                    ts.isArrowFunction(declaration.initializer) ||
+                    (ts.isSatisfiesExpression(declaration.initializer) &&
+                        ts.isParenthesizedExpression(declaration.initializer.expression) &&
+                        (ts.isFunctionExpression(declaration.initializer.expression.expression) ||
+                            ts.isArrowFunction(declaration.initializer.expression.expression))))
             ) {
+                const node = ts.isSatisfiesExpression(declaration.initializer)
+                    ? ((declaration.initializer.expression as ts.ParenthesizedExpression)
+                          .expression as ts.FunctionExpression | ts.ArrowFunction)
+                    : declaration.initializer;
                 exports.set(declaration.name.getText(), {
                     type: 'function',
-                    node: declaration.initializer
+                    node,
+                    hasTypeDefinition: hasTypeDefinition || hasTypedParameter(node, isTsFile)
                 });
             } else {
-                exports.set(declaration.name.getText(), { type: 'var', node: declaration });
+                exports.set(declaration.name.getText(), {
+                    type: 'var',
+                    node: declaration,
+                    hasTypeDefinition
+                });
             }
         }
     }
 
     return exports;
+}
+
+function hasTypedParameter(
+    node: ts.FunctionDeclaration | ts.ArrowFunction | ts.FunctionExpression,
+    isTsFile: boolean
+): boolean {
+    return (
+        !!node.parameters[0]?.type ||
+        (!isTsFile &&
+            (!!ts.getJSDocType(node) ||
+                (node.parameters[0] && !!ts.getJSDocParameterTags(node.parameters[0]).length)))
+    );
 }

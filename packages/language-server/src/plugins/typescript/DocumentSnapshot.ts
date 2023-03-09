@@ -584,16 +584,15 @@ export class JSOrTSDocumentSnapshot extends IdentityMapper implements DocumentSn
                 }
             };
 
-            const exports = findExports(source);
             const isTsFile = this.filePath.endsWith('.ts');
+            const exports = findExports(source, isTsFile);
 
             // add type to load function if not explicitly typed
             const load = exports.get('load');
             if (
                 load?.type === 'function' &&
                 load.node.parameters.length === 1 &&
-                !load.node.parameters[0].type &&
-                (isTsFile || !ts.getJSDocType(load.node))
+                !load.hasTypeDefinition
             ) {
                 const pos = load.node.parameters[0].getEnd();
                 const inserted = surroundWithIgnoreComments(
@@ -606,13 +605,7 @@ export class JSOrTSDocumentSnapshot extends IdentityMapper implements DocumentSn
 
             // add type to actions variable if not explicitly typed
             const actions = exports.get('actions');
-            if (
-                actions?.type === 'var' &&
-                !actions.node.type &&
-                (isTsFile || !ts.getJSDocType(actions.node)) &&
-                actions.node.initializer &&
-                ts.isObjectLiteralExpression(actions.node.initializer)
-            ) {
+            if (actions?.type === 'var' && !actions.hasTypeDefinition && actions.node.initializer) {
                 const pos = actions.node.initializer.getEnd();
                 const inserted = surroundWithIgnoreComments(
                     ` satisfies import('./$types').Actions`
@@ -624,14 +617,11 @@ export class JSOrTSDocumentSnapshot extends IdentityMapper implements DocumentSn
             const prerender = exports.get('prerender');
             if (
                 prerender?.type === 'var' &&
-                !prerender.node.type &&
-                (isTsFile || !ts.getJSDocType(prerender.node)) &&
+                !prerender.hasTypeDefinition &&
                 prerender.node.initializer
             ) {
                 const pos = prerender.node.name.getEnd();
-                const inserted = surroundWithIgnoreComments(
-                    ` : import('@sveltejs/kit').PrerenderOption`
-                );
+                const inserted = surroundWithIgnoreComments(` : boolean | 'auto'`);
                 insert(pos, inserted);
             }
 
@@ -639,23 +629,17 @@ export class JSOrTSDocumentSnapshot extends IdentityMapper implements DocumentSn
             const trailingSlash = exports.get('trailingSlash');
             if (
                 trailingSlash?.type === 'var' &&
-                !trailingSlash.node.type &&
-                (isTsFile || !ts.getJSDocType(trailingSlash.node)) &&
+                !trailingSlash.hasTypeDefinition &&
                 trailingSlash.node.initializer
             ) {
                 const pos = trailingSlash.node.name.getEnd();
-                const inserted = surroundWithIgnoreComments(` : 'never' | 'always' | 'ignore'`); // TODO this should be exported from kit
+                const inserted = surroundWithIgnoreComments(` : 'never' | 'always' | 'ignore'`);
                 insert(pos, inserted);
             }
 
             // add type to ssr variable if not explicitly typed
             const ssr = exports.get('ssr');
-            if (
-                ssr?.type === 'var' &&
-                !ssr.node.type &&
-                (isTsFile || !ts.getJSDocType(ssr.node)) &&
-                ssr.node.initializer
-            ) {
+            if (ssr?.type === 'var' && !ssr.hasTypeDefinition && ssr.node.initializer) {
                 const pos = ssr.node.name.getEnd();
                 const inserted = surroundWithIgnoreComments(` : boolean`);
                 insert(pos, inserted);
@@ -663,16 +647,32 @@ export class JSOrTSDocumentSnapshot extends IdentityMapper implements DocumentSn
 
             // add type to csr variable if not explicitly typed
             const csr = exports.get('csr');
-            if (
-                csr?.type === 'var' &&
-                !csr.node.type &&
-                (isTsFile || !ts.getJSDocType(csr.node)) &&
-                csr.node.initializer
-            ) {
+            if (csr?.type === 'var' && !csr.hasTypeDefinition && csr.node.initializer) {
                 const pos = csr.node.name.getEnd();
                 const inserted = surroundWithIgnoreComments(` : boolean`);
                 insert(pos, inserted);
             }
+
+            // add types to GET/PUT/POST/PATCH/DELETE/OPTIONS if not explicitly typed
+            const insertApiMethod = (name: string) => {
+                const api = exports.get(name);
+                if (
+                    api?.type === 'function' &&
+                    api.node.parameters.length === 1 &&
+                    !api.hasTypeDefinition
+                ) {
+                    const pos = api.node.parameters[0].getEnd();
+                    const inserted = `: import('./$types').RequestHandler`;
+
+                    insert(pos, inserted);
+                }
+            };
+            insertApiMethod('GET');
+            insertApiMethod('PUT');
+            insertApiMethod('POST');
+            insertApiMethod('PATCH');
+            insertApiMethod('DELETE');
+            insertApiMethod('OPTIONS');
 
             // construct generated text from internal text and addedCode array
             let pos = 0;
