@@ -281,3 +281,24 @@ export function findExports(ts: _ts, source: ts.SourceFile, isTsFile: boolean) {
 
     return exports;
 }
+
+export function findIdentifier(ts: _ts, node: ts.Node): ts.Identifier | undefined {
+    if (ts.isIdentifier(node)) {
+        return node;
+    }
+
+    if (ts.isFunctionDeclaration(node)) {
+        return node.name;
+    }
+
+    while (node) {
+        if (ts.isIdentifier(node)) {
+            return node;
+        }
+        if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name)) {
+            return node.name;
+        }
+
+        node = node.parent;
+    }
+}

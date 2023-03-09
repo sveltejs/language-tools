@@ -1,6 +1,6 @@
 import type ts from 'typescript/lib/tsserverlibrary';
 import { Logger } from '../logger';
-import { findExports, isSvelteFilePath } from '../utils';
+import { findExports, findIdentifier, isSvelteFilePath } from '../utils';
 import { getVirtualLS, isKitExportAllowedIn, kitExports } from './sveltekit';
 
 type _ts = typeof ts;
@@ -165,10 +165,11 @@ function getKitDiagnostics<
             for (const exportName of exports.keys()) {
                 if (!validExports.includes(exportName) && !exportName.startsWith('_')) {
                     const node = exports.get(exportName)!.node;
+                    const identifier = findIdentifier(ts, node) ?? node;
                     diagnostics.push({
                         file: source,
-                        start: node.getStart(), // node.pos is wrong sometimes
-                        length: node.getEnd() - node.getStart(),
+                        start: identifier.getStart(),
+                        length: identifier.getEnd() - identifier.getStart(),
                         messageText: `Invalid export '${exportName}' (valid exports are ${validExports.join(
                             ', '
                         )}, or anything with a '_' prefix)`,
