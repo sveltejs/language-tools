@@ -400,12 +400,7 @@ export function findExports(source: ts.SourceFile, isTsFile: boolean) {
             exports.set(statement.name.text, {
                 type: 'function',
                 node: statement,
-                hasTypeDefinition:
-                    !!statement.parameters[0]?.type ||
-                    (!isTsFile &&
-                        (!!ts.getJSDocType(statement) ||
-                            (statement.parameters[0] &&
-                                !!ts.getJSDocParameterTags(statement.parameters[0]).length)))
+                hasTypeDefinition: hasTypedParameter(statement, isTsFile)
             });
         }
         if (
@@ -429,13 +424,14 @@ export function findExports(source: ts.SourceFile, isTsFile: boolean) {
                         (ts.isFunctionExpression(declaration.initializer.expression.expression) ||
                             ts.isArrowFunction(declaration.initializer.expression.expression))))
             ) {
+                const node = ts.isSatisfiesExpression(declaration.initializer)
+                    ? ((declaration.initializer.expression as ts.ParenthesizedExpression)
+                          .expression as ts.FunctionExpression | ts.ArrowFunction)
+                    : declaration.initializer;
                 exports.set(declaration.name.getText(), {
                     type: 'function',
-                    node: ts.isSatisfiesExpression(declaration.initializer)
-                        ? ((declaration.initializer.expression as ts.ParenthesizedExpression)
-                              .expression as ts.FunctionExpression | ts.ArrowFunction)
-                        : declaration.initializer,
-                    hasTypeDefinition
+                    node,
+                    hasTypeDefinition: hasTypeDefinition || hasTypedParameter(node, isTsFile)
                 });
             } else {
                 exports.set(declaration.name.getText(), {
@@ -448,4 +444,16 @@ export function findExports(source: ts.SourceFile, isTsFile: boolean) {
     }
 
     return exports;
+}
+
+function hasTypedParameter(
+    node: ts.FunctionDeclaration | ts.ArrowFunction | ts.FunctionExpression,
+    isTsFile: boolean
+): boolean {
+    return (
+        !!node.parameters[0]?.type ||
+        (!isTsFile &&
+            (!!ts.getJSDocType(node) ||
+                (node.parameters[0] && !!ts.getJSDocParameterTags(node.parameters[0]).length)))
+    );
 }
