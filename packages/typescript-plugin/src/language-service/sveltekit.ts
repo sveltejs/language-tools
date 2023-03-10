@@ -650,80 +650,82 @@ function createProxyRegistry(
 ) {
     // Don't destructure options param, as the value may be mutated through a svelte.config.js later
     const registry = ts.createDocumentRegistry();
-    const originalRegistry = (originalLanguageServiceHost as any).documentRegistry;
-    const proxyRegistry: ts.DocumentRegistry = {
-        ...originalRegistry,
-        acquireDocumentWithKey(
-            fileName,
-            tsPath,
-            compilationSettingsOrHost,
-            key,
-            scriptSnapshot,
-            version,
-            scriptKind,
-            sourceFileOptions
-        ) {
-            if (internalHelpers.isKitFile(fileName, options)) {
-                return registry.acquireDocumentWithKey(
-                    fileName,
-                    tsPath,
-                    compilationSettingsOrHost,
-                    key,
-                    scriptSnapshot,
-                    version,
-                    scriptKind,
-                    sourceFileOptions
-                );
-            }
+    return registry;
+    // TODO check why this fails on linux and reenable later
+    // const originalRegistry = (originalLanguageServiceHost as any).documentRegistry;
+    // const proxyRegistry: ts.DocumentRegistry = {
+    //     ...originalRegistry,
+    //     acquireDocumentWithKey(
+    //         fileName,
+    //         tsPath,
+    //         compilationSettingsOrHost,
+    //         key,
+    //         scriptSnapshot,
+    //         version,
+    //         scriptKind,
+    //         sourceFileOptions
+    //     ) {
+    //         if (internalHelpers.isKitFile(fileName, options)) {
+    //             return registry.acquireDocumentWithKey(
+    //                 fileName,
+    //                 tsPath,
+    //                 compilationSettingsOrHost,
+    //                 key,
+    //                 scriptSnapshot,
+    //                 version,
+    //                 scriptKind,
+    //                 sourceFileOptions
+    //             );
+    //         }
 
-            return originalRegistry.acquireDocumentWithKey(
-                fileName,
-                tsPath,
-                compilationSettingsOrHost,
-                key,
-                scriptSnapshot,
-                version,
-                scriptKind,
-                sourceFileOptions
-            );
-        },
-        updateDocumentWithKey(
-            fileName,
-            tsPath,
-            compilationSettingsOrHost,
-            key,
-            scriptSnapshot,
-            version,
-            scriptKind,
-            sourceFileOptions
-        ) {
-            if (internalHelpers.isKitFile(fileName, options)) {
-                return registry.updateDocumentWithKey(
-                    fileName,
-                    tsPath,
-                    compilationSettingsOrHost,
-                    key,
-                    scriptSnapshot,
-                    version,
-                    scriptKind,
-                    sourceFileOptions
-                );
-            }
+    //         return originalRegistry.acquireDocumentWithKey(
+    //             fileName,
+    //             tsPath,
+    //             compilationSettingsOrHost,
+    //             key,
+    //             scriptSnapshot,
+    //             version,
+    //             scriptKind,
+    //             sourceFileOptions
+    //         );
+    //     },
+    //     updateDocumentWithKey(
+    //         fileName,
+    //         tsPath,
+    //         compilationSettingsOrHost,
+    //         key,
+    //         scriptSnapshot,
+    //         version,
+    //         scriptKind,
+    //         sourceFileOptions
+    //     ) {
+    //         if (internalHelpers.isKitFile(fileName, options)) {
+    //             return registry.updateDocumentWithKey(
+    //                 fileName,
+    //                 tsPath,
+    //                 compilationSettingsOrHost,
+    //                 key,
+    //                 scriptSnapshot,
+    //                 version,
+    //                 scriptKind,
+    //                 sourceFileOptions
+    //             );
+    //         }
 
-            return originalRegistry.updateDocumentWithKey(
-                fileName,
-                tsPath,
-                compilationSettingsOrHost,
-                key,
-                scriptSnapshot,
-                version,
-                scriptKind,
-                sourceFileOptions
-            );
-        }
-    };
+    //         return originalRegistry.updateDocumentWithKey(
+    //             fileName,
+    //             tsPath,
+    //             compilationSettingsOrHost,
+    //             key,
+    //             scriptSnapshot,
+    //             version,
+    //             scriptKind,
+    //             sourceFileOptions
+    //         );
+    //     }
+    // };
 
-    return proxyRegistry;
+    // return proxyRegistry;
 }
 
 export function getVirtualLS(
