@@ -167,55 +167,21 @@ function upserKitRouteFile(
         insert(pos, inserted);
     }
 
-    // add type to prerender variable if not explicitly typed
-    const prerender = exports.get('prerender');
-    if (prerender?.type === 'var' && !prerender.hasTypeDefinition && prerender.node.initializer) {
-        const pos = prerender.node.name.getEnd();
-        const inserted = surround(` : boolean | 'auto'`);
-        insert(pos, inserted);
-    }
-
-    // add type to trailingSlash variable if not explicitly typed
-    const trailingSlash = exports.get('trailingSlash');
-    if (
-        trailingSlash?.type === 'var' &&
-        !trailingSlash.hasTypeDefinition &&
-        trailingSlash.node.initializer
-    ) {
-        const pos = trailingSlash.node.name.getEnd();
-        const inserted = surround(` : 'never' | 'always' | 'ignore'`);
-        insert(pos, inserted);
-    }
-
-    // add type to ssr variable if not explicitly typed
-    const ssr = exports.get('ssr');
-    if (ssr?.type === 'var' && !ssr.hasTypeDefinition && ssr.node.initializer) {
-        const pos = ssr.node.name.getEnd();
-        const inserted = surround(` : boolean`);
-        insert(pos, inserted);
-    }
-
-    // add type to csr variable if not explicitly typed
-    const csr = exports.get('csr');
-    if (csr?.type === 'var' && !csr.hasTypeDefinition && csr.node.initializer) {
-        const pos = csr.node.name.getEnd();
-        const inserted = surround(` : boolean`);
-        insert(pos, inserted);
-    }
+    addTypeToVariable(exports, surround, insert, 'prerender', `boolean | 'auto'`);
+    addTypeToVariable(exports, surround, insert, 'trailingSlash', `'never' | 'always' | 'ignore'`);
+    addTypeToVariable(exports, surround, insert, 'ssr', `boolean`);
+    addTypeToVariable(exports, surround, insert, 'csr', `boolean`);
 
     // add types to GET/PUT/POST/PATCH/DELETE/OPTIONS if not explicitly typed
     const insertApiMethod = (name: string) => {
-        const api = exports.get(name);
-        if (
-            api?.type === 'function' &&
-            api.node.parameters.length === 1 &&
-            !api.hasTypeDefinition
-        ) {
-            const pos = api.node.parameters[0].getEnd();
-            const inserted = surround(`: import('./$types').RequestEvent`);
-
-            insert(pos, inserted);
-        }
+        addTypeToFunction(
+            exports,
+            surround,
+            insert,
+            name,
+            `import('./$types').RequestEvent`,
+            `Response | Promise<Response>`
+        );
     };
     insertApiMethod('GET');
     insertApiMethod('PUT');
@@ -249,22 +215,7 @@ function upserKitParamsFile(
     const isTsFile = basename.endsWith('.ts');
     const exports = findExports(source, isTsFile);
 
-    // add type to match function if not explicitly typed
-    const match = exports.get('match');
-    if (
-        match?.type === 'function' &&
-        match.node.parameters.length === 1 &&
-        !match.hasTypeDefinition
-    ) {
-        const pos = match.node.parameters[0].getEnd();
-        const inserted = surround(`: string`);
-        insert(pos, inserted);
-        if (!match.node.type && match.node.body) {
-            const returnPos = match.node.body.getStart();
-            const returnInsertion = surround(`: boolean`);
-            insert(returnPos, returnInsertion);
-        }
-    }
+    addTypeToFunction(exports, surround, insert, 'match', 'string', 'boolean');
 
     return { addedCode, originalText: source.getFullText() };
 }
@@ -291,26 +242,13 @@ function upserKitClientHooksFile(
     const isTsFile = basename.endsWith('.ts');
     const exports = findExports(source, isTsFile);
 
-    // add type to handleError function if not explicitly typed
-    const handleError = exports.get('handleError');
-    if (
-        handleError?.type === 'function' &&
-        handleError.node.parameters.length === 1 &&
-        !handleError.hasTypeDefinition
-    ) {
-        const paramPos = handleError.node.parameters[0].getEnd();
-        const paramInsertion = surround(
-            `: Parameters<import('@sveltejs/kit').HandleClientError>[0]`
-        );
-        insert(paramPos, paramInsertion);
-        if (!handleError.node.type && handleError.node.body) {
-            const returnPos = handleError.node.body.getStart();
-            const returnInsertion = surround(
-                `: ReturnType<import('@sveltejs/kit').HandleClientError>`
-            );
-            insert(returnPos, returnInsertion);
-        }
-    }
+    addTypeToFunction(
+        exports,
+        surround,
+        insert,
+        'handleError',
+        `import('@sveltejs/kit').HandleClientError`
+    );
 
     return { addedCode, originalText: source.getFullText() };
 }
@@ -337,25 +275,69 @@ function upserKitServerHooksFile(
     const isTsFile = basename.endsWith('.ts');
     const exports = findExports(source, isTsFile);
 
-    const addTypeToFunction = (name: string, type: string) => {
-        const fn = exports.get(name);
-        if (fn?.type === 'function' && fn.node.parameters.length === 1 && !fn.hasTypeDefinition) {
-            const paramPos = fn.node.parameters[0].getEnd();
-            const paramInsertion = surround(`: Parameters<${type}>[0]`);
-            insert(paramPos, paramInsertion);
-            if (!fn.node.type && fn.node.body) {
-                const returnPos = fn.node.body.getStart();
-                const returnInsertion = surround(`: ReturnType<${type}>`);
-                insert(returnPos, returnInsertion);
-            }
-        }
+    const addType = (name: string, type: string) => {
+        addTypeToFunction(exports, surround, insert, name, type);
     };
 
-    addTypeToFunction('handleError', `import('@sveltejs/kit').HandleServerError`);
-    addTypeToFunction('handle', `import('@sveltejs/kit').Handle`);
-    addTypeToFunction('handleFetch', `import('@sveltejs/kit').HandleFetch`);
+    addType('handleError', `import('@sveltejs/kit').HandleServerError`);
+    addType('handle', `import('@sveltejs/kit').Handle`);
+    addType('handleFetch', `import('@sveltejs/kit').HandleFetch`);
 
     return { addedCode, originalText: source.getFullText() };
+}
+
+function addTypeToVariable(
+    exports: Map<
+        string,
+        | {
+              type: 'function';
+              node: ts.FunctionDeclaration | ts.ArrowFunction | ts.FunctionExpression;
+              hasTypeDefinition: boolean;
+          }
+        | { type: 'var'; node: ts.VariableDeclaration; hasTypeDefinition: boolean }
+    >,
+    surround: (text: string) => string,
+    insert: (pos: number, inserted: string) => void,
+    name: string,
+    type: string
+) {
+    const variable = exports.get(name);
+    if (variable?.type === 'var' && !variable.hasTypeDefinition && variable.node.initializer) {
+        const pos = variable.node.name.getEnd();
+        const inserted = surround(` : ${type}`);
+        insert(pos, inserted);
+    }
+}
+
+function addTypeToFunction(
+    exports: Map<
+        string,
+        | {
+              type: 'function';
+              node: ts.FunctionDeclaration | ts.ArrowFunction | ts.FunctionExpression;
+              hasTypeDefinition: boolean;
+          }
+        | { type: 'var'; node: ts.VariableDeclaration; hasTypeDefinition: boolean }
+    >,
+    surround: (text: string) => string,
+    insert: (pos: number, inserted: string) => void,
+    name: string,
+    type: string,
+    returnType?: string
+) {
+    const fn = exports.get(name);
+    if (fn?.type === 'function' && fn.node.parameters.length === 1 && !fn.hasTypeDefinition) {
+        const paramPos = fn.node.parameters[0].getEnd();
+        const paramInsertion = surround(!returnType ? `: Parameters<${type}>[0]` : `: ${type}`);
+        insert(paramPos, paramInsertion);
+        if (!fn.node.type && fn.node.body) {
+            const returnPos = fn.node.body.getStart();
+            const returnInsertion = surround(
+                !returnType ? `: ReturnType<${type}>` : `: ${returnType}`
+            );
+            insert(returnPos, returnInsertion);
+        }
+    }
 }
 
 function insertCode(addedCode: AddedCode[], pos: number, inserted: string) {
