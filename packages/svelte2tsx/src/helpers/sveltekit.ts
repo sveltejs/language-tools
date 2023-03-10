@@ -212,7 +212,7 @@ function upserKitRouteFile(
             !api.hasTypeDefinition
         ) {
             const pos = api.node.parameters[0].getEnd();
-            const inserted = surround(`: import('./$types').RequestHandler`);
+            const inserted = surround(`: import('./$types').RequestEvent`);
 
             insert(pos, inserted);
         }
