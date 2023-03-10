@@ -311,3 +311,16 @@ export function findIdentifier(ts: _ts, node: ts.Node): ts.Identifier | undefine
         node = node.parent;
     }
 }
+
+export function hasNodeModule(compilerOptions: ts.CompilerOptions, module: string) {
+    try {
+        const hasModule =
+            typeof compilerOptions.configFilePath !== 'string' ||
+            require.resolve(module, { paths: [compilerOptions.configFilePath] });
+        return hasModule;
+    } catch (e) {
+        // If require.resolve fails, we end up here, which can be either because the package is not found,
+        // or (in case of things like SvelteKit) the package is found but the package.json is not exported.
+        return (e as any)?.code === 'ERR_PACKAGE_PATH_NOT_EXPORTED';
+    }
+}

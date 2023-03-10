@@ -1,7 +1,8 @@
+import path from 'path';
 import type ts from 'typescript/lib/tsserverlibrary';
 import { Logger } from '../logger';
 import { findExports, findIdentifier, isSvelteFilePath } from '../utils';
-import { getVirtualLS, isKitExportAllowedIn, kitExports } from './sveltekit';
+import { getVirtualLS, isKitRouteExportAllowedIn, kitExports } from './sveltekit';
 
 type _ts = typeof ts;
 
@@ -139,6 +140,13 @@ function getKitDiagnostics<
                               ` (this likely means that SvelteKit's generated types are out of date - try rerunning it by executing 'npm run dev' or 'npm run build')`
                             : diagnostic.messageText
                 };
+            } else if (diagnostic.code === 2355) {
+                // A function whose declared type is neither 'void' nor 'any' must return a value
+                diagnostic = {
+                    ...diagnostic,
+                    // adjust length so it doesn't spill over to the next line
+                    length: 1
+                };
             } else {
                 continue;
             }
@@ -156,11 +164,11 @@ function getKitDiagnostics<
         // We're in a Svelte file - check top level exports
         // We're using the original file to have the correct position without mapping
         const source = info.languageService.getProgram()?.getSourceFile(fileName);
-        const basename = fileName.split('/').pop() || '';
+        const basename = path.basename(fileName);
         const validExports = Object.keys(kitExports).filter((key) =>
-            isKitExportAllowedIn(basename, kitExports[key])
+            isKitRouteExportAllowedIn(basename, kitExports[key])
         );
-        if (source) {
+        if (source && basename.startsWith('+')) {
             const exports = findExports(ts, source, /* irrelevant */ false);
             for (const exportName of exports.keys()) {
                 if (!validExports.includes(exportName) && !exportName.startsWith('_')) {

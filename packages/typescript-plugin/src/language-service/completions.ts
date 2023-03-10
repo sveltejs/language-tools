@@ -2,7 +2,7 @@ import { basename, dirname } from 'path';
 import type ts from 'typescript/lib/tsserverlibrary';
 import { Logger } from '../logger';
 import { findNodeAtPosition, isSvelteFilePath, isTopLevelExport, replaceDeep } from '../utils';
-import { getVirtualLS, isKitExportAllowedIn, kitExports } from './sveltekit';
+import { getVirtualLS, isKitRouteExportAllowedIn, kitExports } from './sveltekit';
 
 type _ts = typeof ts;
 
@@ -52,7 +52,7 @@ export function decorateCompletions(
             if (node && isTopLevelExport(ts, node, source)) {
                 return {
                     entries: Object.entries(kitExports)
-                        .filter(([, value]) => isKitExportAllowedIn(basename(fileName), value))
+                        .filter(([, value]) => isKitRouteExportAllowedIn(basename(fileName), value))
                         .map(([key, value]) => ({
                             kind: ts.ScriptElementKind.constElement,
                             name: key,

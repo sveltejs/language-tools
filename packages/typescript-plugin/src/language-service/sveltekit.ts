@@ -1,7 +1,7 @@
 import path from 'path';
 import type ts from 'typescript/lib/tsserverlibrary';
 import { Logger } from '../logger';
-import { findExports } from '../utils';
+import { findExports, hasNodeModule } from '../utils';
 type _ts = typeof ts;
 
 interface KitSnapshot {
@@ -24,7 +24,7 @@ const cache = new WeakMap<
             getKitScriptSnapshotIfUpToDate: (fileName: string) => KitSnapshot | undefined;
             upsertKitFile: (fileName: string) => void;
         };
-    }
+    } | null
 >();
 
 function createApiExport(name: string) {
@@ -392,13 +392,71 @@ export const kitExports: Record<
     PUT: createApiExport('PUT'),
     PATCH: createApiExport('PATCH'),
     DELETE: createApiExport('DELETE'),
-    OPTIONS: createApiExport('OPTIONS')
+    OPTIONS: createApiExport('OPTIONS'),
+    // param matching
+    match: {
+        allowedIn: [],
+        displayParts: [],
+        documentation: [
+            {
+                text:
+                    `A parameter matcher. ` +
+                    `More info: https://kit.svelte.dev/docs/advanced-routing#matching`,
+                kind: 'text'
+            }
+        ]
+    },
+    // hooks
+    handle: {
+        allowedIn: [],
+        displayParts: [],
+        documentation: [
+            {
+                text:
+                    `The  handle hook runs every time the SvelteKit server receives a request and determines the response. ` +
+                    `It receives an 'event' object representing the request and a function called 'resolve', which renders the route and generates a Response. ` +
+                    `This allows you to modify response headers or bodies, or bypass SvelteKit entirely (for implementing routes programmatically, for example). ` +
+                    `More info: https://kit.svelte.dev/docs/hooks#server-hooks-handle`,
+                kind: 'text'
+            }
+        ]
+    },
+    handleFetch: {
+        allowedIn: [],
+        displayParts: [],
+        documentation: [
+            {
+                text:
+                    `The handleFetch hook allows you to modify (or replace) a 'fetch' request that happens inside a 'load' function that runs on the server (or during pre-rendering). ` +
+                    `More info: https://kit.svelte.dev/docs/hooks#server-hooks-handlefetch`,
+                kind: 'text'
+            }
+        ]
+    },
+    handleError: {
+        allowedIn: [],
+        displayParts: [],
+        documentation: [
+            {
+                text:
+                    `The handleError hook runs when an unexpected error is thrown while responding to a request. ` +
+                    `If an unexpected error is thrown during loading or rendering, this function will be called with the error and the event. ` +
+                    `Make sure that this function _never_ throws an error. ` +
+                    `More info: https://kit.svelte.dev/docs/hooks#shared-hooks-handleerror`,
+                kind: 'text'
+            }
+        ]
+    }
 };
 
-export function isKitExportAllowedIn(
+export function isKitRouteExportAllowedIn(
     basename: string,
     kitExport: typeof kitExports[keyof typeof kitExports]
 ) {
+    if (!basename.startsWith('+')) {
+        return false;
+    }
+
     const allowedIn = kitExport.allowedIn;
     return (
         (basename.includes('layout')
@@ -412,20 +470,54 @@ export function isKitExportAllowedIn(
     );
 }
 
-export function getProxiedLanguageService(
-    info: ts.server.PluginCreateInfo,
-    ts: _ts,
-    logger?: Logger
-) {
+const kitPageFiles = new Set(['+page', '+layout', '+page.server', '+layout.server', '+server']);
+
+function getProxiedLanguageService(info: ts.server.PluginCreateInfo, ts: _ts, logger?: Logger) {
     const cachedProxiedLanguageService = cache.get(info);
-    if (cachedProxiedLanguageService) {
-        return cachedProxiedLanguageService;
+    if (cachedProxiedLanguageService !== undefined) {
+        return cachedProxiedLanguageService ?? undefined;
+    }
+
+    if (!hasNodeModule(info.project.getCompilerOptions(), '@sveltejs/kit')) {
+        // Not a SvelteKit project, do nothing
+        cache.set(info, null);
+        return;
     }
 
     const originalLanguageServiceHost = info.languageServiceHost;
 
     class ProxiedLanguageServiceHost implements ts.LanguageServiceHost {
-        files: Record<string, KitSnapshot> = {};
+        private files: Record<string, KitSnapshot> = {};
+        private paramsPath = 'src/params';
+        private serverHooksPath = 'src/hooks.server';
+        private clientHooksPath = 'src/hooks.client';
+
+        constructor() {
+            const configPath = info.project.getCurrentDirectory() + '/svelte.config.js';
+            import(configPath)
+                .then((module) => {
+                    const config = module.default;
+                    if (config.kit && config.kit.files) {
+                        if (config.kit.files.params) {
+                            this.paramsPath = config.kit.files.params;
+                        }
+                        if (config.kit.files.hooks) {
+                            this.serverHooksPath ||= config.kit.files.hooks.server;
+                            this.clientHooksPath ||= config.kit.files.hooks.client;
+                        }
+                        // We could be more sophisticated with only removing the files that are actually
+                        // wrong but this is good enough given how rare it is that this setting is used
+                        Object.keys(this.files)
+                            .filter((name) => {
+                                return !name.includes('src/hooks') && !name.includes('src/params');
+                            })
+                            .forEach((name) => {
+                                delete this.files[name];
+                            });
+                    }
+                })
+                .catch(() => {});
+        }
 
         log() {}
 
@@ -500,7 +592,43 @@ export function getProxiedLanguageService(
         }
 
         upsertKitFile(fileName: string) {
-            const basename = path.basename(fileName);
+            let basename = path.basename(fileName);
+            const result =
+                this.upserKitRouteFile(fileName, basename) ??
+                this.upserKitServerHooksFile(fileName, basename) ??
+                this.upserKitClientHooksFile(fileName, basename) ??
+                this.upserKitParamsFile(fileName, basename);
+            if (!result) {
+                return;
+            }
+
+            // construct generated text from internal text and addedCode array
+            const { originalText, addedCode } = result;
+            let pos = 0;
+            let text = '';
+            for (const added of addedCode) {
+                text += originalText.slice(pos, added.originalPos) + added.inserted;
+                pos = added.originalPos;
+            }
+            text += originalText.slice(pos);
+
+            const snap = ts.ScriptSnapshot.fromString(text);
+            snap.getChangeRange = (_) => undefined;
+            this.files[fileName] = {
+                version: originalLanguageServiceHost.getScriptVersion(fileName),
+                file: snap,
+                addedCode
+            };
+            return this.files[fileName];
+        }
+
+        private upserKitRouteFile(fileName: string, basename: string) {
+            if (basename.includes('@')) {
+                // +page@foo -> +page
+                basename = basename.split('@')[0];
+            } else {
+                basename = basename.slice(0, -path.extname(fileName).length);
+            }
             if (!kitPageFiles.has(basename)) return;
 
             const source = info.languageService.getProgram()?.getSourceFile(fileName);
@@ -508,30 +636,7 @@ export function getProxiedLanguageService(
 
             const addedCode: KitSnapshot['addedCode'] = [];
             const insert = (pos: number, inserted: string) => {
-                const insertionIdx = addedCode.findIndex((c) => c.generatedPos > pos);
-                if (insertionIdx >= 0) {
-                    for (let i = insertionIdx; i < addedCode.length; i++) {
-                        addedCode[i].generatedPos += inserted.length;
-                        addedCode[i].total += inserted.length;
-                    }
-                    const prevTotal = addedCode[insertionIdx - 1]?.total ?? 0;
-                    addedCode.splice(insertionIdx, 0, {
-                        generatedPos: pos + prevTotal,
-                        originalPos: pos,
-                        length: inserted.length,
-                        inserted,
-                        total: prevTotal + inserted.length
-                    });
-                } else {
-                    const prevTotal = addedCode[addedCode.length - 1]?.total ?? 0;
-                    addedCode.push({
-                        generatedPos: pos + prevTotal,
-                        originalPos: pos,
-                        length: inserted.length,
-                        inserted,
-                        total: prevTotal + inserted.length
-                    });
-                }
+                this.insertCode(addedCode, pos, inserted);
             };
 
             const isTsFile = basename.endsWith('.ts');
@@ -621,24 +726,159 @@ export function getProxiedLanguageService(
             insertApiMethod('DELETE');
             insertApiMethod('OPTIONS');
 
-            // construct generated text from internal text and addedCode array
-            const originalText = source.getFullText();
-            let pos = 0;
-            let text = '';
-            for (const added of addedCode) {
-                text += originalText.slice(pos, added.originalPos) + added.inserted;
-                pos = added.originalPos;
-            }
-            text += originalText.slice(pos);
+            return { addedCode, originalText: source.getFullText() };
+        }
 
-            const snap = ts.ScriptSnapshot.fromString(text);
-            snap.getChangeRange = (_) => undefined;
-            this.files[fileName] = {
-                version: originalLanguageServiceHost.getScriptVersion(fileName),
-                file: snap,
-                addedCode
+        private upserKitParamsFile(fileName: string, basename: string) {
+            if (
+                !fileName.slice(0, -basename.length - 1).endsWith(this.paramsPath) ||
+                basename.includes('.test') ||
+                basename.includes('.spec')
+            ) {
+                return;
+            }
+
+            const source = info.languageService.getProgram()?.getSourceFile(fileName);
+            if (!source) return;
+
+            const addedCode: KitSnapshot['addedCode'] = [];
+            const insert = (pos: number, inserted: string) => {
+                this.insertCode(addedCode, pos, inserted);
             };
-            return this.files[fileName];
+
+            const isTsFile = basename.endsWith('.ts');
+            const exports = findExports(ts, source, isTsFile);
+
+            // add type to match function if not explicitly typed
+            const match = exports.get('match');
+            if (
+                match?.type === 'function' &&
+                match.node.parameters.length === 1 &&
+                !match.hasTypeDefinition
+            ) {
+                const pos = match.node.parameters[0].getEnd();
+                const inserted = `: string`;
+                insert(pos, inserted);
+                if (!match.node.type && match.node.body) {
+                    const returnPos = match.node.body.getStart();
+                    const returnInsertion = `: boolean`;
+                    insert(returnPos, returnInsertion);
+                }
+            }
+
+            return { addedCode, originalText: source.getFullText() };
+        }
+
+        private upserKitClientHooksFile(fileName: string, basename: string) {
+            const matchesHooksFile =
+                ((basename === 'index.ts' || basename === 'index.js') &&
+                    fileName.slice(0, -basename.length - 1).endsWith(this.clientHooksPath)) ||
+                fileName.slice(0, -path.extname(basename).length).endsWith(this.clientHooksPath);
+            if (!matchesHooksFile) {
+                return;
+            }
+
+            const source = info.languageService.getProgram()?.getSourceFile(fileName);
+            if (!source) return;
+
+            const addedCode: KitSnapshot['addedCode'] = [];
+            const insert = (pos: number, inserted: string) => {
+                this.insertCode(addedCode, pos, inserted);
+            };
+
+            const isTsFile = basename.endsWith('.ts');
+            const exports = findExports(ts, source, isTsFile);
+
+            // add type to handleError function if not explicitly typed
+            const handleError = exports.get('handleError');
+            if (
+                handleError?.type === 'function' &&
+                handleError.node.parameters.length === 1 &&
+                !handleError.hasTypeDefinition
+            ) {
+                const paramPos = handleError.node.parameters[0].getEnd();
+                const paramInsertion = `: Parameters<import('@sveltejs/kit').HandleClientError>[0]`;
+                insert(paramPos, paramInsertion);
+                if (!handleError.node.type && handleError.node.body) {
+                    const returnPos = handleError.node.body.getStart();
+                    const returnInsertion = `: ReturnType<import('@sveltejs/kit').HandleClientError>`;
+                    insert(returnPos, returnInsertion);
+                }
+            }
+
+            return { addedCode, originalText: source.getFullText() };
+        }
+
+        private upserKitServerHooksFile(fileName: string, basename: string) {
+            const matchesHooksFile =
+                ((basename === 'index.ts' || basename === 'index.js') &&
+                    fileName.slice(0, -basename.length - 1).endsWith(this.serverHooksPath)) ||
+                fileName.slice(0, -path.extname(basename).length).endsWith(this.serverHooksPath);
+            if (!matchesHooksFile) {
+                return;
+            }
+
+            const source = info.languageService.getProgram()?.getSourceFile(fileName);
+            if (!source) return;
+
+            const addedCode: KitSnapshot['addedCode'] = [];
+            const insert = (pos: number, inserted: string) => {
+                this.insertCode(addedCode, pos, inserted);
+            };
+
+            const isTsFile = basename.endsWith('.ts');
+            const exports = findExports(ts, source, isTsFile);
+
+            const addTypeToFunction = (name: string, type: string) => {
+                const fn = exports.get(name);
+                if (
+                    fn?.type === 'function' &&
+                    fn.node.parameters.length === 1 &&
+                    !fn.hasTypeDefinition
+                ) {
+                    const paramPos = fn.node.parameters[0].getEnd();
+                    const paramInsertion = `: Parameters<${type}>[0]`;
+                    insert(paramPos, paramInsertion);
+                    if (!fn.node.type && fn.node.body) {
+                        const returnPos = fn.node.body.getStart();
+                        const returnInsertion = `: ReturnType<${type}>`;
+                        insert(returnPos, returnInsertion);
+                    }
+                }
+            };
+
+            addTypeToFunction('handleError', `import('@sveltejs/kit').HandleServerError`);
+            addTypeToFunction('handle', `import('@sveltejs/kit').Handle`);
+            addTypeToFunction('handleFetch', `import('@sveltejs/kit').HandleFetch`);
+
+            return { addedCode, originalText: source.getFullText() };
+        }
+
+        private insertCode(addedCode: KitSnapshot['addedCode'], pos: number, inserted: string) {
+            const insertionIdx = addedCode.findIndex((c) => c.originalPos > pos);
+            if (insertionIdx >= 0) {
+                for (let i = insertionIdx; i < addedCode.length; i++) {
+                    addedCode[i].generatedPos += inserted.length;
+                    addedCode[i].total += inserted.length;
+                }
+                const prevTotal = addedCode[insertionIdx - 1]?.total ?? 0;
+                addedCode.splice(insertionIdx, 0, {
+                    generatedPos: pos + prevTotal,
+                    originalPos: pos,
+                    length: inserted.length,
+                    inserted,
+                    total: prevTotal + inserted.length
+                });
+            } else {
+                const prevTotal = addedCode[addedCode.length - 1]?.total ?? 0;
+                addedCode.push({
+                    generatedPos: pos + prevTotal,
+                    originalPos: pos,
+                    length: inserted.length,
+                    inserted,
+                    total: prevTotal + inserted.length
+                });
+            }
         }
 
         readFile(fileName: string) {
@@ -668,19 +908,6 @@ export function getProxiedLanguageService(
     };
 }
 
-const kitPageFiles = new Set([
-    '+page.ts',
-    '+page.js',
-    '+layout.ts',
-    '+layout.js',
-    '+page.server.ts',
-    '+page.server.js',
-    '+layout.server.ts',
-    '+layout.server.js',
-    '+server.js',
-    '+server.ts'
-]);
-
 export function getVirtualLS(
     fileName: string,
     info: ts.server.PluginCreateInfo,
@@ -688,6 +915,10 @@ export function getVirtualLS(
     logger?: Logger
 ) {
     const proxy = getProxiedLanguageService(info, ts, logger);
+    if (!proxy) {
+        return;
+    }
+
     const result =
         proxy.languageServiceHost.getKitScriptSnapshotIfUpToDate(fileName) ??
         proxy.languageServiceHost.upsertKitFile(fileName);
@@ -702,7 +933,7 @@ export function getVirtualLS(
     }
 }
 
-export function toVirtualPos(pos: number, addedCode: KitSnapshot['addedCode']) {
+function toVirtualPos(pos: number, addedCode: KitSnapshot['addedCode']) {
     let total = 0;
     for (const added of addedCode) {
         if (pos < added.originalPos) break;
@@ -711,7 +942,7 @@ export function toVirtualPos(pos: number, addedCode: KitSnapshot['addedCode']) {
     return pos + total;
 }
 
-export function toOriginalPos(pos: number, addedCode: KitSnapshot['addedCode']) {
+function toOriginalPos(pos: number, addedCode: KitSnapshot['addedCode']) {
     let total = 0;
     let idx = 0;
     for (; idx < addedCode.length; idx++) {
