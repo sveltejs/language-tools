@@ -2,7 +2,7 @@ import { EncodedSourceMap, TraceMap, originalPositionFor } from '@jridgewell/tra
 import path from 'path';
 import { walk } from 'svelte/compiler';
 import { TemplateNode } from 'svelte/types/compiler/interfaces';
-import { svelte2tsx, IExportedNames } from 'svelte2tsx';
+import { svelte2tsx, IExportedNames, internalHelpers } from 'svelte2tsx';
 import ts from 'typescript';
 import { Position, Range, TextDocumentContentChangeEvent } from 'vscode-languageserver';
 import {
@@ -24,8 +24,7 @@ import {
     getScriptKindFromAttributes,
     getScriptKindFromFileName,
     isSvelteFilePath,
-    getTsCheckComment,
-    findExports
+    getTsCheckComment
 } from './utils';
 import { Logger } from '../../logger';
 import { dirname, resolve } from 'path';
@@ -398,58 +397,6 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
     }
 }
 
-const kitPageFiles = new Set(['+page', '+layout', '+page.server', '+layout.server', '+server']);
-
-export function isKitFile(
-    fileName: string,
-    serverHooksPath: string,
-    clientHooksPath: string,
-    paramsPath: string
-) {
-    const basename = path.basename(fileName);
-    return (
-        isKitRouteFile(fileName, basename) ||
-        isServerHooksFile(fileName, basename, serverHooksPath) ||
-        isClientHooksFile(fileName, basename, clientHooksPath) ||
-        isParamsFile(fileName, basename, paramsPath)
-    );
-}
-
-function isKitRouteFile(fileName: string, basename: string) {
-    if (basename.includes('@')) {
-        // +page@foo -> +page
-        basename = basename.split('@')[0];
-    } else {
-        basename = basename.slice(0, -path.extname(fileName).length);
-    }
-
-    return kitPageFiles.has(basename);
-}
-
-function isServerHooksFile(fileName: string, basename: string, serverHooksPath: string) {
-    return (
-        ((basename === 'index.ts' || basename === 'index.js') &&
-            fileName.slice(0, -basename.length - 1).endsWith(serverHooksPath)) ||
-        fileName.slice(0, -path.extname(basename).length).endsWith(serverHooksPath)
-    );
-}
-
-function isClientHooksFile(fileName: string, basename: string, clientHooksPath: string) {
-    return (
-        ((basename === 'index.ts' || basename === 'index.js') &&
-            fileName.slice(0, -basename.length - 1).endsWith(clientHooksPath)) ||
-        fileName.slice(0, -path.extname(basename).length).endsWith(clientHooksPath)
-    );
-}
-
-function isParamsFile(fileName: string, basename: string, paramsPath: string) {
-    return (
-        fileName.slice(0, -basename.length - 1).endsWith(paramsPath) &&
-        !basename.includes('.test') &&
-        !basename.includes('.spec')
-    );
-}
-
 /**
  * A js/ts document snapshot suitable for the ts language service and the plugin.
  * Since no mapping has to be done here, it also implements the mapper interface.
@@ -589,18 +536,20 @@ export class JSOrTSDocumentSnapshot extends IdentityMapper implements DocumentSn
     }
 
     private adjustText() {
-        this.addedCode = [];
-        this.text = this.upsertKitFile(this.filePath) ?? this.originalText;
-    }
-
-    private upsertKitFile(fileName: string) {
-        let basename = path.basename(fileName);
-        const result =
-            this.upserKitRouteFile(fileName, basename) ??
-            this.upserKitServerHooksFile(fileName, basename) ??
-            this.upserKitClientHooksFile(fileName, basename) ??
-            this.upserKitParamsFile(fileName, basename);
+        const result = internalHelpers.upsertKitFile(
+            this.filePath,
+            {
+                clientHooksPath: this.clientHooksPath,
+                paramsPath: this.paramsPath,
+                serverHooksPath: this.serverHooksPath
+            },
+            () => this.createSource(),
+            surroundWithIgnoreComments
+        );
         if (!result) {
+            this.kitFile = false;
+            this.addedCode = [];
+            this.text = this.originalText;
             return;
         }
 
@@ -613,278 +562,11 @@ export class JSOrTSDocumentSnapshot extends IdentityMapper implements DocumentSn
             }
         }
 
+        const { text, addedCode } = result;
+
         this.kitFile = true;
-
-        // construct generated text from internal text and addedCode array
-        let pos = 0;
-        let text = '';
-        for (const added of this.addedCode) {
-            text += this.originalText.slice(pos, added.originalPos) + added.inserted;
-            pos = added.originalPos;
-        }
-        text += this.originalText.slice(pos);
-        return text;
-    }
-
-    private upserKitRouteFile(fileName: string, basename: string) {
-        if (basename.includes('@')) {
-            // +page@foo -> +page
-            basename = basename.split('@')[0];
-        } else {
-            basename = basename.slice(0, -path.extname(fileName).length);
-        }
-        if (!kitPageFiles.has(basename)) return;
-
-        const source = this.createSource();
-
-        this.addedCode = [];
-        const insert = (pos: number, inserted: string) => {
-            this.insertCode(this.addedCode, pos, inserted);
-        };
-
-        const isTsFile = basename.endsWith('.ts');
-        const allExports = findExports(source, isTsFile);
-
-        // add type to load function if not explicitly typed
-        const load = allExports.get('load');
-        if (
-            load?.type === 'function' &&
-            load.node.parameters.length === 1 &&
-            !load.hasTypeDefinition
-        ) {
-            const pos = load.node.parameters[0].getEnd();
-            const inserted = surroundWithIgnoreComments(
-                `: import('./$types').${basename.includes('layout') ? 'Layout' : 'Page'}${
-                    basename.includes('server') ? 'Server' : ''
-                }LoadEvent`
-            );
-
-            insert(pos, inserted);
-        }
-
-        // add type to actions variable if not explicitly typed
-        const actions = allExports.get('actions');
-        if (actions?.type === 'var' && !actions.hasTypeDefinition && actions.node.initializer) {
-            const pos = actions.node.initializer.getEnd();
-            const inserted = surroundWithIgnoreComments(` satisfies import('./$types').Actions`);
-            insert(pos, inserted);
-        }
-
-        // add type to prerender variable if not explicitly typed
-        const prerender = allExports.get('prerender');
-        if (
-            prerender?.type === 'var' &&
-            !prerender.hasTypeDefinition &&
-            prerender.node.initializer
-        ) {
-            const pos = prerender.node.name.getEnd();
-            const inserted = surroundWithIgnoreComments(` : boolean | 'auto'`);
-            insert(pos, inserted);
-        }
-
-        // add type to trailingSlash variable if not explicitly typed
-        const trailingSlash = allExports.get('trailingSlash');
-        if (
-            trailingSlash?.type === 'var' &&
-            !trailingSlash.hasTypeDefinition &&
-            trailingSlash.node.initializer
-        ) {
-            const pos = trailingSlash.node.name.getEnd();
-            const inserted = surroundWithIgnoreComments(` : 'never' | 'always' | 'ignore'`);
-            insert(pos, inserted);
-        }
-
-        // add type to ssr variable if not explicitly typed
-        const ssr = allExports.get('ssr');
-        if (ssr?.type === 'var' && !ssr.hasTypeDefinition && ssr.node.initializer) {
-            const pos = ssr.node.name.getEnd();
-            const inserted = surroundWithIgnoreComments(` : boolean`);
-            insert(pos, inserted);
-        }
-
-        // add type to csr variable if not explicitly typed
-        const csr = allExports.get('csr');
-        if (csr?.type === 'var' && !csr.hasTypeDefinition && csr.node.initializer) {
-            const pos = csr.node.name.getEnd();
-            const inserted = surroundWithIgnoreComments(` : boolean`);
-            insert(pos, inserted);
-        }
-
-        // add types to GET/PUT/POST/PATCH/DELETE/OPTIONS if not explicitly typed
-        const insertApiMethod = (name: string) => {
-            const api = allExports.get(name);
-            if (
-                api?.type === 'function' &&
-                api.node.parameters.length === 1 &&
-                !api.hasTypeDefinition
-            ) {
-                const pos = api.node.parameters[0].getEnd();
-                const inserted = surroundWithIgnoreComments(`: import('./$types').RequestHandler`);
-
-                insert(pos, inserted);
-            }
-        };
-        insertApiMethod('GET');
-        insertApiMethod('PUT');
-        insertApiMethod('POST');
-        insertApiMethod('PATCH');
-        insertApiMethod('DELETE');
-        insertApiMethod('OPTIONS');
-
-        return true;
-    }
-
-    private upserKitParamsFile(fileName: string, basename: string) {
-        if (
-            !fileName.slice(0, -basename.length - 1).endsWith(this.paramsPath) ||
-            basename.includes('.test') ||
-            basename.includes('.spec')
-        ) {
-            return;
-        }
-
-        const source = this.createSource();
-
-        this.addedCode = [];
-        const insert = (pos: number, inserted: string) => {
-            this.insertCode(this.addedCode, pos, inserted);
-        };
-
-        const isTsFile = basename.endsWith('.ts');
-        const allExports = findExports(source, isTsFile);
-
-        // add type to match function if not explicitly typed
-        const match = allExports.get('match');
-        if (
-            match?.type === 'function' &&
-            match.node.parameters.length === 1 &&
-            !match.hasTypeDefinition
-        ) {
-            const pos = match.node.parameters[0].getEnd();
-            const inserted = surroundWithIgnoreComments(`: string`);
-            insert(pos, inserted);
-            if (!match.node.type && match.node.body) {
-                const returnPos = match.node.body.getStart();
-                const returnInsertion = surroundWithIgnoreComments(`: boolean`);
-                insert(returnPos, returnInsertion);
-            }
-        }
-
-        return true;
-    }
-
-    private upserKitClientHooksFile(fileName: string, basename: string) {
-        const matchesHooksFile =
-            ((basename === 'index.ts' || basename === 'index.js') &&
-                fileName.slice(0, -basename.length - 1).endsWith(this.clientHooksPath)) ||
-            fileName.slice(0, -path.extname(basename).length).endsWith(this.clientHooksPath);
-        if (!matchesHooksFile) {
-            return;
-        }
-
-        const source = this.createSource();
-
-        this.addedCode = [];
-        const insert = (pos: number, inserted: string) => {
-            this.insertCode(this.addedCode, pos, inserted);
-        };
-
-        const isTsFile = basename.endsWith('.ts');
-        const allExports = findExports(source, isTsFile);
-
-        // add type to handleError function if not explicitly typed
-        const handleError = allExports.get('handleError');
-        if (
-            handleError?.type === 'function' &&
-            handleError.node.parameters.length === 1 &&
-            !handleError.hasTypeDefinition
-        ) {
-            const paramPos = handleError.node.parameters[0].getEnd();
-            const paramInsertion = surroundWithIgnoreComments(
-                `: Parameters<import('@sveltejs/kit').HandleClientError>[0]`
-            );
-            insert(paramPos, paramInsertion);
-            if (!handleError.node.type && handleError.node.body) {
-                const returnPos = handleError.node.body.getStart();
-                const returnInsertion = surroundWithIgnoreComments(
-                    `: ReturnType<import('@sveltejs/kit').HandleClientError>`
-                );
-                insert(returnPos, returnInsertion);
-            }
-        }
-
-        return { addedCode: this.addedCode, originalText: this.originalText };
-    }
-
-    private upserKitServerHooksFile(fileName: string, basename: string) {
-        const matchesHooksFile =
-            ((basename === 'index.ts' || basename === 'index.js') &&
-                fileName.slice(0, -basename.length - 1).endsWith(this.serverHooksPath)) ||
-            fileName.slice(0, -path.extname(basename).length).endsWith(this.serverHooksPath);
-        if (!matchesHooksFile) {
-            return;
-        }
-
-        const source = this.createSource();
-
-        this.addedCode = [];
-        const insert = (pos: number, inserted: string) => {
-            this.insertCode(this.addedCode, pos, inserted);
-        };
-
-        const isTsFile = basename.endsWith('.ts');
-        const allExports = findExports(source, isTsFile);
-
-        const addTypeToFunction = (name: string, type: string) => {
-            const fn = allExports.get(name);
-            if (
-                fn?.type === 'function' &&
-                fn.node.parameters.length === 1 &&
-                !fn.hasTypeDefinition
-            ) {
-                const paramPos = fn.node.parameters[0].getEnd();
-                const paramInsertion = surroundWithIgnoreComments(`: Parameters<${type}>[0]`);
-                insert(paramPos, paramInsertion);
-                if (!fn.node.type && fn.node.body) {
-                    const returnPos = fn.node.body.getStart();
-                    const returnInsertion = surroundWithIgnoreComments(`: ReturnType<${type}>`);
-                    insert(returnPos, returnInsertion);
-                }
-            }
-        };
-
-        addTypeToFunction('handleError', `import('@sveltejs/kit').HandleServerError`);
-        addTypeToFunction('handle', `import('@sveltejs/kit').Handle`);
-        addTypeToFunction('handleFetch', `import('@sveltejs/kit').HandleFetch`);
-
-        return true;
-    }
-
-    private insertCode(addedCode: typeof this.addedCode, pos: number, inserted: string) {
-        const insertionIdx = addedCode.findIndex((c) => c.originalPos > pos);
-        if (insertionIdx >= 0) {
-            for (let i = insertionIdx; i < addedCode.length; i++) {
-                addedCode[i].generatedPos += inserted.length;
-                addedCode[i].total += inserted.length;
-            }
-            const prevTotal = addedCode[insertionIdx - 1]?.total ?? 0;
-            addedCode.splice(insertionIdx, 0, {
-                generatedPos: pos + prevTotal,
-                originalPos: pos,
-                length: inserted.length,
-                inserted,
-                total: prevTotal + inserted.length
-            });
-        } else {
-            const prevTotal = addedCode[addedCode.length - 1]?.total ?? 0;
-            addedCode.push({
-                generatedPos: pos + prevTotal,
-                originalPos: pos,
-                length: inserted.length,
-                inserted,
-                total: prevTotal + inserted.length
-            });
-        }
+        this.addedCode = addedCode;
+        this.text = text;
     }
 
     private createSource() {

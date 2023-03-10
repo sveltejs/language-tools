@@ -1,3 +1,5 @@
+import ts from 'typescript';
+
 export interface SvelteCompiledToTsx {
     code: string;
     map: import("magic-string").SourceMap;
@@ -100,3 +102,69 @@ export interface EmitDtsConig extends EmitDtsConfig {}
  * touch these files.
  */
 export function emitDts(config: EmitDtsConfig): Promise<void>;
+
+
+/**
+ * ## Internal, do not use! This is subject to change at any time.
+ *
+ * Implementation notice: If one of the methods use a TypeScript function which is not from the
+ * static top level `ts` namespace, it must be passed as a parameter.
+ */
+export const internalHelpers: {
+    isKitFile: (
+        fileName: string,
+        options: InternalHelpers.KitFilesSettings
+    ) => boolean;
+    isKitRouteFile: (fileName: string, basename: string) =>boolean,
+    isClientHooksFile: (
+        fileName: string,
+        basename: string,
+        clientHooksPath: string
+    ) =>boolean,
+    isServerHooksFile: (
+        fileName: string,
+        basename: string,
+        serverHooksPath: string
+    )=> boolean,
+    isParamsFile: (fileName: string, basename: string, paramsPath: string) =>boolean,
+    upsertKitFile: (
+        fileName: string,
+        kitFilesSettings: InternalHelpers.KitFilesSettings,
+        getSource: () => ts.SourceFile | undefined,
+        surround?: (code: string) => string
+    ) => { text: string; addedCode: InternalHelpers.AddedCode[] } | undefined,
+    toVirtualPos: (pos: number, addedCode: InternalHelpers.AddedCode[]) => number,
+    toOriginalPos: (pos: number, addedCode: InternalHelpers.AddedCode[]) => {pos: number; inGenerated: boolean},
+    findExports: (source: ts.SourceFile, isTsFile: boolean) => Map<
+        string,
+        | {
+            type: 'function';
+            node: ts.FunctionDeclaration | ts.ArrowFunction | ts.FunctionExpression;
+            hasTypeDefinition: boolean;
+        }
+        | {
+            type: 'var';
+            node: ts.VariableDeclaration;
+            hasTypeDefinition: boolean;
+        }
+    >,
+};
+
+/**
+ * ## Internal, do not use! This is subject to change at any time.
+ */
+export namespace InternalHelpers {
+    export interface AddedCode {
+        generatedPos: number;
+        originalPos: number;
+        length: number;
+        total: number;
+        inserted: string;
+    }
+
+    export interface KitFilesSettings {
+        serverHooksPath: string;
+        clientHooksPath: string;
+        paramsPath: string;
+    }
+}

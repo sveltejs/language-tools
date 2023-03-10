@@ -1,7 +1,8 @@
 import path from 'path';
+import { internalHelpers } from 'svelte2tsx';
 import type ts from 'typescript/lib/tsserverlibrary';
 import { Logger } from '../logger';
-import { findExports, findIdentifier, isSvelteFilePath } from '../utils';
+import { findIdentifier, isSvelteFilePath } from '../utils';
 import { getVirtualLS, isKitRouteExportAllowedIn, kitExports } from './sveltekit';
 
 type _ts = typeof ts;
@@ -169,7 +170,7 @@ function getKitDiagnostics<
             isKitRouteExportAllowedIn(basename, kitExports[key])
         );
         if (source && basename.startsWith('+')) {
-            const exports = findExports(ts, source, /* irrelevant */ false);
+            const exports = internalHelpers.findExports(source, /* irrelevant */ false);
             for (const exportName of exports.keys()) {
                 if (!validExports.includes(exportName) && !exportName.startsWith('_')) {
                     const node = exports.get(exportName)!.node;
