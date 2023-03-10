@@ -521,10 +521,6 @@ function getProxiedLanguageService(info: ts.server.PluginCreateInfo, ts: _ts, lo
             return originalLanguageServiceHost.getCompilationSettings();
         }
 
-        getScriptIsOpen() {
-            return true;
-        }
-
         getCurrentDirectory() {
             return originalLanguageServiceHost.getCurrentDirectory();
         }
@@ -608,6 +604,16 @@ function getProxiedLanguageService(info: ts.server.PluginCreateInfo, ts: _ts, lo
             return this.files[fileName];
         }
 
+        // needed for path auto completions
+        readDirectory = originalLanguageServiceHost.readDirectory
+            ? (...args: any[]) => {
+                  return originalLanguageServiceHost.readDirectory!(
+                      // @ts-ignore
+                      ...args
+                  );
+              }
+            : undefined;
+
         readFile(fileName: string) {
             const file = this.files[fileName];
             return file
@@ -623,6 +629,8 @@ function getProxiedLanguageService(info: ts.server.PluginCreateInfo, ts: _ts, lo
         }
     }
 
+    // Ideally we'd create a full Proxy of the language service, but that seems to have cache issues
+    // with diagnostics, which makes positions go out of sync.
     const languageServiceHost = new ProxiedLanguageServiceHost();
     const languageService = ts.createLanguageService(
         languageServiceHost,
