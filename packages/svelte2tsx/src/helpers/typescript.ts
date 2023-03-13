@@ -1,9 +1,11 @@
-import ts from 'typescript';
+import type ts from 'typescript';
+
+type _ts = typeof ts;
 
 /**
  * Finds the top level const/let/function exports of a source file.
  */
-export function findExports(source: ts.SourceFile, isTsFile: boolean) {
+export function findExports(ts: _ts, source: ts.SourceFile, isTsFile: boolean) {
     const exports = new Map<
         string,
         | {
@@ -28,7 +30,7 @@ export function findExports(source: ts.SourceFile, isTsFile: boolean) {
             exports.set(statement.name.text, {
                 type: 'function',
                 node: statement,
-                hasTypeDefinition: hasTypedParameter(statement, isTsFile)
+                hasTypeDefinition: hasTypedParameter(ts, statement, isTsFile)
             });
         }
         if (
@@ -59,7 +61,7 @@ export function findExports(source: ts.SourceFile, isTsFile: boolean) {
                 exports.set(declaration.name.getText(), {
                     type: 'function',
                     node,
-                    hasTypeDefinition: hasTypeDefinition || hasTypedParameter(node, isTsFile)
+                    hasTypeDefinition: hasTypeDefinition || hasTypedParameter(ts, node, isTsFile)
                 });
             } else {
                 exports.set(declaration.name.getText(), {
@@ -75,6 +77,7 @@ export function findExports(source: ts.SourceFile, isTsFile: boolean) {
 }
 
 function hasTypedParameter(
+    ts: _ts,
     node: ts.FunctionDeclaration | ts.ArrowFunction | ts.FunctionExpression,
     isTsFile: boolean
 ): boolean {

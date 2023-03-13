@@ -1,6 +1,8 @@
 import path from 'path';
-import ts from 'typescript';
+import type ts from 'typescript';
 import { findExports } from './typescript';
+
+type _ts = typeof ts;
 
 export interface AddedCode {
     generatedPos: number;
@@ -87,6 +89,7 @@ export function isParamsFile(fileName: string, basename: string, paramsPath: str
 }
 
 export function upsertKitFile(
+    ts: _ts,
     fileName: string,
     kitFilesSettings: KitFilesSettings,
     getSource: () => ts.SourceFile | undefined,
@@ -94,8 +97,9 @@ export function upsertKitFile(
 ): { text: string; addedCode: AddedCode[] } {
     let basename = path.basename(fileName);
     const result =
-        upserKitRouteFile(fileName, basename, getSource, surround) ??
+        upserKitRouteFile(ts, fileName, basename, getSource, surround) ??
         upserKitServerHooksFile(
+            ts,
             fileName,
             basename,
             kitFilesSettings.serverHooksPath,
@@ -103,13 +107,21 @@ export function upsertKitFile(
             surround
         ) ??
         upserKitClientHooksFile(
+            ts,
             fileName,
             basename,
             kitFilesSettings.clientHooksPath,
             getSource,
             surround
         ) ??
-        upserKitParamsFile(fileName, basename, kitFilesSettings.paramsPath, getSource, surround);
+        upserKitParamsFile(
+            ts,
+            fileName,
+            basename,
+            kitFilesSettings.paramsPath,
+            getSource,
+            surround
+        );
     if (!result) {
         return;
     }
@@ -128,6 +140,7 @@ export function upsertKitFile(
 }
 
 function upserKitRouteFile(
+    ts: _ts,
     fileName: string,
     basename: string,
     getSource: () => ts.SourceFile | undefined,
@@ -144,7 +157,7 @@ function upserKitRouteFile(
     };
 
     const isTsFile = basename.endsWith('.ts');
-    const exports = findExports(source, isTsFile);
+    const exports = findExports(ts, source, isTsFile);
 
     // add type to load function if not explicitly typed
     const load = exports.get('load');
@@ -175,6 +188,7 @@ function upserKitRouteFile(
     // add types to GET/PUT/POST/PATCH/DELETE/OPTIONS if not explicitly typed
     const insertApiMethod = (name: string) => {
         addTypeToFunction(
+            ts,
             exports,
             surround,
             insert,
@@ -194,6 +208,7 @@ function upserKitRouteFile(
 }
 
 function upserKitParamsFile(
+    ts: _ts,
     fileName: string,
     basename: string,
     paramsPath: string,
@@ -213,14 +228,15 @@ function upserKitParamsFile(
     };
 
     const isTsFile = basename.endsWith('.ts');
-    const exports = findExports(source, isTsFile);
+    const exports = findExports(ts, source, isTsFile);
 
-    addTypeToFunction(exports, surround, insert, 'match', 'string', 'boolean');
+    addTypeToFunction(ts, exports, surround, insert, 'match', 'string', 'boolean');
 
     return { addedCode, originalText: source.getFullText() };
 }
 
 function upserKitClientHooksFile(
+    ts: _ts,
     fileName: string,
     basename: string,
     clientHooksPath: string,
@@ -240,9 +256,10 @@ function upserKitClientHooksFile(
     };
 
     const isTsFile = basename.endsWith('.ts');
-    const exports = findExports(source, isTsFile);
+    const exports = findExports(ts, source, isTsFile);
 
     addTypeToFunction(
+        ts,
         exports,
         surround,
         insert,
@@ -254,6 +271,7 @@ function upserKitClientHooksFile(
 }
 
 function upserKitServerHooksFile(
+    ts: _ts,
     fileName: string,
     basename: string,
     serverHooksPath: string,
@@ -273,10 +291,10 @@ function upserKitServerHooksFile(
     };
 
     const isTsFile = basename.endsWith('.ts');
-    const exports = findExports(source, isTsFile);
+    const exports = findExports(ts, source, isTsFile);
 
     const addType = (name: string, type: string) => {
-        addTypeToFunction(exports, surround, insert, name, type);
+        addTypeToFunction(ts, exports, surround, insert, name, type);
     };
 
     addType('handleError', `import('@sveltejs/kit').HandleServerError`);
@@ -310,6 +328,7 @@ function addTypeToVariable(
 }
 
 function addTypeToFunction(
+    ts: _ts,
     exports: Map<
         string,
         | {

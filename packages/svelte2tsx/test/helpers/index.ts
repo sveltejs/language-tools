@@ -6,6 +6,7 @@ describe('Internal Helpers - upsertKitFile', () => {
     function upsert(file: string, source: string, expected: string) {
         const sourceFile = ts.createSourceFile('d', source, ts.ScriptTarget.Latest, true);
         const result = internalHelpers.upsertKitFile(
+            ts,
             file,
             {
                 clientHooksPath: 'hooks.client',

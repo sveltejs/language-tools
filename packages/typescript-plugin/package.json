@@ -24,6 +24,6 @@
     },
     "dependencies": {
         "@jridgewell/sourcemap-codec": "^1.4.14",
-        "svelte2tsx": "~0.6.4"
+        "svelte2tsx": "~0.6.8"
     }
 }

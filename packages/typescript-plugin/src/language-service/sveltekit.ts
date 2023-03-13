@@ -581,6 +581,7 @@ function getProxiedLanguageService(info: ts.server.PluginCreateInfo, ts: _ts, lo
 
         upsertKitFile(fileName: string) {
             const result = internalHelpers.upsertKitFile(
+                ts,
                 fileName,
                 {
                     clientHooksPath: this.clientHooksPath,

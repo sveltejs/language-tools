@@ -170,7 +170,7 @@ function getKitDiagnostics<
             isKitRouteExportAllowedIn(basename, kitExports[key])
         );
         if (source && basename.startsWith('+')) {
-            const exports = internalHelpers.findExports(source, /* irrelevant */ false);
+            const exports = internalHelpers.findExports(ts, source, /* irrelevant */ false);
             for (const exportName of exports.keys()) {
                 if (!validExports.includes(exportName) && !exportName.startsWith('_')) {
                     const node = exports.get(exportName)!.node;
