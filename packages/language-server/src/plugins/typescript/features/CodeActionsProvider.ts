@@ -27,6 +27,7 @@ import {
     flatten,
     getIndent,
     isNotNullOrUndefined,
+    memoize,
     modifyLines,
     pathToUrl,
     possiblyComponent
@@ -44,6 +45,7 @@ import {
     isTextSpanInGeneratedCode,
     SnapshotMap
 } from './utils';
+import { DiagnosticCode } from './DiagnosticsProvider';
 
 /**
  * TODO change this to protocol constant if it's part of the protocol
@@ -57,12 +59,21 @@ interface RefactorArgs {
     originalRange: Range;
 }
 
+interface QuickFixConversionOptions {
+    fix: ts.CodeFixAction;
+    snapshots: SnapshotMap;
+    document: Document;
+    formatCodeSettings: ts.FormatCodeSettings;
+    formatCodeBasis: FormatCodeBasis;
+    range?: Range;
+    getDiagnostics: () => Diagnostic[];
+}
+
 type FixId = NonNullable<ts.CodeFixAction['fixId']>;
 
-interface QuickFixAllResolveInfo {
+interface QuickFixAllResolveInfo extends TextDocumentIdentifier {
     fixId: FixId;
     fixName: string;
-    triggerRange: Range;
 }
 
 export class CodeActionsProviderImpl implements CodeActionsProvider {
@@ -71,8 +82,6 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         private readonly completionProvider: CompletionsProviderImpl,
         private readonly configManager: LSConfigManager
     ) {}
-
-    private lastQuickFixContext: CodeActionContext | undefined;
 
     async getCodeActions(
         document: Document,
@@ -151,24 +160,41 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         );
 
         const snapshots = new SnapshotMap(this.lsAndTsDocResolver);
-        const fixAction = {
+        const fixAction: ts.CodeFixAction = {
             fixName: codeAction.data.fixName,
             changes: Array.from(fix.changes),
             description: ''
         };
 
-        codeAction.edit = {
-            documentChanges: await this.convertAndFixCodeFixAction(
-                fixAction,
-                snapshots,
-                document,
-                codeAction.data.triggerRange,
-                formatCodeSettings,
-                getFormatCodeBasis(formatCodeSettings)
+        const getDiagnostics = memoize(() =>
+            lang.getSemanticDiagnostics(tsDoc.filePath).map(
+                (dia): Diagnostic => ({
+                    range: mapRangeToOriginal(tsDoc, convertRange(tsDoc, dia)),
+                    message: '',
+                    code: dia.code
+                })
             )
+        );
+
+        const documentChanges = await this.convertAndFixCodeFixAction({
+            fix: fixAction,
+            snapshots,
+            document,
+            formatCodeSettings,
+            formatCodeBasis: getFormatCodeBasis(formatCodeSettings),
+            getDiagnostics
+        });
+
+        codeAction.edit = {
+            documentChanges
         };
 
         return codeAction;
+    }
+
+    private isQuickFixAllResolveInfo(data: LSPAny): data is QuickFixAllResolveInfo {
+        const asserted = data as QuickFixAllResolveInfo | undefined;
+        return asserted?.fixId != undefined && typeof asserted.fixName === 'string';
     }
 
     private async organizeImports(
@@ -328,9 +354,9 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         const start = tsDoc.offsetAt(tsDoc.getGeneratedPosition(range.start));
         const end = tsDoc.offsetAt(tsDoc.getGeneratedPosition(range.end));
         const errorCodes: number[] = context.diagnostics.map((diag) => Number(diag.code));
-        const cannotFoundNameDiagnostic = context.diagnostics.filter(
-            (diagnostic) => diagnostic.code === 2304
-        ); // "Cannot find name '...'."
+        const cannotFindNameDiagnostic = context.diagnostics.filter(
+            (diagnostic) => diagnostic.code === DiagnosticCode.CANNOT_FIND_NAME
+        );
 
         const formatCodeSettings = await this.configManager.getFormatCodeSettingsForFile(
             document,
@@ -338,14 +364,14 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         );
         const formatCodeBasis = getFormatCodeBasis(formatCodeSettings);
 
-        let codeFixes = cannotFoundNameDiagnostic.length
+        let codeFixes = cannotFindNameDiagnostic.length
             ? this.getComponentImportQuickFix(
                   start,
                   end,
                   lang,
                   tsDoc,
                   userPreferences,
-                  cannotFoundNameDiagnostic,
+                  cannotFindNameDiagnostic,
                   formatCodeSettings
               )
             : undefined;
@@ -365,7 +391,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                     await this.getSvelteQuickFixes(
                         lang,
                         document,
-                        cannotFoundNameDiagnostic,
+                        cannotFindNameDiagnostic,
                         tsDoc,
                         formatCodeBasis,
                         userPreferences
@@ -376,58 +402,62 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         snapshots.set(tsDoc.filePath, tsDoc);
 
         const codeActionsPromises = codeFixes.map(async (fix) => {
-            const documentChanges = await this.convertAndFixCodeFixAction(
+            const documentChanges = await this.convertAndFixCodeFixAction({
                 fix,
                 snapshots,
                 document,
                 range,
                 formatCodeSettings,
-                formatCodeBasis
-            );
-            return CodeAction.create(
+                formatCodeBasis,
+                getDiagnostics: () => context.diagnostics
+            });
+
+            const codeAction = CodeAction.create(
                 fix.description,
                 {
                     documentChanges
                 },
                 CodeActionKind.QuickFix
             );
+
+            return {
+                fix,
+                codeAction
+            };
         });
 
         const identifier: TextDocumentIdentifier = {
             uri: document.uri
         };
-        const fixAllActions = this.getFixAllActions(codeFixes, identifier, range);
 
         const codeActions = await Promise.all(codeActionsPromises);
-        if (fixAllActions.length) {
-            this.lastQuickFixContext = {
-                diagnostics: context.diagnostics,
-            }
+        if (cancellationToken?.isCancellationRequested) {
+            return [];
         }
 
-        // filter out empty code action
-        return codeActions.filter((codeAction) =>
+        const codeActionsNotFilteredOut = codeActions.filter(({ codeAction }) =>
             codeAction.edit?.documentChanges?.every(
                 (change) => (<TextDocumentEdit>change).edits.length > 0
             )
-        ).concat(fixAllActions);
-    }
-
-    private isQuickFixAllResolveInfo(data: LSPAny): data is QuickFixAllResolveInfo {
-        const asserted = data as QuickFixAllResolveInfo | undefined;
-        return (
-            asserted?.fixId != undefined && typeof asserted.fixName === 'string' && Range.is(asserted.triggerRange)
         );
+        const fixAllActions = this.getFixAllActions(
+            codeActionsNotFilteredOut.map(({ fix }) => fix),
+            identifier
+        );
+
+        // filter out empty code action
+        return codeActionsNotFilteredOut.map(({ codeAction }) => codeAction).concat(fixAllActions);
     }
 
-    private async convertAndFixCodeFixAction(
-        fix: ts.CodeFixAction,
-        snapshots: SnapshotMap,
-        document: Document,
-        range: Range,
-        formatCodeSettings: ts.FormatCodeSettings,
-        formatCodeBasis: FormatCodeBasis
-    ) {
+    private async convertAndFixCodeFixAction({
+        fix,
+        snapshots,
+        document,
+        formatCodeSettings,
+        formatCodeBasis,
+        range,
+        getDiagnostics
+    }: QuickFixConversionOptions) {
         const documentChangesPromises = fix.changes.map(async (change) => {
             const snapshot = await snapshots.retrieve(change.fileName);
             return TextDocumentEdit.create(
@@ -438,12 +468,21 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                             fix.fixName === 'import' &&
                             snapshot instanceof SvelteDocumentSnapshot
                         ) {
+                            const startPos =
+                                (
+                                    range ??
+                                    this.findDiagnosticForImportFix(
+                                        document,
+                                        edit,
+                                        getDiagnostics()
+                                    )?.range
+                                )?.start ?? Position.create(0, 0);
                             return this.completionProvider.codeActionChangeToTextEdit(
                                 document,
                                 snapshot,
                                 edit,
                                 true,
-                                range.start
+                                startPos
                             );
                         }
 
@@ -465,9 +504,22 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                         }
 
                         if (fix.fixName === 'fixMissingFunctionDeclaration') {
+                            const checkRange =
+                                range ??
+                                this.findDiagnosticForQuickFix(
+                                    document,
+                                    DiagnosticCode.CANNOT_FIND_NAME,
+                                    getDiagnostics(),
+                                    (possiblyIdentifier) => {
+                                        return edit.newText.includes(
+                                            'function ' + possiblyIdentifier + '('
+                                        );
+                                    }
+                                )?.range;
+
                             originalRange = this.checkEndOfFileCodeInsert(
                                 originalRange,
-                                range,
+                                checkRange,
                                 document
                             );
 
@@ -532,10 +584,51 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         return documentChanges;
     }
 
+    private findDiagnosticForImportFix(
+        document: Document,
+        edit: ts.TextChange,
+        diagnostics: Diagnostic[]
+    ) {
+        return this.findDiagnosticForQuickFix(
+            document,
+            DiagnosticCode.CANNOT_FIND_NAME,
+            diagnostics,
+            (possibleIdentifier) => {
+                // in case it is not a identifier, but wrong regex syntax
+                try {
+                    return new RegExp(possibleIdentifier + '(,|$| )').test(edit.newText);
+                } catch (error) {
+                    return false;
+                }
+            }
+        );
+    }
+
+    private findDiagnosticForQuickFix(
+        document: Document,
+        targetCode: number,
+        diagnostics: Diagnostic[],
+        match: (identifier: string) => boolean
+    ) {
+        const diagnostic = diagnostics.find((diagnostic) => {
+            if (diagnostic.code !== targetCode) {
+                return false;
+            }
+
+            const possibleIdentifier = document.getText(diagnostic.range);
+            if (possibleIdentifier) {
+                return match(possibleIdentifier);
+            }
+
+            return false;
+        });
+
+        return diagnostic;
+    }
+
     private getFixAllActions(
         codeFixes: readonly ts.CodeFixAction[],
-        identifier: TextDocumentIdentifier,
-        triggerRange: Range
+        identifier: TextDocumentIdentifier
     ) {
         const fixAll = new Map<FixId, CodeAction>();
         for (const codeFix of codeFixes) {
@@ -551,8 +644,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             const data: QuickFixAllResolveInfo = {
                 ...identifier,
                 fixName: codeFix.fixName,
-                fixId: codeFix.fixId,
-                triggerRange
+                fixId: codeFix.fixId
             };
 
             codeAction.data = data;
@@ -659,7 +751,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
     private async getSvelteQuickFixes(
         lang: ts.LanguageService,
         document: Document,
-        diagnostics: Diagnostic[],
+        cannotFindNameDiagnostics: Diagnostic[],
         tsDoc: DocumentSnapshot,
         formatCodeBasis: FormatCodeBasis,
         userPreferences: ts.UserPreferences
@@ -674,7 +766,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         const results: ts.CodeFixAction[] = [];
         const quote = getQuotePreference(sourceFile, userPreferences);
 
-        for (const diagnostic of diagnostics) {
+        for (const diagnostic of cannotFindNameDiagnostics) {
             const start = tsDoc.offsetAt(tsDoc.getGeneratedPosition(diagnostic.range.start));
             const end = tsDoc.offsetAt(tsDoc.getGeneratedPosition(diagnostic.range.end));
 
@@ -688,8 +780,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                 continue;
             }
 
-            const isQuickFixTargetTargetStore =
-                identifier?.escapedText.toString().startsWith('$') && diagnostic.code === 2304;
+            const isQuickFixTargetTargetStore = identifier?.escapedText.toString().startsWith('$');
             const isQuickFixTargetEventHandler = this.isQuickFixForEventHandler(
                 document,
                 diagnostic
@@ -1028,9 +1119,16 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
      * Some refactorings place the new code at the end of svelte2tsx' render function,
      *  which is unmapped. In this case, add it to the end of the script tag ourselves.
      */
-    private checkEndOfFileCodeInsert(resultRange: Range, targetRange: Range, document: Document) {
+    private checkEndOfFileCodeInsert(
+        resultRange: Range,
+        targetRange: Range | undefined,
+        document: Document
+    ) {
         if (resultRange.start.line < 0 || resultRange.end.line < 0) {
-            if (isRangeInTag(targetRange, document.moduleScriptInfo)) {
+            if (
+                document.moduleScriptInfo &&
+                (!targetRange || isRangeInTag(targetRange, document.moduleScriptInfo))
+            ) {
                 return Range.create(
                     document.moduleScriptInfo.endPos,
                     document.moduleScriptInfo.endPos

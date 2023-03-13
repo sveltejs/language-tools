@@ -751,7 +751,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         originalTriggerPosition: Position,
         is$typeImport?: boolean
     ): TextEdit {
-        change.newText = this.changeComponentImport(
+        change.newText = this.fixImportNewText(
             change.newText,
             isInScript(originalTriggerPosition, doc),
             is$typeImport
@@ -828,7 +828,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         );
     }
 
-    private changeComponentImport(
+    private fixImportNewText(
         importText: string,
         actionTriggeredInScript: boolean,
         is$typeImport?: boolean

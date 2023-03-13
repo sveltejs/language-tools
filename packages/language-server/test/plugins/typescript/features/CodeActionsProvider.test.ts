@@ -108,6 +108,15 @@ describe('CodeActionsProvider', () => {
                 },
                 kind: CodeActionKind.QuickFix,
                 title: "Remove unused declaration for: 'a'"
+            },
+            {
+                data: {
+                    fixId: 'unusedIdentifier_delete',
+                    fixName: 'unusedIdentifier',
+                    uri: getUri('codeactions.svelte')
+                },
+                kind: 'quickfix',
+                title: 'Delete all unused declarations'
             }
         ]);
     });
@@ -211,6 +220,15 @@ describe('CodeActionsProvider', () => {
                 },
                 kind: CodeActionKind.QuickFix,
                 title: "Add missing function declaration 'handleClick'"
+            },
+            {
+                data: {
+                    fixId: 'fixMissingFunctionDeclaration',
+                    fixName: 'fixMissingFunctionDeclaration',
+                    uri: getUri('codeactions.svelte')
+                },
+                kind: 'quickfix',
+                title: 'Add all missing function declarations'
             }
         ]);
     });
@@ -311,6 +329,15 @@ describe('CodeActionsProvider', () => {
                 },
                 kind: CodeActionKind.QuickFix,
                 title: "Add missing function declaration 'abc'"
+            },
+            {
+                data: {
+                    fixId: 'fixMissingFunctionDeclaration',
+                    fixName: 'fixMissingFunctionDeclaration',
+                    uri: getUri('codeactions.svelte')
+                },
+                kind: 'quickfix',
+                title: 'Add all missing function declarations'
             }
         ]);
     }
@@ -469,6 +496,15 @@ describe('CodeActionsProvider', () => {
 
                 kind: 'quickfix',
                 title: 'Disable checking for this file'
+            },
+            {
+                data: {
+                    fixId: 'disableJsDiagnostics',
+                    fixName: 'disableJsDiagnostics',
+                    uri: getUri('codeaction-checkJs-module.svelte')
+                },
+                kind: 'quickfix',
+                title: "Add '@ts-ignore' to all error messages"
             }
         ]);
     });
@@ -703,8 +739,98 @@ describe('CodeActionsProvider', () => {
                 },
                 kind: 'quickfix',
                 title: "Convert 'const' to 'let'"
+            },
+            {
+                data: {
+                    fixId: 'fixConvertConstToLet',
+                    fixName: 'fixConvertConstToLet',
+                    uri: getUri('codeaction-const-reassign.svelte')
+                },
+                kind: 'quickfix',
+                title: "Convert all 'const' to 'let'"
             }
         ]);
+    });
+
+    it('provide quick fix to fix all errors when possible', async () => {
+        const { provider, document } = setup('codeactions.svelte');
+
+        const codeActions = await provider.getCodeActions(
+            document,
+            Range.create(Position.create(9, 0), Position.create(9, 3)),
+            {
+                diagnostics: [
+                    {
+                        code: 2304,
+                        message: "Cannot find name 'abc'.",
+                        range: Range.create(Position.create(9, 0), Position.create(9, 3)),
+                        source: 'ts'
+                    }
+                ],
+                only: [CodeActionKind.QuickFix]
+            }
+        );
+
+        const fixAll = codeActions.find((action) => action.data);
+        const resolvedFixAll = await provider.resolveCodeAction(document, fixAll!);
+
+        (<TextDocumentEdit>codeActions[0]?.edit?.documentChanges?.[0])?.edits.forEach(
+            (edit) => (edit.newText = harmonizeNewLines(edit.newText))
+        );
+
+        assert.deepStrictEqual(resolvedFixAll, {
+            data: {
+                fixId: 'fixMissingFunctionDeclaration',
+                fixName: 'fixMissingFunctionDeclaration',
+                uri: getUri('codeactions.svelte')
+            },
+            edit: {
+                documentChanges: [
+                    {
+                        edits: [
+                            {
+                                newText:
+                                    `\n\n${indent}function abc() {\n` +
+                                    `${indent}${indent}throw new Error('Function not implemented.');\n` +
+                                    `${indent}}\n`,
+                                range: {
+                                    start: {
+                                        character: 0,
+                                        line: 10
+                                    },
+                                    end: {
+                                        character: 0,
+                                        line: 10
+                                    }
+                                }
+                            },
+                            {
+                                newText:
+                                    `\n\n${indent}function handleClick(e: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement; }): any {\n` +
+                                    `${indent}${indent}throw new Error('Function not implemented.');\n` +
+                                    `${indent}}\n`,
+                                range: {
+                                    start: {
+                                        character: 0,
+                                        line: 10
+                                    },
+                                    end: {
+                                        character: 0,
+                                        line: 10
+                                    }
+                                }
+                            }
+                        ],
+                        textDocument: {
+                            uri: getUri('codeactions.svelte'),
+                            version: null
+                        }
+                    }
+                ]
+            },
+            kind: CodeActionKind.QuickFix,
+            title: "Add all missing function declarations"
+        });
     });
 
     it("don't provides quickfix for convert const tag to let", async () => {
