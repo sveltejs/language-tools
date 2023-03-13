@@ -115,7 +115,7 @@ export const internalHelpers: {
         fileName: string,
         options: InternalHelpers.KitFilesSettings
     ) => boolean;
-    isKitRouteFile: (fileName: string, basename: string) =>boolean,
+    isKitRouteFile: (basename: string) => boolean,
     isClientHooksFile: (
         fileName: string,
         basename: string,

@@ -1,5 +1,6 @@
 import MagicString from 'magic-string';
 import ts from 'typescript';
+import { internalHelpers } from '../../helpers';
 import { surroundWithIgnoreComments } from '../../utils/ignore';
 import { preprendStr, overwriteStr } from '../../utils/magic-string';
 import { findExportKeyword, getLastLeadingDoc, isInterfaceOrTypeDeclaration } from '../utils/tsAst';
@@ -17,8 +18,6 @@ interface ExportedName {
     required?: boolean;
     doc?: string;
 }
-
-const kitPageFiles = new Set(['+page.svelte', '+layout.svelte']);
 
 export class ExportedNames {
     /**
@@ -52,6 +51,17 @@ export class ExportedNames {
                 node.declarationList.forEachChild((n) => {
                     if (ts.isVariableDeclaration(n) && ts.isIdentifier(n.name)) {
                         this.addGetter(n.name);
+
+                        const type = n.type || ts.getJSDocType(n);
+                        const isKitExport =
+                            internalHelpers.isKitRouteFile(this.basename) &&
+                            n.name.getText() === 'snapshot';
+                        // TS types are not allowed in JS files, but TS will still pick it up and the ignore comment will filter out the error
+                        const kitType = isKitExport && !type ? `: import('./$types').Snapshot` : '';
+                        const nameEnd = n.name.end + this.astOffset;
+                        if (kitType) {
+                            preprendStr(this.str, nameEnd, surroundWithIgnoreComments(kitType));
+                        }
                     }
                 });
             }
@@ -117,7 +127,7 @@ export class ExportedNames {
             const type = tsType || jsDocType;
             const name = identifier.getText();
             const isKitExport =
-                kitPageFiles.has(this.basename) &&
+                internalHelpers.isKitRouteFile(this.basename) &&
                 (name === 'data' || name === 'form' || name === 'snapshot');
             // TS types are not allowed in JS files, but TS will still pick it up and the ignore comment will filter out the error
             const kitType =
@@ -132,6 +142,7 @@ export class ExportedNames {
                               : 'Snapshot'
                       }`
                     : '';
+            const nameEnd = identifier.end + this.astOffset;
             const end = declaration.end + this.astOffset;
 
             if (
@@ -150,13 +161,26 @@ export class ExportedNames {
             ) {
                 const name = identifier.getText();
 
-                preprendStr(
-                    this.str,
-                    end,
-                    surroundWithIgnoreComments(`${kitType};${name} = __sveltets_2_any(${name});`)
-                );
+                if (nameEnd === end) {
+                    preprendStr(
+                        this.str,
+                        end,
+                        surroundWithIgnoreComments(
+                            `${kitType};${name} = __sveltets_2_any(${name});`
+                        )
+                    );
+                } else {
+                    if (kitType) {
+                        preprendStr(this.str, nameEnd, surroundWithIgnoreComments(kitType));
+                    }
+                    preprendStr(
+                        this.str,
+                        end,
+                        surroundWithIgnoreComments(`;${name} = __sveltets_2_any(${name});`)
+                    );
+                }
             } else if (kitType) {
-                preprendStr(this.str, end, surroundWithIgnoreComments(`${kitType}`));
+                preprendStr(this.str, nameEnd, surroundWithIgnoreComments(kitType));
             }
         };
 
