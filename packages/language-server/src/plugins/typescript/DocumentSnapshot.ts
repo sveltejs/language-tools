@@ -537,6 +537,7 @@ export class JSOrTSDocumentSnapshot extends IdentityMapper implements DocumentSn
 
     private adjustText() {
         const result = internalHelpers.upsertKitFile(
+            ts,
             this.filePath,
             {
                 clientHooksPath: this.clientHooksPath,

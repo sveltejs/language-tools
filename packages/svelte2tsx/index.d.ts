@@ -128,6 +128,7 @@ export const internalHelpers: {
     )=> boolean,
     isParamsFile: (fileName: string, basename: string, paramsPath: string) =>boolean,
     upsertKitFile: (
+        _ts: typeof ts,
         fileName: string,
         kitFilesSettings: InternalHelpers.KitFilesSettings,
         getSource: () => ts.SourceFile | undefined,
@@ -135,7 +136,7 @@ export const internalHelpers: {
     ) => { text: string; addedCode: InternalHelpers.AddedCode[] } | undefined,
     toVirtualPos: (pos: number, addedCode: InternalHelpers.AddedCode[]) => number,
     toOriginalPos: (pos: number, addedCode: InternalHelpers.AddedCode[]) => {pos: number; inGenerated: boolean},
-    findExports: (source: ts.SourceFile, isTsFile: boolean) => Map<
+    findExports: (_ts: typeof ts, source: ts.SourceFile, isTsFile: boolean) => Map<
         string,
         | {
             type: 'function';
