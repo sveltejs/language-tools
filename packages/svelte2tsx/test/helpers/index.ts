@@ -41,4 +41,20 @@ describe('Internal Helpers - upsertKitFile', () => {
             `export async function GET(e: import('./$types').RequestEvent) : Response | Promise<Response> {}`
         );
     });
+
+    it('upserts load const with paranthesis', () => {
+        upsert(
+            '+page.ts',
+            `export const load = (async (e) => {});`,
+            `export const load = (async (e: import('./$types').PageLoadEvent) => {});`
+        );
+    });
+
+    it('recognizes page@', () => {
+        upsert('+page@.ts', `export const ssr = true;`, `export const ssr : boolean = true;`);
+    });
+
+    it('recognizes layout@foo', () => {
+        upsert('+layout@foo.ts', `export const ssr = true;`, `export const ssr : boolean = true;`);
+    });
 });

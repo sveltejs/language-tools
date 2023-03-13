@@ -26,7 +26,7 @@ const kitPageFiles = new Set(['+page', '+layout', '+page.server', '+layout.serve
 export function isKitFile(fileName: string, options: KitFilesSettings): boolean {
     const basename = path.basename(fileName);
     return (
-        isKitRouteFile(fileName, basename) ||
+        isKitRouteFile(basename) ||
         isServerHooksFile(fileName, basename, options.serverHooksPath) ||
         isClientHooksFile(fileName, basename, options.clientHooksPath) ||
         isParamsFile(fileName, basename, options.paramsPath)
@@ -36,12 +36,12 @@ export function isKitFile(fileName: string, options: KitFilesSettings): boolean 
 /**
  * Determines whether or not a given file is a SvelteKit-specific route file
  */
-export function isKitRouteFile(fileName: string, basename: string): boolean {
+export function isKitRouteFile(basename: string): boolean {
     if (basename.includes('@')) {
         // +page@foo -> +page
         basename = basename.split('@')[0];
     } else {
-        basename = basename.slice(0, -path.extname(fileName).length);
+        basename = basename.slice(0, -path.extname(basename).length);
     }
 
     return kitPageFiles.has(basename);
@@ -97,7 +97,7 @@ export function upsertKitFile(
 ): { text: string; addedCode: AddedCode[] } {
     let basename = path.basename(fileName);
     const result =
-        upserKitRouteFile(ts, fileName, basename, getSource, surround) ??
+        upserKitRouteFile(ts, basename, getSource, surround) ??
         upserKitServerHooksFile(
             ts,
             fileName,
@@ -141,12 +141,11 @@ export function upsertKitFile(
 
 function upserKitRouteFile(
     ts: _ts,
-    fileName: string,
     basename: string,
     getSource: () => ts.SourceFile | undefined,
     surround: (text: string) => string
 ) {
-    if (!isKitRouteFile(fileName, basename)) return;
+    if (!isKitRouteFile(basename)) return;
 
     const source = getSource();
     if (!source) return;

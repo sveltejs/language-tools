@@ -52,11 +52,18 @@ export function findExports(ts: _ts, source: ts.SourceFile, isTsFile: boolean) {
                     (ts.isSatisfiesExpression(declaration.initializer) &&
                         ts.isParenthesizedExpression(declaration.initializer.expression) &&
                         (ts.isFunctionExpression(declaration.initializer.expression.expression) ||
-                            ts.isArrowFunction(declaration.initializer.expression.expression))))
+                            ts.isArrowFunction(declaration.initializer.expression.expression))) ||
+                    (ts.isParenthesizedExpression(declaration.initializer) &&
+                        (ts.isFunctionExpression(declaration.initializer.expression) ||
+                            ts.isArrowFunction(declaration.initializer.expression))))
             ) {
                 const node = ts.isSatisfiesExpression(declaration.initializer)
                     ? ((declaration.initializer.expression as ts.ParenthesizedExpression)
                           .expression as ts.FunctionExpression | ts.ArrowFunction)
+                    : ts.isParenthesizedExpression(declaration.initializer)
+                    ? (declaration.initializer.expression as
+                          | ts.FunctionExpression
+                          | ts.ArrowFunction)
                     : declaration.initializer;
                 exports.set(declaration.name.getText(), {
                     type: 'function',
