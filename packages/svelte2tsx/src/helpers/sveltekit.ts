@@ -331,9 +331,11 @@ function addTypeToFunction(
         const paramInsertion = surround(!returnType ? `: Parameters<${type}>[0]` : `: ${type}`);
         insert(paramPos, paramInsertion);
         if (!fn.node.type && fn.node.body) {
-            const returnPos = fn.node.body.getStart();
+            const returnPos = ts.isArrowFunction(fn.node)
+                ? fn.node.equalsGreaterThanToken.getStart()
+                : fn.node.body.getStart();
             const returnInsertion = surround(
-                !returnType ? `: ReturnType<${type}>` : `: ${returnType}`
+                !returnType ? `: ReturnType<${type}> ` : `: ${returnType} `
             );
             insert(returnPos, returnInsertion);
         }
