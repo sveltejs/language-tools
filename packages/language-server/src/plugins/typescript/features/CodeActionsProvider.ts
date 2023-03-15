@@ -35,17 +35,24 @@ import {
 import { CodeActionsProvider } from '../../interfaces';
 import { DocumentSnapshot, SvelteDocumentSnapshot } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
-import { changeSvelteComponentName, convertRange, toGeneratedSvelteComponentName } from '../utils';
+import {
+    changeSvelteComponentName,
+    convertRange,
+    isInScript,
+    toGeneratedSvelteComponentName
+} from '../utils';
 import { CompletionsProviderImpl } from './CompletionProvider';
 import {
     findContainingNode,
     FormatCodeBasis,
     getFormatCodeBasis,
+    getNewScriptStartTag,
     getQuotePreference,
     isTextSpanInGeneratedCode,
     SnapshotMap
 } from './utils';
 import { DiagnosticCode } from './DiagnosticsProvider';
+import { groupBy } from 'lodash';
 
 /**
  * TODO change this to protocol constant if it's part of the protocol
@@ -59,14 +66,19 @@ interface RefactorArgs {
     originalRange: Range;
 }
 
+interface CustomFixCannotFindNameInfo extends ts.CodeFixAction {
+    name: string;
+    position: Position;
+}
+
 interface QuickFixConversionOptions {
-    fix: ts.CodeFixAction;
+    fix: ts.CodeFixAction | CustomFixCannotFindNameInfo;
     snapshots: SnapshotMap;
     document: Document;
     formatCodeSettings: ts.FormatCodeSettings;
     formatCodeBasis: FormatCodeBasis;
-    range?: Range;
     getDiagnostics: () => Diagnostic[];
+    skipAddScriptTag?: boolean;
 }
 
 type FixId = NonNullable<ts.CodeFixAction['fixId']>;
@@ -75,6 +87,10 @@ interface QuickFixAllResolveInfo extends TextDocumentIdentifier {
     fixId: FixId;
     fixName: string;
 }
+
+const FIX_IMPORT_FIX_NAME = 'import';
+const FIX_IMPORT_FIX_ID = 'fixMissingImport';
+const FIX_IMPORT_FIX_DESCRIPTION = 'Add all missing imports';
 
 export class CodeActionsProviderImpl implements CodeActionsProvider {
     constructor(
@@ -148,6 +164,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             document,
             tsDoc.scriptKind
         );
+        const formatCodeBasis = getFormatCodeBasis(formatCodeSettings);
 
         const fix = lang.getCombinedCodeFix(
             {
@@ -160,11 +177,6 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         );
 
         const snapshots = new SnapshotMap(this.lsAndTsDocResolver);
-        const fixAction: ts.CodeFixAction = {
-            fixName: codeAction.data.fixName,
-            changes: Array.from(fix.changes),
-            description: ''
-        };
 
         const getDiagnostics = memoize(() =>
             lang.getSemanticDiagnostics(tsDoc.filePath).map(
@@ -176,20 +188,157 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             )
         );
 
-        const documentChanges = await this.convertAndFixCodeFixAction({
-            fix: fixAction,
-            snapshots,
-            document,
-            formatCodeSettings,
-            formatCodeBasis: getFormatCodeBasis(formatCodeSettings),
-            getDiagnostics
-        });
+        if (cancellationToken?.isCancellationRequested) {
+            return codeAction;
+        }
+
+        const fixActions: ts.CodeFixAction[] = [
+            {
+                fixName: codeAction.data.fixName,
+                changes: Array.from(fix.changes),
+                description: ''
+            }
+        ];
+
+        const isImportFix = codeAction.data.fixName === FIX_IMPORT_FIX_NAME;
+        if (isImportFix) {
+            const componentActions =
+                this.getComponentImportQuickFix(
+                    document,
+                    lang,
+                    tsDoc,
+                    userPreferences,
+                    getDiagnostics(),
+                    formatCodeSettings
+                ) ?? [];
+
+            const svelteQuickFixes = this.getSvelteQuickFixes(
+                lang,
+                document,
+                getDiagnostics().filter(
+                    (diag) => document.getText()[document.offsetAt(diag.range.start)] === '$'
+                ),
+                tsDoc,
+                formatCodeBasis,
+                userPreferences,
+                formatCodeSettings
+            );
+
+            const fixes = Object.values(
+                groupBy(
+                    [...componentActions, ...svelteQuickFixes].filter((info) => {
+                        const regex = this.toImportMemberRegex(info.name);
+                        return !fix.changes.some((c) =>
+                            c.textChanges.some((c) => regex.test(c.newText))
+                        );
+                    }),
+                    (info) => info.name
+                )
+            )
+                .map((info) => info[0])
+                .filter(isNotNullOrUndefined);
+
+            fixActions.push(...fixes);
+        }
+
+        const documentChangesPromises = fixActions.flatMap((fix) =>
+            this.convertAndFixCodeFixAction({
+                document,
+                fix,
+                formatCodeBasis,
+                formatCodeSettings,
+                getDiagnostics,
+                snapshots,
+                skipAddScriptTag: true
+            })
+        );
+
+        let documentChanges = (await Promise.all(documentChangesPromises)).flat();
+
+        if (cancellationToken?.isCancellationRequested) {
+            return codeAction;
+        }
+
+        if (isImportFix) {
+            documentChanges = this.combineImportQuickFix(
+                documentChanges,
+                document,
+                formatCodeBasis
+            );
+        }
 
         codeAction.edit = {
             documentChanges
         };
 
         return codeAction;
+    }
+
+    private combineImportQuickFix(
+        documentChanges: TextDocumentEdit[],
+        document: Document,
+        formatCodeBasis: FormatCodeBasis
+    ) {
+        const insertGroups = new Map<string, TextEdit[]>();
+        for (const documentChange of documentChanges) {
+            for (const edit of documentChange.edits) {
+                const key = `${documentChange.textDocument.uri}#${edit.range.start.line}:${edit.range.start.character}`;
+                insertGroups.set(key, [...(insertGroups.get(key) ?? []), edit]);
+            }
+        }
+
+        const startScript = document.scriptInfo?.startPos;
+
+        for (const [, insertGroup] of insertGroups) {
+            for (const edit of insertGroup) {
+                edit.newText =
+                    formatCodeBasis.baseIndent + edit.newText.trim() + formatCodeBasis.newLine;
+            }
+
+            const firstRange = insertGroup[0]?.range;
+            if (
+                firstRange &&
+                startScript &&
+                firstRange.start.line === startScript.line &&
+                firstRange.start.character === startScript.character
+            ) {
+                insertGroup[0].newText = formatCodeBasis.newLine + insertGroup[0].newText;
+            }
+        }
+
+        if (documentChanges.length && !document.scriptInfo && !document.moduleScriptInfo) {
+            const textDocument = {
+                uri: document.uri,
+                version: null
+            };
+
+            documentChanges = [
+                {
+                    textDocument,
+                    edits: [
+                        TextEdit.insert(
+                            Position.create(0, 0),
+                            getNewScriptStartTag(this.configManager.getConfig())
+                        )
+                    ]
+                },
+                ...documentChanges,
+                {
+                    textDocument,
+                    edits: [
+                        TextEdit.insert(
+                            Position.create(0, 0),
+                            '</script>' + formatCodeBasis.newLine
+                        )
+                    ]
+                }
+            ];
+        }
+        return documentChanges;
+    }
+
+    private toImportMemberRegex(name: string) {
+        return new RegExp(`${name}($| |,)`);
     }
 
     private isQuickFixAllResolveInfo(data: LSPAny): data is QuickFixAllResolveInfo {
@@ -364,39 +513,38 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         );
         const formatCodeBasis = getFormatCodeBasis(formatCodeSettings);
 
-        let codeFixes = cannotFindNameDiagnostic.length
-            ? this.getComponentImportQuickFix(
-                  start,
-                  end,
-                  lang,
-                  tsDoc,
-                  userPreferences,
-                  cannotFindNameDiagnostic,
-                  formatCodeSettings
-              )
-            : undefined;
+        let codeFixes: Array<CustomFixCannotFindNameInfo | ts.CodeFixAction> | undefined =
+            cannotFindNameDiagnostic.length
+                ? this.getComponentImportQuickFix(
+                      document,
+                      lang,
+                      tsDoc,
+                      userPreferences,
+                      cannotFindNameDiagnostic,
+                      formatCodeSettings
+                  )
+                : undefined;
         codeFixes =
             // either-or situation
-            codeFixes ||
-            lang
-                .getCodeFixesAtPosition(
+            codeFixes || [
+                ...lang.getCodeFixesAtPosition(
                     tsDoc.filePath,
                     start,
                     end,
                     errorCodes,
                     formatCodeSettings,
                     userPreferences
+                ),
+                ...this.getSvelteQuickFixes(
+                    lang,
+                    document,
+                    cannotFindNameDiagnostic,
+                    tsDoc,
+                    formatCodeBasis,
+                    userPreferences,
+                    formatCodeSettings
                 )
-                .concat(
-                    await this.getSvelteQuickFixes(
-                        lang,
-                        document,
-                        cannotFindNameDiagnostic,
-                        tsDoc,
-                        formatCodeBasis,
-                        userPreferences
-                    )
-                );
+            ];
 
         const snapshots = new SnapshotMap(this.lsAndTsDocResolver);
         snapshots.set(tsDoc.filePath, tsDoc);
@@ -406,7 +554,6 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                 fix,
                 snapshots,
                 document,
-                range,
                 formatCodeSettings,
                 formatCodeBasis,
                 getDiagnostics: () => context.diagnostics
@@ -440,9 +587,12 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                 (change) => (<TextDocumentEdit>change).edits.length > 0
             )
         );
+
         const fixAllActions = this.getFixAllActions(
             codeActionsNotFilteredOut.map(({ fix }) => fix),
-            identifier
+            identifier,
+            tsDoc.filePath,
+            lang
         );
 
         // filter out empty code action
@@ -455,8 +605,8 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         document,
         formatCodeSettings,
         formatCodeBasis,
-        range,
-        getDiagnostics
+        getDiagnostics,
+        skipAddScriptTag
     }: QuickFixConversionOptions) {
         const documentChangesPromises = fix.changes.map(async (change) => {
             const snapshot = await snapshots.retrieve(change.fileName);
@@ -465,24 +615,24 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                 change.textChanges
                     .map((edit) => {
                         if (
-                            fix.fixName === 'import' &&
+                            fix.fixName === FIX_IMPORT_FIX_NAME &&
                             snapshot instanceof SvelteDocumentSnapshot
                         ) {
+                            const namePosition = 'position' in fix ? fix.position : undefined;
                             const startPos =
-                                (
-                                    range ??
-                                    this.findDiagnosticForImportFix(
-                                        document,
-                                        edit,
-                                        getDiagnostics()
-                                    )?.range
-                                )?.start ?? Position.create(0, 0);
+                                namePosition ??
+                                this.findDiagnosticForImportFix(document, edit, getDiagnostics())
+                                    ?.range?.start ??
+                                Position.create(0, 0);
+
                             return this.completionProvider.codeActionChangeToTextEdit(
                                 document,
                                 snapshot,
                                 edit,
                                 true,
-                                startPos
+                                startPos,
+                                undefined,
+                                skipAddScriptTag
                             );
                         }
 
@@ -504,18 +654,19 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                         }
 
                         if (fix.fixName === 'fixMissingFunctionDeclaration') {
-                            const checkRange =
-                                range ??
-                                this.findDiagnosticForQuickFix(
-                                    document,
-                                    DiagnosticCode.CANNOT_FIND_NAME,
-                                    getDiagnostics(),
-                                    (possiblyIdentifier) => {
-                                        return edit.newText.includes(
-                                            'function ' + possiblyIdentifier + '('
-                                        );
-                                    }
-                                )?.range;
+                            const position = 'position' in fix ? fix.position : undefined;
+                            const checkRange = position
+                                ? Range.create(position, position)
+                                : this.findDiagnosticForQuickFix(
+                                      document,
+                                      DiagnosticCode.CANNOT_FIND_NAME,
+                                      getDiagnostics(),
+                                      (possiblyIdentifier) => {
+                                          return edit.newText.includes(
+                                              'function ' + possiblyIdentifier + '('
+                                          );
+                                      }
+                                  )?.range;
 
                             originalRange = this.checkEndOfFileCodeInsert(
                                 originalRange,
@@ -596,7 +747,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             (possibleIdentifier) => {
                 // in case it is not a identifier, but wrong regex syntax
                 try {
-                    return new RegExp(possibleIdentifier + '(,|$| )').test(edit.newText);
+                    return this.toImportMemberRegex(possibleIdentifier).test(edit.newText);
                 } catch (error) {
                     return false;
                 }
@@ -628,12 +779,29 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
 
     private getFixAllActions(
         codeFixes: readonly ts.CodeFixAction[],
-        identifier: TextDocumentIdentifier
+        identifier: TextDocumentIdentifier,
+        fileName: string,
+        lang: ts.LanguageService
     ) {
-        const fixAll = new Map<FixId, CodeAction>();
+        const checkedFixIds = new Set<FixId>();
+        const fixAll: CodeAction[] = [];
+
         for (const codeFix of codeFixes) {
-            if (!codeFix.fixId || !codeFix.fixAllDescription || fixAll.has(codeFix.fixId)) {
+            if (!codeFix.fixId || !codeFix.fixAllDescription || checkedFixIds.has(codeFix.fixId)) {
                 continue;
+            }
+
+            // we have custom fix for import
+            // check it again if fix-all might be necessary
+            if (codeFix.fixName === FIX_IMPORT_FIX_NAME) {
+                const allCannotFindNameDiagnostics = lang
+                    .getSemanticDiagnostics(fileName)
+                    .filter((diagnostic) => diagnostic.code === DiagnosticCode.CANNOT_FIND_NAME);
+
+                if (allCannotFindNameDiagnostics.length < 2) {
+                    checkedFixIds.add(codeFix.fixId);
+                    continue;
+                }
             }
 
             const codeAction = CodeAction.create(
@@ -648,10 +816,11 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             };
 
             codeAction.data = data;
-            fixAll.set(codeFix.fixId, codeAction);
+            checkedFixIds.add(codeFix.fixId);
+            fixAll.push(codeAction);
         }
 
-        return Array.from(fixAll.values());
+        return fixAll;
     }
 
     /**
@@ -660,102 +829,141 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
      * a local variable. So we use auto-import completion as a workaround here.
      */
     private getComponentImportQuickFix(
-        start: number,
-        end: number,
+        document: Document,
         lang: ts.LanguageService,
         tsDoc: DocumentSnapshot,
         userPreferences: ts.UserPreferences,
         diagnostics: Diagnostic[],
         formatCodeSetting: ts.FormatCodeSettings
-    ): readonly ts.CodeFixAction[] | undefined {
+    ): CustomFixCannotFindNameInfo[] | undefined {
         const sourceFile = lang.getProgram()?.getSourceFile(tsDoc.filePath);
 
         if (!sourceFile) {
             return;
         }
 
-        const node = findContainingNode(
-            sourceFile,
-            {
-                start,
-                length: end - start
-            },
-            (node): node is ts.JsxOpeningLikeElement | ts.JsxClosingElement | ts.Identifier =>
-                ts.isCallExpression(node.parent) &&
-                ts.isIdentifier(node.parent.expression) &&
-                node.parent.expression.text === '__sveltets_2_ensureComponent' &&
-                ts.isIdentifier(node)
-        );
+        const nameToPosition = new Map<string, number>();
 
-        if (!node) {
+        for (const diagnostic of diagnostics) {
+            if (isInScript(diagnostic.range.start, document)) {
+                continue;
+            }
+            const possibleIdentifier = document.getText(diagnostic.range);
+            if (
+                !possibleIdentifier ||
+                !possiblyComponent(possibleIdentifier) ||
+                nameToPosition.has(possibleIdentifier)
+            ) {
+                continue;
+            }
+            const start = tsDoc.offsetAt(tsDoc.getGeneratedPosition(diagnostic.range.start));
+            const end = tsDoc.offsetAt(tsDoc.getGeneratedPosition(diagnostic.range.end));
+
+            const node = findContainingNode(
+                sourceFile,
+                {
+                    start,
+                    length: end - start
+                },
+                (node): node is ts.Identifier =>
+                    ts.isCallExpression(node.parent) &&
+                    ts.isIdentifier(node.parent.expression) &&
+                    node.parent.expression.text === '__sveltets_2_ensureComponent' &&
+                    ts.isIdentifier(node)
+            );
+
+            if (!node) {
+                return;
+            }
+
+            const tagNameEnd = node.getEnd();
+            const name = node.getText();
+
+            if (possiblyComponent(name)) {
+                nameToPosition.set(name, tagNameEnd);
+            }
+        }
+
+        if (!nameToPosition.size) {
             return;
         }
 
-        const tagName = ts.isIdentifier(node) ? node : node.tagName;
-        const tagNameEnd = tagName.getEnd();
-        const tagNameEndOriginalPosition = tsDoc.offsetAt(
-            tsDoc.getOriginalPosition(tsDoc.positionAt(tagNameEnd))
-        );
-        const name = tagName.getText();
-        if (!possiblyComponent(name)) {
-            return;
-        }
+        const result: CustomFixCannotFindNameInfo[] = [];
+        for (const [name, position] of nameToPosition) {
+            const errorPreventingUserPreferences =
+                this.completionProvider.fixUserPreferencesForSvelteComponentImport(userPreferences);
 
-        const hasDiagnosticForTag = diagnostics.some(
-            ({ range }) =>
-                tsDoc.offsetAt(range.start) <= tagNameEndOriginalPosition &&
-                tagNameEndOriginalPosition <= tsDoc.offsetAt(range.end)
-        );
-
-        if (!hasDiagnosticForTag) {
-            return;
-        }
-
-        const completion = lang.getCompletionsAtPosition(
-            tsDoc.filePath,
-            tagNameEnd,
-            userPreferences,
-            formatCodeSetting
-        );
-
-        if (!completion) {
-            return;
-        }
-
-        const suffixedName = toGeneratedSvelteComponentName(name);
-        const errorPreventingUserPreferences =
-            this.completionProvider.fixUserPreferencesForSvelteComponentImport(userPreferences);
-
-        const toFix = (c: ts.CompletionEntry) =>
-            lang
-                .getCompletionEntryDetails(
+            const resolvedCompletion = (c: ts.CompletionEntry) =>
+                lang.getCompletionEntryDetails(
                     tsDoc.filePath,
-                    end,
+                    position,
                     c.name,
                     formatCodeSetting,
                     c.source,
                     errorPreventingUserPreferences,
                     c.data
-                )
-                ?.codeActions?.map((a) => ({
-                    ...a,
-                    description: changeSvelteComponentName(a.description),
-                    fixName: 'import'
-                })) ?? [];
+                );
 
-        return flatten(
-            completion.entries.filter((c) => c.name === name || c.name === suffixedName).map(toFix)
-        );
+            const toFix = (c: ts.CompletionEntryDetails) =>
+                c.codeActions?.map(
+                    (a): CustomFixCannotFindNameInfo => ({
+                        ...a,
+                        description: changeSvelteComponentName(a.description),
+                        fixName: FIX_IMPORT_FIX_NAME,
+                        fixId: FIX_IMPORT_FIX_ID,
+                        fixAllDescription: FIX_IMPORT_FIX_DESCRIPTION,
+                        name: changeSvelteComponentName(c.name),
+                        position: originalPosition
+                    })
+                ) ?? [];
+
+            const completion = lang.getCompletionsAtPosition(
+                tsDoc.filePath,
+                position,
+                userPreferences,
+                formatCodeSetting
+            );
+
+            const entries = completion?.entries
+                .filter((c) => c.name === name || c.name === toGeneratedSvelteComponentName(name))
+                .map(resolvedCompletion)
+                .sort(
+                    (a, b) =>
+                        this.numberOfDirectorySeparators(
+                            ts.displayPartsToString(a?.sourceDisplay ?? [])
+                        ) -
+                        this.numberOfDirectorySeparators(
+                            ts.displayPartsToString(b?.sourceDisplay ?? [])
+                        )
+                )
+                .filter(isNotNullOrUndefined);
+
+            if (!entries?.length) {
+                continue;
+            }
+
+            const originalPosition = tsDoc.getOriginalPosition(tsDoc.positionAt(position));
+            const resultForName = entries.flatMap(toFix);
+
+            result.push(...resultForName);
+        }
+
+        return result;
     }
 
-    private async getSvelteQuickFixes(
+    private numberOfDirectorySeparators(path: string) {
+        return path.split('/').length - 1;
+    }
+
+    private getSvelteQuickFixes(
         lang: ts.LanguageService,
         document: Document,
         cannotFindNameDiagnostics: Diagnostic[],
         tsDoc: DocumentSnapshot,
         formatCodeBasis: FormatCodeBasis,
-        userPreferences: ts.UserPreferences
-    ): Promise<ts.CodeFixAction[]> {
+        userPreferences: ts.UserPreferences,
+        formatCodeSettings: ts.FormatCodeSettings
+    ): CustomFixCannotFindNameInfo[] {
         const program = lang.getProgram();
         const sourceFile = program?.getSourceFile(tsDoc.filePath);
         if (!program || !sourceFile) {
@@ -763,8 +971,11 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         }
 
         const typeChecker = program.getTypeChecker();
-        const results: ts.CodeFixAction[] = [];
+        const results: CustomFixCannotFindNameInfo[] = [];
         const quote = getQuotePreference(sourceFile, userPreferences);
+        const getGlobalCompletion = memoize(() =>
+            lang.getCompletionsAtPosition(tsDoc.filePath, 0, userPreferences, formatCodeSettings)
+        );
 
         for (const diagnostic of cannotFindNameDiagnostics) {
             const start = tsDoc.offsetAt(tsDoc.getGeneratedPosition(diagnostic.range.start));
@@ -786,20 +997,22 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                 diagnostic
             );
 
+            const fixes: ts.CodeFixAction[] = [];
             if (isQuickFixTargetTargetStore) {
-                results.push(
-                    ...(await this.getSvelteStoreQuickFixes(
+                fixes.push(
+                    ...this.getSvelteStoreQuickFixes(
                         identifier,
                         lang,
-                        document,
                         tsDoc,
-                        userPreferences
-                    ))
+                        userPreferences,
+                        formatCodeSettings,
+                        getGlobalCompletion
+                    )
                 );
             }
 
             if (isQuickFixTargetEventHandler) {
-                results.push(
+                fixes.push(
                     ...this.getEventHandlerQuickFixes(
                         identifier,
                         tsDoc,
@@ -809,29 +1022,34 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                     )
                 );
             }
+
+            if (!fixes.length) {
+                continue;
+            }
+
+            const originalPosition = tsDoc.getOriginalPosition(tsDoc.positionAt(start));
+            results.push(
+                ...fixes.map((fix) => ({
+                    name: identifier.getText(),
+                    position: originalPosition,
+                    ...fix
+                }))
+            );
         }
 
         return results;
     }
 
-    private async getSvelteStoreQuickFixes(
+    private getSvelteStoreQuickFixes(
         identifier: ts.Identifier,
         lang: ts.LanguageService,
-        document: Document,
         tsDoc: DocumentSnapshot,
-        userPreferences: ts.UserPreferences
-    ): Promise<ts.CodeFixAction[]> {
+        userPreferences: ts.UserPreferences,
+        formatCodeSettings: ts.FormatCodeSettings,
+        getCompletions: () => ts.CompletionInfo | undefined
+    ): ts.CodeFixAction[] {
         const storeIdentifier = identifier.escapedText.toString().substring(1);
-        const formatCodeSettings = await this.configManager.getFormatCodeSettingsForFile(
-            document,
-            tsDoc.scriptKind
-        );
-        const completion = lang.getCompletionsAtPosition(
-            tsDoc.filePath,
-            0,
-            userPreferences,
-            formatCodeSettings
-        );
+        const completion = getCompletions();
 
         if (!completion) {
             return [];
@@ -862,7 +1080,9 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                             })
                         };
                     }),
-                    fixName: 'import'
+                    fixName: FIX_IMPORT_FIX_NAME,
+                    fixId: FIX_IMPORT_FIX_ID,
+                    fixAllDescription: FIX_IMPORT_FIX_DESCRIPTION
                 })) ?? [];
 
         return flatten(completion.entries.filter((c) => c.name === storeIdentifier).map(toFix));
@@ -1140,6 +1360,9 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             }
         }
 
+        // don't add script tag here because the code action is calculated
+        // when the file is treated as js
+        // but user might want a ts version of the code action
         return resultRange;
     }
 

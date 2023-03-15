@@ -42,8 +42,8 @@ import {
 } from '../utils';
 import { getJsDocTemplateCompletion } from './getJsDocTemplateCompletion';
 import {
-    findContainingNode,
     getComponentAtPosition,
+    getNewScriptStartTag,
     isKitTypePath,
     isPartOfImportStatement
 } from './utils';
@@ -749,7 +749,8 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         change: ts.TextChange,
         isImport: boolean,
         originalTriggerPosition: Position,
-        is$typeImport?: boolean
+        is$typeImport?: boolean,
+        skipAddingScriptTag?: boolean
     ): TextEdit {
         change.newText = this.fixImportNewText(
             change.newText,
@@ -758,14 +759,16 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         );
 
         const scriptTagInfo = snapshot.scriptInfo || snapshot.moduleScriptInfo;
+        // no script tag defined yet, add it.
         if (!scriptTagInfo) {
-            // no script tag defined yet, add it.
-            const lang = this.configManager.getConfig().svelte.defaultScriptLanguage;
-            const scriptLang = lang === 'none' ? '' : ` lang="${lang}"`;
+            if (skipAddingScriptTag) {
+                return TextEdit.insert(Position.create(0, 0), change.newText);
+            }
 
+            const config = this.configManager.getConfig();
             return TextEdit.replace(
                 beginOfDocumentRange,
-                `<script${scriptLang}>${ts.sys.newLine}${change.newText}</script>${ts.sys.newLine}`
+                `${getNewScriptStartTag(config)}${change.newText}</script>${ts.sys.newLine}`
             );
         }
 
