@@ -132,7 +132,7 @@ export function patchModuleLoader(
         compilerOptions: ts.CompilerOptions,
         containingSourceFile?: ts.SourceFile
     ): Array<ts.ResolvedModule | undefined> {
-        logger.log('Resolving modules names for ' + containingFile);
+        logger.debug('Resolving modules names for ' + containingFile);
         // Try resolving all module names with the original method first.
         // The ones that are undefined will be re-checked if they are a
         // Svelte file and if so, are resolved, too. This way we can defer
@@ -204,7 +204,7 @@ export function patchModuleLoader(
         containingSourceFile: ts.SourceFile,
         reusedNames: readonly ts.StringLiteralLike[] | undefined
     ): readonly ts.ResolvedModuleWithFailedLookupLocations[] {
-        logger.log('Resolving modules names for ' + containingFile);
+        logger.debug('Resolving modules names for ' + containingFile);
         // Try resolving all module names with the original method first.
         // The ones that are undefined will be re-checked if they are a
         // Svelte file and if so, are resolved, too. This way we can defer

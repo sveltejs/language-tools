@@ -16,7 +16,8 @@ import {
     TextEdit,
     Range,
     WorkspaceEdit,
-    LinkedEditingRanges
+    LinkedEditingRanges,
+    CompletionContext
 } from 'vscode-languageserver';
 import {
     DocumentManager,
@@ -49,6 +50,8 @@ export class HTMLPlugin
     private documents = new WeakMap<Document, HTMLDocument>();
     private styleScriptTemplate = new Set(['template', 'style', 'script']);
 
+    private htmlTriggerCharacters = ['.', ':', '<', '"', '=', '/'];
+
     constructor(docManager: DocumentManager, private configManager: LSConfigManager) {
         configManager.onChange(() =>
             this.lang.setDataProviders(false, this.getCustomDataProviders())
@@ -76,7 +79,11 @@ export class HTMLPlugin
         return this.lang.doHover(document, position, html);
     }
 
-    async getCompletions(document: Document, position: Position): Promise<CompletionList | null> {
+    async getCompletions(
+        document: Document,
+        position: Position,
+        completionContext?: CompletionContext
+    ): Promise<CompletionList | null> {
         if (!this.featureEnabled('completions')) {
             return null;
         }
@@ -98,22 +105,27 @@ export class HTMLPlugin
             isIncomplete: false,
             items: []
         };
+
+        let doEmmetCompleteInner = (): CompletionList | null | undefined => null;
         if (
             this.configManager.getConfig().html.completions.emmet &&
             this.configManager.getEmmetConfig().showExpandedAbbreviation !== 'never'
         ) {
+            doEmmetCompleteInner = () =>
+                doEmmetComplete(document, position, 'html', this.configManager.getEmmetConfig());
+
             this.lang.setCompletionParticipants([
                 {
-                    onHtmlContent: () =>
-                        (emmetResults =
-                            doEmmetComplete(
-                                document,
-                                position,
-                                'html',
-                                this.configManager.getEmmetConfig()
-                            ) || emmetResults)
+                    onHtmlContent: () => (emmetResults = doEmmetCompleteInner() || emmetResults)
                 }
             ]);
+        }
+
+        if (
+            completionContext?.triggerCharacter &&
+            !this.htmlTriggerCharacters.includes(completionContext?.triggerCharacter)
+        ) {
+            return doEmmetCompleteInner() ?? null;
         }
 
         const results = this.isInComponentTag(html, document, position)

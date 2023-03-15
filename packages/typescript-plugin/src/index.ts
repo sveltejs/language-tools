@@ -6,10 +6,11 @@ import { SvelteSnapshotManager } from './svelte-snapshots';
 import type ts from 'typescript/lib/tsserverlibrary';
 import { ConfigManager, Configuration } from './config-manager';
 import { ProjectSvelteFilesManager } from './project-svelte-files';
-import { getConfigPathForProject } from './utils';
+import { getConfigPathForProject, hasNodeModule } from './utils';
 
 function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
     const configManager = new ConfigManager();
+    let resolvedSvelteTsxFiles: string[] | undefined;
 
     function create(info: ts.server.PluginCreateInfo) {
         const logger = new Logger(info.project.projectService.logger);
@@ -136,6 +137,7 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
                 snapshotManager,
                 logger,
                 configManager,
+                info,
                 modules.typescript
             ),
             projectSvelteFilesManager ?? {
@@ -150,12 +152,13 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
         }
 
         // Needed so the ambient definitions are known inside the tsx files
-        const svelteTsPath = dirname(require.resolve('svelte2tsx'));
-        const svelteTsxFiles = [
-            './svelte-shims.d.ts',
-            './svelte-jsx.d.ts',
-            './svelte-native-jsx.d.ts'
-        ].map((f) => modules.typescript.sys.resolvePath(resolve(svelteTsPath, f)));
+        const svelteTsxFiles = resolveSvelteTsxFiles();
+
+        if (!project.getCompilerOptions().configFilePath) {
+            svelteTsxFiles.forEach((file) => {
+                openSvelteTsxFileForInferredProject(project, file);
+            });
+        }
 
         // let ts know project svelte files to do its optimization
         return svelteTsxFiles.concat(
@@ -163,17 +166,26 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
         );
     }
 
+    function resolveSvelteTsxFiles() {
+        if (resolvedSvelteTsxFiles) {
+            return resolvedSvelteTsxFiles;
+        }
+
+        const svelteTsPath = dirname(require.resolve('svelte2tsx'));
+        const svelteTsxFiles = [
+            './svelte-shims.d.ts',
+            './svelte-jsx.d.ts',
+            './svelte-native-jsx.d.ts'
+        ].map((f) => modules.typescript.sys.resolvePath(resolve(svelteTsPath, f)));
+
+        resolvedSvelteTsxFiles = svelteTsxFiles;
+
+        return svelteTsxFiles;
+    }
+
     function isSvelteProject(compilerOptions: ts.CompilerOptions) {
         // Add more checks like "no Svelte file found" or "no config file found"?
-        try {
-            const isSvelteProject =
-                typeof compilerOptions.configFilePath !== 'string' ||
-                require.resolve('svelte', { paths: [compilerOptions.configFilePath] });
-            return isSvelteProject;
-        } catch (e) {
-            // If require.resolve fails, we end up here
-            return false;
-        }
+        return hasNodeModule(compilerOptions, 'svelte');
     }
 
     function onConfigurationChanged(config: Configuration) {
@@ -192,6 +204,33 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
         };
 
         return languageService;
+    }
+
+    /**
+     * TypeScript doesn't load the external files in projects without a config file. So we load it by ourselves.
+     * TypeScript also seems to expect files added to the root to be opened by the client in this situation.
+     */
+    function openSvelteTsxFileForInferredProject(project: ts.server.Project, file: string) {
+        const normalizedPath = modules.typescript.server.toNormalizedPath(file);
+        if (project.containsFile(normalizedPath)) {
+            return;
+        }
+
+        const scriptInfo = project.projectService.getOrCreateScriptInfoForNormalizedPath(
+            normalizedPath,
+            /*openedByClient*/ true,
+            project.readFile(file)
+        );
+
+        if (!scriptInfo) {
+            return;
+        }
+
+        if (!project.projectService.openFiles.has(scriptInfo.path)) {
+            project.projectService.openFiles.set(scriptInfo.path, undefined);
+        }
+
+        project.addRoot(scriptInfo);
     }
 
     return { create, getExternalFiles, onConfigurationChanged };

@@ -22,6 +22,7 @@ import { Generics } from './nodes/Generics';
 import { addComponentExport } from './addComponentExport';
 import { createRenderFunction } from './createRenderFunction';
 import { TemplateNode } from 'svelte/types/compiler/interfaces';
+import path from 'path';
 
 type TemplateProcessResult = {
     /**
@@ -315,6 +316,7 @@ export function svelte2tsx(
     options.mode = options.mode || 'ts';
 
     const str = new MagicString(svelte);
+    const basename = path.basename(options.filename || '');
     // process the htmlx as a svelte template
     let {
         htmlAst,
@@ -352,7 +354,7 @@ export function svelte2tsx(
         : instanceScriptTarget;
     const implicitStoreValues = new ImplicitStoreValues(resolvedStores, renderFunctionStart);
     //move the instance script and process the content
-    let exportedNames = new ExportedNames(str, 0);
+    let exportedNames = new ExportedNames(str, 0, basename);
     let generics = new Generics(str, 0);
     let uses$$SlotsInterface = false;
     if (scriptTag) {
@@ -366,7 +368,8 @@ export function svelte2tsx(
             events,
             implicitStoreValues,
             options.mode,
-            /**hasModuleScripts */ !!moduleScriptTag
+            /**hasModuleScripts */ !!moduleScriptTag,
+            basename
         );
         uses$$props = uses$$props || res.uses$$props;
         uses$$restProps = uses$$restProps || res.uses$$restProps;

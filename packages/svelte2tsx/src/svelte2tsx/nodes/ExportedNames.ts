@@ -1,5 +1,6 @@
 import MagicString from 'magic-string';
 import ts from 'typescript';
+import { internalHelpers } from '../../helpers';
 import { surroundWithIgnoreComments } from '../../utils/ignore';
 import { preprendStr, overwriteStr } from '../../utils/magic-string';
 import { findExportKeyword, getLastLeadingDoc, isInterfaceOrTypeDeclaration } from '../utils/tsAst';
@@ -33,7 +34,7 @@ export class ExportedNames {
     private doneDeclarationTransformation = new Set<ts.VariableDeclarationList>();
     private getters = new Set<string>();
 
-    constructor(private str: MagicString, private astOffset: number) {}
+    constructor(private str: MagicString, private astOffset: number, private basename: string) {}
 
     handleVariableStatement(node: ts.VariableStatement, parent: ts.Node): void {
         const exportModifier = findExportKeyword(node);
@@ -50,6 +51,17 @@ export class ExportedNames {
                 node.declarationList.forEachChild((n) => {
                     if (ts.isVariableDeclaration(n) && ts.isIdentifier(n.name)) {
                         this.addGetter(n.name);
+
+                        const type = n.type || ts.getJSDocType(n);
+                        const isKitExport =
+                            internalHelpers.isKitRouteFile(this.basename) &&
+                            n.name.getText() === 'snapshot';
+                        // TS types are not allowed in JS files, but TS will still pick it up and the ignore comment will filter out the error
+                        const kitType = isKitExport && !type ? `: import('./$types').Snapshot` : '';
+                        const nameEnd = n.name.end + this.astOffset;
+                        if (kitType) {
+                            preprendStr(this.str, nameEnd, surroundWithIgnoreComments(kitType));
+                        }
                     }
                 });
             }
@@ -113,6 +125,25 @@ export class ExportedNames {
             const tsType = declaration.type;
             const jsDocType = ts.getJSDocType(declaration);
             const type = tsType || jsDocType;
+            const name = identifier.getText();
+            const isKitExport =
+                internalHelpers.isKitRouteFile(this.basename) &&
+                (name === 'data' || name === 'form' || name === 'snapshot');
+            // TS types are not allowed in JS files, but TS will still pick it up and the ignore comment will filter out the error
+            const kitType =
+                isKitExport && !type
+                    ? `: import('./$types').${
+                          name === 'data'
+                              ? this.basename.includes('layout')
+                                  ? 'LayoutData'
+                                  : 'PageData'
+                              : name === 'form'
+                              ? 'ActionData'
+                              : 'Snapshot'
+                      }`
+                    : '';
+            const nameEnd = identifier.end + this.astOffset;
+            const end = declaration.end + this.astOffset;
 
             if (
                 ts.isIdentifier(identifier) &&
@@ -129,13 +160,27 @@ export class ExportedNames {
                         )))
             ) {
                 const name = identifier.getText();
-                const end = declaration.end + this.astOffset;
 
-                preprendStr(
-                    this.str,
-                    end,
-                    surroundWithIgnoreComments(`;${name} = __sveltets_2_any(${name});`)
-                );
+                if (nameEnd === end) {
+                    preprendStr(
+                        this.str,
+                        end,
+                        surroundWithIgnoreComments(
+                            `${kitType};${name} = __sveltets_2_any(${name});`
+                        )
+                    );
+                } else {
+                    if (kitType) {
+                        preprendStr(this.str, nameEnd, surroundWithIgnoreComments(kitType));
+                    }
+                    preprendStr(
+                        this.str,
+                        end,
+                        surroundWithIgnoreComments(`;${name} = __sveltets_2_any(${name});`)
+                    );
+                }
+            } else if (kitType) {
+                preprendStr(this.str, nameEnd, surroundWithIgnoreComments(kitType));
             }
         };
 
@@ -332,21 +377,16 @@ export class ExportedNames {
         if (this.uses$$Props) {
             const lets = names.filter(([, { isLet }]) => isLet);
             const others = names.filter(([, { isLet }]) => !isLet);
-            // We need to check both ways:
-            // - The check if exports are assignable to $$Props is necessary to make sure
-            //   no props are missing. Use Partial<$$Props> in case $$props is used.
             // - The check if $$Props is assignable to exports is necessary to make sure no extraneous props
             //   are defined and that no props are required that should be optional
-            // __sveltets_2_ensureRightProps needs to be declared in a way that doesn't affect the type result of props
+            // - The check if exports are assignable to $$Props is not done because a component should be allowed
+            //   to use less props than defined (it just ignores them)
+            // - __sveltets_2_ensureRightProps needs to be declared in a way that doesn't affect the type result of props
             return (
                 '{...__sveltets_2_ensureRightProps<{' +
                 this.createReturnElementsType(lets).join(',') +
                 '}>(__sveltets_2_any("") as $$Props), ' +
-                '...__sveltets_2_ensureRightProps<' +
-                (uses$$propsOr$$restProps ? 'Partial<$$Props>' : '$$Props') +
-                '>({' +
-                this.createReturnElements(lets, false).join(',') +
-                '}), ...{} as unknown as $$Props, ...{' +
+                '...{} as unknown as $$Props, ...{' +
                 // We add other exports of classes and functions here because
                 // they need to appear in the props object in order to properly
                 // type bind:xx but they are not needed to be part of $$Props

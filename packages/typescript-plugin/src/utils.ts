@@ -1,5 +1,6 @@
 import type ts from 'typescript/lib/tsserverlibrary';
 import { SvelteSnapshot } from './svelte-snapshots';
+type _ts = typeof ts;
 
 export function isSvelteFilePath(filePath: string) {
     return filePath.endsWith('.svelte');
@@ -128,6 +129,56 @@ export function findNodeAtSpan<T extends ts.Node>(
     }
 }
 
+/**
+ * Finds node somewhere at position.
+ */
+export function findNodeAtPosition<T extends ts.Node>(
+    node: ts.Node,
+    pos: number,
+    predicate?: NodeTypePredicate<T>
+): T | void {
+    for (const child of node.getChildren()) {
+        const childStart = child.getStart();
+        if (pos < childStart) {
+            return;
+        }
+
+        const childEnd = child.getEnd();
+        if (pos > childEnd) {
+            continue;
+        }
+
+        const foundInChildren = findNodeAtPosition(child, pos, predicate);
+        if (foundInChildren) {
+            return foundInChildren;
+        }
+
+        if (!predicate) {
+            return child as T;
+        }
+        if (predicate(child)) {
+            return child;
+        }
+    }
+}
+
+/**
+ * True if is `export const/let/function`
+ */
+export function isTopLevelExport(ts: _ts, node: ts.Node, source: ts.SourceFile) {
+    return (
+        (ts.isVariableStatement(node) && source.statements.includes(node as any)) ||
+        (ts.isIdentifier(node) &&
+            node.parent &&
+            ts.isVariableDeclaration(node.parent) &&
+            source.statements.includes(node.parent?.parent?.parent as any)) ||
+        (ts.isIdentifier(node) &&
+            node.parent &&
+            ts.isFunctionDeclaration(node.parent) &&
+            source.statements.includes(node.parent as any))
+    );
+}
+
 const COMPONENT_SUFFIX = '__SvelteComponent_';
 
 export function isGeneratedSvelteComponentName(className: string) {
@@ -151,4 +202,38 @@ export function gatherDescendants<T extends ts.Node>(
         }
     }
     return dest;
+}
+
+export function findIdentifier(ts: _ts, node: ts.Node): ts.Identifier | undefined {
+    if (ts.isIdentifier(node)) {
+        return node;
+    }
+
+    if (ts.isFunctionDeclaration(node)) {
+        return node.name;
+    }
+
+    while (node) {
+        if (ts.isIdentifier(node)) {
+            return node;
+        }
+        if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name)) {
+            return node.name;
+        }
+
+        node = node.parent;
+    }
+}
+
+export function hasNodeModule(compilerOptions: ts.CompilerOptions, module: string) {
+    try {
+        const hasModule =
+            typeof compilerOptions.configFilePath !== 'string' ||
+            require.resolve(module, { paths: [compilerOptions.configFilePath] });
+        return hasModule;
+    } catch (e) {
+        // If require.resolve fails, we end up here, which can be either because the package is not found,
+        // or (in case of things like SvelteKit) the package is found but the package.json is not exported.
+        return (e as any)?.code === 'ERR_PACKAGE_PATH_NOT_EXPORTED';
+    }
 }

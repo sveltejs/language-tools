@@ -8,7 +8,9 @@ import { decorateCompletions } from './completions';
 import { decorateGetDefinition } from './definition';
 import { decorateDiagnostics } from './diagnostics';
 import { decorateFindReferences } from './find-references';
+import { decorateHover } from './hover';
 import { decorateGetImplementation } from './implementation';
+import { decorateInlayHints } from './inlay-hints';
 import { decorateRename } from './rename';
 import { decorateUpdateImports } from './update-imports';
 
@@ -23,12 +25,13 @@ export function decorateLanguageService(
     snapshotManager: SvelteSnapshotManager,
     logger: Logger,
     configManager: ConfigManager,
+    info: ts.server.PluginCreateInfo,
     typescript: typeof ts
 ) {
     // Decorate using a proxy so we can dynamically enable/disable method
     // patches depending on the enabled state of our config
     const proxy = new Proxy(ls, createProxyHandler(configManager));
-    decorateLanguageServiceInner(proxy, snapshotManager, logger, typescript);
+    decorateLanguageServiceInner(proxy, snapshotManager, logger, info, typescript);
     return proxy;
 }
 
@@ -36,17 +39,20 @@ function decorateLanguageServiceInner(
     ls: ts.LanguageService,
     snapshotManager: SvelteSnapshotManager,
     logger: Logger,
+    info: ts.server.PluginCreateInfo,
     typescript: typeof ts
 ): ts.LanguageService {
     patchLineColumnOffset(ls, snapshotManager);
     decorateRename(ls, snapshotManager, logger);
-    decorateDiagnostics(ls, logger);
+    decorateDiagnostics(ls, info, typescript, logger);
     decorateFindReferences(ls, snapshotManager, logger);
-    decorateCompletions(ls, typescript, logger);
-    decorateGetDefinition(ls, snapshotManager, logger);
+    decorateCompletions(ls, info, typescript, logger);
+    decorateGetDefinition(ls, info, typescript, snapshotManager, logger);
     decorateGetImplementation(ls, snapshotManager, logger);
     decorateUpdateImports(ls, snapshotManager, logger);
     decorateCallHierarchy(ls, snapshotManager, typescript);
+    decorateHover(ls, info, typescript, logger);
+    decorateInlayHints(ls, info, typescript, logger);
     return ls;
 }
 

@@ -53,6 +53,7 @@ body:
     id: package
     attributes:
       label: Which package is the issue about?
+      multiple: true
       options:
         - Svelte for VS Code extension
         - svelte-language-server

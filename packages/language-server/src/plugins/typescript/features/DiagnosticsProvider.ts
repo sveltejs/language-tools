@@ -427,7 +427,11 @@ function get$$PropsAliasForInfo(
         return;
     }
 
-    const rootSymbolName = (type.aliasSymbol ?? type.symbol).name;
+    // TS says symbol is always defined but it's not
+    const rootSymbolName = (type.aliasSymbol ?? type.symbol)?.name;
+    if (!rootSymbolName) {
+        return;
+    }
 
     return [rootSymbolName, propsDef] as const;
 }
