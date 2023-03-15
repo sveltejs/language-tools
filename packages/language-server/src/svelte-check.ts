@@ -1,9 +1,8 @@
-import { basename, isAbsolute } from 'path';
+import { isAbsolute } from 'path';
 import ts from 'typescript';
 import { Diagnostic, Position, Range } from 'vscode-languageserver';
 import { WorkspaceFolder } from 'vscode-languageserver-protocol';
 import { Document, DocumentManager } from './lib/documents';
-import { FileSystemProvider } from './plugins/css/FileSystemProvider';
 import { Logger } from './logger';
 import { LSConfigManager } from './ls-config';
 import {
@@ -13,11 +12,12 @@ import {
     SveltePlugin,
     TypeScriptPlugin
 } from './plugins';
+import { FileSystemProvider } from './plugins/css/FileSystemProvider';
 import { createLanguageServices } from './plugins/css/service';
+import { JSOrTSDocumentSnapshot } from './plugins/typescript/DocumentSnapshot';
+import { isInGeneratedCode } from './plugins/typescript/features/utils';
 import { convertRange, getDiagnosticTag, mapSeverity } from './plugins/typescript/utils';
 import { pathToUrl, urlToPath } from './utils';
-import { isInGeneratedCode } from './plugins/typescript/features/utils';
-import { kitPageFiles } from './plugins/typescript/DocumentSnapshot';
 
 export type SvelteCheckDiagnosticSource = 'js' | 'css' | 'svelte';
 
@@ -200,58 +200,92 @@ export class SvelteCheck {
                         (options.skipDefaultLibCheck && file.hasNoDefaultLib) ||
                         // ignore JS files in node_modules
                         /\/node_modules\/.+\.(c|m)?js$/.test(file.fileName);
-                    const isKitFile = kitPageFiles.has(basename(file.fileName));
+                    const snapshot = lsContainer.snapshotManager.get(file.fileName) as
+                        | JSOrTSDocumentSnapshot
+                        | undefined;
+                    const isKitFile = snapshot?.kitFile ?? false;
+                    const diagnostics: Diagnostic[] = [];
+                    const map = (diagnostic: ts.Diagnostic, range?: Range) => ({
+                        range:
+                            range ??
+                            convertRange(
+                                { positionAt: file.getLineAndCharacterOfPosition.bind(file) },
+                                diagnostic
+                            ),
+                        severity: mapSeverity(diagnostic.category),
+                        source: diagnostic.source,
+                        message: ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n'),
+                        code: diagnostic.code,
+                        tags: getDiagnosticTag(diagnostic)
+                    });
 
-                    const diagnostics = skipDiagnosticsForFile
-                        ? []
-                        : [
-                              ...lang.getSyntacticDiagnostics(file.fileName),
-                              ...lang.getSuggestionDiagnostics(file.fileName),
-                              ...lang.getSemanticDiagnostics(file.fileName)
-                          ]
-                              .filter((diagnostic) => {
-                                  if (!isKitFile) {
-                                      return true;
-                                  }
+                    if (!skipDiagnosticsForFile) {
+                        const originalDiagnostics = [
+                            ...lang.getSyntacticDiagnostics(file.fileName),
+                            ...lang.getSuggestionDiagnostics(file.fileName),
+                            ...lang.getSemanticDiagnostics(file.fileName)
+                        ];
 
-                                  if (
-                                      diagnostic.start === undefined ||
-                                      diagnostic.length === undefined
-                                  ) {
-                                      return true;
-                                  }
+                        for (let diagnostic of originalDiagnostics) {
+                            if (!diagnostic.start || !diagnostic.length || !isKitFile) {
+                                diagnostics.push(map(diagnostic));
+                                continue;
+                            }
 
-                                  const text = lang
-                                      .getProgram()
-                                      ?.getSourceFile(file.fileName)
-                                      ?.getFullText();
-                                  return (
-                                      !text ||
-                                      !isInGeneratedCode(
-                                          text,
-                                          diagnostic.start,
-                                          diagnostic.start + diagnostic.length
-                                      )
-                                  );
-                              })
-                              .map<Diagnostic>((diagnostic) => ({
-                                  range: convertRange(
-                                      { positionAt: file.getLineAndCharacterOfPosition.bind(file) },
-                                      diagnostic
-                                  ),
-                                  severity: mapSeverity(diagnostic.category),
-                                  source: diagnostic.source,
-                                  message: ts.flattenDiagnosticMessageText(
-                                      diagnostic.messageText,
-                                      '\n'
-                                  ),
-                                  code: diagnostic.code,
-                                  tags: getDiagnosticTag(diagnostic)
-                              }));
+                            let range: Range | undefined = undefined;
+                            const inGenerated = isInGeneratedCode(
+                                file.text,
+                                diagnostic.start,
+                                diagnostic.start + diagnostic.length
+                            );
+                            if (inGenerated && snapshot) {
+                                const pos = snapshot.getOriginalPosition(
+                                    snapshot.positionAt(diagnostic.start)
+                                );
+                                range = {
+                                    start: pos,
+                                    end: {
+                                        line: pos.line,
+                                        // adjust length so it doesn't spill over to the next line
+                                        character: pos.character + 1
+                                    }
+                                };
+                                // If not one of the specific error messages then filter out
+                                if (diagnostic.code === 2307) {
+                                    diagnostic = {
+                                        ...diagnostic,
+                                        messageText:
+                                            typeof diagnostic.messageText === 'string' &&
+                                            diagnostic.messageText.includes('./$types')
+                                                ? diagnostic.messageText +
+                                                  ` (this likely means that SvelteKit's type generation didn't run yet - try running it by executing 'npm run dev' or 'npm run build')`
+                                                : diagnostic.messageText
+                                    };
+                                } else if (diagnostic.code === 2694) {
+                                    diagnostic = {
+                                        ...diagnostic,
+                                        messageText:
+                                            typeof diagnostic.messageText === 'string' &&
+                                            diagnostic.messageText.includes('/$types')
+                                                ? diagnostic.messageText +
+                                                  ` (this likely means that SvelteKit's generated types are out of date - try rerunning it by executing 'npm run dev' or 'npm run build')`
+                                                : diagnostic.messageText
+                                    };
+                                } else if (
+                                    diagnostic.code !==
+                                    2355 /*  A function whose declared type is neither 'void' nor 'any' must return a value */
+                                ) {
+                                    continue;
+                                }
+                            }
+
+                            diagnostics.push(map(diagnostic, range));
+                        }
+                    }
 
                     return {
                         filePath: file.fileName,
-                        text: file.text,
+                        text: snapshot?.originalText ?? file.text,
                         diagnostics
                     };
                 }

@@ -2,7 +2,7 @@ import { EncodedSourceMap, TraceMap, originalPositionFor } from '@jridgewell/tra
 import path from 'path';
 import { walk } from 'svelte/compiler';
 import { TemplateNode } from 'svelte/types/compiler/interfaces';
-import { svelte2tsx, IExportedNames } from 'svelte2tsx';
+import { svelte2tsx, IExportedNames, internalHelpers } from 'svelte2tsx';
 import ts from 'typescript';
 import { Position, Range, TextDocumentContentChangeEvent } from 'vscode-languageserver';
 import {
@@ -24,13 +24,13 @@ import {
     getScriptKindFromAttributes,
     getScriptKindFromFileName,
     isSvelteFilePath,
-    getTsCheckComment,
-    findExports
+    getTsCheckComment
 } from './utils';
 import { Logger } from '../../logger';
 import { dirname, resolve } from 'path';
 import { URI } from 'vscode-uri';
 import { surroundWithIgnoreComments } from './features/utils';
+import { configLoader } from '../../lib/documents/configLoader';
 
 /**
  * An error which occurred while trying to parse/preprocess the svelte file contents.
@@ -397,17 +397,6 @@ export class SvelteDocumentSnapshot implements DocumentSnapshot {
     }
 }
 
-export const kitPageFiles = new Set([
-    '+page.ts',
-    '+page.js',
-    '+layout.ts',
-    '+layout.js',
-    '+page.server.ts',
-    '+page.server.js',
-    '+layout.server.ts',
-    '+layout.server.js'
-]);
-
 /**
  * A js/ts document snapshot suitable for the ts language service and the plugin.
  * Since no mapping has to be done here, it also implements the mapper interface.
@@ -416,6 +405,8 @@ export const kitPageFiles = new Set([
 export class JSOrTSDocumentSnapshot extends IdentityMapper implements DocumentSnapshot {
     scriptKind = getScriptKindFromFileName(this.filePath);
     scriptInfo = null;
+    originalText = this.text;
+    kitFile = false;
     private lineOffsets?: number[];
     private internalLineOffsets?: number[];
     private addedCode: Array<{
@@ -425,13 +416,12 @@ export class JSOrTSDocumentSnapshot extends IdentityMapper implements DocumentSn
         inserted: string;
         total: number;
     }> = [];
-    private originalText = this.text;
-    private kitFile = '';
+    private paramsPath = 'src/params';
+    private serverHooksPath = 'src/hooks.server';
+    private clientHooksPath = 'src/hooks.client';
 
     constructor(public version: number, public readonly filePath: string, private text: string) {
         super(pathToUrl(filePath));
-        const basename = path.basename(this.filePath);
-        this.kitFile = kitPageFiles.has(basename) ? basename : '';
         this.adjustText();
     }
 
@@ -492,7 +482,7 @@ export class JSOrTSDocumentSnapshot extends IdentityMapper implements DocumentSn
             const prev = this.addedCode[idx - 1];
             // Special case: pos is in the middle of an added range
             if (pos > prev.generatedPos && pos < prev.generatedPos + prev.length) {
-                total -= pos - prev.generatedPos;
+                return this.originalPositionAt(prev.originalPos);
             }
         }
 
@@ -546,145 +536,48 @@ export class JSOrTSDocumentSnapshot extends IdentityMapper implements DocumentSn
     }
 
     private adjustText() {
-        this.addedCode = [];
-
-        if (this.kitFile) {
-            const source = ts.createSourceFile(
-                this.filePath,
-                this.originalText,
-                ts.ScriptTarget.Latest,
-                true,
-                this.scriptKind
-            );
-
-            const insert = (pos: number, inserted: string) => {
-                const insertionIdx = this.addedCode.findIndex((c) => c.generatedPos > pos);
-                if (insertionIdx >= 0) {
-                    for (let i = insertionIdx; i < this.addedCode.length; i++) {
-                        this.addedCode[i].generatedPos += inserted.length;
-                        this.addedCode[i].total += inserted.length;
-                    }
-                    const prevTotal = this.addedCode[insertionIdx - 1]?.total ?? 0;
-                    this.addedCode.splice(insertionIdx, 0, {
-                        generatedPos: pos + prevTotal,
-                        originalPos: pos,
-                        length: inserted.length,
-                        inserted,
-                        total: prevTotal + inserted.length
-                    });
-                } else {
-                    const prevTotal = this.addedCode[this.addedCode.length - 1]?.total ?? 0;
-                    this.addedCode.push({
-                        generatedPos: pos + prevTotal,
-                        originalPos: pos,
-                        length: inserted.length,
-                        inserted,
-                        total: prevTotal + inserted.length
-                    });
-                }
-            };
-
-            const exports = findExports(source);
-            const isTsFile = this.filePath.endsWith('.ts');
-
-            // add type to load function if not explicitly typed
-            const load = exports.get('load');
-            if (
-                load?.type === 'function' &&
-                load.node.parameters.length === 1 &&
-                !load.node.parameters[0].type &&
-                (isTsFile || !ts.getJSDocType(load.node))
-            ) {
-                const pos = load.node.parameters[0].getEnd();
-                const inserted = surroundWithIgnoreComments(
-                    `: import('./$types').${this.kitFile.includes('layout') ? 'Layout' : 'Page'}${
-                        this.kitFile.includes('server') ? 'Server' : ''
-                    }LoadEvent`
-                );
-                insert(pos, inserted);
-            }
-
-            // add type to actions variable if not explicitly typed
-            const actions = exports.get('actions');
-            if (
-                actions?.type === 'var' &&
-                !actions.node.type &&
-                (isTsFile || !ts.getJSDocType(actions.node)) &&
-                actions.node.initializer &&
-                ts.isObjectLiteralExpression(actions.node.initializer)
-            ) {
-                const pos = actions.node.initializer.getEnd();
-                const inserted = surroundWithIgnoreComments(
-                    ` satisfies import('./$types').Actions`
-                );
-                insert(pos, inserted);
-            }
-
-            // add type to prerender variable if not explicitly typed
-            const prerender = exports.get('prerender');
-            if (
-                prerender?.type === 'var' &&
-                !prerender.node.type &&
-                (isTsFile || !ts.getJSDocType(prerender.node)) &&
-                prerender.node.initializer
-            ) {
-                const pos = prerender.node.name.getEnd();
-                const inserted = surroundWithIgnoreComments(
-                    ` : import('@sveltejs/kit').PrerenderOption`
-                );
-                insert(pos, inserted);
-            }
-
-            // add type to trailingSlash variable if not explicitly typed
-            const trailingSlash = exports.get('trailingSlash');
-            if (
-                trailingSlash?.type === 'var' &&
-                !trailingSlash.node.type &&
-                (isTsFile || !ts.getJSDocType(trailingSlash.node)) &&
-                trailingSlash.node.initializer
-            ) {
-                const pos = trailingSlash.node.name.getEnd();
-                const inserted = surroundWithIgnoreComments(` : 'never' | 'always' | 'ignore'`); // TODO this should be exported from kit
-                insert(pos, inserted);
-            }
-
-            // add type to ssr variable if not explicitly typed
-            const ssr = exports.get('ssr');
-            if (
-                ssr?.type === 'var' &&
-                !ssr.node.type &&
-                (isTsFile || !ts.getJSDocType(ssr.node)) &&
-                ssr.node.initializer
-            ) {
-                const pos = ssr.node.name.getEnd();
-                const inserted = surroundWithIgnoreComments(` : boolean`);
-                insert(pos, inserted);
-            }
-
-            // add type to csr variable if not explicitly typed
-            const csr = exports.get('csr');
-            if (
-                csr?.type === 'var' &&
-                !csr.node.type &&
-                (isTsFile || !ts.getJSDocType(csr.node)) &&
-                csr.node.initializer
-            ) {
-                const pos = csr.node.name.getEnd();
-                const inserted = surroundWithIgnoreComments(` : boolean`);
-                insert(pos, inserted);
-            }
-
-            // construct generated text from internal text and addedCode array
-            let pos = 0;
-            this.text = '';
-            for (const added of this.addedCode) {
-                this.text += this.originalText.slice(pos, added.originalPos) + added.inserted;
-                pos = added.originalPos;
-            }
-            this.text += this.originalText.slice(pos);
-        } else {
+        const result = internalHelpers.upsertKitFile(
+            ts,
+            this.filePath,
+            {
+                clientHooksPath: this.clientHooksPath,
+                paramsPath: this.paramsPath,
+                serverHooksPath: this.serverHooksPath
+            },
+            () => this.createSource(),
+            surroundWithIgnoreComments
+        );
+        if (!result) {
+            this.kitFile = false;
+            this.addedCode = [];
             this.text = this.originalText;
+            return;
         }
+
+        if (!this.kitFile) {
+            const files = configLoader.getConfig(this.filePath)?.kit?.files;
+            if (files) {
+                this.paramsPath ||= files.params;
+                this.serverHooksPath ||= files.hooks?.server;
+                this.clientHooksPath ||= files.hooks?.client;
+            }
+        }
+
+        const { text, addedCode } = result;
+
+        this.kitFile = true;
+        this.addedCode = addedCode;
+        this.text = text;
+    }
+
+    private createSource() {
+        return ts.createSourceFile(
+            this.filePath,
+            this.originalText,
+            ts.ScriptTarget.Latest,
+            true,
+            this.scriptKind
+        );
     }
 }
 

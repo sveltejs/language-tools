@@ -1,7 +1,9 @@
+import path from 'path';
+import { internalHelpers } from 'svelte2tsx';
 import type ts from 'typescript/lib/tsserverlibrary';
 import { Logger } from '../logger';
-import { isSvelteFilePath } from '../utils';
-import { getVirtualLS } from './sveltekit';
+import { findIdentifier, isSvelteFilePath } from '../utils';
+import { getVirtualLS, isKitRouteExportAllowedIn, kitExports } from './sveltekit';
 
 type _ts = typeof ts;
 
@@ -115,9 +117,7 @@ function getKitDiagnostics<
         const mapped = toOriginalPos(diagnostic.start);
         if (mapped.inGenerated) {
             // If not "Cannot find module './$types' .." then filter out
-            if (diagnostic.code !== 2307) {
-                continue;
-            } else {
+            if (diagnostic.code === 2307) {
                 diagnostic = {
                     ...diagnostic,
                     // adjust length so it doesn't spill over to the next line
@@ -126,9 +126,30 @@ function getKitDiagnostics<
                         typeof diagnostic.messageText === 'string' &&
                         diagnostic.messageText.includes('./$types')
                             ? diagnostic.messageText +
-                              ` (this likely means that SvelteKit's type generation didn't run yet)`
+                              ` (this likely means that SvelteKit's type generation didn't run yet - try running it by executing 'npm run dev' or 'npm run build')`
                             : diagnostic.messageText
                 };
+            } else if (diagnostic.code === 2694) {
+                diagnostic = {
+                    ...diagnostic,
+                    // adjust length so it doesn't spill over to the next line
+                    length: 1,
+                    messageText:
+                        typeof diagnostic.messageText === 'string' &&
+                        diagnostic.messageText.includes('/$types')
+                            ? diagnostic.messageText +
+                              ` (this likely means that SvelteKit's generated types are out of date - try rerunning it by executing 'npm run dev' or 'npm run build')`
+                            : diagnostic.messageText
+                };
+            } else if (diagnostic.code === 2355) {
+                // A function whose declared type is neither 'void' nor 'any' must return a value
+                diagnostic = {
+                    ...diagnostic,
+                    // adjust length so it doesn't spill over to the next line
+                    length: 1
+                };
+            } else {
+                continue;
             }
         }
 
@@ -138,6 +159,35 @@ function getKitDiagnostics<
         };
 
         diagnostics.push(diagnostic);
+    }
+
+    if (methodName === 'getSemanticDiagnostics') {
+        // We're in a Svelte file - check top level exports
+        // We're using the original file to have the correct position without mapping
+        const source = info.languageService.getProgram()?.getSourceFile(fileName);
+        const basename = path.basename(fileName);
+        const validExports = Object.keys(kitExports).filter((key) =>
+            isKitRouteExportAllowedIn(basename, kitExports[key])
+        );
+        if (source && basename.startsWith('+')) {
+            const exports = internalHelpers.findExports(ts, source, /* irrelevant */ false);
+            for (const exportName of exports.keys()) {
+                if (!validExports.includes(exportName) && !exportName.startsWith('_')) {
+                    const node = exports.get(exportName)!.node;
+                    const identifier = findIdentifier(ts, node) ?? node;
+                    diagnostics.push({
+                        file: source,
+                        start: identifier.getStart(),
+                        length: identifier.getEnd() - identifier.getStart(),
+                        messageText: `Invalid export '${exportName}' (valid exports are ${validExports.join(
+                            ', '
+                        )}, or anything with a '_' prefix)`,
+                        category: ts.DiagnosticCategory.Error,
+                        code: 71001 // arbitrary
+                    });
+                }
+            }
+        }
     }
 
     // @ts-ignore TS doesn't get the return type right

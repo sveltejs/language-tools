@@ -10,6 +10,7 @@ import { decorateDiagnostics } from './diagnostics';
 import { decorateFindReferences } from './find-references';
 import { decorateHover } from './hover';
 import { decorateGetImplementation } from './implementation';
+import { decorateInlayHints } from './inlay-hints';
 import { decorateRename } from './rename';
 import { decorateUpdateImports } from './update-imports';
 
@@ -51,6 +52,7 @@ function decorateLanguageServiceInner(
     decorateUpdateImports(ls, snapshotManager, logger);
     decorateCallHierarchy(ls, snapshotManager, typescript);
     decorateHover(ls, info, typescript, logger);
+    decorateInlayHints(ls, info, typescript, logger);
     return ls;
 }
 

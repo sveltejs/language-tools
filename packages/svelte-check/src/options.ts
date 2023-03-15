@@ -128,7 +128,8 @@ function getTsconfig(myArgs: Record<string, any>, workspacePath: string) {
     if (myArgs['no-tsconfig'] || process.argv.includes('--no-tsconfig')) {
         return undefined;
     }
-    let tsconfig: string | undefined = myArgs.tsconfig;
+    let tsconfig: string | undefined =
+        typeof myArgs.tsconfig === 'string' ? myArgs.tsconfig : undefined;
     if (!tsconfig) {
         const ts = findFile(workspacePath, 'tsconfig.json');
         const js = findFile(workspacePath, 'jsconfig.json');
@@ -136,6 +137,9 @@ function getTsconfig(myArgs: Record<string, any>, workspacePath: string) {
     }
     if (tsconfig && !path.isAbsolute(tsconfig)) {
         tsconfig = path.join(workspacePath, tsconfig);
+    }
+    if (tsconfig && !fs.existsSync(tsconfig)) {
+        throw new Error('Could not find tsconfig/jsconfig file at ' + myArgs.tsconfig);
     }
     return tsconfig;
 }

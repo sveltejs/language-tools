@@ -2,7 +2,7 @@ import { basename, dirname } from 'path';
 import type ts from 'typescript/lib/tsserverlibrary';
 import { Logger } from '../logger';
 import { findNodeAtPosition, isSvelteFilePath, isTopLevelExport, replaceDeep } from '../utils';
-import { getVirtualLS, kitExports } from './sveltekit';
+import { getVirtualLS, isKitRouteExportAllowedIn, kitExports } from './sveltekit';
 
 type _ts = typeof ts;
 
@@ -51,18 +51,20 @@ export function decorateCompletions(
             const node = source && findNodeAtPosition(source, position);
             if (node && isTopLevelExport(ts, node, source)) {
                 return {
-                    entries: Object.entries(kitExports).map(([key, value]) => ({
-                        kind: ts.ScriptElementKind.constElement,
-                        name: key,
-                        labelDetails: {
-                            description: value.documentation.map((d) => d.text).join('')
-                        },
-                        sortText: '0',
-                        data: {
-                            __sveltekit: key,
-                            exportName: key // TS needs this
-                        } as any
-                    })),
+                    entries: Object.entries(kitExports)
+                        .filter(([, value]) => isKitRouteExportAllowedIn(basename(fileName), value))
+                        .map(([key, value]) => ({
+                            kind: ts.ScriptElementKind.constElement,
+                            name: key,
+                            labelDetails: {
+                                description: value.documentation.map((d) => d.text).join('')
+                            },
+                            sortText: '0',
+                            data: {
+                                __sveltekit: key,
+                                exportName: key // TS needs this
+                            } as any
+                        })),
                     isGlobalCompletion: false,
                     isMemberCompletion: false,
                     isNewIdentifierLocation: false,
@@ -146,7 +148,7 @@ export function decorateCompletions(
         data
     ) => {
         if ((data as any)?.__sveltekit) {
-            const key = (data as any)?.__sveltekit as keyof typeof kitExports;
+            const key = (data as any)?.__sveltekit;
             return {
                 name: key,
                 kind: ts.ScriptElementKind.constElement,
