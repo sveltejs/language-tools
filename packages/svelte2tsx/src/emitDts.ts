@@ -176,6 +176,22 @@ async function createTsCompilerHost(options: any, svelteMap: SvelteMap) {
             return resolveModuleName(moduleName, containingFile, compilerOptions);
         });
     };
+    host.resolveModuleNameLiterals = (
+        moduleLiterals,
+        containingFile,
+        _redirectedReference,
+        compilerOptions
+    ) => {
+        return moduleLiterals.map((moduleLiteral) => {
+            return {
+                resolvedModule: resolveModuleName(
+                    moduleLiteral.text,
+                    containingFile,
+                    compilerOptions
+                )
+            };
+        });
+    };
 
     function resolveModuleName(name: string, containingFile: string, compilerOptions: any) {
         // Delegate to the TS resolver first.
