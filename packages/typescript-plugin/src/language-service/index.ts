@@ -13,6 +13,7 @@ import { decorateGetImplementation } from './implementation';
 import { decorateInlayHints } from './inlay-hints';
 import { decorateRename } from './rename';
 import { decorateUpdateImports } from './update-imports';
+import { decorateLanguageServiceHost } from './host';
 
 const sveltePluginPatchSymbol = Symbol('sveltePluginPatchSymbol');
 
@@ -31,7 +32,9 @@ export function decorateLanguageService(
     // Decorate using a proxy so we can dynamically enable/disable method
     // patches depending on the enabled state of our config
     const proxy = new Proxy(ls, createProxyHandler(configManager));
+    decorateLanguageServiceHost(info.languageServiceHost);
     decorateLanguageServiceInner(proxy, snapshotManager, logger, info, typescript);
+
     return proxy;
 }
 

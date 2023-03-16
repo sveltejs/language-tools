@@ -607,11 +607,14 @@ function getProxiedLanguageService(info: ts.server.PluginCreateInfo, ts: _ts, lo
 
         // needed for path auto completions
         readDirectory = originalLanguageServiceHost.readDirectory
-            ? (...args: any[]) => {
-                  return originalLanguageServiceHost.readDirectory!(
-                      // @ts-ignore
-                      ...args
-                  );
+            ? (...args: Parameters<NonNullable<ts.LanguageServiceHost['readDirectory']>>) => {
+                  return originalLanguageServiceHost.readDirectory!(...args);
+              }
+            : undefined;
+
+        getDirectories = originalLanguageServiceHost.getDirectories
+            ? (...args: Parameters<NonNullable<ts.LanguageServiceHost['getDirectories']>>) => {
+                  return originalLanguageServiceHost.getDirectories!(...args);
               }
             : undefined;
 
