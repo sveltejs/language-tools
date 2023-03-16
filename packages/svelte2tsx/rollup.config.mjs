@@ -6,10 +6,15 @@ import builtins from 'builtin-modules';
 import fs from 'fs';
 import path from 'path';
 import { decode } from '@jridgewell/sourcemap-codec';
+import { createRequire } from 'module';
+import { fileURLToPath } from 'url'
 
 const DEV = !!process.env.ROLLUP_WATCH;
 
 function repl() {
+    const require = createRequire(import.meta.url);
+    const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
     require('ts-node').register({
         project: 'test/tsconfig.json',
         transpileOnly: true
