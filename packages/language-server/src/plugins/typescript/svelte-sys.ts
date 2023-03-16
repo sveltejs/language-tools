@@ -25,7 +25,7 @@ export function createSvelteSys(
             return snapshot.getText(0, snapshot.getLength());
         },
         readDirectory(path, extensions, exclude, include, depth) {
-            const extensionsWithSvelte = (extensions ?? []).concat('.svelte');
+            const extensionsWithSvelte = extensions ? [...extensions, '.svelte'] : undefined;
 
             return tsSystem.readDirectory(path, extensionsWithSvelte, exclude, include, depth);
         },
