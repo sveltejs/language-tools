@@ -547,6 +547,9 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         const results: ts.CodeFixAction[] = [];
         const quote = getQuotePreference(sourceFile, userPreferences);
 
+        const [tsMajorStr] = ts.version.split('.');
+        const tsSupportHandlerQuickFix = parseInt(tsMajorStr) >= 5;
+
         for (const diagnostic of diagnostics) {
             const start = tsDoc.offsetAt(tsDoc.getGeneratedPosition(diagnostic.range.start));
             const end = tsDoc.offsetAt(tsDoc.getGeneratedPosition(diagnostic.range.end));
@@ -563,10 +566,6 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
 
             const isQuickFixTargetTargetStore =
                 identifier?.escapedText.toString().startsWith('$') && diagnostic.code === 2304;
-            const isQuickFixTargetEventHandler = this.isQuickFixForEventHandler(
-                document,
-                diagnostic
-            );
 
             if (isQuickFixTargetTargetStore) {
                 results.push(
@@ -579,6 +578,15 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                     ))
                 );
             }
+
+            if (tsSupportHandlerQuickFix) {
+                continue;
+            }
+
+            const isQuickFixTargetEventHandler = this.isQuickFixForEventHandler(
+                document,
+                diagnostic
+            );
 
             if (isQuickFixTargetEventHandler) {
                 results.push(
@@ -596,6 +604,8 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         return results;
     }
 
+    // TODO: Remove this in late 2023
+    // when most users have upgraded to TS 5.0+
     private async getSvelteStoreQuickFixes(
         identifier: ts.Identifier,
         lang: ts.LanguageService,
@@ -705,7 +715,9 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
 
         const newText = [
             ...jsDoc,
-            `function ${identifier.text}(${parametersText})${useJsDoc ? '' : ': ' + returnType} {`,
+            `function ${identifier.text}(${parametersText})${
+                useJsDoc || returnType === 'any' ? '' : ': ' + returnType
+            } {`,
             formatCodeBasis.indent +
                 `throw new Error(${quote}Function not implemented.${quote})` +
                 formatCodeBasis.semi,

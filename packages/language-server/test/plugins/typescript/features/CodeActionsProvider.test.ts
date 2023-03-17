@@ -246,7 +246,7 @@ describe('CodeActionsProvider', () => {
                             edits: [
                                 {
                                     newText:
-                                        `\n\n${indent}function handleClick(event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement; }): any {\n` +
+                                        `\n\n${indent}function handleClick(event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement; }) {\n` +
                                         `${indent}${indent}throw new Error("Function not implemented.");\n` +
                                         `${indent}}\n`,
                                     range: {
