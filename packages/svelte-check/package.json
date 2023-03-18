@@ -30,7 +30,7 @@
         "import-fresh": "^3.2.1",
         "sade": "^1.7.4",
         "svelte-preprocess": "^5.0.0",
-        "typescript": "^4.9.4"
+        "typescript": "^5.0.2"
     },
     "peerDependencies": {
         "svelte": "^3.55.0"

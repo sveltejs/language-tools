@@ -16,7 +16,7 @@
         "lint": "prettier --check ."
     },
     "dependencies": {
-        "typescript": "^4.9.3"
+        "typescript": "^5.0.2"
     },
     "devDependencies": {
         "prettier": "2.8.1",
