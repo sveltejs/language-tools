@@ -183,7 +183,12 @@ async function createLanguageService(
     // by the time they need to be accessed synchronously by DocumentSnapshots.
     await configLoader.loadConfigs(workspacePath);
 
-    const svelteModuleLoader = createSvelteModuleLoader(getSnapshot, compilerOptions, tsSystem);
+    const svelteModuleLoader = createSvelteModuleLoader(
+        getSnapshot,
+        compilerOptions,
+        tsSystem,
+        ts.resolveModuleName
+    );
 
     let svelteTsPath: string;
     try {

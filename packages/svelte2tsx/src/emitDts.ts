@@ -178,7 +178,6 @@ async function createTsCompilerHost(options: any, svelteMap: SvelteMap) {
             return resolveModuleName(moduleName, containingFile, compilerOptions);
         });
     };
-    // @ts-expect-error remove once we bump dev dep to TS 5
     host.resolveModuleNameLiterals = (
         moduleLiterals,
         containingFile,

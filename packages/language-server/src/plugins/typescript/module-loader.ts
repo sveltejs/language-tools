@@ -126,7 +126,8 @@ class ImpliedNodeFormatResolver {
 export function createSvelteModuleLoader(
     getSnapshot: (fileName: string) => DocumentSnapshot,
     compilerOptions: ts.CompilerOptions,
-    tsSystem: ts.System
+    tsSystem: ts.System,
+    tsResolveModuleName: typeof ts.resolveModuleName
 ) {
     const svelteSys = createSvelteSys(getSnapshot, tsSystem);
     const moduleCache = new ModuleResolutionCache();
@@ -186,7 +187,7 @@ export function createSvelteModuleLoader(
         // Delegate to the TS resolver first.
         // If that does not bring up anything, try the Svelte Module loader
         // which is able to deal with .svelte files.
-        const tsResolvedModule = ts.resolveModuleName(
+        const tsResolvedModule = tsResolveModuleName(
             name,
             containingFile,
             compilerOptions,
@@ -199,7 +200,7 @@ export function createSvelteModuleLoader(
             return tsResolvedModule;
         }
 
-        const svelteResolvedModule = ts.resolveModuleName(
+        const svelteResolvedModule = tsResolveModuleName(
             name,
             containingFile,
             compilerOptions,
