@@ -579,25 +579,23 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                 );
             }
 
-            if (tsSupportHandlerQuickFix) {
-                continue;
-            }
-
-            const isQuickFixTargetEventHandler = this.isQuickFixForEventHandler(
-                document,
-                diagnostic
-            );
-
-            if (isQuickFixTargetEventHandler) {
-                results.push(
-                    ...this.getEventHandlerQuickFixes(
-                        identifier,
-                        tsDoc,
-                        typeChecker,
-                        quote,
-                        formatCodeBasis
-                    )
+            if (!tsSupportHandlerQuickFix) {
+                const isQuickFixTargetEventHandler = this.isQuickFixForEventHandler(
+                    document,
+                    diagnostic
                 );
+
+                if (isQuickFixTargetEventHandler) {
+                    results.push(
+                        ...this.getEventHandlerQuickFixes(
+                            identifier,
+                            tsDoc,
+                            typeChecker,
+                            quote,
+                            formatCodeBasis
+                        )
+                    );
+                }
             }
         }
 
