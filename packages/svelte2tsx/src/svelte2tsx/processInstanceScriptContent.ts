@@ -1,6 +1,6 @@
 import MagicString from 'magic-string';
 import { Node } from 'estree-walker';
-import * as ts from 'typescript';
+import ts from 'typescript';
 import { getBinaryAssignmentExpr, isNotPropertyNameOfImport, moveNode } from './utils/tsAst';
 import { ExportedNames, is$$PropsDeclaration } from './nodes/ExportedNames';
 import { ImplicitTopLevelNames } from './nodes/ImplicitTopLevelNames';
@@ -158,16 +158,13 @@ export function processInstanceScriptContent(
 
         if (ts.isFunctionDeclaration(node)) {
             exportedNames.handleExportFunctionOrClass(node);
-
-            pushScope();
-            onLeaveCallbacks.push(() => popScope());
         }
 
         if (ts.isClassDeclaration(node)) {
             exportedNames.handleExportFunctionOrClass(node);
         }
 
-        if (ts.isBlock(node) || ts.isArrowFunction(node) || ts.isFunctionExpression(node)) {
+        if (ts.isBlock(node) || ts.isFunctionLike(node)) {
             pushScope();
             onLeaveCallbacks.push(() => popScope());
         }

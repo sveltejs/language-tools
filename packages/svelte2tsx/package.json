@@ -41,7 +41,7 @@
     },
     "peerDependencies": {
         "svelte": "^3.55",
-        "typescript": "^4.9.4"
+        "typescript": "^4.9.4 || ^5.0.0"
     },
     "scripts": {
         "build": "rollup -c",
