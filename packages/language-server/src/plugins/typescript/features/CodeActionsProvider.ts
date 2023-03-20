@@ -227,7 +227,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             }
         ];
 
-        const documentChangesPromises = fixActions.flatMap((fix) =>
+        const documentChangesPromises = fixActions.map((fix) =>
             this.convertAndFixCodeFixAction({
                 document,
                 fix,
