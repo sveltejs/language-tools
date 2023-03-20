@@ -29,6 +29,7 @@ import {
     isNotNullOrUndefined,
     memoize,
     modifyLines,
+    normalizePath,
     pathToUrl,
     possiblyComponent
 } from '../../../utils';
@@ -43,6 +44,7 @@ import {
 } from '../utils';
 import { CompletionsProviderImpl } from './CompletionProvider';
 import {
+    findClosestContainingNode,
     findContainingNode,
     FormatCodeBasis,
     getFormatCodeBasis,
@@ -52,7 +54,7 @@ import {
     SnapshotMap
 } from './utils';
 import { DiagnosticCode } from './DiagnosticsProvider';
-import { groupBy } from 'lodash';
+import { createGetCanonicalFileName } from '../../../utils';
 
 /**
  * TODO change this to protocol constant if it's part of the protocol
@@ -67,7 +69,6 @@ interface RefactorArgs {
 }
 
 interface CustomFixCannotFindNameInfo extends ts.CodeFixAction {
-    name: string;
     position: Position;
 }
 
@@ -91,6 +92,7 @@ interface QuickFixAllResolveInfo extends TextDocumentIdentifier {
 const FIX_IMPORT_FIX_NAME = 'import';
 const FIX_IMPORT_FIX_ID = 'fixMissingImport';
 const FIX_IMPORT_FIX_DESCRIPTION = 'Add all missing imports';
+const nonIdentifierRegex = /[\`\~\!\%\^\&\*\(\)\-\=\+\[\{\]\}\\\|\;\:\'\"\,\.\<\>/\?\s]/;
 
 export class CodeActionsProviderImpl implements CodeActionsProvider {
     constructor(
@@ -166,18 +168,6 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         );
         const formatCodeBasis = getFormatCodeBasis(formatCodeSettings);
 
-        const fix = lang.getCombinedCodeFix(
-            {
-                type: 'file',
-                fileName: tsDoc.filePath
-            },
-            codeAction.data.fixId,
-            formatCodeSettings,
-            userPreferences
-        );
-
-        const snapshots = new SnapshotMap(this.lsAndTsDocResolver);
-
         const getDiagnostics = memoize(() =>
             lang.getSemanticDiagnostics(tsDoc.filePath).map(
                 (dia): Diagnostic => ({
@@ -188,10 +178,47 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             )
         );
 
-        if (cancellationToken?.isCancellationRequested) {
-            return codeAction;
+        const isImportFix = codeAction.data.fixName === FIX_IMPORT_FIX_NAME;
+        const virtualDocInfo = isImportFix
+            ? await this.createVirtualDocumentForCombinedImportCodeFix(
+                  document,
+                  getDiagnostics(),
+                  tsDoc,
+                  lang
+              )
+            : undefined;
+
+        const fix = lang.getCombinedCodeFix(
+            {
+                type: 'file',
+                fileName: (virtualDocInfo?.virtualDoc ?? document).getFilePath()!
+            },
+            codeAction.data.fixId,
+            formatCodeSettings,
+            userPreferences
+        );
+
+        if (virtualDocInfo) {
+            const getCanonicalFileName = createGetCanonicalFileName(
+                ts.sys.useCaseSensitiveFileNames
+            );
+
+            const virtualDocPath = getCanonicalFileName(
+                normalizePath(virtualDocInfo.virtualDoc.getFilePath()!)
+            );
+
+            for (const change of fix.changes) {
+                if (getCanonicalFileName(normalizePath(change.fileName)) === virtualDocPath) {
+                    change.fileName = tsDoc.filePath;
+
+                    this.removeDuplicatedComponentImport(virtualDocInfo.insertedNames, change);
+                }
+            }
+
+            await this.lsAndTsDocResolver.deleteSnapshot(virtualDocPath);
         }
 
+        const snapshots = new SnapshotMap(this.lsAndTsDocResolver);
         const fixActions: ts.CodeFixAction[] = [
             {
                 fixName: codeAction.data.fixName,
@@ -199,47 +226,6 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                 description: ''
             }
         ];
-
-        const isImportFix = codeAction.data.fixName === FIX_IMPORT_FIX_NAME;
-        if (isImportFix) {
-            const componentActions =
-                this.getComponentImportQuickFix(
-                    document,
-                    lang,
-                    tsDoc,
-                    userPreferences,
-                    getDiagnostics(),
-                    formatCodeSettings
-                ) ?? [];
-
-            const svelteQuickFixes = this.getSvelteQuickFixes(
-                lang,
-                document,
-                getDiagnostics().filter(
-                    (diag) => document.getText()[document.offsetAt(diag.range.start)] === '$'
-                ),
-                tsDoc,
-                formatCodeBasis,
-                userPreferences,
-                formatCodeSettings
-            );
-
-            const fixes = Object.values(
-                groupBy(
-                    [...componentActions, ...svelteQuickFixes].filter((info) => {
-                        const regex = this.toImportMemberRegex(info.name);
-                        return !fix.changes.some((c) =>
-                            c.textChanges.some((c) => regex.test(c.newText))
-                        );
-                    }),
-                    (info) => info.name
-                )
-            )
-                .map((info) => info[0])
-                .filter(isNotNullOrUndefined);
-
-            fixActions.push(...fixes);
-        }
 
         const documentChangesPromises = fixActions.flatMap((fix) =>
             this.convertAndFixCodeFixAction({
@@ -252,19 +238,14 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                 skipAddScriptTag: true
             })
         );
-
-        let documentChanges = (await Promise.all(documentChangesPromises)).flat();
+        const documentChanges = (await Promise.all(documentChangesPromises)).flat();
 
         if (cancellationToken?.isCancellationRequested) {
             return codeAction;
         }
 
         if (isImportFix) {
-            documentChanges = this.combineImportQuickFix(
-                documentChanges,
-                document,
-                formatCodeBasis
-            );
+            this.fixCombinedImportQuickFix(documentChanges, document, formatCodeBasis);
         }
 
         codeAction.edit = {
@@ -274,67 +255,125 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         return codeAction;
     }
 
-    private combineImportQuickFix(
+    /**
+     * Do not use this in regular code action
+     * This'll cause TypeScript to rebuild and invalidate caches every time. It'll be slow
+     */
+    private async createVirtualDocumentForCombinedImportCodeFix(
+        document: Document,
+        diagnostics: Diagnostic[],
+        tsDoc: DocumentSnapshot,
+        lang: ts.LanguageService
+    ) {
+        const virtualUri = document.uri + '.__virtual__.svelte';
+        const names = new Set<string>();
+        const sourceFile = lang.getProgram()?.getSourceFile(tsDoc.filePath);
+        if (!sourceFile) {
+            return undefined;
+        }
+
+        for (const diagnostic of diagnostics) {
+            if (
+                diagnostic.range.start.line < 0 ||
+                diagnostic.range.end.line < 0 ||
+                diagnostic.code !== DiagnosticCode.CANNOT_FIND_NAME
+            ) {
+                continue;
+            }
+            const identifier = this.findIdentifierForDiagnostic(tsDoc, diagnostic, sourceFile);
+            const name = identifier?.text;
+            if (!name || names.has(name)) {
+                continue;
+            }
+
+            if (name.startsWith('$')) {
+                names.add(name.slice(1));
+            } else if (!isInScript(diagnostic.range.start, document)) {
+                const offset = document.offsetAt(diagnostic.range.start);
+                const node = document.html.findNodeAt(offset);
+
+                if (possiblyComponent(node) && node.start === offset - 1) {
+                    names.add(toGeneratedSvelteComponentName(name));
+                }
+            }
+        }
+
+        if (!names.size) {
+            return undefined;
+        }
+
+        const inserts = Array.from(names.values())
+            .map((name) => name + ';')
+            .join('');
+
+        // assumption: imports are always at the top of the script tag
+        // so these appends won't change the position of the edits
+        const text = document.getText();
+        const newText = document.scriptInfo
+            ? text.slice(0, document.scriptInfo.end) + inserts + text.slice(document.scriptInfo.end)
+            : `${document.getText()}<script>${inserts}</script>`;
+
+        const virtualDoc = new Document(virtualUri, newText);
+        // let typescript know about the virtual document
+        await this.lsAndTsDocResolver.getSnapshot(virtualDoc);
+
+        return {
+            virtualDoc: new Document(virtualUri, newText),
+            insertedNames: names
+        };
+    }
+
+    /**
+     * Remove component default import if there is a named import with the same name
+     */
+    private removeDuplicatedComponentImport(
+        insertedNames: Set<string>,
+        change: ts.FileTextChanges
+    ) {
+        for (const name of insertedNames) {
+            const unSuffixedNames = changeSvelteComponentName(name);
+            const matchRegex = unSuffixedNames != name && this.toImportMemberRegex(unSuffixedNames);
+            if (
+                !matchRegex ||
+                !change.textChanges.some((textChange) => textChange.newText.match(matchRegex))
+            ) {
+                continue;
+            }
+
+            const importRegex = new RegExp(`\\s+import ${name} from ('|")(.*)('|");?\r?\n?`);
+            change.textChanges = change.textChanges
+                .map((textChange) => ({
+                    ...textChange,
+                    newText: textChange.newText.replace(importRegex, '')
+                }))
+                // in case there are replacements
+                .filter((change) => change.span.length || change.newText);
+        }
+    }
+
+    private fixCombinedImportQuickFix(
         documentChanges: TextDocumentEdit[],
         document: Document,
         formatCodeBasis: FormatCodeBasis
     ) {
-        const insertGroups = new Map<string, TextEdit[]>();
-        for (const documentChange of documentChanges) {
-            for (const edit of documentChange.edits) {
-                const key = `${documentChange.textDocument.uri}#${edit.range.start.line}:${edit.range.start.character}`;
-                insertGroups.set(key, [...(insertGroups.get(key) ?? []), edit]);
-            }
+        if (!documentChanges.length || document.scriptInfo || document.moduleScriptInfo) {
+            return;
         }
 
-        const startScript = document.scriptInfo?.startPos;
+        const editForThisFile = documentChanges.find(
+            (change) => change.textDocument.uri === document.uri
+        );
 
-        for (const [, insertGroup] of insertGroups) {
-            for (const edit of insertGroup) {
-                edit.newText =
-                    formatCodeBasis.baseIndent + edit.newText.trim() + formatCodeBasis.newLine;
-            }
+        if (editForThisFile?.edits.length) {
+            const [first] = editForThisFile.edits;
+            first.newText =
+                getNewScriptStartTag(this.configManager.getConfig()) +
+                formatCodeBasis.baseIndent +
+                first.newText.trimStart();
 
-            const firstRange = insertGroup[0]?.range;
-            if (
-                firstRange &&
-                startScript &&
-                firstRange.start.line === startScript.line &&
-                firstRange.start.character === startScript.character
-            ) {
-                insertGroup[0].newText = formatCodeBasis.newLine + insertGroup[0].newText;
-            }
+            const last = editForThisFile.edits[editForThisFile.edits.length - 1];
+            last.newText = last.newText + '</script>' + formatCodeBasis.newLine;
         }
-
-        if (documentChanges.length && !document.scriptInfo && !document.moduleScriptInfo) {
-            const textDocument = {
-                uri: document.uri,
-                version: null
-            };
-
-            documentChanges = [
-                {
-                    textDocument,
-                    edits: [
-                        TextEdit.insert(
-                            Position.create(0, 0),
-                            getNewScriptStartTag(this.configManager.getConfig())
-                        )
-                    ]
-                },
-                ...documentChanges,
-                {
-                    textDocument,
-                    edits: [
-                        TextEdit.insert(
-                            Position.create(0, 0),
-                            '</script>' + formatCodeBasis.newLine
-                        )
-                    ]
-                }
-            ];
-        }
-        return documentChanges;
     }
 
     private toImportMemberRegex(name: string) {
@@ -631,6 +670,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                                 edit,
                                 true,
                                 startPos,
+                                formatCodeBasis.newLine,
                                 undefined,
                                 skipAddScriptTag
                             );
@@ -744,14 +784,9 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             document,
             DiagnosticCode.CANNOT_FIND_NAME,
             diagnostics,
-            (possibleIdentifier) => {
-                // in case it is not a identifier, but wrong regex syntax
-                try {
-                    return this.toImportMemberRegex(possibleIdentifier).test(edit.newText);
-                } catch (error) {
-                    return false;
-                }
-            }
+            (possibleIdentifier) =>
+                !nonIdentifierRegex.test(possibleIdentifier) &&
+                this.toImportMemberRegex(possibleIdentifier).test(edit.newText)
         );
     }
 
@@ -912,7 +947,6 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                         fixName: FIX_IMPORT_FIX_NAME,
                         fixId: FIX_IMPORT_FIX_ID,
                         fixAllDescription: FIX_IMPORT_FIX_DESCRIPTION,
-                        name: changeSvelteComponentName(c.name),
                         position: originalPosition
                     })
                 ) ?? [];
@@ -978,14 +1012,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         );
 
         for (const diagnostic of cannotFindNameDiagnostics) {
-            const start = tsDoc.offsetAt(tsDoc.getGeneratedPosition(diagnostic.range.start));
-            const end = tsDoc.offsetAt(tsDoc.getGeneratedPosition(diagnostic.range.end));
-
-            const identifier = findContainingNode(
-                sourceFile,
-                { start, length: end - start },
-                ts.isIdentifier
-            );
+            const identifier = this.findIdentifierForDiagnostic(tsDoc, diagnostic, sourceFile);
 
             if (!identifier) {
                 continue;
@@ -1027,7 +1054,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                 continue;
             }
 
-            const originalPosition = tsDoc.getOriginalPosition(tsDoc.positionAt(start));
+            const originalPosition = tsDoc.getOriginalPosition(tsDoc.positionAt(identifier.pos));
             results.push(
                 ...fixes.map((fix) => ({
                     name: identifier.getText(),
@@ -1038,6 +1065,23 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         }
 
         return results;
+    }
+
+    private findIdentifierForDiagnostic(
+        tsDoc: DocumentSnapshot,
+        diagnostic: Diagnostic,
+        sourceFile: ts.SourceFile
+    ) {
+        const start = tsDoc.offsetAt(tsDoc.getGeneratedPosition(diagnostic.range.start));
+        const end = tsDoc.offsetAt(tsDoc.getGeneratedPosition(diagnostic.range.end));
+
+        const identifier = findClosestContainingNode(
+            sourceFile,
+            { start, length: end - start },
+            ts.isIdentifier
+        );
+
+        return identifier;
     }
 
     private getSvelteStoreQuickFixes(

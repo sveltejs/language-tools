@@ -628,7 +628,7 @@ describe('CompletionProviderImpl', () => {
         assert.strictEqual(
             harmonizeNewLines(additionalTextEdits![0]?.newText),
             // " instead of ' because VSCode uses " by default when there are no other imports indicating otherwise
-            `${newLine}${indent}import { blubb } from "../definitions";${newLine}${newLine}`
+            `${newLine}${indent}import { blubb } from "../definitions";${newLine}`
         );
 
         assert.deepEqual(
@@ -748,7 +748,7 @@ describe('CompletionProviderImpl', () => {
         assert.strictEqual(
             harmonizeNewLines(additionalTextEdits![0]?.newText),
             // " instead of ' because VSCode uses " by default when there are no other imports indicating otherwise
-            `${newLine}${indent}import { onMount } from "svelte";${newLine}${newLine}`
+            `${newLine}${indent}import { onMount } from "svelte";${newLine}`
         );
 
         assert.deepEqual(
@@ -772,7 +772,7 @@ describe('CompletionProviderImpl', () => {
         assert.strictEqual(
             harmonizeNewLines(additionalTextEdits![0]?.newText),
             // " instead of ' because VSCode uses " by default when there are no other imports indicating otherwise
-            `${newLine}${indent}import { onMount } from "svelte";${newLine}${newLine}`
+            `${newLine}${indent}import { onMount } from "svelte";${newLine}`
         );
 
         assert.deepEqual(
@@ -1284,7 +1284,7 @@ describe('CompletionProviderImpl', () => {
 
         assert.strictEqual(
             additionalTextEdits?.[0].newText,
-            `${newLine}${indent}import { ScndImport } from "./to-import";${newLine}${newLine}`
+            `${newLine}${indent}import { ScndImport } from "./to-import";${newLine}`
         );
     });
 
