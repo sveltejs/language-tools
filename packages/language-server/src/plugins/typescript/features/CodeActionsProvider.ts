@@ -289,10 +289,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             if (name.startsWith('$')) {
                 names.add(name.slice(1));
             } else if (!isInScript(diagnostic.range.start, document)) {
-                const offset = document.offsetAt(diagnostic.range.start);
-                const node = document.html.findNodeAt(offset);
-
-                if (possiblyComponent(node) && node.start === offset - 1) {
+                if (this.isComponentStartTag(identifier)) {
                     names.add(toGeneratedSvelteComponentName(name));
                 }
             }
@@ -325,6 +322,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
 
     /**
      * Remove component default import if there is a named import with the same name
+     * Usually happens with reexport or inheritance of component library
      */
     private removeDuplicatedComponentImport(
         insertedNames: Set<string>,
@@ -891,23 +889,9 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             ) {
                 continue;
             }
-            const start = tsDoc.offsetAt(tsDoc.getGeneratedPosition(diagnostic.range.start));
-            const end = tsDoc.offsetAt(tsDoc.getGeneratedPosition(diagnostic.range.end));
 
-            const node = findContainingNode(
-                sourceFile,
-                {
-                    start,
-                    length: end - start
-                },
-                (node): node is ts.Identifier =>
-                    ts.isCallExpression(node.parent) &&
-                    ts.isIdentifier(node.parent.expression) &&
-                    node.parent.expression.text === '__sveltets_2_ensureComponent' &&
-                    ts.isIdentifier(node)
-            );
-
-            if (!node) {
+            const node = this.findIdentifierForDiagnostic(tsDoc, diagnostic, sourceFile);
+            if (!node || !this.isComponentStartTag(node)) {
                 return;
             }
 
@@ -983,6 +967,15 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         }
 
         return result;
+    }
+
+    private isComponentStartTag(node: ts.Identifier) {
+        return (
+            ts.isCallExpression(node.parent) &&
+            ts.isIdentifier(node.parent.expression) &&
+            node.parent.expression.text === '__sveltets_2_ensureComponent' &&
+            ts.isIdentifier(node)
+        );
     }
 
     private numberOfDirectorySeparators(path: string) {
