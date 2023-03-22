@@ -12,7 +12,8 @@
             "outFiles": ["${workspaceRoot}/packages/svelte-vscode/dist/**/*.js"],
             "preLaunchTask": "npm: watch",
             "env": {
-                "TSS_DEBUG": "5859"
+                "TSS_DEBUG": "5859",
+                "TSS_REMOTE_DEBUG": "5859"
             }
         },
         {
