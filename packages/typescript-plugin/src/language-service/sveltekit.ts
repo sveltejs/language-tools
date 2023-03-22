@@ -643,6 +643,11 @@ function getProxiedLanguageService(info: ts.server.PluginCreateInfo, ts: _ts, lo
         useCaseSensitiveFileNames = originalLanguageServiceHost.useCaseSensitiveFileNames
             ? () => originalLanguageServiceHost.useCaseSensitiveFileNames!()
             : undefined;
+
+        realpath = originalLanguageServiceHost.realpath
+            ? (...args: Parameters<NonNullable<ts.LanguageServiceHost['realpath']>>) =>
+                  originalLanguageServiceHost.realpath!(...args)
+            : undefined;
     }
 
     // Ideally we'd create a full Proxy of the language service, but that seems to have cache issues
