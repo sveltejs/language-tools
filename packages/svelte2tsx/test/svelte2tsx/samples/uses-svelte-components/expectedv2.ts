@@ -12,7 +12,8 @@ async () => {if(true){
      { svelteHTML.createElement("h1", {});  }
  }
  { svelteHTML.createElement("svelte:options", {});}
- { svelteHTML.createElement("svelte:fragment", {});}};
+ { svelteHTML.createElement("svelte:fragment", {});}
+ { svelteHTML.createElement("svelte:document", {    "foo":`bar`,"on:click":e => {},});}};
 return { props: /** @type {Record<string, never>} */ ({}), slots: {}, events: {} }}
 
 export default class Input__SvelteComponent_ extends __sveltets_2_createSvelte2TsxComponent(__sveltets_2_partial(__sveltets_2_with_any_event(render()))) {
