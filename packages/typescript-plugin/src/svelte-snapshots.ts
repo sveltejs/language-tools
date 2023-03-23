@@ -347,20 +347,19 @@ export class SvelteSnapshotManager {
                     // the user has a tsconfig.json with different lib settings like in
                     // https://github.com/sveltejs/language-tools/issues/1733
                     const originalText = readFile(path) || '';
-                    return originalText.replace('/// <reference lib="dom" />', '');
+                    const toReplace = '/// <reference lib="dom" />';
+                    return originalText.replace(toReplace, ' '.repeat(toReplace.length));
                 } else if (normalizedPath.endsWith('svelte2tsx/svelte-shims.d.ts')) {
                     let originalText = readFile(path) || '';
                     if (!originalText.includes('// -- start svelte-ls-remove --')) {
                         return originalText; // uses an older version of svelte2tsx or is already patched
                     }
+                    const startIdx = originalText.indexOf('// -- start svelte-ls-remove --');
+                    const endIdx = originalText.indexOf('// -- end svelte-ls-remove --');
                     originalText =
-                        originalText.substring(
-                            0,
-                            originalText.indexOf('// -- start svelte-ls-remove --')
-                        ) +
-                        originalText.substring(
-                            originalText.indexOf('// -- end svelte-ls-remove --')
-                        );
+                        originalText.substring(0, startIdx) +
+                        ' '.repeat(endIdx - startIdx) +
+                        originalText.substring(endIdx);
                     return originalText;
                 } else if (isSvelteFilePath(path)) {
                     this.logger.debug('Read Svelte file:', path);
