@@ -27,7 +27,13 @@ import {
 } from '../../../lib/documents';
 import { AttributeContext, getAttributeContextAtPosition } from '../../../lib/documents/parseHtml';
 import { LSConfigManager } from '../../../ls-config';
-import { flatten, getRegExpMatches, isNotNullOrUndefined, pathToUrl } from '../../../utils';
+import {
+    flatten,
+    getRegExpMatches,
+    isNotNullOrUndefined,
+    modifyLines,
+    pathToUrl
+} from '../../../utils';
 import { AppCompletionItem, AppCompletionList, CompletionsProvider } from '../../interfaces';
 import { ComponentInfoProvider, ComponentPartInfo } from '../ComponentInfoProvider';
 import { SvelteDocumentSnapshot } from '../DocumentSnapshot';
@@ -42,8 +48,9 @@ import {
 } from '../utils';
 import { getJsDocTemplateCompletion } from './getJsDocTemplateCompletion';
 import {
-    findContainingNode,
     getComponentAtPosition,
+    getFormatCodeBasis,
+    getNewScriptStartTag,
     isKitTypePath,
     isPartOfImportStatement
 } from './utils';
@@ -674,6 +681,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         if (actions) {
             const edit: TextEdit[] = [];
 
+            const formatCodeBasis = getFormatCodeBasis(formatCodeOptions);
             for (const action of actions) {
                 for (const change of action.changes) {
                     edit.push(
@@ -683,6 +691,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
                             change,
                             isImport,
                             comp.position,
+                            formatCodeBasis.newLine,
                             is$typeImport
                         )
                     );
@@ -729,6 +738,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         changes: ts.FileTextChanges,
         isImport: boolean,
         originalTriggerPosition: Position,
+        newLine: string,
         is$typeImport?: boolean
     ): TextEdit[] {
         return changes.textChanges.map((change) =>
@@ -738,6 +748,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
                 change,
                 isImport,
                 originalTriggerPosition,
+                newLine,
                 is$typeImport
             )
         );
@@ -749,23 +760,35 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         change: ts.TextChange,
         isImport: boolean,
         originalTriggerPosition: Position,
-        is$typeImport?: boolean
+        newLine: string,
+        is$typeImport?: boolean,
+        isCombinedCodeAction?: boolean
     ): TextEdit {
-        change.newText = this.changeComponentImport(
-            change.newText,
-            isInScript(originalTriggerPosition, doc),
-            is$typeImport
-        );
+        change.newText = isCombinedCodeAction
+            ? modifyLines(change.newText, (line) =>
+                  this.fixImportNewText(
+                      line,
+                      isInScript(originalTriggerPosition, doc),
+                      is$typeImport
+                  )
+              )
+            : this.fixImportNewText(
+                  change.newText,
+                  isInScript(originalTriggerPosition, doc),
+                  is$typeImport
+              );
 
         const scriptTagInfo = snapshot.scriptInfo || snapshot.moduleScriptInfo;
+        // no script tag defined yet, add it.
         if (!scriptTagInfo) {
-            // no script tag defined yet, add it.
-            const lang = this.configManager.getConfig().svelte.defaultScriptLanguage;
-            const scriptLang = lang === 'none' ? '' : ` lang="${lang}"`;
+            if (isCombinedCodeAction) {
+                return TextEdit.insert(Position.create(0, 0), change.newText);
+            }
 
+            const config = this.configManager.getConfig();
             return TextEdit.replace(
                 beginOfDocumentRange,
-                `<script${scriptLang}>${ts.sys.newLine}${change.newText}</script>${ts.sys.newLine}`
+                `${getNewScriptStartTag(config)}${change.newText}</script>${newLine}`
             );
         }
 
@@ -809,7 +832,14 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
             !change.newText.startsWith('\r\n') &&
             !change.newText.startsWith('\n')
         ) {
-            change.newText = ts.sys.newLine + change.newText;
+            change.newText = newLine + change.newText;
+        }
+
+        const after = doc.getText().slice(doc.offsetAt(range.end));
+        // typescript add empty line after import when the generated ts file
+        // doesn't have new line at the start of the file
+        if (after.startsWith('\r\n') || after.startsWith('\n')) {
+            change.newText = change.newText.trimEnd() + newLine;
         }
 
         return TextEdit.replace(range, change.newText);
@@ -828,7 +858,7 @@ export class CompletionsProviderImpl implements CompletionsProvider<CompletionEn
         );
     }
 
-    private changeComponentImport(
+    private fixImportNewText(
         importText: string,
         actionTriggeredInScript: boolean,
         is$typeImport?: boolean

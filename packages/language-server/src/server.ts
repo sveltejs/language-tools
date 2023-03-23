@@ -253,7 +253,8 @@ export function startServer(options?: LSOptions) {
                                   evt.initializationOptions?.shouldFilterCodeActionKind
                                   ? (kind) => clientSupportedCodeActionKinds.includes(kind)
                                   : () => true
-                          )
+                          ),
+                          resolveProvider: true
                       }
                     : true,
                 executeCommandProvider: clientSupportApplyEditCommand
@@ -377,6 +378,10 @@ export function startServer(options?: LSOptions) {
                 type: MessageType.Error
             });
         }
+    });
+    connection.onCodeActionResolve((codeAction, cancellationToken) => {
+        const data = codeAction.data as TextDocumentIdentifier;
+        return pluginHost.resolveCodeAction(data, codeAction, cancellationToken);
     });
 
     connection.onCompletionResolve((completionItem, cancellationToken) => {

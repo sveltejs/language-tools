@@ -11,6 +11,7 @@ import { DocumentSnapshot, SvelteDocumentSnapshot } from '../DocumentSnapshot';
 import { LSAndTSDocResolver } from '../LSAndTSDocResolver';
 import { or } from '../../../utils';
 import { FileMap } from '../../../lib/documents/fileCollection';
+import { LSConfig } from '../../../ls-config';
 
 type NodePredicate = (node: ts.Node) => boolean;
 
@@ -401,4 +402,10 @@ export function findChildOfKind(node: ts.Node, kind: ts.SyntaxKind): ts.Node | u
             return foundInChildren;
         }
     }
+}
+
+export function getNewScriptStartTag(lsConfig: Readonly<LSConfig>) {
+    const lang = lsConfig.svelte.defaultScriptLanguage;
+    const scriptLang = lang === 'none' ? '' : ` lang="${lang}"`;
+    return `<script${scriptLang}>${ts.sys.newLine}`;
 }
