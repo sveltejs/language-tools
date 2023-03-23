@@ -445,7 +445,7 @@ export const kitExports: Record<
 
 export function isKitRouteExportAllowedIn(
     basename: string,
-    kitExport: typeof kitExports[keyof typeof kitExports]
+    kitExport: (typeof kitExports)[keyof typeof kitExports]
 ) {
     if (!basename.startsWith('+')) {
         return false;

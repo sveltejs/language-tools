@@ -332,7 +332,7 @@ export const color = (function (colors, mods) {
     const fn = (c1: number, c2: number, str: string) => `\x1b[${c1}m${str}\x1b[${c2}m`;
     for (let i = 0; i < colors.length; i++) obj[colors[i]] = fn.bind(null, 30 + i, 39);
     for (const key in mods) obj[key] = fn.bind(null, mods[key][0], mods[key][1]);
-    return obj as { [K in typeof colors[any] | keyof typeof mods]: (str: string) => string };
+    return obj as { [K in (typeof colors)[any] | keyof typeof mods]: (str: string) => string };
 })(
     ['black', 'red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'white'] as const,
     { grey: [90, 39], bold: [1, 22], italic: [3, 23], underline: [4, 24], hidden: [8, 28] } as const
