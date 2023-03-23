@@ -1,7 +1,7 @@
 import MagicString from 'magic-string';
 import ts from 'typescript';
 import { surroundWithIgnoreComments } from '../../utils/ignore';
-import { preprendStr } from '../../utils/magic-string';
+import { getCurrentPrepends, preprendStr } from '../../utils/magic-string';
 import { extractIdentifiers, getNamesFromLabeledStatement } from '../utils/tsAst';
 
 /**
@@ -69,7 +69,15 @@ export class ImplicitStoreValues {
                 ? node.parent.declarations[node.parent.declarations.length - 1].getEnd()
                 : node.getEnd();
 
-        str.appendRight(nodeEnd + astOffset, storeDeclarations);
+        // Quick-fixing https://github.com/sveltejs/language-tools/issues/1950
+        // TODO think about a SourceMap-wrapper that does these things for us,
+        // or investigate altering the inner workings of SourceMap, or investigate
+        // if we can always use prependStr here (and elsewhere, too)
+        if (getCurrentPrepends(str, nodeEnd + astOffset).length) {
+            preprendStr(str, nodeEnd + astOffset, storeDeclarations);
+        } else {
+            str.appendRight(nodeEnd + astOffset, storeDeclarations);
+        }
     }
 
     private attachStoreValueDeclarationToReactiveAssignment(
@@ -89,9 +97,10 @@ export class ImplicitStoreValues {
         );
         const endPos = node.getEnd() + astOffset;
 
-        // Hack for quick-fixing https://github.com/sveltejs/language-tools/issues/1097
+        // Quick-fixing https://github.com/sveltejs/language-tools/issues/1097
         // TODO think about a SourceMap-wrapper that does these things for us,
-        // or investigate altering the inner workings of SourceMap
+        // or investigate altering the inner workings of SourceMap, or investigate
+        // if we can always use prependStr here (and elsewhere, too)
         if (str.original.charAt(endPos - 1) !== ';') {
             preprendStr(str, endPos, storeDeclarations);
         } else {
