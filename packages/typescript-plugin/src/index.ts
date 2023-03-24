@@ -229,7 +229,12 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
             project.projectService.openFiles.set(scriptInfo.path, undefined);
         }
 
-        project.addRoot(scriptInfo);
+        if ((project as any).projectRootPath) {
+            // Only add the file to the project if it has a projectRootPath, because else
+            // a ts.Assert error will be thrown when multiple inferred projects are tried
+            // to be merged.
+            project.addRoot(scriptInfo);
+        }
     }
 
     return { create, getExternalFiles, onConfigurationChanged };
