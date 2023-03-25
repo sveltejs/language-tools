@@ -23,6 +23,7 @@ type Result = {
     errorCount: number;
     warningCount: number;
     fileCountWithProblems: number;
+    errorMessage?: string;
 };
 
 async function openAllDocuments(
@@ -74,6 +75,12 @@ async function getDiagnostics(
             );
 
             let fileHasProblems = false;
+
+            if(!diagnostic.diagnostics.length) {
+                result.errorMessage = `No inputs were found in ${workspaceUri.fsPath}`
+
+                throw new Error(result.errorMessage)
+             }
 
             diagnostic.diagnostics.forEach((d: Diagnostic) => {
                 if (d.severity === DiagnosticSeverity.Error) {
