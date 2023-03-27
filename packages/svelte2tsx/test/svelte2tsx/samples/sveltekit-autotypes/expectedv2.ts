@@ -1,12 +1,12 @@
 ///<reference types="svelte" />
 ;function render() {
 
-     let data/*Ωignore_startΩ*/: import('./$types').PageData;data = __sveltets_2_any(data);/*Ωignore_endΩ*/;
-     let form/*Ωignore_startΩ*/: import('./$types').ActionData;form = __sveltets_2_any(form);/*Ωignore_endΩ*/;
-     const snapshot/*Ωignore_startΩ*/: import('./$types').Snapshot/*Ωignore_endΩ*/ = {};
+     let data/*Ωignore_startΩ*/: import('./$types.js').PageData;data = __sveltets_2_any(data);/*Ωignore_endΩ*/;
+     let form/*Ωignore_startΩ*/: import('./$types.js').ActionData;form = __sveltets_2_any(form);/*Ωignore_endΩ*/;
+     const snapshot/*Ωignore_startΩ*/: import('./$types.js').Snapshot/*Ωignore_endΩ*/ = {};
 
      let nope/*Ωignore_startΩ*/;nope = __sveltets_2_any(nope);/*Ωignore_endΩ*/;
-     let form/*Ωignore_startΩ*/: import('./$types').ActionData/*Ωignore_endΩ*/ = {}
+     let form/*Ωignore_startΩ*/: import('./$types.js').ActionData/*Ωignore_endΩ*/ = {}
      let data: number/*Ωignore_startΩ*/;data = __sveltets_2_any(data);/*Ωignore_endΩ*/;
 ;
 async () => {};

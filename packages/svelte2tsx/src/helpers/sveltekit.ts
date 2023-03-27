@@ -163,7 +163,7 @@ function upserKitRouteFile(
     if (load?.type === 'function' && load.node.parameters.length === 1 && !load.hasTypeDefinition) {
         const pos = load.node.parameters[0].getEnd();
         const inserted = surround(
-            `: import('./$types').${basename.includes('layout') ? 'Layout' : 'Page'}${
+            `: import('./$types.js').${basename.includes('layout') ? 'Layout' : 'Page'}${
                 basename.includes('server') ? 'Server' : ''
             }LoadEvent`
         );
@@ -175,7 +175,7 @@ function upserKitRouteFile(
     const actions = exports.get('actions');
     if (actions?.type === 'var' && !actions.hasTypeDefinition && actions.node.initializer) {
         const pos = actions.node.initializer.getEnd();
-        const inserted = surround(` satisfies import('./$types').Actions`);
+        const inserted = surround(` satisfies import('./$types.js').Actions`);
         insert(pos, inserted);
     }
 
@@ -192,7 +192,7 @@ function upserKitRouteFile(
             surround,
             insert,
             name,
-            `import('./$types').RequestEvent`,
+            `import('./$types.js').RequestEvent`,
             `Response | Promise<Response>`
         );
     };

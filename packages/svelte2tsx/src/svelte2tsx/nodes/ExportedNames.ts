@@ -57,7 +57,8 @@ export class ExportedNames {
                             internalHelpers.isKitRouteFile(this.basename) &&
                             n.name.getText() === 'snapshot';
                         // TS types are not allowed in JS files, but TS will still pick it up and the ignore comment will filter out the error
-                        const kitType = isKitExport && !type ? `: import('./$types').Snapshot` : '';
+                        const kitType =
+                            isKitExport && !type ? `: import('./$types.js').Snapshot` : '';
                         const nameEnd = n.name.end + this.astOffset;
                         if (kitType) {
                             preprendStr(this.str, nameEnd, surroundWithIgnoreComments(kitType));
@@ -132,7 +133,7 @@ export class ExportedNames {
             // TS types are not allowed in JS files, but TS will still pick it up and the ignore comment will filter out the error
             const kitType =
                 isKitExport && !type
-                    ? `: import('./$types').${
+                    ? `: import('./$types.js').${
                           name === 'data'
                               ? this.basename.includes('layout')
                                   ? 'LayoutData'
