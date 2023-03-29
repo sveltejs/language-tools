@@ -66,6 +66,15 @@ async function getDiagnostics(
             fileCountWithProblems: 0
         };
 
+        const hasFilesToCheck = fs
+            .readdirSync(workspaceUri.fsPath)
+            .some((file) => path.extname(file) === '.svelte');
+
+        if (!hasFilesToCheck) {
+            result.errorMessage = `No files were found in ${workspaceUri.fsPath} directory.`;
+            throw new Error(result.errorMessage);
+        }
+
         for (const diagnostic of diagnostics) {
             writer.file(
                 diagnostic.diagnostics,
