@@ -65,7 +65,7 @@ interface Svelte2TsxComponentConstructorParameters<Props extends {}> {
     /**
      * An HTMLElement to render to. This option is required.
      */
-    target: Element | ShadowRoot;
+    target: Element | Document | ShadowRoot;
     /**
      * A child of `target` to render the component immediately before.
      */
