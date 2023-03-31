@@ -207,6 +207,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                 normalizePath(virtualDocInfo.virtualDoc.getFilePath()!)
             );
 
+            console.log(JSON.stringify(fix.changes, null, 2));
             for (const change of fix.changes) {
                 if (getCanonicalFileName(normalizePath(change.fileName)) === virtualDocPath) {
                     change.fileName = tsDoc.filePath;
@@ -214,6 +215,7 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                     this.removeDuplicatedComponentImport(virtualDocInfo.insertedNames, change);
                 }
             }
+            console.log(JSON.stringify(fix.changes, null, 2));
 
             await this.lsAndTsDocResolver.deleteSnapshot(virtualDocPath);
         }
@@ -342,7 +344,13 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             change.textChanges = change.textChanges
                 .map((textChange) => ({
                     ...textChange,
-                    newText: textChange.newText.replace(importRegex, '')
+                    newText: textChange.newText.replace(importRegex, (match) => {
+                        if (match.split('\n').length > 2) {
+                            return '\n';
+                        } else {
+                            return '';
+                        }
+                    })
                 }))
                 // in case there are replacements
                 .filter((change) => change.span.length || change.newText);
@@ -1003,6 +1011,8 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         const getGlobalCompletion = memoize(() =>
             lang.getCompletionsAtPosition(tsDoc.filePath, 0, userPreferences, formatCodeSettings)
         );
+        const [tsMajorStr] = ts.version.split('.');
+        const tsSupportHandlerQuickFix = parseInt(tsMajorStr) >= 5;
 
         for (const diagnostic of cannotFindNameDiagnostics) {
             const identifier = this.findIdentifierForDiagnostic(tsDoc, diagnostic, sourceFile);
@@ -1012,10 +1022,6 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
             }
 
             const isQuickFixTargetTargetStore = identifier?.escapedText.toString().startsWith('$');
-            const isQuickFixTargetEventHandler = this.isQuickFixForEventHandler(
-                document,
-                diagnostic
-            );
 
             const fixes: ts.CodeFixAction[] = [];
             if (isQuickFixTargetTargetStore) {
@@ -1031,16 +1037,22 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
                 );
             }
 
-            if (isQuickFixTargetEventHandler) {
-                fixes.push(
-                    ...this.getEventHandlerQuickFixes(
-                        identifier,
-                        tsDoc,
-                        typeChecker,
-                        quote,
-                        formatCodeBasis
-                    )
+            if (!tsSupportHandlerQuickFix) {
+                const isQuickFixTargetEventHandler = this.isQuickFixForEventHandler(
+                    document,
+                    diagnostic
                 );
+                if (isQuickFixTargetEventHandler) {
+                    fixes.push(
+                        ...this.getEventHandlerQuickFixes(
+                            identifier,
+                            tsDoc,
+                            typeChecker,
+                            quote,
+                            formatCodeBasis
+                        )
+                    );
+                }
             }
 
             if (!fixes.length) {
@@ -1077,6 +1089,8 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
         return identifier;
     }
 
+    // TODO: Remove this in late 2023
+    // when most users have upgraded to TS 5.0+
     private getSvelteStoreQuickFixes(
         identifier: ts.Identifier,
         lang: ts.LanguageService,
@@ -1180,7 +1194,9 @@ export class CodeActionsProviderImpl implements CodeActionsProvider {
 
         const newText = [
             ...jsDoc,
-            `function ${identifier.text}(${parametersText})${useJsDoc ? '' : ': ' + returnType} {`,
+            `function ${identifier.text}(${parametersText})${
+                useJsDoc || returnType === 'any' ? '' : ': ' + returnType
+            } {`,
             formatCodeBasis.indent +
                 `throw new Error(${quote}Function not implemented.${quote})` +
                 formatCodeBasis.semi,

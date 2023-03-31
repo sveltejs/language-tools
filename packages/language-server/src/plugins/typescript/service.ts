@@ -183,7 +183,12 @@ async function createLanguageService(
     // by the time they need to be accessed synchronously by DocumentSnapshots.
     await configLoader.loadConfigs(workspacePath);
 
-    const svelteModuleLoader = createSvelteModuleLoader(getSnapshot, compilerOptions, tsSystem);
+    const svelteModuleLoader = createSvelteModuleLoader(
+        getSnapshot,
+        compilerOptions,
+        tsSystem,
+        ts.resolveModuleName
+    );
 
     let svelteTsPath: string;
     try {
@@ -442,7 +447,9 @@ async function createLanguageService(
             !compilerOptions.moduleResolution ||
             compilerOptions.moduleResolution === ts.ModuleResolutionKind.Classic
         ) {
-            compilerOptions.moduleResolution = ts.ModuleResolutionKind.NodeJs;
+            compilerOptions.moduleResolution =
+                // NodeJS: up to 4.9, Node10: since 5.0
+                (ts.ModuleResolutionKind as any).NodeJs ?? ts.ModuleResolutionKind.Node10;
         }
         if (
             !compilerOptions.module ||

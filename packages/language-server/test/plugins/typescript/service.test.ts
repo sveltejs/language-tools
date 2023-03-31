@@ -65,7 +65,7 @@ describe('service', () => {
             strict: true,
             declaration: false,
             module: ts.ModuleKind.ESNext,
-            moduleResolution: ts.ModuleResolutionKind.NodeJs,
+            moduleResolution: ts.ModuleResolutionKind.Node10,
             noEmit: true,
             skipLibCheck: true,
             target: ts.ScriptTarget.ESNext

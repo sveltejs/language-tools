@@ -264,7 +264,7 @@ describe('CodeActionsProvider', () => {
                             edits: [
                                 {
                                     newText:
-                                        `\n\n${indent}function handleClick(event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement; }): any {\n` +
+                                        `\n\n${indent}function handleClick(event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement; }) {\n` +
                                         `${indent}${indent}throw new Error("Function not implemented.");\n` +
                                         `${indent}}\n`,
                                     range: {
@@ -988,8 +988,8 @@ describe('CodeActionsProvider', () => {
                     edits: [
                         {
                             newText:
-                                `\n${indent}import { FixAllImported3 } from \"./importing/c\";\n` +
-                                `${indent}import FixAllImported2 from \"./importing/FixAllImported2.svelte\";\n`,
+                                `\n${indent}import FixAllImported2 from \"./importing/FixAllImported2.svelte\";\n` +
+                                `${indent}import { FixAllImported3 } from \"./importing/c\";\n`,
                             range: {
                                 start: {
                                     character: 18,
